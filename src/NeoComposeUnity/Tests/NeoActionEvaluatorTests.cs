@@ -623,23 +623,23 @@ namespace NeoCompose.Tests
         private static NeoDelegateValue Listener(
             string memberId,
             string? valueId = SaveRootValueId) => new()
-        {
-            memberId = memberId,
-            valueId = valueId,
-        };
+            {
+                memberId = memberId,
+                valueId = valueId,
+            };
 
         private static FunctionWithReturnType Body(
             params Instruction[] instructions) => new()
-        {
-            compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
-            parameters = Array.Empty<Variable>(),
-            instructions = instructions,
-            typeInfo = new VoidTypeInfo
             {
-                type = MemberKind.Void,
-                required = true,
-            },
-        };
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                parameters = Array.Empty<Variable>(),
+                instructions = instructions,
+                typeInfo = new VoidTypeInfo
+                {
+                    type = MemberKind.Void,
+                    required = true,
+                },
+            };
 
         private static FunctionCallInstruction CallActionInstruction() => new()
         {
@@ -656,20 +656,20 @@ namespace NeoCompose.Tests
         private static AddActionListenerInstruction AddListener(
             string memberId,
             string? valueId = SaveRootValueId) => new()
-        {
-            type = InstructionKind.AddActionListener,
-            target = ActionWriteTarget(),
-            listener = ListenerPointer(memberId, valueId),
-        };
+            {
+                type = InstructionKind.AddActionListener,
+                target = ActionWriteTarget(),
+                listener = ListenerPointer(memberId, valueId),
+            };
 
         private static RemoveActionListenerInstruction RemoveListener(
             string memberId,
             string? valueId = SaveRootValueId) => new()
-        {
-            type = InstructionKind.RemoveActionListener,
-            target = ActionWriteTarget(),
-            listener = ListenerPointer(memberId, valueId),
-        };
+            {
+                type = InstructionKind.RemoveActionListener,
+                target = ActionWriteTarget(),
+                listener = ListenerPointer(memberId, valueId),
+            };
 
         private static WriteTarget ActionWriteTarget() => new()
         {
@@ -685,20 +685,20 @@ namespace NeoCompose.Tests
         private static ValuePointer ListenerPointer(
             string memberId,
             string? valueId) => new()
-        {
-            type = PointerKind.Value,
-            value = new Value
             {
-                typeInfo = ActionType(),
-                value = new JObject
+                type = PointerKind.Value,
+                value = new Value
                 {
-                    ["memberId"] = memberId,
-                    ["valueId"] = valueId is null
+                    typeInfo = ActionType(),
+                    value = new JObject
+                    {
+                        ["memberId"] = memberId,
+                        ["valueId"] = valueId is null
                         ? JValue.CreateNull()
                         : new JValue(valueId),
+                    },
                 },
-            },
-        };
+            };
 
         private static KeyOfPointer ActionPointer() =>
             KeyOf(KeyOf(RootVariable(), "Save"), "OnDamaged");
@@ -944,23 +944,23 @@ namespace NeoCompose.Tests
             string id,
             string name,
             params Instruction[] instructions) => new()
-        {
-            id = id,
-            projectId = ProjectId,
-            name = name,
-            kind = MemberKind.NSFunction,
-            code = "compiled test listener",
-            returnTypeInfo = new VoidTypeInfo
             {
-                type = MemberKind.Void,
-                required = true,
-            },
-            argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
-            Dispatch = NeoFunctionDispatchKind.Synchronous,
-            action = new FunctionWithReturnType
-            {
-                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
-                parameters = new[]
+                id = id,
+                projectId = ProjectId,
+                name = name,
+                kind = MemberKind.NSFunction,
+                code = "compiled test listener",
+                returnTypeInfo = new VoidTypeInfo
+                {
+                    type = MemberKind.Void,
+                    required = true,
+                },
+                argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
+                Dispatch = NeoFunctionDispatchKind.Synchronous,
+                action = new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = new[]
                 {
                     Parameter("__this__", new ClassTypeInfo
                     {
@@ -975,18 +975,18 @@ namespace NeoCompose.Tests
                         classId = "class-root",
                     }),
                 },
-                instructions = instructions,
-                // A void NSFunction's compiled body carries the Null
-                // statement-body result marker, not Void.
-                typeInfo = new PrimitiveTypeInfo
-                {
-                    type = MemberKind.Null,
-                    required = true,
+                    instructions = instructions,
+                    // A void NSFunction's compiled body carries the Null
+                    // statement-body result marker, not Void.
+                    typeInfo = new PrimitiveTypeInfo
+                    {
+                        type = MemberKind.Null,
+                        required = true,
+                    },
                 },
-            },
-            createdAt = "x",
-            updatedAt = "x",
-        };
+                createdAt = "x",
+                updatedAt = "x",
+            };
 
         private static Dictionary<string, object?> RuntimeRoot(
             NeoClient client,
@@ -1015,17 +1015,17 @@ namespace NeoCompose.Tests
             string classId,
             string valueId,
             NeoMemberStorage storage = NeoMemberStorage.Inherit) => new()
-        {
-            id = id,
-            projectId = ProjectId,
-            name = name,
-            kind = MemberKind.Class,
-            classId = classId,
-            valueId = valueId,
-            Storage = storage,
-            createdAt = "x",
-            updatedAt = "x",
-        };
+            {
+                id = id,
+                projectId = ProjectId,
+                name = name,
+                kind = MemberKind.Class,
+                classId = classId,
+                valueId = valueId,
+                Storage = storage,
+                createdAt = "x",
+                updatedAt = "x",
+            };
 
         private static NeoSchemaClass SchemaClass(
             string id,
@@ -1095,18 +1095,18 @@ namespace NeoCompose.Tests
         private static OperationPointer Arithmetic(
             string op,
             params Pointer[] pointers) => new()
-        {
-            type = PointerKind.Operation,
-            operation = new ArithmeticOperation
             {
-                type = OperationKind.Arithmetic,
-                arithmetic = new ArithmeticOpInfo
+                type = PointerKind.Operation,
+                operation = new ArithmeticOperation
                 {
-                    type = op,
-                    pointers = pointers,
+                    type = OperationKind.Arithmetic,
+                    arithmetic = new ArithmeticOpInfo
+                    {
+                        type = op,
+                        pointers = pointers,
+                    },
                 },
-            },
-        };
+            };
 
         private static VariablePointer RootVariable() => new()
         {

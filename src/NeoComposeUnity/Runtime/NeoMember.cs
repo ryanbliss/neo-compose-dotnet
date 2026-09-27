@@ -29,9 +29,17 @@ namespace NeoCompose.Runtime
     /// </summary>
     public abstract class NeoMember : NeoNode, System.IDisposable
     {
-        internal virtual void RefreshCommittedValue() { }
-        public Member member { get; }
-        public NeoValueOwnership ownership { get; }
+        internal virtual void RefreshCommittedValue()
+        {
+        }
+        public Member member
+        {
+            get;
+        }
+        public NeoValueOwnership ownership
+        {
+            get;
+        }
         /// <summary>
         /// The override-value-id passed to the ctor — together with
         /// <see cref="Member.id"/> it composes the registry key
@@ -39,12 +47,18 @@ namespace NeoCompose.Runtime
         /// <see cref="Dispose"/> can compute the unregister key without
         /// reaching into the typed intermediate.
         /// </summary>
-        public string? overrideValueId { get; }
+        public string? overrideValueId
+        {
+            get;
+        }
         private string? registryKey;
         internal string RegistryKey => registryKey ??= NeoClient.MakeNodeKey(
             member.RuntimeDeclarationIdentity, overrideValueId, ownership);
         private MemberValue? boundValue;
-        internal bool IsRegisteredWithClient { get; set; }
+        internal bool IsRegisteredWithClient
+        {
+            get; set;
+        }
         public MemberValue? value
         {
             get => boundValue;
@@ -76,7 +90,10 @@ namespace NeoCompose.Runtime
         /// <see cref="NeoPartialLeafValue"/>); nothing else should need it.
         /// </para>
         /// </summary>
-        public PartialLeafMemberValue? partialLeafValue { get; protected set; }
+        public PartialLeafMemberValue? partialLeafValue
+        {
+            get; protected set;
+        }
 
         /// <summary>
         /// True when this node's bound row is a P42 <c>~partial</c> envelope
@@ -94,7 +111,10 @@ namespace NeoCompose.Runtime
         /// to resolve <c>__this__</c> from the nearest Class-shaped
         /// ancestor.
         /// </summary>
-        public NeoMember? parent { get; internal set; }
+        public NeoMember? parent
+        {
+            get; internal set;
+        }
         public event System.Action<NeoMember>? OnChanged;
         public event System.Action<NeoMember>? OnDisposed;
         /// <summary>
@@ -103,11 +123,15 @@ namespace NeoCompose.Runtime
         /// disposed; consumers holding stale references shouldn't expect
         /// further updates.
         /// </summary>
-        public bool isDisposed { get; private set; }
+        public bool isDisposed
+        {
+            get; private set;
+        }
         private bool isDisposingChildren;
         protected bool BeginDisposeChildren()
         {
-            if (isDisposed || isDisposingChildren) return false;
+            if (isDisposed || isDisposingChildren)
+                return false;
             isDisposingChildren = true;
             return true;
         }
@@ -147,7 +171,8 @@ namespace NeoCompose.Runtime
         /// </summary>
         public virtual void Dispose()
         {
-            if (isDisposed) return;
+            if (isDisposed)
+                return;
             isDisposed = true;
             OnDisposed?.Invoke(this);
             client.UnregisterNode(this);
@@ -160,9 +185,11 @@ namespace NeoCompose.Runtime
 
         internal void ReleaseDeclarationReference()
         {
-            if (declarationReferenceCount <= 0) return;
+            if (declarationReferenceCount <= 0)
+                return;
             declarationReferenceCount--;
-            if (declarationReferenceCount == 0) Dispose();
+            if (declarationReferenceCount == 0)
+                Dispose();
         }
 
         protected void NotifyChanged()
@@ -172,7 +199,8 @@ namespace NeoCompose.Runtime
 
         protected void NotifyChanged(NeoMember changed)
         {
-            if (isDisposed) return;
+            if (isDisposed)
+                return;
             OnChanged?.Invoke(changed);
         }
 
@@ -510,7 +538,8 @@ namespace NeoCompose.Runtime
                         member.updatedAt) as TValue;
                 }
 
-                if (!client.TryGetOverlaidValue(ownership, resolvedValueId, out TValue? match)) return null;
+                if (!client.TryGetOverlaidValue(ownership, resolvedValueId, out TValue? match))
+                    return null;
                 return match;
             }
         }
@@ -548,7 +577,8 @@ namespace NeoCompose.Runtime
 
         public override void Dispose()
         {
-            if (isDisposed) return;
+            if (isDisposed)
+                return;
             valueChangeSubscription?.Dispose();
             base.Dispose();
         }
@@ -566,8 +596,10 @@ namespace NeoCompose.Runtime
             NeoValueOwnership changedOwnership,
             string changedValueId)
         {
-            if (isDisposed || changedOwnership != ownership) return;
-            if (changedValueId != valueId) return;
+            if (isDisposed || changedOwnership != ownership)
+                return;
+            if (changedValueId != valueId)
+                return;
             // A removed bound value has no declaration-default object to
             // reconstruct. Retire all live subscribers, including projections
             // replaced in the node cache but still held by their caller.
@@ -660,8 +692,10 @@ namespace NeoCompose.Runtime
         {
             var data = valueData;
             RefreshPartialLeafValue(data is null);
-            if (data is null) BuildEmptyData();
-            else Initialize(data);
+            if (data is null)
+                BuildEmptyData();
+            else
+                Initialize(data);
         }
 
         /// <summary>
@@ -726,12 +760,15 @@ namespace NeoCompose.Runtime
         /// </summary>
         protected TValue? EnsureWritableValue()
         {
-            if (ownership == NeoValueOwnership.Asset) return value;
+            if (ownership == NeoValueOwnership.Asset)
+                return value;
             string? id = valueId;
-            if (id is null) return null;
+            if (id is null)
+                return null;
             TValue? source;
             if (!client.TryGetWritableValue(ownership, id, out source)
-                && !client.TryGetOverlaidValue(ownership, id, out source)) return null;
+                && !client.TryGetOverlaidValue(ownership, id, out source))
+                return null;
             var candidate = (TValue)client.CloneRowForWrite(source!);
             candidate.mark = null;
             return candidate;
@@ -796,7 +833,9 @@ namespace NeoCompose.Runtime
         /// instances where there's nothing to initialize. Saved
         /// variants may pre-allocate.
         /// </summary>
-        virtual protected void BuildEmptyData() { }
+        virtual protected void BuildEmptyData()
+        {
+        }
 
         /// <summary>
         /// Override on collection classes to walk the value's children

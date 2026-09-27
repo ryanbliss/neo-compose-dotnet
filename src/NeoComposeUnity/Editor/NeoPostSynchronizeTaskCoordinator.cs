@@ -29,14 +29,38 @@ namespace NeoCompose.Unity.Editor
             Attempt = descriptor.Attempt;
         }
 
-        public string GenerationId { get; }
-        public string ProjectId { get; }
-        public string VersionId { get; }
-        public string ProjectJsonPath { get; }
-        public string Kind { get; }
-        public string OwnerValueId { get; }
-        public string Name { get; }
-        public int Attempt { get; }
+        public string GenerationId
+        {
+            get;
+        }
+        public string ProjectId
+        {
+            get;
+        }
+        public string VersionId
+        {
+            get;
+        }
+        public string ProjectJsonPath
+        {
+            get;
+        }
+        public string Kind
+        {
+            get;
+        }
+        public string OwnerValueId
+        {
+            get;
+        }
+        public string Name
+        {
+            get;
+        }
+        public int Attempt
+        {
+            get;
+        }
     }
 
     public static class NeoPostSynchronizeTaskHandlers
@@ -49,7 +73,8 @@ namespace NeoCompose.Unity.Editor
             Func<NeoPostSynchronizeTaskContext, CancellationToken, Awaitable> handler)
         {
             NeoPostSynchronizeTasks.ValidateKind(kind, nameof(kind));
-            if (handler == null) throw new ArgumentNullException(nameof(handler));
+            if (handler == null)
+                throw new ArgumentNullException(nameof(handler));
             string normalizedKind = kind.Trim();
 
             lock (Gate)
@@ -96,15 +121,22 @@ namespace NeoCompose.Unity.Editor
                 Handler = handler;
             }
 
-            internal string Kind { get; }
+            internal string Kind
+            {
+                get;
+            }
             internal Func<NeoPostSynchronizeTaskContext, CancellationToken, Awaitable>
-                Handler { get; }
+                Handler
+            {
+                get;
+            }
 
             public void Dispose()
             {
                 lock (Gate)
                 {
-                    if (isDisposed) return;
+                    if (isDisposed)
+                        return;
                     isDisposed = true;
                     if (Registrations.TryGetValue(Kind, out var current) &&
                         ReferenceEquals(current, this))
@@ -143,10 +175,22 @@ namespace NeoCompose.Unity.Editor
         public string Kind { get; set; } = "";
         public string OwnerValueId { get; set; } = "";
         public string Name { get; set; } = "";
-        public NeoPostSynchronizeTaskState State { get; set; }
-        public int Attempt { get; set; }
-        public int Order { get; set; }
-        public string? Error { get; set; }
+        public NeoPostSynchronizeTaskState State
+        {
+            get; set;
+        }
+        public int Attempt
+        {
+            get; set;
+        }
+        public int Order
+        {
+            get; set;
+        }
+        public string? Error
+        {
+            get; set;
+        }
     }
 
     [Serializable]
@@ -158,10 +202,22 @@ namespace NeoCompose.Unity.Editor
         public string ProjectJsonPath { get; set; } = "";
         public string AssetDatabasePath { get; set; } = "";
         public string GeneratedNamespace { get; set; } = "";
-        public NeoPostSynchronizeGenerationStatus Status { get; set; }
-        public int ProcessorAttempts { get; set; }
-        public int NextTaskOrder { get; set; }
-        public string? Error { get; set; }
+        public NeoPostSynchronizeGenerationStatus Status
+        {
+            get; set;
+        }
+        public int ProcessorAttempts
+        {
+            get; set;
+        }
+        public int NextTaskOrder
+        {
+            get; set;
+        }
+        public string? Error
+        {
+            get; set;
+        }
         public List<NeoPostSynchronizeTaskDescriptor> Tasks { get; set; } = new();
     }
 
@@ -187,7 +243,8 @@ namespace NeoCompose.Unity.Editor
 
         public void Save(NeoPostSynchronizeGenerationState state)
         {
-            if (state == null) throw new ArgumentNullException(nameof(state));
+            if (state == null)
+                throw new ArgumentNullException(nameof(state));
             SessionState.SetString(StateKey, JsonConvert.SerializeObject(state));
         }
 
@@ -210,14 +267,16 @@ namespace NeoCompose.Unity.Editor
 
         internal IDisposable BeginCollection(NeoPostSynchronizeGenerationState generation)
         {
-            if (generation == null) throw new ArgumentNullException(nameof(generation));
+            if (generation == null)
+                throw new ArgumentNullException(nameof(generation));
             return NeoPostSynchronizeTasks.BeginCollection(request =>
                 Collect(generation, request));
         }
 
         internal void RecoverInterrupted(NeoPostSynchronizeGenerationState generation)
         {
-            if (generation == null) throw new ArgumentNullException(nameof(generation));
+            if (generation == null)
+                throw new ArgumentNullException(nameof(generation));
             bool changed = false;
             if (generation.Status == NeoPostSynchronizeGenerationStatus.Running)
             {
@@ -228,13 +287,15 @@ namespace NeoCompose.Unity.Editor
 
             foreach (var descriptor in generation.Tasks)
             {
-                if (descriptor.State != NeoPostSynchronizeTaskState.Running) continue;
+                if (descriptor.State != NeoPostSynchronizeTaskState.Running)
+                    continue;
                 descriptor.State = NeoPostSynchronizeTaskState.Pending;
                 descriptor.Error = null;
                 changed = true;
             }
 
-            if (changed) persistence.Save(generation);
+            if (changed)
+                persistence.Save(generation);
         }
 
         internal async Awaitable DispatchAsync(
@@ -242,7 +303,8 @@ namespace NeoCompose.Unity.Editor
             CancellationToken cancellationToken,
             Action<NeoPostSynchronizeTaskDescriptor>? onStarted = null)
         {
-            if (generation == null) throw new ArgumentNullException(nameof(generation));
+            if (generation == null)
+                throw new ArgumentNullException(nameof(generation));
             var ordered = generation.Tasks
                 .OrderBy(descriptor => descriptor.Order)
                 .ThenBy(descriptor => descriptor.Kind, StringComparer.Ordinal)
@@ -253,7 +315,8 @@ namespace NeoCompose.Unity.Editor
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 RequireAuthoritative(generation.GenerationId, cancellationToken);
-                if (descriptor.State == NeoPostSynchronizeTaskState.Succeeded) continue;
+                if (descriptor.State == NeoPostSynchronizeTaskState.Succeeded)
+                    continue;
                 if (descriptor.State == NeoPostSynchronizeTaskState.Failed)
                 {
                     throw TaskFailure(descriptor, descriptor.Error ?? "Task previously failed.");
@@ -342,7 +405,8 @@ namespace NeoCompose.Unity.Editor
             string generationId,
             CancellationToken cancellationToken)
         {
-            if (IsAuthoritative(generationId)) return;
+            if (IsAuthoritative(generationId))
+                return;
             throw new OperationCanceledException(
                 $"Post-sync generation '{generationId}' was superseded.",
                 null,
@@ -395,7 +459,8 @@ namespace NeoCompose.Unity.Editor
             Action<NeoPostSynchronizeTaskDescriptor>? onTaskStarted = null,
             Action? onBeforePreviewRefresh = null)
         {
-            if (generation == null) throw new ArgumentNullException(nameof(generation));
+            if (generation == null)
+                throw new ArgumentNullException(nameof(generation));
 
             await taskCoordinator.DispatchAsync(
                 generation,
@@ -417,7 +482,8 @@ namespace NeoCompose.Unity.Editor
             string generationId,
             CancellationToken cancellationToken)
         {
-            if (persistence.Load()?.GenerationId == generationId) return;
+            if (persistence.Load()?.GenerationId == generationId)
+                return;
             throw new OperationCanceledException(
                 $"Post-sync generation '{generationId}' was superseded.",
                 null,

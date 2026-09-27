@@ -103,14 +103,17 @@ namespace HelloWorld.Assets.Scripts
 
         public static void EnsureEventSystem()
         {
-            if (UnityEngine.Object.FindFirstObjectByType<EventSystem>() != null) return;
+            if (UnityEngine.Object.FindFirstObjectByType<EventSystem>() != null)
+                return;
             _ = new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
         }
 
         public static void DestroyObject(UnityEngine.Object target)
         {
-            if (Application.isPlaying) UnityEngine.Object.Destroy(target);
-            else UnityEngine.Object.DestroyImmediate(target);
+            if (Application.isPlaying)
+                UnityEngine.Object.Destroy(target);
+            else
+                UnityEngine.Object.DestroyImmediate(target);
         }
 
         public static Font BuiltInFont =>

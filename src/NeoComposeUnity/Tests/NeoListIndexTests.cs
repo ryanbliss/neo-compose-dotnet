@@ -34,7 +34,8 @@ namespace NeoCompose.Tests
                 using var subscription = items.OnChanged((_, args, _) =>
                 {
                     seen.Add(args.ReplacedValueIds[0]);
-                    if (nested) return;
+                    if (nested)
+                        return;
                     retained = args;
                     nested = true;
                     second.Set("inner");
@@ -576,7 +577,10 @@ namespace NeoCompose.Tests
                 Node = node;
             }
 
-            internal NeoMemberClass Node { get; }
+            internal NeoMemberClass Node
+            {
+                get;
+            }
             internal string Id => Node.value!.id;
         }
     }

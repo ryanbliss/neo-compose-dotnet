@@ -42,7 +42,8 @@ namespace NeoCompose.Runtime
 
         private bool TryConvertClass(string targetClassId)
         {
-            if (IsReadOnly) throw new InvalidOperationException("Cannot convert a read-only tile.");
+            if (IsReadOnly)
+                throw new InvalidOperationException("Cannot convert a read-only tile.");
             string rowId = valueId ?? throw new InvalidOperationException("Tile conversion requires a backing row.");
             try
             {

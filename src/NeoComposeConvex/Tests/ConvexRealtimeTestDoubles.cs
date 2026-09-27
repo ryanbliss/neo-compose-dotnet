@@ -139,7 +139,8 @@ namespace NeoCompose.Convex.Tests
         {
             foreach (var observer in jsonObservers.ToArray())
             {
-                if (observer.functionName == functionName) observer.onJson(json);
+                if (observer.functionName == functionName)
+                    observer.onJson(json);
             }
         }
 

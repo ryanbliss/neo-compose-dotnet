@@ -23,7 +23,8 @@ namespace NeoCompose.Runtime
             var placement = FindVariantPlacement(receiverId);
             var plan = new NeoWritePlan(this);
             var candidate = new CandidateReplay(this, plan) { PreparingVariant = true };
-            if (candidateReplay is not null) throw new InvalidOperationException("A candidate graph is already active.");
+            if (candidateReplay is not null)
+                throw new InvalidOperationException("A candidate graph is already active.");
             candidateReplay = candidate;
             try
             {
@@ -56,24 +57,28 @@ namespace NeoCompose.Runtime
 
         private (NeoReadOnlyTileGridPrimitive primitive, HashSet<Vector2Int> cells)? FindVariantPlacement(string? receiverId)
         {
-            if (receiverId is null || !HasWorldKind(ResolveValueRow(receiverId)?.classId, "object")) return null;
+            if (receiverId is null || !HasWorldKind(ResolveValueRow(receiverId)?.classId, "object"))
+                return null;
             var pending = new Queue<string>();
             var visited = new HashSet<string>();
             pending.Enqueue(receiverId);
             while (pending.Count > 0)
             {
                 string id = pending.Dequeue();
-                if (!visited.Add(id)) continue;
+                if (!visited.Add(id))
+                    continue;
                 if (HasWorldKind(ResolveValueRow(id)?.classId, "tileGrid"))
                 {
                     var primitive = NeoReadOnlyTileGridPrimitive.Resolve(this, id);
                     foreach (string layerId in primitive.ResolveObjectLayerIds())
                     {
                         var record = GetGridLookupCache(id).ObjectRecord(layerId, receiverId);
-                        if (record is not null) return (primitive, new HashSet<Vector2Int>(record.Footprint));
+                        if (record is not null)
+                            return (primitive, new HashSet<Vector2Int>(record.Footprint));
                     }
                 }
-                foreach (string parent in GridQueryParents(id)) pending.Enqueue(parent);
+                foreach (string parent in GridQueryParents(id))
+                    pending.Enqueue(parent);
             }
             return null;
         }
@@ -83,7 +88,8 @@ namespace NeoCompose.Runtime
         {
             CandidateReplay? candidate = candidateReplay;
             if (candidate?.PreparingVariant != true
-                || candidate.Nodes.Values.Any(node => ReferenceEquals(node, value.BackingNode))) return false;
+                || candidate.Nodes.Values.Any(node => ReferenceEquals(node, value.BackingNode)))
+                return false;
             candidate.Plan.AfterCommit(() => value.RetargetWritableReference(member, valueId, ownership));
             return true;
         }
@@ -101,7 +107,10 @@ namespace NeoCompose.Runtime
             candidate.Remove(root.id);
             if (!replayingVirtualRootIds.Add(root.id))
                 throw new InvalidOperationException($"Sparse constructor dependency cycle at '{root.id}'.");
-            try { candidate.Add(ExpandVirtualInstanceRootCore(root, prepareOnly: true)); }
+            try
+            {
+                candidate.Add(ExpandVirtualInstanceRootCore(root, prepareOnly: true));
+            }
             finally { replayingVirtualRootIds.Remove(root.id); }
             node.RefreshCommittedValue();
             RefreshVirtualWrapperTree(node);

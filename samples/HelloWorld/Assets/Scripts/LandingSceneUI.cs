@@ -39,13 +39,19 @@ namespace HelloWorld.Assets.Scripts
 
         public void Tick()
         {
-            if (!IsOpen) return;
+            if (!IsOpen)
+                return;
 
-            if (Input.GetKeyDown(KeyCode.W)) MoveRequested?.Invoke(Vector2Int.up);
-            if (Input.GetKeyDown(KeyCode.S)) MoveRequested?.Invoke(Vector2Int.down);
-            if (Input.GetKeyDown(KeyCode.A)) MoveRequested?.Invoke(Vector2Int.left);
-            if (Input.GetKeyDown(KeyCode.D)) MoveRequested?.Invoke(Vector2Int.right);
-            if (Input.GetKeyDown(KeyCode.E)) InteractRequested?.Invoke();
+            if (Input.GetKeyDown(KeyCode.W))
+                MoveRequested?.Invoke(Vector2Int.up);
+            if (Input.GetKeyDown(KeyCode.S))
+                MoveRequested?.Invoke(Vector2Int.down);
+            if (Input.GetKeyDown(KeyCode.A))
+                MoveRequested?.Invoke(Vector2Int.left);
+            if (Input.GetKeyDown(KeyCode.D))
+                MoveRequested?.Invoke(Vector2Int.right);
+            if (Input.GetKeyDown(KeyCode.E))
+                InteractRequested?.Invoke();
         }
 
         public void Dispose()
@@ -70,8 +76,10 @@ namespace HelloWorld.Assets.Scripts
 
         public void RenderChrome(string prompt, string status)
         {
-            if (promptText != null) promptText.text = prompt ?? string.Empty;
-            if (statusText != null) statusText.text = status ?? string.Empty;
+            if (promptText != null)
+                promptText.text = prompt ?? string.Empty;
+            if (statusText != null)
+                statusText.text = status ?? string.Empty;
         }
 
         public void SetPromptVisible(bool visible)
@@ -108,7 +116,8 @@ namespace HelloWorld.Assets.Scripts
 
         private void EnsureBuilt()
         {
-            if (root != null) return;
+            if (root != null)
+                return;
 
             SampleUI.EnsureEventSystem();
 

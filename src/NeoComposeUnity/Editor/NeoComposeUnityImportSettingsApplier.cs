@@ -44,7 +44,8 @@ namespace NeoCompose.Unity.Editor
             ProjectFile file,
             ProjectData projectData)
         {
-            if (file.unityTextureSettings == null) return null;
+            if (file.unityTextureSettings == null)
+                return null;
 
             // Custom (one-off) settings: the full object rides inline with a
             // null templateId. Everything beyond the override-shape fields
@@ -78,7 +79,8 @@ namespace NeoCompose.Unity.Editor
             ProjectFile file,
             ProjectData projectData)
         {
-            if (file.unityAudioClipSettings == null) return null;
+            if (file.unityAudioClipSettings == null)
+                return null;
 
             // Custom (one-off) settings ride inline with a null templateId,
             // mirroring the texture path above.
@@ -109,7 +111,8 @@ namespace NeoCompose.Unity.Editor
             ProjectData projectData)
         {
             var settings = ResolveTextureSettings(file, projectData);
-            if (settings == null) return;
+            if (settings == null)
+                return;
 
             importer.textureType = MapTextureType(settings.textureType);
             importer.textureShape = TextureImporterShape.Texture2D;
@@ -153,7 +156,8 @@ namespace NeoCompose.Unity.Editor
             ProjectData projectData)
         {
             var settings = ResolveAudioSettings(file, projectData);
-            if (settings == null) return;
+            if (settings == null)
+                return;
 
             importer.forceToMono = settings.forceToMono;
             importer.loadInBackground = settings.loadInBackground;
@@ -229,7 +233,8 @@ namespace NeoCompose.Unity.Editor
             TextureImporter importer,
             UnitySpriteTextureSettingsTemplate? settings)
         {
-            if (settings == null) return;
+            if (settings == null)
+                return;
 
             importer.spriteImportMode = MapSpriteImportMode(settings.spriteMode);
             importer.spritePixelsPerUnit = (float)settings.pixelsPerUnit;
@@ -316,7 +321,8 @@ namespace NeoCompose.Unity.Editor
         private static object? CreateSpriteEditorDataProvider(TextureImporter importer)
         {
             var factoryType = FindType("UnityEditor.U2D.Sprites.SpriteDataProviderFactories");
-            if (factoryType == null) return null;
+            if (factoryType == null)
+                return null;
 
             var factory = Activator.CreateInstance(factoryType);
             factoryType.GetMethod("Init")!.Invoke(factory, null);
@@ -330,7 +336,8 @@ namespace NeoCompose.Unity.Editor
             foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
             {
                 var type = assembly.GetType(fullName);
-                if (type != null) return type;
+                if (type != null)
+                    return type;
             }
 
             return Type.GetType(fullName);
@@ -363,7 +370,8 @@ namespace NeoCompose.Unity.Editor
                 {
                     var x = offsetX + column * (cellWidth + paddingX);
                     var topY = offsetY + row * (cellHeight + paddingY);
-                    if (x + cellWidth > width || topY + cellHeight > height) return;
+                    if (x + cellWidth > width || topY + cellHeight > height)
+                        return;
 
                     var rect = new Rect(x, height - topY - cellHeight, cellWidth, cellHeight);
                     if (!slice.keepEmptyRects &&
@@ -417,7 +425,8 @@ namespace NeoCompose.Unity.Editor
         private static Texture2D? LoadReadableTexture(string assetPath)
         {
             var absolutePath = Path.GetFullPath(assetPath);
-            if (!File.Exists(absolutePath)) return null;
+            if (!File.Exists(absolutePath))
+                return null;
 
             var texture = new Texture2D(2, 2, TextureFormat.RGBA32, false);
             return texture.LoadImage(File.ReadAllBytes(absolutePath)) ? texture : null;
@@ -433,7 +442,8 @@ namespace NeoCompose.Unity.Editor
             {
                 for (var x = minX; x < maxX; x++)
                 {
-                    if (texture.GetPixel(x, y).a > 0.001f) return false;
+                    if (texture.GetPixel(x, y).a > 0.001f)
+                        return false;
                 }
             }
 
@@ -442,7 +452,8 @@ namespace NeoCompose.Unity.Editor
 
         private static void ApplyTexturePlatformSettings(TextureImporter importer, JObject? platformSettings)
         {
-            if (platformSettings == null) return;
+            if (platformSettings == null)
+                return;
 
             ApplyTexturePlatformSettings(importer, "DefaultTexturePlatform", platformSettings["default"] as JObject, false);
             ApplyTexturePlatformSettings(importer, "Standalone", platformSettings["standalone"] as JObject, true);
@@ -455,7 +466,8 @@ namespace NeoCompose.Unity.Editor
             JObject? settings,
             bool supportsOverride)
         {
-            if (settings == null) return;
+            if (settings == null)
+                return;
 
             var platform = importer.GetPlatformTextureSettings(platformName);
             if (supportsOverride)

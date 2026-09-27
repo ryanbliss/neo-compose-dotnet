@@ -182,10 +182,12 @@ namespace NeoCompose.Tests
         /// </summary>
         private static IEnumerable<JObject> CompiledBodies(JToken token)
         {
-            if (token is not JContainer container) yield break;
+            if (token is not JContainer container)
+                yield break;
             foreach (JToken descendant in container.DescendantsAndSelf())
             {
-                if (descendant is not JObject obj) continue;
+                if (descendant is not JObject obj)
+                    continue;
                 if (obj["parameters"] is JArray && obj["instructions"] is JArray)
                 {
                     yield return obj;

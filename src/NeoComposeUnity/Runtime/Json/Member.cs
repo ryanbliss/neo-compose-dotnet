@@ -221,7 +221,8 @@ namespace NeoCompose.Runtime.Json
 
         private bool ShouldSerializeChainResolvedField(string field)
         {
-            if (!DeclaresWireField(field)) return false;
+            if (!DeclaresWireField(field))
+                return false;
             TryReadOriginalChainResolvedField(field, out object? value);
             return value is not null || !string.IsNullOrEmpty(extendsMemberId);
         }
@@ -321,8 +322,10 @@ namespace NeoCompose.Runtime.Json
             get
             {
                 NeoSubtreeDistributionKind? declared = ChainDeclaredDistribution;
-                if (declared is not null) return declared;
-                if (kind == MemberKind.Generic) return null;
+                if (declared is not null)
+                    return declared;
+                if (kind == MemberKind.Generic)
+                    return null;
                 return NeoSubtreeDistribution
                     .Automatic(kind, DistributionFormat, DistributionSelection)
                     .Distribution;
@@ -498,10 +501,14 @@ namespace NeoCompose.Runtime.Json
     /// no direct C# analog; <c>object?</c> with the implicit invariant
     /// "always null" is the practical equivalent.
     /// </summary>
-    public class NullMember : Member<object?> { }
+    public class NullMember : Member<object?>
+    {
+    }
 
     /// <summary>Mirror of TS-side <c>TMemberBool</c>.</summary>
-    public class BoolMember : Member<bool?> { }
+    public class BoolMember : Member<bool?>
+    {
+    }
 
     /// <summary>
     /// Mirror of TS-side <c>TMemberInt</c>. Stored as <c>double?</c>
@@ -1098,7 +1105,8 @@ namespace NeoCompose.Runtime.Json
         /// </summary>
         private static ParameterDefaultValue? ReadParameterDefault(JToken? token)
         {
-            if (token is null) return null;
+            if (token is null)
+                return null;
             if (token is not JObject wrapper)
             {
                 throw new JsonSerializationException(
@@ -1126,7 +1134,8 @@ namespace NeoCompose.Runtime.Json
             JToken? token,
             JsonSerializer serializer)
         {
-            if (token is null || token.Type == JTokenType.Null) return null;
+            if (token is null || token.Type == JTokenType.Null)
+                return null;
             if (token is not JObject obj)
             {
                 throw new JsonSerializationException(
@@ -1267,7 +1276,9 @@ namespace NeoCompose.Runtime.Json
     /// <summary>
     /// Reference to a callable member.
     /// </summary>
-    public sealed class FunctionRefMember : Member<Dictionary<string, string>?> { }
+    public sealed class FunctionRefMember : Member<Dictionary<string, string>?>
+    {
+    }
 
     /// <summary>
     /// File reference payload shared by file-backed members.
@@ -1324,19 +1335,29 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>Mirror of TS-side <c>TMemberVector2</c>.</summary>
-    public class Vector2Member : Member<NeoVector2Value?> { }
+    public class Vector2Member : Member<NeoVector2Value?>
+    {
+    }
 
     /// <summary>Mirror of TS-side <c>TMemberVector2Int</c>.</summary>
-    public class Vector2IntMember : Member<NeoVector2Value?> { }
+    public class Vector2IntMember : Member<NeoVector2Value?>
+    {
+    }
 
     /// <summary>Mirror of TS-side <c>TMemberVector3</c>.</summary>
-    public class Vector3Member : Member<NeoVector3Value?> { }
+    public class Vector3Member : Member<NeoVector3Value?>
+    {
+    }
 
     /// <summary>Mirror of TS-side <c>TMemberVector3Int</c>.</summary>
-    public class Vector3IntMember : Member<NeoVector3Value?> { }
+    public class Vector3IntMember : Member<NeoVector3Value?>
+    {
+    }
 
     /// <summary>Mirror of TS-side <c>TMemberColor</c>.</summary>
-    public class ColorMember : Member<NeoColorValue?> { }
+    public class ColorMember : Member<NeoColorValue?>
+    {
+    }
 
     /// <summary>
     /// Mirror of TS-side <c>TMemberDecimal</c>
@@ -1422,34 +1443,62 @@ namespace NeoCompose.Runtime.Json
             var value = (MemberKind)discriminator.Value<int>();
             switch (value)
             {
-                case MemberKind.Null: return typeof(NullMember);
-                case MemberKind.Bool: return typeof(BoolMember);
-                case MemberKind.Int: return typeof(IntMember);
-                case MemberKind.Float: return typeof(FloatMember);
-                case MemberKind.String: return typeof(StringMember);
-                case MemberKind.Dictionary: return typeof(DictionaryMember);
-                case MemberKind.List: return typeof(ListMember);
-                case MemberKind.Class: return typeof(ClassMember);
-                case MemberKind.Enum: return typeof(EnumMember);
-                case MemberKind.Lookup: return typeof(LookupMember);
-                case MemberKind.DialogueLookup: return typeof(DialogueLookupMember);
-                case MemberKind.NSProperty: return typeof(NSPropertyMember);
-                case MemberKind.Sprite: return typeof(SpriteMember);
-                case MemberKind.Audio: return typeof(AudioMember);
-                case MemberKind.Function: return typeof(FunctionMember);
-                case MemberKind.NSFunction: return typeof(NSFunctionMember);
-                case MemberKind.FunctionRef: return typeof(FunctionRefMember);
-                case MemberKind.NSDelegate: return typeof(DelegateMember);
-                case MemberKind.NSAction: return typeof(ActionMember);
-                case MemberKind.Variant: return typeof(VariantMember);
-                case MemberKind.Vector2: return typeof(Vector2Member);
-                case MemberKind.Vector2Int: return typeof(Vector2IntMember);
-                case MemberKind.Vector3: return typeof(Vector3Member);
-                case MemberKind.Vector3Int: return typeof(Vector3IntMember);
-                case MemberKind.Color: return typeof(ColorMember);
-                case MemberKind.Decimal: return typeof(DecimalMember);
-                case MemberKind.Generic: return typeof(GenericMember);
-                default: return null;
+                case MemberKind.Null:
+                    return typeof(NullMember);
+                case MemberKind.Bool:
+                    return typeof(BoolMember);
+                case MemberKind.Int:
+                    return typeof(IntMember);
+                case MemberKind.Float:
+                    return typeof(FloatMember);
+                case MemberKind.String:
+                    return typeof(StringMember);
+                case MemberKind.Dictionary:
+                    return typeof(DictionaryMember);
+                case MemberKind.List:
+                    return typeof(ListMember);
+                case MemberKind.Class:
+                    return typeof(ClassMember);
+                case MemberKind.Enum:
+                    return typeof(EnumMember);
+                case MemberKind.Lookup:
+                    return typeof(LookupMember);
+                case MemberKind.DialogueLookup:
+                    return typeof(DialogueLookupMember);
+                case MemberKind.NSProperty:
+                    return typeof(NSPropertyMember);
+                case MemberKind.Sprite:
+                    return typeof(SpriteMember);
+                case MemberKind.Audio:
+                    return typeof(AudioMember);
+                case MemberKind.Function:
+                    return typeof(FunctionMember);
+                case MemberKind.NSFunction:
+                    return typeof(NSFunctionMember);
+                case MemberKind.FunctionRef:
+                    return typeof(FunctionRefMember);
+                case MemberKind.NSDelegate:
+                    return typeof(DelegateMember);
+                case MemberKind.NSAction:
+                    return typeof(ActionMember);
+                case MemberKind.Variant:
+                    return typeof(VariantMember);
+                case MemberKind.Vector2:
+                    return typeof(Vector2Member);
+                case MemberKind.Vector2Int:
+                    return typeof(Vector2IntMember);
+                case MemberKind.Vector3:
+                    return typeof(Vector3Member);
+                case MemberKind.Vector3Int:
+                    return typeof(Vector3IntMember);
+                case MemberKind.Color:
+                    return typeof(ColorMember);
+                case MemberKind.Decimal:
+                    return typeof(DecimalMember);
+                case MemberKind.Generic:
+                    return typeof(GenericMember);
+                default:
+                    return null;
             }
         }
     }

@@ -71,8 +71,14 @@ namespace NeoCompose.Runtime
             this.email = email;
         }
 
-        public string name { get; }
-        public string email { get; }
+        public string name
+        {
+            get;
+        }
+        public string email
+        {
+            get;
+        }
 
         public static NeoComposeUserProfile Empty => new NeoComposeUserProfile("", "");
     }
@@ -105,10 +111,22 @@ namespace NeoCompose.Runtime
             this.retryAfterSeconds = retryAfterSeconds;
         }
 
-        public NeoComposeDevicePollStatus status { get; }
-        public NeoComposeDeviceTokenSuccess? token { get; }
-        public string message { get; }
-        public int retryAfterSeconds { get; }
+        public NeoComposeDevicePollStatus status
+        {
+            get;
+        }
+        public NeoComposeDeviceTokenSuccess? token
+        {
+            get;
+        }
+        public string message
+        {
+            get;
+        }
+        public int retryAfterSeconds
+        {
+            get;
+        }
 
         public static NeoComposeDevicePollResult Pending() =>
             new NeoComposeDevicePollResult(NeoComposeDevicePollStatus.Pending, null, "");
@@ -162,9 +180,18 @@ namespace NeoCompose.Runtime
             this.message = message;
         }
 
-        public NeoComposeDeviceAuthOutcome outcome { get; }
-        public NeoComposeStoredToken? token { get; }
-        public string message { get; }
+        public NeoComposeDeviceAuthOutcome outcome
+        {
+            get;
+        }
+        public NeoComposeStoredToken? token
+        {
+            get;
+        }
+        public string message
+        {
+            get;
+        }
 
         public bool IsSuccess => outcome == NeoComposeDeviceAuthOutcome.Success;
 

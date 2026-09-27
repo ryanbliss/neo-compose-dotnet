@@ -48,40 +48,48 @@ namespace NeoCompose.Runtime
         internal bool TryWritePlacement(
             NeoValueOwnership ownership, ObjectMemberValue owner, string key, MemberValue next, Member member)
         {
-            if (!IsPlacementMember(owner.classId, key)) return TryWriteLeaf(ownership, next, member, "value");
-            if (key != PositionKey || next is not Vector3MemberValue position) return false;
+            if (!IsPlacementMember(owner.classId, key))
+                return TryWriteLeaf(ownership, next, member, "value");
+            if (key != PositionKey || next is not Vector3MemberValue position)
+                return false;
             return TryWriteObjectPosition(ownership, owner, position, member);
         }
 
         private bool TryWriteObjectPosition(
             NeoValueOwnership ownership, ObjectMemberValue owner, Vector3MemberValue next, Member member)
         {
-            if (!CanWriteLeaf(ownership, next, member)) return false;
+            if (!CanWriteLeaf(ownership, next, member))
+                return false;
             using var marker = PlacementWriteMarker.Auto();
             if (next.value is not { } value || !Finite(value.x) || !Finite(value.y) || !Finite(value.z))
                 throw PlacementError("object-position-invalid", $"Object '{owner.id}' requires a finite Position.");
             // Same rounding as the layer builders (ReadObjectOrigin).
             var cell = new Vector2Int(Mathf.RoundToInt(value.x), Mathf.RoundToInt(value.y));
             List<ObjectMove> moves = objectMoveScratch;
-            if (moves.Count != 0) moves = new List<ObjectMove>();
+            if (moves.Count != 0)
+                moves = new List<ObjectMove>();
             try
             {
                 // Validation changes no index; a collision leaves the store
                 // and every index as they were.
                 foreach (NeoTileGridLookupCache cache in gridLookupCaches.Values)
-                    if (ObjectMove.Prepare(cache, owner.id, cell) is { } move) moves.Add(move);
+                    if (ObjectMove.Prepare(cache, owner.id, cell) is { } move)
+                        moves.Add(move);
                 StoreLeaf(ownership, next);
                 if (moves.Count != 0)
                 {
                     InvalidateGridDependentGetterMemo();
-                    foreach (var move in moves) move.Apply();
+                    foreach (var move in moves)
+                        move.Apply();
                 }
                 bool gridLeaf = InvalidateGridLeaf(next.id);
                 NotifyWritableValueChanged(ownership, next.id, "value");
                 // Lifecycle filters read generated properties, whose nodes
                 // refresh during the value notifications above.
-                foreach (var move in moves) move.Cache.RaiseChanged(move);
-                if (gridLeaf) PublishGridLeaf(ownership, next.id);
+                foreach (var move in moves)
+                    move.Cache.RaiseChanged(move);
+                if (gridLeaf)
+                    PublishGridLeaf(ownership, next.id);
             }
             finally
             {

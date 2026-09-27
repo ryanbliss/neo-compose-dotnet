@@ -99,7 +99,8 @@ namespace NeoCompose.Runtime.Json
             object? existingValue,
             JsonSerializer serializer)
         {
-            if (reader.TokenType == JsonToken.Null) return null;
+            if (reader.TokenType == JsonToken.Null)
+                return null;
             var obj = NeoJsonObjectReader.Read(reader);
             RecordShapeContractGuard.ValidateGenericParamConstraint(obj);
             var kind = StrictRecordShapeEnums.ReadDefaulted(
@@ -201,7 +202,8 @@ namespace NeoCompose.Runtime.Json
             object? existingValue,
             JsonSerializer serializer)
         {
-            if (reader.TokenType == JsonToken.Null) return null;
+            if (reader.TokenType == JsonToken.Null)
+                return null;
             var obj = NeoJsonObjectReader.Read(reader);
             RecordShapeContractGuard.ValidateGenericBinding(obj);
             var kind = StrictRecordShapeEnums.ReadDefaulted(

@@ -137,7 +137,8 @@ namespace NeoCompose.Runtime
             }
 
             var ctx = reuseContext ? client.RentDirectFunctionContext(ownership) : client.CreateGetterContext(ownership);
-            if (!reuseContext) ctx.BindRoot(NeoScriptValueMarshaller.ResolveRoot(client, ctx));
+            if (!reuseContext)
+                ctx.BindRoot(NeoScriptValueMarshaller.ResolveRoot(client, ctx));
             object? receiver = NSGetterEvaluator.UnwrapRow(row, ctx, ownership);
             if (receiver is null)
             {
@@ -234,13 +235,15 @@ namespace NeoCompose.Runtime
                     $"NSFunction '{function.Member.name}' is an instance member and requires a receiver.");
             }
             var ctx = reuseContext ? client.RentDirectFunctionContext(NeoValueOwnership.Session) : client.CreateGetterContext(NeoValueOwnership.Session);
-            if (!reuseContext) ctx.BindRoot(NeoScriptValueMarshaller.ResolveRoot(client, ctx));
+            if (!reuseContext)
+                ctx.BindRoot(NeoScriptValueMarshaller.ResolveRoot(client, ctx));
             return new Invocation(function, receiver: null, ctx);
         }
 
         private Task<object?> AwaitExecution(NeoScriptExecutionResult initial)
         {
-            if (!initial.IsPaused) return Task.FromResult(initial.ReturnValue);
+            if (!initial.IsPaused)
+                return Task.FromResult(initial.ReturnValue);
 
             var completion = new TaskCompletionSource<object?>(
                 TaskCreationOptions.RunContinuationsAsynchronously);
@@ -292,9 +295,18 @@ namespace NeoCompose.Runtime
                 Context = context;
             }
 
-            internal NeoResolvedNSFunction Function { get; }
-            internal object? Receiver { get; }
-            internal NSGetterEvaluator.Context Context { get; }
+            internal NeoResolvedNSFunction Function
+            {
+                get;
+            }
+            internal object? Receiver
+            {
+                get;
+            }
+            internal NSGetterEvaluator.Context Context
+            {
+                get;
+            }
         }
     }
 
@@ -320,16 +332,43 @@ namespace NeoCompose.Runtime
                 || Array.Exists(argumentTypes, NeoNSFunctionRuntime.ContainsGeneric);
         }
 
-        internal string MemberId { get; }
-        internal IReadOnlyList<string> DirectCallStack { get; }
-        internal NSFunctionMember Member { get; }
-        internal FunctionWithReturnType Action { get; }
-        internal TypeInfo ReturnTypeInfo { get; }
-        internal FunctionArgumentTypeInfo[] ArgumentTypes { get; }
-        internal bool Deferred { get; }
-        internal Unity.Profiling.ProfilerMarker Profile { get; }
+        internal string MemberId
+        {
+            get;
+        }
+        internal IReadOnlyList<string> DirectCallStack
+        {
+            get;
+        }
+        internal NSFunctionMember Member
+        {
+            get;
+        }
+        internal FunctionWithReturnType Action
+        {
+            get;
+        }
+        internal TypeInfo ReturnTypeInfo
+        {
+            get;
+        }
+        internal FunctionArgumentTypeInfo[] ArgumentTypes
+        {
+            get;
+        }
+        internal bool Deferred
+        {
+            get;
+        }
+        internal Unity.Profiling.ProfilerMarker Profile
+        {
+            get;
+        }
         // Receiver-bound generics are a property of the signature, not the call.
-        internal bool HasGenericSignature { get; }
+        internal bool HasGenericSignature
+        {
+            get;
+        }
         // Terminal marshalling for the declared (non-generic) return type;
         // the resolved function is cached per client, so one delegate serves
         // every invocation.
@@ -554,7 +593,8 @@ namespace NeoCompose.Runtime
             {
                 // Failed/suspended execution may still own continuations. Let their
                 // existing lifetime rules release those scopes instead of pooling them.
-                if (poolScope && completed) client.ReturnFunctionScope(scope);
+                if (poolScope && completed)
+                    client.ReturnFunctionScope(scope);
             }
         }
 
@@ -609,7 +649,8 @@ namespace NeoCompose.Runtime
                 subject);
             // Marshalling usually returns the evaluator's own value; reuse
             // the executor's result instead of allocating a copy of it.
-            if (ReferenceEquals(normalized, execution.ReturnValue)) return execution;
+            if (ReferenceEquals(normalized, execution.ReturnValue))
+                return execution;
             return NeoScriptExecutionResult.Completed(
                 returned: true,
                 normalized);
@@ -617,7 +658,8 @@ namespace NeoCompose.Runtime
 
         internal static bool ContainsGeneric(TypeInfo typeInfo)
         {
-            if (typeInfo.type == MemberKind.Generic) return true;
+            if (typeInfo.type == MemberKind.Generic)
+                return true;
             TypeInfo? delegateReturn = typeInfo switch
             {
                 DelegateTypeInfo delegateType => delegateType.returnTypeInfo,
@@ -625,7 +667,8 @@ namespace NeoCompose.Runtime
                     when argument.type == MemberKind.NSDelegate => argument.returnTypeInfo,
                 _ => null,
             };
-            if (delegateReturn is not null && ContainsGeneric(delegateReturn)) return true;
+            if (delegateReturn is not null && ContainsGeneric(delegateReturn))
+                return true;
             TypeInfo[]? delegateArguments = typeInfo switch
             {
                 DelegateTypeInfo delegateType => delegateType.argumentTypes,
@@ -659,10 +702,12 @@ namespace NeoCompose.Runtime
                 ClassTypeInfo classType => classType.typeArguments,
                 _ => null,
             };
-            if (typeArguments is null) return false;
+            if (typeArguments is null)
+                return false;
             foreach (TypeInfo argument in typeArguments.Values)
             {
-                if (ContainsGeneric(argument)) return true;
+                if (ContainsGeneric(argument))
+                    return true;
             }
             return false;
         }
@@ -972,7 +1017,8 @@ namespace NeoCompose.Runtime
                 IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv,
                 HashSet<string> visitingMembers)
         {
-            if (typeArguments is null) return null;
+            if (typeArguments is null)
+                return null;
             var resolved = new Dictionary<string, TypeInfo>(typeArguments.Count);
             foreach (var pair in typeArguments)
             {
@@ -1045,73 +1091,73 @@ namespace NeoCompose.Runtime
                             genericEnv,
                             visitingMembers);
                     case LookupMember lookup:
-                    {
-                        if (!client.TryGetMember(
-                                lookup.collectionMemberId,
-                                out ListMember? collection)
-                            || !client.TryGetMember(
-                                collection.entryMemberId,
-                                out JsonMember? entryMember))
                         {
-                            throw new NSGetterRuntimeError(
-                                $"Generic NSFunction Lookup binding '{lookup.id}' has a missing collection entry type.");
-                        }
-                        return new LookupTypeInfo
-                        {
-                            type = MemberKind.Lookup,
-                            required = lookup.Requirement == NeoMemberRequirementKind.Required,
-                            collectionMemberId = lookup.collectionMemberId,
-                            collectionValueId = lookup.collectionValueId,
-                            entryTypeInfo = TypeInfoFromBindingMember(
-                                client,
-                                entryMember,
-                                genericEnv,
-                                visitingMembers),
-                        };
-                    }
-                    case DelegateMember delegateMember:
-                    {
-                        var arguments = new TypeInfo[delegateMember.argumentTypes.Length];
-                        for (int i = 0; i < arguments.Length; i++)
-                        {
-                            arguments[i] = ResolveInvocationTypeInfo(
-                                client,
-                                delegateMember.argumentTypes[i],
-                                genericEnv,
-                                visitingMembers);
-                        }
-                        return new DelegateTypeInfo
-                        {
-                            type = MemberKind.NSDelegate,
-                            required = delegateMember.Requirement == NeoMemberRequirementKind.Required,
-                            returnTypeInfo = delegateMember.returnTypeInfo is VoidTypeInfo
-                                ? delegateMember.returnTypeInfo
-                                : ResolveInvocationTypeInfo(
+                            if (!client.TryGetMember(
+                                    lookup.collectionMemberId,
+                                    out ListMember? collection)
+                                || !client.TryGetMember(
+                                    collection.entryMemberId,
+                                    out JsonMember? entryMember))
+                            {
+                                throw new NSGetterRuntimeError(
+                                    $"Generic NSFunction Lookup binding '{lookup.id}' has a missing collection entry type.");
+                            }
+                            return new LookupTypeInfo
+                            {
+                                type = MemberKind.Lookup,
+                                required = lookup.Requirement == NeoMemberRequirementKind.Required,
+                                collectionMemberId = lookup.collectionMemberId,
+                                collectionValueId = lookup.collectionValueId,
+                                entryTypeInfo = TypeInfoFromBindingMember(
                                     client,
-                                    delegateMember.returnTypeInfo,
+                                    entryMember,
                                     genericEnv,
                                     visitingMembers),
-                            argumentTypes = arguments,
-                        };
-                    }
-                    case ActionMember actionMember:
-                    {
-                        var arguments = new TypeInfo[actionMember.argumentTypes.Length];
-                        for (int i = 0; i < arguments.Length; i++)
-                        {
-                            arguments[i] = ResolveInvocationTypeInfo(
-                                client,
-                                actionMember.argumentTypes[i],
-                                genericEnv,
-                                visitingMembers);
+                            };
                         }
-                        return new ActionTypeInfo
+                    case DelegateMember delegateMember:
                         {
-                            type = MemberKind.NSAction,
-                            required = actionMember.Requirement == NeoMemberRequirementKind.Required,
-                            argumentTypes = arguments,
-                        };
-                    }
+                            var arguments = new TypeInfo[delegateMember.argumentTypes.Length];
+                            for (int i = 0; i < arguments.Length; i++)
+                            {
+                                arguments[i] = ResolveInvocationTypeInfo(
+                                    client,
+                                    delegateMember.argumentTypes[i],
+                                    genericEnv,
+                                    visitingMembers);
+                            }
+                            return new DelegateTypeInfo
+                            {
+                                type = MemberKind.NSDelegate,
+                                required = delegateMember.Requirement == NeoMemberRequirementKind.Required,
+                                returnTypeInfo = delegateMember.returnTypeInfo is VoidTypeInfo
+                                    ? delegateMember.returnTypeInfo
+                                    : ResolveInvocationTypeInfo(
+                                        client,
+                                        delegateMember.returnTypeInfo,
+                                        genericEnv,
+                                        visitingMembers),
+                                argumentTypes = arguments,
+                            };
+                        }
+                    case ActionMember actionMember:
+                        {
+                            var arguments = new TypeInfo[actionMember.argumentTypes.Length];
+                            for (int i = 0; i < arguments.Length; i++)
+                            {
+                                arguments[i] = ResolveInvocationTypeInfo(
+                                    client,
+                                    actionMember.argumentTypes[i],
+                                    genericEnv,
+                                    visitingMembers);
+                            }
+                            return new ActionTypeInfo
+                            {
+                                type = MemberKind.NSAction,
+                                required = actionMember.Requirement == NeoMemberRequirementKind.Required,
+                                argumentTypes = arguments,
+                            };
+                        }
                     case NullMember:
                     case BoolMember:
                     case IntMember:
@@ -1147,7 +1193,8 @@ namespace NeoCompose.Runtime
             IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv,
             HashSet<string> visitingMembers)
         {
-            if (bindings is null) return null;
+            if (bindings is null)
+                return null;
             var resolved = new Dictionary<string, TypeInfo>(bindings.Count);
             foreach (var pair in bindings)
             {
@@ -1305,15 +1352,24 @@ namespace NeoCompose.Runtime
             private readonly NSGetterEvaluator.Context context;
             private static readonly string[] names = { "Assets", "Save", "Session" };
             internal RuntimeRoot(NeoClient client, NSGetterEvaluator.Context context)
-            { this.client = client; this.context = context; }
+            {
+                this.client = client;
+                this.context = context;
+            }
             public bool TryGetValue(string key, out object? value)
             {
                 NeoMemberClass? node = key switch
                 {
-                    "Assets" => client.assets, "Save" => client.save,
-                    "Session" => client.session, _ => null,
+                    "Assets" => client.assets,
+                    "Save" => client.save,
+                    "Session" => client.session,
+                    _ => null,
                 };
-                if (node is null) { value = null; return false; }
+                if (node is null)
+                {
+                    value = null;
+                    return false;
+                }
                 NeoValueOwnership ownership = key == "Assets" ? NeoValueOwnership.Asset
                     : key == "Save" ? NeoValueOwnership.Save : NeoValueOwnership.Session;
                 value = node.value is ObjectMemberValue row
@@ -1335,11 +1391,15 @@ namespace NeoCompose.Runtime
                 TryGetValue(item.Key, out var value) && Equals(value, item.Value);
             public IEnumerator<KeyValuePair<string, object?>> GetEnumerator()
             {
-                foreach (string key in names) yield return new KeyValuePair<string, object?>(key, this[key]);
+                foreach (string key in names)
+                    yield return new KeyValuePair<string, object?>(key, this[key]);
             }
             System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
             public void CopyTo(KeyValuePair<string, object?>[] array, int index)
-            { foreach (var pair in this) array[index++] = pair; }
+            {
+                foreach (var pair in this)
+                    array[index++] = pair;
+            }
             public void Add(string key, object? value) => throw new NotSupportedException();
             public void Add(KeyValuePair<string, object?> item) => throw new NotSupportedException();
             public bool Remove(string key) => throw new NotSupportedException();
@@ -1479,16 +1539,16 @@ namespace NeoCompose.Runtime
                     }
                     break;
                 case MemberKind.Enum:
-                {
-                    string[] optionIds = NormalizeEnumOptions(value, subject);
-                    if (typeInfo.required && optionIds.Length == 0)
                     {
-                        throw new InvalidOperationException(
-                            $"Required {subject} has no enum option id.");
+                        string[] optionIds = NormalizeEnumOptions(value, subject);
+                        if (typeInfo.required && optionIds.Length == 0)
+                        {
+                            throw new InvalidOperationException(
+                                $"Required {subject} has no enum option id.");
+                        }
+                        value = optionIds;
+                        break;
                     }
-                    value = optionIds;
-                    break;
-                }
                 case MemberKind.List:
                 case MemberKind.Lookup:
                     value = NormalizeEnumerable(
@@ -1594,120 +1654,123 @@ namespace NeoCompose.Runtime
             string subject)
         {
             ValidateRuntimeValue(value, typeInfo, subject);
-            if (value is null) return;
+            if (value is null)
+                return;
 
             switch (typeInfo.type)
             {
                 case MemberKind.Class:
-                {
-                    string? expectedClassId = typeInfo switch
                     {
-                        ClassTypeInfo classType => classType.classId,
-                        FunctionArgumentTypeInfo argument => argument.classId,
-                        _ => null,
-                    };
-                    if (string.IsNullOrEmpty(expectedClassId))
-                    {
-                        throw new InvalidOperationException(
-                            $"{subject} is missing its declared Class id.");
+                        string? expectedClassId = typeInfo switch
+                        {
+                            ClassTypeInfo classType => classType.classId,
+                            FunctionArgumentTypeInfo argument => argument.classId,
+                            _ => null,
+                        };
+                        if (string.IsNullOrEmpty(expectedClassId))
+                        {
+                            throw new InvalidOperationException(
+                                $"{subject} is missing its declared Class id.");
+                        }
+                        string? actualClassId =
+                            NSGetterEvaluator.FindRowClassIdByReference(value, ctx);
+                        if (string.IsNullOrEmpty(actualClassId)
+                            || !IsAssignableNeoSchemaClass(
+                                client,
+                                actualClassId!,
+                                expectedClassId!))
+                        {
+                            throw new InvalidOperationException(
+                                $"{subject} has runtime Class '{actualClassId ?? "<unbound>"}', expected '{expectedClassId}'.");
+                        }
+                        return;
                     }
-                    string? actualClassId =
-                        NSGetterEvaluator.FindRowClassIdByReference(value, ctx);
-                    if (string.IsNullOrEmpty(actualClassId)
-                        || !IsAssignableNeoSchemaClass(
-                            client,
-                            actualClassId!,
-                            expectedClassId!))
-                    {
-                        throw new InvalidOperationException(
-                            $"{subject} has runtime Class '{actualClassId ?? "<unbound>"}', expected '{expectedClassId}'.");
-                    }
-                    return;
-                }
                 case MemberKind.Interface:
-                {
-                    string? interfaceId = typeInfo switch
                     {
-                        InterfaceTypeInfo interfaceType => interfaceType.interfaceId,
-                        FunctionArgumentTypeInfo argument => argument.interfaceId,
-                        _ => null,
-                    };
-                    string? actualClassId =
-                        NSGetterEvaluator.FindRowClassIdByReference(value, ctx);
-                    if (string.IsNullOrEmpty(interfaceId)
-                        || string.IsNullOrEmpty(actualClassId)
-                        || !NeoInterfaceResolution.ClassImplements(
-                            actualClassId!,
-                            interfaceId!,
-                            client.ProjectDataForRuntime))
-                    {
-                        throw new InvalidOperationException(
-                            $"{subject} has runtime Class '{actualClassId ?? "<unbound>"}', which does not implement Interface '{interfaceId ?? "<missing>"}'.");
+                        string? interfaceId = typeInfo switch
+                        {
+                            InterfaceTypeInfo interfaceType => interfaceType.interfaceId,
+                            FunctionArgumentTypeInfo argument => argument.interfaceId,
+                            _ => null,
+                        };
+                        string? actualClassId =
+                            NSGetterEvaluator.FindRowClassIdByReference(value, ctx);
+                        if (string.IsNullOrEmpty(interfaceId)
+                            || string.IsNullOrEmpty(actualClassId)
+                            || !NeoInterfaceResolution.ClassImplements(
+                                actualClassId!,
+                                interfaceId!,
+                                client.ProjectDataForRuntime))
+                        {
+                            throw new InvalidOperationException(
+                                $"{subject} has runtime Class '{actualClassId ?? "<unbound>"}', which does not implement Interface '{interfaceId ?? "<missing>"}'.");
+                        }
+                        return;
                     }
-                    return;
-                }
                 case MemberKind.List:
                 case MemberKind.Lookup:
-                {
-                    TypeInfo? entryType = typeInfo switch
                     {
-                        FunctionArgumentTypeInfo argument => argument.entryTypeInfo,
-                        CollectionTypeInfo collection => collection.entryTypeInfo,
-                        LookupTypeInfo lookup => lookup.entryTypeInfo,
-                        _ => null,
-                    };
-                    if (entryType is null) return;
-                    NeoValueOwnership? rowOwnership =
-                        NSGetterEvaluator.FindRowOwnershipByReference(value, ctx);
-                    int index = 0;
-                    foreach (object? entry in (System.Collections.IEnumerable)value)
-                    {
-                        string entrySubject = $"entry {index++} of {subject}";
-                        if (IsSelectionIdSet(typeInfo, entryType))
+                        TypeInfo? entryType = typeInfo switch
                         {
-                            if (entry is not string selectionId || string.IsNullOrEmpty(selectionId))
-                                throw new InvalidOperationException(
-                                    $"{entrySubject} must be a nonempty selection id.");
-                            continue;
+                            FunctionArgumentTypeInfo argument => argument.entryTypeInfo,
+                            CollectionTypeInfo collection => collection.entryTypeInfo,
+                            LookupTypeInfo lookup => lookup.entryTypeInfo,
+                            _ => null,
+                        };
+                        if (entryType is null)
+                            return;
+                        NeoValueOwnership? rowOwnership =
+                            NSGetterEvaluator.FindRowOwnershipByReference(value, ctx);
+                        int index = 0;
+                        foreach (object? entry in (System.Collections.IEnumerable)value)
+                        {
+                            string entrySubject = $"entry {index++} of {subject}";
+                            if (IsSelectionIdSet(typeInfo, entryType))
+                            {
+                                if (entry is not string selectionId || string.IsNullOrEmpty(selectionId))
+                                    throw new InvalidOperationException(
+                                        $"{entrySubject} must be a nonempty selection id.");
+                                continue;
+                            }
+                            ValidateResolvedRuntimeValue(
+                                client,
+                                rowOwnership is null ? entry
+                                    : NSGetterEvaluator.ResolveValueIfId(entry, ctx, rowOwnership),
+                                entryType,
+                                ctx,
+                                entrySubject);
                         }
-                        ValidateResolvedRuntimeValue(
-                            client,
-                            rowOwnership is null ? entry
-                                : NSGetterEvaluator.ResolveValueIfId(entry, ctx, rowOwnership),
-                            entryType,
-                            ctx,
-                            entrySubject);
+                        return;
                     }
-                    return;
-                }
                 case MemberKind.Dictionary:
-                {
-                    TypeInfo? entryType = typeInfo switch
                     {
-                        FunctionArgumentTypeInfo argument => argument.entryTypeInfo,
-                        CollectionTypeInfo collection => collection.entryTypeInfo,
-                        _ => null,
-                    };
-                    if (entryType is null) return;
-                    if (value is not System.Collections.IDictionary dictionary)
-                    {
-                        throw new InvalidOperationException(
-                            $"{subject} did not normalize to a dictionary.");
+                        TypeInfo? entryType = typeInfo switch
+                        {
+                            FunctionArgumentTypeInfo argument => argument.entryTypeInfo,
+                            CollectionTypeInfo collection => collection.entryTypeInfo,
+                            _ => null,
+                        };
+                        if (entryType is null)
+                            return;
+                        if (value is not System.Collections.IDictionary dictionary)
+                        {
+                            throw new InvalidOperationException(
+                                $"{subject} did not normalize to a dictionary.");
+                        }
+                        NeoValueOwnership? rowOwnership =
+                            NSGetterEvaluator.FindRowOwnershipByReference(value, ctx);
+                        foreach (System.Collections.DictionaryEntry entry in dictionary)
+                        {
+                            ValidateResolvedRuntimeValue(
+                                client,
+                                rowOwnership is null ? entry.Value
+                                    : NSGetterEvaluator.ResolveValueIfId(entry.Value, ctx, rowOwnership),
+                                entryType,
+                                ctx,
+                                $"key '{entry.Key}' of {subject}");
+                        }
+                        return;
                     }
-                    NeoValueOwnership? rowOwnership =
-                        NSGetterEvaluator.FindRowOwnershipByReference(value, ctx);
-                    foreach (System.Collections.DictionaryEntry entry in dictionary)
-                    {
-                        ValidateResolvedRuntimeValue(
-                            client,
-                            rowOwnership is null ? entry.Value
-                                : NSGetterEvaluator.ResolveValueIfId(entry.Value, ctx, rowOwnership),
-                            entryType,
-                            ctx,
-                            $"key '{entry.Key}' of {subject}");
-                    }
-                    return;
-                }
             }
         }
 
@@ -1720,7 +1783,8 @@ namespace NeoCompose.Runtime
             {
                 foreach (NeoSchemaClass schemaClass in client.ResolveClassInheritanceChain(actualClassId))
                 {
-                    if (schemaClass.id == expectedClassId) return true;
+                    if (schemaClass.id == expectedClassId)
+                        return true;
                 }
             }
             catch (CircularInheritanceError)
@@ -1860,7 +1924,8 @@ namespace NeoCompose.Runtime
             int count = 0;
             foreach (object? entry in enumerable)
             {
-                if (entry is not string || ++count > 1) return false;
+                if (entry is not string || ++count > 1)
+                    return false;
             }
             return count == 1;
         }
@@ -1910,7 +1975,8 @@ namespace NeoCompose.Runtime
             {
                 foreach (object? entry in entries)
                 {
-                    if (entry is null) continue;
+                    if (entry is null)
+                        continue;
                     Type entryTypeInfo = entry.GetType();
                     var keyProperty = entryTypeInfo.GetProperty("Key");
                     var valueProperty = entryTypeInfo.GetProperty("Value");
@@ -1961,8 +2027,10 @@ namespace NeoCompose.Runtime
 
         internal static string? EnumOptionId(object? value)
         {
-            if (value is string text) return text;
-            if (value is INeoEnumOption option) return option.optionId;
+            if (value is string text)
+                return text;
+            if (value is INeoEnumOption option)
+                return option.optionId;
             var property = value?.GetType().GetProperty(
                 "optionId",
                 System.Reflection.BindingFlags.Instance
@@ -1976,15 +2044,18 @@ namespace NeoCompose.Runtime
             object value,
             string subject)
         {
-            if (value is string text) return new[] { text };
+            if (value is string text)
+                return new[] { text };
             if (value is string[] options)
             {
                 foreach (string entry in options)
-                    if (entry is null) throw new InvalidOperationException($"{subject} contains an entry without an enum option id.");
+                    if (entry is null)
+                        throw new InvalidOperationException($"{subject} contains an entry without an enum option id.");
                 return (string[])options.Clone();
             }
             string? optionId = EnumOptionId(value);
-            if (optionId is not null) return new[] { optionId };
+            if (optionId is not null)
+                return new[] { optionId };
             if (value is not IEnumerable enumerable)
             {
                 throw new InvalidOperationException(

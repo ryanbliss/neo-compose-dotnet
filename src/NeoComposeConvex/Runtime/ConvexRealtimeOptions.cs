@@ -54,18 +54,36 @@ namespace NeoCompose.Convex
             this.now = now;
         }
 
-        public string convexUrl { get; }
+        public string convexUrl
+        {
+            get;
+        }
 
-        public string apiBaseUrl { get; }
+        public string apiBaseUrl
+        {
+            get;
+        }
 
-        public string projectId { get; }
+        public string projectId
+        {
+            get;
+        }
 
-        public INeoComposeAccessTokenProvider sessionTokenProvider { get; }
+        public INeoComposeAccessTokenProvider sessionTokenProvider
+        {
+            get;
+        }
 
         /// <summary>Transport override for tests; null uses the Unity web-request transport.</summary>
-        public INeoComposeHttpClient? httpClient { get; }
+        public INeoComposeHttpClient? httpClient
+        {
+            get;
+        }
 
         /// <summary>Clock override for tests; null uses <see cref="DateTimeOffset.UtcNow"/>.</summary>
-        public Func<DateTimeOffset>? now { get; }
+        public Func<DateTimeOffset>? now
+        {
+            get;
+        }
     }
 }

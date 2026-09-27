@@ -172,7 +172,8 @@ namespace NeoCompose.Runtime
             IReadOnlyCollection<(NeoValueOwnership ownership, string valueId)> changed,
             NeoWritePlan plan)
         {
-            if (plan.ValidatedObjectInsertionGrid == primitive.GridValueId) return;
+            if (plan.ValidatedObjectInsertionGrid == primitive.GridValueId)
+                return;
             if (plan.ValidatedTileConversions.Count != 0)
             {
                 ApplyTileConversions(plan.ValidatedTileConversions);
@@ -182,7 +183,8 @@ namespace NeoCompose.Runtime
             tileLayerIds = null;
             var ids = new HashSet<string>();
             foreach (var value in changed)
-                if (!plan.UnchangedValueIds.Contains(value.valueId)) ids.Add(value.valueId);
+                if (!plan.UnchangedValueIds.Contains(value.valueId))
+                    ids.Add(value.valueId);
             InvalidateDependents(tileLayers, changedTileLayers, ids);
             InvalidateDependents(objectLayers, changedObjectLayers, ids);
             foreach (string layerId in changedTileLayers.Keys)
@@ -205,7 +207,8 @@ namespace NeoCompose.Runtime
                     convertedTileCells[conversion.LayerId] = cells = new HashSet<Vector2Int>();
                 PatchRecord(firstIndex);
                 if (layer.AdditionalRecordIndicesByPlacementId.TryGetValue(conversion.PlacementValueId, out var additional))
-                    foreach (int index in additional) PatchRecord(index);
+                    foreach (int index in additional)
+                        PatchRecord(index);
                 // Old Cell dependencies can remain: a conversion can materialize
                 // a default once, but repeated conversions retain that child ID.
                 layer.DependencyIds.Add(conversion.NextCellValueId);
@@ -235,7 +238,8 @@ namespace NeoCompose.Runtime
         private void HandleValuePartitionChanged(string mapKey)
         {
             string? gridClassId = primitive.Client.ResolveValueRow(primitive.GridValueId)?.classId;
-            if (gridClassId is null || mapKey != NeoClient.MakeWorldPartitionKey(gridClassId)) return;
+            if (gridClassId is null || mapKey != NeoClient.MakeWorldPartitionKey(gridClassId))
+                return;
             objectLayerIds = null;
             tileLayerIds = null;
             tileLayers.Clear();
@@ -243,9 +247,12 @@ namespace NeoCompose.Runtime
             changedTileLayers.Clear();
             changedObjectLayers.Clear();
             convertedTileCells.Clear();
-            if (Changed is null || !primitive.Client.IsValuePartitionLoaded(mapKey)) return;
-            foreach (string layerId in knownTileLayers) GetTileLayerIndex(layerId);
-            foreach (string layerId in knownObjectLayers) GetObjectLayerIndex(layerId);
+            if (Changed is null || !primitive.Client.IsValuePartitionLoaded(mapKey))
+                return;
+            foreach (string layerId in knownTileLayers)
+                GetTileLayerIndex(layerId);
+            foreach (string layerId in knownObjectLayers)
+                GetObjectLayerIndex(layerId);
         }
 
         private static void InvalidateDependents<TIndex>(
@@ -257,12 +264,14 @@ namespace NeoCompose.Runtime
             List<string>? stale = null;
             foreach (var pair in indexes)
             {
-                if (!pair.Value.DependencyIds.Overlaps(valueIds)) continue;
+                if (!pair.Value.DependencyIds.Overlaps(valueIds))
+                    continue;
                 stale ??= new List<string>();
                 stale.Add(pair.Key);
                 changedIndexes.TryAdd(pair.Key, pair.Value);
             }
-            if (stale is null) return;
+            if (stale is null)
+                return;
             foreach (var layerId in stale)
             {
                 indexes.Remove(layerId);
@@ -281,7 +290,8 @@ namespace NeoCompose.Runtime
         {
             foreach (var layer in tileLayers.Values)
             {
-                if (!layer.LeafDependencyIds.Contains(valueId)) continue;
+                if (!layer.LeafDependencyIds.Contains(valueId))
+                    continue;
                 InvalidateDependents(tileLayers, changedTileLayers, new HashSet<string> { valueId });
                 return true;
             }
@@ -299,14 +309,16 @@ namespace NeoCompose.Runtime
         {
             foreach (var link in primitive.ResolveGridLinks(null))
             {
-                if (link.LinkValueId != linkValueId) continue;
+                if (link.LinkValueId != linkValueId)
+                    continue;
                 layerId = link.LayerId;
                 isTileLayer = link.IsTileLink;
                 return true;
             }
             foreach (string tileLayerId in TileLayerIds)
             {
-                if (!GetTileLayerIndex(tileLayerId).CarriedLinkIds.Contains(linkValueId)) continue;
+                if (!GetTileLayerIndex(tileLayerId).CarriedLinkIds.Contains(linkValueId))
+                    continue;
                 layerId = tileLayerId;
                 isTileLayer = true;
                 return true;
@@ -319,9 +331,11 @@ namespace NeoCompose.Runtime
         private void NotifyPublishedValues(
             IReadOnlyCollection<(NeoValueOwnership ownership, string valueId)> changed)
         {
-            if (changedTileLayers.Count == 0 && changedObjectLayers.Count == 0 && convertedTileCells.Count == 0) return;
+            if (changedTileLayers.Count == 0 && changedObjectLayers.Count == 0 && convertedTileCells.Count == 0)
+                return;
             var changedIds = new HashSet<string>();
-            foreach (var value in changed) changedIds.Add(value.valueId);
+            foreach (var value in changed)
+                changedIds.Add(value.valueId);
             var tiles = new List<NeoTileLayerChangedArgs>();
             var objects = new List<NeoObjectLayerChangedArgs>();
             foreach (var pair in convertedTileCells)
@@ -332,13 +346,15 @@ namespace NeoCompose.Runtime
                 var next = GetTileLayerIndex(pair.Key);
                 var clear = new List<Vector2Int>();
                 foreach (var cell in pair.Value.CandidatesByCell.Keys)
-                    if (!next.CandidatesByCell.ContainsKey(cell)) clear.Add(cell);
+                    if (!next.CandidatesByCell.ContainsKey(cell))
+                        clear.Add(cell);
                 var refresh = new List<Vector2Int>();
                 foreach (var cell in next.CandidatesByCell)
                     if (!pair.Value.CandidatesByCell.TryGetValue(cell.Key, out var previous)
                         || TileCandidatesChanged(previous, cell.Value, changedIds))
                         refresh.Add(cell.Key);
-                if (clear.Count == 0 && refresh.Count == 0) continue;
+                if (clear.Count == 0 && refresh.Count == 0)
+                    continue;
                 tiles.Add(new NeoTileLayerChangedArgs(pair.Key, clear, refresh,
                     NeoTileGridChangeSourceKind.Direct, null));
             }
@@ -357,12 +373,15 @@ namespace NeoCompose.Runtime
                 foreach (var current in next.ById)
                 {
                     if (pair.Value.ById.TryGetValue(current.Key, out var previous)
-                        && !ObjectChanged(previous, current.Value, changedIds)) continue;
+                        && !ObjectChanged(previous, current.Value, changedIds))
+                        continue;
                     updated.Add(current.Key);
-                    if (previous is not null) cells.UnionWith(previous.Footprint);
+                    if (previous is not null)
+                        cells.UnionWith(previous.Footprint);
                     cells.UnionWith(current.Value.Footprint);
                 }
-                if (removed.Count == 0 && updated.Count == 0 && cells.Count == 0) continue;
+                if (removed.Count == 0 && updated.Count == 0 && cells.Count == 0)
+                    continue;
                 objects.Add(new NeoObjectLayerChangedArgs(pair.Key, removed, updated,
                     new List<Vector2Int>(cells), NeoTileGridChangeSourceKind.Direct, null));
             }
@@ -379,7 +398,8 @@ namespace NeoCompose.Runtime
             IReadOnlyList<NeoTilePlacementRecord> current,
             HashSet<string> changedIds)
         {
-            if (previous.Count != current.Count) return true;
+            if (previous.Count != current.Count)
+                return true;
             for (int i = 0; i < current.Count; i++)
             {
                 var before = previous[i];
@@ -404,9 +424,11 @@ namespace NeoCompose.Runtime
                 || before.AssetClassId != after.AssetClassId
                 || before.AssetValueId != after.AssetValueId
                 || before.Ownership != after.Ownership
-                || before.Footprint.Count != after.Footprint.Count) return true;
+                || before.Footprint.Count != after.Footprint.Count)
+                return true;
             for (int i = 0; i < after.Footprint.Count; i++)
-                if (before.Footprint[i] != after.Footprint[i]) return true;
+                if (before.Footprint[i] != after.Footprint[i])
+                    return true;
             return false;
         }
 
@@ -417,7 +439,8 @@ namespace NeoCompose.Runtime
         private TileLayerIndex GetTileLayerIndex(string layerId)
         {
             knownTileLayers.Add(layerId);
-            if (tileLayers.TryGetValue(layerId, out var index)) return index;
+            if (tileLayers.TryGetValue(layerId, out var index))
+                return index;
             index = BuildTileLayerIndex(primitive.BuildTileLayerRecords(layerId));
             tileLayers[layerId] = index;
             return index;
@@ -437,7 +460,8 @@ namespace NeoCompose.Runtime
             }
             foreach (var cellRecords in byCell.Values)
             {
-                if (cellRecords.Count < 2) continue;
+                if (cellRecords.Count < 2)
+                    continue;
                 // Loser→winner: the conflict tiebreak is (updatedAt desc,
                 // id asc), and readers take the LAST resolvable candidate.
                 cellRecords.Sort(CompareLoserToWinner);
@@ -450,7 +474,8 @@ namespace NeoCompose.Runtime
             NeoTilePlacementRecord right)
         {
             int updated = left.UpdatedAtMs.CompareTo(right.UpdatedAtMs);
-            if (updated != 0) return updated;
+            if (updated != 0)
+                return updated;
             // Ties break id ASC for the winner; winner sits last, so sort
             // descending by instance id.
             return string.CompareOrdinal(right.InstanceId, left.InstanceId);
@@ -459,7 +484,8 @@ namespace NeoCompose.Runtime
         private ObjectLayerIndex GetObjectLayerIndex(string layerId)
         {
             knownObjectLayers.Add(layerId);
-            if (objectLayers.TryGetValue(layerId, out var index)) return index;
+            if (objectLayers.TryGetValue(layerId, out var index))
+                return index;
             var dependencyIds = new HashSet<string>();
             var records = primitive.BuildObjectLayerRecords(layerId, dependencyIds);
             index = BuildObjectLayerIndex(records, dependencyIds);
@@ -488,7 +514,10 @@ namespace NeoCompose.Runtime
 
         private interface ILayerIndex
         {
-            HashSet<string> DependencyIds { get; }
+            HashSet<string> DependencyIds
+            {
+                get;
+            }
         }
 
         private sealed class TileLayerIndex : ILayerIndex
@@ -503,7 +532,8 @@ namespace NeoCompose.Runtime
                 for (int i = 0; i < records.Count; i++)
                 {
                     string id = records[i].PlacementValueId;
-                    if (FirstRecordIndexByPlacementId.TryAdd(id, i)) continue;
+                    if (FirstRecordIndexByPlacementId.TryAdd(id, i))
+                        continue;
                     if (!AdditionalRecordIndicesByPlacementId.TryGetValue(id, out var indices))
                         AdditionalRecordIndicesByPlacementId[id] = indices = new List<int>();
                     indices.Add(i);
@@ -538,13 +568,31 @@ namespace NeoCompose.Runtime
                 return ordered;
             }
 
-            public List<NeoTilePlacementRecord> Records { get; }
-            public Dictionary<string, int> FirstRecordIndexByPlacementId { get; }
+            public List<NeoTilePlacementRecord> Records
+            {
+                get;
+            }
+            public Dictionary<string, int> FirstRecordIndexByPlacementId
+            {
+                get;
+            }
             public Dictionary<string, List<int>> AdditionalRecordIndicesByPlacementId { get; } = new();
-            public Dictionary<Vector2Int, List<NeoTilePlacementRecord>> CandidatesByCell { get; }
-            public HashSet<string> DependencyIds { get; }
-            public HashSet<string> LeafDependencyIds { get; }
-            public HashSet<string> CarriedLinkIds { get; }
+            public Dictionary<Vector2Int, List<NeoTilePlacementRecord>> CandidatesByCell
+            {
+                get;
+            }
+            public HashSet<string> DependencyIds
+            {
+                get;
+            }
+            public HashSet<string> LeafDependencyIds
+            {
+                get;
+            }
+            public HashSet<string> CarriedLinkIds
+            {
+                get;
+            }
         }
 
         private sealed class ObjectLayerIndex : ILayerIndex
@@ -566,10 +614,22 @@ namespace NeoCompose.Runtime
             }
 
             public Dictionary<string, int> RecordIndices { get; } = new();
-            public Dictionary<string, NeoObjectPlacementRecord> ById { get; }
-            public List<NeoObjectPlacementRecord> Records { get; }
-            public Dictionary<Vector2Int, List<NeoObjectPlacementRecord>> CandidatesByCell { get; }
-            public HashSet<string> DependencyIds { get; }
+            public Dictionary<string, NeoObjectPlacementRecord> ById
+            {
+                get;
+            }
+            public List<NeoObjectPlacementRecord> Records
+            {
+                get;
+            }
+            public Dictionary<Vector2Int, List<NeoObjectPlacementRecord>> CandidatesByCell
+            {
+                get;
+            }
+            public HashSet<string> DependencyIds
+            {
+                get;
+            }
         }
     }
 
@@ -586,7 +646,8 @@ namespace NeoCompose.Runtime
 
         private void DisposeGridLookupCaches()
         {
-            foreach (var cache in gridLookupCaches.Values) cache.Dispose();
+            foreach (var cache in gridLookupCaches.Values)
+                cache.Dispose();
             gridLookupCaches.Clear();
         }
     }

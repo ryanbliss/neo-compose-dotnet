@@ -23,7 +23,8 @@ namespace NeoCompose.Tests
         {
             foreach (var createdObject in createdObjects)
             {
-                if (createdObject != null) UnityEngine.Object.DestroyImmediate(createdObject);
+                if (createdObject != null)
+                    UnityEngine.Object.DestroyImmediate(createdObject);
             }
             createdObjects.Clear();
         }

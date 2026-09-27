@@ -17,10 +17,12 @@ namespace NeoCompose.Runtime
             NeoDialogueContext dialogueContext,
             INeoDialogueMemoryStore? memoryStore = null)
         {
-            if (conditions == null || conditions.Length == 0) return true;
+            if (conditions == null || conditions.Length == 0)
+                return true;
             foreach (var condition in conditions)
             {
-                if (!Evaluate(client, condition, dialogueContext, memoryStore)) return false;
+                if (!Evaluate(client, condition, dialogueContext, memoryStore))
+                    return false;
             }
             return true;
         }
@@ -44,7 +46,8 @@ namespace NeoCompose.Runtime
 
             var ctx = BuildContext(client, dialogueContext, memoryStore);
             var result = NSGetterEvaluator.Evaluate(getter, ctx);
-            if (result is bool b) return b;
+            if (result is bool b)
+                return b;
             throw new NSGetterRuntimeError(
                 $"Dialogue condition returned {ResultTypeName(result)}; expected bool.");
         }
@@ -97,12 +100,18 @@ namespace NeoCompose.Runtime
 
         private static string ResultTypeName(object? value)
         {
-            if (value is null) return "null";
-            if (value is bool) return "bool";
-            if (value is string) return "string";
-            if (value is double || value is float || value is int || value is long) return "number";
-            if (value is object?[]) return "list";
-            if (value is IDictionary<string, object?>) return "object";
+            if (value is null)
+                return "null";
+            if (value is bool)
+                return "bool";
+            if (value is string)
+                return "string";
+            if (value is double || value is float || value is int || value is long)
+                return "number";
+            if (value is object?[])
+                return "list";
+            if (value is IDictionary<string, object?>)
+                return "object";
             return value.GetType().Name;
         }
     }

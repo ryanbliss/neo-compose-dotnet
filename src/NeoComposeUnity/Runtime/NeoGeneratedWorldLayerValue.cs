@@ -12,13 +12,34 @@ namespace NeoCompose.Runtime
 {
     public interface IReadOnlyNeoTileLayerRuntime : INeoValueReference
     {
-        string LayerId { get; }
-        string LayerClassId { get; }
-        string? LayerOverrideValueId { get; }
-        string DisplayName { get; }
-        string ExpectedClassId { get; }
-        string? SortingLayerName { get; }
-        int? SortingOrder { get; }
+        string LayerId
+        {
+            get;
+        }
+        string LayerClassId
+        {
+            get;
+        }
+        string? LayerOverrideValueId
+        {
+            get;
+        }
+        string DisplayName
+        {
+            get;
+        }
+        string ExpectedClassId
+        {
+            get;
+        }
+        string? SortingLayerName
+        {
+            get;
+        }
+        int? SortingOrder
+        {
+            get;
+        }
         IReadOnlyList<NeoGeneratedClassValue> GetTiles();
         NeoGeneratedClassValue? GetTile(Vector2Int cell);
         NeoGeneratedClassValue? ResolveTile(Vector2Int cell);
@@ -27,13 +48,34 @@ namespace NeoCompose.Runtime
 
     public interface IReadOnlyNeoObjectLayerRuntime : INeoValueReference
     {
-        string LayerId { get; }
-        string LayerClassId { get; }
-        string? LayerOverrideValueId { get; }
-        string DisplayName { get; }
-        string ExpectedClassId { get; }
-        string? SortingLayerName { get; }
-        int? SortingOrder { get; }
+        string LayerId
+        {
+            get;
+        }
+        string LayerClassId
+        {
+            get;
+        }
+        string? LayerOverrideValueId
+        {
+            get;
+        }
+        string DisplayName
+        {
+            get;
+        }
+        string ExpectedClassId
+        {
+            get;
+        }
+        string? SortingLayerName
+        {
+            get;
+        }
+        int? SortingOrder
+        {
+            get;
+        }
         IReadOnlyList<NeoGeneratedClassValue> GetObjects();
         NeoGeneratedClassValue? GetObject(NeoObjectInstanceId instanceId);
         NeoGeneratedClassValue? GetObject(Vector2Int cell);
@@ -47,8 +89,12 @@ namespace NeoCompose.Runtime
     // These are deliberately interfaces. An authored layer already has one
     // C# base class (its generated Neo class value), so a second runtime base
     // class would recreate the per-grid wrapper problem this model removes.
-    public interface NeoTileLayerRuntime : IReadOnlyNeoTileLayerRuntime { }
-    public interface NeoObjectLayerRuntime : IReadOnlyNeoObjectLayerRuntime { }
+    public interface NeoTileLayerRuntime : IReadOnlyNeoTileLayerRuntime
+    {
+    }
+    public interface NeoObjectLayerRuntime : IReadOnlyNeoObjectLayerRuntime
+    {
+    }
 
     internal sealed class NeoTileLayerBinding
     {
@@ -64,10 +110,22 @@ namespace NeoCompose.Runtime
             ImportedClassIds = new HashSet<string>(importedClassIds, StringComparer.Ordinal);
         }
 
-        internal NeoReadOnlyTileGridPrimitive Primitive { get; }
-        internal string LayerClassId { get; }
-        internal string? LayerOverrideValueId { get; }
-        internal HashSet<string> ImportedClassIds { get; }
+        internal NeoReadOnlyTileGridPrimitive Primitive
+        {
+            get;
+        }
+        internal string LayerClassId
+        {
+            get;
+        }
+        internal string? LayerOverrideValueId
+        {
+            get;
+        }
+        internal HashSet<string> ImportedClassIds
+        {
+            get;
+        }
     }
 
     internal sealed class NeoObjectLayerBinding
@@ -84,10 +142,22 @@ namespace NeoCompose.Runtime
             ImportedClassIds = new HashSet<string>(importedClassIds, StringComparer.Ordinal);
         }
 
-        internal NeoReadOnlyTileGridPrimitive Primitive { get; }
-        internal string LayerClassId { get; }
-        internal string? LayerOverrideValueId { get; }
-        internal HashSet<string> ImportedClassIds { get; }
+        internal NeoReadOnlyTileGridPrimitive Primitive
+        {
+            get;
+        }
+        internal string LayerClassId
+        {
+            get;
+        }
+        internal string? LayerOverrideValueId
+        {
+            get;
+        }
+        internal HashSet<string> ImportedClassIds
+        {
+            get;
+        }
     }
 
     public abstract class NeoGeneratedTileLayerValue
@@ -305,8 +375,10 @@ namespace NeoCompose.Runtime
         internal static string? ReadSortingLayerName(object target)
         {
             object? value = target.GetType().GetProperty("SortingLayer")?.GetValue(target);
-            if (value is null) return null;
-            if (value is string name) return name;
+            if (value is null)
+                return null;
+            if (value is string name)
+                return name;
             return value.GetType().GetProperty("Name")?.GetValue(value) as string;
         }
     }
@@ -316,13 +388,15 @@ namespace NeoCompose.Runtime
         internal static IReadOnlyList<NeoGeneratedClassValue> TileValues(IReadOnlyList<NeoTileProjection> tiles)
         {
             var values = new NeoGeneratedClassValue[tiles.Count];
-            for (int i = 0; i < values.Length; i++) values[i] = tiles[i].Tile;
+            for (int i = 0; i < values.Length; i++)
+                values[i] = tiles[i].Tile;
             return values;
         }
         internal static IReadOnlyList<NeoGeneratedClassValue> ObjectValues(IReadOnlyList<NeoObjectProjection> objects)
         {
             var values = new NeoGeneratedClassValue[objects.Count];
-            for (int i = 0; i < values.Length; i++) values[i] = objects[i].Object;
+            for (int i = 0; i < values.Length; i++)
+                values[i] = objects[i].Object;
             return values;
         }
         internal static NeoTileLayerRenderSnapshot GetRenderSnapshot(IReadOnlyNeoTileLayerRuntime layer) => layer switch

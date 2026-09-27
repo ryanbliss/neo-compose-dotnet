@@ -36,7 +36,10 @@ namespace NeoCompose.Tests
         private sealed class ItemSlot : IEquatable<ItemSlot>
         {
             private static readonly Dictionary<string, ItemSlot> values = new();
-            public string optionId { get; }
+            public string optionId
+            {
+                get;
+            }
 
             private ItemSlot(string optionId)
             {
@@ -48,7 +51,8 @@ namespace NeoCompose.Tests
 
             public static ItemSlot FromOptionId(string optionId)
             {
-                if (values.TryGetValue(optionId, out var known)) return known;
+                if (values.TryGetValue(optionId, out var known))
+                    return known;
                 var created = new ItemSlot(optionId);
                 values[optionId] = created;
                 return created;

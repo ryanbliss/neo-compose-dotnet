@@ -17,19 +17,19 @@ namespace NeoCompose.Tests
         public void Factories_PreserveStableLegacyOrderingAcrossRectangles()
         {
             for (int x = 0; x <= 12; x++)
-            for (int y = 0; y <= 12; y++)
-            {
-                var box = Enumerable.Range(-x, 2 * x + 1)
-                    .SelectMany(a => Enumerable.Range(-y, 2 * y + 1).Select(b => new Vector2Int(a, b)))
-                    .OrderBy(cell => Math.Max(Math.Abs(cell.x), Math.Abs(cell.y))).ToArray();
-                CollectionAssert.AreEqual(box, NeoCellPattern.Box(x, y), $"Box({x},{y})");
-                CollectionAssert.AreEqual(box.Where(cell => cell != Vector2Int.zero),
-                    NeoCellPattern.Box(x, y, NeoCellPatternExcluding.Center));
-                var rect = Enumerable.Range(0, x + 1)
-                    .SelectMany(a => Enumerable.Range(0, y + 1).Select(b => new Vector2Int(a, b)))
-                    .OrderBy(cell => Math.Max(cell.x, cell.y)).ToArray();
-                CollectionAssert.AreEqual(rect, NeoCellPattern.Rect(new Vector2Int(x + 1, y + 1)), $"Rect({x + 1},{y + 1})");
-            }
+                for (int y = 0; y <= 12; y++)
+                {
+                    var box = Enumerable.Range(-x, 2 * x + 1)
+                        .SelectMany(a => Enumerable.Range(-y, 2 * y + 1).Select(b => new Vector2Int(a, b)))
+                        .OrderBy(cell => Math.Max(Math.Abs(cell.x), Math.Abs(cell.y))).ToArray();
+                    CollectionAssert.AreEqual(box, NeoCellPattern.Box(x, y), $"Box({x},{y})");
+                    CollectionAssert.AreEqual(box.Where(cell => cell != Vector2Int.zero),
+                        NeoCellPattern.Box(x, y, NeoCellPatternExcluding.Center));
+                    var rect = Enumerable.Range(0, x + 1)
+                        .SelectMany(a => Enumerable.Range(0, y + 1).Select(b => new Vector2Int(a, b)))
+                        .OrderBy(cell => Math.Max(cell.x, cell.y)).ToArray();
+                    CollectionAssert.AreEqual(rect, NeoCellPattern.Rect(new Vector2Int(x + 1, y + 1)), $"Rect({x + 1},{y + 1})");
+                }
             for (int radius = 0; radius <= 20; radius++)
             {
                 var expected = Enumerable.Range(-radius, 2 * radius + 1)

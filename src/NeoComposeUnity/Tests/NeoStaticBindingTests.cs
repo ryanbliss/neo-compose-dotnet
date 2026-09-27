@@ -613,13 +613,19 @@ namespace NeoCompose.Tests
                 var ctx = new NSGetterEvaluator.Context(BuildClient(), null, null);
                 for (int warmup = 0; warmup < 5; warmup++)
                 {
-                    try { NSGetterEvaluator.Evaluate(getter, ctx); }
+                    try
+                    {
+                        NSGetterEvaluator.Evaluate(getter, ctx);
+                    }
                     catch (NSGetterRuntimeError) when (name == "no-match") { }
                 }
                 var stopwatch = Stopwatch.StartNew();
                 for (int iteration = 0; iteration < 25; iteration++)
                 {
-                    try { NSGetterEvaluator.Evaluate(getter, ctx); }
+                    try
+                    {
+                        NSGetterEvaluator.Evaluate(getter, ctx);
+                    }
                     catch (NSGetterRuntimeError) when (name == "no-match") { }
                 }
                 stopwatch.Stop();
@@ -3579,7 +3585,8 @@ namespace NeoCompose.Tests
                 }
             }
             Assert.That(roots, Has.Count.EqualTo(1));
-            foreach (string root in roots) return root;
+            foreach (string root in roots)
+                return root;
             throw new AssertionException("Expected one constructed Session root.");
         }
 
@@ -3649,7 +3656,10 @@ namespace NeoCompose.Tests
                 this.optionId = optionId;
             }
 
-            public string optionId { get; }
+            public string optionId
+            {
+                get;
+            }
         }
 
         private sealed class TestValueReference : INeoValueReference
@@ -3659,7 +3669,10 @@ namespace NeoCompose.Tests
                 this.valueId = valueId;
             }
 
-            public string? valueId { get; }
+            public string? valueId
+            {
+                get;
+            }
         }
 
         /// <summary>

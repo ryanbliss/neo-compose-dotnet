@@ -525,7 +525,11 @@ namespace NeoCompose.Tests
         }
 
         private static NeoDelegateValue MemberTarget(string memberId, string? valueId) =>
-            new() { memberId = memberId, valueId = valueId };
+            new()
+            {
+                memberId = memberId,
+                valueId = valueId
+            };
 
         private static ActionMember ActionMember(string? valueId = null) => new()
         {
@@ -580,7 +584,8 @@ namespace NeoCompose.Tests
                 [save.id] = save,
                 [session.id] = session,
             };
-            foreach (JsonMember extra in extraMembers) members[extra.id] = extra;
+            foreach (JsonMember extra in extraMembers)
+                members[extra.id] = extra;
             var invokers = new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>();
             foreach ((string memberId, Action handler) in listeners)
             {
@@ -651,17 +656,17 @@ namespace NeoCompose.Tests
             string name,
             string valueId,
             NeoMemberStorage storage = NeoMemberStorage.Inherit) => new()
-        {
-            id = id,
-            projectId = ProjectId,
-            name = name,
-            kind = MemberKind.Class,
-            classId = "root-class",
-            valueId = valueId,
-            Storage = storage,
-            createdAt = "x",
-            updatedAt = "x",
-        };
+            {
+                id = id,
+                projectId = ProjectId,
+                name = name,
+                kind = MemberKind.Class,
+                classId = "root-class",
+                valueId = valueId,
+                Storage = storage,
+                createdAt = "x",
+                updatedAt = "x",
+            };
 
         private static ObjectMemberValue ObjectValue(string id) => new()
         {
@@ -680,9 +685,13 @@ namespace NeoCompose.Tests
         private sealed class StampedListener
         {
             [NeoMemberMethod(FirstListenerId)]
-            public static void Ping() { }
+            public static void Ping()
+            {
+            }
 
-            public void Unstamped() { }
+            public void Unstamped()
+            {
+            }
         }
     }
 }

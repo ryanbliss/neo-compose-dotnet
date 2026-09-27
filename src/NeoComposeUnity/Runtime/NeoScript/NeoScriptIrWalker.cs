@@ -19,7 +19,8 @@ namespace NeoCompose.Runtime.NeoScript
         {
             foreach (Instruction instruction in instructions ?? Array.Empty<Instruction>())
             {
-                if (AnyPointer(instruction, predicate)) return true;
+                if (AnyPointer(instruction, predicate))
+                    return true;
             }
             return false;
         }
@@ -37,7 +38,8 @@ namespace NeoCompose.Runtime.NeoScript
                         conditional.branches ?? Array.Empty<ConditionalBranch>())
                     {
                         if (AnyPointer(branch.expression, predicate)
-                            || AnyPointer(branch.instructions, predicate)) return true;
+                            || AnyPointer(branch.instructions, predicate))
+                            return true;
                     }
                     return AnyPointer(conditional.elseInstructions, predicate);
                 case ReturnInstruction result:
@@ -49,7 +51,8 @@ namespace NeoCompose.Runtime.NeoScript
                     return AnyPointer(assign.target.pointer, predicate)
                         || AnyPointer(assign.pointer, predicate);
                 case CollectionCallInstruction collectionCall:
-                    if (AnyPointer(collectionCall.target.pointer, predicate)) return true;
+                    if (AnyPointer(collectionCall.target.pointer, predicate))
+                        return true;
                     return AnyPointer(collectionCall.args, predicate);
                 case FunctionCallInstruction functionCall:
                     return AnyPointer(functionCall.call, predicate);
@@ -62,21 +65,25 @@ namespace NeoCompose.Runtime.NeoScript
                     return AnyPointer(loop.collectionPointer, predicate)
                         || AnyPointer(loop.instructions, predicate);
                 case SwitchInstruction selection:
-                    if (AnyPointer(selection.selector, predicate)) return true;
+                    if (AnyPointer(selection.selector, predicate))
+                        return true;
                     foreach (SwitchSection section in
                         selection.sections ?? Array.Empty<SwitchSection>())
                     {
-                        if (AnyPointer(section.instructions, predicate)) return true;
+                        if (AnyPointer(section.instructions, predicate))
+                            return true;
                     }
                     return AnyPointer(selection.defaultInstructions, predicate);
                 case TryInstruction guarded:
-                    if (AnyPointer(guarded.instructions, predicate)) return true;
+                    if (AnyPointer(guarded.instructions, predicate))
+                        return true;
                     foreach (CatchClause clause in
                         guarded.catches ?? Array.Empty<CatchClause>())
                     {
                         if ((clause.filter is not null
                                 && AnyPointer(clause.filter, predicate))
-                            || AnyPointer(clause.instructions, predicate)) return true;
+                            || AnyPointer(clause.instructions, predicate))
+                            return true;
                     }
                     return false;
                 case ActionListenerInstruction listener:
@@ -96,7 +103,8 @@ namespace NeoCompose.Runtime.NeoScript
             Func<Pointer, bool> predicate)
         {
             if (AnyPointer(expression.condition.operand1, predicate)
-                || AnyPointer(expression.condition.operand2, predicate)) return true;
+                || AnyPointer(expression.condition.operand2, predicate))
+                return true;
             return expression.connective is not null
                 && AnyPointer(expression.connective.to, predicate);
         }
@@ -107,7 +115,8 @@ namespace NeoCompose.Runtime.NeoScript
         {
             foreach (Pointer pointer in pointers ?? Array.Empty<Pointer>())
             {
-                if (AnyPointer(pointer, predicate)) return true;
+                if (AnyPointer(pointer, predicate))
+                    return true;
             }
             return false;
         }
@@ -116,7 +125,8 @@ namespace NeoCompose.Runtime.NeoScript
             Pointer pointer,
             Func<Pointer, bool> predicate)
         {
-            if (predicate(pointer)) return true;
+            if (predicate(pointer))
+                return true;
             switch (pointer)
             {
                 case OperationPointer operation:
@@ -133,7 +143,8 @@ namespace NeoCompose.Runtime.NeoScript
                         dictionary.entries ?? Array.Empty<DictLiteralPair>())
                     {
                         if (AnyPointer(entry.key, predicate)
-                            || AnyPointer(entry.value, predicate)) return true;
+                            || AnyPointer(entry.value, predicate))
+                            return true;
                     }
                     return false;
                 case ForceUnwrapPointer unwrap:
@@ -218,7 +229,8 @@ namespace NeoCompose.Runtime.NeoScript
                     foreach (DeclaredConstructorArgument argument in
                         constructor.info.args ?? Array.Empty<DeclaredConstructorArgument>())
                     {
-                        if (AnyPointer(argument.valuePointer, predicate)) return true;
+                        if (AnyPointer(argument.valuePointer, predicate))
+                            return true;
                     }
                     return AnyPointer(constructor.info.fields, predicate);
                 case SelectFunction select:
@@ -295,7 +307,8 @@ namespace NeoCompose.Runtime.NeoScript
             foreach (FunctionClassConstructorField field in
                 fields ?? Array.Empty<FunctionClassConstructorField>())
             {
-                if (AnyPointer(field.valuePointer, predicate)) return true;
+                if (AnyPointer(field.valuePointer, predicate))
+                    return true;
             }
             return false;
         }

@@ -26,7 +26,10 @@ namespace System.Diagnostics.CodeAnalysis
         AllowMultiple = true)]
     internal sealed class MemberNotNullAttribute : System.Attribute
     {
-        public string[] Members { get; }
+        public string[] Members
+        {
+            get;
+        }
         public MemberNotNullAttribute(string member) => Members = new[] { member };
         public MemberNotNullAttribute(params string[] members) => Members = members;
     }

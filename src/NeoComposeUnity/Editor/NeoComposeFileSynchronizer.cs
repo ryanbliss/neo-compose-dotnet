@@ -164,17 +164,24 @@ namespace NeoCompose.Unity.Editor
         {
             var assetPath = BuildAssetPath(config, file);
             var entry = assetDatabase.TryGetEntry(file.id);
-            if (entry == null) return true;
-            if (entry.AssetPath != assetPath) return true;
-            if (!assets.FileExists(assetPath)) return true;
-            if (entry.ImportSettingsVersion != ImportSettingsVersion) return true;
-            if (entry.FileRecordHash != ComputeRecordHash(file)) return true;
+            if (entry == null)
+                return true;
+            if (entry.AssetPath != assetPath)
+                return true;
+            if (!assets.FileExists(assetPath))
+                return true;
+            if (entry.ImportSettingsVersion != ImportSettingsVersion)
+                return true;
+            if (entry.FileRecordHash != ComputeRecordHash(file))
+                return true;
 
             var template = ResolveTemplate(projectData, file);
             // Unity serializes null strings as "" on domain reload, so a
             // null-vs-empty template id difference is not a real change.
-            if ((entry.TemplateId ?? "") != (template.templateId ?? "")) return true;
-            if (entry.TemplateRecordHash != ComputeRecordHash(template.record)) return true;
+            if ((entry.TemplateId ?? "") != (template.templateId ?? ""))
+                return true;
+            if (entry.TemplateRecordHash != ComputeRecordHash(template.record))
+                return true;
             return false;
         }
 
@@ -189,7 +196,8 @@ namespace NeoCompose.Unity.Editor
         /// </summary>
         internal static string ComputeRecordHash(object? record)
         {
-            if (record == null) return "";
+            if (record == null)
+                return "";
             // JsonSerializer.Create ignores JsonConvert.DefaultSettings so a
             // host project's global serializer configuration cannot change
             // how records hash between synchronizations.

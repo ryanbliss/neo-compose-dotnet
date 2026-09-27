@@ -17,7 +17,10 @@ namespace NeoCompose.Runtime.Json
             EpochMilliseconds = epochMilliseconds;
         }
 
-        public double EpochMilliseconds { get; }
+        public double EpochMilliseconds
+        {
+            get;
+        }
 
         public static NeoTimestamp Now() =>
             new NeoTimestamp(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
@@ -25,7 +28,8 @@ namespace NeoCompose.Runtime.Json
         public static bool TryParse(string? value, out NeoTimestamp timestamp)
         {
             timestamp = default;
-            if (string.IsNullOrWhiteSpace(value)) return false;
+            if (string.IsNullOrWhiteSpace(value))
+                return false;
             if (double.TryParse(
                     value,
                     NumberStyles.Float,

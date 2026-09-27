@@ -140,9 +140,15 @@ namespace NeoCompose.Runtime
                 GameObject = gameObject;
             }
 
-            public INeoWorldObjectValue Value { get; }
+            public INeoWorldObjectValue Value
+            {
+                get;
+            }
 
-            public GameObject GameObject { get; }
+            public GameObject GameObject
+            {
+                get;
+            }
 
             /// <summary>
             /// The state last pushed to Unity, or null before the first apply.
@@ -151,8 +157,14 @@ namespace NeoCompose.Runtime
             /// costs one managed bool read instead of a native round-trip per
             /// GameObject.
             /// </summary>
-            public bool? Applied { get; set; }
-            public NestedObjectPositionBinding? PositionBinding { get; set; }
+            public bool? Applied
+            {
+                get; set;
+            }
+            public NestedObjectPositionBinding? PositionBinding
+            {
+                get; set;
+            }
         }
 
         /// <summary>
@@ -200,7 +212,8 @@ namespace NeoCompose.Runtime
                         renderer, value, generated, sortPoint);
                     bucket.PositionBinding.Register(gameObject.transform);
                 }
-                if (value.valueId is string valueId) renderer.gameObjectsByValueId[valueId] = gameObject;
+                if (value.valueId is string valueId)
+                    renderer.gameObjectsByValueId[valueId] = gameObject;
             }
         }
 
@@ -238,7 +251,10 @@ namespace NeoCompose.Runtime
                 content.localPosition = -applied;
             }
 
-            public Transform Content { get; }
+            public Transform Content
+            {
+                get;
+            }
 
             /// <summary>
             /// Whether a change reported to the owner can move the point: the
@@ -260,16 +276,19 @@ namespace NeoCompose.Runtime
             /// </summary>
             public void Apply()
             {
-                if (sortingGroup == null) return;
+                if (sortingGroup == null)
+                    return;
                 if (group is null
                     || groupNode is { isDisposed: true } or { value: null or { value: null } })
                 {
                     group = source.SortingGroup;
                     groupNode = (group as NeoGeneratedClassValue)?.BackingNode;
                 }
-                if (group is null) return;
+                if (group is null)
+                    return;
                 var point = renderer.CellOffsetToLocalPosition(group.SortPoint);
-                if (point == applied) return;
+                if (point == applied)
+                    return;
                 sortingGroup.localPosition = point;
                 Content.localPosition = -point;
                 applied = point;
@@ -322,10 +341,12 @@ namespace NeoCompose.Runtime
 
             private void Refresh()
             {
-                if (disposed) return;
+                if (disposed)
+                    return;
                 sortPoint?.Apply();
                 var position = renderer.CellOffsetToLocalPosition(value.Position);
-                if (position == applied) return;
+                if (position == applied)
+                    return;
                 foreach (var target in targets)
                     if (target.Transform != null)
                         target.Transform.localPosition = target.Anchor + position;
@@ -362,11 +383,26 @@ namespace NeoCompose.Runtime
                 BaseSortingOrder = baseSortingOrder;
             }
 
-            public INeoSpriteObjectValue Value { get; }
-            public SpriteRenderer Renderer { get; }
-            public Vector3 CellSpan { get; }
-            public BoxCollider2D? BoundsCollider { get; }
-            public int BaseSortingOrder { get; }
+            public INeoSpriteObjectValue Value
+            {
+                get;
+            }
+            public SpriteRenderer Renderer
+            {
+                get;
+            }
+            public Vector3 CellSpan
+            {
+                get;
+            }
+            public BoxCollider2D? BoundsCollider
+            {
+                get;
+            }
+            public int BaseSortingOrder
+            {
+                get;
+            }
         }
 
         private sealed class TileLayerTargetRegistration
@@ -385,14 +421,38 @@ namespace NeoCompose.Runtime
                 Provider = provider;
             }
 
-            public NeoTileGridRenderer Renderer { get; }
-            public IReadOnlyNeoTileLayerRuntime Layer { get; }
-            public INeoTileGridContent? Content { get; }
-            public NeoTileLayerRenderTarget Target { get; }
-            public INeoTileLayerRenderTargetProvider? Provider { get; }
-            public bool DidNotifyDestroying { get; set; }
-            public bool DidNotifyDestroyed { get; set; }
-            public NeoTileLayerRenderTargetDestroyReason DestroyReason { get; set; }
+            public NeoTileGridRenderer Renderer
+            {
+                get;
+            }
+            public IReadOnlyNeoTileLayerRuntime Layer
+            {
+                get;
+            }
+            public INeoTileGridContent? Content
+            {
+                get;
+            }
+            public NeoTileLayerRenderTarget Target
+            {
+                get;
+            }
+            public INeoTileLayerRenderTargetProvider? Provider
+            {
+                get;
+            }
+            public bool DidNotifyDestroying
+            {
+                get; set;
+            }
+            public bool DidNotifyDestroyed
+            {
+                get; set;
+            }
+            public NeoTileLayerRenderTargetDestroyReason DestroyReason
+            {
+                get; set;
+            }
         }
 
         private sealed class ReferenceComparer<T> : IEqualityComparer<T>
@@ -406,7 +466,10 @@ namespace NeoCompose.Runtime
         }
 
 
-        public NeoTileGridLifecycle? Lifecycle { get; set; }
+        public NeoTileGridLifecycle? Lifecycle
+        {
+            get; set;
+        }
 
         public Grid UnityGrid => EnsureGrid();
 
@@ -482,7 +545,8 @@ namespace NeoCompose.Runtime
 
         public void Render(INeoTileGridContent content)
         {
-            if (content == null) throw new ArgumentNullException(nameof(content));
+            if (content == null)
+                throw new ArgumentNullException(nameof(content));
 
             CancelInFlightRender();
             StopLiveSync();
@@ -505,7 +569,8 @@ namespace NeoCompose.Runtime
             INeoTileGridContent content,
             NeoTileGridRenderOptions? options = null)
         {
-            if (content == null) throw new ArgumentNullException(nameof(content));
+            if (content == null)
+                throw new ArgumentNullException(nameof(content));
 
             options ??= new NeoTileGridRenderOptions();
             StopLiveSync();
@@ -550,8 +615,10 @@ namespace NeoCompose.Runtime
             IEnumerable<IReadOnlyNeoObjectLayerRuntime>? objectLayers,
             INeoTileGridContent? content)
         {
-            if (primitive == null) throw new ArgumentNullException(nameof(primitive));
-            if (tileLayers == null) throw new ArgumentNullException(nameof(tileLayers));
+            if (primitive == null)
+                throw new ArgumentNullException(nameof(primitive));
+            if (tileLayers == null)
+                throw new ArgumentNullException(nameof(tileLayers));
 
             var grid = EnsureGrid();
             var createdTargets = new List<TileLayerTargetRegistration>();
@@ -591,7 +658,8 @@ namespace NeoCompose.Runtime
                     foreach (var tile in snapshot.Winners)
                     {
                         var tileBase = TileBaseFor(tile.Tile);
-                        if (tileBase == null) continue;
+                        if (tileBase == null)
+                            continue;
                         positions.Add(new Vector3Int(tile.Cell.x, tile.Cell.y, 0));
                         tiles.Add(tileBase);
                         renderedTiles[tile.Cell] = tileBase;
@@ -620,7 +688,8 @@ namespace NeoCompose.Runtime
                             layerFallbackSortingOrder;
                         foreach (var obj in NeoWorldLayerRuntimeSupport.GetObjects(layer))
                         {
-                            if (!ShouldRenderObjectInstance(layer, obj)) continue;
+                            if (!ShouldRenderObjectInstance(layer, obj))
+                                continue;
                             objectRootsByInstanceId[obj.InstanceId] =
                                 SpawnObject(root.transform, layer, obj, layerFallbackSortingOrder);
                         }
@@ -680,7 +749,8 @@ namespace NeoCompose.Runtime
         private void CancelInFlightRender()
         {
             var inFlight = activeRenderCancellation;
-            if (inFlight == null) return;
+            if (inFlight == null)
+                return;
             var targets = activeRenderTargets;
             activeRenderCancellation = null;
             activeRenderTargets = null;
@@ -721,8 +791,10 @@ namespace NeoCompose.Runtime
             NeoTileGridRenderOptions options,
             CancellationToken token)
         {
-            if (primitive == null) throw new ArgumentNullException(nameof(primitive));
-            if (tileLayers == null) throw new ArgumentNullException(nameof(tileLayers));
+            if (primitive == null)
+                throw new ArgumentNullException(nameof(primitive));
+            if (tileLayers == null)
+                throw new ArgumentNullException(nameof(tileLayers));
 
             token.ThrowIfCancellationRequested();
 
@@ -757,7 +829,8 @@ namespace NeoCompose.Runtime
                     ClearRenderedIndexes();
                     renderedPrimitive = primitive;
                     EnsureTileCacheClient(primitive.Client);
-                    if (needsDestroyFrame) await YieldRenderFrameAsync();
+                    if (needsDestroyFrame)
+                        await YieldRenderFrameAsync();
                 }
                 else
                 {
@@ -800,13 +873,15 @@ namespace NeoCompose.Runtime
                             await YieldRenderFrameAsync();
                         }
                         var tileBase = TileBaseFor(tile.Tile);
-                        if (tileBase == null) continue;
+                        if (tileBase == null)
+                            continue;
 
                         positions.Add(new Vector3Int(tile.Cell.x, tile.Cell.y, 0));
                         tiles.Add(tileBase);
                         renderedTiles[tile.Cell] = tileBase;
                         tilesThisFrame++;
-                        if (positions.Count < 512) continue;
+                        if (positions.Count < 512)
+                            continue;
 
                         SetTileBatch(tilemap, positions, tiles);
                         positions.Clear();
@@ -844,7 +919,8 @@ namespace NeoCompose.Runtime
                             if (objectsThisFrame >= options.NormalizedMaxObjectsPerFrame
                                 || frameBudget.Elapsed.TotalMilliseconds >= options.NormalizedMaxMillisecondsPerFrame)
                                 await YieldRenderFrameAsync();
-                            if (!ShouldRenderObjectInstance(layer, obj)) continue;
+                            if (!ShouldRenderObjectInstance(layer, obj))
+                                continue;
                             objectRootsByInstanceId[obj.InstanceId] =
                                 SpawnObject(root.transform, layer, obj, layerFallbackSortingOrder);
                             objectsThisFrame++;
@@ -880,7 +956,8 @@ namespace NeoCompose.Runtime
         public void StopLiveSync()
         {
             var session = liveSession;
-            if (session == null) return;
+            if (session == null)
+                return;
             liveSession = null;
             session.Dispose();
         }
@@ -902,7 +979,8 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal bool TryGetGameObject(string valueId, bool isLink, [NotNullWhen(true)] out GameObject? gameObject)
         {
-            if (gameObjectsByValueId.TryGetValue(valueId, out gameObject) && gameObject != null) return true;
+            if (gameObjectsByValueId.TryGetValue(valueId, out gameObject) && gameObject != null)
+                return true;
             gameObject = null;
             if (!isLink
                 || renderedPrimitive is null
@@ -954,8 +1032,10 @@ namespace NeoCompose.Runtime
                 {
                     foreach (var instance in NeoWorldLayerRuntimeSupport.GetObjects(layer))
                     {
-                        if (instance.Info is not TInfo typed) continue;
-                        if (!TryGetObjectRoot(instance.InstanceId, out root)) continue;
+                        if (instance.Info is not TInfo typed)
+                            continue;
+                        if (!TryGetObjectRoot(instance.InstanceId, out root))
+                            continue;
                         info = typed;
                         return true;
                     }
@@ -972,20 +1052,23 @@ namespace NeoCompose.Runtime
             NeoObjectProjection instance)
         {
             var lifecycle = Lifecycle;
-            if (lifecycle == null) return true;
+            if (lifecycle == null)
+                return true;
             return lifecycle.ShouldRenderObject(new NeoObjectRenderContext(this, layer, instance.Object));
         }
 
         public bool TryClearTile(string layerId, Vector2Int cell)
         {
-            if (string.IsNullOrEmpty(layerId)) return false;
+            if (string.IsNullOrEmpty(layerId))
+                return false;
             if (!tilemapsByLayerId.TryGetValue(layerId, out var tilemap) || tilemap == null)
             {
                 return false;
             }
 
             var position = new Vector3Int(cell.x, cell.y, 0);
-            if (tilemap.GetTile(position) == null) return true;
+            if (tilemap.GetTile(position) == null)
+                return true;
 
             if (renderedTilesByLayerId.TryGetValue(layerId, out var renderedTiles))
             {
@@ -1003,8 +1086,10 @@ namespace NeoCompose.Runtime
 
         private void HandleGridChanged(NeoTileGridChangedArgs args)
         {
-            if (currentContent == null) return;
-            if (args.GridValueId != currentContent.Primitive.GridValueId) return;
+            if (currentContent == null)
+                return;
+            if (args.GridValueId != currentContent.Primitive.GridValueId)
+                return;
 
             foreach (var layerChange in args.TileLayers)
             {
@@ -1015,7 +1100,8 @@ namespace NeoCompose.Runtime
                 ApplyTileLayerDelta(layer, layerChange);
             }
 
-            if (!renderObjects) return;
+            if (!renderObjects)
+                return;
             foreach (var layerChange in args.ObjectLayers)
             {
                 if (!objectLayersByLayerId.TryGetValue(layerChange.LayerId, out var layer))
@@ -1096,8 +1182,10 @@ namespace NeoCompose.Runtime
             TileBase? previousTile = renderedTiles.TryGetValue(cell, out var stored)
                 ? stored
                 : tilemap.GetTile(position);
-            if (nextTile == null) renderedTiles.Remove(cell);
-            else renderedTiles[cell] = nextTile;
+            if (nextTile == null)
+                renderedTiles.Remove(cell);
+            else
+                renderedTiles[cell] = nextTile;
 
             tilemap.SetTile(position, nextTile);
             RefreshIfSmartTileChanged(tilemap, position, previousTile, nextTile);
@@ -1137,7 +1225,8 @@ namespace NeoCompose.Runtime
                 // Reevaluate lifecycle filters, while retaining controllers and
                 // animation on an object that remains visible after moving.
                 if (change.PositionsOnly && objectRootsByInstanceId.TryGetValue(instanceId, out var existing)
-                    && existing != null) continue;
+                    && existing != null)
+                    continue;
                 DestroyRenderedObject(instanceId);
                 objectRootsByInstanceId[instanceId] =
                     SpawnObject(root.transform, layer, resolved, fallbackSortingOrder);
@@ -1186,12 +1275,16 @@ namespace NeoCompose.Runtime
             bool positionDirty = false, sortPointDirty = false, visibilityDirty = false, spritesDirty = false;
             void RefreshRendering()
             {
-                if (!objectRootsByInstanceId.TryGetValue(instanceId, out var root) || root == null) return;
+                if (!objectRootsByInstanceId.TryGetValue(instanceId, out var root) || root == null)
+                    return;
                 if (positionDirty && value is INeoWorldObjectValue worldObject)
                     root.transform.localPosition = CellOffsetToLocalPosition(worldObject.Position);
-                if (sortPointDirty) sortPoint!.Apply();
-                if (visibilityDirty) SyncObjectVisibility(instanceId);
-                if (spritesDirty) SyncObjectSprites(instanceId);
+                if (sortPointDirty)
+                    sortPoint!.Apply();
+                if (visibilityDirty)
+                    SyncObjectVisibility(instanceId);
+                if (spritesDirty)
+                    SyncObjectSprites(instanceId);
                 positionDirty = sortPointDirty = visibilityDirty = spritesDirty = false;
             }
             Action refresh = RefreshRendering;
@@ -1256,10 +1349,12 @@ namespace NeoCompose.Runtime
             foreach (var binding in sprites)
             {
                 var renderer = binding.Renderer;
-                if (renderer == null) continue;
+                if (renderer == null)
+                    continue;
                 var sprite = binding.Value.Sprite;
                 // Unity's destroyed assets compare equal to null.
-                if (sprite == null) sprite = null;
+                if (sprite == null)
+                    sprite = null;
                 bool geometryChanged = !ReferenceEquals(renderer.sprite, sprite)
                     || renderer.flipX != binding.Value.FlipX
                     || renderer.flipY != binding.Value.FlipY
@@ -1272,7 +1367,8 @@ namespace NeoCompose.Runtime
                 }
                 ApplySpriteState(renderer, binding.Value);
                 int sortingOrder = binding.BaseSortingOrder + (binding.Value.SortingOrder ?? 0);
-                if (renderer.sortingOrder != sortingOrder) renderer.sortingOrder = sortingOrder;
+                if (renderer.sortingOrder != sortingOrder)
+                    renderer.sortingOrder = sortingOrder;
                 if (geometryChanged)
                     ApplySpriteGeometry(renderer, binding.CellSpan, binding.BoundsCollider);
             }
@@ -1342,10 +1438,12 @@ namespace NeoCompose.Runtime
                 var enabled = bucket.Value.Enabled;
                 // One managed bool read per value settles the common case. Only
                 // a value that actually flipped reaches a native GameObject.
-                if (bucket.Applied == enabled) continue;
+                if (bucket.Applied == enabled)
+                    continue;
                 bucket.Applied = enabled;
                 var gameObject = bucket.GameObject;
-                if (gameObject == null || gameObject.activeSelf == enabled) continue;
+                if (gameObject == null || gameObject.activeSelf == enabled)
+                    continue;
                 gameObject.SetActive(enabled);
             }
         }
@@ -1406,7 +1504,8 @@ namespace NeoCompose.Runtime
             objectLayerRootsByLayerId.Clear();
             DisposeObjectPositionSubscriptions();
             objectRootsByInstanceId.Clear();
-            foreach (var visibility in objectVisibilityByInstanceId.Values) visibility.Dispose();
+            foreach (var visibility in objectVisibilityByInstanceId.Values)
+                visibility.Dispose();
             objectVisibilityByInstanceId.Clear();
             objectSpritesByInstanceId.Clear();
             objectLayerFallbackSortingOrdersByLayerId.Clear();
@@ -1573,7 +1672,8 @@ namespace NeoCompose.Runtime
             TileLayerTargetRegistration registration,
             NeoTileLayerRenderTargetDestroyReason reason)
         {
-            if (registration.DidNotifyDestroying) return;
+            if (registration.DidNotifyDestroying)
+                return;
             registration.DidNotifyDestroying = true;
             registration.DestroyReason = reason;
             try
@@ -1594,7 +1694,8 @@ namespace NeoCompose.Runtime
 
         private void OnTileLayerTargetDestroyed(TileLayerTargetRegistration registration)
         {
-            if (registration.DidNotifyDestroyed) return;
+            if (registration.DidNotifyDestroyed)
+                return;
             if (!registration.DidNotifyDestroying)
             {
                 NotifyTileLayerTargetDestroying(
@@ -1639,7 +1740,8 @@ namespace NeoCompose.Runtime
 
         private static void DestroyTargetRoot(GameObject root)
         {
-            if (root == null) return;
+            if (root == null)
+                return;
             if (Application.isPlaying)
             {
                 UnityEngine.Object.Destroy(root);
@@ -1737,12 +1839,15 @@ namespace NeoCompose.Runtime
                     colliderSpec.Size * cellSize,
                     colliderSpec.Offset * cellSize,
                     colliderSpec.IsTrigger));
-                if (renderedChildren > 0) return go;
+                if (renderedChildren > 0)
+                    return go;
             }
 
-            if (renderedChildren > 0) return go;
+            if (renderedChildren > 0)
+                return go;
 
-            if (instance.Object is not INeoSpriteObjectValue spriteObject) return go;
+            if (instance.Object is not INeoSpriteObjectValue spriteObject)
+                return go;
 
             RenderSpriteChild(content, layer, spriteObject, Vector3.zero, sortingOrder, sprites);
             return go;
@@ -1765,8 +1870,10 @@ namespace NeoCompose.Runtime
             INeoValueReference value,
             int sortingOrder)
         {
-            if (value is not INeoSortingGroupSource source) return null;
-            if (source.SortingGroup is not { } group) return null;
+            if (value is not INeoSortingGroupSource source)
+                return null;
+            if (source.SortingGroup is not { } group)
+                return null;
 
             var groupGo = new GameObject("Sorting Group");
             groupGo.transform.SetParent(target.transform, false);
@@ -1788,8 +1895,10 @@ namespace NeoCompose.Runtime
             ObjectVisibilityIndex visibility,
             List<RenderedObjectSprite> sprites)
         {
-            if (depth > NeoReadOnlyTileGridPrimitive.MaxCompositionDepth) return 0;
-            if (value is not INeoObjectCompositionSource composition) return 0;
+            if (depth > NeoReadOnlyTileGridPrimitive.MaxCompositionDepth)
+                return 0;
+            if (value is not INeoObjectCompositionSource composition)
+                return 0;
 
             var valueId = value.valueId;
             var hasValueId = !string.IsNullOrEmpty(valueId);
@@ -1801,7 +1910,8 @@ namespace NeoCompose.Runtime
             var rendered = 0;
             foreach (var child in composition.Children)
             {
-                if (child == null) continue;
+                if (child == null)
+                    continue;
                 rendered += RenderObjectChild(
                     parent,
                     layer,
@@ -1832,7 +1942,8 @@ namespace NeoCompose.Runtime
         {
             // A tile layer link flattens into its target layer's Tilemap
             // (NeoTileGridPrimitive.BuildTileLayerRecords), not under the object.
-            if (child is INeoTileLayerLinkValue) return 0;
+            if (child is INeoTileLayerLinkValue)
+                return 0;
             var childOffset = CellOffsetToLocalPosition(child.Position);
 
             if (child is INeoSpriteObjectValue spriteChild)
@@ -1995,7 +2106,8 @@ namespace NeoCompose.Runtime
         private void ApplySpriteGeometry(SpriteRenderer renderer, Vector3 cellSpan, BoxCollider2D? boundsCollider)
         {
             var sprite = renderer.sprite;
-            if (boundsCollider != null) boundsCollider.enabled = sprite != null;
+            if (boundsCollider != null)
+                boundsCollider.enabled = sprite != null;
             if (sprite == null)
             {
                 renderer.transform.localScale = Vector3.one;
@@ -2030,8 +2142,10 @@ namespace NeoCompose.Runtime
                     "A rendered tile must belong to the same NeoClient as its grid primitive.");
             }
             string? classId = value.classId;
-            if (string.IsNullOrEmpty(classId)) return null;
-            if (tileBasesByClassId.TryGetValue(classId!, out var cached)) return cached;
+            if (string.IsNullOrEmpty(classId))
+                return null;
+            if (tileBasesByClassId.TryGetValue(classId!, out var cached))
+                return cached;
 
             bool smart = NeoTileAssetFactory.TryResolveSmartTile(value, out _);
             var tileBase = assetDatabase?.TryGetTileBaseForClass(classId!);
@@ -2042,19 +2156,22 @@ namespace NeoCompose.Runtime
             else if (smart)
             {
                 tileBase = NeoTileAssetFactory.CreateTransientTileBase(value, SmartTileMatcher);
-                if (tileBase != null) transientTileBases.Add(tileBase);
+                if (tileBase != null)
+                    transientTileBases.Add(tileBase);
             }
             else
             {
                 var sprite = NeoTileAssetFactory.ResolveSprite(value);
-                if (sprite == null) return null;
+                if (sprite == null)
+                    return null;
                 var tile = ScriptableObject.CreateInstance<Tile>();
                 tile.name = $"Neo Tile - {classId}";
                 tile.sprite = sprite;
                 tileBase = tile;
                 transientTileBases.Add(tile);
             }
-            if (tileBase == null) return null;
+            if (tileBase == null)
+                return null;
             tileBasesByClassId[classId!] = tileBase;
             tileClasses[tileBase] = (value.Client, classId!, smart);
             return tileBase;
@@ -2065,7 +2182,8 @@ namespace NeoCompose.Runtime
 
         private void EnsureTileCacheClient(NeoClient client)
         {
-            if (ReferenceEquals(tileCacheClient, client)) return;
+            if (ReferenceEquals(tileCacheClient, client))
+                return;
             ClearTileBaseCache();
             tileCacheClient = client;
             client.AttachRenderer(this);
@@ -2075,7 +2193,8 @@ namespace NeoCompose.Runtime
         {
             foreach (var tileBase in transientTileBases)
             {
-                if (tileBase == null) continue;
+                if (tileBase == null)
+                    continue;
                 if (Application.isPlaying)
                 {
                     UnityEngine.Object.Destroy(tileBase);
@@ -2115,7 +2234,8 @@ namespace NeoCompose.Runtime
                         position.x + x,
                         position.y + y,
                         position.z);
-                    if (!RequiresManualRefresh(tilemap.GetTile(neighborPosition))) continue;
+                    if (!RequiresManualRefresh(tilemap.GetTile(neighborPosition)))
+                        continue;
                     tilemap.RefreshTile(neighborPosition);
                 }
             }
@@ -2137,10 +2257,12 @@ namespace NeoCompose.Runtime
             out NeoBoxColliderSpec spec)
         {
             spec = default;
-            if (source?.Collider is not { } collider) return false;
+            if (source?.Collider is not { } collider)
+                return false;
 
             var size = collider.Size.Value;
-            if (size.x <= 0f || size.y <= 0f) return false;
+            if (size.x <= 0f || size.y <= 0f)
+                return false;
 
             spec = new NeoBoxColliderSpec(
                 size,
@@ -2210,7 +2332,8 @@ namespace NeoCompose.Runtime
             NeoRuleTileNeighbor neighbor,
             TileBase? other)
         {
-            if (other == null) return false;
+            if (other == null)
+                return false;
             if (!tileClasses.TryGetValue(other, out var type))
             {
                 return false;
@@ -2227,7 +2350,8 @@ namespace NeoCompose.Runtime
             string classId,
             string? requiredClassId)
         {
-            if (string.IsNullOrEmpty(requiredClassId)) return false;
+            if (string.IsNullOrEmpty(requiredClassId))
+                return false;
             string? currentClassId = classId;
             while (!string.IsNullOrEmpty(currentClassId))
             {
@@ -2265,7 +2389,8 @@ namespace NeoCompose.Runtime
             List<Vector3Int> positions,
             List<TileBase> tiles)
         {
-            if (positions.Count == 0) return;
+            if (positions.Count == 0)
+                return;
             tilemap.SetTiles(positions.ToArray(), tiles.ToArray());
         }
 
@@ -2310,11 +2435,15 @@ namespace NeoCompose.Runtime
 
             }
 
-            public INeoTileGridContent Content { get; }
+            public INeoTileGridContent Content
+            {
+                get;
+            }
 
             public void Dispose()
             {
-                if (disposed) return;
+                if (disposed)
+                    return;
                 disposed = true;
                 foreach (var subscription in subscriptions)
                 {
@@ -2352,8 +2481,17 @@ namespace NeoCompose.Runtime
             IsTrigger = isTrigger;
         }
 
-        public Vector2 Size { get; }
-        public Vector2 Offset { get; }
-        public bool IsTrigger { get; }
+        public Vector2 Size
+        {
+            get;
+        }
+        public Vector2 Offset
+        {
+            get;
+        }
+        public bool IsTrigger
+        {
+            get;
+        }
     }
 }

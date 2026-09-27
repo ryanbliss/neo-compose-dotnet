@@ -31,14 +31,19 @@ namespace NeoCompose.Tests
             client.save.SetSerializedValue("Score", a);
             var node = client.save.Get<NeoMemberIntWritable>("Score");
             var old = node.value!;
-            for (int i = 0; i < 100; i++) client.save.SetSerializedValue("Score", (i & 1) == 0 ? b : a);
+            for (int i = 0; i < 100; i++)
+                client.save.SetSerializedValue("Score", (i & 1) == 0 ? b : a);
             var recorder = UnityEngine.Profiling.Recorder.Get("GC.Alloc");
             recorder.enabled = false;
             recorder.FilterToCurrentThread();
             var watch = new System.Diagnostics.Stopwatch();
             recorder.enabled = true;
             watch.Start();
-            try { for (int i = 0; i < 10000; i++) client.save.SetSerializedValue("Score", (i & 1) == 0 ? b : a); }
+            try
+            {
+                for (int i = 0; i < 10000; i++)
+                    client.save.SetSerializedValue("Score", (i & 1) == 0 ? b : a);
+            }
             finally { watch.Stop(); recorder.enabled = false; recorder.CollectFromAllThreads(); }
             TestContext.WriteLine($"Changed scalar: {recorder.sampleBlockCount / 10000d} allocations/write; {watch.Elapsed.TotalMilliseconds / 10d} us/write");
             client.save.SetSerializedValue("Score", b);
@@ -51,7 +56,8 @@ namespace NeoCompose.Tests
         {
             using var client = NeoTestSaveStack.LoadClient(File.ReadAllText(ProjectFixture));
             var payload = NeoValueWritePayload.FromValue(41d);
-            for (int i = 0; i < 10; i++) client.save.SetSerializedValue("Score", payload);
+            for (int i = 0; i < 10; i++)
+                client.save.SetSerializedValue("Score", payload);
 
             // Unity Mono does not reliably implement GetAllocatedBytesForCurrentThread.
             // Count GC.Alloc samples on this thread, excluding fixture/payload setup.
@@ -61,7 +67,8 @@ namespace NeoCompose.Tests
             recorder.enabled = true;
             try
             {
-                for (int i = 0; i < 100; i++) client.save.SetSerializedValue("Score", payload);
+                for (int i = 0; i < 100; i++)
+                    client.save.SetSerializedValue("Score", payload);
             }
             finally
             {
@@ -76,10 +83,20 @@ namespace NeoCompose.Tests
         [Test]
         public void ConstructorNumericArgumentsRetainIdentityAcrossJsonNumberKinds()
         {
-            var left = new ObjectMemberValue { id = "sprite", classId = "sprite-class", value = new(),
-                constructorArgs = new() { ["order"] = new JValue(70d) } };
-            var right = new ObjectMemberValue { id = "sprite", classId = "sprite-class", value = new(),
-                constructorArgs = new() { ["order"] = new JValue(70L) } };
+            var left = new ObjectMemberValue
+            {
+                id = "sprite",
+                classId = "sprite-class",
+                value = new(),
+                constructorArgs = new() { ["order"] = new JValue(70d) }
+            };
+            var right = new ObjectMemberValue
+            {
+                id = "sprite",
+                classId = "sprite-class",
+                value = new(),
+                constructorArgs = new() { ["order"] = new JValue(70L) }
+            };
             Assert.IsTrue(NeoSemanticJson.MemberRowsEqual(left, right));
             right.constructorArgs["order"] = new JValue(71L);
             Assert.IsFalse(NeoSemanticJson.MemberRowsEqual(left, right));
@@ -133,8 +150,14 @@ namespace NeoCompose.Tests
                     Check(row, copy);
                 }
             }
-            var a = new ObjectMemberValue { id = "row", classId = "class", value = new(),
-                instanceConstructorId = "ctor", constructorArgs = new() { ["one"] = JObject.Parse("{ 'x': 1, 'y': 2 }") } };
+            var a = new ObjectMemberValue
+            {
+                id = "row",
+                classId = "class",
+                value = new(),
+                instanceConstructorId = "ctor",
+                constructorArgs = new() { ["one"] = JObject.Parse("{ 'x': 1, 'y': 2 }") }
+            };
             var b = (ObjectMemberValue)JObject.FromObject(a).ToObject(typeof(ObjectMemberValue))!;
             b.constructorArgs!["one"] = JObject.Parse("{ 'y': 2, 'x': 1 }");
             Check(a, b);
@@ -254,9 +277,15 @@ namespace NeoCompose.Tests
                 this.content = content;
             }
 
-            public ProjectData Schema { get; }
+            public ProjectData Schema
+            {
+                get;
+            }
             public string CustomId => "save-1";
-            public int CommitCalls { get; private set; }
+            public int CommitCalls
+            {
+                get; private set;
+            }
 
             public Awaitable<string?> LoadSaveContentAsync() =>
                 NeoAwaitable.FromResult<string?>(content);

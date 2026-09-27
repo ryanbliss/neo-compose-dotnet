@@ -51,7 +51,10 @@ namespace NeoCompose.Runtime
         /// and freshly-minted collection rows stamp their
         /// <c>genericBindings</c> from it. Empty for non-generic chains.
         /// </summary>
-        internal IReadOnlyDictionary<string, NeoGenericEnvEntry> GenericEnv { get; private set; }
+        internal IReadOnlyDictionary<string, NeoGenericEnvEntry> GenericEnv
+        {
+            get; private set;
+        }
             = NeoGenericResolution.EmptyEnv;
         protected Dictionary<string, NeoMember> childMembers = new();
         private List<string>? reboundKeys;
@@ -251,7 +254,8 @@ namespace NeoCompose.Runtime
             for (int i = 0; i < mergedSchema.Count; i++)
             {
                 var entry = mergedSchema[i];
-                if (entry.schemaKey == key) return entry.memberId;
+                if (entry.schemaKey == key)
+                    return entry.memberId;
             }
             return null;
         }
@@ -282,7 +286,8 @@ namespace NeoCompose.Runtime
         protected override void OnValueIdChainChanged()
         {
             base.OnValueIdChainChanged();
-            if (reboundKeys is not { } rebound) return;
+            if (reboundKeys is not { } rebound)
+                return;
             reboundKeys = null;
             foreach (string key in rebound)
             {
@@ -310,7 +315,8 @@ namespace NeoCompose.Runtime
 
         public override void Dispose()
         {
-            if (!BeginDisposeChildren()) return;
+            if (!BeginDisposeChildren())
+                return;
             foreach (var child in childMembers.Values)
             {
                 child.OnChanged -= HandleChildChanged;
@@ -377,7 +383,8 @@ namespace NeoCompose.Runtime
                 {
                     continue;
                 }
-                if (!client.TryGetMember(entry.memberId, out Member? childMember)) continue;
+                if (!client.TryGetMember(entry.memberId, out Member? childMember))
+                    continue;
                 childMember = SubstituteChildMember(childMember);
                 if (member.useDeclarationDefaults)
                 {
@@ -498,7 +505,8 @@ namespace NeoCompose.Runtime
 
         protected void NotifyChildChanged(string key)
         {
-            if (key == reportingKey) reportingKey = null;
+            if (key == reportingKey)
+                reportingKey = null;
             if (childMembers.TryGetValue(key, out NeoMember? child))
             {
                 NotifyChanged(child);
@@ -792,7 +800,10 @@ namespace NeoCompose.Runtime
         private void SetSerializedValue(string key, NeoValueWritePayload? setValue, bool placement)
         {
             string? outer = BeginReporting(key);
-            try { WriteSerializedValue(key, setValue, placement); }
+            try
+            {
+                WriteSerializedValue(key, setValue, placement);
+            }
             finally { EndReporting(key, outer); }
         }
 
@@ -905,7 +916,8 @@ namespace NeoCompose.Runtime
                     return;
                 }
                 if (client.TryGetWritableValue(childOwnership, existingValueId, out MemberValue? stored)
-                    && MemberValueFactory.MatchesLeaf(childMember, setValue?.value, stored)) return;
+                    && MemberValueFactory.MatchesLeaf(childMember, setValue?.value, stored))
+                    return;
                 bool childWillSelfNotify = childMembers.TryGetValue(key, out NeoMember? existingChild)
                     && ChildSelfNotifies(existingChild);
                 // Reuse the entry's stable id: a fresh row at the same id
@@ -928,8 +940,10 @@ namespace NeoCompose.Runtime
                         ? value is not null && client.TryWritePlacement(childOwnership, value, key, next, childMember)
                         : client.TryWriteLeaf(childOwnership, next, childMember, "value")))
                 {
-                    if (existingChild is null || existingChild.isDisposed) ReinitializeChildren();
-                    if (!childWillSelfNotify) NotifyChildChanged(key);
+                    if (existingChild is null || existingChild.isDisposed)
+                        ReinitializeChildren();
+                    if (!childWillSelfNotify)
+                        NotifyChildChanged(key);
                     return;
                 }
                 plan = new NeoWritePlan(client);
@@ -1055,7 +1069,8 @@ namespace NeoCompose.Runtime
 
         internal void AssertUnboundObjectCanBeConstructed()
         {
-            if (value?.value is not null) return;
+            if (value?.value is not null)
+                return;
             try
             {
                 NeoGeneratedTypesSupport.ValidateRuntimeClassConstructorMetadata(
@@ -1080,7 +1095,8 @@ namespace NeoCompose.Runtime
         {
             var plan = new NeoWritePlan(client);
             var row = EnsureWritableObject(plan, nowIso);
-            if (plan.Rows.Count > 0) plan.Commit();
+            if (plan.Rows.Count > 0)
+                plan.Commit();
             return row;
         }
 
@@ -1128,8 +1144,10 @@ namespace NeoCompose.Runtime
             {
                 RejectReadOnlyInstanceMutation(key, SubstituteChildMember(rawMember));
             }
-            if (value?.value is null) return;
-            if (!value.value.ContainsKey(key)) return;
+            if (value?.value is null)
+                return;
+            if (!value.value.ContainsKey(key))
+                return;
             string? schemaKeyedMemberId = LookupMergedMemberId(key);
             Member? removedMember = schemaKeyedMemberId is not null
                 && client.TryGetMember(schemaKeyedMemberId, out Member? resolvedMember)
@@ -1165,7 +1183,8 @@ namespace NeoCompose.Runtime
             string key,
             Member childMember)
         {
-            if (childMember.Mutability != NeoMemberMutabilityKind.ReadOnly) return;
+            if (childMember.Mutability != NeoMemberMutabilityKind.ReadOnly)
+                return;
             throw new System.InvalidOperationException(
                 $"Cannot write '{key}': read-only declaration member '{childMember.name}' ({childMember.id}) cannot have an instance value. Change its class default instead.");
         }

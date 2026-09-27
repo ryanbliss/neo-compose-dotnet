@@ -39,9 +39,12 @@ namespace NeoCompose.Runtime.Json
         {
             switch ((LogicType)discriminator.Value<int>())
             {
-                case LogicType.UI: return typeof(UILogicCondition);
-                case LogicType.Code: return typeof(CodeLogicCondition);
-                default: return null;
+                case LogicType.UI:
+                    return typeof(UILogicCondition);
+                case LogicType.Code:
+                    return typeof(CodeLogicCondition);
+                default:
+                    return null;
             }
         }
     }
@@ -69,9 +72,12 @@ namespace NeoCompose.Runtime.Json
         {
             switch ((LogicType)discriminator.Value<int>())
             {
-                case LogicType.UI: return typeof(UILogicAction);
-                case LogicType.Code: return typeof(CodeLogicAction);
-                default: return null;
+                case LogicType.UI:
+                    return typeof(UILogicAction);
+                case LogicType.Code:
+                    return typeof(CodeLogicAction);
+                default:
+                    return null;
             }
         }
     }
@@ -131,7 +137,9 @@ namespace NeoCompose.Runtime.Json
     }
 
     [JsonConverter(typeof(DialogueBodyNodeConverter))]
-    public abstract class DialogueBodyNode : DialogueNode { }
+    public abstract class DialogueBodyNode : DialogueNode
+    {
+    }
 
     public class DialogueTextNode : DialogueBodyNode
     {
@@ -156,10 +164,14 @@ namespace NeoCompose.Runtime.Json
         {
             switch ((DialogueNodeType)discriminator.Value<int>())
             {
-                case DialogueNodeType.Text: return typeof(DialogueTextNode);
-                case DialogueNodeType.Actions: return typeof(DialogueActionsNode);
-                case DialogueNodeType.Conditions: return typeof(DialogueConditionsNode);
-                default: return null;
+                case DialogueNodeType.Text:
+                    return typeof(DialogueTextNode);
+                case DialogueNodeType.Actions:
+                    return typeof(DialogueActionsNode);
+                case DialogueNodeType.Conditions:
+                    return typeof(DialogueConditionsNode);
+                default:
+                    return null;
             }
         }
     }
@@ -227,15 +239,19 @@ namespace NeoCompose.Runtime.Json
         {
             switch ((DialogueActionType)discriminator.Value<int>())
             {
-                case DialogueActionType.EditMember: return typeof(DialogueLogicEditMemberAction);
-                case DialogueActionType.Pause: return typeof(DialoguePauseAction);
-                default: return null;
+                case DialogueActionType.EditMember:
+                    return typeof(DialogueLogicEditMemberAction);
+                case DialogueActionType.Pause:
+                    return typeof(DialoguePauseAction);
+                default:
+                    return null;
             }
         }
 
         protected override void ValidateObject(JObject obj, Type concrete)
         {
-            if (concrete != typeof(DialoguePauseAction)) return;
+            if (concrete != typeof(DialoguePauseAction))
+                return;
             string actionId = obj["id"]?.Value<string>() ?? "<unknown>";
             JToken? reason = obj["reason"];
             if (reason == null)
@@ -255,7 +271,8 @@ namespace NeoCompose.Runtime.Json
                 throw new JsonSerializationException(
                     $"Invalid pause dialogue action '{actionId}': field 'autoResumeDurationSeconds' is required.");
             }
-            if (duration.Type == JTokenType.Null) return;
+            if (duration.Type == JTokenType.Null)
+                return;
             if (duration.Type != JTokenType.Integer && duration.Type != JTokenType.Float)
             {
                 throw new JsonSerializationException(

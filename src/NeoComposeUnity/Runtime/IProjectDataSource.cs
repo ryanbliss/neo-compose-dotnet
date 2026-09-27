@@ -120,7 +120,8 @@ namespace NeoCompose.Runtime
         /// </summary>
         public static NeoResourcesProjectDataSource FromConfig(NeoComposeConfig config)
         {
-            if (config == null) throw new ArgumentNullException(nameof(config));
+            if (config == null)
+                throw new ArgumentNullException(nameof(config));
             var directory = ToResourcesRelativeDirectory(config.projectJsonDirectory);
             var path = string.IsNullOrEmpty(directory)
                 ? NeoComposeDefaults.ProjectJsonResourceName

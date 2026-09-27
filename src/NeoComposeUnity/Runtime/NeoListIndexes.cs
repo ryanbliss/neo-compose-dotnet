@@ -70,7 +70,8 @@ namespace NeoCompose.Runtime
 
         internal bool TryGetUnique(string rawKey, [NotNullWhen(true)] out string? valueId)
         {
-            if (rawKey is null) throw new ArgumentNullException(nameof(rawKey));
+            if (rawKey is null)
+                throw new ArgumentNullException(nameof(rawKey));
             EnsureBuiltAndValid();
             list.IndexDiagnostics.DerivedLookupCount += 1;
             if (buckets!.TryGetValue(rawKey, out List<string>? bucket)
@@ -85,7 +86,8 @@ namespace NeoCompose.Runtime
 
         internal IReadOnlyList<string> GetMany(string rawKey)
         {
-            if (rawKey is null) throw new ArgumentNullException(nameof(rawKey));
+            if (rawKey is null)
+                throw new ArgumentNullException(nameof(rawKey));
             EnsureBuiltAndValid();
             list.IndexDiagnostics.DerivedLookupCount += 1;
             return buckets!.TryGetValue(rawKey, out List<string>? bucket)
@@ -98,7 +100,8 @@ namespace NeoCompose.Runtime
             EnsureBuiltAndValid();
             // An empty/all-null List has no runtime field node to inspect;
             // schema validation remains authoritative until an entry exists.
-            if (resolvedKeyKind is null) return;
+            if (resolvedKeyKind is null)
+                return;
             if (!string.Equals(resolvedKeyKind, keyKind, StringComparison.Ordinal)
                 || (resolvedKeyKind == ListIndexKeyKind.Enum
                     && !string.Equals(
@@ -115,22 +118,29 @@ namespace NeoCompose.Runtime
 
         internal void UpdateEntry(string valueId)
         {
-            if (buckets is null || keysByValueId is null) return;
+            if (buckets is null || keysByValueId is null)
+                return;
             RemoveEntry(valueId);
-            if (!list.TryGetChildById(valueId, out NeoMember? child)) return;
+            if (!list.TryGetChildById(valueId, out NeoMember? child))
+                return;
             string? rawKey = ReadRawKey(child);
             keysByValueId[valueId] = rawKey;
-            if (rawKey is not null) AddToBucket(rawKey, valueId);
+            if (rawKey is not null)
+                AddToBucket(rawKey, valueId);
             list.IndexDiagnostics.DerivedIncrementalUpdateCount += 1;
         }
 
         internal void RemoveEntry(string valueId)
         {
-            if (buckets is null || keysByValueId is null) return;
-            if (!keysByValueId.TryGetValue(valueId, out string? oldKey)) return;
+            if (buckets is null || keysByValueId is null)
+                return;
+            if (!keysByValueId.TryGetValue(valueId, out string? oldKey))
+                return;
             keysByValueId.Remove(valueId);
-            if (oldKey is null) return;
-            if (!buckets.TryGetValue(oldKey, out List<string>? bucket)) return;
+            if (oldKey is null)
+                return;
+            if (!buckets.TryGetValue(oldKey, out List<string>? bucket))
+                return;
             int previousCount = bucket.Count;
             bucket.Remove(valueId);
             if (bucket.Count == 0)
@@ -146,7 +156,8 @@ namespace NeoCompose.Runtime
 
         internal void Clear()
         {
-            if (buckets is null) return;
+            if (buckets is null)
+                return;
             buckets.Clear();
             keysByValueId!.Clear();
             duplicateKeys?.Clear();
@@ -175,7 +186,8 @@ namespace NeoCompose.Runtime
 
         private void EnsureBuilt()
         {
-            if (buckets is not null) return;
+            if (buckets is not null)
+                return;
             // Declared indexes store value ids, so warm their shared identity
             // map at the same lazy boundary. Constructing generated accessor
             // objects alone remains allocation-light.
@@ -199,7 +211,8 @@ namespace NeoCompose.Runtime
                     string valueId = list.EntryValueId(child);
                     string? rawKey = ReadRawKey(child);
                     nextKeys.Add(valueId, rawKey);
-                    if (rawKey is not null) AddToBucket(rawKey, valueId);
+                    if (rawKey is not null)
+                        AddToBucket(rawKey, valueId);
                     list.IndexDiagnostics.DerivedBuildEntryCount += 1;
                 }
                 list.IndexDiagnostics.DerivedBuildCount += 1;
@@ -259,7 +272,8 @@ namespace NeoCompose.Runtime
                         selected.member.enumId,
                         entry);
                     string[] optionIds = selected.Selected();
-                    if (optionIds.Length == 0) return null;
+                    if (optionIds.Length == 0)
+                        return null;
                     if (optionIds.Length > 1)
                     {
                         throw InvalidKeyKind(entry,
@@ -357,7 +371,8 @@ namespace NeoCompose.Runtime
         {
             get
             {
-                foreach (string rawKey in index.Keys) yield return fromRawKey(rawKey);
+                foreach (string rawKey in index.Keys)
+                    yield return fromRawKey(rawKey);
             }
         }
 
@@ -434,7 +449,8 @@ namespace NeoCompose.Runtime
 
         private string RawKey(TKey key)
         {
-            if (key is null) throw new ArgumentNullException(nameof(key));
+            if (key is null)
+                throw new ArgumentNullException(nameof(key));
             return toRawKey(key) ?? throw new InvalidOperationException(
                 "List index key codec returned null.");
         }
@@ -451,7 +467,8 @@ namespace NeoCompose.Runtime
 
         private static string StringKeyToRaw(TKey key)
         {
-            if (key is string text) return text;
+            if (key is string text)
+                return text;
             throw new InvalidOperationException(
                 $"The codec-free List index constructor only supports String keys, not {typeof(TKey).Name}.");
         }
@@ -506,7 +523,8 @@ namespace NeoCompose.Runtime
         {
             get
             {
-                foreach (string rawKey in index.Keys) yield return fromRawKey(rawKey);
+                foreach (string rawKey in index.Keys)
+                    yield return fromRawKey(rawKey);
             }
         }
 
@@ -554,7 +572,8 @@ namespace NeoCompose.Runtime
 
         private IReadOnlyList<TItem> Materialize(IReadOnlyList<string> valueIds)
         {
-            if (valueIds.Count == 0) return Array.Empty<TItem>();
+            if (valueIds.Count == 0)
+                return Array.Empty<TItem>();
             var items = new List<TItem>(valueIds.Count);
             foreach (string valueId in valueIds)
             {
@@ -571,7 +590,8 @@ namespace NeoCompose.Runtime
 
         private string RawKey(TKey key)
         {
-            if (key is null) throw new ArgumentNullException(nameof(key));
+            if (key is null)
+                throw new ArgumentNullException(nameof(key));
             return toRawKey(key) ?? throw new InvalidOperationException(
                 "List index key codec returned null.");
         }
@@ -588,7 +608,8 @@ namespace NeoCompose.Runtime
 
         private static string StringKeyToRaw(TKey key)
         {
-            if (key is string text) return text;
+            if (key is string text)
+                return text;
             throw new InvalidOperationException(
                 $"The codec-free List index constructor only supports String keys, not {typeof(TKey).Name}.");
         }

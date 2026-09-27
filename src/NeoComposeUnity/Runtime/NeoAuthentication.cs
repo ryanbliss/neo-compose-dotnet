@@ -79,7 +79,8 @@ namespace NeoCompose.Runtime
             get => state;
             private set
             {
-                if (state == value) return;
+                if (state == value)
+                    return;
                 state = value;
                 OnStateChanged?.Invoke(value);
             }
@@ -96,7 +97,10 @@ namespace NeoCompose.Runtime
 
         public string DisplayName { get; private set; } = "";
         public string DisplayEmail { get; private set; } = "";
-        public bool IsBusy { get; private set; }
+        public bool IsBusy
+        {
+            get; private set;
+        }
 
         public bool IsSignedIn => State == NeoAuthenticationState.SignedIn;
         public bool HasIdentity => DisplayName.Length > 0 || DisplayEmail.Length > 0;

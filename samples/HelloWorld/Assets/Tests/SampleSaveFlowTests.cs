@@ -34,11 +34,13 @@ namespace HelloWorld.Assets.Tests
         [TearDown]
         public void TearDown()
         {
-            foreach (var store in stores) store.Dispose();
+            foreach (var store in stores)
+                store.Dispose();
             stores.Clear();
             foreach (var dir in tempDirs)
             {
-                if (Directory.Exists(dir)) Directory.Delete(dir, recursive: true);
+                if (Directory.Exists(dir))
+                    Directory.Delete(dir, recursive: true);
             }
             tempDirs.Clear();
         }
@@ -213,7 +215,8 @@ namespace HelloWorld.Assets.Tests
                 {
                     foreach (var partition in request.valuePartitions.Values)
                     {
-                        if (partition.Raw is not JObject partitionValues) continue;
+                        if (partition.Raw is not JObject partitionValues)
+                            continue;
                         foreach (var value in partitionValues.Properties())
                         {
                             mergedValues[value.Name] = value.Value.DeepClone();
@@ -263,7 +266,8 @@ namespace HelloWorld.Assets.Tests
                             {
                                 row[field.Key] = field.Value.DeepClone();
                             }
-                            foreach (var field in patch.unset) row.Remove(field);
+                            foreach (var field in patch.unset)
+                                row.Remove(field);
                             break;
                         case GameSaveValueRestoreToAuthoredChange restore:
                             values.Remove(restore.valueId);

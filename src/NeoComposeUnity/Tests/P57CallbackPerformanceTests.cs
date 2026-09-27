@@ -294,30 +294,30 @@ namespace NeoCompose.Tests
         private static FunctionPointer StringOp(
             string op,
             Pointer receiver) => new()
-        {
-            type = PointerKind.Function,
-            function = new StringOpFunction
             {
-                type = FunctionKind.StringOp,
-                info = new FunctionStringOpInfo
+                type = PointerKind.Function,
+                function = new StringOpFunction
                 {
-                    op = op,
-                    receiverPointer = receiver,
+                    type = FunctionKind.StringOp,
+                    info = new FunctionStringOpInfo
+                    {
+                        op = op,
+                        receiverPointer = receiver,
+                    },
                 },
-            },
-        };
+            };
 
         private static ValuePointer Literal(
             MemberKind kind,
             object value) => new()
-        {
-            type = PointerKind.Value,
-            value = new Value
             {
-                typeInfo = RequiredType(kind),
-                value = JToken.FromObject(value),
-            },
-        };
+                type = PointerKind.Value,
+                value = new Value
+                {
+                    typeInfo = RequiredType(kind),
+                    value = JToken.FromObject(value),
+                },
+            };
 
         private static PrimitiveTypeInfo RequiredType(MemberKind kind) => new()
         {
@@ -345,8 +345,14 @@ namespace NeoCompose.Tests
                 Callback = callback;
             }
 
-            internal string Name { get; }
-            internal FunctionWithReturnType Callback { get; }
+            internal string Name
+            {
+                get;
+            }
+            internal FunctionWithReturnType Callback
+            {
+                get;
+            }
         }
 
         private readonly struct Measurement
@@ -361,9 +367,18 @@ namespace NeoCompose.Tests
                 ScopeAllocations = scopeAllocations;
             }
 
-            internal double DurationMs { get; }
-            internal long AllocatedBytes { get; }
-            internal int ScopeAllocations { get; }
+            internal double DurationMs
+            {
+                get;
+            }
+            internal long AllocatedBytes
+            {
+                get;
+            }
+            internal int ScopeAllocations
+            {
+                get;
+            }
         }
     }
 }

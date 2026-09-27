@@ -51,7 +51,8 @@ namespace NeoCompose.Runtime
 
         public string GetAccessToken(string apiBaseUrl)
         {
-            if (TryGetAccessToken(apiBaseUrl, out var token)) return token;
+            if (TryGetAccessToken(apiBaseUrl, out var token))
+                return token;
             throw new NeoComposeNotSignedInException(
                 "You are not signed in to Neo Compose. Sign in from the Neo Compose window to continue.");
         }
@@ -60,8 +61,10 @@ namespace NeoCompose.Runtime
         {
             token = "";
             var stored = storeFactory(apiBaseUrl).Load();
-            if (stored == null || !stored.HasAccessToken) return false;
-            if (stored.IsExpired(now())) return false;
+            if (stored == null || !stored.HasAccessToken)
+                return false;
+            if (stored.IsExpired(now()))
+                return false;
 
             token = stored.accessToken;
             return true;

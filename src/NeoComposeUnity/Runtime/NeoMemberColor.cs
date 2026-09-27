@@ -128,8 +128,10 @@ namespace NeoCompose.Runtime
         // resolution.
         public static bool operator ==(NeoReadOnlyColor? left, NeoReadOnlyColor? right)
         {
-            if (left is null) return right is null;
-            if (right is null) return false;
+            if (left is null)
+                return right is null;
+            if (right is null)
+                return false;
             return left.Value == right.Value;
         }
 
@@ -150,8 +152,10 @@ namespace NeoCompose.Runtime
 
         public override bool Equals(object? obj)
         {
-            if (obj is NeoReadOnlyColor wrapper) return Value == wrapper.Value;
-            if (obj is Color native) return Value == native;
+            if (obj is NeoReadOnlyColor wrapper)
+                return Value == wrapper.Value;
+            if (obj is Color native)
+                return Value == native;
             return false;
         }
 

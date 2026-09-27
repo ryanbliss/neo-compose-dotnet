@@ -8,7 +8,10 @@ namespace NeoCompose.Runtime
     public sealed class NeoSaveOptions
     {
         public bool DiagnosticsEnabled { get; set; } = true;
-        public NeoClient.BuildSaveName? BuildSaveName { get; set; }
+        public NeoClient.BuildSaveName? BuildSaveName
+        {
+            get; set;
+        }
 
         /// <summary>
         /// Live save sessions (<c>specs/live-save-sessions.md</c>): when a

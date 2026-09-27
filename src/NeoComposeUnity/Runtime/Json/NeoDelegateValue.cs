@@ -74,7 +74,8 @@ namespace NeoCompose.Runtime.Json
             object? existingValue,
             JsonSerializer serializer)
         {
-            if (reader.TokenType == JsonToken.Null) return null;
+            if (reader.TokenType == JsonToken.Null)
+                return null;
             JObject obj = NeoJsonObjectReader.Read(reader);
             bool target = IsNonEmptyString(obj["memberId"]);
             bool closure = obj["action"]?.Type == JTokenType.Object;
@@ -153,8 +154,10 @@ namespace NeoCompose.Runtime.Json
                 // destination is a JToken, and the reader this pairs with
                 // accepts only a real null — so the value would no longer read
                 // back as the one it was written from.
-                if (delegateValue.valueId is null) writer.WriteNull();
-                else writer.WriteValue(delegateValue.valueId);
+                if (delegateValue.valueId is null)
+                    writer.WriteNull();
+                else
+                    writer.WriteValue(delegateValue.valueId);
             }
             else
             {
@@ -176,7 +179,8 @@ namespace NeoCompose.Runtime.Json
 
         internal static bool LooksLikeValue(JToken? token)
         {
-            if (token is not JObject obj) return false;
+            if (token is not JObject obj)
+                return false;
             return IsNonEmptyString(obj["memberId"])
                 || obj["action"]?.Type == JTokenType.Object;
         }

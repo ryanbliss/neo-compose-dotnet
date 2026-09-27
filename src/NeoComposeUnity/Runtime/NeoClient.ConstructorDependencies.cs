@@ -18,31 +18,36 @@ namespace NeoCompose.Runtime
         {
             var plan = new NeoWritePlan(this);
             StageConstructorDependencies(plan, value);
-            if (plan.Rows.Count > 0) plan.Commit();
+            if (plan.Rows.Count > 0)
+                plan.Commit();
         }
 
         private void StageConstructorDependencies(NeoWritePlan plan, MemberValue value, NeoValueOwnership targetOwnership = NeoValueOwnership.Save)
         {
-            if (value is not ObjectMemberValue { constructorArgs: not null }) return;
+            if (value is not ObjectMemberValue { constructorArgs: not null })
+                return;
             var sourceOwnership = targetOwnership == NeoValueOwnership.Save ? NeoValueOwnership.Session : NeoValueOwnership.Save;
             var pending = new Queue<(string id, Member? member)>();
             foreach (var link in EnumerateConstructorDependencyLinks(value, targetOwnership))
                 pending.Enqueue(link);
-            if (pending.Count == 0) return;
+            if (pending.Count == 0)
+                return;
 
             var visited = new HashSet<string>();
             var copies = new List<MemberValue>();
             while (pending.Count > 0)
             {
                 var (id, member) = pending.Dequeue();
-                if (!visited.Add(id)) continue;
+                if (!visited.Add(id))
+                    continue;
                 MemberValue? row;
                 if (!plan.TryGetWritable(targetOwnership, id, out row))
                 {
                     // Existing authored identities must keep resolving through
                     // the export, even if Session has an override at that id.
                     if (data.values.ContainsKey(id)
-                        || !plan.TryGetWritable(sourceOwnership, id, out row)) continue;
+                        || !plan.TryGetWritable(sourceOwnership, id, out row))
+                        continue;
                     copies.Add(CloneValueRow(row));
                 }
                 foreach (var child in EnumerateOwnedChildLinks(row, member))
@@ -75,7 +80,8 @@ namespace NeoCompose.Runtime
         {
             if (value is not ObjectMemberValue { constructorArgs: not null } row
                 || row.instanceConstructorId is not string constructorId
-                || !data.constructors.TryGetValue(constructorId, out var constructor)) yield break;
+                || !data.constructors.TryGetValue(constructorId, out var constructor))
+                yield break;
 
             // A Class row never carries a genericBindings stamp -- stamping is
             // a List/Dictionary creation step -- so a generic instance such as
@@ -92,16 +98,19 @@ namespace NeoCompose.Runtime
                 // Scalar arguments cannot retain another row. Some detached
                 // authored frames have no closed placement until instantiated.
                 if (!row.constructorArgs!.TryGetValue(ConstructorParameterId(constructor, index), out var token)
-                    || token?.Type != JTokenType.String) continue;
+                    || token?.Type != JTokenType.String)
+                    continue;
                 var parameter = NeoNSFunctionRuntime.ResolveInvocationTypeInfo(this, constructor.argumentTypes[index], env);
-                if (parameter.type is not (MemberKind.Class or MemberKind.Interface or MemberKind.List or MemberKind.Dictionary)) continue;
+                if (parameter.type is not (MemberKind.Class or MemberKind.Interface or MemberKind.List or MemberKind.Dictionary))
+                    continue;
                 var pending = new Queue<(string id, TypeInfo type)>();
                 var visited = new HashSet<string>();
                 pending.Enqueue((token.Value<string>()!, parameter));
                 while (pending.Count > 0)
                 {
                     var (id, type) = pending.Dequeue();
-                    if (!visited.Add(id)) continue;
+                    if (!visited.Add(id))
+                        continue;
                     yield return (id, type);
                     TypeInfo? entryType = type switch
                     {
@@ -109,11 +118,13 @@ namespace NeoCompose.Runtime
                         CollectionTypeInfo collection => collection.entryTypeInfo,
                         _ => null,
                     };
-                    if (entryType is null) continue;
+                    if (entryType is null)
+                        continue;
                     MemberValue? argumentRow;
                     var argumentOwnership = saveData.values.ContainsKey(id) ? NeoValueOwnership.Save
                         : data.values.ContainsKey(id) ? NeoValueOwnership.Asset : ownership;
-                    if (!TryGetValue(argumentOwnership, id, out argumentRow)) continue;
+                    if (!TryGetValue(argumentOwnership, id, out argumentRow))
+                        continue;
                     if (type.type == MemberKind.List && argumentRow is ArrayMemberValue array)
                     {
                         foreach (var childId in array.value ?? System.Array.Empty<string>())
@@ -135,19 +146,24 @@ namespace NeoCompose.Runtime
         {
             member = null!;
             if (row.constructorArgs is null || row.instanceConstructorId is not string constructorId
-                || !data.constructors.TryGetValue(constructorId, out var constructor)) return false;
+                || !data.constructors.TryGetValue(constructorId, out var constructor))
+                return false;
             foreach (var (id, type) in EnumerateTypedConstructorReferences(row, NeoValueOwnership.Session))
             {
-                if (id != valueId || type.type is not (MemberKind.Class or MemberKind.Interface)) continue;
+                if (id != valueId || type.type is not (MemberKind.Class or MemberKind.Interface))
+                    continue;
                 string? classId = type is ClassTypeInfo classType ? classType.classId
                     : type is FunctionArgumentTypeInfo argument ? argument.classId : null;
                 if (type.type == MemberKind.Interface && TryGetValue(valueId, out ObjectMemberValue? value))
                     classId = value.classId;
-                if (classId is null) continue;
+                if (classId is null)
+                    continue;
                 member = new ClassMember
                 {
-                    id = constructorId + ":" + valueId, name = constructorId,
-                    kind = MemberKind.Class, classId = classId,
+                    id = constructorId + ":" + valueId,
+                    name = constructorId,
+                    kind = MemberKind.Class,
+                    classId = classId,
                     Requirement = type.required ? NeoMemberRequirementKind.Required : NeoMemberRequirementKind.Optional,
                 };
                 return true;
@@ -166,13 +182,15 @@ namespace NeoCompose.Runtime
             while (pending.Count > 0)
             {
                 string id = pending.Dequeue();
-                if (!visited.Add(id)) continue;
+                if (!visited.Add(id))
+                    continue;
                 if (TryGetValue(id, out MemberValue? row) && !string.IsNullOrEmpty(row.containerId))
                     pending.Enqueue(row.containerId!);
                 foreach (var parent in InferMemberParents(id))
                 {
                     if (parent.Value is ObjectMemberValue obj
-                        && TryResolveConstructorReferenceMember(obj, valueId, out member)) return true;
+                        && TryResolveConstructorReferenceMember(obj, valueId, out member))
+                        return true;
                     if (parent.Value is ArrayMemberValue
                         || parent.Value is ObjectMemberValue { classId: null })
                         pending.Enqueue(parent.Key);

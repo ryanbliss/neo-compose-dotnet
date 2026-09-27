@@ -31,7 +31,10 @@ namespace NeoCompose.Runtime
         private readonly NeoClient? client;
 
         /// <summary>The referenced <c>dialogueId</c>.</summary>
-        public string Id { get; }
+        public string Id
+        {
+            get;
+        }
 
         /// <summary>
         /// Authoring/assignment ctor. Produces an <em>unbound</em> reference

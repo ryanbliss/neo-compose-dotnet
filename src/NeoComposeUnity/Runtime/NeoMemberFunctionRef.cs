@@ -30,7 +30,8 @@ namespace NeoCompose.Runtime
         {
             get
             {
-                if (value?.value is null) return null;
+                if (value?.value is null)
+                    return null;
                 return value.value.TryGetValue("functionMemberId", out string id)
                     ? id
                     : null;

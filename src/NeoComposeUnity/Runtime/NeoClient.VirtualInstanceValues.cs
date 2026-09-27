@@ -125,7 +125,8 @@ namespace NeoCompose.Runtime
             ObjectMemberValue? row)
         {
             bool entered = IsAwaitingVirtualInstanceInitializers(row);
-            if (entered) awaitingVirtualInstanceChildDepth++;
+            if (entered)
+                awaitingVirtualInstanceChildDepth++;
             return new VirtualInstanceChildConstructionScope(this, entered);
         }
 
@@ -142,7 +143,8 @@ namespace NeoCompose.Runtime
 
             public void Dispose()
             {
-                if (client is null) return;
+                if (client is null)
+                    return;
                 client.awaitingVirtualInstanceChildDepth--;
             }
         }
@@ -304,7 +306,9 @@ namespace NeoCompose.Runtime
         /// </summary>
         private void InitializeVirtualInstanceValues(bool failClosed = true)
         {
-            foreach (var step in InitializeVirtualInstanceValuesSteps(failClosed)) { }
+            foreach (var step in InitializeVirtualInstanceValuesSteps(failClosed))
+            {
+            }
         }
 
         private IEnumerable<byte> InitializeVirtualInstanceValuesSteps(bool failClosed)
@@ -331,7 +335,8 @@ namespace NeoCompose.Runtime
                             $"P75 virtual instance replay did not converge after {MaxVirtualInstanceRebuildPasses} passes. A constructor or variant Initialize is writing rows that invalidate the instance index on every pass.");
                     }
                     virtualInstanceValuesDirty = false;
-                    foreach (var step in InitializeVirtualInstanceValuesCore(failClosed)) yield return step;
+                    foreach (var step in InitializeVirtualInstanceValuesCore(failClosed))
+                        yield return step;
                 }
                 while (virtualInstanceValuesDirty);
             }
@@ -377,7 +382,8 @@ namespace NeoCompose.Runtime
                 .Select(group => group.Last())
                 .ToArray();
             var parentByValueId = new Dictionary<string, string>(StringComparer.Ordinal);
-            foreach (var step in BuildParentByValueIdSteps(allRows, parentByValueId)) yield return step;
+            foreach (var step in BuildParentByValueIdSteps(allRows, parentByValueId))
+                yield return step;
             ObjectMemberValue[] roots = allRows
                 .OfType<ObjectMemberValue>()
                 .Where(row => row.classId is not null)
@@ -398,7 +404,8 @@ namespace NeoCompose.Runtime
             foreach (ObjectMemberValue root in roots)
             {
                 yield return 0;
-                if (!CanReplayVirtualInstanceRoot(root)) continue;
+                if (!CanReplayVirtualInstanceRoot(root))
+                    continue;
                 pendingRoots.Remove(root.id);
                 readyRoots.Enqueue(root);
             }
@@ -477,16 +484,19 @@ namespace NeoCompose.Runtime
                 // A materialized spine is overlaid by the root that owns it.
                 if (IsVirtualInstanceRoot(root)
                     && virtualRootByFootprintId.TryGetValue(root.id, out string? spineOwner)
-                    && spineOwner != root.id) return;
+                    && spineOwner != root.id)
+                    return;
                 if (!IsVirtualInstanceRoot(root))
                 {
                     if (!virtualFootprintByRoot.ContainsKey(root.id)
-                        && ResolveStoredInstanceSchema(root.classId!).All(entry => root.value!.ContainsKey(entry.schemaKey))) return;
+                        && ResolveStoredInstanceSchema(root.classId!).All(entry => root.value!.ContainsKey(entry.schemaKey)))
+                        return;
                     if ((virtualClassChildren.ContainsKey(root.id)
                             && virtualRootByFootprintId.TryGetValue(root.id, out string? owner) && owner != root.id)
                         || !TryInferMemberForValueId(root.id, out Member? inferred)
                         || inferred is not ClassMember placement
-                        || placement.Payload == NeoMemberPayloadKind.Partial) return;
+                        || placement.Payload == NeoMemberPayloadKind.Partial)
+                        return;
                 }
                 if (!sessionData.values.ContainsKey(root.id))
                     AssertPersistedVirtualInstanceRootIsClassPlacement(root);
@@ -495,7 +505,8 @@ namespace NeoCompose.Runtime
             catch (Exception error)
             {
                 ClearVirtualInstanceRoot(root.id);
-                if (failClosed) throw;
+                if (failClosed)
+                    throw;
                 Debug.LogWarning(
                     $"[NeoCompose] P75 could not replay instance root '{root.id}' of class '{root.classId}' from the incoming live content; its virtual values are unavailable until the next successful apply. {error}");
             }
@@ -504,7 +515,8 @@ namespace NeoCompose.Runtime
         private void IndexConstructorArgumentRows(ObjectMemberValue root)
         {
             RemoveConstructorArgumentRows(root.id);
-            if (root.constructorArgs is null) return;
+            if (root.constructorArgs is null)
+                return;
             foreach (JToken? argument in root.constructorArgs.Values)
                 if (argument?.Type == JTokenType.String && argument.Value<string>() is string id)
                     TrackReplayDependency(root.id, ResolveValueRow(id) is ObjectMemberValue { classId: not null }
@@ -517,7 +529,8 @@ namespace NeoCompose.Runtime
             if (valueId.StartsWith("field:", StringComparison.Ordinal))
             {
                 string parent = valueId.Substring(6, valueId.IndexOf('\n') - 6);
-                if (!replayFieldsByValueId.TryGetValue(parent, out var fields)) replayFieldsByValueId[parent] = fields = new();
+                if (!replayFieldsByValueId.TryGetValue(parent, out var fields))
+                    replayFieldsByValueId[parent] = fields = new();
                 fields.Add(valueId);
             }
             if (!constructorArgumentRootsByValueId.TryGetValue(indexKey, out var roots))
@@ -640,8 +653,10 @@ namespace NeoCompose.Runtime
             SetWritableValue(ownership, root, "instanceVariantId");
             if (replay)
             {
-                if (IsPreparingVariant && !isReplayingVirtualInstance) RefreshPreparedVariant(node, root);
-                else RefreshVirtualWrapperTree(node);
+                if (IsPreparingVariant && !isReplayingVirtualInstance)
+                    RefreshPreparedVariant(node, root);
+                else
+                    RefreshVirtualWrapperTree(node);
             }
         }
 
@@ -661,11 +676,13 @@ namespace NeoCompose.Runtime
             VariantRecord? record,
             string? lookupRowValueId)
         {
-            if (record is null) return;
+            if (record is null)
+                return;
             // A replay constructs a throwaway graph by calling straight back
             // into this path. Expanding it there would recurse without bound,
             // and its rows are discarded anyway.
-            if (isReplayingVirtualInstance) return;
+            if (isReplayingVirtualInstance)
+                return;
             ObjectMemberValue source = node.value
                 ?? throw new InvalidOperationException(
                     $"Variant '{record.id}' produced a node with no backing value row.");
@@ -690,7 +707,8 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"ToVariant could not refresh instance root '{valueId}'.");
             }
-            if (IsPreparingVariant && !isReplayingVirtualInstance) RefreshPreparedVariant(node, root);
+            if (IsPreparingVariant && !isReplayingVirtualInstance)
+                RefreshPreparedVariant(node, root);
             else
             {
                 ExpandVirtualInstanceRoot(root);
@@ -708,7 +726,9 @@ namespace NeoCompose.Runtime
             IEnumerable<MemberValue> rows)
         {
             var parentByValueId = new Dictionary<string, string>(StringComparer.Ordinal);
-            foreach (var step in BuildParentByValueIdSteps(rows, parentByValueId)) { }
+            foreach (var step in BuildParentByValueIdSteps(rows, parentByValueId))
+            {
+            }
             return parentByValueId;
         }
 
@@ -731,9 +751,10 @@ namespace NeoCompose.Runtime
                 yield return 0;
                 if (row is ObjectMemberValue objectRow)
                 {
-                    if (objectRow.value is not null) foreach (string childId in objectRow.value.Values)
-                        if (childId is not null)
-                            parentByValueId.TryAdd(childId, row.id);
+                    if (objectRow.value is not null)
+                        foreach (string childId in objectRow.value.Values)
+                            if (childId is not null)
+                                parentByValueId.TryAdd(childId, row.id);
 
                     if (!string.IsNullOrEmpty(objectRow.classId)
                         && !string.IsNullOrEmpty(objectRow.instanceConstructorId)
@@ -752,7 +773,8 @@ namespace NeoCompose.Runtime
             foreach (ArrayMemberValue arrayRow in snapshot.OfType<ArrayMemberValue>())
             {
                 yield return 0;
-                if (arrayRow.value is null) continue;
+                if (arrayRow.value is null)
+                    continue;
                 foreach (string childId in arrayRow.value)
                 {
                     if (childId is null
@@ -763,7 +785,8 @@ namespace NeoCompose.Runtime
                     {
                         continue;
                     }
-                    if (parentByValueId.TryAdd(childId, arrayRow.id)) continue;
+                    if (parentByValueId.TryAdd(childId, arrayRow.id))
+                        continue;
                     if (!parentByValueId.TryGetValue(
                             childId,
                             out string? priorParentId)
@@ -777,8 +800,10 @@ namespace NeoCompose.Runtime
                             out ArrayMemberValue? priorArray)
                         ? IsLookup(priorArray)
                         : false;
-                    if (priorLookup == true) RemoveTentativeEdges(priorArray!);
-                    if (currentLookup == true) RemoveTentativeEdges(arrayRow);
+                    if (priorLookup == true)
+                        RemoveTentativeEdges(priorArray!);
+                    if (currentLookup == true)
+                        RemoveTentativeEdges(arrayRow);
                     if (priorLookup == true && currentLookup == false)
                         parentByValueId[childId] = arrayRow.id;
                 }
@@ -905,17 +930,22 @@ namespace NeoCompose.Runtime
         {
             if (!replayingVirtualRootIds.Add(instanceRoot.id))
                 throw new InvalidOperationException($"Sparse constructor dependency cycle at '{instanceRoot.id}'.");
-            try { ExpandVirtualInstanceRootCore(instanceRoot); }
+            try
+            {
+                ExpandVirtualInstanceRootCore(instanceRoot);
+            }
             finally { replayingVirtualRootIds.Remove(instanceRoot.id); }
         }
 
         private void EnsureVirtualReplayArgumentReady(string valueId)
         {
             if (!virtualInstanceReplayReady || !isReplayingVirtualInstance
-                || valueId == replayingVirtualInstanceRootId) return;
+                || valueId == replayingVirtualInstanceRootId)
+                return;
             if (candidateReplay is not null)
             {
-                if (candidateReplay.AffectedRoots.Contains(valueId)) PrepareCandidateRoot(valueId);
+                if (candidateReplay.AffectedRoots.Contains(valueId))
+                    PrepareCandidateRoot(valueId);
                 return;
             }
             if ((data.values.ContainsKey(valueId) || saveData.values.ContainsKey(valueId))
@@ -968,7 +998,8 @@ namespace NeoCompose.Runtime
                         node.Dispose();
                 if (client.candidateReplay is not null)
                 {
-                    foreach (string id in Ids) client.candidateReplay.SetAllocation(id, null);
+                    foreach (string id in Ids)
+                        client.candidateReplay.SetAllocation(id, null);
                     return;
                 }
                 foreach (string id in Ids)
@@ -992,8 +1023,10 @@ namespace NeoCompose.Runtime
                 // namespace, but never reapply the prior call-site fields.
                 replayBoundary = new NestedReplayBoundary
                 {
-                    Root = instanceRoot, NamespaceRoot = replayBoundary.NamespaceRoot,
-                    Path = replayBoundary.Path, Ownership = replayOwnership ?? replayBoundary.Ownership,
+                    Root = instanceRoot,
+                    NamespaceRoot = replayBoundary.NamespaceRoot,
+                    Path = replayBoundary.Path,
+                    Ownership = replayOwnership ?? replayBoundary.Ownership,
                 };
             }
             var dependencyIds = new HashSet<string>();
@@ -1009,7 +1042,8 @@ namespace NeoCompose.Runtime
                 releasedVirtualIds.UnionWith(priorVirtualIds);
                 DisposeWrappersTouchingRows(priorVirtualIds);
             }
-            if (!prepareOnly) ClearVirtualInstanceRoot(instanceRoot.id);
+            if (!prepareOnly)
+                ClearVirtualInstanceRoot(instanceRoot.id);
             NeoValueOwnership ownership = replayOwnership ?? replayBoundary?.Ownership ?? (TryGetValueOwnership(
                 instanceRoot.id,
                 out NeoValueOwnership resolvedOwnership)
@@ -1102,7 +1136,8 @@ namespace NeoCompose.Runtime
 
             var claimedVirtualIds = new Dictionary<string, string>(StringComparer.Ordinal);
             VirtualExpansionNode graph;
-            using (ReplayIndexMarker.Auto()) graph = IndexVirtualExpansion(
+            using (ReplayIndexMarker.Auto())
+                graph = IndexVirtualExpansion(
                 replayBoundary?.NamespaceRoot ?? instanceRoot,
                 expandedRoot,
                 constructed.member,
@@ -1134,10 +1169,13 @@ namespace NeoCompose.Runtime
                     ownership,
                     instanceRoot);
                 RemapVirtualDelegateReceivers(graph, expansion);
-                if (replayBoundary is not null) expansion.Boundary = replayBoundary;
-                else PartitionNestedReplay(graph, expansion, instanceRoot);
+                if (replayBoundary is not null)
+                    expansion.Boundary = replayBoundary;
+                else
+                    PartitionNestedReplay(graph, expansion, instanceRoot);
             }
-            if (prepareOnly) return expansion;
+            if (prepareOnly)
+                return expansion;
             InstallVirtualExpansion(expansion);
             // The sweep above only covers ids that were ALREADY virtual.
             // A member the previous pass found materialized contributed no
@@ -1227,7 +1265,8 @@ namespace NeoCompose.Runtime
                     string parameterId = ConstructorParameterId(constructor, index);
                     if (!stored.TryGetValue(parameterId, out JToken? value))
                     {
-                        if (NeoParameterDefaults.HasDefault(argument)) continue;
+                        if (NeoParameterDefaults.HasDefault(argument))
+                            continue;
                         throw new InvalidOperationException(
                             $"Constructor '{constructor.id}' is missing argument '{parameterId}'.");
                     }
@@ -1260,14 +1299,18 @@ namespace NeoCompose.Runtime
             ObjectMemberValue root,
             ClassMember? placementMember)
         {
-            if (placementMember?.Payload == NeoMemberPayloadKind.Partial) return false;
+            if (placementMember?.Payload == NeoMemberPayloadKind.Partial)
+                return false;
             if (placementMember?.defaultValue?.value is not { Count: > 0 })
                 return false;
             string effectiveClassId = placementMember.defaultValue.classId
                 ?? placementMember.classId;
-            if (effectiveClassId != root.classId) return false;
-            if (root.instanceVariantId is not null) return false;
-            if (root.instanceConstructorId is not null) return false;
+            if (effectiveClassId != root.classId)
+                return false;
+            if (root.instanceVariantId is not null)
+                return false;
+            if (root.instanceConstructorId is not null)
+                return false;
             return root.constructorArgs is null || root.constructorArgs.Count == 0;
         }
 
@@ -1431,7 +1474,8 @@ namespace NeoCompose.Runtime
                 {
                     if (classRow.value is null || !classRow.value.TryGetValue(entry.schemaKey, out string childId)
                         || !TryGetMember(entry.memberId, out Member? declaration)
-                        || TryResolveOwnedChildMember(classRow, classMember, entry.schemaKey, environments, declaration) is not Member childMember) continue;
+                        || TryResolveOwnedChildMember(classRow, classMember, entry.schemaKey, environments, declaration) is not Member childMember)
+                        continue;
                     node.classChildren[entry.schemaKey] = Child(childId, childMember,
                         AppendVirtualPath(path, "class", "schemaKey", entry.schemaKey));
                 }
@@ -1474,14 +1518,18 @@ namespace NeoCompose.Runtime
             while (pending.Count > 0)
             {
                 VirtualExpansionNode node = pending.Pop();
-                if (node.effectiveId is null) continue;
+                if (node.effectiveId is null)
+                    continue;
                 identities[node.row.id] = node.effectiveId;
                 if (expansion.Values.TryGetValue(node.effectiveId, out MemberValue? row)
                     && row is DelegateMemberValue selector)
                     selectors.Add(selector);
-                foreach (var child in node.classChildren.Values) pending.Push(child);
-                foreach (var child in node.listChildren) pending.Push(child);
-                foreach (var child in node.dictionaryChildren.Values) pending.Push(child);
+                foreach (var child in node.classChildren.Values)
+                    pending.Push(child);
+                foreach (var child in node.listChildren)
+                    pending.Push(child);
+                foreach (var child in node.dictionaryChildren.Values)
+                    pending.Push(child);
             }
             // Replay's temporary rows are removed next. Preserve bindings to the
             // effective stored/virtual instance, including forward sibling targets.
@@ -1572,7 +1620,10 @@ namespace NeoCompose.Runtime
             {
                 Placements[childId] = new VirtualClassPlacement
                 {
-                    rootId = Root.id, parentValueId = parentId, member = member, ownership = ownership,
+                    rootId = Root.id,
+                    parentValueId = parentId,
+                    member = member,
+                    ownership = ownership,
                 };
             }
         }
@@ -1596,12 +1647,16 @@ namespace NeoCompose.Runtime
             }
             foreach (var pair in expansion.Placements)
                 TrackVirtualClassPlacement(rootId, pair.Value.parentValueId, pair.Key, pair.Value.member, pair.Value.ownership);
-            foreach (string id in expansion.Footprint) TrackVirtualFootprint(rootId, id);
+            foreach (string id in expansion.Footprint)
+                TrackVirtualFootprint(rootId, id);
             IndexConstructorArgumentRows(expansion.Root);
-            foreach (string id in expansion.Dependencies) TrackReplayDependency(rootId, id);
-            if (expansion.Boundary is not null) InstallNestedReplayBoundary(expansion.Boundary);
+            foreach (string id in expansion.Dependencies)
+                TrackReplayDependency(rootId, id);
+            if (expansion.Boundary is not null)
+                InstallNestedReplayBoundary(expansion.Boundary);
             if (includeNested)
-                foreach (var nested in expansion.Nested) InstallVirtualExpansion(nested);
+                foreach (var nested in expansion.Nested)
+                    InstallVirtualExpansion(nested);
         }
 
         private void OverlaySparseInstance(
@@ -1614,7 +1669,8 @@ namespace NeoCompose.Runtime
             // Removed fields are intentionally absent, not missing defaults.
             // Do not recreate their virtual descendants or keep them reachable.
             if (TryGetWritableValue(ownership, materializedId ?? node.virtualId, out MemberValue? storedRow)
-                && storedRow.IsRemoved) return;
+                && storedRow.IsRemoved)
+                return;
             MemberValue? materialized = null;
             if (materializedId is not null)
                 TryGetOverlaidValue(ownership, materializedId, out materialized);
@@ -1627,7 +1683,8 @@ namespace NeoCompose.Runtime
                 && materializedId != node.virtualId)
             {
                 if (TryGetWritableValue(ownership, node.virtualId, out MemberValue? fallbackRow)
-                    && fallbackRow.IsRemoved) return;
+                    && fallbackRow.IsRemoved)
+                    return;
                 TryGetOverlaidValue(ownership, node.virtualId, out materialized);
             }
             if (materialized is null)
@@ -1725,7 +1782,8 @@ namespace NeoCompose.Runtime
                 foreach (string entryId in GetUnorderedListEntryIds(effectiveId))
                 {
                     MemberValue? entry = ResolveValueRow(entryId);
-                    if (string.IsNullOrEmpty(entry?.sourceValueId)) continue;
+                    if (string.IsNullOrEmpty(entry?.sourceValueId))
+                        continue;
                     if (!materializedBySource.TryGetValue(
                             entry!.sourceValueId!,
                             out Queue<string>? matches))
@@ -1937,7 +1995,8 @@ namespace NeoCompose.Runtime
                             foreach (MergedSchemaEntry entry
                                 in ResolveInstanceSurfaceSchema(parentClassId))
                             {
-                                if (entry.schemaKey != pair.Key) continue;
+                                if (entry.schemaKey != pair.Key)
+                                    continue;
                                 TryGetMember(entry.memberId, out linkMember);
                                 break;
                             }
@@ -2151,7 +2210,8 @@ namespace NeoCompose.Runtime
             Member member,
             string path)
         {
-            if (!string.IsNullOrEmpty(row.sourceValueId)) return row.sourceValueId!;
+            if (!string.IsNullOrEmpty(row.sourceValueId))
+                return row.sourceValueId!;
             string memberId = string.IsNullOrEmpty(member.id)
                 ? InlineMemberSentinel
                 : member.id;
@@ -2194,7 +2254,8 @@ namespace NeoCompose.Runtime
             Buffer.BlockCopy(namespaceBytes, 0, input, 0, namespaceBytes.Length);
             Buffer.BlockCopy(nameBytes, 0, input, namespaceBytes.Length, nameBytes.Length);
             byte[] hash;
-            using (SHA1 sha1 = SHA1.Create()) hash = sha1.ComputeHash(input);
+            using (SHA1 sha1 = SHA1.Create())
+                hash = sha1.ComputeHash(input);
             hash[6] = (byte)((hash[6] & 0x0f) | 0x50);
             hash[8] = (byte)((hash[8] & 0x3f) | 0x80);
             string hex = BitConverter.ToString(hash, 0, 16)

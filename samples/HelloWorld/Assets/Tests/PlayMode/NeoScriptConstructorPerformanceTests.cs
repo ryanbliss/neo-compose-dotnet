@@ -490,7 +490,10 @@ namespace HelloWorld.Assets.Tests.PlayMode
                 Schema = schema;
             }
 
-            public ProjectData Schema { get; }
+            public ProjectData Schema
+            {
+                get;
+            }
             public string CustomId => "constructor-performance-save";
             public Awaitable<string?> LoadSaveContentAsync() =>
                 NeoAwaitable.FromResult<string?>(null);
@@ -506,7 +509,10 @@ namespace HelloWorld.Assets.Tests.PlayMode
                 DurationMs = durationMs;
             }
 
-            internal double DurationMs { get; }
+            internal double DurationMs
+            {
+                get;
+            }
         }
     }
 }

@@ -45,8 +45,10 @@ namespace NeoCompose.Tests
         [TearDown]
         public void TearDown()
         {
-            if (overlay != null) UnityEngine.Object.DestroyImmediate(overlay);
-            if (committed != null) UnityEngine.Object.DestroyImmediate(committed);
+            if (overlay != null)
+                UnityEngine.Object.DestroyImmediate(overlay);
+            if (committed != null)
+                UnityEngine.Object.DestroyImmediate(committed);
             overlay = null;
             committed = null;
             NeoComposeResolvedConfig.ResetForTests();

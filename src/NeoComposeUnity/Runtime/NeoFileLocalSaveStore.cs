@@ -70,7 +70,8 @@ namespace NeoCompose.Runtime
         public Awaitable DeleteSaveAsync(string customId)
         {
             string path = PathFor(customId);
-            if (File.Exists(path)) File.Delete(path);
+            if (File.Exists(path))
+                File.Delete(path);
             return NeoAwaitable.Completed();
         }
     }

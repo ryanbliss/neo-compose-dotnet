@@ -35,7 +35,10 @@ namespace NeoCompose.Tests
             data.members["items-member"].Storage = storage;
             var name = new StringMember
             {
-                id = "item-name", name = "Name", projectId = "project-a", kind = MemberKind.String,
+                id = "item-name",
+                name = "Name",
+                projectId = "project-a",
+                kind = MemberKind.String,
             };
             data.members[name.id] = name;
             data.classes[ItemClassId].schema["Name"] = name.id;
@@ -46,7 +49,8 @@ namespace NeoCompose.Tests
             Assert.AreEqual(expected, entryOwnership);
             Assert.IsTrue(client.TryGetValueOwnership("item-a-name", out var childOwnership));
             Assert.AreEqual(expected, childOwnership);
-            if (expected == NeoValueOwnership.Asset) return;
+            if (expected == NeoValueOwnership.Asset)
+                return;
             var target = new WriteTarget
             {
                 writability = expected == NeoValueOwnership.Save ? WritabilityKind.Save : WritabilityKind.Session,
@@ -57,8 +61,15 @@ namespace NeoCompose.Tests
                     keyOf = new KeyOf
                     {
                         pointer = new ReferencePointer { type = PointerKind.Reference, valueId = "item-a" },
-                        key = new ValuePointer { type = PointerKind.Value, value = new Value
-                        { typeInfo = new PrimitiveTypeInfo { type = MemberKind.String }, value = Newtonsoft.Json.Linq.JToken.FromObject("Name") } },
+                        key = new ValuePointer
+                        {
+                            type = PointerKind.Value,
+                            value = new Value
+                            {
+                                typeInfo = new PrimitiveTypeInfo { type = MemberKind.String },
+                                value = Newtonsoft.Json.Linq.JToken.FromObject("Name")
+                            }
+                        },
                     },
                 },
             };
@@ -87,20 +98,25 @@ namespace NeoCompose.Tests
             ProjectData data = BuildProjectData();
             TypeInfo entryType = new ClassTypeInfo
             {
-                type = MemberKind.Class, required = true, classId = ItemClassId,
+                type = MemberKind.Class,
+                required = true,
+                classId = ItemClassId,
             };
             if (primitive)
             {
                 entryType = new PrimitiveTypeInfo { type = MemberKind.String, required = true };
                 data.members["item-entry-member"] = new StringMember
                 {
-                    id = "item-entry-member", kind = MemberKind.String,
+                    id = "item-entry-member",
+                    kind = MemberKind.String,
                     Requirement = NeoMemberRequirementKind.Required,
                 };
                 foreach (string id in new[] { "item-a", "item-b" })
                     data.values[id] = new StringMemberValue
                     {
-                        id = id, containerId = ItemsListValueId, value = id,
+                        id = id,
+                        containerId = ItemsListValueId,
+                        value = id,
                     };
             }
             if (sessionInline)
@@ -118,7 +134,8 @@ namespace NeoCompose.Tests
             if (sessionInline)
                 client.SetWritableValue(NeoValueOwnership.Session, new ArrayMemberValue
                 {
-                    id = ItemsListValueId, value = new[] { "item-a", "item-b" },
+                    id = ItemsListValueId,
+                    value = new[] { "item-a", "item-b" },
                 });
             NeoMemberListWritable Items() => sessionInline
                 ? (NeoMemberListWritable)NeoMember.CreateWritable(client, data.members["items-member"], ItemsListValueId, NeoValueOwnership.Session)
@@ -126,7 +143,8 @@ namespace NeoCompose.Tests
             var ctx = new NSGetterEvaluator.Context(client, null, null);
             var reference = new ReferencePointer
             {
-                type = PointerKind.Reference, valueId = ItemsListValueId,
+                type = PointerKind.Reference,
+                valueId = ItemsListValueId,
             };
             var scope = new Dictionary<string, object?>();
             object? Eval(Pointer value) => NSGetterEvaluator.EvaluatePointer(value, scope, ctx);
@@ -136,7 +154,9 @@ namespace NeoCompose.Tests
                 : reference;
             var listType = new CollectionTypeInfo
             {
-                type = MemberKind.List, required = true, entryTypeInfo = entryType,
+                type = MemberKind.List,
+                required = true,
+                entryTypeInfo = entryType,
             };
             FunctionWithReturnType Body(params Instruction[] instructions) => new()
             {
@@ -164,10 +184,13 @@ namespace NeoCompose.Tests
                     type = InstructionKind.ForEach,
                     binding = new LoopBinding
                     {
-                        id = "entry", typeInfo = entryType, isReadonly = true,
+                        id = "entry",
+                        typeInfo = entryType,
+                        isReadonly = true,
                         writability = WritabilityKind.ReadOnly,
                     },
-                    collectionPointer = pointer, collectionTypeInfo = listType,
+                    collectionPointer = pointer,
+                    collectionTypeInfo = listType,
                     instructions = new Instruction[]
                     {
                         new AssignInstruction
@@ -215,22 +238,27 @@ namespace NeoCompose.Tests
                     type = InstructionKind.CollectionCall,
                     target = new WriteTarget
                     {
-                        pointer = pointer, typeInfo = listType,
+                        pointer = pointer,
+                        typeInfo = listType,
                         writability = alias ? WritabilityKind.Local
                             : sessionInline ? WritabilityKind.Session : WritabilityKind.Save,
                     },
-                    mutation = mutation, args = args,
+                    mutation = mutation,
+                    args = args,
                 }), scope, ctx);
             Pointer Entry(string id) => new ReferencePointer { type = PointerKind.Reference, valueId = id };
             CheckCount(2);
             Mutate(CollectionMutationKind.Remove, Entry("item-a"));
             CheckCount(1);
-            if (!sessionInline) Assert.IsTrue(client.saveValues["item-a"].IsRemoved);
+            if (!sessionInline)
+                Assert.IsTrue(client.saveValues["item-a"].IsRemoved);
             client.SetWritableValue<MemberValue>(NeoValueOwnership.Session, primitive
                 ? new StringMemberValue { id = "new-item", value = "new" }
                 : new ObjectMemberValue
                 {
-                    id = "new-item", classId = ItemClassId, value = new Dictionary<string, string>(),
+                    id = "new-item",
+                    classId = ItemClassId,
+                    value = new Dictionary<string, string>(),
                 });
             Mutate(CollectionMutationKind.Add, Entry("new-item"));
             CheckCount(2);
@@ -288,7 +316,9 @@ namespace NeoCompose.Tests
             CollectionAssert.IsEmpty(client.GetUnorderedListEntryIds(ItemsListValueId));
             client.SetWritableValue(NeoValueOwnership.Session, new ObjectMemberValue
             {
-                id = "replacement-item", classId = ItemClassId, value = new Dictionary<string, string>(),
+                id = "replacement-item",
+                classId = ItemClassId,
+                value = new Dictionary<string, string>(),
             });
             Assign(new[] { primitive ? "replacement" : Eval(Entry("replacement-item")) });
             CheckCount(1);
@@ -321,15 +351,20 @@ namespace NeoCompose.Tests
             data.values.Remove("item-b");
             data.members["other-items-member"] = new ListMember
             {
-                id = "other-items-member", projectId = "project-a", name = "OtherItems", kind = MemberKind.List,
-                entryMemberId = "item-entry-member", ListKind = NeoListKind.Unordered,
+                id = "other-items-member",
+                projectId = "project-a",
+                name = "OtherItems",
+                kind = MemberKind.List,
+                entryMemberId = "item-entry-member",
+                ListKind = NeoListKind.Unordered,
                 Requirement = NeoMemberRequirementKind.Required,
             };
             data.classes[BagClassId].schema["OtherItems"] = "other-items-member";
             ((ObjectMemberValue)data.values["bag-value"]).value!["OtherItems"] = "bag-other-items-list";
             data.values["bag-other-items-list"] = new ArrayMemberValue
             {
-                id = "bag-other-items-list", value = System.Array.Empty<string>(),
+                id = "bag-other-items-list",
+                value = System.Array.Empty<string>(),
             };
             using var client = NeoTestSaveStack.ClientFromSchema(data);
             var ctx = new NSGetterEvaluator.Context(client, null, null);
@@ -339,7 +374,9 @@ namespace NeoCompose.Tests
             NSGetterEvaluator.EvaluatePointer(Reference("bag-other-items-list"), scope, ctx);
             client.SetWritableValue(NeoValueOwnership.Session, new ObjectMemberValue
             {
-                id = "new-item", classId = ItemClassId, value = new Dictionary<string, string>(),
+                id = "new-item",
+                classId = ItemClassId,
+                value = new Dictionary<string, string>(),
             });
             NeoScriptExecutor.Execute(client, new FunctionWithReturnType
             {
@@ -384,20 +421,27 @@ namespace NeoCompose.Tests
             items.ListKind = unordered ? NeoListKind.Unordered : NeoListKind.Ordered;
             data.members["item-entry-member"] = new StringMember
             {
-                id = "item-entry-member", kind = MemberKind.String,
+                id = "item-entry-member",
+                kind = MemberKind.String,
                 Requirement = NeoMemberRequirementKind.Required,
             };
             foreach (string id in new[] { "item-a", "item-b" })
                 data.values[id] = new StringMemberValue
                 {
-                    id = id, containerId = unordered ? ItemsListValueId : null, value = "text-" + id,
+                    id = id,
+                    containerId = unordered ? ItemsListValueId : null,
+                    value = "text-" + id,
                 };
             if (!unordered)
                 ((ArrayMemberValue)data.values[ItemsListValueId]).value = new[] { "item-a", "item-b" };
             data.members["selected-member"] = new LookupMember
             {
-                id = "selected-member", projectId = "project-a", name = "Selected", kind = MemberKind.Lookup,
-                collectionMemberId = items.id, Selection = NeoMemberSelectionKind.Multi,
+                id = "selected-member",
+                projectId = "project-a",
+                name = "Selected",
+                kind = MemberKind.Lookup,
+                collectionMemberId = items.id,
+                Selection = NeoMemberSelectionKind.Multi,
             };
             data.classes[BagClassId].schema["Selected"] = "selected-member";
             ((ObjectMemberValue)data.values["bag-value"]).value!["Selected"] = "selected-set";
@@ -446,12 +490,17 @@ namespace NeoCompose.Tests
 
             Mutate("selected-set", new LookupTypeInfo
             {
-                type = MemberKind.Lookup, required = true, entryTypeInfo = stringType,
-                collectionMemberId = items.id, collectionValueId = ItemsListValueId,
+                type = MemberKind.Lookup,
+                required = true,
+                entryTypeInfo = stringType,
+                collectionMemberId = items.id,
+                collectionValueId = ItemsListValueId,
             }, CollectionMutationKind.Add, "Beta");
             Mutate(ItemsListValueId, new CollectionTypeInfo
             {
-                type = MemberKind.List, required = true, entryTypeInfo = stringType,
+                type = MemberKind.List,
+                required = true,
+                entryTypeInfo = stringType,
             }, CollectionMutationKind.Remove, "Alpha");
 
             Assert.IsTrue(client.TryGetValue(NeoValueOwnership.Save, "selected-set", out ArrayMemberValue? selected));
@@ -477,7 +526,8 @@ namespace NeoCompose.Tests
         {
             var view = NSGetterEvaluator.EvaluatePointer(new ReferencePointer
             {
-                type = PointerKind.Reference, valueId = ItemsListValueId,
+                type = PointerKind.Reference,
+                valueId = ItemsListValueId,
             }, new Dictionary<string, object?>(), ctx);
             var weak = new System.WeakReference(view);
             NSGetterEvaluator.InvalidateCachedCollection(ItemsListValueId, NeoValueOwnership.Save, ctx);
@@ -834,20 +884,29 @@ namespace NeoCompose.Tests
             nestedConstructor.action = new FunctionWithReturnType
             {
                 compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
-                parameters = parameters, typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null },
+                parameters = parameters,
+                typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null },
                 instructions = System.Array.Empty<Instruction>(),
             };
             ((ListMember)members["nested-items-member"]).defaultValue = new ArrayMemberValueBase
             {
-                init = new InitializerBody { code = "Nested", compiled = new FunctionWithReturnType
+                init = new InitializerBody
                 {
-                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
-                    parameters = parameters,
-                    typeInfo = new CollectionTypeInfo { type = MemberKind.List, required = true,
-                        entryTypeInfo = nestedConstructor.argumentTypes[0].entryTypeInfo },
-                    instructions = new Instruction[] { new ReturnInstruction { type = InstructionKind.Return,
+                    code = "Nested",
+                    compiled = new FunctionWithReturnType
+                    {
+                        compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                        parameters = parameters,
+                        typeInfo = new CollectionTypeInfo
+                        {
+                            type = MemberKind.List,
+                            required = true,
+                            entryTypeInfo = nestedConstructor.argumentTypes[0].entryTypeInfo
+                        },
+                        instructions = new Instruction[] { new ReturnInstruction { type = InstructionKind.Return,
                         pointer = new VariablePointer { type = PointerKind.Variable, variableId = nestedParameterId } } },
-                } },
+                    }
+                },
             };
             NeoGeneratedTypesSupport.InvalidateConstructorSchemaCaches(client);
             data.constructors[nestedConstructorId] = nestedConstructor;
@@ -861,26 +920,33 @@ namespace NeoCompose.Tests
             };
             client.AddSaveValue("nested-a", new ArrayMemberValue
             {
-                id = "nested-a", value = System.Array.Empty<string>(),
+                id = "nested-a",
+                value = System.Array.Empty<string>(),
             });
             client.AddSaveValue("nested-b", new ArrayMemberValue
             {
-                id = "nested-b", value = System.Array.Empty<string>(),
+                id = "nested-b",
+                value = System.Array.Empty<string>(),
             });
             client.AddSaveValue("nested-a-member", new StringMemberValue
             {
-                id = "nested-a-member", containerId = "nested-a", value = "a",
+                id = "nested-a-member",
+                containerId = "nested-a",
+                value = "a",
             });
             client.AddSaveValue("nested-b-member", new StringMemberValue
             {
-                id = "nested-b-member", containerId = "nested-b", value = "b",
+                id = "nested-b-member",
+                containerId = "nested-b",
+                value = "b",
             });
 
             // Overlay subtraction and addition must both be respected by the
             // exact Save graph clone.
             client.AddSaveValue("item-a", new NullMemberValue
             {
-                id = "item-a", mark = NeoValueMarks.Removed,
+                id = "item-a",
+                mark = NeoValueMarks.Removed,
             });
             client.SetWritableValues(NeoValueOwnership.Save, new MemberValue[]
             {

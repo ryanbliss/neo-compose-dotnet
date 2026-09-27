@@ -18,7 +18,10 @@ namespace NeoCompose.Runtime
     /// </summary>
     public interface INeoSmartTileSource
     {
-        INeoSmartTile? SmartTile { get; }
+        INeoSmartTile? SmartTile
+        {
+            get;
+        }
     }
 
     public interface INeoSmartTile
@@ -26,50 +29,86 @@ namespace NeoCompose.Runtime
         /// <summary>
         /// Collider enum option id. See <see cref="NeoSmartTileOptionIds"/>.
         /// </summary>
-        string DefaultCollider { get; }
+        string DefaultCollider
+        {
+            get;
+        }
 
-        IReadOnlyList<INeoSmartTileRule> Rules { get; }
+        IReadOnlyList<INeoSmartTileRule> Rules
+        {
+            get;
+        }
     }
 
     public interface INeoSmartTileRule
     {
-        IReadOnlyList<INeoSmartTileNeighbor> Neighbors { get; }
+        IReadOnlyList<INeoSmartTileNeighbor> Neighbors
+        {
+            get;
+        }
 
-        IReadOnlyList<Sprite> Sprites { get; }
+        IReadOnlyList<Sprite> Sprites
+        {
+            get;
+        }
 
         /// <summary>
         /// Output enum option id. See <see cref="NeoSmartTileOptionIds"/>.
         /// </summary>
-        string Output { get; }
+        string Output
+        {
+            get;
+        }
 
         /// <summary>
         /// Collider enum option id. See <see cref="NeoSmartTileOptionIds"/>.
         /// </summary>
-        string Collider { get; }
+        string Collider
+        {
+            get;
+        }
 
         /// <summary>
         /// Rule transform enum option id. See <see cref="NeoSmartTileOptionIds"/>.
         /// </summary>
-        string RuleTransform { get; }
+        string RuleTransform
+        {
+            get;
+        }
 
-        double MinAnimationSpeed { get; }
+        double MinAnimationSpeed
+        {
+            get;
+        }
 
-        double MaxAnimationSpeed { get; }
+        double MaxAnimationSpeed
+        {
+            get;
+        }
     }
 
     public interface INeoSmartTileNeighbor
     {
-        Vector2Int Cell { get; }
+        Vector2Int Cell
+        {
+            get;
+        }
 
         /// <summary>
         /// Condition enum option id. See <see cref="NeoSmartTileOptionIds"/>.
         /// A cell without a stored neighbor entry means "don't care", so there
         /// is no option id for that state.
         /// </summary>
-        string Condition { get; }
+        string Condition
+        {
+            get;
+        }
 
         /// <summary>The relation-selected tile class.</summary>
-        string? TileClassId { get; }
+        string? TileClassId
+        {
+            get;
+        }
     }
 
     public enum NeoSmartTileNeighborKind
@@ -230,11 +269,20 @@ namespace NeoCompose.Runtime
             TileClassId = tileClassId;
         }
 
-        public Vector3Int Offset { get; }
+        public Vector3Int Offset
+        {
+            get;
+        }
 
-        public NeoSmartTileNeighborKind Kind { get; }
+        public NeoSmartTileNeighborKind Kind
+        {
+            get;
+        }
 
-        public string? TileClassId { get; }
+        public string? TileClassId
+        {
+            get;
+        }
     }
 
     public interface INeoSmartTileNeighborMatcher
@@ -260,7 +308,8 @@ namespace NeoCompose.Runtime
 
         public int RegisterCustomNeighbor(NeoRuleTileNeighbor neighbor)
         {
-            if (neighbor == null) throw new ArgumentNullException(nameof(neighbor));
+            if (neighbor == null)
+                throw new ArgumentNullException(nameof(neighbor));
             var neighbors = CustomNeighbors;
             int id = 1000 + neighbors.Count;
             neighbors[id] = neighbor;
@@ -282,7 +331,8 @@ namespace NeoCompose.Runtime
         {
             get
             {
-                if (customNeighbors != null) return customNeighbors;
+                if (customNeighbors != null)
+                    return customNeighbors;
                 customNeighbors = new Dictionary<int, NeoRuleTileNeighbor>();
                 foreach (var entry in serializedCustomNeighbors)
                 {
@@ -350,7 +400,8 @@ namespace NeoCompose.Runtime
             Sprite? fallbackDefaultSprite = null,
             string? selfTileClassId = null)
         {
-            if (smartTile == null) throw new ArgumentNullException(nameof(smartTile));
+            if (smartTile == null)
+                throw new ArgumentNullException(nameof(smartTile));
 
             var tile = ScriptableObject.CreateInstance<NeoRuleTile>();
             tile.name = "Neo Smart Tile";
@@ -484,7 +535,8 @@ namespace NeoCompose.Runtime
             }
 
             var fallback = new Sprite[1];
-            if (fallbackDefaultSprite != null) fallback[0] = fallbackDefaultSprite;
+            if (fallbackDefaultSprite != null)
+                fallback[0] = fallbackDefaultSprite;
             return fallback;
         }
 

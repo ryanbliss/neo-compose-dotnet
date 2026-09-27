@@ -182,7 +182,10 @@ namespace NeoCompose.Unity.Editor
             var url = BuildUrl(apiBaseUrl, $"/api/projects/{UnityWebRequest.EscapeURL(projectId)}/export");
             var operation = new NeoComposeApiOperation("export this project", projectId, "unity:export");
             var json = await PostAuthorizedAsync(
-                apiBaseUrl, url, operation, JsonConvert.SerializeObject(new { versionId }),
+                apiBaseUrl, url, operation, JsonConvert.SerializeObject(new
+                {
+                    versionId
+                }),
                 timeoutSeconds: FullExportTimeoutSeconds);
             return Deserialize<NeoComposeUnityExportResponse>(json, "project export");
         }
@@ -195,14 +198,19 @@ namespace NeoCompose.Unity.Editor
         {
             RequireProjectId(projectId);
             RequireVersionId(versionId);
-            if (cursor == null) throw new ArgumentNullException(nameof(cursor));
+            if (cursor == null)
+                throw new ArgumentNullException(nameof(cursor));
             var url = BuildUrl(apiBaseUrl, $"/api/projects/{UnityWebRequest.EscapeURL(projectId)}/export");
             var operation = new NeoComposeApiOperation("incrementally export this project", projectId, "unity:export");
             var json = await PostAuthorizedAsync(
                 apiBaseUrl,
                 url,
                 operation,
-                JsonConvert.SerializeObject(new { versionId, cursor }));
+                JsonConvert.SerializeObject(new
+                {
+                    versionId,
+                    cursor
+                }));
             return Deserialize<NeoComposeUnityExportDeltaManifestResponse>(json, "project export delta");
         }
 
@@ -215,8 +223,10 @@ namespace NeoCompose.Unity.Editor
         {
             RequireProjectId(projectId);
             RequireVersionId(versionId);
-            if (snapshotIds == null) throw new ArgumentNullException(nameof(snapshotIds));
-            if (readBase == null) throw new ArgumentNullException(nameof(readBase));
+            if (snapshotIds == null)
+                throw new ArgumentNullException(nameof(snapshotIds));
+            if (readBase == null)
+                throw new ArgumentNullException(nameof(readBase));
             readBase.Validate();
             var url = BuildUrl(
                 apiBaseUrl,
@@ -226,7 +236,12 @@ namespace NeoCompose.Unity.Editor
                 apiBaseUrl,
                 url,
                 operation,
-                JsonConvert.SerializeObject(new { versionId, snapshotIds, readBase }));
+                JsonConvert.SerializeObject(new
+                {
+                    versionId,
+                    snapshotIds,
+                    readBase
+                }));
             return Deserialize<NeoComposeUnityExportSnapshotResponse>(json, "project export snapshots");
         }
 
@@ -278,7 +293,8 @@ namespace NeoCompose.Unity.Editor
                     $"Neo Compose request failed (connection) {url}: {response.Error}");
             }
 
-            if (response.IsSuccessStatus) return response.Text;
+            if (response.IsSuccessStatus)
+                return response.Text;
             if (response.StatusCode == 409 && TryReadServerError(response.Text) == "project-read-restart")
                 throw new NeoComposeProjectReadRestartException();
 
@@ -314,17 +330,20 @@ namespace NeoCompose.Unity.Editor
             }
 
             var serverDetail = TryReadServerError(response.Text);
-            if (serverDetail != null) message += $" {serverDetail}";
+            if (serverDetail != null)
+                message += $" {serverDetail}";
             return message;
         }
 
         private static string? TryReadServerError(string body)
         {
-            if (string.IsNullOrWhiteSpace(body)) return null;
+            if (string.IsNullOrWhiteSpace(body))
+                return null;
             try
             {
                 var error = JsonConvert.DeserializeObject<NeoComposeDeviceErrorResponse>(body);
-                if (error != null && error.error.Length > 0) return error.error;
+                if (error != null && error.error.Length > 0)
+                    return error.error;
             }
             catch (JsonException)
             {

@@ -32,19 +32,25 @@ namespace NeoCompose.Runtime.Json
     /// extra fields; <see cref="TypeInfo.type"/> alone identifies the
     /// primitive variant.
     /// </summary>
-    public class PrimitiveTypeInfo : TypeInfo { }
+    public class PrimitiveTypeInfo : TypeInfo
+    {
+    }
 
     /// <summary>
     /// Compile-time dynamic value. Used by generated bridge signatures when
     /// the concrete type is intentionally not known ahead of time.
     /// </summary>
-    public class UnknownTypeInfo : TypeInfo { }
+    public class UnknownTypeInfo : TypeInfo
+    {
+    }
 
     /// <summary>
     /// Function-return-only sentinel for native Function members that
     /// return no value.
     /// </summary>
-    public class VoidTypeInfo : TypeInfo { }
+    public class VoidTypeInfo : TypeInfo
+    {
+    }
 
     /// <summary>
     /// Class info. Carries the referenced class id.
@@ -141,8 +147,10 @@ namespace NeoCompose.Runtime.Json
         public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
         {
             var kind = (MemberKind)value!;
-            if (kind is MemberKind.Unknown or MemberKind.Void) writer.WriteValue(kind.ToString());
-            else writer.WriteValue((int)kind);
+            if (kind is MemberKind.Unknown or MemberKind.Void)
+                writer.WriteValue(kind.ToString());
+            else
+                writer.WriteValue((int)kind);
         }
 
         public override object ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
@@ -212,9 +220,12 @@ namespace NeoCompose.Runtime.Json
             {
                 switch (discriminator.Value<string>())
                 {
-                    case "Unknown": return typeof(UnknownTypeInfo);
-                    case "Void": return typeof(VoidTypeInfo);
-                    default: return null;
+                    case "Unknown":
+                        return typeof(UnknownTypeInfo);
+                    case "Void":
+                        return typeof(VoidTypeInfo);
+                    default:
+                        return null;
                 }
             }
 

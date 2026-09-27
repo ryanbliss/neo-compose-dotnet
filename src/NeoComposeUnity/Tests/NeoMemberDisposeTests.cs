@@ -22,7 +22,7 @@ namespace NeoCompose.Tests
     ///     bound <see cref="NeoMember"/> refreshes its resolved <c>value</c>
     ///     via <see cref="NeoClient.OnSaveValueChanged"/>; <c>ClearOverride</c>
     ///     drops the shadow back to the authored default.
-        ///   - <c>*Writable.Remove</c>/<c>RemoveAt</c> on collection classes
+    ///   - <c>*Writable.Remove</c>/<c>RemoveAt</c> on collection classes
     ///     dispose the orphaned child node AND cascade-delete the
     ///     orphaned value graph from
     ///     <see cref="ProjectSaveData.values"/>.
@@ -373,22 +373,31 @@ namespace NeoCompose.Tests
             // removed save id was also present in `data.values`).
             var grandchildA = new StringMemberValue
             {
-                id = "test-gca", createdAt = "x", updatedAt = "x",
+                id = "test-gca",
+                createdAt = "x",
+                updatedAt = "x",
                 value = "a",
             };
             var grandchildB = new StringMemberValue
             {
-                id = "test-gcb", createdAt = "x", updatedAt = "x",
+                id = "test-gcb",
+                createdAt = "x",
+                updatedAt = "x",
                 value = "b",
             };
             var listChild = new ArrayMemberValue
             {
-                id = "test-list", createdAt = "x", updatedAt = "x",
+                id = "test-list",
+                createdAt = "x",
+                updatedAt = "x",
                 value = new[] { "test-gca", "test-gcb" },
             };
             var rootObject = new ObjectMemberValue
             {
-                id = "test-root", classId = "test-gc-class", createdAt = "x", updatedAt = "x",
+                id = "test-root",
+                classId = "test-gc-class",
+                createdAt = "x",
+                updatedAt = "x",
                 value = new System.Collections.Generic.Dictionary<string, string>
                 {
                     { "Tags", "test-list" },
@@ -423,21 +432,28 @@ namespace NeoCompose.Tests
                 };
             client.SetSaveValue(new StringMemberValue
             {
-                id = "test-lookup-target", value = "referenced", createdAt = "x", updatedAt = "x",
+                id = "test-lookup-target",
+                value = "referenced",
+                createdAt = "x",
+                updatedAt = "x",
             });
             client.SetSaveValue(new ArrayMemberValue
             {
-                id = "test-lookup-row", value = new[] { "test-lookup-target" },
-                createdAt = "x", updatedAt = "x",
+                id = "test-lookup-row",
+                value = new[] { "test-lookup-target" },
+                createdAt = "x",
+                updatedAt = "x",
             });
             client.SetSaveValue(new ObjectMemberValue
             {
-                id = "test-lookup-owner", classId = "test-lookup-owner-class",
+                id = "test-lookup-owner",
+                classId = "test-lookup-owner-class",
                 value = new System.Collections.Generic.Dictionary<string, string>
                 {
                     ["Choice"] = "test-lookup-row",
                 },
-                createdAt = "x", updatedAt = "x",
+                createdAt = "x",
+                updatedAt = "x",
             });
 
             client.RemoveSaveValueAndDescendants("test-lookup-owner");
@@ -456,7 +472,9 @@ namespace NeoCompose.Tests
                 (System.Collections.Generic.Dictionary<string, NeoCompose.Runtime.Json.Member>)client.members;
             members["test-cycle-child"] = new ClassMember
             {
-                id = "test-cycle-child", name = "Child", kind = MemberKind.Class,
+                id = "test-cycle-child",
+                name = "Child",
+                kind = MemberKind.Class,
                 classId = "test-cycle-class",
             };
             ((System.Collections.Generic.Dictionary<string, NeoSchemaClass>)client.classes)["test-cycle-class"] =
@@ -471,7 +489,8 @@ namespace NeoCompose.Tests
                 };
             client.SetSaveValue(new ObjectMemberValue
             {
-                id = "test-cycle-a", classId = "test-cycle-class",
+                id = "test-cycle-a",
+                classId = "test-cycle-class",
                 value = new System.Collections.Generic.Dictionary<string, string>
                 {
                     ["Child"] = "test-cycle-b",
@@ -479,7 +498,8 @@ namespace NeoCompose.Tests
             });
             client.SetSaveValue(new ObjectMemberValue
             {
-                id = "test-cycle-b", classId = "test-cycle-class",
+                id = "test-cycle-b",
+                classId = "test-cycle-class",
                 value = new System.Collections.Generic.Dictionary<string, string>
                 {
                     ["Child"] = "test-cycle-a",
@@ -505,11 +525,13 @@ namespace NeoCompose.Tests
             };
             client.SetSaveValue(new StringMemberValue
             {
-                id = "test-detached-leaf", value = "leaf",
+                id = "test-detached-leaf",
+                value = "leaf",
             });
             client.SetSaveValue(new ArrayMemberValue
             {
-                id = "test-detached-list", value = new[] { "test-detached-leaf" },
+                id = "test-detached-list",
+                value = new[] { "test-detached-leaf" },
             });
             client.SetSaveValue(new ObjectMemberValue
             {
@@ -553,7 +575,8 @@ namespace NeoCompose.Tests
             };
             client.SetWritableValue(NeoValueOwnership.Session, new StringMemberValue
             {
-                id = "test-session-owned-leaf", value = "keep",
+                id = "test-session-owned-leaf",
+                value = "keep",
             });
             client.SetSaveValue(new ObjectMemberValue
             {
@@ -620,7 +643,10 @@ namespace NeoCompose.Tests
             // leaf, all written into the save store.
             client.SetSaveValue(new ObjectMemberValue
             {
-                id = "v-root-save", classId = "class-root", createdAt = "x", updatedAt = "x",
+                id = "v-root-save",
+                classId = "class-root",
+                createdAt = "x",
+                updatedAt = "x",
                 value = new System.Collections.Generic.Dictionary<string, string>
                 {
                     ["Heroes"] = "heroes-list",
@@ -628,12 +654,17 @@ namespace NeoCompose.Tests
             });
             client.SetSaveValue(new ArrayMemberValue
             {
-                id = "heroes-list", createdAt = "x", updatedAt = "x",
+                id = "heroes-list",
+                createdAt = "x",
+                updatedAt = "x",
                 value = new[] { "hero-1" },
             });
             client.SetSaveValue(new ObjectMemberValue
             {
-                id = "hero-1", classId = "class-hero", createdAt = "x", updatedAt = "x",
+                id = "hero-1",
+                classId = "class-hero",
+                createdAt = "x",
+                updatedAt = "x",
                 value = new System.Collections.Generic.Dictionary<string, string>
                 {
                     ["Name"] = "hero-1-name",
@@ -641,7 +672,10 @@ namespace NeoCompose.Tests
             });
             client.SetSaveValue(new StringMemberValue
             {
-                id = "hero-1-name", createdAt = "x", updatedAt = "x", value = "Aragorn",
+                id = "hero-1-name",
+                createdAt = "x",
+                updatedAt = "x",
+                value = "Aragorn",
             });
             Assert.IsTrue(client.saveValues.ContainsKey("hero-1"));
             Assert.IsTrue(client.saveValues.ContainsKey("hero-1-name"));

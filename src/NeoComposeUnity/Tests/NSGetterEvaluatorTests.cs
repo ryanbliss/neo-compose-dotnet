@@ -128,7 +128,8 @@ namespace NeoCompose.Tests
             Assert.That(NSGetterEvaluator.UnwrapRow(boolean, context), Is.True);
             Assert.That(NSGetterEvaluator.UnwrapRow(text, context), Is.EqualTo("after"));
             long before = System.GC.GetAllocatedBytesForCurrentThread();
-            for (int i = 0; i < 1000; i++) NSGetterEvaluator.UnwrapRow(number, context);
+            for (int i = 0; i < 1000; i++)
+                NSGetterEvaluator.UnwrapRow(number, context);
             Assert.That(System.GC.GetAllocatedBytesForCurrentThread() - before, Is.LessThan(40000),
                 "Only the numeric result may be boxed; reads must not construct string keys or row indexes.");
             Assert.That(context.rowUnwrapCache, Is.Empty);
@@ -140,8 +141,12 @@ namespace NeoCompose.Tests
         {
             using var client = LoadClient();
             var context = new NSGetterEvaluator.Context(client, null, null);
-            var changed = new ObjectMemberValue { id = "changed-row", classId = "before",
-                value = new Dictionary<string, string> { ["Field"] = "before-child" } };
+            var changed = new ObjectMemberValue
+            {
+                id = "changed-row",
+                classId = "before",
+                value = new Dictionary<string, string> { ["Field"] = "before-child" }
+            };
             var alias = (IDictionary<string, object?>)NSGetterEvaluator.UnwrapRow(changed, context, NeoValueOwnership.Save)!;
             // Invalidation leaves a local alias alive while the next read creates
             // another canonical CLR object for the same row.
@@ -149,10 +154,17 @@ namespace NeoCompose.Tests
             var current = (IDictionary<string, object?>)NSGetterEvaluator.UnwrapRow(changed, context, NeoValueOwnership.Save)!;
             var sessionAlias = NSGetterEvaluator.UnwrapRow(changed, context, NeoValueOwnership.Session)!;
             for (int i = 0; i < 5000; i++)
-                NSGetterEvaluator.UnwrapRow(new ObjectMemberValue { id = "unrelated-" + i,
-                    value = new Dictionary<string, string>() }, context, NeoValueOwnership.Save);
-            var updated = new ObjectMemberValue { id = changed.id, classId = "after",
-                value = new Dictionary<string, string> { ["Field"] = "after-child" } };
+                NSGetterEvaluator.UnwrapRow(new ObjectMemberValue
+                {
+                    id = "unrelated-" + i,
+                    value = new Dictionary<string, string>()
+                }, context, NeoValueOwnership.Save);
+            var updated = new ObjectMemberValue
+            {
+                id = changed.id,
+                classId = "after",
+                value = new Dictionary<string, string> { ["Field"] = "after-child" }
+            };
             NSGetterEvaluator.RefreshCachedRowAfterWrite(updated, context, NeoValueOwnership.Save);
             long before = System.GC.GetAllocatedBytesForCurrentThread();
             NSGetterEvaluator.RefreshCachedRowAfterWrite(updated, context, NeoValueOwnership.Save);
@@ -2884,7 +2896,10 @@ namespace NeoCompose.Tests
 
         private sealed class TestFunctionHandler : IFunctionTestValueFunctionHandler
         {
-            public int CallCount { get; private set; }
+            public int CallCount
+            {
+                get; private set;
+            }
 
             public string Ping(string message)
             {
@@ -2958,8 +2973,14 @@ namespace NeoCompose.Tests
         {
             private readonly Dictionary<string, TestTextNodeMemory> textNodes = new();
 
-            public int VisitCount { get; set; }
-            public string? LastVisitedAt { get; set; }
+            public int VisitCount
+            {
+                get; set;
+            }
+            public string? LastVisitedAt
+            {
+                get; set;
+            }
 
             public INeoTextNodeMemory GetOrCreateTextNodeMemory(string textNodeId)
             {
@@ -2983,9 +3004,18 @@ namespace NeoCompose.Tests
         {
             private readonly HashSet<string> choices = new();
 
-            public int VisitCount { get; set; }
-            public string? LastVisitedAt { get; set; }
-            public string? MostRecentChoiceId { get; set; }
+            public int VisitCount
+            {
+                get; set;
+            }
+            public string? LastVisitedAt
+            {
+                get; set;
+            }
+            public string? MostRecentChoiceId
+            {
+                get; set;
+            }
 
             public bool HasChoice(string choiceId)
             {

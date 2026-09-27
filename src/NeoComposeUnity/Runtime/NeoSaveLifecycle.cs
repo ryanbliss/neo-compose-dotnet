@@ -72,8 +72,14 @@ namespace NeoCompose.Runtime
             Remote = remote;
         }
 
-        public LocalGameSave Local { get; }
-        public RemoteGameSave Remote { get; }
+        public LocalGameSave Local
+        {
+            get;
+        }
+        public RemoteGameSave Remote
+        {
+            get;
+        }
     }
 
     /// <summary>
@@ -122,10 +128,22 @@ namespace NeoCompose.Runtime
             Schema = schema;
         }
 
-        public string CustomId { get; }
-        public NeoSaveValues OpaqueValues { get; }
-        public IReadOnlyDictionary<string, string?> StaticBindings { get; }
-        public ProjectData Schema { get; }
+        public string CustomId
+        {
+            get;
+        }
+        public NeoSaveValues OpaqueValues
+        {
+            get;
+        }
+        public IReadOnlyDictionary<string, string?> StaticBindings
+        {
+            get;
+        }
+        public ProjectData Schema
+        {
+            get;
+        }
     }
 
     /// <summary>
@@ -180,8 +198,14 @@ namespace NeoCompose.Runtime
             NewName = newName;
         }
 
-        public bool Approved { get; }
-        public string? NewName { get; }
+        public bool Approved
+        {
+            get;
+        }
+        public string? NewName
+        {
+            get;
+        }
     }
 
     /// <summary>
@@ -206,10 +230,16 @@ namespace NeoCompose.Runtime
     public interface INeoSaveLoader
     {
         /// <summary>The authored project schema, owned by the project store.</summary>
-        ProjectData Schema { get; }
+        ProjectData Schema
+        {
+            get;
+        }
 
         /// <summary>The active save's stable <c>customId</c>.</summary>
-        string CustomId { get; }
+        string CustomId
+        {
+            get;
+        }
 
         /// <summary>
         /// Resolves the active save's serialized content to load (conflict /

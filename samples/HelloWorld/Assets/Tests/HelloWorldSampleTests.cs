@@ -297,7 +297,8 @@ namespace HelloWorld.Assets.Tests
             var earthOutpost = client.Assets.Outposts.FirstOrDefault(outpost =>
                 outpost.Planet == Planet.earth);
             Assert.IsNotNull(earthOutpost);
-            if (earthOutpost == null) return;
+            if (earthOutpost == null)
+                return;
 
             Assert.AreSame(Planet.earth, earthOutpost.Planet);
             Assert.IsTrue(earthOutpost.Planet == Planet.earth);
@@ -317,7 +318,8 @@ namespace HelloWorld.Assets.Tests
             var capitol = client.Assets.Outposts.FirstOrDefault(outpost =>
                 outpost.Name == "Capitol OG");
             Assert.IsNotNull(capitol);
-            if (capitol == null) return;
+            if (capitol == null)
+                return;
 
             Assert.IsTrue(client.Dialogues.Outposts.Introductions.TryTrigger(
                 capitol,
@@ -1016,7 +1018,10 @@ namespace HelloWorld.Assets.Tests
             var receiverPointer = new VariablePointer { type = PointerKind.Variable, variableId = "__this__" };
             object Call(string memberId, bool withPattern, MemberKind resultKind) => Evaluate(new CallFunctionPointer
             {
-                type = PointerKind.CallFunction, memberId = memberId, callSiteId = "sample-native-" + memberId, receiver = CallReceiver.Instance(receiverPointer),
+                type = PointerKind.CallFunction,
+                memberId = memberId,
+                callSiteId = "sample-native-" + memberId,
+                receiver = CallReceiver.Instance(receiverPointer),
                 args = withPattern ? new Pointer[] { new VariablePointer { type = PointerKind.Variable, variableId = "__context__" } }
                     : System.Array.Empty<Pointer>(),
             }, resultKind);
@@ -1035,10 +1040,13 @@ namespace HelloWorld.Assets.Tests
             string targetClassId = new RedNovaWarningTile().classId!;
             Assert.AreEqual(true, Evaluate(new TileConvertPointer
             {
-                type = PointerKind.TileConvert, callSiteId = "sample-native-conversion",
+                type = PointerKind.TileConvert,
+                callSiteId = "sample-native-conversion",
                 receiverPointer = new CallFunctionPointer
                 {
-                    type = PointerKind.CallFunction, memberId = "system_593e6208-e2ca-505e-9933-04b17102b6d2", callSiteId = "sample-native-get-conversion-tile",
+                    type = PointerKind.CallFunction,
+                    memberId = "system_593e6208-e2ca-505e-9933-04b17102b6d2",
+                    callSiteId = "sample-native-get-conversion-tile",
                     receiver = CallReceiver.Instance(receiverPointer),
                     args = new Pointer[] { new VariablePointer { type = PointerKind.Variable, variableId = "__context__" } },
                 },

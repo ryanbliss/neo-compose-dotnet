@@ -28,9 +28,18 @@ namespace NeoCompose.Runtime
             Content = content ?? throw new ArgumentNullException(nameof(content));
         }
 
-        public string ValueId { get; }
-        public NeoTileGridRenderer Renderer { get; }
-        public INeoTileGridContent Content { get; }
+        public string ValueId
+        {
+            get;
+        }
+        public NeoTileGridRenderer Renderer
+        {
+            get;
+        }
+        public INeoTileGridContent Content
+        {
+            get;
+        }
     }
 
     /// <summary>
@@ -60,7 +69,8 @@ namespace NeoCompose.Runtime
 
         private void OnEnable()
         {
-            if (!refreshOnEnable) return;
+            if (!refreshOnEnable)
+                return;
             RefreshPreview();
         }
 
@@ -252,7 +262,8 @@ namespace NeoCompose.Runtime
         private NeoTileGridRenderer GetOrCreateRenderer()
         {
             var targetRenderer = renderer ?? GetComponent<NeoTileGridRenderer>();
-            if (targetRenderer != null) return targetRenderer;
+            if (targetRenderer != null)
+                return targetRenderer;
             targetRenderer = gameObject.AddComponent<NeoTileGridRenderer>();
             renderer = targetRenderer;
             return targetRenderer;
@@ -287,7 +298,8 @@ namespace NeoCompose.Runtime
 
         private static void StopAndClearRenderer(NeoTileGridRenderer? targetRenderer)
         {
-            if (targetRenderer == null) return;
+            if (targetRenderer == null)
+                return;
             targetRenderer.StopLiveSync();
             targetRenderer.Clear();
         }
@@ -349,7 +361,8 @@ namespace NeoCompose.Runtime
                     (type.FullName?.StartsWith(
                         configuredNamespace + ".",
                         StringComparison.Ordinal) ?? false));
-                if (configured != null) return configured;
+                if (configured != null)
+                    return configured;
             }
 
             return candidates.FirstOrDefault();

@@ -27,8 +27,10 @@ namespace NeoCompose.Tests
         /// </summary>
         private static NeoPlayDirection DirectionByName(string name)
         {
-            if (name == "Forward") return NeoPlayDirection.Forward;
-            if (name == "Reverse") return NeoPlayDirection.Reverse;
+            if (name == "Forward")
+                return NeoPlayDirection.Forward;
+            if (name == "Reverse")
+                return NeoPlayDirection.Reverse;
             throw new ArgumentException($"Unknown direction name '{name}'.", nameof(name));
         }
 
@@ -42,7 +44,8 @@ namespace NeoCompose.Tests
                 client.AnimationCoordinator, (int _) => entries++);
             clip.PlayLoop();
             Assert.That(entries, Is.EqualTo(1));
-            for (int i = 0; i < 7; i++) clip.Tick(1f / 64);
+            for (int i = 0; i < 7; i++)
+                clip.Tick(1f / 64);
             Assert.That(entries, Is.EqualTo(1), "Render ticks between animation frames must not reapply frame zero.");
             clip.Tick(1f / 64);
             Assert.That(entries, Is.EqualTo(2), "A new loop still runs dynamic frame functions and events.");
@@ -508,9 +511,9 @@ namespace NeoCompose.Tests
                 {
                     [NeoJson.NeoPartialLeafValue
                         .EnvelopeKey] = new JObject
-                    {
-                        [field] = write["value"]!.DeepClone(),
-                    },
+                        {
+                            [field] = write["value"]!.DeepClone(),
+                        },
                 };
                 var leafPartial = Newtonsoft.Json.JsonConvert
                     .DeserializeObject<
@@ -954,7 +957,8 @@ namespace NeoCompose.Tests
                             .FirstOrDefault(frame =>
                                 frame.Value<int>("index") == frameIndex)?["overrides"]
                             as JObject;
-                        if (sparse is not null) MergeFixtureState(state, sparse);
+                        if (sparse is not null)
+                            MergeFixtureState(state, sparse);
                     }
                     Assert.IsTrue(
                         JToken.DeepEquals(expectedFrames[frameIndex], state),
@@ -1004,7 +1008,8 @@ namespace NeoCompose.Tests
                 // onto something that is not a record has nothing to compose
                 // against, so the write is skipped and the previous value
                 // stands. Assigning here would invent a base value.
-                if (merged is null) continue;
+                if (merged is null)
+                    continue;
                 state[property.Name] = merged;
             }
         }
@@ -1017,7 +1022,8 @@ namespace NeoCompose.Tests
                 // P42 section 1.2: a field override is a read-modify-write of
                 // the WHOLE leaf, and "the rest" comes from the value as it
                 // stands on the played instance.
-                if (current is not JObject leaf) return null;
+                if (current is not JObject leaf)
+                    return null;
                 var patched = (JObject)leaf.DeepClone();
                 foreach (JProperty field in partialFields.Properties())
                 {
@@ -1026,7 +1032,8 @@ namespace NeoCompose.Tests
                     // declares, so "already present" and "declared by the kind"
                     // name the same set — and this mirror needs no kind, just
                     // like the web `applyStructuredLeafPartial` it copies.
-                    if (leaf.Property(field.Name) is null) continue;
+                    if (leaf.Property(field.Name) is null)
+                        continue;
                     patched[field.Name] = field.Value.DeepClone();
                 }
                 return patched;
@@ -1035,7 +1042,8 @@ namespace NeoCompose.Tests
             // A full leaf value is not an envelope: every key present means
             // every key is replaced, which is the whole-leaf override P42
             // section 1.3 promises. Nested CLASS records still merge key-wise.
-            if (value is not JObject record) return value.DeepClone();
+            if (value is not JObject record)
+                return value.DeepClone();
             JObject next = current is JObject baseRecord
                 ? (JObject)baseRecord.DeepClone()
                 : new JObject();
@@ -1043,7 +1051,8 @@ namespace NeoCompose.Tests
             {
                 JToken? merged = MergeFixtureValue(
                     next[property.Name], property.Value);
-                if (merged is null) continue;
+                if (merged is null)
+                    continue;
                 next[property.Name] = merged;
             }
             return next;
@@ -1056,8 +1065,10 @@ namespace NeoCompose.Tests
         /// </summary>
         private static JObject? PartialEnvelopeFields(JToken value)
         {
-            if (value is not JObject envelope) return null;
-            if (envelope.Count != 1) return null;
+            if (value is not JObject envelope)
+                return null;
+            if (envelope.Count != 1)
+                return null;
             return envelope[
                 NeoJson.NeoPartialLeafValue.EnvelopeKey]
                 as JObject;
@@ -1065,7 +1076,8 @@ namespace NeoCompose.Tests
 
         private static void Tick(NeoAnimationClip<TestTarget> clip, int count)
         {
-            for (int i = 0; i < count; i++) clip.Tick(0.1f);
+            for (int i = 0; i < count; i++)
+                clip.Tick(0.1f);
         }
 
         private static NeoClient CreateClient()

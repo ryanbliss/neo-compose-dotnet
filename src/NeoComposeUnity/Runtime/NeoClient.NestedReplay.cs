@@ -27,12 +27,14 @@ namespace NeoCompose.Runtime
         private void ClearNestedReplayBoundary(string rootId)
         {
             if (nestedReplayRootsByOwner.Remove(rootId, out var children))
-                foreach (string child in children.ToArray()) ClearVirtualInstanceRoot(child);
+                foreach (string child in children.ToArray())
+                    ClearVirtualInstanceRoot(child);
             if (nestedReplayBoundaries.Remove(rootId, out var boundary)
                 && nestedReplayRootsByOwner.TryGetValue(boundary.NamespaceRoot.id, out var siblings))
             {
                 siblings.Remove(rootId);
-                if (siblings.Count == 0) nestedReplayRootsByOwner.Remove(boundary.NamespaceRoot.id);
+                if (siblings.Count == 0)
+                    nestedReplayRootsByOwner.Remove(boundary.NamespaceRoot.id);
             }
         }
 
@@ -63,9 +65,11 @@ namespace NeoCompose.Runtime
 
         private void EnqueueReplayFields(Queue<string> pending, string id, NeoWritePlan? plan = null)
         {
-            if (!replayFieldsByValueId.TryGetValue(id, out var fields)) return;
+            if (!replayFieldsByValueId.TryGetValue(id, out var fields))
+                return;
             foreach (string field in fields)
-                if (plan is null || !SameReplayField(plan, field, null)) pending.Enqueue(field);
+                if (plan is null || !SameReplayField(plan, field, null))
+                    pending.Enqueue(field);
         }
 
         private bool SameReplayField(NeoWritePlan plan, string dependency, CandidateReplay? candidate)
@@ -79,8 +83,10 @@ namespace NeoCompose.Runtime
 
             string? Child(MemberValue? row, bool proposed)
             {
-                if (row is not ObjectMemberValue { value: not null } obj) return null;
-                if (obj.value.TryGetValue(key, out var child)) return child;
+                if (row is not ObjectMemberValue { value: not null } obj)
+                    return null;
+                if (obj.value.TryGetValue(key, out var child))
+                    return child;
                 if (proposed && candidate is not null && candidate.ClassChildren.TryGetValue(id, out var changed))
                     return changed.GetValueOrDefault(key);
                 return virtualClassChildren.TryGetValue(id, out var defaults) ? defaults.GetValueOrDefault(key) : null;
@@ -150,7 +156,8 @@ namespace NeoCompose.Runtime
             {
                 this.client = client;
                 Parent = client.nestedConstructorCapture;
-                if (Parent is not null) Parent.hasNestedConstructor = true;
+                if (Parent is not null)
+                    Parent.hasNestedConstructor = true;
                 previousReads = client.capturedValueReads;
                 client.capturedValueReads = Reads;
                 client.nestedConstructorCapture = this;
@@ -166,7 +173,8 @@ namespace NeoCompose.Runtime
                 IReadOnlyList<NeoGeneratedTypesSupport.RuntimeConstructorField> fields)
             {
                 Root = root;
-                foreach (var field in fields) Fields.Add(field.schemaKey);
+                foreach (var field in fields)
+                    Fields.Add(field.schemaKey);
                 // Only independent leaf constructions can be replayed here.
                 // Compound call-site fields need their original evaluator and
                 // retain the enclosing replay instead.
@@ -176,16 +184,19 @@ namespace NeoCompose.Runtime
                     && root.value.Values.All(id => client.ResolveValueRow(id) is not ObjectMemberValue { classId: not null })
                     && fields.All(field => root.value.TryGetValue(field.schemaKey, out var id)
                         && client.ResolveValueRow(id) is not ObjectMemberValue);
-                if (!complete) return;
+                if (!complete)
+                    return;
                 client.nestedConstructedRoots![root.id] = this;
-                foreach (string id in Allocations) client.nestedConstructedRows![id] = this;
+                foreach (string id in Allocations)
+                    client.nestedConstructedRows![id] = this;
             }
 
             public void Dispose()
             {
                 client.nestedConstructorCapture = Parent;
                 client.capturedValueReads = previousReads;
-                if (!complete) previousReads?.UnionWith(Reads);
+                if (!complete)
+                    previousReads?.UnionWith(Reads);
             }
         }
 
@@ -203,7 +214,8 @@ namespace NeoCompose.Runtime
         {
             graph.virtualId = boundary.Root.id;
             foreach (var child in graph.classChildren.Values)
-                if (boundary.Ids.TryGetValue(child.path, out var id)) child.virtualId = id;
+                if (boundary.Ids.TryGetValue(child.path, out var id))
+                    child.virtualId = id;
             foreach (var pair in boundary.Fields)
                 if (graph.classChildren.TryGetValue(pair.Key, out var child))
                     child.row = pair.Value;
@@ -234,8 +246,14 @@ namespace NeoCompose.Runtime
                         || child.listChildren.Count != 0 || child.dictionaryChildren.Count != 0))
                 {
                     var boundary = new NestedReplayBoundary
-                    { Root = root, NamespaceRoot = instanceRoot, Path = node.path, Ownership = expansion.Ownership[effectiveId] };
-                    foreach (var child in node.classChildren.Values) boundary.Ids[child.path] = child.virtualId;
+                    {
+                        Root = root,
+                        NamespaceRoot = instanceRoot,
+                        Path = node.path,
+                        Ownership = expansion.Ownership[effectiveId]
+                    };
+                    foreach (var child in node.classChildren.Values)
+                        boundary.Ids[child.path] = child.virtualId;
                     foreach (string field in capture.Fields)
                         if (node.classChildren.TryGetValue(field, out var child)
                             && child.effectiveId is string fieldId && expansion.Values.TryGetValue(fieldId, out var fieldRow))
@@ -247,24 +265,39 @@ namespace NeoCompose.Runtime
                     partitioned.Add(node.row.id);
                     return;
                 }
-                foreach (var child in node.classChildren.Values) Visit(child);
-                foreach (var child in node.listChildren) Visit(child);
-                foreach (var child in node.dictionaryChildren.Values) Visit(child);
+                foreach (var child in node.classChildren.Values)
+                    Visit(child);
+                foreach (var child in node.listChildren)
+                    Visit(child);
+                foreach (var child in node.dictionaryChildren.Values)
+                    Visit(child);
             }
 
             void Move(VirtualExpansionNode node, PreparedVirtualExpansion nested, bool isRoot = false)
             {
                 string id = node.effectiveId!;
                 if (expansion.Values.Remove(id, out var value))
-                { nested.Values[id] = value; nested.Ownership[id] = expansion.Ownership[id]; expansion.Ownership.Remove(id); }
-                if (expansion.Footprint.Remove(id)) nested.Footprint.Add(id);
-                if (expansion.ClassChildren.Remove(id, out var children)) nested.ClassChildren[id] = children;
+                {
+                    nested.Values[id] = value;
+                    nested.Ownership[id] = expansion.Ownership[id];
+                    expansion.Ownership.Remove(id);
+                }
+                if (expansion.Footprint.Remove(id))
+                    nested.Footprint.Add(id);
+                if (expansion.ClassChildren.Remove(id, out var children))
+                    nested.ClassChildren[id] = children;
                 // The root's placement belongs to its enclosing collection.
                 if (!isRoot && expansion.Placements.Remove(id, out var placement))
-                { placement.rootId = nested.Root.id; nested.Placements[id] = placement; }
-                foreach (var child in node.classChildren.Values) Move(child, nested);
-                foreach (var child in node.listChildren) Move(child, nested);
-                foreach (var child in node.dictionaryChildren.Values) Move(child, nested);
+                {
+                    placement.rootId = nested.Root.id;
+                    nested.Placements[id] = placement;
+                }
+                foreach (var child in node.classChildren.Values)
+                    Move(child, nested);
+                foreach (var child in node.listChildren)
+                    Move(child, nested);
+                foreach (var child in node.dictionaryChildren.Values)
+                    Move(child, nested);
             }
         }
     }

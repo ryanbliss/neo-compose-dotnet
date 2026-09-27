@@ -444,7 +444,8 @@ namespace NeoCompose.Tests
                     definition.SparseWritesForFrame(0).Length,
                     label);
                 compiled += 1;
-                if (!authored) silent += 1;
+                if (!authored)
+                    silent += 1;
             }
 
             Assert.Greater(compiled, 0, "No fixture case reached the compiler.");
@@ -510,8 +511,10 @@ namespace NeoCompose.Tests
             int count = 0;
             void Handler(string condition, string stackTrace, LogType type)
             {
-                if (type != LogType.Warning) return;
-                if (condition.Contains(fragment)) count += 1;
+                if (type != LogType.Warning)
+                    return;
+                if (condition.Contains(fragment))
+                    count += 1;
             }
             Application.logMessageReceived += Handler;
             try
@@ -853,7 +856,8 @@ namespace NeoCompose.Tests
             var frameValueIds = new List<string>();
             foreach (FrameSpec frame in frames)
             {
-                if (frame.Index + 1 > duration) duration = frame.Index + 1;
+                if (frame.Index + 1 > duration)
+                    duration = frame.Index + 1;
             }
             // A little headroom so backward/boomerang tests have frames past
             // the last authored one.

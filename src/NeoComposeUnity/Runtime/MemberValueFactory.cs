@@ -34,11 +34,13 @@ namespace NeoCompose.Runtime
             string? classId = null;
             if (payload is NeoValuePayload wrapped)
             {
-                if (wrapped.valueRows is { Count: > 0 }) return false;
+                if (wrapped.valueRows is { Count: > 0 })
+                    return false;
                 payload = wrapped.value;
                 classId = wrapped.classId;
             }
-            if (stored.IsRemoved || stored.classId != classId) return false;
+            if (stored.IsRemoved || stored.classId != classId)
+                return false;
             switch (member, stored)
             {
                 case (BoolMember, BoolMemberValue row):
@@ -96,37 +98,51 @@ namespace NeoCompose.Runtime
             {
                 NullMember => new NullMemberValue
                 {
-                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    id = id,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
                 },
                 BoolMember => new BoolMemberValue
                 {
-                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    id = id,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
                     value = Cast<bool?>(rawPayload, member),
                 },
                 IntMember or FloatMember => new NumberMemberValue
                 {
-                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    id = id,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
                     value = Cast<double?>(rawPayload, member),
                 },
                 StringMember => new StringMemberValue
                 {
-                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    id = id,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
                     value = Cast<string?>(rawPayload, member),
                     neoLocalizationMode = NeoStringLocalizationMode.Literal,
                 },
                 DictionaryMember or ClassMember or FunctionRefMember => new ObjectMemberValue
                 {
-                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    id = id,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
                     value = Cast<Dictionary<string, string>?>(rawPayload, member),
                 },
                 DelegateMember => new DelegateMemberValue
                 {
-                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    id = id,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
                     value = Cast<NeoDelegateValue?>(rawPayload, member),
                 },
                 ActionMember => new ActionMemberValue
                 {
-                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    id = id,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
                     // An action's rest state is the empty set, never null, so
                     // an absent payload materializes as an empty listener list
                     // rather than an unbound value.
@@ -135,47 +151,65 @@ namespace NeoCompose.Runtime
                 },
                 ListMember or EnumMember or LookupMember or DialogueLookupMember => new ArrayMemberValue
                 {
-                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    id = id,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
                     value = Cast<string[]?>(rawPayload, member),
                 },
                 SpriteMember => new SpriteMemberValue
                 {
-                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    id = id,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
                     value = Cast<SpriteValue?>(rawPayload, member),
                 },
                 AudioMember => new FileMemberValue
                 {
-                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    id = id,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
                     value = Cast<FileValue?>(rawPayload, member),
                 },
                 Vector2Member => new Vector2MemberValue
                 {
-                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    id = id,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
                     value = Vector2Payload(rawPayload, member),
                 },
                 Vector2IntMember => new Vector2MemberValue
                 {
-                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    id = id,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
                     value = Vector2IntPayload(rawPayload, member),
                 },
                 Vector3Member => new Vector3MemberValue
                 {
-                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    id = id,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
                     value = Vector3Payload(rawPayload, member),
                 },
                 Vector3IntMember => new Vector3MemberValue
                 {
-                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    id = id,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
                     value = Vector3IntPayload(rawPayload, member),
                 },
                 ColorMember => new ColorMemberValue
                 {
-                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    id = id,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
                     value = ColorPayload(rawPayload, member),
                 },
                 DecimalMember => new StringMemberValue
                 {
-                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    id = id,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
                     value = DecimalPayload(rawPayload, member),
                 },
                 // P67 §7.4 — the stored value is the atomic
@@ -184,12 +218,16 @@ namespace NeoCompose.Runtime
                 // {classId, variantId} pair; null is "no selection".
                 VariantMember => new VariantMemberValue
                 {
-                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    id = id,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
                     value = Cast<VariantRefValue?>(rawPayload, member),
                 },
                 NSPropertyMember => new NullMemberValue
                 {
-                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    id = id,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
                 },
                 GenericMember generic => throw new System.InvalidOperationException(
                     $"Cannot create a value row for Generic member '{generic.id}' ({generic.name}, param '{generic.genericParamId}') — Generic slots must be substituted to their binding member before value creation (is the enclosing collection row missing its genericBindings stamp?)."),
@@ -276,146 +314,194 @@ namespace NeoCompose.Runtime
             {
                 NullMember member => member.defaultValue is null ? null : new NullMemberValue
                 {
-                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    id = id,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
                     value = member.defaultValue.value,
                     classId = member.defaultValue.classId,
                 },
                 BoolMember member => member.defaultValue is null ? null : new BoolMemberValue
                 {
-                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    id = id,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
                     value = member.defaultValue.value,
                     classId = member.defaultValue.classId,
                 },
                 IntMember member => member.defaultValue is null ? null : new NumberMemberValue
                 {
-                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    id = id,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
                     value = member.defaultValue.value,
                     classId = member.defaultValue.classId,
                 },
                 FloatMember member => member.defaultValue is null ? null : new NumberMemberValue
                 {
-                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    id = id,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
                     value = member.defaultValue.value,
                     classId = member.defaultValue.classId,
                 },
                 StringMember member => member.defaultValue is null ? null : new StringMemberValue
                 {
-                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    id = id,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
                     value = member.defaultValue.value,
                     neoLocalizationMode = (member.defaultValue as StringMemberValueBase)?.neoLocalizationMode,
                     classId = member.defaultValue.classId,
                 },
                 DictionaryMember member => member.defaultValue is null ? null : new ObjectMemberValue
                 {
-                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    id = id,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
                     value = CloneDictionary(member.defaultValue.value),
                     classId = member.defaultValue.classId,
                 },
                 ClassMember member => member.defaultValue is null ? null : new ObjectMemberValue
                 {
-                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    id = id,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
                     value = CloneDictionary(member.defaultValue.value),
                     classId = member.defaultValue.classId,
                 },
                 ListMember member => member.defaultValue is null ? null : new ArrayMemberValue
                 {
-                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    id = id,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
                     value = CloneArray(member.defaultValue.value),
                     classId = member.defaultValue.classId,
                 },
                 EnumMember member => member.defaultValue is null ? null : new ArrayMemberValue
                 {
-                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    id = id,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
                     value = CloneArray(member.defaultValue.value),
                     classId = member.defaultValue.classId,
                 },
                 LookupMember member => member.defaultValue is null ? null : new ArrayMemberValue
                 {
-                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    id = id,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
                     value = CloneArray(member.defaultValue.value),
                     classId = member.defaultValue.classId,
                 },
                 DialogueLookupMember member => member.defaultValue is null ? null : new ArrayMemberValue
                 {
-                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    id = id,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
                     value = CloneArray(member.defaultValue.value),
                     classId = member.defaultValue.classId,
                 },
                 NSPropertyMember member => member.defaultValue is null ? null : new NullMemberValue
                 {
-                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    id = id,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
                     value = member.defaultValue.value,
                     classId = member.defaultValue.classId,
                 },
                 FunctionMember member => member.defaultValue is null ? null : new NullMemberValue
                 {
-                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    id = id,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
                     value = member.defaultValue.value,
                     classId = member.defaultValue.classId,
                 },
                 NSFunctionMember member => member.defaultValue is null ? null : new NullMemberValue
                 {
-                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    id = id,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
                     value = member.defaultValue.value,
                     classId = member.defaultValue.classId,
                 },
                 FunctionRefMember member => member.defaultValue is null ? null : new ObjectMemberValue
                 {
-                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    id = id,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
                     value = CloneDictionary(member.defaultValue.value),
                     classId = member.defaultValue.classId,
                 },
                 SpriteMember member => member.defaultValue is null ? null : new SpriteMemberValue
                 {
-                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    id = id,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
                     value = CloneSpriteValue(member.defaultValue.value),
                     classId = member.defaultValue.classId,
                 },
                 AudioMember member => member.defaultValue is null ? null : new FileMemberValue
                 {
-                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    id = id,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
                     value = CloneFileValue(member.defaultValue.value),
                     classId = member.defaultValue.classId,
                 },
                 Vector2Member member => member.defaultValue is null ? null : new Vector2MemberValue
                 {
-                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    id = id,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
                     value = CloneVector2Value(member.defaultValue.value),
                     classId = member.defaultValue.classId,
                 },
                 Vector2IntMember member => member.defaultValue is null ? null : new Vector2MemberValue
                 {
-                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    id = id,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
                     value = CloneVector2Value(member.defaultValue.value),
                     classId = member.defaultValue.classId,
                 },
                 Vector3Member member => member.defaultValue is null ? null : new Vector3MemberValue
                 {
-                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    id = id,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
                     value = CloneVector3Value(member.defaultValue.value),
                     classId = member.defaultValue.classId,
                 },
                 Vector3IntMember member => member.defaultValue is null ? null : new Vector3MemberValue
                 {
-                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    id = id,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
                     value = CloneVector3Value(member.defaultValue.value),
                     classId = member.defaultValue.classId,
                 },
                 ColorMember member => member.defaultValue is null ? null : new ColorMemberValue
                 {
-                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    id = id,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
                     value = CloneColorValue(member.defaultValue.value),
                     classId = member.defaultValue.classId,
                 },
                 DecimalMember member => member.defaultValue is null ? null : new StringMemberValue
                 {
-                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    id = id,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
                     value = member.defaultValue.value,
                     classId = member.defaultValue.classId,
                 },
                 DelegateMember member => member.defaultValue is null ? null : new DelegateMemberValue
                 {
-                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    id = id,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
                     value = member.defaultValue.value,
                     classId = member.defaultValue.classId,
                 },
@@ -425,7 +511,9 @@ namespace NeoCompose.Runtime
                 // `+=` on one row edit the default every other row reads.
                 ActionMember member => member.defaultValue is null ? null : new ActionMemberValue
                 {
-                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    id = id,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
                     value = member.defaultValue.value?.PersistedCopy()
                         ?? new NeoActionValue(),
                     classId = member.defaultValue.classId,
@@ -442,7 +530,9 @@ namespace NeoCompose.Runtime
                 // default every other instance reads.
                 VariantMember member => member.defaultValue is null ? null : new VariantMemberValue
                 {
-                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    id = id,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
                     value = member.defaultValue.value is null
                         ? null
                         : new VariantRefValue
@@ -461,8 +551,10 @@ namespace NeoCompose.Runtime
         {
             // Allow null when TExpected admits it (Nullable<T> for value
             // classes, or any reference type).
-            if (payload is null) return default!;
-            if (payload is TExpected match) return match;
+            if (payload is null)
+                return default!;
+            if (payload is TExpected match)
+                return match;
             if (typeof(TExpected) == typeof(SpriteValue)
                 && ToSpriteValue(payload) is SpriteValue sprite)
                 return (TExpected)(object)sprite;
@@ -471,9 +563,12 @@ namespace NeoCompose.Runtime
                 return (TExpected)(object)file;
             if (typeof(TExpected) == typeof(double?))
             {
-                if (payload is int i) return (TExpected)(object)(double?)i;
-                if (payload is float f) return (TExpected)(object)(double?)f;
-                if (payload is double d) return (TExpected)(object)(double?)d;
+                if (payload is int i)
+                    return (TExpected)(object)(double?)i;
+                if (payload is float f)
+                    return (TExpected)(object)(double?)f;
+                if (payload is double d)
+                    return (TExpected)(object)(double?)d;
             }
             // Evaluated NeoScript values box string arrays (enum selections,
             // lookup ref lists) as object[]; unbox when every element fits.
@@ -496,8 +591,10 @@ namespace NeoCompose.Runtime
 
         internal static SpriteValue? ToSpriteValue(object? value)
         {
-            if (value is null) return null;
-            if (value is SpriteValue spriteValue) return spriteValue;
+            if (value is null)
+                return null;
+            if (value is SpriteValue spriteValue)
+                return spriteValue;
             if (value is JObject obj)
             {
                 var fileId = obj["fileId"]?.Value<string>();
@@ -524,8 +621,10 @@ namespace NeoCompose.Runtime
 
         internal static FileValue? ToFileValue(object? value)
         {
-            if (value is null) return null;
-            if (value is FileValue fileValue) return fileValue;
+            if (value is null)
+                return null;
+            if (value is FileValue fileValue)
+                return fileValue;
             if (value is JObject obj)
             {
                 var fileId = obj["fileId"]?.Value<string>();
@@ -544,7 +643,8 @@ namespace NeoCompose.Runtime
 
         private static string[]? CloneArray(string[]? source)
         {
-            if (source is null) return null;
+            if (source is null)
+                return null;
             var clone = new string[source.Length];
             System.Array.Copy(source, clone, source.Length);
             return clone;
@@ -605,62 +705,83 @@ namespace NeoCompose.Runtime
 
         private static string? DecimalPayload(object? payload, Member member)
         {
-            if (payload is null) return null;
-            if (payload is string canonical) return canonical;
-            if (payload is decimal value) return NeoDecimalValues.Format(value);
+            if (payload is null)
+                return null;
+            if (payload is string canonical)
+                return canonical;
+            if (payload is decimal value)
+                return NeoDecimalValues.Format(value);
             throw PayloadError(payload, member, "Decimal");
         }
 
         private static NeoColorValue? ColorPayload(object? payload, Member member)
         {
-            if (payload is null) return null;
-            if (payload is NeoColorValue raw) return raw;
-            if (payload is Color color) return NeoColorValues.FromColor(color);
-            if (payload is NeoReadOnlyColor wrapper) return NeoColorValues.FromColor(wrapper.Value);
+            if (payload is null)
+                return null;
+            if (payload is NeoColorValue raw)
+                return raw;
+            if (payload is Color color)
+                return NeoColorValues.FromColor(color);
+            if (payload is NeoReadOnlyColor wrapper)
+                return NeoColorValues.FromColor(wrapper.Value);
             throw PayloadError(payload, member, "Color");
         }
 
         private static NeoVector2Value? Vector2Payload(object? payload, Member member)
         {
-            if (payload is null) return null;
-            if (payload is NeoVector2Value raw) return raw;
-            if (payload is Vector2 vector) return NeoVectorValues.FromVector2(vector);
-            if (payload is NeoReadOnlyVector2 wrapper) return NeoVectorValues.FromVector2(wrapper.Value);
+            if (payload is null)
+                return null;
+            if (payload is NeoVector2Value raw)
+                return raw;
+            if (payload is Vector2 vector)
+                return NeoVectorValues.FromVector2(vector);
+            if (payload is NeoReadOnlyVector2 wrapper)
+                return NeoVectorValues.FromVector2(wrapper.Value);
             throw PayloadError(payload, member, "Vector2");
         }
 
         private static NeoVector2Value? Vector2IntPayload(object? payload, Member member)
         {
-            if (payload is null) return null;
+            if (payload is null)
+                return null;
             if (payload is NeoVector2Value raw)
             {
                 _ = NeoVectorValues.ToVector2Int(raw);
                 return raw;
             }
-            if (payload is Vector2Int vector) return NeoVectorValues.FromVector2Int(vector);
-            if (payload is NeoReadOnlyVector2Int wrapper) return NeoVectorValues.FromVector2Int(wrapper.Value);
+            if (payload is Vector2Int vector)
+                return NeoVectorValues.FromVector2Int(vector);
+            if (payload is NeoReadOnlyVector2Int wrapper)
+                return NeoVectorValues.FromVector2Int(wrapper.Value);
             throw PayloadError(payload, member, "Vector2Int");
         }
 
         private static NeoVector3Value? Vector3Payload(object? payload, Member member)
         {
-            if (payload is null) return null;
-            if (payload is NeoVector3Value raw) return raw;
-            if (payload is Vector3 vector) return NeoVectorValues.FromVector3(vector);
-            if (payload is NeoReadOnlyVector3 wrapper) return NeoVectorValues.FromVector3(wrapper.Value);
+            if (payload is null)
+                return null;
+            if (payload is NeoVector3Value raw)
+                return raw;
+            if (payload is Vector3 vector)
+                return NeoVectorValues.FromVector3(vector);
+            if (payload is NeoReadOnlyVector3 wrapper)
+                return NeoVectorValues.FromVector3(wrapper.Value);
             throw PayloadError(payload, member, "Vector3");
         }
 
         private static NeoVector3Value? Vector3IntPayload(object? payload, Member member)
         {
-            if (payload is null) return null;
+            if (payload is null)
+                return null;
             if (payload is NeoVector3Value raw)
             {
                 _ = NeoVectorValues.ToVector3Int(raw);
                 return raw;
             }
-            if (payload is Vector3Int vector) return NeoVectorValues.FromVector3Int(vector);
-            if (payload is NeoReadOnlyVector3Int wrapper) return NeoVectorValues.FromVector3Int(wrapper.Value);
+            if (payload is Vector3Int vector)
+                return NeoVectorValues.FromVector3Int(vector);
+            if (payload is NeoReadOnlyVector3Int wrapper)
+                return NeoVectorValues.FromVector3Int(wrapper.Value);
             throw PayloadError(payload, member, "Vector3Int");
         }
 

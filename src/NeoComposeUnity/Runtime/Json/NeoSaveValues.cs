@@ -58,11 +58,13 @@ namespace NeoCompose.Runtime.Json
         public bool TryDeserialize(out Dictionary<string, MemberValue> values)
         {
             values = new Dictionary<string, MemberValue>();
-            if (raw.Type != JTokenType.Object) return false;
+            if (raw.Type != JTokenType.Object)
+                return false;
             try
             {
                 var deserialized = raw.ToObject<Dictionary<string, MemberValue>>();
-                if (deserialized == null) return false;
+                if (deserialized == null)
+                    return false;
                 values = deserialized;
                 return true;
             }
@@ -81,7 +83,8 @@ namespace NeoCompose.Runtime.Json
         public static NeoSaveValues FromTypedValues(
             IReadOnlyDictionary<string, MemberValue> values)
         {
-            if (values == null) throw new ArgumentNullException(nameof(values));
+            if (values == null)
+                throw new ArgumentNullException(nameof(values));
             return new NeoSaveValues(JToken.FromObject(values));
         }
     }
@@ -106,17 +109,21 @@ namespace NeoCompose.Runtime.Json
         public static (NeoSaveValues mainValues, Dictionary<string, NeoSaveValues>? partitions) Split(
             NeoSaveValues merged)
         {
-            if (merged == null) throw new ArgumentNullException(nameof(merged));
-            if (merged.Raw is not JObject overlay) return (merged, null);
+            if (merged == null)
+                throw new ArgumentNullException(nameof(merged));
+            if (merged.Raw is not JObject overlay)
+                return (merged, null);
 
             bool anyStamped = false;
             foreach (var property in overlay.Properties())
             {
-                if (RowMapKey(property.Value) is null) continue;
+                if (RowMapKey(property.Value) is null)
+                    continue;
                 anyStamped = true;
                 break;
             }
-            if (!anyStamped) return (merged, null);
+            if (!anyStamped)
+                return (merged, null);
 
             var main = new JObject();
             var partitionTokens = new Dictionary<string, JObject>();
@@ -148,9 +155,11 @@ namespace NeoCompose.Runtime.Json
 
         private static string? RowMapKey(JToken row)
         {
-            if (row.Type != JTokenType.Object) return null;
+            if (row.Type != JTokenType.Object)
+                return null;
             var mapKey = ((JObject)row)["mapKey"];
-            if (mapKey is null || mapKey.Type != JTokenType.String) return null;
+            if (mapKey is null || mapKey.Type != JTokenType.String)
+                return null;
             var key = mapKey.Value<string>();
             return string.IsNullOrEmpty(key) ? null : key;
         }

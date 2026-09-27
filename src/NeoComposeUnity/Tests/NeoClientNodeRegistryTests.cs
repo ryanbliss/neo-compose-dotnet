@@ -18,13 +18,13 @@ namespace NeoCompose.Tests
     ///
     /// The registry's contract:
     ///
-        ///   - Every constructed <see cref="NeoMember"/> registers itself
-        ///     under <c>MakeNodeKey(member.id, overrideValueId, ownership)</c>.
+    ///   - Every constructed <see cref="NeoMember"/> registers itself
+    ///     under <c>MakeNodeKey(member.id, overrideValueId, ownership)</c>.
     ///   - <see cref="NeoMember.Create"/> /
     ///     <see cref="NeoMember.CreateWritable"/> short-circuit to the
     ///     registered instance when one exists for the requested key.
-        ///   - <c>overrideValueId</c> being null produces a key scoped by
-        ///     ownership; non-null appends <c>"_{valueId}"</c>.
+    ///   - <c>overrideValueId</c> being null produces a key scoped by
+    ///     ownership; non-null appends <c>"_{valueId}"</c>.
     /// </summary>
     public class NeoClientNodeRegistryTests
     {

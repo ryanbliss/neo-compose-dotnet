@@ -25,13 +25,34 @@ namespace NeoCompose.Runtime
             SourceAncestryDepth = sourceAncestryDepth;
         }
 
-        public string RelationKind { get; }
-        public string SourceRecordId { get; }
-        public string TargetRecordId { get; }
-        public string DeclaredSourceRecordId { get; }
-        public IReadOnlyList<string> RelationIds { get; internal set; }
-        public string? OrderKey { get; }
-        public int SourceAncestryDepth { get; }
+        public string RelationKind
+        {
+            get;
+        }
+        public string SourceRecordId
+        {
+            get;
+        }
+        public string TargetRecordId
+        {
+            get;
+        }
+        public string DeclaredSourceRecordId
+        {
+            get;
+        }
+        public IReadOnlyList<string> RelationIds
+        {
+            get; internal set;
+        }
+        public string? OrderKey
+        {
+            get;
+        }
+        public int SourceAncestryDepth
+        {
+            get;
+        }
     }
 
     /// <summary>
@@ -56,8 +77,14 @@ namespace NeoCompose.Runtime
                 Merge = merge;
             }
 
-            public bool ExpandTargets { get; }
-            public MergeKind Merge { get; }
+            public bool ExpandTargets
+            {
+                get;
+            }
+            public MergeKind Merge
+            {
+                get;
+            }
         }
 
         private sealed class TargetSelection
@@ -69,8 +96,14 @@ namespace NeoCompose.Runtime
                 Declarations.Add(relation);
             }
 
-            public InternalRecordRelation Selected { get; set; }
-            public int SelectedDepth { get; set; }
+            public InternalRecordRelation Selected
+            {
+                get; set;
+            }
+            public int SelectedDepth
+            {
+                get; set;
+            }
             public List<InternalRecordRelation> Declarations { get; } = new();
         }
 
@@ -123,11 +156,13 @@ namespace NeoCompose.Runtime
                     $"Internal record relation source class '{sourceClassId}' does not exist.");
             }
             string cacheKey = relationKind + "\n" + sourceClassId;
-            if (cache.TryGetValue(cacheKey, out var cached)) return cached;
+            if (cache.TryGetValue(cacheKey, out var cached))
+                return cached;
 
             var ancestry = ResolveAncestry(sourceClassId);
             var sourceDepth = new Dictionary<string, int>(StringComparer.Ordinal);
-            for (int i = 0; i < ancestry.Count; i++) sourceDepth[ancestry[i]] = i;
+            for (int i = 0; i < ancestry.Count; i++)
+                sourceDepth[ancestry[i]] = i;
 
             var declarations = new List<InternalRecordRelation>();
             foreach (InternalRecordRelation relation in data.internalRecordRelations.Values)
@@ -136,7 +171,8 @@ namespace NeoCompose.Runtime
                 {
                     continue;
                 }
-                if (!sourceDepth.ContainsKey(relation.sourceRecordId)) continue;
+                if (!sourceDepth.ContainsKey(relation.sourceRecordId))
+                    continue;
                 declarations.Add(relation);
             }
 
@@ -158,7 +194,8 @@ namespace NeoCompose.Runtime
                     for (int i = 1; i < declarations.Count; i++)
                     {
                         InternalRecordRelation declaration = declarations[i];
-                        if (sourceDepth[declaration.sourceRecordId] != nearestDepth) break;
+                        if (sourceDepth[declaration.sourceRecordId] != nearestDepth)
+                            break;
                         if (!string.Equals(
                             declaration.targetRecordId,
                             nearestTargetId,
@@ -231,10 +268,12 @@ namespace NeoCompose.Runtime
                         int order = string.CompareOrdinal(
                             left.OrderKey ?? "",
                             right.OrderKey ?? "");
-                        if (order != 0) return order;
+                        if (order != 0)
+                            return order;
                         int depth = left.SourceAncestryDepth.CompareTo(
                             right.SourceAncestryDepth);
-                        if (depth != 0) return depth;
+                        if (depth != 0)
+                            return depth;
                         return string.CompareOrdinal(
                             left.RelationIds[0],
                             right.RelationIds[0]);
@@ -338,7 +377,8 @@ namespace NeoCompose.Runtime
             var result = new List<string>();
             foreach (NeoSchemaClass candidate in data.classes.Values)
             {
-                if (candidate.Modifier == NeoClassModifierKind.Abstract) continue;
+                if (candidate.Modifier == NeoClassModifierKind.Abstract)
+                    continue;
                 if (ContainsClass(ResolveAncestry(candidate.id), classId))
                 {
                     result.Add(candidate.id);

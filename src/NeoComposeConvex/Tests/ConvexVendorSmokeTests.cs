@@ -52,7 +52,10 @@ namespace NeoCompose.Convex.Tests
 
         private sealed class SmokePayload
         {
-            public int Value { get; set; }
+            public int Value
+            {
+                get; set;
+            }
         }
     }
 }

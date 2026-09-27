@@ -35,18 +35,33 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>HTTP status code, or 0 on a connection error/timeout.</summary>
-        public long StatusCode { get; }
+        public long StatusCode
+        {
+            get;
+        }
 
         /// <summary>
         /// True for transport-level failures (no HTTP response): connection
         /// errors, timeouts, or data processing errors. HTTP error statuses such
         /// as 401/403/400 are <em>not</em> connection errors.
         /// </summary>
-        public bool IsConnectionError { get; }
+        public bool IsConnectionError
+        {
+            get;
+        }
 
-        public string Text { get; }
-        public string Error { get; }
-        public IReadOnlyDictionary<string, string> Headers { get; }
+        public string Text
+        {
+            get;
+        }
+        public string Error
+        {
+            get;
+        }
+        public IReadOnlyDictionary<string, string> Headers
+        {
+            get;
+        }
 
         public bool IsSuccessStatus => StatusCode >= 200 && StatusCode < 300;
 
@@ -166,14 +181,16 @@ namespace NeoCompose.Runtime
             var operation = request.SendWebRequest();
             operation.completed += _ =>
             {
-                if (!completion.Task.IsCompleted) completion.SetResult(true);
+                if (!completion.Task.IsCompleted)
+                    completion.SetResult(true);
             };
 
             // Abort the native request immediately on cancel, not just when the
             // using-scope unwinds, so nothing keeps downloading after Stop.
             using var registration = token.Register(() =>
             {
-                if (!request.isDone) request.Abort();
+                if (!request.isDone)
+                    request.Abort();
                 completion.TrySetCanceled(token);
             });
 

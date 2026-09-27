@@ -60,7 +60,10 @@ namespace NeoCompose.Runtime
         public string? VariantId => record?.id;
 
         /// <summary>The target class this variant configures.</summary>
-        public string ClassId { get; }
+        public string ClassId
+        {
+            get;
+        }
 
         /// <summary>
         /// The variant's authored name, or `"Base"` for the base entry.
@@ -107,7 +110,8 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal T Apply(T source)
         {
-            if (source is null) throw new ArgumentNullException(nameof(source));
+            if (source is null)
+                throw new ArgumentNullException(nameof(source));
             NeoVariantSupport.ApplyToNode(
                 client,
                 record,
@@ -151,7 +155,8 @@ namespace NeoCompose.Runtime
 
         internal T Apply(T source, TValue value)
         {
-            if (source is null) throw new ArgumentNullException(nameof(source));
+            if (source is null)
+                throw new ArgumentNullException(nameof(source));
             NeoVariantSupport.ValidateLookupRow(client, record, value);
             NeoVariantSupport.ApplyToNode(
                 client,
@@ -189,9 +194,18 @@ namespace NeoCompose.Runtime
             this.rowValueId = rowValueId;
         }
 
-        internal string classId { get; }
-        internal string? variantId { get; }
-        internal string? rowValueId { get; }
+        internal string classId
+        {
+            get;
+        }
+        internal string? variantId
+        {
+            get;
+        }
+        internal string? rowValueId
+        {
+            get;
+        }
     }
 
     /// <summary>
@@ -290,7 +304,8 @@ namespace NeoCompose.Runtime
                     $"Generated type '{typeof(TValue).FullName}' has no static CreateWritable(NeoClient, NeoMemberClassWritable), so a variant cannot produce one. Regenerate the project's C# types.");
             }
             object? created = factory.Invoke(null, new object?[] { client, node });
-            if (created is TValue typed) return typed;
+            if (created is TValue typed)
+                return typed;
             throw new InvalidOperationException(
                 $"Generated type '{typeof(TValue).FullName}'.CreateWritable returned '{created?.GetType().FullName ?? "null"}'. Regenerate the project's C# types.");
         }
@@ -305,7 +320,8 @@ namespace NeoCompose.Runtime
             string classId,
             string? variantId)
         {
-            if (variantId is null) return null;
+            if (variantId is null)
+                return null;
             if (!client.TryGetVariant(variantId, out VariantRecord? record))
             {
                 throw new InvalidOperationException(
@@ -467,8 +483,10 @@ namespace NeoCompose.Runtime
             // CLASS declares, and `Apply` is declared nullable on every variant.
             // "Unauthored" is the value being absent, which is what null means
             // here and what settles to "skip".
-            if (!graph.TryGet(ApplyKey, out NeoMemberDelegate? apply)) return;
-            if (apply.value?.value is null && apply.member.defaultValue is null) return;
+            if (!graph.TryGet(ApplyKey, out NeoMemberDelegate? apply))
+                return;
+            if (apply.value?.value is null && apply.member.defaultValue is null)
+                return;
             string? sourceValueId = node.overrideValueId ?? node.value?.id;
             if (string.IsNullOrEmpty(sourceValueId))
             {
@@ -492,7 +510,8 @@ namespace NeoCompose.Runtime
             VariantRecord record,
             NeoGeneratedClassValue row)
         {
-            if (row is null) throw new ArgumentNullException(nameof(row));
+            if (row is null)
+                throw new ArgumentNullException(nameof(row));
             string? rowValueId = row.valueId;
             if (string.IsNullOrWhiteSpace(rowValueId))
             {
@@ -600,7 +619,8 @@ namespace NeoCompose.Runtime
             NeoMemberClassWritable node,
             NeoValueOwnership ownership)
         {
-            if (record is null) return;
+            if (record is null)
+                return;
             try
             {
                 ApplyDeclarativeHalvesCore(client, record, node, ownership);
@@ -673,7 +693,8 @@ namespace NeoCompose.Runtime
                     0,
                     resolveSelectorsImmediately);
             }
-            foreach (Action selectorAction in selectorActions) selectorAction();
+            foreach (Action selectorAction in selectorActions)
+                selectorAction();
             return writes;
         }
 
@@ -737,9 +758,13 @@ namespace NeoCompose.Runtime
             }
             var member = new ClassMember
             {
-                id = $"__neo_variant_{record.id}", name = "Variant", kind = MemberKind.Class,
-                classId = graphClass.id, valueId = row.id,
-                createdAt = row.createdAt, updatedAt = row.updatedAt,
+                id = $"__neo_variant_{record.id}",
+                name = "Variant",
+                kind = MemberKind.Class,
+                classId = graphClass.id,
+                valueId = row.id,
+                createdAt = row.createdAt,
+                updatedAt = row.updatedAt,
             };
             // The variant record owns the TObject binding, even when its
             // structural graph has no ordinary Class-member placement.
@@ -759,7 +784,8 @@ namespace NeoCompose.Runtime
                 {
                     member.classArguments[graphClass.genericParams[1].id] = new GenericBinding
                     {
-                        kind = NeoGenericBindingKind.Member, memberId = collection.entryMemberId,
+                        kind = NeoGenericBindingKind.Member,
+                        memberId = collection.entryMemberId,
                     };
                 }
             }

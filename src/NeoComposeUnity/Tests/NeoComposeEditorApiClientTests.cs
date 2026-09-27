@@ -50,7 +50,8 @@ namespace NeoCompose.Tests
             });
             var client = NewClient(new FakeProvider("the-token"), new NeoComposeUnityHttpClient());
             var export = client.ExportProjectAsync(origin, ProjectId, VersionId);
-            while (!export.IsCompleted || !serve.IsCompleted) yield return null;
+            while (!export.IsCompleted || !serve.IsCompleted)
+                yield return null;
             Assert.AreEqual(ProjectId, export.GetAwaiter().GetResult().projectId);
             serve.GetAwaiter().GetResult();
         }
@@ -63,7 +64,8 @@ namespace NeoCompose.Tests
             await client.ExportProjectSnapshotsAsync(ApiBaseUrl, ProjectId, VersionId,
                 Array.Empty<string>(), new NeoComposeProjectReadBase
                 {
-                    headGenerationId = "generation-1", logicalRevisionId = null,
+                    headGenerationId = "generation-1",
+                    logicalRevisionId = null,
                 });
             var body = JObject.Parse(http.sends[0].body);
             Assert.AreEqual(VersionId, body["versionId"]?.Value<string>());

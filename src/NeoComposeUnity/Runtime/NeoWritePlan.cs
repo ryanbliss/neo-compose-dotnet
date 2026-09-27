@@ -14,7 +14,10 @@ namespace NeoCompose.Runtime
         internal readonly List<T> Records;
         internal readonly HashSet<string> DependencyIds;
         internal NeoPreparedLayerRecords(List<T> records, HashSet<string> dependencyIds)
-        { Records = records; DependencyIds = dependencyIds; }
+        {
+            Records = records;
+            DependencyIds = dependencyIds;
+        }
     }
 
     /// <summary>One tile layer's flattened records and what flattening them read.</summary>
@@ -55,7 +58,10 @@ namespace NeoCompose.Runtime
         private Dictionary<string, HashSet<string>>? parentCandidates;
 
         internal NeoWritePlan(NeoClient client)
-        { Client = client; BaseRevision = client.WriteRevision; }
+        {
+            Client = client;
+            BaseRevision = client.WriteRevision;
+        }
 
         internal void Set(NeoValueOwnership ownership, MemberValue row, string? changedField = null, bool silent = false)
         {
@@ -66,7 +72,10 @@ namespace NeoCompose.Runtime
             containerCandidates = null;
             parentCandidates = null;
             Fields[key] = changedField;
-            if (silent) Silent.Add(key); else Silent.Remove(key);
+            if (silent)
+                Silent.Add(key);
+            else
+                Silent.Remove(key);
         }
 
         internal void Remove(NeoValueOwnership ownership, string id)
@@ -83,16 +92,19 @@ namespace NeoCompose.Runtime
         {
             if (Rows.TryGetValue((ownership, id), out MemberValue? candidate))
             {
-                if (candidate is not null) return candidate.IsRemoved ? null : candidate;
+                if (candidate is not null)
+                    return candidate.IsRemoved ? null : candidate;
                 return Client.TryGetCommittedValue(NeoValueOwnership.Asset, id, out MemberValue? fallback) ? fallback : null;
             }
-            if (Client.ReplayAllocation(id) is MemberValue allocation) return allocation;
+            if (Client.ReplayAllocation(id) is MemberValue allocation)
+                return allocation;
             return Client.ResolveWritePlanFallback(this, ownership, id);
         }
 
         internal bool TryGetWritable(NeoValueOwnership ownership, string id, out MemberValue? row)
         {
-            if (Rows.TryGetValue((ownership, id), out row)) return row is not null;
+            if (Rows.TryGetValue((ownership, id), out row))
+                return row is not null;
             return Client.TryGetWritableValue(ownership, id, out row);
         }
 
@@ -105,8 +117,10 @@ namespace NeoCompose.Runtime
 
         internal MemberValue? Resolve(string id)
         {
-            if (TryGetWritable(NeoValueOwnership.Session, id, out MemberValue? session)) return session;
-            if (TryGetWritable(NeoValueOwnership.Save, id, out MemberValue? save)) return save;
+            if (TryGetWritable(NeoValueOwnership.Session, id, out MemberValue? session))
+                return session;
+            if (TryGetWritable(NeoValueOwnership.Save, id, out MemberValue? save))
+                return save;
             return Client.ResolveWritePlanGlobalFallback(this, id);
         }
 
@@ -128,9 +142,15 @@ namespace NeoCompose.Runtime
             // It must not turn a class reference into a whole-payload read.
             using var metadataReads = Client.SuppressValueReads();
             if (TryGetWritable(NeoValueOwnership.Session, id, out _))
-            { ownership = NeoValueOwnership.Session; return true; }
+            {
+                ownership = NeoValueOwnership.Session;
+                return true;
+            }
             if (TryGetWritable(NeoValueOwnership.Save, id, out _))
-            { ownership = NeoValueOwnership.Save; return true; }
+            {
+                ownership = NeoValueOwnership.Save;
+                return true;
+            }
             return Client.TryGetCommittedOwnership(id, out ownership);
         }
 
@@ -141,10 +161,12 @@ namespace NeoCompose.Runtime
                 parentCandidates = new Dictionary<string, HashSet<string>>();
                 foreach (MemberValue? row in Rows.Values)
                 {
-                    if (row is null) continue;
+                    if (row is null)
+                        continue;
                     foreach (string child in NeoClient.PlacementChildIds(row))
                     {
-                        if (!parentCandidates.TryGetValue(child, out var parents)) parentCandidates[child] = parents = new HashSet<string>();
+                        if (!parentCandidates.TryGetValue(child, out var parents))
+                            parentCandidates[child] = parents = new HashSet<string>();
                         parents.Add(row.id);
                     }
                 }
@@ -159,7 +181,8 @@ namespace NeoCompose.Runtime
                 containerCandidates = new Dictionary<string, HashSet<string>>();
                 foreach (MemberValue? row in Rows.Values)
                 {
-                    if (string.IsNullOrEmpty(row?.containerId)) continue;
+                    if (string.IsNullOrEmpty(row?.containerId))
+                        continue;
                     if (!containerCandidates.TryGetValue(row!.containerId!, out var ids))
                         containerCandidates[row.containerId!] = ids = new HashSet<string>();
                     ids.Add(row.id);
@@ -175,12 +198,14 @@ namespace NeoCompose.Runtime
         internal void AfterNotifications(Action callback) => afterNotifications.Add(callback);
         internal void NotifyCompleted()
         {
-            foreach (Action callback in afterNotifications) callback();
+            foreach (Action callback in afterNotifications)
+                callback();
         }
         internal void AfterCommit(Action callback) => afterCommit.Add(callback);
         internal void NotifyCommitted()
         {
-            foreach (Action callback in afterCommit) callback();
+            foreach (Action callback in afterCommit)
+                callback();
         }
 
         internal void Commit() => Client.CommitWritePlan(this);
@@ -192,13 +217,18 @@ namespace NeoCompose.Runtime
     public partial class NeoClient
     {
         private static readonly Unity.Profiling.ProfilerMarker CommitWriteMarker = new("NeoCompose.Write.Commit");
-        internal long WriteRevision { get; private set; }
+        internal long WriteRevision
+        {
+            get; private set;
+        }
 
         private NeoWritePlan? candidateReadPlan;
         internal MemberValue? ResolveWritePlanGlobalFallback(NeoWritePlan plan, string id)
         {
-            if (candidateReadPlan is not null && !ReferenceEquals(candidateReadPlan, plan)) return candidateReadPlan.Resolve(id);
-            if (data.values.TryGetValue(id, out MemberValue asset)) return asset;
+            if (candidateReadPlan is not null && !ReferenceEquals(candidateReadPlan, plan))
+                return candidateReadPlan.Resolve(id);
+            if (data.values.TryGetValue(id, out MemberValue asset))
+                return asset;
             return TryResolveVirtualValue(id, out MemberValue virtualRow) ? virtualRow : null;
         }
 
@@ -222,7 +252,8 @@ namespace NeoCompose.Runtime
         private static bool WritesAnyChild(NeoWritePlan plan, NeoValueOwnership ownership, ObjectMemberValue parentRow)
         {
             foreach (string childId in parentRow.value!.Values)
-                if (plan.Rows.ContainsKey((ownership, childId))) return true;
+                if (plan.Rows.ContainsKey((ownership, childId)))
+                    return true;
             return false;
         }
 
@@ -239,30 +270,38 @@ namespace NeoCompose.Runtime
                         && !ReferenceEquals(producer, nestedConstructorCapture))
                         producer.HasExternalWrites = true;
             if (plan.Bindings.Count != 0)
-                for (var scope = nestedConstructorCapture; scope is not null; scope = scope.Parent) scope.HasExternalWrites = true;
+                for (var scope = nestedConstructorCapture; scope is not null; scope = scope.Parent)
+                    scope.HasExternalWrites = true;
             if (nestedConstructorCapture is not null)
                 foreach (var key in plan.Rows.Keys)
                 {
                     bool exists = ResolveValueRow(key.id) is not null;
                     for (var scope = nestedConstructorCapture; scope is not null; scope = scope.Parent)
                     {
-                        if (!exists) scope.Allocations.Add(key.id);
-                        else if (!scope.Allocations.Contains(key.id)) scope.HasExternalWrites = true;
+                        if (!exists)
+                            scope.Allocations.Add(key.id);
+                        else if (!scope.Allocations.Contains(key.id))
+                            scope.HasExternalWrites = true;
                     }
                 }
             if (replayAllocationScope is not null && candidateReplay is null)
                 foreach (var pair in plan.Rows)
                     if (pair.Key.ownership == NeoValueOwnership.Session && pair.Value is not null
-                        && !sessionData.values.ContainsKey(pair.Key.id)) RecordReplayAllocation(pair.Key.id);
+                        && !sessionData.values.ContainsKey(pair.Key.id))
+                        RecordReplayAllocation(pair.Key.id);
             if (candidateReplay is not null)
-            { candidateReplay.Apply(plan); return; }
+            {
+                candidateReplay.Apply(plan);
+                return;
+            }
             if (!ReferenceEquals(plan.Client, this))
                 throw new ArgumentException("Write plan belongs to another client.", nameof(plan));
             foreach (var pair in plan.Rows.ToArray())
                 if (pair.Key.ownership == NeoValueOwnership.Save && pair.Value is not null)
                     StageConstructorDependencies(plan, pair.Value);
             foreach (var pair in plan.Rows)
-                if (pair.Value is not null) StampMapKeyForWrite(pair.Key.ownership, pair.Value);
+                if (pair.Value is not null)
+                    StampMapKeyForWrite(pair.Key.ownership, pair.Value);
 
             if (plan.BaseRevision != WriteRevision)
                 throw new InvalidOperationException("The data graph changed while this write was being prepared.");
@@ -282,91 +321,98 @@ namespace NeoCompose.Runtime
             Dictionary<(NeoValueOwnership ownership, string id), string> oldContainers = pooledScratch ? commitOldContainersScratch : new();
             try
             {
-            bool touchesWorld = false;
-            foreach (var pair in plan.Rows)
-            {
-                if (TryResolveContainerIdForValueId(pair.Key.id, out string? containerId))
-                {
-                    oldContainers[pair.Key] = containerId!;
-                    changed.Add((pair.Key.ownership, containerId!));
-                }
-                if (!string.IsNullOrEmpty(pair.Value?.containerId))
-                    changed.Add((pair.Key.ownership, pair.Value!.containerId!));
-                changed.Add(pair.Key);
-                if (!touchesWorld)
-                    touchesWorld = IsWorldClass(pair.Value?.classId)
-                        || TryGetCommittedValue(pair.Key.id, out MemberValue? previousRow) && IsWorldClass(previousRow?.classId);
-            }
-            foreach (var binding in plan.Bindings)
-            {
-                var current = GetWritableStore(binding.Key.ownership).staticBindings;
-                if (current.TryGetValue(binding.Key.memberId, out string? prior) && prior is not null)
-                    changed.Add((binding.Key.ownership, prior));
-                if (binding.Value.valueId is string next) changed.Add((binding.Key.ownership, next));
-            }
-            foreach (var pair in plan.Rows)
-            {
-                if (pair.Value is null)
-                {
-                    GetWritableStore(pair.Key.ownership).values.Remove(pair.Key.id);
-                    IndexStoreRemove(pair.Key.ownership, pair.Key.id);
-                }
-                else StoreWritableValue(pair.Key.ownership, pair.Value);
-                TouchWritableStoreUpdatedAt(pair.Key.ownership);
-            }
-            foreach (var pair in plan.Bindings)
-            {
-                var bindings = GetWritableStore(pair.Key.ownership).staticBindings;
-                if (pair.Value.present) bindings[pair.Key.memberId] = pair.Value.valueId;
-                else bindings.Remove(pair.Key.memberId);
-                TouchWritableStoreUpdatedAt(pair.Key.ownership);
-            }
-            WriteRevision++;
-            InstallCandidateExpansions(preparedExpansions, changed);
-            if (plan.Bindings.Count != 0) InvalidateGetterMemo();
-            else InvalidateGetterMemoForRows(changed);
-            if (touchesWorld) InvalidateGridDependentGetterMemo();
-            if (sharedEvaluationContext is not null)
-                foreach (var item in changed)
-                    if (!plan.Rows.ContainsKey(item) || plan.Silent.Contains(item))
-                        RefreshSharedEvaluationRow(item.ownership, item.valueId);
-            OnWritableValuesPublished?.Invoke(changed, plan);
-            plan.NotifyCommitted();
-            OnWritableValuesChanged?.Invoke(changed);
-            using (SuspendContainerNotifications())
-            {
+                bool touchesWorld = false;
                 foreach (var pair in plan.Rows)
                 {
-                    if (plan.Silent.Contains(pair.Key))
+                    if (TryResolveContainerIdForValueId(pair.Key.id, out string? containerId))
                     {
-                        if (pair.Key.ownership == NeoValueOwnership.Save
-                            && !suppressLiveAutoCommit && loader is NeoSaveSynchronizer synchronizer)
-                            synchronizer.MarkDirtyValue(pair.Key.id, null);
-                        continue;
+                        oldContainers[pair.Key] = containerId!;
+                        changed.Add((pair.Key.ownership, containerId!));
                     }
-                    plan.Fields.TryGetValue(pair.Key, out string? changedField);
-                    NotifyWritableValueChanged(pair.Key.ownership, pair.Key.id, changedField,
-                        valueChanged: !(plan.UnchangedValueIds.Contains(pair.Key.id)
-                            && pair.Value is ObjectMemberValue { classId: not null, value: not null } parentRow
-                            && WritesAnyChild(plan, pair.Key.ownership, parentRow)));
-                    if (oldContainers.TryGetValue(pair.Key, out string? containerId))
-                        RaiseContainerChanged(pair.Key.ownership, containerId);
+                    if (!string.IsNullOrEmpty(pair.Value?.containerId))
+                        changed.Add((pair.Key.ownership, pair.Value!.containerId!));
+                    changed.Add(pair.Key);
+                    if (!touchesWorld)
+                        touchesWorld = IsWorldClass(pair.Value?.classId)
+                            || TryGetCommittedValue(pair.Key.id, out MemberValue? previousRow) && IsWorldClass(previousRow?.classId);
                 }
-                foreach (var item in changed)
-                    if (!plan.Rows.ContainsKey((item.ownership, item.valueId))
-                        && preparedExpansions?.HiddenVirtualIds.Contains(item.valueId) == true)
-                        PublishWritableValueChange(item.ownership, item.valueId);
+                foreach (var binding in plan.Bindings)
+                {
+                    var current = GetWritableStore(binding.Key.ownership).staticBindings;
+                    if (current.TryGetValue(binding.Key.memberId, out string? prior) && prior is not null)
+                        changed.Add((binding.Key.ownership, prior));
+                    if (binding.Value.valueId is string next)
+                        changed.Add((binding.Key.ownership, next));
+                }
+                foreach (var pair in plan.Rows)
+                {
+                    if (pair.Value is null)
+                    {
+                        GetWritableStore(pair.Key.ownership).values.Remove(pair.Key.id);
+                        IndexStoreRemove(pair.Key.ownership, pair.Key.id);
+                    }
+                    else
+                        StoreWritableValue(pair.Key.ownership, pair.Value);
+                    TouchWritableStoreUpdatedAt(pair.Key.ownership);
+                }
                 foreach (var pair in plan.Bindings)
                 {
-                    OnStaticBindingChanged?.Invoke(pair.Key.ownership, pair.Key.memberId);
-                    if (pair.Key.ownership == NeoValueOwnership.Save
-                        && !suppressLiveAutoCommit && loader is NeoSaveSynchronizer synchronizer)
-                        synchronizer.MarkDirtyStaticBinding(pair.Key.memberId);
-                    if (pair.Key.ownership == NeoValueOwnership.Save && !suppressLiveAutoCommit)
-                        ScheduleLiveAutoCommit();
+                    var bindings = GetWritableStore(pair.Key.ownership).staticBindings;
+                    if (pair.Value.present)
+                        bindings[pair.Key.memberId] = pair.Value.valueId;
+                    else
+                        bindings.Remove(pair.Key.memberId);
+                    TouchWritableStoreUpdatedAt(pair.Key.ownership);
                 }
-            }
-            plan.NotifyCompleted();
+                WriteRevision++;
+                InstallCandidateExpansions(preparedExpansions, changed);
+                if (plan.Bindings.Count != 0)
+                    InvalidateGetterMemo();
+                else
+                    InvalidateGetterMemoForRows(changed);
+                if (touchesWorld)
+                    InvalidateGridDependentGetterMemo();
+                if (sharedEvaluationContext is not null)
+                    foreach (var item in changed)
+                        if (!plan.Rows.ContainsKey(item) || plan.Silent.Contains(item))
+                            RefreshSharedEvaluationRow(item.ownership, item.valueId);
+                OnWritableValuesPublished?.Invoke(changed, plan);
+                plan.NotifyCommitted();
+                OnWritableValuesChanged?.Invoke(changed);
+                using (SuspendContainerNotifications())
+                {
+                    foreach (var pair in plan.Rows)
+                    {
+                        if (plan.Silent.Contains(pair.Key))
+                        {
+                            if (pair.Key.ownership == NeoValueOwnership.Save
+                                && !suppressLiveAutoCommit && loader is NeoSaveSynchronizer synchronizer)
+                                synchronizer.MarkDirtyValue(pair.Key.id, null);
+                            continue;
+                        }
+                        plan.Fields.TryGetValue(pair.Key, out string? changedField);
+                        NotifyWritableValueChanged(pair.Key.ownership, pair.Key.id, changedField,
+                            valueChanged: !(plan.UnchangedValueIds.Contains(pair.Key.id)
+                                && pair.Value is ObjectMemberValue { classId: not null, value: not null } parentRow
+                                && WritesAnyChild(plan, pair.Key.ownership, parentRow)));
+                        if (oldContainers.TryGetValue(pair.Key, out string? containerId))
+                            RaiseContainerChanged(pair.Key.ownership, containerId);
+                    }
+                    foreach (var item in changed)
+                        if (!plan.Rows.ContainsKey((item.ownership, item.valueId))
+                            && preparedExpansions?.HiddenVirtualIds.Contains(item.valueId) == true)
+                            PublishWritableValueChange(item.ownership, item.valueId);
+                    foreach (var pair in plan.Bindings)
+                    {
+                        OnStaticBindingChanged?.Invoke(pair.Key.ownership, pair.Key.memberId);
+                        if (pair.Key.ownership == NeoValueOwnership.Save
+                            && !suppressLiveAutoCommit && loader is NeoSaveSynchronizer synchronizer)
+                            synchronizer.MarkDirtyStaticBinding(pair.Key.memberId);
+                        if (pair.Key.ownership == NeoValueOwnership.Save && !suppressLiveAutoCommit)
+                            ScheduleLiveAutoCommit();
+                    }
+                }
+                plan.NotifyCompleted();
             }
             finally
             {
@@ -399,19 +445,22 @@ namespace NeoCompose.Runtime
             var visited = new HashSet<string>();
             foreach (var root in roots)
                 StageOwnedRemoval(plan, ownership, root.valueId, root.member, false, visited, null, removals);
-            if (removals.Count == 0) return;
+            if (removals.Count == 0)
+                return;
             HashSet<string> reachable;
             using (ReadCandidate(plan))
             {
                 if (CanProveUnreachable(ownership, removals))
                 {
-                    foreach (string id in removals) RemoveOwnedRow(plan, ownership, id);
+                    foreach (string id in removals)
+                        RemoveOwnedRow(plan, ownership, id);
                     return;
                 }
                 reachable = BuildReachableWritableValueIds(ownership);
             }
             foreach (string id in removals)
-                if (!reachable.Contains(id)) RemoveOwnedRow(plan, ownership, id);
+                if (!reachable.Contains(id))
+                    RemoveOwnedRow(plan, ownership, id);
         }
 
         /// <summary>
@@ -428,14 +477,18 @@ namespace NeoCompose.Runtime
             MemberValue? previous = plan.Resolve(ownership, next.id);
             plan.Set(ownership, next, changedField);
             StageVirtualFootprintRemoval(plan, ownership, next.id);
-            if (previous is null) return;
+            if (previous is null)
+                return;
             List<(string valueId, Member? member)>? released = null;
             foreach (var child in EnumerateOwnedChildLinks(previous, member))
-                if (ChildOwnership(child.member, ownership) == ownership) (released ??= new()).Add(child);
-            if (released is null) return;
+                if (ChildOwnership(child.member, ownership) == ownership)
+                    (released ??= new()).Add(child);
+            if (released is null)
+                return;
             var kept = new HashSet<string>(EnumerateOwnedChildLinks(next, member).Select(child => child.valueId));
             released.RemoveAll(child => kept.Contains(child.valueId));
-            if (released.Count != 0) StageUnlinkedRemovals(plan, ownership, released);
+            if (released.Count != 0)
+                StageUnlinkedRemovals(plan, ownership, released);
         }
 
         internal void StageOwnedRemoval(
@@ -449,14 +502,16 @@ namespace NeoCompose.Runtime
             NeoWritePlan plan, NeoValueOwnership ownership, string valueId, Member? member,
             bool tombstone, HashSet<string> visited, HashSet<string>? reachable, List<string>? removals = null)
         {
-            if (reachable?.Contains(valueId) == true || !visited.Add(valueId)) return;
+            if (reachable?.Contains(valueId) == true || !visited.Add(valueId))
+                return;
             MemberValue? row = plan.Resolve(ownership, valueId);
             if (row is not null)
             {
                 foreach (var child in EnumerateOwnedChildLinks(row, member))
                 {
                     NeoValueOwnership childOwnership = ChildOwnership(child.member, ownership);
-                    if (childOwnership != ownership) continue;
+                    if (childOwnership != ownership)
+                        continue;
                     StageOwnedRemoval(plan, ownership, child.valueId, child.member, false, visited, reachable, removals);
                 }
                 if (member is ListMember list && IsUnorderedList(list))
@@ -473,14 +528,19 @@ namespace NeoCompose.Runtime
                 NeoTimestamp now = NeoTimestamp.Now();
                 plan.Set(ownership, new NullMemberValue
                 {
-                    id = valueId, createdAt = now, updatedAt = now, mark = NeoValueMarks.Removed,
+                    id = valueId,
+                    createdAt = now,
+                    updatedAt = now,
+                    mark = NeoValueMarks.Removed,
                 }, "mark");
                 StageVirtualFootprintRemoval(plan, ownership, valueId);
             }
             else if (plan.TryGetWritable(ownership, valueId, out _))
             {
-                if (removals is not null) removals.Add(valueId);
-                else RemoveOwnedRow(plan, ownership, valueId);
+                if (removals is not null)
+                    removals.Add(valueId);
+                else
+                    RemoveOwnedRow(plan, ownership, valueId);
             }
         }
 
@@ -501,12 +561,15 @@ namespace NeoCompose.Runtime
         /// </summary>
         private void StageVirtualFootprintRemoval(NeoWritePlan plan, NeoValueOwnership ownership, string rootId)
         {
-            if (!virtualFootprintByRoot.TryGetValue(rootId, out var footprint)) return;
+            if (!virtualFootprintByRoot.TryGetValue(rootId, out var footprint))
+                return;
             foreach (string id in footprint)
             {
-                if (id == rootId) continue;
+                if (id == rootId)
+                    continue;
                 Drop(ownership, id);
-                if (ownership == NeoValueOwnership.Save) Drop(NeoValueOwnership.Session, id);
+                if (ownership == NeoValueOwnership.Save)
+                    Drop(NeoValueOwnership.Session, id);
             }
 
             void Drop(NeoValueOwnership store, string id)

@@ -77,7 +77,8 @@ namespace NeoCompose.Runtime.Json
             object? existingValue,
             JsonSerializer serializer)
         {
-            if (reader.TokenType == JsonToken.Null) return null;
+            if (reader.TokenType == JsonToken.Null)
+                return null;
             JObject obj = NeoJsonObjectReader.Read(reader);
             if (obj.Count != 1 || obj.Property("listeners") is null)
             {
@@ -157,7 +158,8 @@ namespace NeoCompose.Runtime.Json
 
         internal static bool LooksLikeValue(JToken? token)
         {
-            if (token is not JObject obj) return false;
+            if (token is not JObject obj)
+                return false;
             return obj["listeners"]?.Type == JTokenType.Array;
         }
 

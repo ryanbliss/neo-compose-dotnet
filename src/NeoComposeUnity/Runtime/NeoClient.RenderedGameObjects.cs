@@ -16,7 +16,8 @@ namespace NeoCompose.Runtime
 
         internal void AttachRenderer(NeoTileGridRenderer renderer)
         {
-            if (!gridRenderers.Contains(renderer)) gridRenderers.Add(renderer);
+            if (!gridRenderers.Contains(renderer))
+                gridRenderers.Add(renderer);
         }
 
         internal void DetachRenderer(NeoTileGridRenderer renderer) => gridRenderers.Remove(renderer);
@@ -38,7 +39,8 @@ namespace NeoCompose.Runtime
                     gridRenderers.RemoveAt(i);
                     continue;
                 }
-                if (renderer.TryGetGameObject(valueId, isLink, out gameObject)) return true;
+                if (renderer.TryGetGameObject(valueId, isLink, out gameObject))
+                    return true;
             }
             gameObject = null;
             return false;

@@ -234,7 +234,8 @@ namespace NeoCompose.Runtime
                 // Best effort: preserve the original persistence failure result.
             }
 
-            if (ReferenceEquals(verificationStore, tokenStore)) return;
+            if (ReferenceEquals(verificationStore, tokenStore))
+                return;
             try
             {
                 verificationStore.Clear();

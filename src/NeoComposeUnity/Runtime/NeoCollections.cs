@@ -37,10 +37,22 @@ namespace NeoCompose.Runtime
             ReplacedValueIds = replacedValueIds ?? Array.Empty<string>();
         }
 
-        public NeoListChangeKind Kind { get; }
-        public IReadOnlyList<string> RemovedValueIds { get; }
-        public IReadOnlyList<string> AddedValueIds { get; }
-        public IReadOnlyList<string> ReplacedValueIds { get; }
+        public NeoListChangeKind Kind
+        {
+            get;
+        }
+        public IReadOnlyList<string> RemovedValueIds
+        {
+            get;
+        }
+        public IReadOnlyList<string> AddedValueIds
+        {
+            get;
+        }
+        public IReadOnlyList<string> ReplacedValueIds
+        {
+            get;
+        }
     }
 
     internal static class NeoCollectionSubscription
@@ -57,7 +69,8 @@ namespace NeoCompose.Runtime
             TCollection collection,
             Action<TCollection, NeoChangeSource> handler)
         {
-            if (handler is null) throw new ArgumentNullException(nameof(handler));
+            if (handler is null)
+                throw new ArgumentNullException(nameof(handler));
             void Handle(NeoMember changed) => handler(collection, client.CurrentChangeSource);
             node.OnChanged += Handle;
             return new NeoDisposableSubscription(() => node.OnChanged -= Handle);
@@ -69,7 +82,8 @@ namespace NeoCompose.Runtime
             NeoReadOnlyList<T> collection,
             Action<NeoReadOnlyList<T>, NeoListChangedArgs, NeoChangeSource> handler)
         {
-            if (handler is null) throw new ArgumentNullException(nameof(handler));
+            if (handler is null)
+                throw new ArgumentNullException(nameof(handler));
             void Handle(NeoMember changed) =>
                 handler(
                     collection,
@@ -123,7 +137,8 @@ namespace NeoCompose.Runtime
         {
             get
             {
-                if (valueId is null) throw new ArgumentNullException(nameof(valueId));
+                if (valueId is null)
+                    throw new ArgumentNullException(nameof(valueId));
                 if (!node.TryGetChildById(valueId, out NeoMember? child))
                 {
                     throw new KeyNotFoundException(
@@ -137,7 +152,8 @@ namespace NeoCompose.Runtime
             string valueId,
             [MaybeNullWhen(false)] out T item)
         {
-            if (valueId is null) throw new ArgumentNullException(nameof(valueId));
+            if (valueId is null)
+                throw new ArgumentNullException(nameof(valueId));
             if (node.TryGetChildById(valueId, out NeoMember? child))
             {
                 item = createItem(client, child);
@@ -149,7 +165,8 @@ namespace NeoCompose.Runtime
 
         public bool ContainsId(string valueId)
         {
-            if (valueId is null) throw new ArgumentNullException(nameof(valueId));
+            if (valueId is null)
+                throw new ArgumentNullException(nameof(valueId));
             return node.ContainsValueId(valueId);
         }
 
@@ -232,7 +249,8 @@ namespace NeoCompose.Runtime
 
         public void CopyTo(T[] array, int arrayIndex)
         {
-            if (array is null) throw new ArgumentNullException(nameof(array));
+            if (array is null)
+                throw new ArgumentNullException(nameof(array));
             for (int i = 0; i < Count; i++)
             {
                 array[arrayIndex + i] = this[i];
@@ -244,7 +262,8 @@ namespace NeoCompose.Runtime
             var comparer = EqualityComparer<T>.Default;
             for (int i = 0; i < Count; i++)
             {
-                if (comparer.Equals(this[i], item)) return i;
+                if (comparer.Equals(this[i], item))
+                    return i;
             }
             return -1;
         }
@@ -258,7 +277,8 @@ namespace NeoCompose.Runtime
         public bool Remove(T item)
         {
             int index = IndexOf(item);
-            if (index < 0) return false;
+            if (index < 0)
+                return false;
             RemoveAt(index);
             return true;
         }
@@ -423,7 +443,8 @@ namespace NeoCompose.Runtime
             get
             {
                 var keys = new List<string>();
-                foreach (var key in base.Keys) keys.Add(key);
+                foreach (var key in base.Keys)
+                    keys.Add(key);
                 return keys;
             }
         }
@@ -433,7 +454,8 @@ namespace NeoCompose.Runtime
             get
             {
                 var values = new List<T>();
-                foreach (var value in base.Values) values.Add(value);
+                foreach (var value in base.Values)
+                    values.Add(value);
                 return values;
             }
         }
@@ -457,13 +479,15 @@ namespace NeoCompose.Runtime
 
         public bool Contains(KeyValuePair<string, T> item)
         {
-            if (!TryGetValue(item.Key, out T existing)) return false;
+            if (!TryGetValue(item.Key, out T existing))
+                return false;
             return EqualityComparer<T>.Default.Equals(existing, item.Value);
         }
 
         public void CopyTo(KeyValuePair<string, T>[] array, int arrayIndex)
         {
-            if (array is null) throw new ArgumentNullException(nameof(array));
+            if (array is null)
+                throw new ArgumentNullException(nameof(array));
             foreach (var kvp in this)
             {
                 array[arrayIndex++] = kvp;
@@ -472,14 +496,16 @@ namespace NeoCompose.Runtime
 
         public bool Remove(string key)
         {
-            if (!ContainsKey(key)) return false;
+            if (!ContainsKey(key))
+                return false;
             RequireWritableNode().Remove(key);
             return true;
         }
 
         public bool Remove(KeyValuePair<string, T> item)
         {
-            if (!Contains(item)) return false;
+            if (!Contains(item))
+                return false;
             return Remove(item.Key);
         }
     }
@@ -662,7 +688,8 @@ namespace NeoCompose.Runtime
             get
             {
                 var keys = new List<TKey>();
-                foreach (var key in base.Keys) keys.Add(key);
+                foreach (var key in base.Keys)
+                    keys.Add(key);
                 return keys;
             }
         }
@@ -684,7 +711,8 @@ namespace NeoCompose.Runtime
 
         public void CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex)
         {
-            if (array is null) throw new ArgumentNullException(nameof(array));
+            if (array is null)
+                throw new ArgumentNullException(nameof(array));
             foreach (var kvp in this)
             {
                 array[arrayIndex++] = kvp;
@@ -695,7 +723,8 @@ namespace NeoCompose.Runtime
 
         public bool Remove(KeyValuePair<TKey, TValue> item)
         {
-            if (!Contains(item)) return false;
+            if (!Contains(item))
+                return false;
             return Remove(item.Key);
         }
     }
@@ -735,7 +764,8 @@ namespace NeoCompose.Runtime
         {
             foreach (var selectedId in node.Selected())
             {
-                if (selectedId == valueId) return true;
+                if (selectedId == valueId)
+                    return true;
             }
             return false;
         }
@@ -812,7 +842,8 @@ namespace NeoCompose.Runtime
 
         public void CopyTo(T[] array, int arrayIndex)
         {
-            if (array is null) throw new ArgumentNullException(nameof(array));
+            if (array is null)
+                throw new ArgumentNullException(nameof(array));
             foreach (var item in this)
             {
                 array[arrayIndex++] = item;
@@ -862,7 +893,8 @@ namespace NeoCompose.Runtime
         {
             foreach (var id in node.Selected())
             {
-                if (id == dialogueId) return true;
+                if (id == dialogueId)
+                    return true;
             }
             return false;
         }
@@ -920,7 +952,8 @@ namespace NeoCompose.Runtime
 
         public void Add(NeoDialogueReference item)
         {
-            if (item is null) throw new ArgumentNullException(nameof(item));
+            if (item is null)
+                throw new ArgumentNullException(nameof(item));
             // The writable node enforces the dialogueGroupId scope.
             RequireWritableNode().Add(item.Id);
         }
@@ -931,7 +964,8 @@ namespace NeoCompose.Runtime
 
         public void CopyTo(NeoDialogueReference[] array, int arrayIndex)
         {
-            if (array is null) throw new ArgumentNullException(nameof(array));
+            if (array is null)
+                throw new ArgumentNullException(nameof(array));
             foreach (var item in this)
             {
                 array[arrayIndex++] = item;

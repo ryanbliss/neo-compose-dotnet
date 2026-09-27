@@ -425,28 +425,50 @@ namespace NeoCompose.Runtime.Json
         {
             switch (discriminator.Value<string>())
             {
-                case FunctionKind.ClassClone: return typeof(ClassCloneFunction);
-                case FunctionKind.ClassConstructor: return typeof(ClassConstructorFunction);
-                case FunctionKind.DeclaredConstructor: return typeof(DeclaredConstructorFunction);
-                case FunctionKind.Select: return typeof(SelectFunction);
-                case FunctionKind.First: return typeof(FirstFunction);
-                case FunctionKind.FirstOrDefault: return typeof(FirstOrDefaultFunction);
-                case FunctionKind.Where: return typeof(WhereFunction);
-                case FunctionKind.Contains: return typeof(ContainsFunction);
-                case FunctionKind.Count: return typeof(CountFunction);
-                case FunctionKind.IndexOf: return typeof(IndexOfFunction);
-                case FunctionKind.VisitCount: return typeof(VisitCountFunction);
-                case FunctionKind.HasVisited: return typeof(HasVisitedFunction);
-                case FunctionKind.VectorConstructor: return typeof(VectorConstructorFunction);
-                case FunctionKind.ImageSlice: return typeof(ImageSliceFunction);
-                case FunctionKind.StringOp: return typeof(StringOpFunction);
-                case FunctionKind.DecimalOp: return typeof(DecimalOpFunction);
-                case FunctionKind.MathOp: return typeof(MathOpFunction);
-                case FunctionKind.ListRepeat: return typeof(ListRepeatFunction);
-                case FunctionKind.ListIndex: return typeof(ListIndexFunction);
-                case FunctionKind.VariantInitialize: return typeof(VariantInitializeFunction);
-                case FunctionKind.VariantApply: return typeof(VariantApplyFunction);
-                default: return null;
+                case FunctionKind.ClassClone:
+                    return typeof(ClassCloneFunction);
+                case FunctionKind.ClassConstructor:
+                    return typeof(ClassConstructorFunction);
+                case FunctionKind.DeclaredConstructor:
+                    return typeof(DeclaredConstructorFunction);
+                case FunctionKind.Select:
+                    return typeof(SelectFunction);
+                case FunctionKind.First:
+                    return typeof(FirstFunction);
+                case FunctionKind.FirstOrDefault:
+                    return typeof(FirstOrDefaultFunction);
+                case FunctionKind.Where:
+                    return typeof(WhereFunction);
+                case FunctionKind.Contains:
+                    return typeof(ContainsFunction);
+                case FunctionKind.Count:
+                    return typeof(CountFunction);
+                case FunctionKind.IndexOf:
+                    return typeof(IndexOfFunction);
+                case FunctionKind.VisitCount:
+                    return typeof(VisitCountFunction);
+                case FunctionKind.HasVisited:
+                    return typeof(HasVisitedFunction);
+                case FunctionKind.VectorConstructor:
+                    return typeof(VectorConstructorFunction);
+                case FunctionKind.ImageSlice:
+                    return typeof(ImageSliceFunction);
+                case FunctionKind.StringOp:
+                    return typeof(StringOpFunction);
+                case FunctionKind.DecimalOp:
+                    return typeof(DecimalOpFunction);
+                case FunctionKind.MathOp:
+                    return typeof(MathOpFunction);
+                case FunctionKind.ListRepeat:
+                    return typeof(ListRepeatFunction);
+                case FunctionKind.ListIndex:
+                    return typeof(ListIndexFunction);
+                case FunctionKind.VariantInitialize:
+                    return typeof(VariantInitializeFunction);
+                case FunctionKind.VariantApply:
+                    return typeof(VariantApplyFunction);
+                default:
+                    return null;
             }
         }
     }

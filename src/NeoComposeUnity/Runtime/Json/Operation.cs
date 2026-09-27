@@ -47,9 +47,12 @@ namespace NeoCompose.Runtime.Json
         {
             switch (discriminator.Value<string>())
             {
-                case OperationKind.Arithmetic: return typeof(ArithmeticOperation);
-                case OperationKind.Boolean: return typeof(BooleanOperation);
-                default: return null;
+                case OperationKind.Arithmetic:
+                    return typeof(ArithmeticOperation);
+                case OperationKind.Boolean:
+                    return typeof(BooleanOperation);
+                default:
+                    return null;
             }
         }
     }

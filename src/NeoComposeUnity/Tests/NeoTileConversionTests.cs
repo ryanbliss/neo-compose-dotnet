@@ -23,16 +23,21 @@ namespace NeoCompose.Tests
             using var client = LoadClient();
             var source = new ObjectMemberValue
             {
-                id = "tile-row", classId = "test-tile-a", containerId = containerId,
-                mapKey = "world:test", sourceValueId = "authored-tile",
-                createdAt = 12, updatedAt = 13,
+                id = "tile-row",
+                classId = "test-tile-a",
+                containerId = containerId,
+                mapKey = "world:test",
+                sourceValueId = "authored-tile",
+                createdAt = 12,
+                updatedAt = 13,
                 instanceConstructorId = null,
                 constructorArgs = new Dictionary<string, JToken?>(),
                 value = new Dictionary<string, string> { ["Cell"] = "tile-cell" },
             };
             client.SetSaveValue(new Vector2MemberValue
             {
-                id = "tile-cell", value = new NeoVector2Value { x = 3, y = 5 },
+                id = "tile-cell",
+                value = new NeoVector2Value { x = 3, y = 5 },
             });
             client.SetSaveValue(source);
             var notifications = new List<string>();
@@ -54,7 +59,8 @@ namespace NeoCompose.Tests
             Assert.IsNull(converted.constructorArgs);
             Assert.IsNull(converted.instanceVariantId);
             CollectionAssert.Contains(notifications, source.id);
-            if (containerId is not null) CollectionAssert.Contains(notifications, containerId);
+            if (containerId is not null)
+                CollectionAssert.Contains(notifications, containerId);
         }
 
         [TestCase("test-tile-base")]
@@ -64,7 +70,8 @@ namespace NeoCompose.Tests
             using var client = LoadClient();
             var source = new ObjectMemberValue
             {
-                id = "tile-row", classId = "test-tile-a",
+                id = "tile-row",
+                classId = "test-tile-a",
                 value = new Dictionary<string, string> { ["Cell"] = "tile-cell" },
             };
             client.SetSaveValue(new Vector2MemberValue { id = "tile-cell", value = new NeoVector2Value { x = 0, y = 0 } });
@@ -110,7 +117,8 @@ namespace NeoCompose.Tests
                     cell,
                     new ObjectMemberValue { id = tileId, classId = "test-tile-a", containerId = "test-tiles", value = new() { ["Cell"] = cellId } },
                 });
-            else client.SetSaveValue(cell);
+            else
+                client.SetSaveValue(cell);
             string before = client.SerializeSaveData();
 
             client.ConvertTile(NeoValueOwnership.Session, tileId, "test-tile-b");
@@ -129,13 +137,15 @@ namespace NeoCompose.Tests
             using var client = LoadClient();
             client.SetSaveValue(new ObjectMemberValue
             {
-                id = "tile-row", classId = "test-tile-a",
+                id = "tile-row",
+                classId = "test-tile-a",
                 value = new Dictionary<string, string>(),
             });
             bool observedCompleteGraph = false;
             client.OnWritableValueChanged += (_, id) =>
             {
-                if (id != "tile-row") return;
+                if (id != "tile-row")
+                    return;
                 var row = (ObjectMemberValue)client.saveValues[id];
                 observedCompleteGraph = row.classId == "test-tile-b"
                     && row.value!.TryGetValue("Cell", out string childId)
@@ -154,12 +164,14 @@ namespace NeoCompose.Tests
             using var client = LoadClient();
             var source = new ObjectMemberValue
             {
-                id = "tile-row", classId = "test-tile-a",
+                id = "tile-row",
+                classId = "test-tile-a",
                 value = new Dictionary<string, string>(),
             };
             var target = new ObjectMemberValue
             {
-                id = "target-row", classId = "test-tile-b",
+                id = "target-row",
+                classId = "test-tile-b",
                 value = new Dictionary<string, string>(),
             };
             client.SetSaveValue(source);
@@ -190,7 +202,9 @@ namespace NeoCompose.Tests
                 pointer = pointer.receiverPointer,
                 checkType = new ClassTypeInfo
                 {
-                    type = MemberKind.Class, classId = "test-tile-b", required = true,
+                    type = MemberKind.Class,
+                    classId = "test-tile-b",
+                    required = true,
                 },
             }, scope, context));
             Assert.AreSame(target, client.saveValues["target-row"]);
@@ -226,7 +240,8 @@ namespace NeoCompose.Tests
             {
                 if (wholeAssignment)
                     list.AssignSerialized(NeoValueWritePayload.FromValue(new[] { "existing-tile", "candidate" }));
-                else list.AddSerialized(NeoValueWritePayload.FromValueReference("candidate", null));
+                else
+                    list.AddSerialized(NeoValueWritePayload.FromValueReference("candidate", null));
             });
             Assert.AreEqual("tile-cell-occupied", error!.ErrorCode);
             Assert.AreEqual(beforeSave, JsonConvert.SerializeObject(client.saveValues));
@@ -241,9 +256,15 @@ namespace NeoCompose.Tests
             using var client = LoadClient(grid: true);
             JObject incoming = JObject.Parse(client.SerializeSaveData());
             incoming["values"]!["existing-cell"] = JObject.FromObject(new Vector2MemberValue
-            { id = "existing-cell", value = new NeoVector2Value { x = 1, y = 0 } });
+            {
+                id = "existing-cell",
+                value = new NeoVector2Value { x = 1, y = 0 }
+            });
             incoming["values"]!["second-cell"] = JObject.FromObject(new Vector2MemberValue
-            { id = "second-cell", value = new NeoVector2Value { x = 0, y = 0 } });
+            {
+                id = "second-cell",
+                value = new NeoVector2Value { x = 0, y = 0 }
+            });
             client.ApplyExternalSaveContent(incoming.ToString());
             Assert.AreEqual(1, ((Vector2MemberValue)client.saveValues["existing-cell"]).value!.x);
             Assert.AreEqual(0, ((Vector2MemberValue)client.saveValues["second-cell"]).value!.x);
@@ -316,7 +337,8 @@ namespace NeoCompose.Tests
                 client.TryResolveStaticBinding("test-variant-state", out _, out _, out string? state);
                 Assert.AreEqual("state-a", state);
                 client.CloneValueReference("second-tile", NeoValueOwnership.Save);
-                if (!reject) cell.Set(new UnityEngine.Vector2Int((int)cell.value.value.x + 1, 0));
+                if (!reject)
+                    cell.Set(new UnityEngine.Vector2Int((int)cell.value.value.x + 1, 0));
             });
             if (reject)
             {
@@ -378,24 +400,42 @@ namespace NeoCompose.Tests
             void Row(MemberValue row) => document["values"]![row.id] = JObject.FromObject(row);
             document["classes"]!["test-placement"] = JObject.FromObject(new NeoSchemaClass
             {
-                id = "test-placement", name = "PlacementTile", schema = new() { ["Cell"] = "test-tile-cell" },
+                id = "test-placement",
+                name = "PlacementTile",
+                schema = new() { ["Cell"] = "test-tile-cell" },
             });
             document["classes"]!["test-placement-derived"] = JObject.FromObject(new NeoSchemaClass
             {
-                id = "test-placement-derived", name = "DerivedPlacementTile", extendsClassId = "test-placement", schema = new(),
+                id = "test-placement-derived",
+                name = "DerivedPlacementTile",
+                extendsClassId = "test-placement",
+                schema = new(),
             });
             document["classes"]!["test-object"] = JObject.FromObject(new NeoSchemaClass
             {
-                id = "test-object", name = "Object", schema = new() { ["PlacementTiles"] = "footprint-member" },
+                id = "test-object",
+                name = "Object",
+                schema = new() { ["PlacementTiles"] = "footprint-member" },
                 system = new JObject { ["kind"] = "world", ["worldKind"] = "object" },
             });
             Member(new ClassMember { id = "footprint-entry", name = "Footprint", kind = MemberKind.Class, classId = "test-placement" });
-            Member(new ListMember { id = "footprint-member", name = "PlacementTiles", kind = MemberKind.List,
-                entryMemberId = "footprint-entry", ListKind = NeoListKind.Unordered });
+            Member(new ListMember
+            {
+                id = "footprint-member",
+                name = "PlacementTiles",
+                kind = MemberKind.List,
+                entryMemberId = "footprint-entry",
+                ListKind = NeoListKind.Unordered
+            });
             Row(new ObjectMemberValue { id = "footprint-owner", classId = "test-object", value = new() { ["PlacementTiles"] = "footprint-list" } });
             Row(new ArrayMemberValue { id = "footprint-list", value = Array.Empty<string>() });
-            Row(new ObjectMemberValue { id = "footprint-tile", classId = "test-placement", containerId = "footprint-list",
-                value = new() { ["Cell"] = "footprint-cell" } });
+            Row(new ObjectMemberValue
+            {
+                id = "footprint-tile",
+                classId = "test-placement",
+                containerId = "footprint-list",
+                value = new() { ["Cell"] = "footprint-cell" }
+            });
             Row(new Vector2MemberValue { id = "footprint-cell", value = new NeoVector2Value { x = 0, y = 0 } });
         }
 
@@ -405,20 +445,38 @@ namespace NeoCompose.Tests
             void Class(string id, string worldKind, Dictionary<string, string> schema) =>
                 document["classes"]![id] = JObject.FromObject(new NeoSchemaClass
                 {
-                    id = id, name = id, schema = schema,
+                    id = id,
+                    name = id,
+                    schema = schema,
                     system = new JObject { ["kind"] = "worldAuthoring", ["worldKind"] = worldKind },
                 });
             void Row(MemberValue row) => document["values"]![row.id] = JObject.FromObject(row);
-            Class("test-grid-class", "tileGrid", new() { ["Children"] = "test-children-member", ["VariantState"] = "test-variant-state" });
-            Member(new IntMember { id = "test-variant-state", name = "VariantState", kind = MemberKind.Int,
-                Modifier = NeoMemberModifierKind.Static, Storage = NeoMemberStorage.Save, valueId = "state-a" });
+            Class("test-grid-class", "tileGrid", new()
+            {
+                ["Children"] = "test-children-member",
+                ["VariantState"] = "test-variant-state"
+            });
+            Member(new IntMember
+            {
+                id = "test-variant-state",
+                name = "VariantState",
+                kind = MemberKind.Int,
+                Modifier = NeoMemberModifierKind.Static,
+                Storage = NeoMemberStorage.Save,
+                valueId = "state-a"
+            });
             Row(new NumberMemberValue { id = "state-a", value = 1 });
             Row(new NumberMemberValue { id = "state-b", value = 2 });
-            Class("test-link-class", "tileLayerLink", new() { ["Tiles"] = "test-tiles-member" });
+            Class("test-link-class", "tileLayerLink", new()
+            {
+                ["Tiles"] = "test-tiles-member"
+            });
             Class("test-layer-class", "tileLayer", new());
             document["classes"]!["test-link-base"] = JObject.FromObject(new NeoSchemaClass
             {
-                id = "test-link-base", name = "LinkBase", Modifier = NeoClassModifierKind.Abstract,
+                id = "test-link-base",
+                name = "LinkBase",
+                Modifier = NeoClassModifierKind.Abstract,
                 schema = new Dictionary<string, string>(),
                 system = new JObject { ["kind"] = "worldAuthoring", ["worldKind"] = "tileLayerLink" },
             });
@@ -443,7 +501,15 @@ namespace NeoCompose.Tests
             {
                 string id = kind + source + target;
                 relations[id] = JObject.FromObject(new InternalRecordRelation
-                { id = id, relationKind = kind, orderKey = kind == InternalRecordRelationKinds.WorldGridTileLayer ? "a0" : null, sourceRecordKind = "class", sourceRecordId = source, targetRecordKind = "class", targetRecordId = target });
+                {
+                    id = id,
+                    relationKind = kind,
+                    orderKey = kind == InternalRecordRelationKinds.WorldGridTileLayer ? "a0" : null,
+                    sourceRecordKind = "class",
+                    sourceRecordId = source,
+                    targetRecordKind = "class",
+                    targetRecordId = target
+                });
             }
             Relation(InternalRecordRelationKinds.WorldGridTileLayer, "test-grid-class", "test-layer-class");
             Relation(InternalRecordRelationKinds.WorldTileLayerLinkTarget, "test-link-class", "test-layer-class");
@@ -460,7 +526,9 @@ namespace NeoCompose.Tests
                 "Packages/com.ryanbliss.neocompose/Tests/synth-example.json"));
             document["members"]!["test-tile-cell"] = JObject.FromObject(new Vector2IntMember
             {
-                id = "test-tile-cell", name = "Cell", kind = MemberKind.Vector2Int,
+                id = "test-tile-cell",
+                name = "Cell",
+                kind = MemberKind.Vector2Int,
                 defaultValue = new Vector2MemberValueBase
                 {
                     value = new NeoVector2Value { x = 0, y = 0 },
@@ -468,7 +536,8 @@ namespace NeoCompose.Tests
             });
             document["classes"]!["test-tile-base"] = JObject.FromObject(new NeoSchemaClass
             {
-                id = "test-tile-base", name = "TileBase",
+                id = "test-tile-base",
+                name = "TileBase",
                 Modifier = NeoClassModifierKind.Abstract,
                 schema = new Dictionary<string, string> { ["Cell"] = "test-tile-cell" },
                 system = new JObject { ["kind"] = "world", ["worldKind"] = "tile" },
@@ -478,12 +547,16 @@ namespace NeoCompose.Tests
                 string id = "test-tile-" + suffix;
                 document["classes"]![id] = JObject.FromObject(new NeoSchemaClass
                 {
-                    id = id, name = "Tile" + suffix, extendsClassId = "test-tile-base",
+                    id = id,
+                    name = "Tile" + suffix,
+                    extendsClassId = "test-tile-base",
                     schema = new Dictionary<string, string>(),
                 });
             }
-            if (grid) AddGrid(document);
-            if (footprint) AddFootprint(document);
+            if (grid)
+                AddGrid(document);
+            if (footprint)
+                AddFootprint(document);
             return NeoTestSaveStack.LoadClient(document.ToString());
         }
     }

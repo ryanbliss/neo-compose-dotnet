@@ -18,13 +18,22 @@ namespace NeoCompose.Runtime
     /// </summary>
     public interface INeoWorldObjectValue : INeoValueReference
     {
-        string Name { get; }
+        string Name
+        {
+            get;
+        }
 
         /// <summary>Cells from the enclosing object's origin.</summary>
-        NeoReadOnlyVector3 Position { get; }
+        NeoReadOnlyVector3 Position
+        {
+            get;
+        }
 
         /// <summary>Footprint in cells.</summary>
-        NeoReadOnlyVector3 Size { get; }
+        NeoReadOnlyVector3 Size
+        {
+            get;
+        }
 
         /// <summary>
         /// When false, this object and its subtree render nowhere and
@@ -34,7 +43,10 @@ namespace NeoCompose.Runtime
         /// regardless of each child's own value, so re-enabling it restores
         /// exactly what was there.
         /// </summary>
-        bool Enabled { get; }
+        bool Enabled
+        {
+            get;
+        }
     }
 
     /// <summary>
@@ -45,7 +57,10 @@ namespace NeoCompose.Runtime
     /// </summary>
     public interface INeoObjectCompositionSource
     {
-        IReadOnlyList<INeoWorldObjectValue> Children { get; }
+        IReadOnlyList<INeoWorldObjectValue> Children
+        {
+            get;
+        }
     }
 
     /// <summary>
@@ -54,7 +69,10 @@ namespace NeoCompose.Runtime
     /// </summary>
     public interface INeoColliderSource
     {
-        INeoCollider? Collider { get; }
+        INeoCollider? Collider
+        {
+            get;
+        }
     }
 
     /// <summary>
@@ -68,7 +86,10 @@ namespace NeoCompose.Runtime
     /// </summary>
     public interface INeoSortingGroupSource
     {
-        INeoSortingGroup? SortingGroup { get; }
+        INeoSortingGroup? SortingGroup
+        {
+            get;
+        }
     }
 
     /// <summary>
@@ -79,11 +100,20 @@ namespace NeoCompose.Runtime
     /// </summary>
     public interface INeoCollider : INeoValueReference
     {
-        NeoReadOnlyVector2 Size { get; }
+        NeoReadOnlyVector2 Size
+        {
+            get;
+        }
 
-        NeoReadOnlyVector2? Offset { get; }
+        NeoReadOnlyVector2? Offset
+        {
+            get;
+        }
 
-        bool? IsTrigger { get; }
+        bool? IsTrigger
+        {
+            get;
+        }
     }
 
     /// <summary>
@@ -100,7 +130,10 @@ namespace NeoCompose.Runtime
         /// sorting group. Maps to <c>SortingGroup.sortAtRoot</c>, and is read
         /// once at spawn.
         /// </summary>
-        bool SortAtRoot { get; }
+        bool SortAtRoot
+        {
+            get;
+        }
 
         /// <summary>
         /// Where the group sorts along the camera's transparency sort axis, in
@@ -111,7 +144,10 @@ namespace NeoCompose.Runtime
         /// <see cref="SortAtRoot"/> it is live: a write applies on the next
         /// coalesced refresh.
         /// </summary>
-        NeoReadOnlyVector2 SortPoint { get; }
+        NeoReadOnlyVector2 SortPoint
+        {
+            get;
+        }
     }
 
     /// <summary>
@@ -122,11 +158,20 @@ namespace NeoCompose.Runtime
     /// </summary>
     public interface INeoSpriteObjectValue : INeoWorldObjectValue
     {
-        Sprite Sprite { get; }
+        Sprite Sprite
+        {
+            get;
+        }
 
-        bool FlipX { get; }
+        bool FlipX
+        {
+            get;
+        }
 
-        bool FlipY { get; }
+        bool FlipY
+        {
+            get;
+        }
 
         /// <summary>
         /// Mask interaction enum option id. Deliberately the raw id rather
@@ -135,13 +180,19 @@ namespace NeoCompose.Runtime
         /// with an explicit bridge off its own typed member. Convert with
         /// <see cref="NeoSpriteMaskInteractions.ToUnity"/>.
         /// </summary>
-        string MaskInteraction { get; }
+        string MaskInteraction
+        {
+            get;
+        }
 
         /// <summary>
         /// Offset added to the draw order derived from the object's layer
         /// group — it does not replace it. Null means no offset.
         /// </summary>
-        int? SortingOrder { get; }
+        int? SortingOrder
+        {
+            get;
+        }
     }
 
     /// <summary>
@@ -156,7 +207,10 @@ namespace NeoCompose.Runtime
     public sealed class NeoSpriteMaskInteraction : IEquatable<NeoSpriteMaskInteraction>, INeoEnumOption
     {
         private static readonly Dictionary<string, NeoSpriteMaskInteraction> values = new Dictionary<string, NeoSpriteMaskInteraction>();
-        public string optionId { get; }
+        public string optionId
+        {
+            get;
+        }
         public string Text => TextForOptionId(optionId);
         public string TextId => TextIdForOptionId(optionId);
 
@@ -171,7 +225,8 @@ namespace NeoCompose.Runtime
 
         public static NeoSpriteMaskInteraction FromOptionId(string optionId)
         {
-            if (values.TryGetValue(optionId, out var known)) return known;
+            if (values.TryGetValue(optionId, out var known))
+                return known;
             var created = new NeoSpriteMaskInteraction(optionId);
             values[optionId] = created;
             return created;
@@ -179,9 +234,11 @@ namespace NeoCompose.Runtime
 
         public static string[] ToOptionIds(IEnumerable<NeoSpriteMaskInteraction>? options)
         {
-            if (options is null) return Array.Empty<string>();
+            if (options is null)
+                return Array.Empty<string>();
             var ids = new List<string>();
-            foreach (var option in options) ids.Add(option.optionId);
+            foreach (var option in options)
+                ids.Add(option.optionId);
             return ids.ToArray();
         }
 

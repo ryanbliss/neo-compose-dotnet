@@ -60,7 +60,8 @@ namespace NeoCompose.Runtime
 
         private protected static void RequireOperand(NeoActionBase? action)
         {
-            if (action is not null) return;
+            if (action is not null)
+                return;
             throw new ArgumentNullException(
                 nameof(action),
                 "Cannot subscribe to a null NeoAction. Read the action from its generated property, which never returns null.");
@@ -73,7 +74,8 @@ namespace NeoCompose.Runtime
         /// </summary>
         private NeoMemberActionWritable Writable(string operation)
         {
-            if (node is NeoMemberActionWritable writable) return writable;
+            if (node is NeoMemberActionWritable writable)
+                return writable;
             throw new InvalidOperationException(
                 $"Cannot {operation} NSAction member '{node.member.name}' because its node is read-only; subscriptions are durable member-value writes and require a Save or Session view.");
         }

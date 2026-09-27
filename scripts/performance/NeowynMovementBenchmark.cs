@@ -33,7 +33,8 @@ public class NeowynMovementBenchmark
         string directory = Path.Combine(Path.GetTempPath(), "neo-movement-" + Guid.NewGuid());
         void Configure(UnityEngine.SceneManagement.Scene scene, UnityEngine.SceneManagement.LoadSceneMode mode)
         {
-            if (scene.name == "NeoMenu") Object.FindAnyObjectByType<NeoMenuFlow>().SaveDirectory = directory;
+            if (scene.name == "NeoMenu")
+                Object.FindAnyObjectByType<NeoMenuFlow>().SaveDirectory = directory;
         }
         UnityEngine.SceneManagement.SceneManager.sceneLoaded += Configure;
         yield return UnityEngine.SceneManagement.SceneManager.LoadSceneAsync("Assets/Scenes/NeoMenu.unity");
@@ -54,7 +55,8 @@ public class NeowynMovementBenchmark
             sw.Restart();
             body.Body.Position = origin + new Vector3(i % 2 == 0 ? .001f : 0, 0, 0);
             sw.Stop();
-            if (i >= 2) samples.Add(sw.Elapsed.TotalMilliseconds);
+            if (i >= 2)
+                samples.Add(sw.Elapsed.TotalMilliseconds);
         }
         Report("position", samples);
         samples.Clear();
@@ -63,7 +65,8 @@ public class NeowynMovementBenchmark
             sw.Restart();
             body.Config.Facing = i % 2 == 0 ? Assets.Scripts.Neo.Facing.Left : Assets.Scripts.Neo.Facing.Right;
             sw.Stop();
-            if (i >= 2) samples.Add(sw.Elapsed.TotalMilliseconds);
+            if (i >= 2)
+                samples.Add(sw.Elapsed.TotalMilliseconds);
         }
         Report("facing", samples);
         body.Config.Facing = facing;
@@ -73,12 +76,16 @@ public class NeowynMovementBenchmark
         var tick = clip.GetType().GetMethod("Tick", BindingFlags.Instance | BindingFlags.NonPublic);
         for (int i = 0; i < 32; i++)
         {
-            sw.Restart(); tick.Invoke(clip, new object[] { .125f }); sw.Stop();
-            if (i >= 2) samples.Add(sw.Elapsed.TotalMilliseconds);
+            sw.Restart();
+            tick.Invoke(clip, new object[] { .125f });
+            sw.Stop();
+            if (i >= 2)
+                samples.Add(sw.Elapsed.TotalMilliseconds);
         }
         Report("animation", samples);
         body.SetIsMoving(false);
-        for (int i = 0; i < 10; i++) yield return null;
+        for (int i = 0; i < 10; i++)
+            yield return null;
         var pad = InputSystem.AddDevice<Gamepad>();
         var seen = new HashSet<string>();
         bool diagnostics = Environment.GetEnvironmentVariable("NEO_MOVEMENT_DIAGNOSTICS") == "1";
@@ -113,15 +120,19 @@ public class NeowynMovementBenchmark
                 while (Time.realtimeSinceStartupAsDouble - start < (diagnostics ? 30 : 8))
                 {
                     double elapsed = Time.realtimeSinceStartupAsDouble - start;
-                    InputSystem.QueueStateEvent(pad, new GamepadState { leftStick = moving
-                        ? new Vector2(((int)(elapsed / .6) % 2 == 0) ? 1 : -1, 0) : Vector2.zero });
+                    InputSystem.QueueStateEvent(pad, new GamepadState
+                    {
+                        leftStick = moving
+                        ? new Vector2(((int)(elapsed / .6) % 2 == 0) ? 1 : -1, 0) : Vector2.zero
+                    });
                     yield return null;
                     var current = Object.FindAnyObjectByType<Body>();
                     seen.Add(current.GetEntityId().ToString());
                     distance += Vector3.Distance(last, current.transform.position);
                     last = current.transform.position;
                     double now = Time.realtimeSinceStartupAsDouble;
-                    if (now - start > 1) samples.Add((now - previous) * 1000);
+                    if (now - start > 1)
+                        samples.Add((now - previous) * 1000);
                     if (diagnostics)
                     {
                         int nextCollections = GC.CollectionCount(0);
@@ -139,14 +150,17 @@ public class NeowynMovementBenchmark
                 }
                 Report(moving ? "walking-frame" : "idle-frame", samples);
                 Debug.Log($"NEO_MOVEMENT moving={moving} distance={distance:F3} bodyInstances={seen.Count}");
-                foreach (string slowFrame in slowFrames) Debug.Log(slowFrame);
-                if (moving) Assert.Greater(distance, 1f, "The walking benchmark must actually move the player.");
+                foreach (string slowFrame in slowFrames)
+                    Debug.Log(slowFrame);
+                if (moving)
+                    Assert.Greater(distance, 1f, "The walking benchmark must actually move the player.");
             }
         }
         finally
         {
             InputSystem.RemoveDevice(pad);
-            foreach (var item in detailRecorders) item.recorder.Dispose();
+            foreach (var item in detailRecorders)
+                item.recorder.Dispose();
         }
         flow.ReturnToMenu();
         yield return Wait(flow, NeoMenuState.Main);

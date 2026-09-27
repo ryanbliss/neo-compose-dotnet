@@ -62,12 +62,14 @@ namespace NeoCompose.Runtime.Json
         public static bool TryLoad(string? json, out RemoteGameSave save)
         {
             save = null!;
-            if (string.IsNullOrWhiteSpace(json)) return false;
+            if (string.IsNullOrWhiteSpace(json))
+                return false;
             try
             {
                 var parsed = JsonConvert.DeserializeObject<RemoteGameSave>(
                     json, NeoSaveJson.ContentSettings);
-                if (parsed == null) return false;
+                if (parsed == null)
+                    return false;
                 parsed.staticBindings ??= new();
                 save = parsed;
                 return true;
@@ -107,12 +109,14 @@ namespace NeoCompose.Runtime.Json
         public static bool TryLoad(string? json, out LocalGameSave save)
         {
             save = null!;
-            if (string.IsNullOrWhiteSpace(json)) return false;
+            if (string.IsNullOrWhiteSpace(json))
+                return false;
             try
             {
                 var parsed = JsonConvert.DeserializeObject<LocalGameSave>(
                     json, NeoSaveJson.ContentSettings);
-                if (parsed == null) return false;
+                if (parsed == null)
+                    return false;
                 parsed.staticBindings ??= new();
                 save = parsed;
                 return true;
@@ -125,7 +129,8 @@ namespace NeoCompose.Runtime.Json
 
         public static string Serialize(LocalGameSave save)
         {
-            if (save == null) throw new ArgumentNullException(nameof(save));
+            if (save == null)
+                throw new ArgumentNullException(nameof(save));
             return JsonConvert.SerializeObject(save);
         }
     }

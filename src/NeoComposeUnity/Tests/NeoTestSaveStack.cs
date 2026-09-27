@@ -33,9 +33,18 @@ namespace NeoCompose.Tests
             Synchronizer = store.Open(SaveCustomId);
         }
 
-        public NeoProjectStore Store { get; }
-        public INeoLocalSaveStore LocalStore { get; }
-        public NeoSaveSynchronizer Synchronizer { get; }
+        public NeoProjectStore Store
+        {
+            get;
+        }
+        public INeoLocalSaveStore LocalStore
+        {
+            get;
+        }
+        public NeoSaveSynchronizer Synchronizer
+        {
+            get;
+        }
 
         /// <summary>Builds a fresh stack (Ready) over the given project schema JSON.</summary>
         public static NeoTestSaveStack Create(
@@ -172,7 +181,10 @@ namespace NeoCompose.Tests
                 Schema = schema;
             }
 
-            public ProjectData Schema { get; }
+            public ProjectData Schema
+            {
+                get;
+            }
             public string CustomId => SaveCustomId;
             public Awaitable<string?> LoadSaveContentAsync() => NeoAwaitable.FromResult<string?>(null);
             public Awaitable CommitSaveContentAsync(string content, bool replaceSnapshot) => NeoAwaitable.Completed();

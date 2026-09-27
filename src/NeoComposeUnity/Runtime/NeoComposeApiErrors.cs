@@ -22,12 +22,21 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>Imperative description, e.g. "edit this project's Unity settings".</summary>
-        public string Description { get; }
+        public string Description
+        {
+            get;
+        }
 
-        public string? ProjectId { get; }
+        public string? ProjectId
+        {
+            get;
+        }
 
         /// <summary>The OAuth/project scope the operation needs, when known.</summary>
-        public string? RequiredScope { get; }
+        public string? RequiredScope
+        {
+            get;
+        }
     }
 
     /// <summary>
@@ -47,8 +56,14 @@ namespace NeoCompose.Runtime
             RequiredScope = requiredScope;
         }
 
-        public string? ProjectId { get; }
-        public string? RequiredScope { get; }
+        public string? ProjectId
+        {
+            get;
+        }
+        public string? RequiredScope
+        {
+            get;
+        }
     }
 
     /// <summary>

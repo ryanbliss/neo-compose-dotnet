@@ -551,8 +551,10 @@ namespace NeoCompose.Tests
         private static FunctionWithReturnType NativeCallGetter(int argumentCount)
         {
             var args = new List<Pointer>();
-            if (argumentCount >= 1) args.Add(Text("hi"));
-            if (argumentCount >= 2) args.Add(Text("?"));
+            if (argumentCount >= 1)
+                args.Add(Text("hi"));
+            if (argumentCount >= 2)
+                args.Add(Text("?"));
             return new FunctionWithReturnType
             {
                 compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
@@ -585,7 +587,8 @@ namespace NeoCompose.Tests
                 [save.id] = save,
                 [session.id] = session,
             };
-            foreach (JsonMember callable in callables) members[callable.id] = callable;
+            foreach (JsonMember callable in callables)
+                members[callable.id] = callable;
 
             return NeoTestSaveStack.ClientFromSchema(new ProjectData
             {
@@ -915,7 +918,8 @@ namespace NeoCompose.Tests
             params (string key, string memberId)[] members)
         {
             var schema = new Dictionary<string, string>();
-            foreach (var member in members) schema[member.key] = member.memberId;
+            foreach (var member in members)
+                schema[member.key] = member.memberId;
             return new NeoSchemaClass
             {
                 id = "receiver-class",
@@ -932,38 +936,38 @@ namespace NeoCompose.Tests
             string name,
             string valueId,
             NeoMemberStorage storage = NeoMemberStorage.Inherit) => new()
-        {
-            id = id,
-            projectId = ProjectId,
-            name = name,
-            kind = MemberKind.Class,
-            classId = "root-class",
-            valueId = valueId,
-            Storage = storage,
-            createdAt = "x",
-            updatedAt = "x",
-        };
+            {
+                id = id,
+                projectId = ProjectId,
+                name = name,
+                kind = MemberKind.Class,
+                classId = "root-class",
+                valueId = valueId,
+                Storage = storage,
+                createdAt = "x",
+                updatedAt = "x",
+            };
 
         private static ObjectMemberValue ObjectValue(
             string id,
             string classId) => new()
-        {
-            id = id,
-            classId = classId,
-            value = new Dictionary<string, string>(),
-            createdAt = "x",
-            updatedAt = "x",
-        };
+            {
+                id = id,
+                classId = classId,
+                value = new Dictionary<string, string>(),
+                createdAt = "x",
+                updatedAt = "x",
+            };
 
         private static FunctionArgumentTypeInfo Argument(
             string name,
             MemberKind type,
             bool required = true) => new()
-        {
-            name = name,
-            type = type,
-            required = required,
-        };
+            {
+                name = name,
+                type = type,
+                required = required,
+            };
 
         private static FunctionArgumentTypeInfo IntArgument(string name) =>
             Argument(name, MemberKind.Int);

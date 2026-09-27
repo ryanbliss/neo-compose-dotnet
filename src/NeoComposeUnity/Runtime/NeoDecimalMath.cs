@@ -184,8 +184,10 @@ namespace NeoCompose.Runtime
         public static int Compare(string a, string b)
         {
             AlignedPair aligned = AlignScales(ParseArg(a, "a"), ParseArg(b, "b"));
-            if (aligned.A < aligned.B) return -1;
-            if (aligned.A > aligned.B) return 1;
+            if (aligned.A < aligned.B)
+                return -1;
+            if (aligned.A > aligned.B)
+                return 1;
             return 0;
         }
 

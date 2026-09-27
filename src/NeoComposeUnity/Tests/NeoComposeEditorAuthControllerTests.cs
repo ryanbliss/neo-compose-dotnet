@@ -278,7 +278,8 @@ namespace NeoCompose.Tests
             public Task RevokeAsync(string apiBaseUrl, string accessToken)
             {
                 revokedToken = accessToken;
-                if (throwOnRevoke) throw new InvalidOperationException("revoke failed");
+                if (throwOnRevoke)
+                    throw new InvalidOperationException("revoke failed");
                 return Task.CompletedTask;
             }
         }

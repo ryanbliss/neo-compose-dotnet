@@ -39,53 +39,83 @@ namespace NeoCompose.Runtime
         /// <summary>
         /// Stable dialogue id from the exported Neo Compose project.
         /// </summary>
-        public string Id { get; }
+        public string Id
+        {
+            get;
+        }
 
         /// <summary>
         /// Author-facing dialogue name from the exported Neo Compose project.
         /// </summary>
-        public string Name { get; }
+        public string Name
+        {
+            get;
+        }
 
         /// <summary>
         /// Optional dialogue description from the exported Neo Compose project.
         /// </summary>
-        public string? Description { get; }
+        public string? Description
+        {
+            get;
+        }
 
         /// <summary>
         /// Underlying localized text id for <see cref="Description"/>, when present.
         /// </summary>
-        public string? DescriptionTextId { get; }
+        public string? DescriptionTextId
+        {
+            get;
+        }
 
         /// <summary>
         /// Dialogue group id that triggered this dialogue, when the dialogue belongs to a group.
         /// </summary>
-        public string? GroupId { get; }
+        public string? GroupId
+        {
+            get;
+        }
 
         /// <summary>
         /// Stored lookup value id for lookup-triggered dialogues, when one is configured.
         /// </summary>
-        public string? LookupValueId { get; }
+        public string? LookupValueId
+        {
+            get;
+        }
 
         /// <summary>
         /// Resolved primary value for the dialogue. Body nodes can expose a different current
         /// primary through <see cref="NeoDialogueTextNode.Primary"/>.
         /// </summary>
-        public object? Primary { get; }
+        public object? Primary
+        {
+            get;
+        }
 
         /// <summary>
         /// Dialogue-level linked values resolved by exported value id.
         /// </summary>
-        public IReadOnlyDictionary<string, object?> LinkedValues { get; }
+        public IReadOnlyDictionary<string, object?> LinkedValues
+        {
+            get;
+        }
 
         /// <summary>
         /// Raw exported dialogue model backing this runtime instance.
         /// </summary>
-        public DialogueModel Data { get; }
+        public DialogueModel Data
+        {
+            get;
+        }
 
         /// <summary>
         /// Mutable runtime context used while conditions and actions execute.
         /// </summary>
-        public NeoDialogueContext Context { get; }
+        public NeoDialogueContext Context
+        {
+            get;
+        }
 
         /// <summary>
         /// Current lifecycle state for this dialogue instance.
@@ -552,8 +582,10 @@ namespace NeoCompose.Runtime
                 return;
             }
 
-            if (!pause.Paused) return;
-            if (action.autoResumeDurationSeconds == null) return;
+            if (!pause.Paused)
+                return;
+            if (action.autoResumeDurationSeconds == null)
+                return;
             if (action.autoResumeDurationSeconds.Value == 0)
             {
                 pause.ResumeFromAuto();
@@ -573,20 +605,23 @@ namespace NeoCompose.Runtime
             var pause = activePauseAction;
             if (pause == null)
             {
-                if (autoResume) return;
+                if (autoResume)
+                    return;
                 throw new InvalidOperationException(
                     $"Dialogue '{Id}' does not have an active pause action to resume.");
             }
             if (State == NeoDialogueState.Disposed)
             {
-                if (autoResume) return;
+                if (autoResume)
+                    return;
                 throw new ObjectDisposedException(
                     nameof(NeoDialogue),
                     $"Dialogue '{Id}' was disposed before pause action '{pause.Id}' could resume.");
             }
             if (State == NeoDialogueState.Finished)
             {
-                if (autoResume) return;
+                if (autoResume)
+                    return;
                 throw new InvalidOperationException(
                     $"Dialogue '{Id}' already finished before pause action '{pause.Id}' could resume.");
             }
@@ -640,7 +675,8 @@ namespace NeoCompose.Runtime
                     Fail(ex);
                     return;
                 }
-                if (!matched) continue;
+                if (!matched)
+                    continue;
                 EnterNode(outcome.toNodeId);
                 return;
             }
@@ -650,7 +686,8 @@ namespace NeoCompose.Runtime
         private void RecordDialogueVisit()
         {
             var memory = memoryStore?.GetOrCreateDialogueMemory(Id);
-            if (memory == null) return;
+            if (memory == null)
+                return;
             memory.VisitCount += 1;
             memory.LastVisitedAt = CurrentUtcIso();
         }
@@ -659,7 +696,8 @@ namespace NeoCompose.Runtime
         {
             var memory = memoryStore?.GetOrCreateDialogueMemory(Id)
                 .GetOrCreateTextNodeMemory(textNodeId);
-            if (memory == null) return;
+            if (memory == null)
+                return;
             memory.VisitCount += 1;
             memory.LastVisitedAt = CurrentUtcIso();
         }
@@ -668,7 +706,8 @@ namespace NeoCompose.Runtime
         {
             var memory = memoryStore?.GetOrCreateDialogueMemory(Id)
                 .GetOrCreateTextNodeMemory(textNodeId);
-            if (memory == null) return;
+            if (memory == null)
+                return;
             memory.MostRecentChoiceId = optionId;
             if (!memory.HasChoice(optionId))
             {
@@ -681,7 +720,8 @@ namespace NeoCompose.Runtime
             string? primaryLinkedValueId = string.IsNullOrEmpty(nodePrimaryLinkedValueId)
                 ? Data.primaryLinkedValueId
                 : nodePrimaryLinkedValueId;
-            if (string.IsNullOrEmpty(primaryLinkedValueId)) return Context.Primary;
+            if (string.IsNullOrEmpty(primaryLinkedValueId))
+                return Context.Primary;
             return valueResolver?.Invoke(primaryLinkedValueId!);
         }
 
@@ -689,10 +729,12 @@ namespace NeoCompose.Runtime
             NeoCompose.Runtime.Json.DialogueLinkedValue[]? linkedValues)
         {
             var result = new Dictionary<string, object?>();
-            if (linkedValues == null || linkedValues.Length == 0) return result;
+            if (linkedValues == null || linkedValues.Length == 0)
+                return result;
             foreach (var linkedValue in linkedValues)
             {
-                if (string.IsNullOrEmpty(linkedValue.valueId)) continue;
+                if (string.IsNullOrEmpty(linkedValue.valueId))
+                    continue;
                 result[linkedValue.valueId] = valueResolver?.Invoke(linkedValue.valueId);
             }
             return result;
@@ -713,7 +755,8 @@ namespace NeoCompose.Runtime
 
         internal void Finish()
         {
-            if (State == NeoDialogueState.Disposed || State == NeoDialogueState.Finished) return;
+            if (State == NeoDialogueState.Disposed || State == NeoDialogueState.Finished)
+                return;
             activePauseAction?.DisposeFromOwner("dialogue finished");
             activePauseAction = null;
             activeDeferredFunction?.DisposeFromOwner("dialogue finished");
@@ -726,7 +769,8 @@ namespace NeoCompose.Runtime
 
         internal void Fail(Exception exception)
         {
-            if (State == NeoDialogueState.Disposed || State == NeoDialogueState.Finished) return;
+            if (State == NeoDialogueState.Disposed || State == NeoDialogueState.Finished)
+                return;
             if (OnError != null)
             {
                 OnError.Invoke(exception);
@@ -743,7 +787,8 @@ namespace NeoCompose.Runtime
         /// </summary>
         public void Dispose()
         {
-            if (State == NeoDialogueState.Disposed) return;
+            if (State == NeoDialogueState.Disposed)
+                return;
             activePauseAction?.DisposeFromOwner("dialogue disposed");
             activePauseAction = null;
             activeDeferredFunction?.DisposeFromOwner("dialogue disposed");
@@ -755,7 +800,8 @@ namespace NeoCompose.Runtime
 
         internal void DisposeFromClient()
         {
-            if (State == NeoDialogueState.Disposed) return;
+            if (State == NeoDialogueState.Disposed)
+                return;
             activePauseAction?.DisposeFromOwner("NeoClient disposed");
             activePauseAction = null;
             activeDeferredFunction?.DisposeFromOwner("NeoClient disposed");
@@ -787,11 +833,26 @@ namespace NeoCompose.Runtime
         private bool disposed;
         private string? disposedReason;
 
-        public string Id { get; }
-        public string DialogueId { get; }
-        public string NodeId { get; }
-        public string Reason { get; }
-        public double? AutoResumeDurationSeconds { get; }
+        public string Id
+        {
+            get;
+        }
+        public string DialogueId
+        {
+            get;
+        }
+        public string NodeId
+        {
+            get;
+        }
+        public string Reason
+        {
+            get;
+        }
+        public double? AutoResumeDurationSeconds
+        {
+            get;
+        }
         public bool Paused => !resumed && !disposed;
 
         internal NeoDialoguePauseAction(
@@ -833,7 +894,8 @@ namespace NeoCompose.Runtime
 
         internal void ResumeFromAuto()
         {
-            if (!Paused) return;
+            if (!Paused)
+                return;
             try
             {
                 ensureCanResume(this);
@@ -849,7 +911,8 @@ namespace NeoCompose.Runtime
             INeoDialoguePauseScheduler scheduler,
             TimeSpan delay)
         {
-            if (!Paused) return;
+            if (!Paused)
+                return;
             autoResume?.Dispose();
             autoResume = scheduler.Schedule(delay, ResumeFromAuto);
         }
@@ -863,7 +926,8 @@ namespace NeoCompose.Runtime
 
         internal void DisposeFromOwner(string reason)
         {
-            if (disposed) return;
+            if (disposed)
+                return;
             autoResume?.Dispose();
             autoResume = null;
             disposed = true;
@@ -884,45 +948,69 @@ namespace NeoCompose.Runtime
         /// <summary>
         /// Stable text node id from the exported Neo Compose dialogue graph.
         /// </summary>
-        public string Id { get; }
+        public string Id
+        {
+            get;
+        }
 
         /// <summary>
         /// Text content to display for this node.
         /// </summary>
-        public string Text { get; }
+        public string Text
+        {
+            get;
+        }
 
         /// <summary>
         /// Optional author-facing node name.
         /// </summary>
-        public string? Name { get; }
+        public string? Name
+        {
+            get;
+        }
 
         /// <summary>
         /// Resolved primary value for this node. Falls back to the dialogue primary when the
         /// node does not override it.
         /// </summary>
-        public object? Primary { get; }
+        public object? Primary
+        {
+            get;
+        }
 
         /// <summary>
         /// Node-level linked values resolved by exported value id.
         /// </summary>
-        public IReadOnlyDictionary<string, object?> LinkedValues { get; }
+        public IReadOnlyDictionary<string, object?> LinkedValues
+        {
+            get;
+        }
 
         /// <summary>
         /// Whether selecting an option on this node should be persisted to dialogue memory.
         /// </summary>
-        public bool SaveChoice { get; }
+        public bool SaveChoice
+        {
+            get;
+        }
 
         /// <summary>
         /// Visible options for this text node. Use <see cref="NeoDialogueTextOption.Select"/>
         /// to advance through an option.
         /// </summary>
-        public IReadOnlyList<NeoDialogueTextOption> Options { get; }
+        public IReadOnlyList<NeoDialogueTextOption> Options
+        {
+            get;
+        }
 
         /// <summary>
         /// Options hidden by option visibility conditions. These are provided for diagnostics
         /// and custom UI, but cannot be selected.
         /// </summary>
-        public IReadOnlyList<NeoDialogueHiddenTextOption> HiddenOptions { get; }
+        public IReadOnlyList<NeoDialogueHiddenTextOption> HiddenOptions
+        {
+            get;
+        }
 
         /// <summary>
         /// Creates a runtime wrapper for a shown text node.
@@ -1011,23 +1099,35 @@ namespace NeoCompose.Runtime
         /// <summary>
         /// Stable option id from the exported Neo Compose dialogue graph.
         /// </summary>
-        public string Id { get; }
+        public string Id
+        {
+            get;
+        }
 
         /// <summary>
         /// Text content to display for this option.
         /// </summary>
-        public string Text { get; }
+        public string Text
+        {
+            get;
+        }
 
         /// <summary>
         /// Optional author-facing option name.
         /// </summary>
-        public string? Name { get; }
+        public string? Name
+        {
+            get;
+        }
 
         /// <summary>
         /// Whether this option can currently be selected. UI code should usually bind this
         /// to its button's interactable/enabled state.
         /// </summary>
-        public bool Selectable { get; }
+        public bool Selectable
+        {
+            get;
+        }
 
         /// <summary>
         /// Creates a runtime wrapper for a visible text option.
@@ -1110,17 +1210,26 @@ namespace NeoCompose.Runtime
         /// <summary>
         /// Stable option id from the exported Neo Compose dialogue graph.
         /// </summary>
-        public string Id { get; }
+        public string Id
+        {
+            get;
+        }
 
         /// <summary>
         /// Text content configured for the hidden option.
         /// </summary>
-        public string Text { get; }
+        public string Text
+        {
+            get;
+        }
 
         /// <summary>
         /// Optional author-facing option name.
         /// </summary>
-        public string? Name { get; }
+        public string? Name
+        {
+            get;
+        }
 
         /// <summary>
         /// Creates a runtime wrapper for an option hidden by visibility conditions.

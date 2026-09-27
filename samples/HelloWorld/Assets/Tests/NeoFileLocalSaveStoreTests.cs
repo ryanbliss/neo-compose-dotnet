@@ -25,7 +25,8 @@ namespace HelloWorld.Assets.Tests
         [TearDown]
         public void TearDown()
         {
-            if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+            if (Directory.Exists(directory))
+                Directory.Delete(directory, recursive: true);
         }
 
         [Test]

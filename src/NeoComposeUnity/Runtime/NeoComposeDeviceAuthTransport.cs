@@ -53,7 +53,11 @@ namespace NeoCompose.Runtime
             // cookies first so each device-code request starts clean.
             ClearOriginCookies(apiBaseUrl);
 
-            var body = JsonConvert.SerializeObject(new { client_id = clientId, scope });
+            var body = JsonConvert.SerializeObject(new
+            {
+                client_id = clientId,
+                scope
+            });
             var response = await NeoComposeWebRequests.SendAsync(
                 NeoComposeAuthEndpoints.DeviceCodeUrl(apiBaseUrl),
                 "POST",
@@ -144,10 +148,12 @@ namespace NeoCompose.Runtime
                 bearerToken: accessToken,
                 cancellationToken: cancellationToken);
 
-            if (response.IsConnectionError || !response.IsSuccessStatus) return NeoComposeUserProfile.Empty;
+            if (response.IsConnectionError || !response.IsSuccessStatus)
+                return NeoComposeUserProfile.Empty;
 
             var session = TryDeserialize<NeoComposeSessionResponse>(response.Text);
-            if (session?.user == null) return NeoComposeUserProfile.Empty;
+            if (session?.user == null)
+                return NeoComposeUserProfile.Empty;
 
             return new NeoComposeUserProfile(session.user.name, session.user.email);
         }
@@ -200,7 +206,8 @@ namespace NeoCompose.Runtime
             DateTimeOffset now)
         {
             var raw = response.GetHeader("Retry-After");
-            if (string.IsNullOrWhiteSpace(raw)) return 0;
+            if (string.IsNullOrWhiteSpace(raw))
+                return 0;
             if (int.TryParse(raw, NumberStyles.None, CultureInfo.InvariantCulture, out var seconds))
             {
                 return Math.Max(0, seconds);
@@ -221,7 +228,8 @@ namespace NeoCompose.Runtime
         private static T? TryDeserialize<T>(string text)
             where T : class
         {
-            if (string.IsNullOrWhiteSpace(text)) return null;
+            if (string.IsNullOrWhiteSpace(text))
+                return null;
             try
             {
                 return JsonConvert.DeserializeObject<T>(text);

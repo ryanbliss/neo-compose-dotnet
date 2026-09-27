@@ -113,7 +113,8 @@ namespace HelloWorld.Assets.Scripts
                 button.onClick.RemoveAllListeners();
                 button.onClick.AddListener(() =>
                 {
-                    if (animator.Traveling) return;
+                    if (animator.Traveling)
+                        return;
                     animator.FlyTo(
                         ((RectTransform)planetButtons[captured.valueId].transform),
                         () => onVisitOutpost(captured));
@@ -250,7 +251,8 @@ namespace HelloWorld.Assets.Scripts
         {
             foreach (var planetId in parentOrbits.Keys)
             {
-                if (parentMarkers.ContainsKey(planetId)) continue;
+                if (parentMarkers.ContainsKey(planetId))
+                    continue;
                 var sample = outposts.First(o => o.Planet.optionId == planetId);
                 var rect = SampleUI.CreateRect(map, $"World {planetId}");
                 rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
@@ -277,7 +279,10 @@ namespace HelloWorld.Assets.Scripts
 
         private static Sprite TryImage(IReadOnlyOutpost outpost)
         {
-            try { return outpost.Image; }
+            try
+            {
+                return outpost.Image;
+            }
             catch (Exception) { return null; }
         }
 
@@ -382,7 +387,8 @@ namespace HelloWorld.Assets.Scripts
 
             private void StartThrust()
             {
-                if (thrustClip == null) return;
+                if (thrustClip == null)
+                    return;
                 if (thrust == null)
                 {
                     thrust = gameObject.AddComponent<AudioSource>();
@@ -396,7 +402,8 @@ namespace HelloWorld.Assets.Scripts
 
             private void Update()
             {
-                if (ship == null) return;
+                if (ship == null)
+                    return;
 
                 AdvanceOrbits();
                 PulseSun();
@@ -407,13 +414,15 @@ namespace HelloWorld.Assets.Scripts
 
             private void AdvanceOrbits()
             {
-                if (orbits == null || markers == null) return;
+                if (orbits == null || markers == null)
+                    return;
                 float now = Time.time;
                 if (parentOrbits != null && parentRects != null)
                 {
                     foreach (var pair in parentOrbits)
                     {
-                        if (!parentRects.TryGetValue(pair.Key, out var parentRect)) continue;
+                        if (!parentRects.TryGetValue(pair.Key, out var parentRect))
+                            continue;
                         float parentAngle = pair.Value.phase + now * pair.Value.angularSpeed;
                         parentRect.anchorMin = parentRect.anchorMax = new Vector2(
                             0.5f + pair.Value.rx * Mathf.Cos(parentAngle),
@@ -422,7 +431,8 @@ namespace HelloWorld.Assets.Scripts
                 }
                 foreach (var pair in orbits)
                 {
-                    if (!markers.TryGetValue(pair.Key, out var button)) continue;
+                    if (!markers.TryGetValue(pair.Key, out var button))
+                        continue;
                     var spec = pair.Value;
                     float angle = spec.phase + now * spec.angularSpeed;
                     var center = new Vector2(
@@ -444,14 +454,16 @@ namespace HelloWorld.Assets.Scripts
 
             private void PulseSun()
             {
-                if (sun == null || !sun.enabled) return;
+                if (sun == null || !sun.enabled)
+                    return;
                 float pulse = 1f + 0.05f * Mathf.Sin(Time.time * 1.1f);
                 sun.transform.localScale = new Vector3(pulse, pulse, 1f);
             }
 
             private void AnimateShipFrames()
             {
-                if (shipAnimation == null || shipAnimation.Frames.Count == 0) return;
+                if (shipAnimation == null || shipAnimation.Frames.Count == 0)
+                    return;
                 frameTimer += Time.deltaTime;
                 var fps = Mathf.Max(1, shipAnimation.FPS) * (Traveling ? 2f : 1f);
                 if (frameTimer >= 1f / fps)
@@ -488,7 +500,8 @@ namespace HelloWorld.Assets.Scripts
                         ride = target;
                         target = null;
                         onArrive = null;
-                        if (thrust != null) thrust.Stop();
+                        if (thrust != null)
+                            thrust.Stop();
                         arrived?.Invoke();
                     }
                     return;
@@ -521,7 +534,8 @@ namespace HelloWorld.Assets.Scripts
                 }
                 float alpha = intensity * intensity * 0.5f;
                 flare.color = new Color(1f, 1f, 1f, alpha);
-                if (alpha <= 0f) return;
+                if (alpha <= 0f)
+                    return;
                 flareTimer += Time.deltaTime;
                 // Static flickers faster as the storm worsens.
                 float fps = Mathf.Max(1, flareAnimation.FPS) * (1f + intensity * 2f);
@@ -530,7 +544,8 @@ namespace HelloWorld.Assets.Scripts
                     flareTimer = 0f;
                     flareFrame = (flareFrame + 1) % flareAnimation.Frames.Count;
                     var sprite = flareAnimation.Frames[flareFrame];
-                    if (sprite != null) flare.sprite = sprite;
+                    if (sprite != null)
+                        flare.sprite = sprite;
                 }
             }
         }

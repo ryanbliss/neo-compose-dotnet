@@ -390,27 +390,27 @@ namespace NeoCompose.Tests
 
         private static ListLiteralPointer ListLiteral(
             CollectionTypeInfo typeInfo) => new()
-        {
-            type = PointerKind.ListLiteral,
-            typeInfo = typeInfo,
-            entries = Enumerable.Repeat<Pointer>(
+            {
+                type = PointerKind.ListLiteral,
+                typeInfo = typeInfo,
+                entries = Enumerable.Repeat<Pointer>(
                 StringValue("entry"),
                 EntryCount).ToArray(),
-        };
+            };
 
         private static DictLiteralPointer DictionaryLiteral(
             CollectionTypeInfo typeInfo) => new()
-        {
-            type = PointerKind.DictLiteral,
-            typeInfo = typeInfo,
-            entries = Enumerable.Range(0, EntryCount)
+            {
+                type = PointerKind.DictLiteral,
+                typeInfo = typeInfo,
+                entries = Enumerable.Range(0, EntryCount)
                 .Select(index => new DictLiteralPair
                 {
                     key = StringValue($"entry-{index}"),
                     value = BoolValue(true),
                 })
                 .ToArray(),
-        };
+            };
 
         private static Variable Variable(string id, TypeInfo typeInfo) => new()
         {
@@ -475,9 +475,18 @@ namespace NeoCompose.Tests
                 Getter = getter;
             }
 
-            internal string Name { get; }
-            internal NeoClient Client { get; }
-            internal FunctionWithReturnType Getter { get; }
+            internal string Name
+            {
+                get;
+            }
+            internal NeoClient Client
+            {
+                get;
+            }
+            internal FunctionWithReturnType Getter
+            {
+                get;
+            }
         }
     }
 }

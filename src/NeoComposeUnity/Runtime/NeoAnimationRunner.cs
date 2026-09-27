@@ -19,7 +19,8 @@ namespace NeoCompose.Runtime
 
         internal void Activate(INeoAnimationPlayer player)
         {
-            if (isDisposed) throw new ObjectDisposedException(nameof(NeoAnimationCoordinator));
+            if (isDisposed)
+                throw new ObjectDisposedException(nameof(NeoAnimationCoordinator));
             if (playersByInstance.TryGetValue(
                     player.InstanceIdentity,
                     out INeoAnimationPlayer existing)
@@ -46,7 +47,8 @@ namespace NeoCompose.Runtime
 
         internal void Tick(float scaledDeltaTime)
         {
-            if (isDisposed) return;
+            if (isDisposed)
+                return;
             playerSnapshot.Clear();
             playerSnapshot.AddRange(activePlayers);
             foreach (INeoAnimationPlayer player in playerSnapshot)
@@ -80,7 +82,8 @@ namespace NeoCompose.Runtime
 
         public void Dispose()
         {
-            if (isDisposed) return;
+            if (isDisposed)
+                return;
             isDisposed = true;
             playerSnapshot.Clear();
             playerSnapshot.AddRange(activePlayers);
@@ -95,14 +98,17 @@ namespace NeoCompose.Runtime
             {
                 GameObject gameObject = runner.gameObject;
                 runner = null;
-                if (Application.isPlaying) UnityEngine.Object.Destroy(gameObject);
-                else UnityEngine.Object.DestroyImmediate(gameObject);
+                if (Application.isPlaying)
+                    UnityEngine.Object.Destroy(gameObject);
+                else
+                    UnityEngine.Object.DestroyImmediate(gameObject);
             }
         }
 
         private void EnsureRunner()
         {
-            if (!Application.isPlaying || runner != null) return;
+            if (!Application.isPlaying || runner != null)
+                return;
             var gameObject = new GameObject("[Neo Compose Animation Runner]")
             {
                 hideFlags = HideFlags.HideAndDontSave,

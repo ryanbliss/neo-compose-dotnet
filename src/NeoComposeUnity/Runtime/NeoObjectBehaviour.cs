@@ -67,7 +67,10 @@ namespace NeoCompose.Runtime
         /// cycles (the GameObject and this behaviour do not), so key any
         /// external per-instance state on this.
         /// </summary>
-        public NeoObjectInstanceId InstanceId { get; private set; }
+        public NeoObjectInstanceId InstanceId
+        {
+            get; private set;
+        }
 
         /// <summary>The object layer the instance belongs to.</summary>
         public IReadOnlyNeoObjectLayerRuntime Layer { get; private set; } = null!;
@@ -76,7 +79,10 @@ namespace NeoCompose.Runtime
         public NeoTileGridRenderer Renderer { get; private set; } = null!;
 
         /// <summary>The instance's placement cell at spawn time.</summary>
-        public Vector2Int Cell { get; private set; }
+        public Vector2Int Cell
+        {
+            get; private set;
+        }
 
         /// <summary>Typed access to <see cref="Object"/>.</summary>
         public bool TryGetObject<TObject>(out TObject obj)
@@ -105,7 +111,8 @@ namespace NeoCompose.Runtime
 
             Renderer = renderer ?? throw new ArgumentNullException(nameof(renderer));
             Layer = layer ?? throw new ArgumentNullException(nameof(layer));
-            if (instance is null) throw new ArgumentNullException(nameof(instance));
+            if (instance is null)
+                throw new ArgumentNullException(nameof(instance));
             Object = instance.Object;
             InstanceId = instance.InstanceId;
             Cell = instance.Cell;
@@ -121,7 +128,8 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal void NotifyDespawned()
         {
-            if (!isInitialized || didNotifyDespawn) return;
+            if (!isInitialized || didNotifyDespawn)
+                return;
             didNotifyDespawn = true;
             InvokeHook(static (hooks, behaviour) => hooks.OnObjectDespawned(behaviour));
         }
@@ -135,8 +143,10 @@ namespace NeoCompose.Runtime
         {
             // Hooks are gameplay extension points; never run authored gameplay
             // code from edit-mode authoring syncs.
-            if (!Application.isPlaying) return;
-            if (Object is not INeoObjectSpawnHooks hooks) return;
+            if (!Application.isPlaying)
+                return;
+            if (Object is not INeoObjectSpawnHooks hooks)
+                return;
             try
             {
                 invoke(hooks, this);

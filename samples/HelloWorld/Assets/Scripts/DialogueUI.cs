@@ -160,7 +160,8 @@ namespace HelloWorld.Assets.Scripts
 
         private void EnsureBuilt()
         {
-            if (root != null) return;
+            if (root != null)
+                return;
 
             SampleUI.EnsureEventSystem();
 
@@ -440,7 +441,8 @@ namespace HelloWorld.Assets.Scripts
                     {
                         if (deferred.CancellationToken.IsCancellationRequested)
                         {
-                            if (playableGraph.IsValid()) playableGraph.Stop();
+                            if (playableGraph.IsValid())
+                                playableGraph.Stop();
                             current = null;
                             yield break;
                         }

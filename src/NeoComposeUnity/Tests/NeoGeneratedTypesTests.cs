@@ -618,7 +618,9 @@ namespace NeoCompose.Tests
                 JsonConvert.SerializeObject(hero.WritableBackingNode.value))!;
             app.Client.SetSaveValue(new ArrayMemberValue
             {
-                id = "replacement-path", createdAt = "now", updatedAt = "now",
+                id = "replacement-path",
+                createdAt = "now",
+                updatedAt = "now",
                 value = System.Array.Empty<string>(),
             });
             parent.value!["Path"] = "replacement-path";
@@ -1693,16 +1695,22 @@ namespace NeoCompose.Tests
             const string valueId = "implicit-concrete-value";
             ((Dictionary<string, NeoSchemaClass>)app.Client.classes)[classId] = new NeoSchemaClass
             {
-                id = classId, name = "Concrete", schema = new Dictionary<string, string>(),
+                id = classId,
+                name = "Concrete",
+                schema = new Dictionary<string, string>(),
             };
             ((Dictionary<string, Member>)app.Client.members)["implicit-concrete-member"] = new ClassMember
             {
-                id = "implicit-concrete-member", name = "Concrete", kind = MemberKind.Class,
-                classId = classId, valueId = valueId,
+                id = "implicit-concrete-member",
+                name = "Concrete",
+                kind = MemberKind.Class,
+                classId = classId,
+                valueId = valueId,
             };
             app.Client.SetWritableValue(NeoValueOwnership.Session, new ObjectMemberValue
             {
-                id = valueId, value = new Dictionary<string, string>(),
+                id = valueId,
+                value = new Dictionary<string, string>(),
             });
             string clone = app.Client.CloneValueReference(valueId, NeoValueOwnership.Session,
                 app.Client.members["implicit-concrete-member"]);
@@ -1821,18 +1829,23 @@ namespace NeoCompose.Tests
             // old candidate edges while preserving the other store's edge.
             app.Client.SetWritableValue(NeoValueOwnership.Session, new ObjectMemberValue
             {
-                id = parentValueId, classId = parentClassId,
+                id = parentValueId,
+                classId = parentClassId,
                 value = new Dictionary<string, string> { ["Child"] = childValueId },
             });
             app.Client.SetWritableValue(NeoValueOwnership.Save, new ObjectMemberValue
             {
-                id = parentValueId, classId = parentClassId, value = new(),
+                id = parentValueId,
+                classId = parentClassId,
+                value = new(),
             });
             Assert.IsTrue(app.Client.TryFindOwnedParent(NeoValueOwnership.Save, childValueId, out detectedParent));
             Assert.AreEqual(parentValueId, detectedParent);
             app.Client.SetWritableValue(NeoValueOwnership.Session, new ObjectMemberValue
             {
-                id = parentValueId, classId = parentClassId, value = new(),
+                id = parentValueId,
+                classId = parentClassId,
+                value = new(),
             });
             Assert.IsFalse(app.Client.TryFindOwnedParent(NeoValueOwnership.Save, childValueId, out _));
         }

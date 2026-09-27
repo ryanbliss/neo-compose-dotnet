@@ -49,8 +49,14 @@ namespace NeoCompose.Runtime
             this.playbackCycleLabel = playbackCycleLabel;
         }
 
-        internal int FPS { get; }
-        internal int Duration { get; }
+        internal int FPS
+        {
+            get;
+        }
+        internal int Duration
+        {
+            get;
+        }
 
         /// <summary>
         /// Releases everything the compile subscribed to. Today that is one
@@ -64,9 +70,11 @@ namespace NeoCompose.Runtime
         /// </summary>
         public void Dispose()
         {
-            if (disposed) return;
+            if (disposed)
+                return;
             disposed = true;
-            foreach (IDisposable disposable in disposables) disposable.Dispose();
+            foreach (IDisposable disposable in disposables)
+                disposable.Dispose();
         }
 
         internal void PreparePlayback()
@@ -75,7 +83,8 @@ namespace NeoCompose.Runtime
             // generated clip handle is first requested. A pass then reuses
             // that stable snapshot for wraps and reverse traversal.
             resolvedWrites = NeoAnimationCompiler.ResolveFrames(Duration, sparseWrites);
-            foreach (Action prepare in prepareActions) prepare();
+            foreach (Action prepare in prepareActions)
+                prepare();
         }
 
         internal void ApplyFrame(int frameIndex, bool useResolvedState)
@@ -92,11 +101,13 @@ namespace NeoCompose.Runtime
                     useResolvedState ? resolvedWrites : sparseWrites;
                 if (source.TryGetValue(frameIndex, out NeoAnimationCompiledWrite[] writes))
                 {
-                    foreach (NeoAnimationCompiledWrite write in writes) write.Apply();
+                    foreach (NeoAnimationCompiledWrite write in writes)
+                        write.Apply();
                 }
                 if (actions.TryGetValue(frameIndex, out Action[] frameActions))
                 {
-                    foreach (Action action in frameActions) action();
+                    foreach (Action action in frameActions)
+                        action();
                 }
             }
             finally
@@ -164,10 +175,22 @@ namespace NeoCompose.Runtime
             IsText = isText;
         }
 
-        internal string Key { get; }
-        internal string? Text { get; }
-        internal double Number { get; }
-        internal bool IsText { get; }
+        internal string Key
+        {
+            get;
+        }
+        internal string? Text
+        {
+            get;
+        }
+        internal double Number
+        {
+            get;
+        }
+        internal bool IsText
+        {
+            get;
+        }
 
         internal static NeoAnimationLeafFieldValue OfText(string key, string? text)
         {
@@ -246,7 +269,8 @@ namespace NeoCompose.Runtime
         {
             foreach (string legal in LegalKeys(kind))
             {
-                if (string.Equals(legal, key, StringComparison.Ordinal)) return true;
+                if (string.Equals(legal, key, StringComparison.Ordinal))
+                    return true;
             }
             return false;
         }
@@ -349,89 +373,100 @@ namespace NeoCompose.Runtime
             switch (kind)
             {
                 case NeoAnimationLeafKind.Sprite:
-                {
-                    if (current is not SpriteMemberValue spriteRow || spriteRow.value is null)
                     {
-                        skipReason = NullLeafSkipReason;
-                        return null;
+                        if (current is not SpriteMemberValue spriteRow || spriteRow.value is null)
+                        {
+                            skipReason = NullLeafSkipReason;
+                            return null;
+                        }
+                        var composed = new SpriteValue
+                        {
+                            fileId = spriteRow.value.fileId,
+                            sliceIndex = spriteRow.value.sliceIndex,
+                        };
+                        foreach (NeoAnimationLeafFieldValue field in fields)
+                        {
+                            if (Is(field, FileIdKey))
+                                composed.fileId = field.Text!;
+                            else if (Is(field, SliceIndexKey))
+                                composed.sliceIndex = (int)field.Number;
+                        }
+                        return composed;
                     }
-                    var composed = new SpriteValue
-                    {
-                        fileId = spriteRow.value.fileId,
-                        sliceIndex = spriteRow.value.sliceIndex,
-                    };
-                    foreach (NeoAnimationLeafFieldValue field in fields)
-                    {
-                        if (Is(field, FileIdKey)) composed.fileId = field.Text!;
-                        else if (Is(field, SliceIndexKey)) composed.sliceIndex = (int)field.Number;
-                    }
-                    return composed;
-                }
                 case NeoAnimationLeafKind.Vector2:
                 case NeoAnimationLeafKind.Vector2Int:
-                {
-                    if (current is not Vector2MemberValue vector2Row || vector2Row.value is null)
                     {
-                        skipReason = NullLeafSkipReason;
-                        return null;
+                        if (current is not Vector2MemberValue vector2Row || vector2Row.value is null)
+                        {
+                            skipReason = NullLeafSkipReason;
+                            return null;
+                        }
+                        var composed = new NeoVector2Value
+                        {
+                            x = vector2Row.value.x,
+                            y = vector2Row.value.y,
+                        };
+                        foreach (NeoAnimationLeafFieldValue field in fields)
+                        {
+                            if (Is(field, "x"))
+                                composed.x = (float)field.Number;
+                            else if (Is(field, "y"))
+                                composed.y = (float)field.Number;
+                        }
+                        return composed;
                     }
-                    var composed = new NeoVector2Value
-                    {
-                        x = vector2Row.value.x,
-                        y = vector2Row.value.y,
-                    };
-                    foreach (NeoAnimationLeafFieldValue field in fields)
-                    {
-                        if (Is(field, "x")) composed.x = (float)field.Number;
-                        else if (Is(field, "y")) composed.y = (float)field.Number;
-                    }
-                    return composed;
-                }
                 case NeoAnimationLeafKind.Vector3:
                 case NeoAnimationLeafKind.Vector3Int:
-                {
-                    if (current is not Vector3MemberValue vector3Row || vector3Row.value is null)
                     {
-                        skipReason = NullLeafSkipReason;
-                        return null;
+                        if (current is not Vector3MemberValue vector3Row || vector3Row.value is null)
+                        {
+                            skipReason = NullLeafSkipReason;
+                            return null;
+                        }
+                        var composed = new NeoVector3Value
+                        {
+                            x = vector3Row.value.x,
+                            y = vector3Row.value.y,
+                            z = vector3Row.value.z,
+                        };
+                        foreach (NeoAnimationLeafFieldValue field in fields)
+                        {
+                            if (Is(field, "x"))
+                                composed.x = (float)field.Number;
+                            else if (Is(field, "y"))
+                                composed.y = (float)field.Number;
+                            else if (Is(field, "z"))
+                                composed.z = (float)field.Number;
+                        }
+                        return composed;
                     }
-                    var composed = new NeoVector3Value
-                    {
-                        x = vector3Row.value.x,
-                        y = vector3Row.value.y,
-                        z = vector3Row.value.z,
-                    };
-                    foreach (NeoAnimationLeafFieldValue field in fields)
-                    {
-                        if (Is(field, "x")) composed.x = (float)field.Number;
-                        else if (Is(field, "y")) composed.y = (float)field.Number;
-                        else if (Is(field, "z")) composed.z = (float)field.Number;
-                    }
-                    return composed;
-                }
                 case NeoAnimationLeafKind.Color:
-                {
-                    if (current is not ColorMemberValue colorRow || colorRow.value is null)
                     {
-                        skipReason = NullLeafSkipReason;
-                        return null;
+                        if (current is not ColorMemberValue colorRow || colorRow.value is null)
+                        {
+                            skipReason = NullLeafSkipReason;
+                            return null;
+                        }
+                        var composed = new NeoColorValue
+                        {
+                            r = colorRow.value.r,
+                            g = colorRow.value.g,
+                            b = colorRow.value.b,
+                            a = colorRow.value.a,
+                        };
+                        foreach (NeoAnimationLeafFieldValue field in fields)
+                        {
+                            if (Is(field, "r"))
+                                composed.r = (float)field.Number;
+                            else if (Is(field, "g"))
+                                composed.g = (float)field.Number;
+                            else if (Is(field, "b"))
+                                composed.b = (float)field.Number;
+                            else if (Is(field, "a"))
+                                composed.a = (float)field.Number;
+                        }
+                        return composed;
                     }
-                    var composed = new NeoColorValue
-                    {
-                        r = colorRow.value.r,
-                        g = colorRow.value.g,
-                        b = colorRow.value.b,
-                        a = colorRow.value.a,
-                    };
-                    foreach (NeoAnimationLeafFieldValue field in fields)
-                    {
-                        if (Is(field, "r")) composed.r = (float)field.Number;
-                        else if (Is(field, "g")) composed.g = (float)field.Number;
-                        else if (Is(field, "b")) composed.b = (float)field.Number;
-                        else if (Is(field, "a")) composed.a = (float)field.Number;
-                    }
-                    return composed;
-                }
                 default:
                     skipReason = "its member kind has no addressable fields";
                     return null;
@@ -613,7 +648,8 @@ namespace NeoCompose.Runtime
                 // for it either. Without this the fallback below would read —
                 // and later re-assert — whichever component the reader's last
                 // branch happens to name.
-                if (!NeoAnimationLeafFields.IsLegalKey(fieldKind, key)) continue;
+                if (!NeoAnimationLeafFields.IsLegalKey(fieldKind, key))
+                    continue;
                 if (!TryReadCurrentField(current, key, out NeoAnimationLeafFieldValue value))
                 {
                     return null;
@@ -634,8 +670,10 @@ namespace NeoCompose.Runtime
             foreach (NeoAnimationLeafFieldValue field in other.fields!)
             {
                 int index = IndexOfField(fields!, field.Key);
-                if (index >= 0) fields![index] = field;
-                else fields!.Add(field);
+                if (index >= 0)
+                    fields![index] = field;
+                else
+                    fields!.Add(field);
             }
         }
 
@@ -651,8 +689,10 @@ namespace NeoCompose.Runtime
             foreach (NeoAnimationLeafFieldValue field in later.fields!)
             {
                 int index = IndexOfField(merged, field.Key);
-                if (index >= 0) merged[index] = field;
-                else merged.Add(field);
+                if (index >= 0)
+                    merged[index] = field;
+                else
+                    merged.Add(field);
             }
             return new NeoAnimationCompiledWrite(
                 this,
@@ -663,7 +703,8 @@ namespace NeoCompose.Runtime
 
         internal void Apply()
         {
-            if (writableParent.value is null) return;
+            if (writableParent.value is null)
+                return;
             if (fields is null)
             {
                 NeoAnimationCompiler.WriteMember(client, writableParent, writableKey, payload);
@@ -701,7 +742,8 @@ namespace NeoCompose.Runtime
             var plan = new NeoWritePlan(client);
             NeoMember leaf = ResolveLeafNode();
             string? valueId = leaf.overrideValueId ?? leaf.value?.id;
-            if (string.IsNullOrEmpty(valueId)) return;
+            if (string.IsNullOrEmpty(valueId))
+                return;
             string? parentValueId = writableParent.overrideValueId
                 ?? writableParent.value?.id;
             bool detached = false;
@@ -783,8 +825,10 @@ namespace NeoCompose.Runtime
                 fields!,
                 ReadCurrentLeafRow(),
                 out skipReason);
-            if (composed is not SpriteValue sprite) return composed;
-            if (SliceIndexIsWithinResolvedFile(sprite)) return sprite;
+            if (composed is not SpriteValue sprite)
+                return composed;
+            if (SliceIndexIsWithinResolvedFile(sprite))
+                return sprite;
             skipReason =
                 $"slice index {sprite.sliceIndex} is outside the slice count of file '{sprite.fileId}'";
             return null;
@@ -799,82 +843,82 @@ namespace NeoCompose.Runtime
             switch (fieldKind)
             {
                 case NeoAnimationLeafKind.Sprite:
-                {
-                    if (current is not SpriteMemberValue spriteRow || spriteRow.value is null)
                     {
-                        return false;
+                        if (current is not SpriteMemberValue spriteRow || spriteRow.value is null)
+                        {
+                            return false;
+                        }
+                        value = string.Equals(
+                                key,
+                                NeoAnimationLeafFields.FileIdKey,
+                                StringComparison.Ordinal)
+                            ? NeoAnimationLeafFieldValue.OfText(key, spriteRow.value.fileId)
+                            : NeoAnimationLeafFieldValue.OfNumber(key, spriteRow.value.sliceIndex);
+                        return true;
                     }
-                    value = string.Equals(
-                            key,
-                            NeoAnimationLeafFields.FileIdKey,
-                            StringComparison.Ordinal)
-                        ? NeoAnimationLeafFieldValue.OfText(key, spriteRow.value.fileId)
-                        : NeoAnimationLeafFieldValue.OfNumber(key, spriteRow.value.sliceIndex);
-                    return true;
-                }
                 case NeoAnimationLeafKind.Vector2:
                 case NeoAnimationLeafKind.Vector2Int:
-                {
-                    if (current is not Vector2MemberValue vector2Row || vector2Row.value is null)
                     {
-                        return false;
+                        if (current is not Vector2MemberValue vector2Row || vector2Row.value is null)
+                        {
+                            return false;
+                        }
+                        value = NeoAnimationLeafFieldValue.OfNumber(
+                            key,
+                            string.Equals(key, "x", StringComparison.Ordinal)
+                                ? vector2Row.value.x
+                                : vector2Row.value.y);
+                        return true;
                     }
-                    value = NeoAnimationLeafFieldValue.OfNumber(
-                        key,
-                        string.Equals(key, "x", StringComparison.Ordinal)
-                            ? vector2Row.value.x
-                            : vector2Row.value.y);
-                    return true;
-                }
                 case NeoAnimationLeafKind.Vector3:
                 case NeoAnimationLeafKind.Vector3Int:
-                {
-                    if (current is not Vector3MemberValue vector3Row || vector3Row.value is null)
                     {
-                        return false;
+                        if (current is not Vector3MemberValue vector3Row || vector3Row.value is null)
+                        {
+                            return false;
+                        }
+                        double component;
+                        if (string.Equals(key, "x", StringComparison.Ordinal))
+                        {
+                            component = vector3Row.value.x;
+                        }
+                        else if (string.Equals(key, "y", StringComparison.Ordinal))
+                        {
+                            component = vector3Row.value.y;
+                        }
+                        else
+                        {
+                            component = vector3Row.value.z;
+                        }
+                        value = NeoAnimationLeafFieldValue.OfNumber(key, component);
+                        return true;
                     }
-                    double component;
-                    if (string.Equals(key, "x", StringComparison.Ordinal))
-                    {
-                        component = vector3Row.value.x;
-                    }
-                    else if (string.Equals(key, "y", StringComparison.Ordinal))
-                    {
-                        component = vector3Row.value.y;
-                    }
-                    else
-                    {
-                        component = vector3Row.value.z;
-                    }
-                    value = NeoAnimationLeafFieldValue.OfNumber(key, component);
-                    return true;
-                }
                 case NeoAnimationLeafKind.Color:
-                {
-                    if (current is not ColorMemberValue colorRow || colorRow.value is null)
                     {
-                        return false;
+                        if (current is not ColorMemberValue colorRow || colorRow.value is null)
+                        {
+                            return false;
+                        }
+                        double channel;
+                        if (string.Equals(key, "r", StringComparison.Ordinal))
+                        {
+                            channel = colorRow.value.r;
+                        }
+                        else if (string.Equals(key, "g", StringComparison.Ordinal))
+                        {
+                            channel = colorRow.value.g;
+                        }
+                        else if (string.Equals(key, "b", StringComparison.Ordinal))
+                        {
+                            channel = colorRow.value.b;
+                        }
+                        else
+                        {
+                            channel = colorRow.value.a;
+                        }
+                        value = NeoAnimationLeafFieldValue.OfNumber(key, channel);
+                        return true;
                     }
-                    double channel;
-                    if (string.Equals(key, "r", StringComparison.Ordinal))
-                    {
-                        channel = colorRow.value.r;
-                    }
-                    else if (string.Equals(key, "g", StringComparison.Ordinal))
-                    {
-                        channel = colorRow.value.g;
-                    }
-                    else if (string.Equals(key, "b", StringComparison.Ordinal))
-                    {
-                        channel = colorRow.value.b;
-                    }
-                    else
-                    {
-                        channel = colorRow.value.a;
-                    }
-                    value = NeoAnimationLeafFieldValue.OfNumber(key, channel);
-                    return true;
-                }
                 default:
                     return false;
             }
@@ -887,7 +931,8 @@ namespace NeoCompose.Runtime
         /// </summary>
         private MemberValue? ReadCurrentLeafRow()
         {
-            if (!writableParent.TryGet(writableKey, out NeoMember? leaf)) return null;
+            if (!writableParent.TryGet(writableKey, out NeoMember? leaf))
+                return null;
             MemberValue? effective = writableParent.value is null
                 ? null
                 : client.ResolveClassChildRow(writableParent.value, writableKey);
@@ -911,10 +956,13 @@ namespace NeoCompose.Runtime
         /// </summary>
         private bool SliceIndexIsWithinResolvedFile(SpriteValue composed)
         {
-            if (composed.sliceIndex < 0) return false;
+            if (composed.sliceIndex < 0)
+                return false;
             NeoAssetDatabase? database = client.assetDatabase;
-            if (database is null) return true;
-            if (string.IsNullOrEmpty(composed.fileId)) return true;
+            if (database is null)
+                return true;
+            if (string.IsNullOrEmpty(composed.fileId))
+                return true;
             foreach (NeoAssetDatabaseEntry entry in database.Files)
             {
                 if (!string.Equals(entry.FileId, composed.fileId, StringComparison.Ordinal))
@@ -922,7 +970,8 @@ namespace NeoCompose.Runtime
                     continue;
                 }
                 int sliceCount = entry.Sprites.Length;
-                if (sliceCount == 0) return true;
+                if (sliceCount == 0)
+                    return true;
                 return composed.sliceIndex < sliceCount;
             }
             return true;
@@ -930,7 +979,8 @@ namespace NeoCompose.Runtime
 
         private void ReportSkip(string? reason)
         {
-            if (!client.ShouldReportAnimationApplySkip(SkipKey)) return;
+            if (!client.ShouldReportAnimationApplySkip(SkipKey))
+                return;
             UnityEngine.Debug.LogWarning(
                 $"Animation clip '{clipKey}' frame {frameIndex} skipped the field write to '{string.Join(".", path)}': {reason ?? "the value could not be composed"}. The rest of the clip still plays.");
         }
@@ -1001,8 +1051,14 @@ namespace NeoCompose.Runtime
             End = end;
         }
 
-        internal int Start { get; }
-        internal int End { get; }
+        internal int Start
+        {
+            get;
+        }
+        internal int End
+        {
+            get;
+        }
         internal int Length => End - Start;
     }
 
@@ -1079,12 +1135,16 @@ namespace NeoCompose.Runtime
             NeoPlayDirection direction,
             in NeoAnimationCropWindow window)
         {
-            if (clipFrame < 0) return WritesNothing;
-            if (clipFrame >= clipDuration) return WritesNothing;
+            if (clipFrame < 0)
+                return WritesNothing;
+            if (clipFrame >= clipDuration)
+                return WritesNothing;
             int offset = clipFrame - startFrame;
-            if (offset < 0) return WritesNothing;
+            if (offset < 0)
+                return WritesNothing;
             int playIndex = (int)Math.Floor(offset * contentFramesPerClipFrame);
-            if (playIndex >= window.Length) return WritesNothing;
+            if (playIndex >= window.Length)
+                return WritesNothing;
             return direction == NeoPlayDirection.Forward
                 ? window.Start + playIndex
                 : window.End - 1 - playIndex;
@@ -1213,9 +1273,11 @@ namespace NeoCompose.Runtime
 
         public void Dispose()
         {
-            if (disposed) return;
+            if (disposed)
+                return;
             disposed = true;
-            foreach (var subscription in valueSubscriptions.Values) subscription.Dispose();
+            foreach (var subscription in valueSubscriptions.Values)
+                subscription.Dispose();
             valueSubscriptions.Clear();
             contentRows = Array.Empty<MemberValue?>();
             contentPayloads = Array.Empty<NeoValueWritePayload?>();
@@ -1226,13 +1288,16 @@ namespace NeoCompose.Runtime
             NeoValueOwnership ownership,
             string valueId)
         {
-            if (disposed || resolving) return;
-            if (dependencies.Contains(valueId)) dirty = true;
+            if (disposed || resolving)
+                return;
+            if (dependencies.Contains(valueId))
+                dirty = true;
         }
 
         private void EnsureResolved()
         {
-            if (disposed || !dirty) return;
+            if (disposed || !dirty)
+                return;
             dirty = false;
             contentRows = Array.Empty<MemberValue?>();
             contentPayloads = Array.Empty<NeoValueWritePayload?>();
@@ -1248,13 +1313,15 @@ namespace NeoCompose.Runtime
                 {
                     string? rowId;
                     rowId = ResolveSegmentRowId();
-                    if (rowId is not null) ReadContent(rowId);
+                    if (rowId is not null)
+                        ReadContent(rowId);
                 }
             }
             finally
             {
                 resolving = false;
-                if (!disposed) RefreshSubscriptions();
+                if (!disposed)
+                    RefreshSubscriptions();
             }
         }
 
@@ -1262,11 +1329,13 @@ namespace NeoCompose.Runtime
         {
             foreach (var pair in valueSubscriptions)
             {
-                if (dependencies.Contains(pair.Key)) continue;
+                if (dependencies.Contains(pair.Key))
+                    continue;
                 pair.Value.Dispose();
                 removedDependencies.Add(pair.Key);
             }
-            foreach (string id in removedDependencies) valueSubscriptions.Remove(id);
+            foreach (string id in removedDependencies)
+                valueSubscriptions.Remove(id);
             removedDependencies.Clear();
             foreach (string id in dependencies)
             {
@@ -1316,7 +1385,8 @@ namespace NeoCompose.Runtime
             // re-resolution after writes (P48 §3.1). Only the getter shape
             // still touches a node, because Compute takes an explicit receiver
             // id and never reads the node's own cached value.
-            if (string.IsNullOrWhiteSpace(trackValueId)) return null;
+            if (string.IsNullOrWhiteSpace(trackValueId))
+                return null;
             if (client.ResolveValueRow(trackValueId!) is not ObjectMemberValue trackRow
                 || string.IsNullOrWhiteSpace(trackRow.classId))
             {
@@ -1326,44 +1396,44 @@ namespace NeoCompose.Runtime
             switch (segmentMember)
             {
                 case LookupMember:
-                {
-                    if (client.ResolveClassChildRow(trackRow, segmentKey)
-                            is not ArrayMemberValue lookupRow
-                        || lookupRow.value is null
-                        || lookupRow.value.Length == 0)
                     {
-                        return null;
-                    }
-                    string first = lookupRow.value[0];
-                    return string.IsNullOrWhiteSpace(first) ? null : first;
-                }
-                case NSPropertyMember:
-                {
-                    if (!track.TryGet(segmentKey, out NeoMemberNSProperty? getter))
-                    {
-                        return null;
-                    }
-                    NeoScript.NSGetterResult result = getter.Compute(trackValueId!);
-                    if (!result.ok)
-                    {
-                        // A getter error is absence, not a crash: §3.2 makes an
-                        // unresolvable segment silent and legal at runtime, and
-                        // throwing here would take down a clip mid-frame.
-                        if (client.ShouldReportAnimationApplySkip(
-                                $"{label}$segmentGetter"))
+                        if (client.ResolveClassChildRow(trackRow, segmentKey)
+                                is not ArrayMemberValue lookupRow
+                            || lookupRow.value is null
+                            || lookupRow.value.Length == 0)
                         {
-                            UnityEngine.Debug.LogWarning(
-                                $"{label} Segment getter failed, so the track writes nothing: {result.error}");
+                            return null;
                         }
-                        return null;
+                        string first = lookupRow.value[0];
+                        return string.IsNullOrWhiteSpace(first) ? null : first;
                     }
-                    string? valueId = NeoGeneratedTypesSupport.ValueId(result.value);
-                    return string.IsNullOrWhiteSpace(valueId) ? null : valueId;
-                }
+                case NSPropertyMember:
+                    {
+                        if (!track.TryGet(segmentKey, out NeoMemberNSProperty? getter))
+                        {
+                            return null;
+                        }
+                        NeoScript.NSGetterResult result = getter.Compute(trackValueId!);
+                        if (!result.ok)
+                        {
+                            // A getter error is absence, not a crash: §3.2 makes an
+                            // unresolvable segment silent and legal at runtime, and
+                            // throwing here would take down a clip mid-frame.
+                            if (client.ShouldReportAnimationApplySkip(
+                                    $"{label}$segmentGetter"))
+                            {
+                                UnityEngine.Debug.LogWarning(
+                                    $"{label} Segment getter failed, so the track writes nothing: {result.error}");
+                            }
+                            return null;
+                        }
+                        string? valueId = NeoGeneratedTypesSupport.ValueId(result.value);
+                        return string.IsNullOrWhiteSpace(valueId) ? null : valueId;
+                    }
                 case ClassMember:
-                {
-                    return client.ResolveClassChildRow(trackRow, segmentKey)?.id;
-                }
+                    {
+                        return client.ResolveClassChildRow(trackRow, segmentKey)?.id;
+                    }
                 default:
                     return null;
             }
@@ -1408,7 +1478,8 @@ namespace NeoCompose.Runtime
                 return;
             }
             int duration = Math.Max(0, (int)Math.Floor(rawDuration));
-            if (duration == 0) return;
+            if (duration == 0)
+                return;
 
             var rows = new MemberValue?[duration];
             var authored = new bool[duration];
@@ -1418,7 +1489,8 @@ namespace NeoCompose.Runtime
                 var ordered = new List<(int index, MemberValue? row)>();
                 foreach (string frameId in framesRow.value)
                 {
-                    if (string.IsNullOrWhiteSpace(frameId)) continue;
+                    if (string.IsNullOrWhiteSpace(frameId))
+                        continue;
                     if (client.ResolveValueRow(frameId) is not ObjectMemberValue frameRow)
                     {
                         continue;
@@ -1429,7 +1501,8 @@ namespace NeoCompose.Runtime
                         continue;
                     }
                     int index = (int)Math.Floor(rawIndex);
-                    if (index < 0 || index >= duration) continue;
+                    if (index < 0 || index >= duration)
+                        continue;
                     ordered.Add((index, ResolveClassMemberRow(frameRow, "Value")));
                 }
                 ordered.Sort((left, right) => left.index.CompareTo(right.index));
@@ -1483,7 +1556,8 @@ namespace NeoCompose.Runtime
                         client,
                         rawMember,
                         env);
-                    if (resolvedMember is not ClassMember clipMember) continue;
+                    if (resolvedMember is not ClassMember clipMember)
+                        continue;
                     if (!string.Equals(
                             ResolveWorldKind(client, clipMember.classId),
                             AnimationClipWorldKind,
@@ -1531,7 +1605,8 @@ namespace NeoCompose.Runtime
                     throw new InvalidOperationException(
                         $"Animation clip '{clipKey}' Duration must be at least 1; found {duration}.");
                 }
-                if (!validated.Add(validationKey)) return (fps, duration);
+                if (!validated.Add(validationKey))
+                    return (fps, duration);
 
                 var frameIndexes = new HashSet<int>();
                 if (clipNode.TryGet("Frames", out NeoMemberList? frames))
@@ -1547,7 +1622,8 @@ namespace NeoCompose.Runtime
                             .TryResolveDeclarationForValidation(
                                 client,
                                 declarationFrame);
-                        if (validation is null) continue;
+                        if (validation is null)
+                            continue;
                         NeoMemberClass frame = validation.Value;
                         int frameIndex = ReadRequiredInt(frame, "Index", clipKey);
                         if (frameIndex < 0 || frameIndex >= duration)
@@ -1598,7 +1674,8 @@ namespace NeoCompose.Runtime
                             .TryResolveDeclarationForValidation(
                                 client,
                                 declarationTrack);
-                        if (validation is null) continue;
+                        if (validation is null)
+                            continue;
                         ValidateExportTrack(
                             client,
                             validation.Value,
@@ -1786,7 +1863,8 @@ namespace NeoCompose.Runtime
             string clipKey,
             int frameIndex)
         {
-            if (partial.value?.value is null) return;
+            if (partial.value?.value is null)
+                return;
             foreach (var pair in partial.value.value)
             {
                 if (!partial.TryGet(pair.Key, out NeoMember? child))
@@ -1803,7 +1881,8 @@ namespace NeoCompose.Runtime
                     child.member,
                     out ObjectMemberValue? definitionRecord);
                 NeoMemberStorage declared = client.DeclaredStorage(child.member);
-                if (declared == NeoMemberStorage.Inherit) declared = declaredAbove;
+                if (declared == NeoMemberStorage.Inherit)
+                    declared = declaredAbove;
                 if (child is NeoMemberClass childClass)
                 {
                     if (childClass.value is null)
@@ -1891,8 +1970,10 @@ namespace NeoCompose.Runtime
             string overrideValueId,
             string where)
         {
-            if (leafKind == NeoAnimationLeafKind.None) return;
-            if (client.ResolveValueRow(overrideValueId) is not ObjectMemberValue) return;
+            if (leafKind == NeoAnimationLeafKind.None)
+                return;
+            if (client.ResolveValueRow(overrideValueId) is not ObjectMemberValue)
+                return;
             throw new InvalidOperationException(
                 $"{where} addresses a field path deeper than one level. Structured leaves are one level deep: a '~partial' envelope names fields, never sub-fields.");
         }
@@ -1908,7 +1989,8 @@ namespace NeoCompose.Runtime
             NeoAnimationDefinitionPresence presence,
             string where)
         {
-            if (presence != NeoAnimationDefinitionPresence.NullValue) return;
+            if (presence != NeoAnimationDefinitionPresence.NullValue)
+                return;
             throw new InvalidOperationException(
                 $"{where} cannot descend into a null definition member — there is no record to merge into.");
         }
@@ -1954,7 +2036,8 @@ namespace NeoCompose.Runtime
             NeoAnimationDefinitionPresence declared = DeclarationDefaultPresence(
                 declaration,
                 out record);
-            if (declared != NeoAnimationDefinitionPresence.Unknown) return declared;
+            if (declared != NeoAnimationDefinitionPresence.Unknown)
+                return declared;
             if (!string.IsNullOrWhiteSpace(declaration.valueId))
             {
                 MemberValue? memberValue = client.ResolveValueRow(declaration.valueId!);
@@ -2003,7 +2086,8 @@ namespace NeoCompose.Runtime
             switch (declaration)
             {
                 case ClassMember typed:
-                    if (typed.defaultValue is null) return NeoAnimationDefinitionPresence.Unknown;
+                    if (typed.defaultValue is null)
+                        return NeoAnimationDefinitionPresence.Unknown;
                     if (typed.defaultValue.value is null)
                     {
                         return NeoAnimationDefinitionPresence.NullValue;
@@ -2037,7 +2121,8 @@ namespace NeoCompose.Runtime
             bool hasValue,
             bool hasCarrier)
         {
-            if (hasValue) return NeoAnimationDefinitionPresence.Present;
+            if (hasValue)
+                return NeoAnimationDefinitionPresence.Present;
             return hasCarrier
                 ? NeoAnimationDefinitionPresence.NullValue
                 : NeoAnimationDefinitionPresence.Unknown;
@@ -2058,7 +2143,8 @@ namespace NeoCompose.Runtime
             string clipKey,
             int frameIndex)
         {
-            if (!frame.TryGet("Actions", out NeoMemberList? actions)) return;
+            if (!frame.TryGet("Actions", out NeoMemberList? actions))
+                return;
             foreach (NeoMember actionNode in actions)
             {
                 if (actionNode is not NeoMemberFunctionRef functionRef
@@ -2108,7 +2194,8 @@ namespace NeoCompose.Runtime
             string clipKey,
             int frameIndex)
         {
-            if (!frame.TryGet("ChildOverrides", out NeoMemberList? childOverrides)) return;
+            if (!frame.TryGet("ChildOverrides", out NeoMemberList? childOverrides))
+                return;
             // P93 §5: a child track's declaration walk continues through the
             // owner's Children member.
             NeoMemberStorage childrenStorage =
@@ -2160,7 +2247,8 @@ namespace NeoCompose.Runtime
             HashSet<string> compileStack,
             HashSet<string> activePlaybackStack)
         {
-            if (target is null) throw new ArgumentNullException(nameof(target));
+            if (target is null)
+                throw new ArgumentNullException(nameof(target));
             if (string.IsNullOrWhiteSpace(schemaKey))
             {
                 throw new ArgumentException("Clip schema key cannot be empty.", nameof(schemaKey));
@@ -2281,12 +2369,14 @@ namespace NeoCompose.Runtime
                     // A track that throws half-way through the list leaves the
                     // earlier tracks' subscriptions with no definition to own
                     // them; nothing else will ever dispose them.
-                    foreach (IDisposable disposable in disposables) disposable.Dispose();
+                    foreach (IDisposable disposable in disposables)
+                        disposable.Dispose();
                     throw;
                 }
 
                 var sparse = new Dictionary<int, NeoAnimationCompiledWrite[]>();
-                foreach (var pair in sparseByIndex) sparse[pair.Key] = pair.Value.ToArray();
+                foreach (var pair in sparseByIndex)
+                    sparse[pair.Key] = pair.Value.ToArray();
                 Dictionary<int, NeoAnimationCompiledWrite[]> resolved = ResolveFrames(
                     duration,
                     sparse);
@@ -2326,7 +2416,8 @@ namespace NeoCompose.Runtime
             string clipKey,
             int frameIndex)
         {
-            if (partial.value?.value is null) return;
+            if (partial.value?.value is null)
+                return;
             foreach (var pair in partial.value.value)
             {
                 if (!partial.TryGet(pair.Key, out NeoMember? child))
@@ -2389,7 +2480,8 @@ namespace NeoCompose.Runtime
                     // that authored nothing would read as the one that did.
                     // The web resolver skips it at collection for exactly this
                     // reason (`resolveSparseValueAtPath`).
-                    if (compiledFields.Count == 0) continue;
+                    if (compiledFields.Count == 0)
+                        continue;
                     EnsurePlacementPathIsIsolated(
                         client,
                         target,
@@ -2477,7 +2569,8 @@ namespace NeoCompose.Runtime
                 frameIndex);
             foreach (NeoAnimationCompiledWrite existing in writes)
             {
-                if (!existing.IsFieldWrite) continue;
+                if (!existing.IsFieldWrite)
+                    continue;
                 if (!string.Equals(existing.PathKey, write.PathKey, StringComparison.Ordinal))
                 {
                     continue;
@@ -2560,7 +2653,10 @@ namespace NeoCompose.Runtime
                 Refresh = ReadSelectorRefresh(selectorOwner, label);
             }
 
-            internal NeoSelectorRefreshKind Refresh { get; }
+            internal NeoSelectorRefreshKind Refresh
+            {
+                get;
+            }
 
             internal NeoMemberClass Resolve()
             {
@@ -2880,7 +2976,8 @@ namespace NeoCompose.Runtime
                             rate,
                             direction,
                             window);
-                        if (childFrame == NeoAnimationPlayback.WritesNothing) return;
+                        if (childFrame == NeoAnimationPlayback.WritesNothing)
+                            return;
                         // Re-apply even when the child frame is unchanged.
                         // Earlier tracks may need to restore their selected
                         // child after a later PerFrame selector moved away.
@@ -2898,7 +2995,10 @@ namespace NeoCompose.Runtime
                 Definition = definition;
             }
 
-            internal NeoAnimationDefinition Definition { get; }
+            internal NeoAnimationDefinition Definition
+            {
+                get;
+            }
         }
 
         private sealed class NeoSelectedChildClipDefinitions : IDisposable
@@ -2949,7 +3049,8 @@ namespace NeoCompose.Runtime
                     activePlaybackStack);
                 var created = new NeoSelectedChildClip(definition);
                 byChildId[childValueId] = created;
-                if (playbackPrepared) definition.PreparePlayback();
+                if (playbackPrepared)
+                    definition.PreparePlayback();
                 return created;
             }
 
@@ -3014,7 +3115,8 @@ namespace NeoCompose.Runtime
             disposables.Add(new NeoDisposableAction(() =>
             {
                 foreach (var target in targets)
-                    if (!ReferenceEquals(target.Key, target.Value.Node)) target.Value.Node.Dispose();
+                    if (!ReferenceEquals(target.Key, target.Value.Node))
+                        target.Value.Node.Dispose();
                 targets.Clear();
             }));
             for (int parentFrame = startFrame; parentFrame < parentDuration; parentFrame++)
@@ -3026,7 +3128,8 @@ namespace NeoCompose.Runtime
                     () =>
                     {
                         NeoMemberClass placedChild = selector.Resolve();
-                        if (placedChild.value is null) return;
+                        if (placedChild.value is null)
+                            return;
                         if (!targets.TryGetValue(placedChild, out var writeTarget))
                         {
                             string key = ResolveSegmentTrackTargetKey(client, track, placedChild, label);
@@ -3049,8 +3152,10 @@ namespace NeoCompose.Runtime
                             contentFramesPerClipFrame: 1d,
                             direction,
                             window);
-                        if (index == NeoAnimationPlayback.WritesNothing) return;
-                        if (!source.TryReadPayload(index, out NeoValueWritePayload? payload)) return;
+                        if (index == NeoAnimationPlayback.WritesNothing)
+                            return;
+                        if (!source.TryReadPayload(index, out NeoValueWritePayload? payload))
+                            return;
                         // A frame that authored an Index but bound no Value row
                         // has nothing to say, which is §3.2's "writes nothing"
                         // reached one more way. An EXPLICIT null value is a
@@ -3125,7 +3230,8 @@ namespace NeoCompose.Runtime
                 return NeoSelectorRefreshKind.OnLoad;
             }
             string[] selected = refresh.Selected();
-            if (selected.Length == 0) return NeoSelectorRefreshKind.OnLoad;
+            if (selected.Length == 0)
+                return NeoSelectorRefreshKind.OnLoad;
             if (selected.Length != 1
                 || !NeoSelectorRefreshKind.IsKnown(selected[0]))
             {
@@ -3344,7 +3450,8 @@ namespace NeoCompose.Runtime
                     }
                     foreach (NeoAnimationLeafFieldValue field in write.Fields)
                     {
-                        if (!keys.Contains(field.Key)) keys.Add(field.Key);
+                        if (!keys.Contains(field.Key))
+                            keys.Add(field.Key);
                     }
                 }
             }
@@ -3516,7 +3623,8 @@ namespace NeoCompose.Runtime
 
         private static string TrackClassId(NeoMemberClass track)
         {
-            if (track.inheritanceChain.Count > 0) return track.inheritanceChain[0].id;
+            if (track.inheritanceChain.Count > 0)
+                return track.inheritanceChain[0].id;
             return track.value?.classId ?? track.member.classId;
         }
 
@@ -3543,7 +3651,8 @@ namespace NeoCompose.Runtime
                 return NeoPlayDirection.Forward;
             }
             string[] selected = direction.Selected();
-            if (selected.Length == 0) return NeoPlayDirection.Forward;
+            if (selected.Length == 0)
+                return NeoPlayDirection.Forward;
             if (selected.Length != 1 || !NeoPlayDirection.IsKnown(selected[0]))
             {
                 throw new InvalidOperationException(
@@ -3587,8 +3696,10 @@ namespace NeoCompose.Runtime
             string key,
             string label)
         {
-            if (!node.TryGet(key, out NeoMemberInt? value)) return null;
-            if (value.value?.value is not double raw) return null;
+            if (!node.TryGet(key, out NeoMemberInt? value))
+                return null;
+            if (value.value?.value is not double raw)
+                return null;
             if (raw != Math.Truncate(raw))
             {
                 throw new InvalidOperationException(
@@ -3609,7 +3720,8 @@ namespace NeoCompose.Runtime
             string? cursor = classId;
             while (!string.IsNullOrWhiteSpace(cursor) && visited.Add(cursor!))
             {
-                if (!client.TryGetClass(cursor!, out NeoSchemaClass? schemaClass)) return null;
+                if (!client.TryGetClass(cursor!, out NeoSchemaClass? schemaClass))
+                    return null;
                 if (!string.IsNullOrWhiteSpace(schemaClass.targetMemberId))
                 {
                     return schemaClass.targetMemberId;
@@ -3632,7 +3744,8 @@ namespace NeoCompose.Runtime
                 {
                     return true;
                 }
-                if (!client.TryGetMember(cursor!, out Member? member)) return false;
+                if (!client.TryGetMember(cursor!, out Member? member))
+                    return false;
                 cursor = member.extendsMemberId;
             }
             return false;
@@ -3656,7 +3769,8 @@ namespace NeoCompose.Runtime
             string? cursor = classId;
             while (!string.IsNullOrWhiteSpace(cursor) && visited.Add(cursor!))
             {
-                if (!client.TryGetClass(cursor!, out NeoSchemaClass? schemaClass)) return false;
+                if (!client.TryGetClass(cursor!, out NeoSchemaClass? schemaClass))
+                    return false;
                 if (string.Equals(
                         schemaClass.system?["worldKind"]?.ToString(),
                         worldKind,
@@ -3675,9 +3789,11 @@ namespace NeoCompose.Runtime
             string? cursor = classId;
             while (!string.IsNullOrWhiteSpace(cursor) && visited.Add(cursor!))
             {
-                if (!client.TryGetClass(cursor!, out NeoSchemaClass? schemaClass)) return null;
+                if (!client.TryGetClass(cursor!, out NeoSchemaClass? schemaClass))
+                    return null;
                 string? worldKind = schemaClass.system?["worldKind"]?.ToString();
-                if (!string.IsNullOrWhiteSpace(worldKind)) return worldKind;
+                if (!string.IsNullOrWhiteSpace(worldKind))
+                    return worldKind;
                 cursor = schemaClass.extendsClassId;
             }
             return null;

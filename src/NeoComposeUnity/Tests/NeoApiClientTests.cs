@@ -41,9 +41,12 @@ namespace NeoCompose.Tests
                 {
                     if (url.EndsWith("/saves/query"))
                         return "{\"saves\":[],\"cloneRequired\":{}}";
-                    if (url.EndsWith("/saves/save-1/query")) return RemoteJson;
-                    if (url.EndsWith("/snapshots/query")) return "{\"snapshots\":[]}";
-                    if (url.EndsWith("/snapshots/snap-1/query")) return RemoteJson;
+                    if (url.EndsWith("/saves/save-1/query"))
+                        return RemoteJson;
+                    if (url.EndsWith("/snapshots/query"))
+                        return "{\"snapshots\":[]}";
+                    if (url.EndsWith("/snapshots/snap-1/query"))
+                        return RemoteJson;
                     if (url.EndsWith("/saves/commit"))
                         return "{\"kind\":\"committed\",\"save\":" + RemoteJson + "}";
                     if (url.EndsWith("/saves/save-1/snapshots/commit"))
@@ -55,12 +58,14 @@ namespace NeoCompose.Tests
                         return "{\"kind\":\"patched\",\"snapshotId\":\"snap-1\"," +
                             "\"snapshotRevision\":1,\"synchronizedAt\":3," +
                             "\"changedDescriptors\":[]}";
-                    if (url.EndsWith("/chunked-create/complete")) return RemoteJson;
+                    if (url.EndsWith("/chunked-create/complete"))
+                        return RemoteJson;
                     if (url.EndsWith("/saves/save-1/clone"))
                         return "{\"kind\":\"cloned\",\"save\":" + RemoteJson + "}";
                     if (url.EndsWith("/saves/save-1/status/query"))
                         return "{\"kind\":\"ready\",\"save\":" + RemoteJson + "}";
-                    if (url.EndsWith("/snapshots/snap-1/archive")) return RemoteJson;
+                    if (url.EndsWith("/snapshots/snap-1/archive"))
+                        return RemoteJson;
                     return "{}";
                 },
             };
@@ -322,7 +327,8 @@ namespace NeoCompose.Tests
                         return "{\"kind\":\"patched\",\"snapshotId\":\"snap-new\"," +
                             "\"snapshotRevision\":1,\"synchronizedAt\":4," +
                             "\"changedDescriptors\":[]}";
-                    if (url.EndsWith("/chunked-create/complete")) return RemoteJson;
+                    if (url.EndsWith("/chunked-create/complete"))
+                        return RemoteJson;
                     return "{}";
                 },
             };
@@ -511,7 +517,8 @@ namespace NeoCompose.Tests
 
             public string GetAccessToken(string apiBaseUrl)
             {
-                if (token == null) throw new NeoComposeNotSignedInException("Not signed in.");
+                if (token == null)
+                    throw new NeoComposeNotSignedInException("Not signed in.");
                 return token;
             }
 

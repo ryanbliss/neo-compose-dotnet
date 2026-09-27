@@ -38,16 +38,21 @@ namespace NeoCompose.Runtime
 
         public async Task<bool> RefreshIfDueAsync(string apiBaseUrl)
         {
-            if (string.IsNullOrWhiteSpace(apiBaseUrl)) return false;
+            if (string.IsNullOrWhiteSpace(apiBaseUrl))
+                return false;
 
             var store = storeFactory(apiBaseUrl);
             var token = store.Load();
-            if (token == null || !token.HasAccessToken) return false;
+            if (token == null || !token.HasAccessToken)
+                return false;
 
             var nowUnixSeconds = now().ToUnixTimeSeconds();
-            if (nowUnixSeconds >= token.expiresAtUnixSeconds) return false;
-            if (nowUnixSeconds < token.updatedAtUnixSeconds + DefaultBetterAuthUpdateAgeSeconds) return false;
-            if (nowUnixSeconds < token.sessionCheckedAtUnixSeconds + MinimumRefreshCheckIntervalSeconds) return false;
+            if (nowUnixSeconds >= token.expiresAtUnixSeconds)
+                return false;
+            if (nowUnixSeconds < token.updatedAtUnixSeconds + DefaultBetterAuthUpdateAgeSeconds)
+                return false;
+            if (nowUnixSeconds < token.sessionCheckedAtUnixSeconds + MinimumRefreshCheckIntervalSeconds)
+                return false;
 
             var response = await httpClient.SendAsync(
                 NeoComposeAuthEndpoints.GetSessionUrl(apiBaseUrl),
@@ -117,7 +122,8 @@ namespace NeoCompose.Runtime
 
         private static NeoComposeSessionResponse? TryDeserialize(string text)
         {
-            if (string.IsNullOrWhiteSpace(text)) return null;
+            if (string.IsNullOrWhiteSpace(text))
+                return null;
             try
             {
                 return JsonConvert.DeserializeObject<NeoComposeSessionResponse>(text);
@@ -130,7 +136,8 @@ namespace NeoCompose.Runtime
 
         private static long? ParseSessionTimestamp(string? value)
         {
-            if (string.IsNullOrWhiteSpace(value)) return null;
+            if (string.IsNullOrWhiteSpace(value))
+                return null;
 
             var trimmed = value!.Trim();
             if (long.TryParse(trimmed, NumberStyles.Integer, CultureInfo.InvariantCulture, out var integer))

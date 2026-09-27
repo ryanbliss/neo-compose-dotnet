@@ -24,7 +24,8 @@ namespace NeoCompose.Runtime
             bool owned = TryFindOwnedParent(sourceOwnership, valueId, out string? parentId);
             if (owned)
                 throw new InvalidOperationException($"Object '{valueId}' is already owned by '{parentId}'. Clone it explicitly before spawning it again.");
-            if (sourceOwnership == targetOwnership) return;
+            if (sourceOwnership == targetOwnership)
+                return;
             if (sourceOwnership != NeoValueOwnership.Session || targetOwnership != NeoValueOwnership.Save)
                 throw new InvalidOperationException($"Cannot adopt object '{valueId}' from {sourceOwnership} into {targetOwnership}.");
             // A freshly constructed graph usually has no incoming edge at all.
@@ -59,7 +60,8 @@ namespace NeoCompose.Runtime
                 throw new ArgumentException($"Tile conversion target '{target.name}' is abstract.", nameof(targetClassId));
             if (target.genericParams is { Count: > 0 })
                 throw new ArgumentException($"Tile conversion target '{target.name}' has unbound generic parameters.", nameof(targetClassId));
-            if (source.classId == targetClassId) return;
+            if (source.classId == targetClassId)
+                return;
             MemberValue? effectiveCell = ResolveClassChildRow(source, "Cell", ownership);
             bool hasInstanceCell = effectiveCell is not null;
             if (effectiveCell is null)
@@ -89,7 +91,8 @@ namespace NeoCompose.Runtime
             // identity; concrete and virtual instance child ids stay stable.
             if (!hasInstanceCell)
                 cell.id = Guid.NewGuid().ToString();
-            if (!keepPhysicalCell) cell.mapKey = source.mapKey;
+            if (!keepPhysicalCell)
+                cell.mapKey = source.mapKey;
             string cellValueId = cell.id;
 
             // A class swap has no constructor invocation. Keep the placement
@@ -105,15 +108,18 @@ namespace NeoCompose.Runtime
                 sourceValueId = source.sourceValueId,
                 value = new Dictionary<string, string> { ["Cell"] = cellValueId },
             };
-            if (keepPhysicalCell) SetWritableValue(ownership, converted);
-            else SetWritableValues(ownership, new MemberValue[] { cell, converted });
+            if (keepPhysicalCell)
+                SetWritableValue(ownership, converted);
+            else
+                SetWritableValues(ownership, new MemberValue[] { cell, converted });
         }
 
         private bool IsTileClass(string classId)
         {
             foreach (NeoSchemaClass schemaClass in ResolveClassInheritanceChain(classId))
             {
-                if (schemaClass.system?["worldKind"]?.ToString() == "tile") return true;
+                if (schemaClass.system?["worldKind"]?.ToString() == "tile")
+                    return true;
             }
             return false;
         }

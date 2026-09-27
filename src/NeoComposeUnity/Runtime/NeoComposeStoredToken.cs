@@ -69,46 +69,70 @@ namespace NeoCompose.Runtime
         /// The bearer access token. This is the secret value and must only ever
         /// be persisted through the OS-native secret store.
         /// </summary>
-        public string accessToken { get; }
+        public string accessToken
+        {
+            get;
+        }
 
         /// <summary>
         /// Absolute expiry as a Unix timestamp in seconds. The device flow does
         /// not issue refresh tokens, so expiry forces re-authentication.
         /// </summary>
-        public long expiresAtUnixSeconds { get; }
+        public long expiresAtUnixSeconds
+        {
+            get;
+        }
 
         /// <summary>
         /// Last server-side session update time as a Unix timestamp in seconds.
         /// Better Auth can extend the session after this time is old enough.
         /// </summary>
-        public long updatedAtUnixSeconds { get; }
+        public long updatedAtUnixSeconds
+        {
+            get;
+        }
 
         /// <summary>
         /// Last local <c>get-session</c> check as a Unix timestamp in seconds.
         /// Used only to throttle rolling-refresh probes.
         /// </summary>
-        public long sessionCheckedAtUnixSeconds { get; }
+        public long sessionCheckedAtUnixSeconds
+        {
+            get;
+        }
 
         /// <summary>
         /// The scopes granted to this token.
         /// </summary>
-        public string[] scopes { get; }
+        public string[] scopes
+        {
+            get;
+        }
 
         /// <summary>
         /// The auth base URL that issued this token. Tokens are keyed per auth
         /// base URL so localhost and production credentials never collide.
         /// </summary>
-        public string authBaseUrl { get; }
+        public string authBaseUrl
+        {
+            get;
+        }
 
         /// <summary>
         /// Signed-in user display name from <c>profile:read</c>, for UI only.
         /// </summary>
-        public string displayName { get; }
+        public string displayName
+        {
+            get;
+        }
 
         /// <summary>
         /// Signed-in user email from <c>profile:read</c>, for UI only.
         /// </summary>
-        public string displayEmail { get; }
+        public string displayEmail
+        {
+            get;
+        }
 
         public bool HasAccessToken => !string.IsNullOrWhiteSpace(accessToken);
 
@@ -176,13 +200,34 @@ namespace NeoCompose.Runtime
         {
         }
 
-        public long expiresAtUnixSeconds { get; }
-        public long updatedAtUnixSeconds { get; }
-        public long sessionCheckedAtUnixSeconds { get; }
-        public string[] scopes { get; }
-        public string authBaseUrl { get; }
-        public string displayName { get; }
-        public string displayEmail { get; }
+        public long expiresAtUnixSeconds
+        {
+            get;
+        }
+        public long updatedAtUnixSeconds
+        {
+            get;
+        }
+        public long sessionCheckedAtUnixSeconds
+        {
+            get;
+        }
+        public string[] scopes
+        {
+            get;
+        }
+        public string authBaseUrl
+        {
+            get;
+        }
+        public string displayName
+        {
+            get;
+        }
+        public string displayEmail
+        {
+            get;
+        }
 
         public bool IsExpired(DateTimeOffset now) =>
             expiresAtUnixSeconds <= now.ToUnixTimeSeconds();

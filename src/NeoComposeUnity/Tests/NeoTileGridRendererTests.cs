@@ -68,7 +68,9 @@ namespace NeoCompose.Tests
                 using var subscription = primitive.OnChanged(args => changed = args);
                 client.SetWritableValue(NeoValueOwnership.Save, new ObjectMemberValue
                 {
-                    id = "aaa-earlier", classId = ObjectClassId, containerId = "objects-link-objects",
+                    id = "aaa-earlier",
+                    classId = ObjectClassId,
+                    containerId = "objects-link-objects",
                     value = new Dictionary<string, string>(),
                 });
                 Assert.IsTrue(renderer.TryGetObjectRoot("shop-1", out var after));
@@ -80,7 +82,10 @@ namespace NeoCompose.Tests
                 Assert.That(added.AddedOrChangedInstances, Has.Member(new NeoObjectInstanceId("aaa-earlier")));
                 client.SetWritableValue(NeoValueOwnership.Save, new ObjectMemberValue
                 {
-                    id = "aaa-earlier", classId = ObjectClassId, containerId = "objects-link-objects", mark = NeoValueMarks.Removed,
+                    id = "aaa-earlier",
+                    classId = ObjectClassId,
+                    containerId = "objects-link-objects",
+                    mark = NeoValueMarks.Removed,
                 });
                 Assert.IsTrue(renderer.TryGetObjectRoot("shop-1", out after));
                 Assert.AreSame(original, after);
@@ -108,9 +113,11 @@ namespace NeoCompose.Tests
             var actual = new List<(NeoTileInstanceId, Vector2Int)> { (iterator.Current.InstanceId, iterator.Current.Cell) };
             client.SetWritableValue(NeoValueOwnership.Save, new Vector3MemberValue
             {
-                id = "shop-1-position", value = new NeoVector3Value { x = 30, y = 40 },
+                id = "shop-1-position",
+                value = new NeoVector3Value { x = 30, y = 40 },
             });
-            while (iterator.MoveNext()) actual.Add((iterator.Current.InstanceId, iterator.Current.Cell));
+            while (iterator.MoveNext())
+                actual.Add((iterator.Current.InstanceId, iterator.Current.Cell));
             CollectionAssert.AreEqual(expected, actual);
         }
 
@@ -179,10 +186,18 @@ namespace NeoCompose.Tests
             for (int i = 0; i < unrelatedTiles; i++)
             {
                 string id = $"unrelated-{i}";
-                data.values[id] = new ObjectMemberValue { id = id, classId = TileClassId,
-                    containerId = "background-link-tiles", value = new Dictionary<string, string> { ["Cell"] = id + "-cell" } };
-                data.values[id + "-cell"] = new Vector2MemberValue { id = id + "-cell",
-                    value = new NeoVector2Value { x = i + 100, y = 100 } };
+                data.values[id] = new ObjectMemberValue
+                {
+                    id = id,
+                    classId = TileClassId,
+                    containerId = "background-link-tiles",
+                    value = new Dictionary<string, string> { ["Cell"] = id + "-cell" }
+                };
+                data.values[id + "-cell"] = new Vector2MemberValue
+                {
+                    id = id + "-cell",
+                    value = new NeoVector2Value { x = i + 100, y = 100 }
+                };
             }
             using var client = NeoTestSaveStack.ClientFromSchema(data);
             var shop = WritableObject(client, "shop-1");
@@ -202,9 +217,11 @@ namespace NeoCompose.Tests
             var tiles = primitive.LookupCache.TileRecords(BackgroundLayerClassId);
             client.OnWritableValuesPublished += (_, _) => Assert.Fail("A placement write stores in place; it commits no plan.");
             var reads = new HashSet<string>();
-            using (client.CaptureValueReads(reads)) Move(10.1f, 20);
+            using (client.CaptureValueReads(reads))
+                Move(10.1f, 20);
             Assert.IsEmpty(notifications, "Subcell movement must not invalidate grid queries.");
-            using (client.CaptureValueReads(reads)) Move(11, 20);
+            using (client.CaptureValueReads(reads))
+                Move(11, 20);
             Assert.IsFalse(reads.Contains("class-backed-placement"));
             Assert.IsFalse(reads.Any(id => id.StartsWith("unrelated-")));
             Assert.AreSame(objects, primitive.LookupCache.ObjectRecords(ObjectsLayerClassId));
@@ -272,10 +289,18 @@ namespace NeoCompose.Tests
         public void RuntimeMovement_RejectsCollisionAndNonfinitePositionWithoutPublishing()
         {
             var data = BuildClassBackedTileGridProjectData();
-            data.values["other-shop"] = new ObjectMemberValue { id = "other-shop", classId = ObjectClassId,
-                containerId = "objects-link-objects", value = new Dictionary<string, string> { ["Position"] = "other-position" } };
-            data.values["other-position"] = new Vector3MemberValue { id = "other-position",
-                value = new NeoVector3Value { x = 12, y = 20 } };
+            data.values["other-shop"] = new ObjectMemberValue
+            {
+                id = "other-shop",
+                classId = ObjectClassId,
+                containerId = "objects-link-objects",
+                value = new Dictionary<string, string> { ["Position"] = "other-position" }
+            };
+            data.values["other-position"] = new Vector3MemberValue
+            {
+                id = "other-position",
+                value = new NeoVector3Value { x = 12, y = 20 }
+            };
             SetPlacementTiles(data, "other-shop", Vector2Int.zero);
             using var client = NeoTestSaveStack.ClientFromSchema(data);
             var shop = WritableObject(client, "shop-1");
@@ -303,17 +328,28 @@ namespace NeoCompose.Tests
         {
             var data = BuildClassBackedTileGridProjectData();
             SetPlacementTiles(data, "shop-1");
-            data.values["other-shop"] = new ObjectMemberValue { id = "other-shop", classId = ObjectClassId,
-                containerId = "objects-link-objects", value = new Dictionary<string, string> { ["Position"] = "other-position" } };
-            data.values["other-position"] = new Vector3MemberValue { id = "other-position",
-                value = new NeoVector3Value { x = 12, y = 20 } };
+            data.values["other-shop"] = new ObjectMemberValue
+            {
+                id = "other-shop",
+                classId = ObjectClassId,
+                containerId = "objects-link-objects",
+                value = new Dictionary<string, string> { ["Position"] = "other-position" }
+            };
+            data.values["other-position"] = new Vector3MemberValue
+            {
+                id = "other-position",
+                value = new NeoVector3Value { x = 12, y = 20 }
+            };
             using var client = NeoTestSaveStack.ClientFromSchema(data);
             var shop = WritableObject(client, "shop-1");
             var primitive = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid");
 
             NeoGeneratedTypesSupport.SetPlacementVector3(shop, "Position", new NeoReadOnlyVector3(12, 20, 0));
-            client.SetWritableValue(NeoValueOwnership.Save, new Vector3MemberValue { id = "other-position",
-                value = new NeoVector3Value { x = 12, y = 20 } });
+            client.SetWritableValue(NeoValueOwnership.Save, new Vector3MemberValue
+            {
+                id = "other-position",
+                value = new NeoVector3Value { x = 12, y = 20 }
+            });
 
             Assert.AreEqual(new Vector2Int(12, 20), primitive.LookupCache.ObjectRecord(ObjectsLayerClassId, "shop-1")!.Cell);
             Assert.AreEqual(new Vector2Int(12, 20), primitive.LookupCache.ObjectRecord(ObjectsLayerClassId, "other-shop")!.Cell);
@@ -327,8 +363,13 @@ namespace NeoCompose.Tests
         public void RuntimeMovement_PlanSwapsObjectsAtomically_AndRejectsOverlappingDestinations()
         {
             var data = BuildClassBackedTileGridProjectData();
-            data.values["other-shop"] = new ObjectMemberValue { id = "other-shop", classId = ObjectClassId,
-                containerId = "objects-link-objects", value = new Dictionary<string, string> { ["Position"] = "other-position" } };
+            data.values["other-shop"] = new ObjectMemberValue
+            {
+                id = "other-shop",
+                classId = ObjectClassId,
+                containerId = "objects-link-objects",
+                value = new Dictionary<string, string> { ["Position"] = "other-position" }
+            };
             data.values["other-position"] = Position("other-position", 12);
             SetPlacementTiles(data, "other-shop", Vector2Int.zero);
             using var client = NeoTestSaveStack.ClientFromSchema(data);
@@ -355,7 +396,10 @@ namespace NeoCompose.Tests
             Assert.AreEqual(1, notifications.Count);
 
             static Vector3MemberValue Position(string id, float x) => new()
-                { id = id, value = new NeoVector3Value { x = x, y = 20 } };
+            {
+                id = id,
+                value = new NeoVector3Value { x = x, y = 20 }
+            };
         }
 
         [Test]
@@ -377,8 +421,13 @@ namespace NeoCompose.Tests
             var data = BuildClassBackedTileGridProjectData();
             foreach (var (id, x) in new[] { ("tile-a", 100), ("tile-b", 101) })
             {
-                data.values[id] = new ObjectMemberValue { id = id, classId = TileClassId,
-                    containerId = "background-link-tiles", value = new Dictionary<string, string> { ["Cell"] = id + "-cell" } };
+                data.values[id] = new ObjectMemberValue
+                {
+                    id = id,
+                    classId = TileClassId,
+                    containerId = "background-link-tiles",
+                    value = new Dictionary<string, string> { ["Cell"] = id + "-cell" }
+                };
                 data.values[id + "-cell"] = new Vector2MemberValue { id = id + "-cell", value = new NeoVector2Value { x = x, y = 100 } };
             }
             using var client = NeoTestSaveStack.ClientFromSchema(data);
@@ -460,7 +509,8 @@ namespace NeoCompose.Tests
                 new object?[] { new NeoCellPattern(new Vector2Int(50, 50)) }, ctx, out _);
             client.SetWritableValue(NeoValueOwnership.Save, new Vector3MemberValue
             {
-                id = "shop-1-position", value = new NeoVector3Value { x = 11, y = 20, z = 0 },
+                id = "shop-1-position",
+                value = new NeoVector3Value { x = 11, y = 20, z = 0 },
             });
             Assert.AreEqual(2, invalidations, "Direct Position writes must invalidate cached placement queries.");
             directReads.Dispose();
@@ -515,7 +565,10 @@ namespace NeoCompose.Tests
                 var link = (ObjectMemberValue)data.values["objects-link"];
                 link.value!.Remove("Objects");
                 link.instanceConstructorId = constructor.id;
-                link.constructorArgs = new() { [NeoClient.ConstructorParameterId(constructor, 0)] = "objects-link-objects" };
+                link.constructorArgs = new()
+                {
+                    [NeoClient.ConstructorParameterId(constructor, 0)] = "objects-link-objects"
+                };
             }
             using var client = NeoTestSaveStack.ClientFromSchema(data);
             var owner = (ObjectMemberValue)client.values["objects-link"];
@@ -578,15 +631,19 @@ namespace NeoCompose.Tests
             var data = BuildClassBackedTileGridProjectData();
             var declaration = new StringMember
             {
-                id = "tile-default-name", name = "Name", kind = MemberKind.String,
-                valueId = "stored-tile-name", Format = NeoStringFormatKind.Plain,
+                id = "tile-default-name",
+                name = "Name",
+                kind = MemberKind.String,
+                valueId = "stored-tile-name",
+                Format = NeoStringFormatKind.Plain,
                 defaultValue = new StringMemberValueBase { value = "Grass" },
             };
             data.members[declaration.id] = declaration;
             data.classes[TileClassId].schema["Name"] = declaration.id;
             data.values[declaration.valueId] = new StringMemberValue
             {
-                id = declaration.valueId, value = "",
+                id = declaration.valueId,
+                value = "",
             };
             using var client = NeoTestSaveStack.ClientFromSchema(data);
             var factories = new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory>
@@ -957,7 +1014,10 @@ namespace NeoCompose.Tests
         {
             var data = BuildClassBackedTileGridProjectData();
             data.classes[BackgroundLayerClassId].system =
-                JObject.FromObject(new { worldKind = "objectLayer" });
+                JObject.FromObject(new
+                {
+                    worldKind = "objectLayer"
+                });
             var client = NeoTestSaveStack.ClientFromSchema(data);
             var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
                 client,
@@ -1003,7 +1063,10 @@ namespace NeoCompose.Tests
         {
             var data = BuildClassBackedTileGridProjectData();
             data.classes[TileLayerLinkSystemBaseClassId].system =
-                JObject.FromObject(new { worldKind = "objectLayerLink" });
+                JObject.FromObject(new
+                {
+                    worldKind = "objectLayerLink"
+                });
             var client = NeoTestSaveStack.ClientFromSchema(data);
             var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
                 client,
@@ -1029,7 +1092,10 @@ namespace NeoCompose.Tests
             data.classes[TileLayerLinkClassId].schema["Tiles"] =
                 "tile-layer-link-tiles-member";
             data.classes[TileLayerLinkClassId].system =
-                JObject.FromObject(new { worldKind = "tileLayerLink" });
+                JObject.FromObject(new
+                {
+                    worldKind = "tileLayerLink"
+                });
             data.internalRecordRelations!.Remove("relation-link-target");
             var client = NeoTestSaveStack.ClientFromSchema(data);
             var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
@@ -1200,11 +1266,19 @@ namespace NeoCompose.Tests
             {
                 var children = (ArrayMemberValue)data.values["town-grid-children"];
                 children.value = children.value!.Concat(new[] { "additional-source" }).ToArray();
-                data.values["additional-source"] = new ObjectMemberValue { id = "additional-source", classId = ObjectLayerLinkClassId,
-                    value = new Dictionary<string, string> { ["ObjectLayer"] = "objects-link-layer", ["Objects"] = "additional-objects" } };
+                data.values["additional-source"] = new ObjectMemberValue
+                {
+                    id = "additional-source",
+                    classId = ObjectLayerLinkClassId,
+                    value = new Dictionary<string, string> { ["ObjectLayer"] = "objects-link-layer", ["Objects"] = "additional-objects" }
+                };
                 data.values["additional-objects"] = new ArrayMemberValue { id = "additional-objects", value = new[] { "additional-object" } };
-                data.values["additional-object"] = new ObjectMemberValue { id = "additional-object", classId = ObjectClassId,
-                    value = new Dictionary<string, string> { ["Position"] = "additional-position" } };
+                data.values["additional-object"] = new ObjectMemberValue
+                {
+                    id = "additional-object",
+                    classId = ObjectClassId,
+                    value = new Dictionary<string, string> { ["Position"] = "additional-position" }
+                };
                 data.values["additional-position"] = new Vector3MemberValue { id = "additional-position", value = new NeoVector3Value { x = 100, y = 100 } };
             }
             using var client = NeoTestSaveStack.ClientFromSchema(data);
@@ -1221,7 +1295,8 @@ namespace NeoCompose.Tests
             int insertions = 0;
             client.OnWritableValuesPublished += (_, plan) =>
             {
-                if (plan.ObjectInsertion is null) return;
+                if (plan.ObjectInsertion is null)
+                    return;
                 Assert.AreEqual("town-grid", plan.ValidatedObjectInsertionGrid);
                 Assert.IsEmpty(plan.PreparedObjectLayers);
                 Assert.IsEmpty(plan.PreparedTileLayers);
@@ -1246,7 +1321,8 @@ namespace NeoCompose.Tests
             Assert.AreEqual(1, insertions);
             Assert.AreSame(objects, primitive.LookupCache.ObjectRecords(ObjectsLayerClassId));
             Assert.AreEqual(multipleSources ? 3 : 2, objects.Count);
-            if (multipleSources) Assert.AreEqual(2, objects.Single(record => record.InstanceId == "additional-object").Order);
+            if (multipleSources)
+                Assert.AreEqual(2, objects.Single(record => record.InstanceId == "additional-object").Order);
         }
 
         [Test]
@@ -1332,12 +1408,15 @@ namespace NeoCompose.Tests
             {
                 client.SetWritableValue(NeoValueOwnership.Save, new Vector3MemberValue
                 {
-                    id = id + "-size", value = new NeoVector3Value { x = 5, y = 5, z = 0 },
+                    id = id + "-size",
+                    value = new NeoVector3Value { x = 5, y = 5, z = 0 },
                 });
-                if (moveCell) client.SetWritableValue(NeoValueOwnership.Save, new Vector2MemberValue
-                {
-                    id = id + "-placement-cell-0", value = new NeoVector2Value { x = 0, y = 0 },
-                });
+                if (moveCell)
+                    client.SetWritableValue(NeoValueOwnership.Save, new Vector2MemberValue
+                    {
+                        id = id + "-placement-cell-0",
+                        value = new NeoVector2Value { x = 0, y = 0 },
+                    });
             });
             if (id == "shop-1" && moveCell)
             {
@@ -2282,27 +2361,27 @@ namespace NeoCompose.Tests
             };
 
         private static Variable AnimationEnvelopeVariable(string id) => new()
+        {
+            id = id,
+            typeInfo = new PrimitiveTypeInfo
             {
-                id = id,
-                typeInfo = new PrimitiveTypeInfo
+                type = MemberKind.Null,
+                required = false,
+            },
+            pointer = new ValuePointer
+            {
+                type = PointerKind.Value,
+                value = new Value
                 {
-                    type = MemberKind.Null,
-                    required = false,
-                },
-                pointer = new ValuePointer
-                {
-                    type = PointerKind.Value,
-                    value = new Value
+                    typeInfo = new PrimitiveTypeInfo
                     {
-                        typeInfo = new PrimitiveTypeInfo
-                        {
-                            type = MemberKind.Null,
-                            required = false,
-                        },
-                        value = JValue.CreateNull(),
+                        type = MemberKind.Null,
+                        required = false,
                     },
+                    value = JValue.CreateNull(),
                 },
-            };
+            },
+        };
 
         private static NeoObjectProjection SpawnAnimationTestObject(NeoClient client, Vector2Int? cell = null)
         {
@@ -2499,7 +2578,8 @@ namespace NeoCompose.Tests
             data.members[immutable.id] = immutable;
             data.classes["immutable-link"] = new NeoSchemaClass
             {
-                id = "immutable-link", extendsClassId = TileLayerLinkClassId,
+                id = "immutable-link",
+                extendsClassId = TileLayerLinkClassId,
                 schema = new Dictionary<string, string> { ["Tiles"] = immutable.id },
             };
             ((ObjectMemberValue)data.values["background-link"]).classId = "immutable-link";
@@ -2864,7 +2944,8 @@ namespace NeoCompose.Tests
                     yield return null;
                 }
 
-                if (error != null) throw error;
+                if (error != null)
+                    throw error;
                 Assert.IsTrue(complete, "Async tile grid render did not complete.");
 
                 var tilemap = go.GetComponentInChildren<Tilemap>();
@@ -3058,7 +3139,8 @@ namespace NeoCompose.Tests
                     yield return null;
                 }
 
-                if (error != null) throw error;
+                if (error != null)
+                    throw error;
                 Assert.IsTrue(complete, "Async provider timing render did not complete.");
                 CollectionAssert.AreEqual(syncPhases, asyncPhases);
                 CollectionAssert.AreEqual(
@@ -3596,12 +3678,15 @@ namespace NeoCompose.Tests
                 string id = "async-tile-" + i;
                 data.values[id] = new ObjectMemberValue
                 {
-                    id = id, classId = TileClassId, containerId = "background-link-tiles",
+                    id = id,
+                    classId = TileClassId,
+                    containerId = "background-link-tiles",
                     value = new Dictionary<string, string> { ["Cell"] = id + "-cell" },
                 };
                 data.values[id + "-cell"] = new Vector2MemberValue
                 {
-                    id = id + "-cell", value = new NeoVector2Value { x = i + 100, y = 100 },
+                    id = id + "-cell",
+                    value = new NeoVector2Value { x = i + 100, y = 100 },
                 };
             }
             using var client = NeoTestSaveStack.ClientFromSchema(data);
@@ -3624,14 +3709,17 @@ namespace NeoCompose.Tests
             {
                 var renderer = go.AddComponent<NeoTileGridRenderer>();
                 Render();
-                for (int frame = 0; frame < 120 && !complete; frame++) yield return null;
-                if (error is not null) throw error;
+                for (int frame = 0; frame < 120 && !complete; frame++)
+                    yield return null;
+                if (error is not null)
+                    throw error;
                 Assert.IsTrue(complete);
                 Assert.AreEqual(10, hydratedByFrame.Values.Sum());
                 Assert.That(hydratedByFrame.Values.Max(), Is.LessThanOrEqualTo(2),
                     "The one-tile budget permits at most one lookahead, not hydration of the whole layer.");
                 var map = go.GetComponentInChildren<Tilemap>();
-                for (int i = 0; i < 10; i++) Assert.IsNotNull(map.GetTile(new Vector3Int(i + 100, 100, 0)));
+                for (int i = 0; i < 10; i++)
+                    Assert.IsNotNull(map.GetTile(new Vector3Int(i + 100, 100, 0)));
 
                 async void Render()
                 {
@@ -3687,7 +3775,8 @@ namespace NeoCompose.Tests
                     yield return null;
                 }
 
-                if (error != null) throw error;
+                if (error != null)
+                    throw error;
                 Assert.IsTrue(complete, "Async tile grid render did not complete.");
                 var tilemap = go.GetComponentInChildren<Tilemap>();
                 Assert.IsNotNull(tilemap);
@@ -3759,7 +3848,8 @@ namespace NeoCompose.Tests
                 // edit-mode equivalent of a caller restarting mid-flight.
                 renderer.Lifecycle = new TileLayerCreatedCallbackLifecycle(() =>
                 {
-                    if (restarted) return;
+                    if (restarted)
+                        return;
                     restarted = true;
                     SecondRender();
                 });
@@ -4193,7 +4283,10 @@ namespace NeoCompose.Tests
         {
             var data = BuildClassBackedTileGridProjectData();
             data.classes[ObjectsLayerClassId].system =
-                JObject.FromObject(new { worldKind = "tileLayer" });
+                JObject.FromObject(new
+                {
+                    worldKind = "tileLayer"
+                });
             var client = NeoTestSaveStack.ClientFromSchema(data);
             var factories = BuildClassBackedReadOnlyFactories();
             var writableFactories = BuildClassBackedWritableFactories();
@@ -4446,7 +4539,8 @@ namespace NeoCompose.Tests
             }
             finally
             {
-                if (go != null) UnityEngine.Object.DestroyImmediate(go);
+                if (go != null)
+                    UnityEngine.Object.DestroyImmediate(go);
                 DestroyTestSprite(firstSprite);
                 DestroyTestSprite(secondSprite);
             }
@@ -4512,7 +4606,8 @@ namespace NeoCompose.Tests
             }
             finally
             {
-                if (go != null) UnityEngine.Object.DestroyImmediate(go);
+                if (go != null)
+                    UnityEngine.Object.DestroyImmediate(go);
                 UnityEngine.Object.DestroyImmediate(generatedTile);
                 UnityEngine.Object.DestroyImmediate(database);
             }
@@ -5108,7 +5203,8 @@ namespace NeoCompose.Tests
             }
             finally
             {
-                if (go != null) UnityEngine.Object.DestroyImmediate(go);
+                if (go != null)
+                    UnityEngine.Object.DestroyImmediate(go);
             }
         }
 
@@ -5193,7 +5289,8 @@ namespace NeoCompose.Tests
                     NeoGeneratedTypesSupport.AsWritable(grouped.BackingNode),
                     _ => client.SetWritableValue(NeoValueOwnership.Session, new Vector2MemberValue
                     {
-                        id = pointId, value = new NeoVector2Value { x = 1.5f, y = 0.25f },
+                        id = pointId,
+                        value = new NeoVector2Value { x = 1.5f, y = 0.25f },
                     }));
 
                 AssertSamePosition(new Vector3(3, 0.5f, 0), pair.localPosition);
@@ -5434,24 +5531,33 @@ namespace NeoCompose.Tests
             };
             data.members["sorting-group-sort-point-member"] = new Vector2Member
             {
-                id = "sorting-group-sort-point-member", projectId = "project-a", name = "SortPoint",
-                kind = MemberKind.Vector2, DeclaredStorage = NeoMemberStorage.Session,
+                id = "sorting-group-sort-point-member",
+                projectId = "project-a",
+                name = "SortPoint",
+                kind = MemberKind.Vector2,
+                DeclaredStorage = NeoMemberStorage.Session,
             };
             data.members["object-sorting-group-member"] = new ClassMember
             {
-                id = "object-sorting-group-member", projectId = "project-a", name = "SortingGroup",
-                kind = MemberKind.Class, classId = SortingGroupClassId, DeclaredStorage = NeoMemberStorage.Session,
+                id = "object-sorting-group-member",
+                projectId = "project-a",
+                name = "SortingGroup",
+                kind = MemberKind.Class,
+                classId = SortingGroupClassId,
+                DeclaredStorage = NeoMemberStorage.Session,
             };
             data.classes[ObjectClassId].schema["SortingGroup"] = "object-sorting-group-member";
             ((ObjectMemberValue)data.values["shop-object"]).value!["SortingGroup"] = "shop-object-sorting-group";
             data.values["shop-object-sorting-group"] = new ObjectMemberValue
             {
-                id = "shop-object-sorting-group", classId = SortingGroupClassId,
+                id = "shop-object-sorting-group",
+                classId = SortingGroupClassId,
                 value = new Dictionary<string, string> { ["SortPoint"] = "shop-object-sort-point" },
             };
             data.values["shop-object-sort-point"] = new Vector2MemberValue
             {
-                id = "shop-object-sort-point", value = new NeoVector2Value { x = 0.5f, y = 0 },
+                id = "shop-object-sort-point",
+                value = new NeoVector2Value { x = 0.5f, y = 0 },
             };
             return data;
         }
@@ -5930,7 +6036,9 @@ namespace NeoCompose.Tests
             part.Position = new NeoReadOnlyVector3(1, 2, 0);
             var sprite = new TestSpriteObject(client, part.BackingNode)
             {
-                Name = "Part", Position = part.Position, Size = new NeoReadOnlyVector3(2, 3, 0),
+                Name = "Part",
+                Position = part.Position,
+                Size = new NeoReadOnlyVector3(2, 3, 0),
             };
             part.Children = new INeoWorldObjectValue[] { new TestSpriteChild { Name = "Art" } };
             var sibling = new TestSpriteChild { Name = "Sibling" };
@@ -5966,17 +6074,21 @@ namespace NeoCompose.Tests
                     client.EndAnimationFrame();
                     Assert.AreEqual(anchor + offset * 2, target.localPosition);
                     Assert.AreEqual(otherPosition, other.localPosition);
-                    if (child != null) Assert.AreEqual(childPosition, child.localPosition);
+                    if (child != null)
+                        Assert.AreEqual(childPosition, child.localPosition);
                 }
                 // A queued animation callback must not survive teardown.
                 client.BeginAnimationFrame();
                 Write(Vector3.one);
                 var beforeDestroy = target.localPosition;
-                if (destroyComponent) UnityEngine.Object.DestroyImmediate(renderer);
-                else renderer.Clear();
+                if (destroyComponent)
+                    UnityEngine.Object.DestroyImmediate(renderer);
+                else
+                    renderer.Clear();
                 Assert.DoesNotThrow(() => client.EndAnimationFrame());
                 Assert.DoesNotThrow(() => Write(new Vector3(5, 6, 0)));
-                if (destroyComponent) Assert.AreEqual(beforeDestroy, target.localPosition);
+                if (destroyComponent)
+                    Assert.AreEqual(beforeDestroy, target.localPosition);
             }
             finally { UnityEngine.Object.DestroyImmediate(go); }
         }
@@ -6214,7 +6326,10 @@ namespace NeoCompose.Tests
                 Assert.IsTrue(part.TryGetGameObject(out _));
                 client.SetWritableValue(NeoValueOwnership.Save, new ObjectMemberValue
                 {
-                    id = "shop-1", classId = ObjectClassId, containerId = "objects-link-objects", mark = NeoValueMarks.Removed,
+                    id = "shop-1",
+                    classId = ObjectClassId,
+                    containerId = "objects-link-objects",
+                    mark = NeoValueMarks.Removed,
                 });
                 Assert.IsFalse(renderer.TryGetObjectRoot("shop-1", out _));
                 Assert.IsTrue(partReadyAtDespawn, "removal runs despawn hooks while parts still answer");
@@ -6771,13 +6886,22 @@ namespace NeoCompose.Tests
             {
             }
 
-            public Sprite? Sprite { get; set; }
-            public INeoSmartTile? SmartTile { get; set; }
+            public Sprite? Sprite
+            {
+                get; set;
+            }
+            public INeoSmartTile? SmartTile
+            {
+                get; set;
+            }
         }
 
         private sealed class TestSmartTile : INeoSmartTile
         {
-            public string DefaultCollider { get; set; } =
+            public string DefaultCollider
+            {
+                get; set;
+            } =
                 NeoSmartTileOptionIds.ColliderSprite;
 
             public List<INeoSmartTileRule> Rules { get; } = new();
@@ -6795,7 +6919,10 @@ namespace NeoCompose.Tests
 
             public string Collider { get; set; } = NeoSmartTileOptionIds.ColliderSprite;
 
-            public string RuleTransform { get; set; } =
+            public string RuleTransform
+            {
+                get; set;
+            } =
                 NeoSmartTileOptionIds.TransformFixed;
 
             public double MinAnimationSpeed { get; set; } = 1d;
@@ -6809,11 +6936,17 @@ namespace NeoCompose.Tests
 
         private sealed class TestSmartTileNeighbor : INeoSmartTileNeighbor
         {
-            public Vector2Int Cell { get; set; }
+            public Vector2Int Cell
+            {
+                get; set;
+            }
 
             public string Condition { get; set; } = NeoSmartTileOptionIds.ConditionThis;
 
-            public string? TileClassId { get; set; }
+            public string? TileClassId
+            {
+                get; set;
+            }
         }
 
         private sealed class MutableTestTileLayerRuntime : ReadOnlyNeoTileLayerRuntime
@@ -6959,7 +7092,10 @@ namespace NeoCompose.Tests
 
         private sealed class RecordingTileSetLifecycle : NeoTileGridLifecycle
         {
-            public JObject? ExistingInstance { get; private set; }
+            public JObject? ExistingInstance
+            {
+                get; private set;
+            }
 
             public override void BeforeSetTile(NeoTileSetContext context)
             {
@@ -7017,14 +7153,26 @@ namespace NeoCompose.Tests
             }
 
             public Func<NeoTileLayerCreateContext, NeoTileLayerRenderTarget?>?
-                TargetFactory { get; set; }
+                TargetFactory
+            {
+                get; set;
+            }
 
-            public Action<NeoTileLayerRenderTargetContext>? CreatedCallback { get; set; }
+            public Action<NeoTileLayerRenderTargetContext>? CreatedCallback
+            {
+                get; set;
+            }
 
             public Action<NeoTileLayerRenderTargetContext>?
-                InitiallyRenderedCallback { get; set; }
+                InitiallyRenderedCallback
+            {
+                get; set;
+            }
 
-            public Action<NeoTileLayerRenderTargetChangedContext>? ChangedCallback { get; set; }
+            public Action<NeoTileLayerRenderTargetChangedContext>? ChangedCallback
+            {
+                get; set;
+            }
 
             public List<NeoTileLayerRenderTarget> CreatedTargets { get; } = new();
 
@@ -7135,11 +7283,26 @@ namespace NeoCompose.Tests
             {
             }
 
-            public int GetTilesCalls { get; private set; }
-            public int GetRenderSnapshotCalls { get; private set; }
-            public bool ThrowOnGetTiles { get; set; }
-            public bool ThrowOnGetRenderSnapshot { get; set; }
-            public bool ThrowOnGetTile { get; set; }
+            public int GetTilesCalls
+            {
+                get; private set;
+            }
+            public int GetRenderSnapshotCalls
+            {
+                get; private set;
+            }
+            public bool ThrowOnGetTiles
+            {
+                get; set;
+            }
+            public bool ThrowOnGetRenderSnapshot
+            {
+                get; set;
+            }
+            public bool ThrowOnGetTile
+            {
+                get; set;
+            }
 
             internal override NeoTileLayerRenderSnapshot GetRenderSnapshot()
             {
@@ -7186,9 +7349,18 @@ namespace NeoCompose.Tests
                 ObjectLayersInOrder = objectLayers ?? Array.Empty<IReadOnlyNeoObjectLayerRuntime>();
             }
 
-            public NeoReadOnlyTileGridPrimitive Primitive { get; }
-            public IReadOnlyList<IReadOnlyNeoTileLayerRuntime> TileLayersInOrder { get; }
-            public IReadOnlyList<IReadOnlyNeoObjectLayerRuntime> ObjectLayersInOrder { get; }
+            public NeoReadOnlyTileGridPrimitive Primitive
+            {
+                get;
+            }
+            public IReadOnlyList<IReadOnlyNeoTileLayerRuntime> TileLayersInOrder
+            {
+                get;
+            }
+            public IReadOnlyList<IReadOnlyNeoObjectLayerRuntime> ObjectLayersInOrder
+            {
+                get;
+            }
             public NeoTileGridRenderer? Renderer => Primitive.Renderer;
             public IDisposable OnChanged(Action<NeoTileGridChangedArgs> handler) =>
                 Primitive.OnChanged(handler);
@@ -7215,15 +7387,24 @@ namespace NeoCompose.Tests
             {
             }
 
-            public Sprite? Sprite { get; set; }
+            public Sprite? Sprite
+            {
+                get; set;
+            }
             public string Name { get; set; } = "";
             public NeoReadOnlyVector3 Position { get; set; } = new(Vector3.zero);
             public NeoReadOnlyVector3 Size { get; set; } = new(Vector3.one);
 
             public bool Enabled { get; set; } = true;
-            public IReadOnlyList<INeoWorldObjectValue> Children { get; set; } =
+            public IReadOnlyList<INeoWorldObjectValue> Children
+            {
+                get; set;
+            } =
                 new List<INeoWorldObjectValue>();
-            public INeoCollider? Collider { get; set; }
+            public INeoCollider? Collider
+            {
+                get; set;
+            }
             private INeoSortingGroup? sortingGroup;
 
             /// <summary>
@@ -7235,9 +7416,11 @@ namespace NeoCompose.Tests
             {
                 get
                 {
-                    if (sortingGroup is not TestNodeSortingGroup current) return sortingGroup;
+                    if (sortingGroup is not TestNodeSortingGroup current)
+                        return sortingGroup;
                     var node = BackingNode.Get<NeoMemberClass>(nameof(SortingGroup));
-                    if (node.value?.value is null) return null;
+                    if (node.value?.value is null)
+                        return null;
                     if (!ReferenceEquals(current.BackingNode, node))
                         sortingGroup = new TestNodeSortingGroup(Client, node);
                     return sortingGroup;
@@ -7245,8 +7428,14 @@ namespace NeoCompose.Tests
                 set => sortingGroup = value;
             }
 
-            public Action? Spawned { get; set; }
-            public Action? Despawned { get; set; }
+            public Action? Spawned
+            {
+                get; set;
+            }
+            public Action? Despawned
+            {
+                get; set;
+            }
             public void OnObjectSpawned(NeoObjectBehaviour behaviour) => Spawned?.Invoke();
             public void OnObjectDespawned(NeoObjectBehaviour behaviour) => Despawned?.Invoke();
         }
@@ -7264,11 +7453,23 @@ namespace NeoCompose.Tests
 
             public bool Enabled { get; set; } = true;
             public Sprite Sprite { get; set; } = null!;
-            public bool FlipX { get; set; }
-            public bool FlipY { get; set; }
-            public string MaskInteraction { get; set; } =
+            public bool FlipX
+            {
+                get; set;
+            }
+            public bool FlipY
+            {
+                get; set;
+            }
+            public string MaskInteraction
+            {
+                get; set;
+            } =
                 NeoSpriteMaskInteraction.None.optionId;
-            public int? SortingOrder { get; set; }
+            public int? SortingOrder
+            {
+                get; set;
+            }
         }
 
         /// <summary>
@@ -7290,11 +7491,23 @@ namespace NeoCompose.Tests
 
             public bool Enabled { get; set; } = true;
             public Sprite Sprite { get; set; } = null!;
-            public bool FlipX { get; set; }
-            public bool FlipY { get; set; }
-            public string MaskInteraction { get; set; } =
+            public bool FlipX
+            {
+                get; set;
+            }
+            public bool FlipY
+            {
+                get; set;
+            }
+            public string MaskInteraction
+            {
+                get; set;
+            } =
                 NeoSpriteMaskInteraction.None.optionId;
-            public int? SortingOrder { get; set; }
+            public int? SortingOrder
+            {
+                get; set;
+            }
         }
 
         /// <summary>
@@ -7306,14 +7519,20 @@ namespace NeoCompose.Tests
             : INeoWorldObjectValue,
               INeoObjectCompositionSource, INeoColliderSource
         {
-            public INeoCollider? Collider { get; set; }
+            public INeoCollider? Collider
+            {
+                get; set;
+            }
             public string? valueId => null;
             public string Name { get; set; } = "";
             public NeoReadOnlyVector3 Position { get; set; } = new(Vector3.zero);
             public NeoReadOnlyVector3 Size { get; set; } = new(Vector3.one);
 
             public bool Enabled { get; set; } = true;
-            public IReadOnlyList<INeoWorldObjectValue> Children { get; set; } =
+            public IReadOnlyList<INeoWorldObjectValue> Children
+            {
+                get; set;
+            } =
                 new List<INeoWorldObjectValue>();
         }
 
@@ -7337,20 +7556,38 @@ namespace NeoCompose.Tests
             public NeoReadOnlyVector3 Size { get; set; } = new(Vector3.one);
 
             public bool Enabled { get; set; } = true;
-            public IReadOnlyList<INeoWorldObjectValue> Children { get; set; } =
+            public IReadOnlyList<INeoWorldObjectValue> Children
+            {
+                get; set;
+            } =
                 new List<INeoWorldObjectValue>();
             public Sprite Sprite { get; set; } = null!;
-            public bool FlipX { get; set; }
-            public bool FlipY { get; set; }
-            public string MaskInteraction { get; set; } =
+            public bool FlipX
+            {
+                get; set;
+            }
+            public bool FlipY
+            {
+                get; set;
+            }
+            public string MaskInteraction
+            {
+                get; set;
+            } =
                 NeoSpriteMaskInteraction.None.optionId;
-            public int? SortingOrder { get; set; }
+            public int? SortingOrder
+            {
+                get; set;
+            }
         }
 
         private sealed class TestSortingGroup : INeoSortingGroup
         {
             public string? valueId => null;
-            public bool SortAtRoot { get; set; }
+            public bool SortAtRoot
+            {
+                get; set;
+            }
             public NeoReadOnlyVector2 SortPoint { get; set; } = new(0.5f, 0f);
         }
 
@@ -7373,7 +7610,8 @@ namespace NeoCompose.Tests
                 get
                 {
                     var memberNode = node.Get<NeoMemberVector2>("SortPoint");
-                    if (TryGetStoredView<NeoReadOnlyVector2>("SortPoint", memberNode, out var cached)) return cached;
+                    if (TryGetStoredView<NeoReadOnlyVector2>("SortPoint", memberNode, out var cached))
+                        return cached;
                     return CacheStoredView("SortPoint", memberNode, new NeoReadOnlyVector2(memberNode));
                 }
             }
@@ -7383,13 +7621,22 @@ namespace NeoCompose.Tests
         {
             public string? valueId => null;
             public NeoReadOnlyVector2 Size { get; set; } = new(Vector2.one);
-            public NeoReadOnlyVector2? Offset { get; set; }
-            public bool? IsTrigger { get; set; }
+            public NeoReadOnlyVector2? Offset
+            {
+                get; set;
+            }
+            public bool? IsTrigger
+            {
+                get; set;
+            }
         }
 
         private sealed class TestColliderSource : INeoColliderSource
         {
-            public INeoCollider? Collider { get; set; }
+            public INeoCollider? Collider
+            {
+                get; set;
+            }
         }
 
         [TestCase(false, false)]
@@ -7439,7 +7686,9 @@ namespace NeoCompose.Tests
             var data = BuildPlacementAnimationProjectData();
             data.members["sort-notification"] = new IntMember
             {
-                id = "sort-notification", kind = MemberKind.Int, name = "SortingOrder",
+                id = "sort-notification",
+                kind = MemberKind.Int,
+                name = "SortingOrder",
                 defaultValue = new NumberMemberValueBase { value = 0 },
             };
             data.classes[ObjectClassId].schema["SortingOrder"] = "sort-notification";
@@ -7448,7 +7697,8 @@ namespace NeoCompose.Tests
             var child = new TestSpriteChild { SortingOrder = 5 };
             TestSpriteObject? placed = null;
             NeoGeneratedClassValue root = obj;
-            if (nested) obj.Children = new INeoWorldObjectValue[] { child };
+            if (nested)
+                obj.Children = new INeoWorldObjectValue[] { child };
             else
             {
                 placed = new TestSpriteObject(client, obj.BackingNode) { SortingOrder = 5 };
@@ -7467,7 +7717,8 @@ namespace NeoCompose.Tests
                 foreach (int? offset in new int?[] { -4, null, 30, 5 })
                 {
                     child.SortingOrder = offset;
-                    if (placed != null) placed.SortingOrder = offset;
+                    if (placed != null)
+                        placed.SortingOrder = offset;
                     NeoGeneratedTypesSupport.SetValue(NeoGeneratedTypesSupport.AsWritable(obj.BackingNode),
                         "SortingOrder", NeoValueWritePayload.FromValue(++notification));
                     Assert.That(drawn.sortingOrder, Is.EqualTo(12 + (offset ?? 0)));
@@ -7483,7 +7734,9 @@ namespace NeoCompose.Tests
             var data = BuildPlacementAnimationProjectData();
             data.members["sprite-notification"] = new BoolMember
             {
-                id = "sprite-notification", kind = MemberKind.Bool, name = "FlipX",
+                id = "sprite-notification",
+                kind = MemberKind.Bool,
+                name = "FlipX",
                 defaultValue = new BoolMemberValueBase { value = false },
             };
             data.classes[ObjectClassId].schema["FlipX"] = "sprite-notification";
@@ -7518,7 +7771,8 @@ namespace NeoCompose.Tests
                     Assert.AreSame(art, drawn.sprite);
                     var collider = drawn.GetComponent<BoxCollider2D>();
                     Assert.AreEqual(art != null, collider.enabled);
-                    if (art == null) continue;
+                    if (art == null)
+                        continue;
                     Assert.That(drawn.transform.localScale.x, Is.EqualTo(2f / art.bounds.size.x).Within(.001f));
                     Assert.That(drawn.transform.localScale.y, Is.EqualTo(3f / art.bounds.size.y).Within(.001f));
                     Assert.AreEqual((Vector2)art.bounds.size, collider.size);
@@ -8489,8 +8743,12 @@ namespace NeoCompose.Tests
                     new Variable { id = "__this__", typeInfo = new ClassTypeInfo { type = MemberKind.Class, classId = classId } },
                     new Variable { id = "__root__", typeInfo = new ClassTypeInfo { type = MemberKind.Class, classId = "__root__" } },
                     new Variable { id = "__arg_0__", typeInfo = constructor.argumentTypes[0] } },
-                typeInfo = new CollectionTypeInfo { type = MemberKind.List, required = true,
-                    entryTypeInfo = constructor.argumentTypes[0].entryTypeInfo },
+                typeInfo = new CollectionTypeInfo
+                {
+                    type = MemberKind.List,
+                    required = true,
+                    entryTypeInfo = constructor.argumentTypes[0].entryTypeInfo
+                },
                 instructions = new Instruction[] { new ReturnInstruction {
                     type = InstructionKind.Return,
                     pointer = new VariablePointer { type = PointerKind.Variable, variableId = "__arg_0__" } } },

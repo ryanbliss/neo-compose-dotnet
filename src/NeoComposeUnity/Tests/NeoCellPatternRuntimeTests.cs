@@ -19,11 +19,27 @@ namespace NeoCompose.Tests
         {
             ProjectData data = NeoGenericTestFixture.BuildProjectData();
             var seed = JObject.Parse(File.ReadAllText("Packages/com.ryanbliss.neocompose/Tests/cell-pattern-seed.json"));
-            foreach (var item in seed["classes"]!) { var value = item.ToObject<NeoSchemaClass>()!; data.classes[value.id] = value; }
-            foreach (var item in seed["members"]!) { var value = item.ToObject<Member>()!; data.members[value.id] = value; }
-            foreach (var item in seed["enums"]!) { var value = item.ToObject<NeoCompose.Runtime.Json.Enum>()!; data.enums[value.id] = value; }
+            foreach (var item in seed["classes"]!)
+            {
+                var value = item.ToObject<NeoSchemaClass>()!;
+                data.classes[value.id] = value;
+            }
+            foreach (var item in seed["members"]!)
+            {
+                var value = item.ToObject<Member>()!;
+                data.members[value.id] = value;
+            }
+            foreach (var item in seed["enums"]!)
+            {
+                var value = item.ToObject<NeoCompose.Runtime.Json.Enum>()!;
+                data.enums[value.id] = value;
+            }
             data.constructors ??= new Dictionary<string, ConstructorRecord>();
-            foreach (var item in seed["constructors"]!) { var value = item.ToObject<ConstructorRecord>()!; data.constructors[value.id] = value; }
+            foreach (var item in seed["constructors"]!)
+            {
+                var value = item.ToObject<ConstructorRecord>()!;
+                data.constructors[value.id] = value;
+            }
             configure?.Invoke(data);
             return NeoTestSaveStack.ClientFromSchema(data);
         }
@@ -66,7 +82,8 @@ namespace NeoCompose.Tests
             };
             var query = new CallFunctionPointer
             {
-                type = PointerKind.CallFunction, callSiteId = "query",
+                type = PointerKind.CallFunction,
+                callSiteId = "query",
                 memberId = "system_f5ca386c-990c-54a1-8473-2d49d2cd887d",
                 args = new Pointer[] { translate },
             };
@@ -128,15 +145,40 @@ namespace NeoCompose.Tests
             var patternType = new ClassTypeInfo { type = MemberKind.Class, required = true, classId = NeoCellPatternStorage.ClassId };
             using var client = Client(data =>
             {
-                data.members["native-pattern"] = new FunctionMember { id = "native-pattern", name = "Pattern", kind = MemberKind.Function,
-                    Modifier = NeoMemberModifierKind.Static, returnTypeInfo = patternType, argumentTypes = Array.Empty<FunctionArgumentTypeInfo>() };
-                data.members["native-patterns"] = new FunctionMember { id = "native-patterns", name = "Patterns", kind = MemberKind.Function,
-                    Modifier = NeoMemberModifierKind.Static, returnTypeInfo = new CollectionTypeInfo { type = MemberKind.List, required = true, entryTypeInfo = patternType }, argumentTypes = Array.Empty<FunctionArgumentTypeInfo>() };
+                data.members["native-pattern"] = new FunctionMember
+                {
+                    id = "native-pattern",
+                    name = "Pattern",
+                    kind = MemberKind.Function,
+                    Modifier = NeoMemberModifierKind.Static,
+                    returnTypeInfo = patternType,
+                    argumentTypes = Array.Empty<FunctionArgumentTypeInfo>()
+                };
+                data.members["native-patterns"] = new FunctionMember
+                {
+                    id = "native-patterns",
+                    name = "Patterns",
+                    kind = MemberKind.Function,
+                    Modifier = NeoMemberModifierKind.Static,
+                    returnTypeInfo = new CollectionTypeInfo { type = MemberKind.List, required = true, entryTypeInfo = patternType },
+                    argumentTypes = Array.Empty<FunctionArgumentTypeInfo>()
+                };
                 data.classes[NeoCellPatternStorage.ClassId].schema["NativePattern"] = "native-pattern";
                 data.classes[NeoCellPatternStorage.ClassId].schema["NativePatterns"] = "native-patterns";
-                data.members["native-nested"] = new FunctionMember { id = "native-nested", name = "Nested", kind = MemberKind.Function,
-                    Modifier = NeoMemberModifierKind.Static, returnTypeInfo = new CollectionTypeInfo { type = MemberKind.List, required = true,
-                        entryTypeInfo = new CollectionTypeInfo { type = MemberKind.List, required = true, entryTypeInfo = patternType } }, argumentTypes = Array.Empty<FunctionArgumentTypeInfo>() };
+                data.members["native-nested"] = new FunctionMember
+                {
+                    id = "native-nested",
+                    name = "Nested",
+                    kind = MemberKind.Function,
+                    Modifier = NeoMemberModifierKind.Static,
+                    returnTypeInfo = new CollectionTypeInfo
+                    {
+                        type = MemberKind.List,
+                        required = true,
+                        entryTypeInfo = new CollectionTypeInfo { type = MemberKind.List, required = true, entryTypeInfo = patternType }
+                    },
+                    argumentTypes = Array.Empty<FunctionArgumentTypeInfo>()
+                };
                 data.classes[NeoCellPatternStorage.ClassId].schema["NativeNested"] = "native-nested";
             });
             client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>

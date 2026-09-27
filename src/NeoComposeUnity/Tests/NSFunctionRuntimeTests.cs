@@ -186,7 +186,8 @@ namespace NeoCompose.Tests
             using var client = BuildClient(new JsonMember[] { function }, ReceiverClass());
             var node = new NeoMemberNSFunction(client, function.id, null, NeoValueOwnership.Session);
             var args = new object?[] { 17 };
-            for (int i = 0; i < 100; i++) node.InvokeStatic(args);
+            for (int i = 0; i < 100; i++)
+                node.InvokeStatic(args);
             var recorder = UnityEngine.Profiling.Recorder.Get("GC.Alloc");
             recorder.enabled = false;
             recorder.FilterToCurrentThread();
@@ -194,7 +195,11 @@ namespace NeoCompose.Tests
             object? result = null;
             recorder.enabled = true;
             watch.Start();
-            try { for (int i = 0; i < 10000; i++) result = node.InvokeStatic(args); }
+            try
+            {
+                for (int i = 0; i < 10000; i++)
+                    result = node.InvokeStatic(args);
+            }
             finally { watch.Stop(); recorder.enabled = false; recorder.CollectFromAllThreads(); }
             Assert.That(result, Is.EqualTo(17 + locals));
             TestContext.WriteLine($"Numeric locals={locals}: {recorder.sampleBlockCount / 10000d} allocations/call; {watch.Elapsed.TotalMilliseconds / 10d} us/call");
@@ -206,8 +211,11 @@ namespace NeoCompose.Tests
             Pointer MathCall(string op, params Pointer[] args) => new FunctionPointer
             {
                 type = PointerKind.Function,
-                function = new MathOpFunction { type = FunctionKind.MathOp,
-                    info = new FunctionMathOpInfo { op = op, argPointers = args } },
+                function = new MathOpFunction
+                {
+                    type = FunctionKind.MathOp,
+                    info = new FunctionMathOpInfo { op = op, argPointers = args }
+                },
             };
             var argument = Argument("amount", MemberKind.Int);
             var expression = MathCall(MathOpKind.Clamp,
@@ -218,13 +226,18 @@ namespace NeoCompose.Tests
             using var client = BuildClient(new JsonMember[] { function }, ReceiverClass());
             var node = new NeoMemberNSFunction(client, function.id, null, NeoValueOwnership.Session);
             var args = new object?[] { 17 };
-            for (int i = 0; i < 100; i++) node.InvokeStatic(args);
+            for (int i = 0; i < 100; i++)
+                node.InvokeStatic(args);
             var recorder = UnityEngine.Profiling.Recorder.Get("GC.Alloc");
             recorder.enabled = false;
             recorder.FilterToCurrentThread();
             object? result = null;
             recorder.enabled = true;
-            try { for (int i = 0; i < 10000; i++) result = node.InvokeStatic(args); }
+            try
+            {
+                for (int i = 0; i < 10000; i++)
+                    result = node.InvokeStatic(args);
+            }
             finally { recorder.enabled = false; recorder.CollectFromAllThreads(); }
             Assert.That(result, Is.EqualTo(3));
             TestContext.WriteLine($"Nested numeric math: {recorder.sampleBlockCount / 10000d} allocations/call");
@@ -302,7 +315,8 @@ namespace NeoCompose.Tests
             using var client = BuildClient(new JsonMember[] { function }, ReceiverClass());
             var node = new NeoMemberNSFunction(client, function.id, null, NeoValueOwnership.Session);
             var args = new object?[] { 17 };
-            for (int i = 0; i < 10; i++) node.InvokeStatic(args);
+            for (int i = 0; i < 10; i++)
+                node.InvokeStatic(args);
 
             // Unity Mono's GC byte counter is unreliable. The profiler counts real
             // allocations on this thread, excluding fixture and argument setup.
@@ -313,7 +327,8 @@ namespace NeoCompose.Tests
             recorder.enabled = true;
             try
             {
-                for (int i = 0; i < 100; i++) result = node.InvokeStatic(args);
+                for (int i = 0; i < 100; i++)
+                    result = node.InvokeStatic(args);
             }
             finally
             {
@@ -352,8 +367,13 @@ namespace NeoCompose.Tests
         public void ImmediateFunction_ReturnedClosureRetainsValuesAfterScopeReuse()
         {
             var argument = new FunctionArgumentTypeInfo { name = "amount", type = MemberKind.Int, required = true };
-            var delegateType = new DelegateTypeInfo { type = MemberKind.NSDelegate, required = true,
-                returnTypeInfo = IntType(), argumentTypes = Array.Empty<TypeInfo>() };
+            var delegateType = new DelegateTypeInfo
+            {
+                type = MemberKind.NSDelegate,
+                required = true,
+                returnTypeInfo = IntType(),
+                argumentTypes = Array.Empty<TypeInfo>()
+            };
             var closure = new FunctionWithReturnType
             {
                 compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
@@ -366,10 +386,13 @@ namespace NeoCompose.Tests
                 Action(delegateType, new[] { argument },
                     VariableDeclaration("saved-numeric", Add(Variable("__arg_0__"), Number(1)), IntType()),
                     Return(new DelegateClosurePointer
-                {
-                    type = PointerKind.DelegateClosure, typeInfo = delegateType, action = closure,
-                    captures = new Pointer[] { Variable("saved-numeric") }, code = "() => amount + 1",
-                })));
+                    {
+                        type = PointerKind.DelegateClosure,
+                        typeInfo = delegateType,
+                        action = closure,
+                        captures = new Pointer[] { Variable("saved-numeric") },
+                        code = "() => amount + 1",
+                    })));
             function.Modifier = NeoMemberModifierKind.Static;
             using var client = BuildClient(new JsonMember[] { function }, ReceiverClass());
             var node = new NeoMemberNSFunction(client, function.id, null, NeoValueOwnership.Session);
@@ -387,15 +410,21 @@ namespace NeoCompose.Tests
             var inner = ScriptFunction("inner", "Inner", false, IntType(), new[] { argument },
                 Action(IntType(), new[] { argument }, Return(Variable("__arg_0__"))));
             inner.Modifier = NeoMemberModifierKind.Static;
-            var call = new CallFunctionPointer { type = PointerKind.CallFunction, memberId = inner.id,
-                receiver = CallReceiver.Static(inner.id), args = new Pointer[] { Variable("__arg_0__") },
-                callSiteId = "nested-identity" };
+            var call = new CallFunctionPointer
+            {
+                type = PointerKind.CallFunction,
+                memberId = inner.id,
+                receiver = CallReceiver.Static(inner.id),
+                args = new Pointer[] { Variable("__arg_0__") },
+                callSiteId = "nested-identity"
+            };
             var outer = ScriptFunction("outer", "Outer", false, IntType(), new[] { argument },
                 Action(IntType(), new[] { argument }, Return(Add(call, Variable("__arg_0__")))));
             outer.Modifier = NeoMemberModifierKind.Static;
             using var client = BuildClient(new JsonMember[] { inner, outer }, ReceiverClass());
             var node = new NeoMemberNSFunction(client, outer.id, null, NeoValueOwnership.Session);
-            for (int i = 0; i < 10; i++) Assert.That(node.InvokeStatic(new object?[] { i }), Is.EqualTo(i * 2));
+            for (int i = 0; i < 10; i++)
+                Assert.That(node.InvokeStatic(new object?[] { i }), Is.EqualTo(i * 2));
         }
 
         [Test]
@@ -432,7 +461,8 @@ namespace NeoCompose.Tests
             var components = kind == MemberKind.Color
                 ? new Dictionary<string, object?> { ["r"] = .25d, ["g"] = .5d, ["b"] = .75d, ["a"] = 1d }
                 : new Dictionary<string, object?> { ["x"] = 2L, ["y"] = -3L, ["z"] = 4L };
-            if (kind == MemberKind.Vector2 || kind == MemberKind.Vector2Int) components.Remove("z");
+            if (kind == MemberKind.Vector2 || kind == MemberKind.Vector2Int)
+                components.Remove("z");
             var result = (object?[])NeoScriptValueMarshaller.Normalize(client, NeoValueOwnership.Session,
                 new object[] { components }, type, ctx, "replayed offsets")!;
             Assert.That(result.Length, Is.EqualTo(1));
@@ -508,7 +538,10 @@ namespace NeoCompose.Tests
             };
             var argument = new FunctionArgumentTypeInfo
             {
-                name = "entries", type = type.type, required = true, entryTypeInfo = entryType,
+                name = "entries",
+                type = type.type,
+                required = true,
+                entryTypeInfo = entryType,
             };
             var function = ScriptFunction("collection-identity", "Identity", false, type,
                 new[] { argument }, Action(type, new[] { argument }, Return(Variable("__arg_0__"))));
@@ -644,7 +677,10 @@ namespace NeoCompose.Tests
 
         private abstract class SelectorBase
         {
-            public abstract NeoDelegate<object> Selector { get; }
+            public abstract NeoDelegate<object> Selector
+            {
+                get;
+            }
         }
 
         private sealed class SelectorChild : SelectorBase
@@ -677,7 +713,8 @@ namespace NeoCompose.Tests
                 NSGetterEvaluator.EvaluatePointer(new KeyOfPointer
                 {
                     type = PointerKind.KeyOf,
-                    keyOf = new KeyOf { pointer = Variable("selected"), key = Text("Count") }, memberId = count.id,
+                    keyOf = new KeyOf { pointer = Variable("selected"), key = Text("Count") },
+                    memberId = count.id,
                 }, new Dictionary<string, object?> { ["selected"] = normalized }, destination));
         }
 
@@ -686,18 +723,33 @@ namespace NeoCompose.Tests
         {
             var entry = new ClassMember { id = "entry", kind = MemberKind.Class, classId = "receiver-class" };
             var collection = new ListMember { id = "choices", kind = MemberKind.List, entryMemberId = entry.id, valueId = "choices-value" };
-            var lookup = new LookupMember { id = "selected", name = "Selected", kind = MemberKind.Lookup,
-                collectionMemberId = collection.id, collectionValueId = collection.valueId,
-                Storage = NeoMemberStorage.Save, Selection = NeoMemberSelectionKind.Single };
+            var lookup = new LookupMember
+            {
+                id = "selected",
+                name = "Selected",
+                kind = MemberKind.Lookup,
+                collectionMemberId = collection.id,
+                collectionValueId = collection.valueId,
+                Storage = NeoMemberStorage.Save,
+                Selection = NeoMemberSelectionKind.Single
+            };
             var target = ObjectValue("selected-value", "receiver-class");
             var receiver = ObjectValue("receiver-value", "receiver-class");
             receiver.value!["Selected"] = "selection-value";
             var function = ScriptFunction("select", "Select", false, IntType(),
                 Array.Empty<FunctionArgumentTypeInfo>(), Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(),
-                    new AssignInstruction { type = InstructionKind.Assign, operatorValue = "=",
-                        target = new WriteTarget { pointer = Key(Variable("__this__"), "Selected"),
-                            typeInfo = new ClassTypeInfo { type = MemberKind.Class, classId = "receiver-class", required = false }, writability = WritabilityKind.Save },
-                        pointer = new ReferencePointer { type = PointerKind.Reference, valueId = target.id } }, Return(Number(1))));
+                    new AssignInstruction
+                    {
+                        type = InstructionKind.Assign,
+                        operatorValue = "=",
+                        target = new WriteTarget
+                        {
+                            pointer = Key(Variable("__this__"), "Selected"),
+                            typeInfo = new ClassTypeInfo { type = MemberKind.Class, classId = "receiver-class", required = false },
+                            writability = WritabilityKind.Save
+                        },
+                        pointer = new ReferencePointer { type = PointerKind.Reference, valueId = target.id }
+                    }, Return(Number(1))));
             using var client = BuildClient(new JsonMember[] { entry, collection, lookup, function },
                 ReceiverClass(("Selected", lookup.id), ("Select", function.id)),
                 additionalValues: new MemberValue[] { receiver, target,
@@ -757,13 +809,24 @@ namespace NeoCompose.Tests
         public void FieldWriteHonorsStorageBoundary(NeoValueOwnership parentOwnership,
             NeoMemberStorage storage, string writability)
         {
-            var count = new IntMember { id = "count", name = "Count", kind = MemberKind.Int,
-                Storage = storage, valueId = "count-value", defaultValue = new NumberMemberValueBase { value = 0 } };
+            var count = new IntMember
+            {
+                id = "count",
+                name = "Count",
+                kind = MemberKind.Int,
+                Storage = storage,
+                valueId = "count-value",
+                defaultValue = new NumberMemberValueBase { value = 0 }
+            };
             var function = ScriptFunction("set-count", "SetCount", false, IntType(),
                 Array.Empty<FunctionArgumentTypeInfo>(), Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(),
-                    new AssignInstruction { type = InstructionKind.Assign, operatorValue = "=",
+                    new AssignInstruction
+                    {
+                        type = InstructionKind.Assign,
+                        operatorValue = "=",
                         target = new WriteTarget { pointer = Key(Variable("__this__"), "Count"), typeInfo = IntType(), writability = writability },
-                        pointer = Number(7) }, Return(Key(Variable("__this__"), "Count"))));
+                        pointer = Number(7)
+                    }, Return(Key(Variable("__this__"), "Count"))));
             var receiver = ObjectValue("receiver-value", "receiver-class");
             receiver.value!["Count"] = "count-value";
             using var client = BuildClient(new JsonMember[] { count, function }, ReceiverClass(("Count", count.id), ("SetCount", function.id)),
@@ -781,13 +844,24 @@ namespace NeoCompose.Tests
         [Test]
         public void ScalarFieldWriteReplacesOnlyTheChildRow()
         {
-            var count = new IntMember { id = "count", name = "Count", kind = MemberKind.Int,
-                Storage = NeoMemberStorage.Save, valueId = "count-value", defaultValue = new NumberMemberValueBase { value = 0 } };
+            var count = new IntMember
+            {
+                id = "count",
+                name = "Count",
+                kind = MemberKind.Int,
+                Storage = NeoMemberStorage.Save,
+                valueId = "count-value",
+                defaultValue = new NumberMemberValueBase { value = 0 }
+            };
             var function = ScriptFunction("set-count", "SetCount", false, IntType(),
                 Array.Empty<FunctionArgumentTypeInfo>(), Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(),
-                    new AssignInstruction { type = InstructionKind.Assign, operatorValue = "=",
+                    new AssignInstruction
+                    {
+                        type = InstructionKind.Assign,
+                        operatorValue = "=",
                         target = new WriteTarget { pointer = Key(Variable("__this__"), "Count"), typeInfo = IntType(), writability = WritabilityKind.Save },
-                        pointer = Number(7) }, Return(Key(Variable("__this__"), "Count"))));
+                        pointer = Number(7)
+                    }, Return(Key(Variable("__this__"), "Count"))));
             var receiver = ObjectValue("receiver-value", "receiver-class");
             receiver.value!["Count"] = "count-value";
             using var client = BuildClient(new JsonMember[] { count, function }, ReceiverClass(("Count", count.id), ("SetCount", function.id)),
@@ -809,13 +883,24 @@ namespace NeoCompose.Tests
         [Test]
         public void ScalarFieldWriteStoresTheChildWithoutAWritePlan()
         {
-            var count = new IntMember { id = "count", name = "Count", kind = MemberKind.Int,
-                Storage = NeoMemberStorage.Save, valueId = "count-value", defaultValue = new NumberMemberValueBase { value = 0 } };
+            var count = new IntMember
+            {
+                id = "count",
+                name = "Count",
+                kind = MemberKind.Int,
+                Storage = NeoMemberStorage.Save,
+                valueId = "count-value",
+                defaultValue = new NumberMemberValueBase { value = 0 }
+            };
             var function = ScriptFunction("set-count", "SetCount", false, IntType(),
                 Array.Empty<FunctionArgumentTypeInfo>(), Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(),
-                    new AssignInstruction { type = InstructionKind.Assign, operatorValue = "=",
+                    new AssignInstruction
+                    {
+                        type = InstructionKind.Assign,
+                        operatorValue = "=",
                         target = new WriteTarget { pointer = Key(Variable("__this__"), "Count"), typeInfo = IntType(), writability = WritabilityKind.Save },
-                        pointer = Number(7) }, Return(Key(Variable("__this__"), "Count"))));
+                        pointer = Number(7)
+                    }, Return(Key(Variable("__this__"), "Count"))));
             var receiver = ObjectValue("receiver-value", "receiver-class");
             receiver.value!["Count"] = "count-value";
             using var client = BuildClient(new JsonMember[] { count, function }, ReceiverClass(("Count", count.id), ("SetCount", function.id)),
@@ -838,10 +923,27 @@ namespace NeoCompose.Tests
         [Test]
         public void GeneratedLeafSetterStoresTheChildWithoutAWritePlan()
         {
-            var count = new IntMember { id = "count", name = "Count", kind = MemberKind.Int,
-                Storage = NeoMemberStorage.Save, valueId = "count-value", defaultValue = new NumberMemberValueBase { value = 0 } };
-            var receiverMember = new ClassMember { id = "receiver-member", projectId = ProjectId, name = "Receiver", kind = MemberKind.Class,
-                classId = "receiver-class", valueId = "receiver-value", Storage = NeoMemberStorage.Save, createdAt = "x", updatedAt = "x" };
+            var count = new IntMember
+            {
+                id = "count",
+                name = "Count",
+                kind = MemberKind.Int,
+                Storage = NeoMemberStorage.Save,
+                valueId = "count-value",
+                defaultValue = new NumberMemberValueBase { value = 0 }
+            };
+            var receiverMember = new ClassMember
+            {
+                id = "receiver-member",
+                projectId = ProjectId,
+                name = "Receiver",
+                kind = MemberKind.Class,
+                classId = "receiver-class",
+                valueId = "receiver-value",
+                Storage = NeoMemberStorage.Save,
+                createdAt = "x",
+                updatedAt = "x"
+            };
             var receiver = ObjectValue("receiver-value", "receiver-class");
             receiver.value!["Count"] = "count-value";
             using var client = BuildClient(new JsonMember[] { count, receiverMember }, ReceiverClass(("Count", count.id)),
@@ -871,8 +973,15 @@ namespace NeoCompose.Tests
         [Test]
         public void SharedEvaluationCacheKeepsRowIdentityAcrossEvaluationsAndWrites()
         {
-            var count = new IntMember { id = "count", name = "Count", kind = MemberKind.Int,
-                Storage = NeoMemberStorage.Save, valueId = "count-value", defaultValue = new NumberMemberValueBase { value = 0 } };
+            var count = new IntMember
+            {
+                id = "count",
+                name = "Count",
+                kind = MemberKind.Int,
+                Storage = NeoMemberStorage.Save,
+                valueId = "count-value",
+                defaultValue = new NumberMemberValueBase { value = 0 }
+            };
             var receiver = ObjectValue("receiver-value", "receiver-class");
             receiver.value!["Count"] = "count-value";
             using var client = BuildClient(new JsonMember[] { count }, ReceiverClass(("Count", count.id)),
@@ -907,14 +1016,17 @@ namespace NeoCompose.Tests
         {
             var receiverType = new ClassTypeInfo
             {
-                type = MemberKind.Class, required = true, classId = "receiver-class",
+                type = MemberKind.Class,
+                required = true,
+                classId = "receiver-class",
             };
             TypeInfo returnType = isStatic ? IntType() : receiverType;
             var function = ScriptFunction("select-self", "SelectSelf", false, returnType,
                 Array.Empty<FunctionArgumentTypeInfo>(),
                 Action(returnType, Array.Empty<FunctionArgumentTypeInfo>(),
                     Return(isStatic ? Literal(IntType(), new JValue(17)) : Variable("__this__"))));
-            if (isStatic) function.Modifier = NeoMemberModifierKind.Static;
+            if (isStatic)
+                function.Modifier = NeoMemberModifierKind.Static;
             using NeoClient client = BuildClient(new JsonMember[] { function },
                 ReceiverClass(("SelectSelf", function.id)), additionalValues: new MemberValue[]
                 {
@@ -927,7 +1039,9 @@ namespace NeoCompose.Tests
             object other = NSGetterEvaluator.UnwrapRow(otherRow!, ctx, NeoValueOwnership.Asset)!;
             var type = new DelegateTypeInfo
             {
-                type = MemberKind.NSDelegate, required = true, returnTypeInfo = returnType,
+                type = MemberKind.NSDelegate,
+                required = true,
+                returnTypeInfo = returnType,
                 argumentTypes = Array.Empty<TypeInfo>(),
             };
             var literal = Literal(type, new JObject
@@ -941,8 +1055,10 @@ namespace NeoCompose.Tests
             var persisted = JsonConvert.DeserializeObject<NeoDelegateValue>(JsonConvert.SerializeObject(bound))!;
             Assert.AreEqual(isStatic ? null : explicitlyBound ? "other-receiver" : "receiver-value", persisted.valueId);
             object? result = NSGetterEvaluator.InvokeDelegate(persisted, Array.Empty<object?>(), ctx.WithThis(other));
-            if (isStatic) Assert.AreEqual(17L, Convert.ToInt64(result));
-            else Assert.AreEqual(explicitlyBound ? "other-receiver" : "receiver-value",
+            if (isStatic)
+                Assert.AreEqual(17L, Convert.ToInt64(result));
+            else
+                Assert.AreEqual(explicitlyBound ? "other-receiver" : "receiver-value",
                 NSGetterEvaluator.FindRowIdByReference(result, ctx));
             Assert.AreEqual(explicitlyBound ? "other-receiver" : null,
                 literal.value.value!["valueId"]?.Value<string>(), "The compiled literal must remain reusable.");
@@ -2022,7 +2138,8 @@ namespace NeoCompose.Tests
             FunctionArgumentTypeInfo selections = Argument("Selections", MemberKind.Lookup);
             selections.entryTypeInfo = entryType;
             FunctionArgumentTypeInfo selected = Argument("Selected", entryType.type);
-            if (!dialogue) selected.enumId = "levels";
+            if (!dialogue)
+                selected.enumId = "levels";
             var arguments = new[] { selections, selected };
             CollectionCallInstruction Mutate(string mutation) => new()
             {
@@ -2041,7 +2158,8 @@ namespace NeoCompose.Tests
                 Mutate(CollectionMutationKind.Add),
                 Mutate(CollectionMutationKind.Add),
             };
-            if (remove) instructions.Add(Mutate(CollectionMutationKind.Remove));
+            if (remove)
+                instructions.Add(Mutate(CollectionMutationKind.Remove));
             instructions.Add(Return(Variable("__arg_0__")));
             NSFunctionMember function = ScriptFunction(
                 "fn-local-set", "LocalSet", false, setType, arguments,
@@ -2171,13 +2289,18 @@ namespace NeoCompose.Tests
             const string genericParamId = "nullable-base-param";
             var genericType = new GenericTypeInfo
             {
-                type = MemberKind.Generic, required = useRequired,
-                ownerClassId = genericClassId, genericParamId = genericParamId,
+                type = MemberKind.Generic,
+                required = useRequired,
+                ownerClassId = genericClassId,
+                genericParamId = genericParamId,
             };
             var argument = new FunctionArgumentTypeInfo
             {
-                name = "value", type = MemberKind.Generic, required = useRequired,
-                ownerClassId = genericClassId, genericParamId = genericParamId,
+                name = "value",
+                type = MemberKind.Generic,
+                required = useRequired,
+                ownerClassId = genericClassId,
+                genericParamId = genericParamId,
             };
             var baseFunction = ScriptFunction("nullable-base", "Echo", false, genericType,
                 new[] { argument }, Action(genericType, new[] { argument }, Return(Variable("__arg_0__"))));
@@ -2192,10 +2315,13 @@ namespace NeoCompose.Tests
             derivedFunction.DeclaredDispatch = null;
             var binding = new IntMember
             {
-                id = "nullable-int-binding", projectId = ProjectId, name = "Int Binding",
+                id = "nullable-int-binding",
+                projectId = ProjectId,
+                name = "Int Binding",
                 kind = MemberKind.Int,
                 Requirement = bindingRequired ? NeoMemberRequirementKind.Required : NeoMemberRequirementKind.Optional,
-                createdAt = "x", updatedAt = "x",
+                createdAt = "x",
+                updatedAt = "x",
             };
             var baseClass = ReceiverClass(("Echo", baseFunction.id));
             baseClass.id = genericClassId;
@@ -2874,35 +3000,48 @@ namespace NeoCompose.Tests
             nativeCall.dispatch = "base";
             var baseGetter = new NSPropertyMember
             {
-                id = "base-property", projectId = ProjectId, name = "Score",
-                kind = MemberKind.NSProperty, code = "return Offset();",
+                id = "base-property",
+                projectId = ProjectId,
+                name = "Score",
+                kind = MemberKind.NSProperty,
+                code = "return Offset();",
                 returnTypeInfo = IntType(),
                 getter = Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(), Return(nativeCall)),
-                createdAt = "x", updatedAt = "x",
+                createdAt = "x",
+                updatedAt = "x",
             };
             var baseGetterCall = new CallGetterPointer
             {
-                type = PointerKind.CallGetter, memberId = baseGetter.id,
-                receiver = CallReceiver.Instance(Variable("__this__")), dispatch = "base",
+                type = PointerKind.CallGetter,
+                memberId = baseGetter.id,
+                receiver = CallReceiver.Instance(Variable("__this__")),
+                dispatch = "base",
             };
             var derivedGetter = new NSPropertyMember
             {
-                id = "derived-property", projectId = ProjectId, name = "Score",
-                kind = MemberKind.NSProperty, extendsMemberId = baseGetter.id,
-                code = "return base.Score + 1;", returnTypeInfo = null!,
+                id = "derived-property",
+                projectId = ProjectId,
+                name = "Score",
+                kind = MemberKind.NSProperty,
+                extendsMemberId = baseGetter.id,
+                code = "return base.Score + 1;",
+                returnTypeInfo = null!,
                 getter = Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(), Return(Add(baseGetterCall, Number(1)))),
-                createdAt = "x", updatedAt = "x",
+                createdAt = "x",
+                updatedAt = "x",
             };
             var virtualGetterCall = new CallGetterPointer
             {
-                type = PointerKind.CallGetter, memberId = baseGetter.id,
+                type = PointerKind.CallGetter,
+                memberId = baseGetter.id,
                 receiver = CallReceiver.Instance(Variable("__this__")),
             };
             var baseFunction = ScriptFunction("base-compute", "Compute", deferred, IntType(), new[] { argument },
                 Action(IntType(), new[] { argument }, Return(Add(Variable("__arg_0__"), virtualGetterCall))));
             var baseCall = Call(baseFunction.id, "base-compute-call");
             baseCall.dispatch = "base";
-            if (explicitArgument) baseCall.args = new Pointer[] { Number(5) };
+            if (explicitArgument)
+                baseCall.args = new Pointer[] { Number(5) };
             var derivedFunction = ScriptFunction("derived-compute", "Compute", deferred, IntType(), new[] { argument },
                 Action(IntType(), new[] { argument }, Return(Add(baseCall, Number(1)))));
             derivedFunction.extendsMemberId = baseFunction.id;
@@ -2944,22 +3083,27 @@ namespace NeoCompose.Tests
         {
             var call = JObject.FromObject(new CallFunctionPointer
             {
-                type = kind, memberId = "base-member", dispatch = "base",
+                type = kind,
+                memberId = "base-member",
+                dispatch = "base",
                 receiver = CallReceiver.Instance(Variable("__this__")),
-                args = Array.Empty<Pointer>(), callSiteId = "base-call",
+                args = Array.Empty<Pointer>(),
+                callSiteId = "base-call",
             });
             call.Remove("memberKey");
             Assert.DoesNotThrow(() => call.ToObject<Pointer>());
             foreach (string invalid in new[] { "static", "memberKey", "dispatch" })
             {
                 var malformed = (JObject)call.DeepClone();
-                if (invalid == "static") malformed["receiver"] = JObject.FromObject(CallReceiver.Static("base-member"));
+                if (invalid == "static")
+                    malformed["receiver"] = JObject.FromObject(CallReceiver.Static("base-member"));
                 else if (invalid == "memberKey")
                 {
                     malformed.Remove("memberId");
                     malformed["memberKey"] = "Compute";
                 }
-                else malformed["dispatch"] = "virtual";
+                else
+                    malformed["dispatch"] = "virtual";
                 Assert.Throws<JsonSerializationException>(() => malformed.ToObject<Pointer>(), invalid);
             }
         }
@@ -3004,22 +3148,32 @@ namespace NeoCompose.Tests
             const string param = "watcher-param";
             var current = new GenericMember
             {
-                id = "watcher-current", name = "Current", projectId = ProjectId,
-                kind = MemberKind.Generic, genericParamId = param,
+                id = "watcher-current",
+                name = "Current",
+                projectId = ProjectId,
+                kind = MemberKind.Generic,
+                genericParamId = param,
                 Mutability = readOnly ? NeoMemberMutabilityKind.ReadOnly : NeoMemberMutabilityKind.Mutable,
             };
-            if (readOnly) current.Storage = NeoMemberStorage.Immutable;
+            if (readOnly)
+                current.Storage = NeoMemberStorage.Immutable;
             var previous = new GenericMember
             {
-                id = "watcher-previous", name = "Previous", projectId = ProjectId,
-                kind = MemberKind.Generic, genericParamId = param,
+                id = "watcher-previous",
+                name = "Previous",
+                projectId = ProjectId,
+                kind = MemberKind.Generic,
+                genericParamId = param,
             };
             AssignInstruction Assign(string key, Pointer value) => new()
             {
-                type = InstructionKind.Assign, operatorValue = "=", pointer = value,
+                type = InstructionKind.Assign,
+                operatorValue = "=",
+                pointer = value,
                 target = new WriteTarget
                 {
-                    pointer = Key(Variable("__this__"), key), typeInfo = IntType(),
+                    pointer = Key(Variable("__this__"), key),
+                    typeInfo = IntType(),
                     writability = WritabilityKind.Save,
                 },
             };
@@ -3031,13 +3185,19 @@ namespace NeoCompose.Tests
                     Return(Key(Variable("__this__"), "Previous"))));
             var binding = new IntMember
             {
-                id = "watcher-int", name = "Int", projectId = ProjectId, kind = MemberKind.Int,
+                id = "watcher-int",
+                name = "Int",
+                projectId = ProjectId,
+                kind = MemberKind.Int,
                 Requirement = NeoMemberRequirementKind.Required,
             };
             var placement = new ClassMember
             {
-                id = "watcher-placement", name = "Watcher", projectId = ProjectId,
-                kind = MemberKind.Class, classId = "receiver-class",
+                id = "watcher-placement",
+                name = "Watcher",
+                projectId = ProjectId,
+                kind = MemberKind.Class,
+                classId = "receiver-class",
                 classArguments = new Dictionary<string, GenericBinding>
                 {
                     [param] = new() { kind = NeoGenericBindingKind.Member, memberId = binding.id },
@@ -3047,7 +3207,9 @@ namespace NeoCompose.Tests
             watcherClass.genericParams = new List<GenericParamDeclaration> { new() { id = param, name = "T" } };
             var rootClass = new NeoSchemaClass
             {
-                id = "root-class", name = "Root", projectId = ProjectId,
+                id = "root-class",
+                name = "Root",
+                projectId = ProjectId,
                 schema = new Dictionary<string, string> { ["Watcher"] = placement.id },
             };
             using NeoClient client = BuildClient(new JsonMember[] { current, previous, function, binding, placement }, watcherClass, new[] { rootClass });
@@ -3210,8 +3372,12 @@ namespace NeoCompose.Tests
             var second = new IntMember { id = "init-second", name = "Second", kind = MemberKind.Int };
             var property = new NSPropertyMember
             {
-                id = "init-property", name = "Computed", kind = MemberKind.NSProperty,
-                returnTypeInfo = IntType(), code = "return this.First;", setterCode = "this.First = value;",
+                id = "init-property",
+                name = "Computed",
+                kind = MemberKind.NSProperty,
+                returnTypeInfo = IntType(),
+                code = "return this.First;",
+                setterCode = "this.First = value;",
                 getter = Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(), Return(Key(Variable("__this__"), "First"))),
                 setter = new FunctionWithReturnType
                 {
@@ -3227,7 +3393,9 @@ namespace NeoCompose.Tests
             };
             var shape = new NeoSchemaClass
             {
-                id = "init-class", name = "Initialized", projectId = ProjectId,
+                id = "init-class",
+                name = "Initialized",
+                projectId = ProjectId,
                 schema = new Dictionary<string, string> { ["First"] = first.id, ["Second"] = second.id, ["Computed"] = property.id },
             };
             var type = new ClassTypeInfo { type = MemberKind.Class, required = true, classId = shape.id };
@@ -3318,7 +3486,9 @@ namespace NeoCompose.Tests
 
             AssignInstruction SetField(string key, Pointer value) => new()
             {
-                type = InstructionKind.Assign, operatorValue = "=", pointer = value,
+                type = InstructionKind.Assign,
+                operatorValue = "=",
+                pointer = value,
                 target = new WriteTarget { pointer = Key(Variable("initialized"), key), typeInfo = IntType(), writability = WritabilityKind.Session },
             };
         }
@@ -3354,8 +3524,10 @@ namespace NeoCompose.Tests
                         var typed = NeoGeneratedTypesSupport.ResolveDeferredFunction<NeoDeferredFunction<int>>(
                             deferred,
                             native.name);
-                        if (invocationCount == 1) firstPending = typed;
-                        else secondPending = typed;
+                        if (invocationCount == 1)
+                            firstPending = typed;
+                        else
+                            secondPending = typed;
                     },
                 });
             var node = new NeoMemberNSFunction(client, function, null);
@@ -5976,7 +6148,8 @@ namespace NeoCompose.Tests
                 [save.id] = save,
                 [session.id] = session,
             };
-            foreach (JsonMember callable in callables) members[callable.id] = callable;
+            foreach (JsonMember callable in callables)
+                members[callable.id] = callable;
 
             var classes = new Dictionary<string, NeoSchemaClass>
             {
@@ -6008,7 +6181,8 @@ namespace NeoCompose.Tests
             };
             if (additionalValues is not null)
             {
-                foreach (MemberValue value in additionalValues) values[value.id] = value;
+                foreach (MemberValue value in additionalValues)
+                    values[value.id] = value;
             }
 
             return NeoTestSaveStack.ClientFromSchema(new ProjectData
@@ -6376,23 +6550,24 @@ namespace NeoCompose.Tests
             string name,
             string valueId,
             NeoMemberStorage storage = NeoMemberStorage.Inherit) => new()
-        {
-            id = id,
-            projectId = ProjectId,
-            name = name,
-            kind = MemberKind.Class,
-            classId = "root-class",
-            valueId = valueId,
-            Storage = storage,
-            createdAt = "x",
-            updatedAt = "x",
-        };
+            {
+                id = id,
+                projectId = ProjectId,
+                name = name,
+                kind = MemberKind.Class,
+                classId = "root-class",
+                valueId = valueId,
+                Storage = storage,
+                createdAt = "x",
+                updatedAt = "x",
+            };
 
         private static NeoSchemaClass ReceiverClass(
             params (string key, string memberId)[] members)
         {
             var schema = new Dictionary<string, string>();
-            foreach (var member in members) schema[member.key] = member.memberId;
+            foreach (var member in members)
+                schema[member.key] = member.memberId;
             return new NeoSchemaClass
             {
                 id = "receiver-class",
@@ -6411,60 +6586,60 @@ namespace NeoCompose.Tests
             TypeInfo returnType,
             FunctionArgumentTypeInfo[] arguments,
             FunctionWithReturnType action) => new()
-        {
-            id = id,
-            projectId = ProjectId,
-            name = name,
-            kind = MemberKind.NSFunction,
-            code = "compiled test function",
-            returnTypeInfo = returnType,
-            argumentTypes = arguments,
-            Dispatch = deferred ? NeoFunctionDispatchKind.Asynchronous : NeoFunctionDispatchKind.Synchronous,
-            action = action,
-            createdAt = "x",
-            updatedAt = "x",
-        };
+            {
+                id = id,
+                projectId = ProjectId,
+                name = name,
+                kind = MemberKind.NSFunction,
+                code = "compiled test function",
+                returnTypeInfo = returnType,
+                argumentTypes = arguments,
+                Dispatch = deferred ? NeoFunctionDispatchKind.Asynchronous : NeoFunctionDispatchKind.Synchronous,
+                action = action,
+                createdAt = "x",
+                updatedAt = "x",
+            };
 
         private static DelegateMember DelegateMemberTarget(
             string id,
             string name,
             string targetMemberId) => new()
-        {
-            id = id,
-            projectId = ProjectId,
-            name = name,
-            kind = MemberKind.NSDelegate,
-            Requirement = NeoMemberRequirementKind.Required,
-            returnTypeInfo = IntType(),
-            argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
-            defaultValue = new DelegateMemberValueBase
             {
-                value = new NeoDelegateValue
+                id = id,
+                projectId = ProjectId,
+                name = name,
+                kind = MemberKind.NSDelegate,
+                Requirement = NeoMemberRequirementKind.Required,
+                returnTypeInfo = IntType(),
+                argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
+                defaultValue = new DelegateMemberValueBase
                 {
-                    memberId = targetMemberId,
-                    valueId = null,
+                    value = new NeoDelegateValue
+                    {
+                        memberId = targetMemberId,
+                        valueId = null,
+                    },
                 },
-            },
-            createdAt = "x",
-            updatedAt = "x",
-        };
+                createdAt = "x",
+                updatedAt = "x",
+            };
 
         private static FunctionMember NativeFunction(
             string id,
             string name,
             bool deferred,
             TypeInfo? returnType = null) => new()
-        {
-            id = id,
-            projectId = ProjectId,
-            name = name,
-            kind = MemberKind.Function,
-            returnTypeInfo = returnType ?? IntType(),
-            argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
-            Dispatch = deferred ? NeoFunctionDispatchKind.Asynchronous : NeoFunctionDispatchKind.Synchronous,
-            createdAt = "x",
-            updatedAt = "x",
-        };
+            {
+                id = id,
+                projectId = ProjectId,
+                name = name,
+                kind = MemberKind.Function,
+                returnTypeInfo = returnType ?? IntType(),
+                argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
+                Dispatch = deferred ? NeoFunctionDispatchKind.Asynchronous : NeoFunctionDispatchKind.Synchronous,
+                createdAt = "x",
+                updatedAt = "x",
+            };
 
         private static FunctionWithReturnType Action(
             TypeInfo returnType,
@@ -6526,26 +6701,26 @@ namespace NeoCompose.Tests
         private static TryInstruction TryBlock(
             Instruction[] instructions,
             params CatchClause[] catches) => new()
-        {
-            type = InstructionKind.Try,
-            instructions = instructions,
-            catches = catches,
-        };
+            {
+                type = InstructionKind.Try,
+                instructions = instructions,
+                catches = catches,
+            };
 
         private static CatchClause Catch(
             string bindingId,
             BooleanExpression? filter,
             params Instruction[] instructions) => new()
-        {
-            binding = new CatchBinding
             {
-                id = bindingId,
-                typeInfo = StringType(),
-                isReadonly = true,
-            },
-            filter = filter,
-            instructions = instructions,
-        };
+                binding = new CatchBinding
+                {
+                    id = bindingId,
+                    typeInfo = StringType(),
+                    isReadonly = true,
+                },
+                filter = filter,
+                instructions = instructions,
+            };
 
         private static ThrowInstruction Throw(Pointer pointer) => new()
         {
@@ -6565,13 +6740,13 @@ namespace NeoCompose.Tests
             TypeInfo selectorTypeInfo,
             SwitchSection[] sections,
             Instruction[]? defaultInstructions = null) => new()
-        {
-            type = InstructionKind.Switch,
-            selector = selector,
-            selectorTypeInfo = selectorTypeInfo,
-            sections = sections,
-            defaultInstructions = defaultInstructions,
-        };
+            {
+                type = InstructionKind.Switch,
+                selector = selector,
+                selectorTypeInfo = selectorTypeInfo,
+                sections = sections,
+                defaultInstructions = defaultInstructions,
+            };
 
         private static Value SwitchLabel(TypeInfo typeInfo, object value) => new()
         {
@@ -6697,43 +6872,43 @@ namespace NeoCompose.Tests
             string id,
             Pointer pointer,
             TypeInfo typeInfo) => new()
-        {
-            id = id,
-            pointer = pointer,
-            typeInfo = typeInfo,
-        };
+            {
+                id = id,
+                pointer = pointer,
+                typeInfo = typeInfo,
+            };
 
         private static VariableInstruction VariableDeclaration(
             string id,
             Pointer pointer,
             TypeInfo typeInfo) => new()
-        {
-            type = InstructionKind.Variable,
-            variable = LocalVariable(id, pointer, typeInfo),
-        };
+            {
+                type = InstructionKind.Variable,
+                variable = LocalVariable(id, pointer, typeInfo),
+            };
 
         private static AssignInstruction AssignLocal(
             string id,
             Pointer pointer,
             TypeInfo typeInfo) => new()
-        {
-            type = InstructionKind.Assign,
-            target = new WriteTarget
             {
-                pointer = Variable(id),
-                typeInfo = typeInfo,
-                writability = WritabilityKind.Local,
-            },
-            operatorValue = "=",
-            pointer = pointer,
-        };
+                type = InstructionKind.Assign,
+                target = new WriteTarget
+                {
+                    pointer = Variable(id),
+                    typeInfo = typeInfo,
+                    writability = WritabilityKind.Local,
+                },
+                operatorValue = "=",
+                pointer = pointer,
+            };
 
         private static IfInstruction If(
             BooleanExpression expression,
             params Instruction[] instructions) => new()
-        {
-            type = InstructionKind.If,
-            branches = new[]
+            {
+                type = InstructionKind.If,
+                branches = new[]
             {
                 new ConditionalBranch
                 {
@@ -6741,20 +6916,20 @@ namespace NeoCompose.Tests
                     instructions = instructions,
                 },
             },
-        };
+            };
 
         private static BooleanExpression Compare(
             string operatorKind,
             Pointer left,
             Pointer right) => new()
-        {
-            condition = new Condition
             {
-                type = operatorKind,
-                operand1 = left,
-                operand2 = right,
-            },
-        };
+                condition = new Condition
+                {
+                    type = operatorKind,
+                    operand1 = left,
+                    operand2 = right,
+                },
+            };
 
         private static CollectionTypeInfo ListType(TypeInfo entryTypeInfo) => new()
         {
@@ -6817,11 +6992,11 @@ namespace NeoCompose.Tests
             string name,
             MemberKind type,
             bool required = true) => new()
-        {
-            name = name,
-            type = type,
-            required = required,
-        };
+            {
+                name = name,
+                type = type,
+                required = required,
+            };
 
         private static PrimitiveTypeInfo IntType(bool required = true) => new()
         {
@@ -6838,11 +7013,11 @@ namespace NeoCompose.Tests
         private static EnumTypeInfo EnumType(
             string enumId,
             bool required = true) => new()
-        {
-            type = MemberKind.Enum,
-            required = required,
-            enumId = enumId,
-        };
+            {
+                type = MemberKind.Enum,
+                required = required,
+                enumId = enumId,
+            };
 
         private static PrimitiveTypeInfo BoolType() => new()
         {
@@ -7127,13 +7302,13 @@ namespace NeoCompose.Tests
         private static ObjectMemberValue ObjectValue(
             string id,
             string classId) => new()
-        {
-            id = id,
-            classId = classId,
-            value = new Dictionary<string, string>(),
-            createdAt = "x",
-            updatedAt = "x",
-        };
+            {
+                id = id,
+                classId = classId,
+                value = new Dictionary<string, string>(),
+                createdAt = "x",
+                updatedAt = "x",
+            };
 
         private sealed class TestEnumOption
         {
@@ -7142,7 +7317,10 @@ namespace NeoCompose.Tests
                 this.optionId = optionId;
             }
 
-            public string optionId { get; }
+            public string optionId
+            {
+                get;
+            }
         }
     }
 }

@@ -81,7 +81,8 @@ namespace NeoCompose.Tests
             public Task<bool> RefreshIfDueAsync(string apiBaseUrl)
             {
                 called = true;
-                if (toThrow != null) throw toThrow;
+                if (toThrow != null)
+                    throw toThrow;
                 return Task.FromResult(result);
             }
         }
@@ -93,7 +94,8 @@ namespace NeoCompose.Tests
             public Task RevokeAsync(string apiBaseUrl, string accessToken)
             {
                 called = true;
-                if (toThrow != null) throw toThrow;
+                if (toThrow != null)
+                    throw toThrow;
                 return Task.CompletedTask;
             }
         }

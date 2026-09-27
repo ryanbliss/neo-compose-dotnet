@@ -19,9 +19,18 @@ namespace NeoCompose.Runtime.NeoScript
     /// </summary>
     public readonly struct NSGetterResult
     {
-        public bool ok { get; }
-        public object? value { get; }
-        public string? error { get; }
+        public bool ok
+        {
+            get;
+        }
+        public object? value
+        {
+            get;
+        }
+        public string? error
+        {
+            get;
+        }
 
         private NSGetterResult(bool ok, object? value, string? error)
         {
@@ -41,9 +50,18 @@ namespace NeoCompose.Runtime.NeoScript
     /// </summary>
     public readonly struct NSSetterResult
     {
-        public bool ok { get; }
-        public bool pending { get; }
-        public string? error { get; }
+        public bool ok
+        {
+            get;
+        }
+        public bool pending
+        {
+            get;
+        }
+        public string? error
+        {
+            get;
+        }
 
         private NSSetterResult(bool ok, bool pending, string? error)
         {

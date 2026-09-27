@@ -32,8 +32,10 @@ namespace NeoCompose.Runtime
         // ordinary class maps, collections and scalar leaves.
         internal static bool MemberRowsEqual(MemberValue? left, MemberValue? right, bool ignoreObjectFields = false, bool ignorePlacement = false)
         {
-            if (ReferenceEquals(left, right)) return true;
-            if (left is null || right is null) return false;
+            if (ReferenceEquals(left, right))
+                return true;
+            if (left is null || right is null)
+                return false;
             if (left.GetType() != right.GetType() || left.init is not null || right.init is not null)
                 return ProjectRecordsEqual(JObject.FromObject(left), JObject.FromObject(right));
             if (left.id != right.id || left.classId != right.classId || left.mark != right.mark
@@ -44,7 +46,8 @@ namespace NeoCompose.Runtime
                 || left.instanceVariantId != right.instanceVariantId
                 || left.instanceVariantRowValueId != right.instanceVariantRowValueId
                 || !MapsEqual(left.genericBindings, right.genericBindings)
-                || !MapsEqual(left.constructorArgs, right.constructorArgs)) return false;
+                || !MapsEqual(left.constructorArgs, right.constructorArgs))
+                return false;
             return left switch
             {
                 ObjectMemberValue a => ignoreObjectFields || MapsEqual(a.value, ((ObjectMemberValue)right).value),
@@ -76,35 +79,46 @@ namespace NeoCompose.Runtime
 
         private static bool ActionEqual(NeoActionValue? left, NeoActionValue? right)
         {
-            if (ReferenceEquals(left, right)) return true;
-            if (left is null || right is null || left.listeners.Count != right.listeners.Count) return false;
+            if (ReferenceEquals(left, right))
+                return true;
+            if (left is null || right is null || left.listeners.Count != right.listeners.Count)
+                return false;
             for (int i = 0; i < left.listeners.Count; i++)
-                if (!DelegateEqual(left.listeners[i], right.listeners[i])) return false;
+                if (!DelegateEqual(left.listeners[i], right.listeners[i]))
+                    return false;
             return true;
         }
 
         private static bool ArraysEqual(string[]? left, string[]? right)
         {
-            if (ReferenceEquals(left, right)) return true;
-            if (left is null || right is null || left.Length != right.Length) return false;
-            for (int i = 0; i < left.Length; i++) if (left[i] != right[i]) return false;
+            if (ReferenceEquals(left, right))
+                return true;
+            if (left is null || right is null || left.Length != right.Length)
+                return false;
+            for (int i = 0; i < left.Length; i++)
+                if (left[i] != right[i])
+                    return false;
             return true;
         }
 
         internal static bool MapsEqual<T>(Dictionary<string, T>? left, Dictionary<string, T>? right)
         {
-            if (ReferenceEquals(left, right)) return true;
-            if (left is null || right is null || left.Count != right.Count) return false;
+            if (ReferenceEquals(left, right))
+                return true;
+            if (left is null || right is null || left.Count != right.Count)
+                return false;
             foreach (var pair in left)
                 if (!right.TryGetValue(pair.Key, out var value)
                     || (pair.Value is JToken token ? !ReplayTokensEqual(token, value as JToken)
-                        : !EqualityComparer<T>.Default.Equals(pair.Value, value))) return false;
+                        : !EqualityComparer<T>.Default.Equals(pair.Value, value)))
+                    return false;
             return true;
         }
 
         private static bool ReplayTokensEqual(JToken left, JToken? right)
         {
-            if (right is null) return false;
+            if (right is null)
+                return false;
             if (left.Type != right.Type
                 && left.Type is JTokenType.Integer or JTokenType.Float
                 && right.Type is JTokenType.Integer or JTokenType.Float)

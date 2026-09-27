@@ -101,7 +101,10 @@ namespace NeoCompose.Runtime
         public async Awaitable<NeoSaveFileList> ListSavesAsync(string? targetReleaseChannelId)
         {
             var url = SavesUrl("/query");
-            var body = JsonConvert.SerializeObject(new { targetReleaseChannelId });
+            var body = JsonConvert.SerializeObject(new
+            {
+                targetReleaseChannelId
+            });
             var operation = new NeoComposeApiOperation(
                 "list this project's save files", projectId, ReadScope);
             var json = await PostAuthorizedAsync(url, operation, body);
@@ -212,11 +215,16 @@ namespace NeoCompose.Runtime
             NeoSaveCommitRequest request,
             bool replaceSnapshot)
         {
-            if (request == null) throw new ArgumentNullException(nameof(request));
+            if (request == null)
+                throw new ArgumentNullException(nameof(request));
             RequireCustomId(request.customId);
 
             var url = SavesUrl("/commit");
-            var body = JsonConvert.SerializeObject(new { save = request, replaceSnapshot });
+            var body = JsonConvert.SerializeObject(new
+            {
+                save = request,
+                replaceSnapshot
+            });
             var operation = new NeoComposeApiOperation(
                 "commit this save file", projectId, WriteScope);
 
@@ -265,7 +273,8 @@ namespace NeoCompose.Runtime
             NeoSparseSnapshotCommitRequest request)
         {
             RequireCustomId(customId);
-            if (request == null) throw new ArgumentNullException(nameof(request));
+            if (request == null)
+                throw new ArgumentNullException(nameof(request));
             RequireSnapshotId(request.baseSnapshotId);
             if (request.baseSnapshotRevision < 0)
             {
@@ -282,7 +291,10 @@ namespace NeoCompose.Runtime
                 $"/{UnityWebRequest.EscapeURL(customId)}/snapshots/commit");
             var operation = new NeoComposeApiOperation(
                 "commit a sparse save snapshot", projectId, WriteScope);
-            var body = JsonConvert.SerializeObject(new { snapshot = request });
+            var body = JsonConvert.SerializeObject(new
+            {
+                snapshot = request
+            });
             var response = await SendAuthorizedAsync(url, body);
             if (response.StatusCode == 409)
             {
@@ -322,7 +334,8 @@ namespace NeoCompose.Runtime
             NeoStagedSnapshotBeginRequest request)
         {
             RequireCustomId(customId);
-            if (request == null) throw new ArgumentNullException(nameof(request));
+            if (request == null)
+                throw new ArgumentNullException(nameof(request));
             RequireSnapshotId(request.baseSnapshotId);
             if (request.baseSnapshotRevision < 0)
             {
@@ -340,7 +353,10 @@ namespace NeoCompose.Runtime
             var operation = new NeoComposeApiOperation(
                 "begin an atomic staged save snapshot", projectId, WriteScope);
             var response = await SendAuthorizedAsync(
-                url, JsonConvert.SerializeObject(new { snapshot = request }));
+                url, JsonConvert.SerializeObject(new
+                {
+                    snapshot = request
+                }));
             if (response.StatusCode == 409)
             {
                 var conflict = Deserialize<CommitResponseWire>(
@@ -408,7 +424,8 @@ namespace NeoCompose.Runtime
         public async Awaitable<NeoChunkedCreateTarget> BeginChunkedCreateAsync(
             NeoChunkedCreateRequest request)
         {
-            if (request == null) throw new ArgumentNullException(nameof(request));
+            if (request == null)
+                throw new ArgumentNullException(nameof(request));
             RequireCustomId(request.customId);
             if (string.IsNullOrWhiteSpace(request.uploadFingerprint))
             {
@@ -420,7 +437,10 @@ namespace NeoCompose.Runtime
             var operation = new NeoComposeApiOperation(
                 "begin this large save file", projectId, WriteScope);
             var json = await PostAuthorizedAsync(
-                url, operation, JsonConvert.SerializeObject(new { save = request }));
+                url, operation, JsonConvert.SerializeObject(new
+                {
+                    save = request
+                }));
             var target = Deserialize<NeoChunkedCreateTarget>(
                 json, "chunked save create target");
             RequireTransitionIdentity(
@@ -455,7 +475,8 @@ namespace NeoCompose.Runtime
             {
                 throw new ArgumentOutOfRangeException(nameof(baseSnapshotRevision));
             }
-            if (changes == null) throw new ArgumentNullException(nameof(changes));
+            if (changes == null)
+                throw new ArgumentNullException(nameof(changes));
             if (changes.Count == 0 || changes.Count > 64)
             {
                 throw new ArgumentOutOfRangeException(
@@ -492,7 +513,10 @@ namespace NeoCompose.Runtime
             var operation = new NeoComposeApiOperation(
                 "complete this large save file", projectId, WriteScope);
             var json = await PostAuthorizedAsync(
-                url, operation, JsonConvert.SerializeObject(new { resumeToken }));
+                url, operation, JsonConvert.SerializeObject(new
+                {
+                    resumeToken
+                }));
             var save = Deserialize<RemoteGameSave>(
                 json, "completed chunked save file");
             await NeoGameSaveRecordSync.LoadManifestAsync(
@@ -634,7 +658,8 @@ namespace NeoCompose.Runtime
                     $"Neo Compose request failed (connection) {url}: {response.Error}");
             }
 
-            if (response.IsSuccessStatus) return response.Text;
+            if (response.IsSuccessStatus)
+                return response.Text;
 
             if (response.StatusCode == 401)
             {
@@ -671,17 +696,20 @@ namespace NeoCompose.Runtime
             }
 
             var serverDetail = TryReadServerError(response.Text);
-            if (serverDetail != null) message += $" {serverDetail}";
+            if (serverDetail != null)
+                message += $" {serverDetail}";
             return message;
         }
 
         private static string? TryReadServerError(string body)
         {
-            if (string.IsNullOrWhiteSpace(body)) return null;
+            if (string.IsNullOrWhiteSpace(body))
+                return null;
             try
             {
                 var error = JsonConvert.DeserializeObject<ApiErrorWire>(body);
-                if (error != null && !string.IsNullOrEmpty(error.error)) return error.error;
+                if (error != null && !string.IsNullOrEmpty(error.error))
+                    return error.error;
             }
             catch (JsonException)
             {
@@ -773,7 +801,8 @@ namespace NeoCompose.Runtime
         {
             RequireCustomId(customId);
             RequireSnapshotId(snapshotId);
-            if (request == null) throw new ArgumentNullException(nameof(request));
+            if (request == null)
+                throw new ArgumentNullException(nameof(request));
             if (request.numItems <= 0)
             {
                 throw new ArgumentOutOfRangeException(

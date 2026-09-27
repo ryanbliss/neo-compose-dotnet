@@ -90,12 +90,14 @@ namespace NeoCompose.Convex
 
         public async Task<string?> GetTokenAsync(CancellationToken cancellationToken = default)
         {
-            if (TryGetCachedJwt(out var cached)) return cached;
+            if (TryGetCachedJwt(out var cached))
+                return cached;
 
             await mintLock.WaitAsync(cancellationToken);
             try
             {
-                if (TryGetCachedJwt(out cached)) return cached;
+                if (TryGetCachedJwt(out cached))
+                    return cached;
                 return await MintAsync();
             }
             finally
@@ -223,7 +225,8 @@ namespace NeoCompose.Convex
         private static string Snippet(string text)
         {
             const int maxLength = 200;
-            if (text.Length <= maxLength) return text;
+            if (text.Length <= maxLength)
+                return text;
             return text.Substring(0, maxLength) + "…";
         }
 

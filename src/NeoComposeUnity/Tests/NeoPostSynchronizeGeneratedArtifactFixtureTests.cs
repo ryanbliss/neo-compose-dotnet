@@ -59,8 +59,14 @@ namespace NeoCompose.Tests
 
     internal sealed class FixtureTileOccupancy
     {
-        public int X { get; set; }
-        public int Y { get; set; }
+        public int X
+        {
+            get; set;
+        }
+        public int Y
+        {
+            get; set;
+        }
         public string TileIdentity { get; set; } = "";
         public string CollisionIdentity { get; set; } = "full-cell";
         public string VisualTint { get; set; } = "white";
@@ -69,9 +75,18 @@ namespace NeoCompose.Tests
     internal sealed class FixtureObstacleObject
     {
         public string ObjectIdentity { get; set; } = "";
-        public float X { get; set; }
-        public float Y { get; set; }
-        public float Rotation { get; set; }
+        public float X
+        {
+            get; set;
+        }
+        public float Y
+        {
+            get; set;
+        }
+        public float Rotation
+        {
+            get; set;
+        }
         public float ScaleX { get; set; } = 1f;
         public float ScaleY { get; set; } = 1f;
         public string VisualVariant { get; set; } = "default";
@@ -82,8 +97,14 @@ namespace NeoCompose.Tests
         internal const string Kind = "tests.navigation-artifact";
         internal const string AssetDirectory = "Assets/NeoComposeTests/GeneratedArtifacts";
 
-        internal static bool FailBeforeCommit { get; set; }
-        internal static int CommitCount { get; private set; }
+        internal static bool FailBeforeCommit
+        {
+            get; set;
+        }
+        internal static int CommitCount
+        {
+            get; private set;
+        }
 
         internal static string AssetPathFor(string ownerValueId)
         {

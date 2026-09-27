@@ -22,7 +22,8 @@ namespace NeoCompose.Runtime
 
         public static NeoCellPattern? Read(NeoClient client, NeoMemberClass node)
         {
-            if (node.value?.value is null) return null;
+            if (node.value?.value is null)
+                return null;
             return ReadRow(client, node.value, node.ownership, null);
         }
 
@@ -47,14 +48,16 @@ namespace NeoCompose.Runtime
 
         public static NeoCellPattern? ReadResult(NeoClient client, object? value, bool required)
         {
-            if (value is NeoCellPattern pattern) return pattern;
+            if (value is NeoCellPattern pattern)
+                return pattern;
             return NeoGeneratedTypesSupport.ReadNSPropertyClass(client, value, required, false,
                 Read, (c, node) => Read(c, node));
         }
 
         public static NeoValueWritePayload? Serialize(NeoClient client, NeoCellPattern? pattern)
         {
-            if (pattern is null) return null;
+            if (pattern is null)
+                return null;
             // Use the same declared constructor as NeoScript, including its creation provenance.
             using var node = NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(client, ClassId, ConstructorId,
                 new[] { new NeoDeclaredConstructorArgument("offsets", Offsets(pattern)) },
@@ -64,9 +67,12 @@ namespace NeoCompose.Runtime
 
         internal static object? NormalizeNativeResult(object? value, NSGetterEvaluator.Context ctx, TypeInfo? type = null)
         {
-            if (value is NeoCellPattern pattern) return Materialize(pattern, ctx);
-            if (value is NeoCellPatternExcluding excluding) return ExcludingIds(excluding);
-            if (value is null || type is not CollectionTypeInfo collection || !ContainsCanonical(collection.entryTypeInfo)) return value;
+            if (value is NeoCellPattern pattern)
+                return Materialize(pattern, ctx);
+            if (value is NeoCellPatternExcluding excluding)
+                return ExcludingIds(excluding);
+            if (value is null || type is not CollectionTypeInfo collection || !ContainsCanonical(collection.entryTypeInfo))
+                return value;
             if (type.type == MemberKind.List && value is IEnumerable entries)
             {
                 var result = new List<object?>();
@@ -112,7 +118,8 @@ namespace NeoCompose.Runtime
 
         internal static NeoCellPattern ReadRuntime(object? value, NSGetterEvaluator.Context ctx)
         {
-            if (value is NeoCellPattern pattern) return pattern;
+            if (value is NeoCellPattern pattern)
+                return pattern;
             string? id = NSGetterEvaluator.FindRowIdByReference(value, ctx);
             var ownership = NSGetterEvaluator.FindRowOwnershipByReference(value, ctx) ?? ctx.valueOwnership;
             if (id is null || !ctx.client.TryGetValue(ownership, id, out ObjectMemberValue? row)
@@ -131,7 +138,8 @@ namespace NeoCompose.Runtime
 
         public static NeoCellPatternExcluding ReadExcluding(object? value)
         {
-            if (value is NeoCellPatternExcluding excluding) return excluding;
+            if (value is NeoCellPatternExcluding excluding)
+                return excluding;
             string[] ids = NeoGeneratedTypesSupport.ToStringArray(value);
             return ids.Length == 1 ? ids[0] switch
             {

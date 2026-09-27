@@ -82,7 +82,8 @@ namespace NeoCompose.Runtime
             Vector2Int origin,
             NeoCellPattern pattern)
         {
-            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            if (pattern is null)
+                throw new ArgumentNullException(nameof(pattern));
             var projection = ProjectTiles(link);
             foreach (var cell in pattern.GetCells(origin))
             {
@@ -100,14 +101,16 @@ namespace NeoCompose.Runtime
             NeoCellPattern pattern)
             where TTile : class, INeoValueReference
         {
-            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            if (pattern is null)
+                throw new ArgumentNullException(nameof(pattern));
             var projection = ProjectTiles(link);
             foreach (var cell in pattern.GetCells(origin))
             {
                 if (projection.ByCell.TryGetValue(cell, out var tile))
                 {
                     var typed = tile.As<TTile>();
-                    if (typed is not null) return typed;
+                    if (typed is not null)
+                        return typed;
                 }
             }
             return null;
@@ -118,7 +121,8 @@ namespace NeoCompose.Runtime
             Vector2Int origin,
             NeoCellPattern pattern)
         {
-            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            if (pattern is null)
+                throw new ArgumentNullException(nameof(pattern));
             var projection = ProjectTiles(link);
             var tiles = new List<NeoGeneratedClassValue>();
             foreach (var cell in pattern.GetCells(origin))
@@ -159,7 +163,8 @@ namespace NeoCompose.Runtime
         {
             foreach (var obj in ProjectObjects(link))
             {
-                if (obj.Cell == cell) return obj.Object;
+                if (obj.Cell == cell)
+                    return obj.Object;
             }
             return null;
         }
@@ -171,9 +176,11 @@ namespace NeoCompose.Runtime
         {
             foreach (var obj in ProjectObjects(link))
             {
-                if (obj.Cell != cell) continue;
+                if (obj.Cell != cell)
+                    continue;
                 var typed = obj.As<TObject>();
-                if (typed is not null) return typed;
+                if (typed is not null)
+                    return typed;
             }
             return null;
         }
@@ -198,13 +205,15 @@ namespace NeoCompose.Runtime
             Vector2Int origin,
             NeoCellPattern pattern)
         {
-            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            if (pattern is null)
+                throw new ArgumentNullException(nameof(pattern));
             var projection = ProjectObjects(link);
             foreach (var cell in pattern.GetCells(origin))
             {
                 foreach (var obj in projection)
                 {
-                    if (obj.Cell == cell) return obj.Object;
+                    if (obj.Cell == cell)
+                        return obj.Object;
                 }
             }
             return null;
@@ -216,15 +225,18 @@ namespace NeoCompose.Runtime
             NeoCellPattern pattern)
             where TObject : class, INeoValueReference
         {
-            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            if (pattern is null)
+                throw new ArgumentNullException(nameof(pattern));
             var projection = ProjectObjects(link);
             foreach (var cell in pattern.GetCells(origin))
             {
                 foreach (var obj in projection)
                 {
-                    if (obj.Cell != cell) continue;
+                    if (obj.Cell != cell)
+                        continue;
                     var typed = obj.As<TObject>();
-                    if (typed is not null) return typed;
+                    if (typed is not null)
+                        return typed;
                 }
             }
             return null;
@@ -235,7 +247,8 @@ namespace NeoCompose.Runtime
             Vector2Int origin,
             NeoCellPattern pattern)
         {
-            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            if (pattern is null)
+                throw new ArgumentNullException(nameof(pattern));
             var projection = ProjectObjects(link);
             var objects = new List<NeoGeneratedClassValue>();
             foreach (var cell in pattern.GetCells(origin))
@@ -270,8 +283,14 @@ namespace NeoCompose.Runtime
                 ByCell = byCell;
             }
 
-            public IReadOnlyList<NeoTileProjection> Winners { get; }
-            public IReadOnlyDictionary<Vector2Int, NeoTileProjection> ByCell { get; }
+            public IReadOnlyList<NeoTileProjection> Winners
+            {
+                get;
+            }
+            public IReadOnlyDictionary<Vector2Int, NeoTileProjection> ByCell
+            {
+                get;
+            }
         }
 
         /// <summary>
@@ -284,7 +303,8 @@ namespace NeoCompose.Runtime
         /// </summary>
         private static TileProjection ProjectTiles(INeoTileLayerLinkValue link)
         {
-            if (link is null) throw new ArgumentNullException(nameof(link));
+            if (link is null)
+                throw new ArgumentNullException(nameof(link));
 
             var byCell = new Dictionary<Vector2Int, NeoTileProjection>();
             string sourceId = link.valueId ?? string.Empty;
@@ -311,14 +331,17 @@ namespace NeoCompose.Runtime
                     continue;
                 }
                 string? assetClassId = placement.classId;
-                if (assetClassId is null) continue;
+                if (assetClassId is null)
+                    continue;
                 var tileValue = client.ResolveRegisteredGeneratedAsset(
                     assetClassId,
                     instanceValueId,
                     ownership == NeoValueOwnership.Asset ? null : ownership);
-                if (tileValue is null) continue;
+                if (tileValue is null)
+                    continue;
                 var cell = ReadRowCell(client, instanceValueId);
-                if (cell is null) continue;
+                if (cell is null)
+                    continue;
                 var projectedCell = origin + cell.Value;
                 byCell[projectedCell] = new NeoTileProjection(
                     instanceValueId,
@@ -345,7 +368,8 @@ namespace NeoCompose.Runtime
         private static IReadOnlyList<NeoObjectProjection> ProjectObjects(
             INeoObjectLayerLinkValue link)
         {
-            if (link is null) throw new ArgumentNullException(nameof(link));
+            if (link is null)
+                throw new ArgumentNullException(nameof(link));
 
             var objects = new List<NeoObjectProjection>();
             if (!TryGetValueRow(link, out var client, out ObjectMemberValue? linkRow))
@@ -372,10 +396,12 @@ namespace NeoCompose.Runtime
                 string? assetClassId = ReadDirectReference(
                     objectRow.value,
                     "assetClassId") ?? objectRow.classId;
-                if (string.IsNullOrWhiteSpace(assetClassId)) continue;
+                if (string.IsNullOrWhiteSpace(assetClassId))
+                    continue;
                 var generatedObject = client.ResolveRegisteredGeneratedAsset(
                     assetClassId!, objectValueId, ownership == NeoValueOwnership.Asset ? null : ownership);
-                if (generatedObject is null) continue;
+                if (generatedObject is null)
+                    continue;
                 var localPosition = ReadRowPosition(client, objectRow);
                 var cell = origin + new Vector2Int(
                     Mathf.RoundToInt(localPosition.x),
@@ -431,8 +457,10 @@ namespace NeoCompose.Runtime
         {
             client = null;
             linkRow = null;
-            if (link is not NeoGeneratedClassValue generated) return false;
-            if (string.IsNullOrEmpty(generated.valueId)) return false;
+            if (link is not NeoGeneratedClassValue generated)
+                return false;
+            if (string.IsNullOrEmpty(generated.valueId))
+                return false;
             client = generated.Client;
             return client.TryGetValue(generated.valueId, out linkRow) && linkRow?.value is not null;
         }
@@ -457,7 +485,8 @@ namespace NeoCompose.Runtime
             var seen = new HashSet<string>(ids);
             foreach (var joinedId in client.GetUnorderedListEntryIds(listValueId))
             {
-                if (!seen.Add(joinedId)) continue;
+                if (!seen.Add(joinedId))
+                    continue;
                 ids.Add(joinedId);
             }
             return ids;
@@ -687,7 +716,8 @@ namespace NeoCompose.Runtime
                 {
                     worldKindOwner = cursor;
                 }
-                if (string.IsNullOrWhiteSpace(cursor.extendsClassId)) break;
+                if (string.IsNullOrWhiteSpace(cursor.extendsClassId))
+                    break;
                 cursor = client.TryGetClass(cursor.extendsClassId!, out NeoSchemaClass? parent)
                     ? parent
                     : null;

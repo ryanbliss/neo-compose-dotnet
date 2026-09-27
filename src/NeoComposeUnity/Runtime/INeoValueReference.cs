@@ -7,6 +7,9 @@ namespace NeoCompose.Runtime
 {
     public interface INeoValueReference
     {
-        string? valueId { get; }
+        string? valueId
+        {
+            get;
+        }
     }
 }

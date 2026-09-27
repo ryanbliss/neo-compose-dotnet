@@ -22,8 +22,14 @@ namespace NeoCompose.Runtime
             Value = value;
         }
 
-        internal object? Key { get; }
-        internal object? Value { get; }
+        internal object? Key
+        {
+            get;
+        }
+        internal object? Value
+        {
+            get;
+        }
     }
 
     /// <summary>
@@ -42,8 +48,14 @@ namespace NeoCompose.Runtime
             this.ownership = ownership;
         }
 
-        internal string valueId { get; }
-        internal NeoValueOwnership? ownership { get; }
+        internal string valueId
+        {
+            get;
+        }
+        internal NeoValueOwnership? ownership
+        {
+            get;
+        }
     }
 
     /// <summary>
@@ -64,9 +76,18 @@ namespace NeoCompose.Runtime
     /// </summary>
     public sealed class NeoGeneratedConstructorValue
     {
-        public string schemaKey { get; }
-        public string memberId { get; }
-        public object? value { get; }
+        public string schemaKey
+        {
+            get;
+        }
+        public string memberId
+        {
+            get;
+        }
+        public object? value
+        {
+            get;
+        }
 
         public NeoGeneratedConstructorValue(
             string schemaKey,
@@ -90,8 +111,14 @@ namespace NeoCompose.Runtime
     /// </summary>
     public sealed class NeoDeclaredConstructorArgument
     {
-        public string name { get; }
-        public object? value { get; }
+        public string name
+        {
+            get;
+        }
+        public object? value
+        {
+            get;
+        }
 
         public NeoDeclaredConstructorArgument(string name, object? value)
         {
@@ -108,7 +135,10 @@ namespace NeoCompose.Runtime
     /// </summary>
     public interface INeoEnumOption
     {
-        string optionId { get; }
+        string optionId
+        {
+            get;
+        }
     }
 
     /// <summary>
@@ -233,7 +263,8 @@ namespace NeoCompose.Runtime
         {
             // A static generated member method has no receiver, which is the
             // declaration-default target: valueId null.
-            if (listener.Target is null) return null;
+            if (listener.Target is null)
+                return null;
             if (listener.Target is NeoGeneratedClassValue generated)
             {
                 return generated.valueId;
@@ -255,8 +286,10 @@ namespace NeoCompose.Runtime
             NeoDelegateValue target,
             string? ownerValueId)
         {
-            if (target.valueId is null) return target;
-            if (ownerValueId is null) return target;
+            if (target.valueId is null)
+                return target;
+            if (ownerValueId is null)
+                return target;
             if (!string.Equals(target.valueId, ownerValueId, StringComparison.Ordinal))
             {
                 return target;
@@ -407,8 +440,14 @@ namespace NeoCompose.Runtime
                 this.member = member;
             }
 
-            internal ObjectMemberValue value { get; }
-            internal ClassMember member { get; }
+            internal ObjectMemberValue value
+            {
+                get;
+            }
+            internal ClassMember member
+            {
+                get;
+            }
         }
 
         /// <summary>
@@ -488,7 +527,10 @@ namespace NeoCompose.Runtime
             /// these after the staged graph passes shape validation.
             /// </summary>
             internal Dictionary<string, NeoValueOwnership>
-                referenceOwnershipByPath { get; } =
+                referenceOwnershipByPath
+            {
+                get;
+            } =
                     new Dictionary<string, NeoValueOwnership>();
 
             internal NeoScript.NSGetterEvaluator.Context? ExistingEvaluationContext =>
@@ -566,7 +608,8 @@ namespace NeoCompose.Runtime
                     if (owner is null || !initializerArguments.TryGetValue(owner, out object?[]? scoped))
                         throw new InvalidOperationException($"Initializer '{member.name}' cannot resolve its declaring constructor scope before member initialization.");
                     arguments = scoped;
-                    if (arguments.Count != expected) throw new InvalidOperationException($"Initializer '{member.name}' expected {expected} arguments in '{owner}', got {arguments.Count}.");
+                    if (arguments.Count != expected)
+                        throw new InvalidOperationException($"Initializer '{member.name}' expected {expected} arguments in '{owner}', got {arguments.Count}.");
                 }
                 return NeoScript.NSGetterEvaluator.Evaluate(
                     init.compiled,
@@ -648,7 +691,8 @@ namespace NeoCompose.Runtime
             string? expectedTemplateId = null,
             string? memberName = null)
         {
-            if (sprite is null) return null;
+            if (sprite is null)
+                return null;
 
             // Value is always a fresh copy, so handing it to the write payload
             // cannot alias the source member's live row.
@@ -694,7 +738,8 @@ namespace NeoCompose.Runtime
         {
             // No template on the member means there is nothing to validate,
             // matching NeoAssetResolver.ValidateTemplate's first guard.
-            if (expectedTemplateId is null) return;
+            if (expectedTemplateId is null)
+                return;
 
             var subject = memberName ?? "Sprite member";
             var database = client.assetDatabase ?? NeoAssetDatabase.LoadDefault();
@@ -713,7 +758,8 @@ namespace NeoCompose.Runtime
                     $"Expected template id '{expectedTemplateId}'. Run Neo Compose editor sync and try again.");
             }
 
-            if (entry.TemplateId == expectedTemplateId) return;
+            if (entry.TemplateId == expectedTemplateId)
+                return;
 
             var actualTemplate = entry.TemplateId ?? "<none>";
             var fileName = string.IsNullOrWhiteSpace(entry.FileName)
@@ -766,10 +812,14 @@ namespace NeoCompose.Runtime
 
         public static Color? ReadColorValue(object? value)
         {
-            if (value is null) return null;
-            if (value is Color color) return color;
-            if (value is NeoReadOnlyColor wrapper) return wrapper.Value;
-            if (value is NeoColorValue raw) return NeoColorValues.ToColor(raw);
+            if (value is null)
+                return null;
+            if (value is Color color)
+                return color;
+            if (value is NeoReadOnlyColor wrapper)
+                return wrapper.Value;
+            if (value is NeoColorValue raw)
+                return NeoColorValues.ToColor(raw);
             if (TryReadColorComponents(value, out float r, out float g, out float b, out float a))
             {
                 return new Color(r, g, b, a);
@@ -779,10 +829,14 @@ namespace NeoCompose.Runtime
 
         public static Vector2? ReadVector2Value(object? value)
         {
-            if (value is null) return null;
-            if (value is Vector2 vector) return vector;
-            if (value is NeoReadOnlyVector2 wrapper) return wrapper.Value;
-            if (value is NeoVector2Value raw) return NeoVectorValues.ToVector2(raw);
+            if (value is null)
+                return null;
+            if (value is Vector2 vector)
+                return vector;
+            if (value is NeoReadOnlyVector2 wrapper)
+                return wrapper.Value;
+            if (value is NeoVector2Value raw)
+                return NeoVectorValues.ToVector2(raw);
             if (TryReadVectorComponents(value, false, out float x, out float y, out _))
             {
                 return new Vector2(x, y);
@@ -792,10 +846,14 @@ namespace NeoCompose.Runtime
 
         public static Vector2Int? ReadVector2IntValue(object? value)
         {
-            if (value is null) return null;
-            if (value is Vector2Int vector) return vector;
-            if (value is NeoReadOnlyVector2Int wrapper) return wrapper.Value;
-            if (value is NeoVector2Value raw) return NeoVectorValues.ToVector2Int(raw);
+            if (value is null)
+                return null;
+            if (value is Vector2Int vector)
+                return vector;
+            if (value is NeoReadOnlyVector2Int wrapper)
+                return wrapper.Value;
+            if (value is NeoVector2Value raw)
+                return NeoVectorValues.ToVector2Int(raw);
             if (TryReadVectorComponents(value, false, out float x, out float y, out _))
             {
                 return NeoVectorValues.ToVector2Int(new NeoVector2Value { x = x, y = y });
@@ -805,10 +863,14 @@ namespace NeoCompose.Runtime
 
         public static Vector3? ReadVector3Value(object? value)
         {
-            if (value is null) return null;
-            if (value is Vector3 vector) return vector;
-            if (value is NeoReadOnlyVector3 wrapper) return wrapper.Value;
-            if (value is NeoVector3Value raw) return NeoVectorValues.ToVector3(raw);
+            if (value is null)
+                return null;
+            if (value is Vector3 vector)
+                return vector;
+            if (value is NeoReadOnlyVector3 wrapper)
+                return wrapper.Value;
+            if (value is NeoVector3Value raw)
+                return NeoVectorValues.ToVector3(raw);
             if (TryReadVectorComponents(value, true, out float x, out float y, out float z))
             {
                 return new Vector3(x, y, z);
@@ -818,10 +880,14 @@ namespace NeoCompose.Runtime
 
         public static Vector3Int? ReadVector3IntValue(object? value)
         {
-            if (value is null) return null;
-            if (value is Vector3Int vector) return vector;
-            if (value is NeoReadOnlyVector3Int wrapper) return wrapper.Value;
-            if (value is NeoVector3Value raw) return NeoVectorValues.ToVector3Int(raw);
+            if (value is null)
+                return null;
+            if (value is Vector3Int vector)
+                return vector;
+            if (value is NeoReadOnlyVector3Int wrapper)
+                return wrapper.Value;
+            if (value is NeoVector3Value raw)
+                return NeoVectorValues.ToVector3Int(raw);
             if (TryReadVectorComponents(value, true, out float x, out float y, out float z))
             {
                 return NeoVectorValues.ToVector3Int(new NeoVector3Value { x = x, y = y, z = z });
@@ -1110,7 +1176,8 @@ namespace NeoCompose.Runtime
             string variantId)
             where T : NeoGeneratedClassValue
         {
-            if (client is null) throw new ArgumentNullException(nameof(client));
+            if (client is null)
+                throw new ArgumentNullException(nameof(client));
             if (string.IsNullOrWhiteSpace(variantId))
             {
                 throw new ArgumentException(
@@ -1129,7 +1196,8 @@ namespace NeoCompose.Runtime
             where T : NeoGeneratedClassValue
             where TValue : NeoGeneratedClassValue
         {
-            if (client is null) throw new ArgumentNullException(nameof(client));
+            if (client is null)
+                throw new ArgumentNullException(nameof(client));
             if (string.IsNullOrWhiteSpace(variantId))
             {
                 throw new ArgumentException(
@@ -1151,7 +1219,8 @@ namespace NeoCompose.Runtime
             string classId)
             where T : NeoGeneratedClassValue
         {
-            if (client is null) throw new ArgumentNullException(nameof(client));
+            if (client is null)
+                throw new ArgumentNullException(nameof(client));
             if (string.IsNullOrWhiteSpace(classId))
             {
                 throw new ArgumentException(
@@ -1178,11 +1247,13 @@ namespace NeoCompose.Runtime
         public static NeoVariant<T>? ResolveVariantValue<T>(NeoMemberVariant node)
             where T : NeoGeneratedClassValue
         {
-            if (node is null) throw new ArgumentNullException(nameof(node));
+            if (node is null)
+                throw new ArgumentNullException(nameof(node));
             VariantRefValue? selection = node.value?.value;
             if (selection is null)
             {
-                if (node.member.Requirement != NeoMemberRequirementKind.Required) return null;
+                if (node.member.Requirement != NeoMemberRequirementKind.Required)
+                    return null;
                 throw new InvalidOperationException(
                     $"Required variant member '{node.member.name}' has no selection.");
             }
@@ -1225,11 +1296,13 @@ namespace NeoCompose.Runtime
             where T : NeoGeneratedClassValue
             where TValue : NeoGeneratedClassValue
         {
-            if (node is null) throw new ArgumentNullException(nameof(node));
+            if (node is null)
+                throw new ArgumentNullException(nameof(node));
             VariantRefValue? selection = node.value?.value;
             if (selection is null)
             {
-                if (node.member.Requirement != NeoMemberRequirementKind.Required) return null;
+                if (node.member.Requirement != NeoMemberRequirementKind.Required)
+                    return null;
                 throw new InvalidOperationException(
                     $"Required lookup variant member '{node.member.name}' has no selection.");
             }
@@ -1267,7 +1340,8 @@ namespace NeoCompose.Runtime
         public static NeoValueWritePayload? VariantValue<T>(NeoVariant<T>? variant)
             where T : NeoGeneratedClassValue
         {
-            if (variant is null) return Value<VariantRefValue>(null);
+            if (variant is null)
+                return Value<VariantRefValue>(null);
             return Value(new VariantRefValue
             {
                 classId = variant.ClassId,
@@ -1284,7 +1358,8 @@ namespace NeoCompose.Runtime
             where T : NeoGeneratedClassValue
             where TValue : NeoGeneratedClassValue
         {
-            if (variant is null) return Value<VariantRefValue>(null);
+            if (variant is null)
+                return Value<VariantRefValue>(null);
             return Value(new VariantRefValue
             {
                 classId = variant.ClassId,
@@ -1302,8 +1377,10 @@ namespace NeoCompose.Runtime
         public static T ApplyVariant<T>(T source, NeoVariant<T> variant)
             where T : NeoGeneratedClassValue
         {
-            if (source is null) throw new ArgumentNullException(nameof(source));
-            if (variant is null) throw new ArgumentNullException(nameof(variant));
+            if (source is null)
+                throw new ArgumentNullException(nameof(source));
+            if (variant is null)
+                throw new ArgumentNullException(nameof(variant));
             return variant.Apply(source);
         }
 
@@ -1317,9 +1394,12 @@ namespace NeoCompose.Runtime
             where T : NeoGeneratedClassValue
             where TValue : NeoGeneratedClassValue
         {
-            if (source is null) throw new ArgumentNullException(nameof(source));
-            if (variant is null) throw new ArgumentNullException(nameof(variant));
-            if (value is null) throw new ArgumentNullException(nameof(value));
+            if (source is null)
+                throw new ArgumentNullException(nameof(source));
+            if (variant is null)
+                throw new ArgumentNullException(nameof(variant));
+            if (value is null)
+                throw new ArgumentNullException(nameof(value));
             return variant.Apply(source, value);
         }
 
@@ -1332,7 +1412,8 @@ namespace NeoCompose.Runtime
             string schemaKey)
             where T : NeoGeneratedClassValue
         {
-            if (target is null) throw new ArgumentNullException(nameof(target));
+            if (target is null)
+                throw new ArgumentNullException(nameof(target));
             return target.Client.GetOrCreateAnimationClip(target, schemaKey);
         }
 
@@ -1354,7 +1435,8 @@ namespace NeoCompose.Runtime
                 foreach (var item in children)
                 {
                     var resolved = ResolveGeneratedChild<TChild>(item, name);
-                    if (resolved is null) continue;
+                    if (resolved is null)
+                        continue;
                     child = resolved;
                     return true;
                 }
@@ -1374,7 +1456,8 @@ namespace NeoCompose.Runtime
             string? name)
             where TChild : NeoGeneratedClassValue
         {
-            if (owner is null) throw new ArgumentNullException(nameof(owner));
+            if (owner is null)
+                throw new ArgumentNullException(nameof(owner));
             if (TryGetGeneratedChild(children, name, out TChild child))
             {
                 return child;
@@ -1393,13 +1476,15 @@ namespace NeoCompose.Runtime
             System.Collections.IEnumerable? children)
             where TChild : NeoGeneratedClassValue
         {
-            if (children is null) return Array.Empty<TChild>();
+            if (children is null)
+                return Array.Empty<TChild>();
 
             var matches = new List<TChild>();
             foreach (var item in children)
             {
                 var resolved = ResolveGeneratedChild<TChild>(item, name: null);
-                if (resolved is null) continue;
+                if (resolved is null)
+                    continue;
                 matches.Add(resolved);
             }
             return matches;
@@ -1408,7 +1493,8 @@ namespace NeoCompose.Runtime
         private static TChild? ResolveGeneratedChild<TChild>(object? item, string? name)
             where TChild : NeoGeneratedClassValue
         {
-            if (item is not NeoGeneratedClassValue value) return null;
+            if (item is not NeoGeneratedClassValue value)
+                return null;
 
             TChild? typed;
             if (value.TryWritable(out TChild writable))
@@ -1419,7 +1505,8 @@ namespace NeoCompose.Runtime
             {
                 typed = value as TChild;
             }
-            if (typed is null) return null;
+            if (typed is null)
+                return null;
 
             if (name is not null
                 && !string.Equals(ReadGeneratedName(typed), name, StringComparison.Ordinal))
@@ -1433,7 +1520,8 @@ namespace NeoCompose.Runtime
         private static string? ReadGeneratedName(NeoGeneratedClassValue value)
         {
             var nameProperty = value.GetType().GetProperty("Name", typeof(string));
-            if (nameProperty is null || !nameProperty.CanRead) return null;
+            if (nameProperty is null || !nameProperty.CanRead)
+                return null;
             return nameProperty.GetValue(value) as string;
         }
 
@@ -1459,7 +1547,8 @@ namespace NeoCompose.Runtime
                 return null;
             }
             string? classId = ResolveClassValueClassId(client, valueId, value);
-            if (string.IsNullOrEmpty(classId)) return null;
+            if (string.IsNullOrEmpty(classId))
+                return null;
 
             ClassMember member;
             if (TryInferMemberForValueId(
@@ -1488,7 +1577,8 @@ namespace NeoCompose.Runtime
             // Check before constructing a node: registering a replacement would
             // strand the cached view outside subsequent replay refreshes.
             if (client.TryGetGeneratedClassValue(member.RuntimeDeclarationIdentity, valueId, ownership, out var cached)
-                && cached.classId == classId) return cached;
+                && cached.classId == classId)
+                return cached;
 
             if ((ownership == NeoValueOwnership.Save || ownership == NeoValueOwnership.Session)
                 && savedFactories.TryGetValue(classId, out var savedFactory))
@@ -1515,7 +1605,8 @@ namespace NeoCompose.Runtime
             string memberId)
             where T : class
         {
-            if (receiver is T typed) return typed;
+            if (receiver is T typed)
+                return typed;
             string? valueId = ValueId(receiver);
             if (!string.IsNullOrEmpty(valueId))
             {
@@ -1524,7 +1615,8 @@ namespace NeoCompose.Runtime
                     valueId!,
                     readOnlyFactories,
                     savedFactories);
-                if (resolved is T resolvedTyped) return resolvedTyped;
+                if (resolved is T resolvedTyped)
+                    return resolvedTyped;
             }
             throw new NeoScript.NSGetterRuntimeError(
                 $"Cannot invoke Function '{functionName}' ({memberId}) because receiver type '{receiver?.GetType().Name ?? "null"}' is not supported.");
@@ -1548,7 +1640,8 @@ namespace NeoCompose.Runtime
                 }
                 return null;
             }
-            if (value is T typed) return typed;
+            if (value is T typed)
+                return typed;
             string? valueId = ValueId(value);
             if (!string.IsNullOrEmpty(valueId))
             {
@@ -1557,7 +1650,8 @@ namespace NeoCompose.Runtime
                     valueId!,
                     readOnlyFactories,
                     savedFactories);
-                if (resolved is T resolvedTyped) return resolvedTyped;
+                if (resolved is T resolvedTyped)
+                    return resolvedTyped;
             }
             throw new NeoScript.NSGetterRuntimeError(
                 $"Native Function argument '{argumentName}' could not be converted to {typeof(T).Name}.");
@@ -1568,7 +1662,8 @@ namespace NeoCompose.Runtime
             string functionName)
             where TDeferred : NeoDeferredFunctionBase
         {
-            if (deferred is TDeferred typed) return typed;
+            if (deferred is TDeferred typed)
+                return typed;
             var expectedType = typeof(TDeferred);
             if (expectedType == typeof(NeoDeferredFunction))
             {
@@ -1584,7 +1679,8 @@ namespace NeoCompose.Runtime
                     binder: null,
                     args: new object[] { deferred.StateCore },
                     culture: null);
-                if (created is TDeferred createdTyped) return createdTyped;
+                if (created is TDeferred createdTyped)
+                    return createdTyped;
             }
             throw new NeoScript.NSGetterRuntimeError(
                 $"Deferred Function '{functionName}' expected handle type {expectedType.Name}, got {deferred.GetType().Name}.");
@@ -1595,7 +1691,8 @@ namespace NeoCompose.Runtime
             string valueId,
             ObjectMemberValue value)
         {
-            if (!string.IsNullOrEmpty(value.classId)) return value.classId;
+            if (!string.IsNullOrEmpty(value.classId))
+                return value.classId;
             return TryInferNeoSchemaClassId(
                 client,
                 valueId,
@@ -1645,7 +1742,8 @@ namespace NeoCompose.Runtime
             HashSet<string> visitingValueIds,
             out Member? member)
         {
-            if (client.TryInferDirectMemberForValueId(valueId, out member)) return true;
+            if (client.TryInferDirectMemberForValueId(valueId, out member))
+                return true;
 
             foreach (var parent in client.InferMemberParents(valueId))
             {
@@ -1657,7 +1755,8 @@ namespace NeoCompose.Runtime
 
                 foreach (var pair in objectValue.value)
                 {
-                    if (pair.Value != valueId) continue;
+                    if (pair.Value != valueId)
+                        continue;
                     if (TryInferMemberForValueId(
                             client,
                             parent.Key,
@@ -1802,7 +1901,8 @@ namespace NeoCompose.Runtime
         {
             foreach (var item in values)
             {
-                if (item == value) return true;
+                if (item == value)
+                    return true;
             }
             return false;
         }
@@ -1819,14 +1919,16 @@ namespace NeoCompose.Runtime
             z = 0;
             if (value is IDictionary<string, object?> dict)
             {
-                if (dict.Count != (zRequired ? 3 : 2)) return false;
+                if (dict.Count != (zRequired ? 3 : 2))
+                    return false;
                 return TryReadFloat(dict.TryGetValue("x", out var xv) ? xv : null, out x)
                     && TryReadFloat(dict.TryGetValue("y", out var yv) ? yv : null, out y)
                     && (!zRequired || TryReadFloat(dict.TryGetValue("z", out var zv) ? zv : null, out z));
             }
             if (value is JObject obj)
             {
-                if (obj.Count != (zRequired ? 3 : 2)) return false;
+                if (obj.Count != (zRequired ? 3 : 2))
+                    return false;
                 return TryReadFloat(obj["x"], out x)
                     && TryReadFloat(obj["y"], out y)
                     && (!zRequired || TryReadFloat(obj["z"], out z));
@@ -1847,7 +1949,8 @@ namespace NeoCompose.Runtime
             a = 0;
             if (value is IDictionary<string, object?> dict)
             {
-                if (dict.Count != 4) return false;
+                if (dict.Count != 4)
+                    return false;
                 return TryReadFloat(dict.TryGetValue("r", out var rv) ? rv : null, out r)
                     && TryReadFloat(dict.TryGetValue("g", out var gv) ? gv : null, out g)
                     && TryReadFloat(dict.TryGetValue("b", out var bv) ? bv : null, out b)
@@ -1855,7 +1958,8 @@ namespace NeoCompose.Runtime
             }
             if (value is JObject obj)
             {
-                if (obj.Count != 4) return false;
+                if (obj.Count != 4)
+                    return false;
                 return TryReadFloat(obj["r"], out r)
                     && TryReadFloat(obj["g"], out g)
                     && TryReadFloat(obj["b"], out b)
@@ -2050,12 +2154,16 @@ namespace NeoCompose.Runtime
                 Value = value;
             }
 
-            internal NeoMemberClass Value { get; }
+            internal NeoMemberClass Value
+            {
+                get;
+            }
 
             public void Dispose()
             {
                 NeoClient? activeClient = client;
-                if (activeClient is null) return;
+                if (activeClient is null)
+                    return;
                 client = null;
                 ReleaseValidationMaterialization(
                     activeClient,
@@ -2131,7 +2239,8 @@ namespace NeoCompose.Runtime
             NeoClient client,
             string? temporarySessionRootId)
         {
-            if (string.IsNullOrEmpty(temporarySessionRootId)) return;
+            if (string.IsNullOrEmpty(temporarySessionRootId))
+                return;
             IReadOnlyCollection<string> removed =
                 client.RemoveTemporaryWritableValueGraph(
                     NeoValueOwnership.Session,
@@ -2249,7 +2358,8 @@ namespace NeoCompose.Runtime
             string classId,
             params NeoGeneratedConstructorValue[] suppliedValues)
         {
-            if (client is null) throw new ArgumentNullException(nameof(client));
+            if (client is null)
+                throw new ArgumentNullException(nameof(client));
             if (classId is null)
                 throw new ArgumentNullException(nameof(classId));
             suppliedValues ??= Array.Empty<NeoGeneratedConstructorValue>();
@@ -2327,7 +2437,8 @@ namespace NeoCompose.Runtime
         private static NeoConstructorValueReference?
             GeneratedValueReference(NeoClient client, object? value)
         {
-            if (value is NeoCellPattern pattern) value = NeoCellPatternStorage.Serialize(client, pattern);
+            if (value is NeoCellPattern pattern)
+                value = NeoCellPatternStorage.Serialize(client, pattern);
             if (value is INeoValueReference reference
                 && !string.IsNullOrEmpty(reference.valueId))
             {
@@ -2347,7 +2458,8 @@ namespace NeoCompose.Runtime
             {
                 string? valueId = payload.valueReference?.valueId
                     ?? payload.valueId;
-                if (string.IsNullOrEmpty(valueId)) return null;
+                if (string.IsNullOrEmpty(valueId))
+                    return null;
                 NeoValueOwnership? ownership =
                     payload.valueReference is NeoGeneratedClassValue generated
                         ? generated.ValueOwnership
@@ -2625,7 +2737,8 @@ namespace NeoCompose.Runtime
             // Initializers may construct a track separately before attaching it.
             // Include those already-published owned rows in the enclosing graph.
             var pending = new Stack<(string valueId, Member? member)>();
-            foreach (var root in attachedRoots) pending.Push(root);
+            foreach (var root in attachedRoots)
+                pending.Push(root);
             while (pending.Count > 0)
             {
                 var next = pending.Pop();
@@ -2659,12 +2772,14 @@ namespace NeoCompose.Runtime
                     bool bound = false;
                     foreach (NeoSchemaClass owner in client.ResolveClassInheritanceChain(classId))
                     {
-                        if (!owner.schema.ContainsValue(target.memberId!)) continue;
+                        if (!owner.schema.ContainsValue(target.memberId!))
+                            continue;
                         target.valueId = parentId;
                         bound = true;
                         break;
                     }
-                    if (bound) break;
+                    if (bound)
+                        break;
                 }
             }
         }
@@ -2930,159 +3045,159 @@ namespace NeoCompose.Runtime
                 case ClassMember classMember
                     when row is ObjectMemberValue classRow
                     && classRow.value is not null:
-                {
-                    string actualClassId = classRow.classId
-                        ?? classMember.classId;
-                    if (!trustedMaterialization
-                        && !IsAssignableNeoSchemaClass(
-                            client,
-                            actualClassId,
-                            classMember.classId))
                     {
-                        throw new InvalidOperationException(
-                            $"Constructed Class field '{path}' expects '{classMember.classId}' but staged row '{valueId}' has runtime class '{actualClassId}'.");
+                        string actualClassId = classRow.classId
+                            ?? classMember.classId;
+                        if (!trustedMaterialization
+                            && !IsAssignableNeoSchemaClass(
+                                client,
+                                actualClassId,
+                                classMember.classId))
+                        {
+                            throw new InvalidOperationException(
+                                $"Constructed Class field '{path}' expects '{classMember.classId}' but staged row '{valueId}' has runtime class '{actualClassId}'.");
+                        }
+                        classRow.classId = actualClassId;
+                        ValidateConstructedClassRow(
+                            client,
+                            classRow,
+                            actualClassId,
+                            stagedById,
+                            reachableStagedIds,
+                            ownedByPath,
+                            parentByChildId,
+                            pending,
+                            path,
+                            traversal,
+                            referenceOwnershipByPath,
+                            trustedMaterialization: trustedMaterialization,
+                            knownClassPlan: ResolveRuntimeClassPlan(client, actualClassId,
+                                classArguments: NeoGenericResolution.CloseClassArgumentsFromStamp(
+                                    classRow.genericBindings, classMember.classArguments)));
+                        break;
                     }
-                    classRow.classId = actualClassId;
-                    ValidateConstructedClassRow(
-                        client,
-                        classRow,
-                        actualClassId,
-                        stagedById,
-                        reachableStagedIds,
-                        ownedByPath,
-                        parentByChildId,
-                        pending,
-                        path,
-                        traversal,
-                        referenceOwnershipByPath,
-                        trustedMaterialization: trustedMaterialization,
-                        knownClassPlan: ResolveRuntimeClassPlan(client, actualClassId,
-                            classArguments: NeoGenericResolution.CloseClassArgumentsFromStamp(
-                                classRow.genericBindings, classMember.classArguments)));
-                    break;
-                }
                 case ListMember listMember
                     when row is ArrayMemberValue listRow
                     && listRow.value is not null:
-                {
-                    if (!client.TryGetMember(
-                            listMember.entryMemberId,
-                            out Member? entryMember))
                     {
-                        throw new InvalidOperationException(
-                            $"Constructed List field '{path}' references missing entry member '{listMember.entryMemberId}'.");
-                    }
-                    entryMember = NeoGenericResolution.SubstituteMember(
-                        client,
-                        entryMember,
-                        env);
-                    bool isUnordered = client.IsUnorderedList(listMember);
-                    var memberIds = new List<string>(listRow.value);
-                    if (isUnordered)
-                    {
-                        // A low-level generated constructor may already carry
-                        // canonical unordered membership on staged rows. The
-                        // shared runtime materializer temporarily carries ids
-                        // inline so external Class references can participate
-                        // in the same ownership validation before publication.
-                        foreach (MemberValue stagedRow in stagedById.Values)
+                        if (!client.TryGetMember(
+                                listMember.entryMemberId,
+                                out Member? entryMember))
                         {
-                            if (stagedRow.containerId == listRow.id
-                                && !memberIds.Contains(stagedRow.id))
-                            {
-                                memberIds.Add(stagedRow.id);
-                            }
+                            throw new InvalidOperationException(
+                                $"Constructed List field '{path}' references missing entry member '{listMember.entryMemberId}'.");
                         }
-                    }
-                    for (int index = 0; index < memberIds.Count; index++)
-                    {
-                        int capturedIndex = index;
-                        bool childIsTrustedStaged = trustedMaterialization
-                            && stagedById.ContainsKey(memberIds[index]);
-                        ValidateConstructedValueLink(
+                        entryMember = NeoGenericResolution.SubstituteMember(
                             client,
                             entryMember,
-                            memberIds[index],
-                            childIsTrustedStaged
-                                ? null
-                                : isUnordered
-                                ? _ => { }
-                                : replacement => listRow.value[capturedIndex] = replacement,
-                            listRow.mapKey,
-                            listRow.classId,
-                            stagedById,
-                            reachableStagedIds,
-                            ownedByPath,
-                            parentByChildId,
-                            pending,
-                            listRow.id,
-                            childIsTrustedStaged
-                                && referenceOwnershipByPath is { Count: 0 }
-                                ? path
-                                : $"{path}[{index}]",
-                            traversal,
-                            env,
-                            referenceOwnershipByPath,
-                            trustedMaterialization,
-                            expectedContainerId: isUnordered
-                                ? listRow.id
-                                : null);
+                            env);
+                        bool isUnordered = client.IsUnorderedList(listMember);
+                        var memberIds = new List<string>(listRow.value);
+                        if (isUnordered)
+                        {
+                            // A low-level generated constructor may already carry
+                            // canonical unordered membership on staged rows. The
+                            // shared runtime materializer temporarily carries ids
+                            // inline so external Class references can participate
+                            // in the same ownership validation before publication.
+                            foreach (MemberValue stagedRow in stagedById.Values)
+                            {
+                                if (stagedRow.containerId == listRow.id
+                                    && !memberIds.Contains(stagedRow.id))
+                                {
+                                    memberIds.Add(stagedRow.id);
+                                }
+                            }
+                        }
+                        for (int index = 0; index < memberIds.Count; index++)
+                        {
+                            int capturedIndex = index;
+                            bool childIsTrustedStaged = trustedMaterialization
+                                && stagedById.ContainsKey(memberIds[index]);
+                            ValidateConstructedValueLink(
+                                client,
+                                entryMember,
+                                memberIds[index],
+                                childIsTrustedStaged
+                                    ? null
+                                    : isUnordered
+                                    ? _ => { }
+                            : replacement => listRow.value[capturedIndex] = replacement,
+                                listRow.mapKey,
+                                listRow.classId,
+                                stagedById,
+                                reachableStagedIds,
+                                ownedByPath,
+                                parentByChildId,
+                                pending,
+                                listRow.id,
+                                childIsTrustedStaged
+                                    && referenceOwnershipByPath is { Count: 0 }
+                                    ? path
+                                    : $"{path}[{index}]",
+                                traversal,
+                                env,
+                                referenceOwnershipByPath,
+                                trustedMaterialization,
+                                expectedContainerId: isUnordered
+                                    ? listRow.id
+                                    : null);
+                        }
+                        if (isUnordered)
+                        {
+                            // Unordered List payload is only the present/null
+                            // discriminator; membership lives on entry rows.
+                            listRow.value = Array.Empty<string>();
+                        }
+                        break;
                     }
-                    if (isUnordered)
-                    {
-                        // Unordered List payload is only the present/null
-                        // discriminator; membership lives on entry rows.
-                        listRow.value = Array.Empty<string>();
-                    }
-                    break;
-                }
                 case DictionaryMember dictionaryMember
                     when row is ObjectMemberValue dictionaryRow
                     && dictionaryRow.value is not null:
-                {
-                    if (!client.TryGetMember(
-                            dictionaryMember.entryMemberId,
-                            out Member? entryMember))
                     {
-                        throw new InvalidOperationException(
-                            $"Constructed Dictionary field '{path}' references missing entry member '{dictionaryMember.entryMemberId}'.");
-                    }
-                    entryMember = NeoGenericResolution.SubstituteMember(
-                        client,
-                        entryMember,
-                        env);
-                    foreach (string key in new List<string>(dictionaryRow.value.Keys))
-                    {
-                        string capturedKey = key;
-                        bool childIsTrustedStaged = trustedMaterialization
-                            && stagedById.ContainsKey(dictionaryRow.value[key]);
-                        ValidateConstructedValueLink(
+                        if (!client.TryGetMember(
+                                dictionaryMember.entryMemberId,
+                                out Member? entryMember))
+                        {
+                            throw new InvalidOperationException(
+                                $"Constructed Dictionary field '{path}' references missing entry member '{dictionaryMember.entryMemberId}'.");
+                        }
+                        entryMember = NeoGenericResolution.SubstituteMember(
                             client,
                             entryMember,
-                            dictionaryRow.value[key],
-                            childIsTrustedStaged
-                                ? null
-                                : replacement =>
-                                    dictionaryRow.value[capturedKey] = replacement,
-                            dictionaryRow.mapKey,
-                            dictionaryRow.classId,
-                            stagedById,
-                            reachableStagedIds,
-                            ownedByPath,
-                            parentByChildId,
-                            pending,
-                            dictionaryRow.id,
-                            childIsTrustedStaged
-                                && referenceOwnershipByPath is { Count: 0 }
-                                ? path
-                                : $"{path}[{key}]",
-                            traversal,
-                            env,
-                            referenceOwnershipByPath,
-                            trustedMaterialization);
+                            env);
+                        foreach (string key in new List<string>(dictionaryRow.value.Keys))
+                        {
+                            string capturedKey = key;
+                            bool childIsTrustedStaged = trustedMaterialization
+                                && stagedById.ContainsKey(dictionaryRow.value[key]);
+                            ValidateConstructedValueLink(
+                                client,
+                                entryMember,
+                                dictionaryRow.value[key],
+                                childIsTrustedStaged
+                                    ? null
+                                    : replacement =>
+                                        dictionaryRow.value[capturedKey] = replacement,
+                                dictionaryRow.mapKey,
+                                dictionaryRow.classId,
+                                stagedById,
+                                reachableStagedIds,
+                                ownedByPath,
+                                parentByChildId,
+                                pending,
+                                dictionaryRow.id,
+                                childIsTrustedStaged
+                                    && referenceOwnershipByPath is { Count: 0 }
+                                    ? path
+                                    : $"{path}[{key}]",
+                                traversal,
+                                env,
+                                referenceOwnershipByPath,
+                                trustedMaterialization);
+                        }
+                        break;
                     }
-                    break;
-                }
             }
         }
 
@@ -3177,12 +3292,14 @@ namespace NeoCompose.Runtime
             string actualClassId,
             string expectedClassId)
         {
-            if (!client.TryGetClass(actualClassId, out NeoSchemaClass? _)) return false;
+            if (!client.TryGetClass(actualClassId, out NeoSchemaClass? _))
+                return false;
             try
             {
                 foreach (NeoSchemaClass schemaClass in client.ResolveClassInheritanceChain(actualClassId))
                 {
-                    if (schemaClass.id == expectedClassId) return true;
+                    if (schemaClass.id == expectedClassId)
+                        return true;
                 }
             }
             catch (CircularInheritanceError)
@@ -3209,7 +3326,8 @@ namespace NeoCompose.Runtime
             bool requireValue = true,
             string? expectedContainerId = null)
         {
-            if (!visited.Add(valueId)) return;
+            if (!visited.Add(valueId))
+                return;
             if (!client.TryGetValue(
                     NeoValueOwnership.Session,
                     valueId,
@@ -3219,7 +3337,8 @@ namespace NeoCompose.Runtime
                 // references whose value row resolves through the schema
                 // default rather than a stored row. Ordinary assignment/import
                 // preserves those ids; constructor attachment must do the same.
-                if (!requireValue) return;
+                if (!requireValue)
+                    return;
                 throw new InvalidOperationException(
                     $"Imported constructor value '{valueId}' is missing from Session storage.");
             }
@@ -3254,49 +3373,50 @@ namespace NeoCompose.Runtime
                 case ClassMember classMember
                     when row is ObjectMemberValue classRow
                     && classRow.value is not null:
-                {
-                    string actualClassId = classRow.classId
-                        ?? classMember.classId;
-                    var classArguments = NeoGenericResolution.CloseClassArgumentsFromStamp(
-                        classRow.genericBindings, classMember.classArguments);
-                    IList<MergedSchemaEntry> schema = ResolveMergedSchema(
-                        client,
-                        actualClassId,
-                        classArguments);
-                    var env = ResolveRuntimeInstanceEnv(
-                        client,
-                        actualClassId,
-                        classArguments);
-                    foreach (MergedSchemaEntry entry in schema)
                     {
-                        if (!classRow.value.TryGetValue(
-                                entry.schemaKey,
-                                out string? childId)
-                            || !client.TryGetMember(
-                                entry.memberId,
-                                out Member? childMember))
+                        string actualClassId = classRow.classId
+                            ?? classMember.classId;
+                        var classArguments = NeoGenericResolution.CloseClassArgumentsFromStamp(
+                            classRow.genericBindings, classMember.classArguments);
+                        IList<MergedSchemaEntry> schema = ResolveMergedSchema(
+                            client,
+                            actualClassId,
+                            classArguments);
+                        var env = ResolveRuntimeInstanceEnv(
+                            client,
+                            actualClassId,
+                            classArguments);
+                        foreach (MergedSchemaEntry entry in schema)
                         {
-                            continue;
+                            if (!classRow.value.TryGetValue(
+                                    entry.schemaKey,
+                                    out string? childId)
+                                || !client.TryGetMember(
+                                    entry.memberId,
+                                    out Member? childMember))
+                            {
+                                continue;
+                            }
+                            childMember = NeoGenericResolution.SubstituteMember(
+                                client,
+                                childMember,
+                                env);
+                            if (!IsStoredConstructorMember(childMember))
+                                continue;
+                            string? childMapKey = client.ResolveCreatedValueMapKey(
+                                childMember,
+                                row.mapKey,
+                                actualClassId);
+                            StampImportedConstructorGraph(
+                                client,
+                                childId,
+                                childMember,
+                                childMapKey,
+                                visited,
+                                requireValue: false);
                         }
-                        childMember = NeoGenericResolution.SubstituteMember(
-                            client,
-                            childMember,
-                            env);
-                        if (!IsStoredConstructorMember(childMember)) continue;
-                        string? childMapKey = client.ResolveCreatedValueMapKey(
-                            childMember,
-                            row.mapKey,
-                            actualClassId);
-                        StampImportedConstructorGraph(
-                            client,
-                            childId,
-                            childMember,
-                            childMapKey,
-                            visited,
-                            requireValue: false);
+                        break;
                     }
-                    break;
-                }
                 case ListMember listMember
                     when row is ArrayMemberValue listRow
                     && listRow.value is not null
@@ -3425,7 +3545,8 @@ namespace NeoCompose.Runtime
                 return;
             }
             string? requiredConstructorId = schemaClass!.requiredConstructorId;
-            if (string.IsNullOrEmpty(requiredConstructorId)) return;
+            if (string.IsNullOrEmpty(requiredConstructorId))
+                return;
             ConstructorRecord record = RequireConstructorRecord(
                 client,
                 classId,
@@ -3694,7 +3815,8 @@ namespace NeoCompose.Runtime
             NeoSchemaClass schemaClass)
         {
             string? requiredConstructorId = schemaClass.requiredConstructorId;
-            if (string.IsNullOrEmpty(requiredConstructorId)) return;
+            if (string.IsNullOrEmpty(requiredConstructorId))
+                return;
             ConstructorRecord record = RequireConstructorRecord(
                 client,
                 schemaClass.id,
@@ -3720,7 +3842,8 @@ namespace NeoCompose.Runtime
                  current = current.baseLink)
             {
                 ConstructorRecord? record = current.record;
-                if (record?.baseInitializerFields is null) continue;
+                if (record?.baseInitializerFields is null)
+                    continue;
                 foreach (ConstructorBaseInitializerField field
                          in record.baseInitializerFields)
                 {
@@ -3765,14 +3888,17 @@ namespace NeoCompose.Runtime
             foreach (FunctionArgumentTypeInfo argument in record.argumentTypes)
             {
                 declared.Add(argument.name);
-                if (supplied.Contains(argument.name)) continue;
-                if (NeoParameterDefaults.HasDefault(argument)) continue;
+                if (supplied.Contains(argument.name))
+                    continue;
+                if (NeoParameterDefaults.HasDefault(argument))
+                    continue;
                 throw new InvalidOperationException(
                     $"Declared constructor '{record.id}' on class '{className}' is missing argument '{argument.name}'. Regenerate the NeoScript IR from the current schema.");
             }
             foreach (string name in argumentNames)
             {
-                if (declared.Contains(name)) continue;
+                if (declared.Contains(name))
+                    continue;
                 throw new InvalidOperationException(
                     $"Declared constructor '{record.id}' on class '{className}' names unknown argument '{name}'. Regenerate the NeoScript IR from the current schema.");
             }
@@ -3870,7 +3996,8 @@ namespace NeoCompose.Runtime
             ConstructorBaseInitializerField[] baseInitializerFields =
                 record.baseInitializerFields
                 ?? Array.Empty<ConstructorBaseInitializerField>();
-            if (baseInitializerFields.Length == 0) return;
+            if (baseInitializerFields.Length == 0)
+                return;
             if (string.IsNullOrEmpty(baseClassId))
             {
                 throw new InvalidOperationException(
@@ -3892,7 +4019,8 @@ namespace NeoCompose.Runtime
             ConstructorRecord record)
         {
             string? baseClassId = owningClass.extendsClassId;
-            if (string.IsNullOrEmpty(baseClassId)) return null;
+            if (string.IsNullOrEmpty(baseClassId))
+                return null;
             if (!client.TryGetClass(baseClassId!, out NeoSchemaClass? baseClass))
             {
                 throw new InvalidOperationException(
@@ -3900,7 +4028,8 @@ namespace NeoCompose.Runtime
             }
             IReadOnlyList<string> baseConstructorIds =
                 ResolvableConstructorIds(baseClass!);
-            if (baseConstructorIds.Count == 0) return null;
+            if (baseConstructorIds.Count == 0)
+                return null;
             foreach (string candidateId in baseConstructorIds)
             {
                 ConstructorRecord candidate = RequireConstructorRecord(
@@ -3911,7 +4040,8 @@ namespace NeoCompose.Runtime
                 // P65 §2.3: a constructor whose every parameter is defaulted
                 // is parameterless-callable — a zero-parameter list satisfies
                 // this vacuously.
-                if (AllParametersDefaulted(candidate)) return candidate;
+                if (AllParametersDefaulted(candidate))
+                    return candidate;
             }
             throw new InvalidOperationException(
                 $"Declared constructor '{record.id}' on class '{owningClass.name}' must call a base constructor: '{baseClass.name}' declares constructors but none parameterless.");
@@ -3948,7 +4078,8 @@ namespace NeoCompose.Runtime
                     baseClassId,
                     baseClass.name,
                     candidateId);
-                if (!ArgumentNameSetMatches(candidate, supplied)) continue;
+                if (!ArgumentNameSetMatches(candidate, supplied))
+                    continue;
                 matches.Add(candidate);
             }
             if (matches.Count == 0)
@@ -3997,7 +4128,8 @@ namespace NeoCompose.Runtime
         {
             string[] declared = schemaClass.constructorIds ?? Array.Empty<string>();
             string? requiredConstructorId = schemaClass.requiredConstructorId;
-            if (string.IsNullOrEmpty(requiredConstructorId)) return declared;
+            if (string.IsNullOrEmpty(requiredConstructorId))
+                return declared;
             var all = new List<string>(declared.Length + 1)
             {
                 requiredConstructorId!,
@@ -4023,7 +4155,8 @@ namespace NeoCompose.Runtime
                     covered++;
                     continue;
                 }
-                if (!NeoParameterDefaults.HasDefault(argument)) return false;
+                if (!NeoParameterDefaults.HasDefault(argument))
+                    return false;
             }
             return covered == supplied.Count;
         }
@@ -4037,7 +4170,8 @@ namespace NeoCompose.Runtime
         {
             foreach (FunctionArgumentTypeInfo argument in record.argumentTypes)
             {
-                if (!NeoParameterDefaults.HasDefault(argument)) return false;
+                if (!NeoParameterDefaults.HasDefault(argument))
+                    return false;
             }
             return true;
         }
@@ -4049,7 +4183,8 @@ namespace NeoCompose.Runtime
         {
             for (int i = 0; i < record.argumentTypes.Length; i++)
             {
-                if (record.argumentTypes[i].name == name) return i;
+                if (record.argumentTypes[i].name == name)
+                    return i;
             }
             throw new InvalidOperationException(
                 $"Declared constructor '{callerConstructorId}' binds base argument '{name}', which constructor '{record.id}' does not declare.");
@@ -4287,7 +4422,8 @@ namespace NeoCompose.Runtime
                 client.RemoveTemporaryWritableValueGraph(
                     NeoValueOwnership.Session,
                     rootValueId);
-            if (removed.Count == 0) return;
+            if (removed.Count == 0)
+                return;
             client.DisposeWrappersTouchingRows(removed);
             NeoScript.NSGetterEvaluator.EvictCachedRows(
                 ctx,
@@ -4299,7 +4435,8 @@ namespace NeoCompose.Runtime
             ConstructorRecord? record,
             IReadOnlyDictionary<string, object?> argumentValues)
         {
-            if (record is null) return Array.Empty<object?>();
+            if (record is null)
+                return Array.Empty<object?>();
             var ordered = new object?[record.argumentTypes.Length];
             for (int i = 0; i < record.argumentTypes.Length; i++)
             {
@@ -4360,7 +4497,8 @@ namespace NeoCompose.Runtime
             // IR rather than a tolerable absence.
             for (int i = 0; i < baseRecord.argumentTypes.Length; i++)
             {
-                if (boundBaseSlots[i]) continue;
+                if (boundBaseSlots[i])
+                    continue;
                 FunctionArgumentTypeInfo baseParameter =
                     baseRecord.argumentTypes[i];
                 if (!NeoParameterDefaults.HasDefault(baseParameter))
@@ -4386,7 +4524,8 @@ namespace NeoCompose.Runtime
             IReadOnlyDictionary<string, object?[]> initializerArguments)
         {
             ConstructorRecord? record = link.record;
-            if (record is null) return;
+            if (record is null)
+                return;
 
             if (link.baseLink is not null)
             {
@@ -4448,7 +4587,8 @@ namespace NeoCompose.Runtime
             ConstructorBaseInitializerField[] baseInitializerFields =
                 record.baseInitializerFields
                 ?? Array.Empty<ConstructorBaseInitializerField>();
-            if (baseInitializerFields.Length == 0) return;
+            if (baseInitializerFields.Length == 0)
+                return;
             FunctionWithReturnType[] compiled =
                 record.compiledBaseInitializerFields
                 ?? Array.Empty<FunctionWithReturnType>();
@@ -4604,7 +4744,8 @@ namespace NeoCompose.Runtime
             {
                 return;
             }
-            if (root!.value is null) return;
+            if (root!.value is null)
+                return;
             if (!root.value.TryGetValue(schemaKey, out string childValueId))
             {
                 return;
@@ -4648,7 +4789,8 @@ namespace NeoCompose.Runtime
             // than by construction — the web's replay omits them the same way,
             // and the server-side collapse verifier proved merged
             // completeness.
-            if (client.IsReplayingVirtualInstance) return;
+            if (client.IsReplayingVirtualInstance)
+                return;
             foreach (MergedSchemaEntry entry in resolved.metadata.classPlan.schema)
             {
                 if (!resolved.membersBySchemaKey.TryGetValue(
@@ -4657,9 +4799,12 @@ namespace NeoCompose.Runtime
                 {
                     continue;
                 }
-                if (!IsStoredConstructorMember(member)) continue;
-                if (member.Requirement != NeoMemberRequirementKind.Required) continue;
-                if (root.value.ContainsKey(entry.schemaKey)) continue;
+                if (!IsStoredConstructorMember(member))
+                    continue;
+                if (member.Requirement != NeoMemberRequirementKind.Required)
+                    continue;
+                if (root.value.ContainsKey(entry.schemaKey))
+                    continue;
                 throw new InvalidOperationException(
                     $"Declared constructor for '{resolved.schemaClass.name}' left required member '{entry.schemaKey}'/'{entry.memberId}' unset. Assign it in the constructor body, give it a default, or pass it at the call site.");
             }
@@ -4821,8 +4966,10 @@ namespace NeoCompose.Runtime
             IReadOnlyDictionary<string, string>? storedGenericBindings,
             bool replayStoredInstance = false)
         {
-            if (client is null) throw new ArgumentNullException(nameof(client));
-            if (classId is null) throw new ArgumentNullException(nameof(classId));
+            if (client is null)
+                throw new ArgumentNullException(nameof(client));
+            if (classId is null)
+                throw new ArgumentNullException(nameof(classId));
             arguments ??= Array.Empty<NeoDeclaredConstructorArgument>();
             suppliedValues ??= Array.Empty<NeoGeneratedConstructorValue>();
 
@@ -4912,7 +5059,8 @@ namespace NeoCompose.Runtime
         {
             if (value is null || value is NeoValuePayload || value is INeoValuePayloadProvider
                 || value is string[] || value is IDictionary<string, string>
-                || member is not (ListMember or DictionaryMember)) return value;
+                || member is not (ListMember or DictionaryMember))
+                return value;
             var rows = new List<MemberValue>();
             var env = ctx.thisValue is null
                 ? new Dictionary<string, NeoGenericEnvEntry>()
@@ -4921,7 +5069,8 @@ namespace NeoCompose.Runtime
                 NeoTimestamp.Now(), item =>
                 {
                     var reference = NeoScript.NSGetterEvaluator.ConstructorReferenceOf(item, ctx);
-                    if (reference is null) return null;
+                    if (reference is null)
+                        return null;
                     string imported = plan is null
                         ? NeoScriptExecutor.ImportClassValueReference(client, ownership, reference.Value.valueId, ctx)
                         : NeoScriptExecutor.ImportClassValueReference(plan, client, ownership, reference.Value.valueId, ctx);
@@ -4937,7 +5086,8 @@ namespace NeoCompose.Runtime
             IReadOnlyList<RuntimeConstructorField> fields,
             NeoScript.NSGetterEvaluator.Context ctx)
         {
-            if (fields.Count == 0) return;
+            if (fields.Count == 0)
+                return;
             NeoTimestamp nowIso = NeoTimestamp.Now();
             foreach (RuntimeConstructorField field in fields)
             {
@@ -4945,8 +5095,10 @@ namespace NeoCompose.Runtime
                 // A null that survived the omit filter belongs to a required
                 // member; ApplyDeclaredConstructorFields names it. A Class
                 // member is the write target's own business.
-                if (field.value is null) continue;
-                if (member is ClassMember) continue;
+                if (field.value is null)
+                    continue;
+                if (member is ClassMember)
+                    continue;
                 var stagedRows = new List<MemberValue>();
                 object? payload = ComputeRuntimeConstructorPayload(
                     client,
@@ -4986,7 +5138,8 @@ namespace NeoCompose.Runtime
                 value = wrapped.value;
                 classId = wrapped.classId;
             }
-            if (stagedRows.Count == 0 && classId is null) return value;
+            if (stagedRows.Count == 0 && classId is null)
+                return value;
             return new NeoValuePayload(value, classId, stagedRows);
         }
 
@@ -5006,8 +5159,10 @@ namespace NeoCompose.Runtime
         {
             NeoConstructorValueReference? source =
                 NeoScript.NSGetterEvaluator.ConstructorReferenceOf(value, ctx);
-            if (source is null) return null;
-            if (string.IsNullOrEmpty(source.Value.valueId)) return source;
+            if (source is null)
+                return null;
+            if (string.IsNullOrEmpty(source.Value.valueId))
+                return source;
             string importedId = NeoScriptExecutor.ImportClassValueReference(
                 client,
                 NeoValueOwnership.Session,
@@ -5033,7 +5188,8 @@ namespace NeoCompose.Runtime
             FunctionArgumentTypeInfo? declared = null;
             foreach (FunctionArgumentTypeInfo candidate in record.argumentTypes)
             {
-                if (candidate.name != argument.name) continue;
+                if (candidate.name != argument.name)
+                    continue;
                 declared = candidate;
                 break;
             }
@@ -5086,7 +5242,8 @@ namespace NeoCompose.Runtime
             if (reference.ownership is not NeoValueOwnership ownership)
                 throw new InvalidOperationException($"Stored {subject} has no storage ownership.");
             Member? member;
-            using (client.SuppressValueReads()) client.TryInferMemberForValueId(reference.valueId, out member);
+            using (client.SuppressValueReads())
+                client.TryInferMemberForValueId(reference.valueId, out member);
             // Resolve typed row links before Normalize validates their values.
             // Keep Class rows in this evaluator context so they retain identity.
             var active = new HashSet<(NeoValueOwnership, string)>();
@@ -5137,7 +5294,8 @@ namespace NeoCompose.Runtime
                     switch (expectedType.type)
                     {
                         case MemberKind.List when row is ArrayMemberValue listRow:
-                            if (listRow.value is null) return null;
+                            if (listRow.value is null)
+                                return null;
                             IEnumerable<string> ids = sourceMember is ListMember list && client.IsUnorderedList(list)
                                 ? client.GetUnorderedListEntryIds(valueId)
                                 : listRow.value;
@@ -5155,7 +5313,8 @@ namespace NeoCompose.Runtime
                                 valueId, storage, member: sourceMember));
                             return result;
                         case MemberKind.Dictionary when row is ObjectMemberValue dictionaryRow:
-                            if (dictionaryRow.value is null) return null;
+                            if (dictionaryRow.value is null)
+                                return null;
                             var valuesByKey = new Dictionary<string, object?>(
                                 dictionaryRow.value.Count, StringComparer.Ordinal);
                             foreach (var pair in dictionaryRow.value)
@@ -5292,7 +5451,8 @@ namespace NeoCompose.Runtime
             foreach (MergedSchemaEntry entry in schema)
             {
                 Member member = membersBySchemaKey[entry.schemaKey];
-                if (!IsStoredConstructorMember(member)) continue;
+                if (!IsStoredConstructorMember(member))
+                    continue;
                 // A declared constructor never has to name every required
                 // field at the call site — its body may set them — so this
                 // check is off for that path and the finished instance is
@@ -5346,7 +5506,8 @@ namespace NeoCompose.Runtime
             ClassTypeInfo classTypeInfo,
             IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv)
         {
-            if (classTypeInfo.typeArguments is null) return;
+            if (classTypeInfo.typeArguments is null)
+                return;
             foreach (var pair in classTypeInfo.typeArguments)
             {
                 if (!genericEnv.TryGetValue(pair.Key, out NeoGenericEnvEntry? binding)
@@ -5541,7 +5702,8 @@ namespace NeoCompose.Runtime
                     throw new InvalidOperationException(
                         $"Required constructor field '{member.name}' received null.");
                 }
-                if (!preserveOptionalNull) return null;
+                if (!preserveOptionalNull)
+                    return null;
             }
 
             if (runtimeValue is not null && member is ClassMember)
@@ -5889,7 +6051,8 @@ namespace NeoCompose.Runtime
             bool matches = false;
             foreach (Type contract in type.GetInterfaces())
             {
-                if (!contract.IsGenericType) continue;
+                if (!contract.IsGenericType)
+                    continue;
                 Type definition = contract.GetGenericTypeDefinition();
                 if ((definition == typeof(IDictionary<,>)
                         || definition == typeof(IReadOnlyDictionary<,>))
@@ -6015,7 +6178,8 @@ namespace NeoCompose.Runtime
             string subject)
         {
             string? singleId = valueId(runtimeValue);
-            if (!string.IsNullOrEmpty(singleId)) return new[] { singleId! };
+            if (!string.IsNullOrEmpty(singleId))
+                return new[] { singleId! };
             if (runtimeValue is string
                 || runtimeValue is not System.Collections.IEnumerable values)
             {
@@ -6128,8 +6292,10 @@ namespace NeoCompose.Runtime
                         classArguments);
                 foreach (var entry in mergedSchema)
                 {
-                    if (value.ContainsKey(entry.schemaKey)) continue;
-                    if (declarationRoot?.row.value?.ContainsKey(entry.schemaKey) == true) continue;
+                    if (value.ContainsKey(entry.schemaKey))
+                        continue;
+                    if (declarationRoot?.row.value?.ContainsKey(entry.schemaKey) == true)
+                        continue;
                     Member? member = resolvedClassPlan is null
                         ? null
                         : resolvedClassPlan.membersBySchemaKey[entry.schemaKey];
@@ -6148,9 +6314,11 @@ namespace NeoCompose.Runtime
                             member,
                             env);
                     }
-                    if (!IsStoredConstructorMember(member)) continue;
+                    if (!IsStoredConstructorMember(member))
+                        continue;
                     // A declaration's own root keeps direct authored bindings.
-                    if (declarationRoot?.usesOwnBindings == true && member.valueId is not null) continue;
+                    if (declarationRoot?.usesOwnBindings == true && member.valueId is not null)
+                        continue;
 
                     // P43 §1 / §8 — an init-backed default is EVALUATED here
                     // rather than read, so a runtime-constructed instance gets
@@ -6160,7 +6328,8 @@ namespace NeoCompose.Runtime
                     // that this member has a value, which is exactly the
                     // signal also carried by an explicit literal default.
                     InitializerBody? init = InitializerOf(member);
-                    if (declarationRoot is not null && init is not null) continue;
+                    if (declarationRoot is not null && init is not null)
+                        continue;
                     if (init is not null)
                     {
                         string? initValueId = MaterializeInitializedValue(
@@ -6645,7 +6814,8 @@ namespace NeoCompose.Runtime
             Dictionary<string, string>? clonedIdsBySourceId = null)
         {
             var result = new Dictionary<string, string>();
-            if (source is null || source.Count == 0) return result;
+            if (source is null || source.Count == 0)
+                return result;
             clonedIdsBySourceId ??= new Dictionary<string, string>(StringComparer.Ordinal);
 
             var schemaByKey = new Dictionary<string, MergedSchemaEntry>();
@@ -6734,13 +6904,15 @@ namespace NeoCompose.Runtime
                 classId,
                 classArguments))
             {
-                if (!client.TryGetMember(entry.memberId, out Member? member)) continue;
+                if (!client.TryGetMember(entry.memberId, out Member? member))
+                    continue;
                 MemberValue? sourceRow = client.ResolveClassChildRow(
                     source,
                     entry.schemaKey);
                 if (sourceRow is null && source.value?.TryGetValue(entry.schemaKey, out string sourceValueId) == true)
                     throw new InvalidOperationException($"Class default '{path}.{entry.schemaKey}' references missing value '{sourceValueId}'.");
-                if (sourceRow is null || sourceRow.IsRemoved) continue;
+                if (sourceRow is null || sourceRow.IsRemoved)
+                    continue;
                 Member effectiveMember = NeoGenericResolution.SubstituteMember(
                     client,
                     member,
@@ -6789,7 +6961,8 @@ namespace NeoCompose.Runtime
             IReadOnlyDictionary<string, NeoGenericEnvEntry> env,
             string path)
         {
-            if (member.defaultValue is null) return null;
+            if (member.defaultValue is null)
+                return null;
             var source = new ObjectMemberValue
             {
                 id = "__neo_embedded_dictionary_default",
@@ -6817,7 +6990,8 @@ namespace NeoCompose.Runtime
             IReadOnlyDictionary<string, NeoGenericEnvEntry> env,
             string path)
         {
-            if (member.defaultValue is null) return null;
+            if (member.defaultValue is null)
+                return null;
             var source = new ArrayMemberValue
             {
                 id = "__neo_embedded_list_default",
@@ -6993,7 +7167,9 @@ namespace NeoCompose.Runtime
                 case VariantMember when source is VariantMemberValue sourceValue:
                     return new VariantMemberValue
                     {
-                        id = Guid.NewGuid().ToString(), createdAt = nowIso, updatedAt = nowIso,
+                        id = Guid.NewGuid().ToString(),
+                        createdAt = nowIso,
+                        updatedAt = nowIso,
                         classId = source.classId,
                         value = sourceValue.value is null ? null : new VariantRefValue
                         {
@@ -7004,61 +7180,64 @@ namespace NeoCompose.Runtime
                     };
                 case ClassMember classMember
                     when source is ObjectMemberValue sourceValue:
-                {
-                    if (sourceValue.value is null)
                     {
-                        if (classMember.Requirement == NeoMemberRequirementKind.Required)
-                            throw new InvalidOperationException($"Class default '{path}' has a null required value.");
-                        return new ObjectMemberValue
+                        if (sourceValue.value is null)
                         {
-                            id = Guid.NewGuid().ToString(), createdAt = nowIso, updatedAt = nowIso,
-                            classId = sourceValue.classId, value = null,
-                        };
-                    }
-                    string classId = sourceValue.classId ?? classMember.classId;
-                    if (sourceValue.instanceConstructorId is string constructorId)
-                    {
-                        ConstructorRecord constructor = RequireConstructorRecord(client, classId,
-                            classId, constructorId);
-                        for (int index = 0; index < constructor.argumentTypes.Length; index++)
-                        {
-                            string parameterId = NeoClient.ConstructorParameterId(constructor, index);
-                            if (!NeoParameterDefaults.HasDefault(constructor.argumentTypes[index])
-                                && sourceValue.constructorArgs?.ContainsKey(parameterId) != true)
+                            if (classMember.Requirement == NeoMemberRequirementKind.Required)
+                                throw new InvalidOperationException($"Class default '{path}' has a null required value.");
+                            return new ObjectMemberValue
                             {
-                                throw new InvalidOperationException(
-                                    $"Class default '{path}' constructor '{constructorId}' is missing argument '{parameterId}'.");
+                                id = Guid.NewGuid().ToString(),
+                                createdAt = nowIso,
+                                updatedAt = nowIso,
+                                classId = sourceValue.classId,
+                                value = null,
+                            };
+                        }
+                        string classId = sourceValue.classId ?? classMember.classId;
+                        if (sourceValue.instanceConstructorId is string constructorId)
+                        {
+                            ConstructorRecord constructor = RequireConstructorRecord(client, classId,
+                                classId, constructorId);
+                            for (int index = 0; index < constructor.argumentTypes.Length; index++)
+                            {
+                                string parameterId = NeoClient.ConstructorParameterId(constructor, index);
+                                if (!NeoParameterDefaults.HasDefault(constructor.argumentTypes[index])
+                                    && sourceValue.constructorArgs?.ContainsKey(parameterId) != true)
+                                {
+                                    throw new InvalidOperationException(
+                                        $"Class default '{path}' constructor '{constructorId}' is missing argument '{parameterId}'.");
+                                }
                             }
                         }
-                    }
-                    var classArguments = NeoGenericResolution.CloseClassArgumentsFromStamp(
-                        sourceValue.genericBindings, classMember.classArguments);
-                    ObjectMemberValue clone = CreateWritableClassValueRow(
-                        client,
-                        classId,
-                        CloneResolvedClassChildren(
+                        var classArguments = NeoGenericResolution.CloseClassArgumentsFromStamp(
+                            sourceValue.genericBindings, classMember.classArguments);
+                        ObjectMemberValue clone = CreateWritableClassValueRow(
                             client,
-                            sourceValue,
                             classId,
+                            CloneResolvedClassChildren(
+                                client,
+                                sourceValue,
+                                classId,
+                                rows,
+                                nowIso,
+                                scope,
+                                path,
+                                classArguments,
+                                clonedIdsBySourceId),
                             rows,
                             nowIso,
                             scope,
                             path,
                             classArguments,
-                            clonedIdsBySourceId),
-                        rows,
-                        nowIso,
-                        scope,
-                        path,
-                        classArguments,
-                        requireCompleteDefault: true);
-                    CopyDefaultConstructionProvenance(
-                        client,
-                        sourceValue,
-                        clone,
-                        clonedIdsBySourceId);
-                    return clone;
-                }
+                            requireCompleteDefault: true);
+                        CopyDefaultConstructionProvenance(
+                            client,
+                            sourceValue,
+                            clone,
+                            clonedIdsBySourceId);
+                        return clone;
+                    }
                 case DictionaryMember dictionaryMember
                     when source is ObjectMemberValue sourceValue:
                     return CloneDictionaryValueRow(
@@ -7335,7 +7514,8 @@ namespace NeoCompose.Runtime
                         $"{path}[{value.Count}]",
                         clonedIdsBySourceId);
                     rows.Add(cloned);
-                    if (unordered) cloned.containerId = rowId;
+                    if (unordered)
+                        cloned.containerId = rowId;
                     value.Add(cloned.id);
                     clonedIdsBySourceId[sourceRow.id] = cloned.id;
                 }
@@ -7408,7 +7588,8 @@ namespace NeoCompose.Runtime
             NeoTimestamp nowIso,
             MemberValueBase<NeoColorValue?>? defaultValue)
         {
-            if (defaultValue is null) return null;
+            if (defaultValue is null)
+                return null;
             return new ColorMemberValue
             {
                 id = Guid.NewGuid().ToString(),
@@ -7421,7 +7602,8 @@ namespace NeoCompose.Runtime
 
         private static string[]? CloneArray(string[]? source)
         {
-            if (source is null) return null;
+            if (source is null)
+                return null;
             var clone = new string[source.Length];
             Array.Copy(source, clone, source.Length);
             return clone;
@@ -7453,7 +7635,8 @@ namespace NeoCompose.Runtime
             NeoTimestamp nowIso,
             MemberValueBase<string?>? defaultValue)
         {
-            if (defaultValue is null) return null;
+            if (defaultValue is null)
+                return null;
             return new StringMemberValue
             {
                 id = Guid.NewGuid().ToString(),
@@ -7515,9 +7698,11 @@ namespace NeoCompose.Runtime
         {
             if (value is not IReadOnlyList<object?> entries)
                 throw new InvalidOperationException("NeoScript returned an invalid List value.");
-            if (entries.Count == 0) return Array.Empty<T>();
+            if (entries.Count == 0)
+                return Array.Empty<T>();
             var result = new T[entries.Count];
-            for (int i = 0; i < entries.Count; i++) result[i] = read(entries[i]);
+            for (int i = 0; i < entries.Count; i++)
+                result[i] = read(entries[i]);
             return result;
         }
 
@@ -7526,7 +7711,8 @@ namespace NeoCompose.Runtime
             if (value is not IReadOnlyDictionary<string, object?> entries)
                 throw new InvalidOperationException("NeoScript returned an invalid Dictionary value.");
             var result = new Dictionary<string, T>(entries.Count, StringComparer.Ordinal);
-            foreach (var pair in entries) result.Add(pair.Key, read(pair.Value));
+            foreach (var pair in entries)
+                result.Add(pair.Key, read(pair.Value));
             return result;
         }
 
@@ -7535,7 +7721,8 @@ namespace NeoCompose.Runtime
             Func<string, TEnum> create)
         {
             var values = new List<TEnum>();
-            foreach (var optionId in optionIds) values.Add(create(optionId));
+            foreach (var optionId in optionIds)
+                values.Add(create(optionId));
             return values;
         }
 
@@ -7544,7 +7731,8 @@ namespace NeoCompose.Runtime
             Func<NeoMember, T> create)
         {
             var values = new List<T>();
-            foreach (var node in nodes) values.Add(create(node));
+            foreach (var node in nodes)
+                values.Add(create(node));
             return values;
         }
 
@@ -7577,7 +7765,8 @@ namespace NeoCompose.Runtime
             string unresolvedMessage)
         {
             var spriteValue = MemberValueFactory.ToSpriteValue(value);
-            if (NeoReadOnlySprite.IsEmptyValue(spriteValue)) return null;
+            if (NeoReadOnlySprite.IsEmptyValue(spriteValue))
+                return null;
             return NeoAssetResolver.ResolveSprite(client.assetDatabase, spriteValue)
                 ?? throw new InvalidOperationException(unresolvedMessage);
         }
@@ -7609,7 +7798,8 @@ namespace NeoCompose.Runtime
                 return default;
             }
 
-            if (value is T typed) return typed;
+            if (value is T typed)
+                return typed;
 
             string? valueId = ValueId(value);
             if (string.IsNullOrEmpty(valueId))
@@ -7729,8 +7919,10 @@ namespace NeoCompose.Runtime
 
         public static string? ValueId(object? value)
         {
-            if (value is NeoLookupSelection selection) return selection.valueId;
-            if (value is NeoDialogueReference dialogueReference) return dialogueReference.Id;
+            if (value is NeoLookupSelection selection)
+                return selection.valueId;
+            if (value is NeoDialogueReference dialogueReference)
+                return dialogueReference.Id;
             return value is INeoValueReference reference
                 ? reference.valueId
                 : null;
@@ -7738,14 +7930,17 @@ namespace NeoCompose.Runtime
 
         public static string[] ToStringArray(object? value)
         {
-            if (value is null) return Array.Empty<string>();
-            if (value is string[] strings) return strings;
+            if (value is null)
+                return Array.Empty<string>();
+            if (value is string[] strings)
+                return strings;
             if (value is object?[] objects)
             {
                 var values = new List<string>();
                 foreach (var item in objects)
                 {
-                    if (item is string str) values.Add(str);
+                    if (item is string str)
+                        values.Add(str);
                 }
                 return values.ToArray();
             }
@@ -7755,9 +7950,11 @@ namespace NeoCompose.Runtime
         public static string[] LookupSelectionIds(
             IEnumerable<NeoLookupSelection>? selections)
         {
-            if (selections is null) return Array.Empty<string>();
+            if (selections is null)
+                return Array.Empty<string>();
             var ids = new List<string>();
-            foreach (var selection in selections) ids.Add(selection.valueId);
+            foreach (var selection in selections)
+                ids.Add(selection.valueId);
             return ids.ToArray();
         }
 
@@ -7778,9 +7975,11 @@ namespace NeoCompose.Runtime
         public static string[] DialogueReferenceIds(
             IEnumerable<NeoDialogueReference>? references)
         {
-            if (references is null) return Array.Empty<string>();
+            if (references is null)
+                return Array.Empty<string>();
             var ids = new List<string>();
-            foreach (var reference in references) ids.Add(reference.Id);
+            foreach (var reference in references)
+                ids.Add(reference.Id);
             return ids.ToArray();
         }
 
@@ -7794,7 +7993,8 @@ namespace NeoCompose.Runtime
             string classId,
             IReadOnlyDictionary<string, ReadOnlyClassFactory> readOnlyFactories)
         {
-            if (client == null) throw new ArgumentNullException(nameof(client));
+            if (client == null)
+                throw new ArgumentNullException(nameof(client));
             if (string.IsNullOrWhiteSpace(classId))
             {
                 throw new ArgumentException("Class id cannot be empty.", nameof(classId));

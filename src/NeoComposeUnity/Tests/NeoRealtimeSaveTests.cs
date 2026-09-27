@@ -316,7 +316,10 @@ namespace NeoCompose.Tests
 
     internal sealed class FakeRealtimeProvider : INeoRealtimeProvider, INeoRealtimeConfigurable
     {
-        public NeoRealtimeConnectionState State { get; set; } =
+        public NeoRealtimeConnectionState State
+        {
+            get; set;
+        } =
             NeoRealtimeConnectionState.Disconnected;
 
         public event Action<NeoRealtimeConnectionState>? OnConnectionStateChanged;
@@ -345,7 +348,10 @@ namespace NeoCompose.Tests
         // to exercise the store's deferred-configuration path.
         public bool IsConfigured { get; set; } = true;
 
-        public NeoRealtimeProviderContext? ConfiguredContext { get; private set; }
+        public NeoRealtimeProviderContext? ConfiguredContext
+        {
+            get; private set;
+        }
 
         public void Configure(NeoRealtimeProviderContext context)
         {
@@ -394,21 +400,24 @@ namespace NeoCompose.Tests
             NeoSaveCommitRequest request, bool replaceSnapshot)
         {
             commits.Add((request, replaceSnapshot));
-            if (commitThrows != null) throw commitThrows;
+            if (commitThrows != null)
+                throw commitThrows;
             return NeoAwaitable.FromResult(commitResults.Dequeue());
         }
 
         public Awaitable<NeoCommitResult> ForkLiveAsync(NeoLiveForkRequest request)
         {
             forks.Add(request);
-            if (forkThrows != null) throw forkThrows;
+            if (forkThrows != null)
+                throw forkThrows;
             return NeoAwaitable.FromResult(forkResults.Dequeue());
         }
 
         public Awaitable<NeoLivePatchResult> PatchLiveAsync(NeoLivePatchRequest request)
         {
             livePatches.Add(request);
-            if (livePatchThrows != null) throw livePatchThrows;
+            if (livePatchThrows != null)
+                throw livePatchThrows;
             return NeoAwaitable.FromResult(livePatchResults.Dequeue());
         }
 

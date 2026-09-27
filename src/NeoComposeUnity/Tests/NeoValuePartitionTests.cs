@@ -310,7 +310,9 @@ namespace NeoCompose.Tests
                 data.classes[TileLayerLinkClassId].schema[key] = key;
                 data.members[key] = new IntMember
                 {
-                    id = key, name = key, kind = MemberKind.Int,
+                    id = key,
+                    name = key,
+                    kind = MemberKind.Int,
                     defaultValue = new NumberMemberValueBase { value = 70 },
                 };
             }
@@ -834,8 +836,10 @@ namespace NeoCompose.Tests
                 ["mapKey"] = WorldPartitionKey,
                 ["value"] = value,
             };
-            if (classId is not null) row["classId"] = classId;
-            if (containerId is not null) row["containerId"] = containerId;
+            if (classId is not null)
+                row["classId"] = classId;
+            if (containerId is not null)
+                row["containerId"] = containerId;
             return row;
         }
 

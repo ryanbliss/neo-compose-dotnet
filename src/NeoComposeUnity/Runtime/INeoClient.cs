@@ -15,25 +15,46 @@ namespace NeoCompose.Runtime
     /// </summary>
     public interface INeoClient : IDisposable
     {
-        NeoMemberClass AssetsRoot { get; }
+        NeoMemberClass AssetsRoot
+        {
+            get;
+        }
 
-        NeoMemberClassWritable SaveRoot { get; }
+        NeoMemberClassWritable SaveRoot
+        {
+            get;
+        }
 
-        NeoMemberClassWritable SessionRoot { get; }
+        NeoMemberClassWritable SessionRoot
+        {
+            get;
+        }
 
-        NeoLocalization Localization { get; }
+        NeoLocalization Localization
+        {
+            get;
+        }
 
         /// <summary>
         /// The active-save abstraction this client persists through (normally a
         /// <see cref="NeoSaveSynchronizer"/>).
         /// </summary>
-        INeoSaveLoader Synchronizer { get; }
+        INeoSaveLoader Synchronizer
+        {
+            get;
+        }
 
         /// <summary>The cloud save transport, or null when local-only.</summary>
-        INeoApiClient? ApiClient { get; }
+        INeoApiClient? ApiClient
+        {
+            get;
+        }
 
         /// <summary>The runtime authentication backing cloud sync, or null when local-only.</summary>
-        NeoAuthentication? Authentication { get; }
+        NeoAuthentication? Authentication
+        {
+            get;
+        }
 
         /// <summary>
         /// Serializes the current save state to JSON without persisting it.

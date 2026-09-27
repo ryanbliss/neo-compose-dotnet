@@ -293,8 +293,10 @@ namespace NeoCompose.Runtime
 
         public static bool operator ==(NeoReadOnlyVector2? left, NeoReadOnlyVector2? right)
         {
-            if (left is null) return right is null;
-            if (right is null) return false;
+            if (left is null)
+                return right is null;
+            if (right is null)
+                return false;
             return left.Value == right.Value;
         }
 
@@ -315,8 +317,10 @@ namespace NeoCompose.Runtime
 
         public override bool Equals(object? obj)
         {
-            if (obj is NeoReadOnlyVector2 wrapper) return Value == wrapper.Value;
-            if (obj is Vector2 native) return Value == native;
+            if (obj is NeoReadOnlyVector2 wrapper)
+                return Value == wrapper.Value;
+            if (obj is Vector2 native)
+                return Value == native;
             return false;
         }
 
@@ -444,8 +448,10 @@ namespace NeoCompose.Runtime
 
         public static bool operator ==(NeoReadOnlyVector2Int? left, NeoReadOnlyVector2Int? right)
         {
-            if (left is null) return right is null;
-            if (right is null) return false;
+            if (left is null)
+                return right is null;
+            if (right is null)
+                return false;
             return left.Value == right.Value;
         }
 
@@ -466,8 +472,10 @@ namespace NeoCompose.Runtime
 
         public override bool Equals(object? obj)
         {
-            if (obj is NeoReadOnlyVector2Int wrapper) return Value == wrapper.Value;
-            if (obj is Vector2Int native) return Value == native;
+            if (obj is NeoReadOnlyVector2Int wrapper)
+                return Value == wrapper.Value;
+            if (obj is Vector2Int native)
+                return Value == native;
             return false;
         }
 
@@ -578,8 +586,10 @@ namespace NeoCompose.Runtime
 
         public static bool operator ==(NeoReadOnlyVector3? left, NeoReadOnlyVector3? right)
         {
-            if (left is null) return right is null;
-            if (right is null) return false;
+            if (left is null)
+                return right is null;
+            if (right is null)
+                return false;
             return left.Value == right.Value;
         }
 
@@ -600,8 +610,10 @@ namespace NeoCompose.Runtime
 
         public override bool Equals(object? obj)
         {
-            if (obj is NeoReadOnlyVector3 wrapper) return Value == wrapper.Value;
-            if (obj is Vector3 native) return Value == native;
+            if (obj is NeoReadOnlyVector3 wrapper)
+                return Value == wrapper.Value;
+            if (obj is Vector3 native)
+                return Value == native;
             return false;
         }
 
@@ -720,8 +732,10 @@ namespace NeoCompose.Runtime
 
         public static bool operator ==(NeoReadOnlyVector3Int? left, NeoReadOnlyVector3Int? right)
         {
-            if (left is null) return right is null;
-            if (right is null) return false;
+            if (left is null)
+                return right is null;
+            if (right is null)
+                return false;
             return left.Value == right.Value;
         }
 
@@ -742,8 +756,10 @@ namespace NeoCompose.Runtime
 
         public override bool Equals(object? obj)
         {
-            if (obj is NeoReadOnlyVector3Int wrapper) return Value == wrapper.Value;
-            if (obj is Vector3Int native) return Value == native;
+            if (obj is NeoReadOnlyVector3Int wrapper)
+                return Value == wrapper.Value;
+            if (obj is Vector3Int native)
+                return Value == native;
             return false;
         }
 

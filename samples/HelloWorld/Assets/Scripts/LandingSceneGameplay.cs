@@ -15,7 +15,10 @@ namespace HelloWorld.Assets.Scripts
     /// </summary>
     public interface ILandingSceneHost
     {
-        bool DialogueIsOpen { get; }
+        bool DialogueIsOpen
+        {
+            get;
+        }
         void CloseLandingScene();
         Awaitable SaveProgressAsync();
         bool TryTriggerDialogue(NeoDialogueReference dialogueReference, Action onFinish);
@@ -78,7 +81,10 @@ namespace HelloWorld.Assets.Scripts
             LoadWorldAsync();
         }
 
-        public Vector2Int PlayerCell { get; private set; }
+        public Vector2Int PlayerCell
+        {
+            get; private set;
+        }
         public string PromptText { get; private set; } = "WASD Move  •  E Interact";
         public string StatusText { get; private set; } = string.Empty;
 
@@ -105,11 +111,13 @@ namespace HelloWorld.Assets.Scripts
 
         private void Update()
         {
-            if (loading) return;
+            if (loading)
+                return;
 
             RenderChrome();
             ui.SetPromptVisible(!host.DialogueIsOpen);
-            if (host.DialogueIsOpen) return;
+            if (host.DialogueIsOpen)
+                return;
 
             ui.Tick();
         }

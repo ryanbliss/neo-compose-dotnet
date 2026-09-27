@@ -899,19 +899,29 @@ namespace NeoCompose.Tests
         public void NullDefaultCarrierInheritanceSurvivesRoundTrip(bool generic, bool literalNull, bool baseHasDefault)
         {
             Member parent = generic
-                ? new GenericMember { id = "default-base", genericParamId = NeoGenericTestFixture.ParamT,
-                    defaultValue = baseHasDefault ? new NullMemberValueBase { value = 4.5 } : null }
-                : new FloatMember { id = "default-base", kind = MemberKind.Float,
-                    defaultValue = baseHasDefault ? new NumberMemberValueBase { value = 4.5 } : null };
+                ? new GenericMember
+                {
+                    id = "default-base",
+                    genericParamId = NeoGenericTestFixture.ParamT,
+                    defaultValue = baseHasDefault ? new NullMemberValueBase { value = 4.5 } : null
+                }
+                : new FloatMember
+                {
+                    id = "default-base",
+                    kind = MemberKind.Float,
+                    defaultValue = baseHasDefault ? new NumberMemberValueBase { value = 4.5 } : null
+                };
             var wire = new Newtonsoft.Json.Linq.JObject
             {
-                ["id"] = "default-override", ["extendsMemberId"] = parent.id,
+                ["id"] = "default-override",
+                ["extendsMemberId"] = parent.id,
                 ["kind"] = (int)(generic ? MemberKind.Generic : MemberKind.Float),
                 ["defaultValue"] = literalNull
                     ? new Newtonsoft.Json.Linq.JObject { ["value"] = Newtonsoft.Json.Linq.JValue.CreateNull() }
                     : Newtonsoft.Json.Linq.JValue.CreateNull(),
             };
-            if (generic) wire["genericParamId"] = NeoGenericTestFixture.ParamT;
+            if (generic)
+                wire["genericParamId"] = NeoGenericTestFixture.ParamT;
             Member child = wire.ToObject<Member>()!;
             var members = new Dictionary<string, Member> { [parent.id] = parent, [child.id] = child };
             NeoMemberShapeResolution.ResolveAll(members);
@@ -921,7 +931,8 @@ namespace NeoCompose.Tests
             Assert.AreEqual(literalNull ? null : baseHasDefault ? 4.5 : (object?)null, DefaultValue(child));
             var serialized = Newtonsoft.Json.Linq.JObject.Parse(JsonConvert.SerializeObject(child));
             Assert.AreEqual(literalNull, serialized.ContainsKey("defaultValue"));
-            if (literalNull) Assert.AreEqual(Newtonsoft.Json.Linq.JTokenType.Null, serialized["defaultValue"]!["value"]!.Type);
+            if (literalNull)
+                Assert.AreEqual(Newtonsoft.Json.Linq.JTokenType.Null, serialized["defaultValue"]!["value"]!.Type);
             Member roundTripped = serialized.ToObject<Member>()!;
             members[child.id] = roundTripped;
             NeoMemberShapeResolution.ResolveAll(members);
@@ -941,24 +952,33 @@ namespace NeoCompose.Tests
             else
                 data.members["member-speed"] = new FloatMember
                 {
-                    id = "member-speed", projectId = "project-a", name = "Speed", kind = MemberKind.Float,
+                    id = "member-speed",
+                    projectId = "project-a",
+                    name = "Speed",
+                    kind = MemberKind.Float,
                     Requirement = NeoMemberRequirementKind.Required,
                     defaultValue = baseHasDefault ? new NumberMemberValueBase { value = 4.5 } : null,
                 };
             var wire = new Newtonsoft.Json.Linq.JObject
             {
-                ["id"] = "speed-override", ["projectId"] = "project-a", ["name"] = "Speed",
-                ["extendsMemberId"] = "member-speed", ["kind"] = (int)(generic ? MemberKind.Generic : MemberKind.Float),
+                ["id"] = "speed-override",
+                ["projectId"] = "project-a",
+                ["name"] = "Speed",
+                ["extendsMemberId"] = "member-speed",
+                ["kind"] = (int)(generic ? MemberKind.Generic : MemberKind.Float),
                 ["defaultValue"] = Newtonsoft.Json.Linq.JValue.CreateNull(),
             };
-            if (generic) wire["genericParamId"] = NeoGenericTestFixture.ParamT;
+            if (generic)
+                wire["genericParamId"] = NeoGenericTestFixture.ParamT;
             data.members["speed-override"] = wire.ToObject<Member>()!;
             data.classes["class-damage"].schema["Speed"] = "speed-override";
             using var client = NeoTestSaveStack.ClientFromSchema(data);
             NeoMemberClassWritable Construct() => NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client, "class-damage", new Dictionary<string, string>(), System.Array.Empty<MemberValue>());
-            if (baseHasDefault) Assert.AreEqual(4.5, Construct().Get<NeoMemberFloatWritable>("Speed").value!.value);
-            else StringAssert.Contains("missing required member", Assert.Throws<System.InvalidOperationException>(() => Construct())!.Message);
+            if (baseHasDefault)
+                Assert.AreEqual(4.5, Construct().Get<NeoMemberFloatWritable>("Speed").value!.value);
+            else
+                StringAssert.Contains("missing required member", Assert.Throws<System.InvalidOperationException>(() => Construct())!.Message);
         }
 
         [Test]
@@ -1152,18 +1172,25 @@ namespace NeoCompose.Tests
             ProjectData data = NeoGenericTestFixture.BuildProjectData();
             data.classes["dangling-target"] = new NeoSchemaClass
             {
-                id = "dangling-target", name = "Target", projectId = "project-a",
+                id = "dangling-target",
+                name = "Target",
+                projectId = "project-a",
                 schema = new Dictionary<string, string> { ["Count"] = "dangling-count" },
             };
             data.members["dangling-count"] = new FloatMember
             {
-                id = "dangling-count", name = "Count", projectId = "project-a", kind = MemberKind.Float,
+                id = "dangling-count",
+                name = "Count",
+                projectId = "project-a",
+                kind = MemberKind.Float,
                 Requirement = requiredWithDefault ? NeoMemberRequirementKind.Required : NeoMemberRequirementKind.Optional,
                 defaultValue = requiredWithDefault ? new NumberMemberValueBase { value = 4.5 } : null,
             };
             data.classes["dangling-host"] = new NeoSchemaClass
             {
-                id = "dangling-host", name = "Host", projectId = "project-a",
+                id = "dangling-host",
+                name = "Host",
+                projectId = "project-a",
                 schema = new Dictionary<string, string> { ["Target"] = "dangling-slot" },
             };
             if (mismatchedCarrier)
@@ -1171,26 +1198,40 @@ namespace NeoCompose.Tests
             var contents = new Dictionary<string, string> { ["Count"] = "missing-count-row" };
             data.members["dangling-slot"] = new ClassMember
             {
-                id = "dangling-slot", name = "Target", projectId = "project-a", kind = MemberKind.Class,
-                classId = "dangling-target", defaultValue = new ObjectMemberValueBase { value = contents },
+                id = "dangling-slot",
+                name = "Target",
+                projectId = "project-a",
+                kind = MemberKind.Class,
+                classId = "dangling-target",
+                defaultValue = new ObjectMemberValueBase { value = contents },
             };
             string constructionClass = "dangling-host";
             if (storedClass)
             {
                 data.values["stored-target"] = new ObjectMemberValue
                 {
-                    id = "stored-target", classId = "dangling-target", value = contents,
+                    id = "stored-target",
+                    classId = "dangling-target",
+                    value = contents,
                 };
                 data.classes["dangling-wrapper"] = new NeoSchemaClass
                 {
-                    id = "dangling-wrapper", name = "Wrapper", projectId = "project-a",
+                    id = "dangling-wrapper",
+                    name = "Wrapper",
+                    projectId = "project-a",
                     schema = new Dictionary<string, string> { ["Host"] = "dangling-host-slot" },
                 };
                 data.members["dangling-host-slot"] = new ClassMember
                 {
-                    id = "dangling-host-slot", name = "Host", projectId = "project-a", kind = MemberKind.Class,
-                    classId = "dangling-host", defaultValue = new ObjectMemberValueBase
-                    { value = new Dictionary<string, string> { ["Target"] = "stored-target" } },
+                    id = "dangling-host-slot",
+                    name = "Host",
+                    projectId = "project-a",
+                    kind = MemberKind.Class,
+                    classId = "dangling-host",
+                    defaultValue = new ObjectMemberValueBase
+                    {
+                        value = new Dictionary<string, string> { ["Target"] = "stored-target" }
+                    },
                 };
                 constructionClass = "dangling-wrapper";
             }
@@ -1209,28 +1250,42 @@ namespace NeoCompose.Tests
             ProjectData data = NeoGenericTestFixture.BuildProjectData();
             data.classes["variant-target"] = new NeoSchemaClass
             {
-                id = "variant-target", name = "Target", projectId = "project-a",
+                id = "variant-target",
+                name = "Target",
+                projectId = "project-a",
                 schema = new Dictionary<string, string> { ["Variant"] = "variant-slot" },
             };
             data.members["variant-slot"] = new VariantMember
             {
-                id = "variant-slot", name = "Variant", projectId = "project-a", kind = MemberKind.Variant,
+                id = "variant-slot",
+                name = "Variant",
+                projectId = "project-a",
+                kind = MemberKind.Variant,
                 targetTypeInfo = new ClassTypeInfo { type = MemberKind.Class, classId = "class-card-base", required = true },
             };
             data.classes["variant-host"] = new NeoSchemaClass
             {
-                id = "variant-host", name = "Host", projectId = "project-a",
+                id = "variant-host",
+                name = "Host",
+                projectId = "project-a",
                 schema = new Dictionary<string, string> { ["Target"] = "variant-host-slot" },
             };
             data.members["variant-host-slot"] = new ClassMember
             {
-                id = "variant-host-slot", name = "Target", projectId = "project-a", kind = MemberKind.Class,
-                classId = "variant-target", defaultValue = new ObjectMemberValueBase
-                { value = new Dictionary<string, string> { ["Variant"] = "stored-variant" } },
+                id = "variant-host-slot",
+                name = "Target",
+                projectId = "project-a",
+                kind = MemberKind.Class,
+                classId = "variant-target",
+                defaultValue = new ObjectMemberValueBase
+                {
+                    value = new Dictionary<string, string> { ["Variant"] = "stored-variant" }
+                },
             };
             data.values["stored-variant"] = new VariantMemberValue
             {
-                id = "stored-variant", value = new VariantRefValue { classId = "class-card-base" },
+                id = "stored-variant",
+                value = new VariantRefValue { classId = "class-card-base" },
             };
             if (kind != MemberKind.Variant)
             {
@@ -1238,8 +1293,11 @@ namespace NeoCompose.Tests
                 var arguments = System.Array.Empty<FunctionArgumentTypeInfo>();
                 data.members["copy-callback"] = new FunctionMember
                 {
-                    id = "copy-callback", name = "Callback", kind = MemberKind.Function,
-                    returnTypeInfo = voidType, argumentTypes = arguments,
+                    id = "copy-callback",
+                    name = "Callback",
+                    kind = MemberKind.Function,
+                    returnTypeInfo = voidType,
+                    argumentTypes = arguments,
                 };
                 data.classes["variant-target"].schema["Callback"] = "copy-callback";
                 data.members["variant-slot"] = kind == MemberKind.NSDelegate
@@ -1293,20 +1351,27 @@ namespace NeoCompose.Tests
             ProjectData data = NeoGenericTestFixture.BuildProjectData();
             data.classes["default-container"] = new NeoSchemaClass
             {
-                id = "default-container", projectId = "project-a", name = "DefaultContainer",
+                id = "default-container",
+                projectId = "project-a",
+                name = "DefaultContainer",
                 schema = new Dictionary<string, string> { ["Child"] = "default-child" },
             };
             data.classes["default-target"] = new NeoSchemaClass
             {
-                id = "default-target", projectId = "project-a", name = "DefaultTarget",
+                id = "default-target",
+                projectId = "project-a",
+                name = "DefaultTarget",
                 schema = childRequiresValue
                     ? new Dictionary<string, string> { ["Value"] = "default-required" }
                     : new Dictionary<string, string>(),
             };
             data.members["default-child"] = new ClassMember
             {
-                id = "default-child", projectId = "project-a", name = "Child",
-                kind = MemberKind.Class, classId = "default-target",
+                id = "default-child",
+                projectId = "project-a",
+                name = "Child",
+                kind = MemberKind.Class,
+                classId = "default-target",
                 Requirement = NeoMemberRequirementKind.Required,
                 defaultValue = hasDefault
                     ? new ObjectMemberValueBase { value = new Dictionary<string, string>() }
@@ -1314,8 +1379,11 @@ namespace NeoCompose.Tests
             };
             data.members["default-required"] = new FloatMember
             {
-                id = "default-required", projectId = "project-a", name = "Value",
-                kind = MemberKind.Float, Requirement = NeoMemberRequirementKind.Required,
+                id = "default-required",
+                projectId = "project-a",
+                name = "Value",
+                kind = MemberKind.Float,
+                Requirement = NeoMemberRequirementKind.Required,
             };
             string constructedClassId = "default-container";
             if (referencedChild)
@@ -1323,17 +1391,24 @@ namespace NeoCompose.Tests
                 ((ClassMember)data.members["default-child"]).defaultValue = null;
                 data.values["empty-child"] = new ObjectMemberValue
                 {
-                    id = "empty-child", classId = "default-target", value = new Dictionary<string, string>(),
+                    id = "empty-child",
+                    classId = "default-target",
+                    value = new Dictionary<string, string>(),
                 };
                 data.classes["default-host"] = new NeoSchemaClass
                 {
-                    id = "default-host", projectId = "project-a", name = "DefaultHost",
+                    id = "default-host",
+                    projectId = "project-a",
+                    name = "DefaultHost",
                     schema = new Dictionary<string, string> { ["Container"] = "host-container" },
                 };
                 data.members["host-container"] = new ClassMember
                 {
-                    id = "host-container", projectId = "project-a", name = "Container",
-                    kind = MemberKind.Class, classId = "default-container",
+                    id = "host-container",
+                    projectId = "project-a",
+                    name = "Container",
+                    kind = MemberKind.Class,
+                    classId = "default-container",
                     defaultValue = new ObjectMemberValueBase
                     {
                         value = new Dictionary<string, string> { ["Child"] = "empty-child" },
@@ -1346,13 +1421,18 @@ namespace NeoCompose.Tests
                 data.classes["save-root-class"].schema["Host"] = "replay-host";
                 data.members["replay-host"] = new ClassMember
                 {
-                    id = "replay-host", projectId = "project-a", name = "Host",
-                    kind = MemberKind.Class, classId = constructedClassId,
+                    id = "replay-host",
+                    projectId = "project-a",
+                    name = "Host",
+                    kind = MemberKind.Class,
+                    classId = constructedClassId,
                 };
                 data.values["replay-host-value"] = new ObjectMemberValue
                 {
-                    id = "replay-host-value", classId = constructedClassId,
-                    value = new Dictionary<string, string>(), instanceConstructorId = null,
+                    id = "replay-host-value",
+                    classId = constructedClassId,
+                    value = new Dictionary<string, string>(),
+                    instanceConstructorId = null,
                     constructorArgs = new Dictionary<string, Newtonsoft.Json.Linq.JToken?>(),
                 };
                 ((ObjectMemberValue)data.values["root-save-value"]).value!["Host"] = "replay-host-value";
@@ -1360,12 +1440,15 @@ namespace NeoCompose.Tests
             void Construct()
             {
                 using var client = NeoTestSaveStack.ClientFromSchema(data);
-                if (!replay) NeoGeneratedTypesSupport.CreateWritableClassValue(
+                if (!replay)
+                    NeoGeneratedTypesSupport.CreateWritableClassValue(
                     client, constructedClassId, new Dictionary<string, string>(),
                     System.Array.Empty<MemberValue>());
             }
-            if (succeeds) Assert.DoesNotThrow(Construct);
-            else StringAssert.Contains("missing required member",
+            if (succeeds)
+                Assert.DoesNotThrow(Construct);
+            else
+                StringAssert.Contains("missing required member",
                 Assert.Throws<System.InvalidOperationException>(Construct)!.ToString());
         }
 
@@ -1376,24 +1459,34 @@ namespace NeoCompose.Tests
             ProjectData data = NeoGenericTestFixture.BuildProjectData();
             data.classes["null-container"] = new NeoSchemaClass
             {
-                id = "null-container", projectId = "project-a", name = "NullContainer",
+                id = "null-container",
+                projectId = "project-a",
+                name = "NullContainer",
                 schema = new Dictionary<string, string> { ["Child"] = "null-child" },
             };
             data.members["null-child"] = new ClassMember
             {
-                id = "null-child", projectId = "project-a", name = "Child",
-                kind = MemberKind.Class, classId = "class-damage",
+                id = "null-child",
+                projectId = "project-a",
+                name = "Child",
+                kind = MemberKind.Class,
+                classId = "class-damage",
                 Requirement = required ? NeoMemberRequirementKind.Required : NeoMemberRequirementKind.Optional,
             };
             data.classes["null-host"] = new NeoSchemaClass
             {
-                id = "null-host", projectId = "project-a", name = "NullHost",
+                id = "null-host",
+                projectId = "project-a",
+                name = "NullHost",
                 schema = new Dictionary<string, string> { ["Container"] = "null-default" },
             };
             data.members["null-default"] = new ClassMember
             {
-                id = "null-default", projectId = "project-a", name = "Container",
-                kind = MemberKind.Class, classId = "null-container",
+                id = "null-default",
+                projectId = "project-a",
+                name = "Container",
+                kind = MemberKind.Class,
+                classId = "null-container",
                 defaultValue = new ObjectMemberValueBase
                 {
                     value = new Dictionary<string, string> { ["Child"] = "explicit-null-child" },

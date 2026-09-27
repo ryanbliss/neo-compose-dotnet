@@ -110,7 +110,8 @@ namespace NeoCompose.Tests
                 var ctx = new NSGetterEvaluator.Context(client, null, null);
                 foreach (JToken testCase in EvaluateCases())
                 {
-                    if (testCase["expected"] is not JObject expected) continue;
+                    if (testCase["expected"] is not JObject expected)
+                        continue;
                     string name = Text(testCase, "name");
                     IDictionary<string, object?> produced = RequireRecord(
                         Evaluate(
@@ -269,11 +270,13 @@ namespace NeoCompose.Tests
             {
                 foreach (Sprite sprite in sprites)
                 {
-                    if (sprite != null) UnityEngine.Object.DestroyImmediate(sprite);
+                    if (sprite != null)
+                        UnityEngine.Object.DestroyImmediate(sprite);
                 }
                 foreach (AudioClip clip in audioClips)
                 {
-                    if (clip != null) UnityEngine.Object.DestroyImmediate(clip);
+                    if (clip != null)
+                        UnityEngine.Object.DestroyImmediate(clip);
                 }
                 UnityEngine.Object.DestroyImmediate(texture);
                 UnityEngine.Object.DestroyImmediate(database);

@@ -32,6 +32,9 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>The Neo member id this generated method implements.</summary>
-        public string memberId { get; }
+        public string memberId
+        {
+            get;
+        }
     }
 }

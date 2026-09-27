@@ -26,8 +26,10 @@ namespace NeoCompose.Runtime
             RemoteGameSave save,
             GameSaveRecordCache? reusableCache = null)
         {
-            if (api == null) throw new ArgumentNullException(nameof(api));
-            if (save == null) throw new ArgumentNullException(nameof(save));
+            if (api == null)
+                throw new ArgumentNullException(nameof(api));
+            if (save == null)
+                throw new ArgumentNullException(nameof(save));
 
             var cache = reusableCache ?? save.recordCache;
             cache.ResetManifest(save.snapshotId);
@@ -65,10 +67,14 @@ namespace NeoCompose.Runtime
             LocalGameSave save,
             long throughRevision)
         {
-            if (api == null) throw new ArgumentNullException(nameof(api));
-            if (save == null) throw new ArgumentNullException(nameof(save));
-            if (string.IsNullOrEmpty(save.snapshotId)) return false;
-            if (throughRevision <= save.snapshotRevision) return false;
+            if (api == null)
+                throw new ArgumentNullException(nameof(api));
+            if (save == null)
+                throw new ArgumentNullException(nameof(save));
+            if (string.IsNullOrEmpty(save.snapshotId))
+                return false;
+            if (throughRevision <= save.snapshotRevision)
+                return false;
 
             var values = save.values.Raw is JObject current
                 ? (JObject)current.DeepClone()
@@ -130,7 +136,8 @@ namespace NeoCompose.Runtime
 
         private static string? NextCursor(string? previous, GameSaveRecordPage page)
         {
-            if (page.isDone) return null;
+            if (page.isDone)
+                return null;
             if (string.IsNullOrEmpty(page.continueCursor))
             {
                 throw new InvalidOperationException(

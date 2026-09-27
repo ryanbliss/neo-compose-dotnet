@@ -326,7 +326,10 @@ namespace NeoCompose.Tests
         {
             public FakeClock(DateTimeOffset start) => Now = start;
 
-            public DateTimeOffset Now { get; private set; }
+            public DateTimeOffset Now
+            {
+                get; private set;
+            }
 
             public void Advance(TimeSpan delta) => Now += delta;
         }
@@ -350,7 +353,8 @@ namespace NeoCompose.Tests
                 string scope,
                 CancellationToken cancellationToken)
             {
-                if (requestException != null) throw requestException;
+                if (requestException != null)
+                    throw requestException;
                 return Task.FromResult(code);
             }
 
@@ -361,8 +365,10 @@ namespace NeoCompose.Tests
                 CancellationToken cancellationToken)
             {
                 pollCount++;
-                if (pollResults.Count > 0) return Task.FromResult(pollResults.Dequeue());
-                if (defaultPoll != null) return Task.FromResult(defaultPoll);
+                if (pollResults.Count > 0)
+                    return Task.FromResult(pollResults.Dequeue());
+                if (defaultPoll != null)
+                    return Task.FromResult(defaultPoll);
                 return Task.FromResult(NeoComposeDevicePollResult.Pending());
             }
 

@@ -12,7 +12,10 @@ namespace NeoCompose.Runtime
     public abstract class NeoGeneratedClassValue
         : NeoNode, IDisposable, INeoValuePayloadProvider, INeoValueReference
     {
-        protected NeoMemberClass node { get; private set; }
+        protected NeoMemberClass node
+        {
+            get; private set;
+        }
         private readonly string fallbackClassId;
         private bool isDisposed;
         private readonly List<IDisposable> subscriptions = new();
@@ -21,8 +24,14 @@ namespace NeoCompose.Runtime
         private bool isClassDefaultReference;
         private readonly string animationWrapperIdentity =
             System.Guid.NewGuid().ToString("N");
-        protected object? FunctionHandlerObject { get; set; }
-        protected NeoValueOwnership InheritedStorageOwnership { get; private set; }
+        protected object? FunctionHandlerObject
+        {
+            get; set;
+        }
+        protected NeoValueOwnership InheritedStorageOwnership
+        {
+            get; private set;
+        }
         protected NeoMemberClassWritable writableNode =>
             writableNodeCache ??= NeoGeneratedTypesSupport.AsWritable(node, InheritedStorageOwnership);
 
@@ -37,7 +46,8 @@ namespace NeoCompose.Runtime
             string targetRecordKind)
         {
             string? sourceRecordId = node.overrideValueId ?? node.value?.id;
-            if (string.IsNullOrWhiteSpace(sourceRecordId)) return null;
+            if (string.IsNullOrWhiteSpace(sourceRecordId))
+                return null;
             return client.InternalRecordRelations.ResolveExactTargetId(
                 relationKind,
                 sourceRecordKind,
@@ -50,7 +60,10 @@ namespace NeoCompose.Runtime
             : node.overrideValueId ?? node.value?.id;
         public string? classId => node.ClassId;
         internal ClassMember BackingMember => node.member;
-        public bool IsReadOnly { get; }
+        public bool IsReadOnly
+        {
+            get;
+        }
         internal NeoClient Client => client;
         internal NeoValueOwnership ValueOwnership => node.ownership;
         internal NeoMemberClass BackingNode => node;
@@ -111,7 +124,8 @@ namespace NeoCompose.Runtime
 
         protected void ThrowIfReadOnly(string memberName)
         {
-            if (!IsReadOnly) return;
+            if (!IsReadOnly)
+                return;
             throw new InvalidOperationException(
                 $"Cannot write generated Neo member '{memberName}' because this {GetType().Name} value is read-only.");
         }
@@ -131,10 +145,12 @@ namespace NeoCompose.Runtime
 
         public virtual void Dispose()
         {
-            if (isDisposed) return;
+            if (isDisposed)
+                return;
             isDisposed = true;
             storedViews?.Clear();
-            if (OwnsBackingValueLifetime) client.ReleaseAnimationClips(this);
+            if (OwnsBackingValueLifetime)
+                client.ReleaseAnimationClips(this);
             foreach (var subscription in subscriptions.ToArray())
             {
                 subscription.Dispose();
@@ -155,8 +171,10 @@ namespace NeoCompose.Runtime
             string valueId,
             NeoValueOwnership ownership)
         {
-            if (IsReadOnly) return;
-            if (ownership == NeoValueOwnership.Asset) return;
+            if (IsReadOnly)
+                return;
+            if (ownership == NeoValueOwnership.Asset)
+                return;
             if (node.member.id == member.id
                 && node.overrideValueId == valueId
                 && node.ownership == ownership)
@@ -251,7 +269,8 @@ namespace NeoCompose.Runtime
         internal IDisposable WatchAnyChange(
             Action<NeoGeneratedClassValue, NeoMember, NeoChangeSource> handler)
         {
-            if (handler is null) throw new ArgumentNullException(nameof(handler));
+            if (handler is null)
+                throw new ArgumentNullException(nameof(handler));
             void Handle(NeoMember changed)
             {
                 handler(this, changed, client.CurrentChangeSource);
@@ -266,10 +285,12 @@ namespace NeoCompose.Runtime
             Action<T, NeoChangeSource> handler,
             Func<object?> readValue)
         {
-            if (handler is null) throw new ArgumentNullException(nameof(handler));
+            if (handler is null)
+                throw new ArgumentNullException(nameof(handler));
             void Handle(NeoMember changed)
             {
-                if (!CanReadChange()) return;
+                if (!CanReadChange())
+                    return;
                 if (node.TryGetSchemaKeyForChild(changed, out string? key) && key == field.Key)
                 {
                     handler((T)readValue()!, client.CurrentChangeSource);
@@ -291,7 +312,8 @@ namespace NeoCompose.Runtime
             IReadOnlyDictionary<INeoField, Func<object?>> readers,
             Action<NeoChangedArgs<TFields>> handler)
         {
-            if (handler is null) throw new ArgumentNullException(nameof(handler));
+            if (handler is null)
+                throw new ArgumentNullException(nameof(handler));
             var readersByKey = new Dictionary<string, KeyValuePair<INeoField, Func<object?>>>(StringComparer.Ordinal);
             var orderedReaders = new KeyValuePair<INeoField, Func<object?>>[readers.Count];
             int readerIndex = 0;
@@ -300,11 +322,13 @@ namespace NeoCompose.Runtime
                 orderedReaders[readerIndex++] = pair;
                 // Preserve first-match behavior if a caller provides distinct
                 // field tokens carrying the same schema key.
-                if (!readersByKey.ContainsKey(pair.Key.Key)) readersByKey.Add(pair.Key.Key, pair);
+                if (!readersByKey.ContainsKey(pair.Key.Key))
+                    readersByKey.Add(pair.Key.Key, pair);
             }
             void Handle(NeoMember changed)
             {
-                if (!CanReadChange()) return;
+                if (!CanReadChange())
+                    return;
                 if (node.TryGetSchemaKeyForChild(changed, out string? key)
                     && readersByKey.TryGetValue(key, out var reader))
                 {
@@ -313,7 +337,8 @@ namespace NeoCompose.Runtime
                 }
                 var changes = new Dictionary<INeoField, object?>();
                 if (key is null)
-                    foreach (var pair in orderedReaders) changes[pair.Key] = pair.Value();
+                    foreach (var pair in orderedReaders)
+                        changes[pair.Key] = pair.Value();
                 handler(new NeoChangedArgs<TFields>(changes, client.CurrentChangeSource));
             }
             node.OnChanged += Handle;

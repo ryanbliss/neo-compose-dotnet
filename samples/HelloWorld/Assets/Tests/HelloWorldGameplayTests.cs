@@ -43,14 +43,18 @@ namespace HelloWorld.Assets.Tests
         {
             foreach (var go in spawned)
             {
-                if (go != null) Object.DestroyImmediate(go);
+                if (go != null)
+                    Object.DestroyImmediate(go);
             }
             spawned.Clear();
-            foreach (var client in clients) client.Dispose();
+            foreach (var client in clients)
+                client.Dispose();
             clients.Clear();
-            foreach (var store in stores) store.Dispose();
+            foreach (var store in stores)
+                store.Dispose();
             stores.Clear();
-            if (Directory.Exists(saveDirectory)) Directory.Delete(saveDirectory, recursive: true);
+            if (Directory.Exists(saveDirectory))
+                Directory.Delete(saveDirectory, recursive: true);
         }
 
         /// <summary>A loaded local store over this test's temp save folder.</summary>
@@ -112,7 +116,8 @@ namespace HelloWorld.Assets.Tests
         public async System.Threading.Tasks.Task FlareClock_TicksPerHop_WithOuterSystemSurcharge()
         {
             var gameplay = await Spawn(LoadedStore().CreateNew());
-            foreach (var outpost in gameplay.Outposts) outpost.Save.Unlocked = true;
+            foreach (var outpost in gameplay.Outposts)
+                outpost.Save.Unlocked = true;
             var inner = gameplay.Outposts.First(o => o.Planet == Planet.mars);
             var outer = gameplay.Outposts.First(o => o.Planet == Planet.neptune);
 
@@ -127,7 +132,8 @@ namespace HelloWorld.Assets.Tests
         public async System.Threading.Tasks.Task FlareClock_GyroWaivesOuterSurcharge_ParasolShieldsFirstHops()
         {
             var gameplay = await Spawn(LoadedStore().CreateNew());
-            foreach (var outpost in gameplay.Outposts) outpost.Save.Unlocked = true;
+            foreach (var outpost in gameplay.Outposts)
+                outpost.Save.Unlocked = true;
             var outer = gameplay.Outposts.First(o => o.Planet == Planet.neptune);
             var inner = gameplay.Outposts.First(o => o.Planet == Planet.mars);
 
@@ -179,7 +185,8 @@ namespace HelloWorld.Assets.Tests
         public IEnumerator OldConsoleLanding_EasterEggOpensGenerated2DWorldScene()
         {
             var loading = Spawn(LoadedStore().CreateNew());
-            while (!loading.IsCompleted) yield return null;
+            while (!loading.IsCompleted)
+                yield return null;
             var gameplay = loading.GetAwaiter().GetResult();
 
             Assert.IsFalse(gameplay.OldConsoleLandingOpen);
@@ -214,7 +221,8 @@ namespace HelloWorld.Assets.Tests
         public IEnumerator OldConsoleLanding_BarrierClearUpdatesGameplayCacheFromTileDelta()
         {
             var loading = Spawn(LoadedStore().CreateNew());
-            while (!loading.IsCompleted) yield return null;
+            while (!loading.IsCompleted)
+                yield return null;
             var gameplay = loading.GetAwaiter().GetResult();
             var neo = GameplayNeo(gameplay);
             LandingSceneGameplay landing = null;
@@ -262,7 +270,8 @@ namespace HelloWorld.Assets.Tests
             }
             finally
             {
-                if (landing != null) Object.DestroyImmediate(landing.gameObject);
+                if (landing != null)
+                    Object.DestroyImmediate(landing.gameObject);
             }
         }
 
@@ -270,7 +279,8 @@ namespace HelloWorld.Assets.Tests
         public IEnumerator OldConsoleLanding_InteractWithBootGlyphDoesNotLoopTileLookup()
         {
             var loading = Spawn(LoadedStore().CreateNew());
-            while (!loading.IsCompleted) yield return null;
+            while (!loading.IsCompleted)
+                yield return null;
             var gameplay = loading.GetAwaiter().GetResult();
             var neo = GameplayNeo(gameplay);
             LandingSceneGameplay landing = null;
@@ -311,7 +321,8 @@ namespace HelloWorld.Assets.Tests
             }
             finally
             {
-                if (landing != null) Object.DestroyImmediate(landing.gameObject);
+                if (landing != null)
+                    Object.DestroyImmediate(landing.gameObject);
             }
         }
 
@@ -382,7 +393,10 @@ namespace HelloWorld.Assets.Tests
 
         private sealed class TestLandingHost : ILandingSceneHost
         {
-            public System.Func<NeoDialogueReference, System.Action, bool> OnTriggerDialogue { get; set; } =
+            public System.Func<NeoDialogueReference, System.Action, bool> OnTriggerDialogue
+            {
+                get; set;
+            } =
                 (_, __) => false;
 
             public bool DialogueIsOpen => false;
@@ -426,7 +440,8 @@ namespace HelloWorld.Assets.Tests
 
             foreach (var cell in content.Background.GetTiles<NeoTile>().Select(tile => (Vector2Int)tile.Cell))
             {
-                if (collisionCells.Contains(cell)) continue;
+                if (collisionCells.Contains(cell))
+                    continue;
                 if (targetCells.Any(target => Mathf.Abs(target.x - cell.x) + Mathf.Abs(target.y - cell.y) <= 1))
                 {
                     return cell;
@@ -485,7 +500,8 @@ namespace HelloWorld.Assets.Tests
             var neo = (await LoadedClient());
             TestContext.WriteLine($"INTRO_LOAD elapsedMs={clock.Elapsed.TotalMilliseconds:F3}");
             clock.Restart();
-            foreach (var outpost in neo.Assets.Outposts) outpost.Save.Unlocked = true;
+            foreach (var outpost in neo.Assets.Outposts)
+                outpost.Save.Unlocked = true;
             var triggeredCount = 0;
 
             foreach (var outpost in neo.Assets.Outposts)
@@ -542,7 +558,8 @@ namespace HelloWorld.Assets.Tests
             // progression forward-only in ANY visit order.
             var gameplay = await Spawn(LoadedStore().CreateNew());
             var neo = GameplayNeo(gameplay);
-            foreach (var outpost in gameplay.Outposts) outpost.Save.Unlocked = true;
+            foreach (var outpost in gameplay.Outposts)
+                outpost.Save.Unlocked = true;
 
             var iowan = gameplay.Outposts.First(o => o.Name == "Iowan");
             var mercurial = gameplay.Outposts.First(o => o.Name == "Mercurial");
@@ -561,7 +578,8 @@ namespace HelloWorld.Assets.Tests
         {
             var gameplay = await Spawn(LoadedStore().CreateNew());
             var neo = GameplayNeo(gameplay);
-            foreach (var outpost in gameplay.Outposts) outpost.Save.Unlocked = true;
+            foreach (var outpost in gameplay.Outposts)
+                outpost.Save.Unlocked = true;
 
             // Earn some cargo first (Iowan's intro grants Storm Corn).
             var iowan = gameplay.Outposts.First(o => o.Name == "Iowan");
@@ -599,7 +617,8 @@ namespace HelloWorld.Assets.Tests
                 // later quest starts are exercised.
                 var gameplay = await Spawn(LoadedStore().CreateNew());
                 var neo = GameplayNeo(gameplay);
-                foreach (var outpost in gameplay.Outposts) outpost.Save.Unlocked = true;
+                foreach (var outpost in gameplay.Outposts)
+                    outpost.Save.Unlocked = true;
                 neo.Save.Bits = 900;
 
                 var scenarios = new (string outpost, string expectFlag, System.Action setup)[]
@@ -645,7 +664,8 @@ namespace HelloWorld.Assets.Tests
 
             // Self-heal: chain starts must pull a followTheWakes save forward.
             var healNeo = (await LoadedClient());
-            foreach (var outpost in healNeo.Assets.Outposts) outpost.Save.Unlocked = true;
+            foreach (var outpost in healNeo.Assets.Outposts)
+                outpost.Save.Unlocked = true;
             healNeo.Save.Quest.Stage = QuestStage.followTheWakes;
             healNeo.Save.Quest.EvidenceLedger = true;
             healNeo.Save.Quest.EvidenceFaith = true;
@@ -655,7 +675,8 @@ namespace HelloWorld.Assets.Tests
 
         private static void GrantItem(HelloWorldNeo neo, string itemName)
         {
-            if (HasItemNamed(neo, itemName)) return;
+            if (HasItemNamed(neo, itemName))
+                return;
             neo.Save.Inventory.Add(neo.Assets.Items.First(item => item.Name == itemName));
         }
 
@@ -680,13 +701,15 @@ namespace HelloWorld.Assets.Tests
             // These scenarios exercise the Visits group. Intro actions and their
             // real first-landing flow have dedicated exhaustive tests above, so seed
             // the return-trip precondition instead of replaying every intro here.
-            if (outpost.Save.VisitCount == 0) outpost.Save.VisitCount = 1;
+            if (outpost.Save.VisitCount == 0)
+                outpost.Save.VisitCount = 1;
             bool triggered = neo.Dialogues.Outposts.Visits.TryTrigger(
                 outpost, out NeoDialogueTriggerResult result);
             if (!triggered)
             {
                 var detail = result.Error?.ToString() ?? "(no error)";
-                foreach (var warning in result.Warnings) detail += $" | {warning.Message}";
+                foreach (var warning in result.Warnings)
+                    detail += $" | {warning.Message}";
                 Assert.Fail(
                     $"{outpost.Name}: a visit dialogue should trigger " +
                     $"(preferFirst={preferFirstOption}, valueId={outpost.valueId}, " +

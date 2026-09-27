@@ -31,7 +31,10 @@ namespace NeoCompose.Runtime
     public sealed class NeoPlayDirection : IEquatable<NeoPlayDirection>, INeoEnumOption
     {
         private static readonly Dictionary<string, NeoPlayDirection> values = new Dictionary<string, NeoPlayDirection>();
-        public string optionId { get; }
+        public string optionId
+        {
+            get;
+        }
         public string Text => TextForOptionId(optionId);
         public string TextId => TextIdForOptionId(optionId);
 
@@ -45,7 +48,8 @@ namespace NeoCompose.Runtime
 
         public static NeoPlayDirection FromOptionId(string optionId)
         {
-            if (values.TryGetValue(optionId, out var known)) return known;
+            if (values.TryGetValue(optionId, out var known))
+                return known;
             var created = new NeoPlayDirection(optionId);
             values[optionId] = created;
             return created;
@@ -53,9 +57,11 @@ namespace NeoCompose.Runtime
 
         public static string[] ToOptionIds(IEnumerable<NeoPlayDirection>? options)
         {
-            if (options is null) return Array.Empty<string>();
+            if (options is null)
+                return Array.Empty<string>();
             var ids = new List<string>();
-            foreach (var option in options) ids.Add(option.optionId);
+            foreach (var option in options)
+                ids.Add(option.optionId);
             return ids.ToArray();
         }
 
@@ -105,7 +111,10 @@ namespace NeoCompose.Runtime
         private static readonly Dictionary<string, NeoSelectorRefreshKind> values =
             new Dictionary<string, NeoSelectorRefreshKind>();
 
-        public string optionId { get; }
+        public string optionId
+        {
+            get;
+        }
         public string Text => TextForOptionId(optionId);
         public string TextId => TextIdForOptionId(optionId);
 
@@ -133,7 +142,8 @@ namespace NeoCompose.Runtime
         public static string[] ToOptionIds(
             IEnumerable<NeoSelectorRefreshKind>? options)
         {
-            if (options is null) return Array.Empty<string>();
+            if (options is null)
+                return Array.Empty<string>();
             var ids = new List<string>();
             foreach (NeoSelectorRefreshKind option in options)
             {
@@ -190,8 +200,14 @@ namespace NeoCompose.Runtime
 
     internal interface INeoAnimationPlayer
     {
-        string InstanceIdentity { get; }
-        bool IsPlaying { get; }
+        string InstanceIdentity
+        {
+            get;
+        }
+        bool IsPlaying
+        {
+            get;
+        }
         void Tick(float scaledDeltaTime);
         void StopFromCoordinator();
     }
@@ -275,8 +291,10 @@ namespace NeoCompose.Runtime
                     "Animation instance identity cannot be empty.",
                     nameof(instanceIdentity));
             }
-            if (fps < 1) throw new ArgumentOutOfRangeException(nameof(fps));
-            if (duration < 1) throw new ArgumentOutOfRangeException(nameof(duration));
+            if (fps < 1)
+                throw new ArgumentOutOfRangeException(nameof(fps));
+            if (duration < 1)
+                throw new ArgumentOutOfRangeException(nameof(duration));
             this.coordinator = coordinator
                 ?? throw new ArgumentNullException(nameof(coordinator));
             this.preparePlayback = preparePlayback ?? (() => { });
@@ -287,10 +305,22 @@ namespace NeoCompose.Runtime
             CurrentFrame = 0;
         }
 
-        public T Target { get; }
-        public bool IsPlaying { get; private set; }
-        public bool IsPaused { get; private set; }
-        public int CurrentFrame { get; private set; }
+        public T Target
+        {
+            get;
+        }
+        public bool IsPlaying
+        {
+            get; private set;
+        }
+        public bool IsPaused
+        {
+            get; private set;
+        }
+        public int CurrentFrame
+        {
+            get; private set;
+        }
 
         public event Action? OnPlay;
         public event Action? OnPause;
@@ -299,7 +329,10 @@ namespace NeoCompose.Runtime
 
         string INeoAnimationPlayer.InstanceIdentity => InstanceIdentity;
         bool INeoAnimationPlayer.IsPlaying => IsPlaying;
-        internal string InstanceIdentity { get; }
+        internal string InstanceIdentity
+        {
+            get;
+        }
 
         public void PlayLoop(
             NeoPlayMode mode = NeoPlayMode.Repeat,
@@ -365,14 +398,16 @@ namespace NeoCompose.Runtime
 
         public void Pause()
         {
-            if (!IsPlaying || IsPaused) return;
+            if (!IsPlaying || IsPaused)
+                return;
             IsPaused = true;
             OnPause?.Invoke();
         }
 
         public void Resume()
         {
-            if (!IsPlaying || !IsPaused) return;
+            if (!IsPlaying || !IsPaused)
+                return;
             IsPaused = false;
             OnResume?.Invoke();
         }
@@ -388,7 +423,8 @@ namespace NeoCompose.Runtime
             {
                 throw new ArgumentOutOfRangeException(nameof(frameIndex));
             }
-            if (handler is null) throw new ArgumentNullException(nameof(handler));
+            if (handler is null)
+                throw new ArgumentNullException(nameof(handler));
             if (!frameEvents.TryGetValue(frameIndex, out Action[]? handlers))
             {
                 handlers = Array.Empty<Action>();
@@ -399,9 +435,11 @@ namespace NeoCompose.Runtime
             frameEvents[frameIndex] = added;
             return new NeoDisposableAction(() =>
             {
-                if (!frameEvents.TryGetValue(frameIndex, out Action[]? current)) return;
+                if (!frameEvents.TryGetValue(frameIndex, out Action[]? current))
+                    return;
                 int removeIndex = Array.IndexOf(current, handler);
-                if (removeIndex < 0) return;
+                if (removeIndex < 0)
+                    return;
                 if (current.Length == 1)
                 {
                     frameEvents.Remove(frameIndex);
@@ -435,7 +473,8 @@ namespace NeoCompose.Runtime
                 StopInternal(cancelTask: true);
                 return;
             }
-            if (!IsPlaying || IsPaused || scaledDeltaTime <= 0f) return;
+            if (!IsPlaying || IsPaused || scaledDeltaTime <= 0f)
+                return;
             elapsed += scaledDeltaTime;
             int steps = 0;
             while (IsPlaying && elapsed >= secondsPerFrame)
@@ -525,8 +564,10 @@ namespace NeoCompose.Runtime
         {
             if (duration == 1)
             {
-                if (isOnce || CompleteLoop()) CompleteNaturally();
-                else EnterFrame(0, useResolvedState: true);
+                if (isOnce || CompleteLoop())
+                    CompleteNaturally();
+                else
+                    EnterFrame(0, useResolvedState: true);
                 return;
             }
 
@@ -575,13 +616,15 @@ namespace NeoCompose.Runtime
             {
                 hasTurned = false;
                 step = initialStep;
-                if (CompleteLoop()) CompleteNaturally();
+                if (CompleteLoop())
+                    CompleteNaturally();
             }
         }
 
         private bool CompleteLoop()
         {
-            if (loopsRemaining < 0) return false;
+            if (loopsRemaining < 0)
+                return false;
             loopsRemaining -= 1;
             return loopsRemaining == 0;
         }
@@ -590,13 +633,16 @@ namespace NeoCompose.Runtime
         {
             CurrentFrame = frameIndex;
             applyFrame(frameIndex, useResolvedState);
-            if (!frameEvents.TryGetValue(frameIndex, out Action[]? handlers)) return;
-            foreach (Action handler in handlers) handler();
+            if (!frameEvents.TryGetValue(frameIndex, out Action[]? handlers))
+                return;
+            foreach (Action handler in handlers)
+                handler();
         }
 
         private void CompleteNaturally()
         {
-            if (!IsPlaying) return;
+            if (!IsPlaying)
+                return;
             IsPlaying = false;
             IsPaused = false;
             coordinator.Deactivate(this);
@@ -628,7 +674,8 @@ namespace NeoCompose.Runtime
             coordinator.Deactivate(this);
             TaskCompletionSource<object?>? pending = completion;
             completion = null;
-            if (cancelTask) pending?.TrySetCanceled();
+            if (cancelTask)
+                pending?.TrySetCanceled();
             OnStop?.Invoke();
         }
 
@@ -658,7 +705,8 @@ namespace NeoCompose.Runtime
 
         private static void ValidateLoopCount(int loopCount)
         {
-            if (loopCount < 1) throw new ArgumentOutOfRangeException(nameof(loopCount));
+            if (loopCount < 1)
+                throw new ArgumentOutOfRangeException(nameof(loopCount));
         }
     }
 }

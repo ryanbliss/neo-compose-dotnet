@@ -92,7 +92,8 @@ namespace NeoCompose.Tests
             var row = ObjectValue(WatcherValueId, "watcher-class");
             row.instanceConstructorId = "watcher-constructor";
             row.constructorArgs = new Dictionary<string, JToken?>();
-            if (hasScalarArgument) row.constructorArgs["__arg_0__"] = new JValue(60);
+            if (hasScalarArgument)
+                row.constructorArgs["__arg_0__"] = new JValue(60);
             data.values[row.id] = row;
             // A detached authored animation frame has no closed placement.
             // Scalar and omitted arguments cannot reference retained rows.
