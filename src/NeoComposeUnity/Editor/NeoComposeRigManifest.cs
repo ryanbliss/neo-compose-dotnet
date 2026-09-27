@@ -372,7 +372,8 @@ namespace NeoCompose.Unity.Editor
                 return;
             }
 
-            if (token is not JObject document) return;
+            if (token is not JObject document)
+                return;
 
             foreach (var property in document.Properties())
             {
@@ -408,9 +409,15 @@ namespace NeoCompose.Unity.Editor
             Manifest = manifest;
         }
 
-        public string ManifestPath { get; }
+        public string ManifestPath
+        {
+            get;
+        }
 
-        public NeoComposeRigManifest Manifest { get; }
+        public NeoComposeRigManifest Manifest
+        {
+            get;
+        }
 
         /// <summary>One-line rig identity for status lines and headless logs.</summary>
         public string Describe()
@@ -452,7 +459,8 @@ namespace NeoCompose.Unity.Editor
         internal static NeoComposeRigResolution? Resolve(string startDirectory, string? environmentOverride)
         {
             var manifestPath = ResolveActiveManifestPath(startDirectory, environmentOverride);
-            if (manifestPath == null) return null;
+            if (manifestPath == null)
+                return null;
 
             return new NeoComposeRigResolution(
                 manifestPath,
@@ -499,7 +507,8 @@ namespace NeoCompose.Unity.Editor
             while (directory != null)
             {
                 var candidate = Path.Combine(directory.FullName, PointerFileName);
-                if (File.Exists(candidate)) return candidate;
+                if (File.Exists(candidate))
+                    return candidate;
                 directory = directory.Parent;
             }
 

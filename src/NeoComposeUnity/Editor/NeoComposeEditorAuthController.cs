@@ -63,9 +63,15 @@ namespace NeoCompose.Unity.Editor
         public string DisplayEmail { get; private set; } = "";
 
         /// <summary>The most recent authorization (403) message, or null.</summary>
-        public string? AuthorizationMessage { get; private set; }
+        public string? AuthorizationMessage
+        {
+            get; private set;
+        }
 
-        public bool IsBusy { get; private set; }
+        public bool IsBusy
+        {
+            get; private set;
+        }
 
         /// <summary>
         /// True only when there is a valid, unexpired sign-in and no sign-in is
@@ -239,7 +245,8 @@ namespace NeoCompose.Unity.Editor
         private static void LogAuthorizationResult(NeoComposeDeviceAuthResult result)
         {
             var summary = $"[NeoCompose] Editor device authorization completed: {result.outcome}.";
-            if (result.message.Length > 0) summary += " " + result.message;
+            if (result.message.Length > 0)
+                summary += " " + result.message;
 
             if (result.IsSuccess)
             {

@@ -22,13 +22,22 @@ namespace NeoCompose.Runtime
 
     public interface INeoField
     {
-        string Key { get; }
-        Type ValueType { get; }
+        string Key
+        {
+            get;
+        }
+        Type ValueType
+        {
+            get;
+        }
     }
 
     public sealed class NeoField<T> : INeoField
     {
-        public string Key { get; }
+        public string Key
+        {
+            get;
+        }
         public Type ValueType => typeof(T);
 
         public NeoField(string key)
@@ -43,7 +52,10 @@ namespace NeoCompose.Runtime
         private readonly INeoField? singleField;
         private readonly object? singleValue;
         public IReadOnlyDictionary<INeoField, object?> Changes => changes ?? this;
-        public NeoChangeSource Source { get; }
+        public NeoChangeSource Source
+        {
+            get;
+        }
 
         public NeoChangedArgs(
             IReadOnlyDictionary<INeoField, object?> changes,
@@ -67,13 +79,16 @@ namespace NeoCompose.Runtime
             Changes.TryGetValue(key, out var value) ? value : throw new KeyNotFoundException();
         bool IReadOnlyDictionary<INeoField, object?>.ContainsKey(INeoField key)
         {
-            if (key is null) throw new ArgumentNullException(nameof(key));
+            if (key is null)
+                throw new ArgumentNullException(nameof(key));
             return changes?.ContainsKey(key) ?? Equals(key, singleField);
         }
         bool IReadOnlyDictionary<INeoField, object?>.TryGetValue(INeoField key, out object? value)
         {
-            if (key is null) throw new ArgumentNullException(nameof(key));
-            if (changes is not null) return changes.TryGetValue(key, out value);
+            if (key is null)
+                throw new ArgumentNullException(nameof(key));
+            if (changes is not null)
+                return changes.TryGetValue(key, out value);
             bool found = Equals(key, singleField);
             value = found ? singleValue : null;
             return found;
@@ -82,13 +97,23 @@ namespace NeoCompose.Runtime
         IEnumerable<object?> IReadOnlyDictionary<INeoField, object?>.Values => EnumerateValues();
         private IEnumerable<INeoField> EnumerateKeys()
         {
-            if (changes is not null) { foreach (var key in changes.Keys) yield return key; }
-            else yield return singleField!;
+            if (changes is not null)
+            {
+                foreach (var key in changes.Keys)
+                    yield return key;
+            }
+            else
+                yield return singleField!;
         }
         private IEnumerable<object?> EnumerateValues()
         {
-            if (changes is not null) { foreach (var value in changes.Values) yield return value; }
-            else yield return singleValue;
+            if (changes is not null)
+            {
+                foreach (var value in changes.Values)
+                    yield return value;
+            }
+            else
+                yield return singleValue;
         }
         IEnumerator<KeyValuePair<INeoField, object?>> IEnumerable<KeyValuePair<INeoField, object?>>.GetEnumerator()
             => changes is not null ? changes.GetEnumerator() : SingleEntry().GetEnumerator();
@@ -136,7 +161,8 @@ namespace NeoCompose.Runtime
         public void Dispose()
         {
             Action? callback = dispose;
-            if (callback is null) return;
+            if (callback is null)
+                return;
             dispose = null;
             callback();
         }

@@ -7,7 +7,10 @@ namespace NeoCompose.Runtime
 {
     public readonly struct NeoLookupSelection
     {
-        public string valueId { get; }
+        public string valueId
+        {
+            get;
+        }
 
         public NeoLookupSelection(string valueId)
         {

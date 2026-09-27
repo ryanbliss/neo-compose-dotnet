@@ -47,18 +47,30 @@ namespace NeoCompose.Runtime
             SessionTokenProvider = sessionTokenProvider;
         }
 
-        public string ConvexUrl { get; }
+        public string ConvexUrl
+        {
+            get;
+        }
 
-        public string ApiBaseUrl { get; }
+        public string ApiBaseUrl
+        {
+            get;
+        }
 
-        public string ProjectId { get; }
+        public string ProjectId
+        {
+            get;
+        }
 
         /// <summary>
         /// The session the provider derives its own socket credential from —
         /// the store passes its authentication's token provider, so sign-in
         /// state stays single-sourced between REST and realtime.
         /// </summary>
-        public INeoComposeAccessTokenProvider SessionTokenProvider { get; }
+        public INeoComposeAccessTokenProvider SessionTokenProvider
+        {
+            get;
+        }
     }
 
     /// <summary>
@@ -73,7 +85,10 @@ namespace NeoCompose.Runtime
     public interface INeoRealtimeConfigurable
     {
         /// <summary>True once the provider knows its deployment and session source.</summary>
-        bool IsConfigured { get; }
+        bool IsConfigured
+        {
+            get;
+        }
 
         /// <summary>
         /// Injects the shared context. Called at most once by the registering

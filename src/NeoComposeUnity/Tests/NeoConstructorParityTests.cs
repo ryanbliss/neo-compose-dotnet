@@ -56,7 +56,8 @@ namespace NeoCompose.Tests
             int errorCases = 0;
             foreach (JToken testCase in cases)
             {
-                if (testCase["expectedErrorContains"] is not null) errorCases++;
+                if (testCase["expectedErrorContains"] is not null)
+                    errorCases++;
             }
             Assert.GreaterOrEqual(
                 errorCases,
@@ -373,7 +374,8 @@ namespace NeoCompose.Tests
         {
             foreach (JToken testCase in EvaluateCases())
             {
-                if (Text(testCase, "name") == caseName) return (JObject)testCase;
+                if (Text(testCase, "name") == caseName)
+                    return (JObject)testCase;
             }
             throw new InvalidOperationException(
                 $"The shared fixture declares no evaluate case named '{caseName}'.");

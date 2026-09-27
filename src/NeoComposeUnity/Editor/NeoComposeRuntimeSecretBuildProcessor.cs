@@ -28,7 +28,8 @@ namespace NeoCompose.Unity.Editor
         {
             var envKey = Environment.GetEnvironmentVariable(
                 NeoComposeEditorDefaults.RuntimeApiKeyEnvVar);
-            if (string.IsNullOrWhiteSpace(envKey)) return;
+            if (string.IsNullOrWhiteSpace(envKey))
+                return;
 
             var secret = NeoComposeRuntimeSecretProvider.EnsureAssetAndGitignore();
             stashedKey = secret.RuntimeApiKey;
@@ -39,11 +40,13 @@ namespace NeoCompose.Unity.Editor
 
         public void OnPostprocessBuild(BuildReport report)
         {
-            if (!stashed) return;
+            if (!stashed)
+                return;
             stashed = false;
 
             var secret = NeoComposeRuntimeSecretProvider.Find();
-            if (secret == null) return;
+            if (secret == null)
+                return;
             secret.RuntimeApiKey = stashedKey;
             NeoComposeRuntimeSecretProvider.Save(secret);
             stashedKey = "";

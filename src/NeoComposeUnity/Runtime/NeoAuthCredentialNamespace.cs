@@ -74,7 +74,8 @@ namespace NeoCompose.Runtime
 
         private static string ExtractHost(string authBaseUrl)
         {
-            if (string.IsNullOrWhiteSpace(authBaseUrl)) return "";
+            if (string.IsNullOrWhiteSpace(authBaseUrl))
+                return "";
             var trimmed = authBaseUrl.Trim();
             if (Uri.TryCreate(trimmed, UriKind.Absolute, out var uri))
             {

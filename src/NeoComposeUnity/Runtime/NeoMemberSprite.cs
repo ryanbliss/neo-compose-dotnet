@@ -122,7 +122,8 @@ namespace NeoCompose.Runtime
             // native projection is intentionally no Unity sprite. Required
             // means the value row must exist; it does not turn Empty into a
             // missing asset error.
-            if (IsEmptyValue(CurrentValue())) return null;
+            if (IsEmptyValue(CurrentValue()))
+                return null;
             var resolved = ResolveOrNull();
             if (resolved == null && memberNode is not null && memberNode.member.Requirement == NeoMemberRequirementKind.Required)
             {
@@ -159,14 +160,16 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal Sprite? ResolveOrNull()
         {
-            if (memberNode is not null) return memberNode.Resolve();
+            if (memberNode is not null)
+                return memberNode.Resolve();
 
             // A wrapper detached from a Unity sprite resolves back to that
             // sprite — until it acquires an addressable value, either by
             // reverse-resolving one (which round-trips to the same sprite) or
             // by having a field written on it, at which point the addressable
             // value is what the caller asked for.
-            if (detachedFromSprite && detachedValue is null) return detachedSprite;
+            if (detachedFromSprite && detachedValue is null)
+                return detachedSprite;
             return NeoAssetResolver.ResolveSprite(null, detachedValue);
         }
 
@@ -177,8 +180,10 @@ namespace NeoCompose.Runtime
         // doc.
         public static bool operator ==(NeoReadOnlySprite? left, NeoReadOnlySprite? right)
         {
-            if (left is null) return right is null;
-            if (right is null) return false;
+            if (left is null)
+                return right is null;
+            if (right is null)
+                return false;
             return SameValue(left.CurrentValue(), right.CurrentValue());
         }
 
@@ -197,7 +202,8 @@ namespace NeoCompose.Runtime
         public override int GetHashCode()
         {
             var value = CurrentValue();
-            if (value is null) return 0;
+            if (value is null)
+                return 0;
             return System.HashCode.Combine(value.fileId, value.sliceIndex);
         }
 
@@ -207,8 +213,10 @@ namespace NeoCompose.Runtime
         /// </summary>
         private protected SpriteValue? CurrentValue()
         {
-            if (memberNode is not null) return memberNode.value?.value;
-            if (!detachedFromSprite) return detachedValue;
+            if (memberNode is not null)
+                return memberNode.value?.value;
+            if (!detachedFromSprite)
+                return detachedValue;
 
             // Reverse-resolve the detached sprite once, on demand. An
             // untracked sprite has no addressable value; that is reported as
@@ -216,12 +224,15 @@ namespace NeoCompose.Runtime
             // (NeoGeneratedTypesSupport.SpriteValue) is where an untracked
             // sprite is meant to be rejected, with the member's templateId in
             // hand.
-            if (detachedValue is not null) return detachedValue;
-            if (detachedSprite == null) return null;
+            if (detachedValue is not null)
+                return detachedValue;
+            if (detachedSprite == null)
+                return null;
             var database = NeoAssetDatabase.LoadDefault();
             int sliceIndex = -1;
             var entry = database?.TryGetEntryForSprite(detachedSprite, out sliceIndex);
-            if (entry is null) return null;
+            if (entry is null)
+                return null;
             detachedValue = new SpriteValue
             {
                 fileId = entry.FileId,
@@ -250,8 +261,10 @@ namespace NeoCompose.Runtime
 
         private static bool SameValue(SpriteValue? left, SpriteValue? right)
         {
-            if (left is null) return right is null;
-            if (right is null) return false;
+            if (left is null)
+                return right is null;
+            if (right is null)
+                return false;
             return left.sliceIndex == right.sliceIndex
                 && string.Equals(left.fileId, right.fileId, System.StringComparison.Ordinal);
         }
@@ -303,7 +316,8 @@ namespace NeoCompose.Runtime
             get => base.FileId;
             set
             {
-                if (value is null) throw new System.ArgumentNullException(nameof(value));
+                if (value is null)
+                    throw new System.ArgumentNullException(nameof(value));
                 var next = RequireValue(nameof(FileId));
                 Write(new SpriteValue { fileId = value, sliceIndex = next.sliceIndex }, nameof(FileId));
             }

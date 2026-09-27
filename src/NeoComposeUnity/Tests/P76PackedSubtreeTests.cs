@@ -532,7 +532,8 @@ namespace NeoCompose.Tests
         {
             var child = (JObject)values[childId]!;
             values.Remove(childId);
-            if (!storeId) child.Remove("id");
+            if (!storeId)
+                child.Remove("id");
             var parentBody = (JObject)values[parentId]!["value"]!;
             Assert.AreEqual(
                 childId,

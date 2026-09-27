@@ -61,7 +61,8 @@ namespace NeoCompose.Runtime
         public Sprite? TryGetSprite(string fileId, int sliceIndex)
         {
             var entry = TryGetEntry(fileId);
-            if (entry == null || sliceIndex < 0) return null;
+            if (entry == null || sliceIndex < 0)
+                return null;
             if (entry.Sprites.Length > sliceIndex && entry.Sprites[sliceIndex] != null)
             {
                 return entry.Sprites[sliceIndex];
@@ -114,7 +115,8 @@ namespace NeoCompose.Runtime
         public NeoAssetDatabaseEntry? TryGetEntryForSprite(Sprite sprite, out int sliceIndex)
         {
             sliceIndex = -1;
-            if (sprite == null) return null;
+            if (sprite == null)
+                return null;
             foreach (var entry in files)
             {
                 for (var index = 0; index < entry.Sprites.Length; index++)
@@ -135,10 +137,12 @@ namespace NeoCompose.Runtime
         /// </summary>
         public NeoAssetDatabaseEntry? TryGetEntryForAudioClip(AudioClip audioClip)
         {
-            if (audioClip == null) return null;
+            if (audioClip == null)
+                return null;
             foreach (var entry in files)
             {
-                if (entry.AudioClip == audioClip) return entry;
+                if (entry.AudioClip == audioClip)
+                    return entry;
             }
 
             return null;
@@ -150,10 +154,12 @@ namespace NeoCompose.Runtime
         /// </summary>
         public NeoAssetDatabaseEntry? TryGetEntry(string fileId)
         {
-            if (string.IsNullOrWhiteSpace(fileId)) return null;
+            if (string.IsNullOrWhiteSpace(fileId))
+                return null;
             foreach (var entry in files)
             {
-                if (entry.FileId == fileId) return entry;
+                if (entry.FileId == fileId)
+                    return entry;
             }
 
             return null;
@@ -161,7 +167,8 @@ namespace NeoCompose.Runtime
 
         public NeoAssetDatabaseTileEntry? TryGetTileEntryForClass(string tileClassId)
         {
-            if (string.IsNullOrWhiteSpace(tileClassId)) return null;
+            if (string.IsNullOrWhiteSpace(tileClassId))
+                return null;
             foreach (var entry in tileAssets)
             {
                 if (entry.TileClassId == tileClassId)
@@ -233,7 +240,8 @@ namespace NeoCompose.Runtime
             {
                 throw new ArgumentException("Asset path cannot be empty.", nameof(assetPath));
             }
-            if (tileBase == null) throw new ArgumentNullException(nameof(tileBase));
+            if (tileBase == null)
+                throw new ArgumentNullException(nameof(tileBase));
 
             var entry = TryGetTileEntryForClass(tileClassId);
             if (entry == null)
@@ -256,7 +264,8 @@ namespace NeoCompose.Runtime
             var missing = new List<NeoAssetDatabaseEntry>();
             foreach (var entry in files)
             {
-                if (!fileIds.Contains(entry.FileId)) missing.Add(entry);
+                if (!fileIds.Contains(entry.FileId))
+                    missing.Add(entry);
             }
 
             return missing.ToArray();
@@ -267,7 +276,8 @@ namespace NeoCompose.Runtime
             var missing = new List<NeoAssetDatabaseTileEntry>();
             foreach (var entry in tileAssets)
             {
-                if (!tileClassIds.Contains(entry.TileClassId)) missing.Add(entry);
+                if (!tileClassIds.Contains(entry.TileClassId))
+                    missing.Add(entry);
             }
             return missing.ToArray();
         }

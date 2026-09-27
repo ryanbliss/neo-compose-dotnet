@@ -701,13 +701,15 @@ namespace NeoCompose.Tests
             CollectionAssert.Contains(first, "value-target");
 
             var second = new HashSet<string>();
-            using (client.CaptureValueReads(second)) Assert.AreEqual(5, Convert.ToInt32(node.Compute("value-receiver").value));
+            using (client.CaptureValueReads(second))
+                Assert.AreEqual(5, Convert.ToInt32(node.Compute("value-receiver").value));
             CollectionAssert.AreEquivalent(first, second, "A memo hit must report the reads the evaluation reported.");
 
             client.SetSaveValue(new NumberMemberValue { id = "value-target", value = 9, createdAt = "x", updatedAt = "x" });
             Assert.IsFalse(client.TryGetMemoizedGetter(key, out _), "A write to a read row must drop the entry.");
             var third = new HashSet<string>();
-            using (client.CaptureValueReads(third)) Assert.AreEqual(9, Convert.ToInt32(node.Compute("value-receiver").value));
+            using (client.CaptureValueReads(third))
+                Assert.AreEqual(9, Convert.ToInt32(node.Compute("value-receiver").value));
             CollectionAssert.AreEquivalent(first, third);
         }
 
@@ -1053,18 +1055,18 @@ namespace NeoCompose.Tests
         private static OperationPointer ArithmeticPointer(
             string op,
             params Pointer[] pointers) => new()
-        {
-            type = PointerKind.Operation,
-            operation = new ArithmeticOperation
             {
-                type = OperationKind.Arithmetic,
-                arithmetic = new ArithmeticOpInfo
+                type = PointerKind.Operation,
+                operation = new ArithmeticOperation
                 {
-                    type = op,
-                    pointers = pointers,
+                    type = OperationKind.Arithmetic,
+                    arithmetic = new ArithmeticOpInfo
+                    {
+                        type = op,
+                        pointers = pointers,
+                    },
                 },
-            },
-        };
+            };
 
         private static ValuePointer StringLiteral(string value) => new()
         {
@@ -1138,7 +1140,8 @@ namespace NeoCompose.Tests
             params (string key, string valueId)[] entries)
         {
             var value = new Dictionary<string, string>();
-            foreach (var entry in entries) value[entry.key] = entry.valueId;
+            foreach (var entry in entries)
+                value[entry.key] = entry.valueId;
             return new ObjectMemberValue
             {
                 id = id,
@@ -1183,7 +1186,10 @@ namespace NeoCompose.Tests
                 this.optionId = optionId;
             }
 
-            public string optionId { get; }
+            public string optionId
+            {
+                get;
+            }
         }
 
         private sealed class TestValueReference : INeoValueReference
@@ -1193,7 +1199,10 @@ namespace NeoCompose.Tests
                 this.valueId = valueId;
             }
 
-            public string? valueId { get; }
+            public string? valueId
+            {
+                get;
+            }
         }
     }
 }

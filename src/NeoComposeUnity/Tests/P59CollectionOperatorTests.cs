@@ -658,9 +658,18 @@ namespace NeoCompose.Tests
                 HitResourceLimit = hitResourceLimit;
             }
 
-            internal long AllocatedBytes { get; }
-            internal double DurationMs { get; }
-            internal bool HitResourceLimit { get; }
+            internal long AllocatedBytes
+            {
+                get;
+            }
+            internal double DurationMs
+            {
+                get;
+            }
+            internal bool HitResourceLimit
+            {
+                get;
+            }
         }
     }
 }

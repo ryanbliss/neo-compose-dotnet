@@ -36,7 +36,8 @@ namespace NeoCompose.Unity.Editor
         public static NeoComposeRuntimeSecret LoadOrCreate()
         {
             var existing = Find();
-            if (existing != null) return existing;
+            if (existing != null)
+                return existing;
 
             var directory = SecretDirectory();
             EnsureAssetDirectory(directory);
@@ -55,7 +56,8 @@ namespace NeoCompose.Unity.Editor
             {
                 var path = AssetDatabase.GUIDToAssetPath(guid);
                 var secret = AssetDatabase.LoadAssetAtPath<NeoComposeRuntimeSecret>(path);
-                if (secret != null) return secret;
+                if (secret != null)
+                    return secret;
             }
 
             return null;
@@ -87,7 +89,8 @@ namespace NeoCompose.Unity.Editor
         private static void EnsureGitignore(string assetDirectory)
         {
             var projectRoot = Directory.GetParent(Application.dataPath)?.FullName;
-            if (projectRoot == null) return;
+            if (projectRoot == null)
+                return;
 
             var directoryFullPath = Path.Combine(projectRoot, assetDirectory);
             Directory.CreateDirectory(directoryFullPath);
@@ -97,9 +100,11 @@ namespace NeoCompose.Unity.Editor
             var lines = File.Exists(gitignorePath)
                 ? File.ReadAllLines(gitignorePath).ToList()
                 : new List<string>();
-            if (lines.Any(line => line.Trim() == assetEntry)) return; // already ignored
+            if (lines.Any(line => line.Trim() == assetEntry))
+                return; // already ignored
 
-            if (lines.Count > 0 && lines[^1].Trim().Length > 0) lines.Add("");
+            if (lines.Count > 0 && lines[^1].Trim().Length > 0)
+                lines.Add("");
             lines.Add("# Neo Compose runtime secret — bundled into builds, never committed.");
             lines.Add(assetEntry);
             lines.Add(assetEntry + ".meta");
@@ -110,7 +115,8 @@ namespace NeoCompose.Unity.Editor
         private static void EnsureAssetDirectory(string assetDirectory)
         {
             var normalized = NeoComposePathUtility.NormalizeSeparators(assetDirectory).TrimEnd('/');
-            if (AssetDatabase.IsValidFolder(normalized)) return;
+            if (AssetDatabase.IsValidFolder(normalized))
+                return;
 
             var current = "Assets";
             foreach (var segment in normalized.Split('/').Skip(1))

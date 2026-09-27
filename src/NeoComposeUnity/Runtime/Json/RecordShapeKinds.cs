@@ -13,20 +13,62 @@ namespace NeoCompose.Runtime.Json
 {
     // Persisted ordinals are append-only. Zero is the wire default and may be
     // omitted by exporters.
-    public enum NeoClassModifierKind { Open = 0, Abstract = 1, Sealed = 2 }
-    public enum NeoClassVisibilityKind { Visible = 0, Hidden = 1 }
-    public enum NeoMemberModifierKind { Virtual = 0, Sealed = 1, Abstract = 2, Static = 3 }
-    public enum NeoMemberAccessKind { Public = 0, Protected = 1, Private = 2 }
-    public enum NeoStringFormatKind { Localized = 0, Plain = 1 }
-    public enum NeoMemberSearchByKind { None = 0, MemberKey = 1 }
-    public enum NeoDictionaryKeyKind { String = 0, Enum = 1 }
-    public enum NeoListKind { Ordered = 0, Unordered = 1 }
-    public enum NeoInterfaceMemberKind { Property = 0, Function = 1 }
-    public enum NeoGenericParamConstraintKind { Class = 0, Enum = 1 }
-    public enum NeoGenericBindingKind { Generic = 0, Member = 1 }
-    public enum NeoMemberRequirementKind { Optional = 0, Required = 1 }
-    public enum NeoMemberMutabilityKind { Mutable = 0, ReadOnly = 1 }
-    public enum NeoMemberSelectionKind { Single = 0, Multi = 1 }
+    public enum NeoClassModifierKind
+    {
+        Open = 0, Abstract = 1, Sealed = 2
+    }
+    public enum NeoClassVisibilityKind
+    {
+        Visible = 0, Hidden = 1
+    }
+    public enum NeoMemberModifierKind
+    {
+        Virtual = 0, Sealed = 1, Abstract = 2, Static = 3
+    }
+    public enum NeoMemberAccessKind
+    {
+        Public = 0, Protected = 1, Private = 2
+    }
+    public enum NeoStringFormatKind
+    {
+        Localized = 0, Plain = 1
+    }
+    public enum NeoMemberSearchByKind
+    {
+        None = 0, MemberKey = 1
+    }
+    public enum NeoDictionaryKeyKind
+    {
+        String = 0, Enum = 1
+    }
+    public enum NeoListKind
+    {
+        Ordered = 0, Unordered = 1
+    }
+    public enum NeoInterfaceMemberKind
+    {
+        Property = 0, Function = 1
+    }
+    public enum NeoGenericParamConstraintKind
+    {
+        Class = 0, Enum = 1
+    }
+    public enum NeoGenericBindingKind
+    {
+        Generic = 0, Member = 1
+    }
+    public enum NeoMemberRequirementKind
+    {
+        Optional = 0, Required = 1
+    }
+    public enum NeoMemberMutabilityKind
+    {
+        Mutable = 0, ReadOnly = 1
+    }
+    public enum NeoMemberSelectionKind
+    {
+        Single = 0, Multi = 1
+    }
     /// <summary>
     /// How a member's materialized value is distributed across storage rows
     /// (P76 §1). Mirrors the TS-side <c>NeoSubtreeDistributionKind</c> in
@@ -42,15 +84,42 @@ namespace NeoCompose.Runtime.Json
     /// deserialize absence into the zero ordinal, or persist an automatic
     /// result back onto a member record.</para>
     /// </summary>
-    public enum NeoSubtreeDistributionKind { Sparse = 0, Packed = 1 }
-    public enum NeoFunctionDispatchKind { Synchronous = 0, Asynchronous = 1 }
-    public enum NeoFunctionBodyKind { Code = 0, UI = 1 }
-    public enum NeoPropertyAccessorsKind { Get = 0, GetSet = 1 }
-    public enum NeoMemberPayloadKind { Full = 0, Partial = 1 }
-    public enum NeoListIndexKind { Bucket = 0, Unique = 1 }
-    public enum NeoColumnVisibilityKind { Visible = 0, Hidden = 1 }
-    public enum NeoColumnPinKind { None = 0, Leading = 1 }
-    public enum NeoColumnOverflowKind { Clip = 0, Wrap = 1 }
+    public enum NeoSubtreeDistributionKind
+    {
+        Sparse = 0, Packed = 1
+    }
+    public enum NeoFunctionDispatchKind
+    {
+        Synchronous = 0, Asynchronous = 1
+    }
+    public enum NeoFunctionBodyKind
+    {
+        Code = 0, UI = 1
+    }
+    public enum NeoPropertyAccessorsKind
+    {
+        Get = 0, GetSet = 1
+    }
+    public enum NeoMemberPayloadKind
+    {
+        Full = 0, Partial = 1
+    }
+    public enum NeoListIndexKind
+    {
+        Bucket = 0, Unique = 1
+    }
+    public enum NeoColumnVisibilityKind
+    {
+        Visible = 0, Hidden = 1
+    }
+    public enum NeoColumnPinKind
+    {
+        None = 0, Leading = 1
+    }
+    public enum NeoColumnOverflowKind
+    {
+        Clip = 0, Wrap = 1
+    }
 
     internal static class StrictRecordShapeEnums
     {
@@ -74,7 +143,8 @@ namespace NeoCompose.Runtime.Json
             where T : struct
         {
             JToken? token = obj[field];
-            if (token is null) return defaultValue;
+            if (token is null)
+                return defaultValue;
             if (token.Type == JTokenType.Null)
             {
                 obj.Property(field)?.Remove();
@@ -87,7 +157,8 @@ namespace NeoCompose.Runtime.Json
             where T : struct
         {
             JToken? token = obj[field];
-            if (token is null) return;
+            if (token is null)
+                return;
             // canonical writers canonicalize an empty optional axis to omission, but
             // readers still fold historical/storage-boundary nulls into that
             // same default state (§7). Optional enum tokens preserve the
@@ -196,7 +267,8 @@ namespace NeoCompose.Runtime.Json
         internal void SetChainResolvedValue(string field, object? value)
         {
             int index = MemberChainResolvedFields.IndexOf(field);
-            if (index < 0) return;
+            if (index < 0)
+                return;
             if (value is null)
             {
                 ClearChainResolvedValue(index);
@@ -316,7 +388,8 @@ namespace NeoCompose.Runtime.Json
                     continue;
                 }
                 // A null default carrier declares no local default; keep the inherited one.
-                if (field == "defaultValue" && value is null) continue;
+                if (field == "defaultValue" && value is null)
+                    continue;
                 if (value is null)
                 {
                     resolved.ClearChainResolvedValue(index);
@@ -411,7 +484,8 @@ namespace NeoCompose.Runtime.Json
             var key = (type, field);
             lock (accessorLock)
             {
-                if (accessors.TryGetValue(key, out MemberInfo? cached)) return cached;
+                if (accessors.TryGetValue(key, out MemberInfo? cached))
+                    return cached;
                 MemberInfo? accessor = type.GetField(
                         field,
                         BindingFlags.Instance | BindingFlags.Public)
@@ -459,7 +533,8 @@ namespace NeoCompose.Runtime.Json
             Member member,
             IReadOnlyDictionary<string, Member> members)
         {
-            if (member.resolvedShape is not null) return member.resolvedShape;
+            if (member.resolvedShape is not null)
+                return member.resolvedShape;
 
             // Walk iteratively so a corrupt export cannot turn a long override
             // chain into a CLR stack overflow. Cached ancestors keep total work
@@ -472,7 +547,8 @@ namespace NeoCompose.Runtime.Json
             {
                 // Inheritance validation reports the cycle separately. Defaults
                 // keep this pre-validation projection bounded.
-                if (!chainIds.Add(current.id)) break;
+                if (!chainIds.Add(current.id))
+                    break;
                 chain.Add(current);
                 if (string.IsNullOrEmpty(current.extendsMemberId)
                     || !members.TryGetValue(current.extendsMemberId!, out Member parent))

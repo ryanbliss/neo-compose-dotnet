@@ -38,7 +38,11 @@ namespace NeoCompose.Tests
             var data = BuildProjectData();
             data.members["select-self"] = new NSFunctionMember
             {
-                id = "select-self", projectId = ProjectId, name = "SelectSelf", kind = MemberKind.NSFunction, code = "return this;",
+                id = "select-self",
+                projectId = ProjectId,
+                name = "SelectSelf",
+                kind = MemberKind.NSFunction,
+                code = "return this;",
                 returnTypeInfo = new ClassTypeInfo { type = MemberKind.Class, required = true, classId = "selector-host" },
                 argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
                 action = new FunctionWithReturnType
@@ -55,36 +59,50 @@ namespace NeoCompose.Tests
             };
             data.members["selector"] = new DelegateMember
             {
-                id = "selector", projectId = ProjectId, name = "Selector", kind = MemberKind.NSDelegate,
+                id = "selector",
+                projectId = ProjectId,
+                name = "Selector",
+                kind = MemberKind.NSDelegate,
                 returnTypeInfo = new ClassTypeInfo { type = MemberKind.Class, required = true, classId = "selector-host" },
                 argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
             };
             data.classes["selector-track"] = new NeoSchemaClass
             {
-                id = "selector-track", projectId = ProjectId, name = "Track",
+                id = "selector-track",
+                projectId = ProjectId,
+                name = "Track",
                 schema = new Dictionary<string, string> { ["Selector"] = "selector" },
             };
             data.members["selector-track-entry"] = new ClassMember
             {
-                id = "selector-track-entry", projectId = ProjectId, name = "Track", kind = MemberKind.Class,
+                id = "selector-track-entry",
+                projectId = ProjectId,
+                name = "Track",
+                kind = MemberKind.Class,
                 classId = "selector-track",
             };
             data.members["selector-tracks"] = new ListMember
             {
-                id = "selector-tracks", projectId = ProjectId, name = "Tracks", kind = MemberKind.List,
+                id = "selector-tracks",
+                projectId = ProjectId,
+                name = "Tracks",
+                kind = MemberKind.List,
                 entryMemberId = "selector-track-entry",
                 defaultValue = new ArrayMemberValueBase { value = new[] { "stored-selector-track" } },
             };
             data.classes["selector-host"] = new NeoSchemaClass
             {
-                id = "selector-host", projectId = ProjectId, name = "Host",
+                id = "selector-host",
+                projectId = ProjectId,
+                name = "Host",
                 schema = new Dictionary<string, string> { ["Tracks"] = "selector-tracks", ["SelectSelf"] = "select-self" },
             };
             data.values["stored-selector-track"] = ObjectValue("stored-selector-track", "selector-track");
             ((ObjectMemberValue)data.values["stored-selector-track"]).value!["Selector"] = "stored-selector";
             data.values["stored-selector"] = new DelegateMemberValue
             {
-                id = "stored-selector", value = new NeoDelegateValue { memberId = "select-self", valueId = null },
+                id = "stored-selector",
+                value = new NeoDelegateValue { memberId = "select-self", valueId = null },
             };
             if (initializedTrack)
             {
@@ -99,8 +117,12 @@ namespace NeoCompose.Tests
                     {
                         code = "new Track()",
                         compiled = InitializerGetter(ClassType("selector-track"),
-                            new ReturnInstruction { type = InstructionKind.Return, pointer = DeclaredConstructorPointer(
-                                ClassType("selector-track"), null, Array.Empty<DeclaredConstructorArgument>(), Array.Empty<FunctionClassConstructorField>()) }),
+                            new ReturnInstruction
+                            {
+                                type = InstructionKind.Return,
+                                pointer = DeclaredConstructorPointer(
+                                ClassType("selector-track"), null, Array.Empty<DeclaredConstructorArgument>(), Array.Empty<FunctionClassConstructorField>())
+                            }),
                     },
                 };
             }
@@ -111,7 +133,11 @@ namespace NeoCompose.Tests
                     string key = "Host" + i;
                     data.members[key] = new ClassMember
                     {
-                        id = key, projectId = ProjectId, name = key, kind = MemberKind.Class, classId = "selector-host",
+                        id = key,
+                        projectId = ProjectId,
+                        name = key,
+                        kind = MemberKind.Class,
+                        classId = "selector-host",
                     };
                     data.classes["root-class"].schema[key] = key;
                     var host = ObjectValue("host-" + i, "selector-host");
@@ -162,34 +188,47 @@ namespace NeoCompose.Tests
             var data = BuildProjectData();
             var member = new JObject
             {
-                ["id"] = "track-end", ["projectId"] = ProjectId,
-                ["name"] = "OffsetEndIndex", ["kind"] = (int)kind,
+                ["id"] = "track-end",
+                ["projectId"] = ProjectId,
+                ["name"] = "OffsetEndIndex",
+                ["kind"] = (int)kind,
                 ["entryMemberId"] = "track-entry",
                 ["argumentTypes"] = new JArray(),
                 ["requirement"] = (int)(required ? NeoMemberRequirementKind.Required : NeoMemberRequirementKind.Optional),
             }.ToObject<JsonMember>()!;
             // A stored explicit null must not fall back to a non-null declaration default.
-            if (member is IntMember number) number.defaultValue = new NumberMemberValueBase { value = 99 };
+            if (member is IntMember number)
+                number.defaultValue = new NumberMemberValueBase { value = 99 };
             data.members[member.id] = member;
             data.classes["null-track"] = new NeoSchemaClass
             {
-                id = "null-track", projectId = ProjectId, name = "Track",
+                id = "null-track",
+                projectId = ProjectId,
+                name = "Track",
                 schema = new Dictionary<string, string> { ["OffsetEndIndex"] = member.id },
             };
             data.members["track-entry"] = new ClassMember
             {
-                id = "track-entry", projectId = ProjectId, name = "Track", kind = MemberKind.Class,
+                id = "track-entry",
+                projectId = ProjectId,
+                name = "Track",
+                kind = MemberKind.Class,
                 classId = "null-track",
             };
             data.members["tracks-default"] = new ListMember
             {
-                id = "tracks-default", projectId = ProjectId, name = "Tracks", kind = MemberKind.List,
+                id = "tracks-default",
+                projectId = ProjectId,
+                name = "Tracks",
+                kind = MemberKind.List,
                 entryMemberId = "track-entry",
                 defaultValue = new ArrayMemberValueBase { value = new[] { "stored-track" } },
             };
             data.classes["null-host"] = new NeoSchemaClass
             {
-                id = "null-host", projectId = ProjectId, name = "Host",
+                id = "null-host",
+                projectId = ProjectId,
+                name = "Host",
                 schema = new Dictionary<string, string> { ["Tracks"] = "tracks-default" },
             };
             data.values["stored-track"] = ObjectValue("stored-track", "null-track");
@@ -447,8 +486,11 @@ namespace NeoCompose.Tests
             data.classes["root-class"].schema["Part"] = "optional-part";
             data.members["optional-part"] = new ClassMember
             {
-                id = "optional-part", projectId = ProjectId, name = "Part",
-                kind = MemberKind.Class, classId = "part-class",
+                id = "optional-part",
+                projectId = ProjectId,
+                name = "Part",
+                kind = MemberKind.Class,
+                classId = "part-class",
                 Requirement = NeoMemberRequirementKind.Optional,
                 defaultValue = new ObjectMemberValueBase { value = null },
             };
@@ -1176,7 +1218,10 @@ namespace NeoCompose.Tests
             ((StringMember)client.members["gear-tag"]).defaultValue = new StringMemberValueBase { value = "tag" };
             var unbound = new NeoMemberClassWritable(client, new ClassMember
             {
-                id = "unbound-gear", name = "Gear", kind = MemberKind.Class, classId = "gear-class",
+                id = "unbound-gear",
+                name = "Gear",
+                kind = MemberKind.Class,
+                classId = "gear-class",
             }, null, NeoValueOwnership.Save);
             int rowCount = client.saveValues.Count;
             var writeError = Assert.Throws<InvalidOperationException>(() =>
@@ -1194,23 +1239,34 @@ namespace NeoCompose.Tests
             ((StringMember)data.members["gear-tag"]).defaultValue = new StringMemberValueBase { value = "tag" };
             data.classes["default-wrapper"] = new NeoSchemaClass
             {
-                id = "default-wrapper", projectId = ProjectId, name = "Wrapper",
+                id = "default-wrapper",
+                projectId = ProjectId,
+                name = "Wrapper",
                 schema = new Dictionary<string, string> { ["Gear"] = "default-gear" },
             };
             data.members["default-gear"] = new ClassMember
             {
-                id = "default-gear", projectId = ProjectId, name = "Gear",
-                kind = MemberKind.Class, classId = "gear-class", Requirement = NeoMemberRequirementKind.Required,
+                id = "default-gear",
+                projectId = ProjectId,
+                name = "Gear",
+                kind = MemberKind.Class,
+                classId = "gear-class",
+                Requirement = NeoMemberRequirementKind.Required,
             };
             data.classes["default-host"] = new NeoSchemaClass
             {
-                id = "default-host", projectId = ProjectId, name = "Host",
+                id = "default-host",
+                projectId = ProjectId,
+                name = "Host",
                 schema = new Dictionary<string, string> { ["Wrapper"] = "host-wrapper" },
             };
             data.members["host-wrapper"] = new ClassMember
             {
-                id = "host-wrapper", projectId = ProjectId, name = "Wrapper",
-                kind = MemberKind.Class, classId = "default-wrapper",
+                id = "host-wrapper",
+                projectId = ProjectId,
+                name = "Wrapper",
+                kind = MemberKind.Class,
+                classId = "default-wrapper",
                 defaultValue = new ObjectMemberValueBase
                 {
                     value = new Dictionary<string, string> { ["Gear"] = "gear-default" },
@@ -1873,7 +1929,10 @@ namespace NeoCompose.Tests
                 this.optionId = optionId;
             }
 
-            public string optionId { get; }
+            public string optionId
+            {
+                get;
+            }
         }
 
         /// <summary>
@@ -1889,7 +1948,10 @@ namespace NeoCompose.Tests
                 this.valueId = valueId;
             }
 
-            public string? valueId { get; }
+            public string? valueId
+            {
+                get;
+            }
         }
 
         private static double? ReadNumber(

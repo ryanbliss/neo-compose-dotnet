@@ -89,7 +89,10 @@ namespace NeoCompose.Tests
             Assert.That(source.TryReadPayload(0, out var repeated), Is.True);
             Assert.That(repeated, Is.SameAs(first));
             client.SetWritableValue(NeoValueOwnership.Session, new SpriteMemberValue
-                { id = row!.id, value = new SpriteValue { fileId = "replacement", sliceIndex = 3 } });
+            {
+                id = row!.id,
+                value = new SpriteValue { fileId = "replacement", sliceIndex = 3 }
+            });
             Assert.That(source.TryReadPayload(0, out var changed), Is.True);
             Assert.That(((SpriteValue)changed!.value!).fileId, Is.EqualTo("replacement"));
             Assert.That(changed, Is.Not.SameAs(first));
@@ -129,7 +132,8 @@ namespace NeoCompose.Tests
                     "Sprite",
                     (string?)track["target"],
                     "this harness maps exactly one target member; a second one needs a second child");
-                if ((string?)track["content"]!["kind"] == "clip") hasChildClipTrack = true;
+                if ((string?)track["content"]!["kind"] == "clip")
+                    hasChildClipTrack = true;
             }
 
             ProjectData data = BuildParityProject(fixtureCase);
@@ -153,7 +157,8 @@ namespace NeoCompose.Tests
                     $"[{label}] values at clip frame {clipFrame}");
             }
 
-            if (hasChildClipTrack) return;
+            if (hasChildClipTrack)
+                return;
 
             ResetObservedMember(client, observedId, fixtureCase);
             definition.PreparePlayback();
@@ -804,7 +809,8 @@ namespace NeoCompose.Tests
             Assert.IsTrue(source.TryReadContent(0, out _));
             client.SetWritableValue(NeoValueOwnership.Session, new NumberMemberValue { id = "unrelated-position", value = 1 });
             var reads = new HashSet<string>();
-            using (client.CaptureValueReads(reads)) Assert.IsTrue(source.TryReadContent(1, out _));
+            using (client.CaptureValueReads(reads))
+                Assert.IsTrue(source.TryReadContent(1, out _));
             Assert.IsEmpty(reads, "Position and animation output writes must not rebuild unrelated segment content.");
             Equip(client, "seg-b");
             Assert.IsTrue(source.TryReadContent(0, out var equipped));
@@ -813,7 +819,8 @@ namespace NeoCompose.Tests
             client.SetWritableValue(NeoValueOwnership.Session,
                 Number("seg-a-duration", 3));
             reads.Clear();
-            using (client.CaptureValueReads(reads)) Assert.AreEqual(2, source.BaseDuration);
+            using (client.CaptureValueReads(reads))
+                Assert.AreEqual(2, source.BaseDuration);
             Assert.IsEmpty(reads, "A replaced segment must release its old dependencies.");
 
             client.SetWritableValue(NeoValueOwnership.Session,
@@ -1026,7 +1033,8 @@ namespace NeoCompose.Tests
             JObject fixture = JObject.Parse(NeoAnimationPlaybackParityFixture.Json);
             foreach (JToken fixtureCase in (JArray)fixture["cases"]!)
             {
-                if ((string?)fixtureCase["label"] == label) return (JObject)fixtureCase;
+                if ((string?)fixtureCase["label"] == label)
+                    return (JObject)fixtureCase;
             }
             throw new InvalidOperationException($"No parity case labelled '{label}'.");
         }
@@ -1215,7 +1223,8 @@ namespace NeoCompose.Tests
                     segmentId: $"{trackId}-segment-value");
             }
             data.values["parent-tracks"] = ArrayValue("parent-tracks", trackIds.ToArray());
-            if (!wroteChildClip) AddIdleChildClip(data);
+            if (!wroteChildClip)
+                AddIdleChildClip(data);
             return data;
         }
 
@@ -1539,7 +1548,10 @@ namespace NeoCompose.Tests
                     ChildTrackClassId,
                     "ChildTrack",
                     "animationChildTrack",
-                    new() { ["ClipKey"] = "track-clip-key-member" },
+                    new()
+                    {
+                        ["ClipKey"] = "track-clip-key-member"
+                    },
                     extendsClassId: TrackBaseClassId),
                 [SegmentTrackBaseClassId] = Class(
                     SegmentTrackBaseClassId,
@@ -1552,14 +1564,20 @@ namespace NeoCompose.Tests
                     SpriteSegmentTrackClassId,
                     "SpriteSegmentTrack",
                     null,
-                    new() { ["Segment"] = "track-segment-member" },
+                    new()
+                    {
+                        ["Segment"] = "track-segment-member"
+                    },
                     extendsClassId: SegmentTrackBaseClassId,
                     targetMemberId: "sprite-member"),
                 [LookupSegmentTrackClassId] = Class(
                     LookupSegmentTrackClassId,
                     "LookupSegmentTrack",
                     null,
-                    new() { ["Segment"] = "track-segment-lookup-member" },
+                    new()
+                    {
+                        ["Segment"] = "track-segment-lookup-member"
+                    },
                     extendsClassId: SegmentTrackBaseClassId,
                     targetMemberId: "sprite-member"),
                 [SegmentClassId] = Class(SegmentClassId, "Segment", "animationSegment", new()

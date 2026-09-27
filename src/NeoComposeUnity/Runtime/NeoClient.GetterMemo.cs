@@ -131,13 +131,16 @@ namespace NeoCompose.Runtime
             HashSet<string> values = getterValueReadCapture!;
             getterReadCapture = previous.reads;
             getterValueReadCapture = previous.valueReads;
-            if (reads is not null && reads.Count != 0) previous.reads?.AddRange(reads);
+            if (reads is not null && reads.Count != 0)
+                previous.reads?.AddRange(reads);
             valueReads = values.Count == 0 ? null : values.ToArray();
             previous.valueReads?.UnionWith(values);
             values.Clear();
             valueReadCapturePool.Push(values);
-            if (reads is null) return null;
-            if (reads.Count != 0) return reads;
+            if (reads is null)
+                return null;
+            if (reads.Count != 0)
+                return reads;
             readCapturePool.Push(reads);
             return null;
         }
@@ -164,12 +167,16 @@ namespace NeoCompose.Runtime
         /// <summary>Reports a memoized getter's recorded reads as if it had run.</summary>
         internal void ReplayGetterReads(GetterMemoEntry entry, NeoScriptGridReads? gridReads)
         {
-            if (entry.valueReads is not null) NoteValueReads(entry.valueReads);
-            if (entry.reads is null) return;
+            if (entry.valueReads is not null)
+                NoteValueReads(entry.valueReads);
+            if (entry.reads is null)
+                return;
             foreach (GetterRead read in entry.reads)
             {
-                if (read.content is null) gridReads?.RecordValue(this, read.ownership, read.id);
-                else gridReads?.Record(read.content, read.placementId!, read.cell, read.tile);
+                if (read.content is null)
+                    gridReads?.RecordValue(this, read.ownership, read.id);
+                else
+                    gridReads?.Record(read.content, read.placementId!, read.cell, read.tile);
                 getterReadCapture?.Add(read);
             }
         }
@@ -194,11 +201,14 @@ namespace NeoCompose.Runtime
             ForgetMemoizedGetter(key);
             getterMemo[key] = entry;
             IndexMemoDependency(key.rowId, key);
-            if (entry.reads is null) return;
+            if (entry.reads is null)
+                return;
             foreach (GetterRead read in entry.reads)
             {
-                if (read.content is null) IndexMemoDependency(read.id, key);
-                else gridDependentGetterMemoKeys.Add(key);
+                if (read.content is null)
+                    IndexMemoDependency(read.id, key);
+                else
+                    gridDependentGetterMemoKeys.Add(key);
             }
         }
 
@@ -213,13 +223,16 @@ namespace NeoCompose.Runtime
 
         internal void ForgetMemoizedGetter(GetterMemoKey key)
         {
-            if (!getterMemo.Remove(key, out GetterMemoEntry entry)) return;
+            if (!getterMemo.Remove(key, out GetterMemoEntry entry))
+                return;
             UnindexMemoDependency(key.rowId, key);
             gridDependentGetterMemoKeys.Remove(key);
             List<GetterRead>? reads = entry.reads;
-            if (reads is null) return;
+            if (reads is null)
+                return;
             foreach (GetterRead read in reads)
-                if (read.content is null) UnindexMemoDependency(read.id, key);
+                if (read.content is null)
+                    UnindexMemoDependency(read.id, key);
             // The entry owned the list; nothing replays a forgotten entry.
             entry.reads = null;
             reads.Clear();
@@ -228,9 +241,11 @@ namespace NeoCompose.Runtime
 
         private void UnindexMemoDependency(string rowId, GetterMemoKey key)
         {
-            if (!getterMemoKeysByRow.TryGetValue(rowId, out HashSet<GetterMemoKey>? keys)) return;
+            if (!getterMemoKeysByRow.TryGetValue(rowId, out HashSet<GetterMemoKey>? keys))
+                return;
             keys.Remove(key);
-            if (keys.Count != 0) return;
+            if (keys.Count != 0)
+                return;
             getterMemoKeysByRow.Remove(rowId);
             memoKeySetPool.Push(keys);
         }
@@ -242,22 +257,26 @@ namespace NeoCompose.Runtime
         /// <summary>Drops every memoized getter that read one of the changed rows.</summary>
         private void InvalidateGetterMemoForRows(IEnumerable<(NeoValueOwnership ownership, string valueId)> changed)
         {
-            if (getterMemo.Count == 0) return;
-            foreach (var (_, valueId) in changed) InvalidateGetterMemoForRow(valueId);
+            if (getterMemo.Count == 0)
+                return;
+            foreach (var (_, valueId) in changed)
+                InvalidateGetterMemoForRow(valueId);
         }
 
         /// <summary>Drops every memoized getter that read one row.</summary>
         private void InvalidateGetterMemoForRow(string valueId)
         {
             if (getterMemo.Count == 0
-                || !getterMemoKeysByRow.TryGetValue(valueId, out HashSet<GetterMemoKey>? keys)) return;
+                || !getterMemoKeysByRow.TryGetValue(valueId, out HashSet<GetterMemoKey>? keys))
+                return;
             ForgetMemoizedGetters(keys);
         }
 
         /// <summary>Drops every memoized getter that queried a grid.</summary>
         internal void InvalidateGridDependentGetterMemo()
         {
-            if (gridDependentGetterMemoKeys.Count == 0) return;
+            if (gridDependentGetterMemoKeys.Count == 0)
+                return;
             ForgetMemoizedGetters(gridDependentGetterMemoKeys);
         }
 
@@ -265,7 +284,8 @@ namespace NeoCompose.Runtime
         {
             memoInvalidationScratch.Clear();
             memoInvalidationScratch.AddRange(keys);
-            for (int i = 0; i < memoInvalidationScratch.Count; i++) ForgetMemoizedGetter(memoInvalidationScratch[i]);
+            for (int i = 0; i < memoInvalidationScratch.Count; i++)
+                ForgetMemoizedGetter(memoInvalidationScratch[i]);
             memoInvalidationScratch.Clear();
         }
 
@@ -281,7 +301,8 @@ namespace NeoCompose.Runtime
         /// <summary>Whether rows of this class are grid, tile or object placements, so a write to one can change grid queries.</summary>
         private bool IsWorldClass(string? classId)
         {
-            if (string.IsNullOrEmpty(classId)) return false;
+            if (string.IsNullOrEmpty(classId))
+                return false;
             if (!worldClassIds.TryGetValue(classId!, out bool world))
                 worldClassIds[classId!] = world = HasWorldKind(classId, "tileGrid") || HasWorldKind(classId, "tile") || HasWorldKind(classId, "object");
             return world;

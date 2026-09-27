@@ -28,10 +28,13 @@ namespace NeoCompose.Runtime
                 if (candidateReplay?.Parents.TryGetValue(childId, out var allocatedParents) == true)
                     candidates.UnionWith(allocatedParents);
             }
-            foreach (var pair in IndexedWritableParents(childId, NeoValueOwnership.Session, sessionData.values, candidates)) yield return pair;
-            foreach (var pair in IndexedWritableParents(childId, NeoValueOwnership.Save, saveData.values, candidates)) yield return pair;
+            foreach (var pair in IndexedWritableParents(childId, NeoValueOwnership.Session, sessionData.values, candidates))
+                yield return pair;
+            foreach (var pair in IndexedWritableParents(childId, NeoValueOwnership.Save, saveData.values, candidates))
+                yield return pair;
             if (ValueInferenceIndex.Parents.TryGetValue(childId, out var parents))
-                foreach (var pair in parents) yield return pair;
+                foreach (var pair in parents)
+                    yield return pair;
             if (candidateReadPlan is not null)
                 foreach (string id in candidates)
                     if (!sessionData.values.ContainsKey(id) && !saveData.values.ContainsKey(id)
@@ -53,7 +56,8 @@ namespace NeoCompose.Runtime
                 bool found = candidateReadPlan is null
                     ? rows.TryGetValue(id, out row)
                     : TryGetWritableValue(ownership, id, out row);
-                if (!found || !MightReferenceChildValueId(row!, childId)) continue;
+                if (!found || !MightReferenceChildValueId(row!, childId))
+                    continue;
                 if (first is not null)
                 {
                     // Replacements retain their store position; new staged rows
@@ -61,7 +65,8 @@ namespace NeoCompose.Runtime
                     // references need this ordered fallback.
                     foreach (string orderedId in OrderedWritableParentIds(ownership, rows))
                     {
-                        if (!candidates.Contains(orderedId)) continue;
+                        if (!candidates.Contains(orderedId))
+                            continue;
                         found = candidateReadPlan is null
                             ? rows.TryGetValue(orderedId, out row)
                             : TryGetWritableValue(ownership, orderedId, out row);
@@ -72,14 +77,17 @@ namespace NeoCompose.Runtime
                 }
                 first = new KeyValuePair<string, MemberValue>(id, row!);
             }
-            if (first is not null) yield return first.Value;
+            if (first is not null)
+                yield return first.Value;
         }
 
         private IEnumerable<string> OrderedWritableParentIds(
             NeoValueOwnership ownership, IReadOnlyDictionary<string, MemberValue> rows)
         {
-            foreach (string id in rows.Keys) yield return id;
-            if (candidateReadPlan is null) yield break;
+            foreach (string id in rows.Keys)
+                yield return id;
+            if (candidateReadPlan is null)
+                yield break;
             foreach (var pair in candidateReadPlan.Rows)
                 if (pair.Key.ownership == ownership && !rows.ContainsKey(pair.Key.id))
                     yield return pair.Key.id;
@@ -108,12 +116,17 @@ namespace NeoCompose.Runtime
                 yield return placement.parentValueId;
                 yield break;
             }
-            if (!ValueInferenceIndex.Parents.TryGetValue(childId, out var parents)) yield break;
+            if (!ValueInferenceIndex.Parents.TryGetValue(childId, out var parents))
+                yield break;
             foreach (var pair in parents)
             {
                 Member? member = TryInferMemberForValueId(pair.Key, out Member? inferred) ? inferred : null;
                 foreach (var link in EnumerateOwnedChildLinks(pair.Value, member))
-                    if (link.valueId == childId) { yield return pair.Key; break; }
+                    if (link.valueId == childId)
+                    {
+                        yield return pair.Key;
+                        break;
+                    }
             }
         }
 
@@ -131,7 +144,8 @@ namespace NeoCompose.Runtime
                 // by the ordinary inference path, including ambiguous references.
                 foreach (Member member in data.members.Values)
                 {
-                    if (member.Modifier == NeoMemberModifierKind.Static) StaticMembers.Add(member);
+                    if (member.Modifier == NeoMemberModifierKind.Static)
+                        StaticMembers.Add(member);
                     if (member.valueId != null)
                     {
                         Members.TryAdd(member.valueId, member);
@@ -145,20 +159,23 @@ namespace NeoCompose.Runtime
                     if (pair.Value is ObjectMemberValue obj)
                     {
                         if (obj.value != null)
-                            foreach (string childId in obj.value.Values) Add(childId, pair);
+                            foreach (string childId in obj.value.Values)
+                                Add(childId, pair);
                         if (obj.constructorArgs != null)
                             foreach (JToken? argument in obj.constructorArgs.Values)
                                 if (argument?.Type == JTokenType.String)
                                     Add(argument.Value<string>(), pair);
                     }
                     else if (pair.Value is ArrayMemberValue array && array.value != null)
-                        foreach (string childId in array.value) Add(childId, pair);
+                        foreach (string childId in array.value)
+                            Add(childId, pair);
                 }
             }
 
             private void Add(string? childId, KeyValuePair<string, MemberValue> parent)
             {
-                if (childId == null) return;
+                if (childId == null)
+                    return;
                 if (!Parents.TryGetValue(childId, out var parents))
                     Parents[childId] = parents = new List<KeyValuePair<string, MemberValue>>(1);
                 if (parents.Count == 0 || parents[parents.Count - 1].Key != parent.Key)

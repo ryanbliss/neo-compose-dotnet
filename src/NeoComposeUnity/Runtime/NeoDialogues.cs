@@ -19,11 +19,26 @@ namespace NeoCompose.Runtime
         private readonly Dictionary<(string groupId, string? lookupValueId), DialogueModel[]>
             dialoguesByTrigger;
 
-        protected NeoClient client { get; }
-        protected NeoDialogueRuntimeOptions options { get; }
-        protected INeoDialogueLogger logger { get; }
-        protected INeoDialogueMemoryStore? memoryStore { get; }
-        protected NeoDialogueValueResolver? valueResolver { get; }
+        protected NeoClient client
+        {
+            get;
+        }
+        protected NeoDialogueRuntimeOptions options
+        {
+            get;
+        }
+        protected INeoDialogueLogger logger
+        {
+            get;
+        }
+        protected INeoDialogueMemoryStore? memoryStore
+        {
+            get;
+        }
+        protected NeoDialogueValueResolver? valueResolver
+        {
+            get;
+        }
 
         public event Action<NeoDialogueEligibilityError>? OnEligibleError;
 
@@ -122,7 +137,8 @@ namespace NeoCompose.Runtime
         {
             context = null;
             error = null;
-            if (!client.dialogues.TryGetValue(dialogueId, out data)) return false;
+            if (!client.dialogues.TryGetValue(dialogueId, out data))
+                return false;
 
             var validationError = ValidateTriggerableDialogue(data, directTrigger: true);
             if (validationError != null)
@@ -136,8 +152,10 @@ namespace NeoCompose.Runtime
             context = CreateContext(data, trigger);
             try
             {
-                if (!EvaluateGroupConditionChain(groupId, context, trigger)) return false;
-                if (!PassesOccurrenceLimit(data)) return false;
+                if (!EvaluateGroupConditionChain(groupId, context, trigger))
+                    return false;
+                if (!PassesOccurrenceLimit(data))
+                    return false;
                 context.CurrentPrimary = ResolveTriggerCurrentPrimary(data, trigger);
                 return NeoDialogueConditionEvaluator.EvaluateAll(
                     client,
@@ -261,7 +279,8 @@ namespace NeoCompose.Runtime
                             groupId: groupId));
                         return false;
                     }
-                    if (!PassesOccurrenceLimit(dialogue)) return false;
+                    if (!PassesOccurrenceLimit(dialogue))
+                        return false;
                     var context = CreateContext(dialogue, trigger);
                     try
                     {
@@ -425,16 +444,19 @@ namespace NeoCompose.Runtime
 
         private object? ResolvePrimary(string? primaryLinkedValueId)
         {
-            if (string.IsNullOrEmpty(primaryLinkedValueId)) return null;
+            if (string.IsNullOrEmpty(primaryLinkedValueId))
+                return null;
             return ResolveValue(primaryLinkedValueId!);
         }
 
         private object? ResolveTriggerCurrentPrimary(DialogueModel dialogue, object? trigger)
         {
             object? triggerPrimary = ResolvePrimary(dialogue.triggerNode?.primaryLinkedValueId);
-            if (triggerPrimary != null) return triggerPrimary;
+            if (triggerPrimary != null)
+                return triggerPrimary;
             object? dialoguePrimary = ResolvePrimary(dialogue.primaryLinkedValueId);
-            if (dialoguePrimary != null) return dialoguePrimary;
+            if (dialoguePrimary != null)
+                return dialoguePrimary;
             return trigger;
         }
 
@@ -442,10 +464,12 @@ namespace NeoCompose.Runtime
             NeoCompose.Runtime.Json.DialogueLinkedValue[]? linkedValues)
         {
             var result = new Dictionary<string, object?>();
-            if (linkedValues == null) return result;
+            if (linkedValues == null)
+                return result;
             foreach (var linkedValue in linkedValues)
             {
-                if (string.IsNullOrEmpty(linkedValue.valueId)) continue;
+                if (string.IsNullOrEmpty(linkedValue.valueId))
+                    continue;
                 result[linkedValue.valueId] = ResolveValue(linkedValue.valueId);
             }
             return result;
@@ -498,7 +522,8 @@ namespace NeoCompose.Runtime
         private bool PassesOccurrenceLimit(DialogueModel dialogue)
         {
             var limit = dialogue.triggerNode?.occurrenceLimitSettings;
-            if (limit == null) return true;
+            if (limit == null)
+                return true;
             var visitCount = memoryStore
                 ?.FindDialogueMemory(dialogue.id)
                 ?.VisitCount
@@ -550,13 +575,15 @@ namespace NeoCompose.Runtime
             string? priorityGroupId = null;
             foreach (var group in GetGroupChain(groupId).Reverse())
             {
-                if (string.IsNullOrEmpty(group.priorityGroupIdOverride)) continue;
+                if (string.IsNullOrEmpty(group.priorityGroupIdOverride))
+                    continue;
                 priorityGroupId = group.priorityGroupIdOverride;
                 break;
             }
             priorityGroupId ??= client.project.defaultPriorityGroupId;
 
-            if (string.IsNullOrEmpty(priorityGroupId)) return null;
+            if (string.IsNullOrEmpty(priorityGroupId))
+                return null;
             if (client.priorityGroups.TryGetValue(priorityGroupId!, out PriorityGroupModel priorityGroup))
             {
                 return priorityGroup;
@@ -581,17 +608,20 @@ namespace NeoCompose.Runtime
             PriorityGroupModel? priorityGroup,
             List<NeoDialogueTriggerWarning> warnings)
         {
-            if (priorityGroup?.options == null || priorityGroup.options.Length == 0) return 0;
+            if (priorityGroup?.options == null || priorityGroup.options.Length == 0)
+                return 0;
             string? priorityOptionId = dialogue
                 .triggerNode
                 ?.dialogueGroupSettings
                 ?.priority
                 ?.priorityOptionId;
             int lowest = priorityGroup.options.Length - 1;
-            if (string.IsNullOrEmpty(priorityOptionId)) return lowest;
+            if (string.IsNullOrEmpty(priorityOptionId))
+                return lowest;
             for (int i = 0; i < priorityGroup.options.Length; i++)
             {
-                if (priorityGroup.options[i].id == priorityOptionId) return i;
+                if (priorityGroup.options[i].id == priorityOptionId)
+                    return i;
             }
             warnings.Add(new NeoDialogueTriggerWarning(
                 $"Dialogue '{dialogue.id}' references missing priority option '{priorityOptionId}'.",
@@ -606,7 +636,8 @@ namespace NeoCompose.Runtime
             var sameVisitCount = candidates
                 .Where(dialogue => VisitCount(dialogue) == lowestVisitCount)
                 .ToArray();
-            if (sameVisitCount.Length == 1) return sameVisitCount[0];
+            if (sameVisitCount.Length == 1)
+                return sameVisitCount[0];
             return WeightedRandomByLastVisitedAt(sameVisitCount);
         }
 
@@ -630,7 +661,8 @@ namespace NeoCompose.Runtime
             for (int i = 0; i < candidates.Count; i++)
             {
                 selected -= weights[i];
-                if (selected <= 0) return candidates[i];
+                if (selected <= 0)
+                    return candidates[i];
             }
             return candidates[candidates.Count - 1];
         }
@@ -640,7 +672,8 @@ namespace NeoCompose.Runtime
             string? lastVisitedAt = memoryStore
                 ?.FindDialogueMemory(dialogue.id)
                 ?.LastVisitedAt;
-            if (string.IsNullOrEmpty(lastVisitedAt)) return 4;
+            if (string.IsNullOrEmpty(lastVisitedAt))
+                return 4;
             if (!DateTime.TryParse(
                     lastVisitedAt,
                     CultureInfo.InvariantCulture,
@@ -657,9 +690,18 @@ namespace NeoCompose.Runtime
 
     public abstract class NeoDialogueGroupBase
     {
-        protected NeoDialoguesBase root { get; }
-        protected string groupId { get; }
-        public string GroupId { get; }
+        protected NeoDialoguesBase root
+        {
+            get;
+        }
+        protected string groupId
+        {
+            get;
+        }
+        public string GroupId
+        {
+            get;
+        }
 
         protected NeoDialogueGroupBase(NeoDialoguesBase root, string groupId)
         {
@@ -736,7 +778,8 @@ namespace NeoCompose.Runtime
 
         protected bool TryTriggerLookup(TLookup lookup, out NeoDialogue dialogue)
         {
-            if (lookup == null) throw new ArgumentNullException(nameof(lookup));
+            if (lookup == null)
+                throw new ArgumentNullException(nameof(lookup));
             if (TryTriggerLookup(lookup, out NeoDialogueTriggerResult result) && result.Dialogue != null)
             {
                 dialogue = result.Dialogue;
@@ -752,7 +795,8 @@ namespace NeoCompose.Runtime
 
         protected bool TryTriggerLookup(TLookup lookup, out NeoDialogueTriggerResult result)
         {
-            if (lookup == null) throw new ArgumentNullException(nameof(lookup));
+            if (lookup == null)
+                throw new ArgumentNullException(nameof(lookup));
             string? valueId = NeoDialoguesBase.GetValueId(lookup);
             if (string.IsNullOrEmpty(valueId))
             {
@@ -769,9 +813,11 @@ namespace NeoCompose.Runtime
         /// </summary>
         public bool CanTrigger(TLookup lookup)
         {
-            if (lookup == null) throw new ArgumentNullException(nameof(lookup));
+            if (lookup == null)
+                throw new ArgumentNullException(nameof(lookup));
             string? valueId = NeoDialoguesBase.GetValueId(lookup);
-            if (string.IsNullOrEmpty(valueId)) return false;
+            if (string.IsNullOrEmpty(valueId))
+                return false;
             return root.CanTriggerGroup(groupId, lookup, valueId);
         }
     }

@@ -64,10 +64,12 @@ namespace NeoCompose.Unity.Editor
         public NeoComposeStoredToken? Load()
         {
             var hint = PeekHint();
-            if (hint == null) return null;
+            if (hint == null)
+                return null;
 
             var accessToken = secretBackend.Read(SecretService, account);
-            if (string.IsNullOrWhiteSpace(accessToken)) return null;
+            if (string.IsNullOrWhiteSpace(accessToken))
+                return null;
 
             return new NeoComposeStoredToken(
                 accessToken!,
@@ -104,7 +106,8 @@ namespace NeoCompose.Unity.Editor
         public NeoComposeTokenHint? PeekHint()
         {
             var raw = hintStore.Read(hintKey);
-            if (string.IsNullOrWhiteSpace(raw)) return null;
+            if (string.IsNullOrWhiteSpace(raw))
+                return null;
 
             try
             {

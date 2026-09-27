@@ -20,7 +20,8 @@ namespace HelloWorld.Assets.Scripts
 
         public void Play(AudioClip clip)
         {
-            if (clip == null) return;
+            if (clip == null)
+                return;
             if (root == null)
             {
                 root = new GameObject("GameAudio");
@@ -38,7 +39,8 @@ namespace HelloWorld.Assets.Scripts
 
         public void Dispose()
         {
-            if (root == null) return;
+            if (root == null)
+                return;
             UnityEngine.Object.Destroy(root);
             root = null;
             oneShot = null;

@@ -21,7 +21,8 @@ namespace NeoCompose.Unity.Editor
             var label = version.kind == "branch" && !string.IsNullOrWhiteSpace(version.name)
                 ? version.name!
                 : version.semver.label;
-            if (string.IsNullOrWhiteSpace(label)) label = version.id;
+            if (string.IsNullOrWhiteSpace(label))
+                label = version.id;
             return label.Replace('/', '∕');
         }
 
@@ -86,7 +87,8 @@ namespace NeoCompose.Unity.Editor
             IEnumerable<NeoComposeProjectVersionStatus> statuses)
         {
             var version = versions.FirstOrDefault(candidate => candidate.id == versionId);
-            if (version == null) return false;
+            if (version == null)
+                return false;
             return FindStatus(version, statuses)?.isWritable ?? false;
         }
 
@@ -100,8 +102,10 @@ namespace NeoCompose.Unity.Editor
             IEnumerable<NeoComposeProjectVersionStatus> statuses)
         {
             var status = FindStatus(version, statuses);
-            if (status == null) return false;
-            if (string.Equals(status.name, "Deprecated", StringComparison.OrdinalIgnoreCase)) return true;
+            if (status == null)
+                return false;
+            if (string.Equals(status.name, "Deprecated", StringComparison.OrdinalIgnoreCase))
+                return true;
             return status.releaseChannelIds.Length == 0;
         }
 
@@ -111,7 +115,8 @@ namespace NeoCompose.Unity.Editor
             IEnumerable<NeoComposeProjectReleaseChannel> channels)
         {
             var status = FindStatus(version, statuses);
-            if (status == null) return Array.Empty<string>();
+            if (status == null)
+                return Array.Empty<string>();
             var channelsById = channels.ToDictionary(channel => channel.id, channel => channel.name);
             return status.releaseChannelIds
                 .Select(channelId => channelsById.TryGetValue(channelId, out var name) ? name : channelId)
@@ -138,13 +143,18 @@ namespace NeoCompose.Unity.Editor
             NeoComposeProjectVersion? lhs,
             NeoComposeProjectVersion? rhs)
         {
-            if (ReferenceEquals(lhs, rhs)) return 0;
-            if (lhs == null) return -1;
-            if (rhs == null) return 1;
+            if (ReferenceEquals(lhs, rhs))
+                return 0;
+            if (lhs == null)
+                return -1;
+            if (rhs == null)
+                return 1;
             var major = lhs.semver.major.CompareTo(rhs.semver.major);
-            if (major != 0) return major;
+            if (major != 0)
+                return major;
             var minor = lhs.semver.minor.CompareTo(rhs.semver.minor);
-            if (minor != 0) return minor;
+            if (minor != 0)
+                return minor;
             return lhs.semver.patch.CompareTo(rhs.semver.patch);
         }
 
@@ -153,7 +163,8 @@ namespace NeoCompose.Unity.Editor
             IEnumerable<NeoComposeProjectVersionStatus> statuses,
             string channelId)
         {
-            if (string.IsNullOrWhiteSpace(channelId)) return Array.Empty<NeoComposeProjectVersion>();
+            if (string.IsNullOrWhiteSpace(channelId))
+                return Array.Empty<NeoComposeProjectVersion>();
             return versions.Where(version => IsVersionInChannel(version, statuses, channelId));
         }
 

@@ -114,14 +114,17 @@ namespace NeoCompose.Runtime.Json
             {
                 foreach (JToken entry in array)
                 {
-                    if (IsEnvelope(entry)) return true;
+                    if (IsEnvelope(entry))
+                        return true;
                 }
                 return false;
             }
-            if (container is not JObject record) return false;
+            if (container is not JObject record)
+                return false;
             foreach (JProperty property in record.Properties())
             {
-                if (IsEnvelope(property.Value)) return true;
+                if (IsEnvelope(property.Value))
+                    return true;
             }
             return false;
         }
@@ -154,12 +157,15 @@ namespace NeoCompose.Runtime.Json
             bool carriesPacked = false;
             foreach (JProperty property in values.Properties())
             {
-                if (property.Value is not JObject row) continue;
-                if (!RowCarriesPackedContent(row)) continue;
+                if (property.Value is not JObject row)
+                    continue;
+                if (!RowCarriesPackedContent(row))
+                    continue;
                 carriesPacked = true;
                 break;
             }
-            if (!carriesPacked) return values;
+            if (!carriesPacked)
+                return values;
 
             var expanded = new JObject();
             foreach (JProperty property in values.Properties())
@@ -242,7 +248,8 @@ namespace NeoCompose.Runtime.Json
             {
                 for (int index = 0; index < array.Count; index++)
                 {
-                    if (!IsEnvelope(array[index])) continue;
+                    if (!IsEnvelope(array[index]))
+                        continue;
                     array[index] = DecodeEnvelope(
                         (JObject)array[index],
                         $"{field}[{index}]",
@@ -252,11 +259,13 @@ namespace NeoCompose.Runtime.Json
                 }
                 return;
             }
-            if (container is not JObject record) return;
+            if (container is not JObject record)
+                return;
             var properties = new List<JProperty>(record.Properties());
             foreach (JProperty property in properties)
             {
-                if (!IsEnvelope(property.Value)) continue;
+                if (!IsEnvelope(property.Value))
+                    continue;
                 property.Value = DecodeEnvelope(
                     (JObject)property.Value,
                     $"{field}[{JsonConvert.ToString(property.Name)}]",
@@ -310,8 +319,10 @@ namespace NeoCompose.Runtime.Json
         {
             var row = (JObject)entry.DeepClone();
             row["id"] = id;
-            if (state.MapKey is not null) row["mapKey"] = state.MapKey;
-            if (IsInitValueContent(row)) return row;
+            if (state.MapKey is not null)
+                row["mapKey"] = state.MapKey;
+            if (IsInitValueContent(row))
+                return row;
             DecodeContentField(row["value"], "value", scope, state, children);
             DecodeContentField(
                 row["constructorArgs"],
@@ -388,8 +399,10 @@ namespace NeoCompose.Runtime.Json
             string? constructionRootId,
             string? sourceValueId)
         {
-            if (constructionRootId is null) return null;
-            if (string.IsNullOrEmpty(sourceValueId)) return null;
+            if (constructionRootId is null)
+                return null;
+            if (string.IsNullOrEmpty(sourceValueId))
+                return null;
             return NeoClient.VirtualValueId(constructionRootId, sourceValueId!);
         }
 
@@ -401,7 +414,8 @@ namespace NeoCompose.Runtime.Json
             }
             foreach (string field in ForbiddenEntryFields)
             {
-                if (entry.Property(field) is null) continue;
+                if (entry.Property(field) is null)
+                    continue;
                 throw new JsonSerializationException(
                     $"{label} stores \"{field}\", which decoding derives from its "
                     + "owning row.");
@@ -473,17 +487,21 @@ namespace NeoCompose.Runtime.Json
         /// </summary>
         private static bool IsCollapseStampedInstanceRoot(JObject content)
         {
-            if (!IsLiteralValueContent(content)) return false;
-            if (content.Property("instanceConstructorId") is not null) return true;
+            if (!IsLiteralValueContent(content))
+                return false;
+            if (content.Property("instanceConstructorId") is not null)
+                return true;
             return content["instanceVariantId"]?.Type == JTokenType.String;
         }
 
         /// <summary>Mirrors the web's <c>isLiteralValueContent</c>.</summary>
         private static bool IsLiteralValueContent(JObject content)
         {
-            if (content.Property("value") is null) return false;
+            if (content.Property("value") is null)
+                return false;
             JToken? init = content["init"];
-            if (init is not null && init.Type != JTokenType.Null) return false;
+            if (init is not null && init.Type != JTokenType.Null)
+                return false;
             JToken? classId = content["classId"];
             if (classId is not null
                 && classId.Type != JTokenType.Null
@@ -494,19 +512,28 @@ namespace NeoCompose.Runtime.Json
             foreach (string field in InstanceProvenanceFields)
             {
                 JToken? provenance = content[field];
-                if (provenance is null || provenance.Type == JTokenType.Null) continue;
-                if (provenance.Type != JTokenType.String) return false;
-                if (provenance.Value<string>()!.Length == 0) return false;
+                if (provenance is null || provenance.Type == JTokenType.Null)
+                    continue;
+                if (provenance.Type != JTokenType.String)
+                    return false;
+                if (provenance.Value<string>()!.Length == 0)
+                    return false;
             }
             JToken? constructorArgs = content["constructorArgs"];
-            if (constructorArgs is null) return true;
-            if (constructorArgs.Type == JTokenType.Null) return false;
-            if (classId?.Type != JTokenType.String) return false;
-            if (content["value"] is not JObject) return false;
-            if (constructorArgs is not JObject args) return false;
+            if (constructorArgs is null)
+                return true;
+            if (constructorArgs.Type == JTokenType.Null)
+                return false;
+            if (classId?.Type != JTokenType.String)
+                return false;
+            if (content["value"] is not JObject)
+                return false;
+            if (constructorArgs is not JObject args)
+                return false;
             foreach (JProperty argument in args.Properties())
             {
-                if (argument.Name.Length == 0) return false;
+                if (argument.Name.Length == 0)
+                    return false;
             }
             return true;
         }
@@ -519,14 +546,19 @@ namespace NeoCompose.Runtime.Json
         /// </summary>
         private static bool IsInitValueContent(JObject content)
         {
-            if (content["init"] is not JObject init) return false;
+            if (content["init"] is not JObject init)
+                return false;
             string? code = init.Value<string>("code");
-            if (string.IsNullOrEmpty(code)) return false;
-            if (content.Property("value") is not null) return false;
-            if (content.Property("constructorArgs") is not null) return false;
+            if (string.IsNullOrEmpty(code))
+                return false;
+            if (content.Property("value") is not null)
+                return false;
+            if (content.Property("constructorArgs") is not null)
+                return false;
             foreach (string field in InstanceProvenanceFields)
             {
-                if (content.Property(field) is not null) return false;
+                if (content.Property(field) is not null)
+                    return false;
             }
             JToken? classId = content["classId"];
             return classId is null || classId.Type == JTokenType.Null;
@@ -545,13 +577,19 @@ namespace NeoCompose.Runtime.Json
             }
 
             /// <summary>Names the owning row in every error raised beneath it.</summary>
-            internal string OwnerLabel { get; }
+            internal string OwnerLabel
+            {
+                get;
+            }
 
             /// <summary>
             /// The nearest enclosing row carrying a P75 construction stamp, or
             /// null when there is none. Half of every canonical child id.
             /// </summary>
-            internal string? ConstructionRootId { get; }
+            internal string? ConstructionRootId
+            {
+                get;
+            }
         }
 
         private sealed class DecodeState
@@ -567,13 +605,19 @@ namespace NeoCompose.Runtime.Json
             /// the row's own. Two positions resolving to one id would silently
             /// drop a subtree.
             /// </summary>
-            internal HashSet<string> SeenIds { get; }
+            internal HashSet<string> SeenIds
+            {
+                get;
+            }
 
             /// <summary>
             /// The owning row's storage partition. A packed child is serialized
             /// inside its parent, so it inherits it.
             /// </summary>
-            internal string? MapKey { get; }
+            internal string? MapKey
+            {
+                get;
+            }
         }
     }
 
@@ -605,7 +649,8 @@ namespace NeoCompose.Runtime.Json
                     + "parent's content, never the content itself; re-export the "
                     + "project from the current web app.");
             }
-            if (!NeoPackedValue.RowCarriesPackedContent(carrier)) return;
+            if (!NeoPackedValue.RowCarriesPackedContent(carrier))
+                return;
             throw new JsonSerializationException(
                 $"{subject} carries an unexpanded '{NeoPackedValue.EnvelopeKey}' child "
                 + "envelope. Packed rows are expanded once, where the row set is "
@@ -622,7 +667,8 @@ namespace NeoCompose.Runtime.Json
         /// </summary>
         internal static void RejectDefaultCarrier(JObject? carrier, string subject)
         {
-            if (carrier is null) return;
+            if (carrier is null)
+                return;
             if (!NeoPackedValue.IsEnvelope(carrier["value"])
                 && !NeoPackedValue.RowCarriesPackedContent(carrier))
             {

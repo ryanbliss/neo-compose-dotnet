@@ -40,7 +40,8 @@ namespace NeoCompose.Unity.Editor
         public void HandleSignal(NeoComposeExportSignal? signal)
         {
             // No transactions yet — nothing to baseline or sync.
-            if (signal == null) return;
+            if (signal == null)
+                return;
 
             if (baselineTransactionId == null)
             {
@@ -48,7 +49,8 @@ namespace NeoCompose.Unity.Editor
                 return;
             }
 
-            if (signal.transactionId == baselineTransactionId) return;
+            if (signal.transactionId == baselineTransactionId)
+                return;
 
             // Advance the baseline before prompting so a declined sync is not
             // re-asked until the next remote change.
@@ -61,7 +63,8 @@ namespace NeoCompose.Unity.Editor
                     "Remote changes were saved to this version. Synchronize now?",
                     "Synchronize",
                     "Not now");
-                if (!approved) return;
+                if (!approved)
+                    return;
             }
 
             RunSynchronize();

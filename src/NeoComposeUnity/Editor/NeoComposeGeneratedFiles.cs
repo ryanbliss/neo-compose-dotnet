@@ -69,7 +69,8 @@ namespace NeoCompose.Unity.Editor
             var incomingById = manifest.files.ToDictionary(file => file.id);
             foreach (var old in previousFiles)
             {
-                if (previous?.projectId == projectId && incomingById.TryGetValue(old.id, out var next) && next.path == old.path) continue;
+                if (previous?.projectId == projectId && incomingById.TryGetValue(old.id, out var next) && next.path == old.path)
+                    continue;
                 deletes.Add(PathFor(old.path));
             }
             var deletedPaths = new HashSet<string>(deletes, StringComparer.OrdinalIgnoreCase);
@@ -87,7 +88,8 @@ namespace NeoCompose.Unity.Editor
                     writes.Add(new NeoComposeGeneratedFile { id = file.id, path = path, content = file.content });
             }
             var monolith = PathFor(NeoComposeEditorDefaults.GeneratedTypesFileName);
-            if (assets.FileExists(monolith) || assets.FileExists(monolith + ".meta")) deletes.Add(monolith);
+            if (assets.FileExists(monolith) || assets.FileExists(monolith + ".meta"))
+                deletes.Add(monolith);
             manifestContent = JsonConvert.SerializeObject(manifest, Formatting.Indented) + "\n";
         }
 
@@ -99,10 +101,12 @@ namespace NeoCompose.Unity.Editor
             try
             {
                 if (assets.FileExists(NeoComposePathUtility.CombineAssetPath(directory,
-                    NeoComposeEditorDefaults.GeneratedTypesFileName))) return false;
+                    NeoComposeEditorDefaults.GeneratedTypesFileName)))
+                    return false;
                 var manifest = ReadManifest(assets,
                     NeoComposePathUtility.CombineAssetPath(directory, ManifestFileName));
-                if (manifest == null || manifest.projectId != projectId) return false;
+                if (manifest == null || manifest.projectId != projectId)
+                    return false;
                 return manifest.files.All(file =>
                 {
                     var path = NeoComposePathUtility.CombineAssetPath(directory, file.path);
@@ -121,7 +125,8 @@ namespace NeoCompose.Unity.Editor
             var backups = new Dictionary<string, (string path, string? content, string? meta)>(StringComparer.OrdinalIgnoreCase);
             foreach (var path in ReplacedPaths.Append(ManifestPath))
             {
-                if (!backups.ContainsKey(path)) backups[path] = (path, Read(path), Read(path + ".meta"));
+                if (!backups.ContainsKey(path))
+                    backups[path] = (path, Read(path), Read(path + ".meta"));
             }
             assets.BeginAssetEditing();
             try
@@ -138,7 +143,8 @@ namespace NeoCompose.Unity.Editor
                 {
                     changes.Add(file.path);
                     assets.EnsureDirectory(Path.GetDirectoryName(file.path)!.Replace('\\', '/'));
-                    if (metadata.TryGetValue(file.path, out var meta)) RestoreText(file.path + ".meta", meta);
+                    if (metadata.TryGetValue(file.path, out var meta))
+                        RestoreText(file.path + ".meta", meta);
                     assets.WriteAllText(file.path, file.content);
                 }
                 if (backups[ManifestPath].content != manifestContent)
@@ -153,11 +159,13 @@ namespace NeoCompose.Unity.Editor
                 var restored = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 foreach (var path in changes.AsEnumerable().Reverse())
                 {
-                    if (!restored.Add(path)) continue;
+                    if (!restored.Add(path))
+                        continue;
                     var original = backups[path];
                     if (original.path != path || original.content == null)
                     {
-                        if (assets.FileExists(path) || assets.FileExists(path + ".meta")) assets.DeleteAsset(path);
+                        if (assets.FileExists(path) || assets.FileExists(path + ".meta"))
+                            assets.DeleteAsset(path);
                     }
                     RestoreText(original.path, original.content);
                     RestoreText(original.path + ".meta", original.meta);
@@ -172,16 +180,20 @@ namespace NeoCompose.Unity.Editor
 
         private void RestoreText(string path, string? content)
         {
-            if (Read(path) == content) return;
-            if (content == null) assets.DeleteAsset(path);
-            else assets.WriteAllText(path, content);
+            if (Read(path) == content)
+                return;
+            if (content == null)
+                assets.DeleteAsset(path);
+            else
+                assets.WriteAllText(path, content);
         }
 
         private string PathFor(string path) => NeoComposePathUtility.CombineAssetPath(directory, path);
 
         private static Manifest? ReadManifest(INeoComposeEditorAssetService assets, string path)
         {
-            if (!assets.FileExists(path)) return null;
+            if (!assets.FileExists(path))
+                return null;
             var manifest = JsonConvert.DeserializeObject<Manifest>(assets.ReadAllText(path));
             if (manifest == null || manifest.schemaVersion != SchemaVersion || manifest.files == null || manifest.files.Count == 0)
                 throw new InvalidOperationException($"Invalid generated-file manifest: {path}");
@@ -189,11 +201,15 @@ namespace NeoCompose.Unity.Editor
             var identities = new HashSet<string>(StringComparer.Ordinal);
             foreach (var file in manifest.files)
             {
-                if (file == null) throw new InvalidOperationException($"Invalid generated-file manifest entry: {path}");
-                if (string.IsNullOrWhiteSpace(file.id)) throw new InvalidOperationException($"Invalid generated-file manifest identity: {path}");
-                if (!identities.Add(file.id)) throw new InvalidOperationException($"Duplicate generated-file manifest identity: {file.id}");
+                if (file == null)
+                    throw new InvalidOperationException($"Invalid generated-file manifest entry: {path}");
+                if (string.IsNullOrWhiteSpace(file.id))
+                    throw new InvalidOperationException($"Invalid generated-file manifest identity: {path}");
+                if (!identities.Add(file.id))
+                    throw new InvalidOperationException($"Duplicate generated-file manifest identity: {file.id}");
                 ValidatePath(file.path);
-                if (!paths.Add(file.path)) throw new InvalidOperationException($"Duplicate generated-file manifest path: {file.path}");
+                if (!paths.Add(file.path))
+                    throw new InvalidOperationException($"Duplicate generated-file manifest path: {file.path}");
             }
             return manifest;
         }

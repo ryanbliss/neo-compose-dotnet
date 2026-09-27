@@ -21,7 +21,10 @@ public class NeoInventoryPerformanceTests
         yield return new EnterPlayMode();
         string directory = Path.Combine(Path.GetTempPath(), "neo-inventory-perf-" + Guid.NewGuid());
         void Configure(UnityEngine.SceneManagement.Scene scene, UnityEngine.SceneManagement.LoadSceneMode mode)
-        { if (scene.name == "NeoMenu") Object.FindAnyObjectByType<NeoMenuFlow>().SaveDirectory = directory; }
+        {
+            if (scene.name == "NeoMenu")
+                Object.FindAnyObjectByType<NeoMenuFlow>().SaveDirectory = directory;
+        }
         UnityEngine.SceneManagement.SceneManager.sceneLoaded += Configure;
         yield return UnityEngine.SceneManagement.SceneManager.LoadSceneAsync("Assets/Scenes/NeoMenu.unity");
         UnityEngine.SceneManagement.SceneManager.sceneLoaded -= Configure;
@@ -41,7 +44,9 @@ public class NeoInventoryPerformanceTests
             foreach (var tab in new[] { "Friends", "Crafting", "Dev Tools", "Inventory" })
                 yield return Measure("menu.tab." + tab, trial, () => SelectTab(ui, tab), rows);
             yield return Measure("dev.add.wood.menu", trial, () => ui.Commands.RunCommand("add wood 1"), rows);
-            ui.Close(); yield return null; yield return null;
+            ui.Close();
+            yield return null;
+            yield return null;
             yield return Measure("dev.add.wood.world", trial, () => ui.Commands.RunCommand("add wood 1"), rows);
             yield return Measure("inventory.add.wood", trial,
                 () => Assert.That(inventory.AddStack(new InventoryItemStack(wood, 1)), Is.Zero), rows);
@@ -63,7 +68,8 @@ public class NeoInventoryPerformanceTests
             ?? Path.Combine(Path.GetTempPath(), "neo-inventory-performance.csv");
         File.WriteAllLines(report, new[] { "action,trial,actionMs,allocatedBytes,maxFrameMs" }.Concat(rows));
         Debug.Log("NEO_PERF_REPORT " + report);
-        flow.ReturnToMenu(); yield return Wait(flow, NeoMenuState.Main);
+        flow.ReturnToMenu();
+        yield return Wait(flow, NeoMenuState.Main);
         yield return new ExitPlayMode();
         Directory.Delete(directory, true);
     }
@@ -78,7 +84,8 @@ public class NeoInventoryPerformanceTests
             Assets.Scripts.Saves.SaveSystem.Clear();
             yield return UnityEngine.SceneManagement.SceneManager.LoadSceneAsync("WorldScene");
             double deadline = Time.realtimeSinceStartupAsDouble + 30;
-            while (GameController.Instance?.Player == null && Time.realtimeSinceStartupAsDouble < deadline) yield return null;
+            while (GameController.Instance?.Player == null && Time.realtimeSinceStartupAsDouble < deadline)
+                yield return null;
             Assert.That(GameController.Instance?.Player, Is.Not.Null);
             Assets.Scripts.DevTools.DevTools.RunCommand("add wood 1");
             Assets.Scripts.DevTools.DevTools.RunCommand("add axe.stone 1");
@@ -106,7 +113,10 @@ public class NeoInventoryPerformanceTests
         yield return new EnterPlayMode();
         string directory = Path.Combine(Path.GetTempPath(), "neo-inventory-perf-" + Guid.NewGuid());
         void Configure(UnityEngine.SceneManagement.Scene scene, UnityEngine.SceneManagement.LoadSceneMode mode)
-        { if (scene.name == "NeoMenu") Object.FindAnyObjectByType<NeoMenuFlow>().SaveDirectory = directory; }
+        {
+            if (scene.name == "NeoMenu")
+                Object.FindAnyObjectByType<NeoMenuFlow>().SaveDirectory = directory;
+        }
         UnityEngine.SceneManagement.SceneManager.sceneLoaded += Configure;
         yield return UnityEngine.SceneManagement.SceneManager.LoadSceneAsync("Assets/Scenes/NeoMenu.unity");
         UnityEngine.SceneManagement.SceneManager.sceneLoaded -= Configure;
@@ -131,7 +141,8 @@ public class NeoInventoryPerformanceTests
         var tools = flow.Client.Assets.Items.Where(i => i is IHasHeldItem h && h.Asset is IReadOnlyAttackItemAsset).ToArray();
         var fishing = flow.Client.Assets.Items.First(i => i is IHasHeldItem h && h.Asset is IReadOnlyFishingRodAsset);
         Assert.That(tools.Any(item => item.Slug == "axe.stone"), Is.True);
-        foreach (var item in tools.Concat(new[] { fishing })) inventory.AddStack(new InventoryItemStack(item, 1));
+        foreach (var item in tools.Concat(new[] { fishing }))
+            inventory.AddStack(new InventoryItemStack(item, 1));
         foreach (var item in tools.Concat(new[] { fishing }).Concat(tools.Reverse()))
         {
             int index = Enumerable.Range(0, inventory.Stacks.Count).Single(i => inventory.Stacks[i]?.Item.Slug == item.Slug);
@@ -139,12 +150,14 @@ public class NeoInventoryPerformanceTests
             // The EditMode runner does not schedule WaitForSeconds while in PlayMode.
             // Wait explicitly for two 8 fps animation ticks.
             float deadline = Time.time + .26f;
-            while (Time.time < deadline) yield return null;
+            while (Time.time < deadline)
+                yield return null;
             var asset = ((IHasHeldItem)item).Asset;
             Assert.That(body.Config.HeldItem?.valueId, Is.EqualTo(asset.valueId), "Player config must follow inventory.");
             Assert.That(attack.Config.HeldItem?.valueId, Is.EqualTo(asset.valueId), "Retained attack layer must use the live config.");
             bool attacking = asset is IReadOnlyAttackItemAsset;
-            if (attacking) Assert.That(((IReadOnlyAttackItemSprite)attack).ToolArt.valueId, Is.EqualTo(((IReadOnlyAttackItemAsset)asset).Item.valueId), "ToolArt getter must follow config.");
+            if (attacking)
+                Assert.That(((IReadOnlyAttackItemSprite)attack).ToolArt.valueId, Is.EqualTo(((IReadOnlyAttackItemAsset)asset).Item.valueId), "ToolArt getter must follow config.");
             var frames = attacking ? ((IReadOnlyAttackItemAsset)asset).Item.Idle.Up.Frames
                 : ((IReadOnlyFishingRodAsset)asset).Item.Idle.Up.Frames;
             Assert.That((attacking ? (BodyLayerSprite)attack : rod).FlipX, Is.False, "Idle up model flip: " + item.Slug);
@@ -152,7 +165,8 @@ public class NeoInventoryPerformanceTests
             foreach (var direction in new[] { Vector2.down, Vector2.left, Vector2.up, Vector2.right, Vector2.up })
             {
                 body.HandleDirectionUpdate(direction);
-                for (float ready = Time.time + .4f; Time.time < ready;) yield return null;
+                for (float ready = Time.time + .4f; Time.time < ready;)
+                    yield return null;
                 bool expectedFlip = direction == Vector2.left;
                 Assert.That((attacking ? (BodyLayerSprite)attack : rod).FlipX, Is.EqualTo(expectedFlip), "Idle turn model " + direction + ": " + item.Slug);
                 Assert.That((attacking ? attackRenderer : rodRenderer).flipX, Is.EqualTo(expectedFlip), "Idle turn renderer " + direction + ": " + item.Slug);
@@ -160,7 +174,8 @@ public class NeoInventoryPerformanceTests
             foreach (bool moving in new[] { true, false })
             {
                 body.SetIsMoving(moving);
-                for (float ready = Time.time + .4f; Time.time < ready;) yield return null;
+                for (float ready = Time.time + .4f; Time.time < ready;)
+                    yield return null;
                 Assert.That((attacking ? (BodyLayerSprite)attack : rod).FlipX, Is.EqualTo(moving), "Up model after moving=" + moving + ": " + item.Slug);
                 Assert.That((attacking ? attackRenderer : rodRenderer).flipX, Is.EqualTo(moving), "Up renderer after moving=" + moving + ": " + item.Slug);
             }
@@ -170,11 +185,13 @@ public class NeoInventoryPerformanceTests
             Assert.That(body.transform.Find("Torso/Torso").GetComponent<SpriteRenderer>(), Is.SameAs(torso));
             Assert.That(body.transform.Find("AttackItem").GetComponent<SpriteRenderer>(), Is.SameAs(attackRenderer));
             inventory.SetEquippedItemIndex(0);
-            yield return null; yield return null;
+            yield return null;
+            yield return null;
             Assert.That(attack.Enabled, Is.False);
             Assert.That(rod.Enabled, Is.False);
         }
-        flow.ReturnToMenu(); yield return Wait(flow, NeoMenuState.Main);
+        flow.ReturnToMenu();
+        yield return Wait(flow, NeoMenuState.Main);
         yield return new ExitPlayMode();
         Directory.Delete(directory, true);
     }
@@ -193,7 +210,8 @@ public class NeoInventoryPerformanceTests
         long before = recorder.CurrentValue;
         double start = Time.realtimeSinceStartupAsDouble;
         var watch = System.Diagnostics.Stopwatch.StartNew();
-        using (new ProfilerMarker("NeoInventory." + name).Auto()) action();
+        using (new ProfilerMarker("NeoInventory." + name).Auto())
+            action();
         watch.Stop();
         long allocated = recorder.CurrentValue - before;
         recorder.Stop();
@@ -214,7 +232,10 @@ public class NeoInventoryPerformanceTests
     {
         double deadline = Time.realtimeSinceStartupAsDouble + 120;
         while (flow.State != state && Time.realtimeSinceStartupAsDouble < deadline)
-        { Assert.That(flow.State, Is.Not.EqualTo(NeoMenuState.Error), flow.Message); yield return null; }
+        {
+            Assert.That(flow.State, Is.Not.EqualTo(NeoMenuState.Error), flow.Message);
+            yield return null;
+        }
         Assert.That(flow.State, Is.EqualTo(state), flow.Message);
     }
 }

@@ -27,9 +27,18 @@ namespace NeoCompose.Unity.Editor
                 StandardError = standardError;
             }
 
-            public int ExitCode { get; }
-            public string StandardOutput { get; }
-            public string StandardError { get; }
+            public int ExitCode
+            {
+                get;
+            }
+            public string StandardOutput
+            {
+                get;
+            }
+            public string StandardError
+            {
+                get;
+            }
         }
 
         public static Result Run(

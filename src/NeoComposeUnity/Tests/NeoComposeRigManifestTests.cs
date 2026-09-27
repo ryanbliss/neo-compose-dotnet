@@ -42,7 +42,8 @@ namespace NeoCompose.Tests
         [TearDown]
         public void TearDown()
         {
-            if (Directory.Exists(tempRoot)) Directory.Delete(tempRoot, true);
+            if (Directory.Exists(tempRoot))
+                Directory.Delete(tempRoot, true);
         }
 
         private static string LoadFixture(string fileName)

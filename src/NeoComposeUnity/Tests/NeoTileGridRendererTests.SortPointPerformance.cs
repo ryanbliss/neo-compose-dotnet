@@ -56,12 +56,15 @@ namespace NeoCompose.Tests
                 var obj = objects[i];
                 var cell = new Vector2Int((int)obj.Position.Value.x, (int)obj.Position.Value.y);
                 var children = new List<INeoWorldObjectValue>();
-                if (i == 0) children.Add(part);
+                if (i == 0)
+                    children.Add(part);
                 for (int layer = 0; layer < 3; layer++)
                 {
                     children.Add(new TestSpriteChild
                     {
-                        Name = $"Layer {layer}", Sprite = sprite, Position = new(0, layer * 0.5f, 0),
+                        Name = $"Layer {layer}",
+                        Sprite = sprite,
+                        Position = new(0, layer * 0.5f, 0),
                     });
                 }
                 obj.Children = children;
@@ -110,7 +113,8 @@ namespace NeoCompose.Tests
             }
             void Despawn()
             {
-                if (go != null) UnityEngine.Object.DestroyImmediate(go);
+                if (go != null)
+                    UnityEngine.Object.DestroyImmediate(go);
                 go = null;
             }
             try
@@ -187,16 +191,23 @@ namespace NeoCompose.Tests
                 GcBytes = gcBytes;
             }
 
-            public double Ms { get; }
+            public double Ms
+            {
+                get;
+            }
 
             /// <summary>Unity's "GC Allocated In Frame" counter.</summary>
-            public long GcBytes { get; }
+            public long GcBytes
+            {
+                get;
+            }
         }
 
         private static List<SortPointSample> Sample(Action action)
         {
             var samples = new List<SortPointSample>();
-            for (int sample = 0; sample < SortPointSamples; sample++) samples.Add(Measure(action));
+            for (int sample = 0; sample < SortPointSamples; sample++)
+                samples.Add(Measure(action));
             return samples;
         }
 

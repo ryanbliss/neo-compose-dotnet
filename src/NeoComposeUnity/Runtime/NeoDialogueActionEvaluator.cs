@@ -108,7 +108,8 @@ namespace NeoCompose.Runtime
             }
             catch
             {
-                if (!exited) ctx.allocationTracker.ExitExecution(client, ctx, null);
+                if (!exited)
+                    ctx.allocationTracker.ExitExecution(client, ctx, null);
                 throw;
             }
         }
@@ -121,7 +122,8 @@ namespace NeoCompose.Runtime
             NeoScriptExecutionResult result,
             ref bool exited)
         {
-            if (result.IsFailed) throw result.Failure!;
+            if (result.IsFailed)
+                throw result.Failure!;
             if (result.IsBreak || result.IsContinue)
             {
                 throw new NSGetterRuntimeError(
@@ -198,7 +200,8 @@ namespace NeoCompose.Runtime
 
             private void Abandon(Exception? _)
             {
-                if (exited) return;
+                if (exited)
+                    return;
                 exited = true;
                 ctx.allocationTracker.ExitExecution(client, ctx, null);
             }
@@ -235,7 +238,8 @@ namespace NeoCompose.Runtime
                 throw new NeoScriptPreExecutionValidationError(
                     $"NeoScript body is stamped compiler revision {body.compilerRevision.Value}; this SDK executes only revision {FunctionWithReturnType.CurrentCompilerRevision}. Re-export the project from a deployment at revision {FunctionWithReturnType.CurrentCompilerRevision}, or install the SDK release that matches the export.");
             }
-            if (body.validatedForExecution) return;
+            if (body.validatedForExecution)
+                return;
             ValidateControlFlowInstructionMetadata(body.instructions);
             body.validatedForExecution = true;
         }
@@ -313,7 +317,8 @@ namespace NeoCompose.Runtime
 
             public void Dispose()
             {
-                if (disposed) return;
+                if (disposed)
+                    return;
                 disposed = true;
                 ctx.allocationTracker.ExitExecution(
                     client,
@@ -517,36 +522,38 @@ namespace NeoCompose.Runtime
                         }
                         break;
                     case IfInstruction ifInstruction:
-                    {
-                        try
                         {
-                            bool matched = false;
-                            foreach (var branch in ifInstruction.branches)
+                            try
                             {
-                                if (EvaluateBoolean(branch.expression, scope, actionCtx))
+                                bool matched = false;
+                                foreach (var branch in ifInstruction.branches)
                                 {
-                                    matched = true;
-                                    var branchResult = ExecuteInstructions(client, branch.instructions, returnTypeInfo, scope, ctx, 0, null, options);
-                                    if (branchResult.IsPaused)
-                                        return ResumeInstructionsAfter(client, instructions, returnTypeInfo, scope, ctx, i + 1, options, branchResult, consumeTerminal: false);
-                                    if (!branchResult.IsFallthrough) return branchResult;
-                                    break;
+                                    if (EvaluateBoolean(branch.expression, scope, actionCtx))
+                                    {
+                                        matched = true;
+                                        var branchResult = ExecuteInstructions(client, branch.instructions, returnTypeInfo, scope, ctx, 0, null, options);
+                                        if (branchResult.IsPaused)
+                                            return ResumeInstructionsAfter(client, instructions, returnTypeInfo, scope, ctx, i + 1, options, branchResult, consumeTerminal: false);
+                                        if (!branchResult.IsFallthrough)
+                                            return branchResult;
+                                        break;
+                                    }
+                                }
+                                if (!matched && ifInstruction.elseInstructions != null)
+                                {
+                                    var elseResult = ExecuteInstructions(client, ifInstruction.elseInstructions, returnTypeInfo, scope, ctx, 0, null, options);
+                                    if (elseResult.IsPaused)
+                                        return ResumeInstructionsAfter(client, instructions, returnTypeInfo, scope, ctx, i + 1, options, elseResult, consumeTerminal: false);
+                                    if (!elseResult.IsFallthrough)
+                                        return elseResult;
                                 }
                             }
-                            if (!matched && ifInstruction.elseInstructions != null)
+                            catch (NeoFunctionCallSuspended suspended)
                             {
-                                var elseResult = ExecuteInstructions(client, ifInstruction.elseInstructions, returnTypeInfo, scope, ctx, 0, null, options);
-                                if (elseResult.IsPaused)
-                                    return ResumeInstructionsAfter(client, instructions, returnTypeInfo, scope, ctx, i + 1, options, elseResult, consumeTerminal: false);
-                                if (!elseResult.IsFallthrough) return elseResult;
+                                return PauseAtInstruction(client, instructions, returnTypeInfo, scope, ctx, i, expressionState, suspended, options);
                             }
+                            break;
                         }
-                        catch (NeoFunctionCallSuspended suspended)
-                        {
-                            return PauseAtInstruction(client, instructions, returnTypeInfo, scope, ctx, i, expressionState, suspended, options);
-                        }
-                        break;
-                    }
                     case ReturnInstruction returnInstruction:
                         try
                         {
@@ -633,61 +640,65 @@ namespace NeoCompose.Runtime
                         }
                         break;
                     case ForInstruction forInstruction:
-                    {
-                        NeoScriptExecutionResult loopResult = ExecuteFor(
-                            client,
-                            forInstruction,
-                            returnTypeInfo,
-                            scope,
-                            ctx,
-                            options);
-                        if (loopResult.IsPaused)
-                            return ResumeInstructionsAfter(client, instructions, returnTypeInfo, scope, ctx, i + 1, options, loopResult, consumeTerminal: false);
-                        if (!loopResult.IsFallthrough) return loopResult;
-                        break;
-                    }
+                        {
+                            NeoScriptExecutionResult loopResult = ExecuteFor(
+                                client,
+                                forInstruction,
+                                returnTypeInfo,
+                                scope,
+                                ctx,
+                                options);
+                            if (loopResult.IsPaused)
+                                return ResumeInstructionsAfter(client, instructions, returnTypeInfo, scope, ctx, i + 1, options, loopResult, consumeTerminal: false);
+                            if (!loopResult.IsFallthrough)
+                                return loopResult;
+                            break;
+                        }
                     case ForEachInstruction forEachInstruction:
-                    {
-                        NeoScriptExecutionResult loopResult = ExecuteForEach(
-                            client,
-                            forEachInstruction,
-                            returnTypeInfo,
-                            scope,
-                            ctx,
-                            options);
-                        if (loopResult.IsPaused)
-                            return ResumeInstructionsAfter(client, instructions, returnTypeInfo, scope, ctx, i + 1, options, loopResult, consumeTerminal: false);
-                        if (!loopResult.IsFallthrough) return loopResult;
-                        break;
-                    }
+                        {
+                            NeoScriptExecutionResult loopResult = ExecuteForEach(
+                                client,
+                                forEachInstruction,
+                                returnTypeInfo,
+                                scope,
+                                ctx,
+                                options);
+                            if (loopResult.IsPaused)
+                                return ResumeInstructionsAfter(client, instructions, returnTypeInfo, scope, ctx, i + 1, options, loopResult, consumeTerminal: false);
+                            if (!loopResult.IsFallthrough)
+                                return loopResult;
+                            break;
+                        }
                     case SwitchInstruction switchInstruction:
-                    {
-                        NeoScriptExecutionResult switchResult = ExecuteSwitch(
-                            client,
-                            switchInstruction,
-                            returnTypeInfo,
-                            scope,
-                            ctx,
-                            options);
-                        if (switchResult.IsPaused)
-                            return ResumeInstructionsAfter(client, instructions, returnTypeInfo, scope, ctx, i + 1, options, switchResult, consumeTerminal: false);
-                        if (!switchResult.IsFallthrough) return switchResult;
-                        break;
-                    }
+                        {
+                            NeoScriptExecutionResult switchResult = ExecuteSwitch(
+                                client,
+                                switchInstruction,
+                                returnTypeInfo,
+                                scope,
+                                ctx,
+                                options);
+                            if (switchResult.IsPaused)
+                                return ResumeInstructionsAfter(client, instructions, returnTypeInfo, scope, ctx, i + 1, options, switchResult, consumeTerminal: false);
+                            if (!switchResult.IsFallthrough)
+                                return switchResult;
+                            break;
+                        }
                     case TryInstruction tryInstruction:
-                    {
-                        NeoScriptExecutionResult tryResult = ExecuteTry(
-                            client,
-                            tryInstruction,
-                            returnTypeInfo,
-                            scope,
-                            ctx,
-                            options);
-                        if (tryResult.IsPaused)
-                            return ResumeInstructionsAfter(client, instructions, returnTypeInfo, scope, ctx, i + 1, options, tryResult, consumeTerminal: false);
-                        if (!tryResult.IsFallthrough) return tryResult;
-                        break;
-                    }
+                        {
+                            NeoScriptExecutionResult tryResult = ExecuteTry(
+                                client,
+                                tryInstruction,
+                                returnTypeInfo,
+                                scope,
+                                ctx,
+                                options);
+                            if (tryResult.IsPaused)
+                                return ResumeInstructionsAfter(client, instructions, returnTypeInfo, scope, ctx, i + 1, options, tryResult, consumeTerminal: false);
+                            if (!tryResult.IsFallthrough)
+                                return tryResult;
+                            break;
+                        }
                     case BreakInstruction:
                         return NeoScriptExecutionResult.Control(
                             NeoScriptControlTransfer.Break);
@@ -756,163 +767,164 @@ namespace NeoCompose.Runtime
                 switch (state.Phase)
                 {
                     case ForPhase.Initializer:
-                    {
-                        NSGetterEvaluator.Context expressionContext =
-                            ExpressionContextFor(
-                                client,
-                                ctx,
-                                state.ExpressionState,
-                                options);
-                        state.ExpressionState.BeginInstructionAttempt();
-                        try
                         {
-                            scope[state.Instruction.initializer.id] = Eval(
-                                state.Instruction.initializer.pointer,
-                                scope,
-                                expressionContext);
-                        }
-                        catch (NeoFunctionCallSuspended suspended)
-                        {
-                            return PauseLoopExpression(
-                                suspended,
-                                state.ExpressionState,
-                                options,
-                                () => RunFor(
+                            NSGetterEvaluator.Context expressionContext =
+                                ExpressionContextFor(
                                     client,
-                                    returnTypeInfo,
-                                    scope,
                                     ctx,
-                                    options,
-                                    state));
-                        }
-                        state.MoveTo(ForPhase.Condition);
-                        continue;
-                    }
-                    case ForPhase.Condition:
-                    {
-                        NSGetterEvaluator.Context expressionContext =
-                            ExpressionContextFor(
-                                client,
-                                ctx,
-                                state.ExpressionState,
-                                options);
-                        state.ExpressionState.BeginInstructionAttempt();
-                        bool shouldEnter;
-                        try
-                        {
-                            shouldEnter = EvaluateBoolean(
-                                state.Instruction.condition,
-                                scope,
-                                expressionContext,
-                                "for condition");
-                        }
-                        catch (NeoFunctionCallSuspended suspended)
-                        {
-                            return PauseLoopExpression(
-                                suspended,
-                                state.ExpressionState,
-                                options,
-                                () => RunFor(
-                                    client,
-                                    returnTypeInfo,
-                                    scope,
-                                    ctx,
-                                    options,
-                                    state));
-                        }
-                        if (!shouldEnter)
-                        {
-                            state.RestoreBinding(scope);
-                            return NeoScriptExecutionResult.Completed(
-                                returned: false,
-                                returnValue: null);
-                        }
-                        ctx.allocationTracker.ConsumeLoopIteration();
-                        state.MoveTo(ForPhase.Body);
-                        continue;
-                    }
-                    case ForPhase.Body:
-                    {
-                        NeoScriptScope bodyScope =
-                            state.EnsureBodyScope(scope);
-                        NeoScriptExecutionResult bodyResult = ExecuteInstructions(
-                            client,
-                            state.Instruction.instructions,
-                            returnTypeInfo,
-                            bodyScope,
-                            ctx,
-                            0,
-                            null,
-                            options);
-                        if (bodyResult.IsPaused)
-                        {
-                            return ThenWhenCompleted(
-                                bodyResult,
-                                afterBody => ResumeForAfterBody(
-                                    client,
-                                    returnTypeInfo,
-                                    scope,
-                                    ctx,
-                                    options,
-                                    state,
-                                    afterBody));
-                        }
-                        state.SynchronizeBodyScope(scope);
-                        NeoScriptExecutionResult? terminal =
-                            ApplyForBodyTransfer(scope, state, bodyResult);
-                        if (terminal is not null) return terminal.Value;
-                        continue;
-                    }
-                    case ForPhase.Iterator:
-                    {
-                        NSGetterEvaluator.Context expressionContext =
-                            ExpressionContextFor(
-                                client,
-                                ctx,
-                                state.ExpressionState,
-                                options);
-                        state.ExpressionState.BeginInstructionAttempt();
-                        NeoScriptExecutionResult? nestedSetter;
-                        try
-                        {
-                            nestedSetter = ExecuteAssign(
-                                client,
-                                state.Instruction.iterator,
-                                scope,
-                                expressionContext,
-                                options);
-                        }
-                        catch (NeoFunctionCallSuspended suspended)
-                        {
-                            return PauseLoopExpression(
-                                suspended,
-                                state.ExpressionState,
-                                options,
-                                () => RunFor(
-                                    client,
-                                    returnTypeInfo,
-                                    scope,
-                                    ctx,
-                                    options,
-                                    state));
-                        }
-                        if (nestedSetter is not null && nestedSetter.Value.IsPaused)
-                        {
-                            return ThenWhenCompleted(nestedSetter.Value, _ =>
+                                    state.ExpressionState,
+                                    options);
+                            state.ExpressionState.BeginInstructionAttempt();
+                            try
                             {
-                                state.MoveTo(ForPhase.Condition);
-                                return RunFor(
-                                    client,
-                                    returnTypeInfo,
+                                scope[state.Instruction.initializer.id] = Eval(
+                                    state.Instruction.initializer.pointer,
                                     scope,
-                                    ctx,
+                                    expressionContext);
+                            }
+                            catch (NeoFunctionCallSuspended suspended)
+                            {
+                                return PauseLoopExpression(
+                                    suspended,
+                                    state.ExpressionState,
                                     options,
-                                    state);
-                            });
+                                    () => RunFor(
+                                        client,
+                                        returnTypeInfo,
+                                        scope,
+                                        ctx,
+                                        options,
+                                        state));
+                            }
+                            state.MoveTo(ForPhase.Condition);
+                            continue;
                         }
-                        state.MoveTo(ForPhase.Condition);
-                        continue;
-                    }
+                    case ForPhase.Condition:
+                        {
+                            NSGetterEvaluator.Context expressionContext =
+                                ExpressionContextFor(
+                                    client,
+                                    ctx,
+                                    state.ExpressionState,
+                                    options);
+                            state.ExpressionState.BeginInstructionAttempt();
+                            bool shouldEnter;
+                            try
+                            {
+                                shouldEnter = EvaluateBoolean(
+                                    state.Instruction.condition,
+                                    scope,
+                                    expressionContext,
+                                    "for condition");
+                            }
+                            catch (NeoFunctionCallSuspended suspended)
+                            {
+                                return PauseLoopExpression(
+                                    suspended,
+                                    state.ExpressionState,
+                                    options,
+                                    () => RunFor(
+                                        client,
+                                        returnTypeInfo,
+                                        scope,
+                                        ctx,
+                                        options,
+                                        state));
+                            }
+                            if (!shouldEnter)
+                            {
+                                state.RestoreBinding(scope);
+                                return NeoScriptExecutionResult.Completed(
+                                    returned: false,
+                                    returnValue: null);
+                            }
+                            ctx.allocationTracker.ConsumeLoopIteration();
+                            state.MoveTo(ForPhase.Body);
+                            continue;
+                        }
+                    case ForPhase.Body:
+                        {
+                            NeoScriptScope bodyScope =
+                                state.EnsureBodyScope(scope);
+                            NeoScriptExecutionResult bodyResult = ExecuteInstructions(
+                                client,
+                                state.Instruction.instructions,
+                                returnTypeInfo,
+                                bodyScope,
+                                ctx,
+                                0,
+                                null,
+                                options);
+                            if (bodyResult.IsPaused)
+                            {
+                                return ThenWhenCompleted(
+                                    bodyResult,
+                                    afterBody => ResumeForAfterBody(
+                                        client,
+                                        returnTypeInfo,
+                                        scope,
+                                        ctx,
+                                        options,
+                                        state,
+                                        afterBody));
+                            }
+                            state.SynchronizeBodyScope(scope);
+                            NeoScriptExecutionResult? terminal =
+                                ApplyForBodyTransfer(scope, state, bodyResult);
+                            if (terminal is not null)
+                                return terminal.Value;
+                            continue;
+                        }
+                    case ForPhase.Iterator:
+                        {
+                            NSGetterEvaluator.Context expressionContext =
+                                ExpressionContextFor(
+                                    client,
+                                    ctx,
+                                    state.ExpressionState,
+                                    options);
+                            state.ExpressionState.BeginInstructionAttempt();
+                            NeoScriptExecutionResult? nestedSetter;
+                            try
+                            {
+                                nestedSetter = ExecuteAssign(
+                                    client,
+                                    state.Instruction.iterator,
+                                    scope,
+                                    expressionContext,
+                                    options);
+                            }
+                            catch (NeoFunctionCallSuspended suspended)
+                            {
+                                return PauseLoopExpression(
+                                    suspended,
+                                    state.ExpressionState,
+                                    options,
+                                    () => RunFor(
+                                        client,
+                                        returnTypeInfo,
+                                        scope,
+                                        ctx,
+                                        options,
+                                        state));
+                            }
+                            if (nestedSetter is not null && nestedSetter.Value.IsPaused)
+                            {
+                                return ThenWhenCompleted(nestedSetter.Value, _ =>
+                                {
+                                    state.MoveTo(ForPhase.Condition);
+                                    return RunFor(
+                                        client,
+                                        returnTypeInfo,
+                                        scope,
+                                        ctx,
+                                        options,
+                                        state);
+                                });
+                            }
+                            state.MoveTo(ForPhase.Condition);
+                            continue;
+                        }
                     default:
                         throw new NSGetterRuntimeError(
                             "Unknown NeoScript for-loop execution phase.");
@@ -1096,7 +1108,8 @@ namespace NeoCompose.Runtime
                 state.SynchronizeBodyScope(scope);
                 NeoScriptExecutionResult? terminal =
                     ApplyForEachBodyTransfer(scope, state, bodyResult);
-                if (terminal is not null) return terminal.Value;
+                if (terminal is not null)
+                    return terminal.Value;
             }
         }
 
@@ -1417,118 +1430,118 @@ namespace NeoCompose.Runtime
                             options,
                             state);
                     case TryPhase.Filter:
-                    {
-                        CatchClause clause = state.CurrentClause;
-                        NeoScriptScope catchScope =
-                            state.EnsureCatchScope(scope);
-                        NSGetterEvaluator.Context expressionContext =
-                            ExpressionContextFor(
-                                client,
-                                ctx,
-                                state.ExpressionState,
-                                options);
-                        state.ExpressionState.BeginInstructionAttempt();
-                        bool matched;
-                        try
                         {
-                            matched = EvaluateBoolean(
-                                clause.filter!,
-                                catchScope,
-                                expressionContext,
-                                "catch filter");
-                        }
-                        catch (NeoFunctionCallSuspended suspended)
-                        {
-                            NeoScriptExecutionResult paused =
-                                PauseLoopExpression(
-                                    suspended,
+                            CatchClause clause = state.CurrentClause;
+                            NeoScriptScope catchScope =
+                                state.EnsureCatchScope(scope);
+                            NSGetterEvaluator.Context expressionContext =
+                                ExpressionContextFor(
+                                    client,
+                                    ctx,
                                     state.ExpressionState,
-                                    options,
-                                    () => RunTry(
-                                        client,
-                                        returnTypeInfo,
-                                        scope,
-                                        ctx,
+                                    options);
+                            state.ExpressionState.BeginInstructionAttempt();
+                            bool matched;
+                            try
+                            {
+                                matched = EvaluateBoolean(
+                                    clause.filter!,
+                                    catchScope,
+                                    expressionContext,
+                                    "catch filter");
+                            }
+                            catch (NeoFunctionCallSuspended suspended)
+                            {
+                                NeoScriptExecutionResult paused =
+                                    PauseLoopExpression(
+                                        suspended,
+                                        state.ExpressionState,
                                         options,
-                                        state));
-                            return paused
-                                .RecoverFailure(exception =>
-                                {
-                                    if (state.Phase != TryPhase.Filter
-                                        || !IsAuthoredCatchableError(exception))
+                                        () => RunTry(
+                                            client,
+                                            returnTypeInfo,
+                                            scope,
+                                            ctx,
+                                            options,
+                                            state));
+                                return paused
+                                    .RecoverFailure(exception =>
                                     {
-                                        return null;
-                                    }
-                                    state.RejectCurrentClause(scope);
-                                    return RunTry(
-                                        client,
-                                        returnTypeInfo,
-                                        scope,
-                                        ctx,
-                                        options,
-                                        state);
-                                })
-                                .ObserveFailure(_ =>
-                                    state.SynchronizeCatchScope(scope));
-                        }
-                        catch (NSGetterRuntimeError exception) when (IsAuthoredCatchableError(exception))
-                        {
-                            state.RejectCurrentClause(scope);
+                                        if (state.Phase != TryPhase.Filter
+                                            || !IsAuthoredCatchableError(exception))
+                                        {
+                                            return null;
+                                        }
+                                        state.RejectCurrentClause(scope);
+                                        return RunTry(
+                                            client,
+                                            returnTypeInfo,
+                                            scope,
+                                            ctx,
+                                            options,
+                                            state);
+                                    })
+                                    .ObserveFailure(_ =>
+                                        state.SynchronizeCatchScope(scope));
+                            }
+                            catch (NSGetterRuntimeError exception) when (IsAuthoredCatchableError(exception))
+                            {
+                                state.RejectCurrentClause(scope);
+                                continue;
+                            }
+                            catch
+                            {
+                                state.SynchronizeCatchScope(scope);
+                                throw;
+                            }
+                            if (!matched)
+                            {
+                                state.RejectCurrentClause(scope);
+                                continue;
+                            }
+                            state.SelectCurrentClause();
                             continue;
                         }
-                        catch
-                        {
-                            state.SynchronizeCatchScope(scope);
-                            throw;
-                        }
-                        if (!matched)
-                        {
-                            state.RejectCurrentClause(scope);
-                            continue;
-                        }
-                        state.SelectCurrentClause();
-                        continue;
-                    }
                     case TryPhase.CatchBody:
-                    {
-                        NeoScriptScope catchScope =
-                            state.EnsureCatchScope(scope);
-                        NeoScriptExecutionResult catchResult;
-                        try
                         {
-                            catchResult = ExecuteInstructions(
-                                client,
-                                state.CurrentClause.instructions,
-                                returnTypeInfo,
-                                catchScope,
-                                ctx,
-                                0,
-                                null,
-                                options);
-                        }
-                        catch
-                        {
-                            state.SynchronizeCatchScope(scope);
-                            throw;
-                        }
-                        if (catchResult.IsPaused)
-                        {
-                            return ThenWhenCompleted(
-                                    catchResult,
-                                    CompleteCatchBody)
-                                .ObserveFailure(_ =>
-                                    state.SynchronizeCatchScope(scope));
-                        }
-                        return CompleteCatchBody(catchResult);
+                            NeoScriptScope catchScope =
+                                state.EnsureCatchScope(scope);
+                            NeoScriptExecutionResult catchResult;
+                            try
+                            {
+                                catchResult = ExecuteInstructions(
+                                    client,
+                                    state.CurrentClause.instructions,
+                                    returnTypeInfo,
+                                    catchScope,
+                                    ctx,
+                                    0,
+                                    null,
+                                    options);
+                            }
+                            catch
+                            {
+                                state.SynchronizeCatchScope(scope);
+                                throw;
+                            }
+                            if (catchResult.IsPaused)
+                            {
+                                return ThenWhenCompleted(
+                                        catchResult,
+                                        CompleteCatchBody)
+                                    .ObserveFailure(_ =>
+                                        state.SynchronizeCatchScope(scope));
+                            }
+                            return CompleteCatchBody(catchResult);
 
-                        NeoScriptExecutionResult CompleteCatchBody(
-                            NeoScriptExecutionResult completed)
-                        {
-                            state.SynchronizeCatchScope(scope);
-                            state.Complete();
-                            return completed;
+                            NeoScriptExecutionResult CompleteCatchBody(
+                                NeoScriptExecutionResult completed)
+                            {
+                                state.SynchronizeCatchScope(scope);
+                                state.Complete();
+                                return completed;
+                            }
                         }
-                    }
                     case TryPhase.NoMatch:
                         return NeoScriptExecutionResult.Failed(
                             state.CompleteWithoutMatch());
@@ -1781,12 +1794,23 @@ namespace NeoCompose.Runtime
             double number;
             switch (value)
             {
-                case int integer: number = integer; break;
-                case long integer: number = integer; break;
-                case short integer: number = integer; break;
-                case double floating: number = floating; break;
-                case float floating: number = floating; break;
-                default: return false;
+                case int integer:
+                    number = integer;
+                    break;
+                case long integer:
+                    number = integer;
+                    break;
+                case short integer:
+                    number = integer;
+                    break;
+                case double floating:
+                    number = floating;
+                    break;
+                case float floating:
+                    number = floating;
+                    break;
+                default:
+                    return false;
             }
             if (double.IsNaN(number)
                 || double.IsInfinity(number)
@@ -1795,7 +1819,8 @@ namespace NeoCompose.Runtime
             {
                 return false;
             }
-            if (number == 0d) number = 0d;
+            if (number == 0d)
+                number = 0d;
             key = number.ToString(
                 "R",
                 System.Globalization.CultureInfo.InvariantCulture);
@@ -1849,14 +1874,16 @@ namespace NeoCompose.Runtime
         internal static void PrepareFunctionContext(
             NSGetterEvaluator.Context ctx, NeoScriptExecutionOptions options)
         {
-            if (options.AllowDeferredFunctionCalls) return;
+            if (options.AllowDeferredFunctionCalls)
+                return;
             EnsureImmediateHandlers(ctx.client, options);
             ctx.BindExpressionHandlers(options.immediateCallHandler!, options.immediateInitializerHandler!);
         }
 
         private static void EnsureImmediateHandlers(NeoClient client, NeoScriptExecutionOptions options)
         {
-            if (options.immediateCallHandler is not null) return;
+            if (options.immediateCallHandler is not null)
+                return;
             InitializeImmediateHandlers(client, options);
         }
 
@@ -1876,7 +1903,8 @@ namespace NeoCompose.Runtime
         {
             // Immediate frames cannot resume. Retaining every nested call's
             // result and dynamic occurrence key only adds allocations there.
-            if (options?.AllowDeferredFunctionCalls != true) expressionState.DisableRecording();
+            if (options?.AllowDeferredFunctionCalls != true)
+                expressionState.DisableRecording();
             if (options is not null
                 && ReferenceEquals(expressionState, ExpressionResumeState.Immediate)
                 && ReferenceEquals(options.Client, client))
@@ -2108,13 +2136,16 @@ namespace NeoCompose.Runtime
                     NeoActionValue.ListenerIdentity(existing),
                     identity,
                     StringComparison.Ordinal);
-                if (matches) present = true;
-                if (matches && !add) continue;
+                if (matches)
+                    present = true;
+                if (matches && !add)
+                    continue;
                 next.listeners.Add(existing);
             }
             if (add)
             {
-                if (present) return;
+                if (present)
+                    return;
                 // The evaluated pointer may be a live captured value carrying
                 // the subscribing row's lexical environment. Persist the
                 // identity fields only, exactly as every other write path does
@@ -2261,7 +2292,8 @@ namespace NeoCompose.Runtime
             string resumeKey = expressionState.NextInvocationKey("initializer:" + pointer.receiver.id);
             if (expressionState.TryGet(resumeKey, out object? cached, out Exception? error))
             {
-                if (error is not null) throw error;
+                if (error is not null)
+                    throw error;
                 return cached;
             }
             try
@@ -2319,7 +2351,8 @@ namespace NeoCompose.Runtime
                     out object? inlineValue,
                     out Exception? inlineError))
             {
-                if (inlineError is not null) throw inlineError;
+                if (inlineError is not null)
+                    throw inlineError;
                 return inlineValue;
             }
             throw new NeoFunctionCallSuspended(
@@ -2352,7 +2385,8 @@ namespace NeoCompose.Runtime
             bool hasCached = expressionState.TryGet(resumeKey, out object? cachedValue, out Exception? cachedError);
             if (hasCached)
             {
-                if (cachedError is not null) throw cachedError;
+                if (cachedError is not null)
+                    throw cachedError;
                 return cachedValue;
             }
             try
@@ -2572,7 +2606,8 @@ namespace NeoCompose.Runtime
                 ["__root__"] = ctx.rootValue,
                 ["__value__"] = value,
             };
-            if (!isStatic) nestedScope["__this__"] = receiver;
+            if (!isStatic)
+                nestedScope["__this__"] = receiver;
             if (ctx.contextValue is not null)
             {
                 nestedScope["__context__"] = ctx.contextValue;
@@ -2612,12 +2647,14 @@ namespace NeoCompose.Runtime
             var placement = NeoSchemaClassInheritance.FindSchemaPlacement(
                 staticMemberId,
                 client.classes.Values);
-            if (placement is null) return staticMemberId;
+            if (placement is null)
+                return staticMemberId;
 
             string? runtimeClassId = NSGetterEvaluator.FindRowClassIdByReference(
                 receiver,
                 ctx);
-            if (string.IsNullOrEmpty(runtimeClassId)) return staticMemberId;
+            if (string.IsNullOrEmpty(runtimeClassId))
+                return staticMemberId;
 
             IList<NeoSchemaClass> chain;
             try
@@ -2689,16 +2726,16 @@ namespace NeoCompose.Runtime
                             client.ResolveStaticOwnership(staticMember.memberId)),
                         target.typeInfo);
                 case ReferencePointer reference:
-                {
-                    NeoValueOwnership ownership = TargetOwnership(client, target, scope, ctx);
-                    string rowId = EnsureWritableRow(client, reference.valueId, ownership);
-                    return new NeoRowWriteTarget(rowId, target.typeInfo, ownership);
-                }
+                    {
+                        NeoValueOwnership ownership = TargetOwnership(client, target, scope, ctx);
+                        string rowId = EnsureWritableRow(client, reference.valueId, ownership);
+                        return new NeoRowWriteTarget(rowId, target.typeInfo, ownership);
+                    }
                 case KeyOfPointer keyOfPointer:
-                {
-                    NeoValueOwnership ownership = TargetOwnership(client, target, scope, ctx);
-                    return ResolveKeyOfTarget(client, keyOfPointer.keyOf, target.typeInfo, ownership, scope, ctx);
-                }
+                    {
+                        NeoValueOwnership ownership = TargetOwnership(client, target, scope, ctx);
+                        return ResolveKeyOfTarget(client, keyOfPointer.keyOf, target.typeInfo, ownership, scope, ctx);
+                    }
                 default:
                     throw new NSGetterRuntimeError(
                         $"Unsupported assignment target '{target.pointer.GetType().Name}'.");
@@ -3001,7 +3038,8 @@ namespace NeoCompose.Runtime
             if (contextualOwnership is not null)
             {
                 ownership = contextualOwnership.Value;
-                if (pointer is not KeyOfPointer) return true;
+                if (pointer is not KeyOfPointer)
+                    return true;
             }
             string? rowId = pointer is ReferencePointer reference
                 ? reference.valueId
@@ -3094,7 +3132,8 @@ namespace NeoCompose.Runtime
             out string? valueId)
         {
             valueId = null;
-            if (typeInfo.type != MemberKind.Class) return false;
+            if (typeInfo.type != MemberKind.Class)
+                return false;
             if (value is INeoValueReference reference
                 && !string.IsNullOrEmpty(reference.valueId))
             {
@@ -3334,10 +3373,14 @@ namespace NeoCompose.Runtime
         {
             switch (value)
             {
-                case double d: return d;
-                case float f: return f;
-                case int i: return i;
-                case long l: return l;
+                case double d:
+                    return d;
+                case float f:
+                    return f;
+                case int i:
+                    return i;
+                case long l:
+                    return l;
                 default:
                     throw new NSGetterRuntimeError($"{name} must be numeric.");
             }
@@ -3355,7 +3398,8 @@ namespace NeoCompose.Runtime
 
         private static string ToStringKey(object? value, string name)
         {
-            if (value is string s) return s;
+            if (value is string s)
+                return s;
             throw new NSGetterRuntimeError($"{name} must be a string.");
         }
 
@@ -3369,7 +3413,8 @@ namespace NeoCompose.Runtime
                 && (lookupTypeInfo.entryTypeInfo.type == MemberKind.Enum
                     || lookupTypeInfo.entryTypeInfo.type == MemberKind.DialogueLookup))
             {
-                if (value is object?[] { Length: 1 } selection) value = selection[0];
+                if (value is object?[] { Length: 1 } selection)
+                    value = selection[0];
                 string? selectionId = NeoScriptValueMarshaller.EnumOptionId(value);
                 if (string.IsNullOrEmpty(selectionId))
                 {
@@ -3432,18 +3477,24 @@ namespace NeoCompose.Runtime
             JsonMember? entryMember = client.TryResolveCollectionEntryMember(collectionMember, collectionValue);
             foreach (var childId in childIds)
             {
-                if (!client.TryGetValue(childId, out MemberValue? child)) continue;
-                if (JsEqual(ReadEntryValue(child, entryMember, ctx), value)) return childId;
+                if (!client.TryGetValue(childId, out MemberValue? child))
+                    continue;
+                if (JsEqual(ReadEntryValue(child, entryMember, ctx), value))
+                    return childId;
             }
             return null;
         }
 
         private static bool JsEqual(object? a, object? b)
         {
-            if (a == null || b == null) return a == null && b == null;
-            if (a is double da && b is double db) return da == db;
-            if (a is double da2 && b is int ib) return da2 == ib;
-            if (a is int ia && b is double db2) return ia == db2;
+            if (a == null || b == null)
+                return a == null && b == null;
+            if (a is double da && b is double db)
+                return da == db;
+            if (a is double da2 && b is int ib)
+                return da2 == ib;
+            if (a is int ia && b is double db2)
+                return ia == db2;
             return Equals(a, b);
         }
 
@@ -3498,7 +3549,8 @@ namespace NeoCompose.Runtime
                         foreach (object? entry in list)
                         {
                             ctx.allocationTracker.ConsumeCollectionVisit();
-                            if (JsEqual(entry, args[0])) return;
+                            if (JsEqual(entry, args[0]))
+                                return;
                         }
                     }
                     list.Add(args[0]);
@@ -3510,7 +3562,8 @@ namespace NeoCompose.Runtime
                         object? entry = entryMember is null
                             ? list[i]
                             : NSGetterEvaluator.ResolveValueIfId(list[i], ctx, member: entryMember);
-                        if (!JsEqual(entry, args[0])) continue;
+                        if (!JsEqual(entry, args[0]))
+                            continue;
                         list.RemoveAt(i);
                         break;
                     }
@@ -3565,8 +3618,10 @@ namespace NeoCompose.Runtime
         private static void PrepareWrite(NeoClient client, Action<NeoWritePlan> prepare, NeoWritePlan? preparedPlan = null)
         {
             var plan = preparedPlan ?? new NeoWritePlan(client);
-            using (client.ReadCandidate(plan)) prepare(plan);
-            if (preparedPlan is null && (plan.Rows.Count != 0 || plan.Bindings.Count != 0)) plan.Commit();
+            using (client.ReadCandidate(plan))
+                prepare(plan);
+            if (preparedPlan is null && (plan.Rows.Count != 0 || plan.Bindings.Count != 0))
+                plan.Commit();
         }
 
         private static string PrepareWritableRow(NeoWritePlan plan, NeoClient client,
@@ -3697,7 +3752,8 @@ namespace NeoCompose.Runtime
                 NSGetterEvaluator.Context ctx)
             {
                 string? valueId = binding.ValueId;
-                if (valueId is null) return null;
+                if (valueId is null)
+                    return null;
                 if (!client.TryGetOverlaidValue(
                         binding.Ownership,
                         valueId,
@@ -3829,7 +3885,8 @@ namespace NeoCompose.Runtime
                 // invariants; the placement API keeps the grid indexes current
                 // and falls through to the plain leaf write for every other
                 // member.
-                if (!client.TryWritePlacement(ownership, parent, key, replaced, member)) return false;
+                if (!client.TryWritePlacement(ownership, parent, key, replaced, member))
+                    return false;
                 NSGetterEvaluator.RefreshCachedRowAfterWrite(replaced, ctx, ownership);
                 return true;
             }
@@ -3887,7 +3944,8 @@ namespace NeoCompose.Runtime
                 object? value,
                 NSGetterEvaluator.Context ctx)
             {
-                if (TryWriteLeaf(client, value, ctx)) return;
+                if (TryWriteLeaf(client, value, ctx))
+                    return;
                 WriteThroughPlan(client, value, ctx);
             }
 
@@ -3923,7 +3981,8 @@ namespace NeoCompose.Runtime
                     ObjectMemberValue? writableParent = null;
                     ObjectMemberValue WritableParent()
                     {
-                        if (writableParent is not null) return writableParent;
+                        if (writableParent is not null)
+                            return writableParent;
                         if (parentOwnership == NeoValueOwnership.Asset)
                             throw new NSGetterRuntimeError($"Cannot rebind '{key}' on an immutable parent.");
                         writableParent = (ObjectMemberValue)client.CloneRowForWrite(parent!);
@@ -3961,7 +4020,8 @@ namespace NeoCompose.Runtime
                                 referenceId!,
                                 ctx,
                                 existingId);
-                            if (importedId == existingId) return;
+                            if (importedId == existingId)
+                                return;
                             ObjectMemberValue rebound = WritableParent();
                             rebound.value![key] = importedId;
                             plan.AfterCommit(() => ctx.allocationTracker.RegisterConstructedParent(
@@ -4104,46 +4164,50 @@ namespace NeoCompose.Runtime
                 switch (row)
                 {
                     case SpriteMemberValue sprite:
-                    {
-                        SpriteValue? current = sprite.value;
-                        if (current is null) return null;
-                        RequireLegalKey(NeoAnimationLeafKind.Sprite);
-                        return field == NeoAnimationLeafFields.FileIdKey
-                            ? current.fileId
-                            : (object)current.sliceIndex;
-                    }
+                        {
+                            SpriteValue? current = sprite.value;
+                            if (current is null)
+                                return null;
+                            RequireLegalKey(NeoAnimationLeafKind.Sprite);
+                            return field == NeoAnimationLeafFields.FileIdKey
+                                ? current.fileId
+                                : (object)current.sliceIndex;
+                        }
                     case Vector3MemberValue vector3:
-                    {
-                        NeoVector3Value? current = vector3.value;
-                        if (current is null) return null;
-                        RequireLegalKey(NeoAnimationLeafKind.Vector3);
-                        return field switch
                         {
-                            "x" => current.x,
-                            "y" => current.y,
-                            _ => current.z,
-                        };
-                    }
+                            NeoVector3Value? current = vector3.value;
+                            if (current is null)
+                                return null;
+                            RequireLegalKey(NeoAnimationLeafKind.Vector3);
+                            return field switch
+                            {
+                                "x" => current.x,
+                                "y" => current.y,
+                                _ => current.z,
+                            };
+                        }
                     case Vector2MemberValue vector2:
-                    {
-                        NeoVector2Value? current = vector2.value;
-                        if (current is null) return null;
-                        RequireLegalKey(NeoAnimationLeafKind.Vector2);
-                        return field == "x" ? current.x : current.y;
-                    }
-                    case ColorMemberValue color:
-                    {
-                        NeoColorValue? current = color.value;
-                        if (current is null) return null;
-                        RequireLegalKey(NeoAnimationLeafKind.Color);
-                        return field switch
                         {
-                            "r" => current.r,
-                            "g" => current.g,
-                            "b" => current.b,
-                            _ => current.a,
-                        };
-                    }
+                            NeoVector2Value? current = vector2.value;
+                            if (current is null)
+                                return null;
+                            RequireLegalKey(NeoAnimationLeafKind.Vector2);
+                            return field == "x" ? current.x : current.y;
+                        }
+                    case ColorMemberValue color:
+                        {
+                            NeoColorValue? current = color.value;
+                            if (current is null)
+                                return null;
+                            RequireLegalKey(NeoAnimationLeafKind.Color);
+                            return field switch
+                            {
+                                "r" => current.r,
+                                "g" => current.g,
+                                "b" => current.b,
+                                _ => current.a,
+                            };
+                        }
                     default:
                         return null;
                 }
@@ -4160,93 +4224,93 @@ namespace NeoCompose.Runtime
                 switch (row)
                 {
                     case SpriteMemberValue sprite:
-                    {
-                        RequireLegalKey(NeoAnimationLeafKind.Sprite);
-                        SpriteValue current = RequireLeafValue<SpriteValue>(
-                            sprite.value,
-                            NeoAnimationLeafKind.Sprite);
-                        var composed = new SpriteValue
                         {
-                            fileId = current.fileId,
-                            sliceIndex = current.sliceIndex,
-                        };
-                        if (field == NeoAnimationLeafFields.FileIdKey)
-                        {
-                            // §2.2: the right-hand side is a registry symbol,
-                            // which lowers to the project file record id — a
-                            // bare string on the wire.
-                            if (value is null)
+                            RequireLegalKey(NeoAnimationLeafKind.Sprite);
+                            SpriteValue current = RequireLeafValue<SpriteValue>(
+                                sprite.value,
+                                NeoAnimationLeafKind.Sprite);
+                            var composed = new SpriteValue
                             {
-                                composed.fileId = null!;
-                            }
-                            else if (value is string fileId)
+                                fileId = current.fileId,
+                                sliceIndex = current.sliceIndex,
+                            };
+                            if (field == NeoAnimationLeafFields.FileIdKey)
                             {
-                                composed.fileId = fileId;
+                                // §2.2: the right-hand side is a registry symbol,
+                                // which lowers to the project file record id — a
+                                // bare string on the wire.
+                                if (value is null)
+                                {
+                                    composed.fileId = null!;
+                                }
+                                else if (value is string fileId)
+                                {
+                                    composed.fileId = fileId;
+                                }
+                                else
+                                {
+                                    throw new NSGetterRuntimeError(
+                                        "Sprite field 'fileId' must be a project image reference or null.");
+                                }
                             }
                             else
                             {
-                                throw new NSGetterRuntimeError(
-                                    "Sprite field 'fileId' must be a project image reference or null.");
+                                int sliceIndex = RequireInteger(value);
+                                if (sliceIndex < 0)
+                                {
+                                    throw new NSGetterRuntimeError(
+                                        "Sprite field 'sliceIndex' must be 0 or greater.");
+                                }
+                                composed.sliceIndex = sliceIndex;
                             }
+                            sprite.value = composed;
+                            return;
                         }
-                        else
-                        {
-                            int sliceIndex = RequireInteger(value);
-                            if (sliceIndex < 0)
-                            {
-                                throw new NSGetterRuntimeError(
-                                    "Sprite field 'sliceIndex' must be 0 or greater.");
-                            }
-                            composed.sliceIndex = sliceIndex;
-                        }
-                        sprite.value = composed;
-                        return;
-                    }
                     case Vector3MemberValue vector3:
-                    {
-                        RequireLegalKey(NeoAnimationLeafKind.Vector3);
-                        NeoVector3Value current = RequireLeafValue<NeoVector3Value>(
-                            vector3.value,
-                            NeoAnimationLeafKind.Vector3);
-                        float component = RequireComponent(value);
-                        vector3.value = new NeoVector3Value
                         {
-                            x = field == "x" ? component : current.x,
-                            y = field == "y" ? component : current.y,
-                            z = field == "z" ? component : current.z,
-                        };
-                        return;
-                    }
+                            RequireLegalKey(NeoAnimationLeafKind.Vector3);
+                            NeoVector3Value current = RequireLeafValue<NeoVector3Value>(
+                                vector3.value,
+                                NeoAnimationLeafKind.Vector3);
+                            float component = RequireComponent(value);
+                            vector3.value = new NeoVector3Value
+                            {
+                                x = field == "x" ? component : current.x,
+                                y = field == "y" ? component : current.y,
+                                z = field == "z" ? component : current.z,
+                            };
+                            return;
+                        }
                     case Vector2MemberValue vector2:
-                    {
-                        RequireLegalKey(NeoAnimationLeafKind.Vector2);
-                        NeoVector2Value current = RequireLeafValue<NeoVector2Value>(
-                            vector2.value,
-                            NeoAnimationLeafKind.Vector2);
-                        float component = RequireComponent(value);
-                        vector2.value = new NeoVector2Value
                         {
-                            x = field == "x" ? component : current.x,
-                            y = field == "y" ? component : current.y,
-                        };
-                        return;
-                    }
+                            RequireLegalKey(NeoAnimationLeafKind.Vector2);
+                            NeoVector2Value current = RequireLeafValue<NeoVector2Value>(
+                                vector2.value,
+                                NeoAnimationLeafKind.Vector2);
+                            float component = RequireComponent(value);
+                            vector2.value = new NeoVector2Value
+                            {
+                                x = field == "x" ? component : current.x,
+                                y = field == "y" ? component : current.y,
+                            };
+                            return;
+                        }
                     case ColorMemberValue color:
-                    {
-                        RequireLegalKey(NeoAnimationLeafKind.Color);
-                        NeoColorValue current = RequireLeafValue<NeoColorValue>(
-                            color.value,
-                            NeoAnimationLeafKind.Color);
-                        float channel = RequireColorChannel(value);
-                        color.value = new NeoColorValue
                         {
-                            r = field == "r" ? channel : current.r,
-                            g = field == "g" ? channel : current.g,
-                            b = field == "b" ? channel : current.b,
-                            a = field == "a" ? channel : current.a,
-                        };
-                        return;
-                    }
+                            RequireLegalKey(NeoAnimationLeafKind.Color);
+                            NeoColorValue current = RequireLeafValue<NeoColorValue>(
+                                color.value,
+                                NeoAnimationLeafKind.Color);
+                            float channel = RequireColorChannel(value);
+                            color.value = new NeoColorValue
+                            {
+                                r = field == "r" ? channel : current.r,
+                                g = field == "g" ? channel : current.g,
+                                b = field == "b" ? channel : current.b,
+                                a = field == "a" ? channel : current.a,
+                            };
+                            return;
+                        }
                     default:
                         throw new NSGetterRuntimeError(
                             "Assignment receiver must be a list, dictionary, or class object.");
@@ -4261,7 +4325,8 @@ namespace NeoCompose.Runtime
             /// </summary>
             private NeoAnimationLeafKind NarrowKind(NeoAnimationLeafKind kind)
             {
-                if (fieldType.type != MemberKind.Int) return kind;
+                if (fieldType.type != MemberKind.Int)
+                    return kind;
                 return kind switch
                 {
                     NeoAnimationLeafKind.Vector2 => NeoAnimationLeafKind.Vector2Int,
@@ -4272,7 +4337,8 @@ namespace NeoCompose.Runtime
 
             private void RequireLegalKey(NeoAnimationLeafKind kind)
             {
-                if (NeoAnimationLeafFields.IsLegalKey(kind, field)) return;
+                if (NeoAnimationLeafFields.IsLegalKey(kind, field))
+                    return;
                 NeoAnimationLeafKind narrowed = NarrowKind(kind);
                 throw new NSGetterRuntimeError(
                     $"'{field}' is not a field of a {NeoAnimationLeafFields.Describe(narrowed)} value. Legal fields: {string.Join(", ", NeoAnimationLeafFields.LegalKeys(narrowed))}.");
@@ -4285,7 +4351,8 @@ namespace NeoCompose.Runtime
             private T RequireLeafValue<T>(T? current, NeoAnimationLeafKind kind)
                 where T : class
             {
-                if (current is not null) return current;
+                if (current is not null)
+                    return current;
                 throw new NSGetterRuntimeError(
                     $"Cannot assign field '{field}' because the {NeoAnimationLeafFields.Describe(NarrowKind(kind))} value at '{rowId}' is null.");
             }
@@ -4453,7 +4520,8 @@ namespace NeoCompose.Runtime
                             referenceId!,
                             ctx,
                             childId);
-                        if (importedId == childId) return;
+                        if (importedId == childId)
+                            return;
                         parent.value[index] = importedId;
                         plan.AfterCommit(() => ctx.allocationTracker.RegisterConstructedParent(
                             importedId,
@@ -4600,47 +4668,47 @@ namespace NeoCompose.Runtime
                     switch (mutation)
                     {
                         case CollectionMutationKind.Add:
-                        {
-                            if (TryGetClassValueReferenceId(
-                                    args[0],
-                                    entryTypeInfo,
-                                    ctx,
-                                    out string? referenceId))
                             {
-                                var referencedNext = new string[row.value.Length + 1];
-                                Array.Copy(row.value, referencedNext, row.value.Length);
-                                string importedId = ImportClassValueReference(
+                                if (TryGetClassValueReferenceId(
+                                        args[0],
+                                        entryTypeInfo,
+                                        ctx,
+                                        out string? referenceId))
+                                {
+                                    var referencedNext = new string[row.value.Length + 1];
+                                    Array.Copy(row.value, referencedNext, row.value.Length);
+                                    string importedId = ImportClassValueReference(
+                                        plan, client,
+                                        ownership,
+                                        referenceId!,
+                                        ctx);
+                                    plan.AfterCommit(() => ctx.allocationTracker.RegisterConstructedParent(
+                                        importedId,
+                                        rowId));
+                                    referencedNext[row.value.Length] = importedId;
+                                    row.value = referencedNext;
+                                    row.updatedAt = now;
+                                    StoreWritableRow(plan, ownership, row, ctx);
+                                    return;
+                                }
+                                var childId = Guid.NewGuid().ToString();
+                                var child = CreateValueRow(
                                     plan, client,
                                     ownership,
-                                    referenceId!,
-                                    ctx);
-                                plan.AfterCommit(() => ctx.allocationTracker.RegisterConstructedParent(
-                                    importedId,
-                                    rowId));
-                                referencedNext[row.value.Length] = importedId;
-                                row.value = referencedNext;
+                                    MemberFromTypeInfo(entryTypeInfo),
+                                    args[0],
+                                    childId,
+                                    now,
+                                    now);
+                                StoreWritableRow(plan, ownership, child, ctx);
+                                var next = new string[row.value.Length + 1];
+                                Array.Copy(row.value, next, row.value.Length);
+                                next[row.value.Length] = childId;
+                                row.value = next;
                                 row.updatedAt = now;
                                 StoreWritableRow(plan, ownership, row, ctx);
                                 return;
                             }
-                            var childId = Guid.NewGuid().ToString();
-                            var child = CreateValueRow(
-                                plan, client,
-                                ownership,
-                                MemberFromTypeInfo(entryTypeInfo),
-                                args[0],
-                                childId,
-                                now,
-                                now);
-                            StoreWritableRow(plan, ownership, child, ctx);
-                            var next = new string[row.value.Length + 1];
-                            Array.Copy(row.value, next, row.value.Length);
-                            next[row.value.Length] = childId;
-                            row.value = next;
-                            row.updatedAt = now;
-                            StoreWritableRow(plan, ownership, row, ctx);
-                            return;
-                        }
                         case CollectionMutationKind.RemoveAt:
                             RemoveAt(
                                 plan, client,
@@ -4652,40 +4720,42 @@ namespace NeoCompose.Runtime
                                 ctx);
                             return;
                         case CollectionMutationKind.Remove:
-                        {
-                            string? referenceId = TryGetClassValueReferenceId(
-                                args[0],
-                                entryTypeInfo,
-                                ctx,
-                                out string? matchedReferenceId)
-                                    ? matchedReferenceId
-                                    : null;
-                            for (int i = 0; i < row.value.Length; i++)
                             {
-                                ctx.allocationTracker.ConsumeCollectionVisit();
-                                if (referenceId != null && row.value[i] == referenceId)
+                                string? referenceId = TryGetClassValueReferenceId(
+                                    args[0],
+                                    entryTypeInfo,
+                                    ctx,
+                                    out string? matchedReferenceId)
+                                        ? matchedReferenceId
+                                        : null;
+                                for (int i = 0; i < row.value.Length; i++)
                                 {
+                                    ctx.allocationTracker.ConsumeCollectionVisit();
+                                    if (referenceId != null && row.value[i] == referenceId)
+                                    {
+                                        RemoveAt(plan, client, ownership, row, i, now, entryTypeInfo, ctx);
+                                        return;
+                                    }
+                                    if (!client.TryGetValue(row.value[i], out MemberValue? child))
+                                        continue;
+                                    if (!JsEqual(ReadEntryValue(child, entryMember, ctx), args[0]))
+                                        continue;
                                     RemoveAt(plan, client, ownership, row, i, now, entryTypeInfo, ctx);
                                     return;
                                 }
-                                if (!client.TryGetValue(row.value[i], out MemberValue? child)) continue;
-                                if (!JsEqual(ReadEntryValue(child, entryMember, ctx), args[0])) continue;
-                                RemoveAt(plan, client, ownership, row, i, now, entryTypeInfo, ctx);
                                 return;
                             }
-                            return;
-                        }
                         case CollectionMutationKind.Clear:
-                        {
-                            var removedIds = row.value;
-                            ctx.allocationTracker.ConsumeCollectionVisit(
-                                removedIds.Length);
-                            row.value = Array.Empty<string>();
-                            row.updatedAt = now;
-                            StoreWritableRow(plan, ownership, row, ctx);
-                            client.StageUnlinkedRemovals(plan, ownership, removedIds, EntryReleaseMember(client, row, entryTypeInfo));
-                            return;
-                        }
+                            {
+                                var removedIds = row.value;
+                                ctx.allocationTracker.ConsumeCollectionVisit(
+                                    removedIds.Length);
+                                row.value = Array.Empty<string>();
+                                row.updatedAt = now;
+                                StoreWritableRow(plan, ownership, row, ctx);
+                                client.StageUnlinkedRemovals(plan, ownership, removedIds, EntryReleaseMember(client, row, entryTypeInfo));
+                                return;
+                            }
                         default:
                             throw new NSGetterRuntimeError($"Unsupported list mutation '{mutation}'.");
                     }
@@ -4709,7 +4779,8 @@ namespace NeoCompose.Runtime
                 var next = new string[row.value.Length - 1];
                 for (int i = 0, j = 0; i < row.value.Length; i++)
                 {
-                    if (i == index) continue;
+                    if (i == index)
+                        continue;
                     next[j++] = row.value[i];
                 }
                 row.value = next;
@@ -4753,46 +4824,49 @@ namespace NeoCompose.Runtime
                     switch (mutation)
                     {
                         case CollectionMutationKind.Add:
-                        {
-                            string selectionId = ResolveLookupSelectionId(client, typeInfo, args[0], ctx);
-                            foreach (string existingId in row.value)
                             {
-                                ctx.allocationTracker.ConsumeCollectionVisit();
-                                if (existingId == selectionId) return;
-                            }
-                            var next = new string[row.value.Length + 1];
-                            Array.Copy(row.value, next, row.value.Length);
-                            next[row.value.Length] = selectionId;
-                            row.value = next;
-                            row.updatedAt = now;
-                            StoreWritableRow(plan, ownership, row, ctx);
-                            return;
-                        }
-                        case CollectionMutationKind.Remove:
-                        {
-                            string selectionId = ResolveLookupSelectionId(client, typeInfo, args[0], ctx);
-                            int index = -1;
-                            for (int i = 0; i < row.value.Length; i++)
-                            {
-                                ctx.allocationTracker.ConsumeCollectionVisit();
-                                if (row.value[i] == selectionId)
+                                string selectionId = ResolveLookupSelectionId(client, typeInfo, args[0], ctx);
+                                foreach (string existingId in row.value)
                                 {
-                                    index = i;
-                                    break;
+                                    ctx.allocationTracker.ConsumeCollectionVisit();
+                                    if (existingId == selectionId)
+                                        return;
                                 }
+                                var next = new string[row.value.Length + 1];
+                                Array.Copy(row.value, next, row.value.Length);
+                                next[row.value.Length] = selectionId;
+                                row.value = next;
+                                row.updatedAt = now;
+                                StoreWritableRow(plan, ownership, row, ctx);
+                                return;
                             }
-                            if (index < 0) return;
-                            var next = new string[row.value.Length - 1];
-                            for (int i = 0, j = 0; i < row.value.Length; i++)
+                        case CollectionMutationKind.Remove:
                             {
-                                if (i == index) continue;
-                                next[j++] = row.value[i];
+                                string selectionId = ResolveLookupSelectionId(client, typeInfo, args[0], ctx);
+                                int index = -1;
+                                for (int i = 0; i < row.value.Length; i++)
+                                {
+                                    ctx.allocationTracker.ConsumeCollectionVisit();
+                                    if (row.value[i] == selectionId)
+                                    {
+                                        index = i;
+                                        break;
+                                    }
+                                }
+                                if (index < 0)
+                                    return;
+                                var next = new string[row.value.Length - 1];
+                                for (int i = 0, j = 0; i < row.value.Length; i++)
+                                {
+                                    if (i == index)
+                                        continue;
+                                    next[j++] = row.value[i];
+                                }
+                                row.value = next;
+                                row.updatedAt = now;
+                                StoreWritableRow(plan, ownership, row, ctx);
+                                return;
                             }
-                            row.value = next;
-                            row.updatedAt = now;
-                            StoreWritableRow(plan, ownership, row, ctx);
-                            return;
-                        }
                         case CollectionMutationKind.Clear:
                             ctx.allocationTracker.ConsumeCollectionVisit(
                                 row.value.Length);
@@ -4881,7 +4955,8 @@ namespace NeoCompose.Runtime
                                 referenceId!,
                                 ctx,
                                 existingId);
-                            if (importedId == existingId) return;
+                            if (importedId == existingId)
+                                return;
                             row.value[key] = importedId;
                             plan.AfterCommit(() => ctx.allocationTracker.RegisterConstructedParent(
                                 importedId,
@@ -5031,7 +5106,8 @@ namespace NeoCompose.Runtime
             internal NeoScriptScope EnsureBodyScope(
                 NeoScriptScope parentScope)
             {
-                if (bodyScope is not null) return bodyScope;
+                if (bodyScope is not null)
+                    return bodyScope;
                 bodyParentBindingIds = parentScope.Keys.ToArray();
                 bodyScope = CreateChildScope(parentScope);
                 return bodyScope;
@@ -5046,7 +5122,8 @@ namespace NeoCompose.Runtime
             internal void SynchronizeBodyScope(
                 NeoScriptScope parentScope)
             {
-                if (bodyScope is null) return;
+                if (bodyScope is null)
+                    return;
                 foreach (string parentBindingId in bodyParentBindingIds
                     ?? Array.Empty<string>())
                 {
@@ -5061,7 +5138,8 @@ namespace NeoCompose.Runtime
 
             internal void RestoreBinding(NeoScriptScope scope)
             {
-                if (bindingRestored) return;
+                if (bindingRestored)
+                    return;
                 bindingRestored = true;
                 SynchronizeBodyScope(scope);
                 if (readOnly)
@@ -5095,9 +5173,18 @@ namespace NeoCompose.Runtime
                 ExpressionState = ExpressionResumeState.ForOptions(options);
             }
 
-            internal ForInstruction Instruction { get; }
-            internal ForPhase Phase { get; private set; }
-            internal ExpressionResumeState ExpressionState { get; private set; }
+            internal ForInstruction Instruction
+            {
+                get;
+            }
+            internal ForPhase Phase
+            {
+                get; private set;
+            }
+            internal ExpressionResumeState ExpressionState
+            {
+                get; private set;
+            }
 
             internal void MoveTo(ForPhase phase)
             {
@@ -5118,14 +5205,23 @@ namespace NeoCompose.Runtime
                 ExpressionState = ExpressionResumeState.ForOptions(options);
             }
 
-            internal ForEachInstruction Instruction { get; }
-            internal ExpressionResumeState ExpressionState { get; }
+            internal ForEachInstruction Instruction
+            {
+                get;
+            }
+            internal ExpressionResumeState ExpressionState
+            {
+                get;
+            }
             internal NSGetterEvaluator.CollectionEntrySnapshot[]? Snapshot
             {
                 get;
                 set;
             }
-            internal int Index { get; set; }
+            internal int Index
+            {
+                get; set;
+            }
         }
 
         private sealed class TryExecutionState
@@ -5153,9 +5249,18 @@ namespace NeoCompose.Runtime
                 ExpressionState = ExpressionResumeState.ForOptions(options);
             }
 
-            internal TryInstruction Instruction { get; }
-            internal TryPhase Phase { get; private set; }
-            internal ExpressionResumeState ExpressionState { get; private set; }
+            internal TryInstruction Instruction
+            {
+                get;
+            }
+            internal TryPhase Phase
+            {
+                get; private set;
+            }
+            internal ExpressionResumeState ExpressionState
+            {
+                get; private set;
+            }
             internal CatchClause CurrentClause =>
                 catchIndex >= 0 && catchIndex < Instruction.catches.Length
                     ? Instruction.catches[catchIndex]
@@ -5165,7 +5270,8 @@ namespace NeoCompose.Runtime
             internal NeoScriptScope EnsureTryScope(
                 NeoScriptScope parentScope)
             {
-                if (tryScope is not null) return tryScope;
+                if (tryScope is not null)
+                    return tryScope;
                 tryParentBindingIds = parentScope.Keys.ToArray();
                 tryScope = CreateChildScope(parentScope);
                 return tryScope;
@@ -5174,7 +5280,8 @@ namespace NeoCompose.Runtime
             internal void SynchronizeTryScope(
                 NeoScriptScope parentScope)
             {
-                if (tryScopeSynchronized || tryScope is null) return;
+                if (tryScopeSynchronized || tryScope is null)
+                    return;
                 tryScopeSynchronized = true;
                 foreach (string bindingId in tryParentBindingIds
                     ?? Array.Empty<string>())
@@ -5197,7 +5304,8 @@ namespace NeoCompose.Runtime
             internal NeoScriptScope EnsureCatchScope(
                 NeoScriptScope parentScope)
             {
-                if (catchScope is not null) return catchScope;
+                if (catchScope is not null)
+                    return catchScope;
                 CatchClause clause = CurrentClause;
                 catchParentBindingIds = parentScope.Keys.ToArray();
                 catchScope = CreateChildScope(parentScope);
@@ -5215,7 +5323,8 @@ namespace NeoCompose.Runtime
             internal void SynchronizeCatchScope(
                 NeoScriptScope parentScope)
             {
-                if (catchScopeSynchronized || catchScope is null) return;
+                if (catchScopeSynchronized || catchScope is null)
+                    return;
                 catchScopeSynchronized = true;
                 string catchBindingId = CurrentClause.binding.id;
                 foreach (string bindingId in catchParentBindingIds
@@ -5308,12 +5417,30 @@ namespace NeoCompose.Runtime
                 ExpressionState = ExpressionResumeState.ForOptions(options);
             }
 
-            internal SwitchInstruction Instruction { get; }
-            internal ExpressionResumeState ExpressionState { get; }
-            internal bool SelectorCompleted { get; private set; }
-            internal object? SelectorValue { get; private set; }
-            internal int? SelectedSectionIndex { get; private set; }
-            internal bool SelectedDefault { get; private set; }
+            internal SwitchInstruction Instruction
+            {
+                get;
+            }
+            internal ExpressionResumeState ExpressionState
+            {
+                get;
+            }
+            internal bool SelectorCompleted
+            {
+                get; private set;
+            }
+            internal object? SelectorValue
+            {
+                get; private set;
+            }
+            internal int? SelectedSectionIndex
+            {
+                get; private set;
+            }
+            internal bool SelectedDefault
+            {
+                get; private set;
+            }
             internal Instruction[]? SelectedInstructions =>
                 SelectedSectionIndex is int index
                     ? Instruction.sections[index].instructions
@@ -5324,7 +5451,8 @@ namespace NeoCompose.Runtime
             internal NeoScriptScope EnsureSectionScope(
                 NeoScriptScope parentScope)
             {
-                if (sectionScope is not null) return sectionScope;
+                if (sectionScope is not null)
+                    return sectionScope;
                 parentBindingIds = parentScope.Keys.ToArray();
                 sectionScope = CreateChildScope(parentScope);
                 return sectionScope;
@@ -5333,7 +5461,8 @@ namespace NeoCompose.Runtime
             internal void SynchronizeSectionScope(
                 NeoScriptScope parentScope)
             {
-                if (sectionScopeSynchronized || sectionScope is null) return;
+                if (sectionScopeSynchronized || sectionScope is null)
+                    return;
                 sectionScopeSynchronized = true;
                 foreach (string bindingId in parentBindingIds
                     ?? Array.Empty<string>())
@@ -5404,7 +5533,8 @@ namespace NeoCompose.Runtime
 
             internal string NextInvocationKey(string callSiteId)
             {
-                if (!recording) return callSiteId;
+                if (!recording)
+                    return callSiteId;
                 invocationCounts ??= new();
                 invocationCounts.TryGetValue(callSiteId, out int occurrence);
                 invocationCounts[callSiteId] = occurrence + 1;
@@ -5429,14 +5559,16 @@ namespace NeoCompose.Runtime
 
             internal void StoreValue(string callSiteId, object? value)
             {
-                if (!recording) return;
+                if (!recording)
+                    return;
                 results ??= new();
                 results[callSiteId] = new CachedFunctionResult(value, null);
             }
 
             internal void StoreError(string callSiteId, Exception error)
             {
-                if (!recording) return;
+                if (!recording)
+                    return;
                 results ??= new();
                 results[callSiteId] = new CachedFunctionResult(null, error);
             }
@@ -5449,8 +5581,14 @@ namespace NeoCompose.Runtime
                     Error = error;
                 }
 
-                internal object? Value { get; }
-                internal Exception? Error { get; }
+                internal object? Value
+                {
+                    get;
+                }
+                internal Exception? Error
+                {
+                    get;
+                }
             }
         }
 
@@ -5468,9 +5606,18 @@ namespace NeoCompose.Runtime
             Execution = execution;
         }
 
-        internal string ResumeKey { get; }
-        internal string MemberId { get; }
-        internal NeoScriptExecutionResult Execution { get; }
+        internal string ResumeKey
+        {
+            get;
+        }
+        internal string MemberId
+        {
+            get;
+        }
+        internal NeoScriptExecutionResult Execution
+        {
+            get;
+        }
     }
 
     internal sealed class NeoScriptExecutionOptions
@@ -5478,8 +5625,14 @@ namespace NeoCompose.Runtime
         private readonly NeoClient client;
         private readonly Action<string> warning;
         private readonly string? propertyMemberId;
-        internal bool AllowDeferredFunctionCalls { get; }
-        internal bool CancelContinuationOnDeferredDisposal { get; }
+        internal bool AllowDeferredFunctionCalls
+        {
+            get;
+        }
+        internal bool CancelContinuationOnDeferredDisposal
+        {
+            get;
+        }
 
         private NeoScriptExecutionOptions(
             NeoClient client,
@@ -5569,7 +5722,8 @@ namespace NeoCompose.Runtime
 
         internal NeoScriptExecutionOptions ForFunction(bool deferred)
         {
-            if (AllowDeferredFunctionCalls == deferred) return this;
+            if (AllowDeferredFunctionCalls == deferred)
+                return this;
             return new NeoScriptExecutionOptions(
                 client,
                 warning,
@@ -5581,7 +5735,8 @@ namespace NeoCompose.Runtime
 
         internal void WarnDeferred(string functionMemberId)
         {
-            if (propertyMemberId is null) return;
+            if (propertyMemberId is null)
+                return;
             string propertyName = client.TryGetMember(
                 propertyMemberId, out JsonMember? propertyMember)
                     ? propertyMember.name
@@ -5641,8 +5796,14 @@ namespace NeoCompose.Runtime
             Failure = failure;
         }
 
-        internal bool IsPaused { get; }
-        internal NeoScriptControlTransfer Transfer { get; }
+        internal bool IsPaused
+        {
+            get;
+        }
+        internal NeoScriptControlTransfer Transfer
+        {
+            get;
+        }
         internal bool Returned => Transfer == NeoScriptControlTransfer.Return;
         internal bool IsBreak => Transfer == NeoScriptControlTransfer.Break;
         internal bool IsContinue => Transfer == NeoScriptControlTransfer.Continue;
@@ -5650,10 +5811,22 @@ namespace NeoCompose.Runtime
             Failure is null
             && Transfer == NeoScriptControlTransfer.Fallthrough;
         internal bool IsFailed => Failure is not null;
-        internal Exception? Failure { get; }
-        internal object? ReturnValue { get; }
-        internal string? SuspendedMemberId { get; }
-        internal NeoDeferredFunctionBase? Deferred { get; }
+        internal Exception? Failure
+        {
+            get;
+        }
+        internal object? ReturnValue
+        {
+            get;
+        }
+        internal string? SuspendedMemberId
+        {
+            get;
+        }
+        internal NeoDeferredFunctionBase? Deferred
+        {
+            get;
+        }
 
         private static readonly NeoScriptExecutionResult FallthroughResult =
             new(false, NeoScriptControlTransfer.Fallthrough, null, null, null, null, null, null, null, null, null);
@@ -5668,7 +5841,8 @@ namespace NeoCompose.Runtime
         {
             // Results are immutable; the valueless fallthrough every block
             // and loop iteration produces is one shared instance.
-            if (!returned && returnValue is null) return FallthroughResult;
+            if (!returned && returnValue is null)
+                return FallthroughResult;
             return new NeoScriptExecutionResult(
                 false,
                 returned
@@ -5694,8 +5868,10 @@ namespace NeoCompose.Runtime
                     "Return control must carry its value through Completed.",
                     nameof(transfer));
             }
-            if (transfer == NeoScriptControlTransfer.Break) return BreakResult;
-            if (transfer == NeoScriptControlTransfer.Continue) return ContinueResult;
+            if (transfer == NeoScriptControlTransfer.Break)
+                return BreakResult;
+            if (transfer == NeoScriptControlTransfer.Continue)
+                return ContinueResult;
             return new NeoScriptExecutionResult(
                 false,
                 transfer,
@@ -5843,8 +6019,10 @@ namespace NeoCompose.Runtime
         {
             // A failed recovery is already terminal. Advancing it could let a
             // later continuation replace the original failure with success.
-            if (IsFailed) return this;
-            if (!IsPaused) return next(this);
+            if (IsFailed)
+                return this;
+            if (!IsPaused)
+                return next(this);
             return ThenPaused(next);
         }
 
@@ -5884,7 +6062,8 @@ namespace NeoCompose.Runtime
         internal NeoScriptExecutionResult ObserveFailure(
             Action<Exception> observer)
         {
-            if (!IsPaused) return this;
+            if (!IsPaused)
+                return this;
             return ObservePausedFailure(observer);
         }
 
@@ -5928,7 +6107,8 @@ namespace NeoCompose.Runtime
         internal NeoScriptExecutionResult RecoverFailure(
             Func<Exception, NeoScriptExecutionResult?> recovery)
         {
-            if (!IsPaused) return this;
+            if (!IsPaused)
+                return this;
             return RecoverPausedFailure(recovery);
         }
 
@@ -6058,7 +6238,8 @@ namespace NeoCompose.Runtime
             var cancellation = new OperationCanceledException(reason);
             lock (sync)
             {
-                if (completed || failed || abandoned) return;
+                if (completed || failed || abandoned)
+                    return;
                 abandoned = true;
                 abandonmentException = cancellation;
                 observer = abandonmentObserver;

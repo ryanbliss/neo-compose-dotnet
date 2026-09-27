@@ -74,13 +74,19 @@ namespace NeoCompose.Runtime.Json
             /// The automatic distribution, or null when the kind owns no
             /// stored value (NSProperty, Function, Interface, NSFunction).
             /// </summary>
-            public NeoSubtreeDistributionKind? Distribution { get; }
+            public NeoSubtreeDistributionKind? Distribution
+            {
+                get;
+            }
 
             /// <summary>
             /// Set only when <see cref="Distribution"/> is Sparse because the
             /// payload or child count grows — the §2 warning condition.
             /// </summary>
-            public NeoDistributionGrowthReason Growth { get; }
+            public NeoDistributionGrowthReason Growth
+            {
+                get;
+            }
         }
 
         /// <summary>How one table arm decides.</summary>
@@ -108,13 +114,19 @@ namespace NeoCompose.Runtime.Json
                 Growth = growth;
             }
 
-            internal Rule Rule { get; }
+            internal Rule Rule
+            {
+                get;
+            }
 
             /// <summary>
             /// The growth axis of an unconditionally-Sparse arm, or the axis a
             /// conditional arm names when its Sparse branch is taken.
             /// </summary>
-            internal NeoDistributionGrowthReason Growth { get; }
+            internal NeoDistributionGrowthReason Growth
+            {
+                get;
+            }
         }
 
         private static Arm Packed() =>

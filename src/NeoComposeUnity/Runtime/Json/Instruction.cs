@@ -127,10 +127,14 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>Exits the nearest enclosing loop or switch.</summary>
-    public class BreakInstruction : Instruction { }
+    public class BreakInstruction : Instruction
+    {
+    }
 
     /// <summary>Advances the nearest enclosing loop.</summary>
-    public class ContinueInstruction : Instruction { }
+    public class ContinueInstruction : Instruction
+    {
+    }
 
     /// <summary>
     /// One normalized case section in the P51 <c>switch</c> instruction.
@@ -194,13 +198,17 @@ namespace NeoCompose.Runtime.Json
     /// Mirror of <c>INSInstructionAddActionListener</c>. Adding an identity
     /// the set already holds is a no-op (P62 §3.2).
     /// </summary>
-    public class AddActionListenerInstruction : ActionListenerInstruction { }
+    public class AddActionListenerInstruction : ActionListenerInstruction
+    {
+    }
 
     /// <summary>
     /// Mirror of <c>INSInstructionRemoveActionListener</c>. Removing an
     /// absent identity is a no-op (P62 §3.2).
     /// </summary>
-    public class RemoveActionListenerInstruction : ActionListenerInstruction { }
+    public class RemoveActionListenerInstruction : ActionListenerInstruction
+    {
+    }
 
     public class InstructionConverter : DiscriminatedConverter<Instruction>
     {
@@ -208,24 +216,38 @@ namespace NeoCompose.Runtime.Json
         {
             switch (discriminator.Value<string>())
             {
-                case InstructionKind.Variable: return typeof(VariableInstruction);
-                case InstructionKind.If: return typeof(IfInstruction);
-                case InstructionKind.Return: return typeof(ReturnInstruction);
-                case InstructionKind.Throw: return typeof(ThrowInstruction);
-                case InstructionKind.Assign: return typeof(AssignInstruction);
-                case InstructionKind.CollectionCall: return typeof(CollectionCallInstruction);
-                case InstructionKind.FunctionCall: return typeof(FunctionCallInstruction);
-                case InstructionKind.For: return typeof(ForInstruction);
-                case InstructionKind.ForEach: return typeof(ForEachInstruction);
-                case InstructionKind.Break: return typeof(BreakInstruction);
-                case InstructionKind.Continue: return typeof(ContinueInstruction);
-                case InstructionKind.Switch: return typeof(SwitchInstruction);
-                case InstructionKind.Try: return typeof(TryInstruction);
+                case InstructionKind.Variable:
+                    return typeof(VariableInstruction);
+                case InstructionKind.If:
+                    return typeof(IfInstruction);
+                case InstructionKind.Return:
+                    return typeof(ReturnInstruction);
+                case InstructionKind.Throw:
+                    return typeof(ThrowInstruction);
+                case InstructionKind.Assign:
+                    return typeof(AssignInstruction);
+                case InstructionKind.CollectionCall:
+                    return typeof(CollectionCallInstruction);
+                case InstructionKind.FunctionCall:
+                    return typeof(FunctionCallInstruction);
+                case InstructionKind.For:
+                    return typeof(ForInstruction);
+                case InstructionKind.ForEach:
+                    return typeof(ForEachInstruction);
+                case InstructionKind.Break:
+                    return typeof(BreakInstruction);
+                case InstructionKind.Continue:
+                    return typeof(ContinueInstruction);
+                case InstructionKind.Switch:
+                    return typeof(SwitchInstruction);
+                case InstructionKind.Try:
+                    return typeof(TryInstruction);
                 case InstructionKind.AddActionListener:
                     return typeof(AddActionListenerInstruction);
                 case InstructionKind.RemoveActionListener:
                     return typeof(RemoveActionListenerInstruction);
-                default: return null;
+                default:
+                    return null;
             }
         }
 
@@ -581,17 +603,20 @@ namespace NeoCompose.Runtime.Json
                     {
                         return false;
                     }
-                    if (integer == 0d) integer = 0d;
+                    if (integer == 0d)
+                        integer = 0d;
                     key = "int:" + integer.ToString(
                         "R",
                         System.Globalization.CultureInfo.InvariantCulture);
                     return true;
                 case MemberKind.String:
-                    if (value.Type != JTokenType.String) return false;
+                    if (value.Type != JTokenType.String)
+                        return false;
                     key = "string:" + value.Value<string>();
                     return true;
                 case MemberKind.Bool:
-                    if (value.Type != JTokenType.Boolean) return false;
+                    if (value.Type != JTokenType.Boolean)
+                        return false;
                     key = value.Value<bool>() ? "bool:true" : "bool:false";
                     return true;
                 case MemberKind.Enum:
@@ -619,7 +644,8 @@ namespace NeoCompose.Runtime.Json
 
         private static bool IsAssignmentOperator(JToken? token)
         {
-            if (token?.Type != JTokenType.String) return false;
+            if (token?.Type != JTokenType.String)
+                return false;
             return token.Value<string>() switch
             {
                 "=" or "+=" or "-=" or "*=" or "/=" or "%=" or "++" or "--" => true,
@@ -629,8 +655,10 @@ namespace NeoCompose.Runtime.Json
 
         private static bool IsOptionalWritability(JToken? token)
         {
-            if (token is null || token.Type == JTokenType.Null) return true;
-            if (token.Type != JTokenType.String) return false;
+            if (token is null || token.Type == JTokenType.Null)
+                return true;
+            if (token.Type != JTokenType.String)
+                return false;
             return token.Value<string>() switch
             {
                 WritabilityKind.Local

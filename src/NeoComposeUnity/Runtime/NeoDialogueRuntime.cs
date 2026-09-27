@@ -29,13 +29,31 @@ namespace NeoCompose.Runtime
     {
         private static readonly System.Random DefaultRandom = new();
 
-        public Func<DateTime>? UtcNow { get; set; }
-        public Func<double>? RandomDouble { get; set; }
-        public TimeSpan? RecencyHalfLife { get; set; }
-        public INeoDialogueLogger? Logger { get; set; }
-        public INeoDialoguePauseScheduler? PauseScheduler { get; set; }
+        public Func<DateTime>? UtcNow
+        {
+            get; set;
+        }
+        public Func<double>? RandomDouble
+        {
+            get; set;
+        }
+        public TimeSpan? RecencyHalfLife
+        {
+            get; set;
+        }
+        public INeoDialogueLogger? Logger
+        {
+            get; set;
+        }
+        public INeoDialoguePauseScheduler? PauseScheduler
+        {
+            get; set;
+        }
         public int OnEligibleDebounceMilliseconds { get; set; } = 50;
-        public bool OnEligibleEmitAll { get; set; }
+        public bool OnEligibleEmitAll
+        {
+            get; set;
+        }
 
         internal INeoDialogueLogger ResolveLogger()
         {
@@ -50,9 +68,12 @@ namespace NeoCompose.Runtime
         internal double ResolveRandomDouble()
         {
             var value = (RandomDouble ?? DefaultNextDouble)();
-            if (double.IsNaN(value) || double.IsInfinity(value)) return 0;
-            if (value < 0) return 0;
-            if (value >= 1) return 0.999999999999;
+            if (double.IsNaN(value) || double.IsInfinity(value))
+                return 0;
+            if (value < 0)
+                return 0;
+            if (value >= 1)
+                return 0.999999999999;
             return value;
         }
 
@@ -84,7 +105,9 @@ namespace NeoCompose.Runtime
     {
         public static readonly UnityNeoDialoguePauseScheduler Instance = new();
 
-        private UnityNeoDialoguePauseScheduler() { }
+        private UnityNeoDialoguePauseScheduler()
+        {
+        }
 
         public IDisposable Schedule(TimeSpan delay, Action callback)
         {
@@ -117,8 +140,14 @@ namespace NeoCompose.Runtime
 
     public sealed class NeoOnEligibleOptions
     {
-        public int? DebounceMilliseconds { get; set; }
-        public bool EmitAll { get; set; }
+        public int? DebounceMilliseconds
+        {
+            get; set;
+        }
+        public bool EmitAll
+        {
+            get; set;
+        }
     }
 
     public sealed class NeoDialogueWatcher : IDisposable
@@ -149,9 +178,18 @@ namespace NeoCompose.Runtime
 
     public sealed class NeoDialogueTriggerWarning
     {
-        public string Message { get; }
-        public string? DialogueId { get; }
-        public string? GroupId { get; }
+        public string Message
+        {
+            get;
+        }
+        public string? DialogueId
+        {
+            get;
+        }
+        public string? GroupId
+        {
+            get;
+        }
 
         public NeoDialogueTriggerWarning(
             string message,
@@ -166,10 +204,22 @@ namespace NeoCompose.Runtime
 
     public sealed class NeoDialogueTriggerResult
     {
-        public bool Ok { get; }
-        public NeoDialogue? Dialogue { get; }
-        public Exception? Error { get; }
-        public IReadOnlyList<NeoDialogueTriggerWarning> Warnings { get; }
+        public bool Ok
+        {
+            get;
+        }
+        public NeoDialogue? Dialogue
+        {
+            get;
+        }
+        public Exception? Error
+        {
+            get;
+        }
+        public IReadOnlyList<NeoDialogueTriggerWarning> Warnings
+        {
+            get;
+        }
 
         private NeoDialogueTriggerResult(
             bool ok,
@@ -206,9 +256,18 @@ namespace NeoCompose.Runtime
 
     public sealed class NeoDialogueEligibilityError
     {
-        public Exception Exception { get; }
-        public string? DialogueId { get; }
-        public string? GroupId { get; }
+        public Exception Exception
+        {
+            get;
+        }
+        public string? DialogueId
+        {
+            get;
+        }
+        public string? GroupId
+        {
+            get;
+        }
 
         public NeoDialogueEligibilityError(
             Exception exception,
@@ -225,15 +284,39 @@ namespace NeoCompose.Runtime
 
     public sealed class NeoDialogueContext
     {
-        internal object? CurrentPrimary { get; set; }
+        internal object? CurrentPrimary
+        {
+            get; set;
+        }
 
-        public string DialogueId { get; }
-        public string? GroupId { get; }
-        public string? NodeId { get; internal set; }
-        public string? OptionId { get; internal set; }
-        public object? Trigger { get; }
-        public object? Primary { get; }
-        public IReadOnlyDictionary<string, object?> LinkedValues { get; }
+        public string DialogueId
+        {
+            get;
+        }
+        public string? GroupId
+        {
+            get;
+        }
+        public string? NodeId
+        {
+            get; internal set;
+        }
+        public string? OptionId
+        {
+            get; internal set;
+        }
+        public object? Trigger
+        {
+            get;
+        }
+        public object? Primary
+        {
+            get;
+        }
+        public IReadOnlyDictionary<string, object?> LinkedValues
+        {
+            get;
+        }
 
         public NeoDialogueContext(
             string dialogueId,

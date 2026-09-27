@@ -9,10 +9,22 @@ namespace NeoCompose.Runtime
 {
     public sealed class NeoValueWritePayload
     {
-        internal bool isValueReference { get; }
-        internal string? valueId { get; }
-        internal INeoValueReference? valueReference { get; }
-        internal object? value { get; }
+        internal bool isValueReference
+        {
+            get;
+        }
+        internal string? valueId
+        {
+            get;
+        }
+        internal INeoValueReference? valueReference
+        {
+            get;
+        }
+        internal object? value
+        {
+            get;
+        }
         internal bool isNull => !isValueReference && value is null;
 
         private NeoValueWritePayload(
@@ -45,11 +57,16 @@ namespace NeoCompose.Runtime
             string valueId,
             NeoValueOwnership ownership)
         {
-            if (!isValueReference) return;
-            if (valueReference is not NeoGeneratedClassValue generated) return;
-            if (generated.IsReadOnly) return;
-            if (member is not ClassMember classMember) return;
-            if (client.DeferVariantAliasRetarget(generated, classMember, valueId, ownership)) return;
+            if (!isValueReference)
+                return;
+            if (valueReference is not NeoGeneratedClassValue generated)
+                return;
+            if (generated.IsReadOnly)
+                return;
+            if (member is not ClassMember classMember)
+                return;
+            if (client.DeferVariantAliasRetarget(generated, classMember, valueId, ownership))
+                return;
             generated.RetargetWritableReference(classMember, valueId, ownership);
         }
     }

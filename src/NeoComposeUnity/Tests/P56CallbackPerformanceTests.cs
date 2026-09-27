@@ -210,8 +210,14 @@ namespace NeoCompose.Tests
                 Pointer = pointer;
             }
 
-            internal NeoClient Client { get; }
-            internal FunctionPointer Pointer { get; }
+            internal NeoClient Client
+            {
+                get;
+            }
+            internal FunctionPointer Pointer
+            {
+                get;
+            }
         }
 
         private sealed class CallbackMeasurement
@@ -224,8 +230,14 @@ namespace NeoCompose.Tests
                 MedianDurationMs = medianDurationMs;
             }
 
-            internal int CapturedBindingCount { get; }
-            internal double MedianDurationMs { get; }
+            internal int CapturedBindingCount
+            {
+                get;
+            }
+            internal double MedianDurationMs
+            {
+                get;
+            }
         }
     }
 }

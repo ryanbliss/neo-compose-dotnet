@@ -271,10 +271,10 @@ namespace NeoCompose.Tests
         private static NeoDelegateValue Listener(
             string memberId,
             string? valueId) => new()
-        {
-            memberId = memberId,
-            valueId = valueId,
-        };
+            {
+                memberId = memberId,
+                valueId = valueId,
+            };
 
         private static ActionMember ActionMemberRecord() => new()
         {
@@ -449,17 +449,17 @@ namespace NeoCompose.Tests
             string classId,
             string valueId,
             NeoMemberStorage storage = NeoMemberStorage.Inherit) => new()
-        {
-            id = id,
-            projectId = ProjectId,
-            name = name,
-            kind = MemberKind.Class,
-            classId = classId,
-            valueId = valueId,
-            Storage = storage,
-            createdAt = "x",
-            updatedAt = "x",
-        };
+            {
+                id = id,
+                projectId = ProjectId,
+                name = name,
+                kind = MemberKind.Class,
+                classId = classId,
+                valueId = valueId,
+                Storage = storage,
+                createdAt = "x",
+                updatedAt = "x",
+            };
 
         private static NeoSchemaClass SchemaClass(
             string id,
@@ -529,18 +529,18 @@ namespace NeoCompose.Tests
         private static OperationPointer Arithmetic(
             string op,
             params Pointer[] pointers) => new()
-        {
-            type = PointerKind.Operation,
-            operation = new ArithmeticOperation
             {
-                type = OperationKind.Arithmetic,
-                arithmetic = new ArithmeticOpInfo
+                type = PointerKind.Operation,
+                operation = new ArithmeticOperation
                 {
-                    type = op,
-                    pointers = pointers,
+                    type = OperationKind.Arithmetic,
+                    arithmetic = new ArithmeticOpInfo
+                    {
+                        type = op,
+                        pointers = pointers,
+                    },
                 },
-            },
-        };
+            };
 
         private static VariablePointer ThisVariable() => new()
         {
@@ -596,7 +596,9 @@ namespace NeoCompose.Tests
             }
 
             [NeoMemberMethod(BumpOneMemberId)]
-            public void BumpOne() { }
+            public void BumpOne()
+            {
+            }
         }
 
         /// <summary>
@@ -611,7 +613,9 @@ namespace NeoCompose.Tests
             }
 
             [NeoMemberMethod(BumpOneMemberId)]
-            public void BumpOne() { }
+            public void BumpOne()
+            {
+            }
         }
     }
 }

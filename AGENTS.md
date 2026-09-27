@@ -62,3 +62,9 @@ Adhere to rules & guidelines in the `agent-workspace-rigs` skill as needed.
 Use worktrees. Always finish by posting a PR. Attach code snippets of SDK API changes. Ensure `gh` is escalated outside sandbox.
 
 <!-- END:git -->
+
+## C# formatting
+
+Use the repository `.editorconfig`. Run `./scripts/format-csharp.sh` after C#
+edits and `./scripts/format-csharp.sh --verify-no-changes` before finishing.
+Do not compress blocks or multiple statements onto one line.

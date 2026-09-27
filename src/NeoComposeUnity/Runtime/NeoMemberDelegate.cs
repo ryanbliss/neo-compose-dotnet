@@ -125,7 +125,8 @@ namespace NeoCompose.Runtime
 
         internal static NeoDelegateValue? PersistedBindingOf(Delegate? value)
         {
-            if (value is null) return null;
+            if (value is null)
+                return null;
             if (!PersistedBindings.TryGetValue(value, out NeoDelegateValue binding))
             {
                 throw new ArgumentException(
@@ -146,7 +147,8 @@ namespace NeoCompose.Runtime
                         row,
                         ctx,
                         cursor.ownership);
-                    if (receiver is not null) return receiver;
+                    if (receiver is not null)
+                        return receiver;
                 }
                 cursor = cursor.parent;
             }

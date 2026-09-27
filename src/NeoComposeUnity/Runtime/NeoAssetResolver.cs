@@ -14,25 +14,32 @@ namespace NeoCompose.Runtime
     {
         public static Sprite? ResolveSprite(NeoAssetDatabase? database, SpriteValue? value)
         {
-            if (value == null) return null;
+            if (value == null)
+                return null;
             database ??= NeoAssetDatabase.LoadDefault();
             var direct = database?.TryGetSprite(value.fileId, value.sliceIndex);
-            if (direct != null) return direct;
+            if (direct != null)
+                return direct;
 
             var path = ResolveResourcePath(database, value.fileId);
-            if (path == null) return null;
+            if (path == null)
+                return null;
             var sprites = Resources.LoadAll<Sprite>(path);
-            if (sprites.Length == 0) return null;
-            if (value.sliceIndex < 0 || value.sliceIndex >= sprites.Length) return null;
+            if (sprites.Length == 0)
+                return null;
+            if (value.sliceIndex < 0 || value.sliceIndex >= sprites.Length)
+                return null;
             return sprites[value.sliceIndex];
         }
 
         public static AudioClip? ResolveAudioClip(NeoAssetDatabase? database, FileValue? value)
         {
-            if (value == null) return null;
+            if (value == null)
+                return null;
             database ??= NeoAssetDatabase.LoadDefault();
             var direct = database?.TryGetAudioClip(value.fileId);
-            if (direct != null) return direct;
+            if (direct != null)
+                return direct;
 
             var path = ResolveResourcePath(database, value.fileId);
             return path == null ? null : Resources.Load<AudioClip>(path);
@@ -76,7 +83,8 @@ namespace NeoCompose.Runtime
         private static string? ResolveResourcePath(NeoAssetDatabase? database, string fileId)
         {
             var assetPath = database?.TryGetAssetPath(fileId);
-            if (string.IsNullOrWhiteSpace(assetPath)) return null;
+            if (string.IsNullOrWhiteSpace(assetPath))
+                return null;
 
             var resourcesMarker = "/Resources/";
             var markerIndex = assetPath.IndexOf(resourcesMarker, StringComparison.Ordinal);
@@ -102,7 +110,8 @@ namespace NeoCompose.Runtime
             string memberName,
             string assetKind)
         {
-            if (expectedTemplateId == null || entry.TemplateId == expectedTemplateId) return;
+            if (expectedTemplateId == null || entry.TemplateId == expectedTemplateId)
+                return;
 
             var actualTemplate = entry.TemplateId ?? "<none>";
             var fileName = string.IsNullOrWhiteSpace(entry.FileName)

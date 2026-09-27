@@ -184,11 +184,15 @@ namespace NeoCompose.Tests
                 this.onDispose = onDispose;
             }
 
-            public int DisposeCalls { get; private set; }
+            public int DisposeCalls
+            {
+                get; private set;
+            }
 
             public void Dispose()
             {
-                if (DisposeCalls > 0) return;
+                if (DisposeCalls > 0)
+                    return;
                 DisposeCalls += 1;
                 onDispose();
             }
@@ -201,7 +205,10 @@ namespace NeoCompose.Tests
                 Primitive = primitive;
             }
 
-            public NeoReadOnlyTileGridPrimitive Primitive { get; }
+            public NeoReadOnlyTileGridPrimitive Primitive
+            {
+                get;
+            }
             public IReadOnlyList<IReadOnlyNeoTileLayerRuntime> TileLayersInOrder =>
                 Array.Empty<IReadOnlyNeoTileLayerRuntime>();
             public IReadOnlyList<IReadOnlyNeoObjectLayerRuntime> ObjectLayersInOrder =>

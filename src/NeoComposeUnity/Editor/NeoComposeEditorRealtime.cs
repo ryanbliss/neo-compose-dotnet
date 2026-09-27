@@ -20,7 +20,10 @@ namespace NeoCompose.Unity.Editor
     /// </summary>
     public interface INeoComposeEditorRealtimeProvider : IDisposable
     {
-        NeoRealtimeConnectionState State { get; }
+        NeoRealtimeConnectionState State
+        {
+            get;
+        }
 
         event Action<NeoRealtimeConnectionState>? OnConnectionStateChanged;
 
@@ -81,10 +84,22 @@ namespace NeoCompose.Unity.Editor
                 ?? throw new ArgumentNullException(nameof(sessionTokenProvider));
         }
 
-        public string apiBaseUrl { get; }
-        public string convexUrl { get; }
-        public string projectId { get; }
-        public INeoComposeAccessTokenProvider sessionTokenProvider { get; }
+        public string apiBaseUrl
+        {
+            get;
+        }
+        public string convexUrl
+        {
+            get;
+        }
+        public string projectId
+        {
+            get;
+        }
+        public INeoComposeAccessTokenProvider sessionTokenProvider
+        {
+            get;
+        }
     }
 
     /// <summary>
@@ -97,6 +112,8 @@ namespace NeoCompose.Unity.Editor
     {
         public static Func<NeoComposeEditorRealtimeContext, INeoComposeEditorRealtimeProvider>?
             ProviderFactory
-        { get; set; }
+        {
+            get; set;
+        }
     }
 }

@@ -29,7 +29,10 @@ namespace NeoCompose.Runtime.Json
         /// Non-call pointers leave it null and omit it from JSON.
         /// </summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public virtual string? callSiteId { get; set; }
+        public virtual string? callSiteId
+        {
+            get; set;
+        }
     }
 
     /// <summary>Mirror of <c>INSPointerReference</c>.</summary>
@@ -271,7 +274,10 @@ namespace NeoCompose.Runtime.Json
         public string? targetClassId;
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public Pointer? targetPointer;
-        public override string? callSiteId { get; set; }
+        public override string? callSiteId
+        {
+            get; set;
+        }
     }
 
     /// <summary>
@@ -291,7 +297,10 @@ namespace NeoCompose.Runtime.Json
         public bool? optional;
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string? missingMemberFallback;
-        public override string? callSiteId { get; set; }
+        public override string? callSiteId
+        {
+            get; set;
+        }
     }
 
     /// <summary>
@@ -303,7 +312,10 @@ namespace NeoCompose.Runtime.Json
         public Pointer @delegate = null!;
         public Pointer[] args = null!;
         public bool? optional;
-        public override string? callSiteId { get; set; }
+        public override string? callSiteId
+        {
+            get; set;
+        }
     }
 
     /// <summary>
@@ -317,7 +329,10 @@ namespace NeoCompose.Runtime.Json
     {
         public Pointer action = null!;
         public Pointer[] args = null!;
-        public override string? callSiteId { get; set; }
+        public override string? callSiteId
+        {
+            get; set;
+        }
     }
 
     public class FunctionErrorCheckPointer : Pointer
@@ -332,31 +347,56 @@ namespace NeoCompose.Runtime.Json
         {
             switch (discriminator.Value<string>())
             {
-                case PointerKind.Reference: return typeof(ReferencePointer);
-                case PointerKind.Variable: return typeof(VariablePointer);
-                case PointerKind.Value: return typeof(ValuePointer);
-                case PointerKind.Operation: return typeof(OperationPointer);
-                case PointerKind.Function: return typeof(FunctionPointer);
-                case PointerKind.KeyOf: return typeof(KeyOfPointer);
-                case PointerKind.ListLiteral: return typeof(ListLiteralPointer);
-                case PointerKind.DictLiteral: return typeof(DictLiteralPointer);
-                case PointerKind.ForceUnwrap: return typeof(ForceUnwrapPointer);
-                case PointerKind.IsCheck: return typeof(IsCheckPointer);
-                case PointerKind.CallGetter: return typeof(CallGetterPointer);
-                case PointerKind.Coalesce: return typeof(CoalescePointer);
-                case PointerKind.Conditional: return typeof(ConditionalPointer);
-                case PointerKind.ObjectInitializer: return typeof(ObjectInitializerPointer);
-                case PointerKind.DelegateClosure: return typeof(DelegateClosurePointer);
-                case PointerKind.ToBool: return typeof(ToBoolPointer);
-                case PointerKind.Stringify: return typeof(StringifyPointer);
-                case PointerKind.CallFunction: return typeof(CallFunctionPointer);
-                case PointerKind.TileConvert: return typeof(TileConvertPointer);
-                case PointerKind.CallDelegate: return typeof(CallDelegatePointer);
-                case PointerKind.CallAction: return typeof(CallActionPointer);
-                case PointerKind.FunctionErrorCheck: return typeof(FunctionErrorCheckPointer);
-                case PointerKind.StaticMember: return typeof(StaticMemberPointer);
-                case PointerKind.Variant: return typeof(VariantPointer);
-                default: return null;
+                case PointerKind.Reference:
+                    return typeof(ReferencePointer);
+                case PointerKind.Variable:
+                    return typeof(VariablePointer);
+                case PointerKind.Value:
+                    return typeof(ValuePointer);
+                case PointerKind.Operation:
+                    return typeof(OperationPointer);
+                case PointerKind.Function:
+                    return typeof(FunctionPointer);
+                case PointerKind.KeyOf:
+                    return typeof(KeyOfPointer);
+                case PointerKind.ListLiteral:
+                    return typeof(ListLiteralPointer);
+                case PointerKind.DictLiteral:
+                    return typeof(DictLiteralPointer);
+                case PointerKind.ForceUnwrap:
+                    return typeof(ForceUnwrapPointer);
+                case PointerKind.IsCheck:
+                    return typeof(IsCheckPointer);
+                case PointerKind.CallGetter:
+                    return typeof(CallGetterPointer);
+                case PointerKind.Coalesce:
+                    return typeof(CoalescePointer);
+                case PointerKind.Conditional:
+                    return typeof(ConditionalPointer);
+                case PointerKind.ObjectInitializer:
+                    return typeof(ObjectInitializerPointer);
+                case PointerKind.DelegateClosure:
+                    return typeof(DelegateClosurePointer);
+                case PointerKind.ToBool:
+                    return typeof(ToBoolPointer);
+                case PointerKind.Stringify:
+                    return typeof(StringifyPointer);
+                case PointerKind.CallFunction:
+                    return typeof(CallFunctionPointer);
+                case PointerKind.TileConvert:
+                    return typeof(TileConvertPointer);
+                case PointerKind.CallDelegate:
+                    return typeof(CallDelegatePointer);
+                case PointerKind.CallAction:
+                    return typeof(CallActionPointer);
+                case PointerKind.FunctionErrorCheck:
+                    return typeof(FunctionErrorCheckPointer);
+                case PointerKind.StaticMember:
+                    return typeof(StaticMemberPointer);
+                case PointerKind.Variant:
+                    return typeof(VariantPointer);
+                default:
+                    return null;
             }
         }
 
@@ -507,7 +547,8 @@ namespace NeoCompose.Runtime.Json
                 }
                 return;
             }
-            if (concrete != typeof(CallFunctionPointer)) return;
+            if (concrete != typeof(CallFunctionPointer))
+                return;
 
             bool hasMemberId = HasNonEmptyString(obj, "memberId");
             bool hasMemberKey = HasNonEmptyString(obj, "memberKey");
@@ -561,7 +602,8 @@ namespace NeoCompose.Runtime.Json
 
         private static void ValidateDispatch(JObject obj)
         {
-            if (obj.Property("dispatch") is null) return;
+            if (obj.Property("dispatch") is null)
+                return;
             if (obj["dispatch"]?.Type != JTokenType.String || obj["dispatch"]!.Value<string>() != "base")
                 throw new JsonSerializationException("Callable pointer 'dispatch' must be 'base' when present.");
             if (obj["receiver"]?["kind"]?.Value<string>() != CallReceiverKind.Instance)

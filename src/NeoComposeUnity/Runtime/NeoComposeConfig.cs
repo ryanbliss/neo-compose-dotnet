@@ -108,15 +108,18 @@ namespace NeoCompose.Runtime
         public bool TryBuildAuthenticationOptions(out NeoAuthenticationOptions? options)
         {
             options = null;
-            if (string.IsNullOrWhiteSpace(projectId)) return false;
-            if (!HasRuntimeOAuthClient) return false;
+            if (string.IsNullOrWhiteSpace(projectId))
+                return false;
+            if (!HasRuntimeOAuthClient)
+                return false;
 
             var scopes = string.Join(
                 " ",
                 runtimeOAuthScopes
                     .Where(scope => !string.IsNullOrWhiteSpace(scope))
                     .Select(scope => scope.Trim()));
-            if (string.IsNullOrWhiteSpace(scopes)) return false;
+            if (string.IsNullOrWhiteSpace(scopes))
+                return false;
 
             options = new NeoAuthenticationOptions(
                 apiBaseUrl,
@@ -145,20 +148,25 @@ namespace NeoCompose.Runtime
         public bool TryGetCloudSaveSyncWarning(string? runtimeApiKey, out string? warning)
         {
             warning = null;
-            if (!enableOAuthCloudSync) return false;
+            if (!enableOAuthCloudSync)
+                return false;
 
             bool requiresOAuthClient = false;
             bool requiresApiKey = false;
             foreach (var scope in runtimeOAuthScopes)
             {
-                if (string.IsNullOrWhiteSpace(scope)) continue;
-                if (scope.Contains(":save:")) requiresOAuthClient = true;
-                if (scope.Contains(":runtime:")) requiresApiKey = true;
+                if (string.IsNullOrWhiteSpace(scope))
+                    continue;
+                if (scope.Contains(":save:"))
+                    requiresOAuthClient = true;
+                if (scope.Contains(":runtime:"))
+                    requiresApiKey = true;
             }
 
             // No scopes synced yet but sync is requested: the save credential is the
             // baseline expectation, so treat a missing client id as the gap.
-            if (!requiresOAuthClient && !requiresApiKey) requiresOAuthClient = true;
+            if (!requiresOAuthClient && !requiresApiKey)
+                requiresOAuthClient = true;
 
             if (requiresOAuthClient && !HasRuntimeOAuthClient)
             {

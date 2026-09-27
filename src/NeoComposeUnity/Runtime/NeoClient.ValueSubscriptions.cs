@@ -26,9 +26,12 @@ namespace NeoCompose.Runtime
 
         private void UnsubscribeWritableValue(string valueId, Action<NeoValueOwnership, string> handler)
         {
-            if (!writableValueSubscriptions.TryGetValue(valueId, out var handlers)) return;
-            if (!handlers.Remove(handler)) return;
-            if (handlers.Count == 0) writableValueSubscriptions.Remove(valueId);
+            if (!writableValueSubscriptions.TryGetValue(valueId, out var handlers))
+                return;
+            if (!handlers.Remove(handler))
+                return;
+            if (handlers.Count == 0)
+                writableValueSubscriptions.Remove(valueId);
         }
 
         private void PublishWritableValueChange(NeoValueOwnership ownership, string valueId)
@@ -43,7 +46,8 @@ namespace NeoCompose.Runtime
                 handlers.CopyTo(snapshot, 0);
                 try
                 {
-                    for (int i = 0; i < count; i++) snapshot[i](ownership, valueId);
+                    for (int i = 0; i < count; i++)
+                        snapshot[i](ownership, valueId);
                 }
                 finally
                 {
@@ -70,7 +74,8 @@ namespace NeoCompose.Runtime
             public void Dispose()
             {
                 NeoClient? owner = client;
-                if (owner is null) return;
+                if (owner is null)
+                    return;
                 client = null;
                 owner.UnsubscribeWritableValue(valueId, handler);
             }

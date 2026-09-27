@@ -61,13 +61,28 @@ namespace NeoCompose.Runtime.Json
             Outcome = outcome;
         }
 
-        public NeoLivePatchOutcome Outcome { get; }
+        public NeoLivePatchOutcome Outcome
+        {
+            get;
+        }
         public string SnapshotId { get; private set; } = "";
-        public long SnapshotRevision { get; private set; }
-        public NeoTimestamp SynchronizedAt { get; private set; }
+        public long SnapshotRevision
+        {
+            get; private set;
+        }
+        public NeoTimestamp SynchronizedAt
+        {
+            get; private set;
+        }
         public List<GameSaveRecordDescriptor> ChangedDescriptors { get; private set; } = new();
-        public GameSaveSnapshotRevisionSignal? ServerHead { get; private set; }
-        public GameSaveRecordConflict? Conflict { get; private set; }
+        public GameSaveSnapshotRevisionSignal? ServerHead
+        {
+            get; private set;
+        }
+        public GameSaveRecordConflict? Conflict
+        {
+            get; private set;
+        }
 
         public bool IsStaleTarget => Outcome == NeoLivePatchOutcome.StaleTarget;
         public bool IsConflict => Outcome == NeoLivePatchOutcome.Conflict;

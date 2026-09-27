@@ -33,24 +33,38 @@ namespace NeoCompose.Runtime
                 SubscribeGrid(content, reads);
             }
             reads.placements.Add(placementId);
-            if (cell is Vector2Int queried) (tile ? reads.tiles : reads.objects).Add(queried);
+            if (cell is Vector2Int queried)
+                (tile ? reads.tiles : reads.objects).Add(queried);
         }
 
         private void SubscribeGrid(INeoTileGridContent content, GridReads reads)
         {
-            if (invalidated is null) return;
+            if (invalidated is null)
+                return;
             reads.subscription = content.Primitive.Client.ScriptGridQueries.OnChanged(content.Primitive.GridValueId, change =>
             {
                 foreach (var layer in change.ObjectLayers)
                 {
                     foreach (var id in layer.ChangedInstances)
-                        if (reads.placements.Contains(id.Value)) { Invalidate(); return; }
+                        if (reads.placements.Contains(id.Value))
+                        {
+                            Invalidate();
+                            return;
+                        }
                     foreach (var changed in layer.ChangedCells)
-                        if (reads.objects.Contains(changed)) { Invalidate(); return; }
+                        if (reads.objects.Contains(changed))
+                        {
+                            Invalidate();
+                            return;
+                        }
                 }
                 foreach (var layer in change.TileLayers)
                     foreach (var changed in layer.ChangedCells)
-                        if (reads.tiles.Contains(changed)) { Invalidate(); return; }
+                        if (reads.tiles.Contains(changed))
+                        {
+                            Invalidate();
+                            return;
+                        }
             });
             reads.layerSubscription = content.Primitive.Client.ScriptGridQueries.OnLayerInvalidated(content.Primitive.GridValueId,
                 (layerId, tileLayer) =>
@@ -63,7 +77,8 @@ namespace NeoCompose.Runtime
         private bool isInvalidated;
         private void Invalidate()
         {
-            if (isInvalidated) return;
+            if (isInvalidated)
+                return;
             isInvalidated = true;
             invalidated?.Invoke();
         }
@@ -71,7 +86,8 @@ namespace NeoCompose.Runtime
         private readonly Dictionary<NeoClient, (HashSet<(NeoValueOwnership ownership, string id)> ids, Action<NeoValueOwnership, string> handler)> values = new();
         internal void RecordValue(NeoClient client, NeoValueOwnership ownership, string id)
         {
-            if (grids.Count == 0 || invalidated is null) return;
+            if (grids.Count == 0 || invalidated is null)
+                return;
             if (!values.TryGetValue(client, out var reads))
             {
                 reads = SubscribeValues(client);
@@ -88,7 +104,8 @@ namespace NeoCompose.Runtime
             var ids = new HashSet<(NeoValueOwnership ownership, string id)>();
             void Changed(NeoValueOwnership ownership, string id)
             {
-                if (ids.Contains((ownership, id))) Invalidate();
+                if (ids.Contains((ownership, id)))
+                    Invalidate();
             }
             client.OnWritableValueChanged += Changed;
             return (ids, Changed);
@@ -96,9 +113,14 @@ namespace NeoCompose.Runtime
 
         public void Dispose()
         {
-            foreach (GridReads reads in grids.Values) { reads.subscription?.Dispose(); reads.layerSubscription?.Dispose(); }
+            foreach (GridReads reads in grids.Values)
+            {
+                reads.subscription?.Dispose();
+                reads.layerSubscription?.Dispose();
+            }
             grids.Clear();
-            foreach (var reads in values) reads.Key.OnWritableValueChanged -= reads.Value.handler;
+            foreach (var reads in values)
+                reads.Key.OnWritableValueChanged -= reads.Value.handler;
             values.Clear();
         }
 
@@ -123,7 +145,11 @@ namespace NeoCompose.Runtime
         internal void NotifyChanged(NeoTileGridChangedArgs change) => Changed?.Invoke(change);
         internal IDisposable OnChanged(string gridId, Action<NeoTileGridChangedArgs> handler)
         {
-            void Handle(NeoTileGridChangedArgs change) { if (change.GridValueId == gridId) handler(change); }
+            void Handle(NeoTileGridChangedArgs change)
+            {
+                if (change.GridValueId == gridId)
+                    handler(change);
+            }
             Changed += Handle;
             return new NeoDisposableSubscription(() => Changed -= Handle);
         }
@@ -132,7 +158,11 @@ namespace NeoCompose.Runtime
         internal void NotifyLayerInvalidated(string gridId, string layerId, bool tile) => LayerInvalidated?.Invoke(gridId, layerId, tile);
         internal IDisposable OnLayerInvalidated(string gridId, Action<string, bool> handler)
         {
-            void Handle(string changedGrid, string layerId, bool tile) { if (gridId == changedGrid) handler(layerId, tile); }
+            void Handle(string changedGrid, string layerId, bool tile)
+            {
+                if (gridId == changedGrid)
+                    handler(layerId, tile);
+            }
             LayerInvalidated += Handle;
             return new NeoDisposableSubscription(() => LayerInvalidated -= Handle);
         }
@@ -148,7 +178,8 @@ namespace NeoCompose.Runtime
                 && contentByGrid.TryGetValue(binding.grid, out var content))
             {
                 var placement = content.Primitive.LookupCache.ObjectRecord(binding.layer, binding.instance);
-                if (placement is not null) return (content, placement);
+                if (placement is not null)
+                    return (content, placement);
                 placements.Remove(receiverId);
             }
             // Direct stored-row invocation may precede access through generated grid content.
@@ -157,7 +188,8 @@ namespace NeoCompose.Runtime
             var visited = new HashSet<string>();
             while (visited.Add(current))
             {
-                if (!client.TryGetValue(current, out MemberValue? row)) break;
+                if (!client.TryGetValue(current, out MemberValue? row))
+                    break;
                 if (row.classId is string classId && factories.TryGetValue(classId, out var factory))
                 {
                     content = contentByGrid.TryGetValue(current, out var existing) ? existing : factory(client, current);
@@ -165,15 +197,21 @@ namespace NeoCompose.Runtime
                     foreach (var layer in content.ObjectLayersInOrder)
                     {
                         var placement = content.Primitive.LookupCache.ObjectRecord(layer.LayerId, receiverId);
-                        if (placement is null) continue;
+                        if (placement is null)
+                            continue;
                         Bind(receiverId, current, layer.LayerId, placement.InstanceId);
                         return (content, placement);
                     }
                     break;
                 }
                 string? parent = null;
-                foreach (string candidate in client.GridQueryParents(current)) { parent = candidate; break; }
-                if (parent is null) break;
+                foreach (string candidate in client.GridQueryParents(current))
+                {
+                    parent = candidate;
+                    break;
+                }
+                if (parent is null)
+                    break;
                 current = parent;
             }
             throw new NSGetterRuntimeError("Grid queries require an actual placed NeoObject in an owning grid.");
@@ -197,7 +235,8 @@ namespace NeoCompose.Runtime
             bool getCell = memberId == "system_df1c2d06-eeec-5340-addc-740f3668c9e4";
             bool getObjects = memberId == "system_f5ca386c-990c-54a1-8473-2d49d2cd887d";
             bool getTile = memberId == "system_593e6208-e2ca-505e-9933-04b17102b6d2";
-            if (!getCell && !getObjects && !getTile) return false;
+            if (!getCell && !getObjects && !getTile)
+                return false;
             string receiverId = NSGetterEvaluator.FindRowIdByReference(receiver, ctx)
                 ?? (receiver as INeoValueReference)?.valueId
                 ?? throw new NSGetterRuntimeError("Grid query receiver has no placement identity.");
@@ -219,7 +258,8 @@ namespace NeoCompose.Runtime
                 if (getTile)
                 {
                     var tile = content.GetTile(cell);
-                    if (tile is null) continue;
+                    if (tile is null)
+                        continue;
                     result = RuntimeValue(tile, ctx);
                     return true;
                 }

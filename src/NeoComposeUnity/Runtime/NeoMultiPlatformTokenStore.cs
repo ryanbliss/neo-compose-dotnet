@@ -114,9 +114,11 @@ namespace NeoCompose.Runtime
         public NeoComposeStoredToken? Load()
         {
             var hint = PeekHint();
-            if (hint == null) return null;
+            if (hint == null)
+                return null;
             var secret = secretStore.Read(SecretKeyPrefix + accountKey);
-            if (string.IsNullOrWhiteSpace(secret)) return null;
+            if (string.IsNullOrWhiteSpace(secret))
+                return null;
             return new NeoComposeStoredToken(
                 secret!,
                 hint.expiresAtUnixSeconds,
@@ -147,7 +149,8 @@ namespace NeoCompose.Runtime
         public NeoComposeTokenHint? PeekHint()
         {
             var raw = hintStore.Read(HintKeyPrefix + accountKey);
-            if (string.IsNullOrWhiteSpace(raw)) return null;
+            if (string.IsNullOrWhiteSpace(raw))
+                return null;
             try
             {
                 return JsonConvert.DeserializeObject<NeoComposeTokenHint>(raw!);
@@ -189,9 +192,11 @@ namespace NeoCompose.Runtime
     {
         public string? Read(string accountKey)
         {
-            if (!PlayerPrefs.HasKey(accountKey)) return null;
+            if (!PlayerPrefs.HasKey(accountKey))
+                return null;
             var cipher = PlayerPrefs.GetString(accountKey);
-            if (string.IsNullOrWhiteSpace(cipher)) return null;
+            if (string.IsNullOrWhiteSpace(cipher))
+                return null;
             try
             {
                 return Decrypt(cipher);

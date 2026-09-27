@@ -61,7 +61,8 @@ namespace NeoCompose.Runtime
         {
             get
             {
-                if (member.returnTypeInfo is not null) return member.returnTypeInfo;
+                if (member.returnTypeInfo is not null)
+                    return member.returnTypeInfo;
                 return NeoSchemaClassInheritance.WalkExtendsMemberChain(
                     member.id,
                     id => client.TryGetMember(id, out Member? a) ? a : null,
@@ -142,8 +143,10 @@ namespace NeoCompose.Runtime
         // on each read.
         private NeoScriptGridReads ResetGridReads()
         {
-            if (gridReads is null) gridReads = new NeoScriptGridReads(NotifyChanged);
-            else gridReads.Reset();
+            if (gridReads is null)
+                gridReads = new NeoScriptGridReads(NotifyChanged);
+            else
+                gridReads.Reset();
             return gridReads;
         }
 
@@ -212,7 +215,8 @@ namespace NeoCompose.Runtime
                     if (cursor.value is ObjectMemberValue obj)
                     {
                         boundThis = NSGetterEvaluator.UnwrapRow(obj, ctx, cursor.ownership);
-                        if (boundThis is not null) break;
+                        if (boundThis is not null)
+                            break;
                     }
                     cursor = cursor.parent;
                 }
@@ -237,7 +241,8 @@ namespace NeoCompose.Runtime
             }
             finally
             {
-                if (memoize) reads = client.EndGetterReadCapture(enclosingCapture, out valueReads);
+                if (memoize)
+                    reads = client.EndGetterReadCapture(enclosingCapture, out valueReads);
             }
             if (memoize && client.CanMemoizeGetters)
             {
@@ -328,7 +333,8 @@ namespace NeoCompose.Runtime
                     (terminal, _) => NeoScriptExecutor.ValidateStatementTerminal(
                         terminal,
                         "NeoScript property setter"));
-                if (!execution.IsPaused) return NSSetterResult.Ok();
+                if (!execution.IsPaused)
+                    return NSSetterResult.Ok();
 
                 ObservePendingExecution(execution, terminalLogger);
                 return NSSetterResult.Pending();
@@ -345,7 +351,8 @@ namespace NeoCompose.Runtime
             MemberValue? thisRow,
             NSGetterEvaluator.Context ctx)
         {
-            if (thisValue is not null) return thisValue;
+            if (thisValue is not null)
+                return thisValue;
             if (thisRow is not null)
             {
                 return NSGetterEvaluator.UnwrapRow(thisRow, ctx, ownership);
@@ -359,7 +366,8 @@ namespace NeoCompose.Runtime
                         obj,
                         ctx,
                         cursor.ownership);
-                    if (resolved is not null) return resolved;
+                    if (resolved is not null)
+                        return resolved;
                 }
                 cursor = cursor.parent;
             }
@@ -414,7 +422,8 @@ namespace NeoCompose.Runtime
 
             internal void Log(System.Exception exception)
             {
-                if (Interlocked.Exchange(ref logged, 1) != 0) return;
+                if (Interlocked.Exchange(ref logged, 1) != 0)
+                    return;
                 Debug.LogError(
                     $"NeoScript property setter '{property.name}' ({property.id}) failed: " +
                     exception.Message);

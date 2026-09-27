@@ -3039,7 +3039,8 @@ namespace NeoCompose.Tests
             // re-reading the discriminator + casting at every site.
             foreach (var pair in export.members)
             {
-                if (!(pair.Value is NSPropertyMember nsGetter)) continue;
+                if (!(pair.Value is NSPropertyMember nsGetter))
+                    continue;
                 nsGetterCount++;
                 Assert.IsNotNull(
                     nsGetter.getter,

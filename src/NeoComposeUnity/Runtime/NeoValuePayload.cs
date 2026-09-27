@@ -15,9 +15,18 @@ namespace NeoCompose.Runtime
     /// </summary>
     public sealed class NeoValuePayload
     {
-        public object? value { get; }
-        public string? classId { get; }
-        public IReadOnlyList<MemberValue> valueRows { get; }
+        public object? value
+        {
+            get;
+        }
+        public string? classId
+        {
+            get;
+        }
+        public IReadOnlyList<MemberValue> valueRows
+        {
+            get;
+        }
 
         public NeoValuePayload(
             object? value,

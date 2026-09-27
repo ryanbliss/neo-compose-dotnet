@@ -43,12 +43,14 @@ namespace NeoCompose.Unity.Editor
         public NeoComposeUnityExportSyncState? Load(string projectId, string versionId)
         {
             var path = CachePath(projectId, versionId);
-            if (!File.Exists(path)) return null;
+            if (!File.Exists(path))
+                return null;
             try
             {
                 var state = JsonConvert.DeserializeObject<NeoComposeUnityExportSyncState>(
                     File.ReadAllText(path));
-                if (state == null || state.schemaVersion != 1) return null;
+                if (state == null || state.schemaVersion != 1)
+                    return null;
                 return state;
             }
             catch (JsonException)
@@ -73,7 +75,8 @@ namespace NeoCompose.Unity.Editor
         public void Delete(string projectId, string versionId)
         {
             var path = CachePath(projectId, versionId);
-            if (File.Exists(path)) File.Delete(path);
+            if (File.Exists(path))
+                File.Delete(path);
         }
 
         private string CachePath(string projectId, string versionId)
@@ -94,7 +97,8 @@ namespace NeoCompose.Unity.Editor
             using var sha = SHA256.Create();
             var hash = sha.ComputeHash(Encoding.UTF8.GetBytes(value));
             var builder = new StringBuilder(hash.Length * 2);
-            foreach (var item in hash) builder.Append(item.ToString("x2"));
+            foreach (var item in hash)
+                builder.Append(item.ToString("x2"));
             return builder.ToString();
         }
     }

@@ -92,7 +92,8 @@ namespace NeoCompose.Runtime
                 dialogueContext,
                 memoryStore);
             object? result = NSGetterEvaluator.Evaluate(variable.getter, ctx);
-            if (result is string text) return text;
+            if (result is string text)
+                return text;
             if (result is null)
             {
                 throw new NSGetterRuntimeError(
@@ -104,11 +105,16 @@ namespace NeoCompose.Runtime
 
         private static string ResultTypeName(object value)
         {
-            if (value is bool) return "bool";
-            if (value is string) return "string";
-            if (value is double || value is float || value is int || value is long) return "number";
-            if (value is object?[]) return "list";
-            if (value is IDictionary<string, object?>) return "object";
+            if (value is bool)
+                return "bool";
+            if (value is string)
+                return "string";
+            if (value is double || value is float || value is int || value is long)
+                return "number";
+            if (value is object?[])
+                return "list";
+            if (value is IDictionary<string, object?>)
+                return "object";
             return value.GetType().Name;
         }
     }

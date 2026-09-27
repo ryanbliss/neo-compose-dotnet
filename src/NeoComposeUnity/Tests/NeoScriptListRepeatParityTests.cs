@@ -254,18 +254,30 @@ namespace NeoCompose.Tests
         {
             switch (value)
             {
-                case double d: result = d; return true;
-                case float f: result = f; return true;
-                case long l: result = l; return true;
-                case int i: result = i; return true;
-                default: result = 0; return false;
+                case double d:
+                    result = d;
+                    return true;
+                case float f:
+                    result = f;
+                    return true;
+                case long l:
+                    result = l;
+                    return true;
+                case int i:
+                    result = i;
+                    return true;
+                default:
+                    result = 0;
+                    return false;
             }
         }
 
         private static string Describe(object? value)
         {
-            if (value is null) return "null";
-            if (value is string text) return $"\"{text}\"";
+            if (value is null)
+                return "null";
+            if (value is string text)
+                return $"\"{text}\"";
             return $"{value} ({value.GetType().Name})";
         }
 

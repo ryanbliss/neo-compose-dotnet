@@ -39,10 +39,16 @@ namespace NeoCompose.Runtime
         public bool IsBound => memberId is not null;
 
         /// <summary>Terminal binding member id; set iff <see cref="IsBound"/>.</summary>
-        public string? memberId { get; }
+        public string? memberId
+        {
+            get;
+        }
 
         /// <summary>Deepest forward target; set iff not <see cref="IsBound"/>.</summary>
-        public string? unboundParamId { get; }
+        public string? unboundParamId
+        {
+            get;
+        }
     }
 
     /// <summary>Admission result of <see cref="NeoGenericResolution.ConstructedSlotAccepts"/>.</summary>
@@ -58,10 +64,16 @@ namespace NeoCompose.Runtime
 
         public static NeoSlotAdmission Reject(string reason) => new(false, reason);
 
-        public bool ok { get; }
+        public bool ok
+        {
+            get;
+        }
 
         /// <summary>Human-readable rejection reason; set iff not <see cref="ok"/>.</summary>
-        public string? reason { get; }
+        public string? reason
+        {
+            get;
+        }
     }
 
     /// <summary>
@@ -167,7 +179,8 @@ namespace NeoCompose.Runtime
             for (int i = 0; i < chain.Count; i++)
             {
                 var declared = chain[i].genericParams;
-                if (declared is null) continue;
+                if (declared is null)
+                    continue;
                 foreach (var param in declared)
                 {
                     env ??= new Dictionary<string, NeoGenericEnvEntry>();
@@ -222,7 +235,8 @@ namespace NeoCompose.Runtime
         {
             foreach (var entry in ResolveEnv(client, classId).Values)
             {
-                if (!entry.IsBound) return false;
+                if (!entry.IsBound)
+                    return false;
             }
             return true;
         }
@@ -284,7 +298,8 @@ namespace NeoCompose.Runtime
             }
             foreach (var pair in classArguments)
             {
-                if (pair.Value.IsForward) continue;
+                if (pair.Value.IsForward)
+                    continue;
                 if (overlaid.TryGetValue(pair.Key, out NeoGenericEnvEntry existing)
                     && existing.IsBound)
                 {
@@ -307,7 +322,8 @@ namespace NeoCompose.Runtime
         {
             foreach (var entry in env.Values)
             {
-                if (!entry.IsBound) return entry.unboundParamId;
+                if (!entry.IsBound)
+                    return entry.unboundParamId;
             }
             return null;
         }
@@ -324,7 +340,8 @@ namespace NeoCompose.Runtime
         public static IReadOnlyDictionary<string, NeoGenericEnvEntry> EnvFromStamp(
             IReadOnlyDictionary<string, string>? stamp)
         {
-            if (stamp is null || stamp.Count == 0) return EmptyEnv;
+            if (stamp is null || stamp.Count == 0)
+                return EmptyEnv;
             var env = new Dictionary<string, NeoGenericEnvEntry>(stamp.Count);
             foreach (var pair in stamp)
             {
@@ -405,7 +422,8 @@ namespace NeoCompose.Runtime
             }
             if (member is ClassMember classMember)
             {
-                if (classMember.classArguments is null) return;
+                if (classMember.classArguments is null)
+                    return;
                 foreach (var arg in classMember.classArguments.Values)
                 {
                     if (arg.IsForward)
@@ -413,7 +431,8 @@ namespace NeoCompose.Runtime
                         result.Add(arg.genericParamId!);
                         continue;
                     }
-                    if (!client.TryGetMember(arg.memberId!, out Member? argumentMember)) continue;
+                    if (!client.TryGetMember(arg.memberId!, out Member? argumentMember))
+                        continue;
                     CollectReferencedGenericParams(client, argumentMember, seen, result);
                 }
                 return;
@@ -424,8 +443,10 @@ namespace NeoCompose.Runtime
                 DictionaryMember dictionary => dictionary.entryMemberId,
                 _ => null,
             };
-            if (entryMemberId is null) return;
-            if (!client.TryGetMember(entryMemberId, out Member? entryMember)) return;
+            if (entryMemberId is null)
+                return;
+            if (!client.TryGetMember(entryMemberId, out Member? entryMember))
+                return;
             CollectReferencedGenericParams(client, entryMember, seen, result);
         }
 
@@ -445,7 +466,8 @@ namespace NeoCompose.Runtime
             IReadOnlyDictionary<string, NeoGenericEnvEntry> env)
         {
             var referenced = ReferencedGenericParams(client, collectionMember);
-            if (referenced.Count == 0) return null;
+            if (referenced.Count == 0)
+                return null;
             var stamp = new Dictionary<string, string>(referenced.Count);
             foreach (var paramId in referenced)
             {
@@ -482,7 +504,8 @@ namespace NeoCompose.Runtime
             {
                 return;
             }
-            if (row.genericBindings is not null) return;
+            if (row.genericBindings is not null)
+                return;
             row.genericBindings = ComputeGenericBindingsStamp(client, collectionMember, env);
         }
 
@@ -561,20 +584,48 @@ namespace NeoCompose.Runtime
         {
             switch (member)
             {
-                case Member<object?> typed: CopyDeclarationDefault(typed, declarationDefault); break;
-                case Member<bool?> typed: CopyDeclarationDefault(typed, declarationDefault); break;
-                case Member<double?> typed: CopyDeclarationDefault(typed, declarationDefault); break;
-                case Member<string?> typed: CopyDeclarationDefault(typed, declarationDefault); break;
-                case Member<Dictionary<string, string>?> typed: CopyDeclarationDefault(typed, declarationDefault); break;
-                case Member<string[]?> typed: CopyDeclarationDefault(typed, declarationDefault); break;
-                case Member<NeoDelegateValue?> typed: CopyDeclarationDefault(typed, declarationDefault); break;
-                case Member<NeoActionValue?> typed: CopyDeclarationDefault(typed, declarationDefault); break;
-                case Member<VariantRefValue?> typed: CopyDeclarationDefault(typed, declarationDefault); break;
-                case Member<SpriteValue?> typed: CopyDeclarationDefault(typed, declarationDefault); break;
-                case Member<FileValue?> typed: CopyDeclarationDefault(typed, declarationDefault); break;
-                case Member<NeoVector2Value?> typed: CopyDeclarationDefault(typed, declarationDefault); break;
-                case Member<NeoVector3Value?> typed: CopyDeclarationDefault(typed, declarationDefault); break;
-                case Member<NeoColorValue?> typed: CopyDeclarationDefault(typed, declarationDefault); break;
+                case Member<object?> typed:
+                    CopyDeclarationDefault(typed, declarationDefault);
+                    break;
+                case Member<bool?> typed:
+                    CopyDeclarationDefault(typed, declarationDefault);
+                    break;
+                case Member<double?> typed:
+                    CopyDeclarationDefault(typed, declarationDefault);
+                    break;
+                case Member<string?> typed:
+                    CopyDeclarationDefault(typed, declarationDefault);
+                    break;
+                case Member<Dictionary<string, string>?> typed:
+                    CopyDeclarationDefault(typed, declarationDefault);
+                    break;
+                case Member<string[]?> typed:
+                    CopyDeclarationDefault(typed, declarationDefault);
+                    break;
+                case Member<NeoDelegateValue?> typed:
+                    CopyDeclarationDefault(typed, declarationDefault);
+                    break;
+                case Member<NeoActionValue?> typed:
+                    CopyDeclarationDefault(typed, declarationDefault);
+                    break;
+                case Member<VariantRefValue?> typed:
+                    CopyDeclarationDefault(typed, declarationDefault);
+                    break;
+                case Member<SpriteValue?> typed:
+                    CopyDeclarationDefault(typed, declarationDefault);
+                    break;
+                case Member<FileValue?> typed:
+                    CopyDeclarationDefault(typed, declarationDefault);
+                    break;
+                case Member<NeoVector2Value?> typed:
+                    CopyDeclarationDefault(typed, declarationDefault);
+                    break;
+                case Member<NeoVector3Value?> typed:
+                    CopyDeclarationDefault(typed, declarationDefault);
+                    break;
+                case Member<NeoColorValue?> typed:
+                    CopyDeclarationDefault(typed, declarationDefault);
+                    break;
                 default:
                     throw new InvalidOperationException($"Member '{member.id}' cannot carry a declaration default.");
             }
@@ -698,7 +749,8 @@ namespace NeoCompose.Runtime
             if (member is ClassMember classMember)
             {
                 var args = classMember.classArguments;
-                if (args is null) return member;
+                if (args is null)
+                    return member;
                 bool changed = false;
                 var substitutedArgs = new Dictionary<string, GenericBinding>(args.Count);
                 foreach (var pair in args)
@@ -729,7 +781,8 @@ namespace NeoCompose.Runtime
                     };
                     changed = true;
                 }
-                if (!changed) return member;
+                if (!changed)
+                    return member;
                 var substitutedClass = (ClassMember)classMember.ShallowClone();
                 substitutedClass.classArguments = substitutedArgs;
                 return substitutedClass;
@@ -765,7 +818,8 @@ namespace NeoCompose.Runtime
                         actionMember.argumentTypes,
                         env,
                         out bool argumentsChanged);
-                if (!argumentsChanged) return member;
+                if (!argumentsChanged)
+                    return member;
                 var substitutedAction = (ActionMember)actionMember.ShallowClone();
                 substitutedAction.argumentTypes = argumentTypes;
                 return substitutedAction;
@@ -804,7 +858,8 @@ namespace NeoCompose.Runtime
                     client,
                     argument,
                     env);
-                if (ReferenceEquals(next, argument)) continue;
+                if (ReferenceEquals(next, argument))
+                    continue;
                 substituted ??= (FunctionArgumentTypeInfo[])arguments.Clone();
                 substituted[index] = next;
                 changed = true;
@@ -824,7 +879,8 @@ namespace NeoCompose.Runtime
                     argument.genericParamId,
                     env,
                     "callable type");
-                if (signature is null) return argument;
+                if (signature is null)
+                    return argument;
                 FunctionArgumentTypeInfo resolved = FunctionArgumentFromSignature(argument.name, signature);
                 resolved.required &= argument.required;
                 return resolved;
@@ -848,7 +904,8 @@ namespace NeoCompose.Runtime
             }
             if (argument.type == MemberKind.Class)
             {
-                if (argument.typeArguments is null) return argument;
+                if (argument.typeArguments is null)
+                    return argument;
                 Dictionary<string, TypeInfo> typeArguments =
                     SubstituteTypeArguments(
                         client,
@@ -918,7 +975,8 @@ namespace NeoCompose.Runtime
                     generic.genericParamId,
                     env,
                     "callable type");
-                if (resolved is null) return typeInfo;
+                if (resolved is null)
+                    return typeInfo;
                 resolved.required &= generic.required;
                 return resolved;
             }
@@ -953,7 +1011,8 @@ namespace NeoCompose.Runtime
             }
             if (typeInfo is ClassTypeInfo classType)
             {
-                if (classType.typeArguments is null) return typeInfo;
+                if (classType.typeArguments is null)
+                    return typeInfo;
                 Dictionary<string, TypeInfo> typeArguments =
                     SubstituteTypeArguments(
                         client,
@@ -1017,7 +1076,8 @@ namespace NeoCompose.Runtime
                     client,
                     pair.Value,
                     env);
-                if (ReferenceEquals(next, pair.Value)) continue;
+                if (ReferenceEquals(next, pair.Value))
+                    continue;
                 substituted ??= new Dictionary<string, TypeInfo>(arguments);
                 substituted[pair.Key] = next;
             }
@@ -1036,7 +1096,8 @@ namespace NeoCompose.Runtime
                     client,
                     typeInfos[index],
                     env);
-                if (ReferenceEquals(next, typeInfos[index])) continue;
+                if (ReferenceEquals(next, typeInfos[index]))
+                    continue;
                 substituted ??= (TypeInfo[])typeInfos.Clone();
                 substituted[index] = next;
             }
@@ -1055,7 +1116,8 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException(
                     $"SubstituteMember: {position} references generic param '{genericParamId}', which is not present in the binding environment.");
             }
-            if (!entry.IsBound) return null;
+            if (!entry.IsBound)
+                return null;
             if (!client.TryGetMember(entry.memberId!, out Member? binding))
             {
                 throw new System.InvalidOperationException(
@@ -1390,8 +1452,10 @@ namespace NeoCompose.Runtime
             NeoClassArgumentSignature a,
             NeoClassArgumentSignature b)
         {
-            if (a.type != b.type) return false;
-            if (a.required != b.required) return false;
+            if (a.type != b.type)
+                return false;
+            if (a.required != b.required)
+                return false;
             if (a.type == MemberKind.String)
             {
                 return a.format == b.format;
@@ -1402,26 +1466,33 @@ namespace NeoCompose.Runtime
             }
             if (a.type == MemberKind.Class)
             {
-                if (a.classId != b.classId) return false;
+                if (a.classId != b.classId)
+                    return false;
                 var aArgs = a.args ?? new Dictionary<string, NeoClassArgumentSignature>();
                 var bArgs = b.args ?? new Dictionary<string, NeoClassArgumentSignature>();
-                if (aArgs.Count != bArgs.Count) return false;
+                if (aArgs.Count != bArgs.Count)
+                    return false;
                 foreach (var pair in aArgs)
                 {
-                    if (!bArgs.TryGetValue(pair.Key, out NeoClassArgumentSignature bArg)) return false;
-                    if (!SignaturesEqual(pair.Value, bArg)) return false;
+                    if (!bArgs.TryGetValue(pair.Key, out NeoClassArgumentSignature bArg))
+                        return false;
+                    if (!SignaturesEqual(pair.Value, bArg))
+                        return false;
                 }
                 return true;
             }
             if (a.type == MemberKind.List)
             {
-                if (a.listKind != b.listKind) return false;
+                if (a.listKind != b.listKind)
+                    return false;
                 return SignaturesEqual(a.entry!, b.entry!);
             }
             if (a.type == MemberKind.Dictionary)
             {
-                if (a.keyKind != b.keyKind) return false;
-                if (a.keyEnumId != b.keyEnumId) return false;
+                if (a.keyKind != b.keyKind)
+                    return false;
+                if (a.keyEnumId != b.keyEnumId)
+                    return false;
                 return SignaturesEqual(a.entry!, b.entry!);
             }
             return true;
@@ -1469,7 +1540,8 @@ namespace NeoCompose.Runtime
             bool isDescendant = false;
             foreach (var t in chain)
             {
-                if (t.id != slotMember.classId) continue;
+                if (t.id != slotMember.classId)
+                    continue;
                 isDescendant = true;
                 break;
             }
@@ -1486,12 +1558,14 @@ namespace NeoCompose.Runtime
             var valueEnv = ResolveInstanceEnv(chain, slotMember.classArguments);
             foreach (var entry in valueEnv.Values)
             {
-                if (entry.IsBound) continue;
+                if (entry.IsBound)
+                    continue;
                 return NeoSlotAdmission.Reject(
                     $"type '{chain[0].name}' is open (generic param '{entry.unboundParamId}' is unbound) and cannot be instantiated");
             }
             var args = slotMember.classArguments;
-            if (args is null) return NeoSlotAdmission.Ok;
+            if (args is null)
+                return NeoSlotAdmission.Ok;
             foreach (var pair in args)
             {
                 if (!valueEnv.TryGetValue(pair.Key, out NeoGenericEnvEntry valueBinding))

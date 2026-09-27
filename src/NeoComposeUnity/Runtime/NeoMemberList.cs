@@ -51,7 +51,10 @@ namespace NeoCompose.Runtime
         /// (<c>null</c> or <c>[]</c>) and membership resolves by join over
         /// <see cref="MemberValue.containerId"/>, enumerated id-sorted.
         /// </summary>
-        public bool IsUnordered { get; }
+        public bool IsUnordered
+        {
+            get;
+        }
 
         public NeoMemberList(NeoClient client, string memberId, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
             : base(client, memberId, overrideValueId, ownership)
@@ -83,7 +86,10 @@ namespace NeoCompose.Runtime
 
         public int Count => childMembers.Count;
 
-        internal NeoListChangedArgs? ActiveListChange { get; private set; }
+        internal NeoListChangedArgs? ActiveListChange
+        {
+            get; private set;
+        }
 
         public IEnumerator<NeoMember> GetEnumerator() =>
             childMembers.GetEnumerator();
@@ -116,7 +122,8 @@ namespace NeoCompose.Runtime
 
         public override void Dispose()
         {
-            if (!BeginDisposeChildren()) return;
+            if (!BeginDisposeChildren())
+                return;
             client.OnValuePartitionChanged -= HandleValuePartitionChanged;
             foreach (var child in childMembers)
             {
@@ -132,7 +139,8 @@ namespace NeoCompose.Runtime
 
         private void HandleValuePartitionChanged(string _)
         {
-            if (isDisposed) return;
+            if (isDisposed)
+                return;
             // A partition may add/remove unordered members or rows below an
             // ordered member while keeping the same stable ids. Force fresh
             // child nodes so indexed fields cannot retain unloaded values.
@@ -156,7 +164,8 @@ namespace NeoCompose.Runtime
             string valueId,
             [NotNullWhen(true)] out NeoMember? child)
         {
-            if (valueId is null) throw new ArgumentNullException(nameof(valueId));
+            if (valueId is null)
+                throw new ArgumentNullException(nameof(valueId));
             EnsureIdentityIndex();
             IndexDiagnostics.IdentityLookupCount += 1;
             return childrenByValueId!.TryGetValue(valueId, out child);
@@ -164,7 +173,8 @@ namespace NeoCompose.Runtime
 
         internal bool ContainsValueId(string valueId)
         {
-            if (valueId is null) throw new ArgumentNullException(nameof(valueId));
+            if (valueId is null)
+                throw new ArgumentNullException(nameof(valueId));
             EnsureIdentityIndex();
             IndexDiagnostics.IdentityLookupCount += 1;
             return childrenByValueId!.ContainsKey(valueId);
@@ -172,7 +182,8 @@ namespace NeoCompose.Runtime
 
         internal NeoRawListIndex GetDerivedIndex(string schemaKey, bool unique)
         {
-            if (schemaKey is null) throw new ArgumentNullException(nameof(schemaKey));
+            if (schemaKey is null)
+                throw new ArgumentNullException(nameof(schemaKey));
             ListIndexDefinition definition = ResolveIndexDefinition(schemaKey);
             if (definition.Kind == NeoListIndexKind.Unique != unique)
             {
@@ -208,7 +219,8 @@ namespace NeoCompose.Runtime
 
         internal void EnsureIdentityIndex()
         {
-            if (childrenByValueId is not null) return;
+            if (childrenByValueId is not null)
+                return;
             var map = new Dictionary<string, NeoMember>(childMembers.Count, StringComparer.Ordinal);
             foreach (NeoMember child in childMembers)
             {
@@ -249,21 +261,27 @@ namespace NeoCompose.Runtime
         internal static IReadOnlyList<string> ResolveEntryValueIds(
             NeoClient client, ArrayMemberValue? value, bool isUnordered)
         {
-            if (value?.value is null) return System.Array.Empty<string>();
-            if (!isUnordered) return value.value;
+            if (value?.value is null)
+                return System.Array.Empty<string>();
+            if (!isUnordered)
+                return value.value;
             var ids = new List<string>();
             var seen = new HashSet<string>();
             foreach (var entryId in value.value)
             {
-                if (string.IsNullOrEmpty(entryId)) continue;
-                if (!seen.Add(entryId)) continue;
+                if (string.IsNullOrEmpty(entryId))
+                    continue;
+                if (!seen.Add(entryId))
+                    continue;
                 var row = client.ResolveValueRow(entryId);
-                if (row is null || row.IsRemoved) continue;
+                if (row is null || row.IsRemoved)
+                    continue;
                 ids.Add(entryId);
             }
             foreach (var entryId in client.GetUnorderedListEntryIds(value.id))
             {
-                if (!seen.Add(entryId)) continue;
+                if (!seen.Add(entryId))
+                    continue;
                 ids.Add(entryId);
             }
             return ids;
@@ -353,7 +371,8 @@ namespace NeoCompose.Runtime
             NeoListChangedArgs change,
             bool applyToIndexes = true)
         {
-            if (applyToIndexes) ApplyListChangeToIndexes(change);
+            if (applyToIndexes)
+                ApplyListChangeToIndexes(change);
             var previousChange = ActiveListChange;
             ActiveListChange = change ?? NeoListChangedArgs.Unknown;
             try
@@ -475,7 +494,8 @@ namespace NeoCompose.Runtime
             // can exist until a (stamped) row is bound, at which point
             // OnValueIdChainChanged re-substitutes.
             var stamp = value?.genericBindings;
-            if (stamp is null) return match;
+            if (stamp is null)
+                return match;
             return NeoGenericResolution.SubstituteMember(
                 client,
                 match,
@@ -712,7 +732,8 @@ namespace NeoCompose.Runtime
             string[] nextArr = new string[currentArr.Length - 1];
             for (int i = 0, j = 0; i < currentArr.Length; i++)
             {
-                if (i == index) continue;
+                if (i == index)
+                    continue;
                 nextArr[j++] = currentArr[i];
             }
             parentRow.value = nextArr;
@@ -777,7 +798,8 @@ namespace NeoCompose.Runtime
         /// </summary>
         public void Remove(NeoMember entry)
         {
-            if (entry is null) throw new System.ArgumentNullException(nameof(entry));
+            if (entry is null)
+                throw new System.ArgumentNullException(nameof(entry));
             string? entryValueId = entry.value?.id;
             if (entryValueId is null)
             {
@@ -800,7 +822,8 @@ namespace NeoCompose.Runtime
                 var orderedIds = ResolveEntryValueIds();
                 for (int i = 0; i < orderedIds.Count; i++)
                 {
-                    if (orderedIds[i] != entryValueId) continue;
+                    if (orderedIds[i] != entryValueId)
+                        continue;
                     RemoveAt(i);
                     return;
                 }
@@ -813,7 +836,8 @@ namespace NeoCompose.Runtime
             bool isEntry = false;
             foreach (var id in entryIds)
             {
-                if (id != entryValueId) continue;
+                if (id != entryValueId)
+                    continue;
                 isEntry = true;
                 break;
             }
@@ -851,7 +875,8 @@ namespace NeoCompose.Runtime
             {
                 foreach (var payloadRow in wrappedPayload.valueRows)
                 {
-                    if (!string.IsNullOrEmpty(payloadRow.mapKey)) continue;
+                    if (!string.IsNullOrEmpty(payloadRow.mapKey))
+                        continue;
                     payloadRow.mapKey = partitionMapKey;
                 }
             }
@@ -893,9 +918,11 @@ namespace NeoCompose.Runtime
         private void ClearSerializedUnordered()
         {
             var removedValueIds = new List<string>(ResolveEntryValueIds());
-            if (removedValueIds.Count == 0) return;
+            if (removedValueIds.Count == 0)
+                return;
             var plan = new NeoWritePlan(client);
-            foreach (string id in removedValueIds) PrepareRemoveUnorderedEntry(plan, id);
+            foreach (string id in removedValueIds)
+                PrepareRemoveUnorderedEntry(plan, id);
             plan.Commit();
             value = valueData;
             ReinitializeChildren();
@@ -926,10 +953,12 @@ namespace NeoCompose.Runtime
             string[] requested = isNull ? System.Array.Empty<string>() : setValue!.value as string[] ?? System.Array.Empty<string>();
             var nextIds = new HashSet<string>();
             foreach (string id in requested)
-                if (!nextIds.Add(id)) throw new System.InvalidOperationException($"List '{member.id}' contains duplicate value '{id}'.");
+                if (!nextIds.Add(id))
+                    throw new System.InvalidOperationException($"List '{member.id}' contains duplicate value '{id}'.");
             var previousIds = new HashSet<string>(ResolveEntryValueIds());
             foreach (string id in previousIds)
-                if (!nextIds.Contains(id)) PrepareRemoveUnorderedEntry(plan, id);
+                if (!nextIds.Contains(id))
+                    PrepareRemoveUnorderedEntry(plan, id);
             NeoTimestamp now = NeoTimestamp.Now();
             ArrayMemberValue container = EnsureWritableArray(plan, now);
             container.value = isNull ? null : System.Array.Empty<string>();
@@ -1028,7 +1057,8 @@ namespace NeoCompose.Runtime
                 plan.Set(entryOwnership, resurrected);
                 return;
             }
-            if (row.containerId == containerValueId) return;
+            if (row.containerId == containerValueId)
+                return;
             if (!string.IsNullOrEmpty(row.containerId))
             {
                 throw new System.InvalidOperationException(
@@ -1050,7 +1080,8 @@ namespace NeoCompose.Runtime
         {
             var plan = new NeoWritePlan(client);
             var row = ResolveUnorderedContainerForAdd(plan, nowIso);
-            if (plan.Rows.Count > 0) plan.Commit();
+            if (plan.Rows.Count > 0)
+                plan.Commit();
             return row;
         }
 
@@ -1095,7 +1126,8 @@ namespace NeoCompose.Runtime
         {
             var plan = new NeoWritePlan(client);
             var row = EnsureWritableArray(plan, nowIso);
-            if (plan.Rows.Count > 0) plan.Commit();
+            if (plan.Rows.Count > 0)
+                plan.Commit();
             return row;
         }
 

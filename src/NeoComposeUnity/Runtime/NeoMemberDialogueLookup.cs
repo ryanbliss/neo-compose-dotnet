@@ -103,7 +103,8 @@ namespace NeoCompose.Runtime
                     "Dialogue id cannot be null or empty.");
             }
             var selected = new List<string>(Selected());
-            if (selected.Contains(dialogueId)) return false;
+            if (selected.Contains(dialogueId))
+                return false;
             selected.Add(dialogueId);
             // Set() enforces the group scope; an out-of-group id throws here.
             Set(selected.ToArray());
@@ -112,10 +113,12 @@ namespace NeoCompose.Runtime
 
         public bool Remove(string dialogueId)
         {
-            if (string.IsNullOrWhiteSpace(dialogueId)) return false;
+            if (string.IsNullOrWhiteSpace(dialogueId))
+                return false;
             var selected = new List<string>(Selected());
             bool removed = selected.Remove(dialogueId);
-            if (!removed) return false;
+            if (!removed)
+                return false;
             Set(selected.ToArray());
             return true;
         }

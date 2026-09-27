@@ -98,8 +98,10 @@ namespace NeoCompose.Runtime
 
         public override void Dispose()
         {
-            if (!BeginDisposeChildren()) return;
-            foreach (var child in childMembers.Values) child.Dispose();
+            if (!BeginDisposeChildren())
+                return;
+            foreach (var child in childMembers.Values)
+                child.Dispose();
             childMembers.Clear();
             base.Dispose();
         }
@@ -110,7 +112,8 @@ namespace NeoCompose.Runtime
             childMembers = new();
             if (value?.value is null)
             {
-                foreach (var child in previousChildren.Values) child.Dispose();
+                foreach (var child in previousChildren.Values)
+                    child.Dispose();
                 return;
             }
             foreach (var kvp in value.value)
@@ -126,7 +129,8 @@ namespace NeoCompose.Runtime
                 }
                 childMembers[kvp.Key] = CreateChild(client, entryMember, kvp.Value);
             }
-            foreach (var child in previousChildren.Values) child.Dispose();
+            foreach (var child in previousChildren.Values)
+                child.Dispose();
         }
 
         protected Member ResolveEntryMember()
@@ -143,7 +147,8 @@ namespace NeoCompose.Runtime
             // can exist until a (stamped) row is bound, at which point
             // OnValueIdChainChanged re-substitutes.
             var stamp = value?.genericBindings;
-            if (stamp is null) return match;
+            if (stamp is null)
+                return match;
             return NeoGenericResolution.SubstituteMember(
                 client,
                 match,
@@ -188,7 +193,8 @@ namespace NeoCompose.Runtime
             if (setValue?.isValueReference == true)
             {
                 nextId = client.ImportValueReference(plan, entryOwnership, setValue.valueId!, out bool sourceMoved, previousId);
-                if (nextId == previousId) return;
+                if (nextId == previousId)
+                    return;
                 if (sourceMoved)
                     plan.AfterCommit(() => setValue.RetargetMovedReference(client, entryMember, nextId, entryOwnership));
             }
@@ -209,15 +215,18 @@ namespace NeoCompose.Runtime
                 client.StageUnlinkedRemovals(plan, entryOwnership, new[] { previousId }, entryMember);
             plan.Commit();
             value = parentRow;
-            if (childMembers.TryGetValue(key, out NeoMember? previousChild)) previousChild.Dispose();
+            if (childMembers.TryGetValue(key, out NeoMember? previousChild))
+                previousChild.Dispose();
             childMembers[key] = CreateChild(client, entryMember, nextId);
             NotifyChanged();
         }
 
         public void Remove(string key)
         {
-            if (value?.value is null) return;
-            if (!value.value.ContainsKey(key)) return;
+            if (value?.value is null)
+                return;
+            if (!value.value.ContainsKey(key))
+                return;
             NeoTimestamp nowIso = NeoTimestamp.Now();
 
             // Clone-on-write the dict row (shadowing the authored default at
@@ -249,7 +258,11 @@ namespace NeoCompose.Runtime
             string? key = null;
             foreach (var pair in childMembers)
             {
-                if (ReferenceEquals(pair.Value, child)) { key = pair.Key; break; }
+                if (ReferenceEquals(pair.Value, child))
+                {
+                    key = pair.Key;
+                    break;
+                }
             }
             if (key is null)
             {
@@ -282,7 +295,8 @@ namespace NeoCompose.Runtime
         {
             var plan = new NeoWritePlan(client);
             var row = EnsureWritableObject(plan, nowIso);
-            if (plan.Rows.Count > 0) plan.Commit();
+            if (plan.Rows.Count > 0)
+                plan.Commit();
             return row;
         }
 

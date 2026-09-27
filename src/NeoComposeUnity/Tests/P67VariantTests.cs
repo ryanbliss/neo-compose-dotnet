@@ -786,27 +786,29 @@ namespace NeoCompose.Tests
             };
             foreach ((IReadOnlyDictionary<string, MemberValue> rows,
                 NeoValueOwnership ownership) in stores)
-            foreach (KeyValuePair<string, MemberValue> pair in rows)
-            {
-                if (pair.Value is not ObjectMemberValue row) continue;
-                if (row.classId != HeroClassId) continue;
-                var member = new ClassMember
+                foreach (KeyValuePair<string, MemberValue> pair in rows)
                 {
-                    id = "__test_hero",
-                    name = "Hero",
-                    kind = MemberKind.Class,
-                    classId = HeroClassId,
-                    createdAt = row.createdAt,
-                    updatedAt = row.updatedAt,
-                };
-                return Hero.CreateWritable(
-                    client,
-                    new NeoMemberClassWritable(
+                    if (pair.Value is not ObjectMemberValue row)
+                        continue;
+                    if (row.classId != HeroClassId)
+                        continue;
+                    var member = new ClassMember
+                    {
+                        id = "__test_hero",
+                        name = "Hero",
+                        kind = MemberKind.Class,
+                        classId = HeroClassId,
+                        createdAt = row.createdAt,
+                        updatedAt = row.updatedAt,
+                    };
+                    return Hero.CreateWritable(
                         client,
-                        member,
-                        row.id,
-                        ownership));
-            }
+                        new NeoMemberClassWritable(
+                            client,
+                            member,
+                            row.id,
+                            ownership));
+                }
             throw new InvalidOperationException(
                 "The synth fixture carries no Hero row to apply a variant to.");
         }

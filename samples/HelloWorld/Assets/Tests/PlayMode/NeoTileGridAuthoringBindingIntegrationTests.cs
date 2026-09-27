@@ -23,7 +23,8 @@ namespace HelloWorld.Assets.Tests
         [TearDown]
         public void TearDown()
         {
-            if (root != null) UnityEngine.Object.DestroyImmediate(root);
+            if (root != null)
+                UnityEngine.Object.DestroyImmediate(root);
         }
 
         [Test]
@@ -98,7 +99,8 @@ namespace HelloWorld.Assets.Tests
             var binding = root.AddComponent<NeoTileGridAuthoringBinding>();
             binding.refreshOnEnable = false;
             binding.valueId = LandingGridValueId;
-            if (active) root.SetActive(true);
+            if (active)
+                root.SetActive(true);
             return binding;
         }
 

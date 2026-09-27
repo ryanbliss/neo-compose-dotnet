@@ -53,11 +53,26 @@ namespace NeoCompose.Runtime.NeoScript
         public const int DefaultConstructedSessionRows = 4_096;
         public const int DefaultProducedStringCharacters = 1024 * 1024;
 
-        public int WorkUnits { get; }
-        public int CollectionVisits { get; }
-        public int ProducedCollectionEntries { get; }
-        public int ConstructedSessionRows { get; }
-        public int ProducedStringCharacters { get; }
+        public int WorkUnits
+        {
+            get;
+        }
+        public int CollectionVisits
+        {
+            get;
+        }
+        public int ProducedCollectionEntries
+        {
+            get;
+        }
+        public int ConstructedSessionRows
+        {
+            get;
+        }
+        public int ProducedStringCharacters
+        {
+            get;
+        }
 
         public NeoScriptExecutionBudgetLimits(
             int workUnits = DefaultWorkUnits,

@@ -58,7 +58,8 @@ namespace HelloWorld.Assets.Scripts
         /// </summary>
         internal void Update()
         {
-            if (!menuDirty || !menuVisible || menu == null) return;
+            if (!menuDirty || !menuVisible || menu == null)
+                return;
             menuDirty = false;
             RenderMenu();
         }
@@ -110,7 +111,8 @@ namespace HelloWorld.Assets.Scripts
                 await store.RefreshSavesAsync();
             }
 
-            if (this == null) return;
+            if (this == null)
+                return;
             menuLoading = false;
             MarkMenuDirty();
         }
@@ -259,7 +261,8 @@ namespace HelloWorld.Assets.Scripts
         private async void OnSignIn()
         {
             var auth = store?.Authentication;
-            if (auth == null || authBusy) return;
+            if (auth == null || authBusy)
+                return;
 
             authBusy = true;
             auth.OnDeviceAuthorizationPrompt += OnDevicePrompt;
@@ -297,7 +300,8 @@ namespace HelloWorld.Assets.Scripts
 
         private void OnDevicePrompt(NeoComposeDeviceCodeResponse code)
         {
-            if (this == null) return;
+            if (this == null)
+                return;
             pendingUserCode = code.userCode;
             pendingVerificationUri = code.verificationUri;
             MarkMenuDirty();
@@ -325,7 +329,8 @@ namespace HelloWorld.Assets.Scripts
             }
             finally
             {
-                if (this != null) menu.HideLoadingOverlay();
+                if (this != null)
+                    menu.HideLoadingOverlay();
             }
         }
 
@@ -383,8 +388,10 @@ namespace HelloWorld.Assets.Scripts
 
         private static void DestroyGameObject(GameObject target)
         {
-            if (Application.isPlaying) Destroy(target);
-            else DestroyImmediate(target);
+            if (Application.isPlaying)
+                Destroy(target);
+            else
+                DestroyImmediate(target);
         }
     }
 }

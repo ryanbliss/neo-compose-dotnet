@@ -34,12 +34,30 @@ namespace NeoCompose.Runtime
             NextUpdatedAtMs = nextUpdatedAtMs;
         }
 
-        internal string GridValueId { get; }
-        internal string LayerId { get; }
-        internal string PlacementValueId { get; }
-        internal string NextClassId { get; }
-        internal string NextCellValueId { get; }
-        internal double NextUpdatedAtMs { get; }
+        internal string GridValueId
+        {
+            get;
+        }
+        internal string LayerId
+        {
+            get;
+        }
+        internal string PlacementValueId
+        {
+            get;
+        }
+        internal string NextClassId
+        {
+            get;
+        }
+        internal string NextCellValueId
+        {
+            get;
+        }
+        internal double NextUpdatedAtMs
+        {
+            get;
+        }
     }
 
     public partial class NeoClient
@@ -49,7 +67,8 @@ namespace NeoCompose.Runtime
             Dictionary<string, NeoReadOnlyTileGridPrimitive> primitives,
             Dictionary<(bool tile, string classId), HashSet<string>> compatibleLayers)
         {
-            if (plan.Bindings.Count != 0 || plan.Rows.Count == 0) return false;
+            if (plan.Bindings.Count != 0 || plan.Rows.Count == 0)
+                return false;
 
             var conversions = new List<(
                 ObjectMemberValue next,
@@ -115,10 +134,12 @@ namespace NeoCompose.Runtime
                 allowedCells.Add((pair.Key.ownership, nextCellValueId!));
                 conversions.Add((next, nextCellValueId!));
             }
-            if (conversions.Count == 0) return false;
+            if (conversions.Count == 0)
+                return false;
             foreach (var pair in plan.Rows)
             {
-                if (conversionRootKeys.Contains(pair.Key)) continue;
+                if (conversionRootKeys.Contains(pair.Key))
+                    continue;
                 if (!allowedCells.Contains(pair.Key)
                     || pair.Value is not Vector2MemberValue { value: not null })
                 {
@@ -177,11 +198,13 @@ namespace NeoCompose.Runtime
             out Vector2MemberValue? cell)
         {
             cell = null;
-            if (tile.value?.TryGetValue("Cell", out string? cellId) != true) return false;
+            if (tile.value?.TryGetValue("Cell", out string? cellId) != true)
+                return false;
             if (!TryGetCommittedOverlaidValue(
                     ownership,
                     cellId,
-                    out Vector2MemberValue? stored)) return false;
+                    out Vector2MemberValue? stored))
+                return false;
             cell = stored;
             return stored.value is not null;
         }
@@ -203,16 +226,22 @@ namespace NeoCompose.Runtime
             while (pending.Count != 0)
             {
                 string id = pending.Dequeue();
-                if (!visited.Add(id)) continue;
+                if (!visited.Add(id))
+                    continue;
                 MemberValue? row = plan.Resolve(id);
                 if (row is ObjectMemberValue { classId: not null } objectRow)
                 {
-                    if (HasWorldKind(objectRow.classId, "tileGrid")) grids.Add(id);
-                    if (HasWorldKind(objectRow.classId, "tileLayerLink")) links.Add(id);
+                    if (HasWorldKind(objectRow.classId, "tileGrid"))
+                        grids.Add(id);
+                    if (HasWorldKind(objectRow.classId, "tileLayerLink"))
+                        links.Add(id);
                 }
-                if (!string.IsNullOrEmpty(row?.containerId)) pending.Enqueue(row!.containerId!);
-                foreach (string parent in PlacementParents(id)) pending.Enqueue(parent);
-                foreach (string parent in plan.ParentCandidates(id)) pending.Enqueue(parent);
+                if (!string.IsNullOrEmpty(row?.containerId))
+                    pending.Enqueue(row!.containerId!);
+                foreach (string parent in PlacementParents(id))
+                    pending.Enqueue(parent);
+                foreach (string parent in plan.ParentCandidates(id))
+                    pending.Enqueue(parent);
             }
             gridValueId = grids.Count == 1 ? grids.First() : null;
             string? linkValueId = links.Count == 1 ? links.First() : null;
@@ -230,7 +259,8 @@ namespace NeoCompose.Runtime
                     {
                         continue;
                     }
-                    if (link is not null) return false;
+                    if (link is not null)
+                        return false;
                     link = candidate;
                 }
             }
@@ -241,7 +271,8 @@ namespace NeoCompose.Runtime
             Vector2MemberValue previous,
             Vector2MemberValue next)
         {
-            if (ReferenceEquals(previous, next)) return true;
+            if (ReferenceEquals(previous, next))
+                return true;
             var previousJson = JObject.FromObject(previous);
             var nextJson = JObject.FromObject(next);
             return JToken.DeepEquals(previousJson, nextJson);

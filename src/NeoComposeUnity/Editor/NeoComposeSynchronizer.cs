@@ -104,7 +104,8 @@ namespace NeoCompose.Unity.Editor
             Action<string>? onProgress = null)
         {
             var validation = ValidateConfig(config);
-            if (!validation.success) return validation;
+            if (!validation.success)
+                return validation;
 
             try
             {
@@ -295,7 +296,8 @@ namespace NeoCompose.Unity.Editor
             Action<string>? onProgress)
         {
             var state = exportCache.Load(config.projectId, config.versionId);
-            if (state == null || state.schemaVersion != 1) return null;
+            if (state == null || state.schemaVersion != 1)
+                return null;
             // Failed attempts must not mutate the cache's cursor or head selection.
             state = new NeoComposeUnityExportSyncState
             {
@@ -304,8 +306,10 @@ namespace NeoCompose.Unity.Editor
                 heads = new List<NeoComposeUnityExportHeadDescriptor>(state.heads),
                 snapshots = new List<NeoComposeUnityExportCachedSnapshot>(state.snapshots),
             };
-            if (!assets.FileExists(projectJsonPath)) return null;
-            if (!NeoComposeGeneratedFiles.IsCurrent(assets, config.generatedTypesDirectory, config.projectId)) return null;
+            if (!assets.FileExists(projectJsonPath))
+                return null;
+            if (!NeoComposeGeneratedFiles.IsCurrent(assets, config.generatedTypesDirectory, config.projectId))
+                return null;
 
             JObject root;
             try
@@ -322,14 +326,16 @@ namespace NeoCompose.Unity.Editor
                 || !string.Equals(
                     baseMetadata["projectDocumentContentHash"]?.Value<string>(),
                     ComputeProjectDocumentContentHash(state.heads),
-                    StringComparison.Ordinal)) return null;
+                    StringComparison.Ordinal))
+                return null;
 
             var delta = await apiClient.ExportProjectDeltaAsync(
                 config.apiBaseUrl,
                 config.projectId,
                 config.versionId,
                 state.cursor);
-            if (delta.fullResync || delta.cursor == null) return null;
+            if (delta.fullResync || delta.cursor == null)
+                return null;
             var readBase = RequireReadBase(delta.readBase);
             // Value records are the high-volume content path and map directly
             // onto the exported values/valuePartitions dictionaries. Every
@@ -430,7 +436,8 @@ namespace NeoCompose.Unity.Editor
             }
 
             var contentHash = ComputeProjectDocumentContentHash(headsByKey.Values);
-            if (root["metadata"] is not JObject metadata) return null;
+            if (root["metadata"] is not JObject metadata)
+                return null;
             metadata["projectDocumentContentHash"] = contentHash;
 
             state.cursor = delta.cursor;
@@ -474,17 +481,22 @@ namespace NeoCompose.Unity.Editor
             public ExportedValueDeltaIndex(JObject root, IEnumerable<string> changedValueIds)
             {
                 values = root["values"] as JObject ?? new JObject();
-                if (values.Parent == null) root["values"] = values;
+                if (values.Parent == null)
+                    root["values"] = values;
                 partitions = root["valuePartitions"] as JObject ?? new JObject();
-                if (partitions.Parent == null) root["valuePartitions"] = partitions;
+                if (partitions.Parent == null)
+                    root["valuePartitions"] = partitions;
                 locations = changedValueIds.Distinct(StringComparer.Ordinal)
                     .ToDictionary(id => id, _ => new List<JProperty>(), StringComparer.Ordinal);
                 IndexRows(values);
                 foreach (var partition in partitions.Properties().ToArray())
                 {
-                    if (partition.Value is not JObject rows) continue;
-                    if (rows.Count == 0) partition.Remove();
-                    else IndexRows(rows);
+                    if (partition.Value is not JObject rows)
+                        continue;
+                    if (rows.Count == 0)
+                        partition.Remove();
+                    else
+                        IndexRows(rows);
                 }
             }
 
@@ -498,13 +510,15 @@ namespace NeoCompose.Unity.Editor
                     foreach (var pair in locations)
                     {
                         var property = rows.Property(pair.Key);
-                        if (property != null) pair.Value.Add(property);
+                        if (property != null)
+                            pair.Value.Add(property);
                     }
                     return;
                 }
                 foreach (var property in rows.Properties())
                 {
-                    if (locations.TryGetValue(property.Name, out var found)) found.Add(property);
+                    if (locations.TryGetValue(property.Name, out var found))
+                        found.Add(property);
                 }
             }
 
@@ -548,16 +562,19 @@ namespace NeoCompose.Unity.Editor
                         continue;
                     }
                     property.Remove();
-                    if (!ReferenceEquals(owner, values) && owner.Count == 0) owner.Parent?.Remove();
+                    if (!ReferenceEquals(owner, values) && owner.Count == 0)
+                        owner.Parent?.Remove();
                 }
                 found.Clear();
-                if (target == null) return;
+                if (target == null)
+                    return;
                 if (retained == null)
                 {
                     retained = new JProperty(valueId, record);
                     target.Add(retained);
                 }
-                else retained.Value = record!;
+                else
+                    retained.Value = record!;
                 found.Add(retained);
             }
         }
@@ -582,14 +599,16 @@ namespace NeoCompose.Unity.Editor
 
         private static bool TokenContainsAnyString(JToken? token, HashSet<string> expected)
         {
-            if (token == null || expected.Count == 0) return false;
+            if (token == null || expected.Count == 0)
+                return false;
             if (token.Type == JTokenType.String)
             {
                 return token.Value<string>() is string value && expected.Contains(value);
             }
             foreach (var child in token.Children())
             {
-                if (TokenContainsAnyString(child, expected)) return true;
+                if (TokenContainsAnyString(child, expected))
+                    return true;
             }
             return false;
         }
@@ -612,7 +631,8 @@ namespace NeoCompose.Unity.Editor
             var bytes = sha.ComputeHash(
                 Encoding.UTF8.GetBytes(array.ToString(Formatting.None)));
             var result = new StringBuilder(bytes.Length * 2);
-            foreach (var item in bytes) result.Append(item.ToString("x2"));
+            foreach (var item in bytes)
+                result.Append(item.ToString("x2"));
             return result.ToString();
         }
 
@@ -623,7 +643,8 @@ namespace NeoCompose.Unity.Editor
             Action<string>? onProgress)
         {
             var errors = new List<string>();
-            if (localizationFiles.Count == 0) return errors.ToArray();
+            if (localizationFiles.Count == 0)
+                return errors.ToArray();
 
             onProgress?.Invoke("Writing localization files...");
             assets.EnsureDirectory(config.localizationResourcesDirectory);
@@ -642,7 +663,8 @@ namespace NeoCompose.Unity.Editor
 
             foreach (var file in localizationFiles)
             {
-                if (!localizationPaths.TryGetValue(file.locale, out var assetPath)) continue;
+                if (!localizationPaths.TryGetValue(file.locale, out var assetPath))
+                    continue;
                 try
                 {
                     assets.WriteAllText(assetPath, file.content ?? "");
@@ -663,7 +685,8 @@ namespace NeoCompose.Unity.Editor
         {
             foreach (var existingPath in assets.FindFiles(assetDirectory, "*.json"))
             {
-                if (expectedPaths.Contains(existingPath)) continue;
+                if (expectedPaths.Contains(existingPath))
+                    continue;
                 assets.DeleteAsset(existingPath);
             }
         }
@@ -676,7 +699,8 @@ namespace NeoCompose.Unity.Editor
             var paths = new Dictionary<string, string>();
             foreach (var file in localizationFiles)
             {
-                if (!IsSafeLocalizationFileName(file.fileName)) continue;
+                if (!IsSafeLocalizationFileName(file.fileName))
+                    continue;
                 var directory =
                     config.useStreamingAssetsForNonMainLocales &&
                     !string.Equals(file.locale, mainLocale, StringComparison.Ordinal)
@@ -702,10 +726,14 @@ namespace NeoCompose.Unity.Editor
 
         private static bool IsSafeLocalizationFileName(string fileName)
         {
-            if (string.IsNullOrWhiteSpace(fileName)) return false;
-            if (fileName.Contains('/')) return false;
-            if (fileName.Contains('\\')) return false;
-            if (fileName.Contains("..")) return false;
+            if (string.IsNullOrWhiteSpace(fileName))
+                return false;
+            if (fileName.Contains('/'))
+                return false;
+            if (fileName.Contains('\\'))
+                return false;
+            if (fileName.Contains(".."))
+                return false;
             return string.Equals(Path.GetExtension(fileName), ".json", StringComparison.OrdinalIgnoreCase);
         }
 
@@ -936,7 +964,8 @@ namespace NeoCompose.Unity.Editor
         /// </summary>
         public static void ApplyConvexUrl(NeoComposeConfig config, string? convexUrl)
         {
-            if (convexUrl == null) return;
+            if (convexUrl == null)
+                return;
             config.convexUrl = convexUrl.Trim();
         }
 
@@ -986,7 +1015,8 @@ namespace NeoCompose.Unity.Editor
         {
             // "Ask me before overwriting files" is opt-in: the default
             // auto-approves replacement of regenerable synchronized files.
-            if (!askBeforeOverwritingFiles()) return true;
+            if (!askBeforeOverwritingFiles())
+                return true;
             return displayDialog(title, message, ok, cancel);
         }
     }
@@ -1005,7 +1035,8 @@ namespace NeoCompose.Unity.Editor
 
         public string[] FindFiles(string assetDirectory, string searchPattern)
         {
-            if (!Directory.Exists(assetDirectory)) return Array.Empty<string>();
+            if (!Directory.Exists(assetDirectory))
+                return Array.Empty<string>();
             return Directory.GetFiles(assetDirectory, searchPattern)
                 .Select(NeoComposePathUtility.NormalizeSeparators)
                 .ToArray();
@@ -1047,7 +1078,8 @@ namespace NeoCompose.Unity.Editor
         public NeoAssetDatabase LoadOrCreateAssetDatabase(string assetPath)
         {
             var existing = AssetDatabase.LoadAssetAtPath<NeoAssetDatabase>(assetPath);
-            if (existing != null) return existing;
+            if (existing != null)
+                return existing;
 
             var database = ScriptableObject.CreateInstance<NeoAssetDatabase>();
             var directory = Path.GetDirectoryName(assetPath);
@@ -1072,7 +1104,8 @@ namespace NeoCompose.Unity.Editor
                 .LoadAllAssetRepresentationsAtPath(assetPath)
                 .OfType<Sprite>()
                 .ToArray();
-            if (sprites.Length > 0) return sprites;
+            if (sprites.Length > 0)
+                return sprites;
 
             var mainSprite = AssetDatabase.LoadAssetAtPath<Sprite>(assetPath);
             return mainSprite == null ? Array.Empty<Sprite>() : new[] { mainSprite };
@@ -1098,8 +1131,10 @@ namespace NeoCompose.Unity.Editor
             }
             else
             {
-                if (File.Exists(assetPath)) File.Delete(assetPath);
-                if (File.Exists(assetPath + ".meta")) File.Delete(assetPath + ".meta");
+                if (File.Exists(assetPath))
+                    File.Delete(assetPath);
+                if (File.Exists(assetPath + ".meta"))
+                    File.Delete(assetPath + ".meta");
             }
             if (File.Exists(assetPath) || File.Exists(assetPath + ".meta"))
                 throw new IOException($"Asset deletion left files behind: {assetPath}");

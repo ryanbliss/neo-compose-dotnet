@@ -21,7 +21,8 @@ namespace HelloWorld.Assets.Tests.PlayMode
         {
             Assert.That(Application.isPlaying, Is.True);
             Task profile = Measure();
-            while (!profile.IsCompleted) yield return null;
+            while (!profile.IsCompleted)
+                yield return null;
             profile.GetAwaiter().GetResult();
         }
 
@@ -29,7 +30,8 @@ namespace HelloWorld.Assets.Tests.PlayMode
         public IEnumerator RenderingHonorsExplicitBudgetsAcrossLayersWithoutTrailingFrames()
         {
             Task check = CheckRenderBudgets();
-            while (!check.IsCompleted) yield return null;
+            while (!check.IsCompleted)
+                yield return null;
             check.GetAwaiter().GetResult();
         }
 
@@ -42,8 +44,10 @@ namespace HelloWorld.Assets.Tests.PlayMode
             using var client = await HelloWorldNeo.Load(store.CreateNew());
             var content = client.Assets.Worlds.OldConsoleLanding.Content;
             int tiles = 0;
-            foreach (var tile in content.Background.GetTiles()) tiles++;
-            foreach (var tile in content.Collisions.GetTiles()) tiles++;
+            foreach (var tile in content.Background.GetTiles())
+                tiles++;
+            foreach (var tile in content.Collisions.GetTiles())
+                tiles++;
             foreach (int limit in new[] { int.MaxValue, 100 })
             {
                 var root = new GameObject("Render budget test");
@@ -69,7 +73,8 @@ namespace HelloWorld.Assets.Tests.PlayMode
         public IEnumerator RenderingYieldsAfterSlowCallbacksAndHonorsObjectBudgetsAcrossLayers()
         {
             Task check = CheckTimeAndObjectBudgets();
-            while (!check.IsCompleted) yield return null;
+            while (!check.IsCompleted)
+                yield return null;
             check.GetAwaiter().GetResult();
         }
 
@@ -149,7 +154,8 @@ namespace HelloWorld.Assets.Tests.PlayMode
             public override void OnObjectLayerCreated(NeoObjectLayerContext context)
             {
                 LayerFrames.Add(Time.frameCount);
-                if (slow) System.Threading.Thread.Sleep(5);
+                if (slow)
+                    System.Threading.Thread.Sleep(5);
             }
 
             public override bool ShouldRenderObject(NeoObjectRenderContext context)
@@ -163,7 +169,8 @@ namespace HelloWorld.Assets.Tests.PlayMode
         public IEnumerator ResourceParsingResumesOnMainThreadAndSharesItsSchema()
         {
             Task check = CheckResourceSource();
-            while (!check.IsCompleted) yield return null;
+            while (!check.IsCompleted)
+                yield return null;
             check.GetAwaiter().GetResult();
         }
 

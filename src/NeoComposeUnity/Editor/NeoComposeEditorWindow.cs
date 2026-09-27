@@ -145,10 +145,12 @@ namespace NeoCompose.Unity.Editor
 
         private async Task RefreshSessionForVisiblePanelAsync()
         {
-            if (config == null || sessionRefreshInProgress) return;
+            if (config == null || sessionRefreshInProgress)
+                return;
 
             auth.RefreshState(config.apiBaseUrl);
-            if (!auth.AreAuthSensitiveControlsEnabled) return;
+            if (!auth.AreAuthSensitiveControlsEnabled)
+                return;
 
             sessionRefreshInProgress = true;
             Repaint();
@@ -185,7 +187,8 @@ namespace NeoCompose.Unity.Editor
             if (config == null)
             {
                 EditorGUILayout.HelpBox("Neo Compose config could not be loaded.", MessageType.Error);
-                if (GUILayout.Button("Retry")) OnEnable();
+                if (GUILayout.Button("Retry"))
+                    OnEnable();
                 return;
             }
 
@@ -361,7 +364,8 @@ namespace NeoCompose.Unity.Editor
         private void RenderSessionStatusIcon()
         {
             string tooltip = BuildSessionStatusTooltip();
-            if (string.IsNullOrEmpty(tooltip)) return;
+            if (string.IsNullOrEmpty(tooltip))
+                return;
 
             var previousColor = GUI.color;
             GUI.color = sessionRefreshInProgress
@@ -377,7 +381,8 @@ namespace NeoCompose.Unity.Editor
 
         private string BuildSessionStatusTooltip()
         {
-            if (sessionRefreshInProgress) return "Refreshing token…";
+            if (sessionRefreshInProgress)
+                return "Refreshing token…";
             if (lastTokenRefreshedAt.HasValue)
             {
                 return "Last refreshed at " + lastTokenRefreshedAt.Value.ToLocalTime().ToString("g");
@@ -461,7 +466,8 @@ namespace NeoCompose.Unity.Editor
             catch (Exception exception)
             {
                 Debug.LogError(exception);
-                if (config != null) auth.HandleApiException(config.apiBaseUrl, exception);
+                if (config != null)
+                    auth.HandleApiException(config.apiBaseUrl, exception);
                 SetStatus(exception.Message, MessageType.Error);
             }
             finally
@@ -702,8 +708,10 @@ namespace NeoCompose.Unity.Editor
         /// </summary>
         private void DrawRealtimeStatusRow()
         {
-            if (NeoComposeEditorRealtime.ProviderFactory == null) return;
-            if (config == null || !config.HasProject) return;
+            if (NeoComposeEditorRealtime.ProviderFactory == null)
+                return;
+            if (config == null || !config.HasProject)
+                return;
 
             var hasConvexUrl = !string.IsNullOrWhiteSpace(config.convexUrl);
             var state = realtime?.State ?? NeoRealtimeConnectionState.Disconnected;
@@ -808,12 +816,18 @@ namespace NeoCompose.Unity.Editor
         /// </summary>
         private async Task BringUpRealtimeAsync()
         {
-            if (realtimeBringUpInProgress) return;
-            if (realtime != null && realtime.State != NeoRealtimeConnectionState.Disconnected) return;
-            if (config == null || !config.HasProject) return;
-            if (string.IsNullOrWhiteSpace(config.convexUrl)) return;
-            if (NeoComposeEditorRealtime.ProviderFactory == null) return;
-            if (!auth.AreAuthSensitiveControlsEnabled) return;
+            if (realtimeBringUpInProgress)
+                return;
+            if (realtime != null && realtime.State != NeoRealtimeConnectionState.Disconnected)
+                return;
+            if (config == null || !config.HasProject)
+                return;
+            if (string.IsNullOrWhiteSpace(config.convexUrl))
+                return;
+            if (NeoComposeEditorRealtime.ProviderFactory == null)
+                return;
+            if (!auth.AreAuthSensitiveControlsEnabled)
+                return;
 
             await ConnectRealtimeAsync();
         }
@@ -823,9 +837,11 @@ namespace NeoCompose.Unity.Editor
         /// editor REST-only.</summary>
         private async Task ConnectRealtimeAsync()
         {
-            if (config == null || realtimeBringUpInProgress) return;
+            if (config == null || realtimeBringUpInProgress)
+                return;
             var factory = NeoComposeEditorRealtime.ProviderFactory;
-            if (factory == null) return;
+            if (factory == null)
+                return;
 
             realtimeBringUpInProgress = true;
             try
@@ -868,7 +884,8 @@ namespace NeoCompose.Unity.Editor
 
         private void AttachRealtimeSubscriptions()
         {
-            if (realtime == null || config == null) return;
+            if (realtime == null || config == null)
+                return;
             realtimeMetadataSubscription?.Dispose();
             realtimeMetadataSubscription = realtime.SubscribeVersionMetadata(
                 config.projectId,
@@ -884,8 +901,10 @@ namespace NeoCompose.Unity.Editor
         /// </summary>
         private void EnsureRealtimeSignalSubscription()
         {
-            if (realtime == null || config == null) return;
-            if (realtime.State != NeoRealtimeConnectionState.Connected) return;
+            if (realtime == null || config == null)
+                return;
+            if (realtime.State != NeoRealtimeConnectionState.Connected)
+                return;
 
             var versionId = config.versionId;
             if (string.IsNullOrWhiteSpace(versionId))
@@ -896,7 +915,8 @@ namespace NeoCompose.Unity.Editor
                 return;
             }
 
-            if (versionId == realtimeSignalVersionId) return;
+            if (versionId == realtimeSignalVersionId)
+                return;
 
             realtimeSignalSubscription?.Dispose();
             var hotReload = new NeoComposeEditorHotReloadController(
@@ -915,7 +935,8 @@ namespace NeoCompose.Unity.Editor
             realtimeSignalSubscription?.Dispose();
             realtimeSignalSubscription = null;
             realtimeSignalVersionId = null;
-            if (realtime == null) return;
+            if (realtime == null)
+                return;
 
             try
             {
@@ -938,7 +959,8 @@ namespace NeoCompose.Unity.Editor
             realtimeSignalSubscription?.Dispose();
             realtimeSignalSubscription = null;
             realtimeSignalVersionId = null;
-            if (realtime == null) return;
+            if (realtime == null)
+                return;
             realtime.OnConnectionStateChanged -= OnRealtimeConnectionStateChanged;
             realtime.Dispose();
             realtime = null;
@@ -1060,7 +1082,8 @@ namespace NeoCompose.Unity.Editor
 
             var orderedChannels = NeoComposeVersionSelectionUtility.OrderChannels(releaseChannels).ToArray();
             var channelIndex = Math.Max(0, Array.FindIndex(orderedChannels, channel => channel.id == config.targetReleaseChannelId));
-            if (channelIndex >= orderedChannels.Length) channelIndex = 0;
+            if (channelIndex >= orderedChannels.Length)
+                channelIndex = 0;
 
             using (new EditorGUIUtilityLabelWidthScope(LabelWidth))
             {
@@ -1086,7 +1109,8 @@ namespace NeoCompose.Unity.Editor
                 else
                 {
                     var versionIndex = Math.Max(0, Array.FindIndex(options, version => version.id == config.versionId));
-                    if (versionIndex >= options.Length) versionIndex = 0;
+                    if (versionIndex >= options.Length)
+                        versionIndex = 0;
                     EditorGUILayout.BeginHorizontal();
                     EditorGUI.BeginChangeCheck();
                     var nextVersionIndex = EditorGUILayout.Popup(
@@ -1197,8 +1221,10 @@ namespace NeoCompose.Unity.Editor
                 versions,
                 versionStatuses,
                 config.targetReleaseChannelId);
-            if (current == null || latest == null) return;
-            if (NeoComposeVersionSelectionUtility.CompareSemver(latest, current) <= 0) return;
+            if (current == null || latest == null)
+                return;
+            if (NeoComposeVersionSelectionUtility.CompareSemver(latest, current) <= 0)
+                return;
 
             EditorGUILayout.HelpBox("A newer update is available.", MessageType.Info);
             using (new EditorGUI.DisabledScope(loading))
@@ -1440,7 +1466,8 @@ namespace NeoCompose.Unity.Editor
 
         private async Task SearchProjectsAsync()
         {
-            if (config == null) return;
+            if (config == null)
+                return;
             loading = true;
             status = "";
             Repaint();
@@ -1456,7 +1483,8 @@ namespace NeoCompose.Unity.Editor
             catch (Exception exception)
             {
                 Debug.LogError(exception);
-                if (config != null) auth.HandleApiException(config.apiBaseUrl, exception);
+                if (config != null)
+                    auth.HandleApiException(config.apiBaseUrl, exception);
                 SetStatus(exception.Message, MessageType.Error);
             }
             finally
@@ -1468,9 +1496,11 @@ namespace NeoCompose.Unity.Editor
 
         private async Task RefreshVersionMetadataAsync(bool showStatus)
         {
-            if (config == null || !config.HasProject) return;
+            if (config == null || !config.HasProject)
+                return;
             loading = true;
-            if (showStatus) status = "Loading release channels and versions...";
+            if (showStatus)
+                status = "Loading release channels and versions...";
             Repaint();
 
             try
@@ -1525,7 +1555,8 @@ namespace NeoCompose.Unity.Editor
             catch (Exception exception)
             {
                 Debug.LogError(exception);
-                if (config != null) auth.HandleApiException(config.apiBaseUrl, exception);
+                if (config != null)
+                    auth.HandleApiException(config.apiBaseUrl, exception);
                 SetStatus(exception.Message, MessageType.Error);
             }
             finally
@@ -1537,7 +1568,8 @@ namespace NeoCompose.Unity.Editor
 
         private async Task SynchronizeAsync()
         {
-            if (config == null || synchronizer == null) return;
+            if (config == null || synchronizer == null)
+                return;
             loading = true;
             status = "Synchronizing...";
             Repaint();
@@ -1559,7 +1591,8 @@ namespace NeoCompose.Unity.Editor
             catch (Exception exception)
             {
                 Debug.LogError(exception);
-                if (config != null) auth.HandleApiException(config.apiBaseUrl, exception);
+                if (config != null)
+                    auth.HandleApiException(config.apiBaseUrl, exception);
                 SetStatus(exception.Message, MessageType.Error);
             }
             finally
@@ -1572,7 +1605,8 @@ namespace NeoCompose.Unity.Editor
 
         private async Task SaveUnityExportSettingsAsync()
         {
-            if (config == null || projectSettingsUpdater == null) return;
+            if (config == null || projectSettingsUpdater == null)
+                return;
             loading = true;
             status = "Saving Unity export settings...";
             Repaint();
@@ -1586,7 +1620,8 @@ namespace NeoCompose.Unity.Editor
             catch (Exception exception)
             {
                 Debug.LogError(exception);
-                if (config != null) auth.HandleApiException(config.apiBaseUrl, exception);
+                if (config != null)
+                    auth.HandleApiException(config.apiBaseUrl, exception);
                 SetStatus(exception.Message, MessageType.Error);
             }
             finally
@@ -1641,7 +1676,8 @@ namespace NeoCompose.Unity.Editor
                 return;
             }
 
-            if (rigStatus == null) return;
+            if (rigStatus == null)
+                return;
 
             EditorGUILayout.Space(2);
             EditorGUILayout.HelpBox(rigStatus, MessageType.Info);
@@ -1658,7 +1694,8 @@ namespace NeoCompose.Unity.Editor
 
         private void ClearKeyboardFocusIfRequested()
         {
-            if (!clearKeyboardFocusNextGui) return;
+            if (!clearKeyboardFocusNextGui)
+                return;
 
             clearKeyboardFocusNextGui = false;
             GUI.FocusControl(null);
@@ -1669,7 +1706,8 @@ namespace NeoCompose.Unity.Editor
         private static string BuildProjectSchemaUrl(string apiBaseUrl, string projectId, string versionId)
         {
             var root = apiBaseUrl.Trim().TrimEnd('/') + "/projects/" + Uri.EscapeDataString(projectId);
-            if (string.IsNullOrWhiteSpace(versionId)) return root;
+            if (string.IsNullOrWhiteSpace(versionId))
+                return root;
             return root + "/versions/" + Uri.EscapeDataString(versionId);
         }
 

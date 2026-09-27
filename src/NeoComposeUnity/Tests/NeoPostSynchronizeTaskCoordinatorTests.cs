@@ -369,7 +369,10 @@ namespace NeoCompose.Tests
         {
             private string? serialized;
 
-            internal bool WasCleared { get; private set; }
+            internal bool WasCleared
+            {
+                get; private set;
+            }
 
             public NeoPostSynchronizeGenerationState? Load() =>
                 string.IsNullOrEmpty(serialized)

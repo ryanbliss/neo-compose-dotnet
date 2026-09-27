@@ -90,9 +90,12 @@ namespace NeoCompose.Unity.Editor
             DateTimeOffset now,
             bool force)
         {
-            if (force) return false;
-            if (stored == null) return false;
-            if (!stored.HasAccessToken) return false;
+            if (force)
+                return false;
+            if (stored == null)
+                return false;
+            if (!stored.HasAccessToken)
+                return false;
             return !stored.IsExpired(now + ReuseMargin);
         }
 
@@ -138,7 +141,8 @@ namespace NeoCompose.Unity.Editor
                     Debug.Log(
                         $"{LogPrefix} end: success — already signed in for {origin}; set " +
                         $"{ForceEnvironmentVariable}=1 to re-authorize.");
-                    if (exitOnCompletion) EditorApplication.Exit(0);
+                    if (exitOnCompletion)
+                        EditorApplication.Exit(0);
                     return;
                 }
             }
@@ -186,7 +190,8 @@ namespace NeoCompose.Unity.Editor
         {
             void Poll()
             {
-                if (!authorize.IsCompleted) return;
+                if (!authorize.IsCompleted)
+                    return;
                 EditorApplication.update -= Poll;
                 Finish(authorize, cancellation, exitOnCompletion);
             }
@@ -228,7 +233,8 @@ namespace NeoCompose.Unity.Editor
                 // Only the outcome and the flow's own message are logged; the
                 // device code and token never are.
                 Debug.LogError($"{LogPrefix} end: failed — {result.outcome}: {result.message}");
-                if (exitOnCompletion) EditorApplication.Exit(1);
+                if (exitOnCompletion)
+                    EditorApplication.Exit(1);
                 return;
             }
 
@@ -236,13 +242,15 @@ namespace NeoCompose.Unity.Editor
             Debug.Log(
                 $"{LogPrefix} end: success — signed in" +
                 (identity.Length > 0 ? $" as {identity}" : "") + ".");
-            if (exitOnCompletion) EditorApplication.Exit(0);
+            if (exitOnCompletion)
+                EditorApplication.Exit(0);
         }
 
         private static void Finish(Exception exception, bool exitOnCompletion)
         {
             Debug.LogError($"{LogPrefix} end: failed — {exception}");
-            if (exitOnCompletion) EditorApplication.Exit(1);
+            if (exitOnCompletion)
+                EditorApplication.Exit(1);
         }
     }
 }

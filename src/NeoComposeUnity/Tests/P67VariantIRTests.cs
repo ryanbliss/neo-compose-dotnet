@@ -80,8 +80,11 @@ namespace NeoCompose.Tests
             };
             data.members["variant-overrides"] = new GenericMember
             {
-                id = "variant-overrides", name = "Overrides", kind = MemberKind.Generic,
-                genericParamId = "target-param", Payload = NeoMemberPayloadKind.Partial,
+                id = "variant-overrides",
+                name = "Overrides",
+                kind = MemberKind.Generic,
+                genericParamId = "target-param",
+                Payload = NeoMemberPayloadKind.Partial,
             };
             using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
 
@@ -144,7 +147,9 @@ namespace NeoCompose.Tests
             string targetId = NewSessionInstance(client);
             var member = new ClassMember
             {
-                id = "held-widget-view", name = "HeldWidget", kind = MemberKind.Class,
+                id = "held-widget-view",
+                name = "HeldWidget",
+                kind = MemberKind.Class,
                 classId = WidgetClassId,
             };
             using var held = new NeoMemberClassWritable(client, member, targetId, NeoValueOwnership.Session);
@@ -1212,65 +1217,65 @@ namespace NeoCompose.Tests
             string classId,
             string? variantId,
             string? rowValueId = null) => new()
-        {
-            type = PointerKind.Variant,
-            classId = classId,
-            variantId = variantId,
-            rowValueId = rowValueId,
-        };
+            {
+                type = PointerKind.Variant,
+                classId = classId,
+                variantId = variantId,
+                rowValueId = rowValueId,
+            };
 
         private static FunctionPointer VariantInitializePointer(
             Pointer variant,
             Pointer? row = null) => new()
-        {
-            type = PointerKind.Function,
-            function = new VariantInitializeFunction
             {
-                type = FunctionKind.VariantInitialize,
-                info = new FunctionVariantInitializeInfo
+                type = PointerKind.Function,
+                function = new VariantInitializeFunction
                 {
-                    variantPointer = variant,
-                    rowPointer = row,
-                    schemaClassInfo = ClassType(WidgetClassId),
+                    type = FunctionKind.VariantInitialize,
+                    info = new FunctionVariantInitializeInfo
+                    {
+                        variantPointer = variant,
+                        rowPointer = row,
+                        schemaClassInfo = ClassType(WidgetClassId),
+                    },
                 },
-            },
-        };
+            };
 
         private static FunctionPointer VariantApplyPointer(
             Pointer receiver,
             VariantPointer variant,
             Pointer? row = null) => new()
-        {
-            type = PointerKind.Function,
-            function = new VariantApplyFunction
             {
-                type = FunctionKind.VariantApply,
-                info = new FunctionVariantApplyInfo
+                type = PointerKind.Function,
+                function = new VariantApplyFunction
                 {
-                    receiverPointer = receiver,
-                    variantPointer = variant,
-                    rowPointer = row,
-                    schemaClassInfo = ClassType(WidgetClassId),
+                    type = FunctionKind.VariantApply,
+                    info = new FunctionVariantApplyInfo
+                    {
+                        receiverPointer = receiver,
+                        variantPointer = variant,
+                        rowPointer = row,
+                        schemaClassInfo = ClassType(WidgetClassId),
+                    },
                 },
-            },
-        };
+            };
 
         private static FunctionPointer VariantApplyPointerFrom(
             Pointer receiver,
             Pointer variant) => new()
-        {
-            type = PointerKind.Function,
-            function = new VariantApplyFunction
             {
-                type = FunctionKind.VariantApply,
-                info = new FunctionVariantApplyInfo
+                type = PointerKind.Function,
+                function = new VariantApplyFunction
                 {
-                    receiverPointer = receiver,
-                    variantPointer = variant,
-                    schemaClassInfo = ClassType(WidgetClassId),
+                    type = FunctionKind.VariantApply,
+                    info = new FunctionVariantApplyInfo
+                    {
+                        receiverPointer = receiver,
+                        variantPointer = variant,
+                        schemaClassInfo = ClassType(WidgetClassId),
+                    },
                 },
-            },
-        };
+            };
 
         private static FunctionPointer ClassConstructorPointer(string classId) => new()
         {
@@ -1296,47 +1301,47 @@ namespace NeoCompose.Tests
         private static AssignInstruction AssignMember(
             string schemaKey,
             Pointer value) => new()
-        {
-            type = InstructionKind.Assign,
-            target = new WriteTarget
             {
-                pointer = new KeyOfPointer
+                type = InstructionKind.Assign,
+                target = new WriteTarget
                 {
-                    type = PointerKind.KeyOf,
-                    keyOf = new KeyOf
+                    pointer = new KeyOfPointer
                     {
-                        pointer = new VariablePointer
+                        type = PointerKind.KeyOf,
+                        keyOf = new KeyOf
                         {
-                            type = PointerKind.Variable,
-                            variableId = "__source__",
+                            pointer = new VariablePointer
+                            {
+                                type = PointerKind.Variable,
+                                variableId = "__source__",
+                            },
+                            key = Literal(schemaKey),
                         },
-                        key = Literal(schemaKey),
+                    },
+                    typeInfo = new PrimitiveTypeInfo
+                    {
+                        type = MemberKind.String,
+                        required = true,
                     },
                 },
-                typeInfo = new PrimitiveTypeInfo
-                {
-                    type = MemberKind.String,
-                    required = true,
-                },
-            },
-            pointer = value,
-        };
+                pointer = value,
+            };
 
         private static KeyOfPointer VariableMemberRead(
             string variableId,
             string schemaKey) => new()
-        {
-            type = PointerKind.KeyOf,
-            keyOf = new KeyOf
             {
-                pointer = new VariablePointer
+                type = PointerKind.KeyOf,
+                keyOf = new KeyOf
                 {
-                    type = PointerKind.Variable,
-                    variableId = variableId,
+                    pointer = new VariablePointer
+                    {
+                        type = PointerKind.Variable,
+                        variableId = variableId,
+                    },
+                    key = Literal(schemaKey),
                 },
-                key = Literal(schemaKey),
-            },
-        };
+            };
 
         private static ClassTypeInfo ClassType(string classId) => new()
         {
@@ -1409,17 +1414,17 @@ namespace NeoCompose.Tests
         private static DelegateMemberValue Closure(
             string id,
             params Instruction[] instructions) => new()
-        {
-            id = id,
-            createdAt = "x",
-            updatedAt = "x",
-            value = new NeoDelegateValue
             {
-                code = "// hand-built",
-                action = new FunctionWithReturnType
+                id = id,
+                createdAt = "x",
+                updatedAt = "x",
+                value = new NeoDelegateValue
                 {
-                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
-                    parameters = new[]
+                    code = "// hand-built",
+                    action = new FunctionWithReturnType
+                    {
+                        compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                        parameters = new[]
                     {
                         new Variable
                         {
@@ -1432,15 +1437,15 @@ namespace NeoCompose.Tests
                             typeInfo = ClassType("root-class"),
                         },
                     },
-                    instructions = instructions,
-                    typeInfo = new PrimitiveTypeInfo
-                    {
-                        type = MemberKind.Unknown,
-                        required = false,
+                        instructions = instructions,
+                        typeInfo = new PrimitiveTypeInfo
+                        {
+                            type = MemberKind.Unknown,
+                            required = false,
+                        },
                     },
                 },
-            },
-        };
+            };
 
         // ---- record builders ----
 
@@ -1449,17 +1454,17 @@ namespace NeoCompose.Tests
             string name,
             string valueId,
             NeoMemberStorage storage = NeoMemberStorage.Inherit) => new()
-        {
-            id = id,
-            projectId = ProjectId,
-            name = name,
-            kind = MemberKind.Class,
-            classId = "root-class",
-            valueId = valueId,
-            Storage = storage,
-            createdAt = "x",
-            updatedAt = "x",
-        };
+            {
+                id = id,
+                projectId = ProjectId,
+                name = name,
+                kind = MemberKind.Class,
+                classId = "root-class",
+                valueId = valueId,
+                Storage = storage,
+                createdAt = "x",
+                updatedAt = "x",
+            };
 
         private static ObjectMemberValue ObjectValue(
             string id,
@@ -1467,7 +1472,8 @@ namespace NeoCompose.Tests
             params (string key, string valueId)[] entries)
         {
             var map = new Dictionary<string, string>();
-            foreach ((string key, string valueId) in entries) map[key] = valueId;
+            foreach ((string key, string valueId) in entries)
+                map[key] = valueId;
             return new ObjectMemberValue
             {
                 id = id,
@@ -1506,18 +1512,18 @@ namespace NeoCompose.Tests
             string id,
             string name,
             TypeInfo returnTypeInfo) => new()
-        {
-            id = id,
-            projectId = ProjectId,
-            name = name,
-            kind = MemberKind.NSDelegate,
-            Requirement = NeoMemberRequirementKind.Optional,
-            Storage = NeoMemberStorage.Immutable,
-            returnTypeInfo = returnTypeInfo,
-            argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
-            createdAt = "x",
-            updatedAt = "x",
-        };
+            {
+                id = id,
+                projectId = ProjectId,
+                name = name,
+                kind = MemberKind.NSDelegate,
+                Requirement = NeoMemberRequirementKind.Optional,
+                Storage = NeoMemberStorage.Immutable,
+                returnTypeInfo = returnTypeInfo,
+                argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
+                createdAt = "x",
+                updatedAt = "x",
+            };
 
         private static ClassMember PartialField(string id, string name) => new()
         {

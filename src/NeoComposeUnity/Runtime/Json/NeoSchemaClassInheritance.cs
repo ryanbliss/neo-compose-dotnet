@@ -16,8 +16,14 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public class CircularInheritanceError : Exception
     {
-        public string nodeId { get; }
-        public IReadOnlyList<string> chain { get; }
+        public string nodeId
+        {
+            get;
+        }
+        public IReadOnlyList<string> chain
+        {
+            get;
+        }
 
         public CircularInheritanceError(string nodeId, IReadOnlyList<string> chain)
             : base($"Circular inheritance detected at \"{nodeId}\"; chain: {string.Join(" -> ", chain)}")
@@ -34,9 +40,18 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public class MergedSchemaEntry
     {
-        public string schemaKey { get; }
-        public string memberId { get; }
-        public string ownerClassId { get; }
+        public string schemaKey
+        {
+            get;
+        }
+        public string memberId
+        {
+            get;
+        }
+        public string ownerClassId
+        {
+            get;
+        }
 
         public MergedSchemaEntry(string schemaKey, string memberId, string ownerClassId)
         {
@@ -53,8 +68,14 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public class SchemaPlacement
     {
-        public NeoSchemaClass ownerClass { get; }
-        public string schemaKey { get; }
+        public NeoSchemaClass ownerClass
+        {
+            get;
+        }
+        public string schemaKey
+        {
+            get;
+        }
 
         public SchemaPlacement(NeoSchemaClass ownerClass, string schemaKey)
         {
@@ -91,12 +112,14 @@ namespace NeoCompose.Runtime.Json
                 if (visited.Contains(current.id))
                 {
                     List<string> chainIds = new();
-                    foreach (var c in chain) chainIds.Add(c.id);
+                    foreach (var c in chain)
+                        chainIds.Add(c.id);
                     throw new CircularInheritanceError(current.id, chainIds);
                 }
                 visited.Add(current.id);
                 chain.Add(current);
-                if (string.IsNullOrEmpty(current.extendsClassId)) break;
+                if (string.IsNullOrEmpty(current.extendsClassId))
+                    break;
                 current = lookup(current.extendsClassId!);
             }
             return chain;
@@ -120,10 +143,12 @@ namespace NeoCompose.Runtime.Json
             List<string> order = new();
             foreach (var schemaClass in baseFirst)
             {
-                if (schemaClass.schema is null) continue;
+                if (schemaClass.schema is null)
+                    continue;
                 foreach (var kvp in schemaClass.schema)
                 {
-                    if (!map.ContainsKey(kvp.Key)) order.Add(kvp.Key);
+                    if (!map.ContainsKey(kvp.Key))
+                        order.Add(kvp.Key);
                     map[kvp.Key] = new MergedSchemaEntry(
                         schemaKey: kvp.Key,
                         memberId: kvp.Value,
@@ -154,7 +179,8 @@ namespace NeoCompose.Runtime.Json
             foreach (MergedSchemaEntry entry in merged)
             {
                 Member? member = memberLookup(entry.memberId);
-                if (member?.Modifier == NeoMemberModifierKind.Static) continue;
+                if (member?.Modifier == NeoMemberModifierKind.Static)
+                    continue;
                 result.Add(entry);
             }
             return result;
@@ -184,7 +210,8 @@ namespace NeoCompose.Runtime.Json
             foreach (MergedSchemaEntry entry in surface)
             {
                 Member? member = memberLookup(entry.memberId);
-                if (member?.Mutability == NeoMemberMutabilityKind.ReadOnly) continue;
+                if (member?.Mutability == NeoMemberMutabilityKind.ReadOnly)
+                    continue;
                 result.Add(entry);
             }
             return result;
@@ -206,7 +233,8 @@ namespace NeoCompose.Runtime.Json
             {
                 Member? member = memberLookup(entry.memberId);
                 if (member?.Mutability != NeoMemberMutabilityKind.ReadOnly
-                    || member.Modifier == NeoMemberModifierKind.Abstract) continue;
+                    || member.Modifier == NeoMemberModifierKind.Abstract)
+                    continue;
                 result.Add(entry);
             }
             return result;
@@ -227,7 +255,8 @@ namespace NeoCompose.Runtime.Json
             foreach (MergedSchemaEntry entry in merged)
             {
                 Member? member = memberLookup(entry.memberId);
-                if (member?.Modifier != NeoMemberModifierKind.Static) continue;
+                if (member?.Modifier != NeoMemberModifierKind.Static)
+                    continue;
                 result.Add(entry);
             }
             return result;
@@ -257,7 +286,8 @@ namespace NeoCompose.Runtime.Json
         {
             foreach (var schemaClass in classes)
             {
-                if (schemaClass.schema is null) continue;
+                if (schemaClass.schema is null)
+                    continue;
                 foreach (var kvp in schemaClass.schema)
                 {
                     if (kvp.Value == memberId)
@@ -331,8 +361,10 @@ namespace NeoCompose.Runtime.Json
                     return null;
                 }
                 var picked = picker(cursor);
-                if (picked is not null) return picked;
-                if (string.IsNullOrEmpty(cursor.extendsMemberId)) return null;
+                if (picked is not null)
+                    return picked;
+                if (string.IsNullOrEmpty(cursor.extendsMemberId))
+                    return null;
                 cursor = memberLookup(cursor.extendsMemberId!);
             }
             return null;

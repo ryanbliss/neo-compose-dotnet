@@ -114,7 +114,8 @@ namespace NeoCompose.Unity.Editor
         {
             void Poll()
             {
-                if (!synchronize.IsCompleted) return;
+                if (!synchronize.IsCompleted)
+                    return;
                 EditorApplication.update -= Poll;
                 Finish(synchronize, exitOnCompletion);
             }
@@ -151,18 +152,21 @@ namespace NeoCompose.Unity.Editor
             if (!result.success)
             {
                 Debug.LogError($"{LogPrefix} end: failed — {result.message}");
-                if (exitOnCompletion) EditorApplication.Exit(1);
+                if (exitOnCompletion)
+                    EditorApplication.Exit(1);
                 return;
             }
 
             Debug.Log($"{LogPrefix} end: success — {result.message}");
-            if (exitOnCompletion) EditorApplication.Exit(0);
+            if (exitOnCompletion)
+                EditorApplication.Exit(0);
         }
 
         private static void Finish(Exception exception, bool exitOnCompletion)
         {
             Debug.LogError($"{LogPrefix} end: failed — {exception}");
-            if (exitOnCompletion) EditorApplication.Exit(1);
+            if (exitOnCompletion)
+                EditorApplication.Exit(1);
         }
     }
 }

@@ -33,7 +33,10 @@ namespace NeoCompose.Runtime.Json
     [JsonConverter(typeof(NeoGameSaveRecordChangeConverter))]
     public abstract class GameSaveRecordChange
     {
-        public abstract string kind { get; }
+        public abstract string kind
+        {
+            get;
+        }
     }
 
     public abstract class BasedGameSaveRecordChange : GameSaveRecordChange
@@ -236,8 +239,10 @@ namespace NeoCompose.Runtime.Json
             {
                 var cacheKey = descriptor.StateCacheKey;
                 var stateId = descriptor.recordStateId;
-                if (cacheKey == null || stateId == null || states.ContainsKey(cacheKey)) continue;
-                if (seen.Add(stateId)) missing.Add(stateId);
+                if (cacheKey == null || stateId == null || states.ContainsKey(cacheKey))
+                    continue;
+                if (seen.Add(stateId))
+                    missing.Add(stateId);
             }
             return missing;
         }
@@ -247,11 +252,13 @@ namespace NeoCompose.Runtime.Json
             IEnumerable<GameSaveRecordState> fetched)
         {
             var byId = new Dictionary<string, GameSaveRecordState>();
-            foreach (var state in fetched) byId[state.id] = state;
+            foreach (var state in fetched)
+                byId[state.id] = state;
             foreach (var descriptor in incoming)
             {
                 var cacheKey = descriptor.StateCacheKey;
-                if (cacheKey == null || descriptor.recordStateId == null) continue;
+                if (cacheKey == null || descriptor.recordStateId == null)
+                    continue;
                 if (byId.TryGetValue(descriptor.recordStateId, out var state))
                 {
                     var obsoleteKeys = new List<string>();
@@ -262,7 +269,8 @@ namespace NeoCompose.Runtime.Json
                             obsoleteKeys.Add(cached.Key);
                         }
                     }
-                    foreach (var obsoleteKey in obsoleteKeys) states.Remove(obsoleteKey);
+                    foreach (var obsoleteKey in obsoleteKeys)
+                        states.Remove(obsoleteKey);
                     states[cacheKey] = state;
                 }
             }
@@ -287,8 +295,10 @@ namespace NeoCompose.Runtime.Json
                     var state = RequireCachedState(descriptor);
                     var data = ParseDataObject(state, descriptor);
                     data["id"] = descriptor.recordId;
-                    if (descriptor.mapKey == null) data.Remove("mapKey");
-                    else data["mapKey"] = descriptor.mapKey;
+                    if (descriptor.mapKey == null)
+                        data.Remove("mapKey");
+                    else
+                        data["mapKey"] = descriptor.mapKey;
                     values[descriptor.recordId] = data;
                     continue;
                 }

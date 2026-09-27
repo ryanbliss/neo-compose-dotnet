@@ -943,7 +943,8 @@ namespace NeoCompose.Tests
         {
             var client = CreateClient(data =>
             {
-                if (!unordered) return;
+                if (!unordered)
+                    return;
                 ((ListMember)data.members["member-items"]).ListKind = NeoListKind.Unordered;
                 ((ArrayMemberValue)data.values["assets-items-value"]).value = Array.Empty<string>();
                 data.values["asset-item-value"].containerId = "assets-items-value";
@@ -992,7 +993,9 @@ namespace NeoCompose.Tests
                 data.enums ??= new Dictionary<string, NeoCompose.Runtime.Json.Enum>();
                 data.enums["choices"] = new NeoCompose.Runtime.Json.Enum
                 {
-                    id = "choices", projectId = ProjectId, name = "Choices",
+                    id = "choices",
+                    projectId = ProjectId,
+                    name = "Choices",
                     options = new Dictionary<string, EnumOption> { [selectedId] = new EnumOption { text = "Choice" } },
                     optionKeyOrder = new List<string> { selectedId },
                 };
@@ -1006,7 +1009,10 @@ namespace NeoCompose.Tests
             });
             client.SetSaveValue(new ArrayMemberValue
             {
-                id = "default-inventory-value", createdAt = Now, updatedAt = Now, value = Array.Empty<string>(),
+                id = "default-inventory-value",
+                createdAt = Now,
+                updatedAt = Now,
+                value = Array.Empty<string>(),
             });
             var root = new TestDialogues(client);
             foreach (string id in new[] { "set-add", "set-add", "set-remove" })
@@ -2890,7 +2896,8 @@ namespace NeoCompose.Tests
 
         private static DialogueLinkedValue[] LinkedValues(string[]? valueIds)
         {
-            if (valueIds == null) return new DialogueLinkedValue[0];
+            if (valueIds == null)
+                return new DialogueLinkedValue[0];
             var result = new DialogueLinkedValue[valueIds.Length];
             for (int i = 0; i < valueIds.Length; i++)
             {
@@ -4014,7 +4021,8 @@ namespace NeoCompose.Tests
 
         private static object? ResolveClientValue(NeoClient client, string valueId)
         {
-            if (!client.TryGetValue(valueId, out MemberValue? row)) return null;
+            if (!client.TryGetValue(valueId, out MemberValue? row))
+                return null;
             var ctx = new NeoCompose.Runtime.NeoScript.NSGetterEvaluator.Context(
                 client,
                 thisValue: null,
@@ -4114,7 +4122,10 @@ namespace NeoCompose.Tests
 
         private class TestLookupValue : INeoValueReference
         {
-            public string? valueId { get; }
+            public string? valueId
+            {
+                get;
+            }
 
             public TestLookupValue(string? valueId)
             {
@@ -4159,8 +4170,14 @@ namespace NeoCompose.Tests
         {
             private readonly Dictionary<string, TestTextNodeMemory> textNodes = new();
 
-            public int VisitCount { get; set; }
-            public string? LastVisitedAt { get; set; }
+            public int VisitCount
+            {
+                get; set;
+            }
+            public string? LastVisitedAt
+            {
+                get; set;
+            }
 
             public INeoTextNodeMemory GetOrCreateTextNodeMemory(string textNodeId)
             {
@@ -4184,9 +4201,18 @@ namespace NeoCompose.Tests
         {
             private readonly HashSet<string> choices = new();
 
-            public int VisitCount { get; set; }
-            public string? LastVisitedAt { get; set; }
-            public string? MostRecentChoiceId { get; set; }
+            public int VisitCount
+            {
+                get; set;
+            }
+            public string? LastVisitedAt
+            {
+                get; set;
+            }
+            public string? MostRecentChoiceId
+            {
+                get; set;
+            }
 
             public bool HasChoice(string choiceId)
             {

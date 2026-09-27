@@ -47,10 +47,22 @@ namespace NeoCompose.Tests
         private class ExpectedEntry
         {
             public string memberId { get; set; } = "";
-            public string? thisValueId { get; set; }
-            public bool ok { get; set; }
-            public JToken? value { get; set; }
-            public string? error { get; set; }
+            public string? thisValueId
+            {
+                get; set;
+            }
+            public bool ok
+            {
+                get; set;
+            }
+            public JToken? value
+            {
+                get; set;
+            }
+            public string? error
+            {
+                get; set;
+            }
         }
 
         private static List<ExpectedEntry> LoadExpected()
@@ -179,24 +191,25 @@ namespace NeoCompose.Tests
                 case JTokenType.Float:
                     return token;
                 case JTokenType.Object:
-                {
-                    var obj = (JObject)token;
-                    var result = new JObject();
-                    // Sort keys so dict entry order doesn't matter.
-                    var sortedKeys = obj.Properties().Select(p => p.Name).OrderBy(k => k, System.StringComparer.Ordinal);
-                    foreach (var key in sortedKeys)
                     {
-                        result[key] = CanonicalizeToken(obj[key]!);
+                        var obj = (JObject)token;
+                        var result = new JObject();
+                        // Sort keys so dict entry order doesn't matter.
+                        var sortedKeys = obj.Properties().Select(p => p.Name).OrderBy(k => k, System.StringComparer.Ordinal);
+                        foreach (var key in sortedKeys)
+                        {
+                            result[key] = CanonicalizeToken(obj[key]!);
+                        }
+                        return result;
                     }
-                    return result;
-                }
                 case JTokenType.Array:
-                {
-                    var arr = (JArray)token;
-                    var result = new JArray();
-                    foreach (var item in arr) result.Add(CanonicalizeToken(item));
-                    return result;
-                }
+                    {
+                        var arr = (JArray)token;
+                        var result = new JArray();
+                        foreach (var item in arr)
+                            result.Add(CanonicalizeToken(item));
+                        return result;
+                    }
                 default:
                     return token;
             }

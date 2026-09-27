@@ -215,7 +215,8 @@ namespace NeoCompose.Tests
         public Awaitable<RemoteGameSave> GetSaveAsync(string customId)
         {
             getCalls++;
-            if (getThrows != null) throw getThrows;
+            if (getThrows != null)
+                throw getThrows;
             if (getResult == null)
             {
                 throw new InvalidOperationException($"No remote save for \"{customId}\".");
@@ -256,7 +257,8 @@ namespace NeoCompose.Tests
             var states = new List<GameSaveRecordState>();
             foreach (var id in recordStateIds)
             {
-                if (recordStates.TryGetValue(id, out var state)) states.Add(state);
+                if (recordStates.TryGetValue(id, out var state))
+                    states.Add(state);
             }
             return NeoAwaitable.FromResult<IReadOnlyList<GameSaveRecordState>>(states);
         }
@@ -283,7 +285,8 @@ namespace NeoCompose.Tests
             NeoStagedSnapshotBeginRequest request)
         {
             stagedBegins.Add((customId, request));
-            if (stagedBeginThrows != null) throw stagedBeginThrows;
+            if (stagedBeginThrows != null)
+                throw stagedBeginThrows;
             return NeoAwaitable.FromResult(stagedBeginResults.Dequeue());
         }
 
@@ -292,7 +295,8 @@ namespace NeoCompose.Tests
         {
             chunkedBeginCalls++;
             chunkedBeginFingerprints.Add(request.uploadFingerprint);
-            if (chunkedBeginThrows != null) throw chunkedBeginThrows;
+            if (chunkedBeginThrows != null)
+                throw chunkedBeginThrows;
             return NeoAwaitable.FromResult(
                 chunkedCreateTarget
                 ?? throw new InvalidOperationException(
@@ -371,7 +375,8 @@ namespace NeoCompose.Tests
         {
             chunkedCompleteCalls++;
             chunkedCompleteResumeTokens.Add(resumeToken);
-            if (chunkedCompleteThrows != null) throw chunkedCompleteThrows;
+            if (chunkedCompleteThrows != null)
+                throw chunkedCompleteThrows;
             return NeoAwaitable.FromResult(
                 chunkedCompleteResult
                 ?? throw new InvalidOperationException(
@@ -414,7 +419,8 @@ namespace NeoCompose.Tests
         public Awaitable ArchiveSaveAsync(string customId)
         {
             archivedSaves.Add(customId);
-            if (archiveThrows != null) throw archiveThrows;
+            if (archiveThrows != null)
+                throw archiveThrows;
             return NeoAwaitable.Completed();
         }
 

@@ -79,7 +79,10 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public interface IMemberValueBase
     {
-        string? classId { get; set; }
+        string? classId
+        {
+            get; set;
+        }
     }
 
     /// <summary>
@@ -99,7 +102,10 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public interface IMemberValueBase<TValue> : IMemberValueBase
     {
-        TValue? value { get; set; }
+        TValue? value
+        {
+            get; set;
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -136,7 +142,10 @@ namespace NeoCompose.Runtime.Json
     [JsonConverter(typeof(MemberValueBaseConverter))]
     public abstract class MemberValueBase : IMemberValueBase
     {
-        public string? classId { get; set; }
+        public string? classId
+        {
+            get; set;
+        }
 
         /// <summary>
         /// P43 §1 / P61 §3 — set iff this container is an
@@ -155,7 +164,10 @@ namespace NeoCompose.Runtime.Json
         /// <c>classId</c>, and (when needed) <c>constructorArgs</c>.</para>
         /// </summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public InitializerBody? init { get; set; }
+        public InitializerBody? init
+        {
+            get; set;
+        }
     }
 
     /// <summary>
@@ -168,7 +180,8 @@ namespace NeoCompose.Runtime.Json
     {
         internal static void RejectConflictingVariant(JObject carrier, string subject)
         {
-            if (carrier.Property("init") is null) return;
+            if (carrier.Property("init") is null)
+                return;
             if (IsPresent(carrier["value"]))
             {
                 throw new JsonSerializationException(
@@ -281,17 +294,23 @@ namespace NeoCompose.Runtime.Json
     /// (whose stored value is conceptually always null but still needs
     /// to fit the typed <c>defaultValue</c> field).
     /// </summary>
-    public class NullMemberValueBase : MemberValueBase<object?> { }
+    public class NullMemberValueBase : MemberValueBase<object?>
+    {
+    }
 
     /// <summary>Carrier for a Bool <see cref="Member.defaultValue"/>.</summary>
-    public class BoolMemberValueBase : MemberValueBase<bool?> { }
+    public class BoolMemberValueBase : MemberValueBase<bool?>
+    {
+    }
 
     /// <summary>
     /// Carrier for an Int / Float <see cref="Member.defaultValue"/>.
     /// Stored as <c>double?</c> to round-trip both Int and Float without
     /// loss; cast via the parent member's <c>kind</c>.
     /// </summary>
-    public class NumberMemberValueBase : MemberValueBase<double?> { }
+    public class NumberMemberValueBase : MemberValueBase<double?>
+    {
+    }
 
     /// <summary>Carrier for a String <see cref="Member.defaultValue"/>.</summary>
     public class StringMemberValueBase : MemberValueBase<string?>
@@ -300,43 +319,66 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>Carrier for a List / Enum / Lookup <see cref="Member.defaultValue"/>.</summary>
-    public class ArrayMemberValueBase : MemberValueBase<string[]?> { }
+    public class ArrayMemberValueBase : MemberValueBase<string[]?>
+    {
+    }
 
     /// <summary>Carrier for a Dictionary / Class <see cref="Member.defaultValue"/>.</summary>
-    public class ObjectMemberValueBase : MemberValueBase<Dictionary<string, string>?> { }
+    public class ObjectMemberValueBase : MemberValueBase<Dictionary<string, string>?>
+    {
+    }
 
     /// <summary>Carrier for an NSDelegate declaration default.</summary>
-    public class DelegateMemberValueBase : MemberValueBase<NeoDelegateValue?> { }
+    public class DelegateMemberValueBase : MemberValueBase<NeoDelegateValue?>
+    {
+    }
 
     /// <summary>
     /// Carrier for an NSAction declaration default — the authored listener
     /// set. An absent default means the empty set (P62 §2.1).
     /// </summary>
-    public class ActionMemberValueBase : MemberValueBase<NeoActionValue?> { }
+    public class ActionMemberValueBase : MemberValueBase<NeoActionValue?>
+    {
+    }
 
     /// <summary>Carrier for an Audio file <see cref="Member.defaultValue"/>.</summary>
-    public class FileMemberValueBase : MemberValueBase<FileValue?> { }
+    public class FileMemberValueBase : MemberValueBase<FileValue?>
+    {
+    }
 
     /// <summary>Carrier for a Sprite <see cref="Member.defaultValue"/>.</summary>
-    public class SpriteMemberValueBase : MemberValueBase<SpriteValue?> { }
+    public class SpriteMemberValueBase : MemberValueBase<SpriteValue?>
+    {
+    }
 
     /// <summary>
     /// Carrier for a Variant member's declaration default — the authored
     /// `{classId, variantId}` selection (P67 §6).
     /// </summary>
-    public class VariantMemberValueBase : MemberValueBase<VariantRefValue?> { }
+    public class VariantMemberValueBase : MemberValueBase<VariantRefValue?>
+    {
+    }
 
     [JsonConverter(typeof(NeoVector2ValueConverter))]
     public class NeoVector2Value
     {
-        public float x { get; set; }
-        public float y { get; set; }
+        public float x
+        {
+            get; set;
+        }
+        public float y
+        {
+            get; set;
+        }
     }
 
     [JsonConverter(typeof(NeoVector3ValueConverter))]
     public class NeoVector3Value : NeoVector2Value
     {
-        public float z { get; set; }
+        public float z
+        {
+            get; set;
+        }
     }
 
     /// <summary>
@@ -347,20 +389,38 @@ namespace NeoCompose.Runtime.Json
     [JsonConverter(typeof(NeoColorValueConverter))]
     public class NeoColorValue
     {
-        public float r { get; set; }
-        public float g { get; set; }
-        public float b { get; set; }
-        public float a { get; set; }
+        public float r
+        {
+            get; set;
+        }
+        public float g
+        {
+            get; set;
+        }
+        public float b
+        {
+            get; set;
+        }
+        public float a
+        {
+            get; set;
+        }
     }
 
     /// <summary>Carrier for Vector2 / Vector2Int defaults.</summary>
-    public class Vector2MemberValueBase : MemberValueBase<NeoVector2Value?> { }
+    public class Vector2MemberValueBase : MemberValueBase<NeoVector2Value?>
+    {
+    }
 
     /// <summary>Carrier for Vector3 / Vector3Int defaults.</summary>
-    public class Vector3MemberValueBase : MemberValueBase<NeoVector3Value?> { }
+    public class Vector3MemberValueBase : MemberValueBase<NeoVector3Value?>
+    {
+    }
 
     /// <summary>Carrier for Color defaults.</summary>
-    public class ColorMemberValueBase : MemberValueBase<NeoColorValue?> { }
+    public class ColorMemberValueBase : MemberValueBase<NeoColorValue?>
+    {
+    }
 
     /// <summary>
     /// P42 decision D10 — a <c>~partial</c> structured-leaf envelope is legal
@@ -388,8 +448,10 @@ namespace NeoCompose.Runtime.Json
         /// </summary>
         internal static void RejectDefaultCarrier(JObject? carrier, string subject)
         {
-            if (carrier is null) return;
-            if (!NeoPartialLeafValue.IsEnvelope(carrier["value"])) return;
+            if (carrier is null)
+                return;
+            if (!NeoPartialLeafValue.IsEnvelope(carrier["value"]))
+                return;
             throw new JsonSerializationException(
                 $"{subject} holds a '{NeoPartialLeafValue.EnvelopeKey}' structured-leaf "
                 + "value. A partial value is legal only inside an animation override graph "
@@ -405,7 +467,8 @@ namespace NeoCompose.Runtime.Json
         /// </summary>
         internal static void RejectMemberDeclarationDefault(JObject member, Type concrete)
         {
-            if (member["defaultValue"] is not JObject carrier) return;
+            if (member["defaultValue"] is not JObject carrier)
+                return;
             RejectDefaultCarrier(carrier, DescribeMember(member, concrete));
         }
 
@@ -459,12 +522,14 @@ namespace NeoCompose.Runtime.Json
 
         internal static bool LooksLikeVector2Value(JToken token)
         {
-            if (token.Type != JTokenType.Object) return false;
+            if (token.Type != JTokenType.Object)
+                return false;
             // P42: a `~partial` envelope is never a whole value, whatever
             // else it carries. The exact-count rule below already excludes
             // the canonical one-key envelope; this makes the exclusion
             // explicit rather than incidental.
-            if (NeoPartialLeafValue.IsEnvelope(token)) return false;
+            if (NeoPartialLeafValue.IsEnvelope(token))
+                return false;
             var obj = (JObject)token;
             return obj.Count == 2 && IsFiniteNumber(obj["x"]) && IsFiniteNumber(obj["y"]);
         }
@@ -489,7 +554,8 @@ namespace NeoCompose.Runtime.Json
 
         private static bool IsFiniteNumber(JToken? token)
         {
-            if (token == null) return false;
+            if (token == null)
+                return false;
             if (token.Type != JTokenType.Integer && token.Type != JTokenType.Float)
             {
                 return false;
@@ -539,9 +605,11 @@ namespace NeoCompose.Runtime.Json
 
         internal static bool LooksLikeVector3Value(JToken token)
         {
-            if (token.Type != JTokenType.Object) return false;
+            if (token.Type != JTokenType.Object)
+                return false;
             // P42: see NeoVector2ValueConverter.LooksLikeVector2Value.
-            if (NeoPartialLeafValue.IsEnvelope(token)) return false;
+            if (NeoPartialLeafValue.IsEnvelope(token))
+                return false;
             var obj = (JObject)token;
             return obj.Count == 3
                 && IsFiniteNumber(obj["x"])
@@ -551,7 +619,8 @@ namespace NeoCompose.Runtime.Json
 
         private static bool IsFiniteNumber(JToken? token)
         {
-            if (token == null) return false;
+            if (token == null)
+                return false;
             if (token.Type != JTokenType.Integer && token.Type != JTokenType.Float)
             {
                 return false;
@@ -609,9 +678,11 @@ namespace NeoCompose.Runtime.Json
 
         internal static bool LooksLikeColorValue(JToken token)
         {
-            if (token.Type != JTokenType.Object) return false;
+            if (token.Type != JTokenType.Object)
+                return false;
             // P42: see NeoVector2ValueConverter.LooksLikeVector2Value.
-            if (NeoPartialLeafValue.IsEnvelope(token)) return false;
+            if (NeoPartialLeafValue.IsEnvelope(token))
+                return false;
             var obj = (JObject)token;
             return obj.Count == 4
                 && IsColorComponent(obj["r"])
@@ -654,13 +725,15 @@ namespace NeoCompose.Runtime.Json
 
         private static bool IsColorComponent(JToken? token)
         {
-            if (token == null) return false;
+            if (token == null)
+                return false;
             if (token.Type != JTokenType.Integer && token.Type != JTokenType.Float)
             {
                 return false;
             }
             var value = token.Value<float>();
-            if (float.IsNaN(value) || float.IsInfinity(value)) return false;
+            if (float.IsNaN(value) || float.IsInfinity(value))
+                return false;
             return value >= 0f && value <= 1f;
         }
     }
@@ -798,7 +871,8 @@ namespace NeoCompose.Runtime.Json
         {
             value = null;
             var token = fields.Property(key)?.Value;
-            if (token is null || token.Type != JTokenType.String) return false;
+            if (token is null || token.Type != JTokenType.String)
+                return false;
             value = token.Value<string>();
             return true;
         }
@@ -811,7 +885,8 @@ namespace NeoCompose.Runtime.Json
         {
             value = 0d;
             var token = fields.Property(key)?.Value;
-            if (token is null) return false;
+            if (token is null)
+                return false;
             if (token.Type != JTokenType.Integer && token.Type != JTokenType.Float)
             {
                 return false;
@@ -828,7 +903,8 @@ namespace NeoCompose.Runtime.Json
         public bool TryGetSingle(string key, out float value)
         {
             value = 0f;
-            if (!TryGetDouble(key, out double raw)) return false;
+            if (!TryGetDouble(key, out double raw))
+                return false;
             value = (float)raw;
             return true;
         }
@@ -841,9 +917,12 @@ namespace NeoCompose.Runtime.Json
         public bool TryGetInt32(string key, out int value)
         {
             value = 0;
-            if (!TryGetDouble(key, out double raw)) return false;
-            if (raw < int.MinValue || raw > int.MaxValue) return false;
-            if (raw != System.Math.Floor(raw)) return false;
+            if (!TryGetDouble(key, out double raw))
+                return false;
+            if (raw < int.MinValue || raw > int.MaxValue)
+                return false;
+            if (raw != System.Math.Floor(raw))
+                return false;
             value = (int)raw;
             return true;
         }
@@ -880,7 +959,8 @@ namespace NeoCompose.Runtime.Json
         public bool RemoveField(string key)
         {
             var removed = fields.Remove(key);
-            if (removed) keyCache = null;
+            if (removed)
+                keyCache = null;
             return removed;
         }
 
@@ -921,9 +1001,11 @@ namespace NeoCompose.Runtime.Json
         /// </summary>
         internal static bool IsEnvelope(JToken? token)
         {
-            if (token is not JObject obj) return false;
+            if (token is not JObject obj)
+                return false;
             var property = obj.Property(EnvelopeKey);
-            if (property is null) return false;
+            if (property is null)
+                return false;
             return property.Value.Type == JTokenType.Object || obj.Count == 1;
         }
 
@@ -994,7 +1076,8 @@ namespace NeoCompose.Runtime.Json
 
         private static string DescribeKeys(JObject envelope)
         {
-            if (envelope.Count == 0) return "no keys";
+            if (envelope.Count == 0)
+                return "no keys";
             var names = new List<string>(envelope.Count);
             foreach (var property in envelope.Properties())
             {
@@ -1025,7 +1108,8 @@ namespace NeoCompose.Runtime.Json
             object? existingValue,
             JsonSerializer serializer)
         {
-            if (reader.TokenType == JsonToken.Null) return null;
+            if (reader.TokenType == JsonToken.Null)
+                return null;
             if (reader.TokenType != JsonToken.StartObject)
             {
                 throw new JsonSerializationException(
@@ -1085,7 +1169,8 @@ namespace NeoCompose.Runtime.Json
             // route stored-row instances through this converter and lose
             // their id/timestamps. The MemberValueConverter declared
             // on MemberValue takes precedence for those.
-            if (typeof(MemberValue).IsAssignableFrom(objectType)) return false;
+            if (typeof(MemberValue).IsAssignableFrom(objectType))
+                return false;
             return typeof(MemberValueBase).IsAssignableFrom(objectType);
         }
 
@@ -1097,7 +1182,8 @@ namespace NeoCompose.Runtime.Json
             object? existingValue,
             JsonSerializer serializer)
         {
-            if (reader.TokenType == JsonToken.Null) return null;
+            if (reader.TokenType == JsonToken.Null)
+                return null;
             var obj = NeoJsonObjectReader.Read(reader);
             // P42 decision D10 — a MemberValueBase is only ever a
             // Member.defaultValue, which is never an animation override
@@ -1142,7 +1228,8 @@ namespace NeoCompose.Runtime.Json
 
         private static Type ResolveByShape(JToken? token)
         {
-            if (token == null) return typeof(NullMemberValueBase);
+            if (token == null)
+                return typeof(NullMemberValueBase);
             switch (token.Type)
             {
                 case JTokenType.Null:
@@ -1164,14 +1251,22 @@ namespace NeoCompose.Runtime.Json
                     // each probe below still matters: it keeps a
                     // {"~partial":{"fileId":"…"}} from being mistaken for a
                     // whole File value should any other caller reuse them.
-                    if (NeoDelegateValueConverter.LooksLikeValue(token)) return typeof(DelegateMemberValueBase);
-                    if (NeoActionValueConverter.LooksLikeValue(token)) return typeof(ActionMemberValueBase);
-                    if (NeoVector3ValueConverter.LooksLikeVector3Value(token)) return typeof(Vector3MemberValueBase);
-                    if (NeoVector2ValueConverter.LooksLikeVector2Value(token)) return typeof(Vector2MemberValueBase);
-                    if (NeoColorValueConverter.LooksLikeColorValue(token)) return typeof(ColorMemberValueBase);
-                    if (LooksLikeVariantRefValue(token)) return typeof(VariantMemberValueBase);
-                    if (LooksLikeSpriteValue(token)) return typeof(SpriteMemberValueBase);
-                    if (LooksLikeFileValue(token)) return typeof(FileMemberValueBase);
+                    if (NeoDelegateValueConverter.LooksLikeValue(token))
+                        return typeof(DelegateMemberValueBase);
+                    if (NeoActionValueConverter.LooksLikeValue(token))
+                        return typeof(ActionMemberValueBase);
+                    if (NeoVector3ValueConverter.LooksLikeVector3Value(token))
+                        return typeof(Vector3MemberValueBase);
+                    if (NeoVector2ValueConverter.LooksLikeVector2Value(token))
+                        return typeof(Vector2MemberValueBase);
+                    if (NeoColorValueConverter.LooksLikeColorValue(token))
+                        return typeof(ColorMemberValueBase);
+                    if (LooksLikeVariantRefValue(token))
+                        return typeof(VariantMemberValueBase);
+                    if (LooksLikeSpriteValue(token))
+                        return typeof(SpriteMemberValueBase);
+                    if (LooksLikeFileValue(token))
+                        return typeof(FileMemberValueBase);
                     return typeof(ObjectMemberValueBase);
                 default:
                     return typeof(NullMemberValueBase);
@@ -1180,10 +1275,12 @@ namespace NeoCompose.Runtime.Json
 
         private static bool LooksLikeFileValue(JToken token)
         {
-            if (token.Type != JTokenType.Object) return false;
+            if (token.Type != JTokenType.Object)
+                return false;
             // P42: an envelope is never a whole File/Sprite value, even if a
             // future envelope grew a sibling key.
-            if (NeoPartialLeafValue.IsEnvelope(token)) return false;
+            if (NeoPartialLeafValue.IsEnvelope(token))
+                return false;
             return token["fileId"]?.Type == JTokenType.String;
         }
 
@@ -1206,16 +1303,20 @@ namespace NeoCompose.Runtime.Json
         /// </summary>
         private static bool LooksLikeVariantRefValue(JToken token)
         {
-            if (token.Type != JTokenType.Object) return false;
+            if (token.Type != JTokenType.Object)
+                return false;
             var record = (JObject)token;
-            if (record.Count != 2 && record.Count != 3) return false;
+            if (record.Count != 2 && record.Count != 3)
+                return false;
             if (record.Count == 3
                 && record["rowValueId"]?.Type is not (JTokenType.String or JTokenType.Null))
                 return false;
             JToken? classId = record["classId"];
-            if (classId is null || classId.Type != JTokenType.String) return false;
+            if (classId is null || classId.Type != JTokenType.String)
+                return false;
             JToken? variantId = record["variantId"];
-            if (variantId is null) return false;
+            if (variantId is null)
+                return false;
             return variantId.Type == JTokenType.String ||
                 variantId.Type == JTokenType.Null;
         }
@@ -1243,8 +1344,14 @@ namespace NeoCompose.Runtime.Json
     public abstract class MemberValue : MemberValueBase
     {
         public string id { get; set; } = null!;
-        public NeoTimestamp createdAt { get; set; }
-        public NeoTimestamp updatedAt { get; set; }
+        public NeoTimestamp createdAt
+        {
+            get; set;
+        }
+        public NeoTimestamp updatedAt
+        {
+            get; set;
+        }
 
         /// <summary>
         /// P61 §3 / §5.1 — evaluated arguments used to create a class
@@ -1256,7 +1363,10 @@ namespace NeoCompose.Runtime.Json
         /// P75 replays these arguments to resolve omitted instance rows.
         /// </summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public Dictionary<string, JToken?>? constructorArgs { get; set; }
+        public Dictionary<string, JToken?>? constructorArgs
+        {
+            get; set;
+        }
 
         /// <summary>
         /// P75 creation provenance. A string names the exact declared
@@ -1292,7 +1402,10 @@ namespace NeoCompose.Runtime.Json
         /// explicit null survive a serialization round trip.</para>
         /// </summary>
         [JsonIgnore]
-        public bool hasInstanceConstructorId { get; private set; }
+        public bool hasInstanceConstructorId
+        {
+            get; private set;
+        }
 
         /// <summary>
         /// P75 creation provenance: the declared constructor that produced
@@ -1326,11 +1439,17 @@ namespace NeoCompose.Runtime.Json
 
         /// <summary>P75 variant layer used to construct this instance.</summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public string? instanceVariantId { get; set; }
+        public string? instanceVariantId
+        {
+            get; set;
+        }
 
         /// <summary>P68 lookup row supplied to a lookup-bound variant.</summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public string? instanceVariantRowValueId { get; set; }
+        public string? instanceVariantRowValueId
+        {
+            get; set;
+        }
 
         /// <summary>
         /// Set iff this row is an entry of an <b>unordered</b> List value
@@ -1342,7 +1461,10 @@ namespace NeoCompose.Runtime.Json
         /// null-vs-present discriminator (<c>null</c> or <c>[]</c>).
         /// </summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public string? containerId { get; set; }
+        public string? containerId
+        {
+            get; set;
+        }
 
         /// <summary>
         /// Storage partition stamp (specs/list-member-and-tilegrid-scaling.md
@@ -1355,7 +1477,10 @@ namespace NeoCompose.Runtime.Json
         /// ownership regardless of partition.
         /// </summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public string? mapKey { get; set; }
+        public string? mapKey
+        {
+            get; set;
+        }
 
         /// <summary>
         /// Stable identity of the authored value row from which this
@@ -1366,7 +1491,10 @@ namespace NeoCompose.Runtime.Json
         /// position.
         /// </summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public string? sourceValueId { get; set; }
+        public string? sourceValueId
+        {
+            get; set;
+        }
 
         /// <summary>
         /// Generic-bindings stamp (specs/class-generics.md
@@ -1382,7 +1510,10 @@ namespace NeoCompose.Runtime.Json
         /// of requiring container context.
         /// </summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public Dictionary<string, string>? genericBindings { get; set; }
+        public Dictionary<string, string>? genericBindings
+        {
+            get; set;
+        }
 
         /// <summary>
         /// Save-overlay tombstone marker. When set to
@@ -1392,7 +1523,10 @@ namespace NeoCompose.Runtime.Json
         /// to the authored default). Null for ordinary values. Only meaningful in
         /// the Save/Session overlay stores; authored asset rows never carry it.
         /// </summary>
-        public string? mark { get; set; }
+        public string? mark
+        {
+            get; set;
+        }
 
         /// <summary>True when this row is a removal tombstone.</summary>
         public bool IsRemoved => mark == NeoValueMarks.Removed;
@@ -1425,10 +1559,14 @@ namespace NeoCompose.Runtime.Json
     /// <c>object?</c> in parallel with
     /// <see cref="NullMemberValueBase"/>.
     /// </summary>
-    public class NullMemberValue : MemberValue<object?> { }
+    public class NullMemberValue : MemberValue<object?>
+    {
+    }
 
     /// <summary>Stored value for a Bool member.</summary>
-    public class BoolMemberValue : MemberValue<bool?> { }
+    public class BoolMemberValue : MemberValue<bool?>
+    {
+    }
 
     /// <summary>Stored value for an Int / Float member.</summary>
     public class NumberMemberValue : MemberValue<double?>
@@ -1441,8 +1579,10 @@ namespace NeoCompose.Runtime.Json
         {
             get
             {
-                if (!value.HasValue) return cachedNumber = null;
-                if (cachedNumber is double previous && System.BitConverter.DoubleToInt64Bits(previous) == System.BitConverter.DoubleToInt64Bits(value.Value)) return cachedNumber;
+                if (!value.HasValue)
+                    return cachedNumber = null;
+                if (cachedNumber is double previous && System.BitConverter.DoubleToInt64Bits(previous) == System.BitConverter.DoubleToInt64Bits(value.Value))
+                    return cachedNumber;
                 return cachedNumber = value.Value;
             }
         }
@@ -1455,37 +1595,57 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>Stored value for a List / Enum / Lookup member.</summary>
-    public class ArrayMemberValue : MemberValue<string[]?> { }
+    public class ArrayMemberValue : MemberValue<string[]?>
+    {
+    }
 
     /// <summary>Stored value for a Dictionary / Class member.</summary>
-    public class ObjectMemberValue : MemberValue<Dictionary<string, string>?> { }
+    public class ObjectMemberValue : MemberValue<Dictionary<string, string>?>
+    {
+    }
 
     /// <summary>Stored value for an NSDelegate member.</summary>
-    public class DelegateMemberValue : MemberValue<NeoDelegateValue?> { }
+    public class DelegateMemberValue : MemberValue<NeoDelegateValue?>
+    {
+    }
 
     /// <summary>
     /// Stored value for an NSAction member — the live listener set that
     /// <c>+=</c> / <c>-=</c> write through (P62 §3.3).
     /// </summary>
-    public class ActionMemberValue : MemberValue<NeoActionValue?> { }
+    public class ActionMemberValue : MemberValue<NeoActionValue?>
+    {
+    }
 
     /// <summary>Stored value for an Audio file member.</summary>
-    public class FileMemberValue : MemberValue<FileValue?> { }
+    public class FileMemberValue : MemberValue<FileValue?>
+    {
+    }
 
     /// <summary>Stored value for a Sprite member.</summary>
-    public class SpriteMemberValue : MemberValue<SpriteValue?> { }
+    public class SpriteMemberValue : MemberValue<SpriteValue?>
+    {
+    }
 
     /// <summary>Stored value for a Variant member (P67 §6).</summary>
-    public class VariantMemberValue : MemberValue<VariantRefValue?> { }
+    public class VariantMemberValue : MemberValue<VariantRefValue?>
+    {
+    }
 
     /// <summary>Stored value for a Vector2 / Vector2Int member.</summary>
-    public class Vector2MemberValue : MemberValue<NeoVector2Value?> { }
+    public class Vector2MemberValue : MemberValue<NeoVector2Value?>
+    {
+    }
 
     /// <summary>Stored value for a Vector3 / Vector3Int member.</summary>
-    public class Vector3MemberValue : MemberValue<NeoVector3Value?> { }
+    public class Vector3MemberValue : MemberValue<NeoVector3Value?>
+    {
+    }
 
     /// <summary>Stored value for a Color member.</summary>
-    public class ColorMemberValue : MemberValue<NeoColorValue?> { }
+    public class ColorMemberValue : MemberValue<NeoColorValue?>
+    {
+    }
 
     /// <summary>
     /// Stored row holding a <b>partial</b> structured-leaf value — the P42
@@ -1502,7 +1662,9 @@ namespace NeoCompose.Runtime.Json
     /// <c>NeoMember.partialLeafValue</c>, which is untyped by construction
     /// and therefore cannot fail a cast.</para>
     /// </summary>
-    public class PartialLeafMemberValue : MemberValue<NeoPartialLeafValue?> { }
+    public class PartialLeafMemberValue : MemberValue<NeoPartialLeafValue?>
+    {
+    }
 
     /// <summary>
     /// Two-mode dispatch converter for <see cref="MemberValue"/>.
@@ -1527,7 +1689,8 @@ namespace NeoCompose.Runtime.Json
             object? existingValue,
             JsonSerializer serializer)
         {
-            if (reader.TokenType == JsonToken.Null) return null;
+            if (reader.TokenType == JsonToken.Null)
+                return null;
             var obj = NeoJsonObjectReader.Read(reader);
             // P76 §5 — every row set expands once, where it is assembled
             // (ProjectDataConverter). By the time a row reaches here it is
@@ -1561,7 +1724,8 @@ namespace NeoCompose.Runtime.Json
 
         private static Type ResolveByShape(JToken? token)
         {
-            if (token == null) return typeof(NullMemberValue);
+            if (token == null)
+                return typeof(NullMemberValue);
             switch (token.Type)
             {
                 case JTokenType.Null:
@@ -1584,15 +1748,24 @@ namespace NeoCompose.Runtime.Json
                     // is a CHILD occupying a position inside this row's body,
                     // never this row's own value, so there is no packed row
                     // type to resolve to. ReadJson rejects one by name above.
-                    if (NeoPartialLeafValue.IsEnvelope(token)) return typeof(PartialLeafMemberValue);
-                    if (NeoDelegateValueConverter.LooksLikeValue(token)) return typeof(DelegateMemberValue);
-                    if (NeoActionValueConverter.LooksLikeValue(token)) return typeof(ActionMemberValue);
-                    if (NeoVector3ValueConverter.LooksLikeVector3Value(token)) return typeof(Vector3MemberValue);
-                    if (NeoVector2ValueConverter.LooksLikeVector2Value(token)) return typeof(Vector2MemberValue);
-                    if (NeoColorValueConverter.LooksLikeColorValue(token)) return typeof(ColorMemberValue);
-                    if (LooksLikeVariantRefValue(token)) return typeof(VariantMemberValue);
-                    if (LooksLikeSpriteValue(token)) return typeof(SpriteMemberValue);
-                    if (LooksLikeFileValue(token)) return typeof(FileMemberValue);
+                    if (NeoPartialLeafValue.IsEnvelope(token))
+                        return typeof(PartialLeafMemberValue);
+                    if (NeoDelegateValueConverter.LooksLikeValue(token))
+                        return typeof(DelegateMemberValue);
+                    if (NeoActionValueConverter.LooksLikeValue(token))
+                        return typeof(ActionMemberValue);
+                    if (NeoVector3ValueConverter.LooksLikeVector3Value(token))
+                        return typeof(Vector3MemberValue);
+                    if (NeoVector2ValueConverter.LooksLikeVector2Value(token))
+                        return typeof(Vector2MemberValue);
+                    if (NeoColorValueConverter.LooksLikeColorValue(token))
+                        return typeof(ColorMemberValue);
+                    if (LooksLikeVariantRefValue(token))
+                        return typeof(VariantMemberValue);
+                    if (LooksLikeSpriteValue(token))
+                        return typeof(SpriteMemberValue);
+                    if (LooksLikeFileValue(token))
+                        return typeof(FileMemberValue);
                     return typeof(ObjectMemberValue);
                 default:
                     return typeof(NullMemberValue);
@@ -1601,9 +1774,11 @@ namespace NeoCompose.Runtime.Json
 
         private static bool LooksLikeFileValue(JToken token)
         {
-            if (token.Type != JTokenType.Object) return false;
+            if (token.Type != JTokenType.Object)
+                return false;
             // P42: see MemberValueBaseConverter.LooksLikeFileValue.
-            if (NeoPartialLeafValue.IsEnvelope(token)) return false;
+            if (NeoPartialLeafValue.IsEnvelope(token))
+                return false;
             return token["fileId"]?.Type == JTokenType.String;
         }
 
@@ -1626,16 +1801,20 @@ namespace NeoCompose.Runtime.Json
         /// </summary>
         private static bool LooksLikeVariantRefValue(JToken token)
         {
-            if (token.Type != JTokenType.Object) return false;
+            if (token.Type != JTokenType.Object)
+                return false;
             var record = (JObject)token;
-            if (record.Count != 2 && record.Count != 3) return false;
+            if (record.Count != 2 && record.Count != 3)
+                return false;
             if (record.Count == 3
                 && record["rowValueId"]?.Type is not (JTokenType.String or JTokenType.Null))
                 return false;
             JToken? classId = record["classId"];
-            if (classId is null || classId.Type != JTokenType.String) return false;
+            if (classId is null || classId.Type != JTokenType.String)
+                return false;
             JToken? variantId = record["variantId"];
-            if (variantId is null) return false;
+            if (variantId is null)
+                return false;
             return variantId.Type == JTokenType.String ||
                 variantId.Type == JTokenType.Null;
         }
@@ -1673,15 +1852,19 @@ namespace NeoCompose.Runtime.Json
         /// </summary>
         public static Type? ResolveByContext(Type objectType, Type genericIntermediate)
         {
-            if (!objectType.IsGenericType) return null;
-            if (objectType.GetGenericTypeDefinition() != genericIntermediate) return null;
+            if (!objectType.IsGenericType)
+                return null;
+            if (objectType.GetGenericTypeDefinition() != genericIntermediate)
+                return null;
 
             lock (_lock)
             {
-                if (_cache.TryGetValue(objectType, out var cached)) return cached;
+                if (_cache.TryGetValue(objectType, out var cached))
+                    return cached;
                 foreach (var t in genericIntermediate.Assembly.GetTypes())
                 {
-                    if (!t.IsClass || t.IsAbstract) continue;
+                    if (!t.IsClass || t.IsAbstract)
+                        continue;
                     if (t.BaseType == objectType)
                     {
                         _cache[objectType] = t;

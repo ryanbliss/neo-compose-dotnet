@@ -15,7 +15,8 @@ namespace NeoCompose.Runtime
 
         private void AddNodeValueIndex(NeoMember node, string? valueId)
         {
-            if (valueId == null) return;
+            if (valueId == null)
+                return;
             if (!nodesByValueId.TryGetValue(valueId, out var nodes))
                 nodesByValueId[valueId] = nodes = new HashSet<NeoMember>();
             nodes.Add(node);
@@ -23,18 +24,23 @@ namespace NeoCompose.Runtime
 
         private void RemoveNodeValueIndex(NeoMember node, string? valueId)
         {
-            if (valueId == null || !nodesByValueId.TryGetValue(valueId, out var nodes)) return;
+            if (valueId == null || !nodesByValueId.TryGetValue(valueId, out var nodes))
+                return;
             nodes.Remove(node);
-            if (nodes.Count == 0) nodesByValueId.Remove(valueId);
+            if (nodes.Count == 0)
+                nodesByValueId.Remove(valueId);
         }
 
         internal void UpdateNodeValueIndex(NeoMember node, string? previousId, string? nextId)
         {
-            if (!node.IsRegisteredWithClient || previousId == nextId) return;
+            if (!node.IsRegisteredWithClient || previousId == nextId)
+                return;
             // The override binding remains relevant even when its row is absent
             // or the node resolves a declaration default under another id.
-            if (previousId != node.overrideValueId) RemoveNodeValueIndex(node, previousId);
-            if (nextId != node.overrideValueId) AddNodeValueIndex(node, nextId);
+            if (previousId != node.overrideValueId)
+                RemoveNodeValueIndex(node, previousId);
+            if (nextId != node.overrideValueId)
+                AddNodeValueIndex(node, nextId);
         }
 
         private void IndexNode(NeoMember node)

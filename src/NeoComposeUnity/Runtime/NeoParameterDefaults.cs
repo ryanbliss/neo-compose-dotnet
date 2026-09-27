@@ -34,7 +34,8 @@ namespace NeoCompose.Runtime
         {
             foreach (FunctionArgumentTypeInfo argument in argumentTypes)
             {
-                if (HasDefault(argument)) return true;
+                if (HasDefault(argument))
+                    return true;
             }
             return false;
         }
@@ -49,7 +50,8 @@ namespace NeoCompose.Runtime
             int count = 0;
             foreach (FunctionArgumentTypeInfo argument in argumentTypes)
             {
-                if (!HasDefault(argument)) count++;
+                if (!HasDefault(argument))
+                    count++;
             }
             return count;
         }
@@ -68,7 +70,8 @@ namespace NeoCompose.Runtime
         {
             ValidateArity(args.Length, argumentTypes, subject);
             int maxArity = argumentTypes.Length;
-            if (args.Length == maxArity) return args;
+            if (args.Length == maxArity)
+                return args;
             var filled = new object?[maxArity];
             Array.Copy(args, filled, args.Length);
             for (int index = args.Length; index < maxArity; index++)
@@ -81,7 +84,8 @@ namespace NeoCompose.Runtime
         internal static void ValidateArity(int count, FunctionArgumentTypeInfo[] argumentTypes, string subject)
         {
             int maxArity = argumentTypes.Length;
-            if (count == maxArity) return;
+            if (count == maxArity)
+                return;
             int minArity = NonDefaultedCount(argumentTypes);
             if (count > maxArity || count < minArity)
             {
@@ -112,8 +116,10 @@ namespace NeoCompose.Runtime
                 throw new NSGetterRuntimeError(
                     $"{subject} parameter '{parameter.name}' was omitted but declares no default.");
             }
-            if (defaultValue.value is null) return null;
-            if (parameter.type != MemberKind.Enum) return defaultValue.value;
+            if (defaultValue.value is null)
+                return null;
+            if (parameter.type != MemberKind.Enum)
+                return defaultValue.value;
             if (defaultValue.value is string optionId)
             {
                 return new[] { optionId };

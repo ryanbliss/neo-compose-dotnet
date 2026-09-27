@@ -32,12 +32,14 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal bool TryWriteLeaf(NeoValueOwnership ownership, MemberValue next, Member member, string? changedField)
         {
-            if (!CanWriteLeaf(ownership, next, member)) return false;
+            if (!CanWriteLeaf(ownership, next, member))
+                return false;
             using var marker = LeafWriteMarker.Auto();
             StoreLeaf(ownership, next);
             bool gridLeaf = InvalidateGridLeaf(next.id);
             NotifyWritableValueChanged(ownership, next.id, changedField);
-            if (gridLeaf) PublishGridLeaf(ownership, next.id);
+            if (gridLeaf)
+                PublishGridLeaf(ownership, next.id);
             return true;
         }
 
@@ -50,14 +52,16 @@ namespace NeoCompose.Runtime
             bool invalidated = false;
             foreach (NeoTileGridLookupCache cache in gridLookupCaches.Values)
                 invalidated |= cache.InvalidateLeaf(valueId);
-            if (invalidated) InvalidateGridDependentGetterMemo();
+            if (invalidated)
+                InvalidateGridDependentGetterMemo();
             return invalidated;
         }
 
         /// <summary>Reports the cells the re-flattened carried tiles changed.</summary>
         private void PublishGridLeaf(NeoValueOwnership ownership, string valueId)
         {
-            foreach (NeoTileGridLookupCache cache in gridLookupCaches.Values) cache.PublishLeaf(ownership, valueId);
+            foreach (NeoTileGridLookupCache cache in gridLookupCaches.Values)
+                cache.PublishLeaf(ownership, valueId);
         }
 
         /// <summary>
@@ -66,7 +70,8 @@ namespace NeoCompose.Runtime
         /// </summary>
         private bool CanWriteLeaf(NeoValueOwnership ownership, MemberValue next, Member member)
         {
-            if (ownership == NeoValueOwnership.Asset || !IsLeafRow(next, member)) return false;
+            if (ownership == NeoValueOwnership.Asset || !IsLeafRow(next, member))
+                return false;
             if (candidateReplay is not null || candidateReadPlan is not null
                 || nestedConstructorCapture is not null || replayAllocationScope is not null
                 || isReplayingVirtualInstance)
@@ -77,7 +82,8 @@ namespace NeoCompose.Runtime
             // A row a constructed graph read while it expanded (an initializer
             // that copies this leaf) is a replay dependency of that graph;
             // only a committed plan re-expands the dependents.
-            if (constructorArgumentRootsByValueId.ContainsKey(next.id)) return false;
+            if (constructorArgumentRootsByValueId.ContainsKey(next.id))
+                return false;
             // The first write over a virtual (sparse) child materializes it
             // through the plan; from then on the store holds the row.
             if (!GetWritableStore(ownership).values.TryGetValue(next.id, out MemberValue? previous)
@@ -102,7 +108,8 @@ namespace NeoCompose.Runtime
             TouchWritableStoreUpdatedAt(ownership);
             WriteRevision++;
             InvalidateGetterMemoForRow(next.id);
-            if (!string.IsNullOrEmpty(next.containerId)) InvalidateGetterMemoForRow(next.containerId!);
+            if (!string.IsNullOrEmpty(next.containerId))
+                InvalidateGetterMemoForRow(next.containerId!);
         }
 
         private static bool IsLeafRow(MemberValue row, Member member) => row switch

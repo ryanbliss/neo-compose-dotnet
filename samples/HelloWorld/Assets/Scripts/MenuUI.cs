@@ -32,12 +32,30 @@ namespace HelloWorld.Assets.Scripts
             VerificationUri = verificationUri;
         }
 
-        public bool CloudEnabled { get; }
-        public bool SignedIn { get; }
-        public bool Busy { get; }
-        public string Identity { get; }
-        public string UserCode { get; }
-        public string VerificationUri { get; }
+        public bool CloudEnabled
+        {
+            get;
+        }
+        public bool SignedIn
+        {
+            get;
+        }
+        public bool Busy
+        {
+            get;
+        }
+        public string Identity
+        {
+            get;
+        }
+        public string UserCode
+        {
+            get;
+        }
+        public string VerificationUri
+        {
+            get;
+        }
     }
 
     /// <summary>
@@ -100,7 +118,8 @@ namespace HelloWorld.Assets.Scripts
         /// <summary>Shows or hides the menu panel (kept alive so prompts still work during gameplay).</summary>
         public void SetMenuVisible(bool visible)
         {
-            if (root != null) root.SetActive(visible);
+            if (root != null)
+                root.SetActive(visible);
         }
 
         /// <summary>
@@ -222,13 +241,15 @@ namespace HelloWorld.Assets.Scripts
             DismissPrompt();
             HideLoadingOverlay();
             saveRows.Clear();
-            if (root != null) SampleUI.DestroyObject(root);
+            if (root != null)
+                SampleUI.DestroyObject(root);
         }
 
         private void RenderAuthCell(MenuAuthInfo auth, Action onSignIn)
         {
             authCell.gameObject.SetActive(auth.CloudEnabled);
-            if (!auth.CloudEnabled) return;
+            if (!auth.CloudEnabled)
+                return;
 
             if (auth.SignedIn)
             {
@@ -269,11 +290,13 @@ namespace HelloWorld.Assets.Scripts
                 row.Root.transform.SetSiblingIndex(i + 1);
             }
 
-            if (saveRows.Count == seen.Count) return;
+            if (saveRows.Count == seen.Count)
+                return;
             var removed = new List<string>();
             foreach (var entry in saveRows)
             {
-                if (seen.Contains(entry.Key)) continue;
+                if (seen.Contains(entry.Key))
+                    continue;
                 SampleUI.DestroyObject(entry.Value.Root);
                 removed.Add(entry.Key);
             }
@@ -344,7 +367,8 @@ namespace HelloWorld.Assets.Scripts
 
         private void EnsureBuilt(Action onCreateNew, Action onSignIn)
         {
-            if (root != null) return;
+            if (root != null)
+                return;
 
             SampleUI.EnsureEventSystem();
 

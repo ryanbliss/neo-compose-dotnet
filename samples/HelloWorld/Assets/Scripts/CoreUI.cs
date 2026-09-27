@@ -64,7 +64,8 @@ namespace HelloWorld.Assets.Scripts
             EnsureBuilt(onOpenLandingScene, onSave, onReset, onMenu);
 
             title.text = $"{text}\n<size=18><color=#A3B3CC>Currently visiting {currentOutpost.FullDisplayText}</color></size>";
-            if (landingButton != null) landingButton.interactable = canOpenLandingScene;
+            if (landingButton != null)
+                landingButton.interactable = canOpenLandingScene;
             lastInventory = inventory;
             if (inventoryOpen)
             {
@@ -152,11 +153,16 @@ namespace HelloWorld.Assets.Scripts
                 stormLabel.text = $"{clamped}/12";
                 return;
             }
-            if (band == 0) stormLabel.text = "Calm";
-            else if (band == 1) stormLabel.text = "Restless";
-            else if (band == 2) stormLabel.text = "Surging";
-            else if (band == 3) stormLabel.text = "Tearing";
-            else stormLabel.text = "CRITICAL";
+            if (band == 0)
+                stormLabel.text = "Calm";
+            else if (band == 1)
+                stormLabel.text = "Restless";
+            else if (band == 2)
+                stormLabel.text = "Surging";
+            else if (band == 3)
+                stormLabel.text = "Tearing";
+            else
+                stormLabel.text = "CRITICAL";
         }
 
         /// <summary>
@@ -244,12 +250,14 @@ namespace HelloWorld.Assets.Scripts
 
         public void SetVisible(bool visible)
         {
-            if (root != null) root.SetActive(visible);
+            if (root != null)
+                root.SetActive(visible);
         }
 
         private void EnsureBuilt(Action onOpenLandingScene, Action onSave, Action onReset, Action onMenu)
         {
-            if (root != null) return;
+            if (root != null)
+                return;
 
             SampleUI.EnsureEventSystem();
 
@@ -367,7 +375,8 @@ namespace HelloWorld.Assets.Scripts
         /// </summary>
         public void SetSaving(bool saving)
         {
-            if (saveButton == null) return;
+            if (saveButton == null)
+                return;
             saveButton.interactable = !saving;
             if (saveLabel != null)
             {

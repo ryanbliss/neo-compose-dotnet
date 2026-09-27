@@ -62,7 +62,10 @@ namespace HelloWorld.Assets.Scripts.Neo
 
     internal sealed class OutpostFunctionHandler : IOutpostFunctionHandler
     {
-        public static IOutpostAnimationPlayer? AnimationPlayer { get; set; }
+        public static IOutpostAnimationPlayer? AnimationPlayer
+        {
+            get; set;
+        }
 
         private readonly Outpost Outpost;
 
@@ -101,7 +104,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             // The relic is authored art from the project schema (Assets.Art),
             // not a hard-coded asset path.
-            if (AnimationPlayer is null) return false;
+            if (AnimationPlayer is null)
+                return false;
             AnimationPlayer.ShowRelicSprite(HelloWorldNeo.Instance.Assets.Art.VaultPlaqueSprite);
             return true;
         }
@@ -181,9 +185,18 @@ namespace HelloWorld.Assets.Scripts.Neo
             IsTrigger = isTrigger;
         }
 
-        public Vector2 Size { get; }
-        public Vector2 Offset { get; }
-        public bool IsTrigger { get; }
+        public Vector2 Size
+        {
+            get;
+        }
+        public Vector2 Offset
+        {
+            get;
+        }
+        public bool IsTrigger
+        {
+            get;
+        }
     }
 
 #if UNITY_EDITOR

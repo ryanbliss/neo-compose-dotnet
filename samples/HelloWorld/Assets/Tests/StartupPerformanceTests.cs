@@ -72,8 +72,10 @@ namespace HelloWorld.Assets.Tests
                 timer.Restart();
                 var content = client.Assets.Worlds.OldConsoleLanding.Content;
                 int tiles = 0;
-                foreach (var tile in content.Background.GetTiles()) tiles++;
-                foreach (var tile in content.Collisions.GetTiles()) tiles++;
+                foreach (var tile in content.Background.GetTiles())
+                    tiles++;
+                foreach (var tile in content.Collisions.GetTiles())
+                    tiles++;
                 double gridMs = timer.Elapsed.TotalMilliseconds;
                 var root = new GameObject("Startup profile");
                 try

@@ -1638,7 +1638,8 @@ namespace NeoCompose.Tests
                 }
                 else
                 {
-                    foreach (var row in rows) data.values[row.Key] = row.Value;
+                    foreach (var row in rows)
+                        data.values[row.Key] = row.Value;
                 }
 
                 var stopwatch = new System.Diagnostics.Stopwatch();
@@ -1648,7 +1649,8 @@ namespace NeoCompose.Tests
                 Assert.IsFalse(client.RetainsReadOnlyValidationProjection);
                 Assert.AreEqual(12, client.SaveRoot.Get<NeoMemberClassWritable>("Weapon")
                     .Get<NeoMemberInt>("BaseDamage").value!.value);
-                if (iteration == 0) continue;
+                if (iteration == 0)
+                    continue;
                 elapsed.Add(stopwatch.Elapsed.TotalMilliseconds);
             }
             elapsed.Sort();
@@ -1840,12 +1842,16 @@ namespace NeoCompose.Tests
             {
                 var declaration = new GenericMember
                 {
-                    id = $"member-readonly-{entry.Item1}", projectId = ProjectId, name = "Value",
-                    kind = MemberKind.Generic, genericParamId = "param-t",
+                    id = $"member-readonly-{entry.Item1}",
+                    projectId = ProjectId,
+                    name = "Value",
+                    kind = MemberKind.Generic,
+                    genericParamId = "param-t",
                     extendsMemberId = slot.id,
                     Mutability = NeoMemberMutabilityKind.ReadOnly,
                     defaultValue = new NullMemberValueBase { value = entry.Item2 },
-                    createdAt = "x", updatedAt = "x",
+                    createdAt = "x",
+                    updatedAt = "x",
                 };
                 data.members[declaration.id] = declaration;
                 data.classes[$"class-closed-{entry.Item1}"].schema["Value"] = declaration.id;
@@ -1892,23 +1898,23 @@ namespace NeoCompose.Tests
             string id,
             string name,
             string bindingMemberId) => new()
-        {
-            id = id,
-            projectId = ProjectId,
-            name = name,
-            schema = new Dictionary<string, string>(),
-            extendsClassId = "class-generic-base",
-            extendsGenericBindings = new Dictionary<string, GenericBinding>
             {
-                ["param-t"] = new()
+                id = id,
+                projectId = ProjectId,
+                name = name,
+                schema = new Dictionary<string, string>(),
+                extendsClassId = "class-generic-base",
+                extendsGenericBindings = new Dictionary<string, GenericBinding>
                 {
-                    kind = NeoGenericBindingKind.Member,
-                    memberId = bindingMemberId,
+                    ["param-t"] = new()
+                    {
+                        kind = NeoGenericBindingKind.Member,
+                        memberId = bindingMemberId,
+                    },
                 },
-            },
-            createdAt = "x",
-            updatedAt = "x",
-        };
+                createdAt = "x",
+                updatedAt = "x",
+            };
 
         private static object? EvaluatePinnedReadOnlySlot(
             NeoClient client,
@@ -1987,27 +1993,27 @@ namespace NeoCompose.Tests
             Pointer receiver,
             string schemaKey,
             string memberId) => new()
-        {
-            type = PointerKind.KeyOf,
-            memberId = memberId,
-            keyOf = new KeyOf
             {
-                pointer = receiver,
-                key = new ValuePointer
+                type = PointerKind.KeyOf,
+                memberId = memberId,
+                keyOf = new KeyOf
                 {
-                    type = PointerKind.Value,
-                    value = new Value
+                    pointer = receiver,
+                    key = new ValuePointer
                     {
-                        typeInfo = new PrimitiveTypeInfo
+                        type = PointerKind.Value,
+                        value = new Value
                         {
-                            type = MemberKind.String,
-                            required = true,
+                            typeInfo = new PrimitiveTypeInfo
+                            {
+                                type = MemberKind.String,
+                                required = true,
+                            },
+                            value = JToken.FromObject(schemaKey),
                         },
-                        value = JToken.FromObject(schemaKey),
                     },
                 },
-            },
-        };
+            };
 
         private static object? EvaluatePointer(
             NeoClient client,
@@ -2639,16 +2645,16 @@ namespace NeoCompose.Tests
             string name,
             string classId,
             string? valueId) => new()
-        {
-            id = id,
-            projectId = ProjectId,
-            name = name,
-            kind = MemberKind.Class,
-            classId = classId,
-            valueId = valueId,
-            createdAt = "x",
-            updatedAt = "x",
-        };
+            {
+                id = id,
+                projectId = ProjectId,
+                name = name,
+                kind = MemberKind.Class,
+                classId = classId,
+                valueId = valueId,
+                createdAt = "x",
+                updatedAt = "x",
+            };
 
         private static ClassMember RootMember(
             string id,
@@ -2666,25 +2672,25 @@ namespace NeoCompose.Tests
             string id,
             string name,
             Dictionary<string, string> schema) => new()
-        {
-            id = id,
-            projectId = ProjectId,
-            name = name,
-            schema = schema,
-            createdAt = "x",
-            updatedAt = "x",
-        };
+            {
+                id = id,
+                projectId = ProjectId,
+                name = name,
+                schema = schema,
+                createdAt = "x",
+                updatedAt = "x",
+            };
 
         private static ObjectMemberValue RecordValue(
             string id,
             string classId,
             Dictionary<string, string> value) => new()
-        {
-            id = id,
-            classId = classId,
-            createdAt = "x",
-            updatedAt = "x",
-            value = value,
-        };
+            {
+                id = id,
+                classId = classId,
+                createdAt = "x",
+                updatedAt = "x",
+                value = value,
+            };
     }
 }

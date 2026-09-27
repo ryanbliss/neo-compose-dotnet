@@ -64,7 +64,8 @@ namespace NeoCompose.Tests
             }
             finally
             {
-                if (System.IO.Directory.Exists(directory)) System.IO.Directory.Delete(directory, true);
+                if (System.IO.Directory.Exists(directory))
+                    System.IO.Directory.Delete(directory, true);
             }
         }
 
@@ -85,7 +86,10 @@ namespace NeoCompose.Tests
             var state = new NeoComposeUnityExportSyncState();
             state.heads.Add(new NeoComposeUnityExportHeadDescriptor
             {
-                recordKind = "value", recordId = "parent", snapshotId = "packed-v1", contentHash = "packed-v1-hash",
+                recordKind = "value",
+                recordId = "parent",
+                snapshotId = "packed-v1",
+                contentHash = "packed-v1-hash",
             });
             // The cursor already consumed the child's removal when it was packed.
             // A Git revert restores an older file where that child is still separate.
@@ -113,12 +117,17 @@ namespace NeoCompose.Tests
                 parent["value"]!["Name"]!["~packed"]!["value"] = "updated";
                 api.deltaResponse.records.Add(new NeoComposeUnityExportHeadDescriptor
                 {
-                    recordKind = "value", recordId = "parent", snapshotId = "packed-v2",
+                    recordKind = "value",
+                    recordId = "parent",
+                    snapshotId = "packed-v2",
                 });
                 api.snapshotResponse.snapshots.Add(new NeoComposeUnityExportCachedSnapshot
                 {
-                    id = "packed-v2", recordKind = "value", recordId = "parent",
-                    contentHash = "packed-v2-hash", data = parent.DeepClone(),
+                    id = "packed-v2",
+                    recordKind = "value",
+                    recordId = "parent",
+                    contentHash = "packed-v2-hash",
+                    data = parent.DeepClone(),
                 });
             }
             api.exportResponse.projectJson = latest.ToString(Formatting.None);
@@ -159,7 +168,8 @@ namespace NeoCompose.Tests
                 parent["mapKey"] = "world:test";
                 root["valuePartitions"] = new JObject { ["world:test"] = rows };
             }
-            else root["values"] = rows;
+            else
+                root["values"] = rows;
             return root;
         }
 

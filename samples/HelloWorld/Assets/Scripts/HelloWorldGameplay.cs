@@ -90,7 +90,8 @@ namespace HelloWorld.Assets.Scripts
 
         public void OnVisitOutpost(IReadOnlyOutpost outpost)
         {
-            if (!outpost.Save.Unlocked) return;
+            if (!outpost.Save.Unlocked)
+                return;
 
             AdvanceFlareClock(outpost);
             neo.Save.Location = outpost;
@@ -130,14 +131,17 @@ namespace HelloWorld.Assets.Scripts
         /// </summary>
         internal void AdvanceFlareClock(IReadOnlyOutpost destination)
         {
-            if (neo.Save.Quest.Stage == QuestStage.ended) return;
+            if (neo.Save.Quest.Stage == QuestStage.ended)
+                return;
             bool hasParasol = HasItem("Cloudsilk Parasol");
             bool hasGyro = HasItem("Gyro Stabilizer");
             int clock = neo.Save.Quest.FlareClock;
-            if (hasParasol && clock < 2) return;
+            if (hasParasol && clock < 2)
+                return;
 
             int cost = 1;
-            if (IsOuterSystem(destination.Planet) && !hasGyro) cost += 1;
+            if (IsOuterSystem(destination.Planet) && !hasGyro)
+                cost += 1;
             neo.Save.Quest.FlareClock = clock + cost;
         }
 
@@ -187,8 +191,10 @@ namespace HelloWorld.Assets.Scripts
 
         public void OpenOldConsoleLanding()
         {
-            if (neo == null) return;
-            if (!CanOpenOldConsoleLanding) return;
+            if (neo == null)
+                return;
+            if (!CanOpenOldConsoleLanding)
+                return;
 
             ClearDialogue();
             coreUI.SetVisible(false);
@@ -381,7 +387,8 @@ namespace HelloWorld.Assets.Scripts
 
         private void OnSaveChanged(NeoChangedArgs<Save.Fields> args)
         {
-            if (args.Source == NeoChangeSource.External) UpdateUI();
+            if (args.Source == NeoChangeSource.External)
+                UpdateUI();
         }
 
         private void UpdateUI()
@@ -416,8 +423,10 @@ namespace HelloWorld.Assets.Scripts
         /// </summary>
         private Sprite ParentPlanetSprite(string planetOptionId)
         {
-            if (planetOptionId == Planet.jupiter.optionId) return neo.Assets.Art.JupiterSprite;
-            if (planetOptionId == Planet.saturn.optionId) return neo.Assets.Art.SaturnSprite;
+            if (planetOptionId == Planet.jupiter.optionId)
+                return neo.Assets.Art.JupiterSprite;
+            if (planetOptionId == Planet.saturn.optionId)
+                return neo.Assets.Art.SaturnSprite;
             return null;
         }
 
@@ -428,7 +437,8 @@ namespace HelloWorld.Assets.Scripts
         /// </summary>
         private bool HasDialogueAvailable(IReadOnlyOutpost outpost)
         {
-            if (neo == null) return false;
+            if (neo == null)
+                return false;
             return neo.Dialogues.Outposts.Introductions.CanTrigger(outpost)
                 || neo.Dialogues.Outposts.Visits.CanTrigger(outpost);
         }
@@ -445,7 +455,8 @@ namespace HelloWorld.Assets.Scripts
             }
             finally
             {
-                if (this != null) coreUI.SetSaving(false);
+                if (this != null)
+                    coreUI.SetSaving(false);
             }
         }
 
@@ -453,7 +464,8 @@ namespace HelloWorld.Assets.Scripts
         {
             // neo is set after the (async) load completes, so it may be null if we are
             // torn down mid-load — guard rather than assume.
-            if (neo == null) return;
+            if (neo == null)
+                return;
             ClearDialogue();
             bitsSubscription?.Dispose();
             bitsSubscription = null;
@@ -508,7 +520,8 @@ namespace HelloWorld.Assets.Scripts
         {
             var landing = landingSceneGameplay;
             landingSceneGameplay = null;
-            if (landing != null) SampleUI.DestroyObject(landing.gameObject);
+            if (landing != null)
+                SampleUI.DestroyObject(landing.gameObject);
         }
 
         private static int CurrentUnixTime => (int)DateTimeOffset.UtcNow.ToUnixTimeSeconds();

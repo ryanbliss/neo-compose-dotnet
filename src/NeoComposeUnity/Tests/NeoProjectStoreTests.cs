@@ -15,8 +15,12 @@ namespace NeoCompose.Tests
         private sealed class EmptyTokenStore : INeoComposeTokenStore
         {
             public NeoComposeStoredToken? Load() => null;
-            public void Save(NeoComposeStoredToken token) { }
-            public void Clear() { }
+            public void Save(NeoComposeStoredToken token)
+            {
+            }
+            public void Clear()
+            {
+            }
             public NeoComposeTokenHint? PeekHint() => null;
         }
 

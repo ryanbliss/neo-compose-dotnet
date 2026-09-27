@@ -63,7 +63,8 @@ namespace NeoCompose.Runtime
         {
             List<NeoMember> resolved = new();
             string[] ids = Selected();
-            if (ids.Length == 0) return resolved;
+            if (ids.Length == 0)
+                return resolved;
             ResolveTargetValue(out NeoValueOwnership targetOwnership);
             Member entry = ResolveEntryMemberForLookup();
             foreach (string id in ids)
@@ -78,7 +79,8 @@ namespace NeoCompose.Runtime
 
         internal bool IsSelectableId(string valueId)
         {
-            if (string.IsNullOrWhiteSpace(valueId)) return false;
+            if (string.IsNullOrWhiteSpace(valueId))
+                return false;
             MemberValue targetValue = ResolveTargetValue(out _);
             return ResolveCollectionEntryIds(client, ResolveTargetMember(), targetValue).Contains(valueId);
         }
@@ -87,7 +89,8 @@ namespace NeoCompose.Runtime
         {
             if (collection is ListMember list && value is ArrayMemberValue array)
                 return NeoMemberList.ResolveEntryValueIds(client, array, client.IsUnorderedList(list));
-            if (value is ObjectMemberValue obj && obj.value != null) return obj.value.Values;
+            if (value is ObjectMemberValue obj && obj.value != null)
+                return obj.value.Values;
             return System.Array.Empty<string>();
         }
 
@@ -217,7 +220,8 @@ namespace NeoCompose.Runtime
                     $"Lookup selection id '{valueId}' is not present in the configured lookup collection.");
             }
             var selected = new List<string>(Selected());
-            if (selected.Contains(valueId)) return false;
+            if (selected.Contains(valueId))
+                return false;
             selected.Add(valueId);
             Set(selected.ToArray());
             return true;
@@ -225,10 +229,12 @@ namespace NeoCompose.Runtime
 
         public bool Remove(string valueId)
         {
-            if (string.IsNullOrWhiteSpace(valueId)) return false;
+            if (string.IsNullOrWhiteSpace(valueId))
+                return false;
             var selected = new List<string>(Selected());
             bool removed = selected.Remove(valueId);
-            if (!removed) return false;
+            if (!removed)
+                return false;
             Set(selected.ToArray());
             return true;
         }

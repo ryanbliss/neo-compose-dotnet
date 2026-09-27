@@ -36,7 +36,8 @@ namespace HelloWorld.Assets.Tests.PlayMode
             var awaiter = pending.GetAwaiter();
             Assert.IsFalse(awaiter.IsCompleted, "Initialization must allow a frame before replay.");
             float deadline = Time.realtimeSinceStartup + 30;
-            while (!awaiter.IsCompleted && Time.realtimeSinceStartup < deadline) yield return null;
+            while (!awaiter.IsCompleted && Time.realtimeSinceStartup < deadline)
+                yield return null;
             Assert.IsTrue(awaiter.IsCompleted);
             using (var client = awaiter.GetResult())
             {
@@ -49,7 +50,8 @@ namespace HelloWorld.Assets.Tests.PlayMode
                 localizationOptions: EnglishLocalizationOptions());
             awaiter = pending.GetAwaiter();
             deadline = Time.realtimeSinceStartup + 30;
-            while (!awaiter.IsCompleted && Time.realtimeSinceStartup < deadline) yield return null;
+            while (!awaiter.IsCompleted && Time.realtimeSinceStartup < deadline)
+                yield return null;
             Assert.IsTrue(awaiter.IsCompleted);
             using var restored = awaiter.GetResult();
             Assert.AreEqual(123, restored.Save.Bits);
@@ -73,7 +75,8 @@ namespace HelloWorld.Assets.Tests.PlayMode
             Assert.Throws<System.OperationCanceledException>(() => { awaiter.GetResult(); });
             var loading = HelloWorldNeo.Load(synchronizer,
                 localizationOptions: EnglishLocalizationOptions()).GetAwaiter();
-            while (!loading.IsCompleted) yield return null;
+            while (!loading.IsCompleted)
+                yield return null;
             using var client = loading.GetResult();
             Assert.AreEqual("Hello Earth!", client.Assets.Computed.fullText);
         }
@@ -110,7 +113,8 @@ namespace HelloWorld.Assets.Tests.PlayMode
             var loading = HelloWorldNeo.Load(
                     synchronizer,
                     localizationOptions: EnglishLocalizationOptions()).GetAwaiter();
-            while (!loading.IsCompleted) yield return null;
+            while (!loading.IsCompleted)
+                yield return null;
             using var client = loading.GetResult();
             Assert.IsInstanceOf<NeoMemberClass>(client.AssetsRoot);
             Assert.IsInstanceOf<NeoMemberClassWritable>(client.SaveRoot);
@@ -126,7 +130,8 @@ namespace HelloWorld.Assets.Tests.PlayMode
             var loading = HelloWorldNeo.Load(
                     synchronizer,
                     localizationOptions: EnglishLocalizationOptions()).GetAwaiter();
-            while (!loading.IsCompleted) yield return null;
+            while (!loading.IsCompleted)
+                yield return null;
             using var client = loading.GetResult();
 
             Assert.AreSame(Planet.earth, client.Save.World);
@@ -166,7 +171,8 @@ namespace HelloWorld.Assets.Tests.PlayMode
             try
             {
                 var entering = gameplay.EnterAsync(store.CreateNew("playmode-system-map-orbits")).GetAwaiter();
-                while (!entering.IsCompleted) yield return null;
+                while (!entering.IsCompleted)
+                    yield return null;
                 entering.GetResult();
                 yield return null;
                 Canvas.ForceUpdateCanvases();
@@ -334,7 +340,8 @@ namespace HelloWorld.Assets.Tests.PlayMode
             var loading = HelloWorldNeo.Load(
                     synchronizer,
                     localizationOptions: EnglishLocalizationOptions()).GetAwaiter();
-            while (!loading.IsCompleted) yield return null;
+            while (!loading.IsCompleted)
+                yield return null;
             using var client = loading.GetResult();
             var primitive = client.Assets.Worlds.OldConsoleLanding.Content.Primitive;
             var layer = new DeferredDestroyTileLayer();

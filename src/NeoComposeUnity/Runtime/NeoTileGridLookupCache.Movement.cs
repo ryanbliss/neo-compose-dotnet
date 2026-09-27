@@ -38,29 +38,34 @@ namespace NeoCompose.Runtime
                     string layerId = objectLayerIds[layer];
                     // These are committed indexes, never a speculative layer rebuild.
                     var index = cache.GetObjectLayerIndex(layerId);
-                    if (!index.ById.TryGetValue(objectId, out var before) || before.Cell == cell) continue;
+                    if (!index.ById.TryGetValue(objectId, out var before) || before.Cell == cell)
+                        continue;
                     // One row, one Position: every layer indexing this object
                     // agrees on where it was, so the delta the tile projection
                     // below consumes is fixed by the first of them.
-                    if (move is null) delta = cell - before.Cell;
+                    if (move is null)
+                        delta = cell - before.Cell;
                     var footprint = new Vector2Int[before.Footprint.Count];
                     for (int i = 0; i < footprint.Length; i++)
                     {
                         var next = footprint[i] = before.Footprint[i] + delta;
                         if (index.CandidatesByCell.TryGetValue(next, out var occupants))
                             foreach (var occupant in occupants)
-                                if (occupant.InstanceId != objectId) throw Occupied(layerId, objectId, occupant.InstanceId, next);
+                                if (occupant.InstanceId != objectId)
+                                    throw Occupied(layerId, objectId, occupant.InstanceId, next);
                     }
                     (move ??= new ObjectMove(cache)).objects.Add((layerId, index, before, new NeoObjectPlacementRecord(
                         objectId, cell, footprint, before.Order, before.AssetClassId, before.AssetValueId, before.Ownership)));
                 }
-                if (move is null) return null;
+                if (move is null)
+                    return null;
                 IReadOnlyList<string> tileLayerIds = cache.TileLayerIds;
                 for (int layer = 0; layer < tileLayerIds.Count; layer++)
                 {
                     string layerId = tileLayerIds[layer];
                     var index = cache.GetTileLayerIndex(layerId);
-                    if (!index.RecordIndicesByObject.TryGetValue(objectId, out var slots)) continue;
+                    if (!index.RecordIndicesByObject.TryGetValue(objectId, out var slots))
+                        continue;
                     foreach (int slot in slots)
                     {
                         var before = index.Records[slot];
@@ -86,8 +91,10 @@ namespace NeoCompose.Runtime
                 var objectIds = new Dictionary<string, List<NeoObjectInstanceId>>();
                 var tileCells = new Dictionary<string, HashSet<Vector2Int>>();
                 foreach (var item in objects)
-                    foreach (var cell in item.before.Footprint) Remove(item.index.CandidatesByCell, cell, item.before);
-                foreach (var item in tiles) Remove(item.index.CandidatesByCell, item.before.Cell, item.before);
+                    foreach (var cell in item.before.Footprint)
+                        Remove(item.index.CandidatesByCell, cell, item.before);
+                foreach (var item in tiles)
+                    Remove(item.index.CandidatesByCell, item.before.Cell, item.before);
                 foreach (var item in objects)
                 {
                     item.index.ById[item.after.InstanceId] = item.after;
@@ -108,7 +115,8 @@ namespace NeoCompose.Runtime
                     item.index.Records[item.slot] = item.after;
                     Add(item.index.CandidatesByCell, item.after.Cell, item.after).Sort(CompareLoserToWinner);
                     item.index.InvalidateCellOrder();
-                    if (!tileCells.TryGetValue(item.layer, out var cells)) tileCells[item.layer] = cells = new HashSet<Vector2Int>();
+                    if (!tileCells.TryGetValue(item.layer, out var cells))
+                        tileCells[item.layer] = cells = new HashSet<Vector2Int>();
                     cells.Add(item.before.Cell);
                     cells.Add(item.after.Cell);
                 }
@@ -116,7 +124,9 @@ namespace NeoCompose.Runtime
                 foreach (var entry in objectCells)
                     objectChanges.Add(new NeoObjectLayerChangedArgs(entry.Key, Array.Empty<NeoObjectInstanceId>(),
                         objectIds[entry.Key], new List<Vector2Int>(entry.Value), NeoTileGridChangeSourceKind.Direct, null)
-                        { PositionsOnly = true });
+                    {
+                        PositionsOnly = true
+                    });
                 var tileChanges = new List<NeoTileLayerChangedArgs>();
                 foreach (var entry in tileCells)
                 {
@@ -139,14 +149,17 @@ namespace NeoCompose.Runtime
 
         private static void Remove<T>(Dictionary<Vector2Int, List<T>> buckets, Vector2Int cell, T item)
         {
-            if (!buckets.TryGetValue(cell, out var values)) return;
+            if (!buckets.TryGetValue(cell, out var values))
+                return;
             values.Remove(item);
-            if (values.Count == 0) buckets.Remove(cell);
+            if (values.Count == 0)
+                buckets.Remove(cell);
         }
 
         private static List<T> Add<T>(Dictionary<Vector2Int, List<T>> buckets, Vector2Int cell, T item)
         {
-            if (!buckets.TryGetValue(cell, out var values)) buckets[cell] = values = new List<T>();
+            if (!buckets.TryGetValue(cell, out var values))
+                buckets[cell] = values = new List<T>();
             values.Add(item);
             return values;
         }

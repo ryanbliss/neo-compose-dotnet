@@ -69,7 +69,8 @@ namespace NeoCompose.Runtime
         public bool TryGetFreshRemote(string customId, out RemoteGameSave remote)
         {
             remote = null!;
-            if (!remoteDetailCache.TryGetValue(customId, out var cached)) return false;
+            if (!remoteDetailCache.TryGetValue(customId, out var cached))
+                return false;
             if (now() - cached.cachedAt > RemoteListFreshness)
             {
                 remoteDetailCache.Remove(customId);
@@ -79,12 +80,30 @@ namespace NeoCompose.Runtime
             return true;
         }
 
-        public ProjectData Schema { get; }
-        public INeoLocalSaveStore LocalStore { get; }
-        public INeoApiClient? ApiClient { get; }
-        public string TargetReleaseChannelId { get; }
-        public NeoSaveOptions Options { get; }
-        public bool RequireCloudCommit { get; }
+        public ProjectData Schema
+        {
+            get;
+        }
+        public INeoLocalSaveStore LocalStore
+        {
+            get;
+        }
+        public INeoApiClient? ApiClient
+        {
+            get;
+        }
+        public string TargetReleaseChannelId
+        {
+            get;
+        }
+        public NeoSaveOptions Options
+        {
+            get;
+        }
+        public bool RequireCloudCommit
+        {
+            get;
+        }
 
         /// <summary>
         /// The runtime authentication backing cloud sync, when one was wired (e.g. by
@@ -92,7 +111,10 @@ namespace NeoCompose.Runtime
         /// Surfaced so the generated client can expose an <c>Authentication</c>
         /// accessor; null for local-only stores.
         /// </summary>
-        public NeoAuthentication? Authentication { get; }
+        public NeoAuthentication? Authentication
+        {
+            get;
+        }
 
         /// <summary>True when cloud sync is active (an API client is present).</summary>
         public bool CloudEnabled => ApiClient != null;
@@ -101,7 +123,10 @@ namespace NeoCompose.Runtime
         /// The optional realtime transport (see
         /// <c>specs/convex-realtime-sync.md</c>); null in REST/local-only builds.
         /// </summary>
-        public INeoRealtimeProvider? RealtimeProvider { get; }
+        public INeoRealtimeProvider? RealtimeProvider
+        {
+            get;
+        }
 
         /// <summary>
         /// (Re)attaches the live save-list subscription. A no-op unless the
@@ -112,8 +137,10 @@ namespace NeoCompose.Runtime
         {
             realtimeListSubscription?.Dispose();
             realtimeListSubscription = null;
-            if (RealtimeProvider == null) return;
-            if (RealtimeProvider.State != NeoRealtimeConnectionState.Connected) return;
+            if (RealtimeProvider == null)
+                return;
+            if (RealtimeProvider.State != NeoRealtimeConnectionState.Connected)
+                return;
             realtimeListSubscription = RealtimeProvider.SubscribeSaveList(
                 TargetReleaseChannelId, ApplyRealtimeSaveList);
         }
@@ -389,7 +416,8 @@ namespace NeoCompose.Runtime
                         ?? throw new InvalidOperationException(
                             "Neo Compose reported a ready staged snapshot without a save."));
                 }
-                if (staging.Outcome == NeoSaveTransitionOutcome.Staging) break;
+                if (staging.Outcome == NeoSaveTransitionOutcome.Staging)
+                    break;
                 if (staging.Outcome == NeoSaveTransitionOutcome.Failed)
                 {
                     if (retriedFailedCopy)
@@ -635,7 +663,8 @@ namespace NeoCompose.Runtime
             foreach (var customId in localIds)
             {
                 var content = await LocalStore.LoadSaveAsync(customId);
-                if (!LocalGameSaveLoader.TryLoad(content, out var local)) continue;
+                if (!LocalGameSaveLoader.TryLoad(content, out var local))
+                    continue;
                 saves[customId] = EntryFromLocal(local, customId);
             }
 
@@ -796,7 +825,8 @@ namespace NeoCompose.Runtime
             var unlistedIds = new List<string>();
             foreach (string id in remoteDetailCache.Keys)
             {
-                if (!listedRemoteIds.Contains(id)) unlistedIds.Add(id);
+                if (!listedRemoteIds.Contains(id))
+                    unlistedIds.Add(id);
             }
             foreach (string id in unlistedIds)
             {

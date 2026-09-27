@@ -795,7 +795,8 @@ namespace NeoCompose.Tests
             params (string key, string memberId)[] schema)
         {
             var entries = new Dictionary<string, string>();
-            foreach (var entry in schema) entries[entry.key] = entry.memberId;
+            foreach (var entry in schema)
+                entries[entry.key] = entry.memberId;
             return new NeoSchemaClass
             {
                 id = id,
@@ -813,7 +814,8 @@ namespace NeoCompose.Tests
             params (string key, string valueId)[] entries)
         {
             var value = new Dictionary<string, string>();
-            foreach (var entry in entries) value[entry.key] = entry.valueId;
+            foreach (var entry in entries)
+                value[entry.key] = entry.valueId;
             return new ObjectMemberValue
             {
                 id = id,

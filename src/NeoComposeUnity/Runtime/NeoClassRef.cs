@@ -22,7 +22,10 @@ namespace NeoCompose.Runtime
                 : classId;
         }
 
-        public string ClassId { get; }
+        public string ClassId
+        {
+            get;
+        }
 
         public bool Equals(NeoClassRef<T> other) =>
             string.Equals(ClassId, other.ClassId, StringComparison.Ordinal);

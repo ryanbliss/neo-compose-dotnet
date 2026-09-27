@@ -32,7 +32,8 @@ namespace NeoCompose.Runtime
             NeoSaveOptions? saveOptions = null,
             System.Threading.CancellationToken cancellationToken = default)
         {
-            if (loader == null) throw new ArgumentNullException(nameof(loader));
+            if (loader == null)
+                throw new ArgumentNullException(nameof(loader));
             ProjectData data = loader.Schema
                 ?? throw new InvalidOperationException("Neo Compose save loader has no project schema.");
             NeoProjectDataValidator.Validate(data);
@@ -53,17 +54,21 @@ namespace NeoCompose.Runtime
     {
         public static void Validate(ProjectData data)
         {
-            if (data.dialogues == null) return;
+            if (data.dialogues == null)
+                return;
             foreach (var dialogueEntry in data.dialogues)
             {
                 var dialogue = dialogueEntry.Value;
-                if (dialogue.nodes == null) continue;
+                if (dialogue.nodes == null)
+                    continue;
                 foreach (var nodeEntry in dialogue.nodes)
                 {
-                    if (nodeEntry.Value is not DialogueActionsNode actionsNode) continue;
+                    if (nodeEntry.Value is not DialogueActionsNode actionsNode)
+                        continue;
                     foreach (var action in actionsNode.actions ?? Array.Empty<DialogueAction>())
                     {
-                        if (action is not DialoguePauseAction pauseAction) continue;
+                        if (action is not DialoguePauseAction pauseAction)
+                            continue;
                         ValidatePauseAction(dialogue.id, actionsNode.id, pauseAction);
                     }
                 }

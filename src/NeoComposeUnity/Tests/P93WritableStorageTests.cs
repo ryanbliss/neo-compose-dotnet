@@ -203,18 +203,26 @@ namespace NeoCompose.Tests
             ProjectData data = Build();
             data.members["frozen-member"] = new ClassMember
             {
-                id = "frozen-member", projectId = ProjectId, name = "Frozen", kind = MemberKind.Class,
-                classId = "frozen-class", Storage = NeoMemberStorage.Immutable,
+                id = "frozen-member",
+                projectId = ProjectId,
+                name = "Frozen",
+                kind = MemberKind.Class,
+                classId = "frozen-class",
+                Storage = NeoMemberStorage.Immutable,
                 Mutability = NeoMemberMutabilityKind.ReadOnly,
                 Requirement = NeoMemberRequirementKind.Required,
                 defaultValue = new ObjectMemberValueBase { classId = "frozen-class", value = new Dictionary<string, string>() },
-                createdAt = "x", updatedAt = "x",
+                createdAt = "x",
+                updatedAt = "x",
             };
             data.classes["frozen-class"] = new NeoSchemaClass
             {
-                id = "frozen-class", projectId = ProjectId, name = "Frozen",
+                id = "frozen-class",
+                projectId = ProjectId,
+                name = "Frozen",
                 schema = new Dictionary<string, string> { ["Size"] = "size-member" },
-                createdAt = "x", updatedAt = "x",
+                createdAt = "x",
+                updatedAt = "x",
             };
             data.classes["assets-class"].schema["Frozen"] = "frozen-member";
             var error = Assert.Throws<InvalidOperationException>(() => NeoTestSaveStack.ClientFromSchema(data));
@@ -295,11 +303,16 @@ namespace NeoCompose.Tests
             void AddClass(string id, params (string key, string memberId)[] schema)
             {
                 var map = new Dictionary<string, string>();
-                foreach (var (key, memberId) in schema) map[key] = memberId;
+                foreach (var (key, memberId) in schema)
+                    map[key] = memberId;
                 classes[id] = new NeoSchemaClass
                 {
-                    id = id, projectId = ProjectId, name = id, schema = map,
-                    createdAt = "x", updatedAt = "x",
+                    id = id,
+                    projectId = ProjectId,
+                    name = id,
+                    schema = map,
+                    createdAt = "x",
+                    updatedAt = "x",
                 };
             }
             AddClass("assets-class", ("Thing", "thing-member"));
@@ -340,11 +353,13 @@ namespace NeoCompose.Tests
             {
                 project = new Project
                 {
-                    id = ProjectId, name = "P93",
+                    id = ProjectId,
+                    name = "P93",
                     rootAssetsMemberId = "root-assets",
                     rootSaveFileMemberId = "root-save",
                     rootSessionMemberId = "root-session",
-                    createdAt = "x", updatedAt = "x",
+                    createdAt = "x",
+                    updatedAt = "x",
                 },
                 members = members,
                 classes = classes,
@@ -355,26 +370,46 @@ namespace NeoCompose.Tests
 
         private static ClassMember Root(string id, string name, string classId, string valueId, NeoMemberStorage storage) => new()
         {
-            id = id, projectId = ProjectId, name = name, kind = MemberKind.Class,
-            classId = classId, valueId = valueId, Storage = storage, createdAt = "x", updatedAt = "x",
+            id = id,
+            projectId = ProjectId,
+            name = name,
+            kind = MemberKind.Class,
+            classId = classId,
+            valueId = valueId,
+            Storage = storage,
+            createdAt = "x",
+            updatedAt = "x",
         };
 
         private static ClassMember ClassField(string id, string name, string classId, NeoMemberStorage storage) => new()
         {
-            id = id, projectId = ProjectId, name = name, kind = MemberKind.Class,
-            classId = classId, Storage = storage, createdAt = "x", updatedAt = "x",
+            id = id,
+            projectId = ProjectId,
+            name = name,
+            kind = MemberKind.Class,
+            classId = classId,
+            Storage = storage,
+            createdAt = "x",
+            updatedAt = "x",
         };
 
         private static IntMember IntField(string id, string name, NeoMemberStorage storage) => new()
         {
-            id = id, projectId = ProjectId, name = name, kind = MemberKind.Int, Storage = storage,
-            defaultValue = new NumberMemberValueBase { value = 1 }, createdAt = "x", updatedAt = "x",
+            id = id,
+            projectId = ProjectId,
+            name = name,
+            kind = MemberKind.Int,
+            Storage = storage,
+            defaultValue = new NumberMemberValueBase { value = 1 },
+            createdAt = "x",
+            updatedAt = "x",
         };
 
         private static ObjectMemberValue Record(string id, string classId, params (string key, string valueId)[] fields)
         {
             var value = new Dictionary<string, string>();
-            foreach (var (key, valueId) in fields) value[key] = valueId;
+            foreach (var (key, valueId) in fields)
+                value[key] = valueId;
             return new ObjectMemberValue { id = id, classId = classId, value = value, createdAt = "x", updatedAt = "x" };
         }
 

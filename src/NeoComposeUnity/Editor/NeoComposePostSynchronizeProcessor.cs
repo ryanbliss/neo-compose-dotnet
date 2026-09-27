@@ -25,13 +25,15 @@ namespace NeoCompose.Unity.Editor
             IReadOnlyList<string> changedPaths,
             Action<string> importAsset)
         {
-            if (importAsset == null) throw new ArgumentNullException(nameof(importAsset));
+            if (importAsset == null)
+                throw new ArgumentNullException(nameof(importAsset));
 
             // These are the only raw-written outputs that still need to enter
             // Unity's asset pipeline. Importing them directly also starts script
             // compilation when generated C# changed, without scanning every asset
             // in the project through AssetDatabase.Refresh.
-            foreach (var path in changedPaths) importAsset(path);
+            foreach (var path in changedPaths)
+                importAsset(path);
         }
     }
 
@@ -59,12 +61,15 @@ namespace NeoCompose.Unity.Editor
         static NeoComposePostSynchronizeProcessor()
         {
             var interrupted = Persistence.Load();
-            if (interrupted != null) TaskCoordinator.RecoverInterrupted(interrupted);
+            if (interrupted != null)
+                TaskCoordinator.RecoverInterrupted(interrupted);
             EditorApplication.delayCall += TryRunPending;
             EditorApplication.playModeStateChanged += state =>
             {
-                if (state == PlayModeStateChange.ExitingEditMode) activeCancellation?.Cancel();
-                if (state == PlayModeStateChange.EnteredEditMode) EditorApplication.delayCall += TryRunPending;
+                if (state == PlayModeStateChange.ExitingEditMode)
+                    activeCancellation?.Cancel();
+                if (state == PlayModeStateChange.EnteredEditMode)
+                    EditorApplication.delayCall += TryRunPending;
             };
         }
 
@@ -98,7 +103,8 @@ namespace NeoCompose.Unity.Editor
 
         private static async void TryRunPending()
         {
-            if (isRunning || EditorApplication.isPlayingOrWillChangePlaymode) return;
+            if (isRunning || EditorApplication.isPlayingOrWillChangePlaymode)
+                return;
             var generation = Persistence.Load();
             if (generation == null ||
                 generation.Status == NeoPostSynchronizeGenerationStatus.Failed)
@@ -116,7 +122,8 @@ namespace NeoCompose.Unity.Editor
 
             try
             {
-                if (!IsAuthoritative(generation.GenerationId)) return;
+                if (!IsAuthoritative(generation.GenerationId))
+                    return;
                 if (!File.Exists(generation.ProjectJsonPath))
                 {
                     throw new FileNotFoundException(
@@ -170,7 +177,8 @@ namespace NeoCompose.Unity.Editor
                         MessageType.Info));
 
                 cancellation.Token.ThrowIfCancellationRequested();
-                if (!IsAuthoritative(generation.GenerationId)) return;
+                if (!IsAuthoritative(generation.GenerationId))
+                    return;
                 Persistence.Clear();
                 SetStatus("Neo Compose files synchronized.", MessageType.Info);
             }
@@ -276,7 +284,8 @@ namespace NeoCompose.Unity.Editor
                 readOnlyFactories);
 
             var callbackClassIds = GetSynchronizeCallbackClassIds(generatedProjectType);
-            if (callbackClassIds.Count == 0) return;
+            if (callbackClassIds.Count == 0)
+                return;
             foreach (string valueId in EnumerateProjectValueIds(projectData))
             {
                 // Declaration/default rows are not necessarily constructed instances.
@@ -286,9 +295,11 @@ namespace NeoCompose.Unity.Editor
                         NeoGeneratedTypesSupport.ResolveClassValueClassId(client, valueId, value) ?? ""))
                     continue;
                 object? resolved = resolveMethod.Invoke(project, new object[] { valueId });
-                if (resolved is not NeoGeneratedClassValue classValue) continue;
+                if (resolved is not NeoGeneratedClassValue classValue)
+                    continue;
                 string key = classValue.valueId ?? valueId;
-                if (!synchronized.Add(key)) continue;
+                if (!synchronized.Add(key))
+                    continue;
 
                 InvokeOnDidSynchronize(classValue);
             }
@@ -322,9 +333,11 @@ namespace NeoCompose.Unity.Editor
             IReadOnlyDictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory>
                 readOnlyFactories)
         {
-            if (string.IsNullOrWhiteSpace(assetDatabasePath)) return;
+            if (string.IsNullOrWhiteSpace(assetDatabasePath))
+                return;
             var assetDatabase = AssetDatabase.LoadAssetAtPath<NeoAssetDatabase>(assetDatabasePath);
-            if (assetDatabase == null) return;
+            if (assetDatabase == null)
+                return;
 
             var tileClassIds = new HashSet<string>(
                 EnumerateTileClassIds(projectData));
@@ -377,7 +390,8 @@ namespace NeoCompose.Unity.Editor
             foreach (var type in projectData.classes.Values)
             {
                 if (type.Modifier == NeoClassModifierKind.Abstract
-                    || type.genericParams is { Count: > 0 }) continue;
+                    || type.genericParams is { Count: > 0 })
+                    continue;
                 if (NeoSchemaClassInheritance.ResolveChain(
                         type.id,
                         id => projectData.classes.TryGetValue(id, out var resolved) ? resolved : null)
@@ -410,7 +424,8 @@ namespace NeoCompose.Unity.Editor
                 $"{GeneratedRuleTileAssetDirectory}/{fileName}",
             })
             {
-                if (path != keepPath) DeleteGeneratedTileAsset(path);
+                if (path != keepPath)
+                    DeleteGeneratedTileAsset(path);
             }
         }
 
@@ -434,7 +449,8 @@ namespace NeoCompose.Unity.Editor
 
         private static void DeleteGeneratedTileAsset(string assetPath)
         {
-            if (string.IsNullOrWhiteSpace(assetPath)) return;
+            if (string.IsNullOrWhiteSpace(assetPath))
+                return;
             if (AssetDatabase.LoadAssetAtPath<TileBase>(assetPath) != null)
             {
                 AssetDatabase.DeleteAsset(assetPath);
@@ -444,9 +460,11 @@ namespace NeoCompose.Unity.Editor
         private static void EnsureAssetDirectory(string assetPath)
         {
             var directory = Path.GetDirectoryName(assetPath);
-            if (string.IsNullOrWhiteSpace(directory)) return;
+            if (string.IsNullOrWhiteSpace(directory))
+                return;
             var normalized = directory.Replace('\\', '/');
-            if (AssetDatabase.IsValidFolder(normalized)) return;
+            if (AssetDatabase.IsValidFolder(normalized))
+                return;
 
             var segments = normalized.Split('/');
             var current = segments[0];
@@ -563,7 +581,8 @@ namespace NeoCompose.Unity.Editor
 
         private static IEnumerable<string> EnumerateProjectValueIds(ProjectData projectData)
         {
-            if (projectData.values == null) yield break;
+            if (projectData.values == null)
+                yield break;
             foreach (string valueId in projectData.values.Keys.OrderBy(id => id, StringComparer.Ordinal))
             {
                 yield return valueId;
@@ -586,9 +605,12 @@ namespace NeoCompose.Unity.Editor
 
                 foreach (Type type in types)
                 {
-                    if (type.IsAbstract || type.IsInterface) continue;
-                    if (!typeof(INeoClient).IsAssignableFrom(type)) continue;
-                    if (!string.IsNullOrWhiteSpace(generatedNamespace) && type.Namespace != generatedNamespace) continue;
+                    if (type.IsAbstract || type.IsInterface)
+                        continue;
+                    if (!typeof(INeoClient).IsAssignableFrom(type))
+                        continue;
+                    if (!string.IsNullOrWhiteSpace(generatedNamespace) && type.Namespace != generatedNamespace)
+                        continue;
                     if (type.GetMethod(
                             "ResolveDialogueValue",
                             BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic) == null)

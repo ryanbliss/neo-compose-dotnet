@@ -31,7 +31,10 @@ namespace NeoCompose.Tests
         {
             private readonly List<(double dueAt, AwaitableCompletionSource done)> waits = new();
 
-            public double NowSeconds { get; private set; }
+            public double NowSeconds
+            {
+                get; private set;
+            }
 
             public double Now() => NowSeconds;
 
@@ -49,7 +52,8 @@ namespace NeoCompose.Tests
                 while (true)
                 {
                     var due = waits.Where(wait => wait.dueAt <= NowSeconds).ToList();
-                    if (due.Count == 0) return;
+                    if (due.Count == 0)
+                        return;
                     foreach (var wait in due)
                     {
                         waits.Remove(wait);

@@ -125,7 +125,8 @@ namespace NeoCompose.Runtime
                 boundAction = created;
                 return created;
             }
-            if (boundAction is TAction bound) return bound;
+            if (boundAction is TAction bound)
+                return bound;
             throw new InvalidOperationException(
                 $"NSAction member '{member.name}' is already bound as {boundAction.GetType().Name} and cannot also bind as {typeof(TAction).Name}; the generated property's arity is the member's declared arity.");
         }
@@ -147,7 +148,8 @@ namespace NeoCompose.Runtime
                         row,
                         ctx,
                         cursor.ownership);
-                    if (receiver is not null) return receiver;
+                    if (receiver is not null)
+                        return receiver;
                 }
                 cursor = cursor.parent;
             }
@@ -217,7 +219,8 @@ namespace NeoCompose.Runtime
             NeoActionValue next = CopyOfStoredValue();
             foreach (NeoDelegateValue existing in next.listeners)
             {
-                if (NeoActionValue.ListenerIdentity(existing) == identity) return;
+                if (NeoActionValue.ListenerIdentity(existing) == identity)
+                    return;
             }
             next.listeners.Add(listener.PersistedCopy());
             Write(next);
@@ -252,7 +255,8 @@ namespace NeoCompose.Runtime
         /// </summary>
         public void SetListeners(IReadOnlyList<NeoDelegateValue> listeners)
         {
-            if (listeners is null) throw new ArgumentNullException(nameof(listeners));
+            if (listeners is null)
+                throw new ArgumentNullException(nameof(listeners));
             var next = new NeoActionValue();
             var identities = new HashSet<string>(StringComparer.Ordinal);
             for (int index = 0; index < listeners.Count; index++)

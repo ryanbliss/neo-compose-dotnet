@@ -45,11 +45,26 @@ namespace NeoCompose.Runtime
             SortingOrder = sortingOrder;
         }
 
-        public NeoTileGridRenderer Renderer { get; }
-        public IReadOnlyNeoTileLayerRuntime Layer { get; }
-        public INeoTileGridContent? Content { get; }
-        public Transform Parent { get; }
-        public int SortingOrder { get; }
+        public NeoTileGridRenderer Renderer
+        {
+            get;
+        }
+        public IReadOnlyNeoTileLayerRuntime Layer
+        {
+            get;
+        }
+        public INeoTileGridContent? Content
+        {
+            get;
+        }
+        public Transform Parent
+        {
+            get;
+        }
+        public int SortingOrder
+        {
+            get;
+        }
     }
 
     public sealed class NeoTileLayerRenderTarget
@@ -61,9 +76,18 @@ namespace NeoCompose.Runtime
             Id = Guid.NewGuid().ToString("N");
         }
 
-        public string Id { get; }
-        public GameObject Root { get; }
-        public Tilemap Tilemap { get; }
+        public string Id
+        {
+            get;
+        }
+        public GameObject Root
+        {
+            get;
+        }
+        public Tilemap Tilemap
+        {
+            get;
+        }
     }
 
     public class NeoTileLayerRenderTargetContext
@@ -80,10 +104,22 @@ namespace NeoCompose.Runtime
             Target = target ?? throw new ArgumentNullException(nameof(target));
         }
 
-        public NeoTileGridRenderer Renderer { get; }
-        public IReadOnlyNeoTileLayerRuntime Layer { get; }
-        public INeoTileGridContent? Content { get; }
-        public NeoTileLayerRenderTarget Target { get; }
+        public NeoTileGridRenderer Renderer
+        {
+            get;
+        }
+        public IReadOnlyNeoTileLayerRuntime Layer
+        {
+            get;
+        }
+        public INeoTileGridContent? Content
+        {
+            get;
+        }
+        public NeoTileLayerRenderTarget Target
+        {
+            get;
+        }
     }
 
     public sealed class NeoTileLayerRenderTargetChangedContext
@@ -100,7 +136,10 @@ namespace NeoCompose.Runtime
             Change = change ?? throw new ArgumentNullException(nameof(change));
         }
 
-        public NeoTileLayerChangedArgs Change { get; }
+        public NeoTileLayerChangedArgs Change
+        {
+            get;
+        }
     }
 
     public enum NeoTileLayerRenderTargetDestroyReason
@@ -126,7 +165,10 @@ namespace NeoCompose.Runtime
             Reason = reason;
         }
 
-        public NeoTileLayerRenderTargetDestroyReason Reason { get; }
+        public NeoTileLayerRenderTargetDestroyReason Reason
+        {
+            get;
+        }
     }
 
     public sealed class NeoTileLayerRenderTargetDestroyedContext
@@ -143,6 +185,9 @@ namespace NeoCompose.Runtime
             Reason = reason;
         }
 
-        public NeoTileLayerRenderTargetDestroyReason Reason { get; }
+        public NeoTileLayerRenderTargetDestroyReason Reason
+        {
+            get;
+        }
     }
 }

@@ -94,7 +94,8 @@ namespace NeoCompose.Tests
             {
                 string name = Text(testCase, "name");
                 Assert.IsTrue(names.Add(name), $"The shared fixture repeats case '{name}'.");
-                if (testCase["expectedError"] is not null) errorCases++;
+                if (testCase["expectedError"] is not null)
+                    errorCases++;
 
                 Assert.IsTrue(
                     expectedNames.Contains(name),
@@ -424,7 +425,8 @@ namespace NeoCompose.Tests
         {
             foreach (JToken testCase in EvaluateCases())
             {
-                if (Text(testCase, "name") == caseName) return (JObject)testCase;
+                if (Text(testCase, "name") == caseName)
+                    return (JObject)testCase;
             }
             throw new InvalidOperationException(
                 $"The shared fixture declares no evaluate case named '{caseName}'.");

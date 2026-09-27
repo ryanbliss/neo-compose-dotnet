@@ -33,7 +33,8 @@ namespace NeoCompose.Tests
         [TearDown]
         public void TearDown()
         {
-            if (Directory.Exists(tempRoot)) Directory.Delete(tempRoot, recursive: true);
+            if (Directory.Exists(tempRoot))
+                Directory.Delete(tempRoot, recursive: true);
             foreach (var key in editorPrefsKeysToClear)
             {
                 EditorPrefs.DeleteKey(key);
@@ -278,7 +279,8 @@ namespace NeoCompose.Tests
 
             public void Write(string service, string account, string secret)
             {
-                if (throwOnWrite) throw new InvalidOperationException("write failed");
+                if (throwOnWrite)
+                    throw new InvalidOperationException("write failed");
                 values[Key(service, account)] = secret;
             }
 

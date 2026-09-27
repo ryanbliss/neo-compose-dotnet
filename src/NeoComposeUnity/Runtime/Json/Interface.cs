@@ -106,7 +106,8 @@ namespace NeoCompose.Runtime.Json
             object? existingValue,
             JsonSerializer serializer)
         {
-            if (reader.TokenType == JsonToken.Null) return null;
+            if (reader.TokenType == JsonToken.Null)
+                return null;
 
             var json = NeoJsonObjectReader.Read(reader);
             RecordShapeContractGuard.ValidateInterfaceMember(json);

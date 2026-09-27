@@ -47,11 +47,17 @@ namespace NeoCompose.Runtime.Json
         /// </summary>
         protected abstract Type? ResolveSubclass(JToken discriminator);
 
-        protected virtual void ValidateObjectBeforeDiscriminator(JObject obj) { }
+        protected virtual void ValidateObjectBeforeDiscriminator(JObject obj)
+        {
+        }
 
-        protected virtual void ValidateObject(JObject obj, Type concrete) { }
+        protected virtual void ValidateObject(JObject obj, Type concrete)
+        {
+        }
 
-        protected virtual void OnPopulated(JObject obj, TBase instance) { }
+        protected virtual void OnPopulated(JObject obj, TBase instance)
+        {
+        }
 
         public override bool CanConvert(Type objectType)
         {
@@ -66,7 +72,8 @@ namespace NeoCompose.Runtime.Json
             object? existingValue,
             JsonSerializer serializer)
         {
-            if (reader.TokenType == JsonToken.Null) return null;
+            if (reader.TokenType == JsonToken.Null)
+                return null;
             var obj = NeoJsonObjectReader.Read(reader);
             ValidateObjectBeforeDiscriminator(obj);
             var disc = obj[DiscriminatorField];

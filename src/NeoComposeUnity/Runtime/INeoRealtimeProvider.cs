@@ -25,7 +25,10 @@ namespace NeoCompose.Runtime
     /// </remarks>
     public interface INeoRealtimeProvider : IDisposable
     {
-        NeoRealtimeConnectionState State { get; }
+        NeoRealtimeConnectionState State
+        {
+            get;
+        }
 
         event Action<NeoRealtimeConnectionState>? OnConnectionStateChanged;
 
@@ -57,7 +60,10 @@ namespace NeoCompose.Runtime
         /// checks per commit; a disconnect between the check and the call falls
         /// back to REST.
         /// </summary>
-        bool CanCommit { get; }
+        bool CanCommit
+        {
+            get;
+        }
 
         /// <summary>
         /// Commit through the realtime transport. Same contract as

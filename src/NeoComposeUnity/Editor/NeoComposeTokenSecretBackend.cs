@@ -22,12 +22,18 @@ namespace NeoCompose.Unity.Editor
         /// <summary>
         /// True when this backend can be used on the current platform.
         /// </summary>
-        bool IsAvailable { get; }
+        bool IsAvailable
+        {
+            get;
+        }
 
         /// <summary>
         /// A short human-readable name for diagnostics and warnings.
         /// </summary>
-        string Name { get; }
+        string Name
+        {
+            get;
+        }
 
         string? Read(string service, string account);
         void Write(string service, string account, string secret);
@@ -55,7 +61,8 @@ namespace NeoCompose.Unity.Editor
                 return fallback;
             }
 
-            if (!native.IsAvailable) WarnFallbackOnce(native.Name);
+            if (!native.IsAvailable)
+                WarnFallbackOnce(native.Name);
             return new NeoComposeResilientSecretBackend(
                 native,
                 fallback,
@@ -64,7 +71,8 @@ namespace NeoCompose.Unity.Editor
 
         private static void WarnFallbackOnce(string nativeName)
         {
-            if (SessionState.GetBool(FallbackWarningSessionKey, false)) return;
+            if (SessionState.GetBool(FallbackWarningSessionKey, false))
+                return;
             SessionState.SetBool(FallbackWarningSessionKey, true);
             Debug.LogWarning(
                 "Neo Compose could not access an OS-native secret store" +
@@ -125,7 +133,8 @@ namespace NeoCompose.Unity.Editor
             }
 
             var fallbackValue = fallback.Read(service, account);
-            if (string.IsNullOrWhiteSpace(fallbackValue)) return null;
+            if (string.IsNullOrWhiteSpace(fallbackValue))
+                return null;
 
             onFallbackUsed();
             if (TryWriteNative(service, account, fallbackValue!))
@@ -175,7 +184,8 @@ namespace NeoCompose.Unity.Editor
         private bool TryReadNative(string service, string account, out string? value)
         {
             value = null;
-            if (!native.IsAvailable) return false;
+            if (!native.IsAvailable)
+                return false;
             try
             {
                 value = native.Read(service, account);
@@ -189,7 +199,8 @@ namespace NeoCompose.Unity.Editor
 
         private bool TryWriteNative(string service, string account, string secret)
         {
-            if (!native.IsAvailable) return false;
+            if (!native.IsAvailable)
+                return false;
             try
             {
                 native.Write(service, account, secret);
@@ -232,7 +243,8 @@ namespace NeoCompose.Unity.Editor
             var result = NeoComposeProcess.Run(
                 "/usr/bin/security",
                 new[] { "find-generic-password", "-s", service, "-a", account, "-w" });
-            if (result.ExitCode != 0) return null;
+            if (result.ExitCode != 0)
+                return null;
             var value = result.StandardOutput.TrimEnd('\n', '\r');
             return value.Length == 0 ? null : value;
         }
@@ -286,7 +298,8 @@ namespace NeoCompose.Unity.Editor
             var result = NeoComposeProcess.Run(
                 Tool,
                 new[] { "lookup", "service", service, "account", account });
-            if (result.ExitCode != 0) return null;
+            if (result.ExitCode != 0)
+                return null;
             var value = result.StandardOutput.TrimEnd('\n', '\r');
             return value.Length == 0 ? null : value;
         }
@@ -444,7 +457,8 @@ namespace NeoCompose.Unity.Editor
         public string? Read(string service, string account)
         {
             var path = PathFor(service, account);
-            if (!File.Exists(path)) return null;
+            if (!File.Exists(path))
+                return null;
             var value = File.ReadAllText(path, Encoding.UTF8);
             return value.Length == 0 ? null : value;
         }
@@ -478,14 +492,16 @@ namespace NeoCompose.Unity.Editor
             }
             finally
             {
-                if (File.Exists(temporaryPath)) File.Delete(temporaryPath);
+                if (File.Exists(temporaryPath))
+                    File.Delete(temporaryPath);
             }
         }
 
         public void Delete(string service, string account)
         {
             var path = PathFor(service, account);
-            if (File.Exists(path)) File.Delete(path);
+            if (File.Exists(path))
+                File.Delete(path);
         }
 
         private string PathFor(string service, string account)
@@ -553,20 +569,23 @@ namespace NeoCompose.Unity.Editor
 
         private static void RestrictDirectory(string directory)
         {
-            if (Application.platform == RuntimePlatform.WindowsEditor) return;
+            if (Application.platform == RuntimePlatform.WindowsEditor)
+                return;
             EnsureChmod("700", directory);
         }
 
         private static void RestrictFile(string path)
         {
-            if (Application.platform == RuntimePlatform.WindowsEditor) return;
+            if (Application.platform == RuntimePlatform.WindowsEditor)
+                return;
             EnsureChmod("600", path);
         }
 
         private static void EnsureChmod(string mode, string path)
         {
             var result = NeoComposeProcess.Run("/bin/chmod", new[] { mode, path });
-            if (result.ExitCode == 0) return;
+            if (result.ExitCode == 0)
+                return;
             throw new IOException(
                 $"Neo Compose could not restrict credential permissions for '{path}': " +
                 result.StandardError.Trim());
@@ -580,7 +599,8 @@ namespace NeoCompose.Unity.Editor
     {
         public static string Sanitize(string value)
         {
-            if (string.IsNullOrEmpty(value)) return "default";
+            if (string.IsNullOrEmpty(value))
+                return "default";
             var builder = new StringBuilder(value.Length);
             foreach (var c in value)
             {

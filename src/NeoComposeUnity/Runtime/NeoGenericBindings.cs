@@ -39,7 +39,10 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>The substituted runtime member kind this codec projects.</summary>
-        public MemberKind Kind { get; }
+        public MemberKind Kind
+        {
+            get;
+        }
 
         /// <summary>Reads the member's current value off the child node.</summary>
         public T Read(NeoMember node) => read(node);
@@ -186,7 +189,8 @@ namespace NeoCompose.Runtime
             bool isList)
         {
             Type target = typeof(T);
-            if (!target.IsGenericType) return false;
+            if (!target.IsGenericType)
+                return false;
             Type definition = target.GetGenericTypeDefinition();
             bool isOwnWrapperShape = isList
                 ? definition == typeof(NeoReadOnlyList<>) || definition == typeof(NeoList<>)
@@ -194,7 +198,8 @@ namespace NeoCompose.Runtime
                     || definition == typeof(NeoDictionary<>)
                     || definition == typeof(NeoReadOnlyDictionary<,>)
                     || definition == typeof(NeoDictionary<,>);
-            if (!isOwnWrapperShape) return false;
+            if (!isOwnWrapperShape)
+                return false;
             bool entryIsCollection = entryMember is ListMember
                 || entryMember is DictionaryMember;
             return !entryIsCollection;
@@ -211,22 +216,38 @@ namespace NeoCompose.Runtime
         {
             switch (member.kind)
             {
-                case MemberKind.Bool: return BoolCodec<T>(member);
-                case MemberKind.Int: return IntCodec<T>(member);
-                case MemberKind.Float: return FloatCodec<T>(member);
-                case MemberKind.Decimal: return DecimalCodec<T>(member);
-                case MemberKind.String: return StringCodec<T>(member);
-                case MemberKind.Color: return ColorCodec<T>(member);
-                case MemberKind.Vector2: return Vector2Codec<T>(member);
-                case MemberKind.Vector2Int: return Vector2IntCodec<T>(member);
-                case MemberKind.Vector3: return Vector3Codec<T>(member);
-                case MemberKind.Vector3Int: return Vector3IntCodec<T>(member);
-                case MemberKind.Sprite: return SpriteCodec<T>(client, member);
-                case MemberKind.Audio: return AudioCodec<T>(client, member);
-                case MemberKind.Enum: return EnumCodec<T>(member);
-                case MemberKind.Class: return ClassCodec<T>(client, member);
-                case MemberKind.List: return ListCodec<T>(client, member);
-                case MemberKind.Dictionary: return DictionaryCodec<T>(client, member);
+                case MemberKind.Bool:
+                    return BoolCodec<T>(member);
+                case MemberKind.Int:
+                    return IntCodec<T>(member);
+                case MemberKind.Float:
+                    return FloatCodec<T>(member);
+                case MemberKind.Decimal:
+                    return DecimalCodec<T>(member);
+                case MemberKind.String:
+                    return StringCodec<T>(member);
+                case MemberKind.Color:
+                    return ColorCodec<T>(member);
+                case MemberKind.Vector2:
+                    return Vector2Codec<T>(member);
+                case MemberKind.Vector2Int:
+                    return Vector2IntCodec<T>(member);
+                case MemberKind.Vector3:
+                    return Vector3Codec<T>(member);
+                case MemberKind.Vector3Int:
+                    return Vector3IntCodec<T>(member);
+                case MemberKind.Sprite:
+                    return SpriteCodec<T>(client, member);
+                case MemberKind.Audio:
+                    return AudioCodec<T>(client, member);
+                case MemberKind.Enum:
+                    return EnumCodec<T>(member);
+                case MemberKind.Class:
+                    return ClassCodec<T>(client, member);
+                case MemberKind.List:
+                    return ListCodec<T>(client, member);
+                case MemberKind.Dictionary:
+                    return DictionaryCodec<T>(client, member);
                 case MemberKind.Generic:
                     throw new InvalidOperationException(
                         $"NeoGenericBindings.Resolve received the un-substituted Generic slot '{member.name}' ({member.id}) — substitution must run before codec resolution (is the node's parent a Class node with a closed class context?).");
@@ -248,7 +269,8 @@ namespace NeoCompose.Runtime
         /// </summary>
         public static void AotSeedCollectionCodecs<TEntry>()
         {
-            if (!aotSeedTrap) return;
+            if (!aotSeedTrap)
+                return;
             // Never executed (aotSeedTrap is always false) — the calls only
             // exist so the AOT compiler sees the closed instantiations.
             CreateReadOnlyListCodec<TEntry>(null!, null!);
@@ -281,7 +303,8 @@ namespace NeoCompose.Runtime
         private static TNode RequireNode<TNode>(NeoMember node, Member member)
             where TNode : NeoMember
         {
-            if (node is TNode match) return match;
+            if (node is TNode match)
+                return match;
             throw new InvalidOperationException(
                 $"Generic member '{member.name}' ({member.id}) resolved a {node.GetType().Name} node where a {typeof(TNode).Name} was expected — the node was constructed from a different substitution than this codec.");
         }
@@ -289,7 +312,8 @@ namespace NeoCompose.Runtime
         private static TNode RequireWritable<TNode>(NeoMember node, Member member)
             where TNode : NeoMember
         {
-            if (node is TNode match) return match;
+            if (node is TNode match)
+                return match;
             throw new InvalidOperationException(
                 $"Cannot write generic member '{member.name}' ({member.id}): the node is the read-only {node.GetType().Name}; writes require the {typeof(TNode).Name} constructed under Save/Session ownership.");
         }
@@ -788,9 +812,11 @@ namespace NeoCompose.Runtime
             {
                 foreach (var method in typeof(T).GetMethods(BindingFlags.Public | BindingFlags.Static))
                 {
-                    if (method.Name != "op_Implicit") continue;
+                    if (method.Name != "op_Implicit")
+                        continue;
                     var parameters = method.GetParameters();
-                    if (parameters.Length != 1) continue;
+                    if (parameters.Length != 1)
+                        continue;
                     if (method.ReturnType == typeof(T)
                         && parameters[0].ParameterType == typeof(string))
                     {
@@ -909,9 +935,11 @@ namespace NeoCompose.Runtime
             }
             string[] ToOptionIds(IReadOnlyList<TWrapper>? wrappers)
             {
-                if (wrappers is null) return Array.Empty<string>();
+                if (wrappers is null)
+                    return Array.Empty<string>();
                 var ids = new string[wrappers.Count];
-                for (int i = 0; i < wrappers.Count; i++) ids[i] = toOptionId(wrappers[i]);
+                for (int i = 0; i < wrappers.Count; i++)
+                    ids[i] = toOptionId(wrappers[i]);
                 return ids;
             }
             return new NeoGenericBinding<IReadOnlyList<TWrapper>>(
@@ -950,12 +978,17 @@ namespace NeoCompose.Runtime
             {
                 foreach (var method in typeof(T).GetMethods(flags))
                 {
-                    if (method.Name != name) continue;
+                    if (method.Name != name)
+                        continue;
                     var parameters = method.GetParameters();
-                    if (parameters.Length != 2) continue;
-                    if (parameters[0].ParameterType != typeof(NeoClient)) continue;
-                    if (parameters[1].ParameterType != nodeType) continue;
-                    if (!typeof(T).IsAssignableFrom(method.ReturnType)) continue;
+                    if (parameters.Length != 2)
+                        continue;
+                    if (parameters[0].ParameterType != typeof(NeoClient))
+                        continue;
+                    if (parameters[1].ParameterType != nodeType)
+                        continue;
+                    if (!typeof(T).IsAssignableFrom(method.ReturnType))
+                        continue;
                     return method;
                 }
                 return null;
@@ -1048,7 +1081,8 @@ namespace NeoCompose.Runtime
 
         private static NeoValueWritePayload? SerializeClass<T>(Member member, T value)
         {
-            if (value is null) return null;
+            if (value is null)
+                return null;
             if (value is INeoValueReference reference)
             {
                 return NeoGeneratedTypesSupport.ValueReference(reference);

@@ -87,8 +87,11 @@ namespace NeoCompose.Tests
             var schema = Schema(false);
             schema.members["static-items"] = new ListMember
             {
-                id = "static-items", name = "StaticItems", kind = MemberKind.List,
-                entryMemberId = "entry", Storage = NeoMemberStorage.Save,
+                id = "static-items",
+                name = "StaticItems",
+                kind = MemberKind.List,
+                entryMemberId = "entry",
+                Storage = NeoMemberStorage.Save,
                 Modifier = NeoMemberModifierKind.Static,
             };
             schema.classes["save"].schema["StaticItems"] = "static-items";
@@ -101,7 +104,8 @@ namespace NeoCompose.Tests
             Assert.Throws<NSGetterRuntimeError>(() => ExecuteTarget(client, context, scope, pointer,
                 CollectionMutationKind.RemoveAt, new ValuePointer
                 {
-                    type = PointerKind.Value, value = new Value
+                    type = PointerKind.Value,
+                    value = new Value
                     {
                         typeInfo = new PrimitiveTypeInfo { type = MemberKind.Int, required = true },
                         value = new JValue(0),
@@ -167,8 +171,12 @@ namespace NeoCompose.Tests
             {
                 project = new Project
                 {
-                    id = "dialogue-atomic", _id = "dialogue-atomic", name = "Atomic dialogue writes",
-                    rootAssetsMemberId = "assets-root", rootSaveFileMemberId = "save-root", rootSessionMemberId = "session-root",
+                    id = "dialogue-atomic",
+                    _id = "dialogue-atomic",
+                    name = "Atomic dialogue writes",
+                    rootAssetsMemberId = "assets-root",
+                    rootSaveFileMemberId = "save-root",
+                    rootSessionMemberId = "session-root",
                 },
                 classes = new()
                 {
@@ -198,7 +206,11 @@ namespace NeoCompose.Tests
 
         private static ClassMember Root(string id, string valueId, string classId) => new()
         {
-            id = id, name = id, kind = MemberKind.Class, valueId = valueId, classId = classId,
+            id = id,
+            name = id,
+            kind = MemberKind.Class,
+            valueId = valueId,
+            classId = classId,
             Storage = valueId == "save" ? NeoMemberStorage.Save : valueId == "session" ? NeoMemberStorage.Session : NeoMemberStorage.Immutable,
             Requirement = NeoMemberRequirementKind.Required,
         };

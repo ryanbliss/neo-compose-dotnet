@@ -11,16 +11,31 @@ namespace NeoCompose.Runtime
 {
     public interface INeoTileGridContent
     {
-        NeoReadOnlyTileGridPrimitive Primitive { get; }
-        IReadOnlyList<IReadOnlyNeoTileLayerRuntime> TileLayersInOrder { get; }
-        IReadOnlyList<IReadOnlyNeoObjectLayerRuntime> ObjectLayersInOrder { get; }
-        NeoTileGridRenderer? Renderer { get; }
+        NeoReadOnlyTileGridPrimitive Primitive
+        {
+            get;
+        }
+        IReadOnlyList<IReadOnlyNeoTileLayerRuntime> TileLayersInOrder
+        {
+            get;
+        }
+        IReadOnlyList<IReadOnlyNeoObjectLayerRuntime> ObjectLayersInOrder
+        {
+            get;
+        }
+        NeoTileGridRenderer? Renderer
+        {
+            get;
+        }
         IDisposable OnChanged(Action<NeoTileGridChangedArgs> handler);
     }
 
     public interface INeoWritableTileGridContent : INeoTileGridContent
     {
-        new NeoTileGridPrimitive Primitive { get; }
+        new NeoTileGridPrimitive Primitive
+        {
+            get;
+        }
     }
 
     public static class NeoTileGridContentLookupExtensions
@@ -30,7 +45,8 @@ namespace NeoCompose.Runtime
             Vector2Int cell)
             where TTile : class, INeoValueReference
         {
-            if (layer is null) throw new ArgumentNullException(nameof(layer));
+            if (layer is null)
+                throw new ArgumentNullException(nameof(layer));
             return layer.GetTile(cell) as TTile;
         }
 
@@ -39,7 +55,8 @@ namespace NeoCompose.Runtime
             Vector2Int cell)
             where TTile : class, INeoValueReference
         {
-            if (layer is null) throw new ArgumentNullException(nameof(layer));
+            if (layer is null)
+                throw new ArgumentNullException(nameof(layer));
             var tile = layer.GetTile(cell) as TTile;
             return tile is null
                 ? Array.Empty<TTile>()
@@ -50,7 +67,8 @@ namespace NeoCompose.Runtime
             this IReadOnlyNeoTileLayerRuntime layer)
             where TTile : class, INeoValueReference
         {
-            if (layer is null) throw new ArgumentNullException(nameof(layer));
+            if (layer is null)
+                throw new ArgumentNullException(nameof(layer));
             var typedTiles = new List<TTile>();
             foreach (var tile in layer.GetTiles())
             {
@@ -68,7 +86,8 @@ namespace NeoCompose.Runtime
             Vector2Int cell)
             where TObject : class, INeoValueReference
         {
-            if (layer is null) throw new ArgumentNullException(nameof(layer));
+            if (layer is null)
+                throw new ArgumentNullException(nameof(layer));
             return layer.GetObject(cell) as TObject;
         }
 
@@ -77,7 +96,8 @@ namespace NeoCompose.Runtime
             Vector2Int cell)
             where TObject : class, INeoValueReference
         {
-            if (layer is null) throw new ArgumentNullException(nameof(layer));
+            if (layer is null)
+                throw new ArgumentNullException(nameof(layer));
             var typedObjects = new List<TObject>();
             foreach (var obj in layer.GetObjects(cell))
             {
@@ -94,7 +114,8 @@ namespace NeoCompose.Runtime
             this IReadOnlyNeoObjectLayerRuntime layer)
             where TObject : class, INeoValueReference
         {
-            if (layer is null) throw new ArgumentNullException(nameof(layer));
+            if (layer is null)
+                throw new ArgumentNullException(nameof(layer));
             var typedObjects = new List<TObject>();
             foreach (var obj in layer.GetObjects())
             {
@@ -117,7 +138,8 @@ namespace NeoCompose.Runtime
             this IReadOnlyNeoObjectLayerRuntime layer)
             where TObject : class, INeoValueReference
         {
-            if (layer is null) throw new ArgumentNullException(nameof(layer));
+            if (layer is null)
+                throw new ArgumentNullException(nameof(layer));
             foreach (var obj in layer.GetObjects())
             {
                 var typed = obj as TObject;
@@ -140,7 +162,8 @@ namespace NeoCompose.Runtime
             this INeoTileGridContent content)
             where TObject : class, INeoValueReference
         {
-            if (content is null) throw new ArgumentNullException(nameof(content));
+            if (content is null)
+                throw new ArgumentNullException(nameof(content));
             foreach (var layer in content.ObjectLayersInOrder)
             {
                 foreach (var obj in layer.GetObjects())
@@ -163,7 +186,8 @@ namespace NeoCompose.Runtime
             this INeoTileGridContent content)
             where TObject : class, INeoValueReference
         {
-            if (content is null) throw new ArgumentNullException(nameof(content));
+            if (content is null)
+                throw new ArgumentNullException(nameof(content));
             var typedObjects = new List<TObject>();
             foreach (var layer in content.ObjectLayersInOrder)
             {
@@ -184,7 +208,8 @@ namespace NeoCompose.Runtime
             this INeoTileGridContent content,
             Vector2Int cell)
         {
-            if (content is null) throw new ArgumentNullException(nameof(content));
+            if (content is null)
+                throw new ArgumentNullException(nameof(content));
             var tiles = new List<NeoGeneratedClassValue>();
             foreach (var layer in content.TileLayersInOrder)
             {
@@ -237,7 +262,8 @@ namespace NeoCompose.Runtime
             INeoValueReference source,
             Vector2Int cell)
         {
-            if (source is null) throw new ArgumentNullException(nameof(source));
+            if (source is null)
+                throw new ArgumentNullException(nameof(source));
             string? sourceValueId = source.valueId;
             if (string.IsNullOrEmpty(sourceValueId))
             {
@@ -248,8 +274,10 @@ namespace NeoCompose.Runtime
             foreach (var layer in content.TileLayersInOrder)
             {
                 var tile = NeoWorldLayerRuntimeSupport.GetTile(layer, cell);
-                if (tile is null || tile.SourceKind != NeoTileOutputSourceKind.TileLayerLink) continue;
-                if (!string.Equals(tile.SourceTileLayerLinkId, sourceValueId, StringComparison.Ordinal)) continue;
+                if (tile is null || tile.SourceKind != NeoTileOutputSourceKind.TileLayerLink)
+                    continue;
+                if (!string.Equals(tile.SourceTileLayerLinkId, sourceValueId, StringComparison.Ordinal))
+                    continue;
                 tiles.Add(tile.Tile);
             }
             return tiles;
@@ -329,7 +357,8 @@ namespace NeoCompose.Runtime
             this INeoTileGridContent content,
             Vector2Int cell)
         {
-            if (content is null) throw new ArgumentNullException(nameof(content));
+            if (content is null)
+                throw new ArgumentNullException(nameof(content));
             var objects = new List<NeoGeneratedClassValue>();
             foreach (var layer in content.ObjectLayersInOrder)
             {
@@ -378,7 +407,8 @@ namespace NeoCompose.Runtime
             INeoValueReference source,
             Vector2Int cell)
         {
-            if (source is null) throw new ArgumentNullException(nameof(source));
+            if (source is null)
+                throw new ArgumentNullException(nameof(source));
             string? sourceValueId = source.valueId;
             if (string.IsNullOrEmpty(sourceValueId))
             {
@@ -388,7 +418,8 @@ namespace NeoCompose.Runtime
             var objects = new List<NeoGeneratedClassValue>();
             foreach (var obj in content.GetObjects(cell))
             {
-                if (!string.Equals(obj.valueId, sourceValueId, StringComparison.Ordinal)) continue;
+                if (!string.Equals(obj.valueId, sourceValueId, StringComparison.Ordinal))
+                    continue;
                 objects.Add(obj);
             }
             return objects;
@@ -466,12 +497,15 @@ namespace NeoCompose.Runtime
             Vector2Int origin,
             NeoCellPattern pattern)
         {
-            if (layer is null) throw new ArgumentNullException(nameof(layer));
-            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            if (layer is null)
+                throw new ArgumentNullException(nameof(layer));
+            if (pattern is null)
+                throw new ArgumentNullException(nameof(pattern));
             foreach (var cell in pattern.GetCells(origin))
             {
                 var tile = layer.GetTile(cell);
-                if (tile is not null) return tile;
+                if (tile is not null)
+                    return tile;
             }
             return null;
         }
@@ -481,8 +515,10 @@ namespace NeoCompose.Runtime
             Vector2Int origin,
             NeoCellPattern pattern)
         {
-            if (layer is null) throw new ArgumentNullException(nameof(layer));
-            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            if (layer is null)
+                throw new ArgumentNullException(nameof(layer));
+            if (pattern is null)
+                throw new ArgumentNullException(nameof(pattern));
             var tiles = new List<NeoGeneratedClassValue>();
             foreach (var cell in pattern.GetCells(origin))
             {
@@ -501,12 +537,15 @@ namespace NeoCompose.Runtime
             NeoCellPattern pattern)
             where TTile : class, INeoValueReference
         {
-            if (layer is null) throw new ArgumentNullException(nameof(layer));
-            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            if (layer is null)
+                throw new ArgumentNullException(nameof(layer));
+            if (pattern is null)
+                throw new ArgumentNullException(nameof(pattern));
             foreach (var cell in pattern.GetCells(origin))
             {
                 var tile = layer.GetTile<TTile>(cell);
-                if (tile is not null) return tile;
+                if (tile is not null)
+                    return tile;
             }
             return null;
         }
@@ -517,8 +556,10 @@ namespace NeoCompose.Runtime
             NeoCellPattern pattern)
             where TTile : class, INeoValueReference
         {
-            if (layer is null) throw new ArgumentNullException(nameof(layer));
-            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            if (layer is null)
+                throw new ArgumentNullException(nameof(layer));
+            if (pattern is null)
+                throw new ArgumentNullException(nameof(pattern));
             var tiles = new List<TTile>();
             foreach (var cell in pattern.GetCells(origin))
             {
@@ -536,12 +577,15 @@ namespace NeoCompose.Runtime
             Vector2Int origin,
             NeoCellPattern pattern)
         {
-            if (layer is null) throw new ArgumentNullException(nameof(layer));
-            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            if (layer is null)
+                throw new ArgumentNullException(nameof(layer));
+            if (pattern is null)
+                throw new ArgumentNullException(nameof(pattern));
             foreach (var cell in pattern.GetCells(origin))
             {
                 var obj = layer.GetObject(cell);
-                if (obj is not null) return obj;
+                if (obj is not null)
+                    return obj;
             }
             return null;
         }
@@ -551,8 +595,10 @@ namespace NeoCompose.Runtime
             Vector2Int origin,
             NeoCellPattern pattern)
         {
-            if (layer is null) throw new ArgumentNullException(nameof(layer));
-            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            if (layer is null)
+                throw new ArgumentNullException(nameof(layer));
+            if (pattern is null)
+                throw new ArgumentNullException(nameof(pattern));
             var objects = new List<NeoGeneratedClassValue>();
             foreach (var cell in pattern.GetCells(origin))
             {
@@ -567,12 +613,15 @@ namespace NeoCompose.Runtime
             NeoCellPattern pattern)
             where TObject : class, INeoValueReference
         {
-            if (layer is null) throw new ArgumentNullException(nameof(layer));
-            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            if (layer is null)
+                throw new ArgumentNullException(nameof(layer));
+            if (pattern is null)
+                throw new ArgumentNullException(nameof(pattern));
             foreach (var cell in pattern.GetCells(origin))
             {
                 var typedObjects = layer.GetObjects<TObject>(cell);
-                if (typedObjects.Count > 0) return typedObjects[0];
+                if (typedObjects.Count > 0)
+                    return typedObjects[0];
             }
             return null;
         }
@@ -583,8 +632,10 @@ namespace NeoCompose.Runtime
             NeoCellPattern pattern)
             where TObject : class, INeoValueReference
         {
-            if (layer is null) throw new ArgumentNullException(nameof(layer));
-            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            if (layer is null)
+                throw new ArgumentNullException(nameof(layer));
+            if (pattern is null)
+                throw new ArgumentNullException(nameof(pattern));
             var typedObjects = new List<TObject>();
             foreach (var cell in pattern.GetCells(origin))
             {
@@ -598,12 +649,15 @@ namespace NeoCompose.Runtime
             Vector2Int origin,
             NeoCellPattern pattern)
         {
-            if (content is null) throw new ArgumentNullException(nameof(content));
-            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            if (content is null)
+                throw new ArgumentNullException(nameof(content));
+            if (pattern is null)
+                throw new ArgumentNullException(nameof(pattern));
             foreach (var cell in pattern.GetCells(origin))
             {
                 var tile = content.GetTile(cell);
-                if (tile is not null) return tile;
+                if (tile is not null)
+                    return tile;
             }
             return null;
         }
@@ -613,8 +667,10 @@ namespace NeoCompose.Runtime
             Vector2Int origin,
             NeoCellPattern pattern)
         {
-            if (content is null) throw new ArgumentNullException(nameof(content));
-            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            if (content is null)
+                throw new ArgumentNullException(nameof(content));
+            if (pattern is null)
+                throw new ArgumentNullException(nameof(pattern));
             var tiles = new List<NeoGeneratedClassValue>();
             foreach (var cell in pattern.GetCells(origin))
             {
@@ -629,12 +685,15 @@ namespace NeoCompose.Runtime
             NeoCellPattern pattern)
             where TTile : class, INeoValueReference
         {
-            if (content is null) throw new ArgumentNullException(nameof(content));
-            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            if (content is null)
+                throw new ArgumentNullException(nameof(content));
+            if (pattern is null)
+                throw new ArgumentNullException(nameof(pattern));
             foreach (var cell in pattern.GetCells(origin))
             {
                 var tile = content.GetTile<TTile>(cell);
-                if (tile is not null) return tile;
+                if (tile is not null)
+                    return tile;
             }
             return null;
         }
@@ -645,8 +704,10 @@ namespace NeoCompose.Runtime
             NeoCellPattern pattern)
             where TTile : class, INeoValueReference
         {
-            if (content is null) throw new ArgumentNullException(nameof(content));
-            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            if (content is null)
+                throw new ArgumentNullException(nameof(content));
+            if (pattern is null)
+                throw new ArgumentNullException(nameof(pattern));
             var tiles = new List<TTile>();
             foreach (var cell in pattern.GetCells(origin))
             {
@@ -660,12 +721,15 @@ namespace NeoCompose.Runtime
             Vector2Int origin,
             NeoCellPattern pattern)
         {
-            if (content is null) throw new ArgumentNullException(nameof(content));
-            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            if (content is null)
+                throw new ArgumentNullException(nameof(content));
+            if (pattern is null)
+                throw new ArgumentNullException(nameof(pattern));
             foreach (var cell in pattern.GetCells(origin))
             {
                 var obj = content.GetObject(cell);
-                if (obj is not null) return obj;
+                if (obj is not null)
+                    return obj;
             }
             return null;
         }
@@ -675,8 +739,10 @@ namespace NeoCompose.Runtime
             Vector2Int origin,
             NeoCellPattern pattern)
         {
-            if (content is null) throw new ArgumentNullException(nameof(content));
-            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            if (content is null)
+                throw new ArgumentNullException(nameof(content));
+            if (pattern is null)
+                throw new ArgumentNullException(nameof(pattern));
             var objects = new List<NeoGeneratedClassValue>();
             foreach (var cell in pattern.GetCells(origin))
             {
@@ -691,12 +757,15 @@ namespace NeoCompose.Runtime
             NeoCellPattern pattern)
             where TObject : class, INeoValueReference
         {
-            if (content is null) throw new ArgumentNullException(nameof(content));
-            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            if (content is null)
+                throw new ArgumentNullException(nameof(content));
+            if (pattern is null)
+                throw new ArgumentNullException(nameof(pattern));
             foreach (var cell in pattern.GetCells(origin))
             {
                 var typedObjects = content.GetObjects<TObject>(cell);
-                if (typedObjects.Count > 0) return typedObjects[0];
+                if (typedObjects.Count > 0)
+                    return typedObjects[0];
             }
             return null;
         }
@@ -707,8 +776,10 @@ namespace NeoCompose.Runtime
             NeoCellPattern pattern)
             where TObject : class, INeoValueReference
         {
-            if (content is null) throw new ArgumentNullException(nameof(content));
-            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            if (content is null)
+                throw new ArgumentNullException(nameof(content));
+            if (pattern is null)
+                throw new ArgumentNullException(nameof(pattern));
             var typedObjects = new List<TObject>();
             foreach (var cell in pattern.GetCells(origin))
             {
@@ -723,12 +794,15 @@ namespace NeoCompose.Runtime
             Vector2Int origin,
             NeoCellPattern pattern)
         {
-            if (content is null) throw new ArgumentNullException(nameof(content));
-            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            if (content is null)
+                throw new ArgumentNullException(nameof(content));
+            if (pattern is null)
+                throw new ArgumentNullException(nameof(pattern));
             foreach (var cell in pattern.GetCells(origin))
             {
                 var tile = content.GetTile(source, cell);
-                if (tile is not null) return tile;
+                if (tile is not null)
+                    return tile;
             }
             return null;
         }
@@ -739,8 +813,10 @@ namespace NeoCompose.Runtime
             Vector2Int origin,
             NeoCellPattern pattern)
         {
-            if (content is null) throw new ArgumentNullException(nameof(content));
-            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            if (content is null)
+                throw new ArgumentNullException(nameof(content));
+            if (pattern is null)
+                throw new ArgumentNullException(nameof(pattern));
             var tiles = new List<NeoGeneratedClassValue>();
             foreach (var cell in pattern.GetCells(origin))
             {
@@ -756,12 +832,15 @@ namespace NeoCompose.Runtime
             NeoCellPattern pattern)
             where TTile : class, INeoValueReference
         {
-            if (content is null) throw new ArgumentNullException(nameof(content));
-            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            if (content is null)
+                throw new ArgumentNullException(nameof(content));
+            if (pattern is null)
+                throw new ArgumentNullException(nameof(pattern));
             foreach (var cell in pattern.GetCells(origin))
             {
                 var tile = content.GetTile<TTile>(source, cell);
-                if (tile is not null) return tile;
+                if (tile is not null)
+                    return tile;
             }
             return null;
         }
@@ -773,8 +852,10 @@ namespace NeoCompose.Runtime
             NeoCellPattern pattern)
             where TTile : class, INeoValueReference
         {
-            if (content is null) throw new ArgumentNullException(nameof(content));
-            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            if (content is null)
+                throw new ArgumentNullException(nameof(content));
+            if (pattern is null)
+                throw new ArgumentNullException(nameof(pattern));
             var tiles = new List<TTile>();
             foreach (var cell in pattern.GetCells(origin))
             {
@@ -789,12 +870,15 @@ namespace NeoCompose.Runtime
             Vector2Int origin,
             NeoCellPattern pattern)
         {
-            if (content is null) throw new ArgumentNullException(nameof(content));
-            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            if (content is null)
+                throw new ArgumentNullException(nameof(content));
+            if (pattern is null)
+                throw new ArgumentNullException(nameof(pattern));
             foreach (var cell in pattern.GetCells(origin))
             {
                 var obj = content.GetObject(source, cell);
-                if (obj is not null) return obj;
+                if (obj is not null)
+                    return obj;
             }
             return null;
         }
@@ -805,8 +889,10 @@ namespace NeoCompose.Runtime
             Vector2Int origin,
             NeoCellPattern pattern)
         {
-            if (content is null) throw new ArgumentNullException(nameof(content));
-            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            if (content is null)
+                throw new ArgumentNullException(nameof(content));
+            if (pattern is null)
+                throw new ArgumentNullException(nameof(pattern));
             var objects = new List<NeoGeneratedClassValue>();
             foreach (var cell in pattern.GetCells(origin))
             {
@@ -822,12 +908,15 @@ namespace NeoCompose.Runtime
             NeoCellPattern pattern)
             where TObject : class, INeoValueReference
         {
-            if (content is null) throw new ArgumentNullException(nameof(content));
-            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            if (content is null)
+                throw new ArgumentNullException(nameof(content));
+            if (pattern is null)
+                throw new ArgumentNullException(nameof(pattern));
             foreach (var cell in pattern.GetCells(origin))
             {
                 var typedObjects = content.GetObjects<TObject>(source, cell);
-                if (typedObjects.Count > 0) return typedObjects[0];
+                if (typedObjects.Count > 0)
+                    return typedObjects[0];
             }
             return null;
         }
@@ -839,8 +928,10 @@ namespace NeoCompose.Runtime
             NeoCellPattern pattern)
             where TObject : class, INeoValueReference
         {
-            if (content is null) throw new ArgumentNullException(nameof(content));
-            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            if (content is null)
+                throw new ArgumentNullException(nameof(content));
+            if (pattern is null)
+                throw new ArgumentNullException(nameof(pattern));
             var typedObjects = new List<TObject>();
             foreach (var cell in pattern.GetCells(origin))
             {
@@ -933,7 +1024,8 @@ namespace NeoCompose.Runtime
         /// </summary>
         public static BoundsInt ComputeCellBounds(this INeoTileGridContent content)
         {
-            if (content is null) throw new ArgumentNullException(nameof(content));
+            if (content is null)
+                throw new ArgumentNullException(nameof(content));
 
             bool hasCells = false;
             int minX = 0, minY = 0, maxX = 0, maxY = 0;
@@ -1003,10 +1095,22 @@ namespace NeoCompose.Runtime
             Source = source;
         }
 
-        public string GridValueId { get; }
-        public IReadOnlyList<NeoTileLayerChangedArgs> TileLayers { get; }
-        public IReadOnlyList<NeoObjectLayerChangedArgs> ObjectLayers { get; }
-        public NeoChangeSource Source { get; }
+        public string GridValueId
+        {
+            get;
+        }
+        public IReadOnlyList<NeoTileLayerChangedArgs> TileLayers
+        {
+            get;
+        }
+        public IReadOnlyList<NeoObjectLayerChangedArgs> ObjectLayers
+        {
+            get;
+        }
+        public NeoChangeSource Source
+        {
+            get;
+        }
     }
 
     public enum NeoTileGridChangeSourceKind
@@ -1040,17 +1144,38 @@ namespace NeoCompose.Runtime
                 CellsToSetOrRefresh);
         }
 
-        public string LayerId { get; }
-        public IReadOnlyList<Vector2Int> CellsToClear { get; }
-        public IReadOnlyList<Vector2Int> CellsToSetOrRefresh { get; }
-        public NeoTileGridChangeSourceKind SourceKind { get; }
-        public string? SourceId { get; }
-        public IReadOnlyList<Vector2Int> ChangedCells { get; }
+        public string LayerId
+        {
+            get;
+        }
+        public IReadOnlyList<Vector2Int> CellsToClear
+        {
+            get;
+        }
+        public IReadOnlyList<Vector2Int> CellsToSetOrRefresh
+        {
+            get;
+        }
+        public NeoTileGridChangeSourceKind SourceKind
+        {
+            get;
+        }
+        public string? SourceId
+        {
+            get;
+        }
+        public IReadOnlyList<Vector2Int> ChangedCells
+        {
+            get;
+        }
     }
 
     public sealed class NeoObjectLayerChangedArgs
     {
-        internal bool PositionsOnly { get; set; }
+        internal bool PositionsOnly
+        {
+            get; set;
+        }
         public NeoObjectLayerChangedArgs(
             string layerId,
             IReadOnlyList<NeoObjectInstanceId> removedInstances,
@@ -1075,13 +1200,34 @@ namespace NeoCompose.Runtime
                 AddedOrChangedInstances);
         }
 
-        public string LayerId { get; }
-        public IReadOnlyList<NeoObjectInstanceId> RemovedInstances { get; }
-        public IReadOnlyList<NeoObjectInstanceId> AddedOrChangedInstances { get; }
-        public IReadOnlyList<NeoObjectInstanceId> ChangedInstances { get; }
-        public IReadOnlyList<Vector2Int> ChangedCells { get; }
-        public NeoTileGridChangeSourceKind SourceKind { get; }
-        public string? SourceId { get; }
+        public string LayerId
+        {
+            get;
+        }
+        public IReadOnlyList<NeoObjectInstanceId> RemovedInstances
+        {
+            get;
+        }
+        public IReadOnlyList<NeoObjectInstanceId> AddedOrChangedInstances
+        {
+            get;
+        }
+        public IReadOnlyList<NeoObjectInstanceId> ChangedInstances
+        {
+            get;
+        }
+        public IReadOnlyList<Vector2Int> ChangedCells
+        {
+            get;
+        }
+        public NeoTileGridChangeSourceKind SourceKind
+        {
+            get;
+        }
+        public string? SourceId
+        {
+            get;
+        }
     }
 
     internal static class NeoTileGridChangedArgsSupport
@@ -1099,9 +1245,11 @@ namespace NeoCompose.Runtime
             var result = new List<T>(first.Count + second.Count);
             var seen = new HashSet<T>();
             foreach (var item in first)
-                if (seen.Add(item)) result.Add(item);
+                if (seen.Add(item))
+                    result.Add(item);
             foreach (var item in second)
-                if (seen.Add(item)) result.Add(item);
+                if (seen.Add(item))
+                    result.Add(item);
             return result;
         }
     }

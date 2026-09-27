@@ -61,22 +61,40 @@ namespace NeoCompose.Runtime
         /// <summary>Default overall sign-in deadline (seconds) — caps the device flow.</summary>
         public const int DefaultOverallTimeoutSeconds = 600;
 
-        public string apiBaseUrl { get; }
-        public string projectId { get; }
-        public string clientId { get; }
-        public string scopes { get; }
+        public string apiBaseUrl
+        {
+            get;
+        }
+        public string projectId
+        {
+            get;
+        }
+        public string clientId
+        {
+            get;
+        }
+        public string scopes
+        {
+            get;
+        }
 
         /// <summary>
         /// Optional override of the credential-sharing namespace seed (see
         /// <see cref="NeoAuthCredentialNamespace"/>); leave null for per-game
         /// isolation.
         /// </summary>
-        public string? sharedCredentialNamespace { get; }
+        public string? sharedCredentialNamespace
+        {
+            get;
+        }
 
         /// <summary>
         /// Overall sign-in deadline in seconds. The device flow also honors the
         /// server's device-code expiry; this is an additional client-side cap.
         /// </summary>
-        public int overallTimeoutSeconds { get; }
+        public int overallTimeoutSeconds
+        {
+            get;
+        }
     }
 }

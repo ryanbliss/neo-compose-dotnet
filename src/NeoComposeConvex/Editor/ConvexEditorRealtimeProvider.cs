@@ -129,7 +129,8 @@ namespace NeoCompose.Convex.Editor
         private static NeoComposeExportSignal? ParseSignal(string json)
         {
             var token = JToken.Parse(json);
-            if (token.Type == JTokenType.Null) return null;
+            if (token.Type == JTokenType.Null)
+                return null;
             if (token is not JObject payload)
             {
                 throw new InvalidOperationException(

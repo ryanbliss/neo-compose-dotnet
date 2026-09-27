@@ -21,7 +21,8 @@ namespace NeoCompose.Runtime
             NeoGeneratedClassValue value,
             INeoSmartTileNeighborMatcher? matcher = null)
         {
-            if (value == null) throw new ArgumentNullException(nameof(value));
+            if (value == null)
+                throw new ArgumentNullException(nameof(value));
             var fallbackSprite = ResolveSprite(value);
             if (TryResolveSmartTile(value, out var smartTile))
             {
@@ -36,7 +37,8 @@ namespace NeoCompose.Runtime
                     value.classId);
             }
 
-            if (fallbackSprite == null) return null;
+            if (fallbackSprite == null)
+                return null;
             var tile = ScriptableObject.CreateInstance<Tile>();
             tile.name = $"Neo Tile - {fallbackSprite.name}";
             tile.sprite = fallbackSprite;
@@ -71,22 +73,28 @@ namespace NeoCompose.Runtime
         {
             var exact = TryReadSpriteProperty(value, "Sprite")
                 ?? TryReadSpriteProperty(value, "Image");
-            if (exact != null) return exact;
+            if (exact != null)
+                return exact;
 
             var properties = value.GetType().GetProperties(
                 BindingFlags.Public | BindingFlags.Instance);
             foreach (var property in properties)
             {
-                if (!IsSpriteProperty(property)) continue;
-                if (!property.Name.EndsWith("Sprite", StringComparison.Ordinal)) continue;
+                if (!IsSpriteProperty(property))
+                    continue;
+                if (!property.Name.EndsWith("Sprite", StringComparison.Ordinal))
+                    continue;
                 var sprite = TryReadSpriteProperty(value, property);
-                if (sprite != null) return sprite;
+                if (sprite != null)
+                    return sprite;
             }
             foreach (var property in properties)
             {
-                if (!IsSpriteProperty(property)) continue;
+                if (!IsSpriteProperty(property))
+                    continue;
                 var sprite = TryReadSpriteProperty(value, property);
-                if (sprite != null) return sprite;
+                if (sprite != null)
+                    return sprite;
             }
 
             return null;
@@ -122,24 +130,29 @@ namespace NeoCompose.Runtime
             {
                 var property = type.GetProperty(propertyName,
                     BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
-                if (property != null) return TryReadSpriteProperty(source, property);
+                if (property != null)
+                    return TryReadSpriteProperty(source, property);
             }
             return null;
         }
 
         private static Sprite? TryReadSpriteProperty(object source, PropertyInfo property)
         {
-            if (!IsSpriteProperty(property)) return null;
-            if (property.GetIndexParameters().Length > 0) return null;
+            if (!IsSpriteProperty(property))
+                return null;
+            if (property.GetIndexParameters().Length > 0)
+                return null;
             try
             {
                 var raw = property.GetValue(source);
-                if (raw is Sprite sprite) return sprite;
+                if (raw is Sprite sprite)
+                    return sprite;
                 // ResolveOrNull, not Resolve: a required member whose asset is
                 // not synchronized is just another empty candidate here, and
                 // this scan is best-effort by construction — it already
                 // tolerates properties it cannot read at all.
-                if (raw is NeoReadOnlySprite wrapper) return wrapper.ResolveOrNull();
+                if (raw is NeoReadOnlySprite wrapper)
+                    return wrapper.ResolveOrNull();
                 return null;
             }
             catch (TargetInvocationException)

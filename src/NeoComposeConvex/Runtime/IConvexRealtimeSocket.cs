@@ -19,9 +19,15 @@ namespace NeoCompose.Convex
     /// </summary>
     internal interface IConvexRealtimeSocket : IDisposable
     {
-        ConnectionState ConnectionState { get; }
+        ConnectionState ConnectionState
+        {
+            get;
+        }
 
-        IObservable<ConnectionState> ConnectionStateChanges { get; }
+        IObservable<ConnectionState> ConnectionStateChanges
+        {
+            get;
+        }
 
         event EventHandler<AuthenticationStateChangedEventArgs>? AuthenticationStateChanged;
 

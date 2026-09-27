@@ -21,7 +21,8 @@ namespace NeoCompose.Tests
         {
             foreach (var created in createdObjects)
             {
-                if (created != null) UnityEngine.Object.DestroyImmediate(created);
+                if (created != null)
+                    UnityEngine.Object.DestroyImmediate(created);
             }
             createdObjects.Clear();
         }
@@ -443,7 +444,10 @@ namespace NeoCompose.Tests
 
         private sealed class FakeSmartTile : INeoSmartTile
         {
-            public string DefaultCollider { get; set; } =
+            public string DefaultCollider
+            {
+                get; set;
+            } =
                 NeoSmartTileOptionIds.ColliderSprite;
 
             public List<INeoSmartTileRule> Rules { get; } = new();
@@ -461,7 +465,10 @@ namespace NeoCompose.Tests
 
             public string Collider { get; set; } = NeoSmartTileOptionIds.ColliderSprite;
 
-            public string RuleTransform { get; set; } =
+            public string RuleTransform
+            {
+                get; set;
+            } =
                 NeoSmartTileOptionIds.TransformFixed;
 
             public double MinAnimationSpeed { get; set; } = 1d;
@@ -475,11 +482,17 @@ namespace NeoCompose.Tests
 
         private sealed class FakeSmartTileNeighbor : INeoSmartTileNeighbor
         {
-            public Vector2Int Cell { get; set; }
+            public Vector2Int Cell
+            {
+                get; set;
+            }
 
             public string Condition { get; set; } = NeoSmartTileOptionIds.ConditionThis;
 
-            public string? TileClassId { get; set; }
+            public string? TileClassId
+            {
+                get; set;
+            }
         }
 
         private sealed class RecordingNeighborMatcher : INeoSmartTileNeighborMatcher

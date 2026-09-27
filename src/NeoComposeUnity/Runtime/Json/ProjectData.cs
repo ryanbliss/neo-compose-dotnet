@@ -105,7 +105,8 @@ namespace NeoCompose.Runtime.Json
 
         internal static string? GetSchemaVersionError(int schemaVersion)
         {
-            if (schemaVersion == CurrentSchemaVersion) return null;
+            if (schemaVersion == CurrentSchemaVersion)
+                return null;
 
             string action = schemaVersion < CurrentSchemaVersion
                 ? "Re-export the project from the current web app."
@@ -444,7 +445,8 @@ namespace NeoCompose.Runtime.Json
             object? existingValue,
             JsonSerializer serializer)
         {
-            if (reader.TokenType == JsonToken.Null) return null;
+            if (reader.TokenType == JsonToken.Null)
+                return null;
 
             var obj = JObject.Load(reader);
             ValidateSchemaVersion(obj);
@@ -496,16 +498,20 @@ namespace NeoCompose.Runtime.Json
                     "the export's values");
                 // Expansion returns its argument when nothing is packed, and
                 // reassigning a token to itself is not a no-op in Newtonsoft.
-                if (!ReferenceEquals(expanded, values)) root["values"] = expanded;
+                if (!ReferenceEquals(expanded, values))
+                    root["values"] = expanded;
             }
-            if (root["valuePartitions"] is not JObject partitions) return;
+            if (root["valuePartitions"] is not JObject partitions)
+                return;
             foreach (JProperty partition in partitions.Properties())
             {
-                if (partition.Value is not JObject rows) continue;
+                if (partition.Value is not JObject rows)
+                    continue;
                 JObject expanded = NeoPackedValue.Expand(
                     rows,
                     $"value partition '{partition.Name}'");
-                if (!ReferenceEquals(expanded, rows)) partition.Value = expanded;
+                if (!ReferenceEquals(expanded, rows))
+                    partition.Value = expanded;
             }
         }
 
@@ -605,17 +611,20 @@ namespace NeoCompose.Runtime.Json
             {
                 foreach (JToken token in indexes)
                 {
-                    if (token is not JObject index) continue;
+                    if (token is not JObject index)
+                        continue;
                     Reject(index, "unique", "kind", "List index");
                     StrictRecordShapeEnums.ValidateOptional<NeoListIndexKind>(
                         index, "kind", "List index");
                 }
             }
 
-            if (member["columnSettings"] is not JArray columns) return;
+            if (member["columnSettings"] is not JArray columns)
+                return;
             foreach (JToken token in columns)
             {
-                if (token is not JObject column) continue;
+                if (token is not JObject column)
+                    continue;
                 Reject(column, "hidden", "visibility", "List column");
                 Reject(column, "frozen", "pin", "List column");
                 Reject(column, "wrapContent", "overflow", "List column");
@@ -659,7 +668,8 @@ namespace NeoCompose.Runtime.Json
 
         private static void ValidateMembers(JToken? token)
         {
-            if (token is not JObject members) return;
+            if (token is not JObject members)
+                return;
             foreach (JProperty property in members.Properties())
             {
                 if (property.Value is JObject member)
@@ -671,10 +681,12 @@ namespace NeoCompose.Runtime.Json
 
         private static void ValidateClasses(JToken? token)
         {
-            if (token is not JObject classes) return;
+            if (token is not JObject classes)
+                return;
             foreach (JProperty property in classes.Properties())
             {
-                if (property.Value is not JObject schemaClass) continue;
+                if (property.Value is not JObject schemaClass)
+                    continue;
                 Reject(
                     schemaClass,
                     "hiddenInAttributeSelector",
@@ -699,7 +711,8 @@ namespace NeoCompose.Runtime.Json
 
         private static void ValidateInterfaces(JToken? token)
         {
-            if (token is not JObject interfaces) return;
+            if (token is not JObject interfaces)
+                return;
             foreach (JProperty property in interfaces.Properties())
             {
                 if (property.Value is not JObject neoInterface
@@ -723,7 +736,8 @@ namespace NeoCompose.Runtime.Json
             string removedField,
             string context)
         {
-            if (obj.Property(removedField) is null) return;
+            if (obj.Property(removedField) is null)
+                return;
             throw new JsonSerializationException(
                 $"{context} uses removed field '{removedField}'; schema "
                 + $"{NeoProjectExportContract.CurrentSchemaVersion} removed it without replacement.");
@@ -736,7 +750,8 @@ namespace NeoCompose.Runtime.Json
             string context,
             int? schemaVersion = null)
         {
-            if (obj.Property(removedField) is null) return;
+            if (obj.Property(removedField) is null)
+                return;
             throw new JsonSerializationException(
                 $"{context} uses removed field '{removedField}'; schema "
                 + $"{schemaVersion ?? NeoProjectExportContract.CurrentSchemaVersion} requires '{replacementField}'.");

@@ -40,7 +40,10 @@ namespace NeoCompose.Runtime
         }
 
         public string MemberId => member.id;
-        public NeoValueOwnership Ownership { get; }
+        public NeoValueOwnership Ownership
+        {
+            get;
+        }
 
         /// <summary>The currently selected target id, or null when unset.</summary>
         public string? ValueId
@@ -97,7 +100,8 @@ namespace NeoCompose.Runtime
         public TNode GetRequiredNode<TNode>()
             where TNode : NeoMember
         {
-            if (TryGetNode(out TNode? node)) return node;
+            if (TryGetNode(out TNode? node))
+                return node;
             throw new System.InvalidOperationException(
                 $"Required static member '{member.name}' has no bound value.");
         }
@@ -112,7 +116,8 @@ namespace NeoCompose.Runtime
         public TNode GetNodeOrEmpty<TNode>()
             where TNode : NeoMember
         {
-            if (TryGetNode(out TNode? node)) return node;
+            if (TryGetNode(out TNode? node))
+                return node;
             string syntheticValueId = $"__neo_unset_static:{member.id}";
             NeoMember empty = Ownership == NeoValueOwnership.Asset
                 ? NeoMember.Create(client, member, syntheticValueId)
@@ -348,12 +353,14 @@ namespace NeoCompose.Runtime
 
         private bool IsAssignableNeoSchemaClass(string actualClassId, string expectedClassId)
         {
-            if (actualClassId == expectedClassId) return true;
+            if (actualClassId == expectedClassId)
+                return true;
             try
             {
                 foreach (NeoSchemaClass schemaClass in client.ResolveClassInheritanceChain(actualClassId))
                 {
-                    if (schemaClass.id == expectedClassId) return true;
+                    if (schemaClass.id == expectedClassId)
+                        return true;
                 }
             }
             catch (CircularInheritanceError)

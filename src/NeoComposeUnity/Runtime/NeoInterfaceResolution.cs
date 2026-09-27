@@ -32,7 +32,8 @@ namespace NeoCompose.Runtime
                     throw new InvalidOperationException(
                         $"Circular interface extension detected: {string.Join(" -> ", path)}.");
                 }
-                if (emitted.Contains(currentId)) return;
+                if (emitted.Contains(currentId))
+                    return;
                 if (!projectData.interfaces.TryGetValue(currentId, out Interface? declaration))
                 {
                     throw new InvalidOperationException(
@@ -79,7 +80,8 @@ namespace NeoCompose.Runtime
 
             foreach (NeoSchemaClass schemaClass in classChain)
             {
-                if (schemaClass.implementsInterfaceIds is null) continue;
+                if (schemaClass.implementsInterfaceIds is null)
+                    continue;
                 foreach (string declaredId in schemaClass.implementsInterfaceIds)
                 {
                     IReadOnlyList<Interface> closure;
@@ -93,7 +95,8 @@ namespace NeoCompose.Runtime
                     }
                     foreach (Interface declaration in closure)
                     {
-                        if (declaration.id == interfaceId) return true;
+                        if (declaration.id == interfaceId)
+                            return true;
                     }
                 }
             }

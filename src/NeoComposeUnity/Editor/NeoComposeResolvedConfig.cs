@@ -51,7 +51,8 @@ namespace NeoCompose.Unity.Editor
         /// </summary>
         public static NeoComposeRigResolution? ResolveActiveRig()
         {
-            if (rigResolved) return cachedRig;
+            if (rigResolved)
+                return cachedRig;
 
             cachedRig = NeoComposeRigManifestResolver.Resolve();
             rigResolved = true;
@@ -71,9 +72,11 @@ namespace NeoCompose.Unity.Editor
             }
 
             var rig = ResolveActiveRig();
-            if (rig == null) return committed;
+            if (rig == null)
+                return committed;
 
-            if (cachedOverlay != null && cachedCommitted == committed) return cachedOverlay;
+            if (cachedOverlay != null && cachedCommitted == committed)
+                return cachedOverlay;
 
             cachedCommitted = committed;
             cachedOverlay = Apply(committed, rig.Manifest);
@@ -126,8 +129,10 @@ namespace NeoCompose.Unity.Editor
         /// </summary>
         public static bool IsRigOverlay(NeoComposeConfig config)
         {
-            if (config == null) return false;
-            if (RigOverlayEntityIds.Contains(config.GetEntityId())) return true;
+            if (config == null)
+                return false;
+            if (RigOverlayEntityIds.Contains(config.GetEntityId()))
+                return true;
             return config.name.EndsWith(RigOverlayNameSuffix, StringComparison.Ordinal);
         }
 
@@ -138,7 +143,8 @@ namespace NeoCompose.Unity.Editor
         /// </summary>
         internal static void ReportSaveRefused(NeoComposeConfig overlay)
         {
-            if (!ReportedSaveRefusals.Add(overlay.GetEntityId())) return;
+            if (!ReportedSaveRefusals.Add(overlay.GetEntityId()))
+                return;
 
             var rig = cachedRig;
             var rigDescription = rig == null ? "an active rig" : rig.Describe();

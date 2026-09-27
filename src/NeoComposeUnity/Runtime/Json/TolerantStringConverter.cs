@@ -79,8 +79,10 @@ namespace NeoCompose.Runtime.Json
             string? value,
             JsonSerializer serializer)
         {
-            if (value == null) writer.WriteNull();
-            else writer.WriteValue(value);
+            if (value == null)
+                writer.WriteNull();
+            else
+                writer.WriteValue(value);
         }
     }
 }

@@ -87,7 +87,10 @@ namespace NeoCompose.Convex
         /// The JWT mint/refresh pipeline backing the socket's auth; null until
         /// the provider is configured.
         /// </summary>
-        internal ConvexJwtTokenProvider? JwtProvider { get; private set; }
+        internal ConvexJwtTokenProvider? JwtProvider
+        {
+            get; private set;
+        }
 
         /// <summary>
         /// True once the provider knows its Convex deployment and session
@@ -132,7 +135,10 @@ namespace NeoCompose.Convex
                 ?? (() => new ConvexClientRealtimeSocket(options.convexUrl));
         }
 
-        public NeoRealtimeConnectionState State { get; private set; } =
+        public NeoRealtimeConnectionState State
+        {
+            get; private set;
+        } =
             NeoRealtimeConnectionState.Disconnected;
 
         public event Action<NeoRealtimeConnectionState>? OnConnectionStateChanged;
@@ -212,7 +218,8 @@ namespace NeoCompose.Convex
 
         public void Dispose()
         {
-            if (disposed) return;
+            if (disposed)
+                return;
             disposed = true;
             TearDownSocket();
             SetState(NeoRealtimeConnectionState.Disconnected);
@@ -385,7 +392,8 @@ namespace NeoCompose.Convex
                 args,
                 json => dispatch(() =>
                 {
-                    if (disposed) return;
+                    if (disposed)
+                        return;
                     T value;
                     try
                     {
@@ -403,7 +411,8 @@ namespace NeoCompose.Convex
                 }),
                 error => dispatch(() =>
                 {
-                    if (disposed) return;
+                    if (disposed)
+                        return;
                     Debug.LogWarning(
                         $"[NeoCompose] Realtime subscription to {functionName} errored: " +
                         $"{error.GetType().Name}: {error.Message}");
@@ -551,25 +560,25 @@ namespace NeoCompose.Convex
             switch (token.Type)
             {
                 case JTokenType.Object:
-                {
-                    var result = new Dictionary<string, object?>();
-                    foreach (var property in ((JObject)token).Properties())
                     {
-                        result[property.Name] = ToPlainGraph(property.Value);
-                    }
+                        var result = new Dictionary<string, object?>();
+                        foreach (var property in ((JObject)token).Properties())
+                        {
+                            result[property.Name] = ToPlainGraph(property.Value);
+                        }
 
-                    return result;
-                }
+                        return result;
+                    }
                 case JTokenType.Array:
-                {
-                    var result = new List<object?>();
-                    foreach (var item in (JArray)token)
                     {
-                        result.Add(ToPlainGraph(item));
-                    }
+                        var result = new List<object?>();
+                        foreach (var item in (JArray)token)
+                        {
+                            result.Add(ToPlainGraph(item));
+                        }
 
-                    return result;
-                }
+                        return result;
+                    }
                 case JTokenType.Integer:
                     // Convex wire numbers are float64: a CLR long would be
                     // encoded as a bigint ($integer) and rejected by v.number()
@@ -663,7 +672,8 @@ namespace NeoCompose.Convex
 
         private void EnsureSocket()
         {
-            if (socket != null) return;
+            if (socket != null)
+                return;
             // Only reachable from ConnectAsync, after the IsConfigured guard.
             socket = socketFactory!();
             stateSubscription = socket.ConnectionStateChanges.Subscribe(
@@ -675,10 +685,12 @@ namespace NeoCompose.Convex
         {
             dispatch(() =>
             {
-                if (disposed) return;
+                if (disposed)
+                    return;
                 // Denied is terminal until an explicit ConnectAsync; the dying
                 // socket's trailing transitions must not mask it.
-                if (State == NeoRealtimeConnectionState.Denied) return;
+                if (State == NeoRealtimeConnectionState.Denied)
+                    return;
                 SetState(MapConnectionState(state));
             });
         }
@@ -686,10 +698,12 @@ namespace NeoCompose.Convex
         private void OnSocketAuthenticationStateChanged(
             object? sender, AuthenticationStateChangedEventArgs e)
         {
-            if (e.State != AuthenticationState.AuthenticationFailed) return;
+            if (e.State != AuthenticationState.AuthenticationFailed)
+                return;
             dispatch(() =>
             {
-                if (disposed) return;
+                if (disposed)
+                    return;
                 // Only a credential rejection is terminal; a transient mint
                 // failure (connection blip) leaves the client's own retry loop
                 // in charge.
@@ -712,7 +726,8 @@ namespace NeoCompose.Convex
             stateSubscription?.Dispose();
             stateSubscription = null;
             var current = socket;
-            if (current == null) return;
+            if (current == null)
+                return;
             socket = null;
             current.AuthenticationStateChanged -= OnSocketAuthenticationStateChanged;
             current.Dispose();
@@ -720,7 +735,8 @@ namespace NeoCompose.Convex
 
         private void SetState(NeoRealtimeConnectionState value)
         {
-            if (State == value) return;
+            if (State == value)
+                return;
             State = value;
             OnConnectionStateChanged?.Invoke(value);
         }

@@ -30,7 +30,9 @@ namespace NeoCompose.Runtime.Json
         public NeoTimestamp updatedAt;
     }
 
-    public class StandardDialogueGroup : DialogueGroup { }
+    public class StandardDialogueGroup : DialogueGroup
+    {
+    }
 
     public class LookupDialogueGroup : DialogueGroup
     {
@@ -38,7 +40,9 @@ namespace NeoCompose.Runtime.Json
         public string? collectionValueId;
     }
 
-    public class FolderDialogueGroup : DialogueGroup { }
+    public class FolderDialogueGroup : DialogueGroup
+    {
+    }
 
     public class DialogueGroupConverter : DiscriminatedConverter<DialogueGroup>
     {
@@ -46,10 +50,14 @@ namespace NeoCompose.Runtime.Json
         {
             switch ((DialogueGroupType)discriminator.Value<int>())
             {
-                case DialogueGroupType.Standard: return typeof(StandardDialogueGroup);
-                case DialogueGroupType.Lookup: return typeof(LookupDialogueGroup);
-                case DialogueGroupType.Folder: return typeof(FolderDialogueGroup);
-                default: return null;
+                case DialogueGroupType.Standard:
+                    return typeof(StandardDialogueGroup);
+                case DialogueGroupType.Lookup:
+                    return typeof(LookupDialogueGroup);
+                case DialogueGroupType.Folder:
+                    return typeof(FolderDialogueGroup);
+                default:
+                    return null;
             }
         }
     }

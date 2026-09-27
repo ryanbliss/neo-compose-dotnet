@@ -40,7 +40,8 @@ namespace NeoCompose.Runtime
 
         public void Fail(Exception exception)
         {
-            if (exception == null) throw new ArgumentNullException(nameof(exception));
+            if (exception == null)
+                throw new ArgumentNullException(nameof(exception));
             state.Fail(exception);
         }
 
@@ -80,8 +81,14 @@ namespace NeoCompose.Runtime
             this.dispose = dispose;
         }
 
-        public string MemberId { get; }
-        public string FunctionName { get; }
+        public string MemberId
+        {
+            get;
+        }
+        public string FunctionName
+        {
+            get;
+        }
         public bool Pending => pending && !disposed;
         public CancellationToken CancellationToken => cancellation.Token;
 
@@ -101,7 +108,8 @@ namespace NeoCompose.Runtime
 
         internal void DisposeFromOwner(string reason)
         {
-            if (!pending || disposed) return;
+            if (!pending || disposed)
+                return;
             disposed = true;
             pending = false;
             cancellation.Cancel();

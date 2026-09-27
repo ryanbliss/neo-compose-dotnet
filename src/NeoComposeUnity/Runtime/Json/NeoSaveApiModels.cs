@@ -157,10 +157,22 @@ namespace NeoCompose.Runtime.Json
             TargetSnapshotId = targetSnapshotId;
         }
 
-        public NeoCloneOutcome Outcome { get; }
-        public RemoteGameSave? ClonedSave { get; }
-        public string CustomId { get; }
-        public string TargetSnapshotId { get; }
+        public NeoCloneOutcome Outcome
+        {
+            get;
+        }
+        public RemoteGameSave? ClonedSave
+        {
+            get;
+        }
+        public string CustomId
+        {
+            get;
+        }
+        public string TargetSnapshotId
+        {
+            get;
+        }
         public bool IsTransitioning => Outcome == NeoCloneOutcome.Transitioning;
 
         public static NeoCloneResult Cloned(RemoteGameSave save) =>
@@ -212,13 +224,34 @@ namespace NeoCompose.Runtime.Json
             Error = error;
         }
 
-        public NeoSaveTransitionOutcome Outcome { get; }
-        public RemoteGameSave? ReadySave { get; }
-        public string CustomId { get; }
-        public string TargetSnapshotId { get; }
-        public long SnapshotRevision { get; }
-        public string ResumeToken { get; }
-        public string? Error { get; }
+        public NeoSaveTransitionOutcome Outcome
+        {
+            get;
+        }
+        public RemoteGameSave? ReadySave
+        {
+            get;
+        }
+        public string CustomId
+        {
+            get;
+        }
+        public string TargetSnapshotId
+        {
+            get;
+        }
+        public long SnapshotRevision
+        {
+            get;
+        }
+        public string ResumeToken
+        {
+            get;
+        }
+        public string? Error
+        {
+            get;
+        }
 
         public static NeoSaveTransitionStatus Ready(RemoteGameSave save) =>
             new NeoSaveTransitionStatus(
@@ -319,16 +352,31 @@ namespace NeoCompose.Runtime.Json
             TargetSnapshotId = targetSnapshotId;
         }
 
-        public NeoCommitOutcome Outcome { get; }
+        public NeoCommitOutcome Outcome
+        {
+            get;
+        }
 
         /// <summary>The committed head, or null on conflict.</summary>
-        public RemoteGameSave? CommittedSave { get; }
+        public RemoteGameSave? CommittedSave
+        {
+            get;
+        }
 
         /// <summary>The current server head on conflict, or null on success.</summary>
-        public RemoteGameSave? ServerHead { get; }
+        public RemoteGameSave? ServerHead
+        {
+            get;
+        }
 
-        public string? CustomId { get; }
-        public string? TargetSnapshotId { get; }
+        public string? CustomId
+        {
+            get;
+        }
+        public string? TargetSnapshotId
+        {
+            get;
+        }
 
         public bool IsConflict => Outcome == NeoCommitOutcome.Conflict;
         public bool IsTransitioning => Outcome == NeoCommitOutcome.Transitioning;

@@ -55,7 +55,8 @@ namespace NeoCompose.Unity.Editor
             else
             {
                 var existingFolders = searchFolders.Where(AssetDatabase.IsValidFolder).ToArray();
-                if (existingFolders.Length == 0) return Array.Empty<string>();
+                if (existingFolders.Length == 0)
+                    return Array.Empty<string>();
                 guids = AssetDatabase.FindAssets("t:NeoComposeConfig", existingFolders);
             }
 
@@ -87,7 +88,8 @@ namespace NeoCompose.Unity.Editor
         private static void EnsureAssetDirectory(string assetDirectory)
         {
             var normalized = NeoComposePathUtility.NormalizeSeparators(assetDirectory).TrimEnd('/');
-            if (AssetDatabase.IsValidFolder(normalized)) return;
+            if (AssetDatabase.IsValidFolder(normalized))
+                return;
 
             var current = "Assets";
             foreach (var segment in normalized.Split('/').Skip(1))

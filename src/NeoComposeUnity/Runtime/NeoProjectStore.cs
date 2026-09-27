@@ -120,7 +120,8 @@ namespace NeoCompose.Runtime
             NeoAuthentication? authentication,
             INeoApiClient? apiClient)
         {
-            if (provider == null) return null;
+            if (provider == null)
+                return null;
 
             if (apiClient == null)
             {
@@ -308,7 +309,8 @@ namespace NeoCompose.Runtime
         /// </summary>
         private async Awaitable BringUpRealtimeAsync()
         {
-            if (realtimeProvider == null || core == null) return;
+            if (realtimeProvider == null || core == null)
+                return;
 
             // Unhook-then-hook so a re-load never double-subscribes.
             realtimeProvider.OnConnectionStateChanged -= OnRealtimeConnectionStateChanged;
@@ -325,13 +327,15 @@ namespace NeoCompose.Runtime
                 return;
             }
 
-            if (authentication is not { IsSignedIn: true }) return;
+            if (authentication is not { IsSignedIn: true })
+                return;
             await ConnectRealtimeBestEffortAsync("during project load");
         }
 
         private void OnRealtimeConnectionStateChanged(NeoRealtimeConnectionState state)
         {
-            if (state != NeoRealtimeConnectionState.Connected) return;
+            if (state != NeoRealtimeConnectionState.Connected)
+                return;
             core?.AttachRealtimeSubscriptions();
         }
 
@@ -344,7 +348,8 @@ namespace NeoCompose.Runtime
         /// </summary>
         private async void OnAuthenticationStateChanged(NeoAuthenticationState state)
         {
-            if (disposed || realtimeProvider == null) return;
+            if (disposed || realtimeProvider == null)
+                return;
 
             if (state == NeoAuthenticationState.SignedIn)
             {
@@ -429,7 +434,8 @@ namespace NeoCompose.Runtime
         /// </summary>
         public void Dispose()
         {
-            if (disposed) return;
+            if (disposed)
+                return;
             disposed = true;
 
             if (authentication != null)

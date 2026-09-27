@@ -30,7 +30,8 @@ public class NeowynColdMovementBenchmark
         string directory = Path.Combine(Path.GetTempPath(), "neo-cold-" + Guid.NewGuid());
         void Configure(UnityEngine.SceneManagement.Scene scene, UnityEngine.SceneManagement.LoadSceneMode mode)
         {
-            if (scene.name == "NeoMenu") Object.FindAnyObjectByType<NeoMenuFlow>().SaveDirectory = directory;
+            if (scene.name == "NeoMenu")
+                Object.FindAnyObjectByType<NeoMenuFlow>().SaveDirectory = directory;
         }
         UnityEngine.SceneManagement.SceneManager.sceneLoaded += Configure;
         yield return UnityEngine.SceneManagement.SceneManager.LoadSceneAsync("Assets/Scenes/NeoMenu.unity");
@@ -64,7 +65,8 @@ public class NeowynColdMovementBenchmark
                 Assert.Greater(distance, 0f);
                 InputSystem.QueueStateEvent(pad, new GamepadState());
                 start = Time.realtimeSinceStartupAsDouble;
-                while (Time.realtimeSinceStartupAsDouble - start < .5) yield return null;
+                while (Time.realtimeSinceStartupAsDouble - start < .5)
+                    yield return null;
             }
         }
         finally { InputSystem.RemoveDevice(pad); }

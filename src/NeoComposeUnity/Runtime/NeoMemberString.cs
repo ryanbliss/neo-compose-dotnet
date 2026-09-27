@@ -26,17 +26,22 @@ namespace NeoCompose.Runtime
         {
             get
             {
-                if (member.Format == NeoStringFormatKind.Plain) return null;
-                if (value?.neoLocalizationMode == NeoStringLocalizationMode.Literal) return null;
+                if (member.Format == NeoStringFormatKind.Plain)
+                    return null;
+                if (value?.neoLocalizationMode == NeoStringLocalizationMode.Literal)
+                    return null;
                 return string.IsNullOrEmpty(value?.value) ? null : value.value;
             }
         }
 
         protected string? ResolveText(StringMemberValue? row)
         {
-            if (row?.value == null) return null;
-            if (member.Format == NeoStringFormatKind.Plain) return row.value;
-            if (row.neoLocalizationMode == NeoStringLocalizationMode.Literal) return row.value;
+            if (row?.value == null)
+                return null;
+            if (member.Format == NeoStringFormatKind.Plain)
+                return row.value;
+            if (row.neoLocalizationMode == NeoStringLocalizationMode.Literal)
+                return row.value;
             // No format arguments at a member read: the localized template is
             // the value. Formatting is the consumer's job (NeoDialogue passes
             // its arguments explicitly), and formatting a template that
@@ -108,9 +113,11 @@ namespace NeoCompose.Runtime
         /// </summary>
         public void ClearOverride()
         {
-            if (ownership == NeoValueOwnership.Asset) return;
+            if (ownership == NeoValueOwnership.Asset)
+                return;
             string? id = valueId;
-            if (id is null) return;
+            if (id is null)
+                return;
             client.RemoveWritableShadow(ownership, id);
         }
     }

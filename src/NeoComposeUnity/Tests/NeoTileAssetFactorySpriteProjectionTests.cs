@@ -56,7 +56,10 @@ namespace NeoCompose.Tests
         private sealed class DerivedSpriteTile : ReadOnlyWrapperSpriteTile
         {
             public DerivedSpriteTile(NeoClient client) : base(client) { }
-            public new NeoSprite? Sprite { get; set; }
+            public new NeoSprite? Sprite
+            {
+                get; set;
+            }
         }
 
         [Test]
@@ -176,7 +179,8 @@ namespace NeoCompose.Tests
             }
             finally
             {
-                if (tileBase != null) Object.DestroyImmediate(tileBase);
+                if (tileBase != null)
+                    Object.DestroyImmediate(tileBase);
                 DestroySprite(sprite);
             }
         }
@@ -193,7 +197,10 @@ namespace NeoCompose.Tests
             public WrapperSpriteTile(NeoClient client)
                 : base(client, client.save, TileClassId) { }
 
-            public NeoSprite? Sprite { get; set; }
+            public NeoSprite? Sprite
+            {
+                get; set;
+            }
         }
 
         private class ReadOnlyWrapperSpriteTile : NeoGeneratedClassValue
@@ -201,7 +208,10 @@ namespace NeoCompose.Tests
             public ReadOnlyWrapperSpriteTile(NeoClient client)
                 : base(client, client.save, TileClassId) { }
 
-            public NeoReadOnlySprite? Sprite { get; set; }
+            public NeoReadOnlySprite? Sprite
+            {
+                get; set;
+            }
         }
 
         private sealed class NativeSpriteTile : NeoGeneratedClassValue
@@ -209,7 +219,10 @@ namespace NeoCompose.Tests
             public NativeSpriteTile(NeoClient client)
                 : base(client, client.save, TileClassId) { }
 
-            public Sprite? Sprite { get; set; }
+            public Sprite? Sprite
+            {
+                get; set;
+            }
         }
 
         private sealed class SuffixedWrapperSpriteTile : NeoGeneratedClassValue
@@ -217,7 +230,10 @@ namespace NeoCompose.Tests
             public SuffixedWrapperSpriteTile(NeoClient client)
                 : base(client, client.save, TileClassId) { }
 
-            public NeoSprite? GroundSprite { get; set; }
+            public NeoSprite? GroundSprite
+            {
+                get; set;
+            }
         }
 
         private sealed class BoundRequiredSpriteTile : NeoGeneratedClassValue
@@ -229,7 +245,10 @@ namespace NeoCompose.Tests
                     client.save.Get<NeoMemberSpriteWritable>("Portrait"));
             }
 
-            public NeoSprite Sprite { get; }
+            public NeoSprite Sprite
+            {
+                get;
+            }
         }
 
         // ------------------------------------------------------------------
@@ -248,7 +267,8 @@ namespace NeoCompose.Tests
         {
             var texture = sprite.texture;
             Object.DestroyImmediate(sprite);
-            if (texture != null) Object.DestroyImmediate(texture);
+            if (texture != null)
+                Object.DestroyImmediate(texture);
         }
 
         private static ProjectData BuildProjectData()

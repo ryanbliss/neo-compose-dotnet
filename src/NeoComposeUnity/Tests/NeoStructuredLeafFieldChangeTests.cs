@@ -106,7 +106,8 @@ namespace NeoCompose.Tests
             NeoChangedArgs<Hero.Fields>? positionChange = null;
             foreach (var args in observed)
             {
-                if (args.Has(Hero.Fields.Position)) positionChange = args;
+                if (args.Has(Hero.Fields.Position))
+                    positionChange = args;
                 Assert.IsFalse(
                     args.Has(Hero.Fields.Name),
                     "a field write reports the one member it wrote, like a whole-value write");
