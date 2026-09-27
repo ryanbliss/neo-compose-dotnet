@@ -774,6 +774,7 @@ namespace NeoCompose.Runtime
             lock (resolvedNSFunctionsLock)
             {
                 resolvedNSFunctions.Clear();
+                functionScopePool?.Clear();
             }
             animationCoordinator.Dispose();
             animationClips.Clear();
@@ -881,6 +882,32 @@ namespace NeoCompose.Runtime
         internal Dictionary<string, SchemaPlacement?> ScriptSchemaPlacements { get; } = new();
         internal Dictionary<(string classId, string schemaKey), string?> ScriptCallableDispatch { get; } = new();
         internal NeoScriptExecutionOptions? immediateScriptExecutionOptions;
+        private Stack<NeoScript.NeoScriptScope>? functionScopePool;
+        private const int MaxPooledFunctionScopes = 16;
+        private const int MaxPooledFunctionBindings = 128;
+
+        internal NeoScript.NeoScriptScope RentFunctionScope(int capacity)
+        {
+            lock (resolvedNSFunctionsLock)
+            {
+                if (functionScopePool is { Count: > 0 }) return functionScopePool.Pop();
+            }
+            return new NeoScript.NeoScriptScope(capacity);
+        }
+
+        internal void ReturnFunctionScope(NeoScript.NeoScriptScope scope)
+        {
+            if (scope.BindingCapacity > MaxPooledFunctionBindings) return;
+            // Release all argument/local references before retaining the empty frame.
+            scope.ResetLocals();
+            lock (resolvedNSFunctionsLock)
+            {
+                if (isDisposed) return;
+                functionScopePool ??= new Stack<NeoScript.NeoScriptScope>(MaxPooledFunctionScopes);
+                if (functionScopePool.Count < MaxPooledFunctionScopes) functionScopePool.Push(scope);
+            }
+        }
+
         private readonly Dictionary<string, Dictionary<string, MergedSchemaEntry>> instanceSurfaceMembers = new();
 
         internal MergedSchemaEntry? ResolveInstanceSurfaceMember(string classId, string key)
@@ -1737,6 +1764,9 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal void InvalidateSchemaResolutionCaches()
         {
+            // Function bodies, signatures, and terminal normalizers belong to the
+            // current schema just like getter and dispatch metadata.
+            lock (resolvedNSFunctionsLock) resolvedNSFunctions.Clear();
             authoredValueInferenceIndex = null;
             authoredClassOwnedRoots = null;
             InvalidateGetterMemo();

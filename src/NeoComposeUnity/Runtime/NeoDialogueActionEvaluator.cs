@@ -1844,6 +1844,25 @@ namespace NeoCompose.Runtime
             return BuildExpressionContext(client, ctx, expressionState, options);
         }
 
+        // The function context is fresh, so installing immutable immediate handlers
+        // here avoids cloning it again when its first instruction executes.
+        internal static void PrepareFunctionContext(
+            NSGetterEvaluator.Context ctx, NeoScriptExecutionOptions options)
+        {
+            if (options.AllowDeferredFunctionCalls) return;
+            EnsureImmediateHandlers(ctx.client, options);
+            ctx.BindExpressionHandlers(options.immediateCallHandler!, options.immediateInitializerHandler!);
+        }
+
+        private static void EnsureImmediateHandlers(NeoClient client, NeoScriptExecutionOptions options)
+        {
+            if (options.immediateCallHandler is not null) return;
+            options.immediateInitializerHandler = (pointer, scope, ctx) =>
+                EvalObjectInitializer(pointer, scope, ctx, ExpressionResumeState.Immediate, options);
+            options.immediateCallHandler = (pointer, scope, ctx) =>
+                EvalFunctionCall(client, pointer, scope, ctx, ExpressionResumeState.Immediate, options);
+        }
+
         private static NSGetterEvaluator.Context BuildExpressionContext(
             NeoClient client,
             NSGetterEvaluator.Context ctx,
@@ -1860,15 +1879,7 @@ namespace NeoCompose.Runtime
                 // The immediate resume state is stateless, so the handlers
                 // depend only on (client, options): build them once and let
                 // every nested frame inherit them through the context fork.
-                if (options.immediateCallHandler is null)
-                {
-                    options.immediateInitializerHandler = (pointer, currentScope, currentCtx) =>
-                        EvalObjectInitializer(
-                            pointer, currentScope, currentCtx, ExpressionResumeState.Immediate, options);
-                    options.immediateCallHandler = (pointer, currentScope, currentCtx) =>
-                        EvalFunctionCall(
-                            client, pointer, currentScope, currentCtx, ExpressionResumeState.Immediate, options);
-                }
+                EnsureImmediateHandlers(client, options);
                 return ctx.WithExpressionHandlers(
                     options.immediateCallHandler,
                     options.immediateInitializerHandler!);

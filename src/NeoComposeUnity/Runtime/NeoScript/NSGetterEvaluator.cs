@@ -710,6 +710,22 @@ namespace NeoCompose.Runtime.NeoScript
             internal void BindRoot(object? value) => rootValue = value;
             internal void BindThis(object? value) => thisValue = value;
 
+            // Only for a newly created direct-call context that no frame has seen.
+            internal void BindFunction(string memberId, object? receiver)
+            {
+                functionCallStack = new CallFrameStack(functionCallStack, memberId);
+                thisValue = receiver;
+            }
+
+            internal void BindExpressionHandlers(
+                LinkedFunctionCallHandler handler,
+                Func<ObjectInitializerPointer, NeoScriptScope, Context, object?> initializerHandler)
+            {
+                linkedFunctionCallHandler = handler;
+                objectInitializerHandler = initializerHandler;
+            }
+
+
             /// <summary>
             /// The immediate-mode expression context built from THIS frame, so
             /// nested statement blocks (if/else branches, loop bodies) reuse it

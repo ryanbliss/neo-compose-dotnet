@@ -36,6 +36,7 @@ namespace NeoCompose.Runtime.NeoScript
 
         internal NeoScriptScope? Parent { get; }
         internal int LocalBindingCount => bindings.Count;
+        internal int BindingCapacity => bindings.EnsureCapacity(0);
 
         internal object? this[string bindingId]
         {

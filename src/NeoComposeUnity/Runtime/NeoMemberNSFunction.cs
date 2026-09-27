@@ -64,7 +64,7 @@ namespace NeoCompose.Runtime
                 invocation.Receiver,
                 args,
                 invocation.Context,
-                NeoScriptExecutionOptions.ForImmediate(client));
+                NeoScriptExecutionOptions.ForImmediate(client), ownsContext: true);
             if (result.IsPaused)
             {
                 result.Deferred?.DisposeFromOwner(
@@ -92,7 +92,7 @@ namespace NeoCompose.Runtime
                     invocation.Receiver,
                     args,
                     invocation.Context,
-                    NeoScriptExecutionOptions.ForDirectFunction(client));
+                    NeoScriptExecutionOptions.ForDirectFunction(client), ownsContext: true);
                 return AwaitExecution(result);
             }
             catch (Exception exception)
@@ -169,7 +169,7 @@ namespace NeoCompose.Runtime
                 receiver: null,
                 args,
                 invocation.Context,
-                NeoScriptExecutionOptions.ForImmediate(client));
+                NeoScriptExecutionOptions.ForImmediate(client), ownsContext: true);
             if (result.IsPaused)
             {
                 result.Deferred?.DisposeFromOwner(
@@ -197,7 +197,7 @@ namespace NeoCompose.Runtime
                     receiver: null,
                     args,
                     invocation.Context,
-                    NeoScriptExecutionOptions.ForDirectFunction(client)));
+                    NeoScriptExecutionOptions.ForDirectFunction(client), ownsContext: true));
             }
             catch (Exception exception)
             {
@@ -392,7 +392,8 @@ namespace NeoCompose.Runtime
             object? receiver,
             object?[] args,
             NSGetterEvaluator.Context ctx,
-            NeoScriptExecutionOptions options)
+            NeoScriptExecutionOptions options,
+            bool ownsContext = false)
         {
             using var sample = function.Profile.Auto();
             bool isStatic = function.Member.Modifier == NeoMemberModifierKind.Static;
@@ -466,46 +467,74 @@ namespace NeoCompose.Runtime
                 }
             }
 
-            var scope = new Dictionary<string, object?>(expectedParameters);
-            const int rootParameterIndex = 1;
-            const int argumentParameterOffset = 2;
-            scope[action.parameters[0].id] = receiver;
-            scope[action.parameters[rootParameterIndex].id] = ctx.rootValue;
-            for (int i = 0; i < args.Length; i++)
+            // Immediate functions cannot retain a lexical scope after completion:
+            // delegate literals capture values, and callbacks finish within the call.
+            // Deferred or unexpectedly suspended frames keep their own scopes.
+            bool poolScope = !function.Deferred;
+            var scope = poolScope
+                ? client.RentFunctionScope(expectedParameters)
+                : new NeoScriptScope(expectedParameters);
+            bool completed = false;
+            try
             {
-                FunctionArgumentTypeInfo argument = function.ArgumentTypes[i];
-                try
+                const int rootParameterIndex = 1;
+                const int argumentParameterOffset = 2;
+                scope[action.parameters[0].id] = receiver;
+                scope[action.parameters[rootParameterIndex].id] = ctx.rootValue;
+                for (int i = 0; i < args.Length; i++)
                 {
-                    scope[action.parameters[i + argumentParameterOffset].id] = NeoScriptValueMarshaller.Normalize(
-                        client,
-                        ctx.valueOwnership,
-                        args[i],
-                        effectiveArgumentTypes[i],
-                        ctx,
-                        function.ArgumentSubject(i));
+                    FunctionArgumentTypeInfo argument = function.ArgumentTypes[i];
+                    try
+                    {
+                        scope[action.parameters[i + argumentParameterOffset].id] = NeoScriptValueMarshaller.Normalize(
+                            client,
+                            ctx.valueOwnership,
+                            args[i],
+                            effectiveArgumentTypes[i],
+                            ctx,
+                            function.ArgumentSubject(i));
+                    }
+                    catch (Exception exception)
+                    {
+                        throw new NSGetterRuntimeError(
+                            $"NSFunction '{function.Member.name}' ({function.MemberId}) argument {i} " +
+                            $"'{argument.name}' is incompatible with declared {argument.type}; " +
+                            "compiled call IR or caller is stale/corrupt: " +
+                            exception.Message);
+                    }
                 }
-                catch (Exception exception)
-                {
-                    throw new NSGetterRuntimeError(
-                        $"NSFunction '{function.Member.name}' ({function.MemberId}) argument {i} " +
-                        $"'{argument.name}' is incompatible with declared {argument.type}; " +
-                        "compiled call IR or caller is stale/corrupt: " +
-                        exception.Message);
-                }
-            }
 
-            NSGetterEvaluator.Context nestedCtx = ctx
-                .WithFunctionPushed(function.MemberId, isStatic ? null : receiver);
-            NeoScriptExecutionResult execution = NeoScriptExecutor.Execute(
-                client,
-                action,
-                scope,
-                nestedCtx,
-                options.ForFunction(function.Deferred),
-                ReferenceEquals(effectiveReturnType, function.ReturnTypeInfo)
-                    ? function.TerminalNormalizer ??= CreateTerminalNormalizer(client, function, effectiveReturnType)
-                    : CreateTerminalNormalizer(client, function, effectiveReturnType));
-            return execution;
+
+                NSGetterEvaluator.Context nestedCtx;
+                if (ownsContext)
+                {
+                    ctx.BindFunction(function.MemberId, isStatic ? null : receiver);
+                    nestedCtx = ctx;
+                }
+                else
+                {
+                    nestedCtx = ctx.WithFunctionPushed(function.MemberId, isStatic ? null : receiver);
+                }
+                NeoScriptExecutionOptions functionOptions = options.ForFunction(function.Deferred);
+                NeoScriptExecutor.PrepareFunctionContext(nestedCtx, functionOptions);
+                NeoScriptExecutionResult execution = NeoScriptExecutor.Execute(
+                    client,
+                    action,
+                    scope,
+                    nestedCtx,
+                    functionOptions,
+                    ReferenceEquals(effectiveReturnType, function.ReturnTypeInfo)
+                        ? function.TerminalNormalizer ??= CreateTerminalNormalizer(client, function, effectiveReturnType)
+                        : CreateTerminalNormalizer(client, function, effectiveReturnType));
+                completed = !execution.IsPaused;
+                return execution;
+            }
+            finally
+            {
+                // Failed/suspended execution may still own continuations. Let their
+                // existing lifetime rules release those scopes instead of pooling them.
+                if (poolScope && completed) client.ReturnFunctionScope(scope);
+            }
         }
 
         // A separate method keeps the closure off ExecuteResolved's frame;

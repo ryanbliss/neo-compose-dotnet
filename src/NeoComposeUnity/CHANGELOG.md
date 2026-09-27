@@ -2,6 +2,8 @@
 
 ## [0.43.3] - 2026-09-26
 
+- Reduce interpreted function-call allocations by initializing fresh contexts in place and reusing bounded, cleared scopes after successful synchronous calls. Deferred and suspended scopes retain their own lifetimes. Schema-cache invalidation now also drops resolved function bodies and signatures so replacement implementations are picked up on the next invocation.
+
 - Reduce allocations from repeated scalar writes, including animation updates: create reference-transfer callbacks and generic cycle tracking only when needed, and look up schema fields without boxing an enumerator. Write validation, notifications, and reference-transfer behavior are unchanged.
 
 ## [0.43.2] - 2026-09-25
