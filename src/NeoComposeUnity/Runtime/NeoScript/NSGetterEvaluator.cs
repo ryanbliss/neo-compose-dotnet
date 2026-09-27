@@ -54,6 +54,8 @@ namespace NeoCompose.Runtime.NeoScript
         private NeoTimestamp? constructionTimestamp;
 
         internal int ActiveExecutionCount => activeExecutions;
+        private List<(string memberId, string? valueId)>? delegateFrames;
+        internal List<(string memberId, string? valueId)> DelegateFrames => delegateFrames ??= new();
 
         internal NeoScriptAllocationTracker(
             NeoScriptExecutionBudgetLimits? limits = null)
@@ -339,7 +341,7 @@ namespace NeoCompose.Runtime.NeoScript
 
             if (terminalResult?.Returned == true)
             {
-                MarkEscaped(terminalResult.ReturnValue, ctx);
+                MarkEscaped(terminalResult.Value.ReturnValue, ctx);
             }
 
             completedAllocationRootIds.UnionWith(allocatedRootIds);
@@ -515,7 +517,9 @@ namespace NeoCompose.Runtime.NeoScript
             /// shared mutable stack so nested evaluator contexts retain cycle
             /// detection across closure and member-target boundaries.
             /// </summary>
-            internal List<(string memberId, string? valueId)> delegateCallStack { get; }
+            private List<(string memberId, string? valueId)>? delegateCallStackOverride;
+            internal List<(string memberId, string? valueId)> delegateCallStack =>
+                delegateCallStackOverride ?? allocationTracker.DelegateFrames;
             /// <summary>
             /// P43 §7.2.3 — ordered names of the classes currently under
             /// construction. Deliberately separate from
@@ -693,7 +697,7 @@ namespace NeoCompose.Runtime.NeoScript
                 genericEnvironmentCacheStore = genericEnvironmentCache;
                 this.constructionStack = constructionStack
                     ?? System.Array.Empty<string>();
-                this.delegateCallStack = delegateCallStack ?? new List<(string memberId, string? valueId)>();
+                this.delegateCallStackOverride = delegateCallStack;
                 allocationTracker = sharedAllocationTracker
                     ?? new NeoScriptAllocationTracker(executionBudgetLimits);
             }
@@ -711,9 +715,9 @@ namespace NeoCompose.Runtime.NeoScript
             internal void BindThis(object? value) => thisValue = value;
 
             // Only for a newly created direct-call context that no frame has seen.
-            internal void BindFunction(string memberId, object? receiver)
+            internal void BindFunction(IReadOnlyList<string> directCallStack, object? receiver)
             {
-                functionCallStack = new CallFrameStack(functionCallStack, memberId);
+                functionCallStack = directCallStack;
                 thisValue = receiver;
             }
 
@@ -1000,47 +1004,54 @@ namespace NeoCompose.Runtime.NeoScript
             Context ctx,
             IReadOnlyList<object?> argumentValues)
         {
-            var scope = new Dictionary<string, object?>
+            var scope = ctx.client.RentFunctionScope(argumentValues.Count + 3);
+            bool completed = false;
+            try
             {
-                ["__this__"] = ctx.thisValue,
-                ["__root__"] = ctx.rootValue,
-                ["__context__"] = ctx.contextValue,
-            };
-            Variable[] parameters = getter.parameters ?? Array.Empty<Variable>();
-            if (argumentValues.Count > 0
-                && parameters.Length != argumentValues.Count + 2)
-            {
-                throw new NSGetterRuntimeError(
-                    $"Initializer declares {Math.Max(0, parameters.Length - 2)} constructor parameter(s), but received {argumentValues.Count} value(s).");
+                scope["__this__"] = ctx.thisValue;
+                scope["__root__"] = ctx.rootValue;
+                scope["__context__"] = ctx.contextValue;
+                Variable[] parameters = getter.parameters ?? Array.Empty<Variable>();
+                if (argumentValues.Count > 0
+                    && parameters.Length != argumentValues.Count + 2)
+                {
+                    throw new NSGetterRuntimeError(
+                        $"Initializer declares {Math.Max(0, parameters.Length - 2)} constructor parameter(s), but received {argumentValues.Count} value(s).");
+                }
+                for (int i = 0; i < argumentValues.Count; i++)
+                {
+                    scope[parameters[i + 2].id] = argumentValues[i];
+                }
+                // Getters, actions, setters, and NSFunctions now share the same
+                // effect-capable executor. Writability is a compile/runtime target
+                // property, not a reason to maintain a second pure interpreter.
+                // Immediate options let every getter frame share the client's
+                // prebuilt expression handlers instead of closing over its own.
+                NeoScriptExecutionResult result = NeoScriptExecutor.Execute(
+                    ctx.client,
+                    getter,
+                    scope,
+                    ctx,
+                    NeoScriptExecutionOptions.ForImmediate(ctx.client));
+                if (result.IsPaused)
+                {
+                    throw new NSGetterRuntimeError(
+                        $"Getter suspended on deferred Function '{result.SuspendedMemberId}'. Deferred calls are not supported by synchronous property evaluation.");
+                }
+                if (result.Returned)
+                {
+                    // `return intExpr;` on a Decimal-typed getter class-checks via
+                    // exact int widening; the runtime number becomes a canonical
+                    // decimal string here (mirrors the TS evaluator's return seam).
+                    completed = true;
+                    return result.ReturnValue;
+                }
+                throw new NSGetterRuntimeError("Function ended without a return statement");
             }
-            for (int i = 0; i < argumentValues.Count; i++)
+            finally
             {
-                scope[parameters[i + 2].id] = argumentValues[i];
+                if (completed) ctx.client.ReturnFunctionScope(scope);
             }
-            // Getters, actions, setters, and NSFunctions now share the same
-            // effect-capable executor. Writability is a compile/runtime target
-            // property, not a reason to maintain a second pure interpreter.
-            // Immediate options let every getter frame share the client's
-            // prebuilt expression handlers instead of closing over its own.
-            NeoScriptExecutionResult result = NeoScriptExecutor.Execute(
-                ctx.client,
-                getter,
-                scope,
-                ctx,
-                NeoScriptExecutionOptions.ForImmediate(ctx.client));
-            if (result.IsPaused)
-            {
-                throw new NSGetterRuntimeError(
-                    $"Getter suspended on deferred Function '{result.SuspendedMemberId}'. Deferred calls are not supported by synchronous property evaluation.");
-            }
-            if (result.Returned)
-            {
-                // `return intExpr;` on a Decimal-typed getter class-checks via
-                // exact int widening; the runtime number becomes a canonical
-                // decimal string here (mirrors the TS evaluator's return seam).
-                return result.ReturnValue;
-            }
-            throw new NSGetterRuntimeError("Function ended without a return statement");
         }
 
         /// <summary>
@@ -1496,42 +1507,56 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 if (!pointer.receiver.IsStatic) return null;
             }
-            var args = new object?[pointer.args.Length];
-            for (int i = 0; i < pointer.args.Length; i++)
+            var argumentStorage = pointer.args.Length == 0 ? Array.Empty<object?>()
+                : System.Buffers.ArrayPool<object?>.Shared.Rent(pointer.args.Length);
+            try
             {
-                args[i] = EvaluateFunctionArgument(pointer, i, scope, ctx);
-            }
-            string? memberId = ResolveFunctionMemberId(
-                pointer,
-                receiver,
-                ctx);
-            if (memberId is null)
-            {
-                return EvaluateMissingMemberFallback(pointer, receiver, args);
-            }
-            ValidateValueEqualitySignature(pointer, memberId, ctx);
-            if (!ctx.client.TryGetMember(memberId, out JsonMember? member))
-            {
-                throw new NSGetterRuntimeError(
-                    $"Function member '{memberId}' was not found.");
-            }
-            if (member is FunctionMember)
-            {
-                ctx.allocationTracker.ConsumeWorkUnit();
-                return InvokeNativeFunction(memberId, receiver,
-                    FillNativeCallSiteArguments(memberId, args, ctx), ctx);
-            }
-            if (member is NSFunctionMember)
-            {
-                return NeoNSFunctionRuntime.InvokeImmediate(
-                    ctx.client,
-                    memberId,
+                var args = argumentStorage.AsSpan(0, pointer.args.Length);
+
+                for (int i = 0; i < pointer.args.Length; i++)
+                {
+                    args[i] = EvaluateFunctionArgument(pointer, i, scope, ctx);
+                }
+                string? memberId = ResolveFunctionMemberId(
+                    pointer,
                     receiver,
-                    args,
                     ctx);
+                if (memberId is null)
+                {
+                    return EvaluateMissingMemberFallback(pointer, receiver, args.ToArray());
+                }
+                ValidateValueEqualitySignature(pointer, memberId, ctx);
+                if (!ctx.client.TryGetMember(memberId, out JsonMember? member))
+                {
+                    throw new NSGetterRuntimeError(
+                        $"Function member '{memberId}' was not found.");
+                }
+                if (member is FunctionMember)
+                {
+                    ctx.allocationTracker.ConsumeWorkUnit();
+                    return InvokeNativeFunction(memberId, receiver,
+                        FillNativeCallSiteArguments(memberId, args.ToArray(), ctx), ctx);
+                }
+                if (member is NSFunctionMember)
+                {
+                    return NeoNSFunctionRuntime.InvokeImmediate(
+                        ctx.client,
+                        memberId,
+                        receiver,
+                        args,
+                        ctx);
+                }
+                throw new NSGetterRuntimeError(
+                    $"Member '{memberId}' is not a callable Function member.");
             }
-            throw new NSGetterRuntimeError(
-                $"Member '{memberId}' is not a callable Function member.");
+            finally
+            {
+                if (argumentStorage.Length != 0)
+                {
+                    Array.Clear(argumentStorage, 0, pointer.args.Length);
+                    System.Buffers.ArrayPool<object?>.Shared.Return(argumentStorage);
+                }
+            }
         }
 
         /// <summary>
@@ -1711,48 +1736,58 @@ namespace NeoCompose.Runtime.NeoScript
             object? lexicalRoot = value.hasLexicalEnvironment
                 ? value.lexicalRoot
                 : ctx.rootValue;
-            var nestedCtx = ctx.WithThis(lexicalThis).WithRoot(lexicalRoot);
-            var scope = new Dictionary<string, object?>(action.parameters.Length)
+            var nestedCtx = ctx.WithThis(lexicalThis);
+            nestedCtx.BindRoot(lexicalRoot);
+            var options = NeoScriptExecutionOptions.ForImmediate(ctx.client);
+            NeoScriptExecutor.PrepareFunctionContext(nestedCtx, options);
+            var scope = ctx.client.RentFunctionScope(action.parameters.Length);
+            bool completed = false;
+            try
             {
-                [action.parameters[0].id] = lexicalThis,
-                [action.parameters[1].id] = lexicalRoot,
-            };
-            for (int i = 0; i < args.Length; i++)
-            {
-                scope[action.parameters[i + 2].id] =
-                    NeoScriptValueMarshaller.Normalize(
-                        ctx.client,
-                        ctx.valueOwnership,
-                        args[i],
-                        action.parameters[i + 2].typeInfo,
-                        nestedCtx,
-                        $"argument {i} of NeoDelegate closure");
+                scope[action.parameters[0].id] = lexicalThis;
+                scope[action.parameters[1].id] = lexicalRoot;
+                for (int i = 0; i < args.Length; i++)
+                {
+                    scope[action.parameters[i + 2].id] =
+                        NeoScriptValueMarshaller.Normalize(
+                            ctx.client,
+                            ctx.valueOwnership,
+                            args[i],
+                            action.parameters[i + 2].typeInfo,
+                            nestedCtx,
+                            $"argument {i} of NeoDelegate closure");
+                }
+                for (int i = 0; i < captures.Length; i++)
+                {
+                    int parameterIndex = i + args.Length + 2;
+                    scope[action.parameters[parameterIndex].id] =
+                        NeoScriptValueMarshaller.Normalize(
+                            ctx.client,
+                            ctx.valueOwnership,
+                            captures[i],
+                            action.parameters[parameterIndex].typeInfo,
+                            nestedCtx,
+                            $"capture {i} of NeoDelegate closure");
+                }
+                NeoScriptExecutionResult result = NeoScriptExecutor.Execute(
+                    ctx.client,
+                    action,
+                    scope,
+                    nestedCtx,
+                    options);
+                if (result.IsPaused)
+                {
+                    result.Deferred?.DisposeFromOwner("NeoDelegate closure suspended");
+                    throw new NSGetterRuntimeError(
+                        "NeoDelegate closure suspended; delegate calls require an immediate callable target.");
+                }
+                completed = true;
+                return result.ReturnValue;
             }
-            for (int i = 0; i < captures.Length; i++)
+            finally
             {
-                int parameterIndex = i + args.Length + 2;
-                scope[action.parameters[parameterIndex].id] =
-                    NeoScriptValueMarshaller.Normalize(
-                        ctx.client,
-                        ctx.valueOwnership,
-                        captures[i],
-                        action.parameters[parameterIndex].typeInfo,
-                        nestedCtx,
-                        $"capture {i} of NeoDelegate closure");
+                if (completed) ctx.client.ReturnFunctionScope(scope);
             }
-            NeoScriptExecutionResult result = NeoScriptExecutor.Execute(
-                ctx.client,
-                action,
-                scope,
-                nestedCtx,
-                NeoScriptExecutionOptions.ForImmediate(ctx.client));
-            if (result.IsPaused)
-            {
-                result.Deferred?.DisposeFromOwner("NeoDelegate closure suspended");
-                throw new NSGetterRuntimeError(
-                    "NeoDelegate closure suspended; delegate calls require an immediate callable target.");
-            }
-            return result.ReturnValue;
         }
 
         /// <param name="ownerReceiver">
@@ -2875,35 +2910,78 @@ namespace NeoCompose.Runtime.NeoScript
             switch (operation)
             {
                 case ArithmeticOperation arith:
-                {
-                    var info = arith.arithmetic;
-                    if (info.pointers.Length == 2 && info.isDecimal != true)
-                    {
-                        // `a += b`, `x * y`: two number operands need no
-                        // operand array. Strings and mixed shapes take the
-                        // general path below.
-                        object? left = EvalPointer(info.pointers[0], scope, ctx);
-                        object? right = EvalPointer(info.pointers[1], scope, ctx);
-                        if (TryAsDouble(left, out double l) && TryAsDouble(right, out double r))
-                            return ApplyNumericArithmetic(info.type, l, r);
-                        return ApplyArithmetic(info.type, new[] { left, right }, false, ctx);
-                    }
-                    var operands = new object?[info.pointers.Length];
-                    for (int i = 0; i < info.pointers.Length; i++)
-                    {
-                        operands[i] = EvalPointer(info.pointers[i], scope, ctx);
-                    }
-                    return ApplyArithmetic(
-                        info.type,
-                        operands,
-                        info.isDecimal == true,
-                        ctx);
-                }
+                    return EvalArithmetic(arith.arithmetic, scope, ctx).Box();
                 case BooleanOperation boolOp:
                     return EvalBooleanExpression(boolOp.expression, scope, ctx);
                 default:
                     throw new NSGetterRuntimeError(
                         $"Unknown operation kind {operation.GetType().Name}");
+            }
+        }
+
+        // Numeric intermediates remain values on the C# stack. Only crossing
+        // back into the reference-valued interpreter requires a box. Strings,
+        // decimal math and mixed operands retain the shared conversion path.
+        private readonly struct ArithmeticValue
+        {
+            internal readonly double Number;
+            internal readonly bool IsNumber;
+            private readonly object? reference;
+            internal ArithmeticValue(double number) { Number = number; IsNumber = true; reference = null; }
+            internal ArithmeticValue(object? value)
+            {
+                IsNumber = TryAsDouble(value, out Number);
+                reference = value;
+            }
+            internal object? Box() => reference ?? (IsNumber ? (object)Number : null);
+        }
+
+        private static ArithmeticValue EvalArithmeticOperand(Pointer pointer, NeoScriptScope scope, Context ctx)
+            => pointer is OperationPointer { operation: ArithmeticOperation arithmetic }
+                ? EvalArithmetic(arithmetic.arithmetic, scope, ctx)
+                : new ArithmeticValue(EvalPointer(pointer, scope, ctx));
+
+        private static ArithmeticValue EvalArithmetic(ArithmeticOpInfo info, NeoScriptScope scope, Context ctx)
+        {
+            if (info.pointers.Length == 2 && info.isDecimal != true)
+            {
+                var left = EvalArithmeticOperand(info.pointers[0], scope, ctx);
+                var right = EvalArithmeticOperand(info.pointers[1], scope, ctx);
+                if (left.IsNumber && right.IsNumber)
+                    return new ArithmeticValue(ApplyNumericArithmetic(info.type, left.Number, right.Number));
+                return new ArithmeticValue(ApplyArithmetic(info.type, new[] { left.Box(), right.Box() }, false, ctx));
+            }
+            // Preserve evaluation order: evaluate every operand before folding,
+            // including when an earlier division will subsequently fail.
+            var operands = System.Buffers.ArrayPool<ArithmeticValue>.Shared.Rent(info.pointers.Length);
+            try
+            {
+                bool numeric = info.isDecimal != true && info.pointers.Length > 0;
+                for (int i = 0; i < info.pointers.Length; i++)
+                {
+                    operands[i] = EvalArithmeticOperand(info.pointers[i], scope, ctx);
+                    numeric &= operands[i].IsNumber;
+                }
+                if (numeric)
+                {
+                    double result = operands[0].Number;
+                    if (info.pointers.Length == 1)
+                    {
+                        if (!IsArithmeticOp(info.type)) throw new NSGetterRuntimeError($"Unknown arithmetic op '{info.type}'");
+                        if (info.type == ArithmeticOpKind.Addition) result += 0d;
+                    }
+                    for (int i = 1; i < info.pointers.Length; i++)
+                        result = ApplyNumericArithmetic(info.type, result, operands[i].Number);
+                    return new ArithmeticValue(result);
+                }
+                var boxed = new object?[info.pointers.Length];
+                for (int i = 0; i < boxed.Length; i++) boxed[i] = operands[i].Box();
+                return new ArithmeticValue(ApplyArithmetic(info.type, boxed, info.isDecimal == true, ctx));
+            }
+            finally
+            {
+                System.Array.Clear(operands, 0, info.pointers.Length);
+                System.Buffers.ArrayPool<ArithmeticValue>.Shared.Return(operands);
             }
         }
 
@@ -5434,7 +5512,7 @@ namespace NeoCompose.Runtime.NeoScript
             // entry just to retain a box. Structured values still need identity.
             switch (row)
             {
-                case NumberMemberValue number: return number.value;
+                case NumberMemberValue number: return number.BoxedValue;
                 case BoolMemberValue boolean: return boolean.value;
                 case NullMemberValue: return null;
                 case StringMemberValue text when member is not StringMember stringMember

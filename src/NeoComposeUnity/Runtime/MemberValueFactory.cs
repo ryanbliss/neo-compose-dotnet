@@ -27,6 +27,56 @@ namespace NeoCompose.Runtime
     /// </summary>
     internal static class MemberValueFactory
     {
+        // Compare using the same conversion rules as Create, before allocating a
+        // replacement row. Only explicit stored overrides may take this path.
+        internal static bool MatchesLeaf(Member member, object? payload, MemberValue stored)
+        {
+            string? classId = null;
+            if (payload is NeoValuePayload wrapped)
+            {
+                if (wrapped.valueRows is { Count: > 0 }) return false;
+                payload = wrapped.value;
+                classId = wrapped.classId;
+            }
+            if (stored.IsRemoved || stored.classId != classId) return false;
+            switch (member, stored)
+            {
+                case (BoolMember, BoolMemberValue row):
+                    return row.value == Cast<bool?>(payload, member);
+                case (IntMember or FloatMember, NumberMemberValue row):
+                    return row.value == Cast<double?>(payload, member);
+                case (StringMember, StringMemberValue row):
+                    return row.neoLocalizationMode == NeoStringLocalizationMode.Literal
+                        && row.value == Cast<string?>(payload, member);
+                case (DecimalMember, StringMemberValue row):
+                    return row.neoLocalizationMode == null && row.value == DecimalPayload(payload, member);
+                case (EnumMember or LookupMember or DialogueLookupMember, ArrayMemberValue row):
+                    var array = Cast<string[]?>(payload, member);
+                    return row.value is null ? array is null
+                        : array is not null && System.Linq.Enumerable.SequenceEqual(row.value, array);
+                case (SpriteMember, SpriteMemberValue row):
+                    var sprite = Cast<SpriteValue?>(payload, member);
+                    return row.value is null ? sprite is null : sprite is not null
+                        && row.value.fileId == sprite.fileId && row.value.sliceIndex == sprite.sliceIndex;
+                case (AudioMember, FileMemberValue row):
+                    var file = Cast<FileValue?>(payload, member);
+                    return row.value is null ? file is null : file is not null && row.value.fileId == file.fileId;
+                case (Vector2Member or Vector2IntMember, Vector2MemberValue row):
+                    var v2 = member is Vector2IntMember ? Vector2IntPayload(payload, member) : Vector2Payload(payload, member);
+                    return row.value is null ? v2 is null : v2 is not null && row.value.x == v2.x && row.value.y == v2.y;
+                case (Vector3Member or Vector3IntMember, Vector3MemberValue row):
+                    var v3 = member is Vector3IntMember ? Vector3IntPayload(payload, member) : Vector3Payload(payload, member);
+                    return row.value is null ? v3 is null : v3 is not null
+                        && row.value.x == v3.x && row.value.y == v3.y && row.value.z == v3.z;
+                case (ColorMember, ColorMemberValue row):
+                    var color = ColorPayload(payload, member);
+                    return row.value is null ? color is null : color is not null
+                        && row.value.r == color.r && row.value.g == color.g && row.value.b == color.b && row.value.a == color.a;
+                default:
+                    return false;
+            }
+        }
+
         public static MemberValue Create<TPayload>(
             Member member,
             TPayload? payload,

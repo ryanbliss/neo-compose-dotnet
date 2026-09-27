@@ -933,6 +933,7 @@ namespace NeoCompose.Runtime
 
         private int animationFrameDepth;
         private readonly HashSet<System.Action> pendingAnimationRenderUpdates = new();
+        private readonly Stack<List<System.Action>> animationRenderSnapshots = new();
 
         // Unwrapped records, arrays, vectors and colours keep one CLR identity
         // across evaluations, so a getter that reads the same rows every frame
@@ -984,9 +985,22 @@ namespace NeoCompose.Runtime
         {
             if (--animationFrameDepth != 0) return;
             if (pendingAnimationRenderUpdates.Count == 0) return;
-            var pending = pendingAnimationRenderUpdates.ToArray();
+            var pending = animationRenderSnapshots.Count > 0
+                ? animationRenderSnapshots.Pop() : new List<System.Action>();
+            pending.AddRange(pendingAnimationRenderUpdates);
             pendingAnimationRenderUpdates.Clear();
-            foreach (System.Action update in pending) update();
+            try
+            {
+                foreach (System.Action update in pending) update();
+            }
+            finally
+            {
+                pending.Clear();
+                // Reentrant rendering needs independent snapshots. Large bursts
+                // need not become permanently retained client storage.
+                if (pending.Capacity <= 256 && animationRenderSnapshots.Count < 4)
+                    animationRenderSnapshots.Push(pending);
+            }
         }
 
         internal void RefreshAnimationRendering(System.Action update)

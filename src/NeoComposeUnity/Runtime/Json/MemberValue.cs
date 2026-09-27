@@ -1431,7 +1431,22 @@ namespace NeoCompose.Runtime.Json
     public class BoolMemberValue : MemberValue<bool?> { }
 
     /// <summary>Stored value for an Int / Float member.</summary>
-    public class NumberMemberValue : MemberValue<double?> { }
+    public class NumberMemberValue : MemberValue<double?>
+    {
+        // The row owns its box, so replacing/reclaiming a row also releases it.
+        // Check the value because importers and tests can edit DTOs in place.
+        private object? cachedNumber;
+        [JsonIgnore]
+        internal object? BoxedValue
+        {
+            get
+            {
+                if (!value.HasValue) return cachedNumber = null;
+                if (cachedNumber is double previous && System.BitConverter.DoubleToInt64Bits(previous) == System.BitConverter.DoubleToInt64Bits(value.Value)) return cachedNumber;
+                return cachedNumber = value.Value;
+            }
+        }
+    }
 
     /// <summary>Stored value for a String member.</summary>
     public class StringMemberValue : MemberValue<string?>

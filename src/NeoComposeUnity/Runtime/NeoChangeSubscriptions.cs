@@ -37,17 +37,66 @@ namespace NeoCompose.Runtime
         }
     }
 
-    public sealed class NeoChangedArgs<TFields>
+    public sealed class NeoChangedArgs<TFields> : IReadOnlyDictionary<INeoField, object?>
     {
-        public IReadOnlyDictionary<INeoField, object?> Changes { get; }
+        private readonly IReadOnlyDictionary<INeoField, object?>? changes;
+        private readonly INeoField? singleField;
+        private readonly object? singleValue;
+        public IReadOnlyDictionary<INeoField, object?> Changes => changes ?? this;
         public NeoChangeSource Source { get; }
 
         public NeoChangedArgs(
             IReadOnlyDictionary<INeoField, object?> changes,
             NeoChangeSource source)
         {
-            Changes = changes;
+            this.changes = changes ?? throw new ArgumentNullException(nameof(changes));
             Source = source;
+        }
+
+        // A single-field notification is its own immutable dictionary. Callers
+        // may retain it across later writes without retaining pooled storage.
+        internal NeoChangedArgs(INeoField field, object? value, NeoChangeSource source)
+        {
+            singleField = field;
+            singleValue = value;
+            Source = source;
+        }
+
+        int IReadOnlyCollection<KeyValuePair<INeoField, object?>>.Count => changes?.Count ?? 1;
+        object? IReadOnlyDictionary<INeoField, object?>.this[INeoField key] =>
+            Changes.TryGetValue(key, out var value) ? value : throw new KeyNotFoundException();
+        bool IReadOnlyDictionary<INeoField, object?>.ContainsKey(INeoField key)
+        {
+            if (key is null) throw new ArgumentNullException(nameof(key));
+            return changes?.ContainsKey(key) ?? Equals(key, singleField);
+        }
+        bool IReadOnlyDictionary<INeoField, object?>.TryGetValue(INeoField key, out object? value)
+        {
+            if (key is null) throw new ArgumentNullException(nameof(key));
+            if (changes is not null) return changes.TryGetValue(key, out value);
+            bool found = Equals(key, singleField);
+            value = found ? singleValue : null;
+            return found;
+        }
+        IEnumerable<INeoField> IReadOnlyDictionary<INeoField, object?>.Keys => EnumerateKeys();
+        IEnumerable<object?> IReadOnlyDictionary<INeoField, object?>.Values => EnumerateValues();
+        private IEnumerable<INeoField> EnumerateKeys()
+        {
+            if (changes is not null) { foreach (var key in changes.Keys) yield return key; }
+            else yield return singleField!;
+        }
+        private IEnumerable<object?> EnumerateValues()
+        {
+            if (changes is not null) { foreach (var value in changes.Values) yield return value; }
+            else yield return singleValue;
+        }
+        IEnumerator<KeyValuePair<INeoField, object?>> IEnumerable<KeyValuePair<INeoField, object?>>.GetEnumerator()
+            => changes is not null ? changes.GetEnumerator() : SingleEntry().GetEnumerator();
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+            => ((IEnumerable<KeyValuePair<INeoField, object?>>)this).GetEnumerator();
+        private IEnumerable<KeyValuePair<INeoField, object?>> SingleEntry()
+        {
+            yield return new KeyValuePair<INeoField, object?>(singleField!, singleValue);
         }
 
         public bool Has<T>(NeoField<T> field)

@@ -531,6 +531,14 @@ namespace NeoCompose.Tests
             Assert.IsTrue(observed!.TryGet(Derived.Fields.Health, out int? health));
             Assert.AreEqual(42, health);
             Assert.IsFalse(observed.Has(Derived.Fields.Name));
+            var retained = observed;
+            Assert.That(retained.Changes.Count, Is.EqualTo(1));
+            CollectionAssert.AreEqual(new INeoField[] { Derived.Fields.Health }, retained.Changes.Keys);
+            CollectionAssert.AreEqual(new object?[] { 42 }, retained.Changes.Values);
+            Assert.Throws<System.ArgumentNullException>(() => retained.Changes.ContainsKey(null!));
+            generated.Health = 99;
+            Assert.That(retained.Changes[Derived.Fields.Health], Is.EqualTo(42));
+            Assert.That(observed!.Changes[Derived.Fields.Health], Is.EqualTo(99));
         }
 
         [Test]

@@ -292,6 +292,7 @@ namespace NeoCompose.Runtime
             bool deferred)
         {
             MemberId = memberId;
+            DirectCallStack = new[] { memberId };
             Member = member;
             Action = action;
             ReturnTypeInfo = returnTypeInfo;
@@ -303,6 +304,7 @@ namespace NeoCompose.Runtime
         }
 
         internal string MemberId { get; }
+        internal IReadOnlyList<string> DirectCallStack { get; }
         internal NSFunctionMember Member { get; }
         internal FunctionWithReturnType Action { get; }
         internal TypeInfo ReturnTypeInfo { get; }
@@ -341,7 +343,7 @@ namespace NeoCompose.Runtime
             NeoClient client,
             string memberId,
             object? receiver,
-            object?[] args,
+            ReadOnlySpan<object?> args,
             NSGetterEvaluator.Context ctx)
         {
             NeoResolvedNSFunction function = ResolveSignature(client, memberId);
@@ -373,7 +375,7 @@ namespace NeoCompose.Runtime
             NeoClient client,
             string memberId,
             object? receiver,
-            object?[] args,
+            ReadOnlySpan<object?> args,
             NSGetterEvaluator.Context ctx,
             NeoScriptExecutionOptions options)
         {
@@ -390,7 +392,7 @@ namespace NeoCompose.Runtime
             NeoClient client,
             NeoResolvedNSFunction function,
             object? receiver,
-            object?[] args,
+            ReadOnlySpan<object?> args,
             NSGetterEvaluator.Context ctx,
             NeoScriptExecutionOptions options,
             bool ownsContext = false)
@@ -407,13 +409,12 @@ namespace NeoCompose.Runtime
                 throw new NSGetterRuntimeError(
                     $"Static NSFunction '{function.Member.name}' must be invoked without an instance receiver.");
             }
-            args ??= Array.Empty<object?>();
             // P65 §2.5 callee-side fill: a positionally short call is
             // completed from the callee record's current defaults before the
             // `__arg_N__` parameters bind. Below the non-defaulted minimum and
             // above the full arity remain hard errors.
-            args = NeoParameterDefaults.FillTrailingDefaults(
-                args,
+            NeoParameterDefaults.ValidateArity(
+                args.Length,
                 function.ArgumentTypes,
                 function.CallSubject);
             if (ctx.functionCallStack.Count >= MaxCallableDepth)
@@ -481,7 +482,7 @@ namespace NeoCompose.Runtime
                 const int argumentParameterOffset = 2;
                 scope[action.parameters[0].id] = receiver;
                 scope[action.parameters[rootParameterIndex].id] = ctx.rootValue;
-                for (int i = 0; i < args.Length; i++)
+                for (int i = 0; i < function.ArgumentTypes.Length; i++)
                 {
                     FunctionArgumentTypeInfo argument = function.ArgumentTypes[i];
                     try
@@ -489,7 +490,7 @@ namespace NeoCompose.Runtime
                         scope[action.parameters[i + argumentParameterOffset].id] = NeoScriptValueMarshaller.Normalize(
                             client,
                             ctx.valueOwnership,
-                            args[i],
+                            i < args.Length ? args[i] : NeoParameterDefaults.DefaultRuntimeValue(argument, function.CallSubject),
                             effectiveArgumentTypes[i],
                             ctx,
                             function.ArgumentSubject(i));
@@ -508,7 +509,7 @@ namespace NeoCompose.Runtime
                 NSGetterEvaluator.Context nestedCtx;
                 if (ownsContext)
                 {
-                    ctx.BindFunction(function.MemberId, isStatic ? null : receiver);
+                    ctx.BindFunction(function.DirectCallStack, isStatic ? null : receiver);
                     nestedCtx = ctx;
                 }
                 else
@@ -1941,6 +1942,7 @@ namespace NeoCompose.Runtime
         internal static string? EnumOptionId(object? value)
         {
             if (value is string text) return text;
+            if (value is INeoEnumOption option) return option.optionId;
             var property = value?.GetType().GetProperty(
                 "optionId",
                 System.Reflection.BindingFlags.Instance
@@ -1955,6 +1957,12 @@ namespace NeoCompose.Runtime
             string subject)
         {
             if (value is string text) return new[] { text };
+            if (value is string[] options)
+            {
+                foreach (string entry in options)
+                    if (entry is null) throw new InvalidOperationException($"{subject} contains an entry without an enum option id.");
+                return (string[])options.Clone();
+            }
             string? optionId = EnumOptionId(value);
             if (optionId is not null) return new[] { optionId };
             if (value is not IEnumerable enumerable)

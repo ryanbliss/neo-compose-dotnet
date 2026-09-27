@@ -904,6 +904,8 @@ namespace NeoCompose.Runtime
                     NotifyChildChanged(key);
                     return;
                 }
+                if (client.TryGetWritableValue(childOwnership, existingValueId, out MemberValue? stored)
+                    && MemberValueFactory.MatchesLeaf(childMember, setValue?.value, stored)) return;
                 bool childWillSelfNotify = childMembers.TryGetValue(key, out NeoMember? existingChild)
                     && ChildSelfNotifies(existingChild);
                 // Reuse the entry's stable id: a fresh row at the same id
@@ -914,12 +916,6 @@ namespace NeoCompose.Runtime
                     existingValueId,
                     existing.createdAt,
                     nowIso);
-                // An existing explicit scalar override already has the requested
-                // value. Preserve first-write pinning of inherited defaults.
-                if (childMember is not ClassMember and not ListMember and not DictionaryMember
-                    && setValue?.value is not NeoValuePayload { valueRows: { Count: > 0 } }
-                    && client.TryGetWritableValue(childOwnership, existingValueId, out MemberValue? stored)
-                    && !stored.IsRemoved && stored.classId == next.classId && NeoClient.SameLeafValue(stored, next)) return;
                 // A shadow of a stamped collection row keeps the immutable
                 // stamp (spec Decision 9/16); a row that predates the stamp
                 // recomputes the identical value from this record's env.

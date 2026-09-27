@@ -19,6 +19,68 @@ namespace NeoCompose.Tests
     public class NSFunctionRuntimeTests
     {
         [Test]
+        public void ArithmeticIntermediatesPreserveMixedValuesAndEvaluationOrder()
+        {
+            using var client = BuildClient(Array.Empty<JsonMember>(), ReceiverClass());
+            var context = new NSGetterEvaluator.Context(client, null, null);
+            var scope = new NeoScriptScope(1);
+            Assert.That(NSGetterEvaluator.EvaluatePointer(Add(Multiply(Number(2), Number(3)), Text(" apples")), scope, context), Is.EqualTo("6 apples"));
+            var sum = Add(Variable("wide"), Text("1"));
+            ((ArithmeticOperation)sum.operation).arithmetic.isDecimal = true;
+            scope["wide"] = 9007199254740993L;
+            Assert.Throws<NSGetterRuntimeError>(() => NSGetterEvaluator.EvaluatePointer(sum, scope, context));
+            scope["wide"] = 10L;
+            Assert.That(NSGetterEvaluator.EvaluatePointer(sum, scope, context), Is.EqualTo("11"));
+            int calls = 0;
+            context = context.WithExpressionHandlers((_, _, _) => { calls++; return 2d; }, (_, _, _) => null);
+            var divide = Add(Number(1), Number(0));
+            ((ArithmeticOperation)divide.operation).arithmetic.type = ArithmeticOpKind.Division;
+            ((ArithmeticOperation)divide.operation).arithmetic.pointers = new Pointer[] { Number(1), Number(0), Call("effect", "effect") };
+            Assert.Throws<NSGetterRuntimeError>(() => NSGetterEvaluator.EvaluatePointer(divide, scope, context));
+            Assert.That(calls, Is.EqualTo(1), "All operands execute before the arithmetic fold reports division by zero.");
+        }
+
+        [Test]
+        public void GetterAndDelegateScopesRemainIndependentAfterFailureAndReuse()
+        {
+            using var client = BuildClient(Array.Empty<JsonMember>(), ReceiverClass());
+            var context = new NSGetterEvaluator.Context(client, null, null);
+            var arg = Argument("amount", MemberKind.Int);
+            var identity = Action(IntType(), new[] { arg }, Return(Variable("__arg_0__")));
+            var broken = Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(), Return(Variable("missing")));
+            Assert.Throws<NSGetterRuntimeError>(() => NSGetterEvaluator.Evaluate(broken, context));
+            Assert.That(NSGetterEvaluator.Evaluate(identity, context, new object?[] { 17 }), Is.EqualTo(17));
+            var closure = new NeoDelegateValue { action = identity };
+            Assert.That(NSGetterEvaluator.InvokeDelegate(closure, new object?[] { 99 }, context), Is.EqualTo(99));
+            Assert.Throws<NSGetterRuntimeError>(() => NSGetterEvaluator.InvokeDelegate(new NeoDelegateValue { action = broken }, Array.Empty<object?>(), context));
+            Assert.That(NSGetterEvaluator.Evaluate(identity, context, new object?[] { 31 }), Is.EqualTo(31));
+            Assert.That(context.allocationTracker.ActiveExecutionCount, Is.Zero);
+        }
+
+        [Test]
+        public void NativeInvocationRetainsOwnedArgumentsAfterPooledCallStorageIsReused()
+        {
+            var native = NativeFunction("retain", "Retain", false);
+            native.argumentTypes = new[] { Argument("value", MemberKind.Int) };
+            using var client = BuildClient(new JsonMember[] { native }, ReceiverClass((native.name, native.id)));
+            object?[]? retained = null;
+            client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+            {
+                [native.id] = (_, _, args) => { retained ??= args; return args[0]; },
+            });
+            var context = new NSGetterEvaluator.Context(client, null, null);
+            var scope = new NeoScriptScope(1);
+            scope["__this__"] = NSGetterEvaluator.UnwrapRow(ObjectValue("receiver-value", "receiver-class"), context);
+            var call = Call(native.id, "retained-arguments");
+            call.args = new Pointer[] { Number(17) };
+            Assert.That(NSGetterEvaluator.EvaluatePointer(call, scope, context), Is.EqualTo(17));
+            call.args = new Pointer[] { Number(99) };
+            Assert.That(NSGetterEvaluator.EvaluatePointer(call, scope, context), Is.EqualTo(99));
+            Assert.That(retained, Has.Length.EqualTo(1));
+            Assert.That(retained![0], Is.EqualTo(17));
+        }
+
+        [Test]
         public void ImmediateStaticFunction_WarmCallsHaveBoundedAllocations()
         {
             var argument = new FunctionArgumentTypeInfo { name = "amount", type = MemberKind.Int, required = true };
@@ -1211,7 +1273,7 @@ namespace NeoCompose.Tests
                     returnValue: null);
             });
 
-            Assert.AreSame(failed, chained);
+            Assert.AreEqual(failed, chained);
             Assert.AreSame(error, chained.Failure);
             Assert.AreEqual(0, continuationCalls);
         }

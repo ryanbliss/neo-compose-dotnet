@@ -23,7 +23,7 @@ namespace NeoCompose.Tests
             "Packages/com.ryanbliss.neocompose/Tests/synth-example.json";
 
         [Test]
-        public void RepeatedScalarWrite_AllocatesOnlyTheCandidateRow()
+        public void RepeatedScalarWrite_DoesNotAllocate()
         {
             using var client = NeoTestSaveStack.LoadClient(File.ReadAllText(ProjectFixture));
             var payload = NeoValueWritePayload.FromValue(41d);
@@ -44,8 +44,8 @@ namespace NeoCompose.Tests
                 recorder.enabled = false;
                 recorder.CollectFromAllThreads();
             }
-            Assert.That(recorder.sampleBlockCount, Is.EqualTo(100),
-                "A no-op scalar write needs only its candidate row; no reference-transfer closures, schema enumerators, or generic cycle sets.");
+            Assert.That(recorder.sampleBlockCount, Is.Zero,
+                "An unchanged explicit scalar override needs no candidate row.");
             Assert.That(client.save.Get<NeoMemberIntWritable>("Score").value!.value, Is.EqualTo(41d));
         }
 
