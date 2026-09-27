@@ -509,7 +509,7 @@ namespace NeoCompose.Runtime
                     case VariableInstruction variable:
                         try
                         {
-                            scope[variable.variable.id] = Eval(variable.variable.pointer, scope, actionCtx);
+                            scope.SetEvaluationValue(variable.variable, NSGetterEvaluator.EvaluateValue(variable.variable.pointer, scope, actionCtx));
                         }
                         catch (NeoFunctionCallSuspended suspended)
                         {
@@ -588,9 +588,9 @@ namespace NeoCompose.Runtime
                                 actionCtx,
                                 options);
                             if (nestedSetter is not null
-                                && (nestedSetter.IsPaused || nestedSetter.Returned))
+                                && (nestedSetter.Value.IsPaused || nestedSetter.Value.Returned))
                             {
-                                return ResumeInstructionsAfter(client, instructions, returnTypeInfo, scope, ctx, i + 1, options, nestedSetter, consumeTerminal: true);
+                                return ResumeInstructionsAfter(client, instructions, returnTypeInfo, scope, ctx, i + 1, options, nestedSetter.Value, consumeTerminal: true);
                             }
                         }
                         catch (NeoFunctionCallSuspended suspended)
@@ -860,7 +860,7 @@ namespace NeoCompose.Runtime
                         state.SynchronizeBodyScope(scope);
                         NeoScriptExecutionResult? terminal =
                             ApplyForBodyTransfer(scope, state, bodyResult);
-                        if (terminal is not null) return terminal;
+                        if (terminal is not null) return terminal.Value;
                         continue;
                     }
                     case ForPhase.Iterator:
@@ -896,9 +896,9 @@ namespace NeoCompose.Runtime
                                     options,
                                     state));
                         }
-                        if (nestedSetter is not null && nestedSetter.IsPaused)
+                        if (nestedSetter is not null && nestedSetter.Value.IsPaused)
                         {
-                            return ThenWhenCompleted(nestedSetter, _ =>
+                            return ThenWhenCompleted(nestedSetter.Value, _ =>
                             {
                                 state.MoveTo(ForPhase.Condition);
                                 return RunFor(
@@ -1096,7 +1096,7 @@ namespace NeoCompose.Runtime
                 state.SynchronizeBodyScope(scope);
                 NeoScriptExecutionResult? terminal =
                     ApplyForEachBodyTransfer(scope, state, bodyResult);
-                if (terminal is not null) return terminal;
+                if (terminal is not null) return terminal.Value;
             }
         }
 
@@ -1844,6 +1844,30 @@ namespace NeoCompose.Runtime
             return BuildExpressionContext(client, ctx, expressionState, options);
         }
 
+        // The function context is fresh, so installing immutable immediate handlers
+        // here avoids cloning it again when its first instruction executes.
+        internal static void PrepareFunctionContext(
+            NSGetterEvaluator.Context ctx, NeoScriptExecutionOptions options)
+        {
+            if (options.AllowDeferredFunctionCalls) return;
+            EnsureImmediateHandlers(ctx.client, options);
+            ctx.BindExpressionHandlers(options.immediateCallHandler!, options.immediateInitializerHandler!);
+        }
+
+        private static void EnsureImmediateHandlers(NeoClient client, NeoScriptExecutionOptions options)
+        {
+            if (options.immediateCallHandler is not null) return;
+            InitializeImmediateHandlers(client, options);
+        }
+
+        private static void InitializeImmediateHandlers(NeoClient client, NeoScriptExecutionOptions options)
+        {
+            options.immediateInitializerHandler = (pointer, scope, ctx) =>
+                EvalObjectInitializer(pointer, scope, ctx, ExpressionResumeState.Immediate, options);
+            options.immediateCallHandler = (pointer, scope, ctx) =>
+                EvalFunctionCall(client, pointer, scope, ctx, ExpressionResumeState.Immediate, options);
+        }
+
         private static NSGetterEvaluator.Context BuildExpressionContext(
             NeoClient client,
             NSGetterEvaluator.Context ctx,
@@ -1860,15 +1884,7 @@ namespace NeoCompose.Runtime
                 // The immediate resume state is stateless, so the handlers
                 // depend only on (client, options): build them once and let
                 // every nested frame inherit them through the context fork.
-                if (options.immediateCallHandler is null)
-                {
-                    options.immediateInitializerHandler = (pointer, currentScope, currentCtx) =>
-                        EvalObjectInitializer(
-                            pointer, currentScope, currentCtx, ExpressionResumeState.Immediate, options);
-                    options.immediateCallHandler = (pointer, currentScope, currentCtx) =>
-                        EvalFunctionCall(
-                            client, pointer, currentScope, currentCtx, ExpressionResumeState.Immediate, options);
-                }
+                EnsureImmediateHandlers(client, options);
                 return ctx.WithExpressionHandlers(
                     options.immediateCallHandler,
                     options.immediateInitializerHandler!);
@@ -2353,98 +2369,112 @@ namespace NeoCompose.Runtime
                         return null;
                     }
                 }
-                var args = new object?[pointer.args.Length];
-                for (int i = 0; i < pointer.args.Length; i++)
+                var argumentStorage = pointer.args.Length == 0 ? Array.Empty<object?>()
+                    : System.Buffers.ArrayPool<object?>.Shared.Rent(pointer.args.Length);
+                try
                 {
-                    args[i] = NSGetterEvaluator.EvaluateFunctionArgument(pointer, i, scope, ctx);
-                }
-                string? memberId = NSGetterEvaluator.ResolveFunctionMemberId(
-                    pointer,
-                    receiver,
-                    ctx);
-                if (memberId is null)
-                {
-                    object? fallback = NSGetterEvaluator.EvaluateMissingMemberFallback(
+                    var args = argumentStorage.AsSpan(0, pointer.args.Length);
+
+                    for (int i = 0; i < pointer.args.Length; i++)
+                    {
+                        args[i] = NSGetterEvaluator.EvaluateFunctionArgument(pointer, i, scope, ctx);
+                    }
+                    string? memberId = NSGetterEvaluator.ResolveFunctionMemberId(
                         pointer,
                         receiver,
-                        args);
-                    expressionState.StoreValue(resumeKey, fallback);
-                    return fallback;
-                }
-                NSGetterEvaluator.ValidateValueEqualitySignature(
-                    pointer,
-                    memberId,
-                    ctx);
-                object? value;
-                if (client.TryGetMember(memberId, out NSFunctionMember? nsFunction))
-                {
-                    NeoResolvedNSFunction resolved = NeoNSFunctionRuntime.ResolveSignature(
-                        client,
-                        memberId);
-                    bool deferred = resolved.Deferred;
-                    if (deferred && options?.AllowDeferredFunctionCalls != true)
+                        ctx);
+                    if (memberId is null)
                     {
-                        throw new NeoDeferredFunctionRuntimeError(
-                            $"NSFunction '{nsFunction!.name}' ({memberId}) deferred-mode mismatch: " +
-                            "an immediate NeoScript frame called its deferred signature; " +
-                            "compiled call IR is stale/corrupt.");
+                        object? fallback = NSGetterEvaluator.EvaluateMissingMemberFallback(
+                            pointer,
+                            receiver,
+                            args.ToArray());
+                        expressionState.StoreValue(resumeKey, fallback);
+                        return fallback;
                     }
-                    NeoScriptExecutionResult nested = NeoNSFunctionRuntime.ExecuteResolved(
-                        client,
-                        resolved,
-                        receiver,
-                        args,
-                        ctx,
-                        options ?? NeoScriptExecutionOptions.ForImmediate(client));
-                    if (nested.IsPaused)
+                    NSGetterEvaluator.ValidateValueEqualitySignature(
+                        pointer,
+                        memberId,
+                        ctx);
+                    object? value;
+                    if (client.TryGetMember(memberId, out NSFunctionMember? nsFunction))
                     {
-                        if (!deferred)
+                        NeoResolvedNSFunction resolved = NeoNSFunctionRuntime.ResolveSignature(
+                            client,
+                            memberId);
+                        bool deferred = resolved.Deferred;
+                        if (deferred && options?.AllowDeferredFunctionCalls != true)
                         {
-                            nested.Deferred?.DisposeFromOwner(
-                                "non-deferred NSFunction suspended");
-                            throw new NSGetterRuntimeError(
-                                $"Non-deferred NSFunction '{nsFunction.name}' suspended; its compiled IR is stale or corrupt.");
-                        }
-                        throw new NeoFunctionCallSuspended(
-                            resumeKey,
-                            memberId,
-                            nested);
-                    }
-                    value = nested.ReturnValue;
-                }
-                else
-                {
-                    ctx.allocationTracker.ConsumeWorkUnit();
-                    bool deferred = client.IsNativeFunctionDeferred(memberId);
-                    if (!deferred)
-                    {
-                        // P65 §2.5 — filled BEFORE dispatch so the native
-                        // exact-arity check stands. Deferred functions reject
-                        // defaulted parameters (§1.4), so the branch below
-                        // stays unfilled.
-                        value = NSGetterEvaluator.InvokeNativeFunction(
-                            memberId, receiver,
-                            NSGetterEvaluator.FillNativeCallSiteArguments(memberId, args, ctx), ctx);
-                    }
-                    else
-                    {
-                        if (options?.AllowDeferredFunctionCalls != true)
-                        {
-                            string functionName = client.TryGetMember(
-                                memberId, out JsonMember? deferredMember)
-                                    ? deferredMember.name
-                                    : memberId;
                             throw new NeoDeferredFunctionRuntimeError(
-                                $"Function '{functionName}' ({memberId}) deferred-mode mismatch: " +
+                                $"NSFunction '{nsFunction!.name}' ({memberId}) deferred-mode mismatch: " +
                                 "an immediate NeoScript frame called its deferred signature; " +
                                 "compiled call IR is stale/corrupt.");
                         }
-                        value = StartDeferredNativeFunction(
-                            client, memberId, receiver, args, ctx, options, resumeKey);
+                        NeoScriptExecutionResult nested = NeoNSFunctionRuntime.ExecuteResolved(
+                            client,
+                            resolved,
+                            receiver,
+                            args,
+                            ctx,
+                            options ?? NeoScriptExecutionOptions.ForImmediate(client));
+                        if (nested.IsPaused)
+                        {
+                            if (!deferred)
+                            {
+                                nested.Deferred?.DisposeFromOwner(
+                                    "non-deferred NSFunction suspended");
+                                throw new NSGetterRuntimeError(
+                                    $"Non-deferred NSFunction '{nsFunction.name}' suspended; its compiled IR is stale or corrupt.");
+                            }
+                            throw new NeoFunctionCallSuspended(
+                                resumeKey,
+                                memberId,
+                                nested);
+                        }
+                        value = nested.ReturnValue;
+                    }
+                    else
+                    {
+                        ctx.allocationTracker.ConsumeWorkUnit();
+                        bool deferred = client.IsNativeFunctionDeferred(memberId);
+                        if (!deferred)
+                        {
+                            // P65 §2.5 — filled BEFORE dispatch so the native
+                            // exact-arity check stands. Deferred functions reject
+                            // defaulted parameters (§1.4), so the branch below
+                            // stays unfilled.
+                            value = NSGetterEvaluator.InvokeNativeFunction(
+                                memberId, receiver,
+                                NSGetterEvaluator.FillNativeCallSiteArguments(memberId, args.ToArray(), ctx), ctx);
+                        }
+                        else
+                        {
+                            if (options?.AllowDeferredFunctionCalls != true)
+                            {
+                                string functionName = client.TryGetMember(
+                                    memberId, out JsonMember? deferredMember)
+                                        ? deferredMember.name
+                                        : memberId;
+                                throw new NeoDeferredFunctionRuntimeError(
+                                    $"Function '{functionName}' ({memberId}) deferred-mode mismatch: " +
+                                    "an immediate NeoScript frame called its deferred signature; " +
+                                    "compiled call IR is stale/corrupt.");
+                            }
+                            value = StartDeferredNativeFunction(
+                                client, memberId, receiver, args.ToArray(), ctx, options, resumeKey);
+                        }
+                    }
+                    expressionState.StoreValue(resumeKey, value);
+                    return value;
+                }
+                finally
+                {
+                    if (argumentStorage.Length != 0)
+                    {
+                        Array.Clear(argumentStorage, 0, pointer.args.Length);
+                        System.Buffers.ArrayPool<object?>.Shared.Return(argumentStorage);
                     }
                 }
-                expressionState.StoreValue(resumeKey, value);
-                return value;
             }
             catch (NeoFunctionCallSuspended)
             {
@@ -5576,7 +5606,7 @@ namespace NeoCompose.Runtime
         Continue,
     }
 
-    internal sealed class NeoScriptExecutionResult
+    internal readonly struct NeoScriptExecutionResult
     {
         private readonly Func<object?, NeoScriptExecutionResult>? resume;
         private readonly DeferredNativeFunctionSuspension? suspension;
@@ -5720,6 +5750,11 @@ namespace NeoCompose.Runtime
             Action<NeoScriptExecutionResult> complete,
             Action<Exception> fail)
         {
+            var failureRecovery = this.failureRecovery;
+            var failureObserver = this.failureObserver;
+            var abandonmentObserver = this.abandonmentObserver;
+            var resume = this.resume;
+
             if (suspension == null || resume == null)
             {
                 throw new InvalidOperationException(
@@ -5743,7 +5778,7 @@ namespace NeoCompose.Runtime
                     {
                         try
                         {
-                            complete(recovered);
+                            complete(recovered.Value);
                         }
                         catch (Exception completionException)
                         {
@@ -5810,6 +5845,14 @@ namespace NeoCompose.Runtime
             // later continuation replace the original failure with success.
             if (IsFailed) return this;
             if (!IsPaused) return next(this);
+            return ThenPaused(next);
+        }
+
+        private NeoScriptExecutionResult ThenPaused(
+            Func<NeoScriptExecutionResult, NeoScriptExecutionResult> next)
+        {
+            var resume = this.resume;
+            var failureRecovery = this.failureRecovery;
             if (Deferred == null || suspension == null || resume == null)
             {
                 throw new InvalidOperationException(
@@ -5842,6 +5885,13 @@ namespace NeoCompose.Runtime
             Action<Exception> observer)
         {
             if (!IsPaused) return this;
+            return ObservePausedFailure(observer);
+        }
+
+        private NeoScriptExecutionResult ObservePausedFailure(Action<Exception> observer)
+        {
+            var failureObserver = this.failureObserver;
+            var abandonmentObserver = this.abandonmentObserver;
             if (Deferred == null || suspension == null || resume == null)
             {
                 throw new InvalidOperationException(
@@ -5879,6 +5929,15 @@ namespace NeoCompose.Runtime
             Func<Exception, NeoScriptExecutionResult?> recovery)
         {
             if (!IsPaused) return this;
+            return RecoverPausedFailure(recovery);
+        }
+
+        private NeoScriptExecutionResult RecoverPausedFailure(
+            Func<Exception, NeoScriptExecutionResult?> recovery)
+        {
+            var failureRecovery = this.failureRecovery;
+            var failureObserver = this.failureObserver;
+            var resume = this.resume;
             if (Deferred == null || suspension == null || resume == null)
             {
                 throw new InvalidOperationException(
@@ -5904,13 +5963,13 @@ namespace NeoCompose.Runtime
                         }
                         if (recovered is not null)
                         {
-                            if (recovered.IsFailed)
+                            if (recovered.Value.IsFailed)
                             {
-                                return recovery(recovered.Failure!)
+                                return recovery(recovered.Value.Failure!)
                                     ?? recovered;
                             }
-                            return recovered.IsPaused
-                                ? recovered.RecoverFailure(recovery)
+                            return recovered.Value.IsPaused
+                                ? recovered.Value.RecoverFailure(recovery)
                                 : recovered;
                         }
                     }

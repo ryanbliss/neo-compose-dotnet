@@ -353,7 +353,7 @@ namespace NeoCompose.Runtime
             var outgoingVirtualIds = new HashSet<string>(StringComparer.Ordinal);
             foreach (HashSet<string> ids in virtualValueIdsByRoot.Values)
                 outgoingVirtualIds.UnionWith(ids);
-            sharedEvaluationContext = null;
+            InvalidateSharedEvaluationContext();
             virtualValues.Clear();
             virtualValueOwnership.Clear();
             virtualClassChildren.Clear();

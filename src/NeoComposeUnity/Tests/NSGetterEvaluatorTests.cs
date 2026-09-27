@@ -47,6 +47,25 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void ScalarBoxCachePreservesBitsAndDoesNotSerializeRuntimeState()
+        {
+            using var client = LoadClient();
+            var context = new NSGetterEvaluator.Context(client, null, null);
+            var row = new NumberMemberValue { id = "number", value = 0d };
+            object first = NSGetterEvaluator.UnwrapRow(row, context)!;
+            Assert.That(NSGetterEvaluator.UnwrapRow(row, context), Is.SameAs(first));
+            row.value = System.BitConverter.Int64BitsToDouble(long.MinValue);
+            Assert.That(System.BitConverter.DoubleToInt64Bits((double)NSGetterEvaluator.UnwrapRow(row, context)!), Is.EqualTo(long.MinValue));
+            row.value = null;
+            Assert.That(NSGetterEvaluator.UnwrapRow(row, context), Is.Null);
+            row.value = 42;
+            Assert.That(NSGetterEvaluator.UnwrapRow(row, context), Is.EqualTo(42));
+            var json = Newtonsoft.Json.Linq.JObject.FromObject(row);
+            Assert.That(json.Property("BoxedValue"), Is.Null);
+            Assert.That(json.Property("cachedNumber"), Is.Null);
+        }
+
+        [Test]
         public void MemberDispatchIndexesAreSharedAcrossCallsAndClearedWithSchemaChanges()
         {
             var data = JsonConvert.DeserializeObject<ProjectData>(LoadFixture("synth-example.json"))!;

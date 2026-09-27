@@ -4,7 +4,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using NeoCompose.Runtime.Json;
 
@@ -43,7 +42,7 @@ namespace NeoCompose.Runtime
                 ((rowId.GetHashCode() * 31 + memberId.GetHashCode()) * 31 + (int)ownership) * 31 + (int)readOwnership);
         }
 
-        internal sealed class GetterMemoEntry
+        internal struct GetterMemoEntry
         {
             public object? scalar;
             public NeoScript.NSGetterEvaluator.RowReference? row;
@@ -187,7 +186,7 @@ namespace NeoCompose.Runtime
             && replayAllocationScope is null
             && !isReplayingVirtualInstance;
 
-        internal bool TryGetMemoizedGetter(GetterMemoKey key, [NotNullWhen(true)] out GetterMemoEntry? entry) =>
+        internal bool TryGetMemoizedGetter(GetterMemoKey key, out GetterMemoEntry entry) =>
             getterMemo.TryGetValue(key, out entry);
 
         internal void MemoizeGetter(GetterMemoKey key, GetterMemoEntry entry)
@@ -214,7 +213,7 @@ namespace NeoCompose.Runtime
 
         internal void ForgetMemoizedGetter(GetterMemoKey key)
         {
-            if (!getterMemo.Remove(key, out GetterMemoEntry? entry)) return;
+            if (!getterMemo.Remove(key, out GetterMemoEntry entry)) return;
             UnindexMemoDependency(key.rowId, key);
             gridDependentGetterMemoKeys.Remove(key);
             List<GetterRead>? reads = entry.reads;

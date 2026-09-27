@@ -32,6 +32,22 @@ namespace NeoCompose.Tests
             throw new ArgumentException($"Unknown direction name '{name}'.", nameof(name));
         }
 
+        [Test]
+        public void EightFpsSingleFrameLoopOnlyReentersOnItsClockBoundary()
+        {
+            using var client = CreateClient();
+            var target = new TestTarget(client);
+            int entries = 0;
+            var clip = new NeoAnimationClip<TestTarget>(target, "timing", 8, 1,
+                client.AnimationCoordinator, (int _) => entries++);
+            clip.PlayLoop();
+            Assert.That(entries, Is.EqualTo(1));
+            for (int i = 0; i < 7; i++) clip.Tick(1f / 64);
+            Assert.That(entries, Is.EqualTo(1), "Render ticks between animation frames must not reapply frame zero.");
+            clip.Tick(1f / 64);
+            Assert.That(entries, Is.EqualTo(2), "A new loop still runs dynamic frame functions and events.");
+        }
+
         [TestCase("Forward", new[] { 0, 1, 2, 3 })]
         [TestCase("Reverse", new[] { 3, 2, 1, 0 })]
         public void PlayOnce_TraversesInRequestedDirection(

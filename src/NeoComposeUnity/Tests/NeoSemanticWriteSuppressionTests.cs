@@ -23,6 +23,57 @@ namespace NeoCompose.Tests
             "Packages/com.ryanbliss.neocompose/Tests/synth-example.json";
 
         [Test]
+        public void AllocationExperiment_ChangedScalarPreservesPreviousRow()
+        {
+            using var client = NeoTestSaveStack.LoadClient(File.ReadAllText(ProjectFixture));
+            var a = NeoValueWritePayload.FromValue(41d);
+            var b = NeoValueWritePayload.FromValue(42d);
+            client.save.SetSerializedValue("Score", a);
+            var node = client.save.Get<NeoMemberIntWritable>("Score");
+            var old = node.value!;
+            for (int i = 0; i < 100; i++) client.save.SetSerializedValue("Score", (i & 1) == 0 ? b : a);
+            var recorder = UnityEngine.Profiling.Recorder.Get("GC.Alloc");
+            recorder.enabled = false;
+            recorder.FilterToCurrentThread();
+            var watch = new System.Diagnostics.Stopwatch();
+            recorder.enabled = true;
+            watch.Start();
+            try { for (int i = 0; i < 10000; i++) client.save.SetSerializedValue("Score", (i & 1) == 0 ? b : a); }
+            finally { watch.Stop(); recorder.enabled = false; recorder.CollectFromAllThreads(); }
+            TestContext.WriteLine($"Changed scalar: {recorder.sampleBlockCount / 10000d} allocations/write; {watch.Elapsed.TotalMilliseconds / 10d} us/write");
+            client.save.SetSerializedValue("Score", b);
+            Assert.That(old.value, Is.EqualTo(41d), "A retained committed row must not be overwritten by later writes.");
+            Assert.That(node.value!.value, Is.EqualTo(42d));
+        }
+
+        [Test]
+        public void RepeatedScalarWrite_DoesNotAllocate()
+        {
+            using var client = NeoTestSaveStack.LoadClient(File.ReadAllText(ProjectFixture));
+            var payload = NeoValueWritePayload.FromValue(41d);
+            for (int i = 0; i < 10; i++) client.save.SetSerializedValue("Score", payload);
+
+            // Unity Mono does not reliably implement GetAllocatedBytesForCurrentThread.
+            // Count GC.Alloc samples on this thread, excluding fixture/payload setup.
+            var recorder = UnityEngine.Profiling.Recorder.Get("GC.Alloc");
+            recorder.enabled = false;
+            recorder.FilterToCurrentThread();
+            recorder.enabled = true;
+            try
+            {
+                for (int i = 0; i < 100; i++) client.save.SetSerializedValue("Score", payload);
+            }
+            finally
+            {
+                recorder.enabled = false;
+                recorder.CollectFromAllThreads();
+            }
+            Assert.That(recorder.sampleBlockCount, Is.Zero,
+                "An unchanged explicit scalar override needs no candidate row.");
+            Assert.That(client.save.Get<NeoMemberIntWritable>("Score").value!.value, Is.EqualTo(41d));
+        }
+
+        [Test]
         public void ConstructorNumericArgumentsRetainIdentityAcrossJsonNumberKinds()
         {
             var left = new ObjectMemberValue { id = "sprite", classId = "sprite-class", value = new(),

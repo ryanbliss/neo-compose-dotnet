@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.43.3] - 2026-09-26
+
+- Reuse static NeoScript function wrappers through `NeoMemberNSFunction.GetOrCreateStatic`, preserve cached contexts across ownership changes, and reuse eligible scalar getter contexts. Store getter memo records as structs.
+- Keep numeric comparisons and nested math intrinsics unboxed; math uses pooled argument values and stack-allocated numeric scratch space while preserving evaluation and validation order.
+
+- Reuse eligible direct synchronous interpreter contexts and cache local binding slots per resolved implementation. Numeric locals carry unboxed arithmetic values between instructions. Forked, native, constructing, closure-producing, failed, and suspended calls keep independent context lifetimes; schema/save/partition invalidation releases cached execution graphs.
+
+- Reuse immutable list-entry change notifications across descendant edits and avoid boxed index-update enumerators. Nested callbacks restore the outer list event. Changed committed rows still receive independent snapshots.
+
+- Reuse dependency-invalidated animation segment payloads across loops, skip unchanged scalar writes before allocating replacement rows, and reuse cleared rendering snapshots safely across nested updates. Clip FPS and dynamic frame-function evaluation are unchanged.
+
+- Reduce interpreter overhead with value-type execution results and numeric intermediates, pooled internal call arguments with span-based binding, reusable successful getter/delegate scopes, and lazy delegate/grid subscription state. Native callbacks still receive owned argument arrays, suspended calls retain their scopes, and schema invalidation still resolves replacement implementations.
+
+- Cache numeric boxes on their source rows and avoid per-notification dictionaries for single-field generated change events. Retained event arguments remain independent of later changes; numeric caches are excluded from serialization.
+
+- Reduce interpreted function-call allocations by initializing fresh contexts in place and reusing bounded, cleared scopes after successful synchronous calls. Deferred and suspended scopes retain their own lifetimes. Schema-cache invalidation now also drops resolved function bodies and signatures so replacement implementations are picked up on the next invocation.
+
+- Reduce allocations from repeated scalar writes, including animation updates: create reference-transfer callbacks and generic cycle tracking only when needed, and look up schema fields without boxing an enumerator. Write validation, notifications, and reference-transfer behavior are unchanged.
+
 ## [0.43.2] - 2026-09-25
 
 - Fix a reloaded save losing a sparse row's default members after a few writes, which surfaced as NeoScript "Missing key '…' on object". A stored class row inside a sparse root, for example Neowyn's `Save.World.Time`, replays as its own root when it omits a defaulted member such as a Session `NeoAction`. A write that replayed the enclosing root took the row over as part of its own footprint. The next write under the row then treated it as the enclosing root's spine and dropped its virtual members, including the action's listeners. The row now stays its own root, as it is after a fresh load.

@@ -30,30 +30,34 @@ namespace NeoCompose.Runtime
             {
                 reads = new GridReads();
                 grids.Add(content, reads);
-                if (invalidated is not null)
-                    reads.subscription = content.Primitive.Client.ScriptGridQueries.OnChanged(content.Primitive.GridValueId, change =>
-                    {
-                        foreach (var layer in change.ObjectLayers)
-                        {
-                            foreach (var id in layer.ChangedInstances)
-                                if (reads.placements.Contains(id.Value)) { Invalidate(); return; }
-                            foreach (var changed in layer.ChangedCells)
-                                if (reads.objects.Contains(changed)) { Invalidate(); return; }
-                        }
-                        foreach (var layer in change.TileLayers)
-                            foreach (var changed in layer.ChangedCells)
-                                if (reads.tiles.Contains(changed)) { Invalidate(); return; }
-                    });
+                SubscribeGrid(content, reads);
             }
-            if (invalidated is not null && reads.layerSubscription is null)
-                reads.layerSubscription = content.Primitive.Client.ScriptGridQueries.OnLayerInvalidated(content.Primitive.GridValueId,
-                    (layerId, tileLayer) =>
-                    {
-                        if (tileLayer ? reads.tiles.Count > 0 : reads.objects.Count > 0 || reads.placements.Count > 0)
-                            Invalidate();
-                    });
             reads.placements.Add(placementId);
             if (cell is Vector2Int queried) (tile ? reads.tiles : reads.objects).Add(queried);
+        }
+
+        private void SubscribeGrid(INeoTileGridContent content, GridReads reads)
+        {
+            if (invalidated is null) return;
+            reads.subscription = content.Primitive.Client.ScriptGridQueries.OnChanged(content.Primitive.GridValueId, change =>
+            {
+                foreach (var layer in change.ObjectLayers)
+                {
+                    foreach (var id in layer.ChangedInstances)
+                        if (reads.placements.Contains(id.Value)) { Invalidate(); return; }
+                    foreach (var changed in layer.ChangedCells)
+                        if (reads.objects.Contains(changed)) { Invalidate(); return; }
+                }
+                foreach (var layer in change.TileLayers)
+                    foreach (var changed in layer.ChangedCells)
+                        if (reads.tiles.Contains(changed)) { Invalidate(); return; }
+            });
+            reads.layerSubscription = content.Primitive.Client.ScriptGridQueries.OnLayerInvalidated(content.Primitive.GridValueId,
+                (layerId, tileLayer) =>
+                {
+                    if (tileLayer ? reads.tiles.Count > 0 : reads.objects.Count > 0 || reads.placements.Count > 0)
+                        Invalidate();
+                });
         }
 
         private bool isInvalidated;
@@ -70,16 +74,24 @@ namespace NeoCompose.Runtime
             if (grids.Count == 0 || invalidated is null) return;
             if (!values.TryGetValue(client, out var reads))
             {
-                var ids = new HashSet<(NeoValueOwnership ownership, string id)>();
-                void Changed(NeoValueOwnership changedOwnership, string changedId)
-                {
-                    if (ids.Contains((changedOwnership, changedId))) Invalidate();
-                }
-                reads = (ids, Changed);
+                reads = SubscribeValues(client);
                 values.Add(client, reads);
-                client.OnWritableValueChanged += Changed;
             }
             reads.ids.Add((ownership, id));
+        }
+
+        // Keep callback captures off RecordValue's hot frame, including its
+        // no-grid early return. Merely reading a scalar needs no closure.
+        private (HashSet<(NeoValueOwnership ownership, string id)> ids, Action<NeoValueOwnership, string> handler)
+            SubscribeValues(NeoClient client)
+        {
+            var ids = new HashSet<(NeoValueOwnership ownership, string id)>();
+            void Changed(NeoValueOwnership ownership, string id)
+            {
+                if (ids.Contains((ownership, id))) Invalidate();
+            }
+            client.OnWritableValueChanged += Changed;
+            return (ids, Changed);
         }
 
         public void Dispose()

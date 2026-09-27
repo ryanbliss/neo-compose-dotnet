@@ -77,6 +77,46 @@ namespace NeoCompose.Tests
         // P48 §2.3 — the cross-runtime pipeline table.
         // ------------------------------------------------------------------
 
+        [Test]
+        public void SegmentPayloadCacheTracksContentReplacementAndEquipmentChanges()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildEquipProjectData());
+            using var track = new NeoMemberClass(client,
+                new ClassMember { id = "payload-track", kind = MemberKind.Class, classId = LookupSegmentTrackClassId }, "track-0");
+            using var source = new NeoAnimationSegmentSource(client, track, "Segment", "payload");
+            Assert.That(source.TryReadContent(0, out var row), Is.True);
+            Assert.That(source.TryReadPayload(0, out var first), Is.True);
+            Assert.That(source.TryReadPayload(0, out var repeated), Is.True);
+            Assert.That(repeated, Is.SameAs(first));
+            client.SetWritableValue(NeoValueOwnership.Session, new SpriteMemberValue
+                { id = row!.id, value = new SpriteValue { fileId = "replacement", sliceIndex = 3 } });
+            Assert.That(source.TryReadPayload(0, out var changed), Is.True);
+            Assert.That(((SpriteValue)changed!.value!).fileId, Is.EqualTo("replacement"));
+            Assert.That(changed, Is.Not.SameAs(first));
+            Equip(client, "seg-b");
+            Assert.That(source.TryReadPayload(0, out var equipped), Is.True);
+            Assert.That(((SpriteValue)equipped!.value!).fileId, Is.EqualTo("b0"));
+        }
+
+        [Test]
+        public void RenderingSnapshotsRemainIndependentUnderReentrantCallbacks()
+        {
+            using var client = BuildEquipClient();
+            var calls = new List<string>();
+            client.BeginAnimationFrame();
+            client.RefreshAnimationRendering(() =>
+            {
+                calls.Add("outer");
+                client.BeginAnimationFrame();
+                client.RefreshAnimationRendering(() => calls.Add("inner"));
+                client.EndAnimationFrame();
+            });
+            client.RefreshAnimationRendering(() => calls.Add("last"));
+            client.EndAnimationFrame();
+            CollectionAssert.AreEquivalent(new[] { "outer", "inner", "last" }, calls);
+            Assert.That(calls.IndexOf("inner"), Is.EqualTo(calls.IndexOf("outer") + 1));
+        }
+
         [TestCaseSource(nameof(ParityCaseLabels))]
         public void PlaybackPipeline_MatchesTheCrossRuntimeFixture(string label)
         {

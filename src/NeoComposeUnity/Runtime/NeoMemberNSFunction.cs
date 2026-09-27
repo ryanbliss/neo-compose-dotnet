@@ -36,6 +36,21 @@ namespace NeoCompose.Runtime
             NeoValueOwnership ownership = NeoValueOwnership.Asset)
             : base(client, member, overrideValueId, ownership) { }
 
+        /// <summary>
+        /// Returns the client-owned wrapper for a static interpreted function.
+        /// Schema invalidation resolves a new wrapper on the next call.
+        /// </summary>
+        public static NeoMemberNSFunction GetOrCreateStatic(NeoClient client, string memberId)
+        {
+            var function = NeoNSFunctionRuntime.ResolveSignature(client, memberId);
+            if (function.Member.Modifier != NeoMemberModifierKind.Static)
+                throw new NSGetterRuntimeError(
+                    $"NSFunction '{function.Member.name}' is an instance member and requires a receiver.");
+            if (function.StaticNode is null || function.StaticNode.isDisposed)
+                function.StaticNode = new NeoMemberNSFunction(client, function.Member, null, NeoValueOwnership.Session);
+            return function.StaticNode;
+        }
+
         public FunctionWithReturnType? resolvedAction =>
             NeoNSFunctionRuntime.TryResolve(client, member.id)?.Action;
 
@@ -50,7 +65,7 @@ namespace NeoCompose.Runtime
 
         public object? Invoke(string thisValueId, object?[] args, NeoScriptGridReads? gridReads = null)
         {
-            Invocation invocation = PrepareInvocation(thisValueId, args);
+            Invocation invocation = PrepareInvocation(thisValueId, args, reuseContext: true);
             invocation.Context.gridReads = gridReads;
             if (invocation.Function.Deferred)
             {
@@ -64,7 +79,7 @@ namespace NeoCompose.Runtime
                 invocation.Receiver,
                 args,
                 invocation.Context,
-                NeoScriptExecutionOptions.ForImmediate(client));
+                NeoScriptExecutionOptions.ForImmediate(client), ownsContext: true);
             if (result.IsPaused)
             {
                 result.Deferred?.DisposeFromOwner(
@@ -72,6 +87,7 @@ namespace NeoCompose.Runtime
                 throw new NSGetterRuntimeError(
                     $"Non-deferred NSFunction '{invocation.Function.Member.name}' suspended; its compiled IR is stale or corrupt.");
             }
+            client.ReturnDirectFunctionContext(invocation.Context, result.ReturnValue);
             return result.ReturnValue;
         }
 
@@ -92,7 +108,7 @@ namespace NeoCompose.Runtime
                     invocation.Receiver,
                     args,
                     invocation.Context,
-                    NeoScriptExecutionOptions.ForDirectFunction(client));
+                    NeoScriptExecutionOptions.ForDirectFunction(client), ownsContext: true);
                 return AwaitExecution(result);
             }
             catch (Exception exception)
@@ -105,7 +121,7 @@ namespace NeoCompose.Runtime
         // depends only on this node's member id.
         private CallFunctionPointer? directCallPointer;
 
-        private Invocation PrepareInvocation(string thisValueId, object?[] args)
+        private Invocation PrepareInvocation(string thisValueId, object?[] args, bool reuseContext = false)
         {
             if (string.IsNullOrWhiteSpace(thisValueId))
             {
@@ -120,8 +136,8 @@ namespace NeoCompose.Runtime
                     $"thisValueId '{thisValueId}' was not found in {ownership.ToString().ToLowerInvariant()} values.");
             }
 
-            var ctx = client.CreateGetterContext(ownership);
-            ctx.BindRoot(NeoScriptValueMarshaller.ResolveRoot(client, ctx));
+            var ctx = reuseContext ? client.RentDirectFunctionContext(ownership) : client.CreateGetterContext(ownership);
+            if (!reuseContext) ctx.BindRoot(NeoScriptValueMarshaller.ResolveRoot(client, ctx));
             object? receiver = NSGetterEvaluator.UnwrapRow(row, ctx, ownership);
             if (receiver is null)
             {
@@ -157,7 +173,7 @@ namespace NeoCompose.Runtime
         /// <summary>Invokes a receiverless static NSFunction.</summary>
         public object? InvokeStatic(object?[] args)
         {
-            Invocation invocation = PrepareStaticInvocation(args);
+            Invocation invocation = PrepareStaticInvocation(args, reuseContext: true);
             if (invocation.Function.Deferred)
             {
                 throw new InvalidOperationException(
@@ -169,7 +185,7 @@ namespace NeoCompose.Runtime
                 receiver: null,
                 args,
                 invocation.Context,
-                NeoScriptExecutionOptions.ForImmediate(client));
+                NeoScriptExecutionOptions.ForImmediate(client), ownsContext: true);
             if (result.IsPaused)
             {
                 result.Deferred?.DisposeFromOwner(
@@ -177,6 +193,7 @@ namespace NeoCompose.Runtime
                 throw new NSGetterRuntimeError(
                     $"Non-deferred static NSFunction '{invocation.Function.Member.name}' suspended; its compiled IR is stale or corrupt.");
             }
+            client.ReturnDirectFunctionContext(invocation.Context, result.ReturnValue);
             return result.ReturnValue;
         }
 
@@ -197,7 +214,7 @@ namespace NeoCompose.Runtime
                     receiver: null,
                     args,
                     invocation.Context,
-                    NeoScriptExecutionOptions.ForDirectFunction(client)));
+                    NeoScriptExecutionOptions.ForDirectFunction(client), ownsContext: true));
             }
             catch (Exception exception)
             {
@@ -205,7 +222,7 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private Invocation PrepareStaticInvocation(object?[] args)
+        private Invocation PrepareStaticInvocation(object?[] args, bool reuseContext = false)
         {
             args ??= Array.Empty<object?>();
             NeoResolvedNSFunction function = NeoNSFunctionRuntime.ResolveSignature(
@@ -216,8 +233,8 @@ namespace NeoCompose.Runtime
                 throw new NSGetterRuntimeError(
                     $"NSFunction '{function.Member.name}' is an instance member and requires a receiver.");
             }
-            var ctx = client.CreateGetterContext(NeoValueOwnership.Session);
-            ctx.BindRoot(NeoScriptValueMarshaller.ResolveRoot(client, ctx));
+            var ctx = reuseContext ? client.RentDirectFunctionContext(NeoValueOwnership.Session) : client.CreateGetterContext(NeoValueOwnership.Session);
+            if (!reuseContext) ctx.BindRoot(NeoScriptValueMarshaller.ResolveRoot(client, ctx));
             return new Invocation(function, receiver: null, ctx);
         }
 
@@ -292,6 +309,7 @@ namespace NeoCompose.Runtime
             bool deferred)
         {
             MemberId = memberId;
+            DirectCallStack = new[] { memberId };
             Member = member;
             Action = action;
             ReturnTypeInfo = returnTypeInfo;
@@ -303,6 +321,7 @@ namespace NeoCompose.Runtime
         }
 
         internal string MemberId { get; }
+        internal IReadOnlyList<string> DirectCallStack { get; }
         internal NSFunctionMember Member { get; }
         internal FunctionWithReturnType Action { get; }
         internal TypeInfo ReturnTypeInfo { get; }
@@ -315,6 +334,8 @@ namespace NeoCompose.Runtime
         // the resolved function is cached per client, so one delegate serves
         // every invocation.
         internal NeoScriptTerminalNormalizer? TerminalNormalizer;
+        internal NeoScriptScopeLayout? ScopeLayout;
+        internal NeoMemberNSFunction? StaticNode;
 
         // Diagnostic subjects depend only on the signature. Formatting them
         // per call put three string allocations on every invocation.
@@ -341,7 +362,7 @@ namespace NeoCompose.Runtime
             NeoClient client,
             string memberId,
             object? receiver,
-            object?[] args,
+            ReadOnlySpan<object?> args,
             NSGetterEvaluator.Context ctx)
         {
             NeoResolvedNSFunction function = ResolveSignature(client, memberId);
@@ -373,7 +394,7 @@ namespace NeoCompose.Runtime
             NeoClient client,
             string memberId,
             object? receiver,
-            object?[] args,
+            ReadOnlySpan<object?> args,
             NSGetterEvaluator.Context ctx,
             NeoScriptExecutionOptions options)
         {
@@ -390,9 +411,10 @@ namespace NeoCompose.Runtime
             NeoClient client,
             NeoResolvedNSFunction function,
             object? receiver,
-            object?[] args,
+            ReadOnlySpan<object?> args,
             NSGetterEvaluator.Context ctx,
-            NeoScriptExecutionOptions options)
+            NeoScriptExecutionOptions options,
+            bool ownsContext = false)
         {
             using var sample = function.Profile.Auto();
             bool isStatic = function.Member.Modifier == NeoMemberModifierKind.Static;
@@ -406,13 +428,12 @@ namespace NeoCompose.Runtime
                 throw new NSGetterRuntimeError(
                     $"Static NSFunction '{function.Member.name}' must be invoked without an instance receiver.");
             }
-            args ??= Array.Empty<object?>();
             // P65 §2.5 callee-side fill: a positionally short call is
             // completed from the callee record's current defaults before the
             // `__arg_N__` parameters bind. Below the non-defaulted minimum and
             // above the full arity remain hard errors.
-            args = NeoParameterDefaults.FillTrailingDefaults(
-                args,
+            NeoParameterDefaults.ValidateArity(
+                args.Length,
                 function.ArgumentTypes,
                 function.CallSubject);
             if (ctx.functionCallStack.Count >= MaxCallableDepth)
@@ -466,46 +487,75 @@ namespace NeoCompose.Runtime
                 }
             }
 
-            var scope = new Dictionary<string, object?>(expectedParameters);
-            const int rootParameterIndex = 1;
-            const int argumentParameterOffset = 2;
-            scope[action.parameters[0].id] = receiver;
-            scope[action.parameters[rootParameterIndex].id] = ctx.rootValue;
-            for (int i = 0; i < args.Length; i++)
+            // Immediate functions cannot retain a lexical scope after completion:
+            // delegate literals capture values, and callbacks finish within the call.
+            // Deferred or unexpectedly suspended frames keep their own scopes.
+            bool poolScope = !function.Deferred;
+            var scope = poolScope
+                ? client.RentFunctionScope(expectedParameters)
+                : new NeoScriptScope(expectedParameters);
+            scope.UseLayout(function.ScopeLayout ??= new NeoScriptScopeLayout(action));
+            bool completed = false;
+            try
             {
-                FunctionArgumentTypeInfo argument = function.ArgumentTypes[i];
-                try
+                const int rootParameterIndex = 1;
+                const int argumentParameterOffset = 2;
+                scope[action.parameters[0].id] = receiver;
+                scope[action.parameters[rootParameterIndex].id] = ctx.rootValue;
+                for (int i = 0; i < function.ArgumentTypes.Length; i++)
                 {
-                    scope[action.parameters[i + argumentParameterOffset].id] = NeoScriptValueMarshaller.Normalize(
-                        client,
-                        ctx.valueOwnership,
-                        args[i],
-                        effectiveArgumentTypes[i],
-                        ctx,
-                        function.ArgumentSubject(i));
+                    FunctionArgumentTypeInfo argument = function.ArgumentTypes[i];
+                    try
+                    {
+                        scope[action.parameters[i + argumentParameterOffset].id] = NeoScriptValueMarshaller.Normalize(
+                            client,
+                            ctx.valueOwnership,
+                            i < args.Length ? args[i] : NeoParameterDefaults.DefaultRuntimeValue(argument, function.CallSubject),
+                            effectiveArgumentTypes[i],
+                            ctx,
+                            function.ArgumentSubject(i));
+                    }
+                    catch (Exception exception)
+                    {
+                        throw new NSGetterRuntimeError(
+                            $"NSFunction '{function.Member.name}' ({function.MemberId}) argument {i} " +
+                            $"'{argument.name}' is incompatible with declared {argument.type}; " +
+                            "compiled call IR or caller is stale/corrupt: " +
+                            exception.Message);
+                    }
                 }
-                catch (Exception exception)
-                {
-                    throw new NSGetterRuntimeError(
-                        $"NSFunction '{function.Member.name}' ({function.MemberId}) argument {i} " +
-                        $"'{argument.name}' is incompatible with declared {argument.type}; " +
-                        "compiled call IR or caller is stale/corrupt: " +
-                        exception.Message);
-                }
-            }
 
-            NSGetterEvaluator.Context nestedCtx = ctx
-                .WithFunctionPushed(function.MemberId, isStatic ? null : receiver);
-            NeoScriptExecutionResult execution = NeoScriptExecutor.Execute(
-                client,
-                action,
-                scope,
-                nestedCtx,
-                options.ForFunction(function.Deferred),
-                ReferenceEquals(effectiveReturnType, function.ReturnTypeInfo)
-                    ? function.TerminalNormalizer ??= CreateTerminalNormalizer(client, function, effectiveReturnType)
-                    : CreateTerminalNormalizer(client, function, effectiveReturnType));
-            return execution;
+
+                NSGetterEvaluator.Context nestedCtx;
+                if (ownsContext)
+                {
+                    ctx.BindFunction(function.DirectCallStack, isStatic ? null : receiver);
+                    nestedCtx = ctx;
+                }
+                else
+                {
+                    nestedCtx = ctx.WithFunctionPushed(function.MemberId, isStatic ? null : receiver);
+                }
+                NeoScriptExecutionOptions functionOptions = options.ForFunction(function.Deferred);
+                NeoScriptExecutor.PrepareFunctionContext(nestedCtx, functionOptions);
+                NeoScriptExecutionResult execution = NeoScriptExecutor.Execute(
+                    client,
+                    action,
+                    scope,
+                    nestedCtx,
+                    functionOptions,
+                    ReferenceEquals(effectiveReturnType, function.ReturnTypeInfo)
+                        ? function.TerminalNormalizer ??= CreateTerminalNormalizer(client, function, effectiveReturnType)
+                        : CreateTerminalNormalizer(client, function, effectiveReturnType));
+                completed = !execution.IsPaused;
+                return execution;
+            }
+            finally
+            {
+                // Failed/suspended execution may still own continuations. Let their
+                // existing lifetime rules release those scopes instead of pooling them.
+                if (poolScope && completed) client.ReturnFunctionScope(scope);
+            }
         }
 
         // A separate method keeps the closure off ExecuteResolved's frame;
@@ -1912,6 +1962,7 @@ namespace NeoCompose.Runtime
         internal static string? EnumOptionId(object? value)
         {
             if (value is string text) return text;
+            if (value is INeoEnumOption option) return option.optionId;
             var property = value?.GetType().GetProperty(
                 "optionId",
                 System.Reflection.BindingFlags.Instance
@@ -1926,6 +1977,12 @@ namespace NeoCompose.Runtime
             string subject)
         {
             if (value is string text) return new[] { text };
+            if (value is string[] options)
+            {
+                foreach (string entry in options)
+                    if (entry is null) throw new InvalidOperationException($"{subject} contains an entry without an enum option id.");
+                return (string[])options.Clone();
+            }
             string? optionId = EnumOptionId(value);
             if (optionId is not null) return new[] { optionId };
             if (value is not IEnumerable enumerable)

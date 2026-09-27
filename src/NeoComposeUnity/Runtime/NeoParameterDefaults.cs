@@ -66,18 +66,9 @@ namespace NeoCompose.Runtime
             FunctionArgumentTypeInfo[] argumentTypes,
             string subject)
         {
+            ValidateArity(args.Length, argumentTypes, subject);
             int maxArity = argumentTypes.Length;
             if (args.Length == maxArity) return args;
-            int minArity = NonDefaultedCount(argumentTypes);
-            if (args.Length > maxArity || args.Length < minArity)
-            {
-                string expectedArity = minArity == maxArity
-                    ? $"{maxArity} arguments"
-                    : $"between {minArity} and {maxArity} arguments";
-                throw new NSGetterRuntimeError(
-                    $"{subject} expects {expectedArity} but received {args.Length}; " +
-                    "compiled call IR or caller is stale/corrupt.");
-            }
             var filled = new object?[maxArity];
             Array.Copy(args, filled, args.Length);
             for (int index = args.Length; index < maxArity; index++)
@@ -85,6 +76,22 @@ namespace NeoCompose.Runtime
                 filled[index] = DefaultRuntimeValue(argumentTypes[index], subject);
             }
             return filled;
+        }
+
+        internal static void ValidateArity(int count, FunctionArgumentTypeInfo[] argumentTypes, string subject)
+        {
+            int maxArity = argumentTypes.Length;
+            if (count == maxArity) return;
+            int minArity = NonDefaultedCount(argumentTypes);
+            if (count > maxArity || count < minArity)
+            {
+                string expectedArity = minArity == maxArity
+                    ? $"{maxArity} arguments"
+                    : $"between {minArity} and {maxArity} arguments";
+                throw new NSGetterRuntimeError(
+                    $"{subject} expects {expectedArity} but received {count}; " +
+                    "compiled call IR or caller is stale/corrupt.");
+            }
         }
 
         /// <summary>

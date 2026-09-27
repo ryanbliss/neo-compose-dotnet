@@ -292,28 +292,28 @@ namespace NeoCompose.Runtime
             Action<NeoChangedArgs<TFields>> handler)
         {
             if (handler is null) throw new ArgumentNullException(nameof(handler));
+            var readersByKey = new Dictionary<string, KeyValuePair<INeoField, Func<object?>>>(StringComparer.Ordinal);
+            var orderedReaders = new KeyValuePair<INeoField, Func<object?>>[readers.Count];
+            int readerIndex = 0;
+            foreach (var pair in readers)
+            {
+                orderedReaders[readerIndex++] = pair;
+                // Preserve first-match behavior if a caller provides distinct
+                // field tokens carrying the same schema key.
+                if (!readersByKey.ContainsKey(pair.Key.Key)) readersByKey.Add(pair.Key.Key, pair);
+            }
             void Handle(NeoMember changed)
             {
                 if (!CanReadChange()) return;
+                if (node.TryGetSchemaKeyForChild(changed, out string? key)
+                    && readersByKey.TryGetValue(key, out var reader))
+                {
+                    handler(new NeoChangedArgs<TFields>(reader.Key, reader.Value(), client.CurrentChangeSource));
+                    return;
+                }
                 var changes = new Dictionary<INeoField, object?>();
-                if (node.TryGetSchemaKeyForChild(changed, out string? key))
-                {
-                    foreach (var pair in readers)
-                    {
-                        if (pair.Key.Key == key)
-                        {
-                            changes[pair.Key] = pair.Value();
-                            break;
-                        }
-                    }
-                }
-                else
-                {
-                    foreach (var pair in readers)
-                    {
-                        changes[pair.Key] = pair.Value();
-                    }
-                }
+                if (key is null)
+                    foreach (var pair in orderedReaders) changes[pair.Key] = pair.Value();
                 handler(new NeoChangedArgs<TFields>(changes, client.CurrentChangeSource));
             }
             node.OnChanged += Handle;

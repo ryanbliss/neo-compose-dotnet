@@ -1144,6 +1144,7 @@ namespace NeoCompose.Runtime
 
         private MemberValue?[] contentRows = Array.Empty<MemberValue?>();
         private bool[] contentAuthored = Array.Empty<bool>();
+        private NeoValueWritePayload?[] contentPayloads = Array.Empty<NeoValueWritePayload?>();
         private readonly HashSet<string> dependencies = new();
         private bool dirty = true;
         private bool disposed;
@@ -1197,6 +1198,19 @@ namespace NeoCompose.Runtime
             return contentAuthored[index];
         }
 
+        internal bool TryReadPayload(int index, out NeoValueWritePayload? payload)
+        {
+            if (!TryReadContent(index, out MemberValue? row) || row is null)
+            {
+                payload = null;
+                return false;
+            }
+            // The source subscribes to all content reads. A changed value row
+            // re-resolves the segment and replaces this cache before its next use.
+            payload = contentPayloads[index] ??= NeoAnimationCompiler.Payload(row);
+            return true;
+        }
+
         public void Dispose()
         {
             if (disposed) return;
@@ -1204,6 +1218,7 @@ namespace NeoCompose.Runtime
             foreach (var subscription in valueSubscriptions.Values) subscription.Dispose();
             valueSubscriptions.Clear();
             contentRows = Array.Empty<MemberValue?>();
+            contentPayloads = Array.Empty<NeoValueWritePayload?>();
             contentAuthored = Array.Empty<bool>();
         }
 
@@ -1220,6 +1235,7 @@ namespace NeoCompose.Runtime
             if (disposed || !dirty) return;
             dirty = false;
             contentRows = Array.Empty<MemberValue?>();
+            contentPayloads = Array.Empty<NeoValueWritePayload?>();
             contentAuthored = Array.Empty<bool>();
             dependencies.Clear();
             using var marker = ResolveSegmentMarker.Auto();
@@ -1427,6 +1443,7 @@ namespace NeoCompose.Runtime
                 }
             }
             contentRows = rows;
+            contentPayloads = new NeoValueWritePayload?[duration];
             contentAuthored = authored;
         }
     }
@@ -3033,17 +3050,16 @@ namespace NeoCompose.Runtime
                             direction,
                             window);
                         if (index == NeoAnimationPlayback.WritesNothing) return;
-                        if (!source.TryReadContent(index, out MemberValue? row)) return;
+                        if (!source.TryReadPayload(index, out NeoValueWritePayload? payload)) return;
                         // A frame that authored an Index but bound no Value row
                         // has nothing to say, which is §3.2's "writes nothing"
                         // reached one more way. An EXPLICIT null value is a
                         // different row and still writes — P42 §6's null leaf.
-                        if (row is null) return;
                         WriteMember(
                             client,
                             writeTarget.Node,
                             writeTarget.Key,
-                            Payload(row));
+                            payload);
                     });
             }
         }

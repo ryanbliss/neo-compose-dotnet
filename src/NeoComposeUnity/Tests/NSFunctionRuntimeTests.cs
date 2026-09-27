@@ -18,6 +18,406 @@ namespace NeoCompose.Tests
 {
     public class NSFunctionRuntimeTests
     {
+        [Test]
+        public void PreparedSlotsPreserveShadowingExternalScopesAndLayoutChanges()
+        {
+            var argument = Argument("amount", MemberKind.Int);
+            var body = Action(IntType(), new[] { argument }, VariableDeclaration("saved", Number(1), IntType()), Return(Variable("saved")));
+            var layout = new NeoScriptScopeLayout(body);
+            var scope = new NeoScriptScope();
+            scope.UseLayout(layout);
+            scope.SetEvaluationValue("saved", new NSGetterEvaluator.ArithmeticValue(7d));
+            var pointer = Variable("saved");
+            Assert.That(scope.TryGetEvaluationValue(pointer, out var first), Is.True);
+            Assert.That(first.Box(), Is.EqualTo(7d));
+            var child = scope.CreateChild();
+            child["saved"] = 99d;
+            Assert.That(child.TryGetEvaluationValue(pointer, out var shadow), Is.True);
+            Assert.That(shadow.Box(), Is.EqualTo(99d));
+            scope.ResetLocals();
+            scope.UseLayout(layout);
+            Assert.That(scope.TryGetEvaluationValue(pointer, out _), Is.False);
+            var changedBody = Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(),
+                VariableDeclaration("other", Number(0), IntType()), VariableDeclaration("saved", Number(1), IntType()), Return(Variable("saved")));
+            scope.UseLayout(new NeoScriptScopeLayout(changedBody));
+            scope["saved"] = 42d;
+            Assert.That(scope.TryGetEvaluationValue(pointer, out var current), Is.True);
+            Assert.That(current.Box(), Is.EqualTo(42d));
+            Assert.That(JObject.FromObject(pointer).Property("runtimeBinding"), Is.Null);
+            var external = new Dictionary<string, object?>();
+            var wrapped = new NeoScriptScope(external);
+            wrapped.SetEvaluationValue("saved", new NSGetterEvaluator.ArithmeticValue(12d));
+            Assert.That(external["saved"], Is.EqualTo(12d));
+            external["saved"] = 13d;
+            Assert.That(wrapped.TryGetValue("saved", out var visible), Is.True);
+            Assert.That(visible, Is.EqualTo(13d));
+        }
+
+        [Test]
+        public void DirectContextPoolClearsBindingsAndDropsInvalidatedGraphs()
+        {
+            using var client = BuildClient(Array.Empty<JsonMember>(), ReceiverClass());
+            var first = client.RentDirectFunctionContext(NeoValueOwnership.Session);
+            first.BindThis(new object());
+            var overlapping = client.RentDirectFunctionContext(NeoValueOwnership.Session);
+            Assert.That(overlapping, Is.Not.SameAs(first));
+            client.ReturnDirectFunctionContext(first, 1);
+            var reused = client.RentDirectFunctionContext(NeoValueOwnership.Session);
+            Assert.That(reused, Is.SameAs(first));
+            Assert.That(reused.thisValue, Is.Null);
+            client.ReturnDirectFunctionContext(reused, 1);
+            client.InvalidateSchemaResolutionCaches();
+            var pool = (System.Collections.ICollection)typeof(NeoClient).GetField("directFunctionContexts",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(client)!;
+            Assert.That(pool.Count, Is.Zero);
+            client.ReturnDirectFunctionContext(overlapping, 1);
+            Assert.That(pool.Count, Is.Zero, "Invalidation while a frame is checked out must not retain the old graph on return.");
+            var fresh = client.RentDirectFunctionContext(NeoValueOwnership.Session);
+            Assert.That(fresh, Is.Not.SameAs(first));
+            fresh.WithThis(new object()); // Forked frames may retain shared state.
+            client.ReturnDirectFunctionContext(fresh, 1);
+            Assert.That(pool.Count, Is.Zero);
+        }
+
+        [Test]
+        public void StaticFunctionFactoryReusesOnlyLiveWrappersForTheCurrentClientAndSchema()
+        {
+            var function = ScriptFunction("static-cached", "StaticCached", false, IntType(), Array.Empty<FunctionArgumentTypeInfo>(),
+                Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(), Return(Number(3))));
+            function.Modifier = NeoMemberModifierKind.Static;
+            using var client = BuildClient(new JsonMember[] { function }, ReceiverClass());
+            using var other = BuildClient(new JsonMember[] { function }, ReceiverClass());
+            var first = NeoMemberNSFunction.GetOrCreateStatic(client, function.id);
+            Assert.That(NeoMemberNSFunction.GetOrCreateStatic(client, function.id), Is.SameAs(first));
+            Assert.That(NeoMemberNSFunction.GetOrCreateStatic(other, function.id), Is.Not.SameAs(first));
+            Assert.That(first.InvokeStatic(Array.Empty<object?>()), Is.EqualTo(3));
+            first.Dispose();
+            var second = NeoMemberNSFunction.GetOrCreateStatic(client, function.id);
+            Assert.That(second, Is.Not.SameAs(first));
+            ((NSFunctionMember)client.members[function.id]).action =
+                Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(), Return(Number(8)));
+            client.InvalidateSchemaResolutionCaches();
+            var replaced = NeoMemberNSFunction.GetOrCreateStatic(client, function.id);
+            Assert.That(replaced, Is.Not.SameAs(second));
+            Assert.That(replaced.InvokeStatic(Array.Empty<object?>()), Is.EqualTo(8));
+        }
+
+        [Test]
+        public void ContextPoolPreservesOtherOwnerships()
+        {
+            using var client = BuildClient(Array.Empty<JsonMember>(), ReceiverClass());
+            var save = client.RentDirectFunctionContext(NeoValueOwnership.Save);
+            client.ReturnDirectFunctionContext(save, null);
+            var session = client.RentDirectFunctionContext(NeoValueOwnership.Session);
+            client.ReturnDirectFunctionContext(session, null);
+            Assert.That(client.RentDirectFunctionContext(NeoValueOwnership.Save), Is.SameAs(save));
+            Assert.That(client.RentDirectFunctionContext(NeoValueOwnership.Session), Is.SameAs(session));
+        }
+
+        [TestCase(0d, 0d)]
+        [TestCase(double.PositiveInfinity, double.PositiveInfinity)]
+        [TestCase(double.NaN, 1d)]
+        [TestCase(-2d, 1d)]
+        public void UnboxedNumericComparisonsKeepExistingSpecialValueSemantics(double left, double right)
+        {
+            using var client = BuildClient(Array.Empty<JsonMember>(), ReceiverClass());
+            var context = new NSGetterEvaluator.Context(client, null, null);
+            var scope = new NeoScriptScope();
+            scope.SetEvaluationValue("left", new NSGetterEvaluator.ArithmeticValue(left));
+            scope.SetEvaluationValue("right", new NSGetterEvaluator.ArithmeticValue(right));
+            foreach (string op in new[] { OperatorKind.EqualTo, OperatorKind.DoesNotEqual,
+                OperatorKind.GreaterThan, OperatorKind.GreaterThanOrEqualTo, OperatorKind.LessThan, OperatorKind.LessThanOrEqualTo })
+            {
+                var expression = Compare(op, Variable("left"), Variable("right"));
+                bool expected = op switch
+                {
+                    OperatorKind.EqualTo => left == right,
+                    OperatorKind.DoesNotEqual => left != right,
+                    OperatorKind.GreaterThan => left - right > 0,
+                    OperatorKind.GreaterThanOrEqualTo => left - right >= 0,
+                    OperatorKind.LessThan => left - right < 0,
+                    _ => left - right <= 0,
+                };
+                Assert.That(NSGetterEvaluator.EvalBooleanExpression(expression, scope, context), Is.EqualTo(expected), op);
+            }
+        }
+
+        [Test]
+        public void NumericLocalsSurviveDeferredCallsAndOtherInvocations()
+        {
+            var native = NativeFunction("numeric-fetch", "Fetch", true);
+            var function = ScriptFunction("numeric-deferred", "NumericDeferred", true, IntType(), Array.Empty<FunctionArgumentTypeInfo>(),
+                Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(),
+                    VariableDeclaration("saved", Add(Number(2), Number(3)), IntType()),
+                    Return(Add(Variable("saved"), Call(native.id, "fetch-numeric")))));
+            using var client = BuildClient(new JsonMember[] { native, function }, ReceiverClass(("Fetch", native.id), ("NumericDeferred", function.id)));
+            NeoDeferredFunction<int>? pending = null;
+            client.RegisterDeferredNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
+            {
+                [native.id] = (_, _, _, handle) => pending = NeoGeneratedTypesSupport.ResolveDeferredFunction<NeoDeferredFunction<int>>(handle, native.name),
+            });
+            var node = new NeoMemberNSFunction(client, function, null);
+            var task = node.InvokeAsync("receiver-value", Array.Empty<object?>());
+            Assert.That(task.IsCompleted, Is.False);
+            var temporary = client.RentFunctionScope(4);
+            temporary["saved"] = 999d;
+            client.ReturnFunctionScope(temporary);
+            pending!.Complete(7);
+            Assert.That(task.GetAwaiter().GetResult(), Is.EqualTo(12));
+        }
+
+        [TestCase(0)]
+        [TestCase(16)]
+        public void AllocationExperiment_NumericLocals(int locals)
+        {
+            var argument = Argument("amount", MemberKind.Int);
+            var instructions = new List<Instruction>();
+            string previous = "__arg_0__";
+            for (int i = 0; i < locals; i++)
+            {
+                string id = "local-" + i;
+                instructions.Add(VariableDeclaration(id, Add(Variable(previous), Number(1)), IntType()));
+                previous = id;
+            }
+            instructions.Add(Return(Variable(previous)));
+            var function = ScriptFunction("numeric-experiment", "NumericExperiment", false, IntType(), new[] { argument },
+                Action(IntType(), new[] { argument }, instructions.ToArray()));
+            function.Modifier = NeoMemberModifierKind.Static;
+            using var client = BuildClient(new JsonMember[] { function }, ReceiverClass());
+            var node = new NeoMemberNSFunction(client, function.id, null, NeoValueOwnership.Session);
+            var args = new object?[] { 17 };
+            for (int i = 0; i < 100; i++) node.InvokeStatic(args);
+            var recorder = UnityEngine.Profiling.Recorder.Get("GC.Alloc");
+            recorder.enabled = false;
+            recorder.FilterToCurrentThread();
+            var watch = new System.Diagnostics.Stopwatch();
+            object? result = null;
+            recorder.enabled = true;
+            watch.Start();
+            try { for (int i = 0; i < 10000; i++) result = node.InvokeStatic(args); }
+            finally { watch.Stop(); recorder.enabled = false; recorder.CollectFromAllThreads(); }
+            Assert.That(result, Is.EqualTo(17 + locals));
+            TestContext.WriteLine($"Numeric locals={locals}: {recorder.sampleBlockCount / 10000d} allocations/call; {watch.Elapsed.TotalMilliseconds / 10d} us/call");
+        }
+
+        [Test]
+        public void AllocationExperiment_NestedNumericMath()
+        {
+            Pointer MathCall(string op, params Pointer[] args) => new FunctionPointer
+            {
+                type = PointerKind.Function,
+                function = new MathOpFunction { type = FunctionKind.MathOp,
+                    info = new FunctionMathOpInfo { op = op, argPointers = args } },
+            };
+            var argument = Argument("amount", MemberKind.Int);
+            var expression = MathCall(MathOpKind.Clamp,
+                MathCall(MathOpKind.Abs, Add(Variable("__arg_0__"), Number(-20))), Number(0), Number(10));
+            var function = ScriptFunction("math-experiment", "MathExperiment", false, IntType(), new[] { argument },
+                Action(IntType(), new[] { argument }, Return(expression)));
+            function.Modifier = NeoMemberModifierKind.Static;
+            using var client = BuildClient(new JsonMember[] { function }, ReceiverClass());
+            var node = new NeoMemberNSFunction(client, function.id, null, NeoValueOwnership.Session);
+            var args = new object?[] { 17 };
+            for (int i = 0; i < 100; i++) node.InvokeStatic(args);
+            var recorder = UnityEngine.Profiling.Recorder.Get("GC.Alloc");
+            recorder.enabled = false;
+            recorder.FilterToCurrentThread();
+            object? result = null;
+            recorder.enabled = true;
+            try { for (int i = 0; i < 10000; i++) result = node.InvokeStatic(args); }
+            finally { recorder.enabled = false; recorder.CollectFromAllThreads(); }
+            Assert.That(result, Is.EqualTo(3));
+            TestContext.WriteLine($"Nested numeric math: {recorder.sampleBlockCount / 10000d} allocations/call");
+        }
+
+        [Test]
+        public void ArithmeticIntermediatesPreserveMixedValuesAndEvaluationOrder()
+        {
+            using var client = BuildClient(Array.Empty<JsonMember>(), ReceiverClass());
+            var context = new NSGetterEvaluator.Context(client, null, null);
+            var scope = new NeoScriptScope(1);
+            Assert.That(NSGetterEvaluator.EvaluatePointer(Add(Multiply(Number(2), Number(3)), Text(" apples")), scope, context), Is.EqualTo("6 apples"));
+            var sum = Add(Variable("wide"), Text("1"));
+            ((ArithmeticOperation)sum.operation).arithmetic.isDecimal = true;
+            scope["wide"] = 9007199254740993L;
+            Assert.Throws<NSGetterRuntimeError>(() => NSGetterEvaluator.EvaluatePointer(sum, scope, context));
+            scope["wide"] = 10L;
+            Assert.That(NSGetterEvaluator.EvaluatePointer(sum, scope, context), Is.EqualTo("11"));
+            int calls = 0;
+            context = context.WithExpressionHandlers((_, _, _) => { calls++; return 2d; }, (_, _, _) => null);
+            var divide = Add(Number(1), Number(0));
+            ((ArithmeticOperation)divide.operation).arithmetic.type = ArithmeticOpKind.Division;
+            ((ArithmeticOperation)divide.operation).arithmetic.pointers = new Pointer[] { Number(1), Number(0), Call("effect", "effect") };
+            Assert.Throws<NSGetterRuntimeError>(() => NSGetterEvaluator.EvaluatePointer(divide, scope, context));
+            Assert.That(calls, Is.EqualTo(1), "All operands execute before the arithmetic fold reports division by zero.");
+        }
+
+        [Test]
+        public void GetterAndDelegateScopesRemainIndependentAfterFailureAndReuse()
+        {
+            using var client = BuildClient(Array.Empty<JsonMember>(), ReceiverClass());
+            var context = new NSGetterEvaluator.Context(client, null, null);
+            var arg = Argument("amount", MemberKind.Int);
+            var identity = Action(IntType(), new[] { arg }, Return(Variable("__arg_0__")));
+            var broken = Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(), Return(Variable("missing")));
+            Assert.Throws<NSGetterRuntimeError>(() => NSGetterEvaluator.Evaluate(broken, context));
+            Assert.That(NSGetterEvaluator.Evaluate(identity, context, new object?[] { 17 }), Is.EqualTo(17));
+            var closure = new NeoDelegateValue { action = identity };
+            Assert.That(NSGetterEvaluator.InvokeDelegate(closure, new object?[] { 99 }, context), Is.EqualTo(99));
+            Assert.Throws<NSGetterRuntimeError>(() => NSGetterEvaluator.InvokeDelegate(new NeoDelegateValue { action = broken }, Array.Empty<object?>(), context));
+            Assert.That(NSGetterEvaluator.Evaluate(identity, context, new object?[] { 31 }), Is.EqualTo(31));
+            Assert.That(context.allocationTracker.ActiveExecutionCount, Is.Zero);
+        }
+
+        [Test]
+        public void NativeInvocationRetainsOwnedArgumentsAfterPooledCallStorageIsReused()
+        {
+            var native = NativeFunction("retain", "Retain", false);
+            native.argumentTypes = new[] { Argument("value", MemberKind.Int) };
+            using var client = BuildClient(new JsonMember[] { native }, ReceiverClass((native.name, native.id)));
+            object?[]? retained = null;
+            client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+            {
+                [native.id] = (_, _, args) => { retained ??= args; return args[0]; },
+            });
+            var context = new NSGetterEvaluator.Context(client, null, null);
+            var scope = new NeoScriptScope(1);
+            scope["__this__"] = NSGetterEvaluator.UnwrapRow(ObjectValue("receiver-value", "receiver-class"), context);
+            var call = Call(native.id, "retained-arguments");
+            call.args = new Pointer[] { Number(17) };
+            Assert.That(NSGetterEvaluator.EvaluatePointer(call, scope, context), Is.EqualTo(17));
+            call.args = new Pointer[] { Number(99) };
+            Assert.That(NSGetterEvaluator.EvaluatePointer(call, scope, context), Is.EqualTo(99));
+            Assert.That(retained, Has.Length.EqualTo(1));
+            Assert.That(retained![0], Is.EqualTo(17));
+        }
+
+        [Test]
+        public void ImmediateStaticFunction_WarmCallsHaveBoundedAllocations()
+        {
+            var argument = new FunctionArgumentTypeInfo { name = "amount", type = MemberKind.Int, required = true };
+            var function = ScriptFunction("allocation-identity", "Identity", false, IntType(), new[] { argument },
+                Action(IntType(), new[] { argument }, Return(Variable("__arg_0__"))));
+            function.Modifier = NeoMemberModifierKind.Static;
+            using var client = BuildClient(new JsonMember[] { function }, ReceiverClass());
+            var node = new NeoMemberNSFunction(client, function.id, null, NeoValueOwnership.Session);
+            var args = new object?[] { 17 };
+            for (int i = 0; i < 10; i++) node.InvokeStatic(args);
+
+            // Unity Mono's GC byte counter is unreliable. The profiler counts real
+            // allocations on this thread, excluding fixture and argument setup.
+            var recorder = UnityEngine.Profiling.Recorder.Get("GC.Alloc");
+            recorder.enabled = false;
+            recorder.FilterToCurrentThread();
+            object? result = null;
+            recorder.enabled = true;
+            try
+            {
+                for (int i = 0; i < 100; i++) result = node.InvokeStatic(args);
+            }
+            finally
+            {
+                recorder.enabled = false;
+                recorder.CollectFromAllThreads();
+            }
+            TestContext.WriteLine($"Warm interpreted identity: {recorder.sampleBlockCount / 100d} allocations/call");
+            Assert.That(recorder.sampleBlockCount, Is.LessThanOrEqualTo(700));
+            Assert.That(result, Is.EqualTo(17));
+        }
+
+        [Test]
+        public void WarmFunction_UsesReplacementBodyAndParameterLayoutAfterInvalidation()
+        {
+            var argument = new FunctionArgumentTypeInfo { name = "amount", type = MemberKind.Int, required = true };
+            var function = ScriptFunction("replaceable", "Replaceable", false, IntType(), new[] { argument },
+                Action(IntType(), new[] { argument }, Return(Variable("__arg_0__"))));
+            function.Modifier = NeoMemberModifierKind.Static;
+            using var client = BuildClient(new JsonMember[] { function }, ReceiverClass());
+            var node = new NeoMemberNSFunction(client, function.id, null, NeoValueOwnership.Session);
+            Assert.That(node.InvokeStatic(new object?[] { 17 }), Is.EqualTo(17));
+
+            var current = (NSFunctionMember)client.members[function.id];
+            current.argumentTypes = new[] { argument, argument };
+            current.action = Action(IntType(), current.argumentTypes,
+                Return(Add(Variable("mod-left"), Variable("mod-right"))));
+            current.action.parameters[2].id = "mod-left";
+            current.action.parameters[3].id = "mod-right";
+            client.InvalidateSchemaResolutionCaches();
+
+            Assert.That(node.InvokeStatic(new object?[] { 3, 4 }), Is.EqualTo(7));
+            Assert.That(node.InvokeStatic(new object?[] { 20, 30 }), Is.EqualTo(50));
+        }
+
+        [Test]
+        public void ImmediateFunction_ReturnedClosureRetainsValuesAfterScopeReuse()
+        {
+            var argument = new FunctionArgumentTypeInfo { name = "amount", type = MemberKind.Int, required = true };
+            var delegateType = new DelegateTypeInfo { type = MemberKind.NSDelegate, required = true,
+                returnTypeInfo = IntType(), argumentTypes = Array.Empty<TypeInfo>() };
+            var closure = new FunctionWithReturnType
+            {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                parameters = new[] { Parameter("__this__", NullType()), Parameter("__root__", NullType()),
+                    Parameter("__capture_0_0__", IntType()) },
+                instructions = new Instruction[] { Return(Variable("__capture_0_0__")) },
+                typeInfo = IntType(),
+            };
+            var function = ScriptFunction("capture", "Capture", false, delegateType, new[] { argument },
+                Action(delegateType, new[] { argument },
+                    VariableDeclaration("saved-numeric", Add(Variable("__arg_0__"), Number(1)), IntType()),
+                    Return(new DelegateClosurePointer
+                {
+                    type = PointerKind.DelegateClosure, typeInfo = delegateType, action = closure,
+                    captures = new Pointer[] { Variable("saved-numeric") }, code = "() => amount + 1",
+                })));
+            function.Modifier = NeoMemberModifierKind.Static;
+            using var client = BuildClient(new JsonMember[] { function }, ReceiverClass());
+            var node = new NeoMemberNSFunction(client, function.id, null, NeoValueOwnership.Session);
+            var first = (NeoDelegateValue)node.InvokeStatic(new object?[] { 17 })!;
+            var second = (NeoDelegateValue)node.InvokeStatic(new object?[] { 99 })!;
+            var context = client.CreateGetterContext(NeoValueOwnership.Session);
+            Assert.That(NSGetterEvaluator.InvokeDelegate(first, Array.Empty<object?>(), context), Is.EqualTo(18));
+            Assert.That(NSGetterEvaluator.InvokeDelegate(second, Array.Empty<object?>(), context), Is.EqualTo(100));
+        }
+
+        [Test]
+        public void ImmediateFunction_NestedCallsKeepTheOuterArguments()
+        {
+            var argument = new FunctionArgumentTypeInfo { name = "amount", type = MemberKind.Int, required = true };
+            var inner = ScriptFunction("inner", "Inner", false, IntType(), new[] { argument },
+                Action(IntType(), new[] { argument }, Return(Variable("__arg_0__"))));
+            inner.Modifier = NeoMemberModifierKind.Static;
+            var call = new CallFunctionPointer { type = PointerKind.CallFunction, memberId = inner.id,
+                receiver = CallReceiver.Static(inner.id), args = new Pointer[] { Variable("__arg_0__") },
+                callSiteId = "nested-identity" };
+            var outer = ScriptFunction("outer", "Outer", false, IntType(), new[] { argument },
+                Action(IntType(), new[] { argument }, Return(Add(call, Variable("__arg_0__")))));
+            outer.Modifier = NeoMemberModifierKind.Static;
+            using var client = BuildClient(new JsonMember[] { inner, outer }, ReceiverClass());
+            var node = new NeoMemberNSFunction(client, outer.id, null, NeoValueOwnership.Session);
+            for (int i = 0; i < 10; i++) Assert.That(node.InvokeStatic(new object?[] { i }), Is.EqualTo(i * 2));
+        }
+
+        [Test]
+        public void FunctionScopePool_ClearsReferencesAndBoundsRetainedStorage()
+        {
+            using var client = BuildClient(Array.Empty<JsonMember>(), ReceiverClass());
+            var scope = client.RentFunctionScope(4);
+            scope["argument"] = new object();
+            scope.MarkReadOnly("argument", "read-only iterator");
+            var overlapping = client.RentFunctionScope(4);
+            Assert.That(overlapping, Is.Not.SameAs(scope));
+            client.ReturnFunctionScope(scope);
+            var reused = client.RentFunctionScope(4);
+            Assert.That(reused, Is.SameAs(scope));
+            Assert.That(reused.LocalBindingCount, Is.Zero);
+            Assert.That(reused.TryGetValue("argument", out _), Is.False);
+            Assert.That(reused.TryGetReadOnlyError("argument", out _), Is.False);
+            var oversized = client.RentFunctionScope(1024);
+            client.ReturnFunctionScope(oversized);
+            Assert.That(client.RentFunctionScope(4), Is.Not.SameAs(oversized));
+        }
+
         [TestCase(MemberKind.Vector2)]
         [TestCase(MemberKind.Vector2Int)]
         [TestCase(MemberKind.Vector3)]
@@ -1087,7 +1487,7 @@ namespace NeoCompose.Tests
                     returnValue: null);
             });
 
-            Assert.AreSame(failed, chained);
+            Assert.AreEqual(failed, chained);
             Assert.AreSame(error, chained.Failure);
             Assert.AreEqual(0, continuationCalls);
         }

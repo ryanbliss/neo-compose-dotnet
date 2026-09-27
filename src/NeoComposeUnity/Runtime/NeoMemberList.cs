@@ -320,6 +320,10 @@ namespace NeoCompose.Runtime
             }
         }
 
+        // A descendant edit always reports the same immutable entry id. Weak
+        // keys release cached messages when entries leave the node graph.
+        private System.Runtime.CompilerServices.ConditionalWeakTable<NeoMember, NeoListChangedArgs>? childChangeNotifications;
+
         protected void HandleChildChanged(NeoMember changed)
         {
             NeoMember? entry = changed;
@@ -333,9 +337,16 @@ namespace NeoCompose.Runtime
                 NotifyListChanged(NeoListChangedArgs.Unknown, applyToIndexes: false);
                 return;
             }
-            NotifyListChanged(new NeoListChangedArgs(
-                NeoListChangeKind.Set,
-                replacedValueIds: new[] { EntryValueId(entry) }));
+            string id = EntryValueId(entry);
+            childChangeNotifications ??= new();
+            if (!childChangeNotifications.TryGetValue(entry, out var change) || change.ReplacedValueIds[0] != id)
+            {
+                childChangeNotifications.Remove(entry);
+                change = new NeoListChangedArgs(NeoListChangeKind.Set,
+                    replacedValueIds: Array.AsReadOnly(new[] { id }));
+                childChangeNotifications.Add(entry, change);
+            }
+            NotifyListChanged(change);
         }
 
         protected void NotifyListChanged(
@@ -343,6 +354,7 @@ namespace NeoCompose.Runtime
             bool applyToIndexes = true)
         {
             if (applyToIndexes) ApplyListChangeToIndexes(change);
+            var previousChange = ActiveListChange;
             ActiveListChange = change ?? NeoListChangedArgs.Unknown;
             try
             {
@@ -350,7 +362,7 @@ namespace NeoCompose.Runtime
             }
             finally
             {
-                ActiveListChange = null;
+                ActiveListChange = previousChange;
             }
         }
 
@@ -364,16 +376,18 @@ namespace NeoCompose.Runtime
 
             if (childrenByValueId is not null)
             {
-                foreach (string removedId in change.RemovedValueIds)
+                for (int i = 0; i < change.RemovedValueIds.Count; i++)
                 {
+                    string removedId = change.RemovedValueIds[i];
                     childrenByValueId.Remove(removedId);
                 }
                 if (change.Kind == NeoListChangeKind.Clear)
                 {
                     childrenByValueId.Clear();
                 }
-                foreach (string addedId in change.AddedValueIds)
+                for (int i = 0; i < change.AddedValueIds.Count; i++)
                 {
+                    string addedId = change.AddedValueIds[i];
                     NeoMember child = FindChildByIdLinear(addedId);
                     if (!childrenByValueId.TryAdd(addedId, child))
                     {
@@ -381,28 +395,32 @@ namespace NeoCompose.Runtime
                             $"List member '{member.id}' contains duplicate entry value id '{addedId}'.");
                     }
                 }
-                foreach (string replacedId in change.ReplacedValueIds)
+                for (int i = 0; i < change.ReplacedValueIds.Count; i++)
                 {
+                    string replacedId = change.ReplacedValueIds[i];
                     childrenByValueId[replacedId] = FindChildByIdLinear(replacedId);
                 }
             }
 
             foreach (NeoRawListIndex index in derivedIndexes.Values)
             {
-                foreach (string removedId in change.RemovedValueIds)
+                for (int i = 0; i < change.RemovedValueIds.Count; i++)
                 {
+                    string removedId = change.RemovedValueIds[i];
                     index.RemoveEntry(removedId);
                 }
                 if (change.Kind == NeoListChangeKind.Clear)
                 {
                     index.Clear();
                 }
-                foreach (string addedId in change.AddedValueIds)
+                for (int i = 0; i < change.AddedValueIds.Count; i++)
                 {
+                    string addedId = change.AddedValueIds[i];
                     index.UpdateEntry(addedId);
                 }
-                foreach (string replacedId in change.ReplacedValueIds)
+                for (int i = 0; i < change.ReplacedValueIds.Count; i++)
                 {
+                    string replacedId = change.ReplacedValueIds[i];
                     index.UpdateEntry(replacedId);
                 }
             }

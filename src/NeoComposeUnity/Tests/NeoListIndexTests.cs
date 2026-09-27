@@ -20,6 +20,37 @@ namespace NeoCompose.Tests
     public class NeoListIndexTests
     {
         [Test]
+        public void DescendantNotificationsRetainImmutableIdsAndRestoreOuterReentrantEvent()
+        {
+            var node = LoadItems(3, out NeoClient client);
+            using (client)
+            {
+                var items = Wrap(client, node);
+                var first = ((NeoMemberClassWritable)node[0]).Get<NeoMemberStringWritable>("Slug");
+                var second = ((NeoMemberClassWritable)node[1]).Get<NeoMemberStringWritable>("Slug");
+                NeoListChangedArgs? retained = null;
+                var seen = new List<string>();
+                bool nested = false;
+                using var subscription = items.OnChanged((_, args, _) =>
+                {
+                    seen.Add(args.ReplacedValueIds[0]);
+                    if (nested) return;
+                    retained = args;
+                    nested = true;
+                    second.Set("inner");
+                    Assert.That(node.ActiveListChange, Is.SameAs(args));
+                });
+                first.Set("outer");
+                Assert.That(node.ActiveListChange, Is.Null);
+                CollectionAssert.AreEqual(new[] { "item-0", "item-1" }, seen);
+                Assert.That(retained!.ReplacedValueIds[0], Is.EqualTo("item-0"));
+                Assert.Throws<NotSupportedException>(() => ((IList<string>)retained.ReplacedValueIds)[0] = "corrupt");
+                first.Set("later");
+                Assert.That(retained.ReplacedValueIds[0], Is.EqualTo("item-0"));
+            }
+        }
+
+        [Test]
         public void ValueIdIndexer_IsLazy_AndMissingContractsAreUnambiguous()
         {
             NeoMemberListWritable node = LoadItems(4, out NeoClient client);

@@ -554,7 +554,7 @@ namespace NeoCompose.Runtime
                 client,
                 member,
                 env,
-                new HashSet<string>(StringComparer.Ordinal));
+                null);
         }
 
         private static void CopyDeclarationDefault(Member member, MemberValueBase<object?>? declarationDefault)
@@ -592,10 +592,11 @@ namespace NeoCompose.Runtime
             NeoClient client,
             Member member,
             IReadOnlyDictionary<string, NeoGenericEnvEntry> env,
-            HashSet<string> activeGenericMembers)
+            HashSet<string>? activeGenericMembers)
         {
             if (member is GenericMember generic)
             {
+                activeGenericMembers ??= new HashSet<string>(StringComparer.Ordinal);
                 if (!activeGenericMembers.Add(generic.id))
                 {
                     throw new System.InvalidOperationException(

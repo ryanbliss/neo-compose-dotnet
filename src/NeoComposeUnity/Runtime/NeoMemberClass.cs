@@ -248,8 +248,9 @@ namespace NeoCompose.Runtime
         /// </summary>
         protected string? LookupMergedMemberId(string key)
         {
-            foreach (var entry in mergedSchema)
+            for (int i = 0; i < mergedSchema.Count; i++)
             {
+                var entry = mergedSchema[i];
                 if (entry.schemaKey == key) return entry.memberId;
             }
             return null;
@@ -886,7 +887,7 @@ namespace NeoCompose.Runtime
                         out bool sourceMoved,
                         existingValueId);
                     if (sourceMoved)
-                        plan.AfterCommit(() => setValue.RetargetMovedReference(client, childMember, importedValueId, childOwnership));
+                        RetargetMovedReferenceAfterCommit(plan, setValue, childMember, importedValueId, childOwnership);
                     if (importedValueId == existingValueId)
                     {
                         plan.Commit();
@@ -903,6 +904,8 @@ namespace NeoCompose.Runtime
                     NotifyChildChanged(key);
                     return;
                 }
+                if (client.TryGetWritableValue(childOwnership, existingValueId, out MemberValue? stored)
+                    && MemberValueFactory.MatchesLeaf(childMember, setValue?.value, stored)) return;
                 bool childWillSelfNotify = childMembers.TryGetValue(key, out NeoMember? existingChild)
                     && ChildSelfNotifies(existingChild);
                 // Reuse the entry's stable id: a fresh row at the same id
@@ -913,12 +916,6 @@ namespace NeoCompose.Runtime
                     existingValueId,
                     existing.createdAt,
                     nowIso);
-                // An existing explicit scalar override already has the requested
-                // value. Preserve first-write pinning of inherited defaults.
-                if (childMember is not ClassMember and not ListMember and not DictionaryMember
-                    && setValue?.value is not NeoValuePayload { valueRows: { Count: > 0 } }
-                    && client.TryGetWritableValue(childOwnership, existingValueId, out MemberValue? stored)
-                    && !stored.IsRemoved && stored.classId == next.classId && NeoClient.SameLeafValue(stored, next)) return;
                 // A shadow of a stamped collection row keeps the immutable
                 // stamp (spec Decision 9/16); a row that predates the stamp
                 // recomputes the identical value from this record's env.
@@ -978,7 +975,7 @@ namespace NeoCompose.Runtime
                     out bool sourceMoved);
                 if (sourceMoved)
                 {
-                    plan.AfterCommit(() => setValue.RetargetMovedReference(client, childMember, newValueId, childOwnership));
+                    RetargetMovedReferenceAfterCommit(plan, setValue, childMember, newValueId, childOwnership);
                 }
             }
             else
@@ -1007,6 +1004,15 @@ namespace NeoCompose.Runtime
 
             ReinitializeChildren();
             NotifyChildChanged(key);
+        }
+
+        // Keep the reference-transfer capture out of WriteSerializedValue so scalar
+        // writes do not allocate a closure for a branch they never execute.
+        private void RetargetMovedReferenceAfterCommit(
+            NeoWritePlan plan, NeoValueWritePayload payload, Member childMember,
+            string valueId, NeoValueOwnership childOwnership)
+        {
+            plan.AfterCommit(() => payload.RetargetMovedReference(client, childMember, valueId, childOwnership));
         }
 
         private void SetSerializedUnorderedList(

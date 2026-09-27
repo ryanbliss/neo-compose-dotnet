@@ -5,37 +5,82 @@
 
 using System;
 using System.Collections.Generic;
+using NeoCompose.Runtime.Json;
+using EvaluationValue = NeoCompose.Runtime.NeoScript.NSGetterEvaluator.ArithmeticValue;
 
 namespace NeoCompose.Runtime.NeoScript
 {
+    internal sealed class NeoScriptVariableBinding
+    {
+        internal readonly NeoScriptScopeLayout Layout;
+        internal readonly int Slot;
+        internal NeoScriptVariableBinding(NeoScriptScopeLayout layout, int slot)
+        {
+            Layout = layout;
+            Slot = slot;
+        }
+    }
+
+    internal sealed class NeoScriptScopeLayout
+    {
+        internal readonly Dictionary<string, int> Slots = new(StringComparer.Ordinal);
+        internal NeoScriptScopeLayout(FunctionWithReturnType body)
+        {
+            foreach (var parameter in body.parameters ?? Array.Empty<Variable>()) Add(parameter.id);
+            // Nested/dynamic bindings continue through the general scope path.
+            // The common function-level locals have stable slots per body.
+            foreach (var instruction in body.instructions)
+                if (instruction is VariableInstruction variable) Add(variable.variable.id);
+        }
+        private void Add(string id)
+        {
+            if (!Slots.ContainsKey(id)) Slots.Add(id, Slots.Count);
+        }
+    }
+
     /// <summary>
     /// A lexical NeoScript scope frame. Writes stay local while reads and
     /// read-only diagnostics walk the parent chain.
     /// </summary>
     internal sealed class NeoScriptScope
     {
-        private readonly Dictionary<string, object?> bindings;
+        private readonly Dictionary<string, EvaluationValue>? bindings;
+        private readonly Dictionary<string, object?>? externalBindings;
         private Dictionary<string, List<string>>? readOnlyBindings;
+        private NeoScriptScopeLayout? layout;
+        private EvaluationValue[] slots = Array.Empty<EvaluationValue>();
+        private bool[] occupied = Array.Empty<bool>();
+        private int occupiedCount;
+
+        internal void UseLayout(NeoScriptScopeLayout prepared)
+        {
+            layout = prepared;
+            if (slots.Length < prepared.Slots.Count)
+            {
+                slots = new EvaluationValue[prepared.Slots.Count];
+                occupied = new bool[prepared.Slots.Count];
+            }
+        }
 
         internal NeoScriptScope(int capacity = 0)
         {
-            bindings = new Dictionary<string, object?>(capacity, StringComparer.Ordinal);
+            bindings = new Dictionary<string, EvaluationValue>(capacity, StringComparer.Ordinal);
         }
 
         internal NeoScriptScope(Dictionary<string, object?> rootBindings)
         {
-            bindings = rootBindings
-                ?? throw new ArgumentNullException(nameof(rootBindings));
+            externalBindings = rootBindings ?? throw new ArgumentNullException(nameof(rootBindings));
         }
 
         private NeoScriptScope(NeoScriptScope parent, int capacity)
         {
             Parent = parent ?? throw new ArgumentNullException(nameof(parent));
-            bindings = new Dictionary<string, object?>(capacity, StringComparer.Ordinal);
+            bindings = new Dictionary<string, EvaluationValue>(capacity, StringComparer.Ordinal);
         }
 
         internal NeoScriptScope? Parent { get; }
-        internal int LocalBindingCount => bindings.Count;
+        internal int LocalBindingCount => externalBindings?.Count ?? bindings!.Count + occupiedCount;
+        internal int BindingCapacity => externalBindings?.EnsureCapacity(0) ?? bindings!.EnsureCapacity(0) + slots.Length;
 
         internal object? this[string bindingId]
         {
@@ -55,9 +100,23 @@ namespace NeoCompose.Runtime.NeoScript
                         yield return bindingId;
                     }
                 }
-                foreach (string bindingId in bindings.Keys)
+                foreach (string bindingId in LocalKeys)
                 {
                     if (!inherited.Contains(bindingId)) yield return bindingId;
+                }
+            }
+        }
+
+        private IEnumerable<string> LocalKeys
+        {
+            get
+            {
+                if (externalBindings is not null) { foreach (var key in externalBindings.Keys) yield return key; }
+                else
+                {
+                    foreach (var key in bindings!.Keys) yield return key;
+                    if (layout is not null)
+                        foreach (var pair in layout.Slots) if (occupied[pair.Value]) yield return pair.Key;
                 }
             }
         }
@@ -66,14 +125,58 @@ namespace NeoCompose.Runtime.NeoScript
             new(this, capacity);
 
         internal bool ContainsLocal(string bindingId) =>
-            bindings.ContainsKey(bindingId);
+            externalBindings?.ContainsKey(bindingId) ?? (bindings!.ContainsKey(bindingId)
+                || layout is not null && layout.Slots.TryGetValue(bindingId, out int slot) && occupied[slot]);
 
-        internal void SetLocal(string bindingId, object? value) =>
-            bindings[bindingId] = value;
+        internal void SetLocal(string bindingId, object? value) => SetEvaluationValue(bindingId, new EvaluationValue(value));
+
+        internal void SetEvaluationValue(string bindingId, EvaluationValue value)
+        {
+            if (externalBindings is not null) externalBindings[bindingId] = value.Box();
+            else if (layout is not null && layout.Slots.TryGetValue(bindingId, out int slot)) SetSlot(slot, value);
+            else bindings![bindingId] = value;
+        }
+
+        private void SetSlot(int slot, EvaluationValue value)
+        {
+            if (!occupied[slot]) { occupied[slot] = true; occupiedCount++; }
+            slots[slot] = value;
+        }
+
+        internal void SetEvaluationValue(Variable variable, EvaluationValue value)
+        {
+            if (layout is null) { SetEvaluationValue(variable.id, value); return; }
+            var binding = variable.runtimeBinding;
+            if (!ReferenceEquals(binding?.Layout, layout))
+            {
+                if (!layout.Slots.TryGetValue(variable.id, out int slot)) { SetEvaluationValue(variable.id, value); return; }
+                variable.runtimeBinding = binding = new NeoScriptVariableBinding(layout, slot);
+            }
+            SetSlot(binding!.Slot, value);
+        }
+
+        internal bool TryGetEvaluationValue(VariablePointer variable, out EvaluationValue value)
+        {
+            if (layout is not null)
+            {
+                var binding = variable.runtimeBinding;
+                if (!ReferenceEquals(binding?.Layout, layout)
+                    && layout.Slots.TryGetValue(variable.variableId, out int slot))
+                    variable.runtimeBinding = binding = new NeoScriptVariableBinding(layout, slot);
+                if (ReferenceEquals(binding?.Layout, layout) && occupied[binding!.Slot])
+                { value = slots[binding.Slot]; return true; }
+            }
+            return TryGetEvaluationValue(variable.variableId, out value);
+        }
 
         internal void ResetLocals()
         {
-            bindings.Clear();
+            bindings?.Clear();
+            Array.Clear(slots, 0, slots.Length);
+            Array.Clear(occupied, 0, occupied.Length);
+            occupiedCount = 0;
+            layout = null;
+            externalBindings?.Clear();
             readOnlyBindings?.Clear();
         }
 
@@ -84,17 +187,40 @@ namespace NeoCompose.Runtime.NeoScript
         /// </summary>
         internal void ResetInvocationLocals(int parameterCount)
         {
-            if (bindings.Count > parameterCount) bindings.Clear();
+            if (LocalBindingCount > parameterCount) ResetLocals();
             readOnlyBindings?.Clear();
         }
 
-        internal bool Remove(string bindingId) => bindings.Remove(bindingId);
+        internal bool Remove(string bindingId)
+        {
+            if (externalBindings is not null) return externalBindings.Remove(bindingId);
+            if (layout is not null && layout.Slots.TryGetValue(bindingId, out int slot) && occupied[slot])
+            { occupied[slot] = false; slots[slot] = default; occupiedCount--; return true; }
+            return bindings!.Remove(bindingId);
+        }
 
         internal bool TryGetValue(string bindingId, out object? value)
         {
-            if (bindings.TryGetValue(bindingId, out value)) return true;
-            if (Parent is not null) return Parent.TryGetValue(bindingId, out value);
-            value = null;
+            bool found = TryGetEvaluationValue(bindingId, out var stored);
+            value = stored.Box();
+            return found;
+        }
+
+        internal bool TryGetEvaluationValue(string bindingId, out EvaluationValue value)
+        {
+            if (externalBindings is not null)
+            {
+                if (externalBindings.TryGetValue(bindingId, out var external))
+                { value = new EvaluationValue(external); return true; }
+            }
+            else
+            {
+                if (layout is not null && layout.Slots.TryGetValue(bindingId, out int slot) && occupied[slot])
+                { value = slots[slot]; return true; }
+                if (bindings!.TryGetValue(bindingId, out value)) return true;
+            }
+            if (Parent is not null) return Parent.TryGetEvaluationValue(bindingId, out value);
+            value = default;
             return false;
         }
 
@@ -145,10 +271,12 @@ namespace NeoCompose.Runtime.NeoScript
         {
             var result = Parent?.Materialize()
                 ?? new Dictionary<string, object?>(StringComparer.Ordinal);
-            foreach (KeyValuePair<string, object?> binding in bindings)
-            {
-                result[binding.Key] = binding.Value;
-            }
+            if (externalBindings is not null)
+                foreach (var binding in externalBindings) result[binding.Key] = binding.Value;
+            else
+                foreach (var binding in bindings) result[binding.Key] = binding.Value.Box();
+            if (layout is not null)
+                foreach (var pair in layout.Slots) if (occupied[pair.Value]) result[pair.Key] = slots[pair.Value].Box();
             return result;
         }
     }
