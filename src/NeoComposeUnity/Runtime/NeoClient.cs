@@ -952,16 +952,18 @@ namespace NeoCompose.Runtime
             lock (resolvedNSFunctionsLock) directFunctionContexts.Clear();
         }
 
-        private readonly Stack<NeoScript.NSGetterEvaluator.Context> directFunctionContexts = new();
+        private readonly List<NeoScript.NSGetterEvaluator.Context> directFunctionContexts = new();
 
         internal NeoScript.NSGetterEvaluator.Context RentDirectFunctionContext(NeoValueOwnership ownership)
         {
             lock (resolvedNSFunctionsLock)
             {
-                while (directFunctionContexts.Count > 0)
+                for (int i = directFunctionContexts.Count - 1; i >= 0; i--)
                 {
-                    var context = directFunctionContexts.Pop();
-                    if (context.valueOwnership == ownership && !isReplayingVirtualInstance
+                    var context = directFunctionContexts[i];
+                    if (context.valueOwnership != ownership) continue;
+                    directFunctionContexts.RemoveAt(i);
+                    if (!isReplayingVirtualInstance
                         && sharedEvaluationContext is not null
                         && ReferenceEquals(context.rowUnwrapCache, sharedEvaluationContext.rowUnwrapCache)
                         && sharedEvaluationContext.rowUnwrapCache.Count <= SharedRowCacheLimit)
@@ -987,7 +989,7 @@ namespace NeoCompose.Runtime
                 if (!isDisposed && sharedEvaluationContext is not null
                     && ReferenceEquals(context.rowUnwrapCache, sharedEvaluationContext.rowUnwrapCache)
                     && directFunctionContexts.Count < MaxPooledFunctionScopes)
-                    directFunctionContexts.Push(context);
+                    directFunctionContexts.Add(context);
             }
         }
 

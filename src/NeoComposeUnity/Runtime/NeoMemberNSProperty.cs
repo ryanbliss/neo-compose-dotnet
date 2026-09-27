@@ -171,7 +171,7 @@ namespace NeoCompose.Runtime
             if (memoize)
             {
                 memoKey = new NeoClient.GetterMemoKey(ownership, thisRow!.id, member.id, ownership);
-                if (client.TryGetMemoizedGetter(memoKey, out NeoClient.GetterMemoEntry? hit))
+                if (client.TryGetMemoizedGetter(memoKey, out NeoClient.GetterMemoEntry hit))
                 {
                     ResetGridReads();
                     if (hit.row is null)
@@ -195,9 +195,8 @@ namespace NeoCompose.Runtime
             // `__this__` need to participate in the cache so dispatch
             // on `root.Assets.X` and `this.foo` rounds-trips through
             // reference equality.
-            var ctx = client.CreateGetterContext(ownership);
+            var ctx = client.RentDirectFunctionContext(ownership);
             ctx.gridReads = ResetGridReads();
-            ctx.BindRoot(ResolveRootValue(ctx));
 
             object? boundThis = thisValue;
             if (boundThis is null && thisRow is not null)
@@ -252,6 +251,7 @@ namespace NeoCompose.Runtime
                     client.MemoizeGetter(memoKey, new NeoClient.GetterMemoEntry { row = resultRef, reads = reads, valueReads = valueReads });
                 }
             }
+            client.ReturnDirectFunctionContext(ctx, value);
             return NSGetterResult.Ok(value);
         }
 

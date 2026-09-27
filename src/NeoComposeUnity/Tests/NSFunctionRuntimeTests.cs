@@ -80,6 +80,69 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void StaticFunctionFactoryReusesOnlyLiveWrappersForTheCurrentClientAndSchema()
+        {
+            var function = ScriptFunction("static-cached", "StaticCached", false, IntType(), Array.Empty<FunctionArgumentTypeInfo>(),
+                Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(), Return(Number(3))));
+            function.Modifier = NeoMemberModifierKind.Static;
+            using var client = BuildClient(new JsonMember[] { function }, ReceiverClass());
+            using var other = BuildClient(new JsonMember[] { function }, ReceiverClass());
+            var first = NeoMemberNSFunction.GetOrCreateStatic(client, function.id);
+            Assert.That(NeoMemberNSFunction.GetOrCreateStatic(client, function.id), Is.SameAs(first));
+            Assert.That(NeoMemberNSFunction.GetOrCreateStatic(other, function.id), Is.Not.SameAs(first));
+            Assert.That(first.InvokeStatic(Array.Empty<object?>()), Is.EqualTo(3));
+            first.Dispose();
+            var second = NeoMemberNSFunction.GetOrCreateStatic(client, function.id);
+            Assert.That(second, Is.Not.SameAs(first));
+            ((NSFunctionMember)client.members[function.id]).action =
+                Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(), Return(Number(8)));
+            client.InvalidateSchemaResolutionCaches();
+            var replaced = NeoMemberNSFunction.GetOrCreateStatic(client, function.id);
+            Assert.That(replaced, Is.Not.SameAs(second));
+            Assert.That(replaced.InvokeStatic(Array.Empty<object?>()), Is.EqualTo(8));
+        }
+
+        [Test]
+        public void ContextPoolPreservesOtherOwnerships()
+        {
+            using var client = BuildClient(Array.Empty<JsonMember>(), ReceiverClass());
+            var save = client.RentDirectFunctionContext(NeoValueOwnership.Save);
+            client.ReturnDirectFunctionContext(save, null);
+            var session = client.RentDirectFunctionContext(NeoValueOwnership.Session);
+            client.ReturnDirectFunctionContext(session, null);
+            Assert.That(client.RentDirectFunctionContext(NeoValueOwnership.Save), Is.SameAs(save));
+            Assert.That(client.RentDirectFunctionContext(NeoValueOwnership.Session), Is.SameAs(session));
+        }
+
+        [TestCase(0d, 0d)]
+        [TestCase(double.PositiveInfinity, double.PositiveInfinity)]
+        [TestCase(double.NaN, 1d)]
+        [TestCase(-2d, 1d)]
+        public void UnboxedNumericComparisonsKeepExistingSpecialValueSemantics(double left, double right)
+        {
+            using var client = BuildClient(Array.Empty<JsonMember>(), ReceiverClass());
+            var context = new NSGetterEvaluator.Context(client, null, null);
+            var scope = new NeoScriptScope();
+            scope.SetEvaluationValue("left", new NSGetterEvaluator.ArithmeticValue(left));
+            scope.SetEvaluationValue("right", new NSGetterEvaluator.ArithmeticValue(right));
+            foreach (string op in new[] { OperatorKind.EqualTo, OperatorKind.DoesNotEqual,
+                OperatorKind.GreaterThan, OperatorKind.GreaterThanOrEqualTo, OperatorKind.LessThan, OperatorKind.LessThanOrEqualTo })
+            {
+                var expression = Compare(op, Variable("left"), Variable("right"));
+                bool expected = op switch
+                {
+                    OperatorKind.EqualTo => left == right,
+                    OperatorKind.DoesNotEqual => left != right,
+                    OperatorKind.GreaterThan => left - right > 0,
+                    OperatorKind.GreaterThanOrEqualTo => left - right >= 0,
+                    OperatorKind.LessThan => left - right < 0,
+                    _ => left - right <= 0,
+                };
+                Assert.That(NSGetterEvaluator.EvalBooleanExpression(expression, scope, context), Is.EqualTo(expected), op);
+            }
+        }
+
+        [Test]
         public void NumericLocalsSurviveDeferredCallsAndOtherInvocations()
         {
             var native = NativeFunction("numeric-fetch", "Fetch", true);
@@ -135,6 +198,36 @@ namespace NeoCompose.Tests
             finally { watch.Stop(); recorder.enabled = false; recorder.CollectFromAllThreads(); }
             Assert.That(result, Is.EqualTo(17 + locals));
             TestContext.WriteLine($"Numeric locals={locals}: {recorder.sampleBlockCount / 10000d} allocations/call; {watch.Elapsed.TotalMilliseconds / 10d} us/call");
+        }
+
+        [Test]
+        public void AllocationExperiment_NestedNumericMath()
+        {
+            Pointer MathCall(string op, params Pointer[] args) => new FunctionPointer
+            {
+                type = PointerKind.Function,
+                function = new MathOpFunction { type = FunctionKind.MathOp,
+                    info = new FunctionMathOpInfo { op = op, argPointers = args } },
+            };
+            var argument = Argument("amount", MemberKind.Int);
+            var expression = MathCall(MathOpKind.Clamp,
+                MathCall(MathOpKind.Abs, Add(Variable("__arg_0__"), Number(-20))), Number(0), Number(10));
+            var function = ScriptFunction("math-experiment", "MathExperiment", false, IntType(), new[] { argument },
+                Action(IntType(), new[] { argument }, Return(expression)));
+            function.Modifier = NeoMemberModifierKind.Static;
+            using var client = BuildClient(new JsonMember[] { function }, ReceiverClass());
+            var node = new NeoMemberNSFunction(client, function.id, null, NeoValueOwnership.Session);
+            var args = new object?[] { 17 };
+            for (int i = 0; i < 100; i++) node.InvokeStatic(args);
+            var recorder = UnityEngine.Profiling.Recorder.Get("GC.Alloc");
+            recorder.enabled = false;
+            recorder.FilterToCurrentThread();
+            object? result = null;
+            recorder.enabled = true;
+            try { for (int i = 0; i < 10000; i++) result = node.InvokeStatic(args); }
+            finally { recorder.enabled = false; recorder.CollectFromAllThreads(); }
+            Assert.That(result, Is.EqualTo(3));
+            TestContext.WriteLine($"Nested numeric math: {recorder.sampleBlockCount / 10000d} allocations/call");
         }
 
         [Test]

@@ -36,6 +36,21 @@ namespace NeoCompose.Runtime
             NeoValueOwnership ownership = NeoValueOwnership.Asset)
             : base(client, member, overrideValueId, ownership) { }
 
+        /// <summary>
+        /// Returns the client-owned wrapper for a static interpreted function.
+        /// Schema invalidation resolves a new wrapper on the next call.
+        /// </summary>
+        public static NeoMemberNSFunction GetOrCreateStatic(NeoClient client, string memberId)
+        {
+            var function = NeoNSFunctionRuntime.ResolveSignature(client, memberId);
+            if (function.Member.Modifier != NeoMemberModifierKind.Static)
+                throw new NSGetterRuntimeError(
+                    $"NSFunction '{function.Member.name}' is an instance member and requires a receiver.");
+            if (function.StaticNode is null || function.StaticNode.isDisposed)
+                function.StaticNode = new NeoMemberNSFunction(client, function.Member, null, NeoValueOwnership.Session);
+            return function.StaticNode;
+        }
+
         public FunctionWithReturnType? resolvedAction =>
             NeoNSFunctionRuntime.TryResolve(client, member.id)?.Action;
 
@@ -320,6 +335,7 @@ namespace NeoCompose.Runtime
         // every invocation.
         internal NeoScriptTerminalNormalizer? TerminalNormalizer;
         internal NeoScriptScopeLayout? ScopeLayout;
+        internal NeoMemberNSFunction? StaticNode;
 
         // Diagnostic subjects depend only on the signature. Formatting them
         // per call put three string allocations on every invocation.

@@ -2,6 +2,9 @@
 
 ## [0.43.3] - 2026-09-26
 
+- Reuse static NeoScript function wrappers through `NeoMemberNSFunction.GetOrCreateStatic`, preserve cached contexts across ownership changes, and reuse eligible scalar getter contexts. Store getter memo records as structs.
+- Keep numeric comparisons and nested math intrinsics unboxed; math uses pooled argument values and stack-allocated numeric scratch space while preserving evaluation and validation order.
+
 - Reuse eligible direct synchronous interpreter contexts and cache local binding slots per resolved implementation. Numeric locals carry unboxed arithmetic values between instructions. Forked, native, constructing, closure-producing, failed, and suspended calls keep independent context lifetimes; schema/save/partition invalidation releases cached execution graphs.
 
 - Reuse immutable list-entry change notifications across descendant edits and avoid boxed index-update enumerators. Nested callbacks restore the outer list event. Changed committed rows still receive independent snapshots.

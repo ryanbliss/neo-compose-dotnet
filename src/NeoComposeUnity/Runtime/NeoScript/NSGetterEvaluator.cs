@@ -2853,7 +2853,7 @@ namespace NeoCompose.Runtime.NeoScript
             object? receiver,
             Context ctx)
         {
-            if (ctx.getterCallStack.Contains(memberId))
+            if (ContainsGetter(ctx.getterCallStack, memberId))
             {
                 throw new NSGetterRuntimeError(
                     $"Circular getter call: member '{memberId}' is already being evaluated");
@@ -2876,7 +2876,7 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 memoKey = new NeoClient.GetterMemoKey(
                     receiverRef!.ownership, receiverRef.valueId, memberId, ctx.valueOwnership);
-                if (client.TryGetMemoizedGetter(memoKey, out NeoClient.GetterMemoEntry? hit))
+                if (client.TryGetMemoizedGetter(memoKey, out NeoClient.GetterMemoEntry hit))
                 {
                     if (hit.row is null)
                     {
@@ -2920,6 +2920,16 @@ namespace NeoCompose.Runtime.NeoScript
             return result;
         }
 
+        private static bool ContainsGetter(IReadOnlyCollection<string> stack, string memberId)
+        {
+            if (stack is IReadOnlyList<string> frames)
+            {
+                for (int i = 0; i < frames.Count; i++) if (frames[i] == memberId) return true;
+                return false;
+            }
+            return stack.Contains(memberId);
+        }
+
         private static FunctionWithReturnType? ResolveCompiledGetter(
             string memberId, NeoClient client)
         {
@@ -2932,6 +2942,9 @@ namespace NeoCompose.Runtime.NeoScript
         // Operations
         // ---------------------------------------------------------------
 
+        private static readonly object BoxedTrue = true;
+        private static readonly object BoxedFalse = false;
+
         private static object? EvalOperation(
             Operation operation,
             NeoScriptScope scope,
@@ -2942,7 +2955,7 @@ namespace NeoCompose.Runtime.NeoScript
                 case ArithmeticOperation arith:
                     return EvalArithmetic(arith.arithmetic, scope, ctx).Box();
                 case BooleanOperation boolOp:
-                    return EvalBooleanExpression(boolOp.expression, scope, ctx);
+                    return EvalBooleanExpression(boolOp.expression, scope, ctx) ? BoxedTrue : BoxedFalse;
                 default:
                     throw new NSGetterRuntimeError(
                         $"Unknown operation kind {operation.GetType().Name}");
@@ -2970,6 +2983,8 @@ namespace NeoCompose.Runtime.NeoScript
         {
             if (pointer is OperationPointer { operation: ArithmeticOperation arithmetic })
                 return EvalArithmetic(arithmetic.arithmetic, scope, ctx);
+            if (pointer is FunctionPointer { function: MathOpFunction math })
+                return EvalMathOp(math.info, scope, ctx);
             if (pointer is VariablePointer variable
                 && scope.TryGetEvaluationValue(variable, out var value) && value.IsNumber)
                 return value;
@@ -3249,8 +3264,25 @@ namespace NeoCompose.Runtime.NeoScript
             NeoScriptScope scope,
             Context ctx)
         {
-            var a = EvalPointer(condition.operand1, scope, ctx);
-            var b = EvalPointer(condition.operand2, scope, ctx);
+            var left = EvaluateValue(condition.operand1, scope, ctx);
+            var right = EvaluateValue(condition.operand2, scope, ctx);
+            if (condition.isDecimal != true && left.IsNumber && right.IsNumber)
+            {
+                // Keep the existing subtraction-based ordering, including
+                // its NaN/infinity behavior, without boxing either operand.
+                double difference = left.Number - right.Number;
+                switch (condition.type)
+                {
+                    case OperatorKind.EqualTo: return left.Number == right.Number;
+                    case OperatorKind.DoesNotEqual: return left.Number != right.Number;
+                    case OperatorKind.GreaterThan: return difference > 0;
+                    case OperatorKind.GreaterThanOrEqualTo: return difference >= 0;
+                    case OperatorKind.LessThan: return difference < 0;
+                    case OperatorKind.LessThanOrEqualTo: return difference <= 0;
+                }
+            }
+            var a = left.Box();
+            var b = right.Box();
             // Decimal-stamped comparisons are exact and scale-blind
             // ("1.10" == "1.1"). Null operands (optional decimals) keep the
             // JsEqual null semantics for equality; ordering against null is
@@ -3808,7 +3840,7 @@ namespace NeoCompose.Runtime.NeoScript
                 case StringOpFunction sof:
                     return EvalStringOp(sof.info, scope, ctx);
                 case MathOpFunction mof:
-                    return EvalMathOp(mof.info, scope, ctx);
+                    return EvalMathOp(mof.info, scope, ctx).Box();
                 case ListRepeatFunction lrf:
                     return EvalListRepeat(lrf.info, scope, ctx);
                 case ListIndexFunction lif:
@@ -4625,7 +4657,7 @@ namespace NeoCompose.Runtime.NeoScript
         /// <see cref="NSGetterRuntimeError"/>, so authored <c>try</c> can
         /// catch it like division by zero.
         /// </summary>
-        private static object EvalMathOp(
+        private static ArithmeticValue EvalMathOp(
             FunctionMathOpInfo info,
             NeoScriptScope scope,
             Context ctx)
@@ -4637,24 +4669,37 @@ namespace NeoCompose.Runtime.NeoScript
                 throw new NSGetterRuntimeError(
                     $"Math.{name} takes {arity} arguments; got {info.argPointers.Length}.");
             }
-            var args = new object?[arity];
-            for (int i = 0; i < arity; i++)
+            var args = System.Buffers.ArrayPool<ArithmeticValue>.Shared.Rent(arity);
+            try
             {
-                args[i] = EvalPointer(info.argPointers[i], scope, ctx);
-            }
-            // Every argument is evaluated before any is rejected, so which
-            // operand is defective never changes the side effects the call
-            // produces.
-            foreach (var arg in args)
-            {
-                if (arg is null)
+                for (int i = 0; i < arity; i++) args[i] = EvaluateValue(info.argPointers[i], scope, ctx);
+                // Evaluate all arguments before validating any of them.
+                for (int i = 0; i < arity; i++)
+                    if (!args[i].IsNumber && args[i].Box() is null)
+                        throw new NSGetterRuntimeError($"Math.{name} argument is null.");
+                if (info.isDecimal == true)
                 {
-                    throw new NSGetterRuntimeError($"Math.{name} argument is null.");
+                    var decimalArgs = new object?[arity];
+                    for (int i = 0; i < arity; i++) decimalArgs[i] = args[i].Box();
+                    return new ArithmeticValue(EvalDecimalMathOp(info.op, name, decimalArgs));
                 }
+                // Math intrinsics have at most three operands. Only numeric
+                // scratch storage goes on the stack; reference-bearing values
+                // stay in a rented buffer with a separate lease for nesting.
+                Span<double> values = stackalloc double[3];
+                for (int i = 0; i < arity; i++)
+                {
+                    if (!args[i].IsNumber)
+                        throw new NSGetterRuntimeError(
+                            $"Math.{name} argument is not numeric: {ReceiverTypeName(args[i].Box())}.");
+                    values[i] = args[i].Number;
+                }
+                return new ArithmeticValue(EvalFloatMathOp(info.op, name, values));
             }
-            return info.isDecimal == true
-                ? EvalDecimalMathOp(info.op, name, args)
-                : EvalFloatMathOp(info.op, name, args);
+            finally
+            {
+                System.Buffers.ArrayPool<ArithmeticValue>.Shared.Return(args, clearArray: true);
+            }
         }
 
         /// <summary>
@@ -4666,17 +4711,8 @@ namespace NeoCompose.Runtime.NeoScript
         /// minting a value the runtime's integral validation would refuse
         /// downstream (P69 §2.5).
         /// </summary>
-        private static object EvalFloatMathOp(string op, string name, object?[] args)
+        private static double EvalFloatMathOp(string op, string name, ReadOnlySpan<double> values)
         {
-            var values = new double[args.Length];
-            for (int i = 0; i < args.Length; i++)
-            {
-                if (!TryAsDouble(args[i], out values[i]))
-                {
-                    throw new NSGetterRuntimeError(
-                        $"Math.{name} argument is not numeric: {ReceiverTypeName(args[i])}.");
-                }
-            }
             switch (op)
             {
                 // Min/Max propagate NaN and order -0.0 below 0.0 in both
