@@ -23,6 +23,33 @@ namespace NeoCompose.Tests
             "Packages/com.ryanbliss.neocompose/Tests/synth-example.json";
 
         [Test]
+        public void RepeatedScalarWrite_AllocatesOnlyTheCandidateRow()
+        {
+            using var client = NeoTestSaveStack.LoadClient(File.ReadAllText(ProjectFixture));
+            var payload = NeoValueWritePayload.FromValue(41d);
+            for (int i = 0; i < 10; i++) client.save.SetSerializedValue("Score", payload);
+
+            // Unity Mono does not reliably implement GetAllocatedBytesForCurrentThread.
+            // Count GC.Alloc samples on this thread, excluding fixture/payload setup.
+            var recorder = UnityEngine.Profiling.Recorder.Get("GC.Alloc");
+            recorder.enabled = false;
+            recorder.FilterToCurrentThread();
+            recorder.enabled = true;
+            try
+            {
+                for (int i = 0; i < 100; i++) client.save.SetSerializedValue("Score", payload);
+            }
+            finally
+            {
+                recorder.enabled = false;
+                recorder.CollectFromAllThreads();
+            }
+            Assert.That(recorder.sampleBlockCount, Is.EqualTo(100),
+                "A no-op scalar write needs only its candidate row; no reference-transfer closures, schema enumerators, or generic cycle sets.");
+            Assert.That(client.save.Get<NeoMemberIntWritable>("Score").value!.value, Is.EqualTo(41d));
+        }
+
+        [Test]
         public void ConstructorNumericArgumentsRetainIdentityAcrossJsonNumberKinds()
         {
             var left = new ObjectMemberValue { id = "sprite", classId = "sprite-class", value = new(),

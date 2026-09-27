@@ -497,6 +497,18 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void SubstituteMember_ConcreteScalarDoesNotAllocate()
+        {
+            using var client = LoadClient();
+            var member = client.members["member-binding-float"];
+            var env = NeoGenericResolution.ResolveEnv(client, "class-damage");
+            Assert.That(NeoGenericResolution.SubstituteMember(client, member, env), Is.SameAs(member));
+            Assert.That((TestDelegate)(() => { NeoGenericResolution.SubstituteMember(client, member, env); }),
+                new NUnit.Framework.Constraints.NotConstraint(
+                    new UnityEngine.TestTools.Constraints.AllocatingGCMemoryConstraint()));
+        }
+
+        [Test]
         public void ResolveEnv_NonGenericChain_IsEmptyAndClosed()
         {
             var client = LoadClient();
