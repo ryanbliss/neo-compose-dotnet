@@ -429,7 +429,6 @@ namespace NeoCompose.Tests
                 {
                     createdAt = 200,
                     transactionIds = new List<string> { "tx-2" },
-                    versionsStamp = "1:100",
                 },
                 records = new List<NeoComposeUnityExportHeadDescriptor>
                 {
@@ -479,7 +478,6 @@ namespace NeoCompose.Tests
                     {
                         createdAt = 100,
                         transactionIds = new List<string> { "tx-1" },
-                        versionsStamp = "1:100",
                     },
                     heads = new List<NeoComposeUnityExportHeadDescriptor>
                     {
@@ -583,7 +581,6 @@ namespace NeoCompose.Tests
             {
                 createdAt = 200,
                 transactionIds = new List<string> { "boulder-delete" },
-                versionsStamp = "1:100",
             };
             api.deltaResponse.records = deletedIds.Select(id => new NeoComposeUnityExportHeadDescriptor
             {
@@ -595,7 +592,7 @@ namespace NeoCompose.Tests
             {
                 state = new NeoComposeUnityExportSyncState
                 {
-                    cursor = new NeoComposeUnityExportCursor { createdAt = 100, versionsStamp = "1:100" },
+                    cursor = new NeoComposeUnityExportCursor { createdAt = 100 },
                     heads = beforeRows.Keys.Select(id => new NeoComposeUnityExportHeadDescriptor
                     {
                         recordKind = "value",
@@ -1087,7 +1084,6 @@ namespace NeoCompose.Tests
                     {
                         createdAt = 100,
                         transactionIds = new List<string> { "tx-1" },
-                        versionsStamp = "1:100",
                     },
                 },
             };
@@ -1119,7 +1115,6 @@ namespace NeoCompose.Tests
                 {
                     createdAt = 100,
                     transactionIds = new List<string> { "tx-1" },
-                    versionsStamp = "1:100",
                 },
                 heads = new List<NeoComposeUnityExportHeadDescriptor>
                 {
@@ -1196,7 +1191,6 @@ namespace NeoCompose.Tests
                     {
                         createdAt = 200,
                         transactionIds = new List<string> { "tx-2" },
-                        versionsStamp = "1:200",
                     },
                     codegenAffected = codegenAffected,
                     runtimeContractAffected = runtimeContractAffected,
@@ -1222,7 +1216,6 @@ namespace NeoCompose.Tests
                     {
                         createdAt = 100,
                         transactionIds = new List<string> { "tx-1" },
-                        versionsStamp = "1:100",
                     },
                 },
             };

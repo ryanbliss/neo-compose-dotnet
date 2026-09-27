@@ -74,6 +74,32 @@ namespace NeoCompose.Tests
             Assert.AreEqual(0, ((JArray)body["snapshotIds"]!).Count);
         }
 
+        [Test]
+        public async Task DeltaRequest_CursorCarriesOnlyTheTransactionPosition()
+        {
+            var http = new FakeHttpClient();
+            var client = NewClient(new FakeProvider("the-token"), http);
+            await client.ExportProjectDeltaAsync(ApiBaseUrl, ProjectId, VersionId,
+                new NeoComposeUnityExportCursor
+                {
+                    createdAt = 100,
+                    transactionIds = new List<string> { "tx-1" },
+                });
+            var cursor = (JObject)JObject.Parse(http.sends[0].body)["cursor"]!;
+            CollectionAssert.AreEquivalent(
+                new[] { "createdAt", "transactionIds" },
+                new List<string>(((IDictionary<string, JToken?>)cursor).Keys));
+        }
+
+        [Test]
+        public void ExportSyncState_ReadsCursorsSavedWithAVersionsStamp()
+        {
+            var state = JsonConvert.DeserializeObject<NeoComposeUnityExportSyncState>(
+                "{\"schemaVersion\":1,\"cursor\":{\"createdAt\":100,\"transactionIds\":[\"tx-1\"],\"versionsStamp\":\"1:100\"}}")!;
+            Assert.AreEqual(100, state.cursor.createdAt);
+            CollectionAssert.AreEqual(new[] { "tx-1" }, state.cursor.transactionIds);
+        }
+
         [TestCase("project-read-restart", true)]
         [TestCase("another-conflict", false)]
         public void Conflict_OnlyPublishedReadRestartHasTheRetryableType(string error, bool restart)
@@ -119,7 +145,6 @@ namespace NeoCompose.Tests
                 {
                     createdAt = 100,
                     transactionIds = new List<string> { "tx-1" },
-                    versionsStamp = "1:100",
                 });
             await client.ExportProjectSnapshotsAsync(
                 ApiBaseUrl,
