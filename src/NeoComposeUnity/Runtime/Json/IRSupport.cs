@@ -255,6 +255,7 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public class Variable
     {
+        [Newtonsoft.Json.JsonIgnore] internal NeoScript.NeoScriptVariableBinding? runtimeBinding;
         public string id = null!;
         public TypeInfo typeInfo = null!;
         public Pointer pointer = null!;

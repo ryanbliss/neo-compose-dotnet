@@ -49,6 +49,7 @@ namespace NeoCompose.Runtime.Json
     /// <summary>Mirror of <c>INSPointerVariable</c>.</summary>
     public class VariablePointer : Pointer
     {
+        [Newtonsoft.Json.JsonIgnore] internal NeoScript.NeoScriptVariableBinding? runtimeBinding;
         public string variableId = null!;
     }
 

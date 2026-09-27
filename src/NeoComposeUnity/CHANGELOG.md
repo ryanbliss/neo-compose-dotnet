@@ -2,6 +2,10 @@
 
 ## [0.43.3] - 2026-09-26
 
+- Reuse eligible direct synchronous interpreter contexts and cache local binding slots per resolved implementation. Numeric locals carry unboxed arithmetic values between instructions. Forked, native, constructing, closure-producing, failed, and suspended calls keep independent context lifetimes; schema/save/partition invalidation releases cached execution graphs.
+
+- Reuse immutable list-entry change notifications across descendant edits and avoid boxed index-update enumerators. Nested callbacks restore the outer list event. Changed committed rows still receive independent snapshots.
+
 - Reuse dependency-invalidated animation segment payloads across loops, skip unchanged scalar writes before allocating replacement rows, and reuse cleared rendering snapshots safely across nested updates. Clip FPS and dynamic frame-function evaluation are unchanged.
 
 - Reduce interpreter overhead with value-type execution results and numeric intermediates, pooled internal call arguments with span-based binding, reusable successful getter/delegate scopes, and lazy delegate/grid subscription state. Native callbacks still receive owned argument arrays, suspended calls retain their scopes, and schema invalidation still resolves replacement implementations.

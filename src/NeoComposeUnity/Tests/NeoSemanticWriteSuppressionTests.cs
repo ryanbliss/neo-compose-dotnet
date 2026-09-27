@@ -23,6 +23,30 @@ namespace NeoCompose.Tests
             "Packages/com.ryanbliss.neocompose/Tests/synth-example.json";
 
         [Test]
+        public void AllocationExperiment_ChangedScalarPreservesPreviousRow()
+        {
+            using var client = NeoTestSaveStack.LoadClient(File.ReadAllText(ProjectFixture));
+            var a = NeoValueWritePayload.FromValue(41d);
+            var b = NeoValueWritePayload.FromValue(42d);
+            client.save.SetSerializedValue("Score", a);
+            var node = client.save.Get<NeoMemberIntWritable>("Score");
+            var old = node.value!;
+            for (int i = 0; i < 100; i++) client.save.SetSerializedValue("Score", (i & 1) == 0 ? b : a);
+            var recorder = UnityEngine.Profiling.Recorder.Get("GC.Alloc");
+            recorder.enabled = false;
+            recorder.FilterToCurrentThread();
+            var watch = new System.Diagnostics.Stopwatch();
+            recorder.enabled = true;
+            watch.Start();
+            try { for (int i = 0; i < 10000; i++) client.save.SetSerializedValue("Score", (i & 1) == 0 ? b : a); }
+            finally { watch.Stop(); recorder.enabled = false; recorder.CollectFromAllThreads(); }
+            TestContext.WriteLine($"Changed scalar: {recorder.sampleBlockCount / 10000d} allocations/write; {watch.Elapsed.TotalMilliseconds / 10d} us/write");
+            client.save.SetSerializedValue("Score", b);
+            Assert.That(old.value, Is.EqualTo(41d), "A retained committed row must not be overwritten by later writes.");
+            Assert.That(node.value!.value, Is.EqualTo(42d));
+        }
+
+        [Test]
         public void RepeatedScalarWrite_DoesNotAllocate()
         {
             using var client = NeoTestSaveStack.LoadClient(File.ReadAllText(ProjectFixture));

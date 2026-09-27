@@ -50,7 +50,7 @@ namespace NeoCompose.Runtime
 
         public object? Invoke(string thisValueId, object?[] args, NeoScriptGridReads? gridReads = null)
         {
-            Invocation invocation = PrepareInvocation(thisValueId, args);
+            Invocation invocation = PrepareInvocation(thisValueId, args, reuseContext: true);
             invocation.Context.gridReads = gridReads;
             if (invocation.Function.Deferred)
             {
@@ -72,6 +72,7 @@ namespace NeoCompose.Runtime
                 throw new NSGetterRuntimeError(
                     $"Non-deferred NSFunction '{invocation.Function.Member.name}' suspended; its compiled IR is stale or corrupt.");
             }
+            client.ReturnDirectFunctionContext(invocation.Context, result.ReturnValue);
             return result.ReturnValue;
         }
 
@@ -105,7 +106,7 @@ namespace NeoCompose.Runtime
         // depends only on this node's member id.
         private CallFunctionPointer? directCallPointer;
 
-        private Invocation PrepareInvocation(string thisValueId, object?[] args)
+        private Invocation PrepareInvocation(string thisValueId, object?[] args, bool reuseContext = false)
         {
             if (string.IsNullOrWhiteSpace(thisValueId))
             {
@@ -120,8 +121,8 @@ namespace NeoCompose.Runtime
                     $"thisValueId '{thisValueId}' was not found in {ownership.ToString().ToLowerInvariant()} values.");
             }
 
-            var ctx = client.CreateGetterContext(ownership);
-            ctx.BindRoot(NeoScriptValueMarshaller.ResolveRoot(client, ctx));
+            var ctx = reuseContext ? client.RentDirectFunctionContext(ownership) : client.CreateGetterContext(ownership);
+            if (!reuseContext) ctx.BindRoot(NeoScriptValueMarshaller.ResolveRoot(client, ctx));
             object? receiver = NSGetterEvaluator.UnwrapRow(row, ctx, ownership);
             if (receiver is null)
             {
@@ -157,7 +158,7 @@ namespace NeoCompose.Runtime
         /// <summary>Invokes a receiverless static NSFunction.</summary>
         public object? InvokeStatic(object?[] args)
         {
-            Invocation invocation = PrepareStaticInvocation(args);
+            Invocation invocation = PrepareStaticInvocation(args, reuseContext: true);
             if (invocation.Function.Deferred)
             {
                 throw new InvalidOperationException(
@@ -177,6 +178,7 @@ namespace NeoCompose.Runtime
                 throw new NSGetterRuntimeError(
                     $"Non-deferred static NSFunction '{invocation.Function.Member.name}' suspended; its compiled IR is stale or corrupt.");
             }
+            client.ReturnDirectFunctionContext(invocation.Context, result.ReturnValue);
             return result.ReturnValue;
         }
 
@@ -205,7 +207,7 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private Invocation PrepareStaticInvocation(object?[] args)
+        private Invocation PrepareStaticInvocation(object?[] args, bool reuseContext = false)
         {
             args ??= Array.Empty<object?>();
             NeoResolvedNSFunction function = NeoNSFunctionRuntime.ResolveSignature(
@@ -216,8 +218,8 @@ namespace NeoCompose.Runtime
                 throw new NSGetterRuntimeError(
                     $"NSFunction '{function.Member.name}' is an instance member and requires a receiver.");
             }
-            var ctx = client.CreateGetterContext(NeoValueOwnership.Session);
-            ctx.BindRoot(NeoScriptValueMarshaller.ResolveRoot(client, ctx));
+            var ctx = reuseContext ? client.RentDirectFunctionContext(NeoValueOwnership.Session) : client.CreateGetterContext(NeoValueOwnership.Session);
+            if (!reuseContext) ctx.BindRoot(NeoScriptValueMarshaller.ResolveRoot(client, ctx));
             return new Invocation(function, receiver: null, ctx);
         }
 
@@ -317,6 +319,7 @@ namespace NeoCompose.Runtime
         // the resolved function is cached per client, so one delegate serves
         // every invocation.
         internal NeoScriptTerminalNormalizer? TerminalNormalizer;
+        internal NeoScriptScopeLayout? ScopeLayout;
 
         // Diagnostic subjects depend only on the signature. Formatting them
         // per call put three string allocations on every invocation.
@@ -475,6 +478,7 @@ namespace NeoCompose.Runtime
             var scope = poolScope
                 ? client.RentFunctionScope(expectedParameters)
                 : new NeoScriptScope(expectedParameters);
+            scope.UseLayout(function.ScopeLayout ??= new NeoScriptScopeLayout(action));
             bool completed = false;
             try
             {

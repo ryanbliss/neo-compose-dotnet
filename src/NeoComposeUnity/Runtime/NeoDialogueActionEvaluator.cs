@@ -509,7 +509,7 @@ namespace NeoCompose.Runtime
                     case VariableInstruction variable:
                         try
                         {
-                            scope[variable.variable.id] = Eval(variable.variable.pointer, scope, actionCtx);
+                            scope.SetEvaluationValue(variable.variable, NSGetterEvaluator.EvaluateValue(variable.variable.pointer, scope, actionCtx));
                         }
                         catch (NeoFunctionCallSuspended suspended)
                         {
@@ -1857,6 +1857,11 @@ namespace NeoCompose.Runtime
         private static void EnsureImmediateHandlers(NeoClient client, NeoScriptExecutionOptions options)
         {
             if (options.immediateCallHandler is not null) return;
+            InitializeImmediateHandlers(client, options);
+        }
+
+        private static void InitializeImmediateHandlers(NeoClient client, NeoScriptExecutionOptions options)
+        {
             options.immediateInitializerHandler = (pointer, scope, ctx) =>
                 EvalObjectInitializer(pointer, scope, ctx, ExpressionResumeState.Immediate, options);
             options.immediateCallHandler = (pointer, scope, ctx) =>

@@ -54,6 +54,9 @@ namespace NeoCompose.Runtime.NeoScript
         private NeoTimestamp? constructionTimestamp;
 
         internal int ActiveExecutionCount => activeExecutions;
+        // Conservative lifetime gate for direct synchronous frame reuse. Any
+        // operation that can retain context state keeps its ordinary lifetime.
+        internal bool ReusableContext = true;
         private List<(string memberId, string? valueId)>? delegateFrames;
         internal List<(string memberId, string? valueId)> DelegateFrames => delegateFrames ??= new();
 
@@ -189,6 +192,7 @@ namespace NeoCompose.Runtime.NeoScript
 
         internal void RegisterSessionRoot(string valueId)
         {
+            ReusableContext = false;
             if (string.IsNullOrEmpty(valueId)) return;
             allocatedRootIds.Add(valueId);
             if (!constructedParentByChildId.ContainsKey(valueId))
@@ -704,7 +708,27 @@ namespace NeoCompose.Runtime.NeoScript
 
             // Invocation-local caches, budget, and handlers intentionally stay shared.
             // Only receiver bindings and immutable call stacks differ between frames.
-            private Context Fork() => (Context)MemberwiseClone();
+            private Context Fork()
+            {
+                allocationTracker.ReusableContext = false;
+                return (Context)MemberwiseClone();
+            }
+
+            internal void ClearDirectInvocation()
+            {
+                thisValue = null;
+                contextValue = null;
+                gridReads = null;
+                initializerPlacement = null;
+                functionCallStack = System.Array.Empty<string>();
+                genericEnvironmentCacheStore?.Clear();
+                immediateExpressionContext = null;
+                immediateExpressionSource = null;
+                immediateExpressionState = null;
+                immediateExpressionOptions = null;
+                linkedFunctionCallHandler = null;
+                objectInitializerHandler = null;
+            }
 
             /// <summary>
             /// Binds the root or receiver on a context no frame has seen yet.
@@ -1115,7 +1139,10 @@ namespace NeoCompose.Runtime.NeoScript
                         NeoDelegateValue value = vp.value.value!
                             .ToObject<NeoDelegateValue>()!;
                         if (value.IsClosure)
+                        {
+                            ctx.allocationTracker.ReusableContext = false;
                             return value.Capture(ctx.thisValue, ctx.rootValue);
+                        }
 
                         // Bind implicit and explicit this.Member literals at creation,
                         // as the web evaluator does. Invocation may have a different this.
@@ -1150,11 +1177,12 @@ namespace NeoCompose.Runtime.NeoScript
                 }
                 case VariablePointer vrp:
                 {
-                    if (!scope.TryGetValue(vrp.variableId, out var v))
+                    if (!scope.TryGetEvaluationValue(vrp, out var stored))
                     {
                         throw new NSGetterRuntimeError(
                             $"Variable '{vrp.variableId}' is not in scope");
                     }
+                    var v = stored.Box();
                     // Row-backed list aliases retain provenance even when a
                     // mutation replaces their fixed-size CLR array.
                     if (v is object?[] && ctx.rowReverseIndex.TryGetValue(v, out RowReference listRef)
@@ -1353,6 +1381,7 @@ namespace NeoCompose.Runtime.NeoScript
                 }
                 case DelegateClosurePointer closurePointer:
                 {
+                    ctx.allocationTracker.ReusableContext = false;
                     Pointer[] capturePointers =
                         closurePointer.captures ?? Array.Empty<Pointer>();
                     var captures = new object?[capturePointers.Length];
@@ -1460,6 +1489,7 @@ namespace NeoCompose.Runtime.NeoScript
 
         internal static object? InvokeNativeFunction(string memberId, object? receiver, object?[] args, Context ctx)
         {
+            ctx.allocationTracker.ReusableContext = false;
             if (NeoCellPatternRuntime.TryInvoke(memberId, receiver, args, ctx, out object? result)) return result;
             if (ctx.client.ScriptGridQueries.TryInvoke(memberId, receiver, args, ctx, out result)) return result;
             return NormalizeNativeResult(memberId, ctx.client.InvokeNativeFunction(memberId, receiver, args), ctx);
@@ -2922,7 +2952,7 @@ namespace NeoCompose.Runtime.NeoScript
         // Numeric intermediates remain values on the C# stack. Only crossing
         // back into the reference-valued interpreter requires a box. Strings,
         // decimal math and mixed operands retain the shared conversion path.
-        private readonly struct ArithmeticValue
+        internal readonly struct ArithmeticValue
         {
             internal readonly double Number;
             internal readonly bool IsNumber;
@@ -2936,17 +2966,24 @@ namespace NeoCompose.Runtime.NeoScript
             internal object? Box() => reference ?? (IsNumber ? (object)Number : null);
         }
 
-        private static ArithmeticValue EvalArithmeticOperand(Pointer pointer, NeoScriptScope scope, Context ctx)
-            => pointer is OperationPointer { operation: ArithmeticOperation arithmetic }
-                ? EvalArithmetic(arithmetic.arithmetic, scope, ctx)
-                : new ArithmeticValue(EvalPointer(pointer, scope, ctx));
+        internal static ArithmeticValue EvaluateValue(Pointer pointer, NeoScriptScope scope, Context ctx)
+        {
+            if (pointer is OperationPointer { operation: ArithmeticOperation arithmetic })
+                return EvalArithmetic(arithmetic.arithmetic, scope, ctx);
+            if (pointer is VariablePointer variable
+                && scope.TryGetEvaluationValue(variable, out var value) && value.IsNumber)
+                return value;
+            // Non-numeric reads retain row-alias refresh and all ordinary
+            // interpreter semantics at the shared pointer boundary.
+            return new ArithmeticValue(EvalPointer(pointer, scope, ctx));
+        }
 
         private static ArithmeticValue EvalArithmetic(ArithmeticOpInfo info, NeoScriptScope scope, Context ctx)
         {
             if (info.pointers.Length == 2 && info.isDecimal != true)
             {
-                var left = EvalArithmeticOperand(info.pointers[0], scope, ctx);
-                var right = EvalArithmeticOperand(info.pointers[1], scope, ctx);
+                var left = EvaluateValue(info.pointers[0], scope, ctx);
+                var right = EvaluateValue(info.pointers[1], scope, ctx);
                 if (left.IsNumber && right.IsNumber)
                     return new ArithmeticValue(ApplyNumericArithmetic(info.type, left.Number, right.Number));
                 return new ArithmeticValue(ApplyArithmetic(info.type, new[] { left.Box(), right.Box() }, false, ctx));
@@ -2959,7 +2996,7 @@ namespace NeoCompose.Runtime.NeoScript
                 bool numeric = info.isDecimal != true && info.pointers.Length > 0;
                 for (int i = 0; i < info.pointers.Length; i++)
                 {
-                    operands[i] = EvalArithmeticOperand(info.pointers[i], scope, ctx);
+                    operands[i] = EvaluateValue(info.pointers[i], scope, ctx);
                     numeric &= operands[i].IsNumber;
                 }
                 if (numeric)

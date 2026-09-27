@@ -775,6 +775,7 @@ namespace NeoCompose.Runtime
             {
                 resolvedNSFunctions.Clear();
                 functionScopePool?.Clear();
+                directFunctionContexts.Clear();
             }
             animationCoordinator.Dispose();
             animationClips.Clear();
@@ -945,13 +946,61 @@ namespace NeoCompose.Runtime
         private const int SharedRowCacheLimit = 8192;
         private static readonly Unity.Profiling.ProfilerMarker EvaluationRowRefreshMarker = new("NeoCompose.Evaluation.RefreshRow");
 
+        private void InvalidateSharedEvaluationContext()
+        {
+            sharedEvaluationContext = null;
+            lock (resolvedNSFunctionsLock) directFunctionContexts.Clear();
+        }
+
+        private readonly Stack<NeoScript.NSGetterEvaluator.Context> directFunctionContexts = new();
+
+        internal NeoScript.NSGetterEvaluator.Context RentDirectFunctionContext(NeoValueOwnership ownership)
+        {
+            lock (resolvedNSFunctionsLock)
+            {
+                while (directFunctionContexts.Count > 0)
+                {
+                    var context = directFunctionContexts.Pop();
+                    if (context.valueOwnership == ownership && !isReplayingVirtualInstance
+                        && sharedEvaluationContext is not null
+                        && ReferenceEquals(context.rowUnwrapCache, sharedEvaluationContext.rowUnwrapCache)
+                        && sharedEvaluationContext.rowUnwrapCache.Count <= SharedRowCacheLimit)
+                        return context;
+                }
+            }
+            var created = CreateGetterContext(ownership);
+            created.BindRoot(NeoScriptValueMarshaller.ResolveRoot(this, created));
+            return created;
+        }
+
+        internal void ReturnDirectFunctionContext(NeoScript.NSGetterEvaluator.Context context, object? result)
+        {
+            if (isDisposed || !context.allocationTracker.ReusableContext
+                || context.allocationTracker.ActiveExecutionCount != 0
+                || result is not (null or string or bool or byte or short or int or long or float or double or decimal)
+                || isReplayingVirtualInstance) return;
+            context.ClearDirectInvocation();
+            lock (resolvedNSFunctionsLock)
+            {
+                // A write callback may invalidate the graph while this frame
+                // is checked out. Never put that old graph back into the pool.
+                if (!isDisposed && sharedEvaluationContext is not null
+                    && ReferenceEquals(context.rowUnwrapCache, sharedEvaluationContext.rowUnwrapCache)
+                    && directFunctionContexts.Count < MaxPooledFunctionScopes)
+                    directFunctionContexts.Push(context);
+            }
+        }
+
         internal NeoScript.NSGetterEvaluator.Context CreateGetterContext(NeoValueOwnership ownership)
         {
             if (isReplayingVirtualInstance)
                 return new NeoScript.NSGetterEvaluator.Context(this, null, null, valueOwnership: ownership);
             var shared = sharedEvaluationContext;
             if (shared is null || shared.rowUnwrapCache.Count > SharedRowCacheLimit)
+            {
+                InvalidateSharedEvaluationContext();
                 shared = sharedEvaluationContext = new NeoScript.NSGetterEvaluator.Context(this, null, null);
+            }
             return new NeoScript.NSGetterEvaluator.Context(this, null, null,
                 valueOwnership: ownership,
                 rowUnwrapCache: shared.rowUnwrapCache,
@@ -1785,7 +1834,7 @@ namespace NeoCompose.Runtime
             authoredClassOwnedRoots = null;
             InvalidateGetterMemo();
             worldClassIds.Clear();
-            sharedEvaluationContext = null;
+            InvalidateSharedEvaluationContext();
             worldKindByClass.Clear();
             ScriptSchemaPlacements.Clear();
             ScriptCallableDispatch.Clear();
@@ -5265,7 +5314,7 @@ namespace NeoCompose.Runtime
             {
                 InitializeVirtualInstanceValuesForLoadedRows(rows.Values);
             }
-            sharedEvaluationContext = null;
+            InvalidateSharedEvaluationContext();
             OnValuePartitionChanged?.Invoke(mapKey);
         }
 
@@ -5306,7 +5355,7 @@ namespace NeoCompose.Runtime
             InvalidateGetterMemo();
             loadedPartitionRowIds.Remove(mapKey);
             if (authoredOwnershipBuilt) BuildAuthoredOwnershipMap();
-            sharedEvaluationContext = null;
+            InvalidateSharedEvaluationContext();
             OnValuePartitionChanged?.Invoke(mapKey);
         }
 
@@ -8327,7 +8376,7 @@ namespace NeoCompose.Runtime
             // `DeserializeSaveData` returns null on empty/whitespace without throwing,
             // so a null/empty resolution still needs the default-build fallback.
             saveData = parsed ?? BuildDefaultSaveData();
-            sharedEvaluationContext = null;
+            InvalidateSharedEvaluationContext();
             saveData.values ??= new();
             saveData.staticBindings ??= new();
             try
