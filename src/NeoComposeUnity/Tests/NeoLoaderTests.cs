@@ -81,6 +81,21 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void NeoLoader_CommitStampsTheSnapshotItComparedAndThenSkipsANoOp()
+        {
+            var stack = NeoTestSaveStack.Create(LoadFixture("synth-example.json"));
+            var client = stack.Load();
+            client.CommitAsync().GetAwaiter().GetResult();
+
+            // The stamped header must match a full re-serialize exactly.
+            string committed = stack.PersistedContent()!;
+            Assert.AreEqual(client.SerializeSaveData(), committed);
+
+            client.CommitAsync().GetAwaiter().GetResult();
+            Assert.AreEqual(committed, stack.PersistedContent());
+        }
+
+        [Test]
         public void NeoLoader_ClearsSaveDiagnosticsWhenDisabledAtRuntime()
         {
             var stack = NeoTestSaveStack.Create(LoadFixture("synth-example.json"));

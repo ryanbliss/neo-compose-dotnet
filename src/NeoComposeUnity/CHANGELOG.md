@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.44.0] - 2026-09-28
+
+- **Breaking:** remove the NeoScript execution budget. `NeoScriptExecutionBudgetLimits` and `NeoScriptResourceLimitError` are gone, and `NSGetterEvaluator.Context` no longer takes an `executionBudgetLimits` argument. Loops, collection operators, `List.Repeat`, string building and constructors run to completion. The budget capped a whole top-level call, so Neowyn's `World.ProcessSleep` failed at 144 plants with "NeoScript produced collection entry limit of 10000 exceeded" because its grid queries added up across every plant. The bookkeeping cost allocations on every call as well. The web evaluator still has the budget, so the shared parity case "nested loops share the top-level iteration budget" now runs to completion here.
+
+- Re-applying the variant an object already has no longer replays the object. `ToVariant` still runs the variant's Apply and clears the members the variant answers, but when that pins and clears nothing, the object's expansion is already current and the replay (which re-runs its Initialize) is skipped. In Neowyn's nightly `RefreshVariant` at 72 plants, replay time fell from 134 ms to 2 ms.
+
+- Commits serialize the save once. The no-op check, the written content and the next commit's baseline now share one snapshot instead of serializing and re-parsing the whole save three times. At 72 Neowyn plants a commit fell from 212 ms to 115 ms and its allocations from 79 MB to 36 MB.
+
+- **Behavior change:** a changed object keeps its GameObject. The renderer used to despawn and respawn an object for any change to its own row, re-running `OnObjectSpawned` and dropping components and animation state that game code had added. It now updates the existing GameObject in place (placement cell, sort point, sprites, visibility) unless the change alters what the hierarchy is built from: its composition children, their names, sprite sizes, sorting groups or colliders. `NeoObjectBehaviour.Cell` now follows the instance's current cell.
+
 ## [0.43.4] - 2026-09-27
 
 - The incremental export cursor no longer sends `versionsStamp`. It is version metadata, not document position, and the server now ignores it (P94). Sync states saved by earlier versions still load; the stored stamp is dropped. Requires a Neo Compose server that accepts a cursor without the stamp.

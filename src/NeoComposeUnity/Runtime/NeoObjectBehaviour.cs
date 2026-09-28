@@ -21,10 +21,14 @@ namespace NeoCompose.Runtime
         /// Called by <see cref="NeoTileGridRenderer"/> after an object
         /// instance's root GameObject is fully built (composition children,
         /// authored collider, sprite fallback) — safe to add components such
-        /// as Rigidbody2D. Play mode only, and NOT once-per-instance: instance
-        /// data changes despawn and respawn the GameObject, so this can run
+        /// as Rigidbody2D. Play mode only, and NOT once-per-instance: a data
+        /// change that alters what the hierarchy is built from (its
+        /// composition children, names, sprite sizes, sorting groups or
+        /// colliders) despawns and respawns the GameObject, so this can run
         /// again with a fresh <see cref="NeoObjectBehaviour"/> for the same
-        /// <see cref="NeoObjectBehaviour.InstanceId"/>.
+        /// <see cref="NeoObjectBehaviour.InstanceId"/>. Any other data change,
+        /// including position, sprite, flip and <c>Enabled</c> writes, updates
+        /// the existing GameObject in place.
         /// <para>
         /// The whole subtree is still active when this runs, including objects
         /// whose <see cref="INeoWorldObjectValue.Enabled"/> is false — the
@@ -78,10 +82,10 @@ namespace NeoCompose.Runtime
         /// <summary>The renderer that spawned this GameObject.</summary>
         public NeoTileGridRenderer Renderer { get; private set; } = null!;
 
-        /// <summary>The instance's placement cell at spawn time.</summary>
+        /// <summary>The instance's placement cell as of the renderer's last update.</summary>
         public Vector2Int Cell
         {
-            get; private set;
+            get; internal set;
         }
 
         /// <summary>Typed access to <see cref="Object"/>.</summary>

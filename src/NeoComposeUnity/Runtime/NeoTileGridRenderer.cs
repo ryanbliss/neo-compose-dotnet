@@ -118,6 +118,8 @@ namespace NeoCompose.Runtime
         // paired with the value that governs it. See SyncObjectSprites.
         private readonly Dictionary<NeoObjectInstanceId, List<RenderedObjectSprite>>
             objectSpritesByInstanceId = new();
+        private readonly Dictionary<NeoObjectInstanceId, RenderedObjectShape>
+            objectShapesByInstanceId = new();
         private readonly Dictionary<string, int> objectLayerFallbackSortingOrdersByLayerId = new();
         private RendererSmartTileNeighborMatcher? smartTileMatcher;
         private NeoTileGridRenderSession? liveSession;
@@ -357,6 +359,124 @@ namespace NeoCompose.Runtime
             {
                 disposed = true;
                 subscription.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// Everything an instance's GameObject hierarchy was built from, in
+        /// build order. What the renderer already keeps live (positions, sort
+        /// points, sprites, flips, sorting offsets, visibility) is left out, so
+        /// a change that leaves this shape intact updates the existing
+        /// GameObject instead of rebuilding it.
+        /// </summary>
+        private sealed class RenderedObjectShape
+        {
+            private static readonly object CompositionEnd = new();
+
+            private readonly List<object?> parts = new();
+
+            public RenderedObjectShape(
+                IReadOnlyNeoObjectLayerRuntime layer,
+                INeoValueReference value,
+                SortPointPair? sortPoint)
+            {
+                SortPoint = sortPoint;
+                parts.Add(layer);
+                parts.Add(value);
+                AddSortingGroup(value);
+                int rendered = AddComposition(value, new HashSet<string>(), 0);
+                AddCollider(value);
+                // BuildObjectRoot's sprite fallback.
+                if (rendered == 0 && value is INeoSpriteObjectValue sprite)
+                    parts.Add(CellSpanFromSize(sprite.Size));
+            }
+
+            /// <summary>The root's sort point pair, or null when it is ungrouped.</summary>
+            public SortPointPair? SortPoint
+            {
+                get;
+            }
+
+            public bool Matches(RenderedObjectShape other)
+            {
+                if (parts.Count != other.parts.Count)
+                    return false;
+                for (int i = 0; i < parts.Count; i++)
+                {
+                    object? left = parts[i];
+                    object? right = other.parts[i];
+                    if (ReferenceEquals(left, right))
+                        continue;
+                    // Values compare by value; every other reference is an
+                    // identity the built hierarchy is bound to.
+                    if (left is null || right is null
+                        || !(left is string || left.GetType().IsValueType)
+                        || !left.Equals(right))
+                        return false;
+                }
+                return true;
+            }
+
+            // Mirrors RenderObjectComposition.
+            private int AddComposition(
+                INeoValueReference value,
+                HashSet<string> visitedValueIds,
+                int depth)
+            {
+                if (depth > NeoReadOnlyTileGridPrimitive.MaxCompositionDepth)
+                    return 0;
+                if (value is not INeoObjectCompositionSource composition)
+                    return 0;
+                var valueId = value.valueId;
+                var hasValueId = !string.IsNullOrEmpty(valueId);
+                if (hasValueId && !visitedValueIds.Add(valueId!))
+                    return 0;
+                var rendered = 0;
+                foreach (var child in composition.Children)
+                {
+                    if (child != null)
+                        rendered += AddChild(child, visitedValueIds, depth);
+                }
+                if (hasValueId)
+                    visitedValueIds.Remove(valueId!);
+                parts.Add(CompositionEnd);
+                return rendered;
+            }
+
+            // Mirrors RenderObjectChild.
+            private int AddChild(
+                INeoWorldObjectValue child,
+                HashSet<string> visitedValueIds,
+                int depth)
+            {
+                parts.Add(child);
+                if (child is INeoTileLayerLinkValue)
+                    return 0;
+                parts.Add(child.Name);
+                if (child is INeoSpriteObjectValue sprite)
+                {
+                    parts.Add(CellSpanFromSize(sprite.Size));
+                    return 1;
+                }
+                AddSortingGroup(child);
+                var rendered = AddComposition(child, visitedValueIds, depth + 1);
+                if (AddCollider(child))
+                    rendered++;
+                return rendered;
+            }
+
+            private void AddSortingGroup(INeoValueReference value) =>
+                parts.Add(value is INeoSortingGroupSource { SortingGroup: { } group } ? group.SortAtRoot : null);
+
+            private bool AddCollider(INeoValueReference value)
+            {
+                if (value is INeoColliderSource source && TryResolveObjectColliderSpec(source, out var spec))
+                {
+                    parts.Add(spec);
+                    return true;
+                }
+                parts.Add(null);
+                return false;
             }
         }
 
@@ -1224,18 +1344,47 @@ namespace NeoCompose.Runtime
                 }
                 // Reevaluate lifecycle filters, while retaining controllers and
                 // animation on an object that remains visible after moving.
-                if (change.PositionsOnly && objectRootsByInstanceId.TryGetValue(instanceId, out var existing)
-                    && existing != null)
+                if (objectRootsByInstanceId.TryGetValue(instanceId, out var existing) && existing != null
+                    && (change.PositionsOnly || TryUpdateRenderedObject(existing, layer, resolved)))
+                {
+                    if (existing.TryGetComponent(out NeoObjectBehaviour behaviour))
+                        behaviour.Cell = resolved.Cell;
                     continue;
+                }
                 DestroyRenderedObject(instanceId);
                 objectRootsByInstanceId[instanceId] =
                     SpawnObject(root.transform, layer, resolved, fallbackSortingOrder);
             }
         }
 
+        /// <summary>
+        /// Updates a changed instance's existing GameObject when its hierarchy
+        /// would be rebuilt identically, leaving spawn hooks, added components
+        /// and playing animation alone. The watchers installed at spawn already
+        /// track positions, sprites and visibility; this re-reads them once
+        /// more, and places the root at the cell a respawn would have used.
+        /// </summary>
+        /// <returns>False when the GameObject must be rebuilt.</returns>
+        private bool TryUpdateRenderedObject(
+            GameObject root,
+            IReadOnlyNeoObjectLayerRuntime layer,
+            NeoObjectProjection instance)
+        {
+            var instanceId = instance.InstanceId;
+            if (!objectShapesByInstanceId.TryGetValue(instanceId, out var shape)
+                || !shape.Matches(new RenderedObjectShape(layer, instance.Object, null)))
+                return false;
+            root.transform.localPosition = CellToLocalPosition(instance.Cell);
+            shape.SortPoint?.Apply();
+            SyncObjectSprites(instanceId);
+            SyncObjectVisibility(instanceId);
+            return true;
+        }
+
         private void DestroyRenderedObject(NeoObjectInstanceId instanceId)
         {
             DisposeObjectPositionSubscription(instanceId);
+            objectShapesByInstanceId.Remove(instanceId);
             objectSpritesByInstanceId.Remove(instanceId);
             objectVisibilityByInstanceId.Remove(instanceId, out var visibility);
             if (!objectRootsByInstanceId.TryGetValue(instanceId, out var root) ||
@@ -1508,6 +1657,7 @@ namespace NeoCompose.Runtime
                 visibility.Dispose();
             objectVisibilityByInstanceId.Clear();
             objectSpritesByInstanceId.Clear();
+            objectShapesByInstanceId.Clear();
             objectLayerFallbackSortingOrdersByLayerId.Clear();
         }
 
@@ -1839,17 +1989,12 @@ namespace NeoCompose.Runtime
                     colliderSpec.Size * cellSize,
                     colliderSpec.Offset * cellSize,
                     colliderSpec.IsTrigger));
-                if (renderedChildren > 0)
-                    return go;
             }
 
-            if (renderedChildren > 0)
-                return go;
-
-            if (instance.Object is not INeoSpriteObjectValue spriteObject)
-                return go;
-
-            RenderSpriteChild(content, layer, spriteObject, Vector3.zero, sortingOrder, sprites);
+            if (renderedChildren == 0 && instance.Object is INeoSpriteObjectValue spriteObject)
+                RenderSpriteChild(content, layer, spriteObject, Vector3.zero, sortingOrder, sprites);
+            objectShapesByInstanceId[instance.InstanceId] =
+                new RenderedObjectShape(layer, instance.Object, sortPoint);
             return go;
         }
 

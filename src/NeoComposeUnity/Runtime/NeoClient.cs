@@ -7925,13 +7925,15 @@ namespace NeoCompose.Runtime
             return JsonConvert.DeserializeObject<ProjectSaveData>(json);
         }
 
-        public string SerializeSaveData()
+        public string SerializeSaveData() => SaveSnapshot().ToString(Formatting.None);
+
+        private JObject SaveSnapshot()
         {
             var snapshot = JObject.FromObject(saveData);
             if (snapshot["values"] is JObject values)
                 foreach (var pair in saveData.values)
                     RemoveSessionFieldLinks(pair.Value, values[pair.Key]);
-            return snapshot.ToString(Formatting.None);
+            return snapshot;
         }
 
         private void RemoveSessionFieldLinks(MemberValue value, JToken? snapshot)
@@ -7948,20 +7950,33 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private bool SaveHasSemanticChanges()
+        private void CaptureCommittedSaveState()
         {
-            if (committedSaveSemanticState is null)
-                return true;
-            var current = JObject.Parse(SerializeSaveData());
-            return !JToken.DeepEquals(
-                committedSaveSemanticState,
-                NeoSemanticJson.SaveEnvelope(current));
+            committedSaveState = SaveSnapshot();
+            committedSaveSemanticState = NeoSemanticJson.SaveEnvelope(committedSaveState);
         }
 
-        private void CaptureCommittedSaveState(string? content = null)
+        /// <summary>
+        /// Copies the header fields a commit stamps after its no-op check into
+        /// the snapshot that check already built, so the save serializes once.
+        /// </summary>
+        private void StampSaveHeader(JObject snapshot, JObject semantic)
         {
-            committedSaveState = JObject.Parse(content ?? SerializeSaveData());
-            committedSaveSemanticState = NeoSemanticJson.SaveEnvelope(committedSaveState);
+            snapshot["updatedAt"] = JToken.FromObject(saveData.updatedAt);
+            StampSaveHeaderField(snapshot, semantic, "platforms", saveData.platforms);
+            StampSaveHeaderField(snapshot, semantic, "systems", saveData.systems);
+            StampSaveHeaderField(snapshot, semantic, "inputDevices", saveData.inputDevices);
+        }
+
+        private static void StampSaveHeaderField(
+            JObject snapshot,
+            JObject semantic,
+            string name,
+            object? value)
+        {
+            var token = value is null ? JValue.CreateNull() : JToken.FromObject(value);
+            snapshot[name] = token;
+            semantic[name] = NeoSemanticJson.Canonicalize(token);
         }
 
         /// <summary>
@@ -8108,7 +8123,12 @@ namespace NeoCompose.Runtime
             bool warnUnlinked,
             bool flushLiveImmediately)
         {
-            if (!SaveHasSemanticChanges())
+            // One snapshot serves the no-op check, the committed content and
+            // the next commit's baseline.
+            var snapshot = SaveSnapshot();
+            var semantic = (JObject)NeoSemanticJson.SaveEnvelope(snapshot);
+            if (committedSaveSemanticState is not null
+                && JToken.DeepEquals(committedSaveSemanticState, semantic))
             {
                 RestoreCommittedSaveMetadata();
                 return;
@@ -8130,7 +8150,8 @@ namespace NeoCompose.Runtime
             var savedAt = NeoTimestamp.Now();
             saveData.updatedAt = savedAt;
             CaptureSaveDiagnostics(savedAt);
-            var content = SerializeSaveData();
+            StampSaveHeader(snapshot, semantic);
+            var content = snapshot.ToString(Formatting.None);
             if (loader is NeoSaveSynchronizer synchronizer)
             {
                 await synchronizer.CommitSaveContentAsync(
@@ -8138,12 +8159,13 @@ namespace NeoCompose.Runtime
                     replaceSnapshot,
                     flushLiveImmediately,
                     useTrackedMutations: true);
-                CaptureCommittedSaveState(content);
-                return;
             }
-
-            await loader.CommitSaveContentAsync(content, replaceSnapshot);
-            CaptureCommittedSaveState(content);
+            else
+            {
+                await loader.CommitSaveContentAsync(content, replaceSnapshot);
+            }
+            committedSaveState = snapshot;
+            committedSaveSemanticState = semantic;
         }
 
         public int RunGarbageCollector()

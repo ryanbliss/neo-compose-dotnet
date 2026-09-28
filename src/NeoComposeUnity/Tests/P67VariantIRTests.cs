@@ -294,6 +294,63 @@ namespace NeoCompose.Tests
                 "re-applying must not grow the session");
         }
 
+        /// <summary>
+        /// Re-applying the current variant is how a game refreshes an object
+        /// whose state may not have moved it (a plant's nightly stage check).
+        /// With nothing pinned over its declarative layer there is nothing to
+        /// replay or publish. A pin it answers is still cleared.
+        /// </summary>
+        [Test]
+        public void VariantApply_ReapplyingTheCurrentVariantChangesOnlyWhatItAnswers()
+        {
+            using NeoClient client = LoadClient();
+            NSGetterEvaluator.Context ctx = Context(client);
+            string targetId = NewSessionInstance(client);
+            object? ApplyPlain() => NSGetterEvaluator.Evaluate(
+                Getter(Return(VariantApplyPointer(
+                    Reference(targetId),
+                    VariantRef(WidgetClassId, "variant-plain")))),
+                ctx);
+            // Replays are observable only as time under their marker.
+            using var replays = new global::Unity.Profiling.ProfilerRecorder(
+                global::Unity.Profiling.ProfilerCategory.Scripts,
+                "NeoCompose.Replay.Root",
+                1,
+                global::Unity.Profiling.ProfilerRecorderOptions.WrapAroundWhenCapacityReached
+                    | global::Unity.Profiling.ProfilerRecorderOptions.SumAllSamplesInFrame);
+            replays.Start();
+            ApplyPlain();
+            long replayed = replays.CurrentValue;
+            Assert.Greater(replayed, 0, "moving to a new variant replays the root");
+            Assert.AreEqual("plain", ReadRowLabel(client, targetId));
+            int sessionRows = client.sessionValues.Count;
+            int changes = 0;
+            client.OnWritableValueChanged += (_, __) => changes++;
+
+            ApplyPlain();
+
+            Assert.AreEqual(replayed, replays.CurrentValue, "re-applying replays nothing");
+            Assert.AreEqual(0, changes, "an unchanged re-application publishes nothing");
+            Assert.AreEqual("plain", ReadRowLabel(client, targetId));
+            Assert.AreEqual(sessionRows, client.sessionValues.Count);
+
+            var member = new ClassMember
+            {
+                id = "pinned-widget-view",
+                name = "PinnedWidget",
+                kind = MemberKind.Class,
+                classId = WidgetClassId,
+            };
+            using (var view = new NeoMemberClassWritable(client, member, targetId, NeoValueOwnership.Session))
+                view.Get<NeoMemberStringWritable>("Label").Set("pinned");
+            Assert.AreEqual("pinned", ReadRowLabel(client, targetId));
+
+            ApplyPlain();
+
+            Assert.AreEqual("plain", ReadRowLabel(client, targetId), "the answered pin clears");
+            Assert.AreEqual(sessionRows, client.sessionValues.Count);
+        }
+
         // -------------------------------------------------------------------
         // P68 §4 — the row argument through both evaluator intrinsics.
         // -------------------------------------------------------------------

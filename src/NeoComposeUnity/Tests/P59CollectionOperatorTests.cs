@@ -25,6 +25,56 @@ namespace NeoCompose.Tests
         private static readonly int[] SourceCounts =
             { 0, 10, 1_000, 10_000, 100_000 };
 
+        [TestCase(false, false)]
+        [TestCase(false, true)]
+        [TestCase(true, false)]
+        [TestCase(true, true)]
+        public void EmptyCollection_ReturnsEmptyResult(
+            bool dictionary,
+            bool select)
+        {
+            object? result = Evaluate(
+                BuildOperator(
+                    Collection(dictionary),
+                    select ? CallbackKind.Select : CallbackKind.MatchAll));
+
+            Assert.AreEqual(0, ResultCount(result));
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void SparseWhere_ContainsOnlyMatchesAndNoDefaultEntries(
+            bool dictionary)
+        {
+            Pointer source = dictionary
+                ? Collection(
+                    true,
+                    ("first", "drop"),
+                    ("second", "keep"),
+                    ("third", "drop"))
+                : Collection(
+                    false,
+                    ("0", "drop"),
+                    ("1", "keep"),
+                    ("2", "drop"));
+
+            object? result = Evaluate(
+                BuildOperator(source, CallbackKind.MatchKeep));
+
+            if (dictionary)
+            {
+                var filtered = (IDictionary<string, object?>)result!;
+                CollectionAssert.AreEqual(new[] { "second" }, filtered.Keys);
+                CollectionAssert.AreEqual(new object?[] { "keep" }, filtered.Values);
+            }
+            else
+            {
+                CollectionAssert.AreEqual(
+                    new object?[] { "keep" },
+                    (object?[])result!);
+            }
+        }
+
         [Test]
         public void Where_ReemitsStoredValueIdsInSourceOrder()
         {
