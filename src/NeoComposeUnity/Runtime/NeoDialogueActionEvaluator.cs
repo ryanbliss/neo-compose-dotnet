@@ -61,8 +61,6 @@ namespace NeoCompose.Runtime
     /// </summary>
     internal static class NeoScriptExecutor
     {
-        internal const int MaxLoopIterations = 10_000;
-
         internal static NeoScriptExecutionResult Execute(
             NeoClient client,
             FunctionWithReturnType body,
@@ -86,7 +84,6 @@ namespace NeoCompose.Runtime
             bool exited = false;
             try
             {
-                ctx.allocationTracker.ConsumeWorkUnit();
                 NeoScriptExecutionResult result = ExecuteInstructions(
                     client,
                     body.instructions,
@@ -278,7 +275,6 @@ namespace NeoCompose.Runtime
                     throw new ObjectDisposedException(
                         nameof(PreparedCallback));
                 }
-                ctx.allocationTracker.ConsumeWorkUnit();
                 NeoScriptExecutionResult result = ExecuteInstructions(
                     client,
                     body.instructions,
@@ -502,7 +498,6 @@ namespace NeoCompose.Runtime
             }
             for (int i = startIndex; i < instructions.Length; i++)
             {
-                ctx.allocationTracker.ConsumeWorkUnit();
                 var instruction = instructions[i];
                 // A callSiteId identifies a source location, not one dynamic
                 // invocation. Reset only the per-attempt occurrence counters
@@ -838,7 +833,6 @@ namespace NeoCompose.Runtime
                                     returned: false,
                                     returnValue: null);
                             }
-                            ctx.allocationTracker.ConsumeLoopIteration();
                             state.MoveTo(ForPhase.Body);
                             continue;
                         }
@@ -1076,7 +1070,6 @@ namespace NeoCompose.Runtime
                         returnValue: null);
                 }
 
-                ctx.allocationTracker.ConsumeLoopIteration();
                 scope[state.Instruction.binding.id] =
                     CoerceSetterValue(
                         state.Snapshot[state.Index].Resolve(ctx),
@@ -2214,11 +2207,6 @@ namespace NeoCompose.Runtime
             {
                 args[i] = Eval(instruction.args[i], scope, ctx);
             }
-            if (instruction.mutation == CollectionMutationKind.Add)
-            {
-                ctx.allocationTracker.ConsumeProducedCollectionEntry();
-            }
-
             if (instruction.target.pointer is VariablePointer variablePointer)
             {
                 if (!scope.TryGetValue(variablePointer.variableId, out var local))
@@ -2469,7 +2457,6 @@ namespace NeoCompose.Runtime
                     }
                     else
                     {
-                        ctx.allocationTracker.ConsumeWorkUnit();
                         bool deferred = client.IsNativeFunctionDeferred(memberId);
                         if (!deferred)
                         {
@@ -3548,7 +3535,6 @@ namespace NeoCompose.Runtime
                     {
                         foreach (object? entry in list)
                         {
-                            ctx.allocationTracker.ConsumeCollectionVisit();
                             if (JsEqual(entry, args[0]))
                                 return;
                         }
@@ -3558,7 +3544,6 @@ namespace NeoCompose.Runtime
                 case CollectionMutationKind.Remove:
                     for (int i = 0; i < list.Count; i++)
                     {
-                        ctx.allocationTracker.ConsumeCollectionVisit();
                         object? entry = entryMember is null
                             ? list[i]
                             : NSGetterEvaluator.ResolveValueIfId(list[i], ctx, member: entryMember);
@@ -3572,7 +3557,6 @@ namespace NeoCompose.Runtime
                     list.RemoveAt(ToInt(args[0], "RemoveAt index"));
                     return;
                 case CollectionMutationKind.Clear:
-                    ctx.allocationTracker.ConsumeCollectionVisit(list.Count);
                     list.Clear();
                     return;
                 default:
@@ -3595,7 +3579,6 @@ namespace NeoCompose.Runtime
                     dict.Remove(ToStringKey(args[0], "Dictionary Remove key"));
                     return;
                 case CollectionMutationKind.Clear:
-                    ctx.allocationTracker.ConsumeCollectionVisit(dict.Count);
                     dict.Clear();
                     return;
                 default:
@@ -4604,7 +4587,6 @@ namespace NeoCompose.Runtime
                             ? id : null;
                         foreach (string entryId in list.ResolveEntryValueIds())
                         {
-                            ctx.allocationTracker.ConsumeCollectionVisit();
                             if (entryId == removeId || (removeId is null
                                 && client.TryGetValue(ownership, entryId, out MemberValue? entry)
                                 && JsEqual(ReadEntryValue(entry, list.EntryMember, ctx), args[0])))
@@ -4615,7 +4597,6 @@ namespace NeoCompose.Runtime
                         }
                         break;
                     case CollectionMutationKind.Clear:
-                        ctx.allocationTracker.ConsumeCollectionVisit(list.Count);
                         list.ClearSerialized();
                         break;
                     default:
@@ -4730,7 +4711,6 @@ namespace NeoCompose.Runtime
                                         : null;
                                 for (int i = 0; i < row.value.Length; i++)
                                 {
-                                    ctx.allocationTracker.ConsumeCollectionVisit();
                                     if (referenceId != null && row.value[i] == referenceId)
                                     {
                                         RemoveAt(plan, client, ownership, row, i, now, entryTypeInfo, ctx);
@@ -4748,8 +4728,6 @@ namespace NeoCompose.Runtime
                         case CollectionMutationKind.Clear:
                             {
                                 var removedIds = row.value;
-                                ctx.allocationTracker.ConsumeCollectionVisit(
-                                    removedIds.Length);
                                 row.value = Array.Empty<string>();
                                 row.updatedAt = now;
                                 StoreWritableRow(plan, ownership, row, ctx);
@@ -4828,7 +4806,6 @@ namespace NeoCompose.Runtime
                                 string selectionId = ResolveLookupSelectionId(client, typeInfo, args[0], ctx);
                                 foreach (string existingId in row.value)
                                 {
-                                    ctx.allocationTracker.ConsumeCollectionVisit();
                                     if (existingId == selectionId)
                                         return;
                                 }
@@ -4846,7 +4823,6 @@ namespace NeoCompose.Runtime
                                 int index = -1;
                                 for (int i = 0; i < row.value.Length; i++)
                                 {
-                                    ctx.allocationTracker.ConsumeCollectionVisit();
                                     if (row.value[i] == selectionId)
                                     {
                                         index = i;
@@ -4868,8 +4844,6 @@ namespace NeoCompose.Runtime
                                 return;
                             }
                         case CollectionMutationKind.Clear:
-                            ctx.allocationTracker.ConsumeCollectionVisit(
-                                row.value.Length);
                             row.value = Array.Empty<string>();
                             row.updatedAt = now;
                             StoreWritableRow(plan, ownership, row, ctx);
@@ -5048,7 +5022,6 @@ namespace NeoCompose.Runtime
                         return;
                     }
                     var removedIds = new List<string>(row.value.Values);
-                    ctx.allocationTracker.ConsumeCollectionVisit(removedIds.Count);
                     row.value.Clear();
                     row.updatedAt = NeoTimestamp.Now();
                     StoreWritableRow(plan, ownership, row, ctx);

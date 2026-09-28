@@ -4410,47 +4410,12 @@ namespace NeoCompose.Tests
             StringAssert.Contains("not in scope", error.Message);
         }
 
+        /// <summary>
+        /// One host call can run any number of loop iterations across its
+        /// nested calls; a night over a large garden is one such call.
+        /// </summary>
         [Test]
-        public void Invoke_ForLoopEnforcesTheSharedIterationBudget()
-        {
-            FunctionWithReturnType body = LoopAction(
-                new ForInstruction
-                {
-                    type = InstructionKind.For,
-                    initializer = LocalVariable("i", Number(0), IntType()),
-                    condition = Compare(
-                        OperatorKind.EqualTo,
-                        Number(1),
-                        Number(1)),
-                    iterator = AssignLocal(
-                        "i",
-                        Add(Variable("i"), Number(1)),
-                        IntType()),
-                    instructions = Array.Empty<Instruction>(),
-                },
-                Return(Number(0)));
-            NSFunctionMember function = ScriptFunction(
-                "fn-loop-budget",
-                "LoopBudget",
-                false,
-                IntType(),
-                Array.Empty<FunctionArgumentTypeInfo>(),
-                body);
-            NeoClient client = BuildClient(
-                new JsonMember[] { function },
-                ReceiverClass(("LoopBudget", function.id)));
-
-            NeoScriptResourceLimitError error = Assert.Throws<NeoScriptResourceLimitError>(() =>
-                new NeoMemberNSFunction(client, function, null)
-                    .Invoke("receiver-value", Array.Empty<object?>()))!;
-
-            Assert.AreEqual(
-                "NeoScript loop iteration limit of 10000 exceeded.",
-                error.Message);
-        }
-
-        [Test]
-        public void Invoke_LoopBudgetIsSharedAcrossNestedNSFunctionCalls()
+        public void Invoke_NestedNSFunctionCallsHaveNoSharedIterationCap()
         {
             NSFunctionMember inner = ScriptFunction(
                 "fn-loop-budget-inner",
@@ -4498,13 +4463,8 @@ namespace NeoCompose.Tests
                     ("LoopBudgetInner", inner.id),
                     ("LoopBudgetOuter", outer.id)));
 
-            NeoScriptResourceLimitError error = Assert.Throws<NeoScriptResourceLimitError>(() =>
-                new NeoMemberNSFunction(client, outer, null)
-                    .Invoke("receiver-value", Array.Empty<object?>()))!;
-
-            Assert.AreEqual(
-                "NeoScript loop iteration limit of 10000 exceeded.",
-                error.Message);
+            Assert.AreEqual(0d, new NeoMemberNSFunction(client, outer, null)
+                .Invoke("receiver-value", Array.Empty<object?>()));
         }
 
         [Test]

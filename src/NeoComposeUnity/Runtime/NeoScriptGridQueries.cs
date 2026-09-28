@@ -249,7 +249,6 @@ namespace NeoCompose.Runtime
                 return true;
             }
             NeoCellPattern pattern = NeoCellPatternStorage.ReadRuntime(args[0], ctx);
-            ctx.allocationTracker.ConsumeCollectionVisit(pattern.Count);
             var objects = getObjects ? new List<object?>() : null;
             foreach (Vector2Int cell in pattern.GetCells(placement.Cell))
             {
@@ -268,7 +267,6 @@ namespace NeoCompose.Runtime
                 foreach (var layer in content.ObjectLayersInOrder)
                     foreach (var item in content.Primitive.LookupCache.ObjectCandidatesAt(layer.LayerId, cell))
                     {
-                        ctx.allocationTracker.ConsumeProducedCollectionEntry();
                         Bind(item.InstanceId, content.Primitive.GridValueId, layer.LayerId, item.InstanceId);
                         objects!.Add(RuntimeValue(item.InstanceId, ctx));
                     }

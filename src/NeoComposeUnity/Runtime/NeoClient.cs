@@ -3517,8 +3517,7 @@ namespace NeoCompose.Runtime
         internal string CloneValueReference(
             string sourceValueId,
             NeoValueOwnership? sourceOwnership = null,
-            Member? sourceMember = null,
-            NeoScript.NeoScriptAllocationTracker? allocationTracker = null)
+            Member? sourceMember = null)
         {
             ObjectMemberValue? sourceRow;
             bool foundSource = sourceOwnership is NeoValueOwnership exactOwnership
@@ -3548,16 +3547,14 @@ namespace NeoCompose.Runtime
                     ? inferredSourceOwnership
                     : NeoValueOwnership.Asset),
                 sourceRow.id,
-                sourceMember,
-                allocationTracker);
+                sourceMember);
         }
 
         private string CloneOwnedValueGraphWithFreshIdsAtomic(
             NeoValueOwnership targetOwnership,
             NeoValueOwnership sourceOwnership,
             string sourceValueId,
-            Member? sourceMember,
-            NeoScript.NeoScriptAllocationTracker? allocationTracker = null)
+            Member? sourceMember)
         {
             EnsureVirtualReplayArgumentReady(sourceValueId);
             var plan = new NeoWritePlan(this);
@@ -3569,18 +3566,6 @@ namespace NeoCompose.Runtime
                 foreach (var pair in plan.Rows.ToArray())
                     if (pair.Value is not null)
                         StageConstructorDependencies(plan, pair.Value, targetOwnership);
-            if (allocationTracker is not null)
-            {
-                // The plan already identifies the clone's rows. Do not snapshot
-                // or enumerate unrelated Session state to recover this list.
-                var created = new List<MemberValue>(plan.Rows.Count);
-                foreach (var pair in plan.Rows)
-                    if (pair.Key.ownership == NeoValueOwnership.Session && pair.Value is not null
-                        && !sessionValues.ContainsKey(pair.Key.id))
-                        created.Add(pair.Value);
-                // Reject an over-budget clone before publishing any of its rows.
-                allocationTracker.ConsumeCreatedSessionRows(created);
-            }
             plan.Commit();
             return result;
         }

@@ -115,31 +115,6 @@ namespace NeoCompose.Tests
 
         [TestCase(0)]
         [TestCase(2000)]
-        public void CloneBudgetsOnlyItsNewRowsAndRejectsBeforePublication(int unrelatedRows)
-        {
-            using var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
-            var retained = new List<MemberValue>();
-            for (int i = 0; i < unrelatedRows; i++)
-                retained.Add(new NumberMemberValue { id = "retained-" + i, value = i });
-            client.PublishConstructedSessionRows(retained);
-            var before = client.sessionValues.Keys.ToArray();
-            var tooSmall = new NeoScriptAllocationTracker(new NeoScriptExecutionBudgetLimits(constructedSessionRows: 1));
-            tooSmall.EnterExecution();
-            Assert.Throws<NeoScriptResourceLimitError>(() => client.CloneValueReference(
-                "thing-instance", NeoValueOwnership.Save, allocationTracker: tooSmall));
-            CollectionAssert.AreEquivalent(before, client.sessionValues.Keys,
-                "An over-budget clone must not publish any rows.");
-            var exact = new NeoScriptAllocationTracker(new NeoScriptExecutionBudgetLimits(constructedSessionRows: 2));
-            exact.EnterExecution();
-            string clone = client.CloneValueReference("thing-instance", NeoValueOwnership.Save, allocationTracker: exact);
-            Assert.That(client.sessionValues.Count, Is.EqualTo(before.Length + 2));
-            Assert.That(client.TryGetValue(NeoValueOwnership.Session, clone, out ObjectMemberValue? root), Is.True);
-            Assert.That(client.TryGetValue(NeoValueOwnership.Session, root!.value!["Count"], out NumberMemberValue? count), Is.True);
-            Assert.That(count!.value, Is.EqualTo(5));
-        }
-
-        [TestCase(0)]
-        [TestCase(2000)]
         public void FailedReplayReclaimsTemporaryRowsAndPreservesExistingSessionState(int unrelatedRows)
         {
             ProjectData data = BuildGenericConstructorProjectData();

@@ -32,7 +32,6 @@ namespace NeoCompose.Runtime
             var list = client.ResolveClassChildRow(row, "_offsets", ownership) as ArrayMemberValue
                 ?? throw new InvalidOperationException("CellPattern offsets are missing.");
             string[] ids = list.value ?? Array.Empty<string>();
-            ctx?.allocationTracker.ConsumeCollectionVisit(ids.Length);
             var offsets = new Vector2Int[ids.Length];
             for (int index = 0; index < offsets.Length; index++)
             {
@@ -78,7 +77,6 @@ namespace NeoCompose.Runtime
                 var result = new List<object?>();
                 foreach (object? entry in entries)
                 {
-                    ctx.allocationTracker.ConsumeProducedCollectionEntry();
                     result.Add(NormalizeNativeResult(entry, ctx, collection.entryTypeInfo));
                 }
                 return result.ToArray();
@@ -88,7 +86,6 @@ namespace NeoCompose.Runtime
                 var result = new Dictionary<string, object?>();
                 foreach (var entry in dictionary)
                 {
-                    ctx.allocationTracker.ConsumeProducedCollectionEntry();
                     result.Add(entry.Key, NormalizeNativeResult(entry.Value, ctx, collection.entryTypeInfo));
                 }
                 return result;

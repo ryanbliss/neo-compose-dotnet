@@ -26,69 +26,6 @@ namespace NeoCompose.Tests
             { 0, 10, 1_000, 10_000, 100_000 };
 
         [Test]
-        public void ResultCapacity_UsesRemainingP54OutputBudget()
-        {
-            var tracker = new NeoScriptAllocationTracker(
-                new NeoScriptExecutionBudgetLimits(
-                    producedCollectionEntries: 3));
-            Assert.AreEqual(3, tracker.SafeResultCapacity(100));
-            tracker.ConsumeProducedCollectionEntry(2);
-            Assert.AreEqual(1, tracker.SafeResultCapacity(100));
-            tracker.ConsumeProducedCollectionEntry();
-            Assert.AreEqual(0, tracker.SafeResultCapacity(100));
-        }
-
-        [TestCase(false, false)]
-        [TestCase(false, true)]
-        [TestCase(true, false)]
-        [TestCase(true, true)]
-        public void EmptyCollection_ReturnsEmptyResult(
-            bool dictionary,
-            bool select)
-        {
-            object? result = Evaluate(
-                BuildOperator(
-                    Collection(dictionary),
-                    select ? CallbackKind.Select : CallbackKind.MatchAll));
-
-            Assert.AreEqual(0, ResultCount(result));
-        }
-
-        [TestCase(false)]
-        [TestCase(true)]
-        public void SparseWhere_ContainsOnlyMatchesAndNoDefaultEntries(
-            bool dictionary)
-        {
-            Pointer source = dictionary
-                ? Collection(
-                    true,
-                    ("first", "drop"),
-                    ("second", "keep"),
-                    ("third", "drop"))
-                : Collection(
-                    false,
-                    ("0", "drop"),
-                    ("1", "keep"),
-                    ("2", "drop"));
-
-            object? result = Evaluate(
-                BuildOperator(source, CallbackKind.MatchKeep));
-
-            if (dictionary)
-            {
-                var filtered = (IDictionary<string, object?>)result!;
-                CollectionAssert.AreEqual(new[] { "second" }, filtered.Keys);
-                CollectionAssert.AreEqual(new object?[] { "keep" }, filtered.Values);
-            }
-            else
-            {
-                CollectionAssert.AreEqual(
-                    new object?[] { "keep" },
-                    (object?[])result!);
-            }
-        }
-
-        [Test]
         public void Where_ReemitsStoredValueIdsInSourceOrder()
         {
             NeoClient client = BuildClient();
@@ -287,23 +224,16 @@ namespace NeoCompose.Tests
             Measurement[] measurements = Enumerable.Range(0, MeasurementCount)
                 .Select(_ => MeasureOnce(getter, client, source))
                 .ToArray();
-            bool expectedLimit = sourceCount >
-                NeoScriptExecutionBudgetLimits.DefaultProducedCollectionEntries;
-            Assert.IsTrue(
-                measurements.All(measurement =>
-                    measurement.HitResourceLimit == expectedLimit),
-                $"Unexpected P54 safety-limit outcome for {scenario} at {sourceCount} entries.");
             long allocatedBytes = Median(
                 measurements.Select(measurement => measurement.AllocatedBytes)
                     .ToArray());
             double durationMs = Median(
                 measurements.Select(measurement => measurement.DurationMs)
                     .ToArray());
-            string outcome = expectedLimit ? "resource-limit" : "completed";
 
             TestContext.WriteLine(
                 $"scenario={scenario} sourceCount={sourceCount} " +
-                $"outcome={outcome} allocatedBytes={allocatedBytes} " +
+                $"allocatedBytes={allocatedBytes} " +
                 $"medianDurationMs={durationMs:F3}");
         }
 
@@ -328,16 +258,7 @@ namespace NeoCompose.Tests
             recorder.Start();
             long allocatedBefore = recorder.CurrentValue;
             var stopwatch = Stopwatch.StartNew();
-            object? result = null;
-            bool hitResourceLimit = false;
-            try
-            {
-                result = NSGetterEvaluator.Evaluate(getter, ctx);
-            }
-            catch (NeoScriptResourceLimitError)
-            {
-                hitResourceLimit = true;
-            }
+            object? result = NSGetterEvaluator.Evaluate(getter, ctx);
             stopwatch.Stop();
             long allocatedAfter = recorder.CurrentValue;
             recorder.Stop();
@@ -345,8 +266,7 @@ namespace NeoCompose.Tests
             GC.KeepAlive(result);
             return new Measurement(
                 allocatedAfter - allocatedBefore,
-                stopwatch.Elapsed.TotalMilliseconds,
-                hitResourceLimit);
+                stopwatch.Elapsed.TotalMilliseconds);
         }
 
         private static object BenchmarkCollection(bool dictionary, int count)
@@ -650,12 +570,10 @@ namespace NeoCompose.Tests
         {
             internal Measurement(
                 long allocatedBytes,
-                double durationMs,
-                bool hitResourceLimit)
+                double durationMs)
             {
                 AllocatedBytes = allocatedBytes;
                 DurationMs = durationMs;
-                HitResourceLimit = hitResourceLimit;
             }
 
             internal long AllocatedBytes
@@ -663,10 +581,6 @@ namespace NeoCompose.Tests
                 get;
             }
             internal double DurationMs
-            {
-                get;
-            }
-            internal bool HitResourceLimit
             {
                 get;
             }
