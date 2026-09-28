@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.43.4] - 2026-09-27
+
+- The incremental export cursor no longer sends `versionsStamp`. It is version metadata, not document position, and the server now ignores it (P94). Sync states saved by earlier versions still load; the stored stamp is dropped. Requires a Neo Compose server that accepts a cursor without the stamp.
+
 ## [0.43.3] - 2026-09-26
 
 - Reuse static NeoScript function wrappers through `NeoMemberNSFunction.GetOrCreateStatic`, preserve cached contexts across ownership changes, and reuse eligible scalar getter contexts. Store getter memo records as structs.

@@ -429,7 +429,6 @@ namespace NeoCompose.Tests
                 {
                     createdAt = 200,
                     transactionIds = new List<string> { "tx-2" },
-                    versionsStamp = "1:100",
                 },
                 records = new List<NeoComposeUnityExportHeadDescriptor>
                 {
@@ -479,7 +478,6 @@ namespace NeoCompose.Tests
                     {
                         createdAt = 100,
                         transactionIds = new List<string> { "tx-1" },
-                        versionsStamp = "1:100",
                     },
                     heads = new List<NeoComposeUnityExportHeadDescriptor>
                     {
@@ -583,7 +581,6 @@ namespace NeoCompose.Tests
             {
                 createdAt = 200,
                 transactionIds = new List<string> { "boulder-delete" },
-                versionsStamp = "1:100",
             };
             api.deltaResponse.records = deletedIds.Select(id => new NeoComposeUnityExportHeadDescriptor
             {
@@ -595,7 +592,7 @@ namespace NeoCompose.Tests
             {
                 state = new NeoComposeUnityExportSyncState
                 {
-                    cursor = new NeoComposeUnityExportCursor { createdAt = 100, versionsStamp = "1:100" },
+                    cursor = new NeoComposeUnityExportCursor { createdAt = 100 },
                     heads = beforeRows.Keys.Select(id => new NeoComposeUnityExportHeadDescriptor
                     {
                         recordKind = "value",
@@ -1087,7 +1084,6 @@ namespace NeoCompose.Tests
                     {
                         createdAt = 100,
                         transactionIds = new List<string> { "tx-1" },
-                        versionsStamp = "1:100",
                     },
                 },
             };
@@ -1119,7 +1115,6 @@ namespace NeoCompose.Tests
                 {
                     createdAt = 100,
                     transactionIds = new List<string> { "tx-1" },
-                    versionsStamp = "1:100",
                 },
                 heads = new List<NeoComposeUnityExportHeadDescriptor>
                 {
@@ -1196,7 +1191,6 @@ namespace NeoCompose.Tests
                     {
                         createdAt = 200,
                         transactionIds = new List<string> { "tx-2" },
-                        versionsStamp = "1:200",
                     },
                     codegenAffected = codegenAffected,
                     runtimeContractAffected = runtimeContractAffected,
@@ -1222,7 +1216,6 @@ namespace NeoCompose.Tests
                     {
                         createdAt = 100,
                         transactionIds = new List<string> { "tx-1" },
-                        versionsStamp = "1:100",
                     },
                 },
             };
@@ -1240,6 +1233,58 @@ namespace NeoCompose.Tests
             Assert.AreEqual(1, api.deltaExportCalls);
             Assert.AreEqual(1, api.fullExportCalls);
             Assert.AreEqual(1, api.snapshotExportCalls);
+        }
+
+        [Test]
+        public async Task Synchronizer_FullResyncExportsInFullOnce()
+        {
+            var config = MakeConfig();
+            var api = new FakeApiClient();
+            var afterReset = new NeoComposeUnityExportCursor
+            {
+                createdAt = 200,
+                transactionIds = new List<string> { "tx-2" },
+            };
+            api.exportResponse.syncState = new NeoComposeUnityExportSyncState { cursor = afterReset };
+            api.deltaResponseForCall = call => new NeoComposeUnityExportDeltaManifestResponse
+            {
+                readBase = PublishedReadBase(),
+                fullResync = call == 1,
+                cursor = afterReset,
+            };
+            var assets = new FakeAssetService();
+            assets.files["Assets/Resources/Neo/project.json"] = "{}";
+            assets.files["Assets/Scripts/Neo/Generated/Project.g.cs"] = "// existing";
+            var cache = new FakeExportCache
+            {
+                state = new NeoComposeUnityExportSyncState
+                {
+                    cursor = new NeoComposeUnityExportCursor
+                    {
+                        createdAt = 100,
+                        transactionIds = new List<string> { "tx-1" },
+                    },
+                },
+            };
+            StampCachedExport(assets, cache.state!);
+            SeedGeneratedFiles(assets);
+            var synchronizer = new NeoComposeSynchronizer(
+                api,
+                new FakeConfirmationService(true),
+                assets,
+                cache);
+
+            var reset = await synchronizer.SynchronizeAsync(config);
+            Assert.IsTrue(reset.success, reset.message);
+            Assert.AreEqual(1, api.fullExportCalls);
+
+            // The server's full export stamps project.json with its heads' hash.
+            StampCachedExport(assets, cache.state!);
+            var next = await synchronizer.SynchronizeAsync(config);
+            Assert.IsTrue(next.success, next.message);
+            Assert.AreEqual(2, api.deltaExportCalls);
+            Assert.AreEqual(1, api.fullExportCalls);
+            Assert.AreEqual(200, api.requestedCursors[1].createdAt);
         }
 
         [Test]

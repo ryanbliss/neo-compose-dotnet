@@ -178,7 +178,6 @@ namespace NeoCompose.Unity.Editor
     {
         public double createdAt;
         public List<string> transactionIds = new();
-        public string versionsStamp = "";
     }
 
     public sealed class NeoComposeUnityExportHeadDescriptor
