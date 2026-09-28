@@ -24,10 +24,10 @@ namespace NeoCompose.Runtime
         {
             if (node.value?.value is null)
                 return null;
-            return ReadRow(client, node.value, node.ownership, null);
+            return ReadRow(client, node.value, node.ownership);
         }
 
-        private static NeoCellPattern ReadRow(NeoClient client, ObjectMemberValue row, NeoValueOwnership ownership, NSGetterEvaluator.Context? ctx)
+        private static NeoCellPattern ReadRow(NeoClient client, ObjectMemberValue row, NeoValueOwnership ownership)
         {
             var list = client.ResolveClassChildRow(row, "_offsets", ownership) as ArrayMemberValue
                 ?? throw new InvalidOperationException("CellPattern offsets are missing.");
@@ -122,7 +122,7 @@ namespace NeoCompose.Runtime
             if (id is null || !ctx.client.TryGetValue(ownership, id, out ObjectMemberValue? row)
                 || row.classId != ClassId)
                 throw new NSGetterRuntimeError("Expected a canonical CellPattern value.");
-            return ReadRow(ctx.client, row, ownership, ctx);
+            return ReadRow(ctx.client, row, ownership);
         }
 
         private static object?[] Offsets(NeoCellPattern pattern)

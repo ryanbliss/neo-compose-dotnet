@@ -7,6 +7,7 @@ using NeoCompose.Runtime.Json;
 using NeoCompose.Runtime.NeoScript;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
+using Unity.Profiling;
 using UnityEngine.TestTools;
 using JsonMember = NeoCompose.Runtime.Json.Member;
 
@@ -311,14 +312,7 @@ namespace NeoCompose.Tests
                     Reference(targetId),
                     VariantRef(WidgetClassId, "variant-plain")))),
                 ctx);
-            // Replays are observable only as time under their marker.
-            using var replays = new global::Unity.Profiling.ProfilerRecorder(
-                global::Unity.Profiling.ProfilerCategory.Scripts,
-                "NeoCompose.Replay.Root",
-                1,
-                global::Unity.Profiling.ProfilerRecorderOptions.WrapAroundWhenCapacityReached
-                    | global::Unity.Profiling.ProfilerRecorderOptions.SumAllSamplesInFrame);
-            replays.Start();
+            using ProfilerRecorder replays = StartReplayRecorder();
             ApplyPlain();
             long replayed = replays.CurrentValue;
             Assert.Greater(replayed, 0, "moving to a new variant replays the root");
@@ -349,6 +343,47 @@ namespace NeoCompose.Tests
 
             Assert.AreEqual("plain", ReadRowLabel(client, targetId), "the answered pin clears");
             Assert.AreEqual(sessionRows, client.sessionValues.Count);
+        }
+
+        /// <summary>
+        /// The shape a nightly refresh has: an Apply closure that pins members
+        /// from its row. Pinning the same values again leaves the expansion
+        /// current, so re-applying replays nothing.
+        /// </summary>
+        [Test]
+        public void VariantApply_ReapplyingTheCurrentRowVariantDoesNotReplay()
+        {
+            using NeoClient client = LoadClient();
+            NSGetterEvaluator.Context ctx = Context(client);
+            string targetId = NewSessionInstance(client);
+            object? ApplyLookup() => NSGetterEvaluator.Evaluate(
+                Getter(Return(VariantApplyPointer(
+                    Reference(targetId),
+                    VariantRef(WidgetClassId, "variant-lookup"),
+                    Reference("value-target")))),
+                ctx);
+            using ProfilerRecorder replays = StartReplayRecorder();
+            ApplyLookup();
+            long replayed = replays.CurrentValue;
+            Assert.Greater(replayed, 0, "moving to a new variant replays the root");
+
+            ApplyLookup();
+
+            Assert.AreEqual(replayed, replays.CurrentValue, "re-applying replays nothing");
+            Assert.AreEqual("target", ReadRowLabel(client, targetId));
+        }
+
+        // Replays are observable only as time under their marker.
+        private static ProfilerRecorder StartReplayRecorder()
+        {
+            var recorder = new ProfilerRecorder(
+                ProfilerCategory.Scripts,
+                "NeoCompose.Replay.Root",
+                1,
+                ProfilerRecorderOptions.WrapAroundWhenCapacityReached
+                    | ProfilerRecorderOptions.SumAllSamplesInFrame);
+            recorder.Start();
+            return recorder;
         }
 
         // -------------------------------------------------------------------

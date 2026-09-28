@@ -70,7 +70,6 @@ namespace NeoCompose.Runtime
                 case "system_c72d9b09-fc4c-55db-b763-f1954a536069": // Cells
                     {
                         var source = Read(receiver, ctx);
-                        RequireSize(source.Count);
                         result = source.GetCells(Vector(args[0])).Select(cell => (object?)NeoVectorValues.FromVector2Int(cell)).ToArray();
                         return true;
                     }
@@ -84,14 +83,12 @@ namespace NeoCompose.Runtime
                 case "system_7dce7f78-2c8f-5a1f-aa80-89dc217dcdff": // WithoutCenter
                     {
                         var source = Read(receiver, ctx);
-                        RequireSize(source.Count);
                         pattern = source.WithoutCenter();
                         break;
                     }
                 case "system_efc67858-0c95-573f-a8a9-d7e07d0a1d55": // Translate
                     {
                         var source = Read(receiver, ctx);
-                        RequireSize(source.Count);
                         pattern = source.Translate(Vector(args[0]));
                         break;
                     }
@@ -127,7 +124,7 @@ namespace NeoCompose.Runtime
         private static NeoCellPattern Read(object? value, NSGetterEvaluator.Context ctx) =>
             NeoCellPatternStorage.ReadRuntime(value, ctx);
 
-        internal static void RequireSize(long count)
+        private static void RequireSize(long count)
         {
             if (count < 0 || count > int.MaxValue)
                 throw new NSGetterRuntimeError("CellPattern is too large.");

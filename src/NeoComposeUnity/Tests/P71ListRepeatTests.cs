@@ -176,26 +176,6 @@ namespace NeoCompose.Tests
         // ------------------------------------------------------------------
 
         /// <summary>
-        /// Entries compare as doubles: NeoScript's Int is an integral Float,
-        /// and a literal pointer can surface it as a <c>long</c> or a
-        /// <c>double</c> depending on how the JSON operand was written, which
-        /// is not what these tests are about.
-        /// </summary>
-        private static void AssertNumbers(double[] expected, object? produced)
-        {
-            var entries = produced as object?[];
-            Assert.IsNotNull(entries, $"Expected a list, got {produced ?? "null"}.");
-            Assert.AreEqual(expected.Length, entries!.Length, "Entry count");
-            for (int index = 0; index < expected.Length; index++)
-            {
-                Assert.AreEqual(
-                    expected[index],
-                    Convert.ToDouble(entries[index]),
-                    $"Entry {index}");
-            }
-        }
-
-        /// <summary>
         /// Evaluates `return List.Repeat(&lt;value&gt;, &lt;count&gt;);` as a
         /// `List&lt;Int&gt;`-typed getter.
         /// </summary>

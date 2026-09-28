@@ -341,7 +341,7 @@ namespace NeoCompose.Runtime
             public void Register(Transform target) =>
                 targets.Add((target, target.localPosition - applied));
 
-            private void Refresh()
+            public void Refresh()
             {
                 if (disposed)
                     return;
@@ -367,7 +367,9 @@ namespace NeoCompose.Runtime
         /// build order. What the renderer already keeps live (positions, sort
         /// points, sprites, flips, sorting offsets, visibility) is left out, so
         /// a change that leaves this shape intact updates the existing
-        /// GameObject instead of rebuilding it.
+        /// GameObject instead of rebuilding it. Value ids are included because
+        /// a retarget keeps the wrapper but moves the id TryGetGameObject is
+        /// registered under.
         /// </summary>
         private sealed class RenderedObjectShape
         {
@@ -383,6 +385,7 @@ namespace NeoCompose.Runtime
                 SortPoint = sortPoint;
                 parts.Add(layer);
                 parts.Add(value);
+                parts.Add(value.valueId);
                 AddSortingGroup(value);
                 int rendered = AddComposition(value, new HashSet<string>(), 0);
                 AddCollider(value);
@@ -450,6 +453,7 @@ namespace NeoCompose.Runtime
                 int depth)
             {
                 parts.Add(child);
+                parts.Add(child.valueId);
                 if (child is INeoTileLayerLinkValue)
                     return 0;
                 parts.Add(child.Name);
@@ -1343,7 +1347,8 @@ namespace NeoCompose.Runtime
                     continue;
                 }
                 // Reevaluate lifecycle filters, while retaining controllers and
-                // animation on an object that remains visible after moving.
+                // animation on an object that remains visible after it moves
+                // or changes without changing its render shape.
                 if (objectRootsByInstanceId.TryGetValue(instanceId, out var existing) && existing != null
                     && (change.PositionsOnly || TryUpdateRenderedObject(existing, layer, resolved)))
                 {
@@ -1361,8 +1366,9 @@ namespace NeoCompose.Runtime
         /// Updates a changed instance's existing GameObject when its hierarchy
         /// would be rebuilt identically, leaving spawn hooks, added components
         /// and playing animation alone. The watchers installed at spawn already
-        /// track positions, sprites and visibility; this re-reads them once
-        /// more, and places the root at the cell a respawn would have used.
+        /// track positions, sort points, sprites and visibility; this re-reads
+        /// all of them once more, and places the root at the cell a respawn
+        /// would have used.
         /// </summary>
         /// <returns>False when the GameObject must be rebuilt.</returns>
         private bool TryUpdateRenderedObject(
@@ -1376,6 +1382,11 @@ namespace NeoCompose.Runtime
                 return false;
             root.transform.localPosition = CellToLocalPosition(instance.Cell);
             shape.SortPoint?.Apply();
+            if (objectVisibilityByInstanceId.TryGetValue(instanceId, out var visibility))
+            {
+                foreach (var bucket in visibility.Buckets)
+                    bucket.PositionBinding?.Refresh();
+            }
             SyncObjectSprites(instanceId);
             SyncObjectVisibility(instanceId);
             return true;

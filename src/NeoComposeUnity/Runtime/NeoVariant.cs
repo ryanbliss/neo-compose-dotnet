@@ -464,8 +464,8 @@ namespace NeoCompose.Runtime
             {
                 changed |= answered.ClearInstanceOverride();
             }
-            // Re-applying the current variant usually pins nothing new, and
-            // then its expansion is already current.
+            // Same variant and row, and no answered pin cleared: a replay
+            // would reproduce the current expansion.
             if (changed)
                 client.RefreshVirtualInstanceVariant(node, ownership);
         }
