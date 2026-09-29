@@ -4003,19 +4003,17 @@ namespace NeoCompose.Runtime.NeoScript
                             ctx,
                             isList,
                             CollectionCallbackReturnContract.Predicate);
-                        IterateCollection(c, ctx, (entry, key, _) =>
+                        var cursor = new CollectionCursor(c, ctx);
+                        while (cursor.MoveNext())
                         {
-                            NeoScriptExecutionResult result = callback.Execute(
-                                key,
-                                entry);
+                            NeoScriptExecutionResult result = callback.Execute(in cursor);
                             if (result.Returned
                                 && result.ReturnValue is bool matches
                                 && matches)
                             {
                                 count++;
                             }
-                            return CollectionIterationControl.Continue;
-                        });
+                        }
                         callback.CompleteOperator(count);
                         return count;
                     }
@@ -4034,18 +4032,16 @@ namespace NeoCompose.Runtime.NeoScript
                         }
                         string? targetReferenceId = target as string
                             ?? ValueIdOf(target, ctx);
-                        bool contains = false;
-                        IterateCollection(c, ctx, (entry, _, valueId) =>
+                        var cursor = new CollectionCursor(c, ctx);
+                        while (cursor.MoveNext())
                         {
-                            if ((valueId is not null && valueId == targetReferenceId)
-                                || JsEqual(entry, target))
+                            if ((cursor.ValueId is { } valueId && valueId == targetReferenceId)
+                                || JsEqual(cursor.Entry, target))
                             {
-                                contains = true;
-                                return CollectionIterationControl.Break;
+                                return true;
                             }
-                            return CollectionIterationControl.Continue;
-                        });
-                        return contains;
+                        }
+                        return false;
                     }
                 case IndexOfFunction iof:
                     {
@@ -4058,18 +4054,16 @@ namespace NeoCompose.Runtime.NeoScript
                         var target = EvalPointer(iof.info.valuePointer, scope, ctx);
                         string? targetReferenceId = target as string
                             ?? ValueIdOf(target, ctx);
-                        int index = -1;
-                        IterateCollection(c, ctx, (entry, key, valueId) =>
+                        var cursor = new CollectionCursor(c, ctx);
+                        while (cursor.MoveNext())
                         {
-                            if ((valueId is not null && valueId == targetReferenceId)
-                                || JsEqual(entry, target))
+                            if ((cursor.ValueId is { } valueId && valueId == targetReferenceId)
+                                || JsEqual(cursor.Entry, target))
                             {
-                                index = Convert.ToInt32(key);
-                                return CollectionIterationControl.Break;
+                                return cursor.Index;
                             }
-                            return CollectionIterationControl.Continue;
-                        });
-                        return index;
+                        }
+                        return -1;
                     }
                 case WhereFunction wf:
                     {
@@ -4086,23 +4080,21 @@ namespace NeoCompose.Runtime.NeoScript
                             ctx,
                             isList,
                             CollectionCallbackReturnContract.Predicate);
-                        IterateCollection(c, ctx, (entry, key, valueId) =>
+                        var cursor = new CollectionCursor(c, ctx);
+                        while (cursor.MoveNext())
                         {
-                            NeoScriptExecutionResult result = callback.Execute(
-                                key,
-                                entry);
-                            if (result.Returned && result.ReturnValue is bool b && b)
+                            NeoScriptExecutionResult matched = callback.Execute(in cursor);
+                            if (matched.Returned && matched.ReturnValue is bool b && b)
                             {
                                 // Re-emit valueId references rather than dereferenced
                                 // entries when we have them — matches TS semantic.
-                                object? emit = valueId is null ? entry : valueId;
+                                object? emit = cursor.ValueId ?? cursor.Entry;
                                 if (isList)
                                     ((List<object?>)outAcc).Add(emit);
                                 else
-                                    ((Dictionary<string, object?>)outAcc)[key.ToString()!] = emit;
+                                    ((Dictionary<string, object?>)outAcc)[cursor.Key.ToString()!] = emit;
                             }
-                            return CollectionIterationControl.Continue;
-                        });
+                        }
                         object result = isList
                             ? ((List<object?>)outAcc).ToArray()
                             : outAcc;
@@ -4132,25 +4124,17 @@ namespace NeoCompose.Runtime.NeoScript
                                 ctx,
                                 isList,
                                 CollectionCallbackReturnContract.Predicate);
-                        IterateCollection(c, ctx, (entry, key, _) =>
+                        var cursor = new CollectionCursor(c, ctx);
+                        while (cursor.MoveNext())
                         {
-                            if (callback is null)
+                            if (callback is null
+                                || callback.Execute(in cursor) is { Returned: true, ReturnValue: true })
                             {
                                 found = true;
-                                foundValue = entry;
-                                return CollectionIterationControl.Break;
+                                foundValue = cursor.Entry;
+                                break;
                             }
-                            NeoScriptExecutionResult result = callback.Execute(
-                                key,
-                                entry);
-                            if (result.Returned && result.ReturnValue is bool b && b)
-                            {
-                                found = true;
-                                foundValue = entry;
-                                return CollectionIterationControl.Break;
-                            }
-                            return CollectionIterationControl.Continue;
-                        });
+                        }
                         if (found)
                         {
                             callback?.CompleteOperator(foundValue);
@@ -4178,17 +4162,15 @@ namespace NeoCompose.Runtime.NeoScript
                             ctx,
                             isList,
                             CollectionCallbackReturnContract.Projection);
-                        IterateCollection(c, ctx, (entry, key, _) =>
+                        var cursor = new CollectionCursor(c, ctx);
+                        while (cursor.MoveNext())
                         {
-                            NeoScriptExecutionResult result = callback.Execute(
-                                key,
-                                entry);
-                            if (result.Returned)
+                            NeoScriptExecutionResult projected = callback.Execute(in cursor);
+                            if (projected.Returned)
                             {
-                                acc.Add(result.ReturnValue);
+                                acc.Add(projected.ReturnValue);
                             }
-                            return CollectionIterationControl.Continue;
-                        });
+                        }
                         object?[] result = acc.ToArray();
                         callback.CompleteOperator(result);
                         return result;
@@ -4213,7 +4195,9 @@ namespace NeoCompose.Runtime.NeoScript
         private sealed class PreparedCollectionCallback : IDisposable
         {
             private readonly NeoScriptScope scope;
-            private readonly Action<object, object?> bindParameters;
+            private readonly string entryParameterId;
+            private readonly string? keyParameterId;
+            private readonly bool isList;
             private readonly int parameterCount;
             private readonly Context ctx;
             private readonly TypeInfo returnTypeInfo;
@@ -4261,34 +4245,9 @@ namespace NeoCompose.Runtime.NeoScript
                 returnTypeInfo = callbackReturnType;
                 parameterCount = parameters.Length;
                 scope = parentScope.CreateChild(parameterCount);
-                if (parameterCount == 1)
-                {
-                    string entryParameterId = parameters[0].id;
-                    bindParameters = (_, entry) =>
-                        scope[entryParameterId] = entry;
-                }
-                else if (isList)
-                {
-                    string keyParameterId = parameters[0].id;
-                    string entryParameterId = parameters[1].id;
-                    bindParameters = (key, entry) =>
-                    {
-                        scope[keyParameterId] = System.Convert.ToInt32(
-                            key,
-                            CultureInfo.InvariantCulture);
-                        scope[entryParameterId] = entry;
-                    };
-                }
-                else
-                {
-                    string keyParameterId = parameters[0].id;
-                    string entryParameterId = parameters[1].id;
-                    bindParameters = (key, entry) =>
-                    {
-                        scope[keyParameterId] = key.ToString();
-                        scope[entryParameterId] = entry;
-                    };
-                }
+                this.isList = isList;
+                entryParameterId = parameters[parameterCount - 1].id;
+                keyParameterId = parameterCount == 2 ? parameters[0].id : null;
                 if (ctx.collectionCallbackPreparationMetrics is not null)
                 {
                     ctx.collectionCallbackPreparationMetrics
@@ -4302,12 +4261,12 @@ namespace NeoCompose.Runtime.NeoScript
                     NeoScriptExecutionOptions.ForImmediate(ctx.client));
             }
 
-            internal NeoScriptExecutionResult Execute(
-                object keyOrIndex,
-                object? entry)
+            internal NeoScriptExecutionResult Execute(in CollectionCursor entry)
             {
                 scope.ResetInvocationLocals(parameterCount);
-                bindParameters(keyOrIndex, entry);
+                if (keyParameterId is not null)
+                    scope[keyParameterId] = isList ? (object)entry.Index : entry.Key.ToString();
+                scope[entryParameterId] = entry.Entry;
                 NeoScriptExecutionResult result = execution.Execute(scope);
                 if (result.IsPaused)
                 {
@@ -5340,12 +5299,6 @@ namespace NeoCompose.Runtime.NeoScript
             return snapshot.ToArray();
         }
 
-        private enum CollectionIterationControl
-        {
-            Continue,
-            Break,
-        }
-
         private static bool CollectionIsList(object? collection)
         {
             if (collection is object?[])
@@ -5356,26 +5309,52 @@ namespace NeoCompose.Runtime.NeoScript
                 "Collection callback receiver must be a present List or Dictionary value.");
         }
 
-        private static void IterateCollection(
-            object? c,
-            Context ctx,
-            Func<object? /*entry*/, object /*key*/, string? /*valueId*/,
-                CollectionIterationControl> callback)
+        /// <summary>
+        /// Walks a collection's entries in iteration order, resolving each
+        /// entry as it is reached. A struct with no callback, so an operator
+        /// allocates nothing per entry; <see cref="Key"/> boxes only when read.
+        /// </summary>
+        private struct CollectionCursor
         {
-            JsonMember? entryMember = CollectionEntryMember(c, ctx);
-            foreach (OrderedRawCollectionEntry rawEntry in
-                OrderedRawCollectionEntries(c))
+            private readonly object?[]? array;
+            private readonly List<OrderedRawCollectionEntry>? ordered;
+            private readonly JsonMember? entryMember;
+            private readonly Context ctx;
+            private readonly int count;
+            private object? raw;
+
+            internal CollectionCursor(object? collection, Context ctx)
             {
-                object? entry = ResolveValueIfId(
-                    rawEntry.Raw,
-                    ctx,
-                    member: entryMember);
-                CollectionIterationControl control = callback(
-                    entry,
-                    rawEntry.Key,
-                    rawEntry.Raw as string);
-                if (control == CollectionIterationControl.Break)
-                    break;
+                this.ctx = ctx;
+                entryMember = CollectionEntryMember(collection, ctx);
+                array = collection as object?[];
+                ordered = array is null
+                    ? new List<OrderedRawCollectionEntry>(OrderedRawCollectionEntries(collection))
+                    : null;
+                count = array?.Length ?? ordered!.Count;
+                Index = -1;
+                raw = null;
+                Entry = null;
+            }
+
+            internal int Index
+            {
+                get; private set;
+            }
+            internal object? Entry
+            {
+                get; private set;
+            }
+            internal readonly object Key => array is not null ? Index : ordered![Index].Key;
+            internal readonly string? ValueId => raw as string;
+
+            internal bool MoveNext()
+            {
+                if (++Index >= count)
+                    return false;
+                raw = array is not null ? array[Index] : ordered![Index].Raw;
+                Entry = ResolveValueIfId(raw, ctx, member: entryMember);
+                return true;
             }
         }
 
