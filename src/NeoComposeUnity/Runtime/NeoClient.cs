@@ -5849,13 +5849,17 @@ namespace NeoCompose.Runtime
         {
             if (containerNotificationSuspensions > 0)
             {
-                int index = pendingContainerNotifications.FindIndex(
-                    pending => pending.ownership == ownership && pending.containerId == containerId);
-                if (index < 0)
-                    pendingContainerNotifications.Add((ownership, containerId, plan));
-                else if (!ReferenceEquals(pendingContainerNotifications[index].plan, plan))
+                for (int index = 0; index < pendingContainerNotifications.Count; index++)
+                {
+                    var pending = pendingContainerNotifications[index];
+                    if (pending.ownership != ownership || pending.containerId != containerId)
+                        continue;
                     // Another write changed the container too: it is not one plan's news.
-                    pendingContainerNotifications[index] = (ownership, containerId, null);
+                    if (!ReferenceEquals(pending.plan, plan))
+                        pendingContainerNotifications[index] = (ownership, containerId, null);
+                    return;
+                }
+                pendingContainerNotifications.Add((ownership, containerId, plan));
                 return;
             }
             PublishWritableValueChange(ownership, containerId, plan);

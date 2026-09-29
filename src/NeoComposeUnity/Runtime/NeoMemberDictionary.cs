@@ -293,15 +293,6 @@ namespace NeoCompose.Runtime
         /// KeyNotFoundException), and an overwrite of one key would silently
         /// drop the sibling default entries.
         /// </summary>
-        private ObjectMemberValue EnsureWritableObject(NeoTimestamp nowIso)
-        {
-            var plan = new NeoWritePlan(client);
-            var row = EnsureWritableObject(plan, nowIso);
-            if (plan.Rows.Count > 0)
-                CommitOwnChange(plan);
-            return row;
-        }
-
         private ObjectMemberValue EnsureWritableObject(NeoWritePlan plan, NeoTimestamp nowIso)
         {
             var writable = WritableCandidate(plan);

@@ -91,6 +91,27 @@ namespace NeoCompose.Runtime
             get; private set;
         }
 
+        internal override NeoListChangedArgs? PendingListChange => ActiveListChange;
+
+        internal override void InvokeChanged(NeoMember changed, NeoListChangedArgs? listChange)
+        {
+            if (listChange is null)
+            {
+                base.InvokeChanged(changed, null);
+                return;
+            }
+            var previousChange = ActiveListChange;
+            ActiveListChange = listChange;
+            try
+            {
+                base.InvokeChanged(changed, null);
+            }
+            finally
+            {
+                ActiveListChange = previousChange;
+            }
+        }
+
         public IEnumerator<NeoMember> GetEnumerator() =>
             childMembers.GetEnumerator();
 
@@ -127,7 +148,7 @@ namespace NeoCompose.Runtime
             client.UnwatchValuePartitions(this);
             foreach (var child in childMembers)
             {
-                child.OnChanged -= HandleChildChanged;
+                child.ChildChanged -= HandleChildChanged;
                 child.Dispose();
             }
             childMembers.Clear();
@@ -146,7 +167,7 @@ namespace NeoCompose.Runtime
             // child nodes so indexed fields cannot retain unloaded values.
             foreach (NeoMember child in childMembers)
             {
-                child.OnChanged -= HandleChildChanged;
+                child.ChildChanged -= HandleChildChanged;
                 child.Dispose();
             }
             childMembers = new List<NeoMember>();
@@ -296,7 +317,7 @@ namespace NeoCompose.Runtime
             {
                 foreach (var child in previousChildren)
                 {
-                    child.OnChanged -= HandleChildChanged;
+                    child.ChildChanged -= HandleChildChanged;
                     child.Dispose();
                 }
                 return;
@@ -317,7 +338,7 @@ namespace NeoCompose.Runtime
                     continue;
                 }
                 NeoMember child = CreateChild(client, entryMember, entryValueId);
-                child.OnChanged += HandleChildChanged;
+                child.ChildChanged += HandleChildChanged;
                 childMembers.Add(child);
                 // A changed member declaration can replace the wrapper at
                 // an existing id. New ids enter the index through the change
@@ -332,7 +353,7 @@ namespace NeoCompose.Runtime
             {
                 if (!retained.Contains(child))
                 {
-                    child.OnChanged -= HandleChildChanged;
+                    child.ChildChanged -= HandleChildChanged;
                     child.Dispose();
                 }
             }
@@ -654,11 +675,11 @@ namespace NeoCompose.Runtime
                 CommitOwnChange(plan);
                 value = parentRow;
                 NeoMember previousChild = childMembers[index];
-                previousChild.OnChanged -= HandleChildChanged;
+                previousChild.ChildChanged -= HandleChildChanged;
                 previousChild.Dispose();
                 NeoMember replacementChild = CreateChild(
                     client, entryMember, importedValueId);
-                replacementChild.OnChanged += HandleChildChanged;
+                replacementChild.ChildChanged += HandleChildChanged;
                 childMembers[index] = replacementChild;
                 NotifyListChanged(new NeoListChangedArgs(
                     NeoListChangeKind.Replace,
@@ -691,10 +712,10 @@ namespace NeoCompose.Runtime
             client.StageInPlaceReplacement(plan, entryOwnership, next, entryMember);
             CommitOwnChange(plan);
             NeoMember replacedChild = childMembers[index];
-            replacedChild.OnChanged -= HandleChildChanged;
+            replacedChild.ChildChanged -= HandleChildChanged;
             replacedChild.Dispose();
             NeoMember newChild = CreateChild(client, entryMember, entryValueId);
-            newChild.OnChanged += HandleChildChanged;
+            newChild.ChildChanged += HandleChildChanged;
             childMembers[index] = newChild;
             NotifyListChanged(new NeoListChangedArgs(
                 NeoListChangeKind.Set,
@@ -782,7 +803,7 @@ namespace NeoCompose.Runtime
 
             foreach (var child in childMembers)
             {
-                child.OnChanged -= HandleChildChanged;
+                child.ChildChanged -= HandleChildChanged;
                 child.Dispose();
             }
             childMembers.Clear();
@@ -1078,15 +1099,6 @@ namespace NeoCompose.Runtime
         /// a fresh empty row when nothing is bound yet; throws when the list
         /// is explicitly null (adding requires a present instance).
         /// </summary>
-        private ArrayMemberValue ResolveUnorderedContainerForAdd(NeoTimestamp nowIso)
-        {
-            var plan = new NeoWritePlan(client);
-            var row = ResolveUnorderedContainerForAdd(plan, nowIso);
-            if (plan.Rows.Count > 0)
-                CommitOwnChange(plan);
-            return row;
-        }
-
         private ArrayMemberValue ResolveUnorderedContainerForAdd(NeoWritePlan plan, NeoTimestamp nowIso)
         {
             string? id = plan.NodeBindings.TryGetValue(this, out string? plannedId) ? plannedId : valueId;
@@ -1124,15 +1136,6 @@ namespace NeoCompose.Runtime
         /// clone-on-write shadow at the stable id), minting + binding a
         /// fresh empty array through the parent when nothing is bound yet.
         /// </summary>
-        private ArrayMemberValue EnsureWritableArray(NeoTimestamp nowIso)
-        {
-            var plan = new NeoWritePlan(client);
-            var row = EnsureWritableArray(plan, nowIso);
-            if (plan.Rows.Count > 0)
-                CommitOwnChange(plan);
-            return row;
-        }
-
         private ArrayMemberValue EnsureWritableArray(NeoWritePlan plan, NeoTimestamp nowIso)
         {
             var writable = WritableCandidate(plan);

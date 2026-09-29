@@ -334,6 +334,7 @@ namespace NeoCompose.Runtime
             // hear about them through the row's own id, so the container
             // itself did not change.
             HashSet<(NeoValueOwnership ownership, string id)> sameMembership = pooledScratch ? commitSameMembershipScratch : new();
+            bool batched = false;
             try
             {
                 bool touchesWorld = false;
@@ -386,6 +387,8 @@ namespace NeoCompose.Runtime
                     TouchWritableStoreUpdatedAt(pair.Key.ownership);
                 }
                 WriteRevision++;
+                BeginChangeBatch();
+                batched = true;
                 InstallCandidateExpansions(preparedExpansions, changed);
                 if (plan.Bindings.Count != 0)
                     InvalidateGetterMemo();
@@ -445,6 +448,8 @@ namespace NeoCompose.Runtime
                     sameMembership.Clear();
                     commitScratchInUse = false;
                 }
+                if (batched)
+                    EndChangeBatch();
             }
         }
     }

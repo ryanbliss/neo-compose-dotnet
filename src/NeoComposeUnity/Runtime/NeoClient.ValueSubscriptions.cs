@@ -43,6 +43,111 @@ namespace NeoCompose.Runtime
             get; private set;
         }
 
+        private int changeBatchDepth;
+        private List<(NeoMember node, NeoMember changed, NeoListChangedArgs? listChange)> pendingChanges = new();
+        private List<(NeoMember node, NeoMember changed, NeoListChangedArgs? listChange)>? spareChanges;
+        private readonly Dictionary<(NeoMember node, NeoMember changed), int> pendingChangeIndex = new();
+
+        /// <summary>
+        /// Raises <paramref name="node"/>'s OnChanged. A commit publishes one
+        /// change row by row, and a node can hear several of them (its own
+        /// row, an entry it rebuilt, a membership), so inside a commit each
+        /// (node, changed) pair is queued once and raised after every row is
+        /// stored and published.
+        /// </summary>
+        internal void RaiseChanged(NeoMember node, NeoMember changed)
+        {
+            if (changeBatchDepth == 0)
+            {
+                node.InvokeChanged(changed, null);
+                return;
+            }
+            NeoListChangedArgs? listChange = node.PendingListChange;
+            if (pendingChangeIndex.TryGetValue((node, changed), out int index))
+            {
+                var pending = pendingChanges[index];
+                pendingChanges[index] = (node, changed, MergeListChanges(pending.listChange, listChange));
+                return;
+            }
+            pendingChangeIndex.Add((node, changed), pendingChanges.Count);
+            pendingChanges.Add((node, changed, listChange));
+        }
+
+        private void BeginChangeBatch()
+        {
+            changeBatchDepth++;
+        }
+
+        private void EndChangeBatch()
+        {
+            if (--changeBatchDepth > 0 || pendingChanges.Count == 0)
+                return;
+            // A listener's own commit queues and raises its own batch.
+            var draining = pendingChanges;
+            pendingChanges = spareChanges ?? new();
+            spareChanges = null;
+            pendingChangeIndex.Clear();
+            try
+            {
+                foreach (var (node, changed, listChange) in draining)
+                {
+                    if (!node.isDisposed)
+                        node.InvokeChanged(changed, listChange);
+                }
+            }
+            finally
+            {
+                draining.Clear();
+                spareChanges = draining;
+            }
+        }
+
+        private static NeoListChangedArgs? MergeListChanges(NeoListChangedArgs? first, NeoListChangedArgs? next)
+        {
+            if (first is null || next is null || ReferenceEquals(first, next))
+                return first ?? next;
+            if (first.Kind == next.Kind && first.Kind is NeoListChangeKind.Add or NeoListChangeKind.Remove or NeoListChangeKind.Set)
+            {
+                return new NeoListChangedArgs(
+                    first.Kind,
+                    Union(first.RemovedValueIds, next.RemovedValueIds),
+                    Union(first.AddedValueIds, next.AddedValueIds),
+                    Union(first.ReplacedValueIds, next.ReplacedValueIds));
+            }
+            // Setting an entry the same commit added is part of the add.
+            if (first.Kind == NeoListChangeKind.Add && next.Kind == NeoListChangeKind.Set && Contains(first.AddedValueIds, next.ReplacedValueIds))
+                return first;
+            if (next.Kind == NeoListChangeKind.Add && first.Kind == NeoListChangeKind.Set && Contains(next.AddedValueIds, first.ReplacedValueIds))
+                return next;
+            return NeoListChangedArgs.Unknown;
+
+            static IReadOnlyList<string> Union(IReadOnlyList<string> first, IReadOnlyList<string> next)
+            {
+                if (next.Count == 0 || Contains(first, next))
+                    return first;
+                var union = new List<string>(first);
+                foreach (string id in next)
+                {
+                    if (!union.Contains(id))
+                        union.Add(id);
+                }
+                return union;
+            }
+
+            static bool Contains(IReadOnlyList<string> ids, IReadOnlyList<string> subset)
+            {
+                foreach (string id in subset)
+                {
+                    bool found = false;
+                    for (int i = 0; i < ids.Count && !found; i++)
+                        found = ids[i] == id;
+                    if (!found)
+                        return false;
+                }
+                return true;
+            }
+        }
+
         private void PublishWritableValueChange(NeoValueOwnership ownership, string valueId, NeoWritePlan? plan = null)
         {
             RefreshSharedEvaluationRow(ownership, valueId);
