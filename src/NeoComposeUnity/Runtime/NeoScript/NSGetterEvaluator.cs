@@ -750,6 +750,71 @@ namespace NeoCompose.Runtime.NeoScript
                 return child;
             }
 
+            /// <summary>
+            /// The state a synchronous function frame changes on the context it
+            /// runs in, restored by <see cref="ExitFunction"/>.
+            /// </summary>
+            internal readonly struct FunctionFrame
+            {
+                internal readonly object? thisValue;
+                internal readonly IReadOnlyList<string> functionCallStack;
+                internal readonly LinkedFunctionCallHandler? linkedFunctionCallHandler;
+                internal readonly Func<ObjectInitializerPointer, NeoScriptScope, Context, object?>? objectInitializerHandler;
+                internal readonly Context? immediateExpressionContext;
+                internal readonly Context? immediateExpressionSource;
+                internal readonly object? immediateExpressionState;
+                internal readonly object? immediateExpressionOptions;
+                internal readonly NeoScriptGridReads? gridReads;
+                internal readonly ClassMember? initializerPlacement;
+
+                internal FunctionFrame(Context ctx)
+                {
+                    thisValue = ctx.thisValue;
+                    functionCallStack = ctx.functionCallStack;
+                    linkedFunctionCallHandler = ctx.linkedFunctionCallHandler;
+                    objectInitializerHandler = ctx.objectInitializerHandler;
+                    immediateExpressionContext = ctx.immediateExpressionContext;
+                    immediateExpressionSource = ctx.immediateExpressionSource;
+                    immediateExpressionState = ctx.immediateExpressionState;
+                    immediateExpressionOptions = ctx.immediateExpressionOptions;
+                    gridReads = ctx.gridReads;
+                    initializerPlacement = ctx.initializerPlacement;
+                }
+            }
+
+            /// <summary>
+            /// Runs a synchronous function frame on this context instead of a
+            /// fork: nothing retains a frame that completes before its caller
+            /// continues, so the caller's state only needs to come back.
+            /// </summary>
+            internal FunctionFrame EnterFunction(string memberId, object? receiver)
+            {
+                var saved = new FunctionFrame(this);
+                // The same lifetime gate a fork closes.
+                allocationTracker.ReusableContext = false;
+                functionCallStack = new CallFrameStack(functionCallStack, memberId);
+                thisValue = receiver;
+                immediateExpressionContext = null;
+                immediateExpressionSource = null;
+                immediateExpressionState = null;
+                immediateExpressionOptions = null;
+                return saved;
+            }
+
+            internal void ExitFunction(in FunctionFrame saved)
+            {
+                thisValue = saved.thisValue;
+                functionCallStack = saved.functionCallStack;
+                linkedFunctionCallHandler = saved.linkedFunctionCallHandler;
+                objectInitializerHandler = saved.objectInitializerHandler;
+                immediateExpressionContext = saved.immediateExpressionContext;
+                immediateExpressionSource = saved.immediateExpressionSource;
+                immediateExpressionState = saved.immediateExpressionState;
+                immediateExpressionOptions = saved.immediateExpressionOptions;
+                gridReads = saved.gridReads;
+                initializerPlacement = saved.initializerPlacement;
+            }
+
             internal Context WithConstructionPushed(string className)
             {
                 Context child = Fork();
@@ -3021,6 +3086,40 @@ namespace NeoCompose.Runtime.NeoScript
         private static readonly object BoxedTrue = true;
         private static readonly object BoxedFalse = false;
 
+        // Scripts count, index and compare small integers far more often than
+        // they measure, so each integral value in this range shares one box.
+        private const int MinSharedBox = -128;
+        private const int MaxSharedBox = 1023;
+        private static readonly object[] SharedDoubleBoxes = CreateSharedBoxes(value => (double)value);
+        private static readonly object[] SharedIntBoxes = CreateSharedBoxes(value => value);
+
+        private static object[] CreateSharedBoxes(Func<int, object> box)
+        {
+            var boxes = new object[MaxSharedBox - MinSharedBox + 1];
+            for (int i = 0; i < boxes.Length; i++)
+                boxes[i] = box(i + MinSharedBox);
+            return boxes;
+        }
+
+        internal static object Box(bool value) => value ? BoxedTrue : BoxedFalse;
+
+        internal static object Box(int value) =>
+            value is >= MinSharedBox and <= MaxSharedBox
+                ? SharedIntBoxes[value - MinSharedBox]
+                : value;
+
+        internal static object Box(double value)
+        {
+            if (value is >= MinSharedBox and <= MaxSharedBox)
+            {
+                int integral = (int)value;
+                // -0.0 keeps its own box: it is integral but not the shared 0.
+                if (integral == value && (integral != 0 || !double.IsNegative(value)))
+                    return SharedDoubleBoxes[integral - MinSharedBox];
+            }
+            return value;
+        }
+
         private static object? EvalOperation(
             Operation operation,
             NeoScriptScope scope,
@@ -3031,7 +3130,7 @@ namespace NeoCompose.Runtime.NeoScript
                 case ArithmeticOperation arith:
                     return EvalArithmetic(arith.arithmetic, scope, ctx).Box();
                 case BooleanOperation boolOp:
-                    return EvalBooleanExpression(boolOp.expression, scope, ctx) ? BoxedTrue : BoxedFalse;
+                    return Box(EvalBooleanExpression(boolOp.expression, scope, ctx));
                 default:
                     throw new NSGetterRuntimeError(
                         $"Unknown operation kind {operation.GetType().Name}");
@@ -3057,7 +3156,7 @@ namespace NeoCompose.Runtime.NeoScript
                 IsNumber = TryAsDouble(value, out Number);
                 reference = value;
             }
-            internal object? Box() => reference ?? (IsNumber ? (object)Number : null);
+            internal object? Box() => reference ?? (IsNumber ? NSGetterEvaluator.Box(Number) : null);
         }
 
         internal static ArithmeticValue EvaluateValue(Pointer pointer, NeoScriptScope scope, Context ctx)
@@ -3993,7 +4092,7 @@ namespace NeoCompose.Runtime.NeoScript
                         var c = EvalPointer(cf.info.collectionPointer, scope, ctx);
                         var inner = cf.info.function;
                         if (inner is null)
-                            return CollectionLength(c);
+                            return Box(CollectionLength(c));
 
                         bool isList = CollectionIsList(c);
                         int count = 0;
@@ -4014,8 +4113,9 @@ namespace NeoCompose.Runtime.NeoScript
                                 count++;
                             }
                         }
-                        callback.CompleteOperator(count);
-                        return count;
+                        object boxedCount = Box(count);
+                        callback.CompleteOperator(boxedCount);
+                        return boxedCount;
                     }
                 case ContainsFunction cnf:
                     {
@@ -4028,7 +4128,7 @@ namespace NeoCompose.Runtime.NeoScript
                                 throw new NSGetterRuntimeError(
                                     "string.Contains argument must be a string");
                             }
-                            return s.Contains(ts);
+                            return Box(s.Contains(ts));
                         }
                         string? targetReferenceId = target as string
                             ?? ValueIdOf(target, ctx);
@@ -4038,10 +4138,10 @@ namespace NeoCompose.Runtime.NeoScript
                             if ((cursor.ValueId is { } valueId && valueId == targetReferenceId)
                                 || JsEqual(cursor.Entry, target))
                             {
-                                return true;
+                                return BoxedTrue;
                             }
                         }
-                        return false;
+                        return BoxedFalse;
                     }
                 case IndexOfFunction iof:
                     {
@@ -4060,10 +4160,10 @@ namespace NeoCompose.Runtime.NeoScript
                             if ((cursor.ValueId is { } valueId && valueId == targetReferenceId)
                                 || JsEqual(cursor.Entry, target))
                             {
-                                return cursor.Index;
+                                return Box(cursor.Index);
                             }
                         }
-                        return -1;
+                        return Box(-1);
                     }
                 case WhereFunction wf:
                     {
@@ -4477,8 +4577,9 @@ namespace NeoCompose.Runtime.NeoScript
             NeoScriptScope scope,
             Context ctx)
         {
-            var components = new float[info.componentPointers.Length];
-            for (int i = 0; i < info.componentPointers.Length; i++)
+            int arity = info.componentPointers.Length;
+            Span<float> components = arity <= 4 ? stackalloc float[arity] : new float[arity];
+            for (int i = 0; i < arity; i++)
             {
                 var raw = EvalPointer(info.componentPointers[i], scope, ctx);
                 if (!TryAsDouble(raw, out double numeric)
@@ -5112,7 +5213,7 @@ namespace NeoCompose.Runtime.NeoScript
         }
 
         private static void EnsureVectorArity(
-            float[] components,
+            ReadOnlySpan<float> components,
             int expected,
             MemberKind vectorType)
         {

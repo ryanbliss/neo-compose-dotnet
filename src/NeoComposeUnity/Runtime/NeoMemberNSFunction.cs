@@ -535,6 +535,8 @@ namespace NeoCompose.Runtime
                 : new NeoScriptScope(expectedParameters);
             scope.UseLayout(function.ScopeLayout ??= new NeoScriptScopeLayout(action));
             bool completed = false;
+            bool inPlaceFrame = false;
+            NSGetterEvaluator.Context.FunctionFrame savedFrame = default;
             try
             {
                 const int rootParameterIndex = 1;
@@ -571,8 +573,15 @@ namespace NeoCompose.Runtime
                     ctx.BindFunction(function.DirectCallStack, isStatic ? null : receiver);
                     nestedCtx = ctx;
                 }
+                else if (!function.Deferred)
+                {
+                    savedFrame = ctx.EnterFunction(function.MemberId, isStatic ? null : receiver);
+                    inPlaceFrame = true;
+                    nestedCtx = ctx;
+                }
                 else
                 {
+                    // A suspended deferred frame outlives this call.
                     nestedCtx = ctx.WithFunctionPushed(function.MemberId, isStatic ? null : receiver);
                 }
                 NeoScriptExecutionOptions functionOptions = options.ForFunction(function.Deferred);
@@ -591,6 +600,8 @@ namespace NeoCompose.Runtime
             }
             finally
             {
+                if (inPlaceFrame)
+                    ctx.ExitFunction(in savedFrame);
                 // Failed/suspended execution may still own continuations. Let their
                 // existing lifetime rules release those scopes instead of pooling them.
                 if (poolScope && completed)
@@ -2056,7 +2067,9 @@ namespace NeoCompose.Runtime
                 foreach (string entry in options)
                     if (entry is null)
                         throw new InvalidOperationException($"{subject} contains an entry without an enum option id.");
-                return (string[])options.Clone();
+                // Enum values are never written in place, so the validated
+                // array passes through as is.
+                return options;
             }
             string? optionId = EnumOptionId(value);
             if (optionId is not null)
