@@ -90,7 +90,7 @@ namespace NeoCompose.Runtime.NeoScript
 
         // A statement block's locals end with it, while its assignments to
         // enclosing bindings land where those bindings were declared.
-        private readonly bool block;
+        private bool block;
 
         internal NeoScriptScope? Parent
         {
@@ -99,7 +99,18 @@ namespace NeoCompose.Runtime.NeoScript
         }
 
         /// <summary>Adopts a pooled scope as a child of <paramref name="parent"/>, or releases it.</summary>
-        internal void BindParent(NeoScriptScope? parent) => Parent = parent;
+        internal void BindParent(NeoScriptScope? parent)
+        {
+            Parent = parent;
+            block = false;
+        }
+
+        /// <summary>Adopts a pooled scope as a statement block of <paramref name="parent"/>.</summary>
+        internal void BindBlock(NeoScriptScope parent)
+        {
+            Parent = parent;
+            block = true;
+        }
         internal int LocalBindingCount => externalBindings?.Count ?? bindings!.Count + occupiedCount;
         internal int BindingCapacity => externalBindings?.EnsureCapacity(0) ?? bindings!.EnsureCapacity(0) + slots.Length;
 

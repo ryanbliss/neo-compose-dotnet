@@ -739,7 +739,7 @@ namespace NeoCompose.Runtime
                     options,
                     state);
                 return result.IsPaused
-                    ? result.ObserveFailure(_ => state.RestoreBinding(scope))
+                    ? RestoreBindingOnFailure(result, state, scope)
                     : result;
             }
             catch
@@ -779,17 +779,14 @@ namespace NeoCompose.Runtime
                             }
                             catch (NeoFunctionCallSuspended suspended)
                             {
-                                return PauseLoopExpression(
-                                    suspended,
-                                    state.ExpressionState,
+                                return PauseFor(
+                                    client,
+                                    returnTypeInfo,
+                                    scope,
+                                    ctx,
                                     options,
-                                    () => RunFor(
-                                        client,
-                                        returnTypeInfo,
-                                        scope,
-                                        ctx,
-                                        options,
-                                        state));
+                                    state,
+                                    suspended);
                             }
                             state.MoveTo(ForPhase.Condition);
                             continue;
@@ -814,17 +811,14 @@ namespace NeoCompose.Runtime
                             }
                             catch (NeoFunctionCallSuspended suspended)
                             {
-                                return PauseLoopExpression(
-                                    suspended,
-                                    state.ExpressionState,
+                                return PauseFor(
+                                    client,
+                                    returnTypeInfo,
+                                    scope,
+                                    ctx,
                                     options,
-                                    () => RunFor(
-                                        client,
-                                        returnTypeInfo,
-                                        scope,
-                                        ctx,
-                                        options,
-                                        state));
+                                    state,
+                                    suspended);
                             }
                             if (!shouldEnter)
                             {
@@ -838,8 +832,10 @@ namespace NeoCompose.Runtime
                         }
                     case ForPhase.Body:
                         {
-                            NeoScriptScope bodyScope =
-                                state.EnsureBodyScope(scope);
+                            NeoScriptScope bodyScope = state.EnsureBodyScope(
+                                client,
+                                scope,
+                                state.Instruction.instructions);
                             NeoScriptExecutionResult bodyResult = ExecuteInstructions(
                                 client,
                                 state.Instruction.instructions,
@@ -851,16 +847,15 @@ namespace NeoCompose.Runtime
                                 options);
                             if (bodyResult.IsPaused)
                             {
-                                return ThenWhenCompleted(
+                                return ResumeForWhenCompleted(
+                                    client,
+                                    returnTypeInfo,
+                                    scope,
+                                    ctx,
+                                    options,
+                                    state,
                                     bodyResult,
-                                    afterBody => ResumeForAfterBody(
-                                        client,
-                                        returnTypeInfo,
-                                        scope,
-                                        ctx,
-                                        options,
-                                        state,
-                                        afterBody));
+                                    afterIterator: false);
                             }
                             state.ResetBodyScope();
                             NeoScriptExecutionResult? terminal =
@@ -890,31 +885,26 @@ namespace NeoCompose.Runtime
                             }
                             catch (NeoFunctionCallSuspended suspended)
                             {
-                                return PauseLoopExpression(
-                                    suspended,
-                                    state.ExpressionState,
+                                return PauseFor(
+                                    client,
+                                    returnTypeInfo,
+                                    scope,
+                                    ctx,
                                     options,
-                                    () => RunFor(
-                                        client,
-                                        returnTypeInfo,
-                                        scope,
-                                        ctx,
-                                        options,
-                                        state));
+                                    state,
+                                    suspended);
                             }
                             if (nestedSetter is not null && nestedSetter.Value.IsPaused)
                             {
-                                return ThenWhenCompleted(nestedSetter.Value, _ =>
-                                {
-                                    state.MoveTo(ForPhase.Condition);
-                                    return RunFor(
-                                        client,
-                                        returnTypeInfo,
-                                        scope,
-                                        ctx,
-                                        options,
-                                        state);
-                                });
+                                return ResumeForWhenCompleted(
+                                    client,
+                                    returnTypeInfo,
+                                    scope,
+                                    ctx,
+                                    options,
+                                    state,
+                                    nestedSetter.Value,
+                                    afterIterator: true);
                             }
                             state.MoveTo(ForPhase.Condition);
                             continue;
@@ -925,6 +915,46 @@ namespace NeoCompose.Runtime
                 }
             }
         }
+
+        // The pause paths below live outside RunForCore so its hot frame
+        // captures nothing: a lambda there allocates its closure on every
+        // call, paused or not.
+        private static NeoScriptExecutionResult PauseFor(
+            NeoClient client,
+            TypeInfo returnTypeInfo,
+            NeoScriptScope scope,
+            NSGetterEvaluator.Context ctx,
+            NeoScriptExecutionOptions? options,
+            ForExecutionState state,
+            NeoFunctionCallSuspended suspended) =>
+            PauseLoopExpression(
+                suspended,
+                state.ExpressionState,
+                options,
+                () => RunFor(client, returnTypeInfo, scope, ctx, options, state));
+
+        private static NeoScriptExecutionResult ResumeForWhenCompleted(
+            NeoClient client,
+            TypeInfo returnTypeInfo,
+            NeoScriptScope scope,
+            NSGetterEvaluator.Context ctx,
+            NeoScriptExecutionOptions? options,
+            ForExecutionState state,
+            NeoScriptExecutionResult result,
+            bool afterIterator) =>
+            ThenWhenCompleted(result, settled =>
+            {
+                if (!afterIterator)
+                    return ResumeForAfterBody(client, returnTypeInfo, scope, ctx, options, state, settled);
+                state.MoveTo(ForPhase.Condition);
+                return RunFor(client, returnTypeInfo, scope, ctx, options, state);
+            });
+
+        private static NeoScriptExecutionResult RestoreBindingOnFailure(
+            NeoScriptExecutionResult result,
+            LoopExecutionState state,
+            NeoScriptScope scope) =>
+            result.ObserveFailure(_ => state.RestoreBinding(scope));
 
         private static NeoScriptExecutionResult ResumeForAfterBody(
             NeoClient client,
@@ -1005,7 +1035,7 @@ namespace NeoCompose.Runtime
                     options,
                     state);
                 return result.IsPaused
-                    ? result.ObserveFailure(_ => state.RestoreBinding(scope))
+                    ? RestoreBindingOnFailure(result, state, scope)
                     : result;
             }
             catch
@@ -1044,17 +1074,14 @@ namespace NeoCompose.Runtime
                     }
                     catch (NeoFunctionCallSuspended suspended)
                     {
-                        return PauseLoopExpression(
-                            suspended,
-                            state.ExpressionState,
+                        return PauseForEach(
+                            client,
+                            returnTypeInfo,
+                            scope,
+                            ctx,
                             options,
-                            () => RunForEach(
-                                client,
-                                returnTypeInfo,
-                                scope,
-                                ctx,
-                                options,
-                                state));
+                            state,
+                            suspended);
                     }
                     state.Snapshot =
                         NSGetterEvaluator.SnapshotCollectionEntries(
@@ -1074,8 +1101,10 @@ namespace NeoCompose.Runtime
                     CoerceSetterValue(
                         state.Snapshot[state.Index].Resolve(ctx),
                         state.Instruction.binding.typeInfo);
-                NeoScriptScope bodyScope =
-                    state.EnsureBodyScope(scope);
+                NeoScriptScope bodyScope = state.EnsureBodyScope(
+                    client,
+                    scope,
+                    state.Instruction.instructions);
                 NeoScriptExecutionResult bodyResult = ExecuteInstructions(
                     client,
                     state.Instruction.instructions,
@@ -1087,16 +1116,14 @@ namespace NeoCompose.Runtime
                     options);
                 if (bodyResult.IsPaused)
                 {
-                    return ThenWhenCompleted(
-                        bodyResult,
-                        afterBody => ResumeForEachAfterBody(
-                            client,
-                            returnTypeInfo,
-                            scope,
-                            ctx,
-                            options,
-                            state,
-                            afterBody));
+                    return ResumeForEachWhenCompleted(
+                        client,
+                        returnTypeInfo,
+                        scope,
+                        ctx,
+                        options,
+                        state,
+                        bodyResult);
                 }
                 state.ResetBodyScope();
                 NeoScriptExecutionResult? terminal =
@@ -1105,6 +1132,33 @@ namespace NeoCompose.Runtime
                     return terminal.Value;
             }
         }
+
+        // Outside RunForEachCore for the same reason as PauseFor.
+        private static NeoScriptExecutionResult PauseForEach(
+            NeoClient client,
+            TypeInfo returnTypeInfo,
+            NeoScriptScope scope,
+            NSGetterEvaluator.Context ctx,
+            NeoScriptExecutionOptions? options,
+            ForEachExecutionState state,
+            NeoFunctionCallSuspended suspended) =>
+            PauseLoopExpression(
+                suspended,
+                state.ExpressionState,
+                options,
+                () => RunForEach(client, returnTypeInfo, scope, ctx, options, state));
+
+        private static NeoScriptExecutionResult ResumeForEachWhenCompleted(
+            NeoClient client,
+            TypeInfo returnTypeInfo,
+            NeoScriptScope scope,
+            NSGetterEvaluator.Context ctx,
+            NeoScriptExecutionOptions? options,
+            ForEachExecutionState state,
+            NeoScriptExecutionResult bodyResult) =>
+            ThenWhenCompleted(
+                bodyResult,
+                afterBody => ResumeForEachAfterBody(client, returnTypeInfo, scope, ctx, options, state, afterBody));
 
         private static NeoScriptExecutionResult ResumeForEachAfterBody(
             NeoClient client,
@@ -5197,6 +5251,7 @@ namespace NeoCompose.Runtime
             private readonly object? previousBinding;
             private readonly bool readOnly;
             private NeoScriptScope? bodyScope;
+            private NeoClient? bodyScopeOwner;
             private bool bindingRestored;
 
             protected LoopExecutionState(
@@ -5218,10 +5273,24 @@ namespace NeoCompose.Runtime
                 }
             }
 
+            /// <summary>
+            /// The scope the body runs in. A body without locals runs in the
+            /// loop's scope, as other blocks do; one with locals gets a
+            /// pooled block that <see cref="RestoreBinding"/> returns.
+            /// </summary>
             internal NeoScriptScope EnsureBodyScope(
-                NeoScriptScope parentScope)
+                NeoClient client,
+                NeoScriptScope parentScope,
+                Instruction[] body)
             {
-                return bodyScope ??= parentScope.CreateBlock();
+                if (bodyScope is not null)
+                    return bodyScope;
+                if (!DeclaresLocals(body))
+                    return parentScope;
+                bodyScope = client.RentFunctionScope(0);
+                bodyScope.BindBlock(parentScope);
+                bodyScopeOwner = client;
+                return bodyScope;
             }
 
             /// <summary>
@@ -5235,7 +5304,11 @@ namespace NeoCompose.Runtime
                 if (bindingRestored)
                     return;
                 bindingRestored = true;
-                ResetBodyScope();
+                if (bodyScope is not null)
+                {
+                    bodyScopeOwner!.ReturnFunctionScope(bodyScope);
+                    bodyScope = null;
+                }
                 if (readOnly)
                 {
                     UnmarkReadOnlyBinding(scope, bindingId);
