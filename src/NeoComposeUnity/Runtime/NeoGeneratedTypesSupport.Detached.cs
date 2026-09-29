@@ -532,7 +532,7 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>The current array of a slot: a List's entries, rebuilt after appends, or a leaf's array.</summary>
-        internal static object?[]? DetachedListEntries(NeoScriptObject target, int index)
+        internal static object?[]? DetachedArray(NeoScriptObject target, int index)
         {
             if (target.values[index] is object?[] entries)
                 return entries;
@@ -786,7 +786,7 @@ namespace NeoCompose.Runtime
                     value.client,
                     slot.member,
                     slot.kind == DetachedSlotKind.List
-                        ? DetachedListEntries(value, index)
+                        ? DetachedArray(value, index)
                         : value.values[index],
                     rows,
                     now,

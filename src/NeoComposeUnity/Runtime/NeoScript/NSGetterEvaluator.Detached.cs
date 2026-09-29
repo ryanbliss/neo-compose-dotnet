@@ -203,7 +203,7 @@ namespace NeoCompose.Runtime.NeoScript
             if (value.states[index] != NeoScriptObject.DefaultSlot)
             {
                 result = slot.kind == DetachedSlotKind.List
-                    ? NeoGeneratedTypesSupport.DetachedListEntries(value, index)
+                    ? NeoGeneratedTypesSupport.DetachedArray(value, index)
                     : value.values[index];
                 return true;
             }
@@ -296,7 +296,7 @@ namespace NeoCompose.Runtime.NeoScript
                     continue;
                 }
                 if (slots[index].kind != DetachedSlotKind.List
-                    || NeoGeneratedTypesSupport.DetachedListEntries(owner, index) is not object?[] entries)
+                    || NeoGeneratedTypesSupport.DetachedArray(owner, index) is not object?[] entries)
                 {
                     continue;
                 }
@@ -337,7 +337,7 @@ namespace NeoCompose.Runtime.NeoScript
         {
             NeoScriptObject owner = origin.owner;
             if (owner.attachedId is null)
-                return NeoGeneratedTypesSupport.DetachedListEntries(owner, origin.index);
+                return NeoGeneratedTypesSupport.DetachedArray(owner, origin.index);
             return DispatchSchemaMember(
                 ForwardDetached(owner, ctx),
                 owner.plan.slots[origin.index].schemaKey,

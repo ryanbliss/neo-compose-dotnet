@@ -131,7 +131,7 @@ namespace NeoCompose.Runtime
         private static NeoCellPattern ReadDetached(NeoScriptObject detached)
         {
             object?[] entries = detached.plan.slotByKey.TryGetValue("_offsets", out int slot)
-                && NeoGeneratedTypesSupport.DetachedListEntries(detached, slot) is object?[] stored
+                && NeoGeneratedTypesSupport.DetachedArray(detached, slot) is object?[] stored
                     ? stored
                     : throw new InvalidOperationException("CellPattern offsets are missing.");
             var offsets = new Vector2Int[entries.Length];
