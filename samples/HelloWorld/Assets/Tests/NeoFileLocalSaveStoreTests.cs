@@ -61,6 +61,33 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
+        public async System.Threading.Tasks.Task UnawaitedCommitsAndDelete_KeepCallOrder()
+        {
+            var store = new NeoFileLocalSaveStore(directory);
+
+            var first = store.CommitSaveAsync("alpha", "{\"name\":\"alpha-1\"}");
+            var second = store.CommitSaveAsync("alpha", "{\"name\":\"alpha-2\"}");
+            Assert.AreEqual(
+                "{\"name\":\"alpha-2\"}",
+                store.LoadSaveAsync("alpha").GetAwaiter().GetResult(),
+                "A read sees the newest commit before its write lands.");
+            await first;
+            await second;
+            Assert.AreEqual(
+                "{\"name\":\"alpha-2\"}",
+                File.ReadAllText(Path.Combine(directory, "save-alpha.json")),
+                "The older write never lands over the newer one.");
+
+            var stale = store.CommitSaveAsync("alpha", "{\"name\":\"alpha-3\"}");
+            store.DeleteSaveAsync("alpha").GetAwaiter().GetResult();
+            await stale;
+            Assert.IsFalse(
+                File.Exists(Path.Combine(directory, "save-alpha.json")),
+                "A delete supersedes a write still in flight.");
+            Assert.IsNull(store.LoadSaveAsync("alpha").GetAwaiter().GetResult());
+        }
+
+        [Test]
         public async System.Threading.Tasks.Task Files_AreNamedBySaveCustomIdConvention()
         {
             var store = new NeoFileLocalSaveStore(directory);

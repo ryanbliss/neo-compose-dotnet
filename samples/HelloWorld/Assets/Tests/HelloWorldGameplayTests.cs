@@ -43,11 +43,16 @@ namespace HelloWorld.Assets.Tests
         {
             // Gameplay saves fire and forget, and a commit finishes on a
             // worker frames later; let it land before its folder goes away.
+            float deadline = Time.realtimeSinceStartup + 30;
+            bool settled = true;
             foreach (var go in spawned)
             {
                 var neo = go == null ? null : GameplayNeo(go.GetComponent<HelloWorldGameplay>());
-                while (neo != null && neo.Client.IsCommitting)
+                if (neo == null)
+                    continue;
+                while (neo.Client.IsCommitting && Time.realtimeSinceStartup < deadline)
                     yield return null;
+                settled &= !neo.Client.IsCommitting;
             }
             foreach (var go in spawned)
             {
@@ -63,6 +68,7 @@ namespace HelloWorld.Assets.Tests
             stores.Clear();
             if (Directory.Exists(saveDirectory))
                 Directory.Delete(saveDirectory, recursive: true);
+            Assert.IsTrue(settled, "a gameplay save never settled");
         }
 
         /// <summary>A loaded local store over this test's temp save folder.</summary>

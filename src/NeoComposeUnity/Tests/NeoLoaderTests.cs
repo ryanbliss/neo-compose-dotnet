@@ -96,6 +96,83 @@ namespace NeoCompose.Tests
             Assert.AreEqual(committed, stack.PersistedContent());
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task NeoLoader_QueuedCommitsSettleInCallOrder(bool firstFails)
+        {
+            var loader = new GatedSaveLoader(
+                JsonConvert.DeserializeObject<ProjectData>(LoadFixture("synth-example.json"))!);
+            var app = await global::Assets.Scripts.Neo.TestProjectNeo.Load(loader);
+
+            app.Save.Score = 1;
+            var first = app.CommitAsync();
+            app.Save.Score = 2;
+            var second = app.CommitAsync();
+            Assert.IsTrue(app.Client.IsCommitting);
+
+            await loader.WaitForCommits(1);
+            if (firstFails)
+                loader.gates[0].SetException(new System.InvalidOperationException("offline"));
+            else
+                loader.gates[0].SetResult();
+            try
+            {
+                await first;
+                Assert.IsFalse(firstFails);
+            }
+            catch (System.InvalidOperationException)
+            {
+                Assert.IsTrue(firstFails);
+            }
+            Assert.IsTrue(app.Client.IsCommitting, "the queued commit has not settled");
+
+            await loader.WaitForCommits(2);
+            loader.gates[1].SetResult();
+            await second;
+            Assert.IsFalse(app.Client.IsCommitting);
+            Assert.AreEqual(app.SerializeSaveData(), loader.committed.Last(),
+                "the queued commit persists the state at its turn");
+            Assert.AreEqual(firstFails ? 1 : 2, loader.committed.Count);
+            app.Dispose();
+        }
+
+        /// <summary>Holds each commit until the test settles its gate.</summary>
+        private sealed class GatedSaveLoader : INeoSaveLoader
+        {
+            public readonly List<AwaitableCompletionSource> gates = new();
+            public readonly List<string> committed = new();
+
+            public GatedSaveLoader(ProjectData schema) => Schema = schema;
+
+            public ProjectData Schema
+            {
+                get;
+            }
+            public string CustomId => "save-1";
+
+            public Awaitable<string?> LoadSaveContentAsync() =>
+                NeoAwaitable.FromResult<string?>(null);
+
+            public async Awaitable CommitSaveContentAsync(string content, bool replaceSnapshot)
+            {
+                var gate = new AwaitableCompletionSource();
+                gates.Add(gate);
+                await gate.Awaitable;
+                committed.Add(content);
+            }
+
+            // Each commit serializes on a worker before it reaches the loader.
+            public async Task WaitForCommits(int count)
+            {
+                var deadline = System.DateTime.UtcNow.AddSeconds(30);
+                while (gates.Count < count)
+                {
+                    Assert.Less(System.DateTime.UtcNow, deadline, "commit never reached the loader");
+                    await Task.Yield();
+                }
+            }
+        }
+
         [Test]
         public async Task NeoLoader_ClearsSaveDiagnosticsWhenDisabledAtRuntime()
         {

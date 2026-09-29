@@ -277,8 +277,8 @@ explicit opt-out):
   delay (0.3 s — batching the burst of writes one frame/action produces into
   a single serialize + stage); the flush throttle below then paces the
   network. Inbound applies (`ApplyExternalSaveContent`) are suppressed from
-  re-triggering it, and the auto path skips the unlinked-values warning so
-  the hint doesn't become spam. Explicit `CommitAsync` still works and is
+  re-triggering it, and an inbound revision waits while writes are still
+  unstaged (auto-commit scheduled or a commit in flight). Explicit `CommitAsync` still works and is
   still required for classic (non-live) cloud saves.
 - **`CommitSaveContentAsync` keeps its public signature** but becomes
   stage-and-throttle in live mode: the local store is still written

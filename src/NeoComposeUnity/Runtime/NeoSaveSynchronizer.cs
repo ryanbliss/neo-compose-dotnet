@@ -41,6 +41,7 @@ namespace NeoCompose.Runtime
         private IDisposable? realtimeHeadSubscription;
         private bool realtimeRevisionApplyRunning;
         private GameSaveSnapshotRevisionSignal? pendingRealtimeRevision;
+        private bool localWritesPending;
 
         // --- Live session state (specs/live-save-sessions.md) ---------------
         // One synchronizer instance is one play session of its save.
@@ -323,38 +324,40 @@ namespace NeoCompose.Runtime
                 // commit runs alongside it rather than after it.
                 var localWrite = core.LocalStore.CommitSaveAsync(CustomId, content);
                 RemoteGameSave? committedRemote = null;
-                try
+                if (core.CloudEnabled)
                 {
-                    if (core.CloudEnabled)
+                    try
                     {
                         committedRemote = await CommitToCloudAsync(
                             local,
                             replaceSnapshot,
                             useTrackedMutations: useTrackedMutations);
                     }
-                }
-                finally
-                {
-                    await localWrite;
+                    catch
+                    {
+                        await localWrite;
+                        throw;
+                    }
                 }
 
-                if (!core.CloudEnabled)
-                {
-                    active = local;
-                    core.RecordSavedFile(local, null);
+                // Record the commit before the local write settles, so nothing
+                // reads the previous save across that wait.
+                active = committedRemote != null
+                    ? LocalGameSave.FromRemote(committedRemote)
+                    : local;
+                core.RecordSavedFile(active, committedRemote);
+                if (!core.CloudEnabled || committedRemote != null)
                     ClearDirtyRecords();
-                    State = NeoSaveSynchronizerState.Ready;
-                    OnCommitSuccess?.Invoke(local);
-                    return;
-                }
+                await localWrite;
 
                 if (committedRemote != null)
                 {
-                    active = LocalGameSave.FromRemote(committedRemote);
                     // Re-stamp the local file with the server identity so a later
                     // load sees the synchronized snapshot revision.
-                    await core.LocalStore.CommitSaveAsync(
-                        CustomId, JsonConvert.SerializeObject(active));
+                    var restamped = active;
+                    string restampedContent = await SerializeOnWorkerAsync(restamped);
+                    if (ReferenceEquals(active, restamped))
+                        await core.LocalStore.CommitSaveAsync(CustomId, restampedContent);
                     // A brand-new save skipped the load path (and with it
                     // AttachRealtimeHead); attach now that the save exists so
                     // OnRemoteHeadChanged works for created saves too.
@@ -363,14 +366,7 @@ namespace NeoCompose.Runtime
                         AttachRealtimeHead();
                     }
                 }
-                else
-                {
-                    active = local;
-                }
 
-                core.RecordSavedFile(active, committedRemote);
-                if (committedRemote != null)
-                    ClearDirtyRecords();
                 State = NeoSaveSynchronizerState.Ready;
                 OnCommitSuccess?.Invoke(active);
             }
@@ -705,13 +701,13 @@ namespace NeoCompose.Runtime
             public GameSaveRecordCache recordCache = new();
             public string? liveSessionId;
 
+            // The baseline is only read, so it shares the save's values; a
+            // copy cost ~15 ms of main thread per commit at 2,260 rows.
             public static SparseCommitBaseline FromLocal(LocalGameSave save) => new()
             {
                 snapshotId = save.snapshotId!,
                 snapshotRevision = save.snapshotRevision,
-                values = AsValuesObject(save.values) is { } values
-                    ? (JObject)values.DeepClone()
-                    : new JObject(),
+                values = AsValuesObject(save.values) ?? new JObject(),
                 staticBindings = new Dictionary<string, string?>(save.staticBindings),
                 recordCache = save.recordCache,
                 liveSessionId = save.liveSessionId,
@@ -721,9 +717,7 @@ namespace NeoCompose.Runtime
             {
                 snapshotId = save.snapshotId,
                 snapshotRevision = save.snapshotRevision,
-                values = AsValuesObject(save.values) is { } values
-                    ? (JObject)values.DeepClone()
-                    : new JObject(),
+                values = AsValuesObject(save.values) ?? new JObject(),
                 staticBindings = new Dictionary<string, string?>(save.staticBindings),
                 recordCache = save.recordCache,
                 liveSessionId = save.liveSessionId,
@@ -881,7 +875,20 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private async void OnRealtimeRevisionSignal(GameSaveSnapshotRevisionSignal signal)
+        /// <summary>
+        /// Set by the client while it holds save writes it has not staged yet:
+        /// a scheduled auto-commit or a commit still serializing. A revision
+        /// merges over the staged content, so applying one earlier would
+        /// revert those writes in memory; it waits until they are staged.
+        /// </summary>
+        internal void SetLocalWritesPending(bool pending)
+        {
+            localWritesPending = pending;
+            if (!pending)
+                DrainRealtimeRevisions();
+        }
+
+        private void OnRealtimeRevisionSignal(GameSaveSnapshotRevisionSignal signal)
         {
             if (pendingRealtimeRevision == null
                 || pendingRealtimeRevision.snapshotId != signal.snapshotId
@@ -889,13 +896,18 @@ namespace NeoCompose.Runtime
             {
                 pendingRealtimeRevision = signal;
             }
-            if (realtimeRevisionApplyRunning)
+            DrainRealtimeRevisions();
+        }
+
+        private async void DrainRealtimeRevisions()
+        {
+            if (realtimeRevisionApplyRunning || localWritesPending)
                 return;
 
             realtimeRevisionApplyRunning = true;
             try
             {
-                while (pendingRealtimeRevision != null)
+                while (pendingRealtimeRevision != null && !localWritesPending)
                 {
                     var next = pendingRealtimeRevision;
                     pendingRealtimeRevision = null;
@@ -1081,10 +1093,32 @@ namespace NeoCompose.Runtime
             if (!ReferenceEquals(stagedLive, local))
                 return;
             local.liveFlushed = true;
-            await core.LocalStore.CommitSaveAsync(CustomId, JsonConvert.SerializeObject(local));
+            // Settle before the write: a stage landing across it marks itself
+            // dirty again, and must not be cleared afterwards.
             ClearDirtyRecords();
-            stagedLiveUsesTrackedMutations = true;
             liveFirstDirtyAt = -1;
+            string content = await SerializeOnWorkerAsync(local);
+            if (ReferenceEquals(stagedLive, local))
+                await core.LocalStore.CommitSaveAsync(CustomId, content);
+        }
+
+        /// <summary>
+        /// Serializes a save on a worker: at 2,260 rows it costs ~6 ms, and
+        /// flushes and commits run it while the game plays. The worker reads a
+        /// detached copy, so the main thread can keep syncing meanwhile.
+        /// </summary>
+        private static async Awaitable<string> SerializeOnWorkerAsync(LocalGameSave save)
+        {
+            var copy = save.DetachedCopy();
+            await Awaitable.BackgroundThreadAsync();
+            try
+            {
+                return JsonConvert.SerializeObject(copy);
+            }
+            finally
+            {
+                await Awaitable.MainThreadAsync();
+            }
         }
 
         /// <summary>
@@ -1101,8 +1135,6 @@ namespace NeoCompose.Runtime
             State = NeoSaveSynchronizerState.Committing;
             try
             {
-                await core.LocalStore.CommitSaveAsync(CustomId, content);
-
                 // The game's serialized payload may not carry the server
                 // identity — a save created from defaults has never seen it.
                 // The synchronizer's own record is authoritative: without this
@@ -1111,19 +1143,24 @@ namespace NeoCompose.Runtime
                 // its live snapshot.
                 MergeKnownLiveIdentityInto(local);
 
+                // Stage before the local write settles: a flush finishing
+                // across that wait must see this content as the newest, or
+                // it would persist older content and clear this stage's dirt.
                 var alreadyStaged = liveFirstDirtyAt >= 0;
                 stagedLiveUsesTrackedMutations = alreadyStaged
                     ? stagedLiveUsesTrackedMutations && useTrackedMutations
                     : useTrackedMutations;
                 active = local;
                 stagedLive = local;
+                liveLastStagedAt = LiveClock();
+                if (liveFirstDirtyAt < 0)
+                    liveFirstDirtyAt = liveLastStagedAt;
+                await core.LocalStore.CommitSaveAsync(CustomId, content);
+
                 core.RecordSavedFile(local, null);
                 State = NeoSaveSynchronizerState.Ready;
                 OnCommitSuccess?.Invoke(local);
 
-                liveLastStagedAt = LiveClock();
-                if (liveFirstDirtyAt < 0)
-                    liveFirstDirtyAt = liveLastStagedAt;
                 if (flushImmediately)
                 {
                     await FlushLiveNowAsync();
@@ -1212,6 +1249,10 @@ namespace NeoCompose.Runtime
 
             await FlushLiveOnceSerializedAsync(realtime);
         }
+
+        /// <summary>True while a live flush runs, including its local persist
+        /// on a worker.</summary>
+        internal bool IsLiveFlushRunning => liveFlushOperationRunning;
 
         private async Awaitable FlushLiveOnceSerializedAsync(INeoRealtimeProvider realtime)
         {
@@ -1315,6 +1356,10 @@ namespace NeoCompose.Runtime
             JObject staged,
             NeoSavePatch patch)
         {
+            // The next baseline is a whole-save copy (~15 ms at 2,260 rows).
+            // Staged values are never edited in place, so a worker copies them
+            // while the patch is on the network.
+            var nextBaseline = Task.Run(() => (JObject)staged.DeepClone());
             foreach (var batch in SplitPatch(patch))
             {
                 NeoLivePatchResult result;
@@ -1384,7 +1429,7 @@ namespace NeoCompose.Runtime
                     local.synchronizedAt);
             }
 
-            liveBaseline = (JObject)staged.DeepClone();
+            liveBaseline = await nextBaseline;
             liveStaticBindingBaseline =
                 new Dictionary<string, string?>(local.staticBindings);
             await PersistFlushedLocalAsync(local);

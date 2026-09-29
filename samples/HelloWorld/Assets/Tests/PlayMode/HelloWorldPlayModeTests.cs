@@ -47,6 +47,7 @@ namespace HelloWorld.Assets.Tests.PlayMode
                 deadline = Time.realtimeSinceStartup + 30;
                 while (!commit.IsCompleted && Time.realtimeSinceStartup < deadline)
                     yield return null;
+                Assert.IsTrue(commit.IsCompleted);
                 commit.GetResult();
             }
             using var reopened = store.Open(synchronizer.CustomId);

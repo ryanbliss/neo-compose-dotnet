@@ -331,9 +331,10 @@ namespace NeoCompose.Runtime
                 {
                     if (TryResolveContainerIdForValueId(pair.Key.id, out string? containerId))
                     {
-                        if (pair.Value is { IsRemoved: false } next && next.containerId == containerId
+                        if (pair.Value is { IsRemoved: false } next
                             && TryGetCommittedValue(pair.Key.ownership, pair.Key.id, out MemberValue? previous)
-                            && !previous.IsRemoved)
+                            && !previous.IsRemoved
+                            && previous.containerId == next.containerId)
                             sameMembership.Add(pair.Key);
                         else
                             oldContainers[pair.Key] = containerId!;

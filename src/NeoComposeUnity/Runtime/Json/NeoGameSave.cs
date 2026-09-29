@@ -275,5 +275,24 @@ namespace NeoCompose.Runtime.Json
                 synchronizedAt = remote.synchronizedAt.EpochMilliseconds,
             };
         }
+
+        /// <summary>
+        /// A copy another thread can serialize while syncing continues. The
+        /// record cache and bindings are edited in place, so they are copied;
+        /// values are replaced rather than edited, so they are shared.
+        /// </summary>
+        internal LocalGameSave DetachedCopy()
+        {
+            var copy = (LocalGameSave)MemberwiseClone();
+            copy.staticBindings = new Dictionary<string, string?>(staticBindings);
+            copy.recordCache = new GameSaveRecordCache
+            {
+                snapshotId = recordCache.snapshotId,
+                snapshotRevision = recordCache.snapshotRevision,
+                descriptors = new Dictionary<string, GameSaveRecordDescriptor>(recordCache.descriptors),
+                states = new Dictionary<string, GameSaveRecordState>(recordCache.states),
+            };
+            return copy;
+        }
     }
 }

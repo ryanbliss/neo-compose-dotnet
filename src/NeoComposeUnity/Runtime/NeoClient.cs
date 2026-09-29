@@ -532,7 +532,16 @@ namespace NeoCompose.Runtime
             if (!synchronizer.IsLiveSessionActive)
                 return;
             liveAutoCommitScheduled = true;
+            PublishLocalWritesPending();
             RunLiveAutoCommit();
+        }
+
+        /// <summary>Tells the synchronizer whether save writes are still
+        /// unstaged, so it holds realtime revisions until they are.</summary>
+        private void PublishLocalWritesPending()
+        {
+            if (loader is NeoSaveSynchronizer synchronizer)
+                synchronizer.SetLocalWritesPending(commitRunning || liveAutoCommitScheduled);
         }
 
         /// <summary><c>async void</c> on purpose: fire-and-forget off a setter;
@@ -558,6 +567,7 @@ namespace NeoCompose.Runtime
             finally
             {
                 liveAutoCommitScheduled = false;
+                PublishLocalWritesPending();
             }
         }
 
@@ -8047,14 +8057,20 @@ namespace NeoCompose.Runtime
             return restores;
         }
 
+        /// <param name="restoreHeader">False when a write landed after the
+        /// capture: the header then belongs to that write's commit.</param>
         private void RestoreCommittedSaveMetadata(
             JObject baseline,
-            List<(MemberValue row, NeoTimestamp createdAt, NeoTimestamp updatedAt)> rows)
+            List<(MemberValue row, NeoTimestamp createdAt, NeoTimestamp updatedAt)> rows,
+            bool restoreHeader)
         {
-            saveData.projectId = baseline["projectId"]?.Value<string>()
-                ?? saveData.projectId;
-            saveData.createdAt = ReadTimestamp(baseline["createdAt"], saveData.createdAt);
-            saveData.updatedAt = ReadTimestamp(baseline["updatedAt"], saveData.updatedAt);
+            if (restoreHeader)
+            {
+                saveData.projectId = baseline["projectId"]?.Value<string>()
+                    ?? saveData.projectId;
+                saveData.createdAt = ReadTimestamp(baseline["createdAt"], saveData.createdAt);
+                saveData.updatedAt = ReadTimestamp(baseline["updatedAt"], saveData.updatedAt);
+            }
             foreach (var (row, createdAt, updatedAt) in rows)
             {
                 row.createdAt = createdAt;
@@ -8183,16 +8199,25 @@ namespace NeoCompose.Runtime
                 await turn.Awaitable;
             }
             commitRunning = true;
+            PublishLocalWritesPending();
             try
             {
                 await CommitSaveAsync(replaceSnapshot, flushLiveImmediately);
             }
             finally
             {
+                // A custom loader can complete on a worker; hand the queue on
+                // from the main thread.
+                await Awaitable.MainThreadAsync();
                 if (queuedCommits.Count > 0)
+                {
                     queuedCommits.Dequeue().SetResult();
+                }
                 else
+                {
                     commitRunning = false;
+                    PublishLocalWritesPending();
+                }
             }
         }
 
@@ -8204,6 +8229,7 @@ namespace NeoCompose.Runtime
         private async Awaitable CommitSaveAsync(bool replaceSnapshot, bool flushLiveImmediately)
         {
             var capture = CaptureSave();
+            long capturedRevision = WriteRevision;
             var baseline = committedSaveState;
             var baselineSemantic = committedSaveSemanticState;
             JObject snapshot;
@@ -8225,7 +8251,8 @@ namespace NeoCompose.Runtime
             }
             if (restores is not null)
             {
-                RestoreCommittedSaveMetadata(baseline!, restores);
+                RestoreCommittedSaveMetadata(
+                    baseline!, restores, restoreHeader: WriteRevision == capturedRevision);
                 return;
             }
 
@@ -8257,6 +8284,7 @@ namespace NeoCompose.Runtime
             else
             {
                 await loader.CommitSaveContentAsync(content, replaceSnapshot);
+                await Awaitable.MainThreadAsync();
             }
             committedSaveState = snapshot;
             committedSaveSemanticState = semantic;
