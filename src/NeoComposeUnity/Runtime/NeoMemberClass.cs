@@ -499,6 +499,17 @@ namespace NeoCompose.Runtime
             NotifyChanged(child);
         }
 
+        /// <summary>
+        /// Whether <paramref name="before"/>, <paramref name="key"/>'s child
+        /// before a write to its row, heard that write and bubbled it: it is
+        /// still the key's live child. A Class child retires on a tombstone
+        /// instead, and a rebuilt key has a new child.
+        /// </summary>
+        private protected bool ChildBubbledOwnChange(string key, NeoMember? before) =>
+            before is { isDisposed: false }
+            && childMembers.TryGetValue(key, out NeoMember? current)
+            && ReferenceEquals(current, before);
+
         protected void NotifyChildChanged(string key)
         {
             if (key == reportingKey)
@@ -910,9 +921,7 @@ namespace NeoCompose.Runtime
                 if (client.TryGetWritableValue(childOwnership, existingValueId, out MemberValue? stored)
                     && MemberValueFactory.MatchesLeaf(childMember, setValue?.value, stored))
                     return;
-                // A live child hears its own row change and bubbles it.
-                bool childWillSelfNotify = childMembers.TryGetValue(key, out NeoMember? existingChild)
-                    && !existingChild.isDisposed;
+                childMembers.TryGetValue(key, out NeoMember? existingChild);
                 // Reuse the entry's stable id: a fresh row at the same id
                 // shadows the authored default in the child's writable store.
                 MemberValue next = MemberValueFactory.Create(
@@ -935,7 +944,7 @@ namespace NeoCompose.Runtime
                 {
                     if (existingChild is null || existingChild.isDisposed)
                         ReinitializeChildren();
-                    if (!childWillSelfNotify)
+                    if (!ChildBubbledOwnChange(key, existingChild))
                         NotifyChildChanged(key);
                     return;
                 }
@@ -956,7 +965,7 @@ namespace NeoCompose.Runtime
                 if (existingChild is null || existingChild.isDisposed
                     || childMember is ClassMember or ListMember or DictionaryMember)
                     ReinitializeChildren();
-                if (!childWillSelfNotify)
+                if (!ChildBubbledOwnChange(key, existingChild))
                 {
                     NotifyChildChanged(key);
                 }
@@ -1233,12 +1242,10 @@ namespace NeoCompose.Runtime
             {
                 return;
             }
-            // A live child hears its tombstone and bubbles it.
-            bool childWillSelfNotify = childMembers.TryGetValue(key, out NeoMember? existingChild)
-                && !existingChild.isDisposed;
+            childMembers.TryGetValue(key, out NeoMember? existingChild);
             client.WriteRemovalTombstone(ownership, childValueId);
             ReinitializeChildren();
-            if (!childWillSelfNotify)
+            if (!ChildBubbledOwnChange(key, existingChild))
                 NotifyChildChanged(key);
         }
     }

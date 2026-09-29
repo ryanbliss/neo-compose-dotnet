@@ -672,20 +672,24 @@ namespace NeoCompose.Runtime
                 parentRow.updatedAt = nowIso;
                 plan.Set(ownership, parentRow);
                 client.StageUnlinkedRemovals(plan, entryOwnership, new[] { entryValueId }, entryMember);
+                // Inside the commit, so it merges with what the old entry heard.
+                plan.AfterNotifications(() =>
+                {
+                    value = parentRow;
+                    NeoMember previousChild = childMembers[index];
+                    previousChild.ChildChanged -= HandleChildChanged;
+                    previousChild.Dispose();
+                    NeoMember replacementChild = CreateChild(
+                        client, entryMember, importedValueId);
+                    replacementChild.ChildChanged += HandleChildChanged;
+                    childMembers[index] = replacementChild;
+                    NotifyListChanged(new NeoListChangedArgs(
+                        NeoListChangeKind.Replace,
+                        removedValueIds: new[] { entryValueId },
+                        addedValueIds: new[] { importedValueId },
+                        replacedValueIds: new[] { entryValueId }));
+                });
                 CommitOwnChange(plan);
-                value = parentRow;
-                NeoMember previousChild = childMembers[index];
-                previousChild.ChildChanged -= HandleChildChanged;
-                previousChild.Dispose();
-                NeoMember replacementChild = CreateChild(
-                    client, entryMember, importedValueId);
-                replacementChild.ChildChanged += HandleChildChanged;
-                childMembers[index] = replacementChild;
-                NotifyListChanged(new NeoListChangedArgs(
-                    NeoListChangeKind.Replace,
-                    removedValueIds: new[] { entryValueId },
-                    addedValueIds: new[] { importedValueId },
-                    replacedValueIds: new[] { entryValueId }));
                 return;
             }
 
@@ -710,16 +714,20 @@ namespace NeoCompose.Runtime
                 NeoGenericResolution.EnvFromStamp(value?.genericBindings));
             client.StageWritablePayloadRows(plan, entryOwnership, entryValue?.value);
             client.StageInPlaceReplacement(plan, entryOwnership, next, entryMember);
+            // Inside the commit, so it merges with the Set the entry bubbled.
+            plan.AfterNotifications(() =>
+            {
+                NeoMember replacedChild = childMembers[index];
+                replacedChild.ChildChanged -= HandleChildChanged;
+                replacedChild.Dispose();
+                NeoMember newChild = CreateChild(client, entryMember, entryValueId);
+                newChild.ChildChanged += HandleChildChanged;
+                childMembers[index] = newChild;
+                NotifyListChanged(new NeoListChangedArgs(
+                    NeoListChangeKind.Set,
+                    replacedValueIds: new[] { entryValueId }));
+            });
             CommitOwnChange(plan);
-            NeoMember replacedChild = childMembers[index];
-            replacedChild.ChildChanged -= HandleChildChanged;
-            replacedChild.Dispose();
-            NeoMember newChild = CreateChild(client, entryMember, entryValueId);
-            newChild.ChildChanged += HandleChildChanged;
-            childMembers[index] = newChild;
-            NotifyListChanged(new NeoListChangedArgs(
-                NeoListChangeKind.Set,
-                replacedValueIds: new[] { entryValueId }));
         }
 
         /// <summary>

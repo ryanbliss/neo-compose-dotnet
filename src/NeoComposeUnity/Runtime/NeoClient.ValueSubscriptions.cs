@@ -47,6 +47,9 @@ namespace NeoCompose.Runtime
         private List<(NeoMember node, NeoMember changed, NeoListChangedArgs? listChange)> pendingChanges = new();
         private List<(NeoMember node, NeoMember changed, NeoListChangedArgs? listChange)>? spareChanges;
         private readonly Dictionary<(NeoMember node, NeoMember changed), int> pendingChangeIndex = new();
+        // A merged list change's ids, owned by the batch until it is raised,
+        // so a commit of n entry changes merges in O(n).
+        private readonly Dictionary<NeoListChangedArgs, (List<string> list, HashSet<string> set)> mergedListIds = new();
 
         /// <summary>
         /// Raises <paramref name="node"/>'s OnChanged. A commit publishes one
@@ -87,6 +90,7 @@ namespace NeoCompose.Runtime
             pendingChanges = spareChanges ?? new();
             spareChanges = null;
             pendingChangeIndex.Clear();
+            mergedListIds.Clear();
             try
             {
                 foreach (var (node, changed, listChange) in draining)
@@ -102,51 +106,84 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private static NeoListChangedArgs? MergeListChanges(NeoListChangedArgs? first, NeoListChangedArgs? next)
+        private NeoListChangedArgs? MergeListChanges(NeoListChangedArgs? first, NeoListChangedArgs? next)
         {
             if (first is null || next is null || ReferenceEquals(first, next))
                 return first ?? next;
             if (first.Kind == next.Kind && first.Kind is NeoListChangeKind.Add or NeoListChangeKind.Remove or NeoListChangeKind.Set)
             {
-                return new NeoListChangedArgs(
-                    first.Kind,
-                    Union(first.RemovedValueIds, next.RemovedValueIds),
-                    Union(first.AddedValueIds, next.AddedValueIds),
-                    Union(first.ReplacedValueIds, next.ReplacedValueIds));
+                NeoListChangedArgs merged = OwnListChange(first, out var ids);
+                foreach (string id in EntryIds(next))
+                {
+                    if (ids.set.Add(id))
+                        ids.list.Add(id);
+                }
+                return merged;
             }
-            // Setting an entry the same commit added is part of the add.
-            if (first.Kind == NeoListChangeKind.Add && next.Kind == NeoListChangeKind.Set && Contains(first.AddedValueIds, next.ReplacedValueIds))
-                return first;
-            if (next.Kind == NeoListChangeKind.Add && first.Kind == NeoListChangeKind.Set && Contains(next.AddedValueIds, first.ReplacedValueIds))
-                return next;
+            if (next.Kind == NeoListChangeKind.Set)
+                return Subsumes(first, next);
+            if (first.Kind == NeoListChangeKind.Set)
+                return Subsumes(next, first);
             return NeoListChangedArgs.Unknown;
 
-            static IReadOnlyList<string> Union(IReadOnlyList<string> first, IReadOnlyList<string> next)
+            // A change that names every entry a Set touched (adding, removing
+            // or replacing it in the same commit), or replaces the whole
+            // list, already reports that Set.
+            NeoListChangedArgs Subsumes(NeoListChangedArgs change, NeoListChangedArgs set)
             {
-                if (next.Count == 0 || Contains(first, next))
-                    return first;
-                var union = new List<string>(first);
-                foreach (string id in next)
+                if (change.Kind == NeoListChangeKind.Replace
+                    && change.AddedValueIds.Count == 0
+                    && change.RemovedValueIds.Count == 0
+                    && change.ReplacedValueIds.Count == 0)
                 {
-                    if (!union.Contains(id))
-                        union.Add(id);
+                    return change;
                 }
-                return union;
-            }
-
-            static bool Contains(IReadOnlyList<string> ids, IReadOnlyList<string> subset)
-            {
-                foreach (string id in subset)
+                HashSet<string> named;
+                if (mergedListIds.TryGetValue(change, out var owned))
                 {
-                    bool found = false;
-                    for (int i = 0; i < ids.Count && !found; i++)
-                        found = ids[i] == id;
-                    if (!found)
-                        return false;
+                    named = owned.set;
                 }
-                return true;
+                else
+                {
+                    named = new HashSet<string>(change.AddedValueIds, StringComparer.Ordinal);
+                    named.UnionWith(change.RemovedValueIds);
+                    named.UnionWith(change.ReplacedValueIds);
+                }
+                foreach (string id in set.ReplacedValueIds)
+                {
+                    if (!named.Contains(id))
+                        return NeoListChangedArgs.Unknown;
+                }
+                return change;
             }
         }
+
+        /// <summary>A batch-owned copy of <paramref name="change"/> whose ids a merge may extend.</summary>
+        private NeoListChangedArgs OwnListChange(
+            NeoListChangedArgs change,
+            out (List<string> list, HashSet<string> set) ids)
+        {
+            if (mergedListIds.TryGetValue(change, out ids))
+                return change;
+            var entryIds = new List<string>(EntryIds(change));
+            ids = (entryIds, new HashSet<string>(entryIds, StringComparer.Ordinal));
+            NeoListChangedArgs owned = change.Kind switch
+            {
+                NeoListChangeKind.Add => new NeoListChangedArgs(change.Kind, addedValueIds: entryIds),
+                NeoListChangeKind.Remove => new NeoListChangedArgs(change.Kind, removedValueIds: entryIds),
+                _ => new NeoListChangedArgs(change.Kind, replacedValueIds: entryIds),
+            };
+            mergedListIds.Add(owned, ids);
+            return owned;
+        }
+
+        /// <summary>The ids an Add, Remove or Set change carries.</summary>
+        private static IReadOnlyList<string> EntryIds(NeoListChangedArgs change) => change.Kind switch
+        {
+            NeoListChangeKind.Add => change.AddedValueIds,
+            NeoListChangeKind.Remove => change.RemovedValueIds,
+            _ => change.ReplacedValueIds,
+        };
 
         private void PublishWritableValueChange(NeoValueOwnership ownership, string valueId, NeoWritePlan? plan = null)
         {

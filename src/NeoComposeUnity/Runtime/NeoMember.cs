@@ -680,7 +680,7 @@ namespace NeoCompose.Runtime
         /// setters route <c>obj.Position.y = 1f</c> through the leaf's
         /// <c>Set</c>, while a whole-value <c>obj.Position = v</c> goes
         /// through <c>NeoMemberClass.SetSerializedValue</c>, which deliberately
-        /// leaves notification to a live child (see its <c>childWillSelfNotify</c>
+        /// leaves notification to a live child (see its <c>ChildBubbledOwnChange</c>
         /// check). The duplicate made the two spellings of the same write
         /// notify a different number of times.</para>
         /// </summary>
