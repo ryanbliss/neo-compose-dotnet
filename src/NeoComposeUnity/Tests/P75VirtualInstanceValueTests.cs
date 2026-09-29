@@ -1610,7 +1610,8 @@ namespace NeoCompose.Tests
                     var patch = (NeoSavePatch)build.Invoke(stack.Synchronizer, new object?[]
                     {
                         baseline, JObject.Parse(saved)["values"], null,
-                        new Dictionary<string, string?>(), new Dictionary<string, string?>(), true,
+                        new Dictionary<string, string?>(), new Dictionary<string, string?>(),
+                        stack.Synchronizer.TakeDirtyRecords(),
                     })!;
                     Assert.IsTrue(patch.changes.OfType<GameSaveValueReplaceChange>().Any(change => change.valueId == configId),
                         "Tracked live patches must include retained constructor inputs.");

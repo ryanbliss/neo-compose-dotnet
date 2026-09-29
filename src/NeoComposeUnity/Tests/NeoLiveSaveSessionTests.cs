@@ -526,6 +526,7 @@ namespace NeoCompose.Tests
                 "{}",
                 "session-x",
                 snapshotRevision: 2));
+            await WaitFor(() => liveChanges.Count != 0);
 
             Assert.That(headChanges, Is.Empty, "live applies replace the divergence event");
             Assert.That(liveChanges, Has.Count.EqualTo(1));
@@ -556,6 +557,7 @@ namespace NeoCompose.Tests
                 "{}",
                 "session-x",
                 snapshotRevision: 2));
+            await WaitFor(() => liveChanges.Count != 0);
 
             Assert.That(liveChanges, Has.Count.EqualTo(1));
             Assert.That(liveChanges[0], Does.Contain("\"a\":2"), "the dirty key wins");
@@ -798,10 +800,19 @@ namespace NeoCompose.Tests
         }
 
         // Commits serialize on a worker, so an auto-commit settles frames later.
-        private static async Task SettleCommits(NeoClient client)
+        private static Task SettleCommits(NeoClient client) =>
+            WaitFor(() => !client.IsCommitting);
+
+        // Revision applies copy and serialize on a worker, so they land
+        // frames after the signal.
+        private static async Task WaitFor(Func<bool> condition)
         {
-            while (client.IsCommitting)
+            var deadline = DateTime.UtcNow.AddSeconds(30);
+            while (!condition())
+            {
+                Assert.That(DateTime.UtcNow, Is.LessThan(deadline), "never settled");
                 await Task.Yield();
+            }
         }
 
         /// <summary>A generated app over a live session, with both the
@@ -979,6 +990,88 @@ namespace NeoCompose.Tests
         }
 
         /// <summary>
+        /// A write landing while an auto-commit serializes is not in that
+        /// commit's capture, so it schedules the next auto-commit.
+        /// </summary>
+        [Test]
+        public async Task WriteDuringAnInFlightAutoCommit_SchedulesTheNextOne()
+        {
+            var (store, _, realtime, flushScheduler, app, autoCommitScheduler) = await LiveAppAsync();
+            app.Save.Score = 41;
+            var forkedValues = (JObject)JObject.Parse(app.SerializeSaveData())["values"]!;
+            realtime.forkResults.Enqueue(NeoCommitResult.Committed(
+                RemoteWithValues(
+                    "snap-live",
+                    forkedValues.ToString(Formatting.None),
+                    "session-x")));
+            autoCommitScheduler.Advance(0.3);
+            await SettleCommits(app.Client);
+            await flushScheduler.AdvanceAsync(0.5);
+            Assert.That(realtime.forks, Has.Count.EqualTo(1));
+
+            app.Save.Score = 42;
+            autoCommitScheduler.Advance(0.3);
+            Assert.That(app.Client.IsCommitting, Is.True, "the commit is serializing");
+            app.Save.Score = 43;
+            autoCommitScheduler.Advance(0.3);
+            await SettleCommits(app.Client);
+            realtime.livePatchResults.Enqueue(Patched("snap-live", 2));
+            await flushScheduler.AdvanceAsync(0.5);
+
+            Assert.That(realtime.livePatches, Has.Count.EqualTo(1));
+            var scalar = (GameSaveValuePatchChange)realtime.livePatches[0].patch.changes.Single();
+            Assert.That(scalar.set["value"].Value<int>(), Is.EqualTo(43));
+            app.Dispose();
+            store.Dispose();
+        }
+
+        /// <summary>
+        /// A commit started while a co-editor revision is being applied waits
+        /// for it: the revision reaches the game first, and the commit stages
+        /// after it, so the next flush never reverts the co-editor's value.
+        /// </summary>
+        [Test]
+        public async Task CommitDuringARevisionApply_StagesAfterIt()
+        {
+            var (store, api, realtime, flushScheduler, app, autoCommitScheduler) = await LiveAppAsync();
+            app.Save.Score = 50;
+            var coEditedValues = (JObject)JObject.Parse(app.SerializeSaveData())["values"]!;
+            app.Save.Score = 41;
+            var forkedValues = (JObject)JObject.Parse(app.SerializeSaveData())["values"]!;
+            realtime.forkResults.Enqueue(NeoCommitResult.Committed(
+                RemoteWithValues(
+                    "snap-live",
+                    forkedValues.ToString(Formatting.None),
+                    "session-x")));
+            autoCommitScheduler.Advance(0.3);
+            await SettleCommits(app.Client);
+            await flushScheduler.AdvanceAsync(0.5);
+            Assert.That(realtime.forks, Has.Count.EqualTo(1));
+
+            api.SetValueDelta("snap-live", 2, coEditedValues.ToString(Formatting.None));
+            realtime.PushHead(RemoteWithValues(
+                "snap-live",
+                "{}",
+                "session-x",
+                snapshotRevision: 2));
+            app.Save.Score = 42;
+            autoCommitScheduler.Advance(0.3);
+            await SettleCommits(app.Client);
+            realtime.livePatchResults.Enqueue(Patched("snap-live", 3));
+            await flushScheduler.AdvanceAsync(0.5);
+
+            Assert.That(app.Save.Score, Is.EqualTo(50));
+            var flushedScores = realtime.livePatches
+                .SelectMany(patch => patch.patch.changes)
+                .OfType<GameSaveValuePatchChange>()
+                .Where(change => change.set.ContainsKey("value"))
+                .Select(change => change.set["value"].Value<int>());
+            Assert.That(flushedScores, Has.No.Member(41).And.No.Member(42));
+            app.Dispose();
+            store.Dispose();
+        }
+
+        /// <summary>
         /// A brand-new save created by a live session is live from snapshot
         /// one: the classic create rides the session id, the server stamps the
         /// created head, and every later flush patches it directly — so the
@@ -1052,6 +1145,7 @@ namespace NeoCompose.Tests
                 "{}",
                 "stamped",
                 snapshotRevision: 3));
+            await WaitFor(() => liveChanges.Count != 0);
             Assert.That(liveChanges, Has.Count.EqualTo(1), "web edits reach the game");
             Assert.That((int?)AppliedValue(liveChanges[0], "web")["value"], Is.EqualTo(5));
         }

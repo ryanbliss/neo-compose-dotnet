@@ -42,6 +42,11 @@ namespace NeoCompose.Runtime
         private bool realtimeRevisionApplyRunning;
         private GameSaveSnapshotRevisionSignal? pendingRealtimeRevision;
         private bool localWritesPending;
+        private readonly List<AwaitableCompletionSource> revisionApplyWaiters = new();
+
+        /// <summary>The active save after a best-effort cloud commit failed:
+        /// its values are ahead of the cloud, so it is no sparse baseline.</summary>
+        private LocalGameSave? unsyncedActive;
 
         // --- Live session state (specs/live-save-sessions.md) ---------------
         // One synchronizer instance is one play session of its save.
@@ -56,11 +61,13 @@ namespace NeoCompose.Runtime
         /// for the next flush. Null until a load/flush establishes it.</summary>
         private JObject? liveBaseline;
         private Dictionary<string, string?> liveStaticBindingBaseline = new();
-        private readonly Dictionary<string, HashSet<string>?> dirtyValueFields =
-            new(StringComparer.Ordinal);
-        private readonly HashSet<string> dirtyStaticBindings =
-            new(StringComparer.Ordinal);
-        private bool stagedLiveUsesTrackedMutations = true;
+
+        /// <summary>Records generated writes touched since the last capture.</summary>
+        private DirtyRecords uncapturedDirty = new();
+
+        /// <summary>Records the staged live content changed since the last
+        /// flush, or null when an untracked stage forces a full diff.</summary>
+        private DirtyRecords? stagedDirty = new();
 
         /// <summary>The most recently staged local save; what the next flush
         /// diffs against <see cref="liveBaseline"/>.</summary>
@@ -97,39 +104,85 @@ namespace NeoCompose.Runtime
         internal Func<double> LiveClock = DefaultLiveClock;
         internal Func<double, Awaitable> LiveDelay = DefaultLiveDelay;
 
+        /// <summary>
+        /// The value records and static bindings generated writes touched. A
+        /// set belongs to the content captured with it, so a commit or flush
+        /// settles only the writes it actually carried.
+        /// </summary>
+        internal sealed class DirtyRecords
+        {
+            internal readonly Dictionary<string, HashSet<string>?> valueFields =
+                new(StringComparer.Ordinal);
+            internal readonly HashSet<string> staticBindings =
+                new(StringComparer.Ordinal);
+
+            internal bool IsEmpty => valueFields.Count == 0 && staticBindings.Count == 0;
+
+            internal void MarkValue(string valueId, string? field)
+            {
+                if (!valueFields.TryGetValue(valueId, out var fields))
+                {
+                    valueFields[valueId] = field == null
+                        ? null
+                        : new HashSet<string>(StringComparer.Ordinal) { field };
+                    return;
+                }
+                if (fields == null || field == null)
+                {
+                    valueFields[valueId] = null;
+                    return;
+                }
+                fields.Add(field);
+            }
+
+            internal void MergeFrom(DirtyRecords other)
+            {
+                foreach (var pair in other.valueFields)
+                {
+                    if (pair.Value == null)
+                    {
+                        MarkValue(pair.Key, null);
+                        continue;
+                    }
+                    foreach (var field in pair.Value)
+                    {
+                        MarkValue(pair.Key, field);
+                    }
+                }
+                staticBindings.UnionWith(other.staticBindings);
+            }
+        }
+
         internal void MarkDirtyValue(string valueId, string? field)
         {
             if (string.IsNullOrEmpty(valueId))
                 return;
             if (field != "value" && field != "mark")
                 field = null;
-            if (!dirtyValueFields.TryGetValue(valueId, out var fields))
-            {
-                dirtyValueFields[valueId] = field == null
-                    ? null
-                    : new HashSet<string>(StringComparer.Ordinal) { field };
-                return;
-            }
-            if (fields == null || field == null)
-            {
-                dirtyValueFields[valueId] = null;
-                return;
-            }
-            fields.Add(field);
+            uncapturedDirty.MarkValue(valueId, field);
         }
 
         internal void MarkDirtyStaticBinding(string memberId)
         {
             if (!string.IsNullOrEmpty(memberId))
-                dirtyStaticBindings.Add(memberId);
+                uncapturedDirty.staticBindings.Add(memberId);
         }
 
-        private void ClearDirtyRecords()
+        /// <summary>Hands the marks recorded so far to the content being
+        /// captured now; later writes mark a fresh set.</summary>
+        internal DirtyRecords TakeDirtyRecords()
         {
-            dirtyValueFields.Clear();
-            dirtyStaticBindings.Clear();
-            stagedLiveUsesTrackedMutations = true;
+            var taken = uncapturedDirty;
+            uncapturedDirty = new DirtyRecords();
+            return taken;
         }
+
+        /// <summary>Returns marks whose content did not reach the cloud, so
+        /// the next capture carries them again.</summary>
+        internal void RestoreDirtyRecords(DirtyRecords dirty) =>
+            uncapturedDirty.MergeFrom(dirty);
+
+        private void SettleStagedDirty() => stagedDirty = new DirtyRecords();
 
         internal NeoSaveSynchronizer(
             InternalProjectStore core,
@@ -250,7 +303,8 @@ namespace NeoCompose.Runtime
                 }
 
                 active = loaded;
-                ClearDirtyRecords();
+                uncapturedDirty = new DirtyRecords();
+                SettleStagedDirty();
                 State = NeoSaveSynchronizerState.Ready;
                 ResetLiveSessionBasis(loaded);
                 AttachRealtimeHead();
@@ -265,17 +319,12 @@ namespace NeoCompose.Runtime
         }
 
         public Awaitable CommitSaveContentAsync(string content, bool replaceSnapshot) =>
-            CommitSaveContentAsync(
-                content,
-                replaceSnapshot,
-                flushLiveImmediately: false,
-                useTrackedMutations: false);
+            CommitSaveContentAsync(content, replaceSnapshot, flushLiveImmediately: false);
 
         internal Awaitable CommitSaveContentAsync(
             string content,
             bool replaceSnapshot,
-            bool flushLiveImmediately,
-            bool useTrackedMutations = false)
+            bool flushLiveImmediately)
         {
             if (string.IsNullOrWhiteSpace(content))
             {
@@ -286,19 +335,21 @@ namespace NeoCompose.Runtime
                 LocalGameSaveLoader.Load(content),
                 replaceSnapshot,
                 flushLiveImmediately,
-                useTrackedMutations);
+                dirty: null);
         }
 
         /// <summary>
         /// Commits <paramref name="content"/>, whose parsed form the caller
-        /// already holds as <paramref name="local"/>.
+        /// already holds as <paramref name="local"/>. <paramref name="dirty"/>
+        /// holds the records writes touched up to the capture, or null to
+        /// diff the whole save.
         /// </summary>
         internal async Awaitable CommitSaveContentAsync(
             string content,
             LocalGameSave local,
             bool replaceSnapshot,
             bool flushLiveImmediately,
-            bool useTrackedMutations)
+            DirtyRecords? dirty)
         {
             if (string.IsNullOrEmpty(local.customId))
                 local.customId = CustomId;
@@ -312,8 +363,7 @@ namespace NeoCompose.Runtime
             // the live snapshot IS the in-place target.
             if (LiveModeEnabled)
             {
-                await StageLiveCommitAsync(
-                    content, local, flushLiveImmediately, useTrackedMutations);
+                await StageLiveCommitAsync(content, local, flushLiveImmediately, dirty);
                 return;
             }
 
@@ -331,13 +381,15 @@ namespace NeoCompose.Runtime
                         committedRemote = await CommitToCloudAsync(
                             local,
                             replaceSnapshot,
-                            useTrackedMutations: useTrackedMutations);
+                            dirty: dirty);
                     }
                     catch
                     {
                         await localWrite;
                         throw;
                     }
+                    if (committedRemote == null && dirty != null)
+                        RestoreDirtyRecords(dirty);
                 }
 
                 // Record the commit before the local write settles, so nothing
@@ -345,9 +397,8 @@ namespace NeoCompose.Runtime
                 active = committedRemote != null
                     ? LocalGameSave.FromRemote(committedRemote)
                     : local;
+                unsyncedActive = core.CloudEnabled && committedRemote == null ? active : null;
                 core.RecordSavedFile(active, committedRemote);
-                if (!core.CloudEnabled || committedRemote != null)
-                    ClearDirtyRecords();
                 await localWrite;
 
                 if (committedRemote != null)
@@ -473,7 +524,7 @@ namespace NeoCompose.Runtime
             LocalGameSave local,
             bool replaceSnapshot,
             string? createAsLiveSessionId = null,
-            bool useTrackedMutations = false)
+            DirtyRecords? dirty = null)
         {
             NeoCommitResult result;
             try
@@ -494,7 +545,7 @@ namespace NeoCompose.Runtime
                 {
                     var baseline = await ResolveSparseCommitBaselineAsync(local);
                     result = await CommitExistingSnapshotAsync(
-                        local, baseline, replaceSnapshot, useTrackedMutations);
+                        local, baseline, replaceSnapshot, dirty);
                 }
                 else
                 {
@@ -555,7 +606,7 @@ namespace NeoCompose.Runtime
                 local,
                 SparseCommitBaseline.FromRemote(serverHead),
                 replaceSnapshot: false,
-                useTrackedMutations: useTrackedMutations);
+                dirty: dirty);
             if (rebased.IsConflict)
             {
                 throw new NeoSaveConflictUnresolvedException(
@@ -569,6 +620,7 @@ namespace NeoCompose.Runtime
             LocalGameSave local)
         {
             if (active != null
+                && !ReferenceEquals(active, unsyncedActive)
                 && active.snapshotId == local.snapshotId
                 && active.snapshotRevision == local.snapshotRevision)
             {
@@ -587,7 +639,7 @@ namespace NeoCompose.Runtime
             LocalGameSave local,
             SparseCommitBaseline baseline,
             bool replaceSnapshot,
-            bool useTrackedMutations)
+            DirtyRecords? dirty)
         {
             var staged = AsValuesObject(local.values)
                 ?? throw new InvalidOperationException(
@@ -598,7 +650,7 @@ namespace NeoCompose.Runtime
                     baseline.recordCache,
                     baseline.staticBindings,
                     local.staticBindings,
-                    useTrackedMutations)
+                    dirty)
                 .changes;
 
             if (replaceSnapshot)
@@ -917,6 +969,27 @@ namespace NeoCompose.Runtime
             finally
             {
                 realtimeRevisionApplyRunning = false;
+                var waiters = revisionApplyWaiters.ToArray();
+                revisionApplyWaiters.Clear();
+                foreach (var waiter in waiters)
+                {
+                    waiter.TrySetResult();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Holds a commit's capture until a running revision apply settles, so
+        /// the commit stages and persists after it. The waiting commit has
+        /// already marked writes pending, so the drain stops after this apply.
+        /// </summary>
+        internal async Awaitable WaitForRevisionApplyAsync()
+        {
+            while (realtimeRevisionApplyRunning)
+            {
+                var waiter = new AwaitableCompletionSource();
+                revisionApplyWaiters.Add(waiter);
+                await waiter.Awaitable;
             }
         }
 
@@ -966,7 +1039,7 @@ namespace NeoCompose.Runtime
                             current.recordCache,
                             liveStaticBindingBaseline,
                             stagedLive!.staticBindings,
-                            stagedLiveUsesTrackedMutations);
+                            stagedDirty);
                     }
                 }
 
@@ -980,7 +1053,7 @@ namespace NeoCompose.Runtime
                     new Dictionary<string, string?>(current.staticBindings);
                 if (serverValues != null)
                 {
-                    liveBaseline = (JObject)serverValues.DeepClone();
+                    liveBaseline = await CloneOnWorkerAsync(serverValues);
                     if (localDirty != null)
                     {
                         ApplyLocalChanges(
@@ -995,9 +1068,9 @@ namespace NeoCompose.Runtime
                     current.snapshotId,
                     current.snapshotRevision,
                     current.synchronizedAt);
-                await core.LocalStore.CommitSaveAsync(
-                    CustomId, JsonConvert.SerializeObject(current));
-                OnLiveContentChanged?.Invoke(JsonConvert.SerializeObject(current));
+                string content = await SerializeOnWorkerAsync(current);
+                await core.LocalStore.CommitSaveAsync(CustomId, content);
+                OnLiveContentChanged?.Invoke(content);
             }
             catch (Exception exception)
             {
@@ -1095,7 +1168,7 @@ namespace NeoCompose.Runtime
             local.liveFlushed = true;
             // Settle before the write: a stage landing across it marks itself
             // dirty again, and must not be cleared afterwards.
-            ClearDirtyRecords();
+            SettleStagedDirty();
             liveFirstDirtyAt = -1;
             string content = await SerializeOnWorkerAsync(local);
             if (ReferenceEquals(stagedLive, local))
@@ -1122,15 +1195,23 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
+        /// Copies a whole values map on a worker (~15 ms at 2,260 rows). The
+        /// caller must not edit <paramref name="values"/> until it completes.
+        /// </summary>
+        private static async Awaitable<JObject> CloneOnWorkerAsync(JObject values) =>
+            await Task.Run(() => (JObject)values.DeepClone());
+
+        /// <summary>
         /// Live-mode commit: write the local store immediately (durability never
-        /// depends on the network), surface success, and mark the session dirty
-        /// so the throttled flush pipeline picks the change up.
+        /// depends on the network) and mark the session dirty so the throttled
+        /// flush pipeline picks the change up. An immediate flush runs
+        /// alongside the local write, and success is raised once both settle.
         /// </summary>
         private async Awaitable StageLiveCommitAsync(
             string content,
             LocalGameSave local,
             bool flushImmediately,
-            bool useTrackedMutations)
+            DirtyRecords? dirty)
         {
             State = NeoSaveSynchronizerState.Committing;
             try
@@ -1146,29 +1227,38 @@ namespace NeoCompose.Runtime
                 // Stage before the local write settles: a flush finishing
                 // across that wait must see this content as the newest, or
                 // it would persist older content and clear this stage's dirt.
-                var alreadyStaged = liveFirstDirtyAt >= 0;
-                stagedLiveUsesTrackedMutations = alreadyStaged
-                    ? stagedLiveUsesTrackedMutations && useTrackedMutations
-                    : useTrackedMutations;
+                if (dirty == null)
+                    stagedDirty = null;
+                else
+                    stagedDirty?.MergeFrom(dirty);
                 active = local;
                 stagedLive = local;
                 liveLastStagedAt = LiveClock();
                 if (liveFirstDirtyAt < 0)
                     liveFirstDirtyAt = liveLastStagedAt;
-                await core.LocalStore.CommitSaveAsync(CustomId, content);
+
+                // The file store orders this write before the flush's own
+                // persist, so the two can run together.
+                var localWrite = core.LocalStore.CommitSaveAsync(CustomId, content);
+                if (flushImmediately)
+                {
+                    try
+                    {
+                        await FlushLiveNowAsync();
+                    }
+                    catch
+                    {
+                        await localWrite;
+                        throw;
+                    }
+                }
+                await localWrite;
 
                 core.RecordSavedFile(local, null);
                 State = NeoSaveSynchronizerState.Ready;
                 OnCommitSuccess?.Invoke(local);
-
-                if (flushImmediately)
-                {
-                    await FlushLiveNowAsync();
-                }
-                else
-                {
+                if (!flushImmediately)
                     KickLiveFlushLoop();
-                }
             }
             catch (Exception)
             {
@@ -1324,12 +1414,12 @@ namespace NeoCompose.Runtime
                 local.recordCache,
                 liveStaticBindingBaseline,
                 local.staticBindings,
-                stagedLiveUsesTrackedMutations);
+                stagedDirty);
             if (patch.IsEmpty)
             {
                 if (ReferenceEquals(stagedLive, local))
                 {
-                    ClearDirtyRecords();
+                    SettleStagedDirty();
                     liveFirstDirtyAt = -1;
                 }
                 return;
@@ -1390,7 +1480,7 @@ namespace NeoCompose.Runtime
                         local.recordCache,
                         liveStaticBindingBaseline,
                         local.staticBindings,
-                        stagedLiveUsesTrackedMutations);
+                        stagedDirty);
                     await ForkLiveSessionAsync(
                         realtime,
                         local,
@@ -1478,7 +1568,7 @@ namespace NeoCompose.Runtime
                         stagedResult.ServerHead!);
                     return;
                 }
-                AdoptForkedHead(local, staged, stagedResult.CommittedSave!);
+                await AdoptForkedHeadAsync(local, staged, stagedResult.CommittedSave!);
                 await PersistFlushedLocalAsync(local);
                 return;
             }
@@ -1519,7 +1609,7 @@ namespace NeoCompose.Runtime
                 return;
             }
 
-            AdoptForkedHead(local, staged, result.CommittedSave!);
+            await AdoptForkedHeadAsync(local, staged, result.CommittedSave!);
             await PersistFlushedLocalAsync(local);
         }
 
@@ -1559,20 +1649,20 @@ namespace NeoCompose.Runtime
                     serverHead.snapshotId,
                     serverHead.snapshotRevision,
                     adopted.synchronizedAt);
-                await core.LocalStore.CommitSaveAsync(
-                    CustomId, JsonConvert.SerializeObject(adopted));
+                string adoptedContent = await SerializeOnWorkerAsync(adopted);
+                await core.LocalStore.CommitSaveAsync(CustomId, adoptedContent);
+                var adoptedBaseline = AsValuesObject(serverHead.values) is JObject values
+                    ? await CloneOnWorkerAsync(values)
+                    : null;
                 active = adopted;
-                ClearDirtyRecords();
-                stagedLiveUsesTrackedMutations = true;
+                SettleStagedDirty();
                 stagedLive = null;
                 liveSnapshotId = null;
-                liveBaseline = AsValuesObject(serverHead.values) is JObject values
-                    ? (JObject)values.DeepClone()
-                    : null;
+                liveBaseline = adoptedBaseline;
                 liveStaticBindingBaseline =
                     new Dictionary<string, string?>(serverHead.staticBindings);
                 liveFirstDirtyAt = -1;
-                OnLiveContentChanged?.Invoke(JsonConvert.SerializeObject(adopted));
+                OnLiveContentChanged?.Invoke(adoptedContent);
                 return;
             }
 
@@ -1617,7 +1707,7 @@ namespace NeoCompose.Runtime
                     "retry the commit.");
             }
 
-            AdoptForkedHead(local, staged, rebased.CommittedSave!);
+            await AdoptForkedHeadAsync(local, staged, rebased.CommittedSave!);
             await PersistFlushedLocalAsync(local);
         }
 
@@ -1636,7 +1726,7 @@ namespace NeoCompose.Runtime
                     local,
                     replaceSnapshot: false,
                     createAsLiveSessionId: liveSessionId,
-                    useTrackedMutations: stagedLiveUsesTrackedMutations);
+                    dirty: stagedDirty);
             }
             catch (Exception exception)
             {
@@ -1651,6 +1741,9 @@ namespace NeoCompose.Runtime
                 return;
             }
 
+            var baseline = AsValuesObject(committed.values) is JObject values
+                ? await CloneOnWorkerAsync(values)
+                : null;
             if (!string.IsNullOrEmpty(committed.liveSessionId))
             {
                 // The server stamped the created head live: it is this
@@ -1658,9 +1751,7 @@ namespace NeoCompose.Runtime
                 liveSnapshotId = committed.snapshotId;
             }
 
-            liveBaseline = AsValuesObject(committed.values) is JObject values
-                ? (JObject)values.DeepClone()
-                : null;
+            liveBaseline = baseline;
             liveStaticBindingBaseline =
                 new Dictionary<string, string?>(committed.staticBindings);
             local.serverId = committed.serverId;
@@ -1692,12 +1783,15 @@ namespace NeoCompose.Runtime
         /// this session's live snapshot and the server's values the new diff
         /// baseline. The game-side values stay authoritative on the local copy;
         /// only identity/sync fields are restamped.</summary>
-        private void AdoptForkedHead(LocalGameSave local, JObject staged, RemoteGameSave committed)
+        private async Awaitable AdoptForkedHeadAsync(
+            LocalGameSave local,
+            JObject staged,
+            RemoteGameSave committed)
         {
+            var baselineSource = AsValuesObject(committed.values) ?? staged;
+            var baseline = await CloneOnWorkerAsync(baselineSource);
             liveSnapshotId = committed.snapshotId;
-            liveBaseline = AsValuesObject(committed.values) is JObject serverValues
-                ? (JObject)serverValues.DeepClone()
-                : (JObject)staged.DeepClone();
+            liveBaseline = baseline;
             liveStaticBindingBaseline =
                 new Dictionary<string, string?>(committed.staticBindings);
             local.serverId = committed.serverId;
@@ -1848,10 +1942,9 @@ namespace NeoCompose.Runtime
             GameSaveRecordCache? cache,
             IReadOnlyDictionary<string, string?> baselineStaticBindings,
             IReadOnlyDictionary<string, string?> stagedStaticBindings,
-            bool useTrackedMutations)
+            DirtyRecords? dirtyRecords)
         {
-            if (!useTrackedMutations
-                || (dirtyValueFields.Count == 0 && dirtyStaticBindings.Count == 0))
+            if (dirtyRecords == null || dirtyRecords.IsEmpty)
             {
                 // Opaque developer-authored local files and explicit imports do
                 // not pass through generated setters. Diff them as a compatibility
@@ -1865,7 +1958,7 @@ namespace NeoCompose.Runtime
             }
 
             var patch = new NeoSavePatch();
-            foreach (var dirty in dirtyValueFields.OrderBy(
+            foreach (var dirty in dirtyRecords.valueFields.OrderBy(
                          pair => pair.Key, StringComparer.Ordinal))
             {
                 var descriptor = FindValueDescriptor(cache, dirty.Key);
@@ -1924,7 +2017,7 @@ namespace NeoCompose.Runtime
                 });
             }
 
-            foreach (var memberId in dirtyStaticBindings.OrderBy(
+            foreach (var memberId in dirtyRecords.staticBindings.OrderBy(
                          id => id, StringComparer.Ordinal))
             {
                 var descriptor = FindDescriptor(

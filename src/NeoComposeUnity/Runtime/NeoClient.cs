@@ -541,13 +541,14 @@ namespace NeoCompose.Runtime
         private void PublishLocalWritesPending()
         {
             if (loader is NeoSaveSynchronizer synchronizer)
-                synchronizer.SetLocalWritesPending(commitRunning || liveAutoCommitScheduled);
+                synchronizer.SetLocalWritesPending(IsCommitting);
         }
 
         /// <summary><c>async void</c> on purpose: fire-and-forget off a setter;
         /// never throws past its own catch.</summary>
         private async void RunLiveAutoCommit()
         {
+            var handedOff = false;
             try
             {
                 await LiveAutoCommitDelay(LiveAutoCommitDelaySeconds);
@@ -555,7 +556,13 @@ namespace NeoCompose.Runtime
                     return;
                 if (!synchronizer.IsLiveSessionActive)
                     return;
-                await CommitCoreAsync(replaceSnapshot: false, flushLiveImmediately: false);
+                // The commit is marked running before this call returns, and
+                // captures no earlier than now: a later write schedules the
+                // next auto-commit.
+                var commit = CommitCoreAsync(replaceSnapshot: false, flushLiveImmediately: false);
+                handedOff = true;
+                liveAutoCommitScheduled = false;
+                await commit;
             }
             catch (System.Exception exception)
             {
@@ -566,8 +573,11 @@ namespace NeoCompose.Runtime
             }
             finally
             {
-                liveAutoCommitScheduled = false;
-                PublishLocalWritesPending();
+                if (!handedOff)
+                {
+                    liveAutoCommitScheduled = false;
+                    PublishLocalWritesPending();
+                }
             }
         }
 
@@ -8180,11 +8190,11 @@ namespace NeoCompose.Runtime
         private bool commitRunning;
 
         /// <summary>
-        /// True while a commit, or one queued behind it, has not settled. Commits
-        /// serialize and write off the main thread, so a game can show a saving
-        /// indicator from this.
+        /// True while save writes have not settled: a commit is running or
+        /// queued, or a live session's auto-commit is scheduled. Drives a saving
+        /// indicator; a save on quit or pause keeps running until it is false.
         /// </summary>
-        public bool IsCommitting => commitRunning;
+        public bool IsCommitting => commitRunning || liveAutoCommitScheduled;
 
         /// <summary>
         /// Commits run one at a time, in call order: each serializes on a
@@ -8200,9 +8210,26 @@ namespace NeoCompose.Runtime
             }
             commitRunning = true;
             PublishLocalWritesPending();
+            var synchronizer = loader as NeoSaveSynchronizer;
+            NeoSaveSynchronizer.DirtyRecords? dirty = null;
             try
             {
-                await CommitSaveAsync(replaceSnapshot, flushLiveImmediately);
+                if (synchronizer != null)
+                {
+                    // A co-editor revision being applied lands first, so the
+                    // capture includes it and this stage persists after it.
+                    await synchronizer.WaitForRevisionApplyAsync();
+                    dirty = synchronizer.TakeDirtyRecords();
+                }
+                await CommitSaveAsync(CaptureSave(), dirty, replaceSnapshot, flushLiveImmediately);
+            }
+            catch
+            {
+                // The next commit must carry these writes to the cloud.
+                await Awaitable.MainThreadAsync();
+                if (dirty != null)
+                    synchronizer!.RestoreDirtyRecords(dirty);
+                throw;
             }
             finally
             {
@@ -8226,9 +8253,12 @@ namespace NeoCompose.Runtime
         /// serializing, the no-op check and the content string run on a
         /// worker.
         /// </summary>
-        private async Awaitable CommitSaveAsync(bool replaceSnapshot, bool flushLiveImmediately)
+        private async Awaitable CommitSaveAsync(
+            SaveCapture capture,
+            NeoSaveSynchronizer.DirtyRecords? dirty,
+            bool replaceSnapshot,
+            bool flushLiveImmediately)
         {
-            var capture = CaptureSave();
             long capturedRevision = WriteRevision;
             var baseline = committedSaveState;
             var baselineSemantic = committedSaveSemanticState;
@@ -8253,6 +8283,8 @@ namespace NeoCompose.Runtime
             {
                 RestoreCommittedSaveMetadata(
                     baseline!, restores, restoreHeader: WriteRevision == capturedRevision);
+                if (dirty != null)
+                    ((NeoSaveSynchronizer)loader).RestoreDirtyRecords(dirty);
                 return;
             }
 
@@ -8279,7 +8311,7 @@ namespace NeoCompose.Runtime
                     local,
                     replaceSnapshot,
                     flushLiveImmediately,
-                    useTrackedMutations: true);
+                    dirty);
             }
             else
             {
