@@ -350,6 +350,31 @@ namespace NeoCompose.Runtime
                 classPlans = new();
             internal readonly Dictionary<string, DetachedClassPlan?>
                 detachedPlans = new();
+            // Construction IR is immutable and its value-free validation reads
+            // only the schema, so each construction site resolves once.
+            internal readonly Dictionary<object, object> resolvedSites = new();
+        }
+
+        /// <summary>
+        /// A construction site's cached value-free resolution. Sites that
+        /// construct under a replayed class context must not use the cache:
+        /// that context changes the answer.
+        /// </summary>
+        internal static bool TryGetResolvedSite<T>(NeoClient client, object site, out T resolved) where T : class
+        {
+            ConstructorSchemaCache cache = ConstructorSchemaCaches.GetOrCreateValue(client);
+            object? cached;
+            lock (cache.gate)
+                cache.resolvedSites.TryGetValue(site, out cached);
+            resolved = (cached as T)!;
+            return cached is not null;
+        }
+
+        internal static void CacheResolvedSite(NeoClient client, object site, object resolved)
+        {
+            ConstructorSchemaCache cache = ConstructorSchemaCaches.GetOrCreateValue(client);
+            lock (cache.gate)
+                cache.resolvedSites[site] = resolved;
         }
 
         internal sealed class RuntimeClassPlan

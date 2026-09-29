@@ -39,7 +39,7 @@ namespace NeoCompose.Runtime
                     throw new InvalidOperationException("CellPattern offset is missing.");
                 offsets[index] = NeoVectorValues.ToVector2Int(vector.value);
             }
-            return new NeoCellPattern(offsets);
+            return NeoCellPattern.FromOwned(offsets);
         }
 
         public static NeoCellPattern ReadRequired(NeoClient client, NeoMemberClass node) =>
@@ -103,11 +103,19 @@ namespace NeoCompose.Runtime
             _ => type.type == MemberKind.Generic,
         };
 
+        // The construction site every materialized pattern shares.
+        private static readonly object MaterializeSite = new();
+
         internal static object Materialize(NeoCellPattern pattern, NSGetterEvaluator.Context ctx)
         {
-            var resolved = NeoGeneratedTypesSupport.ResolveDeclaredConstructor(ctx.client,
-                new ClassTypeInfo { type = MemberKind.Class, required = true, classId = ClassId },
-                ConstructorId, new[] { "offsets" }, Array.Empty<NeoGeneratedTypesSupport.RuntimeConstructorField>());
+            if (!NeoGeneratedTypesSupport.TryGetResolvedSite(
+                    ctx.client, MaterializeSite, out NeoGeneratedTypesSupport.NeoResolvedDeclaredConstructor resolved))
+            {
+                resolved = NeoGeneratedTypesSupport.ResolveDeclaredConstructor(ctx.client,
+                    new ClassTypeInfo { type = MemberKind.Class, required = true, classId = ClassId },
+                    ConstructorId, new[] { "offsets" }, Array.Empty<NeoGeneratedTypesSupport.RuntimeConstructorField>());
+                NeoGeneratedTypesSupport.CacheResolvedSite(ctx.client, MaterializeSite, resolved);
+            }
             return NSGetterEvaluator.ConstructDeclared(resolved,
                 new Dictionary<string, object?> { ["offsets"] = Offsets(pattern) },
                 Array.Empty<NeoGeneratedTypesSupport.RuntimeConstructorField>(), ctx,
@@ -141,7 +149,7 @@ namespace NeoCompose.Runtime
                     ? NeoVectorValues.ToVector2Int(vector)
                     : throw new InvalidOperationException("CellPattern offset is missing.");
             }
-            return new NeoCellPattern(offsets);
+            return NeoCellPattern.FromOwned(offsets);
         }
 
         private static object?[] Offsets(NeoCellPattern pattern)

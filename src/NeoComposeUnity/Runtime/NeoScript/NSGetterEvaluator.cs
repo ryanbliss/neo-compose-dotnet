@@ -3608,36 +3608,42 @@ namespace NeoCompose.Runtime.NeoScript
                     memberId = field.memberId,
                 });
             }
-            var argumentNames = new List<string>(info.args.Length);
-            foreach (DeclaredConstructorArgument argument in info.args)
-            {
-                argumentNames.Add(argument.name);
-            }
-
-            NeoGeneratedTypesSupport.NeoResolvedDeclaredConstructor resolved;
             ctx.TryGetConstructionClassContext(
                 info.schemaClassInfo.classId,
                 out IReadOnlyDictionary<string, GenericBinding>?
                     replayClassArguments,
                 out IReadOnlyDictionary<string, string>?
                     replayGenericBindings);
-            try
+            bool cacheable = replayClassArguments is null && replayGenericBindings is null;
+            if (!cacheable
+                || !NeoGeneratedTypesSupport.TryGetResolvedSite(
+                    ctx.client, info, out NeoGeneratedTypesSupport.NeoResolvedDeclaredConstructor resolved))
             {
-                resolved = NeoGeneratedTypesSupport.ResolveDeclaredConstructor(
-                    ctx.client,
-                    info.schemaClassInfo,
-                    info.constructorId,
-                    argumentNames,
-                    fields,
-                    replayClassArguments,
-                    replayGenericBindings);
-            }
-            catch (Exception error)
-                when (error is InvalidOperationException
-                    || error is ArgumentException)
-            {
-                throw new NSGetterRuntimeError(
-                    $"Declared constructor failed: {error.Message}");
+                var argumentNames = new List<string>(info.args.Length);
+                foreach (DeclaredConstructorArgument argument in info.args)
+                {
+                    argumentNames.Add(argument.name);
+                }
+                try
+                {
+                    resolved = NeoGeneratedTypesSupport.ResolveDeclaredConstructor(
+                        ctx.client,
+                        info.schemaClassInfo,
+                        info.constructorId,
+                        argumentNames,
+                        fields,
+                        replayClassArguments,
+                        replayGenericBindings);
+                }
+                catch (Exception error)
+                    when (error is InvalidOperationException
+                        || error is ArgumentException)
+                {
+                    throw new NSGetterRuntimeError(
+                        $"Declared constructor failed: {error.Message}");
+                }
+                if (cacheable)
+                    NeoGeneratedTypesSupport.CacheResolvedSite(ctx.client, info, resolved);
             }
 
             var argumentValues = new Dictionary<string, object?>(info.args.Length);
@@ -3942,28 +3948,36 @@ namespace NeoCompose.Runtime.NeoScript
                                     memberId = field.memberId,
                                 };
                         }
-                        NeoGeneratedTypesSupport.RuntimeConstructorMetadata metadata;
                         ctx.TryGetConstructionClassContext(
                             constructor.info.schemaClassInfo.classId,
                             out IReadOnlyDictionary<string, GenericBinding>?
                                 replayClassArguments,
                             out IReadOnlyDictionary<string, string>?
                                 replayGenericBindings);
-                        try
-                        {
-                            metadata = NeoGeneratedTypesSupport
-                                .ValidateRuntimeClassConstructorMetadata(
+                        if (replayClassArguments is not null
+                            || !NeoGeneratedTypesSupport.TryGetResolvedSite(
                                 ctx.client,
-                                constructor.info.schemaClassInfo,
-                                fields,
-                                replayClassArguments);
-                        }
-                        catch (Exception error)
-                            when (error is InvalidOperationException
-                                || error is ArgumentException)
+                                constructor.info,
+                                out NeoGeneratedTypesSupport.RuntimeConstructorMetadata metadata))
                         {
-                            throw new NSGetterRuntimeError(
-                                $"Class constructor failed: {error.Message}");
+                            try
+                            {
+                                metadata = NeoGeneratedTypesSupport
+                                    .ValidateRuntimeClassConstructorMetadata(
+                                    ctx.client,
+                                    constructor.info.schemaClassInfo,
+                                    fields,
+                                    replayClassArguments);
+                            }
+                            catch (Exception error)
+                                when (error is InvalidOperationException
+                                    || error is ArgumentException)
+                            {
+                                throw new NSGetterRuntimeError(
+                                    $"Class constructor failed: {error.Message}");
+                            }
+                            if (replayClassArguments is null)
+                                NeoGeneratedTypesSupport.CacheResolvedSite(ctx.client, constructor.info, metadata);
                         }
                         // P43 §7.2.3 — the schema-derived arm is a construction
                         // too, so it opens its own frame before any field runs,
