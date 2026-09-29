@@ -5702,6 +5702,7 @@ namespace NeoCompose.Runtime.NeoScript
                 return at;
             ctx.client.ReadNestedConstructorResult(id);
             NeoValueOwnership ownership;
+            NeoValueNode? node = null;
             if (preferredOwnership is NeoValueOwnership parent)
             {
                 ownership = ctx.client.ChildOwnership(member, parent);
@@ -5711,9 +5712,9 @@ namespace NeoCompose.Runtime.NeoScript
                 NeoValueOwnership? declared = member is null
                     ? null
                     : ctx.client.ConcreteDeclaredOwnership(member);
-                ownership = declared ?? ResolveOwnershipForValueId(ctx, id);
+                ownership = declared ?? ResolveOwnershipForValueId(ctx, id, ref node);
             }
-            if (!ctx.client.TryGetReplayReference(id, out MemberValue? row, ownership))
+            if (!ctx.client.TryGetReplayReference(id, ref node, out MemberValue? row, ownership))
                 return at;
             var v = UnwrapCached(row, ctx, ownership, member);
             return member is LookupMember lookup && v is object?[] ids
@@ -5793,7 +5794,16 @@ namespace NeoCompose.Runtime.NeoScript
             Context ctx,
             string valueId)
         {
-            return ctx.client.TryGetValueOwnership(valueId, out NeoValueOwnership ownership)
+            NeoValueNode? node = null;
+            return ResolveOwnershipForValueId(ctx, valueId, ref node);
+        }
+
+        private static NeoValueOwnership ResolveOwnershipForValueId(
+            Context ctx,
+            string valueId,
+            ref NeoValueNode? node)
+        {
+            return ctx.client.TryGetValueOwnership(valueId, ref node, out NeoValueOwnership ownership)
                 ? ownership
                 : ctx.valueOwnership;
         }

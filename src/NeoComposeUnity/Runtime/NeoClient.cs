@@ -2845,12 +2845,29 @@ namespace NeoCompose.Runtime
 
         internal bool TryGetValueOwnership(string id, out NeoValueOwnership ownership)
         {
+            NeoValueNode? node = null;
+            return TryGetValueOwnership(id, ref node, out ownership);
+        }
+
+        /// <summary>
+        /// <see cref="TryGetValueOwnership(string, out NeoValueOwnership)"/>
+        /// through a node the caller keeps, so the row read that follows
+        /// reuses the one id lookup.
+        /// </summary>
+        internal bool TryGetValueOwnership(string id, ref NeoValueNode? node, out NeoValueOwnership ownership)
+        {
             if (candidateReadPlan is not null)
                 return candidateReadPlan.TryGetOwnership(id, out ownership);
-            return TryGetCommittedOwnership(id, out ownership);
+            return TryGetCommittedOwnership(id, ref node, out ownership);
         }
 
         internal bool TryGetCommittedOwnership(string id, out NeoValueOwnership ownership)
+        {
+            NeoValueNode? node = null;
+            return TryGetCommittedOwnership(id, ref node, out ownership);
+        }
+
+        private bool TryGetCommittedOwnership(string id, ref NeoValueNode? node, out NeoValueOwnership ownership)
         {
             if (candidateReplay?.Allocations.ContainsKey(id) == true)
             {
@@ -2858,12 +2875,14 @@ namespace NeoCompose.Runtime
                 return true;
             }
 
-            if (sessionData.values.ContainsKey(id))
+            if (node is not { live: true })
+                node = ValueNode(id);
+            if (node?.session is not null)
             {
                 ownership = NeoValueOwnership.Session;
                 return true;
             }
-            if (saveData.values.ContainsKey(id))
+            if (node?.save is not null)
             {
                 ownership = NeoValueOwnership.Save;
                 return true;
@@ -2874,7 +2893,7 @@ namespace NeoCompose.Runtime
             {
                 return true;
             }
-            if (data.values.ContainsKey(id))
+            if (node?.Asset(data) is not null)
             {
                 ownership = NeoValueOwnership.Asset;
                 return true;
