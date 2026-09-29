@@ -4334,75 +4334,101 @@ namespace NeoCompose.Runtime
             NeoClient.StampConstructionProvenance(
                 live,
                 resolved.link.record?.id,
-                BuildConstructionProvenanceArgs(client, resolved, argumentValues, ctx, deferLiterals: false, out _));
+                SerializeConstructionProvenanceArgs(
+                    resolved.link.record,
+                    CollectConstructionProvenanceArgs(client, resolved, argumentValues, ctx, deferLiterals: false)));
         }
 
+        /// <summary>A <see cref="CollectConstructionProvenanceArgs"/> entry for an argument the call omitted.</summary>
+        private static readonly object OmittedProvenanceArgument = new();
+
         /// <summary>
-        /// The P75 constructor arguments a declared construction records.
-        /// With <paramref name="deferLiterals"/>, a local array of immutable
-        /// leaves is copied into <paramref name="literals"/> and its slot left
-        /// null, so a construction that never becomes rows never pays for its
-        /// JSON.
+        /// The P75 constructor arguments a declared construction records, by
+        /// position: a finished token, a value
+        /// <see cref="NeoClient.ConstructorArgumentToken"/> serializes as is,
+        /// or <see cref="OmittedProvenanceArgument"/>. With
+        /// <paramref name="deferLiterals"/>, a local array of immutable leaves
+        /// is recorded as a copy, so a construction that never becomes rows
+        /// never pays for its JSON.
         /// </summary>
-        private static Dictionary<string, JToken?> BuildConstructionProvenanceArgs(
+        private static object?[] CollectConstructionProvenanceArgs(
             NeoClient client,
             NeoResolvedDeclaredConstructor resolved,
             IReadOnlyDictionary<string, object?> argumentValues,
             NeoScript.NSGetterEvaluator.Context ctx,
-            bool deferLiterals,
-            out List<KeyValuePair<string, object?[]>>? literals)
+            bool deferLiterals)
         {
-            literals = null;
             ConstructorRecord? record = resolved.link.record;
-            var constructorArgs = new Dictionary<string, JToken?>(StringComparer.Ordinal);
-            if (record is not null)
+            if (record is null || record.argumentTypes.Length == 0)
+                return Array.Empty<object?>();
+            var recorded = new object?[record.argumentTypes.Length];
+            for (int index = 0; index < record.argumentTypes.Length; index++)
             {
-                for (int index = 0; index < record.argumentTypes.Length; index++)
+                FunctionArgumentTypeInfo argument = record.argumentTypes[index];
+                // An omitted name with a declared default is filled
+                // callee-side (P65 §2.5) and is deliberately NOT recorded:
+                // the replay re-reads the parameter's current default, so
+                // the instance keeps tracking it.
+                if (!argumentValues.TryGetValue(argument.name, out object? value))
                 {
-                    FunctionArgumentTypeInfo argument = record.argumentTypes[index];
-                    // An omitted name with a declared default is filled
-                    // callee-side (P65 §2.5) and is deliberately NOT recorded:
-                    // the replay re-reads the parameter's current default, so
-                    // the instance keeps tracking it.
-                    if (!argumentValues.TryGetValue(argument.name, out object? value))
-                    {
-                        continue;
-                    }
-                    // The kinds replay reads back as a row id are exactly the
-                    // kinds recorded as one. A structured leaf — a sprite, a
-                    // vector, a colour — is reference-identified too, so
-                    // without this narrowing it would be recorded as its row's
-                    // id and replayed as a JSON literal.
-                    TypeInfo declaredType =
-                        NeoNSFunctionRuntime.ResolveInvocationTypeInfo(
-                            client,
-                            argument,
-                            resolved.genericEnv);
-                    Func<object?, string?>? resolveRowId =
-                        declaredType.type is MemberKind.Class
-                            or MemberKind.Interface
-                            or MemberKind.List
-                            or MemberKind.Dictionary
-                            ? candidate => NeoScript.NSGetterEvaluator
-                                .ConstructorReferenceOf(candidate, ctx)?.valueId
-                            : null;
-                    if (deferLiterals
-                        && value is object?[] entries
-                        && IsLiteralLeafArray(entries)
-                        && resolveRowId?.Invoke(entries) is null)
-                    {
-                        string parameterId = NeoClient.ConstructorParameterId(record, index);
-                        constructorArgs[parameterId] = null;
-                        (literals ??= new List<KeyValuePair<string, object?[]>>()).Add(
-                            new KeyValuePair<string, object?[]>(parameterId, CloneLiteralLeafArray(entries)));
-                        continue;
-                    }
-                    constructorArgs[NeoClient.ConstructorParameterId(record, index)] =
-                        NeoClient.ConstructorArgumentToken(
-                            value,
-                            $"'{argument.name}' of constructor '{record.id}' on class '{resolved.schemaClass.name}'",
-                            resolveRowId);
+                    recorded[index] = OmittedProvenanceArgument;
+                    continue;
                 }
+                // The kinds replay reads back as a row id are exactly the
+                // kinds recorded as one. A structured leaf — a sprite, a
+                // vector, a colour — is reference-identified too, so
+                // without this narrowing it would be recorded as its row's
+                // id and replayed as a JSON literal. Resolving the id may
+                // attach the argument, which must happen now.
+                TypeInfo declaredType =
+                    NeoNSFunctionRuntime.ResolveInvocationTypeInfo(
+                        client,
+                        argument,
+                        resolved.genericEnv);
+                string? rowId = declaredType.type is MemberKind.Class
+                    or MemberKind.Interface
+                    or MemberKind.List
+                    or MemberKind.Dictionary
+                    ? NeoScript.NSGetterEvaluator.ConstructorReferenceOf(value, ctx)?.valueId
+                    : null;
+                if (!string.IsNullOrEmpty(rowId))
+                {
+                    // A row id serializes exactly as the string it is.
+                    recorded[index] = rowId;
+                }
+                else if (value is null or string or bool or sbyte or byte or short or ushort
+                    or int or uint or long or float or double or decimal)
+                {
+                    recorded[index] = value;
+                }
+                else if (value is object?[] entries && IsLiteralLeafArray(entries))
+                {
+                    recorded[index] = deferLiterals ? CloneLiteralLeafArray(entries) : entries;
+                }
+                else
+                {
+                    recorded[index] = NeoClient.ConstructorArgumentToken(
+                        value,
+                        $"'{argument.name}' of constructor '{record.id}' on class '{resolved.schemaClass.name}'");
+                }
+            }
+            return recorded;
+        }
+
+        /// <summary>The recorded arguments as the row's <c>constructorArgs</c>, keyed by parameter id.</summary>
+        private static Dictionary<string, JToken?> SerializeConstructionProvenanceArgs(
+            ConstructorRecord? record,
+            object?[] recorded)
+        {
+            var constructorArgs = new Dictionary<string, JToken?>(StringComparer.Ordinal);
+            for (int index = 0; index < recorded.Length; index++)
+            {
+                object? value = recorded[index];
+                if (ReferenceEquals(value, OmittedProvenanceArgument))
+                    continue;
+                string parameterId = NeoClient.ConstructorParameterId(record!, index);
+                constructorArgs[parameterId] = value as JToken
+                    ?? NeoClient.ConstructorArgumentToken(value, parameterId);
             }
             return constructorArgs;
         }

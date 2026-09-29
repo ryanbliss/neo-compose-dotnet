@@ -227,19 +227,18 @@ namespace NeoCompose.Runtime
         /// shape. This is the exact inverse of
         /// <see cref="VirtualReplayArgument"/>.
         ///
-        /// <para><paramref name="resolveRowId"/> supplies the row id for the
-        /// argument kinds replay reads back as an id — Class, Interface, List
-        /// and Dictionary. A row-backed argument does not always arrive as a
-        /// generated wrapper: once it has passed through the evaluator it is
-        /// the plain record or array shape, which carries no id of its own.
-        /// Serializing that shape would record the row's <i>contents</i> as
-        /// the recipe, and replay would then rebuild the instance from a
-        /// payload map instead of the row it was actually built from.</para>
+        /// <para>The caller resolves the row id of the argument kinds replay
+        /// reads back as an id — Class, Interface, List and Dictionary. A
+        /// row-backed argument does not always arrive as a generated wrapper:
+        /// once it has passed through the evaluator it is the plain record or
+        /// array shape, which carries no id of its own. Serializing that shape
+        /// would record the row's <i>contents</i> as the recipe, and replay
+        /// would then rebuild the instance from a payload map instead of the
+        /// row it was actually built from.</para>
         /// </summary>
         internal static JToken? ConstructorArgumentToken(
             object? value,
-            string describeArgument,
-            Func<object?, string?>? resolveRowId = null)
+            string describeArgument)
         {
             switch (value)
             {
@@ -263,11 +262,6 @@ namespace NeoCompose.Runtime
                     return new JValue(Convert.ToInt64(value));
                 case float or double or decimal:
                     return new JValue(Convert.ToDouble(value));
-            }
-            if (resolveRowId?.Invoke(value) is string rowId
-                && !string.IsNullOrEmpty(rowId))
-            {
-                return new JValue(rowId);
             }
             try
             {

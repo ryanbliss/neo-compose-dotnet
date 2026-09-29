@@ -312,14 +312,13 @@ namespace NeoCompose.Runtime
                     AssertDeclaredConstructorRootIsComplete(client, resolved, created.attachedId);
                 // Recording a row-typed argument may attach it, and with it
                 // this instance when the body adopted it.
-                created.constructorArgs = BuildConstructionProvenanceArgs(
+                created.constructorArgs = CollectConstructionProvenanceArgs(
                     client,
                     resolved,
                     argumentValues,
                     constructionCtx,
-                    deferLiterals: true,
-                    out created.constructorLiterals);
-                created.constructorId = resolved.link.record?.id;
+                    deferLiterals: true);
+                created.constructor = resolved.link.record;
                 if (created.attachedId is not null
                     && client.TryGetValue(NeoValueOwnership.Session, created.attachedId, out ObjectMemberValue? live))
                 {
@@ -753,18 +752,15 @@ namespace NeoCompose.Runtime
             return rootRow.id;
         }
 
-        /// <summary>Stamps a declared construction's recipe, serializing its deferred literal arguments.</summary>
+        /// <summary>Stamps a declared construction's recipe, serializing its recorded arguments.</summary>
         private static void StampDetachedProvenance(NeoScriptObject value, ObjectMemberValue row)
         {
             if (value.constructorArgs is null)
                 return;
-            if (value.constructorLiterals is not null)
-            {
-                foreach (KeyValuePair<string, object?[]> literal in value.constructorLiterals)
-                    value.constructorArgs[literal.Key] = NeoClient.ConstructorArgumentToken(literal.Value, literal.Key);
-                value.constructorLiterals = null;
-            }
-            NeoClient.StampConstructionProvenance(row, value.constructorId, value.constructorArgs);
+            NeoClient.StampConstructionProvenance(
+                row,
+                value.constructor?.id,
+                SerializeConstructionProvenanceArgs(value.constructor, value.constructorArgs));
         }
 
         private static ObjectMemberValue StageDetached(

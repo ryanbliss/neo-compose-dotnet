@@ -5,7 +5,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using NeoCompose.Runtime.Json;
-using Newtonsoft.Json.Linq;
 
 namespace NeoCompose.Runtime.NeoScript
 {
@@ -39,13 +38,11 @@ namespace NeoCompose.Runtime.NeoScript
         internal NeoScriptObject? owner;
         internal string? attachedId;
         /// <summary>
-        /// The P75 creation recipe of a declared construction, stamped on the
-        /// row at materialization; null for a schema-derived construction.
+        /// The P75 creation recipe of a declared construction, serialized onto
+        /// the row at materialization; null for a schema-derived construction.
         /// </summary>
-        internal Dictionary<string, JToken?>? constructorArgs;
-        /// <summary>Literal array arguments of <see cref="constructorArgs"/>, serialized only at materialization.</summary>
-        internal List<KeyValuePair<string, object?[]>>? constructorLiterals;
-        internal string? constructorId;
+        internal object?[]? constructorArgs;
+        internal ConstructorRecord? constructor;
         /// <summary>A declared constructor is still running, so a materialization may leave required members unset.</summary>
         internal bool constructing;
         internal readonly NeoScriptAllocationTracker tracker;
