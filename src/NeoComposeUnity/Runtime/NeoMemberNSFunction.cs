@@ -1557,7 +1557,7 @@ namespace NeoCompose.Runtime
                     break;
                 case MemberKind.Enum:
                     {
-                        string[] optionIds = NormalizeEnumOptions(value, subject);
+                        object?[] optionIds = NormalizeEnumOptions(value, subject);
                         if (typeInfo.required && optionIds.Length == 0)
                         {
                             throw new InvalidOperationException(
@@ -1611,8 +1611,8 @@ namespace NeoCompose.Runtime
                         == NeoDecimalValues.Violation.None
                     || value is decimal,
                 MemberKind.Enum => value is string
-                    || EnumOptionId(value) is not null
-                    || value is IEnumerable && value is not string,
+                    || value is IEnumerable
+                    || EnumOptionId(value) is not null,
                 MemberKind.Class or MemberKind.Interface =>
                     value is IDictionary<string, object?>
                     || value is INeoValueReference,
@@ -2048,27 +2048,34 @@ namespace NeoCompose.Runtime
                 return text;
             if (value is INeoEnumOption option)
                 return option.optionId;
-            var property = value?.GetType().GetProperty(
-                "optionId",
-                System.Reflection.BindingFlags.Instance
-                    | System.Reflection.BindingFlags.Public);
-            return property?.PropertyType == typeof(string)
-                ? property.GetValue(value) as string
-                : null;
+            if (value is null)
+                return null;
+            // Duck-typed option wrappers expose a public string optionId.
+            // Type lookups dominate, so each type reflects once.
+            var property = OptionIdProperties.GetOrAdd(
+                value.GetType(),
+                type => type.GetProperty(
+                    "optionId",
+                    System.Reflection.BindingFlags.Instance
+                        | System.Reflection.BindingFlags.Public) is { } found
+                    && found.PropertyType == typeof(string)
+                        ? found
+                        : null);
+            return property?.GetValue(value) as string;
         }
 
-        private static string[] NormalizeEnumOptions(
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, System.Reflection.PropertyInfo?>
+            OptionIdProperties = new();
+
+        private static object?[] NormalizeEnumOptions(
             object value,
             string subject)
         {
             if (value is string text)
                 return new[] { text };
-            if (value is string[] options)
+            if (value is object?[] options && Array.TrueForAll(options, entry => entry is string))
             {
-                foreach (string entry in options)
-                    if (entry is null)
-                        throw new InvalidOperationException($"{subject} contains an entry without an enum option id.");
-                // Enum values are never written in place, so the validated
+                // Enum values are never written in place, so a validated id
                 // array passes through as is.
                 return options;
             }
