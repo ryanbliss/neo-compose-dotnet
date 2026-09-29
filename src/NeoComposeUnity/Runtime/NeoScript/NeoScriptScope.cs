@@ -75,11 +75,16 @@ namespace NeoCompose.Runtime.NeoScript
             externalBindings = rootBindings ?? throw new ArgumentNullException(nameof(rootBindings));
         }
 
-        private NeoScriptScope(NeoScriptScope parent, int capacity)
+        private NeoScriptScope(NeoScriptScope parent, int capacity, bool block = false)
         {
             Parent = parent ?? throw new ArgumentNullException(nameof(parent));
             bindings = new Dictionary<string, EvaluationValue>(capacity, StringComparer.Ordinal);
+            this.block = block;
         }
+
+        // A statement block's locals end with it, while its assignments to
+        // enclosing bindings land where those bindings were declared.
+        private readonly bool block;
 
         internal NeoScriptScope? Parent
         {
@@ -137,6 +142,21 @@ namespace NeoCompose.Runtime.NeoScript
 
         internal NeoScriptScope CreateChild(int capacity = 0) =>
             new(this, capacity);
+
+        internal NeoScriptScope CreateBlock() =>
+            new(this, 0, block: true);
+
+        /// <summary>
+        /// Assigns an existing binding in the scope that declared it, when
+        /// that is an enclosing scope this block belongs to.
+        /// </summary>
+        internal void Assign(string bindingId, object? value)
+        {
+            NeoScriptScope target = this;
+            while (target.block && !target.ContainsLocal(bindingId))
+                target = target.Parent!;
+            target.SetLocal(bindingId, value);
+        }
 
         internal bool ContainsLocal(string bindingId) =>
             externalBindings?.ContainsKey(bindingId) ?? (bindings!.ContainsKey(bindingId)

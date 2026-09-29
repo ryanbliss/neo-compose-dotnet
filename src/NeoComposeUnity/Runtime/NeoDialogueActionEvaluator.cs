@@ -862,7 +862,7 @@ namespace NeoCompose.Runtime
                                         state,
                                         afterBody));
                             }
-                            state.SynchronizeBodyScope(scope);
+                            state.ResetBodyScope();
                             NeoScriptExecutionResult? terminal =
                                 ApplyForBodyTransfer(scope, state, bodyResult);
                             if (terminal is not null)
@@ -935,7 +935,7 @@ namespace NeoCompose.Runtime
             ForExecutionState state,
             NeoScriptExecutionResult bodyResult)
         {
-            state.SynchronizeBodyScope(scope);
+            state.ResetBodyScope();
             NeoScriptExecutionResult? terminal =
                 ApplyForBodyTransfer(scope, state, bodyResult);
             return terminal ?? RunFor(
@@ -1098,7 +1098,7 @@ namespace NeoCompose.Runtime
                             state,
                             afterBody));
                 }
-                state.SynchronizeBodyScope(scope);
+                state.ResetBodyScope();
                 NeoScriptExecutionResult? terminal =
                     ApplyForEachBodyTransfer(scope, state, bodyResult);
                 if (terminal is not null)
@@ -1115,7 +1115,7 @@ namespace NeoCompose.Runtime
             ForEachExecutionState state,
             NeoScriptExecutionResult bodyResult)
         {
-            state.SynchronizeBodyScope(scope);
+            state.ResetBodyScope();
             NeoScriptExecutionResult? terminal =
                 ApplyForEachBodyTransfer(scope, state, bodyResult);
             return terminal ?? RunForEach(
@@ -1343,39 +1343,18 @@ namespace NeoCompose.Runtime
                     returnValue: null);
             }
 
-            NeoScriptScope sectionScope =
-                state.EnsureSectionScope(scope);
-            NeoScriptExecutionResult bodyResult;
-            try
-            {
-                bodyResult = ExecuteInstructions(
-                    client,
-                    selectedInstructions,
-                    returnTypeInfo,
-                    sectionScope,
-                    ctx,
-                    0,
-                    null,
-                    options);
-            }
-            catch
-            {
-                state.SynchronizeSectionScope(scope);
-                throw;
-            }
+            NeoScriptExecutionResult bodyResult = ExecuteInstructions(
+                client,
+                selectedInstructions,
+                returnTypeInfo,
+                scope.CreateBlock(),
+                ctx,
+                0,
+                null,
+                options);
             if (bodyResult.IsPaused)
-            {
-                return ThenWhenCompleted(bodyResult, CompleteSwitchBody)
-                    .ObserveFailure(_ => state.SynchronizeSectionScope(scope));
-            }
-            return CompleteSwitchBody(bodyResult);
-
-            NeoScriptExecutionResult CompleteSwitchBody(
-                NeoScriptExecutionResult completedBody)
-            {
-                state.SynchronizeSectionScope(scope);
-                return ApplySwitchBodyTransfer(completedBody);
-            }
+                return ThenWhenCompleted(bodyResult, ApplySwitchBodyTransfer);
+            return ApplySwitchBodyTransfer(bodyResult);
         }
 
         private static NeoScriptExecutionResult ApplySwitchBodyTransfer(
@@ -1479,7 +1458,7 @@ namespace NeoCompose.Runtime
                                         {
                                             return null;
                                         }
-                                        state.RejectCurrentClause(scope);
+                                        state.RejectCurrentClause();
                                         return RunTry(
                                             client,
                                             returnTypeInfo,
@@ -1487,23 +1466,16 @@ namespace NeoCompose.Runtime
                                             ctx,
                                             options,
                                             state);
-                                    })
-                                    .ObserveFailure(_ =>
-                                        state.SynchronizeCatchScope(scope));
+                                    });
                             }
                             catch (NSGetterRuntimeError exception) when (IsAuthoredCatchableError(exception))
                             {
-                                state.RejectCurrentClause(scope);
+                                state.RejectCurrentClause();
                                 continue;
-                            }
-                            catch
-                            {
-                                state.SynchronizeCatchScope(scope);
-                                throw;
                             }
                             if (!matched)
                             {
-                                state.RejectCurrentClause(scope);
+                                state.RejectCurrentClause();
                                 continue;
                             }
                             state.SelectCurrentClause();
@@ -1513,38 +1485,26 @@ namespace NeoCompose.Runtime
                         {
                             NeoScriptScope catchScope =
                                 state.EnsureCatchScope(scope);
-                            NeoScriptExecutionResult catchResult;
-                            try
-                            {
-                                catchResult = ExecuteInstructions(
-                                    client,
-                                    state.CurrentClause.instructions,
-                                    returnTypeInfo,
-                                    catchScope,
-                                    ctx,
-                                    0,
-                                    null,
-                                    options);
-                            }
-                            catch
-                            {
-                                state.SynchronizeCatchScope(scope);
-                                throw;
-                            }
+                            NeoScriptExecutionResult catchResult = ExecuteInstructions(
+                                client,
+                                state.CurrentClause.instructions,
+                                returnTypeInfo,
+                                catchScope,
+                                ctx,
+                                0,
+                                null,
+                                options);
                             if (catchResult.IsPaused)
                             {
                                 return ThenWhenCompleted(
                                         catchResult,
-                                        CompleteCatchBody)
-                                    .ObserveFailure(_ =>
-                                        state.SynchronizeCatchScope(scope));
+                                        CompleteCatchBody);
                             }
                             return CompleteCatchBody(catchResult);
 
                             NeoScriptExecutionResult CompleteCatchBody(
                                 NeoScriptExecutionResult completed)
                             {
-                                state.SynchronizeCatchScope(scope);
                                 state.Complete();
                                 return completed;
                             }
@@ -1587,7 +1547,6 @@ namespace NeoCompose.Runtime
             }
             catch (NSGetterRuntimeError exception) when (IsAuthoredCatchableError(exception))
             {
-                state.SynchronizeTryScope(scope);
                 state.BeginCatches(exception);
                 return RunTry(
                     client,
@@ -1596,11 +1555,6 @@ namespace NeoCompose.Runtime
                     ctx,
                     options,
                     state);
-            }
-            catch
-            {
-                state.SynchronizeTryScope(scope);
-                throw;
             }
 
             if (bodyResult.IsPaused)
@@ -1614,7 +1568,6 @@ namespace NeoCompose.Runtime
                                 return null;
                             }
                             var error = (NSGetterRuntimeError)exception;
-                            state.SynchronizeTryScope(scope);
                             state.BeginCatches(error);
                             return RunTry(
                                 client,
@@ -1624,15 +1577,13 @@ namespace NeoCompose.Runtime
                                 options,
                                 state);
                         }),
-                        CompleteTryBody)
-                    .ObserveFailure(_ => state.SynchronizeTryScope(scope));
+                        CompleteTryBody);
             }
             return CompleteTryBody(bodyResult);
 
             NeoScriptExecutionResult CompleteTryBody(
                 NeoScriptExecutionResult completed)
             {
-                state.SynchronizeTryScope(scope);
                 if (state.Phase == TryPhase.Body
                     && completed.IsFailed
                     && completed.Failure is NSGetterRuntimeError error
@@ -2049,9 +2000,9 @@ namespace NeoCompose.Runtime
                 {
                     throw new NSGetterRuntimeError(readOnlyError!);
                 }
-                scope[variablePointer.variableId] = CoerceSetterValue(
+                scope.Assign(variablePointer.variableId, CoerceSetterValue(
                     rhs,
-                    instruction.target.typeInfo);
+                    instruction.target.typeInfo));
                 return null;
             }
 
@@ -2122,12 +2073,6 @@ namespace NeoCompose.Runtime
             string variableId)
         {
             scope.UnmarkReadOnly(variableId);
-        }
-
-        private static NeoScriptScope CreateChildScope(
-            NeoScriptScope parentScope)
-        {
-            return parentScope.CreateChild();
         }
 
         /// <summary>
@@ -2281,12 +2226,12 @@ namespace NeoCompose.Runtime
                         .Mutate(client, instruction.mutation, args, ctx);
                     return;
                 }
-                scope[variablePointer.variableId] = MutateLocalCollection(
+                scope.Assign(variablePointer.variableId, MutateLocalCollection(
                     local,
                     instruction.target.typeInfo,
                     instruction.mutation,
                     args,
-                    ctx);
+                    ctx));
                 return;
             }
 
@@ -5167,7 +5112,6 @@ namespace NeoCompose.Runtime
             private readonly object? previousBinding;
             private readonly bool readOnly;
             private NeoScriptScope? bodyScope;
-            private string[]? bodyParentBindingIds;
             private bool bindingRestored;
 
             protected LoopExecutionState(
@@ -5192,42 +5136,21 @@ namespace NeoCompose.Runtime
             internal NeoScriptScope EnsureBodyScope(
                 NeoScriptScope parentScope)
             {
-                if (bodyScope is not null)
-                    return bodyScope;
-                bodyParentBindingIds = parentScope.Keys.ToArray();
-                bodyScope = CreateChildScope(parentScope);
-                return bodyScope;
+                return bodyScope ??= parentScope.CreateBlock();
             }
 
             /// <summary>
-            /// Writes the body's updates to enclosing bindings back to the
-            /// parent scope and clears the body's own locals. The body scope
-            /// itself is kept: every iteration sees the same parent binding
-            /// set, so rebuilding it per iteration only allocated.
+            /// Clears the body's own locals. The body scope itself is kept:
+            /// rebuilding it per iteration only allocated.
             /// </summary>
-            internal void SynchronizeBodyScope(
-                NeoScriptScope parentScope)
-            {
-                if (bodyScope is null)
-                    return;
-                foreach (string parentBindingId in bodyParentBindingIds
-                    ?? Array.Empty<string>())
-                {
-                    parentScope[parentBindingId] = bodyScope.TryGetValue(
-                        parentBindingId,
-                        out object? value)
-                            ? value
-                            : null;
-                }
-                bodyScope.ResetLocals();
-            }
+            internal void ResetBodyScope() => bodyScope?.ResetLocals();
 
             internal void RestoreBinding(NeoScriptScope scope)
             {
                 if (bindingRestored)
                     return;
                 bindingRestored = true;
-                SynchronizeBodyScope(scope);
+                ResetBodyScope();
                 if (readOnly)
                 {
                     UnmarkReadOnlyBinding(scope, bindingId);
@@ -5313,11 +5236,7 @@ namespace NeoCompose.Runtime
         private sealed class TryExecutionState
         {
             private NeoScriptScope? tryScope;
-            private string[]? tryParentBindingIds;
-            private bool tryScopeSynchronized;
             private NeoScriptScope? catchScope;
-            private string[]? catchParentBindingIds;
-            private bool catchScopeSynchronized;
             private int catchIndex;
             private NSGetterRuntimeError? originalFailure;
 
@@ -5354,31 +5273,8 @@ namespace NeoCompose.Runtime
                         "NeoScript try/catch selected an invalid catch clause; its compiled IR is stale or corrupt.");
 
             internal NeoScriptScope EnsureTryScope(
-                NeoScriptScope parentScope)
-            {
-                if (tryScope is not null)
-                    return tryScope;
-                tryParentBindingIds = parentScope.Keys.ToArray();
-                tryScope = CreateChildScope(parentScope);
-                return tryScope;
-            }
-
-            internal void SynchronizeTryScope(
-                NeoScriptScope parentScope)
-            {
-                if (tryScopeSynchronized || tryScope is null)
-                    return;
-                tryScopeSynchronized = true;
-                foreach (string bindingId in tryParentBindingIds
-                    ?? Array.Empty<string>())
-                {
-                    parentScope[bindingId] = tryScope.TryGetValue(
-                        bindingId,
-                        out object? value)
-                            ? value
-                            : null;
-                }
-            }
+                NeoScriptScope parentScope) =>
+                tryScope ??= parentScope.CreateBlock();
 
             internal void BeginCatches(NSGetterRuntimeError failure)
             {
@@ -5393,8 +5289,7 @@ namespace NeoCompose.Runtime
                 if (catchScope is not null)
                     return catchScope;
                 CatchClause clause = CurrentClause;
-                catchParentBindingIds = parentScope.Keys.ToArray();
-                catchScope = CreateChildScope(parentScope);
+                catchScope = parentScope.CreateBlock();
                 catchScope[clause.binding.id] = originalFailure?.Message
                     ?? throw new NSGetterRuntimeError(
                         "NeoScript catch clause is missing its original error.");
@@ -5402,43 +5297,12 @@ namespace NeoCompose.Runtime
                     catchScope,
                     clause.binding.id,
                     "Cannot assign to a read-only catch message binding.");
-                catchScopeSynchronized = false;
                 return catchScope;
             }
 
-            internal void SynchronizeCatchScope(
-                NeoScriptScope parentScope)
+            internal void RejectCurrentClause()
             {
-                if (catchScopeSynchronized || catchScope is null)
-                    return;
-                catchScopeSynchronized = true;
-                string catchBindingId = CurrentClause.binding.id;
-                foreach (string bindingId in catchParentBindingIds
-                    ?? Array.Empty<string>())
-                {
-                    if (string.Equals(
-                        bindingId,
-                        catchBindingId,
-                        StringComparison.Ordinal))
-                    {
-                        continue;
-                    }
-                    parentScope[bindingId] = catchScope.TryGetValue(
-                        bindingId,
-                        out object? value)
-                            ? value
-                            : null;
-                }
-                UnmarkReadOnlyBinding(catchScope, catchBindingId);
-            }
-
-            internal void RejectCurrentClause(
-                NeoScriptScope parentScope)
-            {
-                SynchronizeCatchScope(parentScope);
                 catchScope = null;
-                catchParentBindingIds = null;
-                catchScopeSynchronized = false;
                 catchIndex++;
                 PrepareCurrentClause();
             }
@@ -5477,9 +5341,6 @@ namespace NeoCompose.Runtime
         private sealed class SwitchExecutionState
         {
             private readonly string[][] normalizedLabels;
-            private NeoScriptScope? sectionScope;
-            private string[]? parentBindingIds;
-            private bool sectionScopeSynchronized;
 
             internal SwitchExecutionState(
                 SwitchInstruction instruction,
@@ -5521,33 +5382,6 @@ namespace NeoCompose.Runtime
                     : SelectedDefault
                         ? Instruction.defaultInstructions
                         : null;
-
-            internal NeoScriptScope EnsureSectionScope(
-                NeoScriptScope parentScope)
-            {
-                if (sectionScope is not null)
-                    return sectionScope;
-                parentBindingIds = parentScope.Keys.ToArray();
-                sectionScope = CreateChildScope(parentScope);
-                return sectionScope;
-            }
-
-            internal void SynchronizeSectionScope(
-                NeoScriptScope parentScope)
-            {
-                if (sectionScopeSynchronized || sectionScope is null)
-                    return;
-                sectionScopeSynchronized = true;
-                foreach (string bindingId in parentBindingIds
-                    ?? Array.Empty<string>())
-                {
-                    parentScope[bindingId] = sectionScope.TryGetValue(
-                        bindingId,
-                        out object? value)
-                            ? value
-                            : null;
-                }
-            }
 
             internal void CompleteSelector(object? value)
             {
