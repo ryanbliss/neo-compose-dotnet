@@ -1454,7 +1454,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void GeneratedSession_MutationsDoNotSerializeOrResetOnCommit()
+        public async System.Threading.Tasks.Task GeneratedSession_MutationsDoNotSerializeOrResetOnCommit()
         {
             var app = LoadGeneratedClient(out _);
             const int transientScore = 424242;
@@ -1465,7 +1465,7 @@ namespace NeoCompose.Tests
             string serializedBeforeCommit = app.SerializeSaveData();
             Assert.IsFalse(serializedBeforeCommit.Contains(transientScore.ToString()));
 
-            app.CommitAsync().GetAwaiter().GetResult();
+            await app.CommitAsync();
 
             Assert.AreEqual(transientScore, app.Session.Score);
             Assert.IsFalse(app.SerializeSaveData().Contains(transientScore.ToString()));
@@ -1479,7 +1479,7 @@ namespace NeoCompose.Tests
             var first = await TestProjectNeo.Load(stack.Synchronizer);
             first.Session.Score = 777777;
             first.Save.Score = 12;
-            first.CommitAsync().GetAwaiter().GetResult();
+            await first.CommitAsync();
 
             var second = await TestProjectNeo.Load(stack.Reopen());
 

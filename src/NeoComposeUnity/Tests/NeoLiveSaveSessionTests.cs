@@ -786,6 +786,13 @@ namespace NeoCompose.Tests
         /// never calls save — every save-value write schedules an automatic
         /// commit (coalesced), which the flush throttle then streams out.
         /// </summary>
+        // Commits serialize on a worker, so an auto-commit settles frames later.
+        private static async Task SettleCommits(NeoClient client)
+        {
+            while (client.IsCommitting)
+                await Task.Yield();
+        }
+
         [Test]
         public async Task SaveValueWrites_AutoCommitWhileLive_WithoutExplicitSave()
         {
@@ -829,6 +836,7 @@ namespace NeoCompose.Tests
 
             Assert.That(realtime.forks, Is.Empty, "the auto-commit coalesces first");
             autoCommitScheduler.Advance(0.3);
+            await SettleCommits(app.Client);
             Assert.That(realtime.forks, Is.Empty, "then the flush debounce throttles");
             flushScheduler.Advance(0.5);
 
@@ -839,6 +847,7 @@ namespace NeoCompose.Tests
             app.Save.Score = 42;
             realtime.livePatchResults.Enqueue(Patched("snap-live", 2));
             autoCommitScheduler.Advance(0.3);
+            await SettleCommits(app.Client);
             flushScheduler.Advance(0.5);
 
             Assert.That(realtime.livePatches, Has.Count.EqualTo(1));
@@ -900,12 +909,14 @@ namespace NeoCompose.Tests
                     firstValues.ToString(Formatting.None),
                     "session-x")));
             autoCommitScheduler.Advance(0.3);
+            await SettleCommits(app.Client);
             flushScheduler.Advance(0.5);
 
             app.Save.Heroes.Add(new global::Assets.Scripts.Neo.Hero(
                 Name: "Grace", Health: 9));
             realtime.livePatchResults.Enqueue(Patched("snap-live", 2));
             autoCommitScheduler.Advance(0.3);
+            await SettleCommits(app.Client);
             flushScheduler.Advance(0.5);
 
             Assert.That(realtime.livePatches, Has.Count.EqualTo(1));

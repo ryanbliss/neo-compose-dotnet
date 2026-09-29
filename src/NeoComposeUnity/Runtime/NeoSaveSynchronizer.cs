@@ -270,7 +270,7 @@ namespace NeoCompose.Runtime
                 flushLiveImmediately: false,
                 useTrackedMutations: false);
 
-        internal async Awaitable CommitSaveContentAsync(
+        internal Awaitable CommitSaveContentAsync(
             string content,
             bool replaceSnapshot,
             bool flushLiveImmediately,
@@ -280,6 +280,30 @@ namespace NeoCompose.Runtime
             {
                 throw new ArgumentException("Save content cannot be empty.", nameof(content));
             }
+            return CommitSaveContentAsync(
+                content,
+                LocalGameSaveLoader.Load(content),
+                replaceSnapshot,
+                flushLiveImmediately,
+                useTrackedMutations);
+        }
+
+        /// <summary>
+        /// Commits <paramref name="content"/>, whose parsed form the caller
+        /// already holds as <paramref name="local"/>.
+        /// </summary>
+        internal async Awaitable CommitSaveContentAsync(
+            string content,
+            LocalGameSave local,
+            bool replaceSnapshot,
+            bool flushLiveImmediately,
+            bool useTrackedMutations)
+        {
+            if (string.IsNullOrEmpty(local.customId))
+                local.customId = CustomId;
+            if (string.IsNullOrEmpty(local.releaseChannelId))
+                local.releaseChannelId = core.TargetReleaseChannelId;
+            local.name = ResolveSaveName(local.name);
 
             // Live sessions: the local store is still written immediately
             // (offline durability unchanged) but the cloud append is replaced
@@ -288,24 +312,31 @@ namespace NeoCompose.Runtime
             if (LiveModeEnabled)
             {
                 await StageLiveCommitAsync(
-                    content, flushLiveImmediately, useTrackedMutations);
+                    content, local, flushLiveImmediately, useTrackedMutations);
                 return;
             }
 
             State = NeoSaveSynchronizerState.Committing;
             try
             {
-                // Local first — it is the durable source of truth and must not
-                // depend on the network.
-                await core.LocalStore.CommitSaveAsync(CustomId, content);
-                var local = LocalGameSaveLoader.Load(content);
-                if (string.IsNullOrEmpty(local.customId))
-                    local.customId = CustomId;
-                if (string.IsNullOrEmpty(local.releaseChannelId))
+                // The local write never depends on the network, so the cloud
+                // commit runs alongside it rather than after it.
+                var localWrite = core.LocalStore.CommitSaveAsync(CustomId, content);
+                RemoteGameSave? committedRemote = null;
+                try
                 {
-                    local.releaseChannelId = core.TargetReleaseChannelId;
+                    if (core.CloudEnabled)
+                    {
+                        committedRemote = await CommitToCloudAsync(
+                            local,
+                            replaceSnapshot,
+                            useTrackedMutations: useTrackedMutations);
+                    }
                 }
-                local.name = ResolveSaveName(local.name);
+                finally
+                {
+                    await localWrite;
+                }
 
                 if (!core.CloudEnabled)
                 {
@@ -317,10 +348,6 @@ namespace NeoCompose.Runtime
                     return;
                 }
 
-                var committedRemote = await CommitToCloudAsync(
-                    local,
-                    replaceSnapshot,
-                    useTrackedMutations: useTrackedMutations);
                 if (committedRemote != null)
                 {
                     active = LocalGameSave.FromRemote(committedRemote);
@@ -1067,22 +1094,14 @@ namespace NeoCompose.Runtime
         /// </summary>
         private async Awaitable StageLiveCommitAsync(
             string content,
-            bool flushImmediately = false,
-            bool useTrackedMutations = false)
+            LocalGameSave local,
+            bool flushImmediately,
+            bool useTrackedMutations)
         {
             State = NeoSaveSynchronizerState.Committing;
             try
             {
                 await core.LocalStore.CommitSaveAsync(CustomId, content);
-                var local = LocalGameSaveLoader.Load(content);
-                if (string.IsNullOrEmpty(local.customId))
-                    local.customId = CustomId;
-                if (string.IsNullOrEmpty(local.releaseChannelId))
-                {
-                    local.releaseChannelId = core.TargetReleaseChannelId;
-                }
-
-                local.name = ResolveSaveName(local.name);
 
                 // The game's serialized payload may not carry the server
                 // identity — a save created from defaults has never seen it.

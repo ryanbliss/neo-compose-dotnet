@@ -877,7 +877,7 @@ namespace HelloWorld.Assets.Tests
 
             AssertPlacementOk(saveContent.Collisions.TryRemoveTile(blocker.valueId));
             Assert.IsNull(client.Assets.Worlds.OldConsoleLanding.Content.Collisions.GetTile(blockerCell));
-            client.CommitAsync().GetAwaiter().GetResult();
+            await client.CommitAsync();
 
             var reopened = await ReopenSampleClient(store, EnglishLocalizationOptions());
             Assert.IsNull(reopened.Assets.Worlds.OldConsoleLanding.Content.Collisions.GetTile(blockerCell));
@@ -916,7 +916,7 @@ namespace HelloWorld.Assets.Tests
             Assert.AreEqual(0, blocked.Tiles.Count);
             CollectionAssert.IsEmpty(client.FindUnlinkedSaveValueIds());
 
-            client.CommitAsync().GetAwaiter().GetResult();
+            await client.CommitAsync();
             var reopened = await ReopenSampleClient(store, EnglishLocalizationOptions());
             foreach (var cell in blockerCells)
             {
@@ -1077,7 +1077,7 @@ namespace HelloWorld.Assets.Tests
                 "convert the placed tile to RedNovaWarningTile in Save");
             Assert.IsInstanceOf<RedNovaWarningTile>(
                 client.Assets.Worlds.OldConsoleLanding.Content.Background.GetTile(cell));
-            client.CommitAsync().GetAwaiter().GetResult();
+            await client.CommitAsync();
 
             var reopened = await ReopenSampleClient(store, EnglishLocalizationOptions());
             var reopenedTile = reopened.Assets.Worlds.OldConsoleLanding.Content.Background.GetTiles<NeoTile>()
@@ -1122,7 +1122,7 @@ namespace HelloWorld.Assets.Tests
             Assert.IsFalse(duplicate.Ok);
             Assert.AreEqual("tile-grid-object-cell-occupied", duplicate.ErrorCode);
 
-            client.CommitAsync().GetAwaiter().GetResult();
+            await client.CommitAsync();
 
             var reopened = await ReopenSampleClient(store, EnglishLocalizationOptions());
             var reopenedInstance = reopened.Assets.Worlds.OldConsoleLanding.Content.Objects.GetObject<NeoObject>(cell)!;
@@ -1134,7 +1134,7 @@ namespace HelloWorld.Assets.Tests
                 reopened.Assets.Worlds.OldConsoleLanding.valueId!);
             AssertPlacementOk(reopenedSaveContent.Objects.TryDespawn(reopenedInstance.valueId));
             Assert.IsNull(reopened.Assets.Worlds.OldConsoleLanding.Content.Objects.GetObject(cell));
-            reopened.CommitAsync().GetAwaiter().GetResult();
+            await reopened.CommitAsync();
 
             var persistedAfterDespawn = await ReopenSampleClient(store, EnglishLocalizationOptions());
             Assert.IsNull(
@@ -1156,7 +1156,7 @@ namespace HelloWorld.Assets.Tests
 
             // PlayerSpawnObject explicitly declares Session Position. Its Save
             // membership and footprint survive, while that coordinate resets.
-            client.CommitAsync().GetAwaiter().GetResult();
+            await client.CommitAsync();
             var reopened = await ReopenSampleClient(store, EnglishLocalizationOptions());
             var restored = reopened.Assets.Worlds.OldConsoleLanding.Content.Objects
                 .GetObjects<PlayerSpawnObject>().Single(value => value.valueId == id);

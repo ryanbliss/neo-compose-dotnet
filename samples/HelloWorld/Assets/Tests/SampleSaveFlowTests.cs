@@ -81,7 +81,7 @@ namespace HelloWorld.Assets.Tests
             var destination = neo.Assets.Outposts.First(o => o.valueId != neo.Save.Location.valueId);
             neo.Save.World = destination.Planet;
             var worldId = neo.Save.World.optionId;
-            neo.CommitAsync().GetAwaiter().GetResult();
+            await neo.CommitAsync();
             neo.Dispose();
 
             // Returning to the menu refreshes the list — the saved game now appears.
@@ -103,7 +103,7 @@ namespace HelloWorld.Assets.Tests
 
             var synchronizer = store.CreateNew("Doomed");
             var neo = await HelloWorldNeo.Load(synchronizer);
-            neo.CommitAsync().GetAwaiter().GetResult();
+            await neo.CommitAsync();
             neo.Dispose();
             store.RefreshSavesAsync().GetAwaiter().GetResult();
             store.ArchiveAsync(synchronizer.CustomId).GetAwaiter().GetResult();
@@ -132,7 +132,7 @@ namespace HelloWorld.Assets.Tests
             var destination = neoA.Assets.Outposts.First(o => o.valueId != neoA.Save.Location.valueId);
             neoA.Save.World = destination.Planet;
             var worldId = neoA.Save.World.optionId;
-            neoA.CommitAsync().GetAwaiter().GetResult();
+            await neoA.CommitAsync();
             var customId = synchronizer.CustomId;
             neoA.Dispose();
 

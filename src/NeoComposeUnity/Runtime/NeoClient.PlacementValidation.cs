@@ -106,6 +106,9 @@ namespace NeoCompose.Runtime
         // changes with the schema, which clears the cache with the class caches.
         private readonly Dictionary<(string classId, string kind), bool> worldKindByClass = new();
 
+        // A layer-link class's validated target layer, cleared with the class caches.
+        internal readonly Dictionary<(string classId, bool tile), string> LayerLinkTargetByClass = new();
+
         internal bool HasWorldKind(string? classId, string kind)
         {
             if (string.IsNullOrEmpty(classId))

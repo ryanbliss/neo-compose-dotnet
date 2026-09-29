@@ -38,9 +38,17 @@ namespace HelloWorld.Assets.Tests
             saveDirectory = Path.Combine(Path.GetTempPath(), "neo-gameplay-" + Path.GetRandomFileName());
         }
 
-        [TearDown]
-        public void TearDown()
+        [UnityTearDown]
+        public IEnumerator TearDown()
         {
+            // Gameplay saves fire and forget, and a commit finishes on a
+            // worker frames later; let it land before its folder goes away.
+            foreach (var go in spawned)
+            {
+                var neo = go == null ? null : GameplayNeo(go.GetComponent<HelloWorldGameplay>());
+                while (neo != null && neo.Client.IsCommitting)
+                    yield return null;
+            }
             foreach (var go in spawned)
             {
                 if (go != null)
@@ -827,7 +835,7 @@ namespace HelloWorld.Assets.Tests
                 outpost.valueId != gameplay.CurrentOutpost.valueId);
             destination.Save.Unlocked = true;
             gameplay.OnVisitOutpost(destination);
-            gameplay.SaveAsync().GetAwaiter().GetResult();
+            await gameplay.SaveAsync();
 
             // Reopen that same save by its id from a fresh store, as the menu's
             // Continue does — the played state is restored.

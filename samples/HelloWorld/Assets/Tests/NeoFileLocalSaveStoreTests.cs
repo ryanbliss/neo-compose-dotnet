@@ -30,15 +30,15 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void CommitListLoadDelete_RoundTripsByCustomId()
+        public async System.Threading.Tasks.Task CommitListLoadDelete_RoundTripsByCustomId()
         {
             var store = new NeoFileLocalSaveStore(directory);
 
             Assert.IsEmpty(store.ListSaveIdsAsync().GetAwaiter().GetResult());
             Assert.IsNull(store.LoadSaveAsync("alpha").GetAwaiter().GetResult(), "Absent save reads as null.");
 
-            store.CommitSaveAsync("alpha", "{\"name\":\"alpha\"}").GetAwaiter().GetResult();
-            store.CommitSaveAsync("beta", "{\"name\":\"beta\"}").GetAwaiter().GetResult();
+            await store.CommitSaveAsync("alpha", "{\"name\":\"alpha\"}");
+            await store.CommitSaveAsync("beta", "{\"name\":\"beta\"}");
 
             CollectionAssert.AreEquivalent(
                 new[] { "alpha", "beta" },
@@ -48,7 +48,7 @@ namespace HelloWorld.Assets.Tests
                 store.LoadSaveAsync("alpha").GetAwaiter().GetResult());
 
             // Overwrite in place.
-            store.CommitSaveAsync("alpha", "{\"name\":\"alpha-2\"}").GetAwaiter().GetResult();
+            await store.CommitSaveAsync("alpha", "{\"name\":\"alpha-2\"}");
             Assert.AreEqual(
                 "{\"name\":\"alpha-2\"}",
                 store.LoadSaveAsync("alpha").GetAwaiter().GetResult());
@@ -61,10 +61,10 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void Files_AreNamedBySaveCustomIdConvention()
+        public async System.Threading.Tasks.Task Files_AreNamedBySaveCustomIdConvention()
         {
             var store = new NeoFileLocalSaveStore(directory);
-            store.CommitSaveAsync("hero-42", "{}").GetAwaiter().GetResult();
+            await store.CommitSaveAsync("hero-42", "{}");
 
             Assert.IsTrue(
                 File.Exists(Path.Combine(directory, "save-hero-42.json")),

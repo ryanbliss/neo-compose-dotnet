@@ -5,6 +5,7 @@
 
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Collections.Generic;
 using NUnit.Framework;
 using NeoCompose.Runtime;
@@ -28,7 +29,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void NeoLoader_CommitPersistsGeneratedSaveWithNumericTimestamps()
+        public async Task NeoLoader_CommitPersistsGeneratedSaveWithNumericTimestamps()
         {
             // A fresh draft builds default save data; committing persists it to the
             // local store (the durable round-trip the removed handleSave delegate used
@@ -36,7 +37,7 @@ namespace NeoCompose.Tests
             var stack = NeoTestSaveStack.Create(LoadFixture("synth-example.json"));
             var client = stack.Load();
             Assert.IsNotNull(client);
-            client.CommitAsync().GetAwaiter().GetResult();
+            await client.CommitAsync();
             string saveBuffer = stack.PersistedContent()!;
             var save = JsonConvert.DeserializeObject<ProjectSaveData>(saveBuffer);
             Assert.IsNotNull(save);
@@ -67,11 +68,11 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void NeoLoader_WritesSaveDiagnosticsAndDedupesByCapturedValues()
+        public async Task NeoLoader_WritesSaveDiagnosticsAndDedupesByCapturedValues()
         {
             var stack = NeoTestSaveStack.Create(LoadFixture("synth-example.json"));
             var client = stack.Load();
-            client.CommitAsync().GetAwaiter().GetResult();
+            await client.CommitAsync();
 
             var serialized = JObject.Parse(stack.PersistedContent()!);
             Assert.AreEqual(1, serialized["platforms"]!.Count());
@@ -81,28 +82,28 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void NeoLoader_CommitStampsTheSnapshotItComparedAndThenSkipsANoOp()
+        public async Task NeoLoader_CommitStampsTheSnapshotItComparedAndThenSkipsANoOp()
         {
             var stack = NeoTestSaveStack.Create(LoadFixture("synth-example.json"));
             var client = stack.Load();
-            client.CommitAsync().GetAwaiter().GetResult();
+            await client.CommitAsync();
 
             // The stamped header must match a full re-serialize exactly.
             string committed = stack.PersistedContent()!;
             Assert.AreEqual(client.SerializeSaveData(), committed);
 
-            client.CommitAsync().GetAwaiter().GetResult();
+            await client.CommitAsync();
             Assert.AreEqual(committed, stack.PersistedContent());
         }
 
         [Test]
-        public void NeoLoader_ClearsSaveDiagnosticsWhenDisabledAtRuntime()
+        public async Task NeoLoader_ClearsSaveDiagnosticsWhenDisabledAtRuntime()
         {
             var stack = NeoTestSaveStack.Create(LoadFixture("synth-example.json"));
             var client = stack.Load();
 
             client.SaveOptions.DiagnosticsEnabled = false;
-            client.CommitAsync().GetAwaiter().GetResult();
+            await client.CommitAsync();
 
             var serialized = JObject.Parse(stack.PersistedContent()!);
             Assert.AreEqual(JTokenType.Null, serialized["platforms"]!.Type);
