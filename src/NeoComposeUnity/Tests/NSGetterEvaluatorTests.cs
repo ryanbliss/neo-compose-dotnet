@@ -754,7 +754,60 @@ namespace NeoCompose.Tests
             var wrapper = FunctionTestValue.Create(client, node);
             var handler = new TestFunctionHandler();
             wrapper.FunctionHandler = handler;
-            var getter = new FunctionWithReturnType
+            var result = NSGetterEvaluator.Evaluate(
+                PingGetter("v-native-receiver"),
+                new NSGetterEvaluator.Context(client, null, null));
+
+            Assert.AreEqual("handled:hello", result);
+            Assert.AreSame(
+                wrapper,
+                FunctionTestValue.Create(client, node),
+                "Generated wrapper cache should preserve the assigned FunctionHandler.");
+            Assert.AreEqual(1, handler.CallCount);
+        }
+
+        [Test]
+        public void Evaluate_CallNativeFunction_ReachesHandlerOfCSharpConstructedValue()
+        {
+            var client = LoadNativeFunctionClient(out _);
+            var readOnlyFactories =
+                new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory>();
+            var savedFactories =
+                new Dictionary<string, NeoGeneratedTypesSupport.WritableClassFactory>
+                {
+                    ["class-native-receiver"] = (factoryClient, node) =>
+                        FunctionTestValue.Create(factoryClient, node),
+                };
+            client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+            {
+                ["member-native-ping"] = (invokeClient, receiver, args) =>
+                {
+                    var target = NeoGeneratedTypesSupport.ResolveNativeFunctionReceiver<FunctionTestValue>(
+                        invokeClient,
+                        receiver,
+                        readOnlyFactories,
+                        savedFactories,
+                        "Ping",
+                        "member-native-ping");
+                    return target.Ping((string)args[0]!);
+                },
+            });
+            // Generated `new X()`: a Session value no member holds.
+            var wrapper = FunctionTestValue.Construct(client);
+            var handler = new TestFunctionHandler();
+            wrapper.FunctionHandler = handler;
+
+            var result = NSGetterEvaluator.Evaluate(
+                PingGetter(wrapper.valueId!),
+                new NSGetterEvaluator.Context(client, null, null));
+
+            Assert.AreEqual("handled:hello", result);
+            Assert.AreEqual(1, handler.CallCount);
+        }
+
+        private static FunctionWithReturnType PingGetter(string receiverValueId)
+        {
+            return new FunctionWithReturnType
             {
                 compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 parameters = new Variable[0],
@@ -775,7 +828,7 @@ namespace NeoCompose.Tests
                             receiver = CallReceiver.Instance(new ReferencePointer
                             {
                                 type = PointerKind.Reference,
-                                valueId = "v-native-receiver",
+                                valueId = receiverValueId,
                             }),
                             args = new Pointer[] { StringValuePointer("hello") },
                             callSiteId = "generated-ping",
@@ -783,17 +836,6 @@ namespace NeoCompose.Tests
                     },
                 },
             };
-
-            var result = NSGetterEvaluator.Evaluate(
-                getter,
-                new NSGetterEvaluator.Context(client, null, null));
-
-            Assert.AreEqual("handled:hello", result);
-            Assert.AreSame(
-                wrapper,
-                FunctionTestValue.Create(client, node),
-                "Generated wrapper cache should preserve the assigned FunctionHandler.");
-            Assert.AreEqual(1, handler.CallCount);
         }
 
         [Test]
@@ -2929,6 +2971,14 @@ namespace NeoCompose.Tests
                     client,
                     node,
                     () => new FunctionTestValue(client, node));
+            }
+
+            /// <summary>Mirrors a generated public constructor.</summary>
+            public static FunctionTestValue Construct(NeoClient client)
+            {
+                return new FunctionTestValue(
+                    client,
+                    NeoGeneratedTypesSupport.CreateWritableClassValue(client, "class-native-receiver"));
             }
 
             public string Ping(string message)

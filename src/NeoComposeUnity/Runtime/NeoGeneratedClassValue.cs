@@ -103,6 +103,11 @@ namespace NeoCompose.Runtime
                 ? node.ownership : inheritedStorageOwnership;
             this.node.OnChanged += HandleNodeChanged;
             this.node.OnDisposed += HandleNodeDisposed;
+            // A view over a value no member holds (C# `new`, a clone) is the
+            // row's identity: NeoScript calling back into the row must reach
+            // this wrapper's FunctionHandler. Never evict an existing view.
+            if (node.member.unplaced)
+                client.ClaimGeneratedClassValue(this, node);
             LazyInitialize();
         }
 

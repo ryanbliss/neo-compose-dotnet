@@ -798,6 +798,13 @@ namespace NeoCompose.Runtime.Json
         /// </summary>
         public Dictionary<string, GenericBinding>? classArguments;
 
+        /// <summary>
+        /// Synthetic placement of a class value known only by its row
+        /// (<see cref="NeoGeneratedTypesSupport.UnplacedClassMember"/>).
+        /// </summary>
+        [JsonIgnore]
+        internal bool unplaced;
+
         /// <summary>Optional authored schema-key ordering metadata.</summary>
         public string[]? schemaKeyOrder;
     }

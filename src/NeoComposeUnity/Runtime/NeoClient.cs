@@ -6184,6 +6184,16 @@ namespace NeoCompose.Runtime
                 IndexGeneratedClassValue(generated);
         }
 
+        /// <summary>Registers <paramref name="generated"/> unless its key already has a view.</summary>
+        internal void ClaimGeneratedClassValue(
+            NeoGeneratedClassValue generated,
+            NeoMemberClass node)
+        {
+            var registry = candidateReplay?.GeneratedValues ?? generatedValuesInternal;
+            if (!registry.ContainsKey(node.RegistryKey))
+                RegisterGeneratedClassValue(generated, node);
+        }
+
         internal void UnregisterGeneratedClassValue(NeoGeneratedClassValue generated, NeoMemberClass node)
         {
             string key = node.RegistryKey;
