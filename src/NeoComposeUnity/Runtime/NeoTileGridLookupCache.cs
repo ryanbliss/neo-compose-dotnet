@@ -127,6 +127,10 @@ namespace NeoCompose.Runtime
                 : EmptyObjectRecords;
         }
 
+        /// <summary>The layer's placements by occupied cell, for a query that probes many cells.</summary>
+        internal Dictionary<Vector2Int, List<NeoObjectPlacementRecord>> ObjectCandidatesByCell(string layerId) =>
+            GetObjectLayerIndex(layerId).CandidatesByCell;
+
         public bool TryGetObjectCandidateAtAny(
             string layerId,
             IReadOnlyList<Vector2Int> cells,

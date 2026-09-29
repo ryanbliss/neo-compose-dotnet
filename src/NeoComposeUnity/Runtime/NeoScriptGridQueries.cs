@@ -137,6 +137,8 @@ namespace NeoCompose.Runtime
         private readonly NeoClient client;
         private readonly Dictionary<string, INeoTileGridContent> contentByGrid = new();
         private readonly Dictionary<string, (string grid, string layer, string instance)> placements = new();
+        // GetObjects' result buffer; filling it runs no NeoScript, so no query nests inside another.
+        private readonly List<object?> queriedObjects = new();
         private IReadOnlyDictionary<string, Func<NeoClient, string, INeoTileGridContent>> factories =
             new Dictionary<string, Func<NeoClient, string, INeoTileGridContent>>();
 
@@ -249,9 +251,22 @@ namespace NeoCompose.Runtime
                 return true;
             }
             NeoCellPattern pattern = NeoCellPatternStorage.ReadRuntime(args[0], ctx);
-            var objects = getObjects ? new List<object?>() : null;
-            foreach (Vector2Int cell in pattern.GetCells(placement.Cell))
+            Vector2Int origin = placement.Cell;
+            // Resolve each layer's cell index once per query rather than once
+            // per layer per cell.
+            IReadOnlyList<IReadOnlyNeoObjectLayerRuntime> layers = content.ObjectLayersInOrder;
+            Dictionary<Vector2Int, List<NeoObjectPlacementRecord>>[]? layerCells = null;
+            if (getObjects)
             {
+                NeoTileGridLookupCache cache = content.Primitive.LookupCache;
+                layerCells = new Dictionary<Vector2Int, List<NeoObjectPlacementRecord>>[layers.Count];
+                for (int layer = 0; layer < layers.Count; layer++)
+                    layerCells[layer] = cache.ObjectCandidatesByCell(layers[layer].LayerId);
+                queriedObjects.Clear();
+            }
+            for (int offset = 0; offset < pattern.Count; offset++)
+            {
+                Vector2Int cell = pattern.CellAt(origin, offset);
                 ctx.gridReads?.Record(content, placement.InstanceId, cell, getTile);
                 ctx.client.NoteGridRead(content, placement.InstanceId, cell, getTile);
                 if (getTile)
@@ -264,14 +279,21 @@ namespace NeoCompose.Runtime
                 }
                 // NeoScript already consumes stored-row views. Do not create
                 // generated C# wrappers and intermediate lists for every cell.
-                foreach (var layer in content.ObjectLayersInOrder)
-                    foreach (var item in content.Primitive.LookupCache.ObjectCandidatesAt(layer.LayerId, cell))
+                for (int layer = 0; layer < layerCells!.Length; layer++)
+                {
+                    if (!layerCells[layer].TryGetValue(cell, out var items))
+                        continue;
+                    foreach (var item in items)
                     {
-                        Bind(item.InstanceId, content.Primitive.GridValueId, layer.LayerId, item.InstanceId);
-                        objects!.Add(RuntimeValue(item.InstanceId, ctx));
+                        Bind(item.InstanceId, content.Primitive.GridValueId, layers[layer].LayerId, item.InstanceId);
+                        queriedObjects.Add(RuntimeValue(item.InstanceId, ctx));
                     }
+                }
             }
-            result = getObjects ? objects!.ToArray() : null;
+            if (!getObjects)
+                return true;
+            result = queriedObjects.ToArray();
+            queriedObjects.Clear();
             return true;
         }
 
