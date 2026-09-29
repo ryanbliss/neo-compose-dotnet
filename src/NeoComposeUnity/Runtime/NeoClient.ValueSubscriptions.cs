@@ -110,6 +110,8 @@ namespace NeoCompose.Runtime
         {
             if (first is null || next is null || ReferenceEquals(first, next))
                 return first ?? next;
+            if (first.Kind == NeoListChangeKind.Unknown || next.Kind == NeoListChangeKind.Unknown)
+                return NeoListChangedArgs.Unknown;
             if (first.Kind == next.Kind && first.Kind is NeoListChangeKind.Add or NeoListChangeKind.Remove or NeoListChangeKind.Set)
             {
                 NeoListChangedArgs merged = OwnListChange(first, out var ids);
