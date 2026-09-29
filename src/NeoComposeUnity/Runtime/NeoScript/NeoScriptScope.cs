@@ -119,48 +119,6 @@ namespace NeoCompose.Runtime.NeoScript
             set => SetLocal(bindingId, value);
         }
 
-        internal IEnumerable<string> Keys
-        {
-            get
-            {
-                var inherited = new HashSet<string>(StringComparer.Ordinal);
-                if (Parent is not null)
-                {
-                    foreach (string bindingId in Parent.Keys)
-                    {
-                        inherited.Add(bindingId);
-                        yield return bindingId;
-                    }
-                }
-                foreach (string bindingId in LocalKeys)
-                {
-                    if (!inherited.Contains(bindingId))
-                        yield return bindingId;
-                }
-            }
-        }
-
-        private IEnumerable<string> LocalKeys
-        {
-            get
-            {
-                if (externalBindings is not null)
-                {
-                    foreach (var key in externalBindings.Keys)
-                        yield return key;
-                }
-                else
-                {
-                    foreach (var key in bindings!.Keys)
-                        yield return key;
-                    if (layout is not null)
-                        foreach (var pair in layout.Slots)
-                            if (occupied[pair.Value])
-                                yield return pair.Key;
-                }
-            }
-        }
-
         internal NeoScriptScope CreateChild(int capacity = 0) =>
             new(this, capacity);
 
@@ -248,9 +206,12 @@ namespace NeoCompose.Runtime.NeoScript
         internal void ResetLocals()
         {
             bindings?.Clear();
-            Array.Clear(slots, 0, slots.Length);
-            Array.Clear(occupied, 0, occupied.Length);
-            occupiedCount = 0;
+            if (occupiedCount > 0)
+            {
+                Array.Clear(slots, 0, slots.Length);
+                Array.Clear(occupied, 0, occupied.Length);
+                occupiedCount = 0;
+            }
             layout = null;
             externalBindings?.Clear();
             readOnlyBindings?.Clear();

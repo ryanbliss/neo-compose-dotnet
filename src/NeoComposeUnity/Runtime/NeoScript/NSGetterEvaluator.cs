@@ -392,8 +392,6 @@ namespace NeoCompose.Runtime.NeoScript
                     var pushed = new CallFrameStack(frame, value);
                     if (children.Length < MaxRetainedChildren)
                     {
-                        // Published whole, so a concurrent reader sees the old
-                        // or the grown array, never a partial copy.
                         var grown = new CallFrameStack?[children.Length * 2];
                         Array.Copy(children, grown, children.Length);
                         grown[children.Length] = pushed;

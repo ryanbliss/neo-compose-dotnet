@@ -367,7 +367,7 @@ namespace NeoCompose.Runtime
             lock (cache.gate)
                 cache.resolvedSites.TryGetValue(site, out cached);
             resolved = (cached as T)!;
-            return cached is not null;
+            return resolved is not null;
         }
 
         internal static void CacheResolvedSite(NeoClient client, object site, object resolved)

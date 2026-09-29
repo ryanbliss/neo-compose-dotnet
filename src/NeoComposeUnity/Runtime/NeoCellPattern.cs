@@ -79,7 +79,7 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>The cell the offset at <paramref name="index"/> covers when centered on <paramref name="origin"/>.</summary>
-        public Vector2Int CellAt(Vector2Int origin, int index)
+        internal Vector2Int CellAt(Vector2Int origin, int index)
         {
             Vector2Int offset = offsets[index];
             return new Vector2Int(checked(origin.x + offset.x), checked(origin.y + offset.y));

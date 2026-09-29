@@ -1936,6 +1936,39 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void Normalize_EnumOptionsCopyACallersStringArray()
+        {
+            using NeoClient client = BuildClient(Array.Empty<JsonMember>(), ReceiverClass());
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            EnumTypeInfo type = EnumType("enum-direction");
+            string[] typed = { "option-east" };
+            var normalized = (object?[])NeoScriptValueMarshaller.Normalize(
+                client, NeoValueOwnership.Session, typed, type, ctx, "direction")!;
+            typed[0] = "option-west";
+            Assert.AreNotSame(typed, normalized);
+            CollectionAssert.AreEqual(new object?[] { "option-east" }, normalized);
+
+            object?[] runtime = { "option-east" };
+            Assert.AreSame(runtime, NeoScriptValueMarshaller.Normalize(
+                client, NeoValueOwnership.Session, runtime, type, ctx, "direction"));
+        }
+
+        [Test]
+        public void ResolvedSites_AreDroppedWithTheSchemaAndMatchOnlyTheirType()
+        {
+            using NeoClient client = BuildClient(Array.Empty<JsonMember>(), ReceiverClass());
+            var site = new object();
+            var resolved = new List<string>();
+            NeoGeneratedTypesSupport.CacheResolvedSite(client, site, resolved);
+            Assert.IsTrue(NeoGeneratedTypesSupport.TryGetResolvedSite(client, site, out List<string> hit));
+            Assert.AreSame(resolved, hit);
+            Assert.IsFalse(NeoGeneratedTypesSupport.TryGetResolvedSite(client, site, out Dictionary<string, string> _));
+
+            client.InvalidateSchemaResolutionCaches();
+            Assert.IsFalse(NeoGeneratedTypesSupport.TryGetResolvedSite(client, site, out List<string> _));
+        }
+
+        [Test]
         public void Invoke_NormalizesDialogueReferenceArgumentsToExactWireShapes()
         {
             var dialogueType = new PrimitiveTypeInfo
@@ -3913,6 +3946,77 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void Invoke_PooledLoopBodyScopesUnwindOnBreakReturnAndThrow()
+        {
+            static ForInstruction CountTo(string id, int limit, params Instruction[] body) => new()
+            {
+                type = InstructionKind.For,
+                initializer = LocalVariable(id, Number(0), IntType()),
+                condition = Compare(OperatorKind.LessThan, Variable(id), Number(limit)),
+                iterator = AssignLocal(id, Add(Variable(id), Number(1)), IntType()),
+                instructions = body,
+            };
+            // Both bodies declare a local, so each runs in a pooled scope, and
+            // the inner body's assignment lands in the function scope that
+            // declared `sum`.
+            NSFunctionMember nested = ScriptFunction(
+                "fn-nested-loop-locals",
+                "NestedLoopLocals",
+                false,
+                IntType(),
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                LoopAction(
+                    VariableDeclaration("sum", Number(0), IntType()),
+                    CountTo(
+                        "i",
+                        3,
+                        VariableDeclaration("doubled", Add(Variable("i"), Variable("i")), IntType()),
+                        CountTo(
+                            "j",
+                            2,
+                            VariableDeclaration("inner", Add(Variable("doubled"), Variable("j")), IntType()),
+                            If(Compare(OperatorKind.EqualTo, Variable("j"), Number(1)),
+                                new BreakInstruction { type = InstructionKind.Break }),
+                            AssignLocal("sum", Add(Variable("sum"), Variable("inner")), IntType())),
+                        If(Compare(OperatorKind.EqualTo, Variable("i"), Number(2)),
+                            Return(Variable("sum")))),
+                    Return(Number(-1))));
+            NSFunctionMember throwing = ScriptFunction(
+                "fn-throwing-loop-locals",
+                "ThrowingLoopLocals",
+                false,
+                IntType(),
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                TryAction(
+                    IntType(),
+                    VariableDeclaration("sum", Number(0), IntType()),
+                    TryBlock(
+                        new Instruction[]
+                        {
+                            CountTo(
+                                "i",
+                                3,
+                                VariableDeclaration("next", Add(Variable("i"), Number(1)), IntType()),
+                                If(Compare(OperatorKind.EqualTo, Variable("next"), Number(2)),
+                                    Throw(Text("boom"))),
+                                AssignLocal("sum", Add(Variable("sum"), Variable("next")), IntType())),
+                        },
+                        Catch("message", null, AssignLocal("sum", Add(Variable("sum"), Number(100)), IntType()))),
+                    Return(Variable("sum"))));
+            NeoClient client = BuildClient(
+                new JsonMember[] { nested, throwing },
+                ReceiverClass(("NestedLoopLocals", nested.id), ("ThrowingLoopLocals", throwing.id)));
+            var nestedNode = new NeoMemberNSFunction(client, nested, null);
+            var throwingNode = new NeoMemberNSFunction(client, throwing, null);
+
+            for (int attempt = 0; attempt < 3; attempt++)
+            {
+                Assert.AreEqual(6L, Convert.ToInt64(nestedNode.Invoke("receiver-value", Array.Empty<object?>())));
+                Assert.AreEqual(101L, Convert.ToInt64(throwingNode.Invoke("receiver-value", Array.Empty<object?>())));
+            }
+        }
+
+        [Test]
         public void Invoke_ForEachSnapshotsMembershipBeforeLocalClear()
         {
             CollectionTypeInfo listType = ListType(IntType());
@@ -4892,6 +4996,44 @@ namespace NeoCompose.Tests
                     Literal(optionalInt, JValue.CreateNull()),
                     optionalInt,
                     SwitchLabel(NullType(), JValue.CreateNull())));
+        }
+
+        [Test]
+        public void Invoke_SwitchCachedLabelsMatchNegativeZeroAndStayValidAcrossCalls()
+        {
+            Assert.AreEqual(
+                1,
+                InvokeSwitchCase(Literal(IntType(), new JValue(-0d)), IntType(), SwitchLabel(IntType(), 0)));
+            Assert.AreEqual(
+                1,
+                InvokeSwitchCase(Number(0), IntType(), SwitchLabel(IntType(), new JValue(-0d))));
+
+            FunctionArgumentTypeInfo argument = Argument("Selector", MemberKind.Int);
+            SwitchSection Section(int label, int result) => new()
+            {
+                labels = new[] { SwitchLabel(IntType(), label) },
+                instructions = new Instruction[] { Return(Number(result)) },
+            };
+            NSFunctionMember function = ScriptFunction(
+                "fn-switch-repeat",
+                "SwitchRepeat",
+                false,
+                IntType(),
+                new[] { argument },
+                Action(
+                    IntType(),
+                    new[] { argument },
+                    Switch(
+                        Variable("__arg_0__"),
+                        IntType(),
+                        new[] { Section(0, 10), Section(2, 12) },
+                        new Instruction[] { Return(Number(-1)) })));
+            NeoClient client = BuildClient(
+                new JsonMember[] { function },
+                ReceiverClass(("SwitchRepeat", function.id)));
+            var node = new NeoMemberNSFunction(client, function, null);
+            foreach (var (selector, expected) in new[] { (0, 10L), (2, 12L), (3, -1L), (2, 12L), (0, 10L) })
+                Assert.AreEqual(expected, Convert.ToInt64(node.Invoke("receiver-value", new object?[] { selector })));
         }
 
         [Test]

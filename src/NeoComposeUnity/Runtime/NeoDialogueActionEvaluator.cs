@@ -1966,8 +1966,9 @@ namespace NeoCompose.Runtime
             return BuildExpressionContext(client, ctx, expressionState, options);
         }
 
-        // The function context is fresh, so installing immutable immediate handlers
-        // here avoids cloning it again when its first instruction executes.
+        // The handlers are immutable and ExitFunction restores the caller's, so
+        // installing them on the function's context here avoids cloning it
+        // again when its first instruction executes.
         internal static void PrepareFunctionContext(
             NSGetterEvaluator.Context ctx, NeoScriptExecutionOptions options)
         {
@@ -5252,6 +5253,7 @@ namespace NeoCompose.Runtime
             private readonly bool readOnly;
             private NeoScriptScope? bodyScope;
             private NeoClient? bodyScopeOwner;
+            private bool? bodyDeclaresLocals;
             private bool bindingRestored;
 
             protected LoopExecutionState(
@@ -5285,7 +5287,8 @@ namespace NeoCompose.Runtime
             {
                 if (bodyScope is not null)
                     return bodyScope;
-                if (!DeclaresLocals(body))
+                bodyDeclaresLocals ??= DeclaresLocals(body);
+                if (bodyDeclaresLocals == false)
                     return parentScope;
                 bodyScope = client.RentFunctionScope(0);
                 bodyScope.BindBlock(parentScope);

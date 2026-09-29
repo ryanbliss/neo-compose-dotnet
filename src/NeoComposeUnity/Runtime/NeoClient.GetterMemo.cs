@@ -167,7 +167,7 @@ namespace NeoCompose.Runtime
         /// <summary>Reports a memoized getter's recorded reads as if it had run.</summary>
         internal void ReplayGetterReads(GetterMemoEntry entry, NeoScriptGridReads? gridReads)
         {
-            if (entry.valueReads is not null)
+            if (entry.valueReads is not null && (capturedValueReads is not null || getterValueReadCapture is not null))
                 foreach (string id in entry.valueReads)
                     NoteValueRead(id);
             // Nothing observes the reads outside a capture or grid query.

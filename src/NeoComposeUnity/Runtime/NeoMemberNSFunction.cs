@@ -2073,12 +2073,17 @@ namespace NeoCompose.Runtime
         {
             if (value is string text)
                 return new[] { text };
-            if (value is object?[] options && Array.TrueForAll(options, entry => entry is string))
+            // Enum values are never written in place, so an id array the
+            // runtime built passes through as is. A caller's typed string[]
+            // is copied: the caller may still change it.
+            if (value is object?[] options
+                && options.GetType() == typeof(object[])
+                && Array.TrueForAll(options, entry => entry is string))
             {
-                // Enum values are never written in place, so a validated id
-                // array passes through as is.
                 return options;
             }
+            if (value is string[] typed && Array.TrueForAll(typed, entry => entry is not null))
+                return (string[])typed.Clone();
             string? optionId = EnumOptionId(value);
             if (optionId is not null)
                 return new[] { optionId };
@@ -2145,8 +2150,9 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// Names a marshalled value in a failure message. Entry subjects
-        /// format only when a check fails, not once per validated entry.
+        /// Names a marshalled value in a failure message. An entry's subject
+        /// formats only when its check fails; only an entry nested inside
+        /// another entry formats its parent's subject up front.
         /// </summary>
         internal readonly struct ValueSubject
         {

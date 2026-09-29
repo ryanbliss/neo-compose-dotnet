@@ -713,6 +713,22 @@ namespace NeoCompose.Tests
             CollectionAssert.AreEquivalent(first, third);
         }
 
+        [Test]
+        public void Compute_MemoHitOutsideACaptureStillReportsReadsToALaterCapture()
+        {
+            using var client = BuildClient(out NSPropertyMember property);
+            client.SetSaveValue(new NumberMemberValue { id = "value-target", value = 5, createdAt = "x", updatedAt = "x" });
+            var node = new NeoMemberNSProperty(client, property, null);
+
+            Assert.AreEqual(5, Convert.ToInt32(node.Compute("value-receiver").value));
+            Assert.AreEqual(5, Convert.ToInt32(node.Compute("value-receiver").value));
+
+            var captured = new HashSet<string>();
+            using (client.CaptureValueReads(captured))
+                Assert.AreEqual(5, Convert.ToInt32(node.Compute("value-receiver").value));
+            CollectionAssert.Contains(captured, "value-target");
+        }
+
         private static NeoClient BuildClient(
             out NSPropertyMember baseProperty,
             FunctionWithReturnType? baseSetter = null,
