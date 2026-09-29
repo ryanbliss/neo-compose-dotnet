@@ -128,7 +128,14 @@ namespace NeoCompose.Runtime.NeoScript
             out object? result)
         {
             if (value.plan.slotByKey.TryGetValue(key, out int index))
-                return TryReadDetachedSlot(value, index, ctx, out result);
+            {
+                if (!TryReadDetachedSlot(value, index, ctx, out result))
+                    return false;
+                // A lookup slot holds its selected ids, as its row does.
+                if (value.plan.slots[index].member is LookupMember lookup && result is object?[] ids)
+                    result = ReadLookupSelection(ids, lookup, ctx);
+                return true;
+            }
             result = null;
             MergedSchemaEntry? entry;
             try
@@ -167,6 +174,8 @@ namespace NeoCompose.Runtime.NeoScript
             if (value.attachedId is not null || !value.plan.slotByKey.TryGetValue(key, out int index))
                 return false;
             DetachedSlot slot = value.plan.slots[index];
+            if (slot.member is LookupMember)
+                return false;
             if (value.states[index] == NeoScriptObject.WrittenSlot
                 || !slot.hasLiteralDefault
                 || !IsLocalizedDefault(slot.member))

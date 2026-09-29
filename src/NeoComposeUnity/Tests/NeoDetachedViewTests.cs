@@ -235,6 +235,50 @@ namespace NeoCompose.Tests
             Assert.IsNotInstanceOf<NeoScriptObject>(Evaluate(client, ReportType, Report(Literal(total, MemberKind.Float))));
         }
 
+        [TestCase(NeoMemberSelectionKind.Single)]
+        [TestCase(NeoMemberSelectionKind.Multi)]
+        public void LookupField_LivesInASlot(NeoMemberSelectionKind selection)
+        {
+            // `new Pick { Choice = line }`: the slot holds the selected ids,
+            // and a read resolves them as the row's read does.
+            NeoClient client = BuildClient(selection);
+            int before = client.sessionValues.Count;
+            FunctionPointer pick = Construct(
+                PickType,
+                Field("Choice", "member-pick-choice", new ReferencePointer
+                {
+                    type = PointerKind.Reference,
+                    valueId = "line-a",
+                }));
+
+            object? picked = Evaluate(client, PickType, pick);
+            object? read = selection == NeoMemberSelectionKind.Multi
+                ? Evaluate(client, new LookupTypeInfo
+                {
+                    type = MemberKind.Lookup,
+                    required = true,
+                    entryTypeInfo = LineType,
+                    collectionMemberId = "member-choices",
+                }, Key(pick, "Choice"))
+                : Evaluate(client, new PrimitiveTypeInfo
+                {
+                    type = MemberKind.String,
+                    required = true,
+                }, Key(Key(pick, "Choice"), "Label"));
+
+            Assert.IsInstanceOf<NeoScriptObject>(picked);
+            Assert.AreEqual(before, client.sessionValues.Count, "Nothing needed a row yet.");
+            if (selection == NeoMemberSelectionKind.Multi)
+                Assert.That(read, Is.EqualTo(new object?[] { "line-a" }));
+            else
+                Assert.AreEqual("asset line", read);
+            // Its row, once needed, holds the same selection.
+            string id = NSGetterEvaluator.AttachDetached((NeoScriptObject)picked!, null);
+            Assert.IsTrue(client.TryGetValue(NeoValueOwnership.Session, id, out ObjectMemberValue? row));
+            Assert.IsTrue(client.TryGetValue(NeoValueOwnership.Session, row!.value!["Choice"], out ArrayMemberValue? choice));
+            CollectionAssert.AreEqual(new[] { "line-a" }, choice!.value);
+        }
+
         private static TestReport ReadReport(NeoClient client, object? result) =>
             ReadReport(client, result, out _);
 
@@ -252,6 +296,7 @@ namespace NeoCompose.Tests
 
         private static readonly ClassTypeInfo LineType = ClassType("class-line");
         private static readonly ClassTypeInfo ReportType = ClassType("class-report");
+        private static readonly ClassTypeInfo PickType = ClassType("class-pick");
 
         /// <summary><c>return new Report { Total = 5, Lines = [new Line { Score = 3, Label = "a" }] };</c></summary>
         private static object? EvaluateReport(NeoClient client)
@@ -285,7 +330,7 @@ namespace NeoCompose.Tests
                 }));
 
         /// <summary><c>return value;</c></summary>
-        private static object? Evaluate(NeoClient client, ClassTypeInfo type, Pointer value) =>
+        private static object? Evaluate(NeoClient client, TypeInfo type, Pointer value) =>
             NSGetterEvaluator.Evaluate(
                 new FunctionWithReturnType
                 {
@@ -322,6 +367,16 @@ namespace NeoCompose.Tests
                 },
             };
 
+        private static KeyOfPointer Key(Pointer receiver, string key) => new()
+        {
+            type = PointerKind.KeyOf,
+            keyOf = new KeyOf
+            {
+                pointer = receiver,
+                key = Literal(key, MemberKind.String),
+            },
+        };
+
         private static FunctionClassConstructorField Field(string key, string memberId, Pointer value) => new()
         {
             schemaKey = key,
@@ -339,7 +394,8 @@ namespace NeoCompose.Tests
             },
         };
 
-        private static NeoClient BuildClient()
+        private static NeoClient BuildClient(
+            NeoMemberSelectionKind choiceSelection = NeoMemberSelectionKind.Single)
         {
             var roots = new[]
             {
@@ -406,6 +462,27 @@ namespace NeoCompose.Tests
                     defaultValue = new StringMemberValueBase { value = "" },
                 },
             };
+            // `class Pick { Line Choice }`, a lookup into an asset list of lines.
+            members["member-choices"] = new ListMember
+            {
+                id = "member-choices",
+                projectId = ProjectId,
+                name = "Choices",
+                kind = MemberKind.List,
+                entryMemberId = "member-report-line",
+                valueId = "value-choices",
+            };
+            members["member-pick-choice"] = new LookupMember
+            {
+                id = "member-pick-choice",
+                projectId = ProjectId,
+                name = "Choice",
+                kind = MemberKind.Lookup,
+                Requirement = NeoMemberRequirementKind.Required,
+                collectionMemberId = "member-choices",
+                collectionValueId = "value-choices",
+                Selection = choiceSelection,
+            };
             foreach (ClassMember root in roots)
                 members[root.id] = root;
             return NeoTestSaveStack.ClientFromSchema(new ProjectData
@@ -424,6 +501,19 @@ namespace NeoCompose.Tests
                     ["value-assets"] = RootValue("value-assets"),
                     ["value-save"] = RootValue("value-save"),
                     ["value-session"] = RootValue("value-session"),
+                    ["value-choices"] = new ArrayMemberValue { id = "value-choices", value = new[] { "line-a" } },
+                    ["line-a"] = new ObjectMemberValue
+                    {
+                        id = "line-a",
+                        classId = "class-line",
+                        value = new Dictionary<string, string>
+                        {
+                            ["Score"] = "line-a-score",
+                            ["Label"] = "line-a-label",
+                        },
+                    },
+                    ["line-a-score"] = new NumberMemberValue { id = "line-a-score", value = 1 },
+                    ["line-a-label"] = new StringMemberValue { id = "line-a-label", value = "asset line" },
                 },
                 classes = new Dictionary<string, NeoSchemaClass>
                 {
@@ -439,6 +529,10 @@ namespace NeoCompose.Tests
                         "Line",
                         ("Score", "member-line-score"),
                         ("Label", "member-line-label")),
+                    ["class-pick"] = SchemaClass(
+                        "class-pick",
+                        "Pick",
+                        ("Choice", "member-pick-choice")),
                 },
                 enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
             });

@@ -52,7 +52,7 @@ namespace NeoCompose.Runtime
         /// <summary>
         /// The detached plan for <paramref name="classId"/>, or null when an
         /// instance must be built as rows from the start. Only closed,
-        /// non-generic classes whose stored members are scalars, enums, full
+        /// non-generic classes whose stored members are scalars, enums, lookups, full
         /// Class values, or ordered lists of those qualify; everything else
         /// keeps the eager construction path.
         /// </summary>
@@ -130,8 +130,10 @@ namespace NeoCompose.Runtime
                     case ListMember listMember:
                         if (slot.hasLiteralDefault && listMember.defaultValue!.value is { Length: > 0 })
                             return null;
+                        // A list entry's lookup reads resolved through the
+                        // list's row, which a slot's entries don't have.
                         if (!client.TryGetMember(listMember.entryMemberId, out Member? entryMember)
-                            || entryMember is ListMember
+                            || entryMember is ListMember or LookupMember
                             || !TryClassifyDetachedMember(client, entryMember, out slot.entryKind))
                         {
                             return null;
@@ -178,6 +180,7 @@ namespace NeoCompose.Runtime
                 case ColorMember:
                 case EnumMember enumMember
                     when enumMember.enumId != NeoCellPatternStorage.ExcludingEnumId:
+                case LookupMember:
                     kind = DetachedSlotKind.Leaf;
                     return true;
                 case ClassMember classMember
@@ -558,7 +561,8 @@ namespace NeoCompose.Runtime
         /// as: numbers as double, strings verbatim (runtime writes are literal),
         /// enums as a fresh option-id array, vectors and colors as a copy owned
         /// by <paramref name="target"/>, as a row copies the written payload.
-        /// Ints must be integral, as the row's shape check requires.
+        /// Ints must be integral, as the row's shape check requires. A lookup
+        /// stores the selected ids its row holds.
         /// </summary>
         private static bool TryNormalizeDetachedLeaf(
             NeoScriptObject target,
@@ -615,6 +619,20 @@ namespace NeoCompose.Runtime
                         copy[index] = options[index];
                     }
                     stored = copy;
+                    return true;
+                case LookupMember lookupMember:
+                    string[] ids;
+                    try
+                    {
+                        ids = ConstructorLookupIds(value, lookupMember);
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        return false;
+                    }
+                    var selection = new object?[ids.Length];
+                    Array.Copy(ids, selection, ids.Length);
+                    stored = selection;
                     return true;
                 default:
                     return false;
