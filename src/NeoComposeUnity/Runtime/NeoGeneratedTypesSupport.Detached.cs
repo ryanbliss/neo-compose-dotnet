@@ -52,9 +52,10 @@ namespace NeoCompose.Runtime
         /// <summary>
         /// The detached plan for <paramref name="classId"/>, or null when an
         /// instance must be built as rows from the start. Only closed,
-        /// non-generic classes whose stored members are scalars, enums, lookups, full
-        /// Class values, or ordered lists of those qualify; everything else
-        /// keeps the eager construction path.
+        /// non-generic classes whose stored members are scalars, single-selection
+        /// enums and lookups, full Class values, or ordered lists of those
+        /// except lookups qualify; everything else keeps the eager
+        /// construction path.
         /// </summary>
         internal static DetachedClassPlan? ResolveDetachedClassPlan(
             NeoClient client,
@@ -130,7 +131,7 @@ namespace NeoCompose.Runtime
                     case ListMember listMember:
                         if (slot.hasLiteralDefault && listMember.defaultValue!.value is { Length: > 0 })
                             return null;
-                        // A list entry's lookup reads resolved through the
+                        // A list entry's lookup read resolves through the
                         // list's row, which a slot's entries don't have.
                         if (!client.TryGetMember(listMember.entryMemberId, out Member? entryMember)
                             || entryMember is ListMember or LookupMember
@@ -178,9 +179,13 @@ namespace NeoCompose.Runtime
                 case Vector3Member:
                 case Vector3IntMember:
                 case ColorMember:
+                // A multi-selection reads as an array a variable can alias and
+                // mutate, which only a row tracks.
                 case EnumMember enumMember
-                    when enumMember.enumId != NeoCellPatternStorage.ExcludingEnumId:
-                case LookupMember:
+                    when enumMember.enumId != NeoCellPatternStorage.ExcludingEnumId
+                        && enumMember.Selection != NeoMemberSelectionKind.Multi:
+                case LookupMember lookupMember
+                    when lookupMember.Selection != NeoMemberSelectionKind.Multi:
                     kind = DetachedSlotKind.Leaf;
                     return true;
                 case ClassMember classMember
@@ -559,7 +564,7 @@ namespace NeoCompose.Runtime
         /// <summary>
         /// The value a leaf row built from <paramref name="value"/> reads back
         /// as: numbers as double, strings verbatim (runtime writes are literal),
-        /// enums as a fresh option-id array, vectors and colors as a copy owned
+        /// an enum as a fresh one-option array, vectors and colors as a copy owned
         /// by <paramref name="target"/>, as a row copies the written payload.
         /// Ints must be integral, as the row's shape check requires. A lookup
         /// stores the selected ids its row holds.
@@ -606,19 +611,8 @@ namespace NeoCompose.Runtime
                 case FloatMember when value is int or float:
                     stored = Convert.ToDouble(value);
                     return true;
-                case EnumMember enumMember when value is object?[] options:
-                    if (options.Length == 0 && enumMember.Selection != NeoMemberSelectionKind.Multi)
-                        return false;
-                    if (options.Length > 1 && enumMember.Selection != NeoMemberSelectionKind.Multi)
-                        return false;
-                    var copy = new object?[options.Length];
-                    for (int index = 0; index < options.Length; index++)
-                    {
-                        if (options[index] is not string)
-                            return false;
-                        copy[index] = options[index];
-                    }
-                    stored = copy;
+                case EnumMember when value is object?[] { Length: 1 } options && options[0] is string:
+                    stored = new object?[] { options[0] };
                     return true;
                 case LookupMember lookupMember:
                     string[] ids;

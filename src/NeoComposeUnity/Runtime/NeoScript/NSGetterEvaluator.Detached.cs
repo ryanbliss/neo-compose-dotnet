@@ -174,8 +174,6 @@ namespace NeoCompose.Runtime.NeoScript
             if (value.attachedId is not null || !value.plan.slotByKey.TryGetValue(key, out int index))
                 return false;
             DetachedSlot slot = value.plan.slots[index];
-            if (slot.member is LookupMember)
-                return false;
             if (value.states[index] == NeoScriptObject.WrittenSlot
                 || !slot.hasLiteralDefault
                 || !IsLocalizedDefault(slot.member))

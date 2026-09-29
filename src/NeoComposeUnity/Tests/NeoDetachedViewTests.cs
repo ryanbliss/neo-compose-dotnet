@@ -235,48 +235,111 @@ namespace NeoCompose.Tests
             Assert.IsNotInstanceOf<NeoScriptObject>(Evaluate(client, ReportType, Report(Literal(total, MemberKind.Float))));
         }
 
-        [TestCase(NeoMemberSelectionKind.Single)]
-        [TestCase(NeoMemberSelectionKind.Multi)]
-        public void LookupField_LivesInASlot(NeoMemberSelectionKind selection)
+        [TestCase(false)]
+        [TestCase(true)]
+        public void LookupField_LivesInASlot(bool fromDefault)
         {
-            // `new Pick { Choice = line }`: the slot holds the selected ids,
-            // and a read resolves them as the row's read does.
-            NeoClient client = BuildClient(selection);
+            // `new Pick { Choice = line }`, or `new Pick()` whose Choice
+            // defaults to that line: the slot holds the selected ids, and a
+            // read resolves them as the row's read does.
+            NeoClient client = BuildClient(choiceDefault: fromDefault);
             int before = client.sessionValues.Count;
-            FunctionPointer pick = Construct(
-                PickType,
-                Field("Choice", "member-pick-choice", new ReferencePointer
-                {
-                    type = PointerKind.Reference,
-                    valueId = "line-a",
-                }));
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            var scope = new Dictionary<string, object?>
+            {
+                ["pick"] = NSGetterEvaluator.EvaluatePointer(
+                    fromDefault
+                        ? Construct(PickType)
+                        : Construct(PickType, Field("Choice", "member-pick-choice", Reference("line-a"))),
+                    new Dictionary<string, object?>(),
+                    ctx),
+            };
 
-            object? picked = Evaluate(client, PickType, pick);
-            object? read = selection == NeoMemberSelectionKind.Multi
-                ? Evaluate(client, new LookupTypeInfo
-                {
-                    type = MemberKind.Lookup,
-                    required = true,
-                    entryTypeInfo = LineType,
-                    collectionMemberId = "member-choices",
-                }, Key(pick, "Choice"))
-                : Evaluate(client, new PrimitiveTypeInfo
-                {
-                    type = MemberKind.String,
-                    required = true,
-                }, Key(Key(pick, "Choice"), "Label"));
+            object? label = NSGetterEvaluator.EvaluatePointer(
+                Key(Key(Variable("pick"), "Choice"), "Label"),
+                scope,
+                ctx);
 
-            Assert.IsInstanceOf<NeoScriptObject>(picked);
+            Assert.IsInstanceOf<NeoScriptObject>(scope["pick"]);
+            Assert.AreEqual("asset line", label);
             Assert.AreEqual(before, client.sessionValues.Count, "Nothing needed a row yet.");
-            if (selection == NeoMemberSelectionKind.Multi)
-                Assert.That(read, Is.EqualTo(new object?[] { "line-a" }));
-            else
-                Assert.AreEqual("asset line", read);
             // Its row, once needed, holds the same selection.
-            string id = NSGetterEvaluator.AttachDetached((NeoScriptObject)picked!, null);
+            string id = NSGetterEvaluator.AttachDetached((NeoScriptObject)scope["pick"]!, null);
             Assert.IsTrue(client.TryGetValue(NeoValueOwnership.Session, id, out ObjectMemberValue? row));
             Assert.IsTrue(client.TryGetValue(NeoValueOwnership.Session, row!.value!["Choice"], out ArrayMemberValue? choice));
             CollectionAssert.AreEqual(new[] { "line-a" }, choice!.value);
+        }
+
+        [Test]
+        public void MultiLookupField_BuildsRows()
+        {
+            // A multi-selection reads as an array a variable can alias and
+            // mutate, which only a row tracks.
+            NeoClient client = BuildClient(NeoMemberSelectionKind.Multi);
+
+            object? picked = Evaluate(
+                client,
+                PickType,
+                Construct(PickType, Field("Choice", "member-pick-choice", Reference("line-a"))));
+
+            Assert.IsNotInstanceOf<NeoScriptObject>(picked);
+        }
+
+        [TestCase(CollectionMutationKind.Add, 2)]
+        [TestCase(CollectionMutationKind.Clear, 0)]
+        public void ListAlias_MutatesTheSlot(string mutation, int expected)
+        {
+            // `var lines = report.Lines; lines.<mutation>(...)` mutates the
+            // report's list, as an alias of a row-backed list does. An Add
+            // appends to the slot; anything else goes through the row.
+            NeoClient client = BuildClient();
+            int before = client.sessionValues.Count;
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            var scope = new Dictionary<string, object?>();
+            scope["report"] = NSGetterEvaluator.EvaluatePointer(Report(Literal(5, MemberKind.Int)), scope, ctx);
+            scope["lines"] = NSGetterEvaluator.EvaluatePointer(Key(Variable("report"), "Lines"), scope, ctx);
+
+            NeoScriptExecutor.Execute(client, new FunctionWithReturnType
+            {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                parameters = Array.Empty<Variable>(),
+                typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null, required = true },
+                instructions = new Instruction[]
+                {
+                    new CollectionCallInstruction
+                    {
+                        type = InstructionKind.CollectionCall,
+                        target = new WriteTarget
+                        {
+                            pointer = Variable("lines"),
+                            typeInfo = new CollectionTypeInfo
+                            {
+                                type = MemberKind.List,
+                                required = true,
+                                entryTypeInfo = LineType,
+                            },
+                            writability = WritabilityKind.Local,
+                        },
+                        mutation = mutation,
+                        args = mutation == CollectionMutationKind.Add
+                            ? new Pointer[] { Line() }
+                            : Array.Empty<Pointer>(),
+                    },
+                },
+            }, scope, ctx);
+
+            var report = (NeoScriptObject)scope["report"]!;
+            Assert.AreEqual(expected, ((object?[])NSGetterEvaluator.EvaluatePointer(Key(Variable("report"), "Lines"), scope, ctx)!).Length);
+            Assert.AreEqual(expected, ((object?[])NSGetterEvaluator.EvaluatePointer(Variable("lines"), scope, ctx)!).Length);
+            if (mutation == CollectionMutationKind.Add)
+            {
+                Assert.IsNull(report.attachedId);
+                Assert.AreEqual(before, client.sessionValues.Count, "An Add needs no row.");
+            }
+            else
+            {
+                Assert.IsNotNull(report.attachedId);
+            }
         }
 
         private static TestReport ReadReport(NeoClient client, object? result) =>
@@ -330,7 +393,7 @@ namespace NeoCompose.Tests
                 }));
 
         /// <summary><c>return value;</c></summary>
-        private static object? Evaluate(NeoClient client, TypeInfo type, Pointer value) =>
+        private static object? Evaluate(NeoClient client, ClassTypeInfo type, Pointer value) =>
             NSGetterEvaluator.Evaluate(
                 new FunctionWithReturnType
                 {
@@ -367,6 +430,18 @@ namespace NeoCompose.Tests
                 },
             };
 
+        private static VariablePointer Variable(string id) => new()
+        {
+            type = PointerKind.Variable,
+            variableId = id,
+        };
+
+        private static ReferencePointer Reference(string valueId) => new()
+        {
+            type = PointerKind.Reference,
+            valueId = valueId,
+        };
+
         private static KeyOfPointer Key(Pointer receiver, string key) => new()
         {
             type = PointerKind.KeyOf,
@@ -395,7 +470,8 @@ namespace NeoCompose.Tests
         };
 
         private static NeoClient BuildClient(
-            NeoMemberSelectionKind choiceSelection = NeoMemberSelectionKind.Single)
+            NeoMemberSelectionKind choiceSelection = NeoMemberSelectionKind.Single,
+            bool choiceDefault = false)
         {
             var roots = new[]
             {
@@ -482,6 +558,9 @@ namespace NeoCompose.Tests
                 collectionMemberId = "member-choices",
                 collectionValueId = "value-choices",
                 Selection = choiceSelection,
+                defaultValue = choiceDefault
+                    ? new ArrayMemberValueBase { value = new[] { "line-a" } }
+                    : null,
             };
             foreach (ClassMember root in roots)
                 members[root.id] = root;

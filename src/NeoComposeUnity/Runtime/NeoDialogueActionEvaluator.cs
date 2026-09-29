@@ -2254,6 +2254,22 @@ namespace NeoCompose.Runtime
                     throw new NSGetterRuntimeError(
                         $"Variable '{variablePointer.variableId}' is not in scope");
                 }
+                // An alias of a detached List slot mutates the slot, as an
+                // alias of a row-backed list mutates its row.
+                if (local is object?[] aliased
+                    && NeoGeneratedTypesSupport.TryGetDetachedListOrigin(aliased, out var origin))
+                {
+                    NeoScriptObject owner = origin!.owner;
+                    if (owner.attachedId is null
+                        && instruction.mutation == CollectionMutationKind.Add
+                        && WritesSessionTarget(instruction.target.writability)
+                        && NeoGeneratedTypesSupport.TryAddDetachedListEntry(owner, origin.index, args[0]))
+                    {
+                        return;
+                    }
+                    NSGetterEvaluator.ForwardDetached(owner, ctx);
+                    local = Eval(variablePointer, scope, ctx);
+                }
                 if (local is object?[] && FindValueId(local, ctx) is not null)
                 {
                     ResolveCollectionTarget(client, new WriteTarget
