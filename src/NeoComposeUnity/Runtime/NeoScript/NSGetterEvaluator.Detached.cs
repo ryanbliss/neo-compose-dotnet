@@ -214,14 +214,14 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 case DetachedSlotKind.List:
                     // Fresh, never shared: the array's identity is its alias.
-                    result = NeoGeneratedTypesSupport.SetDetachedListEntries(
+                    result = NeoGeneratedTypesSupport.SetDetachedArray(
                         value,
                         index,
                         new object?[0]);
                     break;
                 case DetachedSlotKind.Leaf:
                     result = ReadDefaultLeaf(value, slot.member, ctx!);
-                    value.values[index] = result;
+                    NeoGeneratedTypesSupport.SetDetachedLeaf(value, index, result);
                     break;
             }
             value.states[index] = NeoScriptObject.DefaultReadSlot;
@@ -328,11 +328,11 @@ namespace NeoCompose.Runtime.NeoScript
         }
 
         /// <summary>
-        /// A variable holding a detached List slot's array reads the slot's
-        /// current entries, the way an alias of a row-backed list does.
+        /// A variable holding a detached slot's array reads the slot's
+        /// current value, the way an alias of a row-backed array does.
         /// </summary>
-        private static object? ReadDetachedListAlias(
-            NeoGeneratedTypesSupport.DetachedListOrigin origin,
+        private static object? ReadDetachedArrayAlias(
+            NeoGeneratedTypesSupport.DetachedArrayOrigin origin,
             Context ctx)
         {
             NeoScriptObject owner = origin.owner;

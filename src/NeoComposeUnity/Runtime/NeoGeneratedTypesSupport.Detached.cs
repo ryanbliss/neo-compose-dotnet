@@ -179,8 +179,8 @@ namespace NeoCompose.Runtime
                 case Vector3Member:
                 case Vector3IntMember:
                 case ColorMember:
-                // A multi-selection reads as an array a variable can alias and
-                // mutate, which only a row tracks.
+                // A multi-selection can be mutated through a variable holding
+                // it, which only a row tracks.
                 case EnumMember enumMember
                     when enumMember.enumId != NeoCellPatternStorage.ExcludingEnumId
                         && enumMember.Selection != NeoMemberSelectionKind.Multi:
@@ -445,7 +445,7 @@ namespace NeoCompose.Runtime
                 if (!TryAdoptDetachedEntries(target, copy))
                     return false;
                 ReleaseDetachedSlot(target, index);
-                SetDetachedListEntries(target, index, copy);
+                SetDetachedArray(target, index, copy);
                 target.states[index] = NeoScriptObject.WrittenSlot;
                 return true;
             }
@@ -455,7 +455,7 @@ namespace NeoCompose.Runtime
                 return false;
             }
             ReleaseDetachedSlot(target, index);
-            target.values[index] = stored;
+            SetDetachedLeaf(target, index, stored);
             target.states[index] = NeoScriptObject.WrittenSlot;
             return true;
         }
@@ -492,40 +492,53 @@ namespace NeoCompose.Runtime
             return true;
         }
 
-        /// <summary>Where a List slot's entry array came from, so an alias of it reads the slot's current entries.</summary>
-        internal sealed class DetachedListOrigin
+        /// <summary>
+        /// Where a slot's array came from (a List slot's entries, an enum's
+        /// options), so a variable holding it reads the slot's current value
+        /// as a variable holding a row's array reads the row's.
+        /// </summary>
+        internal sealed class DetachedArrayOrigin
         {
             internal readonly NeoScriptObject owner;
             internal readonly int index;
 
-            internal DetachedListOrigin(NeoScriptObject owner, int index)
+            internal DetachedArrayOrigin(NeoScriptObject owner, int index)
             {
                 this.owner = owner;
                 this.index = index;
             }
         }
 
-        private static readonly ConditionalWeakTable<object?[], DetachedListOrigin> DetachedListOrigins = new();
+        private static readonly ConditionalWeakTable<object?[], DetachedArrayOrigin> DetachedArrayOrigins = new();
 
-        internal static bool TryGetDetachedListOrigin(object?[] entries, out DetachedListOrigin? origin) =>
-            DetachedListOrigins.TryGetValue(entries, out origin);
+        internal static bool TryGetDetachedArrayOrigin(object?[] entries, out DetachedArrayOrigin? origin) =>
+            DetachedArrayOrigins.TryGetValue(entries, out origin);
 
-        /// <summary>Stores a List slot's entry array and records its origin.</summary>
-        internal static object?[] SetDetachedListEntries(NeoScriptObject target, int index, object?[] entries)
+        /// <summary>Stores a slot's array and records its origin.</summary>
+        internal static object?[] SetDetachedArray(NeoScriptObject target, int index, object?[] entries)
         {
             target.values[index] = entries;
-            DetachedListOrigins.AddOrUpdate(entries, new DetachedListOrigin(target, index));
+            DetachedArrayOrigins.AddOrUpdate(entries, new DetachedArrayOrigin(target, index));
             return entries;
         }
 
-        /// <summary>The current entries of a List slot: its array, rebuilt after appends.</summary>
+        /// <summary>Stores a leaf slot's value, recording an array's origin.</summary>
+        internal static void SetDetachedLeaf(NeoScriptObject target, int index, object? value)
+        {
+            if (value is object?[] array)
+                SetDetachedArray(target, index, array);
+            else
+                target.values[index] = value;
+        }
+
+        /// <summary>The current array of a slot: a List's entries, rebuilt after appends, or a leaf's array.</summary>
         internal static object?[]? DetachedListEntries(NeoScriptObject target, int index)
         {
             if (target.values[index] is object?[] entries)
                 return entries;
             if (target.listBuffers?[index] is not List<object?> buffer)
                 return null;
-            return SetDetachedListEntries(target, index, buffer.ToArray());
+            return SetDetachedArray(target, index, buffer.ToArray());
         }
 
         private static bool TryNormalizeDetachedValue(

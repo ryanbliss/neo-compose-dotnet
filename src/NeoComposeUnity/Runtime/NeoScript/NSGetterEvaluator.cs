@@ -1175,8 +1175,8 @@ namespace NeoCompose.Runtime.NeoScript
                             {
                                 return UnwrapCached(listRow, ctx, listRef.ownership, listRef.member);
                             }
-                            if (NeoGeneratedTypesSupport.TryGetDetachedListOrigin(entries, out var detachedList))
-                                return ReadDetachedListAlias(detachedList!, ctx);
+                            if (NeoGeneratedTypesSupport.TryGetDetachedArrayOrigin(entries, out var detachedArray))
+                                return ReadDetachedArrayAlias(detachedArray!, ctx);
                         }
                         else if (v is NeoScriptObject { attachedId: not null } attached)
                         {

@@ -270,12 +270,15 @@ namespace NeoCompose.Tests
             CollectionAssert.AreEqual(new[] { "line-a" }, choice!.value);
         }
 
-        [Test]
-        public void MultiLookupField_BuildsRows()
+        [TestCase(true)]
+        [TestCase(false)]
+        public void MultiSelection_BuildsRows(bool lookup)
         {
-            // A multi-selection reads as an array a variable can alias and
-            // mutate, which only a row tracks.
-            NeoClient client = BuildClient(NeoMemberSelectionKind.Multi);
+            // A multi-selection can be mutated through a variable holding
+            // it, which only a row tracks.
+            NeoClient client = lookup
+                ? BuildClient(choiceSelection: NeoMemberSelectionKind.Multi)
+                : BuildClient(modeSelection: NeoMemberSelectionKind.Multi);
 
             object? picked = Evaluate(
                 client,
@@ -283,6 +286,58 @@ namespace NeoCompose.Tests
                 Construct(PickType, Field("Choice", "member-pick-choice", Reference("line-a"))));
 
             Assert.IsNotInstanceOf<NeoScriptObject>(picked);
+        }
+
+        [Test]
+        public void EnumAlias_ReadsTheSlot()
+        {
+            // `var mode = pick.Mode; pick.Mode = .B; mode` reads .B, as an
+            // alias of the member's row does.
+            NeoClient client = BuildClient();
+            int before = client.sessionValues.Count;
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            var scope = new Dictionary<string, object?>
+            {
+                ["b"] = new object?[] { "option-b" },
+            };
+            scope["pick"] = NSGetterEvaluator.EvaluatePointer(
+                Construct(PickType, Field("Choice", "member-pick-choice", Reference("line-a"))),
+                scope,
+                ctx);
+            scope["mode"] = NSGetterEvaluator.EvaluatePointer(Key(Variable("pick"), "Mode"), scope, ctx);
+
+            NeoScriptExecutor.Execute(client, new FunctionWithReturnType
+            {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                parameters = Array.Empty<Variable>(),
+                typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null, required = true },
+                instructions = new Instruction[]
+                {
+                    new AssignInstruction
+                    {
+                        type = InstructionKind.Assign,
+                        target = new WriteTarget
+                        {
+                            pointer = Key(Variable("pick"), "Mode"),
+                            typeInfo = new EnumTypeInfo
+                            {
+                                type = MemberKind.Enum,
+                                required = true,
+                                enumId = "enum-mode",
+                            },
+                            writability = WritabilityKind.Local,
+                        },
+                        operatorValue = "=",
+                        pointer = Variable("b"),
+                    },
+                },
+            }, scope, ctx);
+
+            Assert.That(
+                NSGetterEvaluator.EvaluatePointer(Variable("mode"), scope, ctx),
+                Is.EqualTo(new object?[] { "option-b" }));
+            Assert.IsNull(((NeoScriptObject)scope["pick"]!).attachedId);
+            Assert.AreEqual(before, client.sessionValues.Count, "Nothing needed a row.");
         }
 
         [TestCase(CollectionMutationKind.Add, 2)]
@@ -471,7 +526,8 @@ namespace NeoCompose.Tests
 
         private static NeoClient BuildClient(
             NeoMemberSelectionKind choiceSelection = NeoMemberSelectionKind.Single,
-            bool choiceDefault = false)
+            bool choiceDefault = false,
+            NeoMemberSelectionKind modeSelection = NeoMemberSelectionKind.Single)
         {
             var roots = new[]
             {
@@ -538,7 +594,7 @@ namespace NeoCompose.Tests
                     defaultValue = new StringMemberValueBase { value = "" },
                 },
             };
-            // `class Pick { Line Choice }`, a lookup into an asset list of lines.
+            // `class Pick { Line Choice; Mode Mode = .A; }`, Choice a lookup into an asset list of lines.
             members["member-choices"] = new ListMember
             {
                 id = "member-choices",
@@ -561,6 +617,17 @@ namespace NeoCompose.Tests
                 defaultValue = choiceDefault
                     ? new ArrayMemberValueBase { value = new[] { "line-a" } }
                     : null,
+            };
+            members["member-pick-mode"] = new EnumMember
+            {
+                id = "member-pick-mode",
+                projectId = ProjectId,
+                name = "Mode",
+                kind = MemberKind.Enum,
+                Requirement = NeoMemberRequirementKind.Required,
+                enumId = "enum-mode",
+                Selection = modeSelection,
+                defaultValue = new ArrayMemberValueBase { value = new[] { "option-a" } },
             };
             foreach (ClassMember root in roots)
                 members[root.id] = root;
@@ -611,9 +678,24 @@ namespace NeoCompose.Tests
                     ["class-pick"] = SchemaClass(
                         "class-pick",
                         "Pick",
-                        ("Choice", "member-pick-choice")),
+                        ("Choice", "member-pick-choice"),
+                        ("Mode", "member-pick-mode")),
                 },
-                enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
+                enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>
+                {
+                    ["enum-mode"] = new NeoCompose.Runtime.Json.Enum
+                    {
+                        id = "enum-mode",
+                        projectId = ProjectId,
+                        name = "Mode",
+                        options = new Dictionary<string, EnumOption>
+                        {
+                            ["option-a"] = new EnumOption { text = "A" },
+                            ["option-b"] = new EnumOption { text = "B" },
+                        },
+                        optionKeyOrder = new List<string> { "option-a", "option-b" },
+                    },
+                },
             });
         }
 
