@@ -6888,9 +6888,9 @@ namespace NeoCompose.Runtime
             string memberId,
             [NotNullWhen(true)] out FunctionMember? member)
         {
-            var visited = new HashSet<string>();
+            HashSet<string>? visited = null;
             string? currentId = memberId;
-            while (!string.IsNullOrEmpty(currentId) && visited.Add(currentId))
+            while (!string.IsNullOrEmpty(currentId))
             {
                 if (!data.members.TryGetValue(currentId!, out Member? current))
                 {
@@ -6903,6 +6903,10 @@ namespace NeoCompose.Runtime
                     member = function;
                     return true;
                 }
+                // Most members resolve without a hop; only a hop needs the cycle guard.
+                visited ??= new HashSet<string>();
+                if (!visited.Add(currentId!))
+                    break;
                 currentId = current.extendsMemberId;
             }
             member = null;

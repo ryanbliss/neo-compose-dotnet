@@ -621,7 +621,7 @@ namespace NeoCompose.Runtime
                     return true;
                 case IntMember when NeoScriptValueMarshaller.IsIntegralNumber(value):
                 case FloatMember when value is int or float:
-                    stored = Convert.ToDouble(value);
+                    stored = NSGetterEvaluator.Box(Convert.ToDouble(value));
                     return true;
                 case EnumMember when value is object?[] { Length: 1 } options && options[0] is string:
                     stored = new object?[] { options[0] };

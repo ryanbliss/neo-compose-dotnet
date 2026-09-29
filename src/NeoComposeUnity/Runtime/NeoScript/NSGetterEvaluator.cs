@@ -1690,7 +1690,9 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 return args;
             }
-            if (!NeoParameterDefaults.HasAnyDefault(signature.argumentTypes))
+            // A full call has nothing to fill.
+            if (args.Length == signature.argumentTypes.Length
+                || !NeoParameterDefaults.HasAnyDefault(signature.argumentTypes))
             {
                 return args;
             }

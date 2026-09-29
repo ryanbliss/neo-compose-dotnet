@@ -6234,7 +6234,8 @@ namespace NeoCompose.Runtime
                     string id => id,
                     _ => null,
                 },
-                $"Lookup constructor field '{member.name}'");
+                "Lookup",
+                member.name);
             ValidateConstructorSelectionCardinality(
                 ids,
                 member.Selection == NeoMemberSelectionKind.Multi,
@@ -6255,7 +6256,8 @@ namespace NeoCompose.Runtime
                     string id => id,
                     _ => null,
                 },
-                $"DialogueLookup constructor field '{member.name}'");
+                "DialogueLookup",
+                member.name);
             ValidateConstructorSelectionCardinality(
                 ids,
                 member.Selection == NeoMemberSelectionKind.Multi,
@@ -6267,7 +6269,8 @@ namespace NeoCompose.Runtime
         private static string[] ConstructorReferenceIds(
             object runtimeValue,
             Func<object?, string?> valueId,
-            string subject)
+            string kind,
+            string memberName)
         {
             string? singleId = valueId(runtimeValue);
             if (!string.IsNullOrEmpty(singleId))
@@ -6276,7 +6279,7 @@ namespace NeoCompose.Runtime
                 || runtimeValue is not System.Collections.IEnumerable values)
             {
                 throw new InvalidOperationException(
-                    $"{subject} requires a reference or reference collection.");
+                    $"{kind} constructor field '{memberName}' requires a reference or reference collection.");
             }
             var ids = new List<string>();
             foreach (object? value in values)
@@ -6285,7 +6288,7 @@ namespace NeoCompose.Runtime
                 if (string.IsNullOrEmpty(id))
                 {
                     throw new InvalidOperationException(
-                        $"{subject} contains an unbound reference.");
+                        $"{kind} constructor field '{memberName}' contains an unbound reference.");
                 }
                 ids.Add(id!);
             }
