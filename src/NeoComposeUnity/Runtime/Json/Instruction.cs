@@ -153,9 +153,9 @@ namespace NeoCompose.Runtime.Json
         public TypeInfo selectorTypeInfo = null!;
         public SwitchSection[] sections = null!;
         public Instruction[]? defaultInstructions;
-        /// <summary>Each section's normalized case labels, cached by the runtime on first validation.</summary>
+        /// <summary>The section index of each normalized case label, cached by the runtime on first validation.</summary>
         [Newtonsoft.Json.JsonIgnore]
-        internal string[][]? normalizedLabels;
+        internal System.Collections.Generic.Dictionary<object, int>? sectionByLabel;
     }
 
     /// <summary>Read-only caught-message binding for a P52 catch clause.</summary>

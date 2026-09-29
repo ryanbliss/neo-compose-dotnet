@@ -1202,10 +1202,10 @@ namespace NeoCompose.Runtime
         /// section. Instructions are immutable after load, so the labels are
         /// cached on the instruction.
         /// </summary>
-        private static string[][] ValidateSwitchInstructionMetadata(
+        private static Dictionary<object, int> ValidateSwitchInstructionMetadata(
             SwitchInstruction? instruction)
         {
-            if (instruction?.normalizedLabels is { } cached)
+            if (instruction?.sectionByLabel is { } cached)
                 return cached;
             if (instruction?.selector is null
                 || instruction.sections is null)
@@ -1214,8 +1214,7 @@ namespace NeoCompose.Runtime
                     "NeoScript switch is missing its selector or sections; its compiled IR is stale or corrupt.");
             }
             ValidateSwitchSelectorType(instruction.selectorTypeInfo);
-            var labels = new HashSet<string>(StringComparer.Ordinal);
-            var normalizedLabels = new string[instruction.sections.Length][];
+            var sectionByLabel = new Dictionary<object, int>();
             for (int i = 0; i < instruction.sections.Length; i++)
             {
                 SwitchSection? section = instruction.sections[i];
@@ -1226,22 +1225,21 @@ namespace NeoCompose.Runtime
                     throw new NeoScriptPreExecutionValidationError(
                         "NeoScript switch contains a malformed case section; its compiled IR is stale or corrupt.");
                 }
-                normalizedLabels[i] = new string[section.labels.Length];
                 for (int j = 0; j < section.labels.Length; j++)
                 {
-                    string label = NormalizeSwitchLabel(
+                    object label = NormalizeSwitchLabel(
                         section.labels[j],
                         instruction.selectorTypeInfo);
-                    if (!labels.Add(label))
+                    if (sectionByLabel.ContainsKey(label))
                     {
                         throw new NeoScriptPreExecutionValidationError(
                             "NeoScript switch contains a duplicate normalized case label; its compiled IR is stale or corrupt.");
                     }
-                    normalizedLabels[i][j] = label;
+                    sectionByLabel.Add(label, i);
                 }
             }
-            instruction.normalizedLabels = normalizedLabels;
-            return normalizedLabels;
+            instruction.sectionByLabel = sectionByLabel;
+            return sectionByLabel;
         }
 
         private static void ValidateTryInstructionMetadata(
@@ -1283,59 +1281,101 @@ namespace NeoCompose.Runtime
             NSGetterEvaluator.Context ctx,
             NeoScriptExecutionOptions? options)
         {
-            var state = new SwitchExecutionState(instruction, options);
-            return RunSwitch(
+            if (instruction is null)
+            {
+                throw new NeoScriptPreExecutionValidationError(
+                    "NeoScript switch instruction is missing; its compiled IR is stale or corrupt.");
+            }
+            Dictionary<object, int> sectionByLabel = ValidateSwitchInstructionMetadata(instruction);
+            if (options?.AllowDeferredFunctionCalls == true)
+            {
+                return RunDeferredSwitch(
+                    client,
+                    instruction,
+                    sectionByLabel,
+                    ExpressionResumeState.ForOptions(options),
+                    returnTypeInfo,
+                    scope,
+                    ctx,
+                    options);
+            }
+            // An immediate frame cannot suspend, so its selector needs no
+            // resume state.
+            object? selectorValue = Eval(
+                instruction.selector,
+                scope,
+                ExpressionContextFor(
+                    client,
+                    ctx,
+                    ExpressionResumeState.Immediate,
+                    options));
+            return RunSwitchSection(
                 client,
+                SelectSwitchInstructions(instruction, sectionByLabel, selectorValue),
                 returnTypeInfo,
                 scope,
                 ctx,
-                options,
-                state);
+                options);
         }
 
-        private static NeoScriptExecutionResult RunSwitch(
+        private static NeoScriptExecutionResult RunDeferredSwitch(
             NeoClient client,
+            SwitchInstruction instruction,
+            Dictionary<object, int> sectionByLabel,
+            ExpressionResumeState expressionState,
             TypeInfo returnTypeInfo,
             NeoScriptScope scope,
             NSGetterEvaluator.Context ctx,
-            NeoScriptExecutionOptions? options,
-            SwitchExecutionState state)
+            NeoScriptExecutionOptions options)
         {
-            if (!state.SelectorCompleted)
+            expressionState.BeginInstructionAttempt();
+            object? selectorValue;
+            try
             {
-                NSGetterEvaluator.Context expressionContext =
+                selectorValue = Eval(
+                    instruction.selector,
+                    scope,
                     ExpressionContextFor(
                         client,
                         ctx,
-                        state.ExpressionState,
-                        options);
-                state.ExpressionState.BeginInstructionAttempt();
-                object? selectorValue;
-                try
-                {
-                    selectorValue = Eval(
-                        state.Instruction.selector,
-                        scope,
-                        expressionContext);
-                }
-                catch (NeoFunctionCallSuspended suspended)
-                {
-                    return PauseLoopExpression(
-                        suspended,
-                        state.ExpressionState,
-                        options,
-                        () => RunSwitch(
-                            client,
-                            returnTypeInfo,
-                            scope,
-                            ctx,
-                            options,
-                            state));
-                }
-                state.CompleteSelector(selectorValue);
+                        expressionState,
+                        options));
             }
+            catch (NeoFunctionCallSuspended suspended)
+            {
+                // The resumed attempt replays the selector from the recorded
+                // results of its completed calls.
+                return PauseLoopExpression(
+                    suspended,
+                    expressionState,
+                    options,
+                    () => RunDeferredSwitch(
+                        client,
+                        instruction,
+                        sectionByLabel,
+                        expressionState,
+                        returnTypeInfo,
+                        scope,
+                        ctx,
+                        options));
+            }
+            return RunSwitchSection(
+                client,
+                SelectSwitchInstructions(instruction, sectionByLabel, selectorValue),
+                returnTypeInfo,
+                scope,
+                ctx,
+                options);
+        }
 
-            Instruction[]? selectedInstructions = state.SelectedInstructions;
+        private static NeoScriptExecutionResult RunSwitchSection(
+            NeoClient client,
+            Instruction[]? selectedInstructions,
+            TypeInfo returnTypeInfo,
+            NeoScriptScope scope,
+            NSGetterEvaluator.Context ctx,
+            NeoScriptExecutionOptions? options)
+        {
             if (selectedInstructions is null)
             {
                 return NeoScriptExecutionResult.Completed(
@@ -1347,7 +1387,7 @@ namespace NeoCompose.Runtime
                 client,
                 selectedInstructions,
                 returnTypeInfo,
-                scope.CreateBlock(),
+                BlockScopeFor(selectedInstructions, scope),
                 ctx,
                 0,
                 null,
@@ -1355,6 +1395,44 @@ namespace NeoCompose.Runtime
             if (bodyResult.IsPaused)
                 return ThenWhenCompleted(bodyResult, ApplySwitchBodyTransfer);
             return ApplySwitchBodyTransfer(bodyResult);
+        }
+
+        /// <summary>
+        /// The scope a block runs in: its own child when it declares locals,
+        /// which must not escape it, and otherwise the enclosing scope.
+        /// </summary>
+        private static NeoScriptScope BlockScopeFor(
+            Instruction[] instructions,
+            NeoScriptScope scope) =>
+            DeclaresLocals(instructions) ? scope.CreateBlock() : scope;
+
+        /// <summary>
+        /// Whether a block declares a local into the scope it runs in. If
+        /// branches run in their enclosing scope, so their locals count.
+        /// </summary>
+        private static bool DeclaresLocals(Instruction[] instructions)
+        {
+            for (int i = 0; i < instructions.Length; i++)
+            {
+                switch (instructions[i])
+                {
+                    case VariableInstruction:
+                        return true;
+                    case IfInstruction conditional:
+                        foreach (var branch in conditional.branches)
+                        {
+                            if (DeclaresLocals(branch.instructions))
+                                return true;
+                        }
+                        if (conditional.elseInstructions is not null
+                            && DeclaresLocals(conditional.elseInstructions))
+                        {
+                            return true;
+                        }
+                        break;
+                }
+            }
+            return false;
         }
 
         private static NeoScriptExecutionResult ApplySwitchBodyTransfer(
@@ -1603,11 +1681,14 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private static string NormalizeSwitchSelector(
+        // One section map covers one selector type, so a case key needs no
+        // type tag: numbers, bools, strings and enum option ids key directly.
+        private static readonly object NullSwitchLabel = new();
+
+        private static object SwitchSelectorKey(
             TypeInfo selectorTypeInfo,
             object? value)
         {
-            ValidateSwitchSelectorType(selectorTypeInfo);
             if (value is null)
             {
                 if (selectorTypeInfo.required)
@@ -1615,29 +1696,29 @@ namespace NeoCompose.Runtime
                     throw new NSGetterRuntimeError(
                         "NeoScript switch selector evaluated to null for a required selector type; its compiled IR is stale or corrupt.");
                 }
-                return "null";
+                return NullSwitchLabel;
             }
 
             switch (selectorTypeInfo.type)
             {
                 case MemberKind.Int:
-                    if (!TryNormalizeSwitchInteger(value, out string? integerKey))
+                    if (!TryNormalizeSwitchInteger(value, out double number))
                     {
                         throw SwitchValueTypeError("selector", selectorTypeInfo);
                     }
-                    return "int:" + integerKey;
+                    return NSGetterEvaluator.Box(number);
                 case MemberKind.String:
                     if (value is not string text)
                     {
                         throw SwitchValueTypeError("selector", selectorTypeInfo);
                     }
-                    return "string:" + text;
+                    return text;
                 case MemberKind.Bool:
                     if (value is not bool boolean)
                     {
                         throw SwitchValueTypeError("selector", selectorTypeInfo);
                     }
-                    return boolean ? "bool:true" : "bool:false";
+                    return NSGetterEvaluator.Box(boolean);
                 case MemberKind.Enum:
                     if (value is not object?[] options
                         || options.Length != 1
@@ -1646,14 +1727,22 @@ namespace NeoCompose.Runtime
                     {
                         throw SwitchValueTypeError("selector", selectorTypeInfo);
                     }
-                    return "enum:" + ((EnumTypeInfo)selectorTypeInfo).enumId
-                        + ":" + optionId;
+                    return optionId;
                 default:
                     throw SwitchValueTypeError("selector", selectorTypeInfo);
             }
         }
 
-        private static string NormalizeSwitchLabel(
+        /// <summary>The instructions a selector value runs, or null when no section and no default match.</summary>
+        private static Instruction[]? SelectSwitchInstructions(
+            SwitchInstruction instruction,
+            Dictionary<object, int> sectionByLabel,
+            object? value) =>
+            sectionByLabel.TryGetValue(SwitchSelectorKey(instruction.selectorTypeInfo, value), out int section)
+                ? instruction.sections[section].instructions
+                : instruction.defaultInstructions;
+
+        private static object NormalizeSwitchLabel(
             Value label,
             TypeInfo selectorTypeInfo)
         {
@@ -1671,7 +1760,7 @@ namespace NeoCompose.Runtime
                 {
                     throw SwitchMetadataTypeError(selectorTypeInfo);
                 }
-                return "null";
+                return NullSwitchLabel;
             }
 
             if (!labelTypeInfo.required
@@ -1695,23 +1784,23 @@ namespace NeoCompose.Runtime
                             && token?.Type != Newtonsoft.Json.Linq.JTokenType.Float)
                         || !TryNormalizeSwitchInteger(
                             token.ToObject<double>(),
-                            out string? integerKey))
+                            out double integer))
                     {
                         throw SwitchMetadataTypeError(selectorTypeInfo);
                     }
-                    return "int:" + integerKey;
+                    return integer;
                 case MemberKind.String:
                     if (token?.Type != Newtonsoft.Json.Linq.JTokenType.String)
                     {
                         throw SwitchMetadataTypeError(selectorTypeInfo);
                     }
-                    return "string:" + token.ToObject<string>();
+                    return token.ToObject<string>()!;
                 case MemberKind.Bool:
                     if (token?.Type != Newtonsoft.Json.Linq.JTokenType.Boolean)
                     {
                         throw SwitchMetadataTypeError(selectorTypeInfo);
                     }
-                    return token.ToObject<bool>() ? "bool:true" : "bool:false";
+                    return token.ToObject<bool>();
                 case MemberKind.Enum:
                     if (token is not Newtonsoft.Json.Linq.JArray enumOptions
                         || enumOptions.Count != 1
@@ -1721,8 +1810,7 @@ namespace NeoCompose.Runtime
                     {
                         throw SwitchMetadataTypeError(selectorTypeInfo);
                     }
-                    return "enum:" + ((EnumTypeInfo)selectorTypeInfo).enumId
-                        + ":" + enumOptions[0]!.ToObject<string>();
+                    return enumOptions[0]!.ToObject<string>()!;
                 default:
                     throw SwitchMetadataTypeError(selectorTypeInfo);
             }
@@ -1746,10 +1834,8 @@ namespace NeoCompose.Runtime
 
         private static bool TryNormalizeSwitchInteger(
             object value,
-            out string? key)
+            out double number)
         {
-            key = null;
-            double number;
             switch (value)
             {
                 case int integer:
@@ -1768,6 +1854,7 @@ namespace NeoCompose.Runtime
                     number = floating;
                     break;
                 default:
+                    number = 0d;
                     return false;
             }
             if (double.IsNaN(number)
@@ -1777,11 +1864,9 @@ namespace NeoCompose.Runtime
             {
                 return false;
             }
+            // -0 and 0 are one case.
             if (number == 0d)
                 number = 0d;
-            key = number.ToString(
-                "R",
-                System.Globalization.CultureInfo.InvariantCulture);
             return true;
         }
 
@@ -5335,71 +5420,6 @@ namespace NeoCompose.Runtime
                     : CurrentClause.filter is null
                         ? TryPhase.CatchBody
                         : TryPhase.Filter;
-            }
-        }
-
-        private sealed class SwitchExecutionState
-        {
-            private readonly string[][] normalizedLabels;
-
-            internal SwitchExecutionState(
-                SwitchInstruction instruction,
-                NeoScriptExecutionOptions? options)
-            {
-                Instruction = instruction ?? throw new NeoScriptPreExecutionValidationError(
-                    "NeoScript switch instruction is missing; its compiled IR is stale or corrupt.");
-                normalizedLabels = ValidateSwitchInstructionMetadata(instruction);
-                ExpressionState = ExpressionResumeState.ForOptions(options);
-            }
-
-            internal SwitchInstruction Instruction
-            {
-                get;
-            }
-            internal ExpressionResumeState ExpressionState
-            {
-                get;
-            }
-            internal bool SelectorCompleted
-            {
-                get; private set;
-            }
-            internal object? SelectorValue
-            {
-                get; private set;
-            }
-            internal int? SelectedSectionIndex
-            {
-                get; private set;
-            }
-            internal bool SelectedDefault
-            {
-                get; private set;
-            }
-            internal Instruction[]? SelectedInstructions =>
-                SelectedSectionIndex is int index
-                    ? Instruction.sections[index].instructions
-                    : SelectedDefault
-                        ? Instruction.defaultInstructions
-                        : null;
-
-            internal void CompleteSelector(object? value)
-            {
-                SelectorValue = value;
-                SelectorCompleted = true;
-                string selectorKey = NormalizeSwitchSelector(
-                    Instruction.selectorTypeInfo,
-                    value);
-                for (int i = 0; i < normalizedLabels.Length; i++)
-                {
-                    if (Array.IndexOf(normalizedLabels[i], selectorKey) < 0)
-                    {
-                        continue;
-                    }
-                    SelectedSectionIndex = i;
-                    return;
-                }
-                SelectedDefault = Instruction.defaultInstructions is not null;
             }
         }
 
