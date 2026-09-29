@@ -95,7 +95,11 @@ namespace NeoCompose.Runtime.NeoScript
         internal NeoScriptScope? Parent
         {
             get;
+            private set;
         }
+
+        /// <summary>Adopts a pooled scope as a child of <paramref name="parent"/>, or releases it.</summary>
+        internal void BindParent(NeoScriptScope? parent) => Parent = parent;
         internal int LocalBindingCount => externalBindings?.Count ?? bindings!.Count + occupiedCount;
         internal int BindingCapacity => externalBindings?.EnsureCapacity(0) ?? bindings!.EnsureCapacity(0) + slots.Length;
 

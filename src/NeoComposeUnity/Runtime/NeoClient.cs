@@ -948,6 +948,7 @@ namespace NeoCompose.Runtime
                 return;
             // Release all argument/local references before retaining the empty frame.
             scope.ResetLocals();
+            scope.BindParent(null);
             lock (resolvedNSFunctionsLock)
             {
                 if (isDisposed)

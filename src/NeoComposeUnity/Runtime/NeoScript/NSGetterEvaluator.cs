@@ -2728,7 +2728,7 @@ namespace NeoCompose.Runtime.NeoScript
             }
             if (TryReadVectorComponent(receiver, k, out float component))
             {
-                return component;
+                return Box(component);
             }
             // P42 §3. Colour channels read exactly like vector components.
             // Before P42 a `ColorMemberValue` unwrapped to a bare
@@ -2737,7 +2737,7 @@ namespace NeoCompose.Runtime.NeoScript
             // into" throw below while the TS evaluator read it happily.
             if (TryReadColorComponent(receiver, k, out float channel))
             {
-                return channel;
+                return Box(channel);
             }
             if (k == "Id")
             {
@@ -3114,6 +3114,7 @@ namespace NeoCompose.Runtime.NeoScript
         private const int MaxSharedBox = 1023;
         private static readonly object[] SharedDoubleBoxes = CreateSharedBoxes(value => (double)value);
         private static readonly object[] SharedIntBoxes = CreateSharedBoxes(value => value);
+        private static readonly object[] SharedFloatBoxes = CreateSharedBoxes(value => (float)value);
 
         private static object[] CreateSharedBoxes(Func<int, object> box)
         {
@@ -3129,6 +3130,18 @@ namespace NeoCompose.Runtime.NeoScript
             value is >= MinSharedBox and <= MaxSharedBox
                 ? SharedIntBoxes[value - MinSharedBox]
                 : value;
+
+        // Vector components and color channels read as float.
+        internal static object Box(float value)
+        {
+            if (value is >= MinSharedBox and <= MaxSharedBox)
+            {
+                int integral = (int)value;
+                if (integral == value && (integral != 0 || !float.IsNegative(value)))
+                    return SharedFloatBoxes[integral - MinSharedBox];
+            }
+            return value;
+        }
 
         internal static object Box(double value)
         {
@@ -4380,7 +4393,10 @@ namespace NeoCompose.Runtime.NeoScript
                 this.returnContract = returnContract;
                 returnTypeInfo = callbackReturnType;
                 parameterCount = parameters.Length;
-                scope = parentScope.CreateChild(parameterCount);
+                // A callback cannot suspend, so nothing retains its scope
+                // once the operator ends; it is pooled like a function frame.
+                scope = ctx.client.RentFunctionScope(parameterCount);
+                scope.BindParent(parentScope);
                 this.isList = isList;
                 entryParameterId = parameters[parameterCount - 1].id;
                 keyParameterId = parameterCount == 2 ? parameters[0].id : null;
@@ -4401,7 +4417,7 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 scope.ResetInvocationLocals(parameterCount);
                 if (keyParameterId is not null)
-                    scope[keyParameterId] = isList ? (object)entry.Index : entry.Key.ToString();
+                    scope[keyParameterId] = isList ? Box(entry.Index) : entry.Key.ToString();
                 scope[entryParameterId] = entry.Entry;
                 NeoScriptExecutionResult result = execution.Execute(scope);
                 if (result.IsPaused)
@@ -4447,6 +4463,7 @@ namespace NeoCompose.Runtime.NeoScript
             public void Dispose()
             {
                 execution.Dispose();
+                ctx.client.ReturnFunctionScope(scope);
             }
         }
 
