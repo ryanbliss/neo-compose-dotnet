@@ -357,18 +357,38 @@ namespace NeoCompose.Runtime.NeoScript
         /// </summary>
         public class Context
         {
-            private sealed class CallFrameStack : IReadOnlyList<string>
+            internal sealed class CallFrameStack : IReadOnlyList<string>
             {
                 private readonly IReadOnlyList<string> parent;
                 private readonly string value;
+                // Frames never change and call paths repeat, so a frame keeps
+                // the frames pushed from it; a few cover a body's callees.
+                private CallFrameStack?[]? children;
+                private const int MaxRetainedChildren = 4;
 
-                internal CallFrameStack(
+                private CallFrameStack(
                     IReadOnlyList<string> parent,
                     string value)
                 {
                     this.parent = parent;
                     this.value = value;
                     Count = parent.Count + 1;
+                }
+
+                internal static IReadOnlyList<string> Push(IReadOnlyList<string> parent, string value)
+                {
+                    if (parent is not CallFrameStack frame)
+                        return new CallFrameStack(parent, value);
+                    CallFrameStack?[] children = frame.children ??= new CallFrameStack?[MaxRetainedChildren];
+                    for (int i = 0; i < children.Length; i++)
+                    {
+                        CallFrameStack? child = children[i];
+                        if (child is null)
+                            return children[i] = new CallFrameStack(frame, value);
+                        if (child.value == value)
+                            return child;
+                    }
+                    return new CallFrameStack(frame, value);
                 }
 
                 public int Count
@@ -689,7 +709,7 @@ namespace NeoCompose.Runtime.NeoScript
             internal Context WithGetterPushed(string memberId, object? receiver)
             {
                 Context child = Fork();
-                child.getterCallStack = new CallFrameStack(
+                child.getterCallStack = CallFrameStack.Push(
                     getterCallStack as IReadOnlyList<string> ?? getterCallStack.ToArray(), memberId);
                 child.thisValue = receiver;
                 return child;
@@ -736,7 +756,7 @@ namespace NeoCompose.Runtime.NeoScript
             internal Context WithSetterPushed(string memberId, object? receiver)
             {
                 Context child = Fork();
-                child.setterCallStack = new CallFrameStack(
+                child.setterCallStack = CallFrameStack.Push(
                     setterCallStack as IReadOnlyList<string> ?? setterCallStack.ToArray(), memberId);
                 child.thisValue = receiver;
                 return child;
@@ -745,7 +765,7 @@ namespace NeoCompose.Runtime.NeoScript
             internal Context WithFunctionPushed(string memberId, object? receiver)
             {
                 Context child = Fork();
-                child.functionCallStack = new CallFrameStack(functionCallStack, memberId);
+                child.functionCallStack = CallFrameStack.Push(functionCallStack, memberId);
                 child.thisValue = receiver;
                 return child;
             }
@@ -792,7 +812,7 @@ namespace NeoCompose.Runtime.NeoScript
                 var saved = new FunctionFrame(this);
                 // The same lifetime gate a fork closes.
                 allocationTracker.ReusableContext = false;
-                functionCallStack = new CallFrameStack(functionCallStack, memberId);
+                functionCallStack = CallFrameStack.Push(functionCallStack, memberId);
                 thisValue = receiver;
                 immediateExpressionContext = null;
                 immediateExpressionSource = null;
@@ -818,7 +838,7 @@ namespace NeoCompose.Runtime.NeoScript
             internal Context WithConstructionPushed(string className)
             {
                 Context child = Fork();
-                child.constructionStack = new CallFrameStack(constructionStack, className);
+                child.constructionStack = CallFrameStack.Push(constructionStack, className);
                 return child;
             }
 

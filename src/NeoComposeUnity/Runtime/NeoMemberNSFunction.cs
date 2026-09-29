@@ -321,7 +321,8 @@ namespace NeoCompose.Runtime
             bool deferred)
         {
             MemberId = memberId;
-            DirectCallStack = new[] { memberId };
+            DirectCallStack = NSGetterEvaluator.Context.CallFrameStack.Push(
+                Array.Empty<string>(), memberId);
             Member = member;
             Action = action;
             ReturnTypeInfo = returnTypeInfo;
