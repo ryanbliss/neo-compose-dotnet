@@ -539,20 +539,20 @@ namespace NeoCompose.Runtime
             {
                 const int rootParameterIndex = 1;
                 const int argumentParameterOffset = 2;
-                scope[action.parameters[0].id] = receiver;
-                scope[action.parameters[rootParameterIndex].id] = ctx.rootValue;
+                scope.SetParameter(0, receiver);
+                scope.SetParameter(rootParameterIndex, ctx.rootValue);
                 for (int i = 0; i < function.ArgumentTypes.Length; i++)
                 {
                     FunctionArgumentTypeInfo argument = function.ArgumentTypes[i];
                     try
                     {
-                        scope[action.parameters[i + argumentParameterOffset].id] = NeoScriptValueMarshaller.Normalize(
+                        scope.SetParameter(i + argumentParameterOffset, NeoScriptValueMarshaller.Normalize(
                             client,
                             ctx.valueOwnership,
                             i < args.Length ? args[i] : NeoParameterDefaults.DefaultRuntimeValue(argument, function.CallSubject),
                             effectiveArgumentTypes[i],
                             ctx,
-                            function.ArgumentSubject(i));
+                            function.ArgumentSubject(i)));
                     }
                     catch (Exception exception)
                     {

@@ -26,8 +26,14 @@ namespace NeoCompose.Runtime.NeoScript
         internal readonly Dictionary<string, int> Slots = new(StringComparer.Ordinal);
         internal NeoScriptScopeLayout(FunctionWithReturnType body)
         {
+            // Parameter i is slot i, so a call binds its arguments by position.
             foreach (var parameter in body.parameters ?? Array.Empty<Variable>())
-                Add(parameter.id);
+            {
+                if (Slots.ContainsKey(parameter.id))
+                    throw new InvalidOperationException(
+                        $"NeoScript body declares parameter '{parameter.id}' twice; its compiled IR is stale or corrupt.");
+                Slots.Add(parameter.id, Slots.Count);
+            }
             // Nested/dynamic bindings continue through the general scope path.
             // The common function-level locals have stable slots per body.
             foreach (var instruction in body.instructions)
@@ -173,6 +179,9 @@ namespace NeoCompose.Runtime.NeoScript
             else
                 bindings![bindingId] = value;
         }
+
+        internal void SetParameter(int index, object? value) =>
+            SetSlot(index, new EvaluationValue(value));
 
         private void SetSlot(int slot, EvaluationValue value)
         {
