@@ -626,19 +626,14 @@ namespace NeoCompose.Runtime
                 Dispose();
                 return;
             }
-            if (this is NeoMemberDictionary
-                || this is NeoMemberList)
+            // A collection's own mutator publishes one precise change after
+            // its multi-row write. Every other writer (NeoScript, another
+            // node over the same row, live-save reconciliation) has no such
+            // frame, so the node must refresh and notify here.
+            if (client.PublishingPlan?.IsReportingOwnChange(this) == true)
             {
-                // Local collection mutators reinitialize explicitly after
-                // completing their multi-row write and publish one precise
-                // collection change. External live-save reconciliation has
-                // no such mutator frame, so collection nodes must refresh
-                // here or their membership and derived indexes stay stale.
-                if (client.CurrentChangeSource != NeoChangeSource.External)
-                {
-                    RefreshValueIdChain();
-                    return;
-                }
+                RefreshValueIdChain();
+                return;
             }
             OnValueIdChainChanged();
         }
@@ -799,6 +794,13 @@ namespace NeoCompose.Runtime
         {
             if (!client.TryWriteLeaf(ownership, writable, member, "value"))
                 client.SetWritableValue(ownership, writable, "value");
+        }
+
+        /// <summary>Commits a write whose change this node publishes itself.</summary>
+        private protected void CommitOwnChange(NeoWritePlan plan)
+        {
+            plan.ReportsOwnChange(this);
+            plan.Commit();
         }
 
         /// <summary>

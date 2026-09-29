@@ -34,7 +34,16 @@ namespace NeoCompose.Runtime
                 writableValueSubscriptions.Remove(valueId);
         }
 
-        private void PublishWritableValueChange(NeoValueOwnership ownership, string valueId)
+        /// <summary>
+        /// The plan whose own rows the current publication delivers, or null
+        /// when a leaf, placement, constructor or removal write publishes.
+        /// </summary>
+        internal NeoWritePlan? PublishingPlan
+        {
+            get; private set;
+        }
+
+        private void PublishWritableValueChange(NeoValueOwnership ownership, string valueId, NeoWritePlan? plan = null)
         {
             RefreshSharedEvaluationRow(ownership, valueId);
             // Invoke over a snapshot so reentrant writes, subscriptions and
@@ -44,6 +53,8 @@ namespace NeoCompose.Runtime
                 int count = handlers.Count;
                 var snapshot = ArrayPool<Action<NeoValueOwnership, string>>.Shared.Rent(count);
                 handlers.CopyTo(snapshot, 0);
+                NeoWritePlan? outer = PublishingPlan;
+                PublishingPlan = plan;
                 try
                 {
                     for (int i = 0; i < count; i++)
@@ -51,6 +62,7 @@ namespace NeoCompose.Runtime
                 }
                 finally
                 {
+                    PublishingPlan = outer;
                     Array.Clear(snapshot, 0, count);
                     ArrayPool<Action<NeoValueOwnership, string>>.Shared.Return(snapshot);
                 }

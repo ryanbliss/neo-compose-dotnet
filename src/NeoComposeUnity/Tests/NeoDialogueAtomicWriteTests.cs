@@ -45,6 +45,41 @@ namespace NeoCompose.Tests
             Assert.AreEqual(1, list.Count, "The next script read must observe the committed membership.");
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void ScriptMembershipChangesNotifyTheLiveList(bool unordered)
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(Schema(unordered));
+            client.SetWritableValues(NeoValueOwnership.Session, new MemberValue[]
+            {
+                new ObjectMemberValue { id = "script-item", classId = "item", value = new() },
+            });
+            var list = client.save.Get<NeoMemberListWritable>("Items");
+            int listChanges = 0;
+            int saveChanges = 0;
+            int observedCount = -1;
+            list.OnChanged += _ =>
+            {
+                listChanges++;
+                observedCount = list.Count;
+            };
+            client.save.OnChanged += _ => saveChanges++;
+            var context = new NSGetterEvaluator.Context(client, null, null);
+
+            Execute(client, context, new(), CollectionMutationKind.Add,
+                new ReferencePointer { type = PointerKind.Reference, valueId = "script-item" });
+            Assert.That(listChanges, Is.Positive, "A NeoScript add must reach the live list.");
+            Assert.That(saveChanges, Is.Positive, "A NeoScript add must bubble to the parent.");
+            Assert.AreEqual(1, observedCount);
+
+            listChanges = 0;
+            saveChanges = 0;
+            Execute(client, context, new(), CollectionMutationKind.Clear);
+            Assert.That(listChanges, Is.Positive, "A NeoScript clear must reach the live list.");
+            Assert.That(saveChanges, Is.Positive, "A NeoScript clear must bubble to the parent.");
+            Assert.AreEqual(0, observedCount);
+        }
+
         [Test]
         public void ForeachSnapshotRetainsCollectionOwnershipForUnchangedAuthoredEntries()
         {

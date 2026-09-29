@@ -3211,16 +3211,16 @@ namespace NeoCompose.Runtime
 
         private void NotifyWritableValueChanged(
             NeoValueOwnership ownership, string valueId, string? changedField = null, bool valueChanged = true,
-            bool membershipChanged = true)
+            bool membershipChanged = true, NeoWritePlan? plan = null)
         {
             if (valueChanged)
-                PublishWritableValueChange(ownership, valueId);
+                PublishWritableValueChange(ownership, valueId, plan);
             else if (nodesByValueId.TryGetValue(valueId, out var unchangedNodes))
                 foreach (NeoMember node in unchangedNodes.ToArray())
                     if (!node.isDisposed && node.ownership == ownership)
                         node.RefreshCommittedValue();
             if (membershipChanged)
-                NotifyContainerMembershipChanged(ownership, valueId);
+                NotifyContainerMembershipChanged(ownership, valueId, plan);
             if (ownership == NeoValueOwnership.Save)
                 RaiseSaveValueChanged(valueId, changedField);
         }
@@ -5808,11 +5808,12 @@ namespace NeoCompose.Runtime
         /// </summary>
         private void NotifyContainerMembershipChanged(
             NeoValueOwnership ownership,
-            string memberValueId)
+            string memberValueId,
+            NeoWritePlan? plan)
         {
             if (!TryResolveContainerIdForValueId(memberValueId, out string? containerId))
                 return;
-            RaiseContainerChanged(ownership, containerId!);
+            RaiseContainerChanged(ownership, containerId!, plan);
         }
 
         // Bulk membership operations (Clear, whole-list assignment) suspend
@@ -5820,7 +5821,7 @@ namespace NeoCompose.Runtime
         // notification per container when the scope disposes, so container
         // subscribers observe a single membership change per bulk edit.
         private int containerNotificationSuspensions;
-        private readonly List<(NeoValueOwnership ownership, string containerId)>
+        private readonly List<(NeoValueOwnership ownership, string containerId, NeoWritePlan? plan)>
             pendingContainerNotifications = new();
 
         internal System.IDisposable SuspendContainerNotifications()
@@ -5836,25 +5837,28 @@ namespace NeoCompose.Runtime
                 return;
             if (pendingContainerNotifications.Count == 0)
                 return;
-            var pending = new List<(NeoValueOwnership, string)>(pendingContainerNotifications);
+            var pending = new List<(NeoValueOwnership, string, NeoWritePlan?)>(pendingContainerNotifications);
             pendingContainerNotifications.Clear();
-            foreach (var (ownership, containerId) in pending)
+            foreach (var (ownership, containerId, plan) in pending)
             {
-                PublishWritableValueChange(ownership, containerId);
+                PublishWritableValueChange(ownership, containerId, plan);
             }
         }
 
-        private void RaiseContainerChanged(NeoValueOwnership ownership, string containerId)
+        private void RaiseContainerChanged(NeoValueOwnership ownership, string containerId, NeoWritePlan? plan = null)
         {
             if (containerNotificationSuspensions > 0)
             {
-                if (!pendingContainerNotifications.Contains((ownership, containerId)))
-                {
-                    pendingContainerNotifications.Add((ownership, containerId));
-                }
+                int index = pendingContainerNotifications.FindIndex(
+                    pending => pending.ownership == ownership && pending.containerId == containerId);
+                if (index < 0)
+                    pendingContainerNotifications.Add((ownership, containerId, plan));
+                else if (!ReferenceEquals(pendingContainerNotifications[index].plan, plan))
+                    // Another write changed the container too: it is not one plan's news.
+                    pendingContainerNotifications[index] = (ownership, containerId, null);
                 return;
             }
-            PublishWritableValueChange(ownership, containerId);
+            PublishWritableValueChange(ownership, containerId, plan);
         }
 
         /// <summary>

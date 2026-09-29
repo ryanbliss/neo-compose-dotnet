@@ -535,6 +535,7 @@ namespace NeoCompose.Runtime
         internal string PrepareAddSerialized(NeoWritePlan plan, NeoValueWritePayload? entryValue)
         {
             string id = PrepareAddSerializedCore(plan, entryValue);
+            plan.ReportsOwnChange(this);
             plan.AfterCommit(RefreshCommittedValue);
             plan.AfterNotifications(() => NotifyListChanged(new NeoListChangedArgs(
                 NeoListChangeKind.Add, addedValueIds: new[] { id })));
@@ -650,7 +651,7 @@ namespace NeoCompose.Runtime
                 parentRow.updatedAt = nowIso;
                 plan.Set(ownership, parentRow);
                 client.StageUnlinkedRemovals(plan, entryOwnership, new[] { entryValueId }, entryMember);
-                plan.Commit();
+                CommitOwnChange(plan);
                 value = parentRow;
                 NeoMember previousChild = childMembers[index];
                 previousChild.OnChanged -= HandleChildChanged;
@@ -688,7 +689,7 @@ namespace NeoCompose.Runtime
                 NeoGenericResolution.EnvFromStamp(value?.genericBindings));
             client.StageWritablePayloadRows(plan, entryOwnership, entryValue?.value);
             client.StageInPlaceReplacement(plan, entryOwnership, next, entryMember);
-            plan.Commit();
+            CommitOwnChange(plan);
             NeoMember replacedChild = childMembers[index];
             replacedChild.OnChanged -= HandleChildChanged;
             replacedChild.Dispose();
@@ -741,7 +742,7 @@ namespace NeoCompose.Runtime
             plan.Set(ownership, parentRow);
             NeoValueOwnership entryOwnership = client.ChildOwnership(entryMember, ownership);
             client.StageUnlinkedRemovals(plan, entryOwnership, new[] { removedValueId }, entryMember);
-            plan.Commit();
+            CommitOwnChange(plan);
             value = parentRow;
 
             RefreshCommittedValue();
@@ -776,7 +777,7 @@ namespace NeoCompose.Runtime
             parentRow.updatedAt = nowIso;
             plan.Set(ownership, parentRow);
             client.StageUnlinkedRemovals(plan, client.ChildOwnership(entryMember, ownership), removedValueIds, entryMember);
-            plan.Commit();
+            CommitOwnChange(plan);
             value = parentRow;
 
             foreach (var child in childMembers)
@@ -923,7 +924,7 @@ namespace NeoCompose.Runtime
             var plan = new NeoWritePlan(client);
             foreach (string id in removedValueIds)
                 PrepareRemoveUnorderedEntry(plan, id);
-            plan.Commit();
+            CommitOwnChange(plan);
             value = valueData;
             ReinitializeChildren();
             NotifyListChanged(new NeoListChangedArgs(
@@ -984,6 +985,7 @@ namespace NeoCompose.Runtime
                 value = valueData;
                 ReinitializeChildren();
             });
+            plan.ReportsOwnChange(this);
             plan.AfterNotifications(() => NotifyListChanged(new NeoListChangedArgs(NeoListChangeKind.Replace)));
         }
 
@@ -999,7 +1001,7 @@ namespace NeoCompose.Runtime
         {
             var plan = new NeoWritePlan(client);
             PrepareRemoveUnorderedEntry(plan, entryValueId);
-            plan.Commit();
+            CommitOwnChange(plan);
             value = valueData;
         }
 
@@ -1081,7 +1083,7 @@ namespace NeoCompose.Runtime
             var plan = new NeoWritePlan(client);
             var row = ResolveUnorderedContainerForAdd(plan, nowIso);
             if (plan.Rows.Count > 0)
-                plan.Commit();
+                CommitOwnChange(plan);
             return row;
         }
 
@@ -1127,7 +1129,7 @@ namespace NeoCompose.Runtime
             var plan = new NeoWritePlan(client);
             var row = EnsureWritableArray(plan, nowIso);
             if (plan.Rows.Count > 0)
-                plan.Commit();
+                CommitOwnChange(plan);
             return row;
         }
 
