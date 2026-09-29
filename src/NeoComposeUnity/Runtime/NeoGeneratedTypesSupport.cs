@@ -6577,13 +6577,7 @@ namespace NeoCompose.Runtime
                 genericEnv = genericEnv,
                 schemaByKey = schemaByKey,
                 membersBySchemaKey = membersBySchemaKey,
-                factoryMember = UnplacedClassMember(
-                    classId,
-                    classArguments is null
-                        ? null
-                        : new Dictionary<string, GenericBinding>(
-                            classArguments,
-                            StringComparer.Ordinal)),
+                factoryMember = UnplacedClassMember(classId, classArguments),
             };
             if (classArguments is null)
             {
@@ -7855,7 +7849,8 @@ namespace NeoCompose.Runtime
                 }
             }
 
-            string? valueId = ValueId(value);
+            // Class entries of a stored list come back from NeoScript as their row ids.
+            string? valueId = value as string ?? ValueId(value);
             if (string.IsNullOrEmpty(valueId))
             {
                 throw new InvalidOperationException(
@@ -7923,6 +7918,18 @@ namespace NeoCompose.Runtime
                     new NeoMemberClassWritable(client, member, valueId, ownership));
             }
 
+            bool writableRow = client.TryGetValueOwnership(valueId, out var readOwnership)
+                && readOwnership != NeoValueOwnership.Asset;
+            // Every view of a Save/Session row shares one registry key, and
+            // native receivers and writable parameters resolve through it: the
+            // view registered there must be writable.
+            if (writableRow && savedFactory is not null)
+            {
+                return savedFactory(
+                    client,
+                    new NeoMemberClassWritable(client, member, valueId, readOwnership));
+            }
+
             if (readOnlyFactory is null)
             {
                 throw new InvalidOperationException(
@@ -7931,8 +7938,7 @@ namespace NeoCompose.Runtime
 
             return readOnlyFactory(
                 client,
-                client.TryGetValueOwnership(valueId, out var readOwnership)
-                    && readOwnership != NeoValueOwnership.Asset
+                writableRow
                     ? new NeoMemberClassWritable(client, member, valueId, readOwnership)
                     : new NeoMemberClass(client, member, valueId));
         }
@@ -7973,12 +7979,7 @@ namespace NeoCompose.Runtime
             string classId)
         {
             client.TryInferMemberForValueId(valueId, out Member? placement);
-            return UnplacedClassMember(
-                classId,
-                NeoGenericResolution.CloseClassArgumentsFromStamp(
-                    row.genericBindings, (placement as ClassMember)?.classArguments)
-                    is { } arguments ? new Dictionary<string, GenericBinding>(arguments) : null,
-                row);
+            return UnplacedClassMember(classId, (placement as ClassMember)?.classArguments, row);
         }
 
         internal static string UnplacedClassMemberId(string classId) => $"__neo_class_value_{classId}";
@@ -7987,11 +7988,12 @@ namespace NeoCompose.Runtime
         /// The placement of a class value no member holds: constructed,
         /// cloned, or read by id. Every such view of one row shares one
         /// registry key, so NeoScript calling back into the row finds the
-        /// generated wrapper C# holds.
+        /// generated wrapper C# holds. The row's generic stamp closes its
+        /// arguments, so whichever view registers first agrees with the rest.
         /// </summary>
         internal static ClassMember UnplacedClassMember(
             string classId,
-            Dictionary<string, GenericBinding>? classArguments,
+            IReadOnlyDictionary<string, GenericBinding>? classArguments,
             MemberValue? row = null)
         {
             return new ClassMember
@@ -8000,7 +8002,9 @@ namespace NeoCompose.Runtime
                 name = "ClassValue",
                 kind = MemberKind.Class,
                 classId = classId,
-                classArguments = classArguments,
+                classArguments = NeoGenericResolution.CloseClassArgumentsFromStamp(
+                    row?.genericBindings, classArguments)
+                    is { } arguments ? new Dictionary<string, GenericBinding>(arguments) : null,
                 unplaced = true,
                 createdAt = row?.createdAt ?? default,
                 updatedAt = row?.updatedAt ?? default,

@@ -805,6 +805,23 @@ namespace NeoCompose.Tests
             Assert.AreEqual(1, handler.CallCount);
         }
 
+        [Test]
+        public void ReadScriptList_ResolvesClassEntriesReturnedAsRowIds()
+        {
+            var client = LoadNativeFunctionClient(out ClassMember receiverMember);
+            var wrapper = FunctionTestValue.Create(
+                client,
+                (NeoMemberClass)NeoMember.Create(client, receiverMember, "v-native-receiver"));
+
+            IReadOnlyList<FunctionTestValue> entries = NeoGeneratedTypesSupport.ReadScriptList(
+                new List<object?> { "v-native-receiver" },
+                entry => NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass<FunctionTestValue>(
+                    client, entry, false, FunctionTestValue.Create, null));
+
+            Assert.AreEqual(1, entries.Count);
+            Assert.AreEqual("v-native-receiver", entries[0].valueId);
+        }
+
         private static FunctionWithReturnType PingGetter(string receiverValueId)
         {
             return new FunctionWithReturnType

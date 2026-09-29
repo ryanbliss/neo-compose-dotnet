@@ -6190,8 +6190,9 @@ namespace NeoCompose.Runtime
             NeoMemberClass node)
         {
             var registry = candidateReplay?.GeneratedValues ?? generatedValuesInternal;
-            if (!registry.ContainsKey(node.RegistryKey))
-                RegisterGeneratedClassValue(generated, node);
+            if (registry.TryAdd(node.RegistryKey, generated)
+                && ReferenceEquals(registry, generatedValuesInternal))
+                IndexGeneratedClassValue(generated);
         }
 
         internal void UnregisterGeneratedClassValue(NeoGeneratedClassValue generated, NeoMemberClass node)
