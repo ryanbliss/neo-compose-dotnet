@@ -31,6 +31,11 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
+        internal NeoSortingLayer(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
         public NeoSortingLayer(string? Name = null)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name), false, NeoValueOwnership.Session)
         {
@@ -70,6 +75,11 @@ namespace HelloWorld.Assets.Scripts.Neo
             });
         }
 
+        internal static NeoSortingLayer? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return new NeoSortingLayer(client, value, !saved);
+        }
+
         public NeoSortingLayer Clone()
         {
             return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
@@ -94,6 +104,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("Name", out object? detachedValue))
+                {
+                    return (string)detachedValue!;
+                }
                 return node.Get<NeoMemberString>("Name").value?.value ?? throw new InvalidOperationException("Required string 'Name' has no value.");
             }
         }

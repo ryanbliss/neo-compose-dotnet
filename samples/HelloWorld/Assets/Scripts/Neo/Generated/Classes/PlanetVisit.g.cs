@@ -33,6 +33,11 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
+        internal PlanetVisit(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
         public PlanetVisit(Planet World, int DateUnix)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(World, DateUnix), false, NeoValueOwnership.Session)
         {
@@ -73,6 +78,11 @@ namespace HelloWorld.Assets.Scripts.Neo
             });
         }
 
+        internal static PlanetVisit? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return new PlanetVisit(client, value, !saved);
+        }
+
         public PlanetVisit Clone()
         {
             return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
@@ -97,6 +107,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("DateUnix", out object? detachedValue))
+                {
+                    return Convert.ToInt32(detachedValue);
+                }
                 return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("DateUnix")) ?? throw new InvalidOperationException("Required int 'DateUnix' has no value.");
             }
             set
@@ -109,6 +123,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("World", out object? detachedValue))
+                {
+                    return NeoGeneratedTypesSupport.ReadEnumSingle(NeoGeneratedTypesSupport.ToStringArray(detachedValue), Planet.FromOptionId) ?? throw new InvalidOperationException("Required enum 'World' has no selected option.");
+                }
                 var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoMemberEnum>("World"));
                 return selected is null ? throw new InvalidOperationException("Required enum 'World' has no selected option.") : Planet.FromOptionId(selected);
             }

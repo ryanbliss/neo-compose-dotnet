@@ -33,6 +33,11 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
+        internal LookupContainer(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
         public LookupContainer(NeoLookupSelection? Lookup = null, IDictionary<string, LookupEntry>? LookupList = null)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Lookup, LookupList), false, NeoValueOwnership.Session)
         {
@@ -71,6 +76,11 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => new LookupContainer(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
+        }
+
+        internal static LookupContainer? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return new LookupContainer(client, value, !saved);
         }
 
         public LookupContainer Clone()

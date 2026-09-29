@@ -362,6 +362,12 @@ namespace NeoCompose.Runtime.Json
     [JsonConverter(typeof(NeoVector2ValueConverter))]
     public class NeoVector2Value
     {
+        /// <summary>
+        /// The detached NeoScript object whose slot holds this value, so a
+        /// field write through it can find its row once that object
+        /// materializes. Evaluator bookkeeping; never serialized.
+        /// </summary>
+        internal object? detachedOwner;
         public float x
         {
             get; set;
@@ -389,6 +395,12 @@ namespace NeoCompose.Runtime.Json
     [JsonConverter(typeof(NeoColorValueConverter))]
     public class NeoColorValue
     {
+        /// <summary>
+        /// The detached NeoScript object whose slot holds this value, so a
+        /// field write through it can find its row once that object
+        /// materializes. Evaluator bookkeeping; never serialized.
+        /// </summary>
+        internal object? detachedOwner;
         public float r
         {
             get; set;

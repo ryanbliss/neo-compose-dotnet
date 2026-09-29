@@ -6,21 +6,30 @@
 using System;
 using System.Collections.Generic;
 using NeoCompose.Runtime.Json;
+using NeoCompose.Runtime.NeoScript;
 
 namespace NeoCompose.Runtime
 {
     public abstract class NeoGeneratedClassValue
         : NeoNode, IDisposable, INeoValuePayloadProvider, INeoValueReference
     {
+        /// <summary>
+        /// The backing node. A view over a pending NeoScript temporary has
+        /// none until something needs a row; reading this attaches it.
+        /// </summary>
         protected NeoMemberClass node
         {
-            get; private set;
+            get => nodeStore ?? AttachDetachedNode();
+            private set => nodeStore = value;
         }
+        private NeoMemberClass? nodeStore;
+        /// <summary>The pending temporary this view reads until it attaches.</summary>
+        private NeoScriptObject? detached;
         private readonly string fallbackClassId;
         private bool isDisposed;
         private readonly List<IDisposable> subscriptions = new();
         private NeoMemberClassWritable? writableNodeCache;
-        private Dictionary<(string key, Type type), (NeoMember node, object view)>? storedViews;
+        private Dictionary<(string key, Type type), (NeoMember? node, object view)>? storedViews;
         private bool isClassDefaultReference;
         private readonly string animationWrapperIdentity =
             System.Guid.NewGuid().ToString("N");
@@ -58,7 +67,7 @@ namespace NeoCompose.Runtime
         public string? valueId => isClassDefaultReference
             ? null
             : node.overrideValueId ?? node.value?.id;
-        public string? classId => node.ClassId;
+        public string? classId => detached?.plan.classId ?? node.ClassId;
         internal ClassMember BackingMember => node.member;
         public bool IsReadOnly
         {
@@ -97,6 +106,60 @@ namespace NeoCompose.Runtime
             LazyInitialize();
         }
 
+        /// <summary>
+        /// A Session view over a NeoScript temporary that has not become rows.
+        /// Stored members read its slots through <see cref="TryReadDetached"/>;
+        /// anything else attaches it.
+        /// </summary>
+        protected NeoGeneratedClassValue(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client)
+        {
+            detached = (NeoScriptObject)value;
+            fallbackClassId = detached.plan.classId;
+            IsReadOnly = isReadOnly;
+            InheritedStorageOwnership = NeoValueOwnership.Session;
+            LazyInitialize();
+        }
+
+        /// <summary>
+        /// Reads stored member <paramref name="key"/> of a pending temporary
+        /// without making rows. False once attached, or for a member only a
+        /// row can answer; the caller then reads <see cref="node"/>.
+        /// </summary>
+        protected internal bool TryReadDetached(string key, out object? value)
+        {
+            if (detached is null)
+            {
+                value = null;
+                return false;
+            }
+            return NSGetterEvaluator.TryReadDetachedView(detached, key, out value);
+        }
+
+        /// <summary>The temporary this view reads until it attaches; null once it has.</summary>
+        internal NeoDetachedValue? PendingValue => detached;
+
+        internal bool IsDisposed => isDisposed;
+
+        private NeoMemberClass AttachDetachedNode()
+        {
+            if (isDisposed)
+                throw new ObjectDisposedException(GetType().Name);
+            NeoScriptObject value = detached!;
+            string id = NSGetterEvaluator.AttachDetached(value, null);
+            NeoMemberClass attached = NeoGeneratedTypesSupport.ClassValueNode(
+                client,
+                id,
+                value.plan.classId,
+                NeoValueOwnership.Session);
+            nodeStore = attached;
+            detached = null;
+            attached.OnChanged += HandleNodeChanged;
+            attached.OnDisposed += HandleNodeDisposed;
+            client.RegisterGeneratedClassValue(this, attached);
+            return attached;
+        }
+
         // Views read their current backing node; cache the wrapper, never its value.
         // Owner-local entries preserve the permission callbacks of writable views.
         protected bool TryGetStoredView<TView>(
@@ -119,6 +182,60 @@ namespace NeoCompose.Runtime
         {
             storedViews ??= new();
             storedViews[(key, typeof(TView))] = (member, view);
+            return view;
+        }
+
+        /// <summary>A pending view's List member, reading its slot until the owner attaches.</summary>
+        protected NeoList<T> DetachedList<T>(
+            string key,
+            Func<object?, T> readEntry,
+            Func<NeoClient, NeoMember, T> createItem,
+            Func<T, NeoValueWritePayload?> serializeItem,
+            Action? beforeWrite = null,
+            Func<bool>? isReadOnly = null)
+        {
+            if (TryGetDetachedView(key, out NeoList<T>? cached))
+                return cached;
+            return CacheDetachedView(key, new NeoList<T>(
+                client,
+                this,
+                key,
+                readEntry,
+                createItem,
+                serializeItem,
+                beforeWrite,
+                isReadOnly));
+        }
+
+        /// <inheritdoc cref="DetachedList{T}"/>
+        protected NeoReadOnlyList<T> DetachedReadOnlyList<T>(
+            string key,
+            Func<object?, T> readEntry,
+            Func<NeoClient, NeoMember, T> createItem)
+        {
+            if (TryGetDetachedView(key, out NeoReadOnlyList<T>? cached))
+                return cached;
+            return CacheDetachedView(key, new NeoReadOnlyList<T>(client, this, key, readEntry, createItem));
+        }
+
+        private bool TryGetDetachedView<TView>(string key, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out TView? view)
+            where TView : class
+        {
+            if (storedViews is not null
+                && storedViews.TryGetValue((key, typeof(TView)), out var cached)
+                && cached.node is null)
+            {
+                view = (TView)cached.view;
+                return true;
+            }
+            view = null;
+            return false;
+        }
+
+        private TView CacheDetachedView<TView>(string key, TView view) where TView : class
+        {
+            storedViews ??= new();
+            storedViews[(key, typeof(TView))] = (null, view);
             return view;
         }
 
@@ -149,6 +266,10 @@ namespace NeoCompose.Runtime
                 return;
             isDisposed = true;
             storedViews?.Clear();
+            // A pending view never attached: nothing was registered for it,
+            // and disposing it must not make rows.
+            if (nodeStore is null)
+                return;
             if (OwnsBackingValueLifetime)
                 client.ReleaseAnimationClips(this);
             foreach (var subscription in subscriptions.ToArray())

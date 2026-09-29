@@ -1461,6 +1461,11 @@ namespace NeoCompose.Runtime
                 // string[] branch below.
                 value = genericOptionId;
             }
+            else if (value is NeoScriptObject { attachedId: null })
+            {
+                // A detached temporary passes by reference, like the row it
+                // stands in for; nothing about it needs a row here.
+            }
             else if (value is INeoValueReference reference
                 && !string.IsNullOrEmpty(reference.valueId))
             {
@@ -2089,7 +2094,7 @@ namespace NeoCompose.Runtime
             };
         }
 
-        private static bool IsIntegralNumber(object value)
+        internal static bool IsIntegralNumber(object value)
         {
             return value switch
             {

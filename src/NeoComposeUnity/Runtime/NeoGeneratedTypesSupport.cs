@@ -348,6 +348,8 @@ namespace NeoCompose.Runtime
                 RuntimeConstructorMetadata> emptyFieldMetadata = new();
             internal readonly Dictionary<string, RuntimeClassPlan>
                 classPlans = new();
+            internal readonly Dictionary<string, DetachedClassPlan?>
+                detachedPlans = new();
         }
 
         internal sealed class RuntimeClassPlan
@@ -1782,11 +1784,7 @@ namespace NeoCompose.Runtime
                     }
 
                     MergedSchemaEntry? matchedEntry = null;
-                    foreach (MergedSchemaEntry entry in NeoSchemaClassInheritance.MergeStoredInstanceSchema(
-                        client.ResolveClassInheritanceChain(parentClass.id),
-                        id => client.TryGetMember(id, out Member? candidate)
-                            ? candidate
-                            : null))
+                    foreach (MergedSchemaEntry entry in client.ResolveStoredInstanceSchema(parentClass.id))
                     {
                         if (entry.schemaKey == pair.Key)
                         {
@@ -4358,6 +4356,28 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"Declared constructor for '{resolved.classTypeInfo.classId}' lost its root row '{rootValueId}' before creation provenance could be recorded.");
             }
+            NeoClient.StampConstructionProvenance(
+                live,
+                resolved.link.record?.id,
+                BuildConstructionProvenanceArgs(client, resolved, argumentValues, ctx, deferLiterals: false, out _));
+        }
+
+        /// <summary>
+        /// The P75 constructor arguments a declared construction records.
+        /// With <paramref name="deferLiterals"/>, a local array of immutable
+        /// leaves is copied into <paramref name="literals"/> and its slot left
+        /// null, so a construction that never becomes rows never pays for its
+        /// JSON.
+        /// </summary>
+        private static Dictionary<string, JToken?> BuildConstructionProvenanceArgs(
+            NeoClient client,
+            NeoResolvedDeclaredConstructor resolved,
+            IReadOnlyDictionary<string, object?> argumentValues,
+            NeoScript.NSGetterEvaluator.Context ctx,
+            bool deferLiterals,
+            out List<KeyValuePair<string, object?[]>>? literals)
+        {
+            literals = null;
             ConstructorRecord? record = resolved.link.record;
             var constructorArgs = new Dictionary<string, JToken?>(StringComparer.Ordinal);
             if (record is not null)
@@ -4391,6 +4411,17 @@ namespace NeoCompose.Runtime
                             ? candidate => NeoScript.NSGetterEvaluator
                                 .ConstructorReferenceOf(candidate, ctx)?.valueId
                             : null;
+                    if (deferLiterals
+                        && value is object?[] entries
+                        && IsLiteralLeafArray(entries)
+                        && resolveRowId?.Invoke(entries) is null)
+                    {
+                        string parameterId = NeoClient.ConstructorParameterId(record, index);
+                        constructorArgs[parameterId] = null;
+                        (literals ??= new List<KeyValuePair<string, object?[]>>()).Add(
+                            new KeyValuePair<string, object?[]>(parameterId, CloneLiteralLeafArray(entries)));
+                        continue;
+                    }
                     constructorArgs[NeoClient.ConstructorParameterId(record, index)] =
                         NeoClient.ConstructorArgumentToken(
                             value,
@@ -4398,7 +4429,45 @@ namespace NeoCompose.Runtime
                             resolveRowId);
                 }
             }
-            NeoClient.StampConstructionProvenance(live, record?.id, constructorArgs);
+            return constructorArgs;
+        }
+
+        /// <summary>
+        /// Entries whose recorded JSON a copy can pin: scalars, vectors and
+        /// colors.
+        /// </summary>
+        private static bool IsLiteralLeafArray(object?[] entries)
+        {
+            foreach (object? entry in entries)
+            {
+                if (entry is not (null or string or bool or double or int or long or float
+                    or NeoVector2Value or NeoColorValue))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// A copy of a literal leaf array that later writes cannot reach: a
+        /// vector or color read from a row is that row's cached payload, which
+        /// a write patches in place.
+        /// </summary>
+        private static object?[] CloneLiteralLeafArray(object?[] entries)
+        {
+            var copy = new object?[entries.Length];
+            for (int index = 0; index < entries.Length; index++)
+            {
+                copy[index] = entries[index] switch
+                {
+                    NeoVector3Value vector3 => CloneVector3(vector3),
+                    NeoVector2Value vector2 => CloneVector2(vector2),
+                    NeoColorValue color => CloneColor(color),
+                    var entry => entry,
+                };
+            }
+            return copy;
         }
 
         /// <summary>
@@ -4512,7 +4581,7 @@ namespace NeoCompose.Runtime
             NeoResolvedConstructorLink link,
             object?[] argumentValues,
             object? thisValue,
-            string rootValueId,
+            string? rootValueId,
             NeoScript.NSGetterEvaluator.Context ctx,
             IReadOnlyDictionary<string, object?[]> initializerArguments)
         {
@@ -4574,7 +4643,7 @@ namespace NeoCompose.Runtime
             ConstructorRecord record,
             object?[] argumentValues,
             object? thisValue,
-            string rootValueId,
+            string? rootValueId,
             NeoScript.NSGetterEvaluator.Context ctx)
         {
             ConstructorBaseInitializerField[] baseInitializerFields =
@@ -4604,10 +4673,15 @@ namespace NeoCompose.Runtime
                         $"Base initializer field '{field.name}' of constructor '{record.id}'"),
                 });
             }
+            if (thisValue is NeoScript.NeoScriptObject detached)
+            {
+                ApplyDetachedConstructorFields(resolved, detached, fields, ctx);
+                return;
+            }
             ApplyDeclaredConstructorFields(
                 client,
                 resolved,
-                rootValueId,
+                rootValueId!,
                 fields,
                 ctx);
         }
@@ -7778,7 +7852,11 @@ namespace NeoCompose.Runtime
             Func<NeoClient, NeoMemberClass, T>? readOnlyFactory,
             // Nullable: an Immutable-constrained type (allowedStorage collapse)
             // generates no writable class, so codegen passes null here.
-            Func<NeoClient, NeoMemberClassWritable, T>? savedFactory)
+            Func<NeoClient, NeoMemberClassWritable, T>? savedFactory,
+            // The class's view over a NeoScript temporary that has not become
+            // rows, given `saved` so it picks read-only as the factories above
+            // do; null keeps every value on the row path.
+            Func<NeoClient, NeoDetachedValue, bool, T?>? detachedFactory = null)
         {
             if (value is null)
             {
@@ -7792,6 +7870,20 @@ namespace NeoCompose.Runtime
 
             if (value is T typed)
                 return typed;
+
+            if (value is NeoScript.NeoScriptObject temporary)
+            {
+                if (temporary.view is { IsDisposed: false } view && view is T typedView)
+                    return typedView;
+                // A factory declines a class it has no view of; the row path takes it.
+                if (temporary.attachedId is null
+                    && detachedFactory is not null
+                    && detachedFactory(client, temporary, saved) is { } created)
+                {
+                    temporary.view = created as NeoGeneratedClassValue;
+                    return created;
+                }
+            }
 
             string? valueId = ValueId(value);
             if (string.IsNullOrEmpty(valueId))
@@ -7835,19 +7927,7 @@ namespace NeoCompose.Runtime
                 return cachedTyped;
             }
 
-            client.TryInferMemberForValueId(valueId!, out Member? placement);
-            var member = new ClassMember
-            {
-                classArguments = NeoGenericResolution.CloseClassArgumentsFromStamp(
-                    row.genericBindings, (placement as ClassMember)?.classArguments)
-                    is { } arguments ? new Dictionary<string, GenericBinding>(arguments) : null,
-                id = $"__neo_nsg_class_{classId}",
-                name = "NSPropertyClassValue",
-                kind = MemberKind.Class,
-                classId = classId,
-                createdAt = row.createdAt,
-                updatedAt = row.updatedAt,
-            };
+            ClassMember member = ClassValueMember(client, valueId!, row, classId!);
 
             if (saved)
             {
@@ -7892,7 +7972,8 @@ namespace NeoCompose.Runtime
             object? value,
             bool saved,
             Func<NeoClient, NeoMemberClass, T>? readOnlyFactory,
-            Func<NeoClient, NeoMemberClassWritable, T>? savedFactory)
+            Func<NeoClient, NeoMemberClassWritable, T>? savedFactory,
+            Func<NeoClient, NeoDetachedValue, bool, T?>? detachedFactory = null)
         {
             T? resolved = ReadNSPropertyClass(
                 client,
@@ -7900,13 +7981,56 @@ namespace NeoCompose.Runtime
                 true,
                 saved,
                 readOnlyFactory,
-                savedFactory);
+                savedFactory,
+                detachedFactory);
             if (resolved is null)
             {
                 throw new InvalidOperationException(
                     "NSProperty getter returned null for a required class value.");
             }
             return resolved;
+        }
+
+        /// <summary>The class id a generated view over a pending temporary dispatches on.</summary>
+        public static string DetachedClassId(NeoDetachedValue value) =>
+            ((NeoScript.NeoScriptObject)value).plan.classId;
+
+        /// <summary>The synthetic placement a class value read by id is viewed through.</summary>
+        private static ClassMember ClassValueMember(
+            NeoClient client,
+            string valueId,
+            ObjectMemberValue row,
+            string classId)
+        {
+            client.TryInferMemberForValueId(valueId, out Member? placement);
+            return new ClassMember
+            {
+                classArguments = NeoGenericResolution.CloseClassArgumentsFromStamp(
+                    row.genericBindings, (placement as ClassMember)?.classArguments)
+                    is { } arguments ? new Dictionary<string, GenericBinding>(arguments) : null,
+                id = $"__neo_nsg_class_{classId}",
+                name = "NSPropertyClassValue",
+                kind = MemberKind.Class,
+                classId = classId,
+                createdAt = row.createdAt,
+                updatedAt = row.updatedAt,
+            };
+        }
+
+        /// <summary>The node a view over an attached temporary's row reads through.</summary>
+        internal static NeoMemberClassWritable ClassValueNode(
+            NeoClient client,
+            string valueId,
+            string classId,
+            NeoValueOwnership ownership)
+        {
+            if (!client.TryGetValue(ownership, valueId, out ObjectMemberValue? row) || row is null)
+                throw new InvalidOperationException($"Class value '{valueId}' is not stored.");
+            return new NeoMemberClassWritable(
+                client,
+                ClassValueMember(client, valueId, row, classId),
+                valueId,
+                ownership);
         }
 
         public static string? ValueId(object? value)

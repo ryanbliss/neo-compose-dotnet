@@ -43,6 +43,11 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
+        internal NeoSmartTileRule(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
         public NeoSmartTileRule(NeoSmartTileCollider? Collider = null, double? MaxAnimationSpeed = null, double? MinAnimationSpeed = null, IEnumerable<NeoSmartTileNeighbor>? Neighbors = null, NeoSmartTileOutput? Output = null, NeoSmartTileTransform? RuleTransform = null, IEnumerable<Sprite>? Sprites = null)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Collider, MaxAnimationSpeed, MinAnimationSpeed, Neighbors, Output, RuleTransform, Sprites), false, NeoValueOwnership.Session)
         {
@@ -88,6 +93,11 @@ namespace HelloWorld.Assets.Scripts.Neo
             });
         }
 
+        internal static NeoSmartTileRule? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return new NeoSmartTileRule(client, value, !saved);
+        }
+
         public NeoSmartTileRule Clone()
         {
             return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
@@ -120,6 +130,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("Collider", out object? detachedValue))
+                {
+                    return NeoGeneratedTypesSupport.ReadEnumSingle(NeoGeneratedTypesSupport.ToStringArray(detachedValue), NeoSmartTileCollider.FromOptionId) ?? throw new InvalidOperationException("Required enum 'Collider' has no selected option.");
+                }
                 var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoMemberEnum>("Collider"));
                 return selected is null ? throw new InvalidOperationException("Required enum 'Collider' has no selected option.") : NeoSmartTileCollider.FromOptionId(selected);
             }
@@ -129,6 +143,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("MaxAnimationSpeed", out object? detachedValue))
+                {
+                    return Convert.ToDouble(detachedValue);
+                }
                 return node.Get<NeoMemberFloat>("MaxAnimationSpeed").value?.value ?? throw new InvalidOperationException("Required float 'MaxAnimationSpeed' has no value.");
             }
         }
@@ -137,6 +155,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("MinAnimationSpeed", out object? detachedValue))
+                {
+                    return Convert.ToDouble(detachedValue);
+                }
                 return node.Get<NeoMemberFloat>("MinAnimationSpeed").value?.value ?? throw new InvalidOperationException("Required float 'MinAnimationSpeed' has no value.");
             }
         }
@@ -145,6 +167,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("Neighbors", out _))
+                {
+                    return DetachedReadOnlyList<IReadOnlyNeoSmartTileNeighbor>("Neighbors", entry => NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, entry, false, global::HelloWorld.Assets.Scripts.Neo.NeoSmartTileNeighbor.Create, global::HelloWorld.Assets.Scripts.Neo.NeoSmartTileNeighbor.CreateWritable, global::HelloWorld.Assets.Scripts.Neo.NeoSmartTileNeighbor.CreateDetached), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoSmartTileNeighbor.Create(client, (NeoMemberClass)child));
+                }
                 var memberNode = node.Get<NeoMemberList>("Neighbors");
                 if (TryGetStoredView<NeoReadOnlyList<IReadOnlyNeoSmartTileNeighbor>>("Neighbors", memberNode, out var cached)) return cached;
                 return CacheStoredView("Neighbors", memberNode, new NeoReadOnlyList<IReadOnlyNeoSmartTileNeighbor>(client, memberNode, (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoSmartTileNeighbor.Create(client, (NeoMemberClass)child)));
@@ -155,6 +181,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("Output", out object? detachedValue))
+                {
+                    return NeoGeneratedTypesSupport.ReadEnumSingle(NeoGeneratedTypesSupport.ToStringArray(detachedValue), NeoSmartTileOutput.FromOptionId) ?? throw new InvalidOperationException("Required enum 'Output' has no selected option.");
+                }
                 var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoMemberEnum>("Output"));
                 return selected is null ? throw new InvalidOperationException("Required enum 'Output' has no selected option.") : NeoSmartTileOutput.FromOptionId(selected);
             }
@@ -164,6 +194,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("RuleTransform", out object? detachedValue))
+                {
+                    return NeoGeneratedTypesSupport.ReadEnumSingle(NeoGeneratedTypesSupport.ToStringArray(detachedValue), NeoSmartTileTransform.FromOptionId) ?? throw new InvalidOperationException("Required enum 'RuleTransform' has no selected option.");
+                }
                 var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoMemberEnum>("RuleTransform"));
                 return selected is null ? throw new InvalidOperationException("Required enum 'RuleTransform' has no selected option.") : NeoSmartTileTransform.FromOptionId(selected);
             }

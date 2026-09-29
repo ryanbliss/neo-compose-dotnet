@@ -31,6 +31,11 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
+        internal NeoChoiceLog(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
         public NeoChoiceLog(string? ChoiceId = null)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(ChoiceId), false, NeoValueOwnership.Session)
         {
@@ -70,6 +75,11 @@ namespace HelloWorld.Assets.Scripts.Neo
             });
         }
 
+        internal static NeoChoiceLog? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return new NeoChoiceLog(client, value, !saved);
+        }
+
         public NeoChoiceLog Clone()
         {
             return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
@@ -94,6 +104,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("ChoiceId", out object? detachedValue))
+                {
+                    return (string)detachedValue!;
+                }
                 return node.Get<NeoMemberString>("ChoiceId").value?.value ?? throw new InvalidOperationException("Required string 'ChoiceId' has no value.");
             }
             set

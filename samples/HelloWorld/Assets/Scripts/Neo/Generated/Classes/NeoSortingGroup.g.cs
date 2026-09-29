@@ -41,6 +41,11 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
+        internal NeoSortingGroup(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
         public NeoSortingGroup(bool? SortAtRoot = null, NeoVector2? SortPoint = null)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(SortAtRoot, SortPoint), false, NeoValueOwnership.Session)
         {
@@ -81,6 +86,11 @@ namespace HelloWorld.Assets.Scripts.Neo
             });
         }
 
+        internal static NeoSortingGroup? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return new NeoSortingGroup(client, value, !saved);
+        }
+
         public NeoSortingGroup Clone()
         {
             return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
@@ -110,6 +120,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("SortAtRoot", out object? detachedValue))
+                {
+                    return (bool)detachedValue!;
+                }
                 return node.Get<NeoMemberBool>("SortAtRoot").value?.value ?? throw new InvalidOperationException("Required bool 'SortAtRoot' has no value.");
             }
             set

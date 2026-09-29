@@ -43,6 +43,11 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
+        internal NeoTileGrid(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
         internal static NeoTileGrid Create(NeoClient client, NeoMemberClass node)
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoTileGrid>(client, node, static (factoryClient, factoryNode) =>
@@ -67,6 +72,15 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoTileGrid' without a concrete client type id."),
                 };
             });
+        }
+
+        internal static NeoTileGrid? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return NeoGeneratedTypesSupport.DetachedClassId(value) switch
+            {
+                "b44d80a9-7760-4919-8844-0cb71d08b788" => new OldConsoleLandingGrid(client, value, !saved),
+                _ => null,
+            };
         }
 
         public NeoTileGrid Clone()
@@ -123,6 +137,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("Children", out _))
+                {
+                    return DetachedReadOnlyList<IReadOnlyNeoLayerGroupBase>("Children", entry => NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, entry, false, global::HelloWorld.Assets.Scripts.Neo.NeoLayerGroupBase.Create, global::HelloWorld.Assets.Scripts.Neo.NeoLayerGroupBase.CreateWritable), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoLayerGroupBase.Create(client, (NeoMemberClass)child));
+                }
                 var memberNode = node.Get<NeoMemberList>("Children");
                 if (TryGetStoredView<NeoReadOnlyList<IReadOnlyNeoLayerGroupBase>>("Children", memberNode, out var cached)) return cached;
                 return CacheStoredView("Children", memberNode, new NeoReadOnlyList<IReadOnlyNeoLayerGroupBase>(client, memberNode, (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoLayerGroupBase.Create(client, (NeoMemberClass)child)));
@@ -133,6 +151,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("PixelsPerUnit", out object? detachedValue))
+                {
+                    return Convert.ToInt32(detachedValue);
+                }
                 return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("PixelsPerUnit")) ?? throw new InvalidOperationException("Required int 'PixelsPerUnit' has no value.");
             }
         }

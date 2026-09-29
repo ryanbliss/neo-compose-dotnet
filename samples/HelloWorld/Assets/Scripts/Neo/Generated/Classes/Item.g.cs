@@ -35,6 +35,11 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
+        internal Item(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
         public Item(string? Name = null, int? Value = null, double? Weight = null)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Value, Weight), false, NeoValueOwnership.Session)
         {
@@ -76,6 +81,11 @@ namespace HelloWorld.Assets.Scripts.Neo
             });
         }
 
+        internal static Item? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return new Item(client, value, !saved);
+        }
+
         public Item Clone()
         {
             return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
@@ -100,6 +110,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("Name", out object? detachedValue))
+                {
+                    return (string)detachedValue!;
+                }
                 return node.Get<NeoMemberString>("Name").Text ?? throw new InvalidOperationException("Required string 'Name' has no value.");
             }
         }
@@ -108,6 +122,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("Value", out object? detachedValue))
+                {
+                    return Convert.ToInt32(detachedValue);
+                }
                 return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("Value")) ?? throw new InvalidOperationException("Required int 'Value' has no value.");
             }
         }
@@ -116,6 +134,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("Weight", out object? detachedValue))
+                {
+                    return detachedValue is null ? (double?)null : Convert.ToDouble(detachedValue);
+                }
                 return node.Get<NeoMemberFloat>("Weight").value?.value;
             }
         }

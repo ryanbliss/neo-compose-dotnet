@@ -12,8 +12,11 @@ namespace NeoCompose.Runtime
 {
     public partial class NeoClient
     {
-        private Dictionary<string, HashSet<string>>? writablePlacementParents;
-        private readonly Dictionary<(NeoValueOwnership ownership, string id), HashSet<string>> writablePlacementChildren = new();
+        // A child's writable parents: one parent id, or a HashSet in the rare
+        // case of several. Owned children almost always have exactly one.
+        private Dictionary<string, object>? writablePlacementParents;
+        private readonly Dictionary<(NeoValueOwnership ownership, string id), string[]> writablePlacementChildren = new();
+        private readonly List<string> placementChildScratch = new();
 
         internal static IEnumerable<string> PlacementChildIds(MemberValue row)
         {
@@ -29,6 +32,23 @@ namespace NeoCompose.Runtime
                         yield return child;
         }
 
+        /// <summary><see cref="PlacementChildIds"/> without its enumerator, for the per-row index.</summary>
+        private static void CollectPlacementChildIds(MemberValue row, List<string> into)
+        {
+            if (row is ObjectMemberValue objectRow)
+            {
+                if (objectRow.value is not null)
+                    foreach (string child in objectRow.value.Values)
+                        into.Add(child);
+                if (objectRow.constructorArgs is not null)
+                    foreach (var token in objectRow.constructorArgs.Values)
+                        if (token?.Type == JTokenType.String && (string?)token is string child)
+                            into.Add(child);
+            }
+            else if (row is ArrayMemberValue { value: not null } array)
+                into.AddRange(array.value);
+        }
+
         private void IndexPlacementParent(NeoValueOwnership ownership, MemberValue row)
         {
             if (writablePlacementParents is null)
@@ -37,39 +57,59 @@ namespace NeoCompose.Runtime
             // Only records and arrays link children; a leaf row has none to index.
             if (row is not ObjectMemberValue and not ArrayMemberValue)
                 return;
-            var children = new HashSet<string>(PlacementChildIds(row));
+            placementChildScratch.Clear();
+            CollectPlacementChildIds(row, placementChildScratch);
+            if (placementChildScratch.Count == 0)
+                return;
+            string[] children = placementChildScratch.ToArray();
             writablePlacementChildren[(ownership, row.id)] = children;
             foreach (string child in children)
+                AddPlacementParent(child, row.id);
+        }
+
+        private void AddPlacementParent(string child, string parent)
+        {
+            if (!writablePlacementParents!.TryGetValue(child, out object? parents))
+                writablePlacementParents[child] = parent;
+            else if (parents is HashSet<string> set)
+                set.Add(parent);
+            else if (!string.Equals((string)parents, parent, StringComparison.Ordinal))
+                writablePlacementParents[child] = new HashSet<string>(StringComparer.Ordinal) { (string)parents, parent };
+        }
+
+        private void RemovePlacementParent(string child, string parent)
+        {
+            if (!writablePlacementParents!.TryGetValue(child, out object? parents))
+                return;
+            if (parents is HashSet<string> set)
             {
-                if (!writablePlacementParents.TryGetValue(child, out var parents))
-                    writablePlacementParents[child] = parents = new HashSet<string>();
-                parents.Add(row.id);
+                if (set.Remove(parent) && set.Count == 0)
+                    writablePlacementParents.Remove(child);
             }
+            else if (string.Equals((string)parents, parent, StringComparison.Ordinal))
+                writablePlacementParents.Remove(child);
         }
 
         private void UnindexPlacementParent(NeoValueOwnership ownership, string id)
         {
             if (writablePlacementParents is null
-                || !writablePlacementChildren.TryGetValue((ownership, id), out var children))
+                || !writablePlacementChildren.Remove((ownership, id), out string[]? children))
                 return;
-            writablePlacementChildren.Remove((ownership, id));
             NeoValueOwnership other = ownership == NeoValueOwnership.Save ? NeoValueOwnership.Session : NeoValueOwnership.Save;
+            // The same id in the other store keeps the links it shares.
+            HashSet<string>? retained = writablePlacementChildren.TryGetValue((other, id), out string[]? kept)
+                ? new HashSet<string>(kept, StringComparer.Ordinal)
+                : null;
             foreach (string child in children)
-            {
-                if (writablePlacementChildren.TryGetValue((other, id), out var retained) && retained.Contains(child))
-                    continue;
-                if (writablePlacementParents.TryGetValue(child, out var parents)
-                    && parents.Remove(id)
-                    && parents.Count == 0)
-                    writablePlacementParents.Remove(child);
-            }
+                if (retained is null || !retained.Contains(child))
+                    RemovePlacementParent(child, id);
         }
 
         private void EnsureWritablePlacementParents()
         {
             if (writablePlacementParents is not null)
                 return;
-            writablePlacementParents = new Dictionary<string, HashSet<string>>();
+            writablePlacementParents = new Dictionary<string, object>();
             foreach (MemberValue row in saveData.values.Values)
                 IndexPlacementParent(NeoValueOwnership.Save, row);
             foreach (MemberValue row in sessionData.values.Values)
@@ -79,9 +119,14 @@ namespace NeoCompose.Runtime
         private IEnumerable<string> PlacementParents(string childId)
         {
             EnsureWritablePlacementParents();
-            if (writablePlacementParents!.TryGetValue(childId, out var writable))
-                foreach (string parent in writable)
-                    yield return parent;
+            if (writablePlacementParents!.TryGetValue(childId, out object? writable))
+            {
+                if (writable is HashSet<string> set)
+                    foreach (string parent in set)
+                        yield return parent;
+                else
+                    yield return (string)writable;
+            }
             if (ValueInferenceIndex.Parents.TryGetValue(childId, out var authored))
                 foreach (var parent in authored)
                     yield return parent.Key;
@@ -93,8 +138,13 @@ namespace NeoCompose.Runtime
         private void CollectPlacementParents(string childId, List<string> into)
         {
             EnsureWritablePlacementParents();
-            if (writablePlacementParents!.TryGetValue(childId, out var writable))
-                into.AddRange(writable);
+            if (writablePlacementParents!.TryGetValue(childId, out object? writable))
+            {
+                if (writable is HashSet<string> set)
+                    into.AddRange(set);
+                else
+                    into.Add((string)writable);
+            }
             if (ValueInferenceIndex.Parents.TryGetValue(childId, out var authored))
                 foreach (var parent in authored)
                     into.Add(parent.Key);

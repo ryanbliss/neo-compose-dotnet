@@ -1036,12 +1036,16 @@ namespace NeoCompose.Runtime
                 ToInt(value.z, "z"));
         }
 
+        internal static bool IsInt(float value) =>
+            !float.IsNaN(value)
+            && !float.IsInfinity(value)
+            && value >= int.MinValue
+            && value <= int.MaxValue
+            && System.Math.Truncate(value) == value;
+
         private static int ToInt(float value, string component)
         {
-            if (float.IsNaN(value) || float.IsInfinity(value)
-                || value < int.MinValue
-                || value > int.MaxValue
-                || System.Math.Truncate(value) != value)
+            if (!IsInt(value))
             {
                 throw new System.InvalidOperationException(
                     $"Vector component '{component}' must be an integer.");

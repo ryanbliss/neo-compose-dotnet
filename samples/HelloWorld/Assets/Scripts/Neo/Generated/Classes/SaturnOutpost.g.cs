@@ -35,6 +35,11 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
+        internal SaturnOutpost(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
         public SaturnOutpost(Sprite Image, string Name, SaturnMoon Moon, AnimationInfo? AnimatedImage = null, Planet? Planet = null)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Image, Name, Moon, AnimatedImage, Planet), false, NeoValueOwnership.Session)
         {
@@ -78,6 +83,11 @@ namespace HelloWorld.Assets.Scripts.Neo
             });
         }
 
+        internal new static SaturnOutpost? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return new SaturnOutpost(client, value, !saved);
+        }
+
         public new SaturnOutpost Clone()
         {
             return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
@@ -112,6 +122,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("Moon", out object? detachedValue))
+                {
+                    return NeoGeneratedTypesSupport.ReadEnumSingle(NeoGeneratedTypesSupport.ToStringArray(detachedValue), SaturnMoon.FromOptionId) ?? throw new InvalidOperationException("Required enum 'Moon' has no selected option.");
+                }
                 var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoMemberEnum>("Moon"));
                 return selected is null ? throw new InvalidOperationException("Required enum 'Moon' has no selected option.") : SaturnMoon.FromOptionId(selected);
             }
@@ -126,6 +140,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("Planet", out object? detachedValue))
+                {
+                    return NeoGeneratedTypesSupport.ReadEnumSingle(NeoGeneratedTypesSupport.ToStringArray(detachedValue), Planet.FromOptionId) ?? throw new InvalidOperationException("Required enum 'Planet' has no selected option.");
+                }
                 var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoMemberEnum>("Planet"));
                 return selected is null ? throw new InvalidOperationException("Required enum 'Planet' has no selected option.") : Planet.FromOptionId(selected);
             }

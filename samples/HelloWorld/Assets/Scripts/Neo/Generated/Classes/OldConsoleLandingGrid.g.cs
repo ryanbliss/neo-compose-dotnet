@@ -33,6 +33,11 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
+        internal OldConsoleLandingGrid(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
         public OldConsoleLandingGrid(string DisplayName, NeoVector3? CellSize = null, IEnumerable<NeoLayerGroupBase>? Children = null, int? PixelsPerUnit = null)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(DisplayName, CellSize, Children, PixelsPerUnit), false, NeoValueOwnership.Session)
         {
@@ -73,6 +78,11 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => new OldConsoleLandingGrid(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
+        }
+
+        internal new static OldConsoleLandingGrid? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return new OldConsoleLandingGrid(client, value, !saved);
         }
 
         public new OldConsoleLandingGrid Clone()
@@ -118,6 +128,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("DisplayName", out object? detachedValue))
+                {
+                    return (string)detachedValue!;
+                }
                 return node.Get<NeoMemberString>("DisplayName").value?.value ?? throw new InvalidOperationException("Required string 'DisplayName' has no value.");
             }
         }

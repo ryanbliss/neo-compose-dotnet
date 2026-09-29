@@ -62,7 +62,7 @@ namespace NeoCompose.Runtime
             entryMember = ResolveEntryMember();
             IsUnordered = client.IsUnorderedList(member);
             ReinitializeChildren();
-            client.OnValuePartitionChanged += HandleValuePartitionChanged;
+            client.WatchValuePartitions(this);
         }
 
         public NeoMemberList(NeoClient client, ListMember member, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
@@ -71,7 +71,7 @@ namespace NeoCompose.Runtime
             entryMember = ResolveEntryMember();
             IsUnordered = client.IsUnorderedList(member);
             ReinitializeChildren();
-            client.OnValuePartitionChanged += HandleValuePartitionChanged;
+            client.WatchValuePartitions(this);
         }
 
         protected virtual NeoMember CreateChild(
@@ -124,7 +124,7 @@ namespace NeoCompose.Runtime
         {
             if (!BeginDisposeChildren())
                 return;
-            client.OnValuePartitionChanged -= HandleValuePartitionChanged;
+            client.UnwatchValuePartitions(this);
             foreach (var child in childMembers)
             {
                 child.OnChanged -= HandleChildChanged;
@@ -137,7 +137,7 @@ namespace NeoCompose.Runtime
             base.Dispose();
         }
 
-        private void HandleValuePartitionChanged(string _)
+        internal void HandleValuePartitionChanged()
         {
             if (isDisposed)
                 return;

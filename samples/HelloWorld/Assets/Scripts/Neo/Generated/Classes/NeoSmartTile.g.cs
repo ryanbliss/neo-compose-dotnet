@@ -33,6 +33,11 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
+        internal NeoSmartTile(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
         public NeoSmartTile(NeoSmartTileCollider? DefaultCollider = null, IEnumerable<NeoSmartTileRule>? Rules = null)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(DefaultCollider, Rules), false, NeoValueOwnership.Session)
         {
@@ -73,6 +78,11 @@ namespace HelloWorld.Assets.Scripts.Neo
             });
         }
 
+        internal static NeoSmartTile? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return new NeoSmartTile(client, value, !saved);
+        }
+
         public NeoSmartTile Clone()
         {
             return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
@@ -100,6 +110,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("DefaultCollider", out object? detachedValue))
+                {
+                    return NeoGeneratedTypesSupport.ReadEnumSingle(NeoGeneratedTypesSupport.ToStringArray(detachedValue), NeoSmartTileCollider.FromOptionId) ?? throw new InvalidOperationException("Required enum 'DefaultCollider' has no selected option.");
+                }
                 var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoMemberEnum>("DefaultCollider"));
                 return selected is null ? throw new InvalidOperationException("Required enum 'DefaultCollider' has no selected option.") : NeoSmartTileCollider.FromOptionId(selected);
             }
@@ -109,6 +123,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("Rules", out _))
+                {
+                    return DetachedReadOnlyList<IReadOnlyNeoSmartTileRule>("Rules", entry => NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, entry, false, global::HelloWorld.Assets.Scripts.Neo.NeoSmartTileRule.Create, global::HelloWorld.Assets.Scripts.Neo.NeoSmartTileRule.CreateWritable, global::HelloWorld.Assets.Scripts.Neo.NeoSmartTileRule.CreateDetached), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoSmartTileRule.Create(client, (NeoMemberClass)child));
+                }
                 var memberNode = node.Get<NeoMemberList>("Rules");
                 if (TryGetStoredView<NeoReadOnlyList<IReadOnlyNeoSmartTileRule>>("Rules", memberNode, out var cached)) return cached;
                 return CacheStoredView("Rules", memberNode, new NeoReadOnlyList<IReadOnlyNeoSmartTileRule>(client, memberNode, (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoSmartTileRule.Create(client, (NeoMemberClass)child)));

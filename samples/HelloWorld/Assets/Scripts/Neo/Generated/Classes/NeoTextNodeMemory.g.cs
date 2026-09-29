@@ -39,6 +39,11 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
+        internal NeoTextNodeMemory(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
         public NeoTextNodeMemory(IEnumerable<NeoChoiceLog>? ChoiceHistory = null, string? LastVisitedAt = null, string? MostRecentChoiceId = null, int? VisitCount = null)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(ChoiceHistory, LastVisitedAt, MostRecentChoiceId, VisitCount), false, NeoValueOwnership.Session)
         {
@@ -81,6 +86,11 @@ namespace HelloWorld.Assets.Scripts.Neo
             });
         }
 
+        internal static NeoTextNodeMemory? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return new NeoTextNodeMemory(client, value, !saved);
+        }
+
         public NeoTextNodeMemory Clone()
         {
             return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
@@ -105,6 +115,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("ChoiceHistory", out _))
+                {
+                    return DetachedList<NeoChoiceLog>("ChoiceHistory", entry => NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, entry, true, null, global::HelloWorld.Assets.Scripts.Neo.NeoChoiceLog.CreateWritable, global::HelloWorld.Assets.Scripts.Neo.NeoChoiceLog.CreateDetached), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoChoiceLog.CreateWritable(client, (NeoMemberClassWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item));
+                }
                 var memberNode = writableNode.Get<NeoMemberListWritable>("ChoiceHistory");
                 if (TryGetStoredView<NeoList<NeoChoiceLog>>("ChoiceHistory", memberNode, out var cached)) return cached;
                 return CacheStoredView("ChoiceHistory", memberNode, new NeoList<NeoChoiceLog>(client, memberNode, () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("ChoiceHistory"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoChoiceLog.CreateWritable(client, (NeoMemberClassWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item)));
@@ -125,6 +139,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("LastVisitedAt", out object? detachedValue))
+                {
+                    return (string?)detachedValue;
+                }
                 return node.Get<NeoMemberString>("LastVisitedAt").value?.value;
             }
             set
@@ -137,6 +155,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("MostRecentChoiceId", out object? detachedValue))
+                {
+                    return (string?)detachedValue;
+                }
                 return node.Get<NeoMemberString>("MostRecentChoiceId").value?.value;
             }
             set
@@ -149,6 +171,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("VisitCount", out object? detachedValue))
+                {
+                    return Convert.ToInt32(detachedValue);
+                }
                 return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("VisitCount")) ?? throw new InvalidOperationException("Required int 'VisitCount' has no value.");
             }
             set

@@ -47,6 +47,11 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
+        internal Save(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
         public Save(int? Bits = null, bool? Dead = null, IEnumerable<NeoLookupSelection>? Inventory = null, NeoLookupSelection? Location = null, NeoMemory? NeoMemory = null, IDictionary<string, OutpostSaveData?>? OutpostSaveMap = null, QuestState? Quest = null, IEnumerable<PlanetVisit>? Visited = null, Planet? World = null)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Bits, Dead, Inventory, Location, NeoMemory, OutpostSaveMap, Quest, Visited, World), false, NeoValueOwnership.Session)
         {
@@ -94,6 +99,11 @@ namespace HelloWorld.Assets.Scripts.Neo
             });
         }
 
+        internal static Save? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return new Save(client, value, !saved);
+        }
+
         public Save Clone()
         {
             return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
@@ -118,6 +128,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("Bits", out object? detachedValue))
+                {
+                    return Convert.ToInt32(detachedValue);
+                }
                 return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("Bits")) ?? throw new InvalidOperationException("Required int 'Bits' has no value.");
             }
             set
@@ -130,6 +144,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("Dead", out object? detachedValue))
+                {
+                    return (bool)detachedValue!;
+                }
                 return node.Get<NeoMemberBool>("Dead").value?.value ?? throw new InvalidOperationException("Required bool 'Dead' has no value.");
             }
             set
@@ -172,6 +190,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("NeoMemory", out object? detachedValue))
+                {
+                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, true, null, global::HelloWorld.Assets.Scripts.Neo.NeoMemory.CreateWritable, global::HelloWorld.Assets.Scripts.Neo.NeoMemory.CreateDetached);
+                }
                 return global::HelloWorld.Assets.Scripts.Neo.NeoMemory.CreateWritable(client, writableNode.Get<NeoMemberClassWritable>("NeoMemory"));
             }
             set
@@ -194,6 +216,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("Quest", out object? detachedValue))
+                {
+                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, true, null, global::HelloWorld.Assets.Scripts.Neo.QuestState.CreateWritable, global::HelloWorld.Assets.Scripts.Neo.QuestState.CreateDetached);
+                }
                 return global::HelloWorld.Assets.Scripts.Neo.QuestState.CreateWritable(client, writableNode.Get<NeoMemberClassWritable>("Quest"));
             }
             set
@@ -206,6 +232,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("Visited", out _))
+                {
+                    return DetachedList<PlanetVisit>("Visited", entry => NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, entry, true, null, global::HelloWorld.Assets.Scripts.Neo.PlanetVisit.CreateWritable, global::HelloWorld.Assets.Scripts.Neo.PlanetVisit.CreateDetached), (client, child) => global::HelloWorld.Assets.Scripts.Neo.PlanetVisit.CreateWritable(client, (NeoMemberClassWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item));
+                }
                 var memberNode = writableNode.Get<NeoMemberListWritable>("Visited");
                 if (TryGetStoredView<NeoList<PlanetVisit>>("Visited", memberNode, out var cached)) return cached;
                 return CacheStoredView("Visited", memberNode, new NeoList<PlanetVisit>(client, memberNode, () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("Visited"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.PlanetVisit.CreateWritable(client, (NeoMemberClassWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item)));
@@ -216,6 +246,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("World", out object? detachedValue))
+                {
+                    return NeoGeneratedTypesSupport.ReadEnumSingle(NeoGeneratedTypesSupport.ToStringArray(detachedValue), Planet.FromOptionId) ?? throw new InvalidOperationException("Required enum 'World' has no selected option.");
+                }
                 var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoMemberEnum>("World"));
                 return selected is null ? throw new InvalidOperationException("Required enum 'World' has no selected option.") : Planet.FromOptionId(selected);
             }

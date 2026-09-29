@@ -56,6 +56,11 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
+        internal Outpost(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
         public IOutpostFunctionHandler? FunctionHandler
         {
             get => FunctionHandlerObject as IOutpostFunctionHandler;
@@ -108,6 +113,17 @@ namespace HelloWorld.Assets.Scripts.Neo
             });
         }
 
+        internal static Outpost? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return NeoGeneratedTypesSupport.DetachedClassId(value) switch
+            {
+                "96818dab-90e5-4ab9-8f69-cce66e39e370" => new SaturnOutpost(client, value, !saved),
+                "a50efb7e-58f6-4342-906e-0b01f98b15af" => new JupiterOutpost(client, value, !saved),
+                "4c196697-4e08-4aeb-823f-322b353071ac" => new Outpost(client, value, !saved),
+                _ => null,
+            };
+        }
+
         public Outpost Clone()
         {
             return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
@@ -132,6 +148,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("AnimatedImage", out object? detachedValue))
+                {
+                    return NeoGeneratedTypesSupport.ReadNSPropertyClass(client, detachedValue, false, false, global::HelloWorld.Assets.Scripts.Neo.AnimationInfo.Create, global::HelloWorld.Assets.Scripts.Neo.AnimationInfo.CreateWritable, global::HelloWorld.Assets.Scripts.Neo.AnimationInfo.CreateDetached);
+                }
                 var child = node.Get<NeoMemberClass>("AnimatedImage");
                 return child.value?.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.AnimationInfo.Create(client, child);
             }
@@ -162,6 +182,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("Name", out object? detachedValue))
+                {
+                    return (string)detachedValue!;
+                }
                 return node.Get<NeoMemberString>("Name").Text ?? throw new InvalidOperationException("Required string 'Name' has no value.");
             }
         }
@@ -170,6 +194,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("Planet", out object? detachedValue))
+                {
+                    return NeoGeneratedTypesSupport.ReadEnumSingle(NeoGeneratedTypesSupport.ToStringArray(detachedValue), Planet.FromOptionId) ?? throw new InvalidOperationException("Required enum 'Planet' has no selected option.");
+                }
                 var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoMemberEnum>("Planet"));
                 return selected is null ? throw new InvalidOperationException("Required enum 'Planet' has no selected option.") : Planet.FromOptionId(selected);
             }
@@ -182,7 +210,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 var result = writableNode.Get<NeoMemberNSProperty>("Save").Compute(valueId!);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
-                return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result.value, true, null, OutpostSaveData.CreateWritable);
+                return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result.value, true, null, OutpostSaveData.CreateWritable, OutpostSaveData.CreateDetached);
             }
         }
 
@@ -192,7 +220,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 var result = writableNode.Get<NeoMemberNSProperty>("SaveUnsafe").Compute(valueId!);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
-                return NeoGeneratedTypesSupport.ReadNSPropertyClass(client, result.value, false, true, null, OutpostSaveData.CreateWritable);
+                return NeoGeneratedTypesSupport.ReadNSPropertyClass(client, result.value, false, true, null, OutpostSaveData.CreateWritable, OutpostSaveData.CreateDetached);
             }
         }
 

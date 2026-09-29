@@ -645,6 +645,9 @@ namespace NeoCompose.Tests
             // application after validating that wire identity survived parsing.
             ((VariantMemberValue)decoded).value!.rowValueId = null;
             client.ProjectDataForRuntime.values[row.id] = decoded;
+            // Replacing a loaded authored row moves the export's epoch, as a
+            // partition load would, so the client re-reads it.
+            client.ProjectDataForRuntime.valuesEpoch++;
             NSGetterEvaluator.Context ctx = Context(client);
             string targetId = NewSessionInstance(client);
 

@@ -33,6 +33,11 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
+        internal NeoSmartTileNeighbor(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
         public NeoSmartTileNeighbor(NeoVector2Int? Cell = null, NeoSmartTileCondition? Condition = null)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Cell, Condition), false, NeoValueOwnership.Session)
         {
@@ -73,6 +78,11 @@ namespace HelloWorld.Assets.Scripts.Neo
             });
         }
 
+        internal static NeoSmartTileNeighbor? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return new NeoSmartTileNeighbor(client, value, !saved);
+        }
+
         public NeoSmartTileNeighbor Clone()
         {
             return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
@@ -111,6 +121,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("Condition", out object? detachedValue))
+                {
+                    return NeoGeneratedTypesSupport.ReadEnumSingle(NeoGeneratedTypesSupport.ToStringArray(detachedValue), NeoSmartTileCondition.FromOptionId) ?? throw new InvalidOperationException("Required enum 'Condition' has no selected option.");
+                }
                 var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoMemberEnum>("Condition"));
                 return selected is null ? throw new InvalidOperationException("Required enum 'Condition' has no selected option.") : NeoSmartTileCondition.FromOptionId(selected);
             }

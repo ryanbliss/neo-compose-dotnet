@@ -97,8 +97,12 @@ namespace NeoCompose.Runtime
     public class NeoReadOnlyList<T> : IReadOnlyList<T>
     {
         protected readonly NeoClient client;
-        protected NeoMemberList node;
+        private NeoMemberList? nodeStore;
         protected readonly Func<NeoClient, NeoMember, T> createItem;
+        /// <summary>The pending view whose List slot this list reads until it attaches.</summary>
+        private readonly NeoGeneratedClassValue? detachedOwner;
+        private readonly string? detachedKey;
+        private readonly Func<object?, T>? readDetachedEntry;
 
         public NeoReadOnlyList(
             NeoClient client,
@@ -106,9 +110,39 @@ namespace NeoCompose.Runtime
             Func<NeoClient, NeoMember, T> createItem)
         {
             this.client = client;
-            this.node = node;
+            nodeStore = node;
             this.createItem = createItem;
         }
+
+        /// <summary>
+        /// A List member of a view over a pending NeoScript temporary: entries
+        /// read from its slot, and anything else attaches the owner and reads
+        /// its row.
+        /// </summary>
+        internal NeoReadOnlyList(
+            NeoClient client,
+            NeoGeneratedClassValue owner,
+            string key,
+            Func<object?, T> readEntry,
+            Func<NeoClient, NeoMember, T> createItem)
+        {
+            this.client = client;
+            this.createItem = createItem;
+            detachedOwner = owner;
+            detachedKey = key;
+            readDetachedEntry = readEntry;
+        }
+
+        protected NeoMemberList node
+        {
+            get => nodeStore ??= detachedOwner!.WritableBackingNode.Get<NeoMemberListWritable>(detachedKey!);
+            set => nodeStore = value;
+        }
+
+        private object?[]? DetachedEntries() =>
+            nodeStore is null && detachedOwner!.TryReadDetached(detachedKey!, out object? entries)
+                ? entries as object?[]
+                : null;
 
         /// <summary>
         /// Subscribes to any change inside this list (adds, removes, item
@@ -127,7 +161,9 @@ namespace NeoCompose.Runtime
             return NeoCollectionSubscription.WatchList(node, client, this, handler);
         }
 
-        public T this[int index] => createItem(client, node[index]);
+        public T this[int index] => DetachedEntries() is { } entries
+            ? readDetachedEntry!(entries[index])
+            : createItem(client, node[index]);
 
         /// <summary>
         /// Resolves a List member by its stable value id. The underlying
@@ -170,10 +206,16 @@ namespace NeoCompose.Runtime
             return node.ContainsValueId(valueId);
         }
 
-        public int Count => node.Count;
+        public int Count => DetachedEntries() is { } entries ? entries.Length : node.Count;
 
         public IEnumerator<T> GetEnumerator()
         {
+            if (DetachedEntries() is { } entries)
+            {
+                foreach (object? entry in entries)
+                    yield return readDetachedEntry!(entry);
+                yield break;
+            }
             foreach (var child in node)
             {
                 yield return createItem(client, child);
@@ -210,6 +252,23 @@ namespace NeoCompose.Runtime
             : base(client, node, createItem)
         {
             this.getWritableNode = getWritableNode ?? throw new ArgumentNullException(nameof(getWritableNode));
+            this.serializeItem = serializeItem;
+            this.beforeWrite = beforeWrite;
+            this.isReadOnly = isReadOnly;
+        }
+
+        internal NeoList(
+            NeoClient client,
+            NeoGeneratedClassValue owner,
+            string key,
+            Func<object?, T> readEntry,
+            Func<NeoClient, NeoMember, T> createItem,
+            Func<T, NeoValueWritePayload?> serializeItem,
+            Action? beforeWrite,
+            Func<bool>? isReadOnly)
+            : base(client, owner, key, readEntry, createItem)
+        {
+            getWritableNode = () => owner.WritableBackingNode.GetOrCreateCollection<NeoMemberListWritable>(key);
             this.serializeItem = serializeItem;
             this.beforeWrite = beforeWrite;
             this.isReadOnly = isReadOnly;
