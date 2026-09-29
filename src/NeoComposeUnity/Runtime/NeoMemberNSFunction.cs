@@ -576,14 +576,14 @@ namespace NeoCompose.Runtime
                 }
                 else if (!function.Deferred)
                 {
-                    savedFrame = ctx.EnterFunction(function.MemberId, isStatic ? null : receiver);
+                    savedFrame = ctx.EnterFunction(function.MemberId, function.DirectCallStack, isStatic ? null : receiver);
                     inPlaceFrame = true;
                     nestedCtx = ctx;
                 }
                 else
                 {
                     // A suspended deferred frame outlives this call.
-                    nestedCtx = ctx.WithFunctionPushed(function.MemberId, isStatic ? null : receiver);
+                    nestedCtx = ctx.WithFunctionPushed(function.MemberId, function.DirectCallStack, isStatic ? null : receiver);
                 }
                 NeoScriptExecutionOptions functionOptions = options.ForFunction(function.Deferred);
                 NeoScriptExecutor.PrepareFunctionContext(nestedCtx, functionOptions);
@@ -1425,7 +1425,7 @@ namespace NeoCompose.Runtime
             object? value,
             TypeInfo typeInfo,
             NSGetterEvaluator.Context ctx,
-            string subject)
+            ValueSubject subject)
         {
             if (value is NeoCellPattern pattern && typeInfo.type == MemberKind.Class)
                 value = NeoCellPatternStorage.Materialize(pattern, ctx);
@@ -1501,7 +1501,7 @@ namespace NeoCompose.Runtime
                     if (value is decimal decimalValue)
                         value = NeoDecimalValues.Format(decimalValue);
                     else if (value is double or float or int or long or short)
-                        value = NSGetterEvaluator.CoerceDecimalOperand(value, subject);
+                        value = NSGetterEvaluator.CoerceDecimalOperand(value, subject.ToString());
                     break;
                 case MemberKind.Vector2:
                     if (NeoGeneratedTypesSupport.ReadVector2Value(value) is Vector2 normalizedVector2)
@@ -1587,7 +1587,7 @@ namespace NeoCompose.Runtime
         internal static void ValidateRuntimeValue(
             object? value,
             TypeInfo typeInfo,
-            string subject)
+            ValueSubject subject)
         {
             if (value is null)
             {
@@ -1668,7 +1668,7 @@ namespace NeoCompose.Runtime
             object? value,
             TypeInfo typeInfo,
             NSGetterEvaluator.Context ctx,
-            string subject)
+            ValueSubject subject)
         {
             ValidateRuntimeValue(value, typeInfo, subject);
             if (value is null)
@@ -1741,7 +1741,7 @@ namespace NeoCompose.Runtime
                         int index = 0;
                         foreach (object? entry in (System.Collections.IEnumerable)value)
                         {
-                            string entrySubject = $"entry {index++} of {subject}";
+                            ValueSubject entrySubject = subject.Entry(index++);
                             if (IsSelectionIdSet(typeInfo, entryType))
                             {
                                 if (entry is not string selectionId || string.IsNullOrEmpty(selectionId))
@@ -1784,7 +1784,7 @@ namespace NeoCompose.Runtime
                                     : NSGetterEvaluator.ResolveValueIfId(entry.Value, ctx, rowOwnership),
                                 entryType,
                                 ctx,
-                                $"key '{entry.Key}' of {subject}");
+                                subject.Key(entry.Key));
                         }
                         return;
                     }
@@ -1816,7 +1816,7 @@ namespace NeoCompose.Runtime
             NeoValueOwnership fallbackOwnership,
             string valueId,
             NSGetterEvaluator.Context ctx,
-            string subject)
+            ValueSubject subject)
         {
             if (!client.TryGetReplayReference(valueId, out MemberValue? row, fallbackOwnership))
             {
@@ -1834,7 +1834,7 @@ namespace NeoCompose.Runtime
             object value,
             TypeInfo typeInfo,
             NSGetterEvaluator.Context ctx,
-            string subject)
+            ValueSubject subject)
         {
             if (value is string || value is not IEnumerable enumerable)
             {
@@ -1868,7 +1868,7 @@ namespace NeoCompose.Runtime
                     foreach (object? entry in rows)
                         Normalize(client, rowOwnership.Value,
                             NSGetterEvaluator.ResolveValueIfId(entry, ctx, rowOwnership),
-                            entryType, ctx, $"entry of {subject}");
+                            entryType, ctx, subject.Entry());
                 return rows;
             }
             var result = new List<object?>();
@@ -1882,7 +1882,7 @@ namespace NeoCompose.Runtime
                         entry,
                         entryType,
                         ctx,
-                        $"entry of {subject}"));
+                        subject.Entry()));
             }
             // Fresh array per call: List.ToArray() returns the shared
             // Array.Empty singleton for empty lists, and origins key on identity.
@@ -1900,7 +1900,7 @@ namespace NeoCompose.Runtime
 
         private static object?[] NormalizeDialogueLookup(
             object value,
-            string subject,
+            ValueSubject subject,
             bool allowMultiple = false)
         {
             if (value is string || value is not IEnumerable enumerable)
@@ -1953,7 +1953,7 @@ namespace NeoCompose.Runtime
             object value,
             TypeInfo typeInfo,
             NSGetterEvaluator.Context ctx,
-            string subject)
+            ValueSubject subject)
         {
             TypeInfo? entryType = typeInfo switch
             {
@@ -1968,7 +1968,7 @@ namespace NeoCompose.Runtime
                     foreach (object? entry in rows.Values)
                         Normalize(client, rowOwnership.Value,
                             NSGetterEvaluator.ResolveValueIfId(entry, ctx, rowOwnership),
-                            entryType, ctx, $"entry of {subject}");
+                            entryType, ctx, subject.Entry());
                 return rows;
             }
             var result = new Dictionary<string, object?>();
@@ -2026,7 +2026,7 @@ namespace NeoCompose.Runtime
             NeoClient client,
             NeoValueOwnership ownership,
             NSGetterEvaluator.Context ctx,
-            string subject)
+            ValueSubject subject)
         {
             string key = EnumOptionId(keyValue)
                 ?? keyValue?.ToString()
@@ -2039,7 +2039,7 @@ namespace NeoCompose.Runtime
                     value,
                     entryType,
                     ctx,
-                    $"dictionary value of {subject}");
+                    subject.DictionaryValue());
         }
 
         internal static string? EnumOptionId(object? value)
@@ -2069,7 +2069,7 @@ namespace NeoCompose.Runtime
 
         private static object?[] NormalizeEnumOptions(
             object value,
-            string subject)
+            ValueSubject subject)
         {
             if (value is string text)
                 return new[] { text };
@@ -2142,6 +2142,55 @@ namespace NeoCompose.Runtime
             return value is IDictionary<string, object?> dictionary
                 && dictionary.TryGetValue(key, out object? field)
                 && IsIntegralNumber(field!);
+        }
+
+        /// <summary>
+        /// Names a marshalled value in a failure message. Entry subjects
+        /// format only when a check fails, not once per validated entry.
+        /// </summary>
+        internal readonly struct ValueSubject
+        {
+            private readonly string subject;
+            private readonly Kind kind;
+            private readonly int index;
+            private readonly object? key;
+
+            private enum Kind : byte
+            {
+                Self,
+                Entry,
+                IndexedEntry,
+                Key,
+                DictionaryValue,
+            }
+
+            private ValueSubject(string subject, Kind kind, int index, object? key)
+            {
+                this.subject = subject;
+                this.kind = kind;
+                this.index = index;
+                this.key = key;
+            }
+
+            public static implicit operator ValueSubject(string subject) =>
+                new(subject, Kind.Self, 0, null);
+
+            internal ValueSubject Entry() => new(ToString(), Kind.Entry, 0, null);
+
+            internal ValueSubject Entry(int index) => new(ToString(), Kind.IndexedEntry, index, null);
+
+            internal ValueSubject Key(object key) => new(ToString(), Kind.Key, 0, key);
+
+            internal ValueSubject DictionaryValue() => new(ToString(), Kind.DictionaryValue, 0, null);
+
+            public override string ToString() => kind switch
+            {
+                Kind.Entry => $"entry of {subject}",
+                Kind.IndexedEntry => $"entry {index} of {subject}",
+                Kind.Key => $"key '{key}' of {subject}",
+                Kind.DictionaryValue => $"dictionary value of {subject}",
+                _ => subject,
+            };
         }
     }
 }

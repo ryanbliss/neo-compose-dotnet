@@ -362,9 +362,10 @@ namespace NeoCompose.Runtime.NeoScript
                 private readonly IReadOnlyList<string> parent;
                 private readonly string value;
                 // Frames never change and call paths repeat, so a frame keeps
-                // the frames pushed from it; a few cover a body's callees.
+                // the frames pushed from it: one per distinct callee, up to a
+                // bound for bodies that call many functions.
                 private CallFrameStack?[]? children;
-                private const int MaxRetainedChildren = 4;
+                private const int MaxRetainedChildren = 32;
 
                 private CallFrameStack(
                     IReadOnlyList<string> parent,
@@ -379,7 +380,7 @@ namespace NeoCompose.Runtime.NeoScript
                 {
                     if (parent is not CallFrameStack frame)
                         return new CallFrameStack(parent, value);
-                    CallFrameStack?[] children = frame.children ??= new CallFrameStack?[MaxRetainedChildren];
+                    CallFrameStack?[] children = frame.children ??= new CallFrameStack?[4];
                     for (int i = 0; i < children.Length; i++)
                     {
                         CallFrameStack? child = children[i];
@@ -388,7 +389,17 @@ namespace NeoCompose.Runtime.NeoScript
                         if (child.value == value)
                             return child;
                     }
-                    return new CallFrameStack(frame, value);
+                    var pushed = new CallFrameStack(frame, value);
+                    if (children.Length < MaxRetainedChildren)
+                    {
+                        // Published whole, so a concurrent reader sees the old
+                        // or the grown array, never a partial copy.
+                        var grown = new CallFrameStack?[children.Length * 2];
+                        Array.Copy(children, grown, children.Length);
+                        grown[children.Length] = pushed;
+                        frame.children = grown;
+                    }
+                    return pushed;
                 }
 
                 public int Count
@@ -762,10 +773,10 @@ namespace NeoCompose.Runtime.NeoScript
                 return child;
             }
 
-            internal Context WithFunctionPushed(string memberId, object? receiver)
+            internal Context WithFunctionPushed(string memberId, IReadOnlyList<string> directCallStack, object? receiver)
             {
                 Context child = Fork();
-                child.functionCallStack = CallFrameStack.Push(functionCallStack, memberId);
+                child.functionCallStack = PushFunction(functionCallStack, memberId, directCallStack);
                 child.thisValue = receiver;
                 return child;
             }
@@ -807,12 +818,12 @@ namespace NeoCompose.Runtime.NeoScript
             /// fork: nothing retains a frame that completes before its caller
             /// continues, so the caller's state only needs to come back.
             /// </summary>
-            internal FunctionFrame EnterFunction(string memberId, object? receiver)
+            internal FunctionFrame EnterFunction(string memberId, IReadOnlyList<string> directCallStack, object? receiver)
             {
                 var saved = new FunctionFrame(this);
                 // The same lifetime gate a fork closes.
                 allocationTracker.ReusableContext = false;
-                functionCallStack = CallFrameStack.Push(functionCallStack, memberId);
+                functionCallStack = PushFunction(functionCallStack, memberId, directCallStack);
                 thisValue = receiver;
                 immediateExpressionContext = null;
                 immediateExpressionSource = null;
@@ -820,6 +831,16 @@ namespace NeoCompose.Runtime.NeoScript
                 immediateExpressionOptions = null;
                 return saved;
             }
+
+            /// <summary>
+            /// A call from an empty stack takes the function's prebuilt
+            /// one-frame stack: only pushed frames retain their callees.
+            /// </summary>
+            private static IReadOnlyList<string> PushFunction(
+                IReadOnlyList<string> stack,
+                string memberId,
+                IReadOnlyList<string> directCallStack) =>
+                stack.Count == 0 ? directCallStack : CallFrameStack.Push(stack, memberId);
 
             internal void ExitFunction(in FunctionFrame saved)
             {
