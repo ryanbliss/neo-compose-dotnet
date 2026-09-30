@@ -311,6 +311,10 @@ namespace NeoCompose.Runtime
                                 conditional.elseInstructions);
                         }
                         break;
+                    case WhileInstruction loop:
+                        ValidateWhileInstructionMetadata(loop);
+                        ValidateControlFlowInstructionMetadata(loop.instructions);
+                        break;
                     case ForInstruction loop:
                         ValidateForInstructionMetadata(loop);
                         ValidateControlFlowInstructionMetadata(loop.instructions);
@@ -575,7 +579,7 @@ namespace NeoCompose.Runtime
                     case CollectionCallInstruction collectionCall:
                         try
                         {
-                            ExecuteCollectionCall(client, collectionCall, scope, actionCtx);
+                            ExecuteCollectionCall(client, collectionCall, scope, actionCtx, expressionState, i);
                         }
                         catch (NeoFunctionCallSuspended suspended)
                         {
@@ -592,6 +596,18 @@ namespace NeoCompose.Runtime
                             return PauseAtInstruction(client, instructions, returnTypeInfo, scope, ctx, i, expressionState, suspended, options);
                         }
                         break;
+                    case WhileInstruction loop:
+                        {
+                            ValidateWhileInstructionMetadata(loop);
+                            var state = new WhileExecutionState(loop, scope, options);
+                            NeoScriptExecutionResult loopResult = RunWhile(
+                                client, returnTypeInfo, scope, ctx, options, state);
+                            if (loopResult.IsPaused)
+                                return ResumeInstructionsAfter(client, instructions, returnTypeInfo, scope, ctx, i + 1, options, loopResult, consumeTerminal: false);
+                            if (!loopResult.IsFallthrough)
+                                return loopResult;
+                            break;
+                        }
                     case ForInstruction forInstruction:
                         {
                             NeoScriptExecutionResult loopResult = ExecuteFor(
@@ -664,6 +680,97 @@ namespace NeoCompose.Runtime
                 }
             }
             return NeoScriptExecutionResult.Completed(returned: false, returnValue: null);
+        }
+
+        private static NeoScriptExecutionResult RunWhile(
+            NeoClient client,
+            TypeInfo returnTypeInfo,
+            NeoScriptScope scope,
+            NSGetterEvaluator.Context ctx,
+            NeoScriptExecutionOptions? options,
+            WhileExecutionState state)
+        {
+            try
+            {
+                while (true)
+                {
+                    if (state.CheckCondition)
+                    {
+                        var expressionContext = ExpressionContextFor(
+                            client, ctx, state.ExpressionState, options);
+                        state.ExpressionState.BeginInstructionAttempt();
+                        bool shouldEnter;
+                        try
+                        {
+                            shouldEnter = EvaluateBoolean(
+                                state.Instruction.condition, scope, expressionContext,
+                                state.Instruction.type + " condition");
+                        }
+                        catch (NeoFunctionCallSuspended suspended)
+                        {
+                            state.DetachBodyScope();
+                            return PauseLoopExpression(
+                                suspended, state.ExpressionState, options,
+                                () => RunWhile(client, returnTypeInfo, scope, ctx, options, state))
+                                .ObserveFailure(_ => state.RestoreBinding(scope));
+                        }
+                        if (!shouldEnter)
+                        {
+                            state.RestoreBinding(scope);
+                            return NeoScriptExecutionResult.Completed(returned: false, returnValue: null);
+                        }
+                    }
+                    NeoScriptExecutionResult result = ExecuteInstructions(
+                        client, state.Instruction.instructions, returnTypeInfo,
+                        state.EnsureBodyScope(scope, state.Instruction.instructions, ref state.Instruction.bodyLayout), ctx, 0, null, options);
+                    if (result.IsPaused)
+                    {
+                        state.DetachBodyScope();
+                        return ThenWhenCompleted(result, completed =>
+                        {
+                            state.ResetBodyScope();
+                            var terminal = ApplyWhileBodyTransfer(completed);
+                            if (terminal is not null)
+                            {
+                                state.RestoreBinding(scope);
+                                return terminal.Value;
+                            }
+                            state.NextCondition();
+                            return RunWhile(client, returnTypeInfo, scope, ctx, options, state);
+                        }).ObserveFailure(_ => state.RestoreBinding(scope));
+                    }
+                    state.ResetBodyScope();
+                    var transfer = ApplyWhileBodyTransfer(result);
+                    if (transfer is not null)
+                    {
+                        state.RestoreBinding(scope);
+                        return transfer.Value;
+                    }
+                    state.NextCondition();
+                }
+            }
+            catch
+            {
+                state.RestoreBinding(scope);
+                throw;
+            }
+        }
+
+        private static NeoScriptExecutionResult? ApplyWhileBodyTransfer(
+            NeoScriptExecutionResult result)
+        {
+            if (result.Returned || result.IsFailed)
+                return result;
+            if (result.IsBreak)
+                return NeoScriptExecutionResult.Completed(returned: false, returnValue: null);
+            return null;
+        }
+
+        private static void ValidateWhileInstructionMetadata(WhileInstruction instruction)
+        {
+            if (instruction.condition?.condition is null || instruction.instructions is null)
+                throw new NeoScriptPreExecutionValidationError(
+                    "NeoScript conditional loop contains malformed metadata; its compiled IR is stale or corrupt.");
         }
 
         private static NeoScriptExecutionResult ExecuteFor(
@@ -2316,56 +2423,64 @@ namespace NeoCompose.Runtime
             NeoClient client,
             CollectionCallInstruction instruction,
             NeoScriptScope scope,
-            NSGetterEvaluator.Context ctx)
+            NSGetterEvaluator.Context ctx,
+            ExpressionResumeState expressionState,
+            int instructionIndex)
         {
+            string receiverKey = "collection-receiver:" + instructionIndex;
+            Action<object?[]> mutate;
+            if (expressionState.TryGet(receiverKey, out object? cached, out _))
+                mutate = (Action<object?[]>)cached!;
+            else
+            {
+                mutate = ResolveCollectionMutation(client, instruction, scope, ctx);
+                expressionState.StoreValue(receiverKey, mutate);
+            }
             object?[] args = new object?[instruction.args.Length];
             for (int i = 0; i < instruction.args.Length; i++)
-            {
                 args[i] = Eval(instruction.args[i], scope, ctx);
-            }
+            mutate(args);
+        }
+
+        private static Action<object?[]> ResolveCollectionMutation(
+            NeoClient client,
+            CollectionCallInstruction instruction,
+            NeoScriptScope scope,
+            NSGetterEvaluator.Context ctx)
+        {
             if (instruction.target.pointer is VariablePointer variablePointer)
             {
                 if (!scope.TryGetValue(variablePointer.variableId, out var local))
-                {
-                    throw new NSGetterRuntimeError(
-                        $"Variable '{variablePointer.variableId}' is not in scope");
-                }
-                // An alias of a detached List slot mutates the slot, as an
-                // alias of a row-backed list mutates its row.
+                    throw new NSGetterRuntimeError($"Variable '{variablePointer.variableId}' is not in scope");
                 if (local is object?[] aliased
                     && NeoGeneratedTypesSupport.TryGetDetachedArrayOrigin(aliased, out var origin))
                 {
                     NeoScriptObject owner = origin!.owner;
                     if (owner.attachedId is null
                         && instruction.mutation == CollectionMutationKind.Add
-                        && WritesSessionTarget(instruction.target.writability)
-                        && NeoGeneratedTypesSupport.TryAddDetachedListEntry(owner, origin.index, args[0]))
-                    {
-                        return;
-                    }
+                        && WritesSessionTarget(instruction.target.writability))
+                        return args =>
+                        {
+                            if (owner.attachedId is null
+                                && NeoGeneratedTypesSupport.TryAddDetachedListEntry(owner, origin.index, args[0]))
+                                return;
+                            ResolveDetachedListTarget(client, owner, origin.index, instruction.target.typeInfo, ctx)
+                                .Mutate(client, instruction.mutation, args, ctx);
+                        };
                     NSGetterEvaluator.ForwardDetached(owner, ctx);
                     local = Eval(variablePointer, scope, ctx);
                 }
-                if (local is object?[] && FindValueId(local, ctx) is not null)
+                if (local is not object?[] || FindValueId(local, ctx) is null)
+                    return args => scope.Assign(variablePointer.variableId, MutateLocalCollection(
+                        local, instruction.target.typeInfo, instruction.mutation, args, ctx));
+                var rowTarget = ResolveCollectionTarget(client, new WriteTarget
                 {
-                    ResolveCollectionTarget(client, new WriteTarget
-                    {
-                        pointer = instruction.target.pointer,
-                        typeInfo = instruction.target.typeInfo,
-                        writability = null,
-                    }, scope, ctx)
-                        .Mutate(client, instruction.mutation, args, ctx);
-                    return;
-                }
-                scope.Assign(variablePointer.variableId, MutateLocalCollection(
-                    local,
-                    instruction.target.typeInfo,
-                    instruction.mutation,
-                    args,
-                    ctx));
-                return;
+                    pointer = instruction.target.pointer,
+                    typeInfo = instruction.target.typeInfo,
+                    writability = null,
+                }, scope, ctx);
+                return args => rowTarget.Mutate(client, instruction.mutation, args, ctx);
             }
-
             if (instruction.target.pointer is KeyOfPointer keyOfTarget
                 && instruction.target.typeInfo.type == MemberKind.List)
             {
@@ -2375,32 +2490,62 @@ namespace NeoCompose.Runtime
                     if (detached.attachedId is null
                         && instruction.mutation == CollectionMutationKind.Add
                         && WritesSessionTarget(instruction.target.writability)
-                        && Eval(keyOfTarget.keyOf.key, scope, ctx) is string key
-                        && NSGetterEvaluator.TryAddDetachedListEntry(detached, key, args[0]))
-                    {
-                        return;
-                    }
+                        && Eval(keyOfTarget.keyOf.key, scope, ctx) is string key)
+                        return args =>
+                        {
+                            if (detached.attachedId is null
+                                && NSGetterEvaluator.TryAddDetachedListEntry(detached, key, args[0]))
+                                return;
+                            ResolveDetachedListTarget(client, detached,
+                                detached.plan.slotByKey[key], instruction.target.typeInfo, ctx)
+                                .Mutate(client, instruction.mutation, args, ctx);
+                        };
                     receiver = NSGetterEvaluator.ForwardDetached(detached, ctx);
                 }
-                ResolveCollectionTarget(
-                    client,
-                    instruction.target,
-                    scope,
-                    ctx,
+                var keyOfCollection = ResolveCollectionTarget(client, instruction.target, scope, ctx,
                     evaluatedTarget: NSGetterEvaluator.EvaluateKeyOf(keyOfTarget, receiver, scope, ctx),
-                    targetEvaluated: true,
-                    keyOfReceiver: receiver)
-                    .Mutate(client, instruction.mutation, args, ctx);
-                return;
+                    targetEvaluated: true, keyOfReceiver: receiver);
+                return args => keyOfCollection.Mutate(client, instruction.mutation, args, ctx);
             }
-
-            if (instruction.target.pointer is StaticMemberPointer staticMember
-                && TryMutateUnboundStatic(client, instruction, staticMember, args, scope, ctx))
+            if (instruction.target.pointer is StaticMemberPointer staticMember)
             {
-                return;
+                var binding = new NeoStaticBinding(client, staticMember.memberId,
+                    TargetOwnership(client, instruction.target, scope, ctx));
+                if (binding.ValueId is null)
+                    return args =>
+                    {
+                        if (!TryMutateUnboundStatic(client, instruction, staticMember, args, scope, ctx))
+                            ResolveCollectionTarget(client, instruction.target, scope, ctx)
+                                .Mutate(client, instruction.mutation, args, ctx);
+                    };
             }
             var target = ResolveCollectionTarget(client, instruction.target, scope, ctx);
-            target.Mutate(client, instruction.mutation, args, ctx);
+            return args => target.Mutate(client, instruction.mutation, args, ctx);
+        }
+
+        private static NeoResolvedCollectionTarget ResolveDetachedListTarget(
+            NeoClient client,
+            NeoScriptObject owner,
+            int slotIndex,
+            TypeInfo collectionType,
+            NSGetterEvaluator.Context ctx)
+        {
+            NSGetterEvaluator.ForwardDetached(owner, ctx);
+            string ownerId = owner.attachedId!;
+            var slot = owner.plan.slots[slotIndex];
+            string? listId = null;
+            if (client.TryGetValue(ownerId, out ObjectMemberValue? row) && row.value is not null)
+                row.value.TryGetValue(slot.schemaKey, out listId);
+            if (listId is null)
+                client.TryGetVirtualClassChildValueId(ownerId, slot.schemaKey, out listId);
+            if (listId is null)
+                throw new NSGetterRuntimeError($"Detached collection member '{slot.schemaKey}' was not materialized.");
+            NeoValueOwnership ownership = client.TryGetValueOwnership(listId, out var resolved)
+                ? resolved : NeoValueOwnership.Session;
+            EnsureWritableRow(client, listId, ownership);
+            client.TryGetValue(ownership, listId, out ArrayMemberValue? list);
+            return new NeoListWriteTarget(listId, EntryTypeInfo(collectionType),
+                client.TryResolveCollectionEntryMember(slot.member, list!), ownership);
         }
 
         // Its own method: the write's closure captures the call's state, and
@@ -3695,11 +3840,17 @@ namespace NeoCompose.Runtime
             {
                 // An Add builds its result directly; the List round trip
                 // below costs two more copies and allocations per entry.
-                if (mutation == CollectionMutationKind.Add && collectionType.type != MemberKind.Lookup)
+                if ((mutation == CollectionMutationKind.Add || mutation == CollectionMutationKind.Insert)
+                    && collectionType.type != MemberKind.Lookup)
                 {
+                    int index = mutation == CollectionMutationKind.Insert
+                        ? ToInt(args[0], "Insert index") : array.Length;
+                    if (index < 0 || index > array.Length)
+                        throw new NSGetterRuntimeError("List.Insert index is out of range.");
                     var added = new object?[array.Length + 1];
-                    Array.Copy(array, added, array.Length);
-                    added[array.Length] = args[0];
+                    Array.Copy(array, 0, added, 0, index);
+                    Array.Copy(array, index, added, index + 1, array.Length - index);
+                    added[index] = args[mutation == CollectionMutationKind.Insert ? 1 : 0];
                     NSGetterEvaluator.KeepEntryMember(added, entryMember);
                     return added;
                 }
@@ -3732,6 +3883,12 @@ namespace NeoCompose.Runtime
         {
             switch (mutation)
             {
+                case CollectionMutationKind.Insert:
+                    int index = ToInt(args[0], "Insert index");
+                    if (index < 0 || index > list.Count)
+                        throw new NSGetterRuntimeError("List.Insert index is out of range.");
+                    list.Insert(index, args[1]);
+                    return;
                 case CollectionMutationKind.Add:
                     if (collectionKind == MemberKind.Lookup)
                     {
@@ -4850,16 +5007,24 @@ namespace NeoCompose.Runtime
                     NeoTimestamp now = NeoTimestamp.Now();
                     switch (mutation)
                     {
+                        case CollectionMutationKind.Insert:
                         case CollectionMutationKind.Add:
                             {
+                                int insertionIndex = mutation == CollectionMutationKind.Insert
+                                    ? ToInt(args[0], "Insert index")
+                                    : row.value.Length;
+                                if (insertionIndex < 0 || insertionIndex > row.value.Length)
+                                    throw new NSGetterRuntimeError("List.Insert index is out of range.");
+                                object? insertedValue = args[mutation == CollectionMutationKind.Insert ? 1 : 0];
                                 if (TryGetClassValueReferenceId(
-                                        args[0],
+                                        insertedValue,
                                         entryTypeInfo,
                                         ctx,
                                         out string? referenceId))
                                 {
                                     var referencedNext = new string[row.value.Length + 1];
-                                    Array.Copy(row.value, referencedNext, row.value.Length);
+                                    Array.Copy(row.value, 0, referencedNext, 0, insertionIndex);
+                                    Array.Copy(row.value, insertionIndex, referencedNext, insertionIndex + 1, row.value.Length - insertionIndex);
                                     string importedId = ImportClassValueReference(
                                         plan, client,
                                         ownership,
@@ -4868,7 +5033,7 @@ namespace NeoCompose.Runtime
                                     plan.AfterCommit(() => ctx.allocationTracker.RegisterConstructedParent(
                                         importedId,
                                         rowId));
-                                    referencedNext[row.value.Length] = importedId;
+                                    referencedNext[insertionIndex] = importedId;
                                     row.value = referencedNext;
                                     row.updatedAt = now;
                                     StoreWritableRow(plan, ownership, row, ctx);
@@ -4879,14 +5044,15 @@ namespace NeoCompose.Runtime
                                     plan, client,
                                     ownership,
                                     MemberFromTypeInfo(entryTypeInfo),
-                                    args[0],
+                                    insertedValue,
                                     childId,
                                     now,
                                     now);
                                 StoreWritableRow(plan, ownership, child, ctx);
                                 var next = new string[row.value.Length + 1];
-                                Array.Copy(row.value, next, row.value.Length);
-                                next[row.value.Length] = childId;
+                                Array.Copy(row.value, 0, next, 0, insertionIndex);
+                                Array.Copy(row.value, insertionIndex, next, insertionIndex + 1, row.value.Length - insertionIndex);
+                                next[insertionIndex] = childId;
                                 row.value = next;
                                 row.updatedAt = now;
                                 StoreWritableRow(plan, ownership, row, ctx);
@@ -5251,7 +5417,7 @@ namespace NeoCompose.Runtime
 
         private abstract class LoopExecutionState
         {
-            private string bindingId = null!;
+            private string? bindingId;
             private bool hadPreviousBinding;
             private object? previousBinding;
             private bool readOnly;
@@ -5261,7 +5427,7 @@ namespace NeoCompose.Runtime
             private bool bindingRestored;
 
             protected LoopExecutionState(
-                string bindingId,
+                string? bindingId,
                 NeoScriptScope scope,
                 bool readOnly = false) =>
                 Begin(bindingId, scope, readOnly);
@@ -5271,12 +5437,12 @@ namespace NeoCompose.Runtime
             /// instruction's body, which never changes.
             /// </summary>
             protected void Begin(
-                string bindingId,
+                string? bindingId,
                 NeoScriptScope scope,
                 bool readOnly = false)
             {
                 this.bindingId = bindingId;
-                hadPreviousBinding = scope.TryGetValue(
+                hadPreviousBinding = bindingId is not null && scope.TryGetValue(
                     bindingId,
                     out previousBinding);
                 this.readOnly = readOnly;
@@ -5341,6 +5507,8 @@ namespace NeoCompose.Runtime
                 {
                     UnmarkReadOnlyBinding(scope, bindingId);
                 }
+                if (bindingId is null)
+                    return;
                 if (hadPreviousBinding)
                 {
                     scope[bindingId] = previousBinding;
@@ -5351,6 +5519,42 @@ namespace NeoCompose.Runtime
                 {
                     scope.Remove(bindingId);
                 }
+            }
+        }
+
+        private sealed class WhileExecutionState : LoopExecutionState
+        {
+            private readonly NeoScriptExecutionOptions? options;
+
+            internal WhileExecutionState(
+                WhileInstruction instruction,
+                NeoScriptScope scope,
+                NeoScriptExecutionOptions? options)
+                : base(null, scope)
+            {
+                Instruction = instruction;
+                this.options = options;
+                CheckCondition = instruction is not DoWhileInstruction;
+                ExpressionState = ExpressionResumeState.ForOptions(options);
+            }
+
+            internal WhileInstruction Instruction
+            {
+                get;
+            }
+            internal bool CheckCondition
+            {
+                get; private set;
+            }
+            internal ExpressionResumeState ExpressionState
+            {
+                get; private set;
+            }
+
+            internal void NextCondition()
+            {
+                CheckCondition = true;
+                ExpressionState = ExpressionResumeState.ForOptions(options);
             }
         }
 

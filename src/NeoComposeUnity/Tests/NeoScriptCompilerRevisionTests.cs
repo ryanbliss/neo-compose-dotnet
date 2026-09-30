@@ -134,6 +134,12 @@ namespace NeoCompose.Tests
                 swept,
                 stale);
 
+            CollectStale(
+                "HelloWorld offline project.json",
+                File.ReadAllText("Assets/Resources/Neo/project.json"),
+                swept,
+                stale);
+
             CollectionAssert.IsEmpty(
                 stale,
                 "Re-stamp these bodies at revision "

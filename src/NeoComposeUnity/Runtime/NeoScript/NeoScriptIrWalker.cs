@@ -56,6 +56,9 @@ namespace NeoCompose.Runtime.NeoScript
                     return AnyPointer(collectionCall.args, predicate);
                 case FunctionCallInstruction functionCall:
                     return AnyPointer(functionCall.call, predicate);
+                case WhileInstruction loop:
+                    return AnyPointer(loop.condition, predicate)
+                        || AnyPointer(loop.instructions, predicate);
                 case ForInstruction loop:
                     return AnyPointer(loop.initializer.pointer, predicate)
                         || AnyPointer(loop.condition, predicate)
@@ -269,7 +272,9 @@ namespace NeoCompose.Runtime.NeoScript
                 case StringOpFunction text:
                     return AnyPointer(text.info.receiverPointer, predicate)
                         || (text.info.argPointer is not null
-                            && AnyPointer(text.info.argPointer, predicate));
+                            && AnyPointer(text.info.argPointer, predicate))
+                        || (text.info.replacementPointer is not null
+                            && AnyPointer(text.info.replacementPointer, predicate));
                 case DecimalOpFunction number:
                     return AnyPointer(number.info.receiverPointer, predicate)
                         || (number.info.argPointer is not null

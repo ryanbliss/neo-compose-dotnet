@@ -697,7 +697,7 @@ namespace NeoCompose.Tests
                 'returnTypeInfo':{'type':21,'required':true,'ownerClassId':'track','genericParamId':'child'},
                 'argumentTypes':[{'name':'amount','type':2,'required':true}],
                 'defaultValue':{'value':{'code':'amount => amount','action':{
-                    'compilerRevision':15,
+                    'compilerRevision':16,
                     'parameters':[
                         {'id':'__this__','typeInfo':{'type':7,'required':true,'classId':'receiver-class'},'pointer':{'type':'variable','variableId':'__this__'}},
                         {'id':'__root__','typeInfo':{'type':7,'required':true,'classId':'root-class'},'pointer':{'type':'variable','variableId':'__root__'}},
@@ -713,7 +713,7 @@ namespace NeoCompose.Tests
             Assert.AreEqual(25, (int)member.kind);
             Assert.IsInstanceOf<GenericTypeInfo>(member.returnTypeInfo);
             Assert.AreEqual("amount", member.argumentTypes[0].name);
-            Assert.AreEqual(15, member.defaultValue!.value!.action!.compilerRevision);
+            Assert.AreEqual(16, member.defaultValue!.value!.action!.compilerRevision);
 
             const string callJson = @"{
                 'type':'functionCall','call':{
@@ -4145,6 +4145,134 @@ namespace NeoCompose.Tests
             StringAssert.Contains("argument 0 type does not match", error.Message);
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void InsertRetainsReceiverBeforeArgumentChangesItsPath(bool deferred)
+        {
+            var entry = new IntMember { id = "insert-entry", kind = MemberKind.Int, Requirement = NeoMemberRequirementKind.Required };
+            var items = new ListMember
+            {
+                id = "insert-items",
+                name = "Items",
+                kind = MemberKind.List,
+                entryMemberId = entry.id,
+                Storage = NeoMemberStorage.Session,
+                Requirement = NeoMemberRequirementKind.Required,
+            };
+            var change = NativeFunction("insert-change", "Change", deferred);
+            var function = ScriptFunction("insert-receiver", "InsertReceiver", deferred,
+                IntType(), Array.Empty<FunctionArgumentTypeInfo>(), LoopAction(
+                    new CollectionCallInstruction
+                    {
+                        type = InstructionKind.CollectionCall,
+                        mutation = CollectionMutationKind.Insert,
+                        target = new WriteTarget
+                        {
+                            pointer = new KeyOfPointer
+                            {
+                                type = PointerKind.KeyOf,
+                                keyOf = new KeyOf { pointer = Reference("receiver-value"), key = Text("Items") },
+                                memberId = items.id,
+                            },
+                            typeInfo = ListType(IntType()),
+                            writability = WritabilityKind.Session,
+                        },
+                        args = new Pointer[] { Number(0), Call(change.id, "insert-change-call") },
+                    },
+                    Return(Number(0))));
+            using var client = BuildClient(new JsonMember[] { entry, items, change, function },
+                ReceiverClass(("Items", items.id), ("Change", change.id), ("InsertReceiver", function.id)));
+            var receiver = ObjectValue("receiver-value", "receiver-class");
+            receiver.value!["Items"] = "first-list";
+            client.SetWritableValue(NeoValueOwnership.Session, receiver);
+            client.SetWritableValue(NeoValueOwnership.Session, new ArrayMemberValue { id = "first-list", value = new[] { "first-entry" } });
+            client.SetWritableValue(NeoValueOwnership.Session, new ArrayMemberValue { id = "second-list", value = new[] { "second-entry" } });
+            client.SetWritableValue(NeoValueOwnership.Session, new NumberMemberValue { id = "first-entry", value = 1 });
+            client.SetWritableValue(NeoValueOwnership.Session, new NumberMemberValue { id = "second-entry", value = 2 });
+            void ChangePath()
+            {
+                var next = ObjectValue("receiver-value", "receiver-class");
+                next.value!["Items"] = "second-list";
+                client.SetWritableValue(NeoValueOwnership.Session, next);
+            }
+            NeoDeferredFunction<int>? pending = null;
+            if (deferred)
+                client.RegisterDeferredNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
+                {
+                    [change.id] = (_, _, _, handle) =>
+                    {
+                        ChangePath();
+                        pending = NeoGeneratedTypesSupport.ResolveDeferredFunction<NeoDeferredFunction<int>>(handle, change.name);
+                    },
+                });
+            else
+                client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+                {
+                    [change.id] = (_, _, _) =>
+                    {
+                        ChangePath();
+                        return 9;
+                    },
+                });
+            var node = new NeoMemberNSFunction(client, function, null);
+            Task<object?> task = deferred
+                ? node.InvokeAsync("receiver-value", Array.Empty<object?>())
+                : Task.FromResult(node.Invoke("receiver-value", Array.Empty<object?>()));
+            if (deferred)
+            {
+                Assert.IsFalse(task.IsCompleted);
+                pending!.Complete(9);
+            }
+            task.GetAwaiter().GetResult();
+            Assert.IsTrue(client.TryGetValue(NeoValueOwnership.Session, "first-list", out ArrayMemberValue? first));
+            Assert.IsTrue(client.TryGetValue(NeoValueOwnership.Session, "second-list", out ArrayMemberValue? second));
+            Assert.AreEqual(2, first!.value!.Length);
+            Assert.AreEqual(1, second!.value!.Length);
+        }
+
+        [Test]
+        public void InsertRejectsClassAlreadyOwnedAtTheInsertionIndex()
+        {
+            var classType = new ClassTypeInfo { type = MemberKind.Class, classId = "receiver-class", required = true };
+            var entry = new ClassMember { id = "insert-class-entry", kind = MemberKind.Class, classId = "receiver-class" };
+            var items = new ListMember
+            {
+                id = "insert-owned-items",
+                name = "Items",
+                kind = MemberKind.List,
+                entryMemberId = entry.id,
+                Storage = NeoMemberStorage.Session,
+                Requirement = NeoMemberRequirementKind.Required,
+            };
+            var function = ScriptFunction("insert-owned", "InsertOwned", false,
+                IntType(), Array.Empty<FunctionArgumentTypeInfo>(), LoopAction(
+                    new CollectionCallInstruction
+                    {
+                        type = InstructionKind.CollectionCall,
+                        mutation = CollectionMutationKind.Insert,
+                        target = new WriteTarget
+                        {
+                            pointer = Reference("owned-list"),
+                            typeInfo = ListType(classType),
+                            writability = WritabilityKind.Session,
+                        },
+                        args = new Pointer[] { Number(0), Reference("owned-item") },
+                    },
+                    Return(Number(0))));
+            using var client = BuildClient(new JsonMember[] { entry, items, function },
+                ReceiverClass(("Items", items.id), ("InsertOwned", function.id)));
+            var receiver = ObjectValue("receiver-value", "receiver-class");
+            receiver.value!["Items"] = "owned-list";
+            client.SetWritableValue(NeoValueOwnership.Session, receiver);
+            client.SetWritableValue(NeoValueOwnership.Session, new ArrayMemberValue { id = "owned-list", value = new[] { "owned-item" } });
+            client.SetWritableValue(NeoValueOwnership.Session, ObjectValue("owned-item", "receiver-class"));
+            var error = Assert.Throws<NSGetterRuntimeError>(() =>
+                new NeoMemberNSFunction(client, function, null).Invoke("receiver-value", Array.Empty<object?>()))!;
+            StringAssert.Contains("already owned", error.Message);
+            Assert.IsTrue(client.TryGetValue(NeoValueOwnership.Session, "owned-list", out ArrayMemberValue? list));
+            CollectionAssert.AreEqual(new[] { "owned-item" }, list!.value);
+        }
+
         [Test]
         public void Invoke_ForLoopConsumesContinueAndBreakAtTheNearestLoop()
         {
@@ -6436,6 +6564,155 @@ namespace NeoCompose.Tests
 
             Assert.AreEqual(1L, Convert.ToInt64(task.GetAwaiter().GetResult()));
             Assert.AreEqual(2, invocationCount);
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void InvokeAsync_ConditionalLoopBodyResumeDoesNotReplayCompletedWrites(bool doWhile)
+        {
+            FunctionMember pause = NativeFunction(
+                "fn-loop-pause-body",
+                "PauseBody",
+                deferred: true);
+            FunctionWithReturnType body = LoopAction(
+                VariableDeclaration("count", Number(0), IntType()),
+                ConditionalLoop(doWhile,
+                    Compare(
+                        OperatorKind.LessThan,
+                        Variable("count"),
+                        Number(2)),
+                    new Instruction[]
+                    {
+                        AssignLocal(
+                            "count",
+                            Add(Variable("count"), Number(1)),
+                            IntType()),
+                        new FunctionCallInstruction
+                        {
+                            type = InstructionKind.FunctionCall,
+                            call = Call(pause.id, "loop-pause-body"),
+                        },
+                    }
+                ),
+                Return(Variable("count")));
+            NSFunctionMember function = ScriptFunction(
+                "fn-loop-resume-body",
+                "LoopResumeBody",
+                deferred: true,
+                IntType(),
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                body);
+            NeoClient client = BuildClient(
+                new JsonMember[] { pause, function },
+                ReceiverClass(
+                    ("PauseBody", pause.id),
+                    ("LoopResumeBody", function.id)));
+            NeoDeferredFunction<int>? pending = null;
+            int invocationCount = 0;
+            client.RegisterDeferredNativeFunctionInvokers(
+                new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
+                {
+                    [pause.id] = (_, _, _, deferred) =>
+                    {
+                        invocationCount++;
+                        pending = NeoGeneratedTypesSupport
+                            .ResolveDeferredFunction<NeoDeferredFunction<int>>(
+                                deferred,
+                                pause.name);
+                    },
+                });
+            var node = new NeoMemberNSFunction(client, function, null);
+
+            Task<object?> task = node.InvokeAsync(
+                "receiver-value",
+                Array.Empty<object?>());
+            Assert.AreEqual(1, invocationCount);
+            pending!.Complete(0);
+            Assert.AreEqual(2, invocationCount);
+            Assert.IsFalse(task.IsCompleted);
+            pending!.Complete(0);
+
+            Assert.AreEqual(2L, Convert.ToInt64(task.GetAwaiter().GetResult()));
+            Assert.AreEqual(2, invocationCount);
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void InvokeAsync_ConditionalLoopConditionResumeDoesNotReplayTheCheck(bool doWhile)
+        {
+            FunctionMember check = NativeFunction(
+                "fn-loop-check-condition",
+                "CheckCondition",
+                deferred: true,
+                BoolType());
+            FunctionWithReturnType body = LoopAction(
+                VariableDeclaration("count", Number(0), IntType()),
+                ConditionalLoop(doWhile,
+                    Compare(
+                        OperatorKind.EqualTo,
+                        Call(check.id, "loop-check-condition"),
+                        Boolean(true)),
+                    new Instruction[]
+                    {
+                        AssignLocal(
+                            "count",
+                            Add(Variable("count"), Number(1)),
+                            IntType()),
+                    }
+                ),
+                Return(Variable("count")));
+            NSFunctionMember function = ScriptFunction(
+                "fn-loop-resume-condition",
+                "LoopResumeCondition",
+                deferred: true,
+                IntType(),
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                body);
+            NeoClient client = BuildClient(
+                new JsonMember[] { check, function },
+                ReceiverClass(
+                    ("CheckCondition", check.id),
+                    ("LoopResumeCondition", function.id)));
+            NeoDeferredFunction<bool>? pending = null;
+            int invocationCount = 0;
+            client.RegisterDeferredNativeFunctionInvokers(
+                new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
+                {
+                    [check.id] = (_, _, _, deferred) =>
+                    {
+                        invocationCount++;
+                        pending = NeoGeneratedTypesSupport
+                            .ResolveDeferredFunction<NeoDeferredFunction<bool>>(
+                                deferred,
+                                check.name);
+                    },
+                });
+            var node = new NeoMemberNSFunction(client, function, null);
+
+            Task<object?> task = node.InvokeAsync(
+                "receiver-value",
+                Array.Empty<object?>());
+            Assert.AreEqual(1, invocationCount);
+            Assert.IsFalse(task.IsCompleted);
+            pending!.Complete(true);
+            Assert.AreEqual(2, invocationCount);
+            Assert.IsFalse(task.IsCompleted);
+            pending!.Complete(false);
+
+            Assert.AreEqual(doWhile ? 2L : 1L, Convert.ToInt64(task.GetAwaiter().GetResult()));
+            Assert.AreEqual(2, invocationCount);
+        }
+
+        private static WhileInstruction ConditionalLoop(
+            bool doWhile,
+            BooleanExpression condition,
+            Instruction[] instructions)
+        {
+            WhileInstruction loop = doWhile ? new DoWhileInstruction() : new WhileInstruction();
+            loop.type = doWhile ? InstructionKind.DoWhile : InstructionKind.While;
+            loop.condition = condition;
+            loop.instructions = instructions;
+            return loop;
         }
 
         [Test]

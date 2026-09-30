@@ -67,6 +67,8 @@ namespace NeoCompose.Runtime.Json
         public const string Assign = "assign";
         public const string CollectionCall = "collectionCall";
         public const string FunctionCall = "functionCall";
+        public const string While = "while";
+        public const string DoWhile = "doWhile";
         public const string For = "for";
         public const string ForEach = "forEach";
         public const string Break = "break";
@@ -179,6 +181,7 @@ namespace NeoCompose.Runtime.Json
         public const string ToLower = "toLower";
         public const string ToUpper = "toUpper";
         public const string Trim = "trim";
+        public const string Replace = "replace";
         public const string StartsWith = "startsWith";
         public const string EndsWith = "endsWith";
     }
@@ -232,6 +235,7 @@ namespace NeoCompose.Runtime.Json
     public static class CollectionMutationKind
     {
         public const string Add = "Add";
+        public const string Insert = "Insert";
         public const string Remove = "Remove";
         public const string RemoveAt = "RemoveAt";
         public const string Clear = "Clear";
@@ -439,9 +443,10 @@ namespace NeoCompose.Runtime.Json
         /// explicit captured <c>delegateClosure</c> values and dynamic generic
         /// <c>Equals</c> fallback dispatch; revision 13 adds the list
         /// <c>indexOf</c> intrinsic and predicate-bearing <c>count</c> shape;
-        /// revision 15 adds the <c>tileConvert</c> pointer.
+        /// revision 15 adds the <c>tileConvert</c> pointer; revision 16 adds
+        /// conditional loops, string replacement, list insertion, and discarded calls.
         /// </summary>
-        public const int CurrentCompilerRevision = 15;
+        public const int CurrentCompilerRevision = 16;
 
         /// <summary>
         /// Required on every body this runtime executes: it must equal
