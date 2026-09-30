@@ -480,6 +480,29 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void DeclaredConstructor_BodyRunsOnADetachedInstanceUntilItsRowIsNeeded()
+        {
+            NeoClient client = BuildClient();
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            int before = client.sessionValues.Count;
+
+            object? result = NSGetterEvaluator.Evaluate(
+                ReturnFunction(PartConstructorPointer(
+                    "ctor-part",
+                    StringPointer("hi"))),
+                ctx);
+
+            Assert.IsInstanceOf<NeoScriptObject>(result);
+            Assert.AreEqual(before, client.sessionValues.Count, "Nothing needed the instance's rows yet.");
+            // Its row, once needed, carries the body's writes and the recipe.
+            ObjectMemberValue root = RequireConstructedRoot(client, ctx, result);
+            Assert.AreEqual("hi", ReadString(client, root, "Label"));
+            Assert.AreEqual(1, ReadNumber(client, root, "Level"));
+            Assert.AreEqual("ctor-part", root.instanceConstructorId);
+            Assert.AreEqual(1, root.constructorArgs!.Count);
+        }
+
+        [Test]
         public void OptionalConstructedClass_CanBeClearedAndReplaced()
         {
             var data = BuildProjectData();

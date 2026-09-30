@@ -43,6 +43,11 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
+        internal Audio(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
         public Audio(AudioClip BitsGainSfx, AudioClip BitsSpendSfx, AudioClip DialogCloseSfx, AudioClip DialogNextSfx, AudioClip DialogOpenSfx, AudioClip ItemGetSfx, AudioClip RocketThrustSfx)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(BitsGainSfx, BitsSpendSfx, DialogCloseSfx, DialogNextSfx, DialogOpenSfx, ItemGetSfx, RocketThrustSfx), false, NeoValueOwnership.Session)
         {
@@ -86,6 +91,11 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => new Audio(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
+        }
+
+        internal static Audio? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return new Audio(client, value, !saved);
         }
 
         public Audio Clone()

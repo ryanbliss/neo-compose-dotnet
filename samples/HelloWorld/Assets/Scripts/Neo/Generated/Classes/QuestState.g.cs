@@ -45,6 +45,11 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
+        internal QuestState(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
         public QuestState(WorldEnding? Ending = null, bool? EvidenceArchive = null, bool? EvidenceFaith = null, bool? EvidenceLedger = null, int? FlareClock = null, int? Reruns = null, QuestStage? Stage = null)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Ending, EvidenceArchive, EvidenceFaith, EvidenceLedger, FlareClock, Reruns, Stage), false, NeoValueOwnership.Session)
         {
@@ -90,6 +95,11 @@ namespace HelloWorld.Assets.Scripts.Neo
             });
         }
 
+        internal static QuestState? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return new QuestState(client, value, !saved);
+        }
+
         public QuestState Clone()
         {
             return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
@@ -114,6 +124,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("Ending", out object? detachedValue))
+                {
+                    return NeoGeneratedTypesSupport.ReadEnumSingle(NeoGeneratedTypesSupport.ToStringArray(detachedValue), WorldEnding.FromOptionId) ?? throw new InvalidOperationException("Required enum 'Ending' has no selected option.");
+                }
                 var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoMemberEnum>("Ending"));
                 return selected is null ? throw new InvalidOperationException("Required enum 'Ending' has no selected option.") : WorldEnding.FromOptionId(selected);
             }
@@ -127,6 +141,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("EvidenceArchive", out object? detachedValue))
+                {
+                    return (bool)detachedValue!;
+                }
                 return node.Get<NeoMemberBool>("EvidenceArchive").value?.value ?? throw new InvalidOperationException("Required bool 'EvidenceArchive' has no value.");
             }
             set
@@ -139,6 +157,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("EvidenceFaith", out object? detachedValue))
+                {
+                    return (bool)detachedValue!;
+                }
                 return node.Get<NeoMemberBool>("EvidenceFaith").value?.value ?? throw new InvalidOperationException("Required bool 'EvidenceFaith' has no value.");
             }
             set
@@ -151,6 +173,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("EvidenceLedger", out object? detachedValue))
+                {
+                    return (bool)detachedValue!;
+                }
                 return node.Get<NeoMemberBool>("EvidenceLedger").value?.value ?? throw new InvalidOperationException("Required bool 'EvidenceLedger' has no value.");
             }
             set
@@ -163,6 +189,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("FlareClock", out object? detachedValue))
+                {
+                    return Convert.ToInt32(detachedValue);
+                }
                 return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("FlareClock")) ?? throw new InvalidOperationException("Required int 'FlareClock' has no value.");
             }
             set
@@ -185,6 +215,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("Reruns", out object? detachedValue))
+                {
+                    return Convert.ToInt32(detachedValue);
+                }
                 return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("Reruns")) ?? throw new InvalidOperationException("Required int 'Reruns' has no value.");
             }
             set
@@ -197,6 +231,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("Stage", out object? detachedValue))
+                {
+                    return NeoGeneratedTypesSupport.ReadEnumSingle(NeoGeneratedTypesSupport.ToStringArray(detachedValue), QuestStage.FromOptionId) ?? throw new InvalidOperationException("Required enum 'Stage' has no selected option.");
+                }
                 var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoMemberEnum>("Stage"));
                 return selected is null ? throw new InvalidOperationException("Required enum 'Stage' has no selected option.") : QuestStage.FromOptionId(selected);
             }

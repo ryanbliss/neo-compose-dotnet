@@ -50,6 +50,21 @@ namespace NeoCompose.Runtime
             return found;
         }
 
+        /// <summary>
+        /// <see cref="TryGetReplayReference(string, out MemberValue?, NeoValueOwnership?)"/>
+        /// through a node the caller keeps, so repeated reads of one row
+        /// look its id up once. Overlays and replays take the id path.
+        /// </summary>
+        internal bool TryGetReplayReference(string id, ref NeoValueNode? node, out MemberValue? row, NeoValueOwnership ownership)
+        {
+            if (isReplayingVirtualInstance || candidateReplay is not null || candidateReadPlan is not null)
+                return TryGetReplayReference(id, out row, ownership);
+            NoteValueRead(id);
+            if (node is not { live: true })
+                node = ValueNode(id);
+            return TryGetCommittedValue(ownership, id, node, out row);
+        }
+
         internal void ReadReplayField(string? id, string key)
         {
             if (isReplayingVirtualInstance && id is not null)

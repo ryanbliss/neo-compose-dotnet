@@ -53,6 +53,16 @@ namespace NeoCompose.Runtime.Json
             get;
         }
 
+        /// <summary>
+        /// The member record <see cref="memberId"/> names, resolved once by the
+        /// runtime's class node; null outside a class node or when the id
+        /// names no member.
+        /// </summary>
+        internal Member? member
+        {
+            get; set;
+        }
+
         public MergedSchemaEntry(string schemaKey, string memberId, string ownerClassId)
         {
             this.schemaKey = schemaKey;
@@ -178,13 +188,24 @@ namespace NeoCompose.Runtime.Json
             List<MergedSchemaEntry> result = new(merged.Count);
             foreach (MergedSchemaEntry entry in merged)
             {
-                Member? member = memberLookup(entry.memberId);
-                if (member?.Modifier == NeoMemberModifierKind.Static)
-                    continue;
-                result.Add(entry);
+                if (IsInstanceMember(memberLookup(entry.memberId)))
+                    result.Add(entry);
             }
             return result;
         }
+
+        /// <summary>Whether a merged member belongs to each instance rather than the class.</summary>
+        internal static bool IsInstanceMember(Member? member) =>
+            member?.Modifier != NeoMemberModifierKind.Static;
+
+        /// <summary>Whether an instance member owns a key/value edge on every Class row.</summary>
+        internal static bool IsStoredInstanceMember(Member? member) =>
+            member?.Mutability != NeoMemberMutabilityKind.ReadOnly;
+
+        /// <summary>Whether an instance member is a declaration-backed read-only field.</summary>
+        internal static bool IsReadOnlyInstanceMember(Member? member) =>
+            member?.Mutability == NeoMemberMutabilityKind.ReadOnly
+            && member.Modifier != NeoMemberModifierKind.Abstract;
 
         /// <summary>
         /// Backward-compatible name for the complete typed instance surface.
@@ -209,10 +230,8 @@ namespace NeoCompose.Runtime.Json
             List<MergedSchemaEntry> result = new(surface.Count);
             foreach (MergedSchemaEntry entry in surface)
             {
-                Member? member = memberLookup(entry.memberId);
-                if (member?.Mutability == NeoMemberMutabilityKind.ReadOnly)
-                    continue;
-                result.Add(entry);
+                if (IsStoredInstanceMember(memberLookup(entry.memberId)))
+                    result.Add(entry);
             }
             return result;
         }
@@ -231,11 +250,8 @@ namespace NeoCompose.Runtime.Json
             List<MergedSchemaEntry> result = new(surface.Count);
             foreach (MergedSchemaEntry entry in surface)
             {
-                Member? member = memberLookup(entry.memberId);
-                if (member?.Mutability != NeoMemberMutabilityKind.ReadOnly
-                    || member.Modifier == NeoMemberModifierKind.Abstract)
-                    continue;
-                result.Add(entry);
+                if (IsReadOnlyInstanceMember(memberLookup(entry.memberId)))
+                    result.Add(entry);
             }
             return result;
         }

@@ -31,6 +31,11 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
+        internal NeoMemory(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
         public NeoMemory(IDictionary<string, NeoDialogueMemory>? DialogueMemories = null)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(DialogueMemories), false, NeoValueOwnership.Session)
         {
@@ -68,6 +73,11 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => new NeoMemory(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
+        }
+
+        internal static NeoMemory? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return new NeoMemory(client, value, !saved);
         }
 
         public NeoMemory Clone()

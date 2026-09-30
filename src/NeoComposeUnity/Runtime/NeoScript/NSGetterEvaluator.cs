@@ -42,6 +42,14 @@ namespace NeoCompose.Runtime.NeoScript
         private NeoTimestamp? constructionTimestamp;
 
         internal int ActiveExecutionCount => activeExecutions;
+        /// <summary>
+        /// Counts outermost executions, so a detached temporary created by an
+        /// earlier one is never registered with a later one's cleanup.
+        /// </summary>
+        internal int Generation
+        {
+            get; private set;
+        }
         // Conservative lifetime gate for direct synchronous frame reuse. Any
         // operation that can retain context state keeps its ordinary lifetime.
         internal bool ReusableContext = true;
@@ -52,6 +60,7 @@ namespace NeoCompose.Runtime.NeoScript
         {
             if (activeExecutions == 0)
             {
+                Generation++;
                 constructionTimestamp = null;
                 _completedAllocationRootIds?.Clear();
                 _constructedParentByChildId?.Clear();
@@ -149,6 +158,14 @@ namespace NeoCompose.Runtime.NeoScript
             }
             if (!visited.Add(value))
                 return;
+            if (value is NeoScriptObject detached)
+            {
+                // A detached graph holds no rows yet; an attached one escapes
+                // through its root like any constructed row.
+                if (detached.attachedId is not null)
+                    MarkAllocationGroupEscaped(detached.attachedId, ctx);
+                return;
+            }
 
             string? valueId = NSGetterEvaluator.FindRowIdByReference(value, ctx);
             if (valueId is not null)
@@ -324,7 +341,7 @@ namespace NeoCompose.Runtime.NeoScript
     /// of null, or a thrown statement. Wrapped by
     /// <see cref="NeoMemberNSProperty.Compute"/>'s try/catch.</para>
     /// </summary>
-    public static class NSGetterEvaluator
+    public static partial class NSGetterEvaluator
     {
         private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<
             object, Dictionary<string, int>> ListIdentityIndexes = new();
@@ -838,6 +855,21 @@ namespace NeoCompose.Runtime.NeoScript
             ctx.rowReverseIndex.Remove(alias);
             ctx.rowReverseIndex.Add(alias, row);
             aliases?.Add(alias, row);
+            if (alias is NeoObjectRecord record)
+            {
+                record.reference = row;
+                record.referenceIndex = ctx.rowReverseIndex;
+            }
+        }
+
+        private static void RemoveRowReference(Context ctx, object alias)
+        {
+            ctx.rowReverseIndex.Remove(alias);
+            if (alias is NeoObjectRecord record && ReferenceEquals(record.referenceIndex, ctx.rowReverseIndex))
+            {
+                record.reference = null;
+                record.referenceIndex = null;
+            }
         }
 
         /// <summary>Ownership-qualified row identity used as an allocation-free cache key.</summary>
@@ -895,6 +927,17 @@ namespace NeoCompose.Runtime.NeoScript
             private bool collectionMembersResolved;
             private JsonMember? collectionMember;
             private JsonMember? entryMember;
+            /// <summary>The row's value node, kept so repeated reads skip the id lookup.</summary>
+            internal NeoValueNode? node;
+            private NeoClassNode? classNode;
+
+            /// <summary>The class node of <paramref name="classId"/>, kept across reads of this row.</summary>
+            internal NeoClassNode ClassNode(NeoClient client, string classId)
+            {
+                if (classNode is not { live: true } cached || !string.Equals(cached.Id, classId, StringComparison.Ordinal))
+                    classNode = client.ResolveClassNode(classId);
+                return classNode;
+            }
 
             public RowReference(
                 string valueId,
@@ -1125,10 +1168,19 @@ namespace NeoCompose.Runtime.NeoScript
                         var v = stored.Box();
                         // Row-backed list aliases retain provenance even when a
                         // mutation replaces their fixed-size CLR array.
-                        if (v is object?[] && ctx.rowReverseIndex.TryGetValue(v, out RowReference listRef)
-                            && ctx.client.TryGetValue(listRef.ownership, listRef.valueId, out ArrayMemberValue? listRow))
+                        if (v is object?[] entries)
                         {
-                            return UnwrapCached(listRow, ctx, listRef.ownership, listRef.member);
+                            if (ctx.rowReverseIndex.TryGetValue(v, out RowReference listRef)
+                                && ctx.client.TryGetValue(listRef.ownership, listRef.valueId, out ArrayMemberValue? listRow))
+                            {
+                                return UnwrapCached(listRow, ctx, listRef.ownership, listRef.member);
+                            }
+                            if (NeoGeneratedTypesSupport.TryGetDetachedListOrigin(entries, out var detachedList))
+                                return ReadDetachedListAlias(detachedList!, ctx);
+                        }
+                        else if (v is NeoScriptObject { attachedId: not null } attached)
+                        {
+                            return ForwardDetached(attached, ctx);
                         }
                         return v;
                     }
@@ -2504,9 +2556,43 @@ namespace NeoCompose.Runtime.NeoScript
             Context ctx,
             bool optional,
             string? pinnedMemberId,
+            Action<object?>? onReceiver = null) =>
+            EvalKeyOfReceiver(
+                EvalPointer(keyOf.pointer, scope, ctx),
+                keyOf,
+                scope,
+                ctx,
+                optional,
+                pinnedMemberId,
+                onReceiver);
+
+        /// <summary>
+        /// Reads <paramref name="pointer"/> off a receiver the caller already
+        /// evaluated, so a write that inspected the receiver first does not
+        /// evaluate it a second time.
+        /// </summary>
+        internal static object? EvaluateKeyOf(
+            KeyOfPointer pointer,
+            object? receiver,
+            NeoScriptScope scope,
+            Context ctx) =>
+            EvalKeyOfReceiver(
+                receiver,
+                pointer.keyOf,
+                scope,
+                ctx,
+                pointer.optional == true,
+                pointer.memberId);
+
+        private static object? EvalKeyOfReceiver(
+            object? receiver,
+            KeyOf keyOf,
+            NeoScriptScope scope,
+            Context ctx,
+            bool optional,
+            string? pinnedMemberId,
             Action<object?>? onReceiver = null)
         {
-            var receiver = EvalPointer(keyOf.pointer, scope, ctx);
             if (optional && receiver is null)
                 return null;
             receiver = UnwrapGeneratedValue(receiver, ctx);
@@ -2547,6 +2633,12 @@ namespace NeoCompose.Runtime.NeoScript
             }
 
             string k = key?.ToString() ?? "null";
+            if (receiver is NeoScriptObject detached)
+            {
+                if (TryReadDetachedMember(detached, k, ctx, out object? detachedValue))
+                    return detachedValue;
+                receiver = ForwardDetached(detached, ctx);
+            }
             if (TryReadVectorComponent(receiver, k, out float component))
             {
                 return component;
@@ -2679,6 +2771,12 @@ namespace NeoCompose.Runtime.NeoScript
             string schemaKey,
             Context ctx)
         {
+            if (receiver is NeoScriptObject { attachedId: null } detached)
+            {
+                return TryReadDetachedMember(detached, schemaKey, ctx, out object? detachedValue)
+                    ? DispatchResult.Ok(detachedValue)
+                    : DispatchSchemaMember(ForwardDetached(detached, ctx), schemaKey, ctx);
+            }
             if (!TryAsObjectRecord(receiver, out IDictionary<string, object?>? record))
             {
                 return DispatchResult.NoInfo();
@@ -2699,25 +2797,25 @@ namespace NeoCompose.Runtime.NeoScript
                 ? receiverRef.ownership
                 : receiver is NeoObjectRecord receiverRecord ? receiverRecord.valueOwnership : null;
 
-            MergedSchemaEntry? entry = null;
-            IList<NeoSchemaClass>? runtimeChain = null;
+            MergedSchemaEntry? entry;
             try
             {
-                runtimeChain = ctx.client.ResolveClassInheritanceChain(runtimeClassId!);
-                entry = ctx.client.ResolveInstanceSurfaceMember(runtimeClassId!, schemaKey);
+                entry = (hasRowRef
+                    ? receiverRef.ClassNode(ctx.client, runtimeClassId!)
+                    : ctx.client.ResolveClassNode(runtimeClassId!)).SurfaceMember(schemaKey);
             }
             catch (CircularInheritanceError)
             {
                 return DispatchResult.NoInfo();
             }
 
-            if (entry is null
-                || !ctx.client.TryGetMember(entry.memberId, out JsonMember? member))
+            JsonMember? member = entry?.member;
+            if (member is null)
             {
                 return DispatchResult.NoInfo();
             }
 
-            if (member is GenericMember && runtimeChain is not null)
+            if (member is GenericMember)
             {
                 member = NeoGenericResolution.SubstituteMember(
                     ctx.client,
@@ -2733,7 +2831,7 @@ namespace NeoCompose.Runtime.NeoScript
 
             if (member.kind == MemberKind.NSProperty)
             {
-                if (ResolveCompiledGetter(entry.memberId, ctx.client) is null)
+                if (entry!.member is not NSPropertyMember { getter: not null })
                 {
                     return DispatchResult.NoInfo(matchedMember: true);
                 }
@@ -2843,6 +2941,7 @@ namespace NeoCompose.Runtime.NeoScript
             NeoClient client = ctx.client;
             RowReference? receiverRef = null;
             bool memoize = client.CanMemoizeGetters
+                && receiver is not NeoScriptObject { attachedId: null }
                 && TryFindRowReferenceByReference(receiver, ctx, out receiverRef);
             NeoClient.GetterMemoKey memoKey = default;
             if (memoize)
@@ -2885,7 +2984,8 @@ namespace NeoCompose.Runtime.NeoScript
                 {
                     client.MemoizeGetter(memoKey, new NeoClient.GetterMemoEntry { scalar = result, reads = reads, valueReads = valueReads });
                 }
-                else if (TryFindRowReferenceByReference(result, inner, out RowReference resultRef)
+                else if (result is not NeoScriptObject { attachedId: null }
+                    && TryFindRowReferenceByReference(result, inner, out RowReference resultRef)
                     && resultRef.ownership != NeoValueOwnership.Session)
                 {
                     client.MemoizeGetter(memoKey, new NeoClient.GetterMemoEntry { row = resultRef, reads = reads, valueReads = valueReads });
@@ -3430,33 +3530,31 @@ namespace NeoCompose.Runtime.NeoScript
                     ctx);
             }
 
+            // P43 §6.1 step 4 — the call-site initializer block is evaluated
+            // AFTER the body, as in C# where an object initializer's
+            // expressions run once the constructor has returned. Handing
+            // construction a thunk instead of pre-evaluated values is what
+            // keeps that order: evaluating here would make a field expression
+            // read pre-body state.
+            Action<Context> evaluateFieldValues = constructionCtx =>
+            {
+                for (int i = 0; i < fields.Count; i++)
+                {
+                    fields[i].value = EvalPointer(
+                        info.fields[i].valuePointer,
+                        scope,
+                        constructionCtx);
+                }
+            };
             try
             {
-                NeoGeneratedTypesSupport.RuntimeConstructedClassValue constructed =
-                    NeoGeneratedTypesSupport.ConstructDeclaredClassValueData(
-                        resolved,
-                        argumentValues,
-                        fields,
-                        ctx,
-                        // P43 §6.1 step 4 — the call-site initializer block is
-                        // evaluated AFTER the body, as in C# where an object
-                        // initializer's expressions run once the constructor
-                        // has returned. Handing construction a thunk instead of
-                        // pre-evaluated values is what keeps that order:
-                        // evaluating here would make a field expression read
-                        // pre-body state.
-                        constructionCtx =>
-                        {
-                            for (int i = 0; i < fields.Count; i++)
-                            {
-                                fields[i].value = EvalPointer(
-                                    info.fields[i].valuePointer,
-                                    scope,
-                                    constructionCtx);
-                            }
-                        });
-                ctx.allocationTracker.RegisterSessionRoot(constructed.value.id);
-                return UnwrapCached(constructed.value, ctx, NeoValueOwnership.Session, constructed.member);
+                return ConstructDeclared(
+                    resolved,
+                    argumentValues,
+                    fields,
+                    ctx,
+                    evaluateFieldValues,
+                    replayClassArguments is not null || replayGenericBindings is not null);
             }
             catch (Exception error)
                 when (error is InvalidOperationException
@@ -3774,6 +3872,22 @@ namespace NeoCompose.Runtime.NeoScript
                         }
                         try
                         {
+                            // A plain temporary stays in slots until something
+                            // needs its row; see NeoScriptObject.
+                            if (replayClassArguments is null
+                                && replayGenericBindings is null
+                                && !ctx.client.IsReplayingVirtualInstance
+                                && !ctx.client.IsPreparingVariant
+                                && NeoGeneratedTypesSupport.ResolveDetachedClassPlan(
+                                    ctx.client,
+                                    constructor.info.schemaClassInfo.classId) is { requiresConstructor: false } detachedPlan
+                                && NeoGeneratedTypesSupport.CreateDetached(
+                                    detachedPlan,
+                                    fields,
+                                    constructionCtx) is { } detached)
+                            {
+                                return detached;
+                            }
                             NeoGeneratedTypesSupport.RuntimeConstructedClassValue node =
                                 NeoGeneratedTypesSupport.CreateRuntimeClassValue(
                                     ctx.client,
@@ -5346,6 +5460,11 @@ namespace NeoCompose.Runtime.NeoScript
                 return value is null;
             if (value is null)
                 return false;
+            if (value is NeoScriptObject { attachedId: null }
+                && checkType.type is not (MemberKind.Class or MemberKind.Interface or MemberKind.Dictionary))
+            {
+                return false;
+            }
             switch (checkType.type)
             {
                 case MemberKind.Bool:
@@ -5526,27 +5645,36 @@ namespace NeoCompose.Runtime.NeoScript
 
         private static object? UnwrapGeneratedValue(object? value, Context ctx)
         {
+            // A pending C# view hands back its temporary; asking it for an
+            // id would make rows nothing here needs.
+            if (value is NeoGeneratedClassValue { PendingValue: { } pending })
+                value = pending;
+            if (value is NeoScriptObject detached)
+                return detached.attachedId is null ? detached : ForwardDetached(detached, ctx);
             if (value is INeoValueReference reference
                 && !string.IsNullOrEmpty(reference.valueId))
             {
+                string id = reference.valueId!;
+                RowReference? rowRef = FindRowReference(value, ctx);
                 var ownership = value is NeoGeneratedClassValue generated
                     ? generated.ValueOwnership
                     : value is NeoObjectRecord record
                         ? record.valueOwnership
-                        : FindRowOwnershipByReference(value, ctx)
-                            ?? ResolveOwnershipForValueId(ctx, reference.valueId!);
+                        : rowRef?.ownership ?? ResolveOwnershipForValueId(ctx, id);
+                bool found = rowRef is not null && string.Equals(rowRef.valueId, id, StringComparison.Ordinal)
+                    ? ctx.client.TryGetReplayReference(id, ref rowRef.node, out MemberValue? row, ownership)
+                    : ctx.client.TryGetReplayReference(id, out row, ownership);
                 // Older generated callers may wrap a row id without carrying
                 // its store. Retain that fallback only when the supplied view
                 // cannot resolve the row; a valid sparse view keeps its ownership.
-                if (!ctx.client.TryGetReplayReference(reference.valueId!, out MemberValue? row, ownership)
-                    && value is NeoGeneratedClassValue)
+                if (!found && value is NeoGeneratedClassValue)
                 {
-                    ownership = ResolveOwnershipForValueId(ctx, reference.valueId!);
-                    ctx.client.TryGetReplayReference(reference.valueId!, out row, ownership);
+                    ownership = ResolveOwnershipForValueId(ctx, id);
+                    ctx.client.TryGetReplayReference(id, out row, ownership);
                 }
                 if (row is not null)
                 {
-                    return UnwrapCached(row, ctx, ownership, FindRowMemberByReference(value, ctx));
+                    return UnwrapCached(row, ctx, ownership, rowRef?.member);
                 }
             }
             return value;
@@ -5842,8 +5970,7 @@ namespace NeoCompose.Runtime.NeoScript
                         continue;
                     if (reference.classId != row.classId)
                     {
-                        ctx.rowReverseIndex.Remove(alias);
-                        ctx.rowReverseIndex.Add(alias, new RowReference(
+                        SetRowReference(ctx, alias, new RowReference(
                             row.id, ownership, row.classId, reference.member));
                     }
                     if (!patchedObjects.Contains(alias))
@@ -6069,7 +6196,7 @@ namespace NeoCompose.Runtime.NeoScript
                 ctx.rowCacheKeysByRow.Remove(rowKey);
             }
             foreach (object alias in ctx.rowAliases.Get(ownership, rowId))
-                ctx.rowReverseIndex.Remove(alias);
+                RemoveRowReference(ctx, alias);
             ctx.rowAliases.Remove(ownership, rowId);
         }
 
@@ -6131,6 +6258,13 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 get;
             }
+
+            /// <summary>
+            /// This record's entry in <see cref="referenceIndex"/>, so a read
+            /// finds its row without the weak-table lookup.
+            /// </summary>
+            internal RowReference? reference;
+            internal ConditionalWeakTable<object, RowReference>? referenceIndex;
 
             public NeoObjectRecord(string valueId, NeoValueOwnership ownership, int capacity)
                 : base(capacity)
@@ -6532,6 +6666,8 @@ namespace NeoCompose.Runtime.NeoScript
 
         internal static string? FindRowClassIdByReference(object? value, Context ctx)
         {
+            if (value is NeoScriptObject { attachedId: null } detached)
+                return detached.plan.classId;
             // Prefer the context's exact ownership-qualified reverse index.
             // The same stable id may legitimately exist in Session and Save
             // with different runtime classes; id-only lookup would select the
@@ -6548,6 +6684,7 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 if (!ctx.client.TryGetReplayReference(
                         rowRef.valueId,
+                        ref rowRef.node,
                         out MemberValue? indexedRow,
                         rowRef.ownership))
                 {
@@ -6836,7 +6973,9 @@ namespace NeoCompose.Runtime.NeoScript
             TryFindRowReferenceByReference(value, ctx, out RowReference rowRef) ? rowRef.member : null;
 
         internal static NeoValueOwnership? FindRowOwnershipByReference(object? value, Context ctx) =>
-            RowOwnership(FindRowReference(value, ctx), value);
+            value is NeoScriptObject { attachedId: null }
+                ? NeoValueOwnership.Session
+                : RowOwnership(FindRowReference(value, ctx), value);
 
         // Row-backed arguments can cross evaluator contexts. Their original
         // reverse index is then unavailable, but the record still carries
@@ -6857,10 +6996,27 @@ namespace NeoCompose.Runtime.NeoScript
             Context ctx,
             out RowReference rowRef)
         {
+            if (value is NeoObjectRecord { reference: { } known } objectRecord
+                && ReferenceEquals(objectRecord.referenceIndex, ctx.rowReverseIndex))
+            {
+                rowRef = known;
+                return true;
+            }
             if (value is not null && ctx.rowReverseIndex.TryGetValue(value, out rowRef))
             {
                 return true;
             }
+            // Anything that needs a detached object's row gets it.
+            if (value is NeoScriptObject detached
+                && ForwardDetached(detached, ctx) is { } record
+                && ctx.rowReverseIndex.TryGetValue(record, out rowRef))
+            {
+                return true;
+            }
+            object? leafOwner = (value as NeoVector2Value)?.detachedOwner
+                ?? (value as NeoColorValue)?.detachedOwner;
+            if (leafOwner is NeoScriptObject owner)
+                return TryFindDetachedLeafRow(value!, owner, ctx, out rowRef);
             rowRef = null!;
             return false;
         }

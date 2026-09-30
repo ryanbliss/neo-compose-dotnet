@@ -37,6 +37,11 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
+        internal NeoDialogueMemory(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
         public NeoDialogueMemory(string? LastVisitedAt = null, IDictionary<string, NeoTextNodeMemory>? TextNodeMemories = null, int? VisitCount = null)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(LastVisitedAt, TextNodeMemories, VisitCount), false, NeoValueOwnership.Session)
         {
@@ -78,6 +83,11 @@ namespace HelloWorld.Assets.Scripts.Neo
             });
         }
 
+        internal static NeoDialogueMemory? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return new NeoDialogueMemory(client, value, !saved);
+        }
+
         public NeoDialogueMemory Clone()
         {
             return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
@@ -112,6 +122,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("LastVisitedAt", out object? detachedValue))
+                {
+                    return (string?)detachedValue;
+                }
                 return node.Get<NeoMemberString>("LastVisitedAt").value?.value;
             }
             set
@@ -134,6 +148,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("VisitCount", out object? detachedValue))
+                {
+                    return Convert.ToInt32(detachedValue);
+                }
                 return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("VisitCount")) ?? throw new InvalidOperationException("Required int 'VisitCount' has no value.");
             }
             set

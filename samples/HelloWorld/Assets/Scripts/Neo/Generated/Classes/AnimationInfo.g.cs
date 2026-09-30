@@ -35,6 +35,11 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
+        internal AnimationInfo(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
         public AnimationInfo(IEnumerable<Sprite> Frames, int? FPS = null, string? Name = null)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Frames, FPS, Name), false, NeoValueOwnership.Session)
         {
@@ -76,6 +81,11 @@ namespace HelloWorld.Assets.Scripts.Neo
             });
         }
 
+        internal static AnimationInfo? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return new AnimationInfo(client, value, !saved);
+        }
+
         public AnimationInfo Clone()
         {
             return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
@@ -100,6 +110,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("FPS", out object? detachedValue))
+                {
+                    return Convert.ToInt32(detachedValue);
+                }
                 return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("FPS")) ?? throw new InvalidOperationException("Required int 'FPS' has no value.");
             }
         }
@@ -118,6 +132,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("Name", out object? detachedValue))
+                {
+                    return (string)detachedValue!;
+                }
                 return node.Get<NeoMemberString>("Name").Text ?? throw new InvalidOperationException("Required string 'Name' has no value.");
             }
         }

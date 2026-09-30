@@ -37,6 +37,11 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
+        internal OutpostSaveData(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
         public OutpostSaveData(bool? Unlocked = null, int? VisitCount = null, int? Reputation = null)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Unlocked, VisitCount, Reputation), false, NeoValueOwnership.Session)
         {
@@ -78,6 +83,11 @@ namespace HelloWorld.Assets.Scripts.Neo
             });
         }
 
+        internal static OutpostSaveData? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return new OutpostSaveData(client, value, !saved);
+        }
+
         public OutpostSaveData Clone()
         {
             return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
@@ -102,6 +112,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("Reputation", out object? detachedValue))
+                {
+                    return Convert.ToInt32(detachedValue);
+                }
                 return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("Reputation")) ?? throw new InvalidOperationException("Required int 'Reputation' has no value.");
             }
             set
@@ -114,6 +128,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("Unlocked", out object? detachedValue))
+                {
+                    return (bool)detachedValue!;
+                }
                 return node.Get<NeoMemberBool>("Unlocked").value?.value ?? throw new InvalidOperationException("Required bool 'Unlocked' has no value.");
             }
             set
@@ -126,6 +144,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("VisitCount", out object? detachedValue))
+                {
+                    return Convert.ToInt32(detachedValue);
+                }
                 return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("VisitCount")) ?? throw new InvalidOperationException("Required int 'VisitCount' has no value.");
             }
             set

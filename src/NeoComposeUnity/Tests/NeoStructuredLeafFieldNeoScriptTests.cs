@@ -165,6 +165,153 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void DetachedTemporary_FieldWritesReachItsRow()
+        {
+            // `var p = new Point(); p.Cell.y = 7; p.Tint.a = 0.5; return p;`
+            // A fresh temporary keeps its vector and colour in slots; a field
+            // write through one needs a row, so the temporary materializes
+            // and the write lands on the leaf row, as if built as rows.
+            NeoClient client = BuildClient();
+            var ctx = ContextWithRoot(client, out Dictionary<string, object?> scope);
+            var pointType = new ClassTypeInfo { type = MemberKind.Class, required = true, classId = "class-point" };
+            VariablePointer point = new()
+            {
+                type = PointerKind.Variable,
+                variableId = "p"
+            };
+            FunctionWithReturnType body = Action(
+                    new VariableInstruction
+                    {
+                        type = InstructionKind.Variable,
+                        variable = new Variable
+                        {
+                            id = "p",
+                            typeInfo = pointType,
+                            pointer = new FunctionPointer
+                            {
+                                type = PointerKind.Function,
+                                function = new ClassConstructorFunction
+                                {
+                                    type = FunctionKind.ClassConstructor,
+                                    info = new FunctionClassConstructorInfo
+                                    {
+                                        schemaClassInfo = pointType,
+                                        fields = Array.Empty<FunctionClassConstructorField>(),
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    new AssignInstruction
+                    {
+                        type = InstructionKind.Assign,
+                        operatorValue = "=",
+                        pointer = NumberLiteral(7),
+                        target = new WriteTarget { pointer = KeyOf(KeyOf(point, "Cell"), "y"), typeInfo = IntType(), writability = WritabilityKind.Runtime },
+                    },
+                    new AssignInstruction
+                    {
+                        type = InstructionKind.Assign,
+                        operatorValue = "=",
+                        pointer = NumberLiteral(0.5),
+                        target = new WriteTarget { pointer = KeyOf(KeyOf(point, "Tint"), "a"), typeInfo = FloatType(), writability = WritabilityKind.Runtime },
+                    },
+                    new ReturnInstruction { type = InstructionKind.Return, pointer = point });
+            body.typeInfo = pointType;
+            NeoScriptExecutionResult result = NeoScriptExecutor.Execute(client, body, scope, ctx);
+
+            string id = NSGetterEvaluator.FindRowIdByReference(result.ReturnValue, ctx)!;
+            Assert.IsTrue(client.TryGetValue(id, out ObjectMemberValue? row));
+            Assert.IsTrue(client.TryGetValue(row!.value!["Cell"], out Vector2MemberValue? cell));
+            Assert.AreEqual(2f, cell!.value!.x);
+            Assert.AreEqual(7f, cell.value.y);
+            Assert.IsTrue(client.TryGetValue(row.value["Tint"], out ColorMemberValue? tint));
+            Assert.AreEqual(0.5f, tint!.value!.a);
+            Assert.AreEqual(1f, tint.value.r);
+        }
+
+        [Test]
+        public void DetachedTemporary_CopiesAVectorItIsGiven()
+        {
+            NeoClient client = BuildClient();
+
+            Assert.AreEqual(5f, RunPointProgram(client, "a").y);
+            Assert.AreEqual(4f, RequireVector2(client, "value-cell").y, "The source row is untouched.");
+        }
+
+        [Test]
+        public void DetachedTemporaries_GivenOneVector_DoNotShareIt()
+        {
+            NeoClient client = BuildClient();
+
+            Assert.AreEqual(4f, RunPointProgram(client, "c").y);
+            Assert.AreEqual(4f, RequireVector2(client, "value-cell").y);
+        }
+
+        /// <summary>
+        /// <c>var a = new Point { Cell = Session.Leaf.Cell }; var c = new Point { Cell = Session.Leaf.Cell };
+        /// a.Cell.y = 5; return</c> <paramref name="returned"/>, and reads the returned row's Cell.
+        /// </summary>
+        private static NeoVector2Value RunPointProgram(NeoClient client, string returned)
+        {
+            var ctx = ContextWithRoot(client, out Dictionary<string, object?> scope);
+            var pointType = new ClassTypeInfo { type = MemberKind.Class, required = true, classId = "class-point" };
+            VariableInstruction Declare(string id) => new()
+            {
+                type = InstructionKind.Variable,
+                variable = new Variable
+                {
+                    id = id,
+                    typeInfo = pointType,
+                    pointer = new FunctionPointer
+                    {
+                        type = PointerKind.Function,
+                        function = new ClassConstructorFunction
+                        {
+                            type = FunctionKind.ClassConstructor,
+                            info = new FunctionClassConstructorInfo
+                            {
+                                schemaClassInfo = pointType,
+                                fields = new[]
+                                {
+                                    new FunctionClassConstructorField
+                                    {
+                                        schemaKey = "Cell",
+                                        memberId = "member-point-cell",
+                                        valuePointer = LeafPointer("Cell"),
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            };
+            VariablePointer Variable(string id) => new()
+            {
+                type = PointerKind.Variable,
+                variableId = id
+            };
+            FunctionWithReturnType body = Action(
+                Declare("a"),
+                Declare("c"),
+                new AssignInstruction
+                {
+                    type = InstructionKind.Assign,
+                    operatorValue = "=",
+                    pointer = NumberLiteral(5),
+                    target = new WriteTarget { pointer = KeyOf(KeyOf(Variable("a"), "Cell"), "y"), typeInfo = IntType(), writability = WritabilityKind.Runtime },
+                },
+                new ReturnInstruction { type = InstructionKind.Return, pointer = Variable(returned) });
+            body.typeInfo = pointType;
+            NeoScriptExecutionResult result = NeoScriptExecutor.Execute(client, body, scope, ctx);
+
+            string id = NSGetterEvaluator.FindRowIdByReference(result.ReturnValue, ctx)!;
+            Assert.IsTrue(client.TryGetValue(id, out ObjectMemberValue? row));
+            Assert.IsTrue(client.TryGetValue(row!.value!["Cell"], out Vector2MemberValue? cell));
+            return cell!.value!;
+        }
+
+        [Test]
         public void ColorChannelAssignment_WritesOneChannel()
         {
             NeoClient client = BuildClient();
@@ -683,6 +830,26 @@ namespace NeoCompose.Tests
                         createdAt = "x",
                         updatedAt = "x",
                     },
+                    ["member-point-cell"] = new Vector2IntMember
+                    {
+                        id = "member-point-cell",
+                        projectId = "project-leaf-fields",
+                        name = "Cell",
+                        kind = MemberKind.Vector2Int,
+                        defaultValue = new Vector2MemberValueBase { value = new NeoVector2Value { x = 2f, y = 4f } },
+                        createdAt = "x",
+                        updatedAt = "x",
+                    },
+                    ["member-point-tint"] = new ColorMember
+                    {
+                        id = "member-point-tint",
+                        projectId = "project-leaf-fields",
+                        name = "Tint",
+                        kind = MemberKind.Color,
+                        defaultValue = new ColorMemberValueBase { value = new NeoColorValue { r = 1f, g = 1f, b = 1f, a = 1f } },
+                        createdAt = "x",
+                        updatedAt = "x",
+                    },
                     ["member-highlight"] = new ColorMember
                     {
                         id = "member-highlight",
@@ -762,6 +929,11 @@ namespace NeoCompose.Tests
                         ("Cell", "member-cell"),
                         ("Tint", "member-tint"),
                         ("Highlight", "member-highlight")),
+                    ["class-point"] = SchemaClass(
+                        "class-point",
+                        "Point",
+                        ("Cell", "member-point-cell"),
+                        ("Tint", "member-point-tint")),
                 },
                 enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
             };

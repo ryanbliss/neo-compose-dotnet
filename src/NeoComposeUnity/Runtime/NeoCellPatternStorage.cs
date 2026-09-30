@@ -49,6 +49,8 @@ namespace NeoCompose.Runtime
         {
             if (value is NeoCellPattern pattern)
                 return pattern;
+            if (value is NeoScriptObject { attachedId: null } detached && detached.plan.classId == ClassId)
+                return ReadDetached(detached);
             return NeoGeneratedTypesSupport.ReadNSPropertyClass(client, value, required, false,
                 Read, (c, node) => Read(c, node));
         }
@@ -106,23 +108,40 @@ namespace NeoCompose.Runtime
             var resolved = NeoGeneratedTypesSupport.ResolveDeclaredConstructor(ctx.client,
                 new ClassTypeInfo { type = MemberKind.Class, required = true, classId = ClassId },
                 ConstructorId, new[] { "offsets" }, Array.Empty<NeoGeneratedTypesSupport.RuntimeConstructorField>());
-            var constructed = NeoGeneratedTypesSupport.ConstructDeclaredClassValueData(resolved,
+            return NSGetterEvaluator.ConstructDeclared(resolved,
                 new Dictionary<string, object?> { ["offsets"] = Offsets(pattern) },
-                Array.Empty<NeoGeneratedTypesSupport.RuntimeConstructorField>(), ctx);
-            ctx.allocationTracker.RegisterSessionRoot(constructed.value.id);
-            return NSGetterEvaluator.UnwrapRow(constructed.value, ctx, NeoValueOwnership.Session)!;
+                Array.Empty<NeoGeneratedTypesSupport.RuntimeConstructorField>(), ctx,
+                evaluateFieldValues: null, replayContext: false)!;
         }
 
         internal static NeoCellPattern ReadRuntime(object? value, NSGetterEvaluator.Context ctx)
         {
             if (value is NeoCellPattern pattern)
                 return pattern;
+            if (value is NeoScriptObject { attachedId: null } detached && detached.plan.classId == ClassId)
+                return ReadDetached(detached);
             string? id = NSGetterEvaluator.FindRowIdByReference(value, ctx);
             var ownership = NSGetterEvaluator.FindRowOwnershipByReference(value, ctx) ?? ctx.valueOwnership;
             if (id is null || !ctx.client.TryGetValue(ownership, id, out ObjectMemberValue? row)
                 || row.classId != ClassId)
                 throw new NSGetterRuntimeError("Expected a canonical CellPattern value.");
             return ReadRow(ctx.client, row, ownership);
+        }
+
+        private static NeoCellPattern ReadDetached(NeoScriptObject detached)
+        {
+            object?[] entries = detached.plan.slotByKey.TryGetValue("_offsets", out int slot)
+                && NeoGeneratedTypesSupport.DetachedListEntries(detached, slot) is object?[] stored
+                    ? stored
+                    : throw new InvalidOperationException("CellPattern offsets are missing.");
+            var offsets = new Vector2Int[entries.Length];
+            for (int index = 0; index < offsets.Length; index++)
+            {
+                offsets[index] = entries[index] is NeoVector2Value vector
+                    ? NeoVectorValues.ToVector2Int(vector)
+                    : throw new InvalidOperationException("CellPattern offset is missing.");
+            }
+            return new NeoCellPattern(offsets);
         }
 
         private static object?[] Offsets(NeoCellPattern pattern)

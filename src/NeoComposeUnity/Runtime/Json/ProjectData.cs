@@ -388,6 +388,13 @@ namespace NeoCompose.Runtime.Json
         public Dictionary<string, MemberValue> values = null!;
 
         /// <summary>
+        /// Moves whenever <see cref="values"/> gains or loses rows after
+        /// load (a partition load or unload). Clients that share this
+        /// export cache authored rows against it.
+        /// </summary>
+        internal int valuesEpoch;
+
+        /// <summary>
         /// Storage partitions (specs/list-member-and-tilegrid-scaling.md
         /// §6): every non-main partition of the export, keyed by partition
         /// key (<c>mapKey</c>, e.g. <c>world:&lt;gridClassId&gt;</c>) with the

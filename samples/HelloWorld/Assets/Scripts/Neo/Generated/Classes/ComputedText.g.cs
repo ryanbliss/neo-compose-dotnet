@@ -35,6 +35,11 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
+        internal ComputedText(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
         public ComputedText(string? baseText = null, string? optionalSuffix = null)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(baseText, optionalSuffix), false, NeoValueOwnership.Session)
         {
@@ -75,6 +80,11 @@ namespace HelloWorld.Assets.Scripts.Neo
             });
         }
 
+        internal static ComputedText? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return new ComputedText(client, value, !saved);
+        }
+
         public ComputedText Clone()
         {
             return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
@@ -99,6 +109,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("baseText", out object? detachedValue))
+                {
+                    return (string)detachedValue!;
+                }
                 return node.Get<NeoMemberString>("baseText").Text ?? throw new InvalidOperationException("Required string 'baseText' has no value.");
             }
         }
@@ -117,6 +131,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("optionalSuffix", out object? detachedValue))
+                {
+                    return (string?)detachedValue;
+                }
                 return node.Get<NeoMemberString>("optionalSuffix").Text;
             }
         }

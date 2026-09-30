@@ -1197,9 +1197,16 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private static void ValidateSwitchInstructionMetadata(
+        /// <summary>
+        /// Validates a switch once and returns its normalized case labels per
+        /// section. Instructions are immutable after load, so the labels are
+        /// cached on the instruction.
+        /// </summary>
+        private static string[][] ValidateSwitchInstructionMetadata(
             SwitchInstruction? instruction)
         {
+            if (instruction?.normalizedLabels is { } cached)
+                return cached;
             if (instruction?.selector is null
                 || instruction.sections is null)
             {
@@ -1208,8 +1215,10 @@ namespace NeoCompose.Runtime
             }
             ValidateSwitchSelectorType(instruction.selectorTypeInfo);
             var labels = new HashSet<string>(StringComparer.Ordinal);
-            foreach (SwitchSection? section in instruction.sections)
+            var normalizedLabels = new string[instruction.sections.Length][];
+            for (int i = 0; i < instruction.sections.Length; i++)
             {
+                SwitchSection? section = instruction.sections[i];
                 if (section?.labels is null
                     || section.labels.Length == 0
                     || section.instructions is null)
@@ -1217,17 +1226,22 @@ namespace NeoCompose.Runtime
                     throw new NeoScriptPreExecutionValidationError(
                         "NeoScript switch contains a malformed case section; its compiled IR is stale or corrupt.");
                 }
-                foreach (Value label in section.labels)
+                normalizedLabels[i] = new string[section.labels.Length];
+                for (int j = 0; j < section.labels.Length; j++)
                 {
-                    if (!labels.Add(NormalizeSwitchLabel(
-                            label,
-                            instruction.selectorTypeInfo)))
+                    string label = NormalizeSwitchLabel(
+                        section.labels[j],
+                        instruction.selectorTypeInfo);
+                    if (!labels.Add(label))
                     {
                         throw new NeoScriptPreExecutionValidationError(
                             "NeoScript switch contains a duplicate normalized case label; its compiled IR is stale or corrupt.");
                     }
+                    normalizedLabels[i][j] = label;
                 }
             }
+            instruction.normalizedLabels = normalizedLabels;
+            return normalizedLabels;
         }
 
         private static void ValidateTryInstructionMetadata(
@@ -2051,15 +2065,41 @@ namespace NeoCompose.Runtime
                     ctx,
                     options);
             }
-            var target = ResolveTarget(client, instruction.target, scope, ctx);
             // Existing storage/local IR carries the operator-applied value in
             // `pointer`; only Setter writability needs to re-read its getter
             // because the property has no storage row of its own.
-            object? assigned = rhs;
-            assigned = CoerceSetterValue(assigned, instruction.target.typeInfo);
+            object? assigned = CoerceSetterValue(rhs, instruction.target.typeInfo);
+            NeoResolvedWriteTarget target;
+            if (instruction.target.pointer is KeyOfPointer keyOfPointer)
+            {
+                object? receiver = Eval(keyOfPointer.keyOf.pointer, scope, ctx);
+                if (receiver is NeoScriptObject { attachedId: null } detached
+                    && WritesSessionTarget(instruction.target.writability)
+                    && Eval(keyOfPointer.keyOf.key, scope, ctx) is string key
+                    && NSGetterEvaluator.TryWriteDetachedMember(detached, key, assigned, ctx))
+                {
+                    return null;
+                }
+                target = ResolveKeyOfWriteTarget(client, instruction.target, keyOfPointer, receiver, scope, ctx);
+            }
+            else
+            {
+                target = ResolveTarget(client, instruction.target, scope, ctx);
+            }
             target.Write(client, assigned, ctx);
             return null;
         }
+
+        /// <summary>
+        /// Writabilities that resolve to a Session target, the only store a
+        /// detached object's slots stand in for.
+        /// </summary>
+        private static bool WritesSessionTarget(string? writability) =>
+            writability is null
+                or WritabilityKind.Session
+                or WritabilityKind.ImmutableToSessionLookup
+                or WritabilityKind.Local
+                or WritabilityKind.Runtime;
 
         private static bool TryGetReadOnlyBindingError(
             NeoScriptScope scope,
@@ -2231,6 +2271,34 @@ namespace NeoCompose.Runtime
                     instruction.mutation,
                     args,
                     ctx);
+                return;
+            }
+
+            if (instruction.target.pointer is KeyOfPointer keyOfTarget
+                && instruction.target.typeInfo.type == MemberKind.List)
+            {
+                object? receiver = Eval(keyOfTarget.keyOf.pointer, scope, ctx);
+                if (receiver is NeoScriptObject detached)
+                {
+                    if (detached.attachedId is null
+                        && instruction.mutation == CollectionMutationKind.Add
+                        && WritesSessionTarget(instruction.target.writability)
+                        && Eval(keyOfTarget.keyOf.key, scope, ctx) is string key
+                        && NSGetterEvaluator.TryAddDetachedListEntry(detached, key, args[0]))
+                    {
+                        return;
+                    }
+                    receiver = NSGetterEvaluator.ForwardDetached(detached, ctx);
+                }
+                ResolveCollectionTarget(
+                    client,
+                    instruction.target,
+                    scope,
+                    ctx,
+                    evaluatedTarget: NSGetterEvaluator.EvaluateKeyOf(keyOfTarget, receiver, scope, ctx),
+                    targetEvaluated: true,
+                    keyOfReceiver: receiver)
+                    .Mutate(client, instruction.mutation, args, ctx);
                 return;
             }
 
@@ -2719,23 +2787,47 @@ namespace NeoCompose.Runtime
                         return new NeoRowWriteTarget(rowId, target.typeInfo, ownership);
                     }
                 case KeyOfPointer keyOfPointer:
-                    {
-                        NeoValueOwnership ownership = TargetOwnership(client, target, scope, ctx);
-                        return ResolveKeyOfTarget(client, keyOfPointer.keyOf, target.typeInfo, ownership, scope, ctx);
-                    }
+                    return ResolveKeyOfWriteTarget(
+                        client,
+                        target,
+                        keyOfPointer,
+                        Eval(keyOfPointer.keyOf.pointer, scope, ctx),
+                        scope,
+                        ctx);
                 default:
                     throw new NSGetterRuntimeError(
                         $"Unsupported assignment target '{target.pointer.GetType().Name}'.");
             }
         }
 
+        /// <summary>
+        /// Resolves a keyed write on a receiver the caller already evaluated.
+        /// A detached receiver materializes here, since the write needs rows.
+        /// </summary>
+        private static NeoResolvedWriteTarget ResolveKeyOfWriteTarget(
+            NeoClient client,
+            WriteTarget target,
+            KeyOfPointer keyOfPointer,
+            object? receiver,
+            NeoScriptScope scope,
+            NSGetterEvaluator.Context ctx)
+        {
+            if (receiver is NeoScriptObject detached)
+                receiver = NSGetterEvaluator.ForwardDetached(detached, ctx);
+            NeoValueOwnership ownership = TargetOwnership(client, target, scope, ctx, receiver);
+            return ResolveKeyOfTarget(client, keyOfPointer.keyOf, target.typeInfo, ownership, receiver, scope, ctx);
+        }
+
         private static NeoResolvedCollectionTarget ResolveCollectionTarget(
             NeoClient client,
             WriteTarget target,
             NeoScriptScope scope,
-            NSGetterEvaluator.Context ctx, NeoWritePlan? preparedPlan = null)
+            NSGetterEvaluator.Context ctx, NeoWritePlan? preparedPlan = null,
+            object? evaluatedTarget = null,
+            bool targetEvaluated = false,
+            object? keyOfReceiver = null)
         {
-            NeoValueOwnership ownership = TargetOwnership(client, target, scope, ctx);
+            NeoValueOwnership ownership = TargetOwnership(client, target, scope, ctx, keyOfReceiver);
             string? rowId;
             JsonMember? member = null;
             if (target.pointer is StaticMemberPointer staticMember)
@@ -2781,7 +2873,7 @@ namespace NeoCompose.Runtime
             }
             else
             {
-                object? value = Eval(target.pointer, scope, ctx);
+                object? value = targetEvaluated ? evaluatedTarget : Eval(target.pointer, scope, ctx);
                 member = NSGetterEvaluator.FindRowMemberByReference(value, ctx);
                 rowId = FindValueId(value, ctx);
                 if (rowId is null && target.pointer is KeyOfPointer collectionKeyOf)
@@ -2792,7 +2884,7 @@ namespace NeoCompose.Runtime
                     // member-write path does — receiver row id plus schema
                     // key, stored body first, then the deterministic virtual
                     // id the write materializes under.
-                    object? receiver = Eval(collectionKeyOf.keyOf.pointer, scope, ctx);
+                    object? receiver = keyOfReceiver ?? Eval(collectionKeyOf.keyOf.pointer, scope, ctx);
                     string? receiverRowId = FindValueId(receiver, ctx);
                     object? key = Eval(collectionKeyOf.keyOf.key, scope, ctx);
                     string schemaKey = ToStringKey(key, "Collection member key");
@@ -2863,10 +2955,10 @@ namespace NeoCompose.Runtime
             KeyOf keyOf,
             TypeInfo targetType,
             NeoValueOwnership ownership,
+            object? receiver,
             NeoScriptScope scope,
             NSGetterEvaluator.Context ctx)
         {
-            object? receiver = Eval(keyOf.pointer, scope, ctx);
             object? key = Eval(keyOf.key, scope, ctx);
             string? receiverRowId = FindValueId(receiver, ctx);
             if (receiverRowId == null)
@@ -2941,15 +3033,17 @@ namespace NeoCompose.Runtime
             throw new NSGetterRuntimeError("Assignment receiver must be a list, dictionary, or class object.");
         }
 
+        /// <param name="keyOfReceiver">A keyed target's already-evaluated receiver, when the caller has it.</param>
         private static NeoValueOwnership TargetOwnership(
             NeoClient client,
             WriteTarget target,
             NeoScriptScope scope,
-            NSGetterEvaluator.Context ctx)
+            NSGetterEvaluator.Context ctx,
+            object? keyOfReceiver = null)
         {
             if (target.writability is null)
             {
-                if (TryInferTargetOwnership(client, target.pointer, scope, ctx, out NeoValueOwnership inferred))
+                if (TryInferTargetOwnership(client, target.pointer, scope, ctx, keyOfReceiver, out NeoValueOwnership inferred))
                 {
                     return inferred;
                 }
@@ -2963,7 +3057,7 @@ namespace NeoCompose.Runtime
                 WritabilityKind.ImmutableToSessionLookup => NeoValueOwnership.Session,
                 WritabilityKind.Local => NeoValueOwnership.Session,
                 WritabilityKind.Runtime => ResolveRuntimeTargetOwnership(
-                    client, target.pointer, scope, ctx),
+                    client, target.pointer, scope, ctx, keyOfReceiver),
                 _ => throw new NSGetterRuntimeError("Cannot mutate read-only dialogue action target."),
             };
         }
@@ -2972,9 +3066,10 @@ namespace NeoCompose.Runtime
             NeoClient client,
             Pointer pointer,
             NeoScriptScope scope,
-            NSGetterEvaluator.Context ctx)
+            NSGetterEvaluator.Context ctx,
+            object? keyOfReceiver)
         {
-            if (!TryResolveTargetOwnership(client, pointer, scope, ctx, out NeoValueOwnership ownership))
+            if (!TryResolveTargetOwnership(client, pointer, scope, ctx, keyOfReceiver, out NeoValueOwnership ownership))
             {
                 throw new NSGetterRuntimeError(
                     "Cannot write runtime-owned target because its value ownership could not be resolved.");
@@ -2992,9 +3087,10 @@ namespace NeoCompose.Runtime
             Pointer pointer,
             NeoScriptScope scope,
             NSGetterEvaluator.Context ctx,
+            object? keyOfReceiver,
             out NeoValueOwnership ownership)
         {
-            return TryResolveTargetOwnership(client, pointer, scope, ctx, out ownership)
+            return TryResolveTargetOwnership(client, pointer, scope, ctx, keyOfReceiver, out ownership)
                 && ownership != NeoValueOwnership.Asset;
         }
 
@@ -3003,6 +3099,7 @@ namespace NeoCompose.Runtime
             Pointer pointer,
             NeoScriptScope scope,
             NSGetterEvaluator.Context ctx,
+            object? keyOfReceiver,
             out NeoValueOwnership ownership)
         {
             ownership = NeoValueOwnership.Asset;
@@ -3015,7 +3112,7 @@ namespace NeoCompose.Runtime
             {
                 ReferencePointer => null,
                 KeyOfPointer keyOfPointer =>
-                    Eval(keyOfPointer.keyOf.pointer, scope, ctx),
+                    keyOfReceiver ?? Eval(keyOfPointer.keyOf.pointer, scope, ctx),
                 _ => Eval(pointer, scope, ctx),
             };
             NeoValueOwnership? contextualOwnership =
@@ -5374,19 +5471,7 @@ namespace NeoCompose.Runtime
             {
                 Instruction = instruction ?? throw new NeoScriptPreExecutionValidationError(
                     "NeoScript switch instruction is missing; its compiled IR is stale or corrupt.");
-                ValidateSwitchInstructionMetadata(instruction);
-                normalizedLabels = new string[instruction.sections.Length][];
-                for (int i = 0; i < instruction.sections.Length; i++)
-                {
-                    SwitchSection section = instruction.sections[i];
-                    normalizedLabels[i] = new string[section.labels.Length];
-                    for (int j = 0; j < section.labels.Length; j++)
-                    {
-                        normalizedLabels[i][j] = NormalizeSwitchLabel(
-                            section.labels[j],
-                            instruction.selectorTypeInfo);
-                    }
-                }
+                normalizedLabels = ValidateSwitchInstructionMetadata(instruction);
                 ExpressionState = ExpressionResumeState.ForOptions(options);
             }
 

@@ -57,6 +57,7 @@ namespace NeoCompose.Runtime
         }
             = NeoGenericResolution.EmptyEnv;
         protected Dictionary<string, NeoMember> childMembers = new();
+        private NeoClassNode? classNode;
         private List<string>? reboundKeys;
         private string? reportingKey;
 
@@ -249,16 +250,8 @@ namespace NeoCompose.Runtime
         /// according to the merged schema (child overrides win), or null
         /// when the key isn't in any ancestor's schema.
         /// </summary>
-        protected string? LookupMergedMemberId(string key)
-        {
-            for (int i = 0; i < mergedSchema.Count; i++)
-            {
-                var entry = mergedSchema[i];
-                if (entry.schemaKey == key)
-                    return entry.memberId;
-            }
-            return null;
-        }
+        protected string? LookupMergedMemberId(string key) =>
+            classNode?.SurfaceMember(key)?.memberId;
 
         protected override void Initialize(ObjectMemberValue value)
         {
@@ -319,13 +312,13 @@ namespace NeoCompose.Runtime
                 return;
             foreach (var child in childMembers.Values)
             {
-                child.OnChanged -= HandleChildChanged;
                 if (child.member.Mutability == NeoMemberMutabilityKind.ReadOnly)
                 {
-                    child.ReleaseDeclarationReference();
+                    child.ReleaseDeclarationReference(this);
                 }
                 else
                 {
+                    child.OnChanged -= HandleChildChanged;
                     child.Dispose();
                 }
             }
@@ -383,9 +376,9 @@ namespace NeoCompose.Runtime
                 {
                     continue;
                 }
-                if (!client.TryGetMember(entry.memberId, out Member? childMember))
+                if (entry.member is null)
                     continue;
-                childMember = SubstituteChildMember(childMember);
+                Member childMember = SubstituteChildMember(entry.member);
                 if (member.useDeclarationDefaults)
                 {
                     // Class references and sparse layer settings inherit declaration
@@ -460,9 +453,12 @@ namespace NeoCompose.Runtime
                 }
                 if (childMember.Mutability == NeoMemberMutabilityKind.ReadOnly)
                 {
-                    child.RetainDeclarationReference();
+                    child.RetainDeclarationReference(this);
                 }
-                child.OnChanged += HandleChildChanged;
+                else
+                {
+                    child.OnChanged += HandleChildChanged;
+                }
                 childMembers[entry.schemaKey] = child;
                 if (recordRebound
                     && (child.overrideValueId ?? child.value?.id)
@@ -480,19 +476,19 @@ namespace NeoCompose.Runtime
         {
             foreach (var child in children)
             {
-                child.OnChanged -= HandleChildChanged;
                 if (child.member.Mutability == NeoMemberMutabilityKind.ReadOnly)
                 {
-                    child.ReleaseDeclarationReference();
+                    child.ReleaseDeclarationReference(this);
                 }
                 else
                 {
+                    child.OnChanged -= HandleChildChanged;
                     child.Dispose();
                 }
             }
         }
 
-        protected void HandleChildChanged(NeoMember child)
+        protected internal void HandleChildChanged(NeoMember child)
         {
             if (reportingKey is not null
                 && childMembers.TryGetValue(reportingKey, out NeoMember? reporting)
@@ -565,8 +561,9 @@ namespace NeoCompose.Runtime
         {
             try
             {
-                inheritanceChain = client.ResolveClassInheritanceChain(schemaClass.id);
-                mergedSchema = client.ResolveInstanceSurfaceSchema(schemaClass.id);
+                classNode = client.ResolveClassNode(schemaClass.id);
+                inheritanceChain = classNode.Chain;
+                mergedSchema = classNode.Surface;
                 // The chain env alone misses constructed slots: an instance
                 // of the DECLARED open class (`classId: null` rows under a
                 // `GenericTest<Color>` slot) binds its params through the
@@ -587,6 +584,7 @@ namespace NeoCompose.Runtime
             catch (CircularInheritanceError ex)
             {
                 Debug.LogError(ex);
+                classNode = null;
                 inheritanceChain = new List<NeoSchemaClass>();
                 mergedSchema = new List<MergedSchemaEntry>();
                 GenericEnv = NeoGenericResolution.EmptyEnv;

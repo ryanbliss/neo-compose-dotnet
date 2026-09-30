@@ -3,6 +3,8 @@
 
 #nullable enable
 
+using System.Collections.Generic;
+using System.Linq;
 using NeoCompose.Runtime.Json;
 
 namespace NeoCompose.Runtime
@@ -135,7 +137,11 @@ namespace NeoCompose.Runtime
             isDisposingChildren = true;
             return true;
         }
-        private int declarationReferenceCount;
+        // Every Class instance containing a declaration-backed member holds
+        // this one shared node. Holders are counted here rather than
+        // subscribed to OnChanged: a multicast delegate copies its whole
+        // invocation list per add/remove, which made each holder cost O(holders).
+        private Dictionary<NeoMemberClass, int>? declarationHolders;
 
         protected NeoMember(
             NeoClient client,
@@ -178,17 +184,24 @@ namespace NeoCompose.Runtime
             client.UnregisterNode(this);
         }
 
-        internal void RetainDeclarationReference()
+        internal void RetainDeclarationReference(NeoMemberClass holder)
         {
-            declarationReferenceCount++;
+            declarationHolders ??= new Dictionary<NeoMemberClass, int>();
+            declarationHolders.TryGetValue(holder, out int count);
+            declarationHolders[holder] = count + 1;
         }
 
-        internal void ReleaseDeclarationReference()
+        internal void ReleaseDeclarationReference(NeoMemberClass holder)
         {
-            if (declarationReferenceCount <= 0)
+            if (declarationHolders is null || !declarationHolders.TryGetValue(holder, out int count))
                 return;
-            declarationReferenceCount--;
-            if (declarationReferenceCount == 0)
+            if (count > 1)
+            {
+                declarationHolders[holder] = count - 1;
+                return;
+            }
+            declarationHolders.Remove(holder);
+            if (declarationHolders.Count == 0)
                 Dispose();
         }
 
@@ -202,6 +215,9 @@ namespace NeoCompose.Runtime
             if (isDisposed)
                 return;
             OnChanged?.Invoke(changed);
+            if (declarationHolders is { Count: > 0 })
+                foreach (NeoMemberClass holder in declarationHolders.Keys.ToArray())
+                    holder.HandleChildChanged(changed);
         }
 
         internal void AssertContainingClassesCanBeConstructed()

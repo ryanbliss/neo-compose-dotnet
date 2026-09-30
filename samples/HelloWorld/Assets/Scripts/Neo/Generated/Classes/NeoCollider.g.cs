@@ -39,6 +39,11 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
+        internal NeoCollider(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
         public NeoCollider(NeoVector2? Size = null, NeoVector2? Offset = null, bool? IsTrigger = null)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Size, Offset, IsTrigger), false, NeoValueOwnership.Session)
         {
@@ -80,6 +85,11 @@ namespace HelloWorld.Assets.Scripts.Neo
             });
         }
 
+        internal static NeoCollider? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return new NeoCollider(client, value, !saved);
+        }
+
         public NeoCollider Clone()
         {
             return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
@@ -107,6 +117,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("IsTrigger", out object? detachedValue))
+                {
+                    return detachedValue is null ? (bool?)null : (bool)detachedValue!;
+                }
                 return node.Get<NeoMemberBool>("IsTrigger").value?.value;
             }
             set

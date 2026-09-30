@@ -31,6 +31,11 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
+        internal Session(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
         public Session(NeoVector3? Position = null)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Position), false, NeoValueOwnership.Session)
         {
@@ -68,6 +73,11 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => new Session(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
+        }
+
+        internal static Session? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return new Session(client, value, !saved);
         }
 
         public Session Clone()

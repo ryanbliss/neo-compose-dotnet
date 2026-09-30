@@ -361,6 +361,7 @@ namespace NeoCompose.Runtime
             InvalidateSharedEvaluationContext();
             virtualValues.Clear();
             virtualValueOwnership.Clear();
+            ClearVirtualValueNodes();
             virtualClassChildren.Clear();
             virtualClassPlacementByChildId.Clear();
             virtualEntriesByContainer.Clear();
@@ -1638,6 +1639,7 @@ namespace NeoCompose.Runtime
                 virtualValues[pair.Key] = pair.Value;
                 EvictSharedEvaluationRow(pair.Key);
                 virtualValueOwnership[pair.Key] = expansion.Ownership[pair.Key];
+                SyncValueNode(pair.Key);
                 TrackVirtualValue(rootId, pair.Key);
                 if (!string.IsNullOrEmpty(pair.Value.containerId))
                     AddMembership(virtualEntriesByContainer, virtualContainerByRow, pair.Key, pair.Value.containerId!);
@@ -2139,6 +2141,7 @@ namespace NeoCompose.Runtime
                     virtualValues.Remove(valueId);
                     EvictSharedEvaluationRow(valueId);
                     virtualValueOwnership.Remove(valueId);
+                    SyncValueNode(valueId);
                     if (virtualContainerByRow.TryGetValue(
                             valueId,
                             out string? containerId))

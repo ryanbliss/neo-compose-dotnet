@@ -47,6 +47,11 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
+        internal Assets(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
         public Assets(Art Art, Audio Audio, Worlds Worlds, ComputedText? Computed = null, IEnumerable<Item>? Items = null, LookupContainer? LookupContainer = null, IEnumerable<Outpost>? Outposts = null, OldConsoleLandingGrid? ScreenshotEmptyGrid = null, IEnumerable<NeoSortingLayer>? SortingLayers = null)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Art, Audio, Worlds, Computed, Items, LookupContainer, Outposts, ScreenshotEmptyGrid, SortingLayers), false, NeoValueOwnership.Session)
         {
@@ -94,6 +99,11 @@ namespace HelloWorld.Assets.Scripts.Neo
             });
         }
 
+        internal static Assets? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return new Assets(client, value, !saved);
+        }
+
         public Assets Clone()
         {
             return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
@@ -118,6 +128,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("Art", out object? detachedValue))
+                {
+                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, false, global::HelloWorld.Assets.Scripts.Neo.Art.Create, global::HelloWorld.Assets.Scripts.Neo.Art.CreateWritable, global::HelloWorld.Assets.Scripts.Neo.Art.CreateDetached);
+                }
                 return global::HelloWorld.Assets.Scripts.Neo.Art.Create(client, node.Get<NeoMemberClass>("Art"));
             }
         }
@@ -126,6 +140,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("Audio", out object? detachedValue))
+                {
+                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, false, global::HelloWorld.Assets.Scripts.Neo.Audio.Create, global::HelloWorld.Assets.Scripts.Neo.Audio.CreateWritable, global::HelloWorld.Assets.Scripts.Neo.Audio.CreateDetached);
+                }
                 return global::HelloWorld.Assets.Scripts.Neo.Audio.Create(client, node.Get<NeoMemberClass>("Audio"));
             }
         }
@@ -134,6 +152,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("Computed", out object? detachedValue))
+                {
+                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, false, global::HelloWorld.Assets.Scripts.Neo.ComputedText.Create, global::HelloWorld.Assets.Scripts.Neo.ComputedText.CreateWritable, global::HelloWorld.Assets.Scripts.Neo.ComputedText.CreateDetached);
+                }
                 return global::HelloWorld.Assets.Scripts.Neo.ComputedText.Create(client, node.Get<NeoMemberClass>("Computed"));
             }
         }
@@ -142,6 +164,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("Items", out _))
+                {
+                    return DetachedReadOnlyList<IReadOnlyItem>("Items", entry => NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, entry, false, global::HelloWorld.Assets.Scripts.Neo.Item.Create, global::HelloWorld.Assets.Scripts.Neo.Item.CreateWritable, global::HelloWorld.Assets.Scripts.Neo.Item.CreateDetached), (client, child) => global::HelloWorld.Assets.Scripts.Neo.Item.Create(client, (NeoMemberClass)child));
+                }
                 var memberNode = node.Get<NeoMemberList>("Items");
                 if (TryGetStoredView<NeoReadOnlyList<IReadOnlyItem>>("Items", memberNode, out var cached)) return cached;
                 return CacheStoredView("Items", memberNode, new NeoReadOnlyList<IReadOnlyItem>(client, memberNode, (client, child) => global::HelloWorld.Assets.Scripts.Neo.Item.Create(client, (NeoMemberClass)child)));
@@ -152,6 +178,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("LookupContainer", out object? detachedValue))
+                {
+                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, false, global::HelloWorld.Assets.Scripts.Neo.LookupContainer.Create, global::HelloWorld.Assets.Scripts.Neo.LookupContainer.CreateWritable, global::HelloWorld.Assets.Scripts.Neo.LookupContainer.CreateDetached);
+                }
                 return global::HelloWorld.Assets.Scripts.Neo.LookupContainer.Create(client, node.Get<NeoMemberClass>("LookupContainer"));
             }
         }
@@ -160,6 +190,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("Outposts", out _))
+                {
+                    return DetachedReadOnlyList<IReadOnlyOutpost>("Outposts", entry => NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, entry, false, global::HelloWorld.Assets.Scripts.Neo.Outpost.Create, global::HelloWorld.Assets.Scripts.Neo.Outpost.CreateWritable, global::HelloWorld.Assets.Scripts.Neo.Outpost.CreateDetached), (client, child) => global::HelloWorld.Assets.Scripts.Neo.Outpost.Create(client, (NeoMemberClass)child));
+                }
                 var memberNode = node.Get<NeoMemberList>("Outposts");
                 if (TryGetStoredView<NeoReadOnlyList<IReadOnlyOutpost>>("Outposts", memberNode, out var cached)) return cached;
                 return CacheStoredView("Outposts", memberNode, new NeoReadOnlyList<IReadOnlyOutpost>(client, memberNode, (client, child) => global::HelloWorld.Assets.Scripts.Neo.Outpost.Create(client, (NeoMemberClass)child)));
@@ -170,6 +204,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("ScreenshotEmptyGrid", out object? detachedValue))
+                {
+                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, false, global::HelloWorld.Assets.Scripts.Neo.OldConsoleLandingGrid.Create, global::HelloWorld.Assets.Scripts.Neo.OldConsoleLandingGrid.CreateWritable, global::HelloWorld.Assets.Scripts.Neo.OldConsoleLandingGrid.CreateDetached);
+                }
                 return global::HelloWorld.Assets.Scripts.Neo.OldConsoleLandingGrid.Create(client, node.Get<NeoMemberClass>("ScreenshotEmptyGrid"));
             }
         }
@@ -178,6 +216,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("SortingLayers", out _))
+                {
+                    return DetachedReadOnlyList<IReadOnlyNeoSortingLayer>("SortingLayers", entry => NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, entry, false, global::HelloWorld.Assets.Scripts.Neo.NeoSortingLayer.Create, global::HelloWorld.Assets.Scripts.Neo.NeoSortingLayer.CreateWritable, global::HelloWorld.Assets.Scripts.Neo.NeoSortingLayer.CreateDetached), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoSortingLayer.Create(client, (NeoMemberClass)child));
+                }
                 var memberNode = node.Get<NeoMemberList>("SortingLayers");
                 if (TryGetStoredView<NeoReadOnlyList<IReadOnlyNeoSortingLayer>>("SortingLayers", memberNode, out var cached)) return cached;
                 return CacheStoredView("SortingLayers", memberNode, new NeoReadOnlyList<IReadOnlyNeoSortingLayer>(client, memberNode, (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoSortingLayer.Create(client, (NeoMemberClass)child)));
@@ -188,6 +230,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("Worlds", out object? detachedValue))
+                {
+                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, false, global::HelloWorld.Assets.Scripts.Neo.Worlds.Create, global::HelloWorld.Assets.Scripts.Neo.Worlds.CreateWritable, global::HelloWorld.Assets.Scripts.Neo.Worlds.CreateDetached);
+                }
                 return global::HelloWorld.Assets.Scripts.Neo.Worlds.Create(client, node.Get<NeoMemberClass>("Worlds"));
             }
         }

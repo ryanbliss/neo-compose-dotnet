@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using NeoCompose.Runtime.NeoScript;
@@ -99,6 +100,108 @@ namespace NeoCompose.Tests
             Assert.That(client.TryGetValue(id, out ObjectMemberValue? row), Is.True);
             Assert.That(row!.instanceConstructorId, Is.EqualTo(NeoCellPatternStorage.ConstructorId));
         }
+
+        [Test]
+        public void NativePattern_BuildsNoRowsUntilItsRowIsNeeded()
+        {
+            using NeoClient client = Client();
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            int before = client.sessionValues.Count;
+            object source = NeoCellPatternStorage.Materialize(NeoCellPattern.EightNeighbors, ctx);
+            CollectionAssert.AreEqual(NeoCellPattern.EightNeighbors, NeoCellPatternStorage.ReadRuntime(source, ctx));
+            Assert.AreEqual(before, client.sessionValues.Count, "A pattern nothing stored must stay in slots.");
+            // Needing the row materializes it with the constructor's recipe.
+            string id = NSGetterEvaluator.FindRowIdByReference(source, ctx)!;
+            Assert.IsTrue(client.TryGetValue(id, out ObjectMemberValue? row));
+            Assert.AreEqual(NeoCellPatternStorage.ConstructorId, row!.instanceConstructorId);
+            Assert.AreEqual(1, row.constructorArgs!.Count);
+            CollectionAssert.AreEqual(NeoCellPattern.EightNeighbors, NeoCellPatternStorage.ReadRuntime(source, ctx));
+        }
+
+        [Test]
+        public void NativePattern_RecordsTheArgumentsItWasBuiltWith()
+        {
+            // A vector read from a row is the row's cached payload, which a
+            // later write patches in place. The recipe recorded when the
+            // pattern attaches still holds the value it was built with.
+            using NeoClient client = Client();
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            NeoVector2Value offset = NeoVectorValues.FromVector2Int(new Vector2Int(1, 2));
+            var resolved = NeoGeneratedTypesSupport.ResolveDeclaredConstructor(
+                client,
+                new ClassTypeInfo { type = MemberKind.Class, required = true, classId = NeoCellPatternStorage.ClassId },
+                NeoCellPatternStorage.ConstructorId,
+                new[] { "offsets" },
+                Array.Empty<NeoGeneratedTypesSupport.RuntimeConstructorField>());
+            object source = NSGetterEvaluator.ConstructDeclared(
+                resolved,
+                new Dictionary<string, object?> { ["offsets"] = new object?[] { offset } },
+                Array.Empty<NeoGeneratedTypesSupport.RuntimeConstructorField>(),
+                ctx,
+                evaluateFieldValues: null,
+                replayContext: false)!;
+
+            offset.y = 9;
+
+            string id = NSGetterEvaluator.FindRowIdByReference(source, ctx)!;
+            Assert.IsTrue(client.TryGetValue(id, out ObjectMemberValue? row));
+            JToken recorded = row!.constructorArgs!.Values.Single()!;
+            Assert.AreEqual(2, recorded[0]!["y"]!.Value<int>(), recorded.ToString());
+        }
+
+        [Test]
+        public void NativePattern_OffsetComponentWriteReachesItsRow()
+        {
+            using NeoClient client = Client();
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            object source = NeoCellPatternStorage.Materialize(NeoCellPattern.EightNeighbors, ctx);
+            var sourceType = new ClassTypeInfo { type = MemberKind.Class, required = true, classId = NeoCellPatternStorage.ClassId };
+            KeyOfPointer offset = KeyOf(
+                KeyOf(new VariablePointer { type = PointerKind.Variable, variableId = "source" }, Literal("_offsets", MemberKind.String)),
+                Literal(1, MemberKind.Int));
+            var body = new FunctionWithReturnType
+            {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                parameters = new[] { new Variable { id = "source", typeInfo = sourceType } },
+                typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null, required = true },
+                instructions = new Instruction[]
+                {
+                    new AssignInstruction
+                    {
+                        type = InstructionKind.Assign,
+                        operatorValue = "=",
+                        pointer = Literal(7, MemberKind.Int),
+                        target = new WriteTarget
+                        {
+                            pointer = KeyOf(offset, Literal("y", MemberKind.String)),
+                            typeInfo = new PrimitiveTypeInfo { type = MemberKind.Int, required = true },
+                            writability = "runtime",
+                        },
+                    },
+                },
+            };
+            NeoScriptExecutor.Execute(client, body, new Dictionary<string, object?> { ["source"] = source }, ctx);
+            var expected = new List<Vector2Int>(NeoCellPattern.EightNeighbors);
+            expected[1] = new Vector2Int(expected[1].x, 7);
+            CollectionAssert.AreEqual(expected, NeoCellPatternStorage.ReadRuntime(source, ctx));
+            Assert.IsNotNull(NSGetterEvaluator.FindRowIdByReference(source, ctx));
+        }
+
+        private static KeyOfPointer KeyOf(Pointer receiver, Pointer key) => new()
+        {
+            type = PointerKind.KeyOf,
+            keyOf = new KeyOf { pointer = receiver, key = key },
+        };
+
+        private static ValuePointer Literal(object value, MemberKind kind) => new()
+        {
+            type = PointerKind.Value,
+            value = new Value
+            {
+                typeInfo = new PrimitiveTypeInfo { type = kind, required = true },
+                value = JToken.FromObject(value),
+            },
+        };
 
         [Test]
         public void SnapshotRead_ReflectsChangedOffsetRowsWithoutChangingPreviousPattern()

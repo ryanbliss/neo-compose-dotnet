@@ -31,6 +31,11 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
+        internal NeoPlacementTile(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
         public NeoPlacementTile(NeoVector2Int? Cell = null)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Cell), false, NeoValueOwnership.Session)
         {
@@ -68,6 +73,11 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => new NeoPlacementTile(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
+        }
+
+        internal static NeoPlacementTile? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return new NeoPlacementTile(client, value, !saved);
         }
 
         public NeoPlacementTile Clone()

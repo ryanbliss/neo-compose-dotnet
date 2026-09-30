@@ -31,6 +31,11 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
+        internal Worlds(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
         public Worlds(OldConsoleLandingGrid OldConsoleLanding)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(OldConsoleLanding), false, NeoValueOwnership.Session)
         {
@@ -70,6 +75,11 @@ namespace HelloWorld.Assets.Scripts.Neo
             });
         }
 
+        internal static Worlds? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return new Worlds(client, value, !saved);
+        }
+
         public Worlds Clone()
         {
             return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
@@ -94,6 +104,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("OldConsoleLanding", out object? detachedValue))
+                {
+                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, false, global::HelloWorld.Assets.Scripts.Neo.OldConsoleLandingGrid.Create, global::HelloWorld.Assets.Scripts.Neo.OldConsoleLandingGrid.CreateWritable, global::HelloWorld.Assets.Scripts.Neo.OldConsoleLandingGrid.CreateDetached);
+                }
                 return global::HelloWorld.Assets.Scripts.Neo.OldConsoleLandingGrid.Create(client, node.Get<NeoMemberClass>("OldConsoleLanding"));
             }
         }
