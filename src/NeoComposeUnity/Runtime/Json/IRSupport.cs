@@ -67,6 +67,8 @@ namespace NeoCompose.Runtime.Json
         public const string Assign = "assign";
         public const string CollectionCall = "collectionCall";
         public const string FunctionCall = "functionCall";
+        public const string While = "while";
+        public const string DoWhile = "doWhile";
         public const string For = "for";
         public const string ForEach = "forEach";
         public const string Break = "break";
@@ -179,6 +181,7 @@ namespace NeoCompose.Runtime.Json
         public const string ToLower = "toLower";
         public const string ToUpper = "toUpper";
         public const string Trim = "trim";
+        public const string Replace = "replace";
         public const string StartsWith = "startsWith";
         public const string EndsWith = "endsWith";
     }
@@ -232,6 +235,7 @@ namespace NeoCompose.Runtime.Json
     public static class CollectionMutationKind
     {
         public const string Add = "Add";
+        public const string Insert = "Insert";
         public const string Remove = "Remove";
         public const string RemoveAt = "RemoveAt";
         public const string Clear = "Clear";

@@ -348,6 +348,7 @@ namespace NeoCompose.Tests
         }
 
         [TestCase(CollectionMutationKind.Add, 2)]
+        [TestCase(CollectionMutationKind.Insert, 2)]
         [TestCase(CollectionMutationKind.Clear, 0)]
         public void ListAlias_MutatesTheSlot(string mutation, int expected)
         {
@@ -385,7 +386,9 @@ namespace NeoCompose.Tests
                         mutation = mutation,
                         args = mutation == CollectionMutationKind.Add
                             ? new Pointer[] { Line() }
-                            : Array.Empty<Pointer>(),
+                            : mutation == CollectionMutationKind.Insert
+                                ? new Pointer[] { Literal(0, MemberKind.Int), Line() }
+                                : Array.Empty<Pointer>(),
                     },
                 },
             }, scope, ctx);
@@ -402,6 +405,104 @@ namespace NeoCompose.Tests
             {
                 Assert.IsNotNull(report.attachedId);
             }
+        }
+
+        [Test]
+        public void DetachedAddFallbackRetainsOwnerAcrossArgumentSideEffects(
+            [Values(false, true)] bool alias,
+            [Values(false, true)] bool materialize,
+            [Values(false, true)] bool deferred)
+        {
+            var change = new FunctionMember
+            {
+                id = "change-detached-receiver",
+                name = "ChangeDetachedReceiver",
+                projectId = ProjectId,
+                kind = MemberKind.Function,
+                Modifier = NeoMemberModifierKind.Static,
+                returnTypeInfo = LineType,
+                argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
+                Dispatch = deferred ? NeoFunctionDispatchKind.Asynchronous : NeoFunctionDispatchKind.Synchronous,
+            };
+            NeoClient client = BuildClient(extraMember: change);
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            var scope = new NeoScriptScope();
+            scope["report"] = NSGetterEvaluator.EvaluatePointer(Report(Literal(5, MemberKind.Int)), scope, ctx);
+            scope.TryGetValue("report", out object? originalValue);
+            var original = (NeoScriptObject)originalValue!;
+            scope["lines"] = NSGetterEvaluator.EvaluatePointer(Key(Variable("report"), "Lines"), scope, ctx);
+            object? replacement = NSGetterEvaluator.EvaluatePointer(Report(Literal(7, MemberKind.Int)), scope, ctx);
+            var storedLine = (NeoScriptObject)NSGetterEvaluator.EvaluatePointer(Line(), scope, ctx)!;
+            NSGetterEvaluator.AttachDetached(storedLine, ctx);
+            TestLine storedView = NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(
+                client, NSGetterEvaluator.ForwardDetached(storedLine, ctx), true, null,
+                TestLine.CreateWritable, TestLine.CreateDetached);
+            object? ChangeReceiver()
+            {
+                if (materialize)
+                {
+                    NSGetterEvaluator.AttachDetached(original, ctx);
+                    return NSGetterEvaluator.EvaluatePointer(Line(), scope, ctx);
+                }
+                scope["report"] = replacement;
+                scope["lines"] = NSGetterEvaluator.EvaluatePointer(Key(Variable("report"), "Lines"), scope, ctx);
+                return storedView;
+            }
+            NeoDeferredFunctionBase? pending = null;
+            object? argument = null;
+            if (deferred)
+                client.RegisterDeferredNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
+                {
+                    [change.id] = (_, _, _, handle) =>
+                    {
+                        argument = ChangeReceiver();
+                        pending = handle;
+                    },
+                });
+            else
+                client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+                {
+                    [change.id] = (_, _, _) => ChangeReceiver(),
+                });
+            NeoScriptExecutionResult execution = NeoScriptExecutor.Execute(client, new FunctionWithReturnType
+            {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                parameters = Array.Empty<Variable>(),
+                typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null, required = true },
+                instructions = new Instruction[]
+                {
+                    new CollectionCallInstruction
+                    {
+                        type = InstructionKind.CollectionCall, mutation = CollectionMutationKind.Add,
+                        target = new WriteTarget
+                        {
+                            pointer = alias ? Variable("lines") : Key(Variable("report"), "Lines"),
+                            typeInfo = new CollectionTypeInfo { type = MemberKind.List, required = true, entryTypeInfo = LineType },
+                            writability = WritabilityKind.Local,
+                        },
+                        args = new Pointer[]
+                        {
+                            new CallFunctionPointer
+                            {
+                                type = PointerKind.CallFunction, memberId = change.id,
+                                receiver = CallReceiver.Static(change.id), args = Array.Empty<Pointer>(),
+                                callSiteId = "change-detached-receiver-call",
+                            },
+                        },
+                    },
+                },
+            }, scope, ctx, deferred ? NeoScriptExecutionOptions.ForDirectFunction(client) : null);
+            if (deferred)
+            {
+                Assert.IsTrue(execution.IsPaused);
+                bool settled = false;
+                execution.WhenDeferredSettled(_ => settled = true, error => throw error);
+                pending!.StateCore.Complete(argument);
+                Assert.IsTrue(settled);
+            }
+            scope["original"] = original;
+            Assert.AreEqual(2, ((object?[])NSGetterEvaluator.EvaluatePointer(Key(Variable("original"), "Lines"), scope, ctx)!).Length);
+            Assert.AreEqual(materialize ? 2 : 1, ((object?[])NSGetterEvaluator.EvaluatePointer(Key(Variable("report"), "Lines"), scope, ctx)!).Length);
         }
 
         private static TestReport ReadReport(NeoClient client, object? result) =>
@@ -534,7 +635,8 @@ namespace NeoCompose.Tests
         private static NeoClient BuildClient(
             NeoMemberSelectionKind choiceSelection = NeoMemberSelectionKind.Single,
             bool choiceDefault = false,
-            NeoMemberSelectionKind modeSelection = NeoMemberSelectionKind.Single)
+            NeoMemberSelectionKind modeSelection = NeoMemberSelectionKind.Single,
+            JsonMember? extraMember = null)
         {
             var roots = new[]
             {
@@ -638,6 +740,8 @@ namespace NeoCompose.Tests
             };
             foreach (ClassMember root in roots)
                 members[root.id] = root;
+            if (extraMember is not null)
+                members[extraMember.id] = extraMember;
             return NeoTestSaveStack.ClientFromSchema(new ProjectData
             {
                 project = new Project

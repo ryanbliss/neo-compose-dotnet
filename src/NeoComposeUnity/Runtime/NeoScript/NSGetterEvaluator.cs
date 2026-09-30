@@ -5681,6 +5681,22 @@ namespace NeoCompose.Runtime.NeoScript
                         string result = receiverText.Trim();
                         return result;
                     }
+                case StringOpKind.Replace:
+                    {
+                        if (info.argPointer is null)
+                            throw new NSGetterRuntimeError("string.Replace requires a search argument.");
+                        if (info.replacementPointer is null)
+                            throw new NSGetterRuntimeError("string.Replace requires a replacement argument.");
+                        var search = EvalPointer(info.argPointer, scope, ctx);
+                        var replacement = EvalPointer(info.replacementPointer, scope, ctx);
+                        if (search is not string searchText)
+                            throw new NSGetterRuntimeError("string.Replace search must be a string.");
+                        if (replacement is not string replacementText)
+                            throw new NSGetterRuntimeError("string.Replace replacement must be a string.");
+                        if (searchText.Length == 0)
+                            throw new NSGetterRuntimeError("string.Replace search must not be empty.");
+                        return receiverText.Replace(searchText, replacementText);
+                    }
                 case StringOpKind.StartsWith:
                 case StringOpKind.EndsWith:
                     {

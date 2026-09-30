@@ -231,6 +231,7 @@ namespace NeoCompose.Runtime.Json
         public Pointer receiverPointer = null!;
         /// <summary>Present for startsWith/endsWith.</summary>
         public Pointer? argPointer;
+        public Pointer? replacementPointer;
     }
 
     /// <summary>

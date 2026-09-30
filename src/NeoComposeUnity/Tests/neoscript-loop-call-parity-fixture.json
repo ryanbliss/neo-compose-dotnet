@@ -1,0 +1,1025 @@
+{
+  "$comment": "Hand-authored revision 15 raw IR shared verbatim by TypeScript and Unity. Do not regenerate from a compiler or runtime. Pins loop phases, transfer ownership, budgets, literal ordinal replacement and evaluation of discarded calls.",
+  "evaluateCases": [
+    {
+      "name": "while consumes continue and break with outer-local writes",
+      "getter": {
+        "compilerRevision": 15,
+        "parameters": [],
+        "instructions": [
+          {
+            "type": "variable",
+            "variable": {
+              "id": "i",
+              "typeInfo": {
+                "type": 2,
+                "required": true
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 2,
+                    "required": true
+                  },
+                  "value": 0
+                }
+              }
+            }
+          },
+          {
+            "type": "variable",
+            "variable": {
+              "id": "sum",
+              "typeInfo": {
+                "type": 2,
+                "required": true
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 2,
+                    "required": true
+                  },
+                  "value": 0
+                }
+              }
+            }
+          },
+          {
+            "type": "while",
+            "condition": {
+              "condition": {
+                "type": "lessThan",
+                "operand1": {
+                  "type": "variable",
+                  "variableId": "i"
+                },
+                "operand2": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 2,
+                      "required": true
+                    },
+                    "value": 6
+                  }
+                }
+              }
+            },
+            "instructions": [
+              {
+                "type": "assign",
+                "target": {
+                  "pointer": {
+                    "type": "variable",
+                    "variableId": "i"
+                  },
+                  "typeInfo": {
+                    "type": 2,
+                    "required": true
+                  },
+                  "writability": "local"
+                },
+                "operator": "=",
+                "pointer": {
+                  "type": "operation",
+                  "operation": {
+                    "type": "arithmetic",
+                    "arithmetic": {
+                      "type": "+",
+                      "pointers": [
+                        {
+                          "type": "variable",
+                          "variableId": "i"
+                        },
+                        {
+                          "type": "value",
+                          "value": {
+                            "typeInfo": {
+                              "type": 2,
+                              "required": true
+                            },
+                            "value": 1
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "type": "if",
+                "branches": [
+                  {
+                    "expression": {
+                      "condition": {
+                        "type": "equalTo",
+                        "operand1": {
+                          "type": "variable",
+                          "variableId": "i"
+                        },
+                        "operand2": {
+                          "type": "value",
+                          "value": {
+                            "typeInfo": {
+                              "type": 2,
+                              "required": true
+                            },
+                            "value": 2
+                          }
+                        }
+                      }
+                    },
+                    "instructions": [
+                      {
+                        "type": "continue"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "if",
+                "branches": [
+                  {
+                    "expression": {
+                      "condition": {
+                        "type": "equalTo",
+                        "operand1": {
+                          "type": "variable",
+                          "variableId": "i"
+                        },
+                        "operand2": {
+                          "type": "value",
+                          "value": {
+                            "typeInfo": {
+                              "type": 2,
+                              "required": true
+                            },
+                            "value": 4
+                          }
+                        }
+                      }
+                    },
+                    "instructions": [
+                      {
+                        "type": "break"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "assign",
+                "target": {
+                  "pointer": {
+                    "type": "variable",
+                    "variableId": "sum"
+                  },
+                  "typeInfo": {
+                    "type": 2,
+                    "required": true
+                  },
+                  "writability": "local"
+                },
+                "operator": "=",
+                "pointer": {
+                  "type": "operation",
+                  "operation": {
+                    "type": "arithmetic",
+                    "arithmetic": {
+                      "type": "+",
+                      "pointers": [
+                        {
+                          "type": "variable",
+                          "variableId": "sum"
+                        },
+                        {
+                          "type": "variable",
+                          "variableId": "i"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "type": "return",
+            "pointer": {
+              "type": "variable",
+              "variableId": "sum"
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 2,
+          "required": true
+        }
+      },
+      "expected": 4
+    },
+    {
+      "name": "doWhile consumes continue and break with outer-local writes",
+      "getter": {
+        "compilerRevision": 15,
+        "parameters": [],
+        "instructions": [
+          {
+            "type": "variable",
+            "variable": {
+              "id": "i",
+              "typeInfo": {
+                "type": 2,
+                "required": true
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 2,
+                    "required": true
+                  },
+                  "value": 0
+                }
+              }
+            }
+          },
+          {
+            "type": "variable",
+            "variable": {
+              "id": "sum",
+              "typeInfo": {
+                "type": 2,
+                "required": true
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 2,
+                    "required": true
+                  },
+                  "value": 0
+                }
+              }
+            }
+          },
+          {
+            "type": "doWhile",
+            "condition": {
+              "condition": {
+                "type": "lessThan",
+                "operand1": {
+                  "type": "variable",
+                  "variableId": "i"
+                },
+                "operand2": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 2,
+                      "required": true
+                    },
+                    "value": 6
+                  }
+                }
+              }
+            },
+            "instructions": [
+              {
+                "type": "assign",
+                "target": {
+                  "pointer": {
+                    "type": "variable",
+                    "variableId": "i"
+                  },
+                  "typeInfo": {
+                    "type": 2,
+                    "required": true
+                  },
+                  "writability": "local"
+                },
+                "operator": "=",
+                "pointer": {
+                  "type": "operation",
+                  "operation": {
+                    "type": "arithmetic",
+                    "arithmetic": {
+                      "type": "+",
+                      "pointers": [
+                        {
+                          "type": "variable",
+                          "variableId": "i"
+                        },
+                        {
+                          "type": "value",
+                          "value": {
+                            "typeInfo": {
+                              "type": 2,
+                              "required": true
+                            },
+                            "value": 1
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "type": "if",
+                "branches": [
+                  {
+                    "expression": {
+                      "condition": {
+                        "type": "equalTo",
+                        "operand1": {
+                          "type": "variable",
+                          "variableId": "i"
+                        },
+                        "operand2": {
+                          "type": "value",
+                          "value": {
+                            "typeInfo": {
+                              "type": 2,
+                              "required": true
+                            },
+                            "value": 2
+                          }
+                        }
+                      }
+                    },
+                    "instructions": [
+                      {
+                        "type": "continue"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "if",
+                "branches": [
+                  {
+                    "expression": {
+                      "condition": {
+                        "type": "equalTo",
+                        "operand1": {
+                          "type": "variable",
+                          "variableId": "i"
+                        },
+                        "operand2": {
+                          "type": "value",
+                          "value": {
+                            "typeInfo": {
+                              "type": 2,
+                              "required": true
+                            },
+                            "value": 4
+                          }
+                        }
+                      }
+                    },
+                    "instructions": [
+                      {
+                        "type": "break"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "assign",
+                "target": {
+                  "pointer": {
+                    "type": "variable",
+                    "variableId": "sum"
+                  },
+                  "typeInfo": {
+                    "type": 2,
+                    "required": true
+                  },
+                  "writability": "local"
+                },
+                "operator": "=",
+                "pointer": {
+                  "type": "operation",
+                  "operation": {
+                    "type": "arithmetic",
+                    "arithmetic": {
+                      "type": "+",
+                      "pointers": [
+                        {
+                          "type": "variable",
+                          "variableId": "sum"
+                        },
+                        {
+                          "type": "variable",
+                          "variableId": "i"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "type": "return",
+            "pointer": {
+              "type": "variable",
+              "variableId": "sum"
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 2,
+          "required": true
+        }
+      },
+      "expected": 4
+    },
+    {
+      "name": "while evaluates a false condition at the correct phase",
+      "getter": {
+        "compilerRevision": 15,
+        "parameters": [],
+        "instructions": [
+          {
+            "type": "variable",
+            "variable": {
+              "id": "i",
+              "typeInfo": {
+                "type": 2,
+                "required": true
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 2,
+                    "required": true
+                  },
+                  "value": 0
+                }
+              }
+            }
+          },
+          {
+            "type": "while",
+            "condition": {
+              "condition": {
+                "type": "equalTo",
+                "operand1": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 2,
+                      "required": true
+                    },
+                    "value": 0
+                  }
+                },
+                "operand2": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 2,
+                      "required": true
+                    },
+                    "value": 1
+                  }
+                }
+              }
+            },
+            "instructions": [
+              {
+                "type": "assign",
+                "target": {
+                  "pointer": {
+                    "type": "variable",
+                    "variableId": "i"
+                  },
+                  "typeInfo": {
+                    "type": 2,
+                    "required": true
+                  },
+                  "writability": "local"
+                },
+                "operator": "=",
+                "pointer": {
+                  "type": "operation",
+                  "operation": {
+                    "type": "arithmetic",
+                    "arithmetic": {
+                      "type": "+",
+                      "pointers": [
+                        {
+                          "type": "variable",
+                          "variableId": "i"
+                        },
+                        {
+                          "type": "value",
+                          "value": {
+                            "typeInfo": {
+                              "type": 2,
+                              "required": true
+                            },
+                            "value": 1
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "type": "continue"
+              }
+            ]
+          },
+          {
+            "type": "return",
+            "pointer": {
+              "type": "variable",
+              "variableId": "i"
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 2,
+          "required": true
+        }
+      },
+      "expected": 0
+    },
+    {
+      "name": "doWhile evaluates a false condition at the correct phase",
+      "getter": {
+        "compilerRevision": 15,
+        "parameters": [],
+        "instructions": [
+          {
+            "type": "variable",
+            "variable": {
+              "id": "i",
+              "typeInfo": {
+                "type": 2,
+                "required": true
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 2,
+                    "required": true
+                  },
+                  "value": 0
+                }
+              }
+            }
+          },
+          {
+            "type": "doWhile",
+            "condition": {
+              "condition": {
+                "type": "equalTo",
+                "operand1": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 2,
+                      "required": true
+                    },
+                    "value": 0
+                  }
+                },
+                "operand2": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 2,
+                      "required": true
+                    },
+                    "value": 1
+                  }
+                }
+              }
+            },
+            "instructions": [
+              {
+                "type": "assign",
+                "target": {
+                  "pointer": {
+                    "type": "variable",
+                    "variableId": "i"
+                  },
+                  "typeInfo": {
+                    "type": 2,
+                    "required": true
+                  },
+                  "writability": "local"
+                },
+                "operator": "=",
+                "pointer": {
+                  "type": "operation",
+                  "operation": {
+                    "type": "arithmetic",
+                    "arithmetic": {
+                      "type": "+",
+                      "pointers": [
+                        {
+                          "type": "variable",
+                          "variableId": "i"
+                        },
+                        {
+                          "type": "value",
+                          "value": {
+                            "typeInfo": {
+                              "type": 2,
+                              "required": true
+                            },
+                            "value": 1
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "type": "continue"
+              }
+            ]
+          },
+          {
+            "type": "return",
+            "pointer": {
+              "type": "variable",
+              "variableId": "i"
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 2,
+          "required": true
+        }
+      },
+      "expected": 1
+    },
+    {
+      "name": "Replace is ordinal, non-overlapping, and keeps replacement tokens literal",
+      "getter": {
+        "compilerRevision": 15,
+        "parameters": [],
+        "instructions": [
+          {
+            "type": "return",
+            "pointer": {
+              "type": "function",
+              "function": {
+                "type": "stringOp",
+                "info": {
+                  "op": "replace",
+                  "receiverPointer": {
+                    "type": "value",
+                    "value": {
+                      "typeInfo": {
+                        "type": 3,
+                        "required": true
+                      },
+                      "value": "aaaa A a"
+                    }
+                  },
+                  "argPointer": {
+                    "type": "value",
+                    "value": {
+                      "typeInfo": {
+                        "type": 3,
+                        "required": true
+                      },
+                      "value": "aa"
+                    }
+                  },
+                  "replacementPointer": {
+                    "type": "value",
+                    "value": {
+                      "typeInfo": {
+                        "type": 3,
+                        "required": true
+                      },
+                      "value": "$&"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 3,
+          "required": true
+        }
+      },
+      "expected": "$&$& A a"
+    },
+    {
+      "name": "discarded builtin calls still evaluate their argument",
+      "getter": {
+        "compilerRevision": 15,
+        "parameters": [],
+        "instructions": [
+          {
+            "type": "functionCall",
+            "call": {
+              "type": "function",
+              "function": {
+                "type": "stringOp",
+                "info": {
+                  "op": "replace",
+                  "receiverPointer": {
+                    "type": "value",
+                    "value": {
+                      "typeInfo": {
+                        "type": 3,
+                        "required": true
+                      },
+                      "value": "test"
+                    }
+                  },
+                  "argPointer": {
+                    "type": "value",
+                    "value": {
+                      "typeInfo": {
+                        "type": 3,
+                        "required": true
+                      },
+                      "value": ""
+                    }
+                  },
+                  "replacementPointer": {
+                    "type": "value",
+                    "value": {
+                      "typeInfo": {
+                        "type": 3,
+                        "required": true
+                      },
+                      "value": "x"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "return",
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 2,
+                  "required": true
+                },
+                "value": 1
+              }
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 2,
+          "required": true
+        }
+      },
+      "expectedError": "string.Replace search must not be empty."
+    },
+    {
+      "name": "while consumes the shared loop budget with an empty body",
+      "getter": {
+        "compilerRevision": 15,
+        "parameters": [],
+        "instructions": [
+          {
+            "type": "while",
+            "condition": {
+              "condition": {
+                "type": "equalTo",
+                "operand1": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 2,
+                      "required": true
+                    },
+                    "value": 1
+                  }
+                },
+                "operand2": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 2,
+                      "required": true
+                    },
+                    "value": 1
+                  }
+                }
+              }
+            },
+            "instructions": []
+          },
+          {
+            "type": "return",
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 2,
+                  "required": true
+                },
+                "value": 0
+              }
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 2,
+          "required": true
+        }
+      },
+      "expectedError": "NeoScript loop iteration limit of 10000 exceeded."
+    },
+    {
+      "name": "doWhile consumes the shared loop budget with an empty body",
+      "getter": {
+        "compilerRevision": 15,
+        "parameters": [],
+        "instructions": [
+          {
+            "type": "doWhile",
+            "condition": {
+              "condition": {
+                "type": "equalTo",
+                "operand1": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 2,
+                      "required": true
+                    },
+                    "value": 1
+                  }
+                },
+                "operand2": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 2,
+                      "required": true
+                    },
+                    "value": 1
+                  }
+                }
+              }
+            },
+            "instructions": []
+          },
+          {
+            "type": "return",
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 2,
+                  "required": true
+                },
+                "value": 0
+              }
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 2,
+          "required": true
+        }
+      },
+      "expectedError": "NeoScript loop iteration limit of 10000 exceeded."
+    },
+    {
+      "name": "Insert retains ordered list position",
+      "getter": {
+        "compilerRevision": 15,
+        "parameters": [],
+        "typeInfo": {
+          "type": 6,
+          "required": true,
+          "entryTypeInfo": {
+            "type": 2,
+            "required": true
+          }
+        },
+        "instructions": [
+          {
+            "type": "variable",
+            "variable": {
+              "id": "items",
+              "typeInfo": {
+                "type": 6,
+                "required": true,
+                "entryTypeInfo": {
+                  "type": 2,
+                  "required": true
+                }
+              },
+              "pointer": {
+                "type": "listLiteral",
+                "typeInfo": {
+                  "type": 6,
+                  "required": true,
+                  "entryTypeInfo": {
+                    "type": 2,
+                    "required": true
+                  }
+                },
+                "entries": [
+                  {
+                    "type": "value",
+                    "value": {
+                      "typeInfo": {
+                        "type": 2,
+                        "required": true
+                      },
+                      "value": 1
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "value": {
+                      "typeInfo": {
+                        "type": 2,
+                        "required": true
+                      },
+                      "value": 3
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "type": "collectionCall",
+            "target": {
+              "pointer": {
+                "type": "variable",
+                "variableId": "items"
+              },
+              "typeInfo": {
+                "type": 6,
+                "required": true,
+                "entryTypeInfo": {
+                  "type": 2,
+                  "required": true
+                }
+              },
+              "writability": "local"
+            },
+            "mutation": "Insert",
+            "args": [
+              {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 2,
+                    "required": true
+                  },
+                  "value": 1
+                }
+              },
+              {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 2,
+                    "required": true
+                  },
+                  "value": 2
+                }
+              }
+            ]
+          },
+          {
+            "type": "return",
+            "pointer": {
+              "type": "variable",
+              "variableId": "items"
+            }
+          }
+        ]
+      },
+      "expected": [1, 2, 3]
+    }
+  ]
+}

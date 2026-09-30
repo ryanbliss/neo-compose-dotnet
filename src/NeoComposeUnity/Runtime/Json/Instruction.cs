@@ -108,6 +108,18 @@ namespace NeoCompose.Runtime.Json
         public string? writability;
     }
 
+    public class WhileInstruction : Instruction
+    {
+        [JsonIgnore]
+        internal NeoScript.NeoScriptScopeLayout? bodyLayout;
+        public BooleanExpression condition = null!;
+        public Instruction[] instructions = null!;
+    }
+
+    public class DoWhileInstruction : WhileInstruction
+    {
+    }
+
     /// <summary>Mirror of the P50 <c>for</c> instruction.</summary>
     public sealed class ForInstruction : Instruction
     {
@@ -245,6 +257,10 @@ namespace NeoCompose.Runtime.Json
                     return typeof(CollectionCallInstruction);
                 case InstructionKind.FunctionCall:
                     return typeof(FunctionCallInstruction);
+                case InstructionKind.While:
+                    return typeof(WhileInstruction);
+                case InstructionKind.DoWhile:
+                    return typeof(DoWhileInstruction);
                 case InstructionKind.For:
                     return typeof(ForInstruction);
                 case InstructionKind.ForEach:
@@ -273,6 +289,14 @@ namespace NeoCompose.Runtime.Json
             {
                 throw new JsonSerializationException(
                     "FunctionCallInstruction must contain a 'call' object.");
+            }
+            if (typeof(WhileInstruction).IsAssignableFrom(concrete)
+                && (obj["condition"] is not JObject loopCondition
+                    || !IsValidBooleanExpression(loopCondition)
+                    || obj["instructions"]?.Type != JTokenType.Array))
+            {
+                throw new JsonSerializationException(
+                    "Conditional loop must contain a valid condition and instructions array.");
             }
             if (concrete == typeof(ForInstruction)
                 && !IsValidForInstruction(obj))
