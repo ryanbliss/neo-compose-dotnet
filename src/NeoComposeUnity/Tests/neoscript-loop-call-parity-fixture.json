@@ -1,10 +1,10 @@
 {
-  "$comment": "Hand-authored revision 16 raw IR shared verbatim by TypeScript and Unity. Do not regenerate from a compiler or runtime. Pins loop phases, transfer ownership, budgets, literal ordinal replacement and evaluation of discarded calls.",
+  "$comment": "Hand-authored revision 15 raw IR shared verbatim by TypeScript and Unity. Do not regenerate from a compiler or runtime. Pins loop phases, transfer ownership, budgets, literal ordinal replacement and evaluation of discarded calls.",
   "evaluateCases": [
     {
       "name": "while consumes continue and break with outer-local writes",
       "getter": {
-        "compilerRevision": 16,
+        "compilerRevision": 15,
         "parameters": [],
         "instructions": [
           {
@@ -225,7 +225,7 @@
     {
       "name": "doWhile consumes continue and break with outer-local writes",
       "getter": {
-        "compilerRevision": 16,
+        "compilerRevision": 15,
         "parameters": [],
         "instructions": [
           {
@@ -446,7 +446,7 @@
     {
       "name": "while evaluates a false condition at the correct phase",
       "getter": {
-        "compilerRevision": 16,
+        "compilerRevision": 15,
         "parameters": [],
         "instructions": [
           {
@@ -560,7 +560,7 @@
     {
       "name": "doWhile evaluates a false condition at the correct phase",
       "getter": {
-        "compilerRevision": 16,
+        "compilerRevision": 15,
         "parameters": [],
         "instructions": [
           {
@@ -674,7 +674,7 @@
     {
       "name": "Replace is ordinal, non-overlapping, and keeps replacement tokens literal",
       "getter": {
-        "compilerRevision": 16,
+        "compilerRevision": 15,
         "parameters": [],
         "instructions": [
           {
@@ -730,7 +730,7 @@
     {
       "name": "discarded builtin calls still evaluate their argument",
       "getter": {
-        "compilerRevision": 16,
+        "compilerRevision": 15,
         "parameters": [],
         "instructions": [
           {
@@ -799,7 +799,7 @@
     {
       "name": "while consumes the shared loop budget with an empty body",
       "getter": {
-        "compilerRevision": 16,
+        "compilerRevision": 15,
         "parameters": [],
         "instructions": [
           {
@@ -855,7 +855,7 @@
     {
       "name": "doWhile consumes the shared loop budget with an empty body",
       "getter": {
-        "compilerRevision": 16,
+        "compilerRevision": 15,
         "parameters": [],
         "instructions": [
           {
@@ -911,7 +911,7 @@
     {
       "name": "Insert retains ordered list position",
       "getter": {
-        "compilerRevision": 16,
+        "compilerRevision": 15,
         "parameters": [],
         "typeInfo": {
           "type": 6,

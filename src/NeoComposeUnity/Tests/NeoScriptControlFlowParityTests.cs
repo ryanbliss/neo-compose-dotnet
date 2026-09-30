@@ -131,7 +131,7 @@ namespace NeoCompose.Tests
                     .Replace("-", string.Empty)
                     .ToLowerInvariant();
                 Assert.AreEqual(
-                    "446ae544d957dc90004c5be7b716bf092db9128bc1173193fd20c66317ce9429",
+                    "9a06ed2852261449b08c755419b95920478bdc024ecb1125f745f20a2714d38c",
                     actual,
                     "The vendored fixture bytes drifted from the reviewed web source.");
             }

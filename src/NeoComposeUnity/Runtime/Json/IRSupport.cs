@@ -443,10 +443,9 @@ namespace NeoCompose.Runtime.Json
         /// explicit captured <c>delegateClosure</c> values and dynamic generic
         /// <c>Equals</c> fallback dispatch; revision 13 adds the list
         /// <c>indexOf</c> intrinsic and predicate-bearing <c>count</c> shape;
-        /// revision 15 adds the <c>tileConvert</c> pointer; revision 16 adds
-        /// conditional loops, string replacement, list insertion, and discarded calls.
+        /// revision 15 adds the <c>tileConvert</c> pointer.
         /// </summary>
-        public const int CurrentCompilerRevision = 16;
+        public const int CurrentCompilerRevision = 15;
 
         /// <summary>
         /// Required on every body this runtime executes: it must equal
