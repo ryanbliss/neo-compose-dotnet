@@ -54,6 +54,7 @@ namespace NeoCompose.Runtime
         internal readonly Dictionary<NeoMember, string> NodeBindings = new();
         private readonly List<Action> afterCommit = new();
         private readonly List<Action> afterNotifications = new();
+        private HashSet<NeoMember>? reportsOwnChange;
         private Dictionary<string, HashSet<string>>? containerCandidates;
         private Dictionary<string, HashSet<string>>? parentCandidates;
 
@@ -196,6 +197,15 @@ namespace NeoCompose.Runtime
             Bindings[(ownership, memberId)] = (present, valueId);
 
         internal void AfterNotifications(Action callback) => afterNotifications.Add(callback);
+
+        /// <summary>
+        /// Marks <paramref name="node"/> as the collection mutator behind this
+        /// plan: it publishes one precise change itself, so its row change
+        /// must not raise a second, unknown one.
+        /// </summary>
+        internal void ReportsOwnChange(NeoMember node) => (reportsOwnChange ??= new()).Add(node);
+        internal bool IsReportingOwnChange(NeoMember node) => reportsOwnChange?.Contains(node) == true;
+
         internal void NotifyCompleted()
         {
             foreach (Action callback in afterNotifications)
@@ -324,6 +334,7 @@ namespace NeoCompose.Runtime
             // hear about them through the row's own id, so the container
             // itself did not change.
             HashSet<(NeoValueOwnership ownership, string id)> sameMembership = pooledScratch ? commitSameMembershipScratch : new();
+            bool batched = false;
             try
             {
                 bool touchesWorld = false;
@@ -376,6 +387,8 @@ namespace NeoCompose.Runtime
                     TouchWritableStoreUpdatedAt(pair.Key.ownership);
                 }
                 WriteRevision++;
+                BeginChangeBatch();
+                batched = true;
                 InstallCandidateExpansions(preparedExpansions, changed);
                 if (plan.Bindings.Count != 0)
                     InvalidateGetterMemo();
@@ -406,14 +419,14 @@ namespace NeoCompose.Runtime
                             valueChanged: !(plan.UnchangedValueIds.Contains(pair.Key.id)
                                 && pair.Value is ObjectMemberValue { classId: not null, value: not null } parentRow
                                 && WritesAnyChild(plan, pair.Key.ownership, parentRow)),
-                            membershipChanged: !sameMembership.Contains(pair.Key));
+                            membershipChanged: !sameMembership.Contains(pair.Key), plan: plan);
                         if (oldContainers.TryGetValue(pair.Key, out string? containerId))
-                            RaiseContainerChanged(pair.Key.ownership, containerId);
+                            RaiseContainerChanged(pair.Key.ownership, containerId, plan);
                     }
                     foreach (var item in changed)
                         if (!plan.Rows.ContainsKey((item.ownership, item.valueId))
                             && preparedExpansions?.HiddenVirtualIds.Contains(item.valueId) == true)
-                            PublishWritableValueChange(item.ownership, item.valueId);
+                            PublishWritableValueChange(item.ownership, item.valueId, plan);
                     foreach (var pair in plan.Bindings)
                     {
                         OnStaticBindingChanged?.Invoke(pair.Key.ownership, pair.Key.memberId);
@@ -435,6 +448,8 @@ namespace NeoCompose.Runtime
                     sameMembership.Clear();
                     commitScratchInUse = false;
                 }
+                if (batched)
+                    EndChangeBatch();
             }
         }
     }

@@ -318,7 +318,7 @@ namespace NeoCompose.Runtime
                 }
                 else
                 {
-                    child.OnChanged -= HandleChildChanged;
+                    child.ChildChanged -= HandleChildChanged;
                     child.Dispose();
                 }
             }
@@ -457,7 +457,7 @@ namespace NeoCompose.Runtime
                 }
                 else
                 {
-                    child.OnChanged += HandleChildChanged;
+                    child.ChildChanged += HandleChildChanged;
                 }
                 childMembers[entry.schemaKey] = child;
                 if (recordRebound
@@ -482,7 +482,7 @@ namespace NeoCompose.Runtime
                 }
                 else
                 {
-                    child.OnChanged -= HandleChildChanged;
+                    child.ChildChanged -= HandleChildChanged;
                     child.Dispose();
                 }
             }
@@ -499,6 +499,17 @@ namespace NeoCompose.Runtime
             NotifyChanged(child);
         }
 
+        /// <summary>
+        /// Whether <paramref name="before"/>, <paramref name="key"/>'s child
+        /// before a write to its row, heard that write and bubbled it: it is
+        /// still the key's live child. A Class child retires on a tombstone
+        /// instead, and a rebuilt key has a new child.
+        /// </summary>
+        private protected bool ChildBubbledOwnChange(string key, NeoMember? before) =>
+            before is { isDisposed: false }
+            && childMembers.TryGetValue(key, out NeoMember? current)
+            && ReferenceEquals(current, before);
+
         protected void NotifyChildChanged(string key)
         {
             if (key == reportingKey)
@@ -509,12 +520,6 @@ namespace NeoCompose.Runtime
                 return;
             }
             NotifyChanged();
-        }
-
-        protected static bool ChildSelfNotifies(NeoMember child)
-        {
-            return child is not NeoMemberDictionary
-                && child is not NeoMemberList;
         }
 
         public IEnumerator<KeyValuePair<string, NeoMember>> GetEnumerator()
@@ -916,8 +921,7 @@ namespace NeoCompose.Runtime
                 if (client.TryGetWritableValue(childOwnership, existingValueId, out MemberValue? stored)
                     && MemberValueFactory.MatchesLeaf(childMember, setValue?.value, stored))
                     return;
-                bool childWillSelfNotify = childMembers.TryGetValue(key, out NeoMember? existingChild)
-                    && ChildSelfNotifies(existingChild);
+                childMembers.TryGetValue(key, out NeoMember? existingChild);
                 // Reuse the entry's stable id: a fresh row at the same id
                 // shadows the authored default in the child's writable store.
                 MemberValue next = MemberValueFactory.Create(
@@ -940,7 +944,7 @@ namespace NeoCompose.Runtime
                 {
                     if (existingChild is null || existingChild.isDisposed)
                         ReinitializeChildren();
-                    if (!childWillSelfNotify)
+                    if (!ChildBubbledOwnChange(key, existingChild))
                         NotifyChildChanged(key);
                     return;
                 }
@@ -961,7 +965,7 @@ namespace NeoCompose.Runtime
                 if (existingChild is null || existingChild.isDisposed
                     || childMember is ClassMember or ListMember or DictionaryMember)
                     ReinitializeChildren();
-                if (!childWillSelfNotify)
+                if (!ChildBubbledOwnChange(key, existingChild))
                 {
                     NotifyChildChanged(key);
                 }
@@ -1034,10 +1038,10 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException($"Unordered list '{key}' does not permit writes.");
             if (!recordWritable && listNode.value is null)
                 throw new System.InvalidOperationException($"Cannot bind an unordered list on immutable Class '{member.id}'.");
+            // The list reports its own Replace, which bubbles here.
             listNode.PrepareAssignSerialized(plan, setValue);
             plan.Commit();
             ReinitializeChildren();
-            NotifyChildChanged(key);
         }
 
         internal override void BindChildValueId(NeoWritePlan plan, NeoMember child, string childValueId)
@@ -1169,7 +1173,7 @@ namespace NeoCompose.Runtime
 
             if (childMembers.TryGetValue(key, out NeoMember? child))
             {
-                child.OnChanged -= HandleChildChanged;
+                child.ChildChanged -= HandleChildChanged;
                 child.Dispose();
                 childMembers.Remove(key);
             }
@@ -1238,9 +1242,11 @@ namespace NeoCompose.Runtime
             {
                 return;
             }
+            childMembers.TryGetValue(key, out NeoMember? existingChild);
             client.WriteRemovalTombstone(ownership, childValueId);
             ReinitializeChildren();
-            NotifyChildChanged(key);
+            if (!ChildBubbledOwnChange(key, existingChild))
+                NotifyChildChanged(key);
         }
     }
 }

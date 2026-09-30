@@ -45,6 +45,194 @@ namespace NeoCompose.Tests
             Assert.AreEqual(1, list.Count, "The next script read must observe the committed membership.");
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void ScriptMembershipChangesNotifyTheLiveListOnce(bool unordered)
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(Schema(unordered));
+            client.SetWritableValues(NeoValueOwnership.Session, new MemberValue[]
+            {
+                new ObjectMemberValue { id = "script-item", classId = "item", value = new() },
+            });
+            var list = client.save.Get<NeoMemberListWritable>("Items");
+            int listChanges = 0;
+            int saveChanges = 0;
+            int observedCount = -1;
+            NeoListChangedArgs? observedChange = null;
+            list.OnChanged += _ =>
+            {
+                listChanges++;
+                observedCount = list.Count;
+                observedChange = list.ActiveListChange;
+            };
+            client.save.OnChanged += _ => saveChanges++;
+            var context = new NSGetterEvaluator.Context(client, null, null);
+
+            Execute(client, context, new(), CollectionMutationKind.Add,
+                new ReferencePointer { type = PointerKind.Reference, valueId = "script-item" });
+            Assert.AreEqual(1, listChanges, "A NeoScript add must reach the live list once.");
+            Assert.AreEqual(1, saveChanges, "A NeoScript add must bubble to the parent once.");
+            Assert.AreEqual(1, observedCount);
+            if (unordered)
+            {
+                Assert.AreEqual(NeoListChangeKind.Add, observedChange!.Kind, "The entry's own row change is part of the add.");
+                CollectionAssert.AreEqual(new[] { "script-item" }, observedChange.AddedValueIds);
+            }
+            else
+            {
+                // An ordered list whose row another writer replaced can't
+                // name the change; the entry's Set must not narrow that.
+                Assert.AreEqual(NeoListChangeKind.Unknown, observedChange!.Kind);
+            }
+
+            listChanges = 0;
+            saveChanges = 0;
+            Execute(client, context, new(), CollectionMutationKind.Clear);
+            Assert.AreEqual(1, listChanges, "A NeoScript clear must reach the live list once.");
+            Assert.AreEqual(1, saveChanges, "A NeoScript clear must bubble to the parent once.");
+            Assert.AreEqual(0, observedCount);
+        }
+
+        [Test]
+        public void ScriptDictionaryWriteNotifiesTheLiveDictionaryOnce()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(Schema(false));
+            var dictionary = client.save.Get<NeoMemberDictionaryWritable>("ByKey");
+            int dictionaryChanges = 0;
+            int saveChanges = 0;
+            dictionary.OnChanged += _ => dictionaryChanges++;
+            client.save.OnChanged += _ => saveChanges++;
+
+            NeoScriptExecutor.Execute(client, Function(new AssignInstruction
+            {
+                type = InstructionKind.Assign,
+                operatorValue = "=",
+                target = new WriteTarget
+                {
+                    pointer = new KeyOfPointer
+                    {
+                        type = PointerKind.KeyOf,
+                        keyOf = new KeyOf
+                        {
+                            pointer = new ReferencePointer { type = PointerKind.Reference, valueId = "by-key" },
+                            key = StringPointer("a"),
+                        },
+                    },
+                    typeInfo = StringType,
+                    writability = WritabilityKind.Save,
+                },
+                pointer = StringPointer("written"),
+            }), new Dictionary<string, object?>(), new NSGetterEvaluator.Context(client, null, null));
+
+            Assert.AreEqual(1, dictionaryChanges, "A NeoScript entry write must reach the live dictionary once.");
+            Assert.AreEqual(1, saveChanges, "A NeoScript entry write must bubble to the parent once.");
+            Assert.AreEqual(1, dictionary.Count);
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void WholeListWriteNotifiesTheParentOnce(bool unordered)
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(Schema(unordered));
+            client.SetWritableValues(NeoValueOwnership.Session, new MemberValue[]
+            {
+                new ObjectMemberValue { id = "script-item", classId = "item", value = new() },
+            });
+            var list = client.save.Get<NeoMemberListWritable>("Items");
+            list.AddSerialized(NeoValueWritePayload.FromValueReference("script-item"));
+            int saveChanges = 0;
+            client.save.OnChanged += _ => saveChanges++;
+
+            client.save.SetSerializedValue("Items", NeoValueWritePayload.FromValue(Array.Empty<string>()));
+
+            Assert.AreEqual(1, saveChanges);
+            Assert.AreEqual(0, client.save.Get<NeoMemberListWritable>("Items").Count);
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void WholeDictionaryWriteNotifiesTheParentOnce(bool unset)
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(Schema(false));
+            client.save.Get<NeoMemberDictionaryWritable>("ByKey")
+                .SetSerialized("a", NeoValueWritePayload.FromValue("written"));
+            int saveChanges = 0;
+            client.save.OnChanged += _ => saveChanges++;
+
+            if (unset)
+                client.save.Unset("ByKey");
+            else
+                client.save.SetSerializedValue("ByKey", NeoValueWritePayload.FromValue(new Dictionary<string, string>()));
+
+            Assert.AreEqual(1, saveChanges);
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void ListEntryWriteNotifiesOnce(bool reference)
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(Schema(false));
+            client.SetWritableValues(NeoValueOwnership.Session, new MemberValue[]
+            {
+                new StringMemberValue { id = "name-1", value = "one" },
+            });
+            var names = client.save.Get<NeoMemberListWritable>("Names");
+            int listChanges = 0;
+            int saveChanges = 0;
+            NeoListChangedArgs? observedChange = null;
+            names.OnChanged += _ =>
+            {
+                listChanges++;
+                observedChange = names.ActiveListChange;
+            };
+            client.save.OnChanged += _ => saveChanges++;
+
+            names.SetSerialized(0, reference
+                ? NeoValueWritePayload.FromValueReference("name-1")
+                : NeoValueWritePayload.FromValue("one"));
+
+            Assert.AreEqual(1, listChanges);
+            Assert.AreEqual(1, saveChanges);
+            Assert.AreEqual(reference ? NeoListChangeKind.Replace : NeoListChangeKind.Set, observedChange!.Kind);
+            Assert.AreEqual("one", ((NeoMemberString)names[0]).value!.value);
+        }
+
+        [Test]
+        public void ClassFieldUnsetNotifiesTheParentOnce()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(Schema(false));
+            var part = client.save.Get<NeoMemberClassWritable>("Part");
+            int saveChanges = 0;
+            client.save.OnChanged += _ => saveChanges++;
+
+            client.save.Unset("Part");
+
+            Assert.AreEqual(1, saveChanges, "A Class child retires on its tombstone, so the parent reports it.");
+            Assert.IsTrue(part.isDisposed);
+        }
+
+        [Test]
+        public void WholeClassWriteReportsEachChangedMemberOnce()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(Schema(false));
+            var part = client.save.Get<NeoMemberClassWritable>("Part");
+            var partName = part.Get<NeoMemberString>("Name");
+            var changed = new List<NeoMember>();
+            client.save.OnChanged += changed.Add;
+
+            client.save.SetSerializedValue("Part", NeoValueWritePayload.FromValue(new NeoValuePayload(
+                new Dictionary<string, string> { ["Name"] = "part-name-2" },
+                "item",
+                new MemberValue[] { new StringMemberValue { id = "part-name-2", value = "rewritten" } })));
+
+            // The Part row and the Name leaf it rebound both changed.
+            Assert.AreEqual(2, changed.Count);
+            Assert.AreSame(part, changed[0]);
+            Assert.AreSame(client.save.Get<NeoMemberClassWritable>("Part").Get<NeoMemberString>("Name"), changed[1]);
+            Assert.AreEqual("rewritten", client.save.Get<NeoMemberClassWritable>("Part").Get<NeoMemberString>("Name").value!.value);
+            Assert.IsTrue(partName.isDisposed);
+        }
+
         [Test]
         public void ForeachSnapshotRetainsCollectionOwnershipForUnchangedAuthoredEntries()
         {
@@ -165,6 +353,22 @@ namespace NeoCompose.Tests
             }, scope, context);
         }
 
+        private static readonly PrimitiveTypeInfo StringType = new() { type = MemberKind.String, required = true };
+
+        private static ValuePointer StringPointer(string value) => new()
+        {
+            type = PointerKind.Value,
+            value = new Value { typeInfo = StringType, value = new JValue(value) },
+        };
+
+        private static FunctionWithReturnType Function(Instruction instruction) => new()
+        {
+            compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+            parameters = Array.Empty<Variable>(),
+            typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null, required = true },
+            instructions = new[] { instruction },
+        };
+
         private static ProjectData Schema(bool unordered)
         {
             return new ProjectData
@@ -181,7 +385,7 @@ namespace NeoCompose.Tests
                 classes = new()
                 {
                     ["empty"] = new NeoSchemaClass { id = "empty", name = "Empty", schema = new() },
-                    ["save"] = new NeoSchemaClass { id = "save", name = "Save", schema = new() { ["Items"] = "items-member" } },
+                    ["save"] = new NeoSchemaClass { id = "save", name = "Save", schema = new() { ["Items"] = "items-member", ["ByKey"] = "by-key-member", ["Names"] = "names-member", ["Part"] = "part-member" } },
                     ["item"] = new NeoSchemaClass { id = "item", name = "Item", schema = new() { ["Name"] = "name" } },
                 },
                 members = new()
@@ -192,13 +396,23 @@ namespace NeoCompose.Tests
                     ["items-member"] = new ListMember { id = "items-member", name = "Items", kind = MemberKind.List, entryMemberId = "entry", ListKind = unordered ? NeoListKind.Unordered : NeoListKind.Ordered, Requirement = NeoMemberRequirementKind.Required },
                     ["entry"] = new ClassMember { id = "entry", name = "Item", kind = MemberKind.Class, classId = "item", Requirement = NeoMemberRequirementKind.Required },
                     ["name"] = new StringMember { id = "name", name = "Name", kind = MemberKind.String, Requirement = NeoMemberRequirementKind.Required },
+                    ["by-key-member"] = new DictionaryMember { id = "by-key-member", name = "ByKey", kind = MemberKind.Dictionary, entryMemberId = "by-key-entry", KeyKind = NeoDictionaryKeyKind.String, Requirement = NeoMemberRequirementKind.Optional },
+                    ["by-key-entry"] = new StringMember { id = "by-key-entry", name = "Entry", kind = MemberKind.String, Requirement = NeoMemberRequirementKind.Required },
+                    ["names-member"] = new ListMember { id = "names-member", name = "Names", kind = MemberKind.List, entryMemberId = "names-entry", Requirement = NeoMemberRequirementKind.Required },
+                    ["names-entry"] = new StringMember { id = "names-entry", name = "Name", kind = MemberKind.String, Requirement = NeoMemberRequirementKind.Required },
+                    ["part-member"] = new ClassMember { id = "part-member", name = "Part", kind = MemberKind.Class, classId = "item", Requirement = NeoMemberRequirementKind.Optional },
                 },
                 values = new()
                 {
                     ["assets"] = new ObjectMemberValue { id = "assets", classId = "empty", value = new() },
-                    ["save"] = new ObjectMemberValue { id = "save", classId = "save", value = new() { ["Items"] = "items" } },
+                    ["save"] = new ObjectMemberValue { id = "save", classId = "save", value = new() { ["Items"] = "items", ["ByKey"] = "by-key", ["Names"] = "names", ["Part"] = "part" } },
                     ["session"] = new ObjectMemberValue { id = "session", classId = "empty", value = new() },
                     ["items"] = new ArrayMemberValue { id = "items", value = Array.Empty<string>() },
+                    ["by-key"] = new ObjectMemberValue { id = "by-key", value = new() },
+                    ["names"] = new ArrayMemberValue { id = "names", value = new[] { "name-0" } },
+                    ["name-0"] = new StringMemberValue { id = "name-0", value = "zero" },
+                    ["part"] = new ObjectMemberValue { id = "part", classId = "item", value = new() { ["Name"] = "part-name" } },
+                    ["part-name"] = new StringMemberValue { id = "part-name", value = "part" },
                 },
                 enums = new(),
             };

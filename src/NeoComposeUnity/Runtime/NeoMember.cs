@@ -118,6 +118,12 @@ namespace NeoCompose.Runtime
             get; internal set;
         }
         public event System.Action<NeoMember>? OnChanged;
+        /// <summary>
+        /// The parent container's channel: it bubbles a change inside the
+        /// write that made it, while <see cref="OnChanged"/> listeners hear a
+        /// commit once, after it (<see cref="NeoClient.RaiseChanged"/>).
+        /// </summary>
+        internal event System.Action<NeoMember>? ChildChanged;
         public event System.Action<NeoMember>? OnDisposed;
         /// <summary>
         /// True after <see cref="Dispose"/> has run. Subclasses must
@@ -214,10 +220,20 @@ namespace NeoCompose.Runtime
         {
             if (isDisposed)
                 return;
-            OnChanged?.Invoke(changed);
+            ChildChanged?.Invoke(changed);
             if (declarationHolders is { Count: > 0 })
                 foreach (NeoMemberClass holder in declarationHolders.Keys.ToArray())
                     holder.HandleChildChanged(changed);
+            if (OnChanged is not null)
+                client.RaiseChanged(this, changed);
+        }
+
+        /// <summary>The list change a queued notification carries, when this node is a list.</summary>
+        internal virtual NeoListChangedArgs? PendingListChange => null;
+
+        internal virtual void InvokeChanged(NeoMember changed, NeoListChangedArgs? listChange)
+        {
+            OnChanged?.Invoke(changed);
         }
 
         internal void AssertContainingClassesCanBeConstructed()
@@ -626,19 +642,14 @@ namespace NeoCompose.Runtime
                 Dispose();
                 return;
             }
-            if (this is NeoMemberDictionary
-                || this is NeoMemberList)
+            // A collection's own mutator publishes one precise change after
+            // its multi-row write. Every other writer (NeoScript, another
+            // node over the same row, live-save reconciliation) has no such
+            // frame, so the node must refresh and notify here.
+            if (client.PublishingPlan?.IsReportingOwnChange(this) == true)
             {
-                // Local collection mutators reinitialize explicitly after
-                // completing their multi-row write and publish one precise
-                // collection change. External live-save reconciliation has
-                // no such mutator frame, so collection nodes must refresh
-                // here or their membership and derived indexes stay stale.
-                if (client.CurrentChangeSource != NeoChangeSource.External)
-                {
-                    RefreshValueIdChain();
-                    return;
-                }
+                RefreshValueIdChain();
+                return;
             }
             OnValueIdChainChanged();
         }
@@ -669,7 +680,7 @@ namespace NeoCompose.Runtime
         /// setters route <c>obj.Position.y = 1f</c> through the leaf's
         /// <c>Set</c>, while a whole-value <c>obj.Position = v</c> goes
         /// through <c>NeoMemberClass.SetSerializedValue</c>, which deliberately
-        /// leaves notification to the child (see its <c>ChildSelfNotifies</c>
+        /// leaves notification to a live child (see its <c>ChildBubbledOwnChange</c>
         /// check). The duplicate made the two spellings of the same write
         /// notify a different number of times.</para>
         /// </summary>
@@ -799,6 +810,13 @@ namespace NeoCompose.Runtime
         {
             if (!client.TryWriteLeaf(ownership, writable, member, "value"))
                 client.SetWritableValue(ownership, writable, "value");
+        }
+
+        /// <summary>Commits a write whose change this node publishes itself.</summary>
+        private protected void CommitOwnChange(NeoWritePlan plan)
+        {
+            plan.ReportsOwnChange(this);
+            plan.Commit();
         }
 
         /// <summary>

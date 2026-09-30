@@ -213,7 +213,7 @@ namespace NeoCompose.Runtime
             plan.Set(ownership, parentRow);
             if (previousId is not null && previousId != nextId)
                 client.StageUnlinkedRemovals(plan, entryOwnership, new[] { previousId }, entryMember);
-            plan.Commit();
+            CommitOwnChange(plan);
             value = parentRow;
             if (childMembers.TryGetValue(key, out NeoMember? previousChild))
                 previousChild.Dispose();
@@ -239,7 +239,7 @@ namespace NeoCompose.Runtime
             plan.Set(ownership, parentRow);
             NeoValueOwnership entryOwnership = client.ChildOwnership(entryMember, ownership);
             client.StageUnlinkedRemovals(plan, entryOwnership, new[] { removedValueId }, entryMember);
-            plan.Commit();
+            CommitOwnChange(plan);
             value = parentRow;
 
             // Dispose the child node (recursive — its own Dispose
@@ -274,6 +274,8 @@ namespace NeoCompose.Runtime
             parentRow.value![key] = childValueId;
             parentRow.updatedAt = nowIso;
             plan.Set(ownership, parentRow);
+            // The bound child reports its own change.
+            plan.ReportsOwnChange(this);
             plan.AfterCommit(() =>
             {
                 value = parentRow;
@@ -291,15 +293,6 @@ namespace NeoCompose.Runtime
         /// KeyNotFoundException), and an overwrite of one key would silently
         /// drop the sibling default entries.
         /// </summary>
-        private ObjectMemberValue EnsureWritableObject(NeoTimestamp nowIso)
-        {
-            var plan = new NeoWritePlan(client);
-            var row = EnsureWritableObject(plan, nowIso);
-            if (plan.Rows.Count > 0)
-                plan.Commit();
-            return row;
-        }
-
         private ObjectMemberValue EnsureWritableObject(NeoWritePlan plan, NeoTimestamp nowIso)
         {
             var writable = WritableCandidate(plan);

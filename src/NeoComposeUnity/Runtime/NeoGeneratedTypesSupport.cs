@@ -1563,15 +1563,7 @@ namespace NeoCompose.Runtime
             }
             else
             {
-                member = new ClassMember
-                {
-                    id = $"__neo_resolved_class_{classId}",
-                    name = "ResolvedClassValue",
-                    kind = MemberKind.Class,
-                    classId = classId,
-                    createdAt = value.createdAt,
-                    updatedAt = value.updatedAt,
-                };
+                member = UnplacedClassMember(classId, null, value);
             }
 
             // Generated factories memoize by declaration, placement and storage.
@@ -2034,18 +2026,9 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"Cloned Class value '{clonedValueId}' has no resolvable runtime classId.");
             }
-            var factoryMember = new ClassMember
-            {
-                id = $"__neo_clone_class_{clonedClassId}",
-                name = "Clone",
-                kind = MemberKind.Class,
-                classId = clonedClassId!,
-                createdAt = clone.createdAt,
-                updatedAt = clone.updatedAt,
-            };
             return new NeoMemberClassWritable(
                 client,
-                factoryMember,
+                UnplacedClassMember(clonedClassId!, null, clone),
                 clonedValueId,
                 NeoValueOwnership.Session);
         }
@@ -2320,15 +2303,7 @@ namespace NeoCompose.Runtime
             ClassMember factoryMember = trustedRuntimeRows
                 ? (trustedRootPlan ?? ResolveRuntimeClassPlan(client, classId))
                     .factoryMember
-                : new ClassMember
-                {
-                    id = $"__neo_factory_class_{classId}",
-                    name = "Factory",
-                    kind = MemberKind.Class,
-                    classId = classId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                };
+                : UnplacedClassMember(classId, null, parentRow);
             return new RuntimeConstructedClassValue(parentRow, factoryMember);
         }
 
@@ -6602,18 +6577,7 @@ namespace NeoCompose.Runtime
                 genericEnv = genericEnv,
                 schemaByKey = schemaByKey,
                 membersBySchemaKey = membersBySchemaKey,
-                factoryMember = new ClassMember
-                {
-                    id = $"__neo_factory_class_{classId}",
-                    name = "Factory",
-                    kind = MemberKind.Class,
-                    classId = classId,
-                    classArguments = classArguments is null
-                        ? null
-                        : new Dictionary<string, GenericBinding>(
-                            classArguments,
-                            StringComparer.Ordinal),
-                },
+                factoryMember = UnplacedClassMember(classId, classArguments),
             };
             if (classArguments is null)
             {
@@ -7885,7 +7849,8 @@ namespace NeoCompose.Runtime
                 }
             }
 
-            string? valueId = ValueId(value);
+            // Class entries of a stored list come back from NeoScript as their row ids.
+            string? valueId = value as string ?? ValueId(value);
             if (string.IsNullOrEmpty(valueId))
             {
                 throw new InvalidOperationException(
@@ -7920,7 +7885,7 @@ namespace NeoCompose.Runtime
                 ? resolvedOwnership
                 : NeoValueOwnership.Asset;
             if ((!saved || nodeOwnership != NeoValueOwnership.Asset)
-                && client.TryGetGeneratedClassValue($"__neo_nsg_class_{classId}", valueId!, nodeOwnership, out NeoGeneratedClassValue? cachedValue)
+                && client.TryGetGeneratedClassValue(UnplacedClassMemberId(classId!), valueId!, nodeOwnership, out NeoGeneratedClassValue? cachedValue)
                 && cachedValue.classId == classId
                 && cachedValue is T cachedTyped)
             {
@@ -7953,6 +7918,18 @@ namespace NeoCompose.Runtime
                     new NeoMemberClassWritable(client, member, valueId, ownership));
             }
 
+            bool writableRow = client.TryGetValueOwnership(valueId, out var readOwnership)
+                && readOwnership != NeoValueOwnership.Asset;
+            // Every view of a Save/Session row shares one registry key, and
+            // native receivers and writable parameters resolve through it: the
+            // view registered there must be writable.
+            if (writableRow && savedFactory is not null)
+            {
+                return savedFactory(
+                    client,
+                    new NeoMemberClassWritable(client, member, valueId, readOwnership));
+            }
+
             if (readOnlyFactory is null)
             {
                 throw new InvalidOperationException(
@@ -7961,8 +7938,7 @@ namespace NeoCompose.Runtime
 
             return readOnlyFactory(
                 client,
-                client.TryGetValueOwnership(valueId, out var readOwnership)
-                    && readOwnership != NeoValueOwnership.Asset
+                writableRow
                     ? new NeoMemberClassWritable(client, member, valueId, readOwnership)
                     : new NeoMemberClass(client, member, valueId));
         }
@@ -8003,17 +7979,35 @@ namespace NeoCompose.Runtime
             string classId)
         {
             client.TryInferMemberForValueId(valueId, out Member? placement);
+            return UnplacedClassMember(classId, (placement as ClassMember)?.classArguments, row);
+        }
+
+        internal static string UnplacedClassMemberId(string classId) => $"__neo_class_value_{classId}";
+
+        /// <summary>
+        /// The placement of a class value no member holds: constructed,
+        /// cloned, or read by id. Every such view of one row shares one
+        /// registry key, so NeoScript calling back into the row finds the
+        /// generated wrapper C# holds. The row's generic stamp closes its
+        /// arguments, so whichever view registers first agrees with the rest.
+        /// </summary>
+        internal static ClassMember UnplacedClassMember(
+            string classId,
+            IReadOnlyDictionary<string, GenericBinding>? classArguments,
+            MemberValue? row = null)
+        {
             return new ClassMember
             {
-                classArguments = NeoGenericResolution.CloseClassArgumentsFromStamp(
-                    row.genericBindings, (placement as ClassMember)?.classArguments)
-                    is { } arguments ? new Dictionary<string, GenericBinding>(arguments) : null,
-                id = $"__neo_nsg_class_{classId}",
-                name = "NSPropertyClassValue",
+                id = UnplacedClassMemberId(classId),
+                name = "ClassValue",
                 kind = MemberKind.Class,
                 classId = classId,
-                createdAt = row.createdAt,
-                updatedAt = row.updatedAt,
+                classArguments = NeoGenericResolution.CloseClassArgumentsFromStamp(
+                    row?.genericBindings, classArguments)
+                    is { } arguments ? new Dictionary<string, GenericBinding>(arguments) : null,
+                unplaced = true,
+                createdAt = row?.createdAt ?? default,
+                updatedAt = row?.updatedAt ?? default,
             };
         }
 
