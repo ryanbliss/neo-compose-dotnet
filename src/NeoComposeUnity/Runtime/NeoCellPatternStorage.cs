@@ -24,22 +24,67 @@ namespace NeoCompose.Runtime
         {
             if (node.value?.value is null)
                 return null;
-            return ReadRow(client, node.value, node.ownership);
+            return ReadRow(client, node.value, node.ownership, null);
         }
 
-        private static NeoCellPattern ReadRow(NeoClient client, ObjectMemberValue row, NeoValueOwnership ownership)
+        /// <summary>
+        /// A pattern row's last read and the nodes of its offset rows. A read
+        /// re-reads every offset through the nodes and keeps the pattern while
+        /// the offsets still match it, so a repeat read hashes no ids and
+        /// allocates nothing.
+        /// </summary>
+        private sealed class RowRead
+        {
+            internal NeoValueNode?[] offsetNodes = Array.Empty<NeoValueNode?>();
+            internal NeoCellPattern? pattern;
+        }
+
+        /// <param name="node">The row's node, which keeps the read for the next one; null keeps nothing.</param>
+        private static NeoCellPattern ReadRow(NeoClient client, ObjectMemberValue row, NeoValueOwnership ownership, NeoValueNode? node)
         {
             var list = client.ResolveClassChildRow(row, "_offsets", ownership) as ArrayMemberValue
                 ?? throw new InvalidOperationException("CellPattern offsets are missing.");
             string[] ids = list.value ?? Array.Empty<string>();
-            var offsets = new Vector2Int[ids.Length];
-            for (int index = 0; index < offsets.Length; index++)
+            RowRead? read = null;
+            if (node is not null)
             {
-                if (!client.TryGetValue(ownership, ids[index], out Vector2MemberValue? vector) || vector.value is null)
-                    throw new InvalidOperationException("CellPattern offset is missing.");
-                offsets[index] = NeoVectorValues.ToVector2Int(vector.value);
+                read = node.nativeRead as RowRead;
+                if (read is null)
+                    node.nativeRead = read = new RowRead();
             }
-            return NeoCellPattern.FromOwned(offsets);
+            NeoValueNode?[] offsetNodes = read?.offsetNodes.Length == ids.Length
+                ? read.offsetNodes
+                : new NeoValueNode?[ids.Length];
+            NeoCellPattern? previous = read?.pattern is { } last && last.Count == ids.Length ? last : null;
+            Vector2Int[]? offsets = previous is null ? new Vector2Int[ids.Length] : null;
+            for (int index = 0; index < ids.Length; index++)
+            {
+                ref NeoValueNode? offsetNode = ref offsetNodes[index];
+                if (offsetNode is not null && !string.Equals(offsetNode.id, ids[index], StringComparison.Ordinal))
+                    offsetNode = null;
+                client.TryGetValue(ownership, ids[index], ref offsetNode, out MemberValue? offset);
+                if (offset is not Vector2MemberValue { value: not null } vector)
+                    throw new InvalidOperationException("CellPattern offset is missing.");
+                Vector2Int cell = NeoVectorValues.ToVector2Int(vector.value);
+                if (offsets is null)
+                {
+                    if (cell == previous![index])
+                        continue;
+                    offsets = new Vector2Int[ids.Length];
+                    for (int kept = 0; kept < index; kept++)
+                        offsets[kept] = previous[kept];
+                }
+                offsets[index] = cell;
+            }
+            if (offsets is null)
+                return previous!;
+            var pattern = NeoCellPattern.FromOwned(offsets);
+            if (read is not null)
+            {
+                read.offsetNodes = offsetNodes;
+                read.pattern = pattern;
+            }
+            return pattern;
         }
 
         public static NeoCellPattern ReadRequired(NeoClient client, NeoMemberClass node) =>
@@ -116,8 +161,10 @@ namespace NeoCompose.Runtime
                     ConstructorId, new[] { "offsets" }, Array.Empty<NeoGeneratedTypesSupport.RuntimeConstructorField>());
                 NeoGeneratedTypesSupport.CacheResolvedSite(ctx.client, MaterializeSite, resolved);
             }
+            object?[] arguments = resolved.NewArgumentValues();
+            arguments[resolved.argumentPositions[0]] = Offsets(pattern);
             return NSGetterEvaluator.ConstructDeclared(resolved,
-                new Dictionary<string, object?> { ["offsets"] = Offsets(pattern) },
+                arguments,
                 Array.Empty<NeoGeneratedTypesSupport.RuntimeConstructorField>(), ctx,
                 evaluateFieldValues: null, replayContext: false)!;
         }
@@ -128,16 +175,23 @@ namespace NeoCompose.Runtime
                 return pattern;
             if (value is NeoScriptObject { attachedId: null } detached && detached.plan.classId == ClassId)
                 return ReadDetached(detached);
-            string? id = NSGetterEvaluator.FindRowIdByReference(value, ctx);
-            var ownership = NSGetterEvaluator.FindRowOwnershipByReference(value, ctx) ?? ctx.valueOwnership;
-            if (id is null || !ctx.client.TryGetValue(ownership, id, out ObjectMemberValue? row)
-                || row.classId != ClassId)
+            NSGetterEvaluator.RowReference? rowRef = NSGetterEvaluator.FindRowReference(value, ctx);
+            string? id = rowRef?.valueId;
+            var ownership = NSGetterEvaluator.RowOwnership(rowRef, value) ?? ctx.valueOwnership;
+            NeoValueNode? node = rowRef?.node;
+            if (id is null || !ctx.client.TryGetValue(ownership, id, ref node, out MemberValue? stored)
+                || stored is not ObjectMemberValue { classId: ClassId } row)
                 throw new NSGetterRuntimeError("Expected a canonical CellPattern value.");
-            return ReadRow(ctx.client, row, ownership);
+            if (rowRef is not null && !ReferenceEquals(rowRef.node, node))
+                rowRef.node = node;
+            return ReadRow(ctx.client, row, ownership, node);
         }
 
         private static NeoCellPattern ReadDetached(NeoScriptObject detached)
         {
+            // A constructed pattern never changes, so its first read serves every later one.
+            if (detached.nativeValue is NeoCellPattern read)
+                return read;
             object?[] entries = detached.plan.slotByKey.TryGetValue("_offsets", out int slot)
                 && NeoGeneratedTypesSupport.DetachedArray(detached, slot) is object?[] stored
                     ? stored
@@ -149,7 +203,10 @@ namespace NeoCompose.Runtime
                     ? NeoVectorValues.ToVector2Int(vector)
                     : throw new InvalidOperationException("CellPattern offset is missing.");
             }
-            return NeoCellPattern.FromOwned(offsets);
+            var pattern = NeoCellPattern.FromOwned(offsets);
+            if (!detached.constructing)
+                detached.nativeValue = pattern;
+            return pattern;
         }
 
         private static object?[] Offsets(NeoCellPattern pattern)

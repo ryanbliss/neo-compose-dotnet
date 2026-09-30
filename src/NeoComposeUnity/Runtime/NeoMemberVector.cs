@@ -1041,7 +1041,7 @@ namespace NeoCompose.Runtime
             && !float.IsInfinity(value)
             && value >= int.MinValue
             && value <= int.MaxValue
-            && System.Math.Truncate(value) == value;
+            && NeoNumbers.IsWhole(value);
 
         private static int ToInt(float value, string component)
         {

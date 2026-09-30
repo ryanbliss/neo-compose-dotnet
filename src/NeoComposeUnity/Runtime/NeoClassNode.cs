@@ -65,6 +65,17 @@ namespace NeoCompose.Runtime
             get;
         }
 
+        /// <summary>Whether <paramref name="classId"/> is this class or one of its ancestors.</summary>
+        internal bool Extends(string classId)
+        {
+            for (int i = 0; i < Chain.Count; i++)
+            {
+                if (Chain[i].id == classId)
+                    return true;
+            }
+            return false;
+        }
+
         /// <summary>Every instance member, static declarations excluded.</summary>
         internal IList<MergedSchemaEntry> Surface
         {

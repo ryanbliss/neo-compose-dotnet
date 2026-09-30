@@ -3,6 +3,7 @@
 #nullable enable
 using System;
 using System.Linq;
+using NeoCompose.Runtime.Json;
 using NeoCompose.Runtime.NeoScript;
 using UnityEngine;
 
@@ -121,6 +122,37 @@ namespace NeoCompose.Runtime
             "system_efc67858-0c95-573f-a8a9-d7e07d0a1d55" or // Translate
             "system_77b14581-e34c-5eb1-a820-788618276e46"; // Union
 
+        /// <summary>
+        /// Whether <paramref name="body"/> reads the parameter only as the
+        /// cells of a grid query, so a pattern bound to it stays as offsets.
+        /// </summary>
+        internal static bool OnlyQueriesGrid(FunctionWithReturnType body, int parameter) =>
+            (body.gridQueryParameters ??= GridQueryParameters(body))[parameter];
+
+        private static bool[] GridQueryParameters(FunctionWithReturnType body)
+        {
+            var flags = new bool[body.parameters?.Length ?? 0];
+            for (int parameter = 0; parameter < flags.Length; parameter++)
+            {
+                string id = body.parameters![parameter].id;
+                int reads = 0;
+                int queries = 0;
+                NeoScriptIrWalker.AnyPointer(body.instructions, pointer =>
+                {
+                    if (pointer is VariablePointer variable && variable.variableId == id)
+                        reads++;
+                    else if (pointer is CallFunctionPointer { args: { Length: 1 } args } call
+                        && NeoScriptGridQueries.ReadsCells(call.memberId)
+                        && args[0] is VariablePointer cells
+                        && cells.variableId == id)
+                        queries++;
+                    return false;
+                });
+                flags[parameter] = reads != 0 && reads == queries;
+            }
+            return flags;
+        }
+
         private static NeoCellPattern Read(object? value, NSGetterEvaluator.Context ctx) =>
             NeoCellPatternStorage.ReadRuntime(value, ctx);
 
@@ -133,7 +165,7 @@ namespace NeoCompose.Runtime
         private static int Int(object? value)
         {
             double number = Convert.ToDouble(value);
-            if (!double.IsFinite(number) || number != Math.Truncate(number) || number < int.MinValue || number > int.MaxValue)
+            if (!double.IsFinite(number) || !NeoNumbers.IsWhole(number) || number < int.MinValue || number > int.MaxValue)
                 throw new NSGetterRuntimeError("CellPattern arguments must be int32 integers.");
             return (int)number;
         }

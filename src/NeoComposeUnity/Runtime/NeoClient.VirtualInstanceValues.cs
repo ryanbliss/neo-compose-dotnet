@@ -275,6 +275,16 @@ namespace NeoCompose.Runtime
             }
         }
 
+        private int virtualClassChildrenEpoch;
+
+        /// <summary>
+        /// Moves whenever any parent's virtual children change, so a reader
+        /// can keep a resolved child id until then; -1 while a replay reads
+        /// proposed state, when nothing may be kept.
+        /// </summary>
+        internal int VirtualClassChildrenEpoch =>
+            candidateReplay is null && !isReplayingVirtualInstance ? virtualClassChildrenEpoch : -1;
+
         internal bool TryGetVirtualClassChildValueId(
             string parentValueId,
             string schemaKey,
@@ -357,6 +367,7 @@ namespace NeoCompose.Runtime
             virtualValueOwnership.Clear();
             ClearVirtualValueNodes();
             virtualClassChildren.Clear();
+            virtualClassChildrenEpoch++;
             virtualClassPlacementByChildId.Clear();
             virtualEntriesByContainer.Clear();
             virtualContainerByRow.Clear();
@@ -1643,6 +1654,7 @@ namespace NeoCompose.Runtime
                 virtualClassChildren[pair.Key] = pair.Value;
                 TrackVirtualClassParent(rootId, pair.Key);
             }
+            virtualClassChildrenEpoch++;
             foreach (var pair in expansion.Placements)
                 TrackVirtualClassPlacement(rootId, pair.Value.parentValueId, pair.Key, pair.Value.member, pair.Value.ownership);
             foreach (string id in expansion.Footprint)
@@ -2159,6 +2171,7 @@ namespace NeoCompose.Runtime
             {
                 foreach (string parentId in parentIds)
                     virtualClassChildren.Remove(parentId);
+                virtualClassChildrenEpoch++;
                 virtualClassParentIdsByRoot.Remove(rootId);
             }
             if (virtualClassChildIdsByRoot.TryGetValue(

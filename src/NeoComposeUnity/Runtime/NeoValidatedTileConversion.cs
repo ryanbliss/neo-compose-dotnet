@@ -120,8 +120,8 @@ namespace NeoCompose.Runtime
                         previous,
                         out Vector2MemberValue? previousCell)
                     || !SameCellExceptPartition(previousCell!, nextCell)
-                    || nextCell.value.x != Math.Truncate(nextCell.value.x)
-                    || nextCell.value.y != Math.Truncate(nextCell.value.y)
+                    || !NeoNumbers.IsWhole(nextCell.value.x)
+                    || !NeoNumbers.IsWhole(nextCell.value.y)
                     || nextCell.value.x < int.MinValue
                     || nextCell.value.x > int.MaxValue
                     || nextCell.value.y < int.MinValue

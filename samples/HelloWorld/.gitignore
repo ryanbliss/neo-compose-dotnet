@@ -60,3 +60,6 @@ crashlytics-build.properties
 
 # TextMeshPro
 /[Aa]ssets/TextMesh*Pro/
+
+# Mono crash dumps
+mono_crash.*.json

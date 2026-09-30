@@ -310,8 +310,10 @@ namespace NeoCompose.Tests
             ConstructorRecord record = client.constructors["ctor-sub-reads-this"];
             var link = NeoGeneratedTypesSupport.ResolveConstructorLink(client, record, new HashSet<string>());
             var method = typeof(NeoGeneratedTypesSupport).GetMethod("PrepareConstructorInitializerArguments", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
-            var result = (Dictionary<string, object?[]>)method.Invoke(null, new object[] { client, link, Array.Empty<object?>(), new NSGetterEvaluator.Context(client, null, null) })!;
-            CollectionAssert.AreEquivalent(new[] { "sub-class" }, result.Keys);
+            var result = (NeoGeneratedTypesSupport.ConstructorChainArguments)method.Invoke(null, new object[] { client, link, Array.Empty<object?>(), new NSGetterEvaluator.Context(client, null, null) })!;
+            Assert.IsTrue(result.TryGet("sub-class", out _));
+            Assert.IsFalse(result.TryGet(link.baseLink!.record!.classId, out _));
+            Assert.IsNull(result.At(1));
         }
 
         [Test]

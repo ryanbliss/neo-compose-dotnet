@@ -93,6 +93,12 @@ namespace NeoCompose.Tests
                     + (FunctionWithReturnType.CurrentCompilerRevision + 1),
                 error.Message);
             StringAssert.DoesNotContain("callback body executed", error.Message);
+
+            // The rejected callback held no pooled scope.
+            NeoScriptScopeLayout layout = callback.scopeLayout ??= new NeoScriptScopeLayout(callback);
+            NeoScriptScope scope = layout.RentScope();
+            layout.ReturnScope(scope);
+            Assert.AreSame(scope, layout.RentScope());
         }
 
         [Test]

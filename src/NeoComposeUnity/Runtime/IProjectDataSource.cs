@@ -63,7 +63,7 @@ namespace NeoCompose.Runtime
         {
             lock (parseLock)
             {
-                parsedProjectData ??= JsonConvert.DeserializeObject<ProjectData>(projectJson)
+                parsedProjectData ??= NeoInterningJsonReader.Deserialize<ProjectData>(projectJson)
                     ?? throw new InvalidOperationException(
                         "Neo Compose project JSON could not be deserialized.");
                 return parsedProjectData;

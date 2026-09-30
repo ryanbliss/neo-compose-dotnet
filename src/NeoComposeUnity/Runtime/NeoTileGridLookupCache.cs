@@ -48,6 +48,12 @@ namespace NeoCompose.Runtime
         private IReadOnlyList<string>? tileLayerIds;
 
         internal NeoReadOnlyTileGridPrimitive Primitive => primitive;
+
+        /// <summary>Changes whenever an object layer's index may be dropped, so a holder of indexes refetches them.</summary>
+        internal int ObjectLayersVersion
+        {
+            get; private set;
+        }
         internal IReadOnlyList<string> ObjectLayerIds => objectLayerIds ??= primitive.ResolveObjectLayerIds();
         internal IReadOnlyList<string> TileLayerIds => tileLayerIds ??= primitive.ResolveTileLayerIds();
 
@@ -79,6 +85,7 @@ namespace NeoCompose.Runtime
             Changed = null;
             tileLayers.Clear();
             objectLayers.Clear();
+            ObjectLayersVersion++;
             changedTileLayers.Clear();
             changedObjectLayers.Clear();
             knownTileLayers.Clear();
@@ -169,6 +176,7 @@ namespace NeoCompose.Runtime
             foreach (var change in args.ObjectLayers)
             {
                 objectLayers.Remove(change.LayerId);
+                ObjectLayersVersion++;
             }
         }
 
@@ -191,6 +199,7 @@ namespace NeoCompose.Runtime
                     ids.Add(value.valueId);
             InvalidateDependents(tileLayers, changedTileLayers, ids);
             InvalidateDependents(objectLayers, changedObjectLayers, ids);
+            ObjectLayersVersion++;
             foreach (string layerId in changedTileLayers.Keys)
                 if (plan.PreparedTileLayers.TryGetValue((primitive.GridValueId, layerId), out var prepared))
                     tileLayers[layerId] = BuildTileLayerIndex(prepared);
@@ -248,6 +257,7 @@ namespace NeoCompose.Runtime
             tileLayerIds = null;
             tileLayers.Clear();
             objectLayers.Clear();
+            ObjectLayersVersion++;
             changedTileLayers.Clear();
             changedObjectLayers.Clear();
             convertedTileCells.Clear();
@@ -442,9 +452,10 @@ namespace NeoCompose.Runtime
 
         private TileLayerIndex GetTileLayerIndex(string layerId)
         {
-            knownTileLayers.Add(layerId);
+            // Every indexed layer is already known; only a build registers one.
             if (tileLayers.TryGetValue(layerId, out var index))
                 return index;
+            knownTileLayers.Add(layerId);
             index = BuildTileLayerIndex(primitive.BuildTileLayerRecords(layerId));
             tileLayers[layerId] = index;
             return index;
@@ -487,9 +498,10 @@ namespace NeoCompose.Runtime
 
         private ObjectLayerIndex GetObjectLayerIndex(string layerId)
         {
-            knownObjectLayers.Add(layerId);
+            // Every indexed layer is already known; only a build registers one.
             if (objectLayers.TryGetValue(layerId, out var index))
                 return index;
+            knownObjectLayers.Add(layerId);
             var dependencyIds = new HashSet<string>();
             var records = primitive.BuildObjectLayerRecords(layerId, dependencyIds);
             index = BuildObjectLayerIndex(records, dependencyIds);

@@ -355,19 +355,7 @@ namespace NeoCompose.Runtime
         {
             if (actualClassId == expectedClassId)
                 return true;
-            try
-            {
-                foreach (NeoSchemaClass schemaClass in client.ResolveClassInheritanceChain(actualClassId))
-                {
-                    if (schemaClass.id == expectedClassId)
-                        return true;
-                }
-            }
-            catch (CircularInheritanceError)
-            {
-                return false;
-            }
-            return false;
+            return client.ClassChainContains(actualClassId, expectedClassId);
         }
 
         private void EnsureWritable()

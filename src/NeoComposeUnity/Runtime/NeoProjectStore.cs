@@ -265,7 +265,7 @@ namespace NeoCompose.Runtime
                 else
                 {
                     var json = await dataSource.ReadProjectJsonAsync();
-                    schema = JsonConvert.DeserializeObject<ProjectData>(json);
+                    schema = NeoInterningJsonReader.Deserialize<ProjectData>(json);
                     if (schema == null)
                     {
                         throw new InvalidOperationException(

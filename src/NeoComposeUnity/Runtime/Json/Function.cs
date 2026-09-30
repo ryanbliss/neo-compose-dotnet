@@ -53,10 +53,19 @@ namespace NeoCompose.Runtime.Json
     /// package; the runtime materializes only those explicit values and lets
     /// normal Class defaults fill required omissions.
     /// </summary>
-    public class FunctionClassConstructorInfo
+    public class FunctionClassConstructorInfo : ISchemaResolutionSite
     {
         public ClassTypeInfo schemaClassInfo = null!;
         public FunctionClassConstructorField[] fields = null!;
+
+        /// <summary>The runtime's validated metadata for this construction site.</summary>
+        [JsonIgnore]
+        internal NeoGeneratedTypesSupport.ResolvedSite? resolvedSite;
+
+        void ISchemaResolutionSite.ForgetResolution() => resolvedSite = null;
+
+        [JsonIgnore]
+        internal NeoGeneratedTypesSupport.ConstructionSiteBuffers? buffers;
     }
 
     /// <summary>
@@ -75,7 +84,7 @@ namespace NeoCompose.Runtime.Json
     /// P43 §6.1 payload for <c>new Foo(Named: …) { X = … }</c> against a class
     /// that declares constructors.
     /// </summary>
-    public class DeclaredConstructorInfo
+    public class DeclaredConstructorInfo : ISchemaResolutionSite
     {
         public ClassTypeInfo schemaClassInfo = null!;
 
@@ -94,6 +103,15 @@ namespace NeoCompose.Runtime.Json
         /// shape as the <c>classConstructor</c> fields.
         /// </summary>
         public FunctionClassConstructorField[] fields = null!;
+
+        /// <summary>The runtime's resolved constructor for this call site.</summary>
+        [JsonIgnore]
+        internal NeoGeneratedTypesSupport.ResolvedSite? resolvedSite;
+
+        void ISchemaResolutionSite.ForgetResolution() => resolvedSite = null;
+
+        [JsonIgnore]
+        internal NeoGeneratedTypesSupport.ConstructionSiteBuffers? buffers;
     }
 
     /// <summary>
@@ -296,12 +314,12 @@ namespace NeoCompose.Runtime.Json
 
     // ---------- Per-function variants ----------
 
-    public class ClassCloneFunction : Function
+    public sealed class ClassCloneFunction : Function
     {
         public FunctionClassCloneInfo info = null!;
     }
 
-    public class ClassConstructorFunction : Function
+    public sealed class ClassConstructorFunction : Function
     {
         public FunctionClassConstructorInfo info = null!;
     }
@@ -324,97 +342,97 @@ namespace NeoCompose.Runtime.Json
         public ClassTypeInfo schemaClassInfo = null!;
     }
 
-    public class VariantInitializeFunction : Function
+    public sealed class VariantInitializeFunction : Function
     {
         public FunctionVariantInitializeInfo info = null!;
     }
 
-    public class VariantApplyFunction : Function
+    public sealed class VariantApplyFunction : Function
     {
         public FunctionVariantApplyInfo info = null!;
     }
 
-    public class DeclaredConstructorFunction : Function
+    public sealed class DeclaredConstructorFunction : Function
     {
         public DeclaredConstructorInfo info = null!;
     }
 
-    public class SelectFunction : Function
+    public sealed class SelectFunction : Function
     {
         public FunctionCollectionSelectInfo info = null!;
     }
 
-    public class FirstFunction : Function
+    public sealed class FirstFunction : Function
     {
         public FunctionCollectionOptionalBoolInfo info = null!;
     }
 
-    public class FirstOrDefaultFunction : Function
+    public sealed class FirstOrDefaultFunction : Function
     {
         public FunctionCollectionOptionalBoolInfo info = null!;
     }
 
-    public class WhereFunction : Function
+    public sealed class WhereFunction : Function
     {
         public FunctionCollectionBoolInfo info = null!;
     }
 
-    public class ContainsFunction : Function
+    public sealed class ContainsFunction : Function
     {
         public FunctionCollectionContainsInfo info = null!;
     }
 
-    public class CountFunction : Function
+    public sealed class CountFunction : Function
     {
         public FunctionCollectionOptionalBoolInfo info = null!;
     }
 
-    public class IndexOfFunction : Function
+    public sealed class IndexOfFunction : Function
     {
         public FunctionCollectionContainsInfo info = null!;
     }
 
-    public class VisitCountFunction : Function
+    public sealed class VisitCountFunction : Function
     {
         public FunctionDialogueMemoryInfo info = null!;
     }
 
-    public class HasVisitedFunction : Function
+    public sealed class HasVisitedFunction : Function
     {
         public FunctionDialogueMemoryInfo info = null!;
     }
 
-    public class VectorConstructorFunction : Function
+    public sealed class VectorConstructorFunction : Function
     {
         public FunctionVectorConstructorInfo info = null!;
     }
 
-    public class ImageSliceFunction : Function
+    public sealed class ImageSliceFunction : Function
     {
         public FunctionImageSliceInfo info = null!;
     }
 
-    public class StringOpFunction : Function
+    public sealed class StringOpFunction : Function
     {
         public FunctionStringOpInfo info = null!;
     }
 
-    public class DecimalOpFunction : Function
+    public sealed class DecimalOpFunction : Function
     {
         public FunctionDecimalOpInfo info = null!;
     }
 
-    public class MathOpFunction : Function
+    public sealed class MathOpFunction : Function
     {
         public FunctionMathOpInfo info = null!;
     }
 
-    public class ListRepeatFunction : Function
+    public sealed class ListRepeatFunction : Function
     {
         public FunctionListRepeatInfo info = null!;
     }
 
-    public class ListIndexFunction : Function
+    public sealed class ListIndexFunction : Function
     {
         public FunctionListIndexInfo info = null!;
     }

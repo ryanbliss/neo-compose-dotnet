@@ -323,7 +323,7 @@ namespace NeoCompose.Runtime
                     throw new InvalidOperationException(
                         $"{where} field '{key}' must be a finite number.");
                 }
-                if (RequiresIntegerComponents(kind) && number != Math.Truncate(number))
+                if (RequiresIntegerComponents(kind) && !NeoNumbers.IsWhole(number))
                 {
                     throw new InvalidOperationException(
                         $"{where} field '{key}' must be an integer on a {Describe(kind)} member; found {number}.");
@@ -3584,7 +3584,7 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"Animation clip '{clipKey}' is missing required Int member '{key}'.");
             }
-            if (raw != Math.Truncate(raw))
+            if (!NeoNumbers.IsWhole(raw))
             {
                 throw new InvalidOperationException(
                     $"Animation clip '{clipKey}' Int member '{key}' must be an integer; found {raw}.");
@@ -3707,7 +3707,7 @@ namespace NeoCompose.Runtime
                 return null;
             if (value.value?.value is not double raw)
                 return null;
-            if (raw != Math.Truncate(raw))
+            if (!NeoNumbers.IsWhole(raw))
             {
                 throw new InvalidOperationException(
                     $"{label} Int member '{key}' must be an integer; found {raw}.");

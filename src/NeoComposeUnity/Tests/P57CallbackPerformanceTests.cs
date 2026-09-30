@@ -30,19 +30,15 @@ namespace NeoCompose.Tests
             var scope = new NeoScriptScope();
 
             Assert.AreEqual(0, ctx.allocationTracker.ActiveExecutionCount);
-            using (NeoScriptExecutor.PreparedCallback prepared =
-                NeoScriptExecutor.PrepareCallback(
-                    client,
-                    callback,
-                    ctx,
-                    NeoScriptExecutionOptions.ForImmediate(client)))
-            {
-                Assert.AreEqual(1, ctx.allocationTracker.ActiveExecutionCount);
-                Assert.IsTrue(prepared.Execute(scope).Returned);
-                scope.ResetLocals();
-                Assert.IsTrue(prepared.Execute(scope).Returned);
-                Assert.AreEqual(1, ctx.allocationTracker.ActiveExecutionCount);
-            }
+            NeoScriptExecutionOptions options =
+                NeoScriptExecutionOptions.ForImmediate(client);
+            NeoScriptExecutor.EnterCallback(callback, ctx);
+            Assert.AreEqual(1, ctx.allocationTracker.ActiveExecutionCount);
+            Assert.IsTrue(NeoScriptExecutor.ExecuteCallback(client, callback, scope, ctx, options).Returned);
+            scope.ResetLocals();
+            Assert.IsTrue(NeoScriptExecutor.ExecuteCallback(client, callback, scope, ctx, options).Returned);
+            Assert.AreEqual(1, ctx.allocationTracker.ActiveExecutionCount);
+            ctx.allocationTracker.ExitExecution(client, ctx, null);
             Assert.AreEqual(0, ctx.allocationTracker.ActiveExecutionCount);
         }
 
@@ -171,20 +167,19 @@ namespace NeoCompose.Tests
             GC.Collect();
             long beforeBytes = GC.GetAllocatedBytesForCurrentThread();
             var stopwatch = Stopwatch.StartNew();
-            using (NeoScriptExecutor.PreparedCallback prepared =
-                NeoScriptExecutor.PrepareCallback(
+            NeoScriptExecutor.EnterCallback(callback, ctx);
+            for (int index = 0; index < EntryCount; index++)
+            {
+                scope.ResetLocals();
+                NeoScriptExecutionResult result = NeoScriptExecutor.ExecuteCallback(
                     client,
                     callback,
+                    scope,
                     ctx,
-                    options))
-            {
-                for (int index = 0; index < EntryCount; index++)
-                {
-                    scope.ResetLocals();
-                    NeoScriptExecutionResult result = prepared.Execute(scope);
-                    GC.KeepAlive(result.ReturnValue);
-                }
+                    options);
+                GC.KeepAlive(result.ReturnValue);
             }
+            ctx.allocationTracker.ExitExecution(client, ctx, null);
             stopwatch.Stop();
             return new Measurement(
                 stopwatch.Elapsed.TotalMilliseconds,

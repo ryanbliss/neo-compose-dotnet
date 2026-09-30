@@ -6,6 +6,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using NeoCompose.Runtime.Json;
 using NeoCompose.Runtime.NeoScript;
@@ -43,7 +44,7 @@ namespace NeoCompose.Runtime
         public static NeoMemberNSFunction GetOrCreateStatic(NeoClient client, string memberId)
         {
             var function = NeoNSFunctionRuntime.ResolveSignature(client, memberId);
-            if (function.Member.Modifier != NeoMemberModifierKind.Static)
+            if (!function.IsStatic)
                 throw new NSGetterRuntimeError(
                     $"NSFunction '{function.Member.name}' is an instance member and requires a receiver.");
             if (function.StaticNode is null || function.StaticNode.isDisposed)
@@ -229,7 +230,7 @@ namespace NeoCompose.Runtime
             NeoResolvedNSFunction function = NeoNSFunctionRuntime.ResolveSignature(
                 client,
                 member.id);
-            if (function.Member.Modifier != NeoMemberModifierKind.Static)
+            if (!function.IsStatic)
             {
                 throw new NSGetterRuntimeError(
                     $"NSFunction '{function.Member.name}' is an instance member and requires a receiver.");
@@ -328,6 +329,7 @@ namespace NeoCompose.Runtime
             ReturnTypeInfo = returnTypeInfo;
             ArgumentTypes = argumentTypes;
             Deferred = deferred;
+            IsStatic = member.Modifier == NeoMemberModifierKind.Static;
             Profile = new Unity.Profiling.ProfilerMarker("NeoScript." + member.name);
             HasGenericSignature = NeoNSFunctionRuntime.ContainsGeneric(returnTypeInfo)
                 || Array.Exists(argumentTypes, NeoNSFunctionRuntime.ContainsGeneric);
@@ -342,6 +344,10 @@ namespace NeoCompose.Runtime
             get;
         }
         internal NSFunctionMember Member
+        {
+            get;
+        }
+        internal bool IsStatic
         {
             get;
         }
@@ -374,7 +380,6 @@ namespace NeoCompose.Runtime
         // the resolved function is cached per client, so one delegate serves
         // every invocation.
         internal NeoScriptTerminalNormalizer? TerminalNormalizer;
-        internal NeoScriptScopeLayout? ScopeLayout;
         internal NeoMemberNSFunction? StaticNode;
 
         // Diagnostic subjects depend only on the signature. Formatting them
@@ -403,13 +408,20 @@ namespace NeoCompose.Runtime
             string memberId,
             object? receiver,
             ReadOnlySpan<object?> args,
+            NSGetterEvaluator.Context ctx) =>
+            InvokeImmediate(client, ResolveSignature(client, memberId), receiver, args, ctx);
+
+        internal static object? InvokeImmediate(
+            NeoClient client,
+            NeoResolvedNSFunction function,
+            object? receiver,
+            ReadOnlySpan<object?> args,
             NSGetterEvaluator.Context ctx)
         {
-            NeoResolvedNSFunction function = ResolveSignature(client, memberId);
             if (function.Deferred)
             {
                 throw new NeoDeferredFunctionRuntimeError(
-                    $"NSFunction '{function.Member.name}' ({memberId}) deferred-mode mismatch: " +
+                    $"NSFunction '{function.Member.name}' ({function.MemberId}) deferred-mode mismatch: " +
                     "an immediate NeoScript frame called its deferred signature; " +
                     "compiled call IR is stale/corrupt.");
             }
@@ -457,7 +469,90 @@ namespace NeoCompose.Runtime
             bool ownsContext = false)
         {
             using var sample = function.Profile.Auto();
-            bool isStatic = function.Member.Modifier == NeoMemberModifierKind.Static;
+            // Validation, generic resolution and parameter binding live in
+            // their own methods: their locals and exception regions would
+            // otherwise widen the frame every call zeroes.
+            ValidateInvocation(client, function, receiver, args.Length, ctx);
+            FunctionWithReturnType action = function.Action;
+            bool isStatic = function.IsStatic;
+            TypeInfo effectiveReturnType = function.ReturnTypeInfo;
+            TypeInfo[] effectiveArgumentTypes = function.ArgumentTypes;
+            if (function.HasGenericSignature)
+            {
+                effectiveReturnType = ResolveInvocationSignature(
+                    client,
+                    function,
+                    receiver!,
+                    ctx,
+                    out effectiveArgumentTypes);
+            }
+
+            // Immediate functions cannot retain a lexical scope after completion:
+            // delegate literals capture values, and callbacks finish within the call.
+            // Deferred or unexpectedly suspended frames keep their own scopes.
+            bool poolScope = !function.Deferred;
+            NeoScriptScopeLayout layout = action.scopeLayout ??= new NeoScriptScopeLayout(action);
+            var scope = poolScope ? layout.RentScope() : new NeoScriptScope(layout);
+            bool completed = false;
+            int inPlaceFrame = -1;
+            try
+            {
+                BindParameters(client, function, action, scope, receiver, args, ctx, effectiveArgumentTypes);
+
+                NSGetterEvaluator.Context nestedCtx;
+                if (ownsContext)
+                {
+                    ctx.BindFunction(function.DirectCallStack, isStatic ? null : receiver);
+                    nestedCtx = ctx;
+                }
+                else if (!function.Deferred)
+                {
+                    inPlaceFrame = ctx.EnterFunction(function.MemberId, function.DirectCallStack, isStatic ? null : receiver);
+                    nestedCtx = ctx;
+                }
+                else
+                {
+                    // A suspended deferred frame outlives this call.
+                    nestedCtx = ctx.WithFunctionPushed(function.MemberId, function.DirectCallStack, isStatic ? null : receiver);
+                }
+                NeoScriptExecutionOptions functionOptions = options.ForFunction(function.Deferred);
+                NeoScriptExecutor.PrepareFunctionContext(nestedCtx, functionOptions);
+                NeoScriptExecutionResult execution = NeoScriptExecutor.Execute(
+                    client,
+                    action,
+                    scope,
+                    nestedCtx,
+                    functionOptions,
+                    ReferenceEquals(effectiveReturnType, function.ReturnTypeInfo)
+                        ? function.TerminalNormalizer ??= CreateTerminalNormalizer(client, function, effectiveReturnType)
+                        : CreateTerminalNormalizer(client, function, effectiveReturnType));
+                completed = !execution.IsPaused;
+                return execution;
+            }
+            finally
+            {
+                if (inPlaceFrame >= 0)
+                    ctx.ExitFunction(inPlaceFrame);
+                // Failed/suspended execution may still own continuations. Let their
+                // existing lifetime rules release those scopes instead of pooling them.
+                if (poolScope)
+                {
+                    if (completed)
+                        layout.ReturnScope(scope);
+                    else
+                        layout.AbandonScope(scope);
+                }
+            }
+        }
+
+        private static void ValidateInvocation(
+            NeoClient client,
+            NeoResolvedNSFunction function,
+            object? receiver,
+            int argumentCount,
+            NSGetterEvaluator.Context ctx)
+        {
+            bool isStatic = function.IsStatic;
             if (receiver is null && !isStatic)
             {
                 throw new NSGetterRuntimeError(
@@ -473,7 +568,7 @@ namespace NeoCompose.Runtime
             // `__arg_N__` parameters bind. Below the non-defaulted minimum and
             // above the full arity remain hard errors.
             NeoParameterDefaults.ValidateArity(
-                args.Length,
+                argumentCount,
                 function.ArgumentTypes,
                 function.CallSubject);
             if (ctx.functionCallStack.Count >= MaxCallableDepth)
@@ -499,114 +594,87 @@ namespace NeoCompose.Runtime
                 throw new NSGetterRuntimeError(
                     $"NSFunction '{function.Member.name}' compiled action parameter count is stale (expected {expectedParameters}, found {action.parameters?.Length ?? 0}).");
             }
-
-            TypeInfo effectiveReturnType = function.ReturnTypeInfo;
-            TypeInfo[] effectiveArgumentTypes = function.ArgumentTypes;
             if (isStatic && function.HasGenericSignature)
             {
                 throw new NSGetterRuntimeError(
                     $"Static NSFunction '{function.Member.name}' cannot use receiver-bound Generic signature classes.");
             }
-            if (!isStatic && function.HasGenericSignature)
+        }
+
+        /// <summary>A receiver-bound Generic signature's return type and argument types.</summary>
+        private static TypeInfo ResolveInvocationSignature(
+            NeoClient client,
+            NeoResolvedNSFunction function,
+            object receiver,
+            NSGetterEvaluator.Context ctx,
+            out TypeInfo[] argumentTypes)
+        {
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv =
+                ResolveReceiverGenericEnv(client, receiver, ctx, function);
+            TypeInfo returnType = ResolveInvocationTypeInfo(
+                client,
+                function.ReturnTypeInfo,
+                genericEnv,
+                new HashSet<string>());
+            argumentTypes = new TypeInfo[function.ArgumentTypes.Length];
+            for (int i = 0; i < function.ArgumentTypes.Length; i++)
             {
-                IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv =
-                    ResolveReceiverGenericEnv(client, receiver!, ctx, function);
-                effectiveReturnType = ResolveInvocationTypeInfo(
+                argumentTypes[i] = ResolveInvocationTypeInfo(
                     client,
-                    function.ReturnTypeInfo,
+                    function.ArgumentTypes[i],
                     genericEnv,
                     new HashSet<string>());
-                effectiveArgumentTypes = new TypeInfo[function.ArgumentTypes.Length];
-                for (int i = 0; i < function.ArgumentTypes.Length; i++)
+            }
+            return returnType;
+        }
+
+        private static void BindParameters(
+            NeoClient client,
+            NeoResolvedNSFunction function,
+            FunctionWithReturnType action,
+            NeoScriptScope scope,
+            object? receiver,
+            ReadOnlySpan<object?> args,
+            NSGetterEvaluator.Context ctx,
+            TypeInfo[] argumentTypes)
+        {
+            const int rootParameterIndex = 1;
+            const int argumentParameterOffset = 2;
+            scope.SetParameter(0, receiver);
+            scope.SetParameter(rootParameterIndex, ctx.rootValue);
+            for (int i = 0; i < function.ArgumentTypes.Length; i++)
+            {
+                FunctionArgumentTypeInfo argument = function.ArgumentTypes[i];
+                try
                 {
-                    effectiveArgumentTypes[i] = ResolveInvocationTypeInfo(
+                    object? value = i < args.Length ? args[i] : NeoParameterDefaults.DefaultRuntimeValue(argument, function.CallSubject);
+                    // A pattern argument left as offsets stays that way
+                    // when the body only hands it to grid queries.
+                    if (value is NeoCellPattern pattern)
+                    {
+                        if (NeoCellPatternRuntime.OnlyQueriesGrid(action, i + argumentParameterOffset))
+                        {
+                            scope.SetParameter(i + argumentParameterOffset, pattern);
+                            continue;
+                        }
+                        value = NeoCellPatternStorage.Materialize(pattern, ctx);
+                    }
+                    scope.SetParameter(i + argumentParameterOffset, NeoScriptValueMarshaller.Normalize(
                         client,
-                        function.ArgumentTypes[i],
-                        genericEnv,
-                        new HashSet<string>());
+                        ctx.valueOwnership,
+                        value,
+                        argumentTypes[i],
+                        ctx,
+                        function.ArgumentSubject(i)));
                 }
-            }
-
-            // Immediate functions cannot retain a lexical scope after completion:
-            // delegate literals capture values, and callbacks finish within the call.
-            // Deferred or unexpectedly suspended frames keep their own scopes.
-            bool poolScope = !function.Deferred;
-            var scope = poolScope
-                ? client.RentFunctionScope(expectedParameters)
-                : new NeoScriptScope(expectedParameters);
-            scope.UseLayout(function.ScopeLayout ??= new NeoScriptScopeLayout(action));
-            bool completed = false;
-            bool inPlaceFrame = false;
-            NSGetterEvaluator.Context.FunctionFrame savedFrame = default;
-            try
-            {
-                const int rootParameterIndex = 1;
-                const int argumentParameterOffset = 2;
-                scope.SetParameter(0, receiver);
-                scope.SetParameter(rootParameterIndex, ctx.rootValue);
-                for (int i = 0; i < function.ArgumentTypes.Length; i++)
+                catch (Exception exception)
                 {
-                    FunctionArgumentTypeInfo argument = function.ArgumentTypes[i];
-                    try
-                    {
-                        scope.SetParameter(i + argumentParameterOffset, NeoScriptValueMarshaller.Normalize(
-                            client,
-                            ctx.valueOwnership,
-                            i < args.Length ? args[i] : NeoParameterDefaults.DefaultRuntimeValue(argument, function.CallSubject),
-                            effectiveArgumentTypes[i],
-                            ctx,
-                            function.ArgumentSubject(i)));
-                    }
-                    catch (Exception exception)
-                    {
-                        throw new NSGetterRuntimeError(
-                            $"NSFunction '{function.Member.name}' ({function.MemberId}) argument {i} " +
-                            $"'{argument.name}' is incompatible with declared {argument.type}; " +
-                            "compiled call IR or caller is stale/corrupt: " +
-                            exception.Message);
-                    }
+                    throw new NSGetterRuntimeError(
+                        $"NSFunction '{function.Member.name}' ({function.MemberId}) argument {i} " +
+                        $"'{argument.name}' is incompatible with declared {argument.type}; " +
+                        "compiled call IR or caller is stale/corrupt: " +
+                        exception.Message);
                 }
-
-
-                NSGetterEvaluator.Context nestedCtx;
-                if (ownsContext)
-                {
-                    ctx.BindFunction(function.DirectCallStack, isStatic ? null : receiver);
-                    nestedCtx = ctx;
-                }
-                else if (!function.Deferred)
-                {
-                    savedFrame = ctx.EnterFunction(function.MemberId, function.DirectCallStack, isStatic ? null : receiver);
-                    inPlaceFrame = true;
-                    nestedCtx = ctx;
-                }
-                else
-                {
-                    // A suspended deferred frame outlives this call.
-                    nestedCtx = ctx.WithFunctionPushed(function.MemberId, function.DirectCallStack, isStatic ? null : receiver);
-                }
-                NeoScriptExecutionOptions functionOptions = options.ForFunction(function.Deferred);
-                NeoScriptExecutor.PrepareFunctionContext(nestedCtx, functionOptions);
-                NeoScriptExecutionResult execution = NeoScriptExecutor.Execute(
-                    client,
-                    action,
-                    scope,
-                    nestedCtx,
-                    functionOptions,
-                    ReferenceEquals(effectiveReturnType, function.ReturnTypeInfo)
-                        ? function.TerminalNormalizer ??= CreateTerminalNormalizer(client, function, effectiveReturnType)
-                        : CreateTerminalNormalizer(client, function, effectiveReturnType));
-                completed = !execution.IsPaused;
-                return execution;
-            }
-            finally
-            {
-                if (inPlaceFrame)
-                    ctx.ExitFunction(in savedFrame);
-                // Failed/suspended execution may still own continuations. Let their
-                // existing lifetime rules release those scopes instead of pooling them.
-                if (poolScope && completed)
-                    client.ReturnFunctionScope(scope);
             }
         }
 
@@ -646,16 +714,10 @@ namespace NeoCompose.Runtime
                     $"NSFunction '{function.Member.name}' ended without returning a value; its compiled IR is stale or corrupt.");
             }
             string subject = function.ReturnSubject;
-            object? normalized = NeoScriptValueMarshaller.Normalize(
+            object? normalized = NeoScriptValueMarshaller.NormalizeResolved(
                 client,
                 ctx.valueOwnership,
                 execution.ReturnValue,
-                effectiveReturnType,
-                ctx,
-                subject);
-            NeoScriptValueMarshaller.ValidateResolvedRuntimeValue(
-                client,
-                normalized,
                 effectiveReturnType,
                 ctx,
                 subject);
@@ -1425,7 +1487,41 @@ namespace NeoCompose.Runtime
             object? value,
             TypeInfo typeInfo,
             NSGetterEvaluator.Context ctx,
-            ValueSubject subject)
+            ValueSubject subject,
+            bool resolvedIdentity = false)
+        {
+            // Primitives, value references and enum ids match none of the
+            // rewrites in NormalizeRewritten, so they skip its chain.
+            switch (typeInfo.type)
+            {
+                case MemberKind.Bool or MemberKind.Int or MemberKind.Float or MemberKind.String
+                    when value is double or bool or string or int:
+                    break;
+                case MemberKind.Class or MemberKind.Interface
+                    when value is INeoValueReference reference:
+                    value = UnwrapReference(client, ownership, value, reference, ctx, subject);
+                    break;
+                case MemberKind.Enum when value is object?[] or string:
+                    value = NormalizeEnum(value, typeInfo, subject);
+                    break;
+                default:
+                    return NormalizeRewritten(
+                        client, ownership, value, typeInfo, ctx, subject, resolvedIdentity);
+            }
+            ValidateRuntimeValue(value, typeInfo, subject);
+            if (resolvedIdentity)
+                ValidateResolvedIdentity(client, value, typeInfo, ctx, subject);
+            return value;
+        }
+
+        private static object? NormalizeRewritten(
+            NeoClient client,
+            NeoValueOwnership ownership,
+            object? value,
+            TypeInfo typeInfo,
+            NSGetterEvaluator.Context ctx,
+            ValueSubject subject,
+            bool resolvedIdentity)
         {
             if (value is NeoCellPattern pattern && typeInfo.type == MemberKind.Class)
                 value = NeoCellPatternStorage.Materialize(pattern, ctx);
@@ -1473,26 +1569,9 @@ namespace NeoCompose.Runtime
                 // string[] branch below.
                 value = genericOptionId;
             }
-            else if (value is NeoScriptObject { attachedId: null })
+            else if (value is INeoValueReference reference)
             {
-                // A detached temporary passes by reference, like the row it
-                // stands in for; nothing about it needs a row here.
-            }
-            else if (value is INeoValueReference reference
-                && !string.IsNullOrEmpty(reference.valueId))
-            {
-                NeoValueOwnership referenceOwnership =
-                    value is NeoGeneratedClassValue generated
-                        ? generated.ValueOwnership
-                        : NSGetterEvaluator.FindRowOwnershipByReference(
-                            value,
-                            ctx) ?? ownership;
-                value = UnwrapValueReference(
-                    client,
-                    referenceOwnership,
-                    reference.valueId!,
-                    ctx,
-                    subject);
+                value = UnwrapReference(client, ownership, value, reference, ctx, subject);
             }
 
             switch (typeInfo.type)
@@ -1556,20 +1635,12 @@ namespace NeoCompose.Runtime
                     }
                     break;
                 case MemberKind.Enum:
-                    {
-                        object?[] optionIds = NormalizeEnumOptions(value, subject);
-                        if (typeInfo.required && optionIds.Length == 0)
-                        {
-                            throw new InvalidOperationException(
-                                $"Required {subject} has no enum option id.");
-                        }
-                        value = optionIds;
-                        break;
-                    }
+                    value = NormalizeEnum(value, typeInfo, subject);
+                    break;
                 case MemberKind.List:
                 case MemberKind.Lookup:
                     value = NormalizeEnumerable(
-                        client, ownership, value, typeInfo, ctx, subject);
+                        client, ownership, value, typeInfo, ctx, subject, ref resolvedIdentity);
                     break;
                 case MemberKind.DialogueLookup:
                     value = NormalizeDialogueLookup(value, subject);
@@ -1581,6 +1652,8 @@ namespace NeoCompose.Runtime
             }
 
             ValidateRuntimeValue(value, typeInfo, subject);
+            if (resolvedIdentity)
+                ValidateResolvedIdentity(client, value, typeInfo, ctx, subject);
             return value;
         }
 
@@ -1671,6 +1744,31 @@ namespace NeoCompose.Runtime
             ValueSubject subject)
         {
             ValidateRuntimeValue(value, typeInfo, subject);
+            ValidateResolvedIdentity(client, value, typeInfo, ctx, subject);
+        }
+
+        /// <summary>
+        /// <see cref="Normalize"/> followed by
+        /// <see cref="ValidateResolvedRuntimeValue"/>, for a value returned
+        /// across a public boundary. Normalization ends with the structural
+        /// check, so only the resolved identity checks remain.
+        /// </summary>
+        internal static object? NormalizeResolved(
+            NeoClient client,
+            NeoValueOwnership ownership,
+            object? value,
+            TypeInfo typeInfo,
+            NSGetterEvaluator.Context ctx,
+            ValueSubject subject) =>
+            Normalize(client, ownership, value, typeInfo, ctx, subject, resolvedIdentity: true);
+
+        private static void ValidateResolvedIdentity(
+            NeoClient client,
+            object? value,
+            TypeInfo typeInfo,
+            NSGetterEvaluator.Context ctx,
+            ValueSubject subject)
+        {
             if (value is null)
                 return;
 
@@ -1692,10 +1790,7 @@ namespace NeoCompose.Runtime
                         string? actualClassId =
                             NSGetterEvaluator.FindRowClassIdByReference(value, ctx);
                         if (string.IsNullOrEmpty(actualClassId)
-                            || !IsAssignableNeoSchemaClass(
-                                client,
-                                actualClassId!,
-                                expectedClassId!))
+                            || !client.ClassChainContains(actualClassId!, expectedClassId!))
                         {
                             throw new InvalidOperationException(
                                 $"{subject} has runtime Class '{actualClassId ?? "<unbound>"}', expected '{expectedClassId}'.");
@@ -1738,25 +1833,17 @@ namespace NeoCompose.Runtime
                             return;
                         NeoValueOwnership? rowOwnership =
                             NSGetterEvaluator.FindRowOwnershipByReference(value, ctx);
+                        bool selectionIds = IsSelectionIdSet(typeInfo, entryType);
                         int index = 0;
-                        foreach (object? entry in (System.Collections.IEnumerable)value)
+                        // Arrays, the common case, iterate without boxing an enumerator.
+                        if (value is object?[] entries)
                         {
-                            ValueSubject entrySubject = subject.Entry(index++);
-                            if (IsSelectionIdSet(typeInfo, entryType))
-                            {
-                                if (entry is not string selectionId || string.IsNullOrEmpty(selectionId))
-                                    throw new InvalidOperationException(
-                                        $"{entrySubject} must be a nonempty selection id.");
-                                continue;
-                            }
-                            ValidateResolvedRuntimeValue(
-                                client,
-                                rowOwnership is null ? entry
-                                    : NSGetterEvaluator.ResolveValueIfId(entry, ctx, rowOwnership),
-                                entryType,
-                                ctx,
-                                entrySubject);
+                            foreach (object? entry in entries)
+                                ValidateResolvedEntry(client, entry, entryType, selectionIds, rowOwnership, ctx, subject.Entry(index++));
+                            return;
                         }
+                        foreach (object? entry in (System.Collections.IEnumerable)value)
+                            ValidateResolvedEntry(client, entry, entryType, selectionIds, rowOwnership, ctx, subject.Entry(index++));
                         return;
                     }
                 case MemberKind.Dictionary:
@@ -1791,24 +1878,45 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private static bool IsAssignableNeoSchemaClass(
+        private static object UnwrapReference(
             NeoClient client,
-            string actualClassId,
-            string expectedClassId)
+            NeoValueOwnership ownership,
+            object value,
+            INeoValueReference reference,
+            NSGetterEvaluator.Context ctx,
+            ValueSubject subject)
         {
-            try
+            // A detached temporary passes by reference, like the row it
+            // stands in for; nothing about it needs a row here.
+            if (value is NeoScriptObject { attachedId: null } || string.IsNullOrEmpty(reference.valueId))
+                return value;
+            NeoValueOwnership referenceOwnership =
+                value is NeoGeneratedClassValue generated
+                    ? generated.ValueOwnership
+                    : NSGetterEvaluator.FindRowOwnershipByReference(
+                        value,
+                        ctx) ?? ownership;
+            return UnwrapValueReference(
+                client,
+                referenceOwnership,
+                reference.valueId!,
+                ctx,
+                subject,
+                NSGetterEvaluator.RecordNode(value, reference.valueId!, ctx));
+        }
+
+        private static object?[] NormalizeEnum(
+            object value,
+            TypeInfo typeInfo,
+            ValueSubject subject)
+        {
+            object?[] optionIds = NormalizeEnumOptions(value, subject);
+            if (typeInfo.required && optionIds.Length == 0)
             {
-                foreach (NeoSchemaClass schemaClass in client.ResolveClassInheritanceChain(actualClassId))
-                {
-                    if (schemaClass.id == expectedClassId)
-                        return true;
-                }
+                throw new InvalidOperationException(
+                    $"Required {subject} has no enum option id.");
             }
-            catch (CircularInheritanceError)
-            {
-                return false;
-            }
-            return false;
+            return optionIds;
         }
 
         private static object UnwrapValueReference(
@@ -1816,14 +1924,15 @@ namespace NeoCompose.Runtime
             NeoValueOwnership fallbackOwnership,
             string valueId,
             NSGetterEvaluator.Context ctx,
-            ValueSubject subject)
+            ValueSubject subject,
+            NeoValueNode? node = null)
         {
-            if (!client.TryGetReplayReference(valueId, out MemberValue? row, fallbackOwnership))
+            if (client.ReadReplayReference(valueId, ref node, fallbackOwnership) is not { } row)
             {
                 throw new InvalidOperationException(
                     $"Neo value '{valueId}' for {subject} was not found in {fallbackOwnership} storage.");
             }
-            return NSGetterEvaluator.UnwrapRow(row, ctx, fallbackOwnership)
+            return NSGetterEvaluator.UnwrapRow(row, ctx, fallbackOwnership, node)
                 ?? throw new InvalidOperationException(
                     $"Neo value '{valueId}' for {subject} resolved to null.");
         }
@@ -1834,7 +1943,8 @@ namespace NeoCompose.Runtime
             object value,
             TypeInfo typeInfo,
             NSGetterEvaluator.Context ctx,
-            ValueSubject subject)
+            ValueSubject subject,
+            ref bool resolvedIdentity)
         {
             if (value is string || value is not IEnumerable enumerable)
             {
@@ -1862,13 +1972,23 @@ namespace NeoCompose.Runtime
             }
             // Row-backed collections contain child ids. Validate their values,
             // then preserve the collection identity for indexing and writes.
+            // Each entry resolves once for both checks.
             if (rowOwnership is not null && value is object?[] rows)
             {
-                if (entryType is not null)
-                    foreach (object? entry in rows)
-                        Normalize(client, rowOwnership.Value,
-                            NSGetterEvaluator.ResolveValueIfId(entry, ctx, rowOwnership),
-                            entryType, ctx, subject.Entry());
+                if (entryType is null)
+                    return rows;
+                bool rowEntries = entryType.type is MemberKind.Class or MemberKind.Interface;
+                for (int i = 0; i < rows.Length; i++)
+                {
+                    object? entry = NSGetterEvaluator.ResolveValueIfId(rows[i], ctx, rowOwnership);
+                    // A resolved row record is already canonical: normalizing
+                    // it would only read its row again.
+                    if (!rowEntries || !NSGetterEvaluator.IsRowRecord(entry, ctx))
+                        Normalize(client, rowOwnership.Value, entry, entryType, ctx, subject.Entry());
+                    if (resolvedIdentity)
+                        ValidateResolvedRuntimeValue(client, entry, entryType, ctx, subject.Entry(i));
+                }
+                resolvedIdentity = false;
                 return rows;
             }
             var result = new List<object?>();
@@ -1890,6 +2010,31 @@ namespace NeoCompose.Runtime
             result.CopyTo(normalized);
             NeoGeneratedTypesSupport.PreserveConstructorCollectionOrigin(value, normalized);
             return normalized;
+        }
+
+        private static void ValidateResolvedEntry(
+            NeoClient client,
+            object? entry,
+            TypeInfo entryType,
+            bool selectionIds,
+            NeoValueOwnership? rowOwnership,
+            NSGetterEvaluator.Context ctx,
+            ValueSubject entrySubject)
+        {
+            if (selectionIds)
+            {
+                if (entry is not string selectionId || string.IsNullOrEmpty(selectionId))
+                    throw new InvalidOperationException(
+                        $"{entrySubject} must be a nonempty selection id.");
+                return;
+            }
+            ValidateResolvedRuntimeValue(
+                client,
+                rowOwnership is null ? entry
+                    : NSGetterEvaluator.ResolveValueIfId(entry, ctx, rowOwnership),
+                entryType,
+                ctx,
+                entrySubject);
         }
 
         private static bool IsSelectionIdSet(TypeInfo typeInfo, TypeInfo? entryType)
@@ -2127,10 +2272,10 @@ namespace NeoCompose.Runtime
                 int or long or short => true,
                 double number => !double.IsNaN(number)
                     && !double.IsInfinity(number)
-                    && number == Math.Truncate(number),
+                    && NeoNumbers.IsWhole(number),
                 float number => !float.IsNaN(number)
                     && !float.IsInfinity(number)
-                    && number == Math.Truncate(number),
+                    && NeoNumbers.IsWhole(number),
                 _ => false,
             };
         }
@@ -2170,7 +2315,7 @@ namespace NeoCompose.Runtime
                 DictionaryValue,
             }
 
-            private ValueSubject(string subject, Kind kind, int index, object? key)
+            private ValueSubject(string subject, Kind kind, int index, object key)
             {
                 this.subject = subject;
                 this.kind = kind;
@@ -2178,16 +2323,28 @@ namespace NeoCompose.Runtime
                 this.key = key;
             }
 
+            // Leaves key null without storing it: a stored reference costs a
+            // GC write barrier, and subjects are built on every normalization.
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            private ValueSubject(string subject, Kind kind, int index)
+            {
+                this = default;
+                this.subject = subject;
+                this.kind = kind;
+                this.index = index;
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public static implicit operator ValueSubject(string subject) =>
-                new(subject, Kind.Self, 0, null);
+                new(subject, Kind.Self, 0);
 
-            internal ValueSubject Entry() => new(ToString(), Kind.Entry, 0, null);
+            internal ValueSubject Entry() => new(ToString(), Kind.Entry, 0);
 
-            internal ValueSubject Entry(int index) => new(ToString(), Kind.IndexedEntry, index, null);
+            internal ValueSubject Entry(int index) => new(ToString(), Kind.IndexedEntry, index);
 
             internal ValueSubject Key(object key) => new(ToString(), Kind.Key, 0, key);
 
-            internal ValueSubject DictionaryValue() => new(ToString(), Kind.DictionaryValue, 0, null);
+            internal ValueSubject DictionaryValue() => new(ToString(), Kind.DictionaryValue, 0);
 
             public override string ToString() => kind switch
             {
