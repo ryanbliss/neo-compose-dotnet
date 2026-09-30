@@ -292,12 +292,14 @@ namespace NeoCompose.Tests
         public void EnumAlias_ReadsTheSlot()
         {
             // `var mode = pick.Mode; pick.Mode = .B; mode` reads .B, as an
-            // alias of the member's row does.
+            // alias of the member's row does. So does an alias of what that
+            // read returned, through a second assignment.
             NeoClient client = BuildClient();
             int before = client.sessionValues.Count;
             var ctx = new NSGetterEvaluator.Context(client, null, null);
             var scope = new Dictionary<string, object?>
             {
+                ["a"] = new object?[] { "option-a" },
                 ["b"] = new object?[] { "option-b" },
             };
             scope["pick"] = NSGetterEvaluator.EvaluatePointer(
@@ -306,7 +308,7 @@ namespace NeoCompose.Tests
                 ctx);
             scope["mode"] = NSGetterEvaluator.EvaluatePointer(Key(Variable("pick"), "Mode"), scope, ctx);
 
-            NeoScriptExecutor.Execute(client, new FunctionWithReturnType
+            void AssignMode(string option) => NeoScriptExecutor.Execute(client, new FunctionWithReturnType
             {
                 compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 parameters = Array.Empty<Variable>(),
@@ -328,14 +330,19 @@ namespace NeoCompose.Tests
                             writability = WritabilityKind.Local,
                         },
                         operatorValue = "=",
-                        pointer = Variable("b"),
+                        pointer = Variable(option),
                     },
                 },
             }, scope, ctx);
 
+            AssignMode("b");
+            scope["again"] = NSGetterEvaluator.EvaluatePointer(Variable("mode"), scope, ctx);
+            Assert.That(scope["again"], Is.EqualTo(new object?[] { "option-b" }));
+            AssignMode("a");
+
             Assert.That(
-                NSGetterEvaluator.EvaluatePointer(Variable("mode"), scope, ctx),
-                Is.EqualTo(new object?[] { "option-b" }));
+                NSGetterEvaluator.EvaluatePointer(Variable("again"), scope, ctx),
+                Is.EqualTo(new object?[] { "option-a" }));
             Assert.IsNull(((NeoScriptObject)scope["pick"]!).attachedId);
             Assert.AreEqual(before, client.sessionValues.Count, "Nothing needed a row.");
         }

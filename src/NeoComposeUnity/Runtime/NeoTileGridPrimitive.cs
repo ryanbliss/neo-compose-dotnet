@@ -885,6 +885,18 @@ namespace NeoCompose.Runtime
             get;
         }
         public bool IsObjectCarried => SourceObjectInstanceId is not null;
+
+        /// <summary>
+        /// The placement row's inferred member under <see cref="assetMemberSchema"/>.
+        /// A change to the rows the record was read from rebuilds it, so only
+        /// a schema change can move the member.
+        /// </summary>
+        internal ClassMember? assetMember;
+        internal object? assetMemberSchema;
+        /// <summary>The placement's generated-view key under <see cref="assetMember"/>.</summary>
+        internal string? assetRegistryKey;
+        /// <summary>The placement row's value node; its own liveness guards it.</summary>
+        internal NeoValueNode? assetNode;
     }
 
     /// <summary>
@@ -940,6 +952,12 @@ namespace NeoCompose.Runtime
         {
             get;
         }
+
+        /// <summary>The instance row's node, kept across grid queries that return this placement.</summary>
+        internal NeoValueNode? valueNode;
+
+        /// <summary>The layer a grid query last bound this placement under, so a repeat query skips the rebind.</summary>
+        internal string? queryBoundLayerId;
     }
 
     /// <summary>One grid-child layer link (TileLayerLink or ObjectLayerLink).</summary>
@@ -1002,6 +1020,11 @@ namespace NeoCompose.Runtime
         private readonly IReadOnlyDictionary<Type, string> classIdsByType;
         protected readonly string bindingInstanceId = Guid.NewGuid().ToString("N");
         private NeoTileGridLookupCache? lookupCache;
+        // The grid row's node, and the class and partition epoch the last
+        // ensure saw; while neither moves the partition stays as ensured.
+        private NeoValueNode? gridNode;
+        private string? ensuredGridClassId;
+        private int ensuredPartitionEpoch = -1;
 
         private static readonly string[] ChildrenKeyCandidates = { "Children" };
         private static readonly string[] TilesKeyCandidates = { "Tiles" };
@@ -1052,10 +1075,18 @@ namespace NeoCompose.Runtime
             get
             {
                 // Covers explicit UnloadValuePartition-then-reaccess: the
-                // primitive outlives the unload, so every indexed query
-                // re-ensures the world partition (two dictionary probes when
-                // already loaded).
-                client.EnsureWorldPartitionLoaded(GridValueId);
+                // primitive outlives the unload, so an indexed query
+                // re-ensures the world partition once the grid's class or
+                // the loaded partitions move.
+                string? gridClassId = client.ResolveValueRow(GridValueId, ref gridNode)?.classId;
+                if (gridClassId is null
+                    || !ReferenceEquals(gridClassId, ensuredGridClassId)
+                    || client.ValuePartitionEpoch != ensuredPartitionEpoch)
+                {
+                    client.EnsureWorldPartitionLoaded(GridValueId);
+                    ensuredGridClassId = gridClassId;
+                    ensuredPartitionEpoch = client.ValuePartitionEpoch;
+                }
                 return lookupCache ??= client.GetGridLookupCache(GridValueId);
             }
         }
@@ -1628,12 +1659,34 @@ namespace NeoCompose.Runtime
         {
             if (!ClassExtendsClass(record.AssetClassId, expectedFamilyClassId))
                 return null;
-            object? resolved = NeoGeneratedTypesSupport.ResolveClassValue(
-                client,
-                record.PlacementValueId,
-                readOnlyFactories,
-                writableFactories,
-                record.Ownership);
+            object? resolved;
+            if (client.InfersCommittedParents)
+            {
+                if (!ReferenceEquals(record.assetMemberSchema, client.SchemaResolution))
+                {
+                    record.assetMember = null;
+                    record.assetRegistryKey = null;
+                    record.assetMemberSchema = client.SchemaResolution;
+                }
+                resolved = NeoGeneratedTypesSupport.ResolveClassValue(
+                    client,
+                    record.PlacementValueId,
+                    readOnlyFactories,
+                    writableFactories,
+                    record.Ownership,
+                    ref record.assetMember,
+                    ref record.assetRegistryKey,
+                    ref record.assetNode);
+            }
+            else
+            {
+                resolved = NeoGeneratedTypesSupport.ResolveClassValue(
+                    client,
+                    record.PlacementValueId,
+                    readOnlyFactories,
+                    writableFactories,
+                    record.Ownership);
+            }
             if (resolved is not NeoGeneratedClassValue generated
                 || !ClassExtendsClass(generated.classId ?? record.AssetClassId, record.AssetClassId))
             {
@@ -1856,7 +1909,7 @@ namespace NeoCompose.Runtime
 
         protected bool ClassExtendsClass(string classId, string expectedClassId)
         {
-            if (string.IsNullOrEmpty(expectedClassId))
+            if (string.IsNullOrEmpty(expectedClassId) || classId == expectedClassId)
                 return true;
             var visited = new HashSet<string>();
             string? cursor = classId;

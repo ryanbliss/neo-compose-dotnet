@@ -277,12 +277,28 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>
+    /// An IR node that caches a client's schema resolution. Clients share
+    /// a project's IR, so the client that filled the cache clears it when it
+    /// is disposed or its schema resolutions are invalidated.
+    /// </summary>
+    internal interface ISchemaResolutionSite
+    {
+        void ForgetResolution();
+    }
+
+    /// <summary>
     /// <c>pointer[key]</c> indexing — mirrors TS-side <c>INSKeyOf</c>.
     /// </summary>
-    public class KeyOf
+    public class KeyOf : ISchemaResolutionSite
     {
         public Pointer pointer = null!;
         public Pointer key = null!;
+
+        /// <summary>The runtime's schema entries for this read, one per receiver Class.</summary>
+        [JsonIgnore]
+        internal NeoScript.NSGetterEvaluator.MemberSiteTarget? resolvedMembers;
+
+        void ISchemaResolutionSite.ForgetResolution() => resolvedMembers = null;
     }
 
     /// <summary>
@@ -396,6 +412,14 @@ namespace NeoCompose.Runtime.Json
         /// <summary>Set once the runtime has validated this body's instruction metadata; instructions are immutable after load. The compiler revision stamp is still checked on every execution.</summary>
         [Newtonsoft.Json.JsonIgnore]
         internal bool validatedForExecution;
+
+        /// <summary>This body's parameter and local slots, built on its first pooled-scope execution.</summary>
+        [Newtonsoft.Json.JsonIgnore]
+        internal NeoScript.NeoScriptScopeLayout? scopeLayout;
+
+        /// <summary>Per parameter, whether the body reads it only as the cells of a grid query; built on first use.</summary>
+        [Newtonsoft.Json.JsonIgnore]
+        internal bool[]? gridQueryParameters;
 
         /// <summary>
         /// The only NeoScript compiler revision this runtime executes.

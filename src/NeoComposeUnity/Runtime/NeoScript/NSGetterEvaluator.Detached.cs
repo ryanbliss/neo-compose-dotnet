@@ -67,7 +67,7 @@ namespace NeoCompose.Runtime.NeoScript
         /// </summary>
         internal static object? ConstructDeclared(
             NeoGeneratedTypesSupport.NeoResolvedDeclaredConstructor resolved,
-            IReadOnlyDictionary<string, object?> argumentValues,
+            object?[] argumentValues,
             IReadOnlyList<NeoGeneratedTypesSupport.RuntimeConstructorField> fields,
             Context ctx,
             Action<Context>? evaluateFieldValues,
@@ -76,7 +76,7 @@ namespace NeoCompose.Runtime.NeoScript
             if (!replayContext
                 && !ctx.client.IsReplayingVirtualInstance
                 && !ctx.client.IsPreparingVariant
-                && NeoGeneratedTypesSupport.ResolveDetachedClassPlan(
+                && resolved.metadata.DetachedPlan(
                     ctx.client,
                     resolved.classTypeInfo.classId) is { } plan)
             {
@@ -149,10 +149,9 @@ namespace NeoCompose.Runtime.NeoScript
             JsonMember? member = entry?.member;
             if (member is null)
                 return false;
-            DispatchResult declarationDefault = ReadOnlyDeclarationDefault(member, ctx);
-            if (declarationDefault.kind == DispatchKind.Ok)
+            if (member.Mutability == NeoMemberMutabilityKind.ReadOnly)
             {
-                result = declarationDefault.value;
+                result = ReadOnlyDeclarationDefault(member, ctx);
                 return true;
             }
             if (entry!.member is NSPropertyMember { getter: not null })
@@ -174,7 +173,7 @@ namespace NeoCompose.Runtime.NeoScript
             if (value.attachedId is not null || !value.plan.slotByKey.TryGetValue(key, out int index))
                 return false;
             DetachedSlot slot = value.plan.slots[index];
-            if (value.states[index] == NeoScriptObject.WrittenSlot
+            if (value.State(index) == NeoScriptObject.WrittenSlot
                 || !slot.hasLiteralDefault
                 || !IsLocalizedDefault(slot.member))
                 return TryReadDetachedSlot(value, index, null, out result);
@@ -200,11 +199,14 @@ namespace NeoCompose.Runtime.NeoScript
             out object? result)
         {
             DetachedSlot slot = value.plan.slots[index];
-            if (value.states[index] != NeoScriptObject.DefaultSlot)
+            if (value.State(index) != NeoScriptObject.DefaultSlot)
             {
-                result = slot.kind == DetachedSlotKind.List
-                    ? NeoGeneratedTypesSupport.DetachedArray(value, index)
-                    : value.values[index];
+                result = NeoGeneratedTypesSupport.ExposeDetachedValue(
+                    value,
+                    index,
+                    slot.kind == DetachedSlotKind.List
+                        ? NeoGeneratedTypesSupport.DetachedArray(value, index)
+                        : value.values[index]);
                 return true;
             }
             result = null;
@@ -224,7 +226,8 @@ namespace NeoCompose.Runtime.NeoScript
                     NeoGeneratedTypesSupport.SetDetachedLeaf(value, index, result);
                     break;
             }
-            value.states[index] = NeoScriptObject.DefaultReadSlot;
+            value.MarkDefaultRead(index);
+            result = NeoGeneratedTypesSupport.ExposeDetachedValue(value, index, result);
             return true;
         }
 
@@ -243,7 +246,7 @@ namespace NeoCompose.Runtime.NeoScript
             return row switch
             {
                 NumberMemberValue number => number.BoxedValue,
-                BoolMemberValue boolean => boolean.value,
+                BoolMemberValue boolean => Box(boolean.value),
                 StringMemberValue text => member is StringMember stringMember
                     && text.neoLocalizationMode != NeoStringLocalizationMode.Literal
                         ? ResolveStringValue(text, stringMember, ctx)
@@ -306,10 +309,10 @@ namespace NeoCompose.Runtime.NeoScript
             }
             if (found < 0)
                 return false;
-            object? read = DispatchSchemaMember(
+            object? read = DispatchedValue(DispatchSchemaMember(
                 ForwardDetached(owner, ctx),
                 slots[found].schemaKey,
-                ctx).value;
+                ctx));
             if (entry >= 0)
             {
                 if (read is not object?[] ids || entry >= ids.Length)
@@ -337,11 +340,16 @@ namespace NeoCompose.Runtime.NeoScript
         {
             NeoScriptObject owner = origin.owner;
             if (owner.attachedId is null)
-                return NeoGeneratedTypesSupport.DetachedArray(owner, origin.index);
-            return DispatchSchemaMember(
+            {
+                return NeoGeneratedTypesSupport.ExposeDetachedValue(
+                    owner,
+                    origin.index,
+                    NeoGeneratedTypesSupport.DetachedArray(owner, origin.index));
+            }
+            return DispatchedValue(DispatchSchemaMember(
                 ForwardDetached(owner, ctx),
                 owner.plan.slots[origin.index].schemaKey,
-                ctx).value;
+                ctx));
         }
 
         /// <summary>Assigns a detached object's stored member when the value can stay detached.</summary>

@@ -66,6 +66,33 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void ArrayLiteralOfPrimitives_EvaluatesToAFreshArrayEachTime()
+        {
+            // An enum option literal converts once, but each evaluation
+            // owns its array, so mutating one leaves the literal intact.
+            using var client = LoadClient();
+            var context = new NSGetterEvaluator.Context(client, null, null);
+            var literal = new ValuePointer
+            {
+                type = PointerKind.Value,
+                value = new Value
+                {
+                    typeInfo = new EnumTypeInfo { type = MemberKind.Enum, required = true, enumId = "enum" },
+                    value = new JArray("option-a"),
+                },
+            };
+            var scope = new Dictionary<string, object?>();
+
+            var first = (object?[])NSGetterEvaluator.EvaluatePointer(literal, scope, context)!;
+            first[0] = "mutated";
+            var second = (object?[])NSGetterEvaluator.EvaluatePointer(literal, scope, context)!;
+
+            Assert.AreNotSame(first, second);
+            CollectionAssert.AreEqual(new object?[] { "option-a" }, second);
+            Assert.AreNotSame(second, NSGetterEvaluator.EvaluatePointer(literal, scope, context));
+        }
+
+        [Test]
         public void MemberDispatchIndexesAreSharedAcrossCallsAndClearedWithSchemaChanges()
         {
             var data = JsonConvert.DeserializeObject<ProjectData>(LoadFixture("synth-example.json"))!;
@@ -2381,11 +2408,20 @@ namespace NeoCompose.Tests
                 },
             };
             Assert.AreEqual(true, Evaluate(contains, MemberKind.Bool), "collection callbacks");
+            // A stored id equal to the target matches without reading its entry.
+            ((ContainsFunction)contains.function).info.valuePointer = StringPointer("value-command");
+            var enclosing = client.BeginGetterReadCapture();
+            Assert.AreEqual(true, Evaluate(contains, MemberKind.Bool), "id match");
+            var capture = client.EndGetterReadCapture(enclosing);
+            Assert.IsFalse(capture.reads!.Exists(read => read.id == "value-command"), "the matched entry is not read");
+            client.RecycleGetterCapture(capture);
             var ctx = new NSGetterEvaluator.Context(client, thisValue: null, rootValue: null);
             object? list = NSGetterEvaluator.Evaluate(ReturnFunction(KeyOf(root, "Commands"), MemberKind.List), ctx);
+            var listEntries = System.Array.Empty<NSGetterEvaluator.CollectionEntrySnapshot>();
+            NSGetterEvaluator.SnapshotCollectionEntries(list, ctx, ref listEntries);
             Assert.AreEqual(
                 "add pickaxe.stone",
-                NSGetterEvaluator.SnapshotCollectionEntries(list, ctx)[0].Resolve(ctx),
+                listEntries[0].Resolve(ctx),
                 "foreach");
             FunctionPointer Where(bool keep) => new FunctionPointer
             {
@@ -2432,9 +2468,11 @@ namespace NeoCompose.Tests
             CollectionAssert.IsEmpty(empty, "second empty Where");
             Assert.IsNull(NSGetterEvaluator.CollectionEntryMember(empty, ctx), "a shared empty array carries no entry member");
             object? filtered = NSGetterEvaluator.Evaluate(ReturnFunction(where, MemberKind.List), ctx);
+            var filteredEntries = System.Array.Empty<NSGetterEvaluator.CollectionEntrySnapshot>();
+            NSGetterEvaluator.SnapshotCollectionEntries(filtered, ctx, ref filteredEntries);
             Assert.AreEqual(
                 "add pickaxe.stone",
-                NSGetterEvaluator.SnapshotCollectionEntries(filtered, ctx)[0].Resolve(ctx),
+                filteredEntries[0].Resolve(ctx),
                 "foreach over Where");
             var scope = new Dictionary<string, object?> { ["commands"] = filtered };
             var local = new VariablePointer { type = PointerKind.Variable, variableId = "commands" };

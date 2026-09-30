@@ -529,7 +529,10 @@ namespace NeoCompose.Tests
                     value = new Dictionary<string, string> { ["Position"] = "new-shop-position", ["PlacementTiles"] = "new-shop-placement-tiles" } },
             });
             Assert.AreEqual(3, invalidations, "New containment membership must invalidate a prior empty-cell query.");
-
+            Assert.IsTrue(client.ScriptGridQueries.TryInvoke("system_f5ca386c-990c-54a1-8473-2d49d2cd887d", receiver,
+                new object?[] { new NeoCellPattern(new Vector2Int(50, 50)) }, ctx, out object? inserted));
+            Assert.AreEqual("new-shop", NSGetterEvaluator.FindRowIdByReference(((object?[])inserted!).Single(), ctx),
+                "A query after the insertion reads the rebuilt layer index.");
         }
 
         [Test]

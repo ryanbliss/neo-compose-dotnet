@@ -32,7 +32,7 @@ namespace NeoCompose.Runtime.Json
     /// extra fields; <see cref="TypeInfo.type"/> alone identifies the
     /// primitive variant.
     /// </summary>
-    public class PrimitiveTypeInfo : TypeInfo
+    public sealed class PrimitiveTypeInfo : TypeInfo
     {
     }
 
@@ -40,7 +40,7 @@ namespace NeoCompose.Runtime.Json
     /// Compile-time dynamic value. Used by generated bridge signatures when
     /// the concrete type is intentionally not known ahead of time.
     /// </summary>
-    public class UnknownTypeInfo : TypeInfo
+    public sealed class UnknownTypeInfo : TypeInfo
     {
     }
 
@@ -48,7 +48,7 @@ namespace NeoCompose.Runtime.Json
     /// Function-return-only sentinel for native Function members that
     /// return no value.
     /// </summary>
-    public class VoidTypeInfo : TypeInfo
+    public sealed class VoidTypeInfo : TypeInfo
     {
     }
 
@@ -56,7 +56,7 @@ namespace NeoCompose.Runtime.Json
     /// Class info. Carries the referenced class id.
     /// Mirrors the TS-side <c>INSTypeInfoClass</c>.
     /// </summary>
-    public class ClassTypeInfo : TypeInfo
+    public sealed class ClassTypeInfo : TypeInfo
     {
         public string classId = null!;
         public Dictionary<string, TypeInfo>? typeArguments;
@@ -66,7 +66,7 @@ namespace NeoCompose.Runtime.Json
     /// Class interface type info. Carries the referenced interface id.
     /// Mirrors the TS-side <c>INSTypeInfoInterface</c>.
     /// </summary>
-    public class InterfaceTypeInfo : TypeInfo
+    public sealed class InterfaceTypeInfo : TypeInfo
     {
         public string interfaceId = null!;
     }
@@ -77,7 +77,7 @@ namespace NeoCompose.Runtime.Json
     /// Generated closed surfaces normally substitute this before runtime;
     /// retaining the wire shape keeps property/function IR round-trippable.
     /// </summary>
-    public class GenericTypeInfo : TypeInfo
+    public sealed class GenericTypeInfo : TypeInfo
     {
         public string ownerClassId = null!;
         public string genericParamId = null!;
@@ -88,7 +88,7 @@ namespace NeoCompose.Runtime.Json
     /// the positional argument types follow, matching NeoDelegate's generic
     /// parameter order.
     /// </summary>
-    public class DelegateTypeInfo : TypeInfo
+    public sealed class DelegateTypeInfo : TypeInfo
     {
         [JsonConverter(typeof(FunctionReturnTypeInfoConverter))]
         public TypeInfo returnTypeInfo = null!;
@@ -101,7 +101,7 @@ namespace NeoCompose.Runtime.Json
     /// minus the return slot: an action is always void, so void-ness is
     /// structural rather than declared.
     /// </summary>
-    public class ActionTypeInfo : TypeInfo
+    public sealed class ActionTypeInfo : TypeInfo
     {
         public TypeInfo[] argumentTypes = null!;
     }
@@ -110,7 +110,7 @@ namespace NeoCompose.Runtime.Json
     /// Enum type info. Carries the referenced enum id. Mirrors the
     /// TS-side <c>ITypeInfoEnum</c>.
     /// </summary>
-    public class EnumTypeInfo : TypeInfo
+    public sealed class EnumTypeInfo : TypeInfo
     {
         public string enumId = null!;
     }
@@ -119,7 +119,7 @@ namespace NeoCompose.Runtime.Json
     /// List / Dictionary collection type info. Carries the recursive
     /// entry type. Mirrors the TS-side <c>ITypeInfoCollection</c>.
     /// </summary>
-    public class CollectionTypeInfo : TypeInfo
+    public sealed class CollectionTypeInfo : TypeInfo
     {
         public TypeInfo entryTypeInfo = null!;
         public string? keyEnumId;
@@ -130,7 +130,7 @@ namespace NeoCompose.Runtime.Json
     /// Multiselect Lookup type info. Carries the recursive entry type
     /// and an optional collection binding. Plain Set annotations are unbound.
     /// </summary>
-    public class LookupTypeInfo : TypeInfo
+    public sealed class LookupTypeInfo : TypeInfo
     {
         public TypeInfo entryTypeInfo = null!;
         public string? collectionMemberId;

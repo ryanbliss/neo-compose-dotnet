@@ -227,19 +227,18 @@ namespace NeoCompose.Runtime
         /// shape. This is the exact inverse of
         /// <see cref="VirtualReplayArgument"/>.
         ///
-        /// <para><paramref name="resolveRowId"/> supplies the row id for the
-        /// argument kinds replay reads back as an id — Class, Interface, List
-        /// and Dictionary. A row-backed argument does not always arrive as a
-        /// generated wrapper: once it has passed through the evaluator it is
-        /// the plain record or array shape, which carries no id of its own.
-        /// Serializing that shape would record the row's <i>contents</i> as
-        /// the recipe, and replay would then rebuild the instance from a
-        /// payload map instead of the row it was actually built from.</para>
+        /// <para>The caller resolves the row id of the argument kinds replay
+        /// reads back as an id — Class, Interface, List and Dictionary. A
+        /// row-backed argument does not always arrive as a generated wrapper:
+        /// once it has passed through the evaluator it is the plain record or
+        /// array shape, which carries no id of its own. Serializing that shape
+        /// would record the row's <i>contents</i> as the recipe, and replay
+        /// would then rebuild the instance from a payload map instead of the
+        /// row it was actually built from.</para>
         /// </summary>
         internal static JToken? ConstructorArgumentToken(
             object? value,
-            string describeArgument,
-            Func<object?, string?>? resolveRowId = null)
+            string describeArgument)
         {
             switch (value)
             {
@@ -264,11 +263,6 @@ namespace NeoCompose.Runtime
                 case float or double or decimal:
                     return new JValue(Convert.ToDouble(value));
             }
-            if (resolveRowId?.Invoke(value) is string rowId
-                && !string.IsNullOrEmpty(rowId))
-            {
-                return new JValue(rowId);
-            }
             try
             {
                 return JToken.FromObject(value);
@@ -280,6 +274,16 @@ namespace NeoCompose.Runtime
                     error);
             }
         }
+
+        private int virtualClassChildrenEpoch;
+
+        /// <summary>
+        /// Moves whenever any parent's virtual children change, so a reader
+        /// can keep a resolved child id until then; -1 while a replay reads
+        /// proposed state, when nothing may be kept.
+        /// </summary>
+        internal int VirtualClassChildrenEpoch =>
+            candidateReplay is null && !isReplayingVirtualInstance ? virtualClassChildrenEpoch : -1;
 
         internal bool TryGetVirtualClassChildValueId(
             string parentValueId,
@@ -363,6 +367,7 @@ namespace NeoCompose.Runtime
             virtualValueOwnership.Clear();
             ClearVirtualValueNodes();
             virtualClassChildren.Clear();
+            virtualClassChildrenEpoch++;
             virtualClassPlacementByChildId.Clear();
             virtualEntriesByContainer.Clear();
             virtualContainerByRow.Clear();
@@ -1649,6 +1654,7 @@ namespace NeoCompose.Runtime
                 virtualClassChildren[pair.Key] = pair.Value;
                 TrackVirtualClassParent(rootId, pair.Key);
             }
+            virtualClassChildrenEpoch++;
             foreach (var pair in expansion.Placements)
                 TrackVirtualClassPlacement(rootId, pair.Value.parentValueId, pair.Key, pair.Value.member, pair.Value.ownership);
             foreach (string id in expansion.Footprint)
@@ -2165,6 +2171,7 @@ namespace NeoCompose.Runtime
             {
                 foreach (string parentId in parentIds)
                     virtualClassChildren.Remove(parentId);
+                virtualClassChildrenEpoch++;
                 virtualClassParentIdsByRoot.Remove(rootId);
             }
             if (virtualClassChildIdsByRoot.TryGetValue(

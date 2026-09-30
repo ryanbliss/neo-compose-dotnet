@@ -20,16 +20,68 @@ namespace NeoCompose.Runtime
             internal readonly Dictionary<string, string> containerMembers = new(StringComparer.Ordinal);
         }
 
-        private static Dictionary<string, object?[]> PrepareConstructorInitializerArguments(
+        /// <summary>
+        /// The arguments each constructor of a declared chain was prepared
+        /// with, aligned with the chain's links from the constructed class
+        /// down. Preparation stops at the first base clause that reads
+        /// <c>this</c>: its arguments only exist once member initialization
+        /// has run. A single-link chain allocates nothing.
+        /// </summary>
+        internal readonly struct ConstructorChainArguments
+        {
+            private readonly NeoResolvedConstructorLink? link;
+            private readonly object?[]? root;
+            private readonly object?[]?[]? bases;
+
+            internal ConstructorChainArguments(
+                NeoResolvedConstructorLink link,
+                object?[]? root,
+                object?[]?[]? bases)
+            {
+                this.link = link;
+                this.root = root;
+                this.bases = bases;
+            }
+
+            /// <summary>The arguments prepared <paramref name="depth"/> links below the constructed class.</summary>
+            internal object?[]? At(int depth) => depth == 0
+                ? root
+                : bases is not null && depth <= bases.Length ? bases[depth - 1] : null;
+
+            internal bool TryGet(string classId, out object?[]? arguments)
+            {
+                NeoResolvedConstructorLink? current = link;
+                for (int depth = 0; current?.record is ConstructorRecord record; depth++)
+                {
+                    if (record.classId == classId)
+                    {
+                        arguments = At(depth);
+                        return arguments is not null;
+                    }
+                    current = current.baseLink;
+                }
+                arguments = null;
+                return false;
+            }
+        }
+
+        private static ConstructorChainArguments PrepareConstructorInitializerArguments(
             NeoClient client, NeoResolvedConstructorLink link, object?[] values, NeoScript.NSGetterEvaluator.Context ctx)
         {
-            var result = new Dictionary<string, object?[]>(StringComparer.Ordinal);
+            if (link.record is null)
+                return default;
+            if (link.baseLink?.record is null)
+                return new ConstructorChainArguments(link, values, null);
+            int baseCount = 0;
+            for (NeoResolvedConstructorLink? baseLink = link.baseLink; baseLink?.record is not null; baseLink = baseLink.baseLink)
+                baseCount++;
+            var bases = new object?[]?[baseCount];
+            object?[] root = values;
             ConstructorSchemaCache cache = ConstructorSchemaCaches.GetOrCreateValue(client);
-            while (link.record is ConstructorRecord record)
+            NeoResolvedConstructorLink current = link;
+            for (int depth = 0; depth < baseCount; depth++)
             {
-                result.Add(record.classId, values);
-                if (link.baseLink?.record is null)
-                    break;
+                ConstructorRecord record = current.record!;
                 bool readsThis;
                 lock (cache.gate)
                 {
@@ -49,10 +101,11 @@ namespace NeoCompose.Runtime
                 }
                 if (readsThis)
                     break;
-                values = EvaluateDeclaredBaseArguments(client, link, values, null, ctx);
-                link = link.baseLink;
+                values = EvaluateDeclaredBaseArguments(client, current, values, null, ctx);
+                bases[depth] = values;
+                current = current.baseLink!;
             }
-            return result;
+            return new ConstructorChainArguments(link, root, bases);
         }
 
         private static string? ResolveInitializerOwner(NeoClient client, InitializerBody init, Member member, string? constructedClassId)

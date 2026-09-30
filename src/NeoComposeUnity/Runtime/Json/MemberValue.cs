@@ -1571,17 +1571,17 @@ namespace NeoCompose.Runtime.Json
     /// <c>object?</c> in parallel with
     /// <see cref="NullMemberValueBase"/>.
     /// </summary>
-    public class NullMemberValue : MemberValue<object?>
+    public sealed class NullMemberValue : MemberValue<object?>
     {
     }
 
     /// <summary>Stored value for a Bool member.</summary>
-    public class BoolMemberValue : MemberValue<bool?>
+    public sealed class BoolMemberValue : MemberValue<bool?>
     {
     }
 
     /// <summary>Stored value for an Int / Float member.</summary>
-    public class NumberMemberValue : MemberValue<double?>
+    public sealed class NumberMemberValue : MemberValue<double?>
     {
         // The row owns its box, so replacing/reclaiming a row also releases it.
         // Check the value because importers and tests can edit DTOs in place.
@@ -1601,23 +1601,23 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>Stored value for a String member.</summary>
-    public class StringMemberValue : MemberValue<string?>
+    public sealed class StringMemberValue : MemberValue<string?>
     {
         public NeoStringLocalizationMode? neoLocalizationMode;
     }
 
     /// <summary>Stored value for a List / Enum / Lookup member.</summary>
-    public class ArrayMemberValue : MemberValue<string[]?>
+    public sealed class ArrayMemberValue : MemberValue<string[]?>
     {
     }
 
     /// <summary>Stored value for a Dictionary / Class member.</summary>
-    public class ObjectMemberValue : MemberValue<Dictionary<string, string>?>
+    public sealed class ObjectMemberValue : MemberValue<Dictionary<string, string>?>
     {
     }
 
     /// <summary>Stored value for an NSDelegate member.</summary>
-    public class DelegateMemberValue : MemberValue<NeoDelegateValue?>
+    public sealed class DelegateMemberValue : MemberValue<NeoDelegateValue?>
     {
     }
 
@@ -1625,37 +1625,37 @@ namespace NeoCompose.Runtime.Json
     /// Stored value for an NSAction member — the live listener set that
     /// <c>+=</c> / <c>-=</c> write through (P62 §3.3).
     /// </summary>
-    public class ActionMemberValue : MemberValue<NeoActionValue?>
+    public sealed class ActionMemberValue : MemberValue<NeoActionValue?>
     {
     }
 
     /// <summary>Stored value for an Audio file member.</summary>
-    public class FileMemberValue : MemberValue<FileValue?>
+    public sealed class FileMemberValue : MemberValue<FileValue?>
     {
     }
 
     /// <summary>Stored value for a Sprite member.</summary>
-    public class SpriteMemberValue : MemberValue<SpriteValue?>
+    public sealed class SpriteMemberValue : MemberValue<SpriteValue?>
     {
     }
 
     /// <summary>Stored value for a Variant member (P67 §6).</summary>
-    public class VariantMemberValue : MemberValue<VariantRefValue?>
+    public sealed class VariantMemberValue : MemberValue<VariantRefValue?>
     {
     }
 
     /// <summary>Stored value for a Vector2 / Vector2Int member.</summary>
-    public class Vector2MemberValue : MemberValue<NeoVector2Value?>
+    public sealed class Vector2MemberValue : MemberValue<NeoVector2Value?>
     {
     }
 
     /// <summary>Stored value for a Vector3 / Vector3Int member.</summary>
-    public class Vector3MemberValue : MemberValue<NeoVector3Value?>
+    public sealed class Vector3MemberValue : MemberValue<NeoVector3Value?>
     {
     }
 
     /// <summary>Stored value for a Color member.</summary>
-    public class ColorMemberValue : MemberValue<NeoColorValue?>
+    public sealed class ColorMemberValue : MemberValue<NeoColorValue?>
     {
     }
 
@@ -1674,7 +1674,7 @@ namespace NeoCompose.Runtime.Json
     /// <c>NeoMember.partialLeafValue</c>, which is untyped by construction
     /// and therefore cannot fail a cast.</para>
     /// </summary>
-    public class PartialLeafMemberValue : MemberValue<NeoPartialLeafValue?>
+    public sealed class PartialLeafMemberValue : MemberValue<NeoPartialLeafValue?>
     {
     }
 

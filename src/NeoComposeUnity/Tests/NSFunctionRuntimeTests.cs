@@ -24,25 +24,28 @@ namespace NeoCompose.Tests
             var argument = Argument("amount", MemberKind.Int);
             var body = Action(IntType(), new[] { argument }, VariableDeclaration("saved", Number(1), IntType()), Return(Variable("saved")));
             var layout = new NeoScriptScopeLayout(body);
-            var scope = new NeoScriptScope();
-            scope.UseLayout(layout);
+            var scope = new NeoScriptScope(layout);
             scope.SetEvaluationValue("saved", new NSGetterEvaluator.ArithmeticValue(7d));
             var pointer = Variable("saved");
-            Assert.That(scope.TryGetEvaluationValue(pointer, out var first), Is.True);
-            Assert.That(first.Box(), Is.EqualTo(7d));
+            var aliasIndex = new object();
+            Assert.That(scope.ReadVariable(pointer, aliasIndex, out bool found, out _), Is.EqualTo(7d));
+            Assert.That(found, Is.True);
+            Assert.That(scope.TryReadNumber(pointer, out double number), Is.True);
+            Assert.That(number, Is.EqualTo(7d));
             var child = scope.CreateChild();
             child["saved"] = 99d;
-            Assert.That(child.TryGetEvaluationValue(pointer, out var shadow), Is.True);
-            Assert.That(shadow.Box(), Is.EqualTo(99d));
+            Assert.That(child.ReadVariable(pointer, aliasIndex, out found, out _), Is.EqualTo(99d));
+            Assert.That(found, Is.True);
             scope.ResetLocals();
-            scope.UseLayout(layout);
-            Assert.That(scope.TryGetEvaluationValue(pointer, out _), Is.False);
+            Assert.That(scope.ReadVariable(pointer, aliasIndex, out found, out _), Is.Null);
+            Assert.That(found, Is.False);
+            Assert.That(scope.TryReadNumber(pointer, out _), Is.False);
             var changedBody = Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(),
                 VariableDeclaration("other", Number(0), IntType()), VariableDeclaration("saved", Number(1), IntType()), Return(Variable("saved")));
-            scope.UseLayout(new NeoScriptScopeLayout(changedBody));
-            scope["saved"] = 42d;
-            Assert.That(scope.TryGetEvaluationValue(pointer, out var current), Is.True);
-            Assert.That(current.Box(), Is.EqualTo(42d));
+            var changed = new NeoScriptScope(new NeoScriptScopeLayout(changedBody));
+            changed["saved"] = 42d;
+            Assert.That(changed.ReadVariable(pointer, aliasIndex, out found, out _), Is.EqualTo(42d));
+            Assert.That(found, Is.True);
             Assert.That(JObject.FromObject(pointer).Property("runtimeBinding"), Is.Null);
             var external = new Dictionary<string, object?>();
             var wrapped = new NeoScriptScope(external);
@@ -51,6 +54,76 @@ namespace NeoCompose.Tests
             external["saved"] = 13d;
             Assert.That(wrapped.TryGetValue("saved", out var visible), Is.True);
             Assert.That(visible, Is.EqualTo(13d));
+        }
+
+        [Test]
+        public void PlainListMemoHoldsUntilAListBecomesAnAliasOrTheSlotChanges()
+        {
+            var body = Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(),
+                VariableDeclaration("items", Number(0), IntType()), Return(Variable("items")));
+            var scope = new NeoScriptScope(new NeoScriptScopeLayout(body));
+            var list = new object?[] { 1d };
+            scope["items"] = list;
+            var pointer = Variable("items");
+            var aliasIndex = new object();
+            bool Plain(object index)
+            {
+                Assert.That(scope.ReadVariable(pointer, index, out _, out bool plain), Is.SameAs(list));
+                return plain;
+            }
+
+            Assert.That(Plain(aliasIndex), Is.False, "Nothing was remembered yet.");
+            scope.RememberPlainList(pointer, list, aliasIndex, NSGetterEvaluator.ListAliasEpoch);
+            Assert.That(Plain(aliasIndex), Is.True);
+            Assert.That(Plain(new object()), Is.False, "Another alias index was not checked.");
+
+            NSGetterEvaluator.NoteListAlias();
+            Assert.That(Plain(aliasIndex), Is.False, "A list became an alias since.");
+
+            scope.RememberPlainList(pointer, list, aliasIndex, NSGetterEvaluator.ListAliasEpoch);
+            scope["items"] = list;
+            Assert.That(Plain(aliasIndex), Is.False, "A write clears the slot's memo.");
+        }
+
+        [Test]
+        public void ConstructionSiteBuffersServeOneConstructionAtATimeAndReleaseTheirValues()
+        {
+            var siteFields = new[]
+            {
+                new FunctionClassConstructorField { schemaKey = "Value", memberId = "value-member" },
+            };
+            var resolved = new NeoGeneratedTypesSupport.NeoResolvedDeclaredConstructor
+            {
+                link = new NeoGeneratedTypesSupport.NeoResolvedConstructorLink
+                {
+                    record = new ConstructorRecord
+                    {
+                        argumentTypes = new[] { Argument("amount", MemberKind.Int), Argument("label", MemberKind.String) },
+                    },
+                },
+                // The call supplies only the first parameter.
+                argumentPositions = new[] { 0 },
+            };
+            var buffers = new NeoGeneratedTypesSupport.ConstructionSiteBuffers();
+
+            Assert.That(buffers.TryRent(), Is.True);
+            var fields = buffers.Fields(siteFields);
+            var arguments = buffers.Arguments(resolved);
+            Assert.That(fields[0].schemaKey, Is.EqualTo("Value"));
+            Assert.That(fields[0].memberId, Is.EqualTo("value-member"));
+            Assert.That(arguments[1], Is.SameAs(NeoGeneratedTypesSupport.OmittedArgument));
+            fields[0].value = "outer";
+            arguments[0] = 1d;
+            Assert.That(buffers.TryRent(), Is.False, "A reentrant construction builds its own buffers.");
+
+            buffers.Return();
+            Assert.That(fields[0].value, Is.Null, "The returned fields keep no values alive.");
+            Assert.That(arguments, Is.All.Null, "The returned arguments keep no values alive.");
+            Assert.That(buffers.TryRent(), Is.True);
+            Assert.That(buffers.Fields(siteFields), Is.SameAs(fields));
+            Assert.That(buffers.Arguments(resolved), Is.SameAs(arguments));
+            Assert.That(arguments[1], Is.SameAs(NeoGeneratedTypesSupport.OmittedArgument), "An omitted parameter is marked again.");
+            buffers.Return();
         }
 
         [Test]
@@ -151,18 +224,20 @@ namespace NeoCompose.Tests
                     VariableDeclaration("saved", Add(Number(2), Number(3)), IntType()),
                     Return(Add(Variable("saved"), Call(native.id, "fetch-numeric")))));
             using var client = BuildClient(new JsonMember[] { native, function }, ReceiverClass(("Fetch", native.id), ("NumericDeferred", function.id)));
-            NeoDeferredFunction<int>? pending = null;
+            var pending = new List<NeoDeferredFunction<int>>();
             client.RegisterDeferredNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
             {
-                [native.id] = (_, _, _, handle) => pending = NeoGeneratedTypesSupport.ResolveDeferredFunction<NeoDeferredFunction<int>>(handle, native.name),
+                [native.id] = (_, _, _, handle) => pending.Add(NeoGeneratedTypesSupport.ResolveDeferredFunction<NeoDeferredFunction<int>>(handle, native.name)),
             });
             var node = new NeoMemberNSFunction(client, function, null);
             var task = node.InvokeAsync("receiver-value", Array.Empty<object?>());
+            // A second frame of the same body suspends beside the first.
+            var overlapping = node.InvokeAsync("receiver-value", Array.Empty<object?>());
             Assert.That(task.IsCompleted, Is.False);
-            var temporary = client.RentFunctionScope(4);
-            temporary["saved"] = 999d;
-            client.ReturnFunctionScope(temporary);
-            pending!.Complete(7);
+            Assert.That(overlapping.IsCompleted, Is.False);
+            pending[1].Complete(1);
+            Assert.That(overlapping.GetAwaiter().GetResult(), Is.EqualTo(6));
+            pending[0].Complete(7);
             Assert.That(task.GetAwaiter().GetResult(), Is.EqualTo(12));
         }
 
@@ -428,23 +503,36 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void FunctionScopePool_ClearsReferencesAndBoundsRetainedStorage()
+        public void ScopeLayout_ReusesIdleScopeClearsReferencesAndBoundsRetainedStorage()
         {
-            using var client = BuildClient(Array.Empty<JsonMember>(), ReceiverClass());
-            var scope = client.RentFunctionScope(4);
+            var layout = new NeoScriptScopeLayout(Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(), Return(Number(0))));
+            var scope = layout.RentScope();
             scope["argument"] = new object();
             scope.MarkReadOnly("argument", "read-only iterator");
-            var overlapping = client.RentFunctionScope(4);
+            var overlapping = layout.RentScope();
             Assert.That(overlapping, Is.Not.SameAs(scope));
-            client.ReturnFunctionScope(scope);
-            var reused = client.RentFunctionScope(4);
+            layout.ReturnScope(scope);
+            var reused = layout.RentScope();
             Assert.That(reused, Is.SameAs(scope));
             Assert.That(reused.LocalBindingCount, Is.Zero);
             Assert.That(reused.TryGetValue("argument", out _), Is.False);
             Assert.That(reused.TryGetReadOnlyError("argument", out _), Is.False);
-            var oversized = client.RentFunctionScope(1024);
-            client.ReturnFunctionScope(oversized);
-            Assert.That(client.RentFunctionScope(4), Is.Not.SameAs(oversized));
+            for (int i = 0; i < 1024; i++)
+                reused[$"dynamic-{i}"] = i;
+            layout.ReturnScope(reused);
+            Assert.That(layout.RentScope(), Is.Not.SameAs(reused));
+        }
+
+        [Test]
+        public void ScopeLayout_AbandonedScopeLeavesThePoolOpen()
+        {
+            var layout = new NeoScriptScopeLayout(Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(), Return(Number(0))));
+            var thrown = layout.RentScope();
+            layout.AbandonScope(thrown);
+            var next = layout.RentScope();
+            Assert.That(next, Is.Not.SameAs(thrown), "A continuation may still hold an abandoned scope.");
+            layout.ReturnScope(next);
+            Assert.That(layout.RentScope(), Is.SameAs(next), "The layout pools again after a body throws.");
         }
 
         [TestCase(MemberKind.Vector2)]
@@ -566,6 +654,38 @@ namespace NeoCompose.Tests
             var ctx = new NSGetterEvaluator.Context(client, null, null);
             object value = NSGetterEvaluator.UnwrapRow(collection, ctx, ownership)!;
             Assert.AreSame(value, NeoNSFunctionRuntime.InvokeImmediate(client, function.id, null, new[] { value }, ctx));
+        }
+
+        [Test]
+        public void RowBackedClassListReturns_RejectAnEntryOfAnotherClass()
+        {
+            var other = new NeoSchemaClass
+            {
+                id = "other-class",
+                projectId = ProjectId,
+                name = "Other",
+                schema = new Dictionary<string, string>(),
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            var type = new CollectionTypeInfo
+            {
+                type = MemberKind.List,
+                required = true,
+                entryTypeInfo = new ClassTypeInfo { type = MemberKind.Class, classId = "receiver-class", required = true },
+            };
+            var collection = new ArrayMemberValue { id = "collection", value = new[] { "entry", "stranger" } };
+            using NeoClient client = BuildClient(Array.Empty<JsonMember>(), ReceiverClass(), new[] { other },
+                new MemberValue[] { ObjectValue("entry", "receiver-class"), ObjectValue("stranger", "other-class"), collection });
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            object value = NSGetterEvaluator.UnwrapRow(collection, ctx, NeoValueOwnership.Asset)!;
+
+            var error = Assert.Throws<InvalidOperationException>(() => NeoScriptValueMarshaller.NormalizeResolved(
+                client, NeoValueOwnership.Asset, value, type, ctx, "return"));
+
+            StringAssert.Contains("entry 1 of return has runtime Class 'other-class'", error!.Message);
+            Assert.AreSame(value, NeoScriptValueMarshaller.Normalize(client, NeoValueOwnership.Asset, value, type, ctx, "argument"),
+                "Structural normalization leaves the Class identity to resolved boundaries.");
         }
 
         [Test]
@@ -1007,6 +1127,145 @@ namespace NeoCompose.Tests
             client.InvalidateSchemaResolutionCaches();
             object? fourth = NSGetterEvaluator.UnwrapRow(written!, client.CreateGetterContext(NeoValueOwnership.Save), NeoValueOwnership.Save);
             Assert.AreNotSame(first, fourth, "A schema reset drops the shared shapes.");
+        }
+
+        [Test]
+        public void MemberReadSiteResolvesEachReceiverClassAndSchemaReset()
+        {
+            var saved = new IntMember { id = "saved-count", name = "Count", kind = MemberKind.Int, Storage = NeoMemberStorage.Save };
+            var authored = new IntMember { id = "authored-count", name = "Count", kind = MemberKind.Int };
+            var other = new NeoSchemaClass
+            {
+                id = "other-class",
+                projectId = ProjectId,
+                name = "Other",
+                schema = new Dictionary<string, string> { ["Count"] = authored.id },
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            var receiver = ObjectValue("receiver-value", "receiver-class");
+            receiver.value!["Count"] = "receiver-count";
+            var otherValue = ObjectValue("other-value", "other-class");
+            otherValue.value!["Count"] = "other-count";
+            using var client = BuildClient(new JsonMember[] { saved, authored }, ReceiverClass(("Count", saved.id)),
+                new[] { other }, new MemberValue[] { receiver, otherValue,
+                    new NumberMemberValue { id = "receiver-count", value = 1 },
+                    new NumberMemberValue { id = "other-count", value = 2 } });
+            client.SetWritableValue(NeoValueOwnership.Save, new NumberMemberValue { id = "receiver-count", value = 9 });
+            client.SetWritableValue(NeoValueOwnership.Save, new NumberMemberValue { id = "other-count", value = 8 });
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            KeyOfPointer read = Key(Variable("x"), "Count");
+
+            for (int i = 0; i < 2; i++)
+            {
+                Assert.AreEqual(9d, Read("receiver-value"), "The Save-declared member reads its Save row.");
+                Assert.AreEqual(2d, Read("other-value"), "One site reads each receiver Class's own member.");
+            }
+
+            other.schema["Count"] = saved.id;
+            client.InvalidateSchemaResolutionCaches();
+            ctx = new NSGetterEvaluator.Context(client, null, null);
+            Assert.AreEqual(8d, Read("other-value"), "A schema reset re-resolves the site.");
+
+            object? Read(string valueId)
+            {
+                Assert.IsTrue(client.TryGetValue(NeoValueOwnership.Asset, valueId, out MemberValue? row));
+                object x = NSGetterEvaluator.UnwrapRow(row!, ctx, NeoValueOwnership.Asset)!;
+                return NSGetterEvaluator.EvaluatePointer(read, new Dictionary<string, object?> { ["x"] = x }, ctx);
+            }
+        }
+
+        [Test]
+        public void CallSiteDispatchesEachReceiverClassAndSchemaReset()
+        {
+            NSFunctionMember first = Returning("first-value", 1);
+            NSFunctionMember second = Returning("second-value", 2);
+            var other = new NeoSchemaClass
+            {
+                id = "other-class",
+                projectId = ProjectId,
+                name = "Other",
+                schema = new Dictionary<string, string> { ["Value"] = second.id },
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            using var client = BuildClient(new JsonMember[] { first, second }, ReceiverClass(("Value", first.id)),
+                new[] { other }, new MemberValue[] { ObjectValue("other-value", "other-class") });
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            var call = new CallFunctionPointer
+            {
+                type = PointerKind.CallFunction,
+                memberKey = "Value",
+                receiver = CallReceiver.Instance(Variable("x")),
+                args = Array.Empty<Pointer>(),
+                callSiteId = "value-0",
+            };
+
+            for (int i = 0; i < 2; i++)
+            {
+                Assert.AreEqual(1L, Invoke("receiver-value"));
+                Assert.AreEqual(2L, Invoke("other-value"), "One site dispatches each receiver Class's own function.");
+            }
+
+            other.schema["Value"] = first.id;
+            client.InvalidateSchemaResolutionCaches();
+            ctx = new NSGetterEvaluator.Context(client, null, null);
+            Assert.AreEqual(1L, Invoke("other-value"), "A schema reset re-resolves the site.");
+
+            Assert.IsNotNull(call.resolvedTargets);
+            client.Dispose();
+            Assert.IsNull(call.resolvedTargets, "Shared IR must not keep a disposed client's resolutions.");
+
+            long Invoke(string valueId)
+            {
+                Assert.IsTrue(client.TryGetValue(NeoValueOwnership.Asset, valueId, out MemberValue? row));
+                object x = NSGetterEvaluator.UnwrapRow(row!, ctx, NeoValueOwnership.Asset)!;
+                return Convert.ToInt64(NSGetterEvaluator.EvaluatePointer(call, new Dictionary<string, object?> { ["x"] = x }, ctx));
+            }
+
+            static NSFunctionMember Returning(string id, int value) => ScriptFunction(id, "Value", false, IntType(),
+                Array.Empty<FunctionArgumentTypeInfo>(), Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(),
+                    Return(Literal(IntType(), new JValue(value)))));
+        }
+
+        [Test]
+        public void RepeatedMemberReadsFollowAChildRebind()
+        {
+            var child = new ClassMember
+            {
+                id = "child",
+                name = "Child",
+                kind = MemberKind.Class,
+                classId = "receiver-class",
+                Storage = NeoMemberStorage.Save,
+            };
+            var receiver = ObjectValue("receiver-value", "receiver-class");
+            receiver.value!["Child"] = "first-child";
+            using var client = BuildClient(new JsonMember[] { child }, ReceiverClass(("Child", child.id)),
+                additionalValues: new MemberValue[] { receiver,
+                    ObjectValue("first-child", "receiver-class"), ObjectValue("second-child", "receiver-class") });
+            client.SetWritableValue(NeoValueOwnership.Save, receiver);
+            KeyOfPointer read = Key(Variable("x"), "Child");
+
+            object? first = Read();
+            Assert.AreSame(first, Read(), "Repeated reads return the child's one CLR shape.");
+            Assert.AreEqual("first-child", NSGetterEvaluator.FindRowIdByReference(first, client.CreateGetterContext(NeoValueOwnership.Save)));
+
+            var rebound = ObjectValue("receiver-value", "receiver-class");
+            rebound.value!["Child"] = "second-child";
+            client.SetWritableValue(NeoValueOwnership.Save, rebound);
+            object? second = Read();
+            Assert.AreNotSame(first, second);
+            Assert.AreEqual("second-child", NSGetterEvaluator.FindRowIdByReference(second, client.CreateGetterContext(NeoValueOwnership.Save)));
+            Assert.AreSame(second, Read());
+
+            object? Read()
+            {
+                var ctx = client.CreateGetterContext(NeoValueOwnership.Save);
+                Assert.IsTrue(client.TryGetValue(NeoValueOwnership.Save, "receiver-value", out MemberValue? row));
+                object x = NSGetterEvaluator.UnwrapRow(row!, ctx, NeoValueOwnership.Save)!;
+                return NSGetterEvaluator.EvaluatePointer(read, new Dictionary<string, object?> { ["x"] = x }, ctx);
+            }
         }
 
         [TestCase(false, false)]
@@ -1933,6 +2192,39 @@ namespace NeoCompose.Tests
 
             Assert.IsInstanceOf<object?[]>(result);
             CollectionAssert.AreEqual(new[] { "level-3" }, (object?[])result!);
+        }
+
+        [Test]
+        public void Normalize_EnumOptionsCopyACallersStringArray()
+        {
+            using NeoClient client = BuildClient(Array.Empty<JsonMember>(), ReceiverClass());
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            EnumTypeInfo type = EnumType("enum-direction");
+            string[] typed = { "option-east" };
+            var normalized = (object?[])NeoScriptValueMarshaller.Normalize(
+                client, NeoValueOwnership.Session, typed, type, ctx, "direction")!;
+            typed[0] = "option-west";
+            Assert.AreNotSame(typed, normalized);
+            CollectionAssert.AreEqual(new object?[] { "option-east" }, normalized);
+
+            object?[] runtime = { "option-east" };
+            Assert.AreSame(runtime, NeoScriptValueMarshaller.Normalize(
+                client, NeoValueOwnership.Session, runtime, type, ctx, "direction"));
+        }
+
+        [Test]
+        public void ResolvedSites_AreDroppedWithTheSchemaAndMatchOnlyTheirType()
+        {
+            using NeoClient client = BuildClient(Array.Empty<JsonMember>(), ReceiverClass());
+            var site = new object();
+            var resolved = new List<string>();
+            NeoGeneratedTypesSupport.CacheResolvedSite(client, site, resolved);
+            Assert.IsTrue(NeoGeneratedTypesSupport.TryGetResolvedSite(client, site, out List<string> hit));
+            Assert.AreSame(resolved, hit);
+            Assert.IsFalse(NeoGeneratedTypesSupport.TryGetResolvedSite(client, site, out Dictionary<string, string> _));
+
+            client.InvalidateSchemaResolutionCaches();
+            Assert.IsFalse(NeoGeneratedTypesSupport.TryGetResolvedSite(client, site, out List<string> _));
         }
 
         [Test]
@@ -3913,6 +4205,136 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void Invoke_PooledLoopBodyScopesUnwindOnBreakReturnAndThrow()
+        {
+            static ForInstruction CountTo(string id, int limit, params Instruction[] body) => new()
+            {
+                type = InstructionKind.For,
+                initializer = LocalVariable(id, Number(0), IntType()),
+                condition = Compare(OperatorKind.LessThan, Variable(id), Number(limit)),
+                iterator = AssignLocal(id, Add(Variable(id), Number(1)), IntType()),
+                instructions = body,
+            };
+            // Both bodies declare a local, so each runs in a pooled scope, and
+            // the inner body's assignment lands in the function scope that
+            // declared `sum`.
+            NSFunctionMember nested = ScriptFunction(
+                "fn-nested-loop-locals",
+                "NestedLoopLocals",
+                false,
+                IntType(),
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                LoopAction(
+                    VariableDeclaration("sum", Number(0), IntType()),
+                    CountTo(
+                        "i",
+                        3,
+                        VariableDeclaration("doubled", Add(Variable("i"), Variable("i")), IntType()),
+                        CountTo(
+                            "j",
+                            2,
+                            VariableDeclaration("inner", Add(Variable("doubled"), Variable("j")), IntType()),
+                            If(Compare(OperatorKind.EqualTo, Variable("j"), Number(1)),
+                                new BreakInstruction { type = InstructionKind.Break }),
+                            AssignLocal("sum", Add(Variable("sum"), Variable("inner")), IntType())),
+                        If(Compare(OperatorKind.EqualTo, Variable("i"), Number(2)),
+                            Return(Variable("sum")))),
+                    Return(Number(-1))));
+            NSFunctionMember throwing = ScriptFunction(
+                "fn-throwing-loop-locals",
+                "ThrowingLoopLocals",
+                false,
+                IntType(),
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                TryAction(
+                    IntType(),
+                    VariableDeclaration("sum", Number(0), IntType()),
+                    TryBlock(
+                        new Instruction[]
+                        {
+                            CountTo(
+                                "i",
+                                3,
+                                VariableDeclaration("next", Add(Variable("i"), Number(1)), IntType()),
+                                If(Compare(OperatorKind.EqualTo, Variable("next"), Number(2)),
+                                    Throw(Text("boom"))),
+                                AssignLocal("sum", Add(Variable("sum"), Variable("next")), IntType())),
+                        },
+                        Catch("message", null, AssignLocal("sum", Add(Variable("sum"), Number(100)), IntType()))),
+                    Return(Variable("sum"))));
+            NeoClient client = BuildClient(
+                new JsonMember[] { nested, throwing },
+                ReceiverClass(("NestedLoopLocals", nested.id), ("ThrowingLoopLocals", throwing.id)));
+            var nestedNode = new NeoMemberNSFunction(client, nested, null);
+            var throwingNode = new NeoMemberNSFunction(client, throwing, null);
+
+            for (int attempt = 0; attempt < 3; attempt++)
+            {
+                Assert.AreEqual(6L, Convert.ToInt64(nestedNode.Invoke("receiver-value", Array.Empty<object?>())));
+                Assert.AreEqual(101L, Convert.ToInt64(throwingNode.Invoke("receiver-value", Array.Empty<object?>())));
+            }
+        }
+
+        [Test]
+        public void Invoke_ReentrantForLoopRunsKeepTheirOwnState()
+        {
+            // f(n) = the sum over i < n of 1 + f(n - 1): every recursive call
+            // runs the same for instruction while its caller's run is open.
+            FunctionArgumentTypeInfo argument = Argument("n", MemberKind.Int);
+            CallFunctionPointer recurse = Call("fn-reentrant-loop", "recurse");
+            recurse.args = new Pointer[] { Add(Variable("__arg_0__"), Number(-1)) };
+            NSFunctionMember function = ScriptFunction(
+                "fn-reentrant-loop",
+                "ReentrantLoop",
+                false,
+                IntType(),
+                new[] { argument },
+                Action(
+                    IntType(),
+                    new[] { argument },
+                    VariableDeclaration("total", Number(0), IntType()),
+                    new ForInstruction
+                    {
+                        type = InstructionKind.For,
+                        initializer = LocalVariable("i", Number(0), IntType()),
+                        condition = Compare(OperatorKind.LessThan, Variable("i"), Variable("__arg_0__")),
+                        iterator = AssignLocal("i", Add(Variable("i"), Number(1)), IntType()),
+                        instructions = new Instruction[]
+                        {
+                            AssignLocal("total", Add(Add(Variable("total"), Number(1)), recurse), IntType()),
+                        },
+                    },
+                    Return(Variable("total"))));
+            NeoClient client = BuildClient(
+                new JsonMember[] { function },
+                ReceiverClass(("ReentrantLoop", function.id)));
+            var node = new NeoMemberNSFunction(client, function, null);
+
+            for (int attempt = 0; attempt < 2; attempt++)
+                Assert.AreEqual(15L, Convert.ToInt64(node.Invoke("receiver-value", new object?[] { 3 })));
+        }
+
+        [Test]
+        public void ArrayLiteralComparand_ComparesByValueAndReadsStayFresh()
+        {
+            using var client = BuildClient(Array.Empty<JsonMember>(), ReceiverClass());
+            var context = new NSGetterEvaluator.Context(client, null, null);
+            ValuePointer need = Literal(EnumType("kind"), new JArray("need"));
+            OperationPointer isNeed = EqualTo(Variable("kind"), need);
+            var scope = new NeoScriptScope(1);
+            foreach (string kind in new[] { "need", "like", "need" })
+            {
+                scope["kind"] = new object?[] { kind };
+                Assert.That(NSGetterEvaluator.EvaluatePointer(isNeed, scope, context), Is.EqualTo(kind == "need"));
+            }
+            // Array identity carries list provenance, so a read that can
+            // escape still yields a new array.
+            object? first = NSGetterEvaluator.EvaluatePointer(need, scope, context);
+            Assert.That(first, Is.EqualTo(new object?[] { "need" }));
+            Assert.That(NSGetterEvaluator.EvaluatePointer(need, scope, context), Is.Not.SameAs(first));
+        }
+
+        [Test]
         public void Invoke_ForEachSnapshotsMembershipBeforeLocalClear()
         {
             CollectionTypeInfo listType = ListType(IntType());
@@ -3970,6 +4392,47 @@ namespace NeoCompose.Tests
                 .Invoke("receiver-value", Array.Empty<object?>());
 
             Assert.AreEqual(6L, Convert.ToInt64(result));
+        }
+
+        [Test]
+        public void Invoke_ReusedForEachIteratesOnlyTheCurrentRunsEntries()
+        {
+            CollectionTypeInfo listType = ListType(IntType());
+            FunctionArgumentTypeInfo argument = Argument("items", MemberKind.List);
+            argument.entryTypeInfo = IntType();
+            NSFunctionMember function = ScriptFunction(
+                "fn-foreach-reused", "ForEachReused", false, IntType(), new[] { argument },
+                Action(IntType(), new[] { argument },
+                    VariableDeclaration("sum", Number(0), IntType()),
+                    new ForEachInstruction
+                    {
+                        type = InstructionKind.ForEach,
+                        binding = new LoopBinding
+                        {
+                            id = "item",
+                            typeInfo = IntType(),
+                            isReadonly = true,
+                            writability = WritabilityKind.ReadOnly,
+                        },
+                        collectionPointer = Variable("__arg_0__"),
+                        collectionTypeInfo = listType,
+                        instructions = new Instruction[]
+                        {
+                            AssignLocal(
+                                "sum",
+                                Add(Variable("sum"), Variable("item")),
+                                IntType()),
+                        },
+                    },
+                    Return(Variable("sum"))));
+            using NeoClient client = BuildClient(
+                new JsonMember[] { function }, ReceiverClass((function.name, function.id)));
+            var node = new NeoMemberNSFunction(client, function, null);
+
+            // The second and third runs reuse the first run's larger snapshot buffer.
+            Assert.AreEqual(6L, Convert.ToInt64(node.Invoke("receiver-value", new object?[] { new object?[] { 1, 2, 3 } })));
+            Assert.AreEqual(4L, Convert.ToInt64(node.Invoke("receiver-value", new object?[] { new object?[] { 4 } })));
+            Assert.AreEqual(0L, Convert.ToInt64(node.Invoke("receiver-value", new object?[] { Array.Empty<object?>() })));
         }
 
         [Test]
@@ -4892,6 +5355,44 @@ namespace NeoCompose.Tests
                     Literal(optionalInt, JValue.CreateNull()),
                     optionalInt,
                     SwitchLabel(NullType(), JValue.CreateNull())));
+        }
+
+        [Test]
+        public void Invoke_SwitchCachedLabelsMatchNegativeZeroAndStayValidAcrossCalls()
+        {
+            Assert.AreEqual(
+                1,
+                InvokeSwitchCase(Literal(IntType(), new JValue(-0d)), IntType(), SwitchLabel(IntType(), 0)));
+            Assert.AreEqual(
+                1,
+                InvokeSwitchCase(Number(0), IntType(), SwitchLabel(IntType(), new JValue(-0d))));
+
+            FunctionArgumentTypeInfo argument = Argument("Selector", MemberKind.Int);
+            SwitchSection Section(int label, int result) => new()
+            {
+                labels = new[] { SwitchLabel(IntType(), label) },
+                instructions = new Instruction[] { Return(Number(result)) },
+            };
+            NSFunctionMember function = ScriptFunction(
+                "fn-switch-repeat",
+                "SwitchRepeat",
+                false,
+                IntType(),
+                new[] { argument },
+                Action(
+                    IntType(),
+                    new[] { argument },
+                    Switch(
+                        Variable("__arg_0__"),
+                        IntType(),
+                        new[] { Section(0, 10), Section(2, 12) },
+                        new Instruction[] { Return(Number(-1)) })));
+            NeoClient client = BuildClient(
+                new JsonMember[] { function },
+                ReceiverClass(("SwitchRepeat", function.id)));
+            var node = new NeoMemberNSFunction(client, function, null);
+            foreach (var (selector, expected) in new[] { (0, 10L), (2, 12L), (3, -1L), (2, 12L), (0, 10L) })
+                Assert.AreEqual(expected, Convert.ToInt64(node.Invoke("receiver-value", new object?[] { selector })));
         }
 
         [Test]

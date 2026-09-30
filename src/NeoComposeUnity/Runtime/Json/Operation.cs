@@ -26,7 +26,7 @@ namespace NeoCompose.Runtime.Json
     /// Arithmetic operation — a `+`/`-`/etc. operator over a list of
     /// pointers. Mirrors TS-side <c>INSArithmeticOperation</c>.
     /// </summary>
-    public class ArithmeticOperation : Operation
+    public sealed class ArithmeticOperation : Operation
     {
         public ArithmeticOpInfo arithmetic = null!;
     }
@@ -36,7 +36,7 @@ namespace NeoCompose.Runtime.Json
     /// via `&amp;&amp;`/`||`). Mirrors TS-side
     /// <c>INSBooleanOperation</c>.
     /// </summary>
-    public class BooleanOperation : Operation
+    public sealed class BooleanOperation : Operation
     {
         public BooleanExpression expression = null!;
     }

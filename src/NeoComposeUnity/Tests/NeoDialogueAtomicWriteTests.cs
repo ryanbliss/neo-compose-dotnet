@@ -242,7 +242,8 @@ namespace NeoCompose.Tests
             using var client = NeoTestSaveStack.ClientFromSchema(schema);
             var context = new NSGetterEvaluator.Context(client, null, null);
             var collection = NSGetterEvaluator.UnwrapRow(new ArrayMemberValue { id = "save-view", value = new[] { "item-1" } }, context, NeoValueOwnership.Save);
-            var snapshot = NSGetterEvaluator.SnapshotCollectionEntries(collection, context);
+            var snapshot = System.Array.Empty<NSGetterEvaluator.CollectionEntrySnapshot>();
+            NSGetterEvaluator.SnapshotCollectionEntries(collection, context, ref snapshot);
             var entry = snapshot[0].Resolve(context);
             Assert.That(NSGetterEvaluator.FindRowOwnershipByReference(entry, context), Is.EqualTo(NeoValueOwnership.Save));
         }

@@ -177,12 +177,22 @@ namespace NeoCompose.Runtime
                 if (client.TryGetMemoizedGetter(memoKey, out NeoClient.GetterMemoEntry hit))
                 {
                     ResetGridReads();
-                    if (hit.row is null)
+                    if (hit.list is not null)
+                    {
+                        var listCtx = client.CreateGetterContext(ownership);
+                        listCtx.gridReads = gridReads;
+                        if (NSGetterEvaluator.ResolveMemoizedList(hit.list, hit.listEntryMember, listCtx) is { } hitList)
+                        {
+                            client.ReplayGetterReads(hit, gridReads);
+                            return NSGetterResult.Ok(hitList);
+                        }
+                    }
+                    else if (hit.row is null)
                     {
                         client.ReplayGetterReads(hit, gridReads);
                         return NSGetterResult.Ok(hit.scalar);
                     }
-                    if (client.TryGetReplayReference(hit.row.valueId, out MemberValue? hitRow, hit.row.ownership))
+                    else if (client.TryGetReplayReference(hit.row.valueId, out MemberValue? hitRow, hit.row.ownership))
                     {
                         client.ReplayGetterReads(hit, gridReads);
                         var hitCtx = client.CreateGetterContext(ownership);
@@ -223,8 +233,7 @@ namespace NeoCompose.Runtime
             }
 
             NeoClient.GetterCaptureFrame enclosingCapture = memoize ? client.BeginGetterReadCapture() : default;
-            string[]? valueReads = null;
-            List<NeoClient.GetterRead>? reads = null;
+            NeoClient.GetterCaptureFrame capture = default;
             object? value;
             try
             {
@@ -242,19 +251,22 @@ namespace NeoCompose.Runtime
             finally
             {
                 if (memoize)
-                    reads = client.EndGetterReadCapture(enclosingCapture, out valueReads);
+                    capture = client.EndGetterReadCapture(enclosingCapture);
             }
-            if (memoize && client.CanMemoizeGetters)
+            if (memoize)
             {
-                if (value is null or string or bool or double or int or long or float)
-                {
-                    client.MemoizeGetter(memoKey, new NeoClient.GetterMemoEntry { scalar = value, reads = reads, valueReads = valueReads });
-                }
-                else if (NSGetterEvaluator.TryFindRowReference(value, ctx, out NSGetterEvaluator.RowReference resultRef)
+                if (!client.CanMemoizeGetters)
+                    client.RecycleGetterCapture(capture);
+                else if (value is null or string or bool or double or int or long or float)
+                    client.MemoizeGetter(memoKey, value, null, capture);
+                else if (NSGetterEvaluator.FindRowReference(value, ctx) is { } resultRef
                     && resultRef.ownership != NeoValueOwnership.Session)
-                {
-                    client.MemoizeGetter(memoKey, new NeoClient.GetterMemoEntry { row = resultRef, reads = reads, valueReads = valueReads });
-                }
+                    client.MemoizeGetter(memoKey, null, resultRef, capture);
+                else if (value is object?[] entries
+                    && NSGetterEvaluator.MemoizableList(entries, ctx, out Member? entryMember) is { } list)
+                    client.MemoizeGetter(memoKey, null, null, capture, list, entryMember);
+                else
+                    client.RecycleGetterCapture(capture);
             }
             client.ReturnDirectFunctionContext(ctx, value);
             return NSGetterResult.Ok(value);
@@ -327,9 +339,7 @@ namespace NeoCompose.Runtime
                     setter,
                     scope,
                     ctx.WithSetterPushed(effectiveMemberId, boundThis),
-                    NeoScriptExecutionOptions
-                        .ForUnity(client)
-                        .ForProperty(effectiveMemberId),
+                    NeoScriptExecutionOptions.ForUnityProperty(client, effectiveMemberId),
                     (terminal, _) => NeoScriptExecutor.ValidateStatementTerminal(
                         terminal,
                         "NeoScript property setter"));

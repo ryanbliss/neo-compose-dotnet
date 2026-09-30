@@ -360,6 +360,82 @@ namespace NeoCompose.Tests
             Assert.AreEqual(64, target!.value);
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void ActionAssignment_ConstructorBodySetterCallsDeferredLikeAnUnoptionedFrame(bool constructorBody)
+        {
+            var client = BuildClient(
+                out NSPropertyMember property,
+                baseSetter: SetterCallingDeferredThenWritingTarget());
+            client.RegisterDeferredNativeFunctionInvokers(
+                new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
+                {
+                    ["member-deferred"] = (_, _, _, deferred) =>
+                        NeoGeneratedTypesSupport
+                            .ResolveDeferredFunction<NeoDeferredFunction>(
+                                deferred,
+                                "DeferredSetterFunction")
+                            .Complete(),
+                });
+            Assert.IsTrue(client.TryGetValue(
+                NeoValueOwnership.Asset,
+                "value-receiver",
+                out ObjectMemberValue? receiverRow));
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            var root = RuntimeRoot(client, ctx);
+            ctx = ctx.WithRoot(root);
+            object? receiver = NSGetterEvaluator.UnwrapRow(
+                receiverRow!,
+                ctx,
+                NeoValueOwnership.Asset);
+            var action = Function(new AssignInstruction
+            {
+                type = InstructionKind.Assign,
+                target = new WriteTarget
+                {
+                    pointer = new CallGetterPointer
+                    {
+                        type = PointerKind.CallGetter,
+                        memberId = property.id,
+                        receiver = CallReceiver.Instance(ThisVariable()),
+                    },
+                    typeInfo = IntType(),
+                    writability = WritabilityKind.Setter,
+                },
+                operatorValue = "=",
+                pointer = NumberLiteral(64),
+            });
+            var scope = new Dictionary<string, object?>
+            {
+                ["__this__"] = receiver,
+                ["__root__"] = root,
+            };
+            // A constructor body runs immediate, as ExecuteConstructorBody
+            // prepares it, yet its setter gets the options a frame without
+            // any would give it, so the setter's deferred call still runs.
+            var bodyCtx = ctx.WithThis(receiver);
+            NeoScriptExecutionOptions? options = null;
+            if (constructorBody)
+            {
+                options = NeoScriptExecutionOptions.ForImmediate(client);
+                NeoScriptExecutor.PrepareFunctionContext(bodyCtx, options);
+                bodyCtx.constructorBody = true;
+            }
+            NeoScriptExecutionResult result = NeoScriptExecutor.Execute(
+                client,
+                action,
+                scope,
+                bodyCtx,
+                options);
+
+            Assert.IsFalse(result.IsPaused);
+            Assert.IsTrue(client.TryGetValue(
+                NeoValueOwnership.Save,
+                "value-target",
+                out NumberMemberValue? target));
+            Assert.AreEqual(64, target!.value);
+        }
+
         [Test]
         public void ActionCompoundAssignment_ReadsGetterThenInvokesSetter()
         {
@@ -711,6 +787,83 @@ namespace NeoCompose.Tests
             using (client.CaptureValueReads(third))
                 Assert.AreEqual(9, Convert.ToInt32(node.Compute("value-receiver").value));
             CollectionAssert.AreEquivalent(first, third);
+        }
+
+        [Test]
+        public void Compute_MemoHitOutsideACaptureStillReportsReadsToALaterCapture()
+        {
+            using var client = BuildClient(out NSPropertyMember property);
+            client.SetSaveValue(new NumberMemberValue { id = "value-target", value = 5, createdAt = "x", updatedAt = "x" });
+            var node = new NeoMemberNSProperty(client, property, null);
+
+            Assert.AreEqual(5, Convert.ToInt32(node.Compute("value-receiver").value));
+            Assert.AreEqual(5, Convert.ToInt32(node.Compute("value-receiver").value));
+
+            var captured = new HashSet<string>();
+            using (client.CaptureValueReads(captured))
+                Assert.AreEqual(5, Convert.ToInt32(node.Compute("value-receiver").value));
+            CollectionAssert.Contains(captured, "value-target");
+        }
+
+        [Test]
+        public void Compute_MemoizesADerivedListOfScalarsUntilAReadRowChanges()
+        {
+            using var client = BuildClient(out NSPropertyMember property);
+            property.getter = ListGetter(RootTargetPointer(), IntType());
+            client.SetSaveValue(new NumberMemberValue { id = "value-target", value = 5, createdAt = "x", updatedAt = "x" });
+            var node = new NeoMemberNSProperty(client, property, null);
+
+            var first = (object?[])node.Compute("value-receiver").value!;
+            Assert.IsTrue(client.TryGetMemoizedGetter(ListKey(property), out NeoClient.GetterMemoEntry entry) && entry.list is not null);
+            var second = (object?[])node.Compute("value-receiver").value!;
+            Assert.AreNotSame(first, second, "Every hit hands the caller its own array.");
+            Assert.AreEqual(5, Convert.ToInt32(second[0]));
+
+            client.SetSaveValue(new NumberMemberValue { id = "value-target", value = 9, createdAt = "x", updatedAt = "x" });
+            Assert.IsFalse(client.TryGetMemoizedGetter(ListKey(property), out _), "A write to a read row must drop the entry.");
+            Assert.AreEqual(9, Convert.ToInt32(((object?[])node.Compute("value-receiver").value!)[0]));
+        }
+
+        [Test]
+        public void Compute_MemoizedListHitResolvesItsRowEntries()
+        {
+            using var client = BuildClient(out NSPropertyMember property);
+            property.getter = ListGetter(
+                KeyOf(RootVariable(), "Save"),
+                new ClassTypeInfo { type = MemberKind.Class, required = true, classId = "class-root" });
+            var node = new NeoMemberNSProperty(client, property, null);
+
+            var first = (object?[])node.Compute("value-receiver").value!;
+            Assert.IsTrue(client.TryGetMemoizedGetter(ListKey(property), out NeoClient.GetterMemoEntry entry) && entry.list is not null);
+            var second = (object?[])node.Compute("value-receiver").value!;
+            Assert.AreNotSame(first, second);
+            Assert.AreEqual("value-save", ((INeoValueReference)second[0]!).valueId);
+        }
+
+        private static NeoClient.GetterMemoKey ListKey(NSPropertyMember property) => new(
+            NeoValueOwnership.Asset, "value-receiver", property.id, NeoValueOwnership.Asset);
+
+        // return [entry];
+        private static FunctionWithReturnType ListGetter(Pointer entry, TypeInfo entryType)
+        {
+            var listType = new CollectionTypeInfo
+            {
+                type = MemberKind.List,
+                required = true,
+                entryTypeInfo = entryType,
+            };
+            FunctionWithReturnType getter = Function(new ReturnInstruction
+            {
+                type = InstructionKind.Return,
+                pointer = new ListLiteralPointer
+                {
+                    type = PointerKind.ListLiteral,
+                    typeInfo = listType,
+                    entries = new[] { entry },
+                },
+            });
+            getter.typeInfo = listType;
+            return getter;
         }
 
         private static NeoClient BuildClient(

@@ -2457,7 +2457,7 @@ namespace NeoCompose.Tests
             var resolved = NeoGeneratedTypesSupport.ResolveDeclaredConstructor(client, payloadType,
                 null, Array.Empty<string>(), fields, binding.classArguments);
             var constructed = NeoGeneratedTypesSupport.ConstructDeclaredClassValue(resolved,
-                new Dictionary<string, object?>(), fields, new NSGetterEvaluator.Context(client, null, null));
+                resolved.NewArgumentValues(), fields, new NSGetterEvaluator.Context(client, null, null));
             Assert.AreEqual("runtime", constructed.Get<NeoMemberStringWritable>("Name").value!.value);
 
         }

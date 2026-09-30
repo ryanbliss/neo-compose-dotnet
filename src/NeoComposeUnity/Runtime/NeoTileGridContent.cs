@@ -200,8 +200,9 @@ namespace NeoCompose.Runtime
             this INeoTileGridContent content,
             Vector2Int cell)
         {
-            var tiles = content.GetTiles(cell);
-            return tiles.Count == 0 ? null : tiles[tiles.Count - 1];
+            if (content is null)
+                throw new ArgumentNullException(nameof(content));
+            return TopTile<NeoGeneratedClassValue>(content, null, cell);
         }
 
         public static IReadOnlyList<NeoGeneratedClassValue> GetTiles(
@@ -227,8 +228,9 @@ namespace NeoCompose.Runtime
             Vector2Int cell)
             where TTile : class, INeoValueReference
         {
-            var tiles = content.GetTiles<TTile>(cell);
-            return tiles.Count == 0 ? null : tiles[tiles.Count - 1];
+            if (content is null)
+                throw new ArgumentNullException(nameof(content));
+            return TopTile<TTile>(content, null, cell);
         }
 
         public static IReadOnlyList<TTile> GetTiles<TTile>(
@@ -253,8 +255,10 @@ namespace NeoCompose.Runtime
             INeoValueReference source,
             Vector2Int cell)
         {
-            var tiles = content.GetTiles(source, cell);
-            return tiles.Count == 0 ? null : tiles[tiles.Count - 1];
+            string? sourceValueId = SourceValueId(source);
+            return string.IsNullOrEmpty(sourceValueId)
+                ? null
+                : TopTile<NeoGeneratedClassValue>(content, sourceValueId, cell);
         }
 
         public static IReadOnlyList<NeoGeneratedClassValue> GetTiles(
@@ -262,9 +266,7 @@ namespace NeoCompose.Runtime
             INeoValueReference source,
             Vector2Int cell)
         {
-            if (source is null)
-                throw new ArgumentNullException(nameof(source));
-            string? sourceValueId = source.valueId;
+            string? sourceValueId = SourceValueId(source);
             if (string.IsNullOrEmpty(sourceValueId))
             {
                 return Array.Empty<NeoGeneratedClassValue>();
@@ -273,12 +275,9 @@ namespace NeoCompose.Runtime
             var tiles = new List<NeoGeneratedClassValue>();
             foreach (var layer in content.TileLayersInOrder)
             {
-                var tile = NeoWorldLayerRuntimeSupport.GetTile(layer, cell);
-                if (tile is null || tile.SourceKind != NeoTileOutputSourceKind.TileLayerLink)
-                    continue;
-                if (!string.Equals(tile.SourceTileLayerLinkId, sourceValueId, StringComparison.Ordinal))
-                    continue;
-                tiles.Add(tile.Tile);
+                var tile = LayerTile(layer, sourceValueId, cell);
+                if (tile is not null)
+                    tiles.Add(tile);
             }
             return tiles;
         }
@@ -289,8 +288,49 @@ namespace NeoCompose.Runtime
             Vector2Int cell)
             where TTile : class, INeoValueReference
         {
-            var tiles = content.GetTiles<TTile>(source, cell);
-            return tiles.Count == 0 ? null : tiles[tiles.Count - 1];
+            string? sourceValueId = SourceValueId(source);
+            return string.IsNullOrEmpty(sourceValueId)
+                ? null
+                : TopTile<TTile>(content, sourceValueId, cell);
+        }
+
+        private static string? SourceValueId(INeoValueReference source)
+        {
+            if (source is null)
+                throw new ArgumentNullException(nameof(source));
+            return source.valueId;
+        }
+
+        /// <summary>
+        /// The cell's tile on the topmost layer that has one — the last entry
+        /// <c>GetTiles</c> would list — without resolving the layers beneath.
+        /// </summary>
+        private static TTile? TopTile<TTile>(INeoTileGridContent content, string? sourceValueId, Vector2Int cell)
+            where TTile : class
+        {
+            IReadOnlyList<IReadOnlyNeoTileLayerRuntime> layers = content.TileLayersInOrder;
+            for (int i = layers.Count - 1; i >= 0; i--)
+            {
+                if (LayerTile(layers[i], sourceValueId, cell) is TTile tile)
+                    return tile;
+            }
+            return null;
+        }
+
+        /// <summary>A layer's tile at the cell; with a source, only the tile that source's link produced.</summary>
+        private static NeoGeneratedClassValue? LayerTile(
+            IReadOnlyNeoTileLayerRuntime layer,
+            string? sourceValueId,
+            Vector2Int cell)
+        {
+            if (sourceValueId is null)
+                return layer.GetTile(cell);
+            var tile = NeoWorldLayerRuntimeSupport.GetTile(layer, cell);
+            return tile is not null
+                && tile.SourceKind == NeoTileOutputSourceKind.TileLayerLink
+                && string.Equals(tile.SourceTileLayerLinkId, sourceValueId, StringComparison.Ordinal)
+                    ? tile.Tile
+                    : null;
         }
 
         public static IReadOnlyList<TTile> GetTiles<TTile>(
@@ -349,8 +389,9 @@ namespace NeoCompose.Runtime
             this INeoTileGridContent content,
             Vector2Int cell)
         {
-            var objects = content.GetObjects(cell);
-            return objects.Count == 0 ? null : objects[objects.Count - 1];
+            if (content is null)
+                throw new ArgumentNullException(nameof(content));
+            return TopObject<NeoGeneratedClassValue>(content, null, cell);
         }
 
         public static IReadOnlyList<NeoGeneratedClassValue> GetObjects(
@@ -372,8 +413,9 @@ namespace NeoCompose.Runtime
             Vector2Int cell)
             where TObject : class, INeoValueReference
         {
-            var objects = content.GetObjects<TObject>(cell);
-            return objects.Count == 0 ? null : objects[objects.Count - 1];
+            if (content is null)
+                throw new ArgumentNullException(nameof(content));
+            return TopObject<TObject>(content, null, cell);
         }
 
         public static IReadOnlyList<TObject> GetObjects<TObject>(
@@ -398,8 +440,10 @@ namespace NeoCompose.Runtime
             INeoValueReference source,
             Vector2Int cell)
         {
-            var objects = content.GetObjects(source, cell);
-            return objects.Count == 0 ? null : objects[objects.Count - 1];
+            string? sourceValueId = SourceValueId(source);
+            return string.IsNullOrEmpty(sourceValueId)
+                ? null
+                : TopObject<NeoGeneratedClassValue>(content, sourceValueId, cell);
         }
 
         public static IReadOnlyList<NeoGeneratedClassValue> GetObjects(
@@ -407,9 +451,7 @@ namespace NeoCompose.Runtime
             INeoValueReference source,
             Vector2Int cell)
         {
-            if (source is null)
-                throw new ArgumentNullException(nameof(source));
-            string? sourceValueId = source.valueId;
+            string? sourceValueId = SourceValueId(source);
             if (string.IsNullOrEmpty(sourceValueId))
             {
                 return Array.Empty<NeoGeneratedClassValue>();
@@ -431,8 +473,35 @@ namespace NeoCompose.Runtime
             Vector2Int cell)
             where TObject : class, INeoValueReference
         {
-            var objects = content.GetObjects<TObject>(source, cell);
-            return objects.Count == 0 ? null : objects[objects.Count - 1];
+            string? sourceValueId = SourceValueId(source);
+            return string.IsNullOrEmpty(sourceValueId)
+                ? null
+                : TopObject<TObject>(content, sourceValueId, cell);
+        }
+
+        /// <summary>
+        /// The cell's last object on the topmost layer that has a match — the
+        /// last entry <c>GetObjects</c> would list — without resolving the
+        /// layers beneath.
+        /// </summary>
+        private static TObject? TopObject<TObject>(INeoTileGridContent content, string? sourceValueId, Vector2Int cell)
+            where TObject : class
+        {
+            IReadOnlyList<IReadOnlyNeoObjectLayerRuntime> layers = content.ObjectLayersInOrder;
+            for (int i = layers.Count - 1; i >= 0; i--)
+            {
+                IReadOnlyList<NeoGeneratedClassValue> objects = layers[i].GetObjects(cell);
+                for (int j = objects.Count - 1; j >= 0; j--)
+                {
+                    if (objects[j] is TObject match
+                        && (sourceValueId is null
+                            || string.Equals(objects[j].valueId, sourceValueId, StringComparison.Ordinal)))
+                    {
+                        return match;
+                    }
+                }
+            }
+            return null;
         }
 
         public static IReadOnlyList<TObject> GetObjects<TObject>(

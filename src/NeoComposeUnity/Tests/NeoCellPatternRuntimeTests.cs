@@ -119,6 +119,67 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void OnlyQueriesGrid_HoldsWhenEveryReadIsAGridQueryCellsArgument()
+        {
+            static VariablePointer Cells() => new()
+            {
+                type = PointerKind.Variable,
+                variableId = "cells"
+            };
+            static FunctionWithReturnType Body(params Instruction[] instructions) => new()
+            {
+                parameters = new[] { new Variable { id = "__this__" }, new Variable { id = "cells" } },
+                instructions = instructions,
+            };
+            var query = new ReturnInstruction
+            {
+                type = InstructionKind.Return,
+                pointer = new CallFunctionPointer
+                {
+                    type = PointerKind.CallFunction,
+                    callSiteId = "query",
+                    memberId = "system_f5ca386c-990c-54a1-8473-2d49d2cd887d",
+                    receiver = CallReceiver.Instance(new VariablePointer { type = PointerKind.Variable, variableId = "__this__" }),
+                    args = new Pointer[] { Cells() },
+                },
+            };
+
+            FunctionWithReturnType queries = Body(query);
+            Assert.IsTrue(NeoCellPatternRuntime.OnlyQueriesGrid(queries, 1));
+            Assert.IsFalse(NeoCellPatternRuntime.OnlyQueriesGrid(queries, 0), "The receiver is read as a query receiver, not its cells.");
+            FunctionWithReturnType escapes = Body(
+                new ReturnInstruction { type = InstructionKind.Return, pointer = Cells() },
+                query);
+            Assert.IsFalse(NeoCellPatternRuntime.OnlyQueriesGrid(escapes, 1));
+        }
+
+        [Test]
+        public void PatternArguments_AreConstructedForEveryTargetButAGridQuery()
+        {
+            using NeoClient client = Client();
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            var args = new object?[] { NeoCellPattern.EightNeighbors, 3 };
+            NSGetterEvaluator.MaterializePatternArguments("system_f5ca386c-990c-54a1-8473-2d49d2cd887d", args, ctx);
+            Assert.AreSame(NeoCellPattern.EightNeighbors, args[0], "A grid query reads the offsets as they are.");
+
+            NSGetterEvaluator.MaterializePatternArguments("member-other", args, ctx);
+            Assert.IsInstanceOf<NeoScriptObject>(args[0]);
+            CollectionAssert.AreEqual(NeoCellPattern.EightNeighbors, NeoCellPatternStorage.ReadRuntime(args[0], ctx));
+            Assert.AreEqual(3, args[1]);
+        }
+
+        [Test]
+        public void DetachedPattern_IsReadFromItsSlotsOnce()
+        {
+            using NeoClient client = Client();
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            object source = NeoCellPatternStorage.Materialize(NeoCellPattern.EightNeighbors, ctx);
+            NeoCellPattern first = NeoCellPatternStorage.ReadRuntime(source, ctx);
+            CollectionAssert.AreEqual(NeoCellPattern.EightNeighbors, first);
+            Assert.AreSame(first, NeoCellPatternStorage.ReadRuntime(source, ctx));
+        }
+
+        [Test]
         public void NativePattern_RecordsTheArgumentsItWasBuiltWith()
         {
             // A vector read from a row is the row's cached payload, which a
@@ -133,9 +194,11 @@ namespace NeoCompose.Tests
                 NeoCellPatternStorage.ConstructorId,
                 new[] { "offsets" },
                 Array.Empty<NeoGeneratedTypesSupport.RuntimeConstructorField>());
+            object?[] arguments = resolved.NewArgumentValues();
+            arguments[resolved.argumentPositions[0]] = new object?[] { offset };
             object source = NSGetterEvaluator.ConstructDeclared(
                 resolved,
-                new Dictionary<string, object?> { ["offsets"] = new object?[] { offset } },
+                arguments,
                 Array.Empty<NeoGeneratedTypesSupport.RuntimeConstructorField>(),
                 ctx,
                 evaluateFieldValues: null,
@@ -222,6 +285,28 @@ namespace NeoCompose.Tests
             Assert.AreEqual(new Vector2Int(9, 8), after[0]);
             var env = NeoGenericBindings.Resolve<NeoCellPattern>(client, node);
             Assert.AreEqual(after[0], env.Read(node)[0]);
+        }
+
+        [Test]
+        public void RowPatternRead_KeepsAnUnchangedReadAndSeesAChangedOffset()
+        {
+            using NeoClient client = Client();
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            object source = NeoCellPatternStorage.Materialize(NeoCellPattern.EightNeighbors, ctx);
+            string id = NSGetterEvaluator.FindRowIdByReference(source, ctx)!;
+            NeoCellPattern first = NeoCellPatternStorage.ReadRuntime(source, ctx);
+            CollectionAssert.AreEqual(NeoCellPattern.EightNeighbors, first);
+            Assert.AreSame(first, NeoCellPatternStorage.ReadRuntime(source, ctx), "An unchanged row reads as the same pattern.");
+            Assert.IsTrue(client.TryGetValue(id, out ObjectMemberValue? row));
+            var offsets = (ArrayMemberValue)client.ResolveClassChildRow(row!, "_offsets")!;
+            // The offset row changes in place, so its instance stays the same.
+            Assert.IsTrue(client.TryGetValue(offsets.value![2], out Vector2MemberValue? entry));
+            entry!.value = NeoVectorValues.FromVector2Int(new Vector2Int(9, 8));
+            client.SetWritableValue(NeoValueOwnership.Session, entry);
+            var expected = new List<Vector2Int>(NeoCellPattern.EightNeighbors);
+            expected[2] = new Vector2Int(9, 8);
+            CollectionAssert.AreEqual(expected, NeoCellPatternStorage.ReadRuntime(source, ctx));
+            CollectionAssert.AreEqual(NeoCellPattern.EightNeighbors, first, "A read pattern never changes.");
         }
 
         [Test]

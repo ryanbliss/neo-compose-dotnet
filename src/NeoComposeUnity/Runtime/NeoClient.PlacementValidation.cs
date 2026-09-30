@@ -405,8 +405,8 @@ namespace NeoCompose.Runtime
             if (point is null || !Finite(point.x) || !Finite(point.y)
                 || point.x < int.MinValue || point.x > int.MaxValue
                 || point.y < int.MinValue || point.y > int.MaxValue
-                || point.x != Math.Truncate(point.x)
-                || point.y != Math.Truncate(point.y))
+                || !NeoNumbers.IsWhole(point.x)
+                || !NeoNumbers.IsWhole(point.y))
                 throw PlacementError("tile-cell-invalid", $"Tile '{tileId}' requires an integer Cell.");
         }
 

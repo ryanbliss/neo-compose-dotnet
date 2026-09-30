@@ -16,9 +16,10 @@ namespace NeoCompose.Runtime
         // those changes. Every memoized evaluation records its reads; a commit
         // drops the entries that read a changed row, and a world-content
         // change drops the entries that queried a grid. Only results that can
-        // be re-resolved in any evaluation context are kept: scalars, and
-        // pointers to authored or Save rows. Session rows are skipped because
-        // a getter that constructs its result must construct again.
+        // be re-resolved in any evaluation context are kept: scalars,
+        // pointers to authored or Save rows, and derived lists of those.
+        // Session rows are skipped because a getter that constructs its
+        // result must construct again.
         internal readonly struct GetterMemoKey : IEquatable<GetterMemoKey>
         {
             public readonly NeoValueOwnership ownership;
@@ -46,6 +47,10 @@ namespace NeoCompose.Runtime
         {
             public object? scalar;
             public NeoScript.NSGetterEvaluator.RowReference? row;
+            // A derived list result, rebuilt into a fresh array on every hit:
+            // each entry is a scalar or the RowReference of a row entry.
+            public object?[]? list;
+            public Member? listEntryMember;
             // The rows and grid cells the evaluation read, in order. They are
             // the entry's invalidation set, and a hit under dependency capture
             // (an NSProperty compute) reports them as the evaluation would have.
@@ -60,10 +65,10 @@ namespace NeoCompose.Runtime
         internal readonly struct GetterRead
         {
             public readonly INeoTileGridContent? content;
-            public readonly string? placementId;
             public readonly UnityEngine.Vector2Int? cell;
             public readonly bool tile;
             public readonly NeoValueOwnership ownership;
+            /// <summary>The row id, or a grid read's placement id.</summary>
             public readonly string id;
 
             public GetterRead(NeoValueOwnership ownership, string id)
@@ -71,7 +76,6 @@ namespace NeoCompose.Runtime
                 this.ownership = ownership;
                 this.id = id;
                 content = null;
-                placementId = null;
                 cell = null;
                 tile = false;
             }
@@ -79,7 +83,6 @@ namespace NeoCompose.Runtime
             public GetterRead(INeoTileGridContent content, string placementId, UnityEngine.Vector2Int? cell, bool tile)
             {
                 this.content = content;
-                this.placementId = placementId;
                 this.cell = cell;
                 this.tile = tile;
                 ownership = default;
@@ -124,25 +127,36 @@ namespace NeoCompose.Runtime
             return previous;
         }
 
-        /// <summary>Stops the current capture, folding its reads into the enclosing one.</summary>
-        internal List<GetterRead>? EndGetterReadCapture(GetterCaptureFrame previous, out string[]? valueReads)
+        /// <summary>
+        /// Stops the current capture, folding its reads into the enclosing
+        /// one, and returns it. The caller hands it to <see cref="MemoizeGetter"/>
+        /// or <see cref="RecycleGetterCapture"/>.
+        /// </summary>
+        internal GetterCaptureFrame EndGetterReadCapture(GetterCaptureFrame previous)
         {
-            List<GetterRead>? reads = getterReadCapture;
-            HashSet<string> values = getterValueReadCapture!;
+            var capture = new GetterCaptureFrame(getterReadCapture, getterValueReadCapture);
             getterReadCapture = previous.reads;
             getterValueReadCapture = previous.valueReads;
-            if (reads is not null && reads.Count != 0)
-                previous.reads?.AddRange(reads);
-            valueReads = values.Count == 0 ? null : values.ToArray();
-            previous.valueReads?.UnionWith(values);
-            values.Clear();
-            valueReadCapturePool.Push(values);
-            if (reads is null)
-                return null;
-            if (reads.Count != 0)
-                return reads;
-            readCapturePool.Push(reads);
-            return null;
+            if (capture.reads is { Count: not 0 })
+                previous.reads?.AddRange(capture.reads);
+            if (capture.valueReads is { Count: not 0 })
+                previous.valueReads?.UnionWith(capture.valueReads);
+            return capture;
+        }
+
+        /// <summary>Returns a capture no memo entry kept to the pools.</summary>
+        internal void RecycleGetterCapture(GetterCaptureFrame capture)
+        {
+            if (capture.reads is not null)
+            {
+                capture.reads.Clear();
+                readCapturePool.Push(capture.reads);
+            }
+            if (capture.valueReads is not null)
+            {
+                capture.valueReads.Clear();
+                valueReadCapturePool.Push(capture.valueReads);
+            }
         }
 
         /// <summary>A value-store read, reported to the active dependency captures.</summary>
@@ -158,8 +172,23 @@ namespace NeoCompose.Runtime
             getterValueReadCapture?.UnionWith(ids);
         }
 
-        internal void NoteRowRead(NeoValueOwnership ownership, string rowId) =>
-            getterReadCapture?.Add(new GetterRead(ownership, rowId));
+        internal void NoteRowRead(NeoValueOwnership ownership, string rowId)
+        {
+            List<GetterRead>? reads = getterReadCapture;
+            if (reads is null)
+                return;
+            // A member read notes its receiver before each child; a repeat of
+            // the previous read adds nothing to the invalidation set.
+            if (reads.Count != 0)
+            {
+                GetterRead previous = reads[reads.Count - 1];
+                if (previous.content is null
+                    && previous.ownership == ownership
+                    && ReferenceEquals(previous.id, rowId))
+                    return;
+            }
+            reads.Add(new GetterRead(ownership, rowId));
+        }
 
         internal void NoteGridRead(INeoTileGridContent content, string placementId, UnityEngine.Vector2Int? cell, bool tile) =>
             getterReadCapture?.Add(new GetterRead(content, placementId, cell, tile));
@@ -167,18 +196,24 @@ namespace NeoCompose.Runtime
         /// <summary>Reports a memoized getter's recorded reads as if it had run.</summary>
         internal void ReplayGetterReads(GetterMemoEntry entry, NeoScriptGridReads? gridReads)
         {
-            if (entry.valueReads is not null)
-                NoteValueReads(entry.valueReads);
-            if (entry.reads is null)
+            if (entry.valueReads is not null && (capturedValueReads is not null || getterValueReadCapture is not null))
+                foreach (string id in entry.valueReads)
+                    NoteValueRead(id);
+            // Nothing observes the reads outside a capture or grid query.
+            if (entry.reads is null || (gridReads is null && getterReadCapture is null))
                 return;
-            foreach (GetterRead read in entry.reads)
+            if (gridReads is not null)
             {
-                if (read.content is null)
-                    gridReads?.RecordValue(this, read.ownership, read.id);
-                else
-                    gridReads?.Record(read.content, read.placementId!, read.cell, read.tile);
-                getterReadCapture?.Add(read);
+                for (int i = 0; i < entry.reads.Count; i++)
+                {
+                    GetterRead read = entry.reads[i];
+                    if (read.content is null)
+                        gridReads.RecordValue(this, read.ownership, read.id);
+                    else
+                        gridReads.Record(read.content, read.id, read.cell, read.tile);
+                }
             }
+            getterReadCapture?.AddRange(entry.reads);
         }
 
         /// <summary>
@@ -196,8 +231,26 @@ namespace NeoCompose.Runtime
         internal bool TryGetMemoizedGetter(GetterMemoKey key, out GetterMemoEntry entry) =>
             getterMemo.TryGetValue(key, out entry);
 
-        internal void MemoizeGetter(GetterMemoKey key, GetterMemoEntry entry)
+        internal void MemoizeGetter(
+            GetterMemoKey key,
+            object? scalar,
+            NeoScript.NSGetterEvaluator.RowReference? row,
+            GetterCaptureFrame capture,
+            object?[]? list = null,
+            Member? listEntryMember = null)
         {
+            var entry = new GetterMemoEntry { scalar = scalar, row = row, list = list, listEntryMember = listEntryMember };
+            if (capture.reads is { Count: not 0 })
+                entry.reads = capture.reads;
+            else if (capture.reads is not null)
+                readCapturePool.Push(capture.reads);
+            if (capture.valueReads is not null)
+            {
+                if (capture.valueReads.Count != 0)
+                    entry.valueReads = capture.valueReads.ToArray();
+                capture.valueReads.Clear();
+                valueReadCapturePool.Push(capture.valueReads);
+            }
             ForgetMemoizedGetter(key);
             getterMemo[key] = entry;
             IndexMemoDependency(key.rowId, key);

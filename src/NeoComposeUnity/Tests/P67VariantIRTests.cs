@@ -831,11 +831,7 @@ namespace NeoCompose.Tests
             };
             FunctionWithReturnType body = Getter(Return(conditional));
             Assert.DoesNotThrow(() =>
-                NeoScriptExecutor.PrepareCallback(
-                    client,
-                    body,
-                    Context(client),
-                    options: null));
+                NeoScriptExecutor.EnterCallback(body, Context(client)));
         }
 
         [Test]
@@ -865,11 +861,7 @@ namespace NeoCompose.Tests
             FunctionWithReturnType body = Getter(Return(closure));
             body.typeInfo = delegateType;
             Assert.DoesNotThrow(() =>
-                NeoScriptExecutor.PrepareCallback(
-                    client,
-                    body,
-                    Context(client),
-                    options: null));
+                NeoScriptExecutor.EnterCallback(body, Context(client)));
         }
 
         [Test]
@@ -905,11 +897,7 @@ namespace NeoCompose.Tests
                 required = true,
             };
             Assert.DoesNotThrow(() =>
-                NeoScriptExecutor.PrepareCallback(
-                    client,
-                    body,
-                    Context(client),
-                    options: null));
+                NeoScriptExecutor.EnterCallback(body, Context(client)));
         }
 
         // -------------------------------------------------------------------

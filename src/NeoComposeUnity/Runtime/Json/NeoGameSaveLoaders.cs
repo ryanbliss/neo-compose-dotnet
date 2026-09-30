@@ -49,7 +49,7 @@ namespace NeoCompose.Runtime.Json
                 throw new InvalidOperationException("Remote save JSON was empty.");
             }
 
-            var save = JsonConvert.DeserializeObject<RemoteGameSave>(
+            var save = NeoInterningJsonReader.DeserializeSave<RemoteGameSave>(
                 json, NeoSaveJson.ContentSettings);
             if (save == null)
             {
@@ -67,7 +67,7 @@ namespace NeoCompose.Runtime.Json
                 return false;
             try
             {
-                var parsed = JsonConvert.DeserializeObject<RemoteGameSave>(
+                var parsed = NeoInterningJsonReader.DeserializeSave<RemoteGameSave>(
                     json, NeoSaveJson.ContentSettings);
                 if (parsed == null)
                     return false;
@@ -96,7 +96,7 @@ namespace NeoCompose.Runtime.Json
                 throw new InvalidOperationException("Local save JSON was empty.");
             }
 
-            var save = JsonConvert.DeserializeObject<LocalGameSave>(
+            var save = NeoInterningJsonReader.DeserializeSave<LocalGameSave>(
                 json, NeoSaveJson.ContentSettings);
             if (save == null)
             {
@@ -133,7 +133,7 @@ namespace NeoCompose.Runtime.Json
                 return false;
             try
             {
-                var parsed = JsonConvert.DeserializeObject<LocalGameSave>(
+                var parsed = NeoInterningJsonReader.DeserializeSave<LocalGameSave>(
                     json, NeoSaveJson.ContentSettings);
                 if (parsed == null)
                     return false;

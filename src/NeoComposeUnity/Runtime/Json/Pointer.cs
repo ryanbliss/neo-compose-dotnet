@@ -36,7 +36,7 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>Mirror of <c>INSPointerReference</c>.</summary>
-    public class ReferencePointer : Pointer
+    public sealed class ReferencePointer : Pointer
     {
         public string valueId = null!;
 
@@ -50,9 +50,11 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>Mirror of <c>INSPointerVariable</c>.</summary>
-    public class VariablePointer : Pointer
+    public sealed class VariablePointer : Pointer
     {
         [Newtonsoft.Json.JsonIgnore] internal NeoScript.NeoScriptVariableBinding? runtimeBinding;
+        // Layouts a read from this pointer walked through that do not declare it.
+        [Newtonsoft.Json.JsonIgnore] internal NeoScript.NeoScriptScopeLayout[]? absentLayouts;
         public string variableId = null!;
     }
 
@@ -60,22 +62,26 @@ namespace NeoCompose.Runtime.Json
     /// Mirror of <c>INSPointerValue</c> — wraps an
     /// <see cref="Export.Value"/> literal expression.
     /// </summary>
-    public class ValuePointer : Pointer
+    public sealed class ValuePointer : Pointer
     {
         public Value value = null!;
-        // Evaluator cache for a primitive literal (see NSGetterEvaluator).
+        // Evaluator cache for a primitive literal, or for the entries of an
+        // array literal of primitives (see NSGetterEvaluator).
         internal bool primitiveResolved;
         internal object? primitive;
+        internal object?[]? primitiveEntries;
+        // Evaluator cache for an array literal read only by a comparison.
+        internal object? comparand;
     }
 
     /// <summary>Mirror of <c>INSPointerOperation</c>.</summary>
-    public class OperationPointer : Pointer
+    public sealed class OperationPointer : Pointer
     {
         public Operation operation = null!;
     }
 
     /// <summary>Mirror of <c>INSPointerFunction</c>.</summary>
-    public class FunctionPointer : Pointer
+    public sealed class FunctionPointer : Pointer
     {
         public Function function = null!;
     }
@@ -84,7 +90,7 @@ namespace NeoCompose.Runtime.Json
     /// Class-owned stored member pointer. The stable member id is resolved
     /// against authored/Save/Session binding state at evaluation time.
     /// </summary>
-    public class StaticMemberPointer : Pointer
+    public sealed class StaticMemberPointer : Pointer
     {
         public string memberId = null!;
     }
@@ -95,7 +101,7 @@ namespace NeoCompose.Runtime.Json
     /// selection (`&lt;Class&gt;.Variants.Base`), meaning the class itself with
     /// no variant applied.
     /// </summary>
-    public class VariantPointer : Pointer
+    public sealed class VariantPointer : Pointer
     {
         public string classId = null!;
         public string? variantId;
@@ -104,7 +110,7 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>Mirror of <c>INSPointerKeyOf</c>.</summary>
-    public class KeyOfPointer : Pointer
+    public sealed class KeyOfPointer : Pointer
     {
         public KeyOf keyOf = null!;
         /// <summary>
@@ -131,7 +137,7 @@ namespace NeoCompose.Runtime.Json
     /// the field name <c>entries</c> for the list of entry pointers;
     /// kept verbatim here.
     /// </summary>
-    public class ListLiteralPointer : Pointer
+    public sealed class ListLiteralPointer : Pointer
     {
         public CollectionTypeInfo typeInfo = null!;
         public Pointer[] entries = null!;
@@ -145,20 +151,20 @@ namespace NeoCompose.Runtime.Json
     /// <c>entries</c> field shape is unambiguous despite the name
     /// collision with {@link ListLiteralPointer}.
     /// </summary>
-    public class DictLiteralPointer : Pointer
+    public sealed class DictLiteralPointer : Pointer
     {
         public CollectionTypeInfo typeInfo = null!;
         public DictLiteralPair[] entries = null!;
     }
 
     /// <summary>Mirror of <c>INSPointerForceUnwrap</c>.</summary>
-    public class ForceUnwrapPointer : Pointer
+    public sealed class ForceUnwrapPointer : Pointer
     {
         public Pointer pointer = null!;
     }
 
     /// <summary>Mirror of <c>INSPointerIsCheck</c>.</summary>
-    public class IsCheckPointer : Pointer
+    public sealed class IsCheckPointer : Pointer
     {
         public Pointer pointer = null!;
         public TypeInfo checkType = null!;
@@ -201,7 +207,7 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>Mirror of <c>INSPointerCallGetter</c>.</summary>
-    public class CallGetterPointer : Pointer
+    public sealed class CallGetterPointer : Pointer, ISchemaResolutionSite
     {
         public string memberId = null!;
         public CallReceiver receiver = null!;
@@ -214,10 +220,15 @@ namespace NeoCompose.Runtime.Json
         /// to `false`.
         /// </summary>
         public bool? optional;
+        /// <summary>The runtime's resolution of <see cref="memberId"/>'s schema placement.</summary>
+        [JsonIgnore]
+        internal NeoScript.NSGetterEvaluator.PlacementSite? placementSite;
+
+        void ISchemaResolutionSite.ForgetResolution() => placementSite = null;
     }
 
     /// <summary>Mirror of <c>INSPointerCoalesce</c>.</summary>
-    public class CoalescePointer : Pointer
+    public sealed class CoalescePointer : Pointer
     {
         public Pointer left = null!;
         public Pointer right = null!;
@@ -227,7 +238,7 @@ namespace NeoCompose.Runtime.Json
     /// Lazy conditional pointer. Only the selected result pointer is
     /// evaluated after the normalized boolean condition.
     /// </summary>
-    public class ConditionalPointer : Pointer
+    public sealed class ConditionalPointer : Pointer
     {
         public Pointer condition = null!;
         public Pointer whenTrue = null!;
@@ -235,7 +246,7 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>Constructs once and applies ordinary assignments in order.</summary>
-    public class ObjectInitializerPointer : Pointer
+    public sealed class ObjectInitializerPointer : Pointer
     {
         public Variable receiver = null!;
         public AssignInstruction[] assignments = null!;
@@ -244,7 +255,7 @@ namespace NeoCompose.Runtime.Json
     /// <summary>
     /// Constructs a NeoDelegate closure. Capture pointers bind the trailing parameters.
     /// </summary>
-    public class DelegateClosurePointer : Pointer
+    public sealed class DelegateClosurePointer : Pointer
     {
         public DelegateTypeInfo typeInfo = null!;
         public FunctionWithReturnType action = null!;
@@ -253,13 +264,13 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>Mirror of <c>INSPointerToBool</c>.</summary>
-    public class ToBoolPointer : Pointer
+    public sealed class ToBoolPointer : Pointer
     {
         public Pointer pointer = null!;
     }
 
     /// <summary>Mirror of <c>INSPointerStringify</c>.</summary>
-    public class StringifyPointer : Pointer
+    public sealed class StringifyPointer : Pointer
     {
         public Pointer pointer = null!;
         public TypeInfo sourceType = null!;
@@ -267,7 +278,7 @@ namespace NeoCompose.Runtime.Json
 
     /// <summary>Changes a placed tile's class without constructing a target.</summary>
     [JsonConverter(typeof(PointerConverter))]
-    public class TileConvertPointer : Pointer
+    public sealed class TileConvertPointer : Pointer
     {
         public Pointer receiverPointer = null!;
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
@@ -286,7 +297,7 @@ namespace NeoCompose.Runtime.Json
     /// <see cref="memberKey"/> identifies the call target.
     /// </summary>
     [JsonConverter(typeof(PointerConverter))]
-    public class CallFunctionPointer : Pointer
+    public sealed class CallFunctionPointer : Pointer, ISchemaResolutionSite
     {
         public string? memberId;
         public string? memberKey;
@@ -301,13 +312,24 @@ namespace NeoCompose.Runtime.Json
         {
             get; set;
         }
+        /// <summary>The runtime's resolutions of this call site, one per receiver Class.</summary>
+        [JsonIgnore]
+        internal NeoScript.NSGetterEvaluator.CallSiteTarget? resolvedTargets;
+
+        void ISchemaResolutionSite.ForgetResolution() => resolvedTargets = null;
+        /// <summary>This call site's argument buffer; see <see cref="NeoScript.NSGetterEvaluator.RentArguments"/>.</summary>
+        [JsonIgnore]
+        internal object?[]? argumentBuffer;
+        /// <summary>1 while a call holds <see cref="argumentBuffer"/>.</summary>
+        [JsonIgnore]
+        internal int argumentBufferInUse;
     }
 
     /// <summary>
     /// Invokes a delegate value resolved at runtime. Unlike
     /// <see cref="CallFunctionPointer"/>, the callable itself is a pointer.
     /// </summary>
-    public class CallDelegatePointer : Pointer
+    public sealed class CallDelegatePointer : Pointer
     {
         public Pointer @delegate = null!;
         public Pointer[] args = null!;
@@ -325,7 +347,7 @@ namespace NeoCompose.Runtime.Json
     /// <c>?.</c> invocation cannot arise, and an empty listener set is a
     /// successful no-op rather than a null-target throw.
     /// </summary>
-    public class CallActionPointer : Pointer
+    public sealed class CallActionPointer : Pointer
     {
         public Pointer action = null!;
         public Pointer[] args = null!;
@@ -335,7 +357,7 @@ namespace NeoCompose.Runtime.Json
         }
     }
 
-    public class FunctionErrorCheckPointer : Pointer
+    public sealed class FunctionErrorCheckPointer : Pointer
     {
         public CallFunctionPointer call = null!;
         public string mode = null!;

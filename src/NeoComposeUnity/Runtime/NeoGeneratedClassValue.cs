@@ -27,12 +27,13 @@ namespace NeoCompose.Runtime
         private NeoScriptObject? detached;
         private readonly string fallbackClassId;
         private bool isDisposed;
-        private readonly List<IDisposable> subscriptions = new();
+        // Most views never subscribe; the list comes with the first.
+        private List<IDisposable>? subscriptions;
         private NeoMemberClassWritable? writableNodeCache;
         private Dictionary<(string key, Type type), (NeoMember? node, object view)>? storedViews;
         private bool isClassDefaultReference;
-        private readonly string animationWrapperIdentity =
-            System.Guid.NewGuid().ToString("N");
+        // Minted on first use: only an animated view without a row needs it.
+        private string? animationWrapperIdentity;
         protected object? FunctionHandlerObject
         {
             get; set;
@@ -78,7 +79,7 @@ namespace NeoCompose.Runtime
         internal NeoMemberClass BackingNode => node;
         internal NeoMemberClassWritable WritableBackingNode => writableNode;
         internal string AnimationInstanceIdentity =>
-            valueId ?? $"wrapper:{animationWrapperIdentity}";
+            valueId ?? $"wrapper:{animationWrapperIdentity ??= System.Guid.NewGuid().ToString("N")}";
 
         internal void MarkClassDefaultReference()
         {
@@ -277,11 +278,14 @@ namespace NeoCompose.Runtime
                 return;
             if (OwnsBackingValueLifetime)
                 client.ReleaseAnimationClips(this);
-            foreach (var subscription in subscriptions.ToArray())
+            if (subscriptions is not null)
             {
-                subscription.Dispose();
+                foreach (var subscription in subscriptions.ToArray())
+                {
+                    subscription.Dispose();
+                }
+                subscriptions.Clear();
             }
-            subscriptions.Clear();
             node.OnChanged -= HandleNodeChanged;
             node.OnDisposed -= HandleNodeDisposed;
             if (writableNodeCache is not null && !ReferenceEquals(writableNodeCache, node))
@@ -482,11 +486,12 @@ namespace NeoCompose.Runtime
 
         private IDisposable TrackSubscription(IDisposable subscription)
         {
-            subscriptions.Add(subscription);
+            List<IDisposable> tracked = subscriptions ??= new List<IDisposable>();
+            tracked.Add(subscription);
             return new NeoDisposableSubscription(() =>
             {
                 subscription.Dispose();
-                subscriptions.Remove(subscription);
+                tracked.Remove(subscription);
             });
         }
     }

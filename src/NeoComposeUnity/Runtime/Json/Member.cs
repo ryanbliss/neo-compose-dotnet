@@ -884,7 +884,7 @@ namespace NeoCompose.Runtime.Json
     /// and absence both mean that the runtime resolves the collection value
     /// from its placement.
     /// </summary>
-    public class LookupMember : Member<string[]?>
+    public class LookupMember : Member<string[]?>, ISchemaResolutionSite
     {
         public string collectionMemberId = null!;
         private string? _collectionValueId;
@@ -892,6 +892,12 @@ namespace NeoCompose.Runtime.Json
 
         [JsonIgnore]
         internal bool CollectionValueIdWasAssigned => collectionValueIdWasAssigned;
+
+        /// <summary>The runtime's resolution of this lookup's collection, for one client's schema.</summary>
+        [JsonIgnore]
+        internal LookupCollectionTarget? collectionTarget;
+
+        void ISchemaResolutionSite.ForgetResolution() => collectionTarget = null;
 
         public string? collectionValueId
         {
@@ -999,7 +1005,7 @@ namespace NeoCompose.Runtime.Json
     }
 
     [JsonConverter(typeof(FunctionArgumentTypeInfoConverter))]
-    public class FunctionArgumentTypeInfo : TypeInfo
+    public sealed class FunctionArgumentTypeInfo : TypeInfo
     {
         public string name = null!;
         /// <summary>

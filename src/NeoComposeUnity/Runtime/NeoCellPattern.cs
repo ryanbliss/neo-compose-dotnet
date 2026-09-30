@@ -52,6 +52,9 @@ namespace NeoCompose.Runtime
             this.offsets = takeOwnership ? offsets : (Vector2Int[])offsets.Clone();
         }
 
+        /// <summary>A pattern over an array nothing else references.</summary>
+        internal static NeoCellPattern FromOwned(Vector2Int[] offsets) => new(offsets, true);
+
         /// <summary>Offset cell at the pattern's origin (0, 0) only.</summary>
         public static readonly NeoCellPattern Center = new(new[] { Vector2Int.zero }, true);
 
@@ -71,10 +74,15 @@ namespace NeoCompose.Runtime
         /// <summary>Yields each offset translated by <paramref name="origin"/>, in pattern order.</summary>
         public IEnumerable<Vector2Int> GetCells(Vector2Int origin)
         {
-            foreach (var offset in offsets)
-            {
-                yield return new Vector2Int(checked(origin.x + offset.x), checked(origin.y + offset.y));
-            }
+            for (int index = 0; index < offsets.Length; index++)
+                yield return CellAt(origin, index);
+        }
+
+        /// <summary>The cell the offset at <paramref name="index"/> covers when centered on <paramref name="origin"/>.</summary>
+        internal Vector2Int CellAt(Vector2Int origin, int index)
+        {
+            Vector2Int offset = offsets[index];
+            return new Vector2Int(checked(origin.x + offset.x), checked(origin.y + offset.y));
         }
 
         /// <summary>A filled square within the given radius.</summary>

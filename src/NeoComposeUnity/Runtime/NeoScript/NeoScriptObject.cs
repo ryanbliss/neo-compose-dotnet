@@ -5,7 +5,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using NeoCompose.Runtime.Json;
-using Newtonsoft.Json.Linq;
 
 namespace NeoCompose.Runtime.NeoScript
 {
@@ -32,26 +31,36 @@ namespace NeoCompose.Runtime.NeoScript
         internal readonly NeoClient client;
         internal readonly NeoGeneratedTypesSupport.DetachedClassPlan plan;
         internal readonly object?[] values;
-        internal readonly byte[] states;
+        // Slot states as bitmasks, so a plan of up to 64 slots allocates no
+        // state array; a wider plan keeps one byte per slot. A written slot
+        // never returns to a default state.
+        private ulong writtenSlots;
+        private ulong defaultReadSlots;
+        private readonly byte[]? wideStates;
+        // Slots whose current array a read handed out, so its alias origin is recorded.
+        private ulong exposedArraySlots;
         /// <summary>Growable entries of List slots mutated in place; the slot value is their snapshot.</summary>
         internal List<object?>?[]? listBuffers;
         /// <summary>The detached object whose slot holds this one; it materializes through that root.</summary>
         internal NeoScriptObject? owner;
         internal string? attachedId;
         /// <summary>
-        /// The P75 creation recipe of a declared construction, stamped on the
-        /// row at materialization; null for a schema-derived construction.
+        /// The P75 creation recipe of a declared construction, serialized onto
+        /// the row at materialization; null for a schema-derived construction.
         /// </summary>
-        internal Dictionary<string, JToken?>? constructorArgs;
-        /// <summary>Literal array arguments of <see cref="constructorArgs"/>, serialized only at materialization.</summary>
-        internal List<KeyValuePair<string, object?[]>>? constructorLiterals;
-        internal string? constructorId;
+        internal object?[]? constructorArgs;
+        internal ConstructorRecord? constructor;
         /// <summary>A declared constructor is still running, so a materialization may leave required members unset.</summary>
         internal bool constructing;
         internal readonly NeoScriptAllocationTracker tracker;
         internal readonly int trackerGeneration;
         /// <summary>The generated C# view handed out for this object, so C# sees one identity.</summary>
         internal NeoGeneratedClassValue? view;
+        /// <summary>
+        /// What a native read of an immutable native-backed class built from
+        /// the slots, so later native calls reuse it instead of rebuilding it.
+        /// </summary>
+        internal object? nativeValue;
 
         internal NeoScriptObject(
             NeoClient client,
@@ -61,9 +70,54 @@ namespace NeoCompose.Runtime.NeoScript
             this.client = client;
             this.plan = plan;
             values = new object?[plan.slots.Length];
-            states = new byte[plan.slots.Length];
+            if (plan.slots.Length > 64)
+                wideStates = new byte[plan.slots.Length];
             this.tracker = tracker;
             trackerGeneration = tracker.Generation;
+        }
+
+        internal byte State(int index)
+        {
+            if (wideStates is not null)
+                return wideStates[index];
+            ulong bit = 1UL << index;
+            if ((writtenSlots & bit) != 0)
+                return WrittenSlot;
+            return (defaultReadSlots & bit) != 0 ? DefaultReadSlot : DefaultSlot;
+        }
+
+        internal void MarkWritten(int index)
+        {
+            if (wideStates is not null)
+                wideStates[index] = WrittenSlot;
+            else
+                writtenSlots |= 1UL << index;
+        }
+
+        /// <summary>Marks the slot's current array handed out; false when it already was.</summary>
+        internal bool MarkArrayExposed(int index)
+        {
+            if (index >= 64)
+                return true;
+            ulong bit = 1UL << index;
+            if ((exposedArraySlots & bit) != 0)
+                return false;
+            exposedArraySlots |= bit;
+            return true;
+        }
+
+        internal void ClearArrayExposed(int index)
+        {
+            if (index < 64)
+                exposedArraySlots &= ~(1UL << index);
+        }
+
+        internal void MarkDefaultRead(int index)
+        {
+            if (wideStates is not null)
+                wideStates[index] = DefaultReadSlot;
+            else
+                defaultReadSlots |= 1UL << index;
         }
 
         public string? valueId => NSGetterEvaluator.AttachDetached(this, null);

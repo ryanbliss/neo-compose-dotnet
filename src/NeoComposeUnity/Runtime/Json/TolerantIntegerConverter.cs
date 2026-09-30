@@ -86,7 +86,7 @@ namespace NeoCompose.Runtime.Json
                     $"Expected a finite integer at path \"{path}\" but found \"{raw}\".");
             }
 
-            if (Math.Truncate(value) != value)
+            if (!NeoNumbers.IsWhole(value))
             {
                 throw new JsonSerializationException(
                     $"Expected an integer at path \"{path}\" but found \"{raw}\".");

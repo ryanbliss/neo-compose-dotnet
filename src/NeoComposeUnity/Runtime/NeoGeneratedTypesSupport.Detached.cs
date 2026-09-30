@@ -213,15 +213,16 @@ namespace NeoCompose.Runtime
             DetachedClassPlan plan,
             IReadOnlyList<RuntimeConstructorField> fields,
             NSGetterEvaluator.Context constructionCtx,
-            IReadOnlyDictionary<string, object?[]>? initializerArguments = null,
+            ConstructorChainArguments initializerArguments = default,
             string? constructedClassId = null)
         {
             var created = new NeoScriptObject(
                 constructionCtx.client,
                 plan,
                 constructionCtx.allocationTracker);
-            foreach (RuntimeConstructorField field in fields)
+            for (int fieldIndex = 0; fieldIndex < fields.Count; fieldIndex++)
             {
+                RuntimeConstructorField field = fields[fieldIndex];
                 if (!plan.slotByKey.TryGetValue(field.schemaKey, out int index)
                     || field.value is null
                         && RequiresRuntimeConstructorArgument(plan.slots[index].member)
@@ -237,7 +238,7 @@ namespace NeoCompose.Runtime
             {
                 DetachedSlot slot = plan.slots[index];
                 if (slot.initializer is null
-                    || created.states[index] != NeoScriptObject.DefaultSlot)
+                    || created.State(index) != NeoScriptObject.DefaultSlot)
                 {
                     continue;
                 }
@@ -270,75 +271,82 @@ namespace NeoCompose.Runtime
         internal static NeoScriptObject ConstructDetachedDeclared(
             NeoResolvedDeclaredConstructor resolved,
             DetachedClassPlan plan,
-            IReadOnlyDictionary<string, object?> argumentValues,
+            object?[] argumentValues,
             IReadOnlyList<RuntimeConstructorField> fields,
             NSGetterEvaluator.Context ctx,
             Action<NSGetterEvaluator.Context>? evaluateFieldValues)
         {
             NeoClient client = resolved.client;
-            NSGetterEvaluator.Context constructionCtx =
-                PushConstructionFrame(ctx, resolved.schemaClass.name);
-            object?[] positionalArguments = OrderDeclaredArguments(
-                resolved.link.record,
-                argumentValues);
-            Dictionary<string, object?[]> initializerArguments = PrepareConstructorInitializerArguments(
-                client,
-                resolved.link,
-                positionalArguments,
-                constructionCtx);
-            NeoScriptObject created = CreateDetached(
-                plan,
-                Array.Empty<RuntimeConstructorField>(),
-                constructionCtx,
-                initializerArguments,
-                plan.classId)!;
-            created.constructing = true;
+            int frame =
+                EnterConstructionFrame(ctx, resolved.schemaClass.name);
             try
             {
-                RunDeclaredConstructorChain(
+                object?[] positionalArguments = FillDeclaredArguments(
+                    resolved.link.record,
+                    argumentValues);
+                ConstructorChainArguments initializerArguments = PrepareConstructorInitializerArguments(
                     client,
-                    resolved,
                     resolved.link,
                     positionalArguments,
-                    created,
-                    null,
-                    constructionCtx,
-                    initializerArguments);
-                evaluateFieldValues?.Invoke(constructionCtx);
-                ApplyDetachedConstructorFields(resolved, created, fields, constructionCtx);
-                if (created.attachedId is null)
-                    AssertDetachedRootIsComplete(resolved, created);
-                else
-                    AssertDeclaredConstructorRootIsComplete(client, resolved, created.attachedId);
-                // Recording a row-typed argument may attach it, and with it
-                // this instance when the body adopted it.
-                created.constructorArgs = BuildConstructionProvenanceArgs(
-                    client,
-                    resolved,
-                    argumentValues,
-                    constructionCtx,
-                    deferLiterals: true,
-                    out created.constructorLiterals);
-                created.constructorId = resolved.link.record?.id;
-                if (created.attachedId is not null
-                    && client.TryGetValue(NeoValueOwnership.Session, created.attachedId, out ObjectMemberValue? live))
+                    ctx);
+                NeoScriptObject created = CreateDetached(
+                    plan,
+                    Array.Empty<RuntimeConstructorField>(),
+                    ctx,
+                    initializerArguments,
+                    plan.classId)!;
+                created.constructing = true;
+                try
                 {
-                    StampDetachedProvenance(created, live!);
+                    RunDeclaredConstructorChain(
+                        client,
+                        resolved,
+                        resolved.link,
+                        positionalArguments,
+                        created,
+                        null,
+                        ctx,
+                        initializerArguments,
+                        depth: 0);
+                    evaluateFieldValues?.Invoke(ctx);
+                    ApplyDetachedConstructorFields(resolved, created, fields, ctx);
+                    if (created.attachedId is null)
+                        AssertDetachedRootIsComplete(resolved, created);
+                    else
+                        AssertDeclaredConstructorRootIsComplete(client, resolved, created.attachedId);
+                    // Recording a row-typed argument may attach it, and with it
+                    // this instance when the body adopted it.
+                    created.constructorArgs = CollectConstructionProvenanceArgs(
+                        client,
+                        resolved,
+                        argumentValues,
+                        ctx,
+                        deferLiterals: true);
+                    created.constructor = resolved.link.record;
+                    if (created.attachedId is not null
+                        && client.TryGetValue(NeoValueOwnership.Session, created.attachedId, out ObjectMemberValue? live))
+                    {
+                        StampDetachedProvenance(created, live!);
+                    }
                 }
-            }
-            catch
-            {
-                if (created.attachedId is string attached)
-                    ReclaimFailedConstruction(client, attached, constructionCtx);
-                else
-                    ReleaseDetachedChildren(created);
-                throw;
+                catch
+                {
+                    if (created.attachedId is string attached)
+                        ReclaimFailedConstruction(client, attached, ctx);
+                    else
+                        ReleaseDetachedChildren(created);
+                    throw;
+                }
+                finally
+                {
+                    created.constructing = false;
+                }
+                return created;
             }
             finally
             {
-                created.constructing = false;
+                ctx.ExitNested(frame);
             }
-            return created;
         }
 
         /// <summary>
@@ -390,7 +398,7 @@ namespace NeoCompose.Runtime
             for (int index = 0; index < slots.Length; index++)
             {
                 DetachedSlot slot = slots[index];
-                if (created.states[index] != NeoScriptObject.DefaultSlot
+                if (created.State(index) != NeoScriptObject.DefaultSlot
                     || slot.hasLiteralDefault
                     || slot.member.Requirement != NeoMemberRequirementKind.Required)
                 {
@@ -446,7 +454,7 @@ namespace NeoCompose.Runtime
                     return false;
                 ReleaseDetachedSlot(target, index);
                 SetDetachedArray(target, index, copy);
-                target.states[index] = NeoScriptObject.WrittenSlot;
+                target.MarkWritten(index);
                 return true;
             }
             else if (!TryNormalizeDetachedValue(target, slot.member, slot.kind, value, out stored)
@@ -456,7 +464,7 @@ namespace NeoCompose.Runtime
             }
             ReleaseDetachedSlot(target, index);
             SetDetachedLeaf(target, index, stored);
-            target.states[index] = NeoScriptObject.WrittenSlot;
+            target.MarkWritten(index);
             return true;
         }
 
@@ -471,7 +479,7 @@ namespace NeoCompose.Runtime
         {
             DetachedSlot slot = target.plan.slots[index];
             if (slot.kind != DetachedSlotKind.List
-                || target.states[index] == NeoScriptObject.DefaultSlot && !slot.hasLiteralDefault
+                || target.State(index) == NeoScriptObject.DefaultSlot && !slot.hasLiteralDefault
                 || !TryNormalizeDetachedValue(target, slot.entryMember!, slot.entryKind, entry, out object? stored)
                 || stored is NeoScriptObject child && !TryAdoptDetachedChild(target, child))
             {
@@ -488,7 +496,7 @@ namespace NeoCompose.Runtime
             }
             buffer.Add(stored);
             target.values[index] = null;
-            target.states[index] = NeoScriptObject.WrittenSlot;
+            target.MarkWritten(index);
             return true;
         }
 
@@ -514,21 +522,37 @@ namespace NeoCompose.Runtime
         internal static bool TryGetDetachedArrayOrigin(object?[] entries, out DetachedArrayOrigin? origin) =>
             DetachedArrayOrigins.TryGetValue(entries, out origin);
 
-        /// <summary>Stores a slot's array and records its origin.</summary>
+        /// <summary>Stores a slot's array; its origin is recorded once a read hands it out.</summary>
         internal static object?[] SetDetachedArray(NeoScriptObject target, int index, object?[] entries)
         {
             target.values[index] = entries;
-            DetachedArrayOrigins.AddOrUpdate(entries, new DetachedArrayOrigin(target, index));
+            target.ClearArrayExposed(index);
             return entries;
         }
 
-        /// <summary>Stores a leaf slot's value, recording an array's origin.</summary>
+        /// <summary>Stores a leaf slot's value.</summary>
         internal static void SetDetachedLeaf(NeoScriptObject target, int index, object? value)
         {
-            if (value is object?[] array)
-                SetDetachedArray(target, index, array);
-            else
-                target.values[index] = value;
+            target.values[index] = value;
+            target.ClearArrayExposed(index);
+        }
+
+        /// <summary>
+        /// A slot's value on its way out to a reader. The first read of the
+        /// slot's current array records its origin; an array no read handed
+        /// out has no alias to track, so a store records nothing.
+        /// </summary>
+        internal static object? ExposeDetachedValue(NeoScriptObject target, int index, object? value)
+        {
+            if (value is object?[] entries && target.MarkArrayExposed(index))
+            {
+                DetachedArrayOrigins.AddOrUpdate(entries, new DetachedArrayOrigin(target, index));
+                // A List slot holds its own copy, first handed out here, so
+                // no variable can have remembered it as a plain list.
+                if (target.plan.slots[index].kind != DetachedSlotKind.List)
+                    NSGetterEvaluator.NoteListAlias();
+            }
+            return value;
         }
 
         /// <summary>The current array of a slot: a List's entries, rebuilt after appends, or a leaf's array.</summary>
@@ -622,12 +646,19 @@ namespace NeoCompose.Runtime
                     return true;
                 case IntMember when NeoScriptValueMarshaller.IsIntegralNumber(value):
                 case FloatMember when value is int or float:
-                    stored = Convert.ToDouble(value);
+                    stored = NSGetterEvaluator.Box(Convert.ToDouble(value));
                     return true;
                 case EnumMember when value is object?[] { Length: 1 } options && options[0] is string:
                     stored = new object?[] { options[0] };
                     return true;
                 case LookupMember lookupMember:
+                    // A single reference, the usual case, needs no id array
+                    // to copy from.
+                    if (LookupValueId(value) is { Length: > 0 } singleId)
+                    {
+                        stored = new object?[] { singleId };
+                        return true;
+                    }
                     string[] ids;
                     try
                     {
@@ -753,18 +784,15 @@ namespace NeoCompose.Runtime
             return rootRow.id;
         }
 
-        /// <summary>Stamps a declared construction's recipe, serializing its deferred literal arguments.</summary>
+        /// <summary>Stamps a declared construction's recipe, serializing its recorded arguments.</summary>
         private static void StampDetachedProvenance(NeoScriptObject value, ObjectMemberValue row)
         {
             if (value.constructorArgs is null)
                 return;
-            if (value.constructorLiterals is not null)
-            {
-                foreach (KeyValuePair<string, object?[]> literal in value.constructorLiterals)
-                    value.constructorArgs[literal.Key] = NeoClient.ConstructorArgumentToken(literal.Value, literal.Key);
-                value.constructorLiterals = null;
-            }
-            NeoClient.StampConstructionProvenance(row, value.constructorId, value.constructorArgs);
+            NeoClient.StampConstructionProvenance(
+                row,
+                value.constructor?.id,
+                SerializeConstructionProvenanceArgs(value.constructor, value.constructorArgs));
         }
 
         private static ObjectMemberValue StageDetached(
@@ -779,7 +807,7 @@ namespace NeoCompose.Runtime
             var supplied = new Dictionary<string, string>(plan.slots.Length);
             for (int index = 0; index < plan.slots.Length; index++)
             {
-                if (value.states[index] != NeoScriptObject.WrittenSlot)
+                if (value.State(index) != NeoScriptObject.WrittenSlot)
                     continue;
                 DetachedSlot slot = plan.slots[index];
                 string? childId = MaterializeRuntimeConstructorValue(

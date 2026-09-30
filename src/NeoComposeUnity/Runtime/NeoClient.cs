@@ -819,9 +819,9 @@ namespace NeoCompose.Runtime
             lock (resolvedNSFunctionsLock)
             {
                 resolvedNSFunctions.Clear();
-                functionScopePool?.Clear();
                 directFunctionContexts.Clear();
             }
+            ForgetSchemaResolutionSites();
             animationCoordinator.Dispose();
             animationClips.Clear();
             // A variant handle is minted against this client's records, so it
@@ -927,37 +927,43 @@ namespace NeoCompose.Runtime
 
         internal Dictionary<string, SchemaPlacement?> ScriptSchemaPlacements { get; } = new();
         internal Dictionary<(string classId, string schemaKey), string?> ScriptCallableDispatch { get; } = new();
+        /// <summary>The empty call stack every evaluator context starts from, so frames pushed onto it are shared.</summary>
+        internal NeoScript.NSGetterEvaluator.Context.CallFrameStack EmptyCallFrames { get; } = NeoScript.NSGetterEvaluator.Context.CallFrameStack.CreateRoot();
+        /// <summary>
+        /// Identity of the schema resolutions cached against this client.
+        /// Replaced whenever those caches are invalidated, so an IR site
+        /// that cached a resolution notices with one reference comparison.
+        /// </summary>
+        internal object SchemaResolution { get; private set; } = new();
+
+        // IR sites holding this client's resolutions. Clients share a
+        // project's IR, so Dispose and invalidation clear them rather than
+        // leave the IR holding this client's objects.
+        private readonly HashSet<ISchemaResolutionSite> schemaResolutionSites = new();
+
+        /// <summary>
+        /// Records that <paramref name="site"/> now caches a resolution
+        /// made under <see cref="SchemaResolution"/>. Sites call this only
+        /// when they replace another resolution's cache.
+        /// </summary>
+        internal void RememberSchemaResolutionSite(ISchemaResolutionSite site)
+        {
+            lock (schemaResolutionSites)
+                schemaResolutionSites.Add(site);
+        }
+
+        private void ForgetSchemaResolutionSites()
+        {
+            lock (schemaResolutionSites)
+            {
+                foreach (ISchemaResolutionSite site in schemaResolutionSites)
+                    site.ForgetResolution();
+                schemaResolutionSites.Clear();
+            }
+        }
+
         internal NeoScriptExecutionOptions? immediateScriptExecutionOptions;
-        private Stack<NeoScript.NeoScriptScope>? functionScopePool;
-        private const int MaxPooledFunctionScopes = 16;
-        private const int MaxPooledFunctionBindings = 128;
-
-        internal NeoScript.NeoScriptScope RentFunctionScope(int capacity)
-        {
-            lock (resolvedNSFunctionsLock)
-            {
-                if (functionScopePool is { Count: > 0 })
-                    return functionScopePool.Pop();
-            }
-            return new NeoScript.NeoScriptScope(capacity);
-        }
-
-        internal void ReturnFunctionScope(NeoScript.NeoScriptScope scope)
-        {
-            if (scope.BindingCapacity > MaxPooledFunctionBindings)
-                return;
-            // Release all argument/local references before retaining the empty frame.
-            scope.ResetLocals();
-            lock (resolvedNSFunctionsLock)
-            {
-                if (isDisposed)
-                    return;
-                functionScopePool ??= new Stack<NeoScript.NeoScriptScope>(MaxPooledFunctionScopes);
-                if (functionScopePool.Count < MaxPooledFunctionScopes)
-                    functionScopePool.Push(scope);
-            }
-        }
-
+        private const int MaxPooledDirectFunctionContexts = 16;
         internal MergedSchemaEntry? ResolveInstanceSurfaceMember(string classId, string key) =>
             ResolveClassNode(classId).SurfaceMember(key);
 
@@ -1030,7 +1036,7 @@ namespace NeoCompose.Runtime
                 // is checked out. Never put that old graph back into the pool.
                 if (!isDisposed && sharedEvaluationContext is not null
                     && ReferenceEquals(context.rowUnwrapCache, sharedEvaluationContext.rowUnwrapCache)
-                    && directFunctionContexts.Count < MaxPooledFunctionScopes)
+                    && directFunctionContexts.Count < MaxPooledDirectFunctionContexts)
                     directFunctionContexts.Add(context);
             }
         }
@@ -1045,11 +1051,13 @@ namespace NeoCompose.Runtime
                 InvalidateSharedEvaluationContext();
                 shared = sharedEvaluationContext = new NeoScript.NSGetterEvaluator.Context(this, null, null);
             }
-            return new NeoScript.NSGetterEvaluator.Context(this, null, null,
+            var context = new NeoScript.NSGetterEvaluator.Context(this, null, null,
                 valueOwnership: ownership,
                 rowUnwrapCache: shared.rowUnwrapCache,
                 rowReverseIndex: shared.rowReverseIndex,
                 rowCacheKeysByRow: shared.rowCacheKeysByRow);
+            context.ShareFrames(shared);
+            return context;
         }
 
         private void RefreshSharedEvaluationRow(NeoValueOwnership ownership, string valueId)
@@ -1152,6 +1160,22 @@ namespace NeoCompose.Runtime
             return value is not null;
         }
 
+        /// <summary>
+        /// <see cref="TryGetValue{TValue}(string, out TValue)"/> through a
+        /// node the caller keeps, so an ownership read and an unwrap of the
+        /// same row share one id lookup. Overlays take the id path.
+        /// </summary>
+        internal bool TryGetValue(string id, ref NeoValueNode? node, [NotNullWhen(true)] out MemberValue? value)
+        {
+            if (candidateReplay is not null || candidateReadPlan is not null)
+                return TryGetValue(id, out value);
+            NoteValueRead(id);
+            if (node is not { live: true })
+                node = ValueNode(id);
+            value = node?.session ?? node?.save ?? node?.Asset(data) ?? node?.virtualRow;
+            return value is not null;
+        }
+
         internal bool TryGetCommittedValue<TValue>(string id, [NotNullWhen(true)] out TValue? value) where TValue : MemberValue
         {
             NoteValueRead(id);
@@ -1193,16 +1217,46 @@ namespace NeoCompose.Runtime
             NeoValueOwnership ownership, string id,
             [NotNullWhen(true)] out TValue? value) where TValue : MemberValue
         {
+            TryGetValue(ownership, id, out MemberValue? row);
+            value = row as TValue;
+            return value is not null;
+        }
+
+        // The owned reads are implemented on MemberValue: Mono shares one
+        // generic body across reference instantiations, so each `as TValue`
+        // inside it is a runtime type lookup. Typed callers cast once.
+        internal bool TryGetValue(
+            NeoValueOwnership ownership, string id,
+            [NotNullWhen(true)] out MemberValue? value)
+        {
             if (candidateReplay?.Allocations.TryGetValue(id, out MemberValue? allocated) == true)
             {
-                value = allocated as TValue;
+                value = allocated;
                 return value is not null;
             }
 
             if (candidateReadPlan is null)
                 return TryGetCommittedValue(ownership, id, out value);
             NoteValueRead(id);
-            value = candidateReadPlan.Resolve(ownership, id) as TValue;
+            value = candidateReadPlan.Resolve(ownership, id);
+            return value is not null;
+        }
+
+        /// <summary>
+        /// <see cref="TryGetValue(NeoValueOwnership, string, out MemberValue)"/>
+        /// through a node the caller keeps, so repeated reads of one row
+        /// look its id up once. Overlays take the id path.
+        /// </summary>
+        internal bool TryGetValue(
+            NeoValueOwnership ownership, string id, ref NeoValueNode? node,
+            [NotNullWhen(true)] out MemberValue? value)
+        {
+            if (candidateReplay is not null || candidateReadPlan is not null)
+                return TryGetValue(ownership, id, out value);
+            NoteValueRead(id);
+            if (node is not { live: true })
+                node = ValueNode(id);
+            value = CommittedRow(ownership, id, node);
             return value is not null;
         }
 
@@ -1211,17 +1265,26 @@ namespace NeoCompose.Runtime
             string id,
             [NotNullWhen(true)] out TValue? value) where TValue : MemberValue
         {
-            NoteValueRead(id);
-            return TryGetCommittedValue(ownership, id, ValueNode(id), out value);
+            TryGetCommittedValue(ownership, id, out MemberValue? row);
+            value = row as TValue;
+            return value is not null;
         }
 
-        private bool TryGetCommittedValue<TValue>(
+        internal bool TryGetCommittedValue(
             NeoValueOwnership ownership,
             string id,
-            NeoValueNode? node,
-            [NotNullWhen(true)] out TValue? value) where TValue : MemberValue
+            [NotNullWhen(true)] out MemberValue? value)
         {
-            value = null;
+            NoteValueRead(id);
+            value = CommittedRow(ownership, id, ValueNode(id));
+            return value is not null;
+        }
+
+        private MemberValue? CommittedRow(
+            NeoValueOwnership ownership,
+            string id,
+            NeoValueNode? node)
+        {
             MemberValue? writable = ownership switch
             {
                 NeoValueOwnership.Session => node?.session,
@@ -1231,15 +1294,9 @@ namespace NeoCompose.Runtime
                     $"Unknown value ownership '{ownership}'."),
             };
             if (writable is not null)
-            {
-                value = writable as TValue;
-                return value is not null;
-            }
-            if (node?.Asset(data) is TValue typedAsset)
-            {
-                value = typedAsset;
-                return true;
-            }
+                return writable;
+            if (node?.Asset(data) is { } asset)
+                return asset;
             // A virtual row belongs to the store its instance root belongs to,
             // and reads fall through to assets exactly like the authored lookup
             // above: a Save- or Session-scoped read that misses its own store
@@ -1247,20 +1304,17 @@ namespace NeoCompose.Runtime
             // What stays refused is the reverse — answering an Asset-scoped
             // read with a Save- or Session-owned row, which would leak a
             // writable graph into a caller that asked to stay in assets.
-            if (CommittedVirtualRow(id, node) is TValue typedVirtual)
+            if (CommittedVirtualRow(id, node) is { } virtualRow)
             {
                 NeoValueOwnership virtualOwnership = node?.virtualOwnership ?? default;
                 if (candidateReplay is not null
                     && !TryResolveVirtualOwnership(id, out virtualOwnership))
-                    return false;
+                    return null;
                 if (virtualOwnership == ownership
                     || virtualOwnership == NeoValueOwnership.Asset)
-                {
-                    value = typedVirtual;
-                    return true;
-                }
+                    return virtualRow;
             }
-            return false;
+            return null;
         }
 
         // Authored ownership is the per-value effective storage
@@ -1281,6 +1335,9 @@ namespace NeoCompose.Runtime
         // root tree auto-loads from wrapper construction) is covered by the
         // constructor's own pass and must not walk half-initialized state.
         private bool authoredOwnershipBuilt;
+        // Moves whenever the map is rebuilt, so a value node's copy of its
+        // entry knows when to read the map again.
+        private int authoredOwnershipEpoch;
 
         /// <summary>
         /// Classifies every authored row reachable from the three root
@@ -1293,6 +1350,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         private void BuildAuthoredOwnershipMap()
         {
+            authoredOwnershipEpoch++;
             authoredOwnership.Clear();
             authoredStorageRoots.Clear();
             var visited = new HashSet<string>();
@@ -1327,6 +1385,7 @@ namespace NeoCompose.Runtime
                     visited);
             }
             authoredOwnershipBuilt = true;
+            authoredOwnershipEpoch++;
         }
 
         private void MarkAuthoredOwnership(
@@ -1855,6 +1914,25 @@ namespace NeoCompose.Runtime
         internal IList<NeoSchemaClass> ResolveClassInheritanceChain(string classId) =>
             ResolveClassNode(classId).Chain;
 
+        /// <summary>
+        /// Whether <paramref name="expectedClassId"/> is on
+        /// <paramref name="actualClassId"/>'s inheritance chain; false for an
+        /// unknown or circular class.
+        /// </summary>
+        internal bool ClassChainContains(string actualClassId, string expectedClassId)
+        {
+            if (actualClassId == expectedClassId)
+                return true;
+            try
+            {
+                return ResolveClassNode(actualClassId).Extends(expectedClassId);
+            }
+            catch (CircularInheritanceError)
+            {
+                return false;
+            }
+        }
+
         internal IList<MergedSchemaEntry> ResolveInstanceSurfaceSchema(string classId) =>
             ResolveClassNode(classId).Surface;
 
@@ -1884,11 +1962,14 @@ namespace NeoCompose.Runtime
             LayerLinkTargetByClass.Clear();
             ScriptSchemaPlacements.Clear();
             ScriptCallableDispatch.Clear();
+            ForgetSchemaResolutionSites();
+            SchemaResolution = new object();
             staticReadKeys.Clear();
             foreach (NeoClassNode node in classNodes.Values)
                 node.live = false;
             classNodes.Clear();
             NeoGeneratedTypesSupport.InvalidateConstructorSchemaCaches(this);
+            settledAggregateParameters.Clear();
             readOnlyDeclarationDefaults.Clear();
         }
 
@@ -2845,12 +2926,42 @@ namespace NeoCompose.Runtime
 
         internal bool TryGetValueOwnership(string id, out NeoValueOwnership ownership)
         {
+            NeoValueNode? node = null;
+            return TryGetValueOwnership(id, ref node, out ownership);
+        }
+
+        /// <summary>
+        /// <see cref="TryGetValueOwnership(string, out NeoValueOwnership)"/>
+        /// through a node the caller keeps, so the row read that follows
+        /// reuses the one id lookup.
+        /// </summary>
+        internal bool TryGetValueOwnership(string id, ref NeoValueNode? node, out NeoValueOwnership ownership)
+        {
             if (candidateReadPlan is not null)
                 return candidateReadPlan.TryGetOwnership(id, out ownership);
-            return TryGetCommittedOwnership(id, out ownership);
+            return TryGetCommittedOwnership(id, ref node, out ownership);
+        }
+
+        private bool TryGetAuthoredOwnership(string id, NeoValueNode? node, out NeoValueOwnership ownership)
+        {
+            if (node is null)
+                return authoredOwnership.TryGetValue(id, out ownership);
+            if (node.authoredOwnershipEpoch != authoredOwnershipEpoch)
+            {
+                node.hasAuthoredOwnership = authoredOwnership.TryGetValue(id, out node.authoredOwnership);
+                node.authoredOwnershipEpoch = authoredOwnershipEpoch;
+            }
+            ownership = node.authoredOwnership;
+            return node.hasAuthoredOwnership;
         }
 
         internal bool TryGetCommittedOwnership(string id, out NeoValueOwnership ownership)
+        {
+            NeoValueNode? node = null;
+            return TryGetCommittedOwnership(id, ref node, out ownership);
+        }
+
+        private bool TryGetCommittedOwnership(string id, ref NeoValueNode? node, out NeoValueOwnership ownership)
         {
             if (candidateReplay?.Allocations.ContainsKey(id) == true)
             {
@@ -2858,23 +2969,25 @@ namespace NeoCompose.Runtime
                 return true;
             }
 
-            if (sessionData.values.ContainsKey(id))
+            if (node is not { live: true })
+                node = ValueNode(id);
+            if (node?.session is not null)
             {
                 ownership = NeoValueOwnership.Session;
                 return true;
             }
-            if (saveData.values.ContainsKey(id))
+            if (node?.save is not null)
             {
                 ownership = NeoValueOwnership.Save;
                 return true;
             }
             // Reachable from a writable root but not yet shadowed (sparse): still
             // writable in that store.
-            if (authoredOwnership.TryGetValue(id, out ownership))
+            if (TryGetAuthoredOwnership(id, node, out ownership))
             {
                 return true;
             }
-            if (data.values.ContainsKey(id))
+            if (node?.Asset(data) is not null)
             {
                 ownership = NeoValueOwnership.Asset;
                 return true;
@@ -4375,12 +4488,17 @@ namespace NeoCompose.Runtime
             [NotNullWhen(true)] out string? childValueId)
         {
             childValueId = null;
-            foreach (var link in EnumerateConstructorSettledAggregateLinks(parent))
+            if (SettledAggregateConstructor(parent) is not { } constructor)
+                return false;
+            // A loop, not the link enumerator: this runs on every child row read.
+            SettledAggregateParameter[] parameters = SettledAggregateParameters(constructor);
+            for (int index = 0; index < parameters.Length; index++)
             {
-                if (link.schemaKey != schemaKey)
-                    continue;
-                childValueId = link.valueId;
-                return true;
+                if (parameters[index].schemaKey == schemaKey
+                    && TryGetSettledAggregateLink(
+                        parent, sourceMember: null, includeMaterializedChildren: false,
+                        parameters[index], out childValueId, out _))
+                    return true;
             }
             return false;
         }
@@ -4394,6 +4512,26 @@ namespace NeoCompose.Runtime
                 Member? sourceMember = null,
                 bool includeMaterializedChildren = false)
         {
+            if (SettledAggregateConstructor(parent) is not { } constructor)
+                yield break;
+            foreach (SettledAggregateParameter parameter in SettledAggregateParameters(constructor))
+            {
+                if (TryGetSettledAggregateLink(
+                        parent, sourceMember, includeMaterializedChildren, parameter,
+                        out string? childValueId, out Member? member))
+                {
+                    yield return (
+                        parameter.parameterId,
+                        parameter.schemaKey,
+                        childValueId,
+                        member);
+                }
+            }
+        }
+
+        /// <summary>The constructor that settled <paramref name="parent"/>'s aggregates, when it recorded one for its own class.</summary>
+        private ConstructorRecord? SettledAggregateConstructor(ObjectMemberValue parent)
+        {
             if (parent.constructorArgs is null
                 || parent.instanceConstructorId is not string constructorId
                 || !data.constructors.TryGetValue(
@@ -4402,45 +4540,88 @@ namespace NeoCompose.Runtime
                 || string.IsNullOrEmpty(parent.classId)
                 || constructor.classId != parent.classId)
             {
-                yield break;
+                return null;
             }
+            return constructor;
+        }
+
+        private bool TryGetSettledAggregateLink(
+            ObjectMemberValue parent,
+            Member? sourceMember,
+            bool includeMaterializedChildren,
+            SettledAggregateParameter parameter,
+            [NotNullWhen(true)] out string? childValueId,
+            [NotNullWhen(true)] out Member? member)
+        {
+            childValueId = null;
+            member = null;
+            if (!includeMaterializedChildren
+                && parent.value?.ContainsKey(parameter.schemaKey) == true)
+            {
+                return false;
+            }
+            if (!parent.constructorArgs!.TryGetValue(parameter.parameterId, out JToken? token)
+                || token?.Type != JTokenType.String)
+            {
+                return false;
+            }
+            member = ResolveOwnedMemberType(parent, sourceMember, parent.classId!, parameter.member);
+            childValueId = token.Value<string>();
+            if (string.IsNullOrWhiteSpace(childValueId)
+                || member is not (ClassMember or ListMember or DictionaryMember))
+            {
+                childValueId = null;
+                member = null;
+                return false;
+            }
+            return true;
+        }
+
+        private readonly struct SettledAggregateParameter
+        {
+            internal readonly string parameterId;
+            internal readonly string schemaKey;
+            internal readonly Member member;
+
+            internal SettledAggregateParameter(string parameterId, string schemaKey, Member member)
+            {
+                this.parameterId = parameterId;
+                this.schemaKey = schemaKey;
+                this.member = member;
+            }
+        }
+
+        // The constructor's parameters that settle a stored member, a function
+        // of the schema alone: every read of a collapse-stamped row asks.
+        private readonly Dictionary<ConstructorRecord, SettledAggregateParameter[]> settledAggregateParameters = new();
+
+        private SettledAggregateParameter[] SettledAggregateParameters(ConstructorRecord constructor)
+        {
+            if (settledAggregateParameters.TryGetValue(constructor, out SettledAggregateParameter[]? cached))
+                return cached;
             NeoGeneratedTypesSupport.NeoResolvedConstructorLink constructorLink =
                 NeoGeneratedTypesSupport.ResolveConstructorLink(
                     this,
                     constructor,
                     new HashSet<string>());
+            var parameters = new List<SettledAggregateParameter>();
             for (int index = 0; index < constructor.argumentTypes.Length; index++)
             {
-                FunctionArgumentTypeInfo parameter = constructor.argumentTypes[index];
-                if (!TryResolveRecordedConstructorSettlement(
+                if (TryResolveRecordedConstructorSettlement(
                         constructorLink,
-                        parameter.name,
+                        constructor.argumentTypes[index].name,
                         out MergedSchemaEntry? schemaEntry)
-                    || (!includeMaterializedChildren
-                        && parent.value?.ContainsKey(schemaEntry.schemaKey) == true)
-                    || !TryGetMember(schemaEntry.memberId, out Member? member))
+                    && TryGetMember(schemaEntry.memberId, out Member? member))
                 {
-                    continue;
+                    parameters.Add(new SettledAggregateParameter(
+                        ConstructorParameterId(constructor, index),
+                        schemaEntry.schemaKey,
+                        member));
                 }
-                string parameterId = ConstructorParameterId(constructor, index);
-                if (!parent.constructorArgs.TryGetValue(parameterId, out JToken? token)
-                    || token?.Type != JTokenType.String)
-                {
-                    continue;
-                }
-                member = ResolveOwnedMemberType(parent, sourceMember, parent.classId!, member);
-                string? childValueId = token.Value<string>();
-                if (string.IsNullOrWhiteSpace(childValueId)
-                    || member is not (ClassMember or ListMember or DictionaryMember))
-                {
-                    continue;
-                }
-                yield return (
-                    parameterId,
-                    schemaEntry.schemaKey,
-                    childValueId!,
-                    member);
             }
+            SettledAggregateParameter[] resolved = parameters.ToArray();
+            settledAggregateParameters.Add(constructor, resolved);
+            return resolved;
         }
 
         private bool TryResolveConstructorSettledAggregateMember(
@@ -4497,7 +4678,9 @@ namespace NeoCompose.Runtime
             string valueId,
             [NotNullWhen(true)] out Member? member)
         {
-            return TryInferMemberForValueId(valueId, new HashSet<string>(), out member);
+            // Most ids are indexed directly; only a walk needs the cycle guard.
+            return TryInferDirectMemberForValueId(valueId, out member)
+                || TryInferMemberForValueId(valueId, new HashSet<string>(), out member);
         }
 
         private bool TryInferMemberForValueId(
@@ -5800,6 +5983,26 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
+        /// <see cref="ResolveValueRow(string)"/> through a node the caller
+        /// keeps. Overlays and replays take the id path.
+        /// </summary>
+        internal MemberValue? ResolveValueRow(string valueId, ref NeoValueNode? node)
+        {
+            if (candidateReplay is not null || candidateReadPlan is not null)
+                return ResolveValueRow(valueId);
+            NoteValueRead(valueId);
+            if (node is not { live: true })
+                node = ValueNode(valueId);
+            return node?.session
+                ?? node?.save
+                ?? node?.Asset(data)
+                ?? node?.virtualRow;
+        }
+
+        /// <summary>Moves whenever any partition loads or unloads.</summary>
+        internal int ValuePartitionEpoch => data.valuesEpoch;
+
+        /// <summary>
         /// Notifies subscribers bound to a member row's CONTAINER that its
         /// membership changed (a member row was added, moved, restored, tombstoned,
         /// or dropped). Unordered containment never writes the container row
@@ -5884,6 +6087,39 @@ namespace NeoCompose.Runtime
 
             valueId = ResolveLookupCollectionValueId(collectionMember, collectionValueId);
             return valueId is not null;
+        }
+
+        /// <summary>
+        /// The store a lookup's collection value lives in. The lookup keeps
+        /// its collection member and the collection's value node for this
+        /// client's schema resolution, so a read looks neither id up again.
+        /// </summary>
+        internal bool TryGetLookupCollectionOwnership(LookupMember lookup, out NeoValueOwnership ownership)
+        {
+            LookupCollectionTarget? target = lookup.collectionTarget;
+            if (target is null || !ReferenceEquals(target.schemaResolution, SchemaResolution))
+            {
+                TryGetMember(lookup.collectionMemberId, out Member? collectionMember);
+                lookup.collectionTarget = target = new LookupCollectionTarget(
+                    SchemaResolution,
+                    collectionMember,
+                    lookup.CollectionValueId);
+                RememberSchemaResolutionSite(lookup);
+            }
+            string? collectionId = target.collectionMember is null
+                ? null
+                : ResolveLookupCollectionValueId(target.collectionMember, target.collectionValueId);
+            if (collectionId is null)
+            {
+                ownership = default;
+                return false;
+            }
+            if (!ReferenceEquals(target.collectionId, collectionId))
+            {
+                target.collectionId = collectionId;
+                target.node = null;
+            }
+            return TryGetValueOwnership(collectionId, ref target.node, out ownership);
         }
 
         private string? ResolveLookupCollectionValueId(
@@ -6114,10 +6350,15 @@ namespace NeoCompose.Runtime
         }
 
         internal bool TryGetGeneratedClassValue(string declarationId, string valueId,
-            NeoValueOwnership ownership, [NotNullWhen(true)] out NeoGeneratedClassValue? value)
+            NeoValueOwnership ownership, [NotNullWhen(true)] out NeoGeneratedClassValue? value) =>
+            TryGetGeneratedClassValue(MakeNodeKey(declarationId, valueId, ownership), out value);
+
+        /// <param name="registryKey">The value's <see cref="MakeNodeKey"/>.</param>
+        internal bool TryGetGeneratedClassValue(string registryKey,
+            [NotNullWhen(true)] out NeoGeneratedClassValue? value)
         {
             var registry = candidateReplay?.GeneratedValues ?? generatedValuesInternal;
-            return registry.TryGetValue(MakeNodeKey(declarationId, valueId, ownership), out value);
+            return registry.TryGetValue(registryKey, out value);
         }
 
         internal TGenerated GetOrCreateGeneratedClassValue<TGenerated>(
@@ -6869,9 +7110,9 @@ namespace NeoCompose.Runtime
             string memberId,
             [NotNullWhen(true)] out FunctionMember? member)
         {
-            var visited = new HashSet<string>();
+            HashSet<string>? visited = null;
             string? currentId = memberId;
-            while (!string.IsNullOrEmpty(currentId) && visited.Add(currentId))
+            while (!string.IsNullOrEmpty(currentId))
             {
                 if (!data.members.TryGetValue(currentId!, out Member? current))
                 {
@@ -6884,6 +7125,10 @@ namespace NeoCompose.Runtime
                     member = function;
                     return true;
                 }
+                // Most members resolve without a hop; only a hop needs the cycle guard.
+                visited ??= new HashSet<string>();
+                if (!visited.Add(currentId!))
+                    break;
                 currentId = current.extendsMemberId;
             }
             member = null;
@@ -7808,16 +8053,18 @@ namespace NeoCompose.Runtime
             string? overrideValueId,
             NeoValueOwnership ownership = NeoValueOwnership.Asset)
         {
+            // Prefixes carry their colon so the key concatenates at most four
+            // parts, which needs no argument array.
             string prefix = ownership switch
             {
-                NeoValueOwnership.Asset => "asset",
-                NeoValueOwnership.Save => "save",
-                NeoValueOwnership.Session => "session",
-                _ => "unknown",
+                NeoValueOwnership.Asset => "asset:",
+                NeoValueOwnership.Save => "save:",
+                NeoValueOwnership.Session => "session:",
+                _ => "unknown:",
             };
             return string.IsNullOrEmpty(overrideValueId)
-                ? $"{prefix}:{memberId}"
-                : $"{prefix}:{memberId}_{overrideValueId}";
+                ? prefix + memberId
+                : string.Concat(prefix, memberId, "_", overrideValueId);
         }
 
         internal bool TryGetEnum<TEnum>(string id, [NotNullWhen(true)] out TEnum? enumInfo) where TEnum : Enum
@@ -7925,7 +8172,7 @@ namespace NeoCompose.Runtime
 
         protected ProjectSaveData? DeserializeSaveData(string json)
         {
-            return JsonConvert.DeserializeObject<ProjectSaveData>(json);
+            return NeoInterningJsonReader.DeserializeSave<ProjectSaveData>(json);
         }
 
         public string SerializeSaveData() => SaveSnapshot().ToString(Formatting.None);

@@ -26,6 +26,10 @@ namespace NeoCompose.Runtime
             return node;
         }
 
+        /// <summary>The node for <paramref name="id"/> if one was already made.</summary>
+        internal NeoValueNode? ExistingValueNode(string id) =>
+            valueNodes.TryGetValue(id, out NeoValueNode node) ? node : null;
+
         /// <summary>Re-reads a node's rows after a store changed <paramref name="id"/>.</summary>
         private void SyncValueNode(string id)
         {

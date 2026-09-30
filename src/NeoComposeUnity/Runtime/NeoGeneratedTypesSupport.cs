@@ -350,6 +350,79 @@ namespace NeoCompose.Runtime
                 classPlans = new();
             internal readonly Dictionary<string, DetachedClassPlan?>
                 detachedPlans = new();
+            // Construction IR is immutable and its value-free validation reads
+            // only the schema, so each construction site resolves once.
+            internal readonly Dictionary<object, object> resolvedSites = new();
+        }
+
+        /// <summary>
+        /// A construction site's last resolution and the schema resolution it
+        /// was made under, held on the site so a repeat construction skips the
+        /// per-client table. The table still serves a site other clients share.
+        /// Sites that construct under a replayed class context must not use
+        /// the cache: that context changes the answer.
+        /// </summary>
+        internal sealed class ResolvedSite
+        {
+            internal readonly object schemaResolution;
+            internal readonly object resolved;
+
+            internal ResolvedSite(object schemaResolution, object resolved)
+            {
+                this.schemaResolution = schemaResolution;
+                this.resolved = resolved;
+            }
+        }
+
+        internal static bool TryGetResolvedSite<T>(NeoClient client, object site, out T resolved) where T : class
+        {
+            ConstructorSchemaCache cache = ConstructorSchemaCaches.GetOrCreateValue(client);
+            object? cached;
+            lock (cache.gate)
+                cache.resolvedSites.TryGetValue(site, out cached);
+            resolved = (cached as T)!;
+            return resolved is not null;
+        }
+
+        /// <summary>
+        /// <see cref="TryGetResolvedSite{T}(NeoClient, object, out T)"/> through
+        /// the site's own <paramref name="inline"/> slot first. The client
+        /// that fills the slot clears it when it is disposed.
+        /// </summary>
+        internal static bool TryGetResolvedSite<T>(NeoClient client, ISchemaResolutionSite site, ref ResolvedSite? inline, out T resolved) where T : class
+        {
+            if (inline is { } held
+                && ReferenceEquals(held.schemaResolution, client.SchemaResolution)
+                && held.resolved is T hit)
+            {
+                resolved = hit;
+                return true;
+            }
+            if (!TryGetResolvedSite(client, site, out resolved))
+                return false;
+            SetResolvedSite(client, site, ref inline, resolved);
+            return true;
+        }
+
+        internal static void CacheResolvedSite(NeoClient client, object site, object resolved)
+        {
+            ConstructorSchemaCache cache = ConstructorSchemaCaches.GetOrCreateValue(client);
+            lock (cache.gate)
+                cache.resolvedSites[site] = resolved;
+        }
+
+        internal static void CacheResolvedSite(NeoClient client, ISchemaResolutionSite site, ref ResolvedSite? inline, object resolved)
+        {
+            CacheResolvedSite(client, site, resolved);
+            SetResolvedSite(client, site, ref inline, resolved);
+        }
+
+        private static void SetResolvedSite(NeoClient client, ISchemaResolutionSite site, ref ResolvedSite? inline, object resolved)
+        {
+            bool replaced = inline is null || !ReferenceEquals(inline.schemaResolution, client.SchemaResolution);
+            inline = new ResolvedSite(client.SchemaResolution, resolved);
+            if (replaced)
+                client.RememberSchemaResolutionSite(site);
         }
 
         internal sealed class RuntimeClassPlan
@@ -425,11 +498,79 @@ namespace NeoCompose.Runtime
             internal object? value;
         }
 
+        /// <summary>
+        /// A construction site's reusable evaluated fields and argument
+        /// values. A construction reads them only until it returns, so one
+        /// set serves every construction at the site but a reentrant one,
+        /// which <see cref="TryRent"/> turns away to build its own.
+        /// </summary>
+        internal sealed class ConstructionSiteBuffers
+        {
+            private RuntimeConstructorField[]? fields;
+            private object?[]? arguments;
+            private int inUse;
+
+            internal bool TryRent() => System.Threading.Interlocked.CompareExchange(ref inUse, 1, 0) == 0;
+
+            internal RuntimeConstructorField[] Fields(FunctionClassConstructorField[] siteFields) =>
+                fields ??= NewFields(siteFields);
+
+            internal object?[] Arguments(NeoResolvedDeclaredConstructor resolved)
+            {
+                object?[] values = resolved.ArgumentValues(arguments);
+                if (!ReferenceEquals(values, arguments))
+                    arguments = values;
+                return values;
+            }
+
+            /// <summary>Releases the last construction's values, then the rent.</summary>
+            internal void Return()
+            {
+                if (fields is not null)
+                {
+                    for (int i = 0; i < fields.Length; i++)
+                        fields[i].value = null;
+                }
+                // A span clear zeroes without the per-element store barrier.
+                arguments.AsSpan().Clear();
+                System.Threading.Volatile.Write(ref inUse, 0);
+            }
+
+            internal static RuntimeConstructorField[] NewFields(FunctionClassConstructorField[] siteFields)
+            {
+                if (siteFields.Length == 0)
+                    return Array.Empty<RuntimeConstructorField>();
+                var created = new RuntimeConstructorField[siteFields.Length];
+                for (int i = 0; i < created.Length; i++)
+                {
+                    created[i] = new RuntimeConstructorField
+                    {
+                        schemaKey = siteFields[i].schemaKey,
+                        memberId = siteFields[i].memberId,
+                    };
+                }
+                return created;
+            }
+        }
+
         internal sealed class RuntimeConstructorMetadata
         {
             internal Dictionary<string, Member> membersBySchemaKey = null!;
             internal IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv = null!;
             internal RuntimeClassPlan classPlan = null!;
+            // The class's construction frame label and detached plan, kept
+            // with the resolution that already lives as long as the schema.
+            internal string? frameLabel;
+            private object? detachedPlan;
+            private static readonly object NoDetachedPlan = new();
+
+            internal DetachedClassPlan? DetachedPlan(NeoClient client, string classId)
+            {
+                object? plan = detachedPlan;
+                if (plan is null)
+                    detachedPlan = plan = (object?)ResolveDetachedClassPlan(client, classId) ?? NoDetachedPlan;
+                return plan as DetachedClassPlan;
+            }
         }
 
         internal readonly struct RuntimeConstructedClassValue
@@ -470,7 +611,7 @@ namespace NeoCompose.Runtime
         /// for a computed default), so the two runtimes trip at the same
         /// nesting on the same graph and print the same chain.
         /// </summary>
-        internal static NeoScript.NSGetterEvaluator.Context PushConstructionFrame(
+        internal static int EnterConstructionFrame(
             NeoScript.NSGetterEvaluator.Context ctx,
             string label)
         {
@@ -483,7 +624,7 @@ namespace NeoCompose.Runtime
                 throw new NeoScript.NSGetterRuntimeError(
                     $"Class construction depth exceeded {MaxConstructionDepth} frames: {string.Join(" -> ", chain)}.");
             }
-            return ctx.WithConstructionPushed(label);
+            return ctx.EnterConstruction(label);
         }
 
         /// <summary>
@@ -497,20 +638,21 @@ namespace NeoCompose.Runtime
         internal sealed class NeoConstructionScope
         {
             private readonly NeoClient client;
-            private readonly IReadOnlyDictionary<string, object?[]> initializerArguments;
+            private readonly ConstructorChainArguments initializerArguments;
+            private HashSet<string>? lazyClassStack;
+            private Dictionary<string, NeoValueOwnership>? lazyReferenceOwnershipByPath;
             private readonly string? constructedClassId;
             private NeoScript.NSGetterEvaluator.Context? evaluationContext;
 
             internal NeoConstructionScope(
                 NeoClient client,
                 NeoScript.NSGetterEvaluator.Context? evaluationContext,
-                IReadOnlyDictionary<string, object?[]>? initializerArguments = null,
+                ConstructorChainArguments initializerArguments = default,
                 string? constructedClassId = null)
             {
                 this.client = client;
                 this.evaluationContext = evaluationContext;
-                this.initializerArguments = initializerArguments
-                    ?? new Dictionary<string, object?[]>();
+                this.initializerArguments = initializerArguments;
                 this.constructedClassId = constructedClassId;
             }
 
@@ -519,7 +661,7 @@ namespace NeoCompose.Runtime
             /// behavior: a class whose literal default graph contains itself
             /// is rejected by name.
             /// </summary>
-            internal HashSet<string> classStack { get; } = new HashSet<string>();
+            internal HashSet<string> classStack => lazyClassStack ??= new HashSet<string>();
 
             /// <summary>
             /// Ownership of every already-owned value an initializer or a
@@ -527,12 +669,8 @@ namespace NeoCompose.Runtime
             /// <see cref="PrepareConstructedGraph"/> preflights and imports
             /// these after the staged graph passes shape validation.
             /// </summary>
-            internal Dictionary<string, NeoValueOwnership>
-                referenceOwnershipByPath
-            {
-                get;
-            } =
-                    new Dictionary<string, NeoValueOwnership>();
+            internal Dictionary<string, NeoValueOwnership> referenceOwnershipByPath =>
+                lazyReferenceOwnershipByPath ??= new Dictionary<string, NeoValueOwnership>();
 
             internal NeoScript.NSGetterEvaluator.Context? ExistingEvaluationContext =>
                 evaluationContext;
@@ -595,29 +733,37 @@ namespace NeoCompose.Runtime
                     throw new InvalidOperationException(
                         $"Initializer for '{member.name}' has no compiled body. Re-export the project from the current web app.");
                 }
-                NeoScript.NSGetterEvaluator.Context initializerContext =
-                    PushConstructionFrame(
-                        EvaluationContext,
+                NeoScript.NSGetterEvaluator.Context initializerContext = EvaluationContext;
+                int frame =
+                    EnterConstructionFrame(
+                        initializerContext,
                         $"{member.name} initializer");
-                // A generic entry initializer constructs in its closed placement.
-                initializerContext.initializerPlacement = member as ClassMember;
-                IReadOnlyList<object?> arguments = Array.Empty<object?>();
-                int expected = Math.Max(0, (init.compiled.parameters?.Length ?? 0) - 2);
-                if (expected > 0)
+                try
                 {
-                    string? owner = ResolveInitializerOwner(client, init, member, constructedClassId);
-                    if (owner is null || !initializerArguments.TryGetValue(owner, out object?[]? scoped))
-                        throw new InvalidOperationException($"Initializer '{member.name}' cannot resolve its declaring constructor scope before member initialization.");
-                    arguments = scoped;
-                    if (arguments.Count != expected)
-                        throw new InvalidOperationException($"Initializer '{member.name}' expected {expected} arguments in '{owner}', got {arguments.Count}.");
+                    // A generic entry initializer constructs in its closed placement.
+                    initializerContext.initializerPlacement = member as ClassMember;
+                    IReadOnlyList<object?> arguments = Array.Empty<object?>();
+                    int expected = Math.Max(0, (init.compiled.parameters?.Length ?? 0) - 2);
+                    if (expected > 0)
+                    {
+                        string? owner = ResolveInitializerOwner(client, init, member, constructedClassId);
+                        if (owner is null || !initializerArguments.TryGet(owner, out object?[]? scoped))
+                            throw new InvalidOperationException($"Initializer '{member.name}' cannot resolve its declaring constructor scope before member initialization.");
+                        arguments = scoped;
+                        if (arguments.Count != expected)
+                            throw new InvalidOperationException($"Initializer '{member.name}' expected {expected} arguments in '{owner}', got {arguments.Count}.");
+                    }
+                    return NeoScript.NSGetterEvaluator.Evaluate(
+                        init.compiled,
+                        initializerContext.thisValue is null
+                            ? initializerContext
+                            : initializerContext.WithThis(null),
+                        arguments);
                 }
-                return NeoScript.NSGetterEvaluator.Evaluate(
-                    init.compiled,
-                    initializerContext.thisValue is null
-                        ? initializerContext
-                        : initializerContext.WithThis(null),
-                    arguments);
+                finally
+                {
+                    initializerContext.ExitNested(frame);
+                }
             }
         }
 
@@ -1540,10 +1686,37 @@ namespace NeoCompose.Runtime
             IReadOnlyDictionary<string, WritableClassFactory> savedFactories,
             NeoValueOwnership? placementOwnership)
         {
+            ClassMember? member = null;
+            string? registryKey = null;
+            NeoValueNode? node = null;
+            return ResolveClassValue(client, valueId, readOnlyFactories, savedFactories, placementOwnership, ref member, ref registryKey, ref node);
+        }
+
+        /// <param name="member">
+        /// The value's inferred member: filled here when null, reused
+        /// otherwise by a caller that knows the value's parent edges are unchanged.
+        /// </param>
+        /// <param name="registryKey">
+        /// The value's generated-view key under <paramref name="member"/> and
+        /// <paramref name="placementOwnership"/>: filled here when null, so a
+        /// caller that keeps the member keeps it too and resets both together.
+        /// </param>
+        /// <param name="node">The value's node, kept by the caller so a repeat read skips the id lookup.</param>
+        internal static object? ResolveClassValue(
+            NeoClient client,
+            string valueId,
+            IReadOnlyDictionary<string, ReadOnlyClassFactory> readOnlyFactories,
+            IReadOnlyDictionary<string, WritableClassFactory> savedFactories,
+            NeoValueOwnership? placementOwnership,
+            ref ClassMember? member,
+            ref string? registryKey,
+            ref NeoValueNode? node)
+        {
             NeoValueOwnership ownership = placementOwnership
-                ?? (client.TryGetValueOwnership(valueId, out NeoValueOwnership existing)
+                ?? (client.TryGetValueOwnership(valueId, ref node, out NeoValueOwnership existing)
                     ? existing : NeoValueOwnership.Asset);
-            if (!client.TryGetValue(ownership, valueId, out ObjectMemberValue? value))
+            if (!client.TryGetValue(ownership, valueId, ref node, out MemberValue? row)
+                || row is not ObjectMemberValue value)
             {
                 return null;
             }
@@ -1551,25 +1724,27 @@ namespace NeoCompose.Runtime
             if (string.IsNullOrEmpty(classId))
                 return null;
 
-            ClassMember member;
-            if (TryInferMemberForValueId(
-                    client,
-                    valueId,
-                    new HashSet<string>(),
-                    out Member? inferredMember)
-                && inferredMember is ClassMember inferredClassMember)
+            if (member is null)
             {
-                member = inferredClassMember;
-            }
-            else
-            {
-                member = UnplacedClassMember(classId, null, value);
+                member = TryInferMemberForValueId(
+                        client,
+                        valueId,
+                        new HashSet<string>(),
+                        out Member? inferredMember)
+                    && inferredMember is ClassMember inferredClassMember
+                    ? inferredClassMember
+                    : UnplacedClassMember(classId, null, value);
             }
 
             // Generated factories memoize by declaration, placement and storage.
             // Check before constructing a node: registering a replacement would
             // strand the cached view outside subsequent replay refreshes.
-            if (client.TryGetGeneratedClassValue(member.RuntimeDeclarationIdentity, valueId, ownership, out var cached)
+            // Without a placement ownership the value's storage can move, so
+            // only a placed value keeps its key.
+            string key = placementOwnership is null
+                ? NeoClient.MakeNodeKey(member.RuntimeDeclarationIdentity, valueId, ownership)
+                : registryKey ??= NeoClient.MakeNodeKey(member.RuntimeDeclarationIdentity, valueId, ownership);
+            if (client.TryGetGeneratedClassValue(key, out var cached)
                 && cached.classId == classId)
                 return cached;
 
@@ -2387,8 +2562,9 @@ namespace NeoCompose.Runtime
             IReadOnlyDictionary<string, Member> membersBySchemaKey)
         {
             var supplied = new List<RuntimeConstructorField>(fields.Count);
-            foreach (RuntimeConstructorField field in fields)
+            for (int fieldIndex = 0; fieldIndex < fields.Count; fieldIndex++)
             {
+                RuntimeConstructorField field = fields[fieldIndex];
                 Member member = membersBySchemaKey[field.schemaKey];
                 if (field.value is null
                     && !RequiresRuntimeConstructorArgument(member))
@@ -3179,7 +3355,7 @@ namespace NeoCompose.Runtime
                 BoolMember => row is BoolMemberValue,
                 IntMember => row is NumberMemberValue number
                     && (number.value is null
-                        || number.value.Value == Math.Truncate(number.value.Value)),
+                        || NeoNumbers.IsWhole(number.value.Value)),
                 FloatMember => row is NumberMemberValue,
                 StringMember or DecimalMember => row is StringMemberValue,
                 DictionaryMember or ClassMember => row is ObjectMemberValue,
@@ -3260,19 +3436,7 @@ namespace NeoCompose.Runtime
         {
             if (!client.TryGetClass(actualClassId, out NeoSchemaClass? _))
                 return false;
-            try
-            {
-                foreach (NeoSchemaClass schemaClass in client.ResolveClassInheritanceChain(actualClassId))
-                {
-                    if (schemaClass.id == expectedClassId)
-                        return true;
-                }
-            }
-            catch (CircularInheritanceError)
-            {
-                return false;
-            }
-            return false;
+            return client.ClassChainContains(actualClassId, expectedClassId);
         }
 
         private static bool MapKeyCanMoveTo(
@@ -3591,8 +3755,9 @@ namespace NeoCompose.Runtime
             var value = new Dictionary<string, string>();
             var rows = new List<MemberValue>();
             NeoTimestamp? nowIso = null;
-            foreach (RuntimeConstructorField field in fields)
+            for (int fieldIndex = 0; fieldIndex < fields.Count; fieldIndex++)
             {
+                RuntimeConstructorField field = fields[fieldIndex];
                 Member member = metadata.membersBySchemaKey[field.schemaKey];
                 if (field.value is null
                     && !RequiresRuntimeConstructorArgument(member))
@@ -3673,6 +3838,27 @@ namespace NeoCompose.Runtime
             /// </summary>
             internal IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv =
                 null!;
+            /// <summary>The record parameter each call-site argument binds, in call order.</summary>
+            internal int[] argumentPositions = Array.Empty<int>();
+
+            /// <summary>
+            /// Argument values aligned with the record's parameters, each slot
+            /// <see cref="OmittedArgument"/> until the call supplies it
+            /// through <see cref="argumentPositions"/>.
+            /// </summary>
+            internal object?[] NewArgumentValues() => ArgumentValues(null);
+
+            /// <summary><see cref="NewArgumentValues"/> in <paramref name="buffer"/> when it fits.</summary>
+            internal object?[] ArgumentValues(object?[]? buffer)
+            {
+                int arity = link.record?.argumentTypes.Length ?? 0;
+                if (arity == 0)
+                    return Array.Empty<object?>();
+                object?[] values = buffer?.Length == arity ? buffer : new object?[arity];
+                if (argumentPositions.Length < arity)
+                    Array.Fill(values, OmittedArgument);
+                return values;
+            }
         }
 
         /// <summary>
@@ -3708,6 +3894,7 @@ namespace NeoCompose.Runtime
             }
 
             NeoResolvedConstructorLink link;
+            int[] argumentPositions = Array.Empty<int>();
             if (constructorId is null)
             {
                 AssertImplicitConstructionIsAvailable(client, schemaClass!);
@@ -3729,6 +3916,9 @@ namespace NeoCompose.Runtime
                     schemaClass.name,
                     record,
                     argumentNames);
+                argumentPositions = new int[argumentNames.Count];
+                for (int i = 0; i < argumentPositions.Length; i++)
+                    argumentPositions[i] = Array.FindIndex(record.argumentTypes, argument => argument.name == argumentNames[i]);
                 link = ResolveConstructorLink(client, record, new HashSet<string>());
             }
             AssertBaseInitializerFieldsResolve(
@@ -3746,6 +3936,7 @@ namespace NeoCompose.Runtime
                 metadata = metadata,
                 genericEnv = metadata.genericEnv,
                 storedGenericBindings = storedGenericBindings,
+                argumentPositions = argumentPositions,
             };
         }
 
@@ -4178,7 +4369,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal static NeoMemberClassWritable ConstructDeclaredClassValue(
             NeoResolvedDeclaredConstructor resolved,
-            IReadOnlyDictionary<string, object?> argumentValues,
+            object?[] argumentValues,
             IReadOnlyList<RuntimeConstructorField> fields,
             NeoScript.NSGetterEvaluator.Context ctx,
             Action<NeoScript.NSGetterEvaluator.Context>? evaluateFieldValues = null)
@@ -4203,109 +4394,117 @@ namespace NeoCompose.Runtime
         // create wrappers for the generated C# API that actually returns them.
         internal static RuntimeConstructedClassValue ConstructDeclaredClassValueData(
             NeoResolvedDeclaredConstructor resolved,
-            IReadOnlyDictionary<string, object?> argumentValues,
+            object?[] argumentValues,
             IReadOnlyList<RuntimeConstructorField> fields,
             NeoScript.NSGetterEvaluator.Context ctx,
             Action<NeoScript.NSGetterEvaluator.Context>? evaluateFieldValues = null)
         {
             NeoClient client = resolved.client;
             using var replayCapture = client.BeginNestedConstructorCapture();
-            NeoScript.NSGetterEvaluator.Context constructionCtx =
-                PushConstructionFrame(ctx, resolved.schemaClass.name);
-            object?[] positionalArguments = OrderDeclaredArguments(
-                resolved.link.record,
-                argumentValues);
-            var initializerArguments = PrepareConstructorInitializerArguments(client, resolved.link, positionalArguments, constructionCtx);
-            var scope = new NeoConstructionScope(
-                client,
-                constructionCtx,
-                initializerArguments,
-                resolved.classTypeInfo.classId);
-
-            // Step 1 — member initializers. No fields are supplied here: an
-            // overridden member's initializer still RUNS and is then overwritten
-            // by step 4 (§1.2), which is observably different from never
-            // running it.
-            RuntimeConstructedClassValue constructed = CreateSuppliedClassValueData(
-                client,
-                resolved.classTypeInfo,
-                Array.Empty<RuntimeConstructorField>(),
-                scope.ValueReference,
-                scope,
-                requireSuppliedRequiredFields: false,
-                requireCompleteRoot: false,
-                validatedMetadata: resolved.metadata,
-                trustedRuntimeRows: true);
-            ObjectMemberValue root = constructed.value;
-            if (resolved.storedGenericBindings is not null)
-            {
-                root.genericBindings = new Dictionary<string, string>(
-                    resolved.storedGenericBindings,
-                    StringComparer.Ordinal);
-            }
-
-            // `CreateSuppliedClassValueData` PUBLISHES the whole graph, and every
-            // step below can throw — a constructor body may `throw` outright.
-            // A failure therefore has to reclaim what step 1 published, or the
-            // rows stay in sessionData forever: the evaluator's terminal
-            // reclamation sweep only walks roots it was told about, and the
-            // Save-ownership garbage collector never sees a parentless Session
-            // row. Reclaiming here rather than registering the root with the
-            // allocation tracker is deliberate: this method also serves the
-            // generated-C# seam, whose context has no enclosing execution, so a
-            // registered root would be swept by the FIRST nested body's
-            // allocation scope closing mid-construction.
+            int frame =
+                EnterConstructionFrame(ctx, resolved.schemaClass.name);
             try
             {
-                // Steps 2 and 3 — base chain then this body, both against the
-                // same `this`.
-                object? thisValue = NeoScript.NSGetterEvaluator.UnwrapRow(
-                    root,
-                    constructionCtx,
-                    NeoValueOwnership.Session);
-                RunDeclaredConstructorChain(
+                object?[] positionalArguments = FillDeclaredArguments(
+                    resolved.link.record,
+                    argumentValues);
+                var initializerArguments = PrepareConstructorInitializerArguments(client, resolved.link, positionalArguments, ctx);
+                var scope = new NeoConstructionScope(
                     client,
-                    resolved,
-                    resolved.link,
-                    positionalArguments,
-                    thisValue,
-                    root.id,
-                    constructionCtx,
-                    initializerArguments);
+                    ctx,
+                    initializerArguments,
+                    resolved.classTypeInfo.classId);
 
-                // Step 4 — the call site wins. Its expressions are evaluated
-                // HERE, after the body, exactly as C# runs an object
-                // initializer once the constructor has returned: a field
-                // expression that observes state the body wrote must see the
-                // post-body value. (The legacy schema-derived
-                // `classConstructor` arm has no body and stays eval-first on
-                // both runtimes.)
-                using (replayCapture?.ReadCallSite())
-                    evaluateFieldValues?.Invoke(constructionCtx);
-                ApplyDeclaredConstructorFields(
+                // Step 1 — member initializers. No fields are supplied here: an
+                // overridden member's initializer still RUNS and is then overwritten
+                // by step 4 (§1.2), which is observably different from never
+                // running it.
+                RuntimeConstructedClassValue constructed = CreateSuppliedClassValueData(
                     client,
-                    resolved,
-                    root.id,
-                    fields,
-                    constructionCtx);
+                    resolved.classTypeInfo,
+                    Array.Empty<RuntimeConstructorField>(),
+                    scope.ValueReference,
+                    scope,
+                    requireSuppliedRequiredFields: false,
+                    requireCompleteRoot: false,
+                    validatedMetadata: resolved.metadata,
+                    trustedRuntimeRows: true);
+                ObjectMemberValue root = constructed.value;
+                if (resolved.storedGenericBindings is not null)
+                {
+                    root.genericBindings = new Dictionary<string, string>(
+                        resolved.storedGenericBindings,
+                        StringComparer.Ordinal);
+                }
 
-                AssertDeclaredConstructorRootIsComplete(client, resolved, root.id);
-                StampConstructedInstanceProvenance(
-                    client,
-                    resolved,
-                    argumentValues,
-                    root.id,
-                    constructionCtx);
+                // `CreateSuppliedClassValueData` PUBLISHES the whole graph, and every
+                // step below can throw — a constructor body may `throw` outright.
+                // A failure therefore has to reclaim what step 1 published, or the
+                // rows stay in sessionData forever: the evaluator's terminal
+                // reclamation sweep only walks roots it was told about, and the
+                // Save-ownership garbage collector never sees a parentless Session
+                // row. Reclaiming here rather than registering the root with the
+                // allocation tracker is deliberate: this method also serves the
+                // generated-C# seam, whose context has no enclosing execution, so a
+                // registered root would be swept by the FIRST nested body's
+                // allocation scope closing mid-construction.
+                try
+                {
+                    // Steps 2 and 3 — base chain then this body, both against the
+                    // same `this`.
+                    object? thisValue = NeoScript.NSGetterEvaluator.UnwrapRow(
+                        root,
+                        ctx,
+                        NeoValueOwnership.Session);
+                    RunDeclaredConstructorChain(
+                        client,
+                        resolved,
+                        resolved.link,
+                        positionalArguments,
+                        thisValue,
+                        root.id,
+                        ctx,
+                        initializerArguments,
+                        depth: 0);
+
+                    // Step 4 — the call site wins. Its expressions are evaluated
+                    // HERE, after the body, exactly as C# runs an object
+                    // initializer once the constructor has returned: a field
+                    // expression that observes state the body wrote must see the
+                    // post-body value. (The legacy schema-derived
+                    // `classConstructor` arm has no body and stays eval-first on
+                    // both runtimes.)
+                    using (replayCapture?.ReadCallSite())
+                        evaluateFieldValues?.Invoke(ctx);
+                    ApplyDeclaredConstructorFields(
+                        client,
+                        resolved,
+                        root.id,
+                        fields,
+                        ctx);
+
+                    AssertDeclaredConstructorRootIsComplete(client, resolved, root.id);
+                    StampConstructedInstanceProvenance(
+                        client,
+                        resolved,
+                        argumentValues,
+                        root.id,
+                        ctx);
+                }
+                catch
+                {
+                    ReclaimFailedConstruction(client, root.id, ctx);
+                    throw;
+                }
+                if (!client.TryGetValue(NeoValueOwnership.Session, root.id, out ObjectMemberValue? current))
+                    throw new InvalidOperationException($"Declared constructor lost root '{root.id}'.");
+                replayCapture?.Complete(current, fields);
+                return new RuntimeConstructedClassValue(current, constructed.member);
             }
-            catch
+            finally
             {
-                ReclaimFailedConstruction(client, root.id, constructionCtx);
-                throw;
+                ctx.ExitNested(frame);
             }
-            if (!client.TryGetValue(NeoValueOwnership.Session, root.id, out ObjectMemberValue? current))
-                throw new InvalidOperationException($"Declared constructor lost root '{root.id}'.");
-            replayCapture?.Complete(current, fields);
-            return new RuntimeConstructedClassValue(current, constructed.member);
         }
 
         /// <summary>
@@ -4319,7 +4518,7 @@ namespace NeoCompose.Runtime
         private static void StampConstructedInstanceProvenance(
             NeoClient client,
             NeoResolvedDeclaredConstructor resolved,
-            IReadOnlyDictionary<string, object?> argumentValues,
+            object?[] argumentValues,
             string rootValueId,
             NeoScript.NSGetterEvaluator.Context ctx)
         {
@@ -4334,75 +4533,108 @@ namespace NeoCompose.Runtime
             NeoClient.StampConstructionProvenance(
                 live,
                 resolved.link.record?.id,
-                BuildConstructionProvenanceArgs(client, resolved, argumentValues, ctx, deferLiterals: false, out _));
+                SerializeConstructionProvenanceArgs(
+                    resolved.link.record,
+                    CollectConstructionProvenanceArgs(client, resolved, argumentValues, ctx, deferLiterals: false)));
         }
 
         /// <summary>
-        /// The P75 constructor arguments a declared construction records.
-        /// With <paramref name="deferLiterals"/>, a local array of immutable
-        /// leaves is copied into <paramref name="literals"/> and its slot left
-        /// null, so a construction that never becomes rows never pays for its
-        /// JSON.
+        /// An argument the call omitted, in a declared construction's argument
+        /// values and in the provenance it records: the parameter's current
+        /// default fills it (P65 §2.5).
         /// </summary>
-        private static Dictionary<string, JToken?> BuildConstructionProvenanceArgs(
+        internal static readonly object OmittedArgument = new();
+
+        /// <summary>
+        /// The P75 constructor arguments a declared construction records, by
+        /// position: a finished token, a value
+        /// <see cref="NeoClient.ConstructorArgumentToken"/> serializes as is,
+        /// or <see cref="OmittedArgument"/>. With
+        /// <paramref name="deferLiterals"/>, a local array of immutable leaves
+        /// is recorded as a copy, so a construction that never becomes rows
+        /// never pays for its JSON.
+        /// </summary>
+        private static object?[] CollectConstructionProvenanceArgs(
             NeoClient client,
             NeoResolvedDeclaredConstructor resolved,
-            IReadOnlyDictionary<string, object?> argumentValues,
+            object?[] argumentValues,
             NeoScript.NSGetterEvaluator.Context ctx,
-            bool deferLiterals,
-            out List<KeyValuePair<string, object?[]>>? literals)
+            bool deferLiterals)
         {
-            literals = null;
             ConstructorRecord? record = resolved.link.record;
-            var constructorArgs = new Dictionary<string, JToken?>(StringComparer.Ordinal);
-            if (record is not null)
+            if (record is null || record.argumentTypes.Length == 0)
+                return Array.Empty<object?>();
+            var recorded = new object?[record.argumentTypes.Length];
+            for (int index = 0; index < record.argumentTypes.Length; index++)
             {
-                for (int index = 0; index < record.argumentTypes.Length; index++)
+                FunctionArgumentTypeInfo argument = record.argumentTypes[index];
+                // An omitted name with a declared default is filled
+                // callee-side (P65 §2.5) and is deliberately NOT recorded:
+                // the replay re-reads the parameter's current default, so
+                // the instance keeps tracking it.
+                object? value = argumentValues[index];
+                if (ReferenceEquals(value, OmittedArgument))
                 {
-                    FunctionArgumentTypeInfo argument = record.argumentTypes[index];
-                    // An omitted name with a declared default is filled
-                    // callee-side (P65 §2.5) and is deliberately NOT recorded:
-                    // the replay re-reads the parameter's current default, so
-                    // the instance keeps tracking it.
-                    if (!argumentValues.TryGetValue(argument.name, out object? value))
-                    {
-                        continue;
-                    }
-                    // The kinds replay reads back as a row id are exactly the
-                    // kinds recorded as one. A structured leaf — a sprite, a
-                    // vector, a colour — is reference-identified too, so
-                    // without this narrowing it would be recorded as its row's
-                    // id and replayed as a JSON literal.
-                    TypeInfo declaredType =
-                        NeoNSFunctionRuntime.ResolveInvocationTypeInfo(
-                            client,
-                            argument,
-                            resolved.genericEnv);
-                    Func<object?, string?>? resolveRowId =
-                        declaredType.type is MemberKind.Class
-                            or MemberKind.Interface
-                            or MemberKind.List
-                            or MemberKind.Dictionary
-                            ? candidate => NeoScript.NSGetterEvaluator
-                                .ConstructorReferenceOf(candidate, ctx)?.valueId
-                            : null;
-                    if (deferLiterals
-                        && value is object?[] entries
-                        && IsLiteralLeafArray(entries)
-                        && resolveRowId?.Invoke(entries) is null)
-                    {
-                        string parameterId = NeoClient.ConstructorParameterId(record, index);
-                        constructorArgs[parameterId] = null;
-                        (literals ??= new List<KeyValuePair<string, object?[]>>()).Add(
-                            new KeyValuePair<string, object?[]>(parameterId, CloneLiteralLeafArray(entries)));
-                        continue;
-                    }
-                    constructorArgs[NeoClient.ConstructorParameterId(record, index)] =
-                        NeoClient.ConstructorArgumentToken(
-                            value,
-                            $"'{argument.name}' of constructor '{record.id}' on class '{resolved.schemaClass.name}'",
-                            resolveRowId);
+                    recorded[index] = OmittedArgument;
+                    continue;
                 }
+                // The kinds replay reads back as a row id are exactly the
+                // kinds recorded as one. A structured leaf — a sprite, a
+                // vector, a colour — is reference-identified too, so
+                // without this narrowing it would be recorded as its row's
+                // id and replayed as a JSON literal. Resolving the id may
+                // attach the argument, which must happen now. Resolution
+                // keeps every kind but Generic, so only a generic resolves.
+                MemberKind declaredKind = argument.type == MemberKind.Generic
+                    ? NeoNSFunctionRuntime.ResolveInvocationTypeInfo(
+                        client,
+                        argument,
+                        resolved.genericEnv).type
+                    : argument.type;
+                string? rowId = declaredKind is MemberKind.Class
+                    or MemberKind.Interface
+                    or MemberKind.List
+                    or MemberKind.Dictionary
+                    ? NeoScript.NSGetterEvaluator.ConstructorReferenceOf(value, ctx)?.valueId
+                    : null;
+                if (!string.IsNullOrEmpty(rowId))
+                {
+                    // A row id serializes exactly as the string it is.
+                    recorded[index] = rowId;
+                }
+                else if (value is null or string or bool or sbyte or byte or short or ushort
+                    or int or uint or long or float or double or decimal)
+                {
+                    recorded[index] = value;
+                }
+                else if (value is object?[] entries && IsLiteralLeafArray(entries))
+                {
+                    recorded[index] = deferLiterals ? CloneLiteralLeafArray(entries) : entries;
+                }
+                else
+                {
+                    recorded[index] = NeoClient.ConstructorArgumentToken(
+                        value,
+                        $"'{argument.name}' of constructor '{record.id}' on class '{resolved.schemaClass.name}'");
+                }
+            }
+            return recorded;
+        }
+
+        /// <summary>The recorded arguments as the row's <c>constructorArgs</c>, keyed by parameter id.</summary>
+        private static Dictionary<string, JToken?> SerializeConstructionProvenanceArgs(
+            ConstructorRecord? record,
+            object?[] recorded)
+        {
+            var constructorArgs = new Dictionary<string, JToken?>(StringComparer.Ordinal);
+            for (int index = 0; index < recorded.Length; index++)
+            {
+                object? value = recorded[index];
+                if (ReferenceEquals(value, OmittedArgument))
+                    continue;
+                string parameterId = NeoClient.ConstructorParameterId(record!, index);
+                constructorArgs[parameterId] = value as JToken
+                    ?? NeoClient.ConstructorArgumentToken(value, parameterId);
             }
             return constructorArgs;
         }
@@ -4468,35 +4700,38 @@ namespace NeoCompose.Runtime
                 removed);
         }
 
-        private static object?[] OrderDeclaredArguments(
+        /// <summary>
+        /// The values the constructor body binds: the supplied values, with
+        /// each omitted slot filled from a copy so the omission stays visible
+        /// to the provenance the construction records.
+        /// </summary>
+        private static object?[] FillDeclaredArguments(
             ConstructorRecord? record,
-            IReadOnlyDictionary<string, object?> argumentValues)
+            object?[] argumentValues)
         {
             if (record is null)
                 return Array.Empty<object?>();
-            var ordered = new object?[record.argumentTypes.Length];
-            for (int i = 0; i < record.argumentTypes.Length; i++)
+            object?[]? filled = null;
+            for (int i = 0; i < argumentValues.Length; i++)
             {
+                if (!ReferenceEquals(argumentValues[i], OmittedArgument))
+                    continue;
                 FunctionArgumentTypeInfo argument = record.argumentTypes[i];
-                if (!argumentValues.TryGetValue(argument.name, out object? value))
+                // P65 §2.5 callee-side fill: an omitted name binds the
+                // parameter's current stored default.
+                // `AssertDeclaredArgumentNamesMatch` already rejected
+                // omissions without one.
+                if (!NeoParameterDefaults.HasDefault(argument))
                 {
-                    // P65 §2.5 callee-side fill: an omitted name binds the
-                    // parameter's current stored default.
-                    // `AssertDeclaredArgumentNamesMatch` already rejected
-                    // omissions without one.
-                    if (NeoParameterDefaults.HasDefault(argument))
-                    {
-                        ordered[i] = NeoParameterDefaults.DefaultRuntimeValue(
-                            argument,
-                            $"Constructor '{record.id}'");
-                        continue;
-                    }
                     throw new InvalidOperationException(
                         $"Declared constructor '{record.id}' is missing a value for argument '{argument.name}'.");
                 }
-                ordered[i] = value;
+                filled ??= (object?[])argumentValues.Clone();
+                filled[i] = NeoParameterDefaults.DefaultRuntimeValue(
+                    argument,
+                    $"Constructor '{record.id}'");
             }
-            return ordered;
+            return filled ?? argumentValues;
         }
 
         private static object?[] EvaluateDeclaredBaseArguments(
@@ -4522,10 +4757,11 @@ namespace NeoCompose.Runtime
                 baseArguments[link.baseArgumentTargets[i]] = ExecuteConstructorBody(
                     client,
                     compiled[i],
-                    BuildConstructorScope(record, argumentValues, thisValue, ctx),
-                    ctx.WithThis(thisValue),
+                    argumentValues,
+                    thisValue,
+                    ctx,
                     expectValue: true,
-                    $"Base argument '{declaredBaseArguments[i].name}' of constructor '{record.id}'");
+                    new ConstructorBodySubject("Base argument", declaredBaseArguments[i].name, record.id));
             }
             // P65 §2.5 callee-side fill, same as a direct constructor
             // call: the base overload's own current default completes each
@@ -4558,7 +4794,8 @@ namespace NeoCompose.Runtime
             object? thisValue,
             string? rootValueId,
             NeoScript.NSGetterEvaluator.Context ctx,
-            IReadOnlyDictionary<string, object?[]> initializerArguments)
+            ConstructorChainArguments initializerArguments,
+            int depth)
         {
             ConstructorRecord? record = link.record;
             if (record is null)
@@ -4569,8 +4806,8 @@ namespace NeoCompose.Runtime
                 ConstructorRecord baseRecord = link.baseLink.record
                     ?? throw new InvalidOperationException(
                         $"Declared constructor '{record.id}' resolved an empty base link.");
-                object?[] baseArguments = initializerArguments.TryGetValue(baseRecord.classId, out object?[]? prepared)
-                    ? prepared : EvaluateDeclaredBaseArguments(client, link, argumentValues, thisValue, ctx);
+                object?[] baseArguments = initializerArguments.At(depth + 1)
+                    ?? EvaluateDeclaredBaseArguments(client, link, argumentValues, thisValue, ctx);
                 RunDeclaredConstructorChain(
                     client,
                     resolved,
@@ -4579,7 +4816,8 @@ namespace NeoCompose.Runtime
                     thisValue,
                     rootValueId,
                     ctx,
-                    initializerArguments);
+                    initializerArguments,
+                    depth + 1);
             }
 
             // P49 §1.5 — the base clause's initializer block, applied once the
@@ -4600,10 +4838,11 @@ namespace NeoCompose.Runtime
             ExecuteConstructorBody(
                 client,
                 record.action,
-                BuildConstructorScope(record, argumentValues, thisValue, ctx),
-                ctx.WithThis(thisValue),
+                argumentValues,
+                thisValue,
+                ctx,
                 expectValue: false,
-                $"Constructor '{record.id}'");
+                new ConstructorBodySubject("Constructor", null, record.id));
         }
 
         /// <summary>
@@ -4642,10 +4881,11 @@ namespace NeoCompose.Runtime
                     value = ExecuteConstructorBody(
                         client,
                         compiled[i],
-                        BuildConstructorScope(record, argumentValues, thisValue, ctx),
-                        ctx.WithThis(thisValue),
+                        argumentValues,
+                        thisValue,
+                        ctx,
                         expectValue: true,
-                        $"Base initializer field '{field.name}' of constructor '{record.id}'"),
+                        new ConstructorBodySubject("Base initializer field", field.name, record.id)),
                 });
             }
             if (thisValue is NeoScript.NeoScriptObject detached)
@@ -4661,48 +4901,129 @@ namespace NeoCompose.Runtime
                 ctx);
         }
 
-        private static Dictionary<string, object?> BuildConstructorScope(
-            ConstructorRecord record,
-            object?[] argumentValues,
-            object? thisValue,
-            NeoScript.NSGetterEvaluator.Context ctx)
+        /// <summary>
+        /// Names a constructor body in its errors; formatted only when one is
+        /// raised, so a construction allocates no message.
+        /// </summary>
+        private readonly struct ConstructorBodySubject
         {
-            var scope = new Dictionary<string, object?>(argumentValues.Length + 2)
+            private readonly string kind;
+            private readonly string? name;
+            private readonly string constructorId;
+
+            internal ConstructorBodySubject(string kind, string? name, string constructorId)
             {
-                ["__this__"] = thisValue,
-                ["__root__"] = ctx.rootValue,
-            };
-            for (int i = 0; i < argumentValues.Length; i++)
-            {
-                scope[$"__arg_{i}__"] = argumentValues[i];
+                this.kind = kind;
+                this.name = name;
+                this.constructorId = constructorId;
             }
-            return scope;
+
+            public override string ToString() => name is null
+                ? $"{kind} '{constructorId}'"
+                : $"{kind} '{name}' of constructor '{constructorId}'";
         }
 
+        private static string[] constructorArgumentNames = Array.Empty<string>();
+
+        /// <summary>The <c>__arg_N__</c> binding a compiled constructor body reads argument N through.</summary>
+        private static string ConstructorArgumentName(int index)
+        {
+            string[] names = constructorArgumentNames;
+            if (index >= names.Length)
+            {
+                var grown = new string[Math.Max(index + 1, names.Length * 2)];
+                for (int i = 0; i < grown.Length; i++)
+                    grown[i] = i < names.Length ? names[i] : $"__arg_{i}__";
+                constructorArgumentNames = names = grown;
+            }
+            return names[index];
+        }
+
+        /// <summary>
+        /// True when a body's parameters are the <c>__this__</c>,
+        /// <c>__root__</c>, <c>__arg_N__</c> envelope in order, so its
+        /// arguments bind by position.
+        /// </summary>
+        private static bool IsConstructorEnvelope(Variable[] parameters)
+        {
+            if (parameters.Length < 2 || parameters[0].id != "__this__" || parameters[1].id != "__root__")
+                return false;
+            for (int i = 2; i < parameters.Length; i++)
+            {
+                if (parameters[i].id != ConstructorArgumentName(i - 2))
+                    return false;
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Runs a compiled constructor, base argument, or base initializer
+        /// body the way an immediate NSFunction runs: a pooled scope over the
+        /// body's slot layout, and the caller's context with <c>this</c>
+        /// swapped in place for the synchronous frame.
+        /// </summary>
         private static object? ExecuteConstructorBody(
             NeoClient client,
             FunctionWithReturnType body,
-            Dictionary<string, object?> scope,
+            object?[] argumentValues,
+            object? thisValue,
             NeoScript.NSGetterEvaluator.Context ctx,
             bool expectValue,
-            string subject)
+            ConstructorBodySubject subject)
         {
-            NeoScriptExecutionResult result = NeoScriptExecutor.Execute(
-                client,
-                body,
-                scope,
-                ctx);
-            if (result.IsPaused)
+            NeoScript.NeoScriptScopeLayout layout = body.scopeLayout ??= new NeoScript.NeoScriptScopeLayout(body);
+            NeoScript.NeoScriptScope scope = layout.RentScope();
+            Variable[]? parameters = body.parameters;
+            if (parameters?.Length == argumentValues.Length + 2
+                && (layout.constructorEnvelope ??= IsConstructorEnvelope(parameters)))
             {
-                throw new InvalidOperationException(
-                    $"{subject} suspended on deferred Function '{result.SuspendedMemberId}'. A constructor cannot await.");
+                // The full envelope binds by position, as a function call's does.
+                scope.SetParameter(0, thisValue);
+                scope.SetParameter(1, ctx.rootValue);
+                for (int i = 0; i < argumentValues.Length; i++)
+                    scope.SetParameter(i + 2, argumentValues[i]);
             }
-            if (expectValue && !result.Returned)
+            else
             {
-                throw new InvalidOperationException(
-                    $"{subject} ended without a return statement.");
+                scope.SetLocal("__this__", thisValue);
+                scope.SetLocal("__root__", ctx.rootValue);
+                for (int i = 0; i < argumentValues.Length; i++)
+                    scope.SetLocal(ConstructorArgumentName(i), argumentValues[i]);
             }
-            return result.ReturnValue;
+            NeoScriptExecutionOptions options = NeoScriptExecutionOptions.ForImmediate(client);
+            int frame = ctx.EnterThis(thisValue);
+            ctx.constructorBody = true;
+            bool completed = false;
+            try
+            {
+                NeoScriptExecutor.PrepareFunctionContext(ctx, options);
+                NeoScriptExecutionResult result = NeoScriptExecutor.Execute(
+                    client,
+                    body,
+                    scope,
+                    ctx,
+                    options);
+                if (result.IsPaused)
+                {
+                    throw new InvalidOperationException(
+                        $"{subject} suspended on deferred Function '{result.SuspendedMemberId}'. A constructor cannot await.");
+                }
+                completed = true;
+                if (expectValue && !result.Returned)
+                {
+                    throw new InvalidOperationException(
+                        $"{subject} ended without a return statement.");
+                }
+                return result.ReturnValue;
+            }
+            finally
+            {
+                ctx.ExitFunction(frame);
+                if (completed)
+                    layout.ReturnScope(scope);
+                else
+                    layout.AbandonScope(scope);
+            }
         }
 
         /// <summary>
@@ -4731,8 +5052,9 @@ namespace NeoCompose.Runtime
                 resolved,
                 fields,
                 ctx);
-            foreach (RuntimeConstructorField field in fields)
+            for (int fieldIndex = 0; fieldIndex < fields.Count; fieldIndex++)
             {
+                RuntimeConstructorField field = fields[fieldIndex];
                 Member member = resolved.membersBySchemaKey[field.schemaKey];
                 if (field.value is null && member.Requirement == NeoMemberRequirementKind.Required)
                 {
@@ -5056,13 +5378,13 @@ namespace NeoCompose.Runtime
                 valueOwnership: NeoValueOwnership.Session);
             ctx = ctx.WithRoot(NeoScriptValueMarshaller.ResolveRoot(client, ctx));
 
-            var argumentValues = new Dictionary<string, object?>(arguments.Length);
-            foreach (NeoDeclaredConstructorArgument argument in arguments)
+            object?[] argumentValues = resolved.NewArgumentValues();
+            for (int i = 0; i < arguments.Length; i++)
             {
-                argumentValues[argument.name] = MarshalDeclaredConstructorArgument(
+                argumentValues[resolved.argumentPositions[i]] = MarshalDeclaredConstructorArgument(
                     client,
                     resolved,
-                    argument,
+                    arguments[i],
                     ctx);
             }
 
@@ -5130,8 +5452,9 @@ namespace NeoCompose.Runtime
             if (fields.Count == 0)
                 return;
             NeoTimestamp nowIso = NeoTimestamp.Now();
-            foreach (RuntimeConstructorField field in fields)
+            for (int fieldIndex = 0; fieldIndex < fields.Count; fieldIndex++)
             {
+                RuntimeConstructorField field = fields[fieldIndex];
                 Member member = resolved.membersBySchemaKey[field.schemaKey];
                 // A null that survived the omit filter belongs to a required
                 // member; ApplyDeclaredConstructorFields names it. A Class
@@ -5265,6 +5588,9 @@ namespace NeoCompose.Runtime
         // registering them as evaluator row references would change ownership.
         private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<object,
             NeoScript.NSGetterEvaluator.RowReference> ConstructorCollectionOrigins = new();
+
+        internal static bool HasConstructorCollectionOrigin(object collection) =>
+            ConstructorCollectionOrigins.TryGetValue(collection, out _);
 
         internal static void PreserveConstructorCollectionOrigin(object source, object destination)
         {
@@ -5481,8 +5807,9 @@ namespace NeoCompose.Runtime
                 classPlan.membersBySchemaKey;
 
             var suppliedSchemaKeys = new HashSet<string>();
-            foreach (RuntimeConstructorField field in fields)
+            for (int fieldIndex = 0; fieldIndex < fields.Count; fieldIndex++)
             {
+                RuntimeConstructorField field = fields[fieldIndex];
                 if (!suppliedSchemaKeys.Add(field.schemaKey))
                 {
                     throw new InvalidOperationException(
@@ -5506,8 +5833,9 @@ namespace NeoCompose.Runtime
                         $"Class constructor for '{classTypeInfo.classId}' is missing required field '{entry.schemaKey}'/'{entry.memberId}'. Regenerate the NeoScript IR from the current schema.");
                 }
             }
-            foreach (RuntimeConstructorField field in fields)
+            for (int fieldIndex = 0; fieldIndex < fields.Count; fieldIndex++)
             {
+                RuntimeConstructorField field = fields[fieldIndex];
                 if (!schemaByKey.TryGetValue(field.schemaKey, out MergedSchemaEntry? entry)
                     || entry.memberId != field.memberId)
                 {
@@ -6176,14 +6504,9 @@ namespace NeoCompose.Runtime
         {
             var ids = ConstructorReferenceIds(
                 runtimeValue,
-                value => value switch
-                {
-                    NeoLookupSelection selection => selection.valueId,
-                    INeoValueReference reference => reference.valueId,
-                    string id => id,
-                    _ => null,
-                },
-                $"Lookup constructor field '{member.name}'");
+                value => LookupValueId(value),
+                "Lookup",
+                member.name);
             ValidateConstructorSelectionCardinality(
                 ids,
                 member.Selection == NeoMemberSelectionKind.Multi,
@@ -6191,6 +6514,15 @@ namespace NeoCompose.Runtime
                 "Lookup");
             return ids;
         }
+
+        /// <summary>The value id a Lookup constructor argument selects, or null.</summary>
+        private static string? LookupValueId(object? value) => value switch
+        {
+            NeoLookupSelection selection => selection.valueId,
+            INeoValueReference reference => reference.valueId,
+            string id => id,
+            _ => null,
+        };
 
         private static string[] ConstructorDialogueIds(
             object runtimeValue,
@@ -6204,7 +6536,8 @@ namespace NeoCompose.Runtime
                     string id => id,
                     _ => null,
                 },
-                $"DialogueLookup constructor field '{member.name}'");
+                "DialogueLookup",
+                member.name);
             ValidateConstructorSelectionCardinality(
                 ids,
                 member.Selection == NeoMemberSelectionKind.Multi,
@@ -6216,7 +6549,8 @@ namespace NeoCompose.Runtime
         private static string[] ConstructorReferenceIds(
             object runtimeValue,
             Func<object?, string?> valueId,
-            string subject)
+            string kind,
+            string memberName)
         {
             string? singleId = valueId(runtimeValue);
             if (!string.IsNullOrEmpty(singleId))
@@ -6225,7 +6559,7 @@ namespace NeoCompose.Runtime
                 || runtimeValue is not System.Collections.IEnumerable values)
             {
                 throw new InvalidOperationException(
-                    $"{subject} requires a reference or reference collection.");
+                    $"{kind} constructor field '{memberName}' requires a reference or reference collection.");
             }
             var ids = new List<string>();
             foreach (object? value in values)
@@ -6234,7 +6568,7 @@ namespace NeoCompose.Runtime
                 if (string.IsNullOrEmpty(id))
                 {
                     throw new InvalidOperationException(
-                        $"{subject} contains an unbound reference.");
+                        $"{kind} constructor field '{memberName}' contains an unbound reference.");
                 }
                 ids.Add(id!);
             }

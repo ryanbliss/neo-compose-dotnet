@@ -28,7 +28,7 @@ namespace NeoCompose.Runtime.Json
     /// Local variable declaration. Mirrors TS-side
     /// <c>INSInstructionVariable</c>.
     /// </summary>
-    public class VariableInstruction : Instruction
+    public sealed class VariableInstruction : Instruction
     {
         public Variable variable = null!;
     }
@@ -40,7 +40,7 @@ namespace NeoCompose.Runtime.Json
     /// <see cref="elseInstructions"/> on the C# side. The TS field is
     /// <c>else?: TNSInstructions | null</c> — nullable here.
     /// </summary>
-    public class IfInstruction : Instruction
+    public sealed class IfInstruction : Instruction
     {
         public ConditionalBranch[] branches = null!;
 
@@ -56,7 +56,7 @@ namespace NeoCompose.Runtime.Json
     /// can distinguish "bare return" from "return X" by checking
     /// whether <see cref="pointer"/> is null.
     /// </summary>
-    public class ReturnInstruction : Instruction
+    public sealed class ReturnInstruction : Instruction
     {
         public Pointer? pointer;
     }
@@ -66,7 +66,7 @@ namespace NeoCompose.Runtime.Json
     /// <c>pointer</c> is the message to surface as the cell's error
     /// string at runtime — required, never null.
     /// </summary>
-    public class ThrowInstruction : Instruction
+    public sealed class ThrowInstruction : Instruction
     {
         public Pointer pointer = null!;
     }
@@ -76,7 +76,7 @@ namespace NeoCompose.Runtime.Json
     /// <c>operator</c> field is a C# keyword; expose it as
     /// <see cref="operatorValue"/> while keeping the wire name stable.
     /// </summary>
-    public class AssignInstruction : Instruction
+    public sealed class AssignInstruction : Instruction
     {
         public WriteTarget target = null!;
         [JsonProperty("operator")]
@@ -85,7 +85,7 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>Mirror of <c>INSInstructionCollectionCall</c>.</summary>
-    public class CollectionCallInstruction : Instruction
+    public sealed class CollectionCallInstruction : Instruction
     {
         public WriteTarget target = null!;
         /// <summary>One of <see cref="CollectionMutationKind"/>.</summary>
@@ -93,7 +93,7 @@ namespace NeoCompose.Runtime.Json
         public Pointer[] args = null!;
     }
 
-    public class FunctionCallInstruction : Instruction
+    public sealed class FunctionCallInstruction : Instruction
     {
         public Pointer call = null!;
     }
@@ -109,30 +109,42 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>Mirror of the P50 <c>for</c> instruction.</summary>
-    public class ForInstruction : Instruction
+    public sealed class ForInstruction : Instruction
     {
         public Variable initializer = null!;
         public BooleanExpression condition = null!;
         public AssignInstruction iterator = null!;
         public Instruction[] instructions = null!;
+        /// <summary>The body's local slots, built when a body with locals first runs.</summary>
+        [Newtonsoft.Json.JsonIgnore]
+        internal NeoScript.NeoScriptScopeLayout? bodyLayout;
+        /// <summary>The executor's loop state from the last run that completed, reused by the next.</summary>
+        [Newtonsoft.Json.JsonIgnore]
+        internal object? idleState;
     }
 
     /// <summary>Mirror of the P50 <c>forEach</c> instruction.</summary>
-    public class ForEachInstruction : Instruction
+    public sealed class ForEachInstruction : Instruction
     {
         public LoopBinding binding = null!;
         public Pointer collectionPointer = null!;
         public TypeInfo collectionTypeInfo = null!;
         public Instruction[] instructions = null!;
+        /// <summary>The body's local slots, built when a body with locals first runs.</summary>
+        [Newtonsoft.Json.JsonIgnore]
+        internal NeoScript.NeoScriptScopeLayout? bodyLayout;
+        /// <summary>The executor's loop state from the last run that completed, reused by the next.</summary>
+        [Newtonsoft.Json.JsonIgnore]
+        internal object? idleState;
     }
 
     /// <summary>Exits the nearest enclosing loop or switch.</summary>
-    public class BreakInstruction : Instruction
+    public sealed class BreakInstruction : Instruction
     {
     }
 
     /// <summary>Advances the nearest enclosing loop.</summary>
-    public class ContinueInstruction : Instruction
+    public sealed class ContinueInstruction : Instruction
     {
     }
 
@@ -147,15 +159,15 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>Mirror of the P51 <c>switch</c> instruction.</summary>
-    public class SwitchInstruction : Instruction
+    public sealed class SwitchInstruction : Instruction
     {
         public Pointer selector = null!;
         public TypeInfo selectorTypeInfo = null!;
         public SwitchSection[] sections = null!;
         public Instruction[]? defaultInstructions;
-        /// <summary>Each section's normalized case labels, cached by the runtime on first validation.</summary>
+        /// <summary>The section index of each normalized case label, cached by the runtime on first validation.</summary>
         [Newtonsoft.Json.JsonIgnore]
-        internal string[][]? normalizedLabels;
+        internal System.Collections.Generic.Dictionary<object, int>? sectionByLabel;
     }
 
     /// <summary>Read-only caught-message binding for a P52 catch clause.</summary>
@@ -176,7 +188,7 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>Mirror of the P52 <c>try</c> instruction.</summary>
-    public class TryInstruction : Instruction
+    public sealed class TryInstruction : Instruction
     {
         public Instruction[] instructions = null!;
         public CatchClause[] catches = null!;
@@ -201,7 +213,7 @@ namespace NeoCompose.Runtime.Json
     /// Mirror of <c>INSInstructionAddActionListener</c>. Adding an identity
     /// the set already holds is a no-op (P62 §3.2).
     /// </summary>
-    public class AddActionListenerInstruction : ActionListenerInstruction
+    public sealed class AddActionListenerInstruction : ActionListenerInstruction
     {
     }
 
@@ -209,7 +221,7 @@ namespace NeoCompose.Runtime.Json
     /// Mirror of <c>INSInstructionRemoveActionListener</c>. Removing an
     /// absent identity is a no-op (P62 §3.2).
     /// </summary>
-    public class RemoveActionListenerInstruction : ActionListenerInstruction
+    public sealed class RemoveActionListenerInstruction : ActionListenerInstruction
     {
     }
 
@@ -601,7 +613,7 @@ namespace NeoCompose.Runtime.Json
                     double integer = value.Value<double>();
                     if (double.IsNaN(integer)
                         || double.IsInfinity(integer)
-                        || integer != System.Math.Truncate(integer)
+                        || !NeoNumbers.IsWhole(integer)
                         || System.Math.Abs(integer) > 9007199254740991d)
                     {
                         return false;

@@ -19,6 +19,9 @@ namespace NeoCompose.Runtime
         private AuthoredValueInferenceIndex ValueInferenceIndex =>
             authoredValueInferenceIndex ??= new AuthoredValueInferenceIndex(data);
 
+        /// <summary>Whether <see cref="InferMemberParents"/> reads only committed parent edges.</summary>
+        internal bool InfersCommittedParents => candidateReplay is null && candidateReadPlan is null;
+
         internal IEnumerable<KeyValuePair<string, MemberValue>> InferMemberParents(string childId)
         {
             var candidates = new HashSet<string>(PlacementParents(childId));

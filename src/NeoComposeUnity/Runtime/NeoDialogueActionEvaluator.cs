@@ -6,6 +6,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using NeoCompose.Runtime.Json;
 using NeoCompose.Runtime.NeoScript;
 using Newtonsoft.Json.Linq;
@@ -204,14 +205,53 @@ namespace NeoCompose.Runtime
             }
         }
 
-        internal static PreparedCallback PrepareCallback(
-            NeoClient client,
+        /// <summary>
+        /// Opens one collection-operator callback session: the body is
+        /// validated once and allocation tracking spans every entry. The
+        /// caller closes it by exiting the context's allocation tracker.
+        /// </summary>
+        internal static void EnterCallback(
             FunctionWithReturnType body,
-            NSGetterEvaluator.Context ctx,
-            NeoScriptExecutionOptions? options = null)
+            NSGetterEvaluator.Context ctx)
         {
             ValidateBodyForExecution(body);
-            return new PreparedCallback(client, body, ctx, options);
+            ctx.allocationTracker.EnterExecution();
+        }
+
+        /// <summary>
+        /// Runs one entry of a session <see cref="EnterCallback"/> opened,
+        /// with fresh expression replay state.
+        /// </summary>
+        internal static NeoScriptExecutionResult ExecuteCallback(
+            NeoClient client,
+            FunctionWithReturnType body,
+            NeoScriptScope scope,
+            NSGetterEvaluator.Context ctx,
+            NeoScriptExecutionOptions options)
+        {
+            NeoScriptExecutionResult result = ExecuteInstructions(
+                client,
+                body.instructions,
+                body.typeInfo,
+                scope,
+                ctx,
+                0,
+                null,
+                options);
+            if (result.IsFailed)
+            {
+                throw result.Failure!;
+            }
+            if (result.IsPaused)
+            {
+                return result;
+            }
+            if (result.IsBreak || result.IsContinue)
+            {
+                throw new NSGetterRuntimeError(
+                    $"NeoScript body ended with an unconsumed {result.Transfer.ToString().ToLowerInvariant()} transfer; its compiled IR is stale or corrupt.");
+            }
+            return ValidateTerminalAgainstBody(body, result);
         }
 
         /// <summary>
@@ -239,88 +279,6 @@ namespace NeoCompose.Runtime
                 return;
             ValidateControlFlowInstructionMetadata(body.instructions);
             body.validatedForExecution = true;
-        }
-
-        /// <summary>
-        /// One collection-operator callback session. Immutable body/options
-        /// setup and allocation tracking are retained across entries, while
-        /// Execute creates fresh expression replay state for every entry.
-        /// </summary>
-        internal sealed class PreparedCallback : IDisposable
-        {
-            private readonly NeoClient client;
-            private readonly FunctionWithReturnType body;
-            private readonly NSGetterEvaluator.Context ctx;
-            private readonly NeoScriptExecutionOptions? options;
-            private bool disposed;
-            private NeoScriptExecutionResult? ownerTerminal;
-
-            internal PreparedCallback(
-                NeoClient client,
-                FunctionWithReturnType body,
-                NSGetterEvaluator.Context ctx,
-                NeoScriptExecutionOptions? options)
-            {
-                this.client = client;
-                this.body = body;
-                this.ctx = ctx;
-                this.options = options;
-                ctx.allocationTracker.EnterExecution();
-            }
-
-            internal NeoScriptExecutionResult Execute(NeoScriptScope scope)
-            {
-                if (disposed)
-                {
-                    throw new ObjectDisposedException(
-                        nameof(PreparedCallback));
-                }
-                NeoScriptExecutionResult result = ExecuteInstructions(
-                    client,
-                    body.instructions,
-                    body.typeInfo,
-                    scope,
-                    ctx,
-                    0,
-                    null,
-                    options);
-                if (result.IsFailed)
-                {
-                    throw result.Failure!;
-                }
-                if (result.IsPaused)
-                {
-                    return result;
-                }
-                if (result.IsBreak || result.IsContinue)
-                {
-                    throw new NSGetterRuntimeError(
-                        $"NeoScript body ended with an unconsumed {result.Transfer.ToString().ToLowerInvariant()} transfer; its compiled IR is stale or corrupt.");
-                }
-                return ValidateTerminalAgainstBody(body, result);
-            }
-
-            internal void CompleteOwner(object? returnValue)
-            {
-                if (disposed)
-                {
-                    throw new ObjectDisposedException(
-                        nameof(PreparedCallback));
-                }
-                ownerTerminal = NeoScriptExecutionResult.Completed(
-                    returned: true, returnValue);
-            }
-
-            public void Dispose()
-            {
-                if (disposed)
-                    return;
-                disposed = true;
-                ctx.allocationTracker.ExitExecution(
-                    client,
-                    ctx,
-                    ownerTerminal);
-            }
         }
 
         private static void ValidateControlFlowInstructionMetadata(
@@ -717,8 +675,25 @@ namespace NeoCompose.Runtime
             NeoScriptExecutionOptions? options)
         {
             ValidateForInstructionMetadata(instruction);
-            var state = new ForExecutionState(instruction, scope, options);
-            return RunFor(client, returnTypeInfo, scope, ctx, options, state);
+            // A run that completes leaves its state unreferenced, so the
+            // instruction keeps it for the next run; a paused run's state
+            // belongs to its continuation.
+            var state = System.Threading.Interlocked.Exchange(ref instruction.idleState, null) as ForExecutionState;
+            if (state is null)
+                state = new ForExecutionState(instruction, scope, options);
+            else
+                state.Begin(scope, options);
+            NeoScriptExecutionResult result = RunFor(client, returnTypeInfo, scope, ctx, options, state);
+            if (!result.IsPaused)
+            {
+                state.Park();
+                instruction.idleState = state;
+            }
+            else
+            {
+                state.DetachBodyScope();
+            }
+            return result;
         }
 
         private static NeoScriptExecutionResult RunFor(
@@ -739,7 +714,7 @@ namespace NeoCompose.Runtime
                     options,
                     state);
                 return result.IsPaused
-                    ? result.ObserveFailure(_ => state.RestoreBinding(scope))
+                    ? RestoreBindingOnFailure(result, state, scope)
                     : result;
             }
             catch
@@ -779,17 +754,14 @@ namespace NeoCompose.Runtime
                             }
                             catch (NeoFunctionCallSuspended suspended)
                             {
-                                return PauseLoopExpression(
-                                    suspended,
-                                    state.ExpressionState,
+                                return PauseFor(
+                                    client,
+                                    returnTypeInfo,
+                                    scope,
+                                    ctx,
                                     options,
-                                    () => RunFor(
-                                        client,
-                                        returnTypeInfo,
-                                        scope,
-                                        ctx,
-                                        options,
-                                        state));
+                                    state,
+                                    suspended);
                             }
                             state.MoveTo(ForPhase.Condition);
                             continue;
@@ -814,17 +786,14 @@ namespace NeoCompose.Runtime
                             }
                             catch (NeoFunctionCallSuspended suspended)
                             {
-                                return PauseLoopExpression(
-                                    suspended,
-                                    state.ExpressionState,
+                                return PauseFor(
+                                    client,
+                                    returnTypeInfo,
+                                    scope,
+                                    ctx,
                                     options,
-                                    () => RunFor(
-                                        client,
-                                        returnTypeInfo,
-                                        scope,
-                                        ctx,
-                                        options,
-                                        state));
+                                    state,
+                                    suspended);
                             }
                             if (!shouldEnter)
                             {
@@ -838,8 +807,10 @@ namespace NeoCompose.Runtime
                         }
                     case ForPhase.Body:
                         {
-                            NeoScriptScope bodyScope =
-                                state.EnsureBodyScope(scope);
+                            NeoScriptScope bodyScope = state.EnsureBodyScope(
+                                scope,
+                                state.Instruction.instructions,
+                                ref state.Instruction.bodyLayout);
                             NeoScriptExecutionResult bodyResult = ExecuteInstructions(
                                 client,
                                 state.Instruction.instructions,
@@ -851,18 +822,17 @@ namespace NeoCompose.Runtime
                                 options);
                             if (bodyResult.IsPaused)
                             {
-                                return ThenWhenCompleted(
+                                return ResumeForWhenCompleted(
+                                    client,
+                                    returnTypeInfo,
+                                    scope,
+                                    ctx,
+                                    options,
+                                    state,
                                     bodyResult,
-                                    afterBody => ResumeForAfterBody(
-                                        client,
-                                        returnTypeInfo,
-                                        scope,
-                                        ctx,
-                                        options,
-                                        state,
-                                        afterBody));
+                                    afterIterator: false);
                             }
-                            state.SynchronizeBodyScope(scope);
+                            state.ResetBodyScope();
                             NeoScriptExecutionResult? terminal =
                                 ApplyForBodyTransfer(scope, state, bodyResult);
                             if (terminal is not null)
@@ -890,31 +860,26 @@ namespace NeoCompose.Runtime
                             }
                             catch (NeoFunctionCallSuspended suspended)
                             {
-                                return PauseLoopExpression(
-                                    suspended,
-                                    state.ExpressionState,
+                                return PauseFor(
+                                    client,
+                                    returnTypeInfo,
+                                    scope,
+                                    ctx,
                                     options,
-                                    () => RunFor(
-                                        client,
-                                        returnTypeInfo,
-                                        scope,
-                                        ctx,
-                                        options,
-                                        state));
+                                    state,
+                                    suspended);
                             }
                             if (nestedSetter is not null && nestedSetter.Value.IsPaused)
                             {
-                                return ThenWhenCompleted(nestedSetter.Value, _ =>
-                                {
-                                    state.MoveTo(ForPhase.Condition);
-                                    return RunFor(
-                                        client,
-                                        returnTypeInfo,
-                                        scope,
-                                        ctx,
-                                        options,
-                                        state);
-                                });
+                                return ResumeForWhenCompleted(
+                                    client,
+                                    returnTypeInfo,
+                                    scope,
+                                    ctx,
+                                    options,
+                                    state,
+                                    nestedSetter.Value,
+                                    afterIterator: true);
                             }
                             state.MoveTo(ForPhase.Condition);
                             continue;
@@ -926,6 +891,46 @@ namespace NeoCompose.Runtime
             }
         }
 
+        // The pause paths below live outside RunForCore so its hot frame
+        // captures nothing: a lambda there allocates its closure on every
+        // call, paused or not.
+        private static NeoScriptExecutionResult PauseFor(
+            NeoClient client,
+            TypeInfo returnTypeInfo,
+            NeoScriptScope scope,
+            NSGetterEvaluator.Context ctx,
+            NeoScriptExecutionOptions? options,
+            ForExecutionState state,
+            NeoFunctionCallSuspended suspended) =>
+            PauseLoopExpression(
+                suspended,
+                state.ExpressionState,
+                options,
+                () => RunFor(client, returnTypeInfo, scope, ctx, options, state));
+
+        private static NeoScriptExecutionResult ResumeForWhenCompleted(
+            NeoClient client,
+            TypeInfo returnTypeInfo,
+            NeoScriptScope scope,
+            NSGetterEvaluator.Context ctx,
+            NeoScriptExecutionOptions? options,
+            ForExecutionState state,
+            NeoScriptExecutionResult result,
+            bool afterIterator) =>
+            ThenWhenCompleted(result, settled =>
+            {
+                if (!afterIterator)
+                    return ResumeForAfterBody(client, returnTypeInfo, scope, ctx, options, state, settled);
+                state.MoveTo(ForPhase.Condition);
+                return RunFor(client, returnTypeInfo, scope, ctx, options, state);
+            });
+
+        private static NeoScriptExecutionResult RestoreBindingOnFailure(
+            NeoScriptExecutionResult result,
+            LoopExecutionState state,
+            NeoScriptScope scope) =>
+            result.ObserveFailure(_ => state.RestoreBinding(scope));
+
         private static NeoScriptExecutionResult ResumeForAfterBody(
             NeoClient client,
             TypeInfo returnTypeInfo,
@@ -935,7 +940,7 @@ namespace NeoCompose.Runtime
             ForExecutionState state,
             NeoScriptExecutionResult bodyResult)
         {
-            state.SynchronizeBodyScope(scope);
+            state.ResetBodyScope();
             NeoScriptExecutionResult? terminal =
                 ApplyForBodyTransfer(scope, state, bodyResult);
             return terminal ?? RunFor(
@@ -977,14 +982,29 @@ namespace NeoCompose.Runtime
             NeoScriptExecutionOptions? options)
         {
             ValidateForEachInstructionMetadata(instruction);
-            var state = new ForEachExecutionState(instruction, scope, options);
-            return RunForEach(
+            // Reused as ExecuteFor reuses its state.
+            var state = System.Threading.Interlocked.Exchange(ref instruction.idleState, null) as ForEachExecutionState;
+            if (state is null)
+                state = new ForEachExecutionState(instruction, scope, options);
+            else
+                state.Begin(scope, options);
+            NeoScriptExecutionResult result = RunForEach(
                 client,
                 returnTypeInfo,
                 scope,
                 ctx,
                 options,
                 state);
+            if (!result.IsPaused)
+            {
+                state.Park();
+                instruction.idleState = state;
+            }
+            else
+            {
+                state.DetachBodyScope();
+            }
+            return result;
         }
 
         private static NeoScriptExecutionResult RunForEach(
@@ -1005,7 +1025,7 @@ namespace NeoCompose.Runtime
                     options,
                     state);
                 return result.IsPaused
-                    ? result.ObserveFailure(_ => state.RestoreBinding(scope))
+                    ? RestoreBindingOnFailure(result, state, scope)
                     : result;
             }
             catch
@@ -1025,7 +1045,7 @@ namespace NeoCompose.Runtime
         {
             while (true)
             {
-                if (state.Snapshot is null)
+                if (state.SnapshotCount < 0)
                 {
                     NSGetterEvaluator.Context expressionContext =
                         ExpressionContextFor(
@@ -1044,25 +1064,23 @@ namespace NeoCompose.Runtime
                     }
                     catch (NeoFunctionCallSuspended suspended)
                     {
-                        return PauseLoopExpression(
-                            suspended,
-                            state.ExpressionState,
+                        return PauseForEach(
+                            client,
+                            returnTypeInfo,
+                            scope,
+                            ctx,
                             options,
-                            () => RunForEach(
-                                client,
-                                returnTypeInfo,
-                                scope,
-                                ctx,
-                                options,
-                                state));
+                            state,
+                            suspended);
                     }
-                    state.Snapshot =
+                    state.SnapshotCount =
                         NSGetterEvaluator.SnapshotCollectionEntries(
                             collection,
-                            ctx);
+                            ctx,
+                            ref state.Snapshot);
                 }
 
-                if (state.Index >= state.Snapshot.Length)
+                if (state.Index >= state.SnapshotCount)
                 {
                     state.RestoreBinding(scope);
                     return NeoScriptExecutionResult.Completed(
@@ -1074,8 +1092,10 @@ namespace NeoCompose.Runtime
                     CoerceSetterValue(
                         state.Snapshot[state.Index].Resolve(ctx),
                         state.Instruction.binding.typeInfo);
-                NeoScriptScope bodyScope =
-                    state.EnsureBodyScope(scope);
+                NeoScriptScope bodyScope = state.EnsureBodyScope(
+                    scope,
+                    state.Instruction.instructions,
+                    ref state.Instruction.bodyLayout);
                 NeoScriptExecutionResult bodyResult = ExecuteInstructions(
                     client,
                     state.Instruction.instructions,
@@ -1087,24 +1107,49 @@ namespace NeoCompose.Runtime
                     options);
                 if (bodyResult.IsPaused)
                 {
-                    return ThenWhenCompleted(
-                        bodyResult,
-                        afterBody => ResumeForEachAfterBody(
-                            client,
-                            returnTypeInfo,
-                            scope,
-                            ctx,
-                            options,
-                            state,
-                            afterBody));
+                    return ResumeForEachWhenCompleted(
+                        client,
+                        returnTypeInfo,
+                        scope,
+                        ctx,
+                        options,
+                        state,
+                        bodyResult);
                 }
-                state.SynchronizeBodyScope(scope);
+                state.ResetBodyScope();
                 NeoScriptExecutionResult? terminal =
                     ApplyForEachBodyTransfer(scope, state, bodyResult);
                 if (terminal is not null)
                     return terminal.Value;
             }
         }
+
+        // Outside RunForEachCore for the same reason as PauseFor.
+        private static NeoScriptExecutionResult PauseForEach(
+            NeoClient client,
+            TypeInfo returnTypeInfo,
+            NeoScriptScope scope,
+            NSGetterEvaluator.Context ctx,
+            NeoScriptExecutionOptions? options,
+            ForEachExecutionState state,
+            NeoFunctionCallSuspended suspended) =>
+            PauseLoopExpression(
+                suspended,
+                state.ExpressionState,
+                options,
+                () => RunForEach(client, returnTypeInfo, scope, ctx, options, state));
+
+        private static NeoScriptExecutionResult ResumeForEachWhenCompleted(
+            NeoClient client,
+            TypeInfo returnTypeInfo,
+            NeoScriptScope scope,
+            NSGetterEvaluator.Context ctx,
+            NeoScriptExecutionOptions? options,
+            ForEachExecutionState state,
+            NeoScriptExecutionResult bodyResult) =>
+            ThenWhenCompleted(
+                bodyResult,
+                afterBody => ResumeForEachAfterBody(client, returnTypeInfo, scope, ctx, options, state, afterBody));
 
         private static NeoScriptExecutionResult ResumeForEachAfterBody(
             NeoClient client,
@@ -1115,7 +1160,7 @@ namespace NeoCompose.Runtime
             ForEachExecutionState state,
             NeoScriptExecutionResult bodyResult)
         {
-            state.SynchronizeBodyScope(scope);
+            state.ResetBodyScope();
             NeoScriptExecutionResult? terminal =
                 ApplyForEachBodyTransfer(scope, state, bodyResult);
             return terminal ?? RunForEach(
@@ -1202,10 +1247,10 @@ namespace NeoCompose.Runtime
         /// section. Instructions are immutable after load, so the labels are
         /// cached on the instruction.
         /// </summary>
-        private static string[][] ValidateSwitchInstructionMetadata(
+        private static Dictionary<object, int> ValidateSwitchInstructionMetadata(
             SwitchInstruction? instruction)
         {
-            if (instruction?.normalizedLabels is { } cached)
+            if (instruction?.sectionByLabel is { } cached)
                 return cached;
             if (instruction?.selector is null
                 || instruction.sections is null)
@@ -1214,8 +1259,7 @@ namespace NeoCompose.Runtime
                     "NeoScript switch is missing its selector or sections; its compiled IR is stale or corrupt.");
             }
             ValidateSwitchSelectorType(instruction.selectorTypeInfo);
-            var labels = new HashSet<string>(StringComparer.Ordinal);
-            var normalizedLabels = new string[instruction.sections.Length][];
+            var sectionByLabel = new Dictionary<object, int>();
             for (int i = 0; i < instruction.sections.Length; i++)
             {
                 SwitchSection? section = instruction.sections[i];
@@ -1226,22 +1270,21 @@ namespace NeoCompose.Runtime
                     throw new NeoScriptPreExecutionValidationError(
                         "NeoScript switch contains a malformed case section; its compiled IR is stale or corrupt.");
                 }
-                normalizedLabels[i] = new string[section.labels.Length];
                 for (int j = 0; j < section.labels.Length; j++)
                 {
-                    string label = NormalizeSwitchLabel(
+                    object label = NormalizeSwitchLabel(
                         section.labels[j],
                         instruction.selectorTypeInfo);
-                    if (!labels.Add(label))
+                    if (sectionByLabel.ContainsKey(label))
                     {
                         throw new NeoScriptPreExecutionValidationError(
                             "NeoScript switch contains a duplicate normalized case label; its compiled IR is stale or corrupt.");
                     }
-                    normalizedLabels[i][j] = label;
+                    sectionByLabel.Add(label, i);
                 }
             }
-            instruction.normalizedLabels = normalizedLabels;
-            return normalizedLabels;
+            instruction.sectionByLabel = sectionByLabel;
+            return sectionByLabel;
         }
 
         private static void ValidateTryInstructionMetadata(
@@ -1283,59 +1326,101 @@ namespace NeoCompose.Runtime
             NSGetterEvaluator.Context ctx,
             NeoScriptExecutionOptions? options)
         {
-            var state = new SwitchExecutionState(instruction, options);
-            return RunSwitch(
+            if (instruction is null)
+            {
+                throw new NeoScriptPreExecutionValidationError(
+                    "NeoScript switch instruction is missing; its compiled IR is stale or corrupt.");
+            }
+            Dictionary<object, int> sectionByLabel = ValidateSwitchInstructionMetadata(instruction);
+            if (options?.AllowDeferredFunctionCalls == true)
+            {
+                return RunDeferredSwitch(
+                    client,
+                    instruction,
+                    sectionByLabel,
+                    ExpressionResumeState.ForOptions(options),
+                    returnTypeInfo,
+                    scope,
+                    ctx,
+                    options);
+            }
+            // An immediate frame cannot suspend, so its selector needs no
+            // resume state.
+            object? selectorValue = Eval(
+                instruction.selector,
+                scope,
+                ExpressionContextFor(
+                    client,
+                    ctx,
+                    ExpressionResumeState.Immediate,
+                    options));
+            return RunSwitchSection(
                 client,
+                SelectSwitchInstructions(instruction, sectionByLabel, selectorValue),
                 returnTypeInfo,
                 scope,
                 ctx,
-                options,
-                state);
+                options);
         }
 
-        private static NeoScriptExecutionResult RunSwitch(
+        private static NeoScriptExecutionResult RunDeferredSwitch(
             NeoClient client,
+            SwitchInstruction instruction,
+            Dictionary<object, int> sectionByLabel,
+            ExpressionResumeState expressionState,
             TypeInfo returnTypeInfo,
             NeoScriptScope scope,
             NSGetterEvaluator.Context ctx,
-            NeoScriptExecutionOptions? options,
-            SwitchExecutionState state)
+            NeoScriptExecutionOptions options)
         {
-            if (!state.SelectorCompleted)
+            expressionState.BeginInstructionAttempt();
+            object? selectorValue;
+            try
             {
-                NSGetterEvaluator.Context expressionContext =
+                selectorValue = Eval(
+                    instruction.selector,
+                    scope,
                     ExpressionContextFor(
                         client,
                         ctx,
-                        state.ExpressionState,
-                        options);
-                state.ExpressionState.BeginInstructionAttempt();
-                object? selectorValue;
-                try
-                {
-                    selectorValue = Eval(
-                        state.Instruction.selector,
-                        scope,
-                        expressionContext);
-                }
-                catch (NeoFunctionCallSuspended suspended)
-                {
-                    return PauseLoopExpression(
-                        suspended,
-                        state.ExpressionState,
-                        options,
-                        () => RunSwitch(
-                            client,
-                            returnTypeInfo,
-                            scope,
-                            ctx,
-                            options,
-                            state));
-                }
-                state.CompleteSelector(selectorValue);
+                        expressionState,
+                        options));
             }
+            catch (NeoFunctionCallSuspended suspended)
+            {
+                // The resumed attempt replays the selector from the recorded
+                // results of its completed calls.
+                return PauseLoopExpression(
+                    suspended,
+                    expressionState,
+                    options,
+                    () => RunDeferredSwitch(
+                        client,
+                        instruction,
+                        sectionByLabel,
+                        expressionState,
+                        returnTypeInfo,
+                        scope,
+                        ctx,
+                        options));
+            }
+            return RunSwitchSection(
+                client,
+                SelectSwitchInstructions(instruction, sectionByLabel, selectorValue),
+                returnTypeInfo,
+                scope,
+                ctx,
+                options);
+        }
 
-            Instruction[]? selectedInstructions = state.SelectedInstructions;
+        private static NeoScriptExecutionResult RunSwitchSection(
+            NeoClient client,
+            Instruction[]? selectedInstructions,
+            TypeInfo returnTypeInfo,
+            NeoScriptScope scope,
+            NSGetterEvaluator.Context ctx,
+            NeoScriptExecutionOptions? options)
+        {
             if (selectedInstructions is null)
             {
                 return NeoScriptExecutionResult.Completed(
@@ -1343,39 +1428,56 @@ namespace NeoCompose.Runtime
                     returnValue: null);
             }
 
-            NeoScriptScope sectionScope =
-                state.EnsureSectionScope(scope);
-            NeoScriptExecutionResult bodyResult;
-            try
-            {
-                bodyResult = ExecuteInstructions(
-                    client,
-                    selectedInstructions,
-                    returnTypeInfo,
-                    sectionScope,
-                    ctx,
-                    0,
-                    null,
-                    options);
-            }
-            catch
-            {
-                state.SynchronizeSectionScope(scope);
-                throw;
-            }
+            NeoScriptExecutionResult bodyResult = ExecuteInstructions(
+                client,
+                selectedInstructions,
+                returnTypeInfo,
+                BlockScopeFor(selectedInstructions, scope),
+                ctx,
+                0,
+                null,
+                options);
             if (bodyResult.IsPaused)
-            {
-                return ThenWhenCompleted(bodyResult, CompleteSwitchBody)
-                    .ObserveFailure(_ => state.SynchronizeSectionScope(scope));
-            }
-            return CompleteSwitchBody(bodyResult);
+                return ThenWhenCompleted(bodyResult, ApplySwitchBodyTransfer);
+            return ApplySwitchBodyTransfer(bodyResult);
+        }
 
-            NeoScriptExecutionResult CompleteSwitchBody(
-                NeoScriptExecutionResult completedBody)
+        /// <summary>
+        /// The scope a block runs in: its own child when it declares locals,
+        /// which must not escape it, and otherwise the enclosing scope.
+        /// </summary>
+        private static NeoScriptScope BlockScopeFor(
+            Instruction[] instructions,
+            NeoScriptScope scope) =>
+            DeclaresLocals(instructions) ? scope.CreateBlock() : scope;
+
+        /// <summary>
+        /// Whether a block declares a local into the scope it runs in. If
+        /// branches run in their enclosing scope, so their locals count.
+        /// </summary>
+        private static bool DeclaresLocals(Instruction[] instructions)
+        {
+            for (int i = 0; i < instructions.Length; i++)
             {
-                state.SynchronizeSectionScope(scope);
-                return ApplySwitchBodyTransfer(completedBody);
+                switch (instructions[i])
+                {
+                    case VariableInstruction:
+                        return true;
+                    case IfInstruction conditional:
+                        foreach (var branch in conditional.branches)
+                        {
+                            if (DeclaresLocals(branch.instructions))
+                                return true;
+                        }
+                        if (conditional.elseInstructions is not null
+                            && DeclaresLocals(conditional.elseInstructions))
+                        {
+                            return true;
+                        }
+                        break;
+                }
             }
+            return false;
         }
 
         private static NeoScriptExecutionResult ApplySwitchBodyTransfer(
@@ -1479,7 +1581,7 @@ namespace NeoCompose.Runtime
                                         {
                                             return null;
                                         }
-                                        state.RejectCurrentClause(scope);
+                                        state.RejectCurrentClause();
                                         return RunTry(
                                             client,
                                             returnTypeInfo,
@@ -1487,23 +1589,16 @@ namespace NeoCompose.Runtime
                                             ctx,
                                             options,
                                             state);
-                                    })
-                                    .ObserveFailure(_ =>
-                                        state.SynchronizeCatchScope(scope));
+                                    });
                             }
                             catch (NSGetterRuntimeError exception) when (IsAuthoredCatchableError(exception))
                             {
-                                state.RejectCurrentClause(scope);
+                                state.RejectCurrentClause();
                                 continue;
-                            }
-                            catch
-                            {
-                                state.SynchronizeCatchScope(scope);
-                                throw;
                             }
                             if (!matched)
                             {
-                                state.RejectCurrentClause(scope);
+                                state.RejectCurrentClause();
                                 continue;
                             }
                             state.SelectCurrentClause();
@@ -1513,38 +1608,26 @@ namespace NeoCompose.Runtime
                         {
                             NeoScriptScope catchScope =
                                 state.EnsureCatchScope(scope);
-                            NeoScriptExecutionResult catchResult;
-                            try
-                            {
-                                catchResult = ExecuteInstructions(
-                                    client,
-                                    state.CurrentClause.instructions,
-                                    returnTypeInfo,
-                                    catchScope,
-                                    ctx,
-                                    0,
-                                    null,
-                                    options);
-                            }
-                            catch
-                            {
-                                state.SynchronizeCatchScope(scope);
-                                throw;
-                            }
+                            NeoScriptExecutionResult catchResult = ExecuteInstructions(
+                                client,
+                                state.CurrentClause.instructions,
+                                returnTypeInfo,
+                                catchScope,
+                                ctx,
+                                0,
+                                null,
+                                options);
                             if (catchResult.IsPaused)
                             {
                                 return ThenWhenCompleted(
                                         catchResult,
-                                        CompleteCatchBody)
-                                    .ObserveFailure(_ =>
-                                        state.SynchronizeCatchScope(scope));
+                                        CompleteCatchBody);
                             }
                             return CompleteCatchBody(catchResult);
 
                             NeoScriptExecutionResult CompleteCatchBody(
                                 NeoScriptExecutionResult completed)
                             {
-                                state.SynchronizeCatchScope(scope);
                                 state.Complete();
                                 return completed;
                             }
@@ -1587,7 +1670,6 @@ namespace NeoCompose.Runtime
             }
             catch (NSGetterRuntimeError exception) when (IsAuthoredCatchableError(exception))
             {
-                state.SynchronizeTryScope(scope);
                 state.BeginCatches(exception);
                 return RunTry(
                     client,
@@ -1596,11 +1678,6 @@ namespace NeoCompose.Runtime
                     ctx,
                     options,
                     state);
-            }
-            catch
-            {
-                state.SynchronizeTryScope(scope);
-                throw;
             }
 
             if (bodyResult.IsPaused)
@@ -1614,7 +1691,6 @@ namespace NeoCompose.Runtime
                                 return null;
                             }
                             var error = (NSGetterRuntimeError)exception;
-                            state.SynchronizeTryScope(scope);
                             state.BeginCatches(error);
                             return RunTry(
                                 client,
@@ -1624,15 +1700,13 @@ namespace NeoCompose.Runtime
                                 options,
                                 state);
                         }),
-                        CompleteTryBody)
-                    .ObserveFailure(_ => state.SynchronizeTryScope(scope));
+                        CompleteTryBody);
             }
             return CompleteTryBody(bodyResult);
 
             NeoScriptExecutionResult CompleteTryBody(
                 NeoScriptExecutionResult completed)
             {
-                state.SynchronizeTryScope(scope);
                 if (state.Phase == TryPhase.Body
                     && completed.IsFailed
                     && completed.Failure is NSGetterRuntimeError error
@@ -1652,11 +1726,14 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private static string NormalizeSwitchSelector(
+        // One section map covers one selector type, so a case key needs no
+        // type tag: numbers, bools, strings and enum option ids key directly.
+        private static readonly object NullSwitchLabel = new();
+
+        private static object SwitchSelectorKey(
             TypeInfo selectorTypeInfo,
             object? value)
         {
-            ValidateSwitchSelectorType(selectorTypeInfo);
             if (value is null)
             {
                 if (selectorTypeInfo.required)
@@ -1664,29 +1741,29 @@ namespace NeoCompose.Runtime
                     throw new NSGetterRuntimeError(
                         "NeoScript switch selector evaluated to null for a required selector type; its compiled IR is stale or corrupt.");
                 }
-                return "null";
+                return NullSwitchLabel;
             }
 
             switch (selectorTypeInfo.type)
             {
                 case MemberKind.Int:
-                    if (!TryNormalizeSwitchInteger(value, out string? integerKey))
+                    if (!TryNormalizeSwitchInteger(value, out double number))
                     {
                         throw SwitchValueTypeError("selector", selectorTypeInfo);
                     }
-                    return "int:" + integerKey;
+                    return NSGetterEvaluator.Box(number);
                 case MemberKind.String:
                     if (value is not string text)
                     {
                         throw SwitchValueTypeError("selector", selectorTypeInfo);
                     }
-                    return "string:" + text;
+                    return text;
                 case MemberKind.Bool:
                     if (value is not bool boolean)
                     {
                         throw SwitchValueTypeError("selector", selectorTypeInfo);
                     }
-                    return boolean ? "bool:true" : "bool:false";
+                    return NSGetterEvaluator.Box(boolean);
                 case MemberKind.Enum:
                     if (value is not object?[] options
                         || options.Length != 1
@@ -1695,14 +1772,22 @@ namespace NeoCompose.Runtime
                     {
                         throw SwitchValueTypeError("selector", selectorTypeInfo);
                     }
-                    return "enum:" + ((EnumTypeInfo)selectorTypeInfo).enumId
-                        + ":" + optionId;
+                    return optionId;
                 default:
                     throw SwitchValueTypeError("selector", selectorTypeInfo);
             }
         }
 
-        private static string NormalizeSwitchLabel(
+        /// <summary>The instructions a selector value runs, or null when no section and no default match.</summary>
+        private static Instruction[]? SelectSwitchInstructions(
+            SwitchInstruction instruction,
+            Dictionary<object, int> sectionByLabel,
+            object? value) =>
+            sectionByLabel.TryGetValue(SwitchSelectorKey(instruction.selectorTypeInfo, value), out int section)
+                ? instruction.sections[section].instructions
+                : instruction.defaultInstructions;
+
+        private static object NormalizeSwitchLabel(
             Value label,
             TypeInfo selectorTypeInfo)
         {
@@ -1720,7 +1805,7 @@ namespace NeoCompose.Runtime
                 {
                     throw SwitchMetadataTypeError(selectorTypeInfo);
                 }
-                return "null";
+                return NullSwitchLabel;
             }
 
             if (!labelTypeInfo.required
@@ -1744,23 +1829,23 @@ namespace NeoCompose.Runtime
                             && token?.Type != Newtonsoft.Json.Linq.JTokenType.Float)
                         || !TryNormalizeSwitchInteger(
                             token.ToObject<double>(),
-                            out string? integerKey))
+                            out double integer))
                     {
                         throw SwitchMetadataTypeError(selectorTypeInfo);
                     }
-                    return "int:" + integerKey;
+                    return integer;
                 case MemberKind.String:
                     if (token?.Type != Newtonsoft.Json.Linq.JTokenType.String)
                     {
                         throw SwitchMetadataTypeError(selectorTypeInfo);
                     }
-                    return "string:" + token.ToObject<string>();
+                    return token.ToObject<string>()!;
                 case MemberKind.Bool:
                     if (token?.Type != Newtonsoft.Json.Linq.JTokenType.Boolean)
                     {
                         throw SwitchMetadataTypeError(selectorTypeInfo);
                     }
-                    return token.ToObject<bool>() ? "bool:true" : "bool:false";
+                    return token.ToObject<bool>();
                 case MemberKind.Enum:
                     if (token is not Newtonsoft.Json.Linq.JArray enumOptions
                         || enumOptions.Count != 1
@@ -1770,8 +1855,7 @@ namespace NeoCompose.Runtime
                     {
                         throw SwitchMetadataTypeError(selectorTypeInfo);
                     }
-                    return "enum:" + ((EnumTypeInfo)selectorTypeInfo).enumId
-                        + ":" + enumOptions[0]!.ToObject<string>();
+                    return enumOptions[0]!.ToObject<string>()!;
                 default:
                     throw SwitchMetadataTypeError(selectorTypeInfo);
             }
@@ -1795,10 +1879,8 @@ namespace NeoCompose.Runtime
 
         private static bool TryNormalizeSwitchInteger(
             object value,
-            out string? key)
+            out double number)
         {
-            key = null;
-            double number;
             switch (value)
             {
                 case int integer:
@@ -1817,20 +1899,19 @@ namespace NeoCompose.Runtime
                     number = floating;
                     break;
                 default:
+                    number = 0d;
                     return false;
             }
             if (double.IsNaN(number)
                 || double.IsInfinity(number)
-                || number != Math.Truncate(number)
+                || !NeoNumbers.IsWhole(number)
                 || Math.Abs(number) > 9007199254740991d)
             {
                 return false;
             }
+            // -0 and 0 are one case.
             if (number == 0d)
                 number = 0d;
-            key = number.ToString(
-                "R",
-                System.Globalization.CultureInfo.InvariantCulture);
             return true;
         }
 
@@ -1876,8 +1957,9 @@ namespace NeoCompose.Runtime
             return BuildExpressionContext(client, ctx, expressionState, options);
         }
 
-        // The function context is fresh, so installing immutable immediate handlers
-        // here avoids cloning it again when its first instruction executes.
+        // The handlers are immutable and ExitFunction restores the caller's, so
+        // installing them on the function's context here avoids cloning it
+        // again when its first instruction executes.
         internal static void PrepareFunctionContext(
             NSGetterEvaluator.Context ctx, NeoScriptExecutionOptions options)
         {
@@ -2049,9 +2131,9 @@ namespace NeoCompose.Runtime
                 {
                     throw new NSGetterRuntimeError(readOnlyError!);
                 }
-                scope[variablePointer.variableId] = CoerceSetterValue(
+                scope.Assign(variablePointer.variableId, CoerceSetterValue(
                     rhs,
-                    instruction.target.typeInfo);
+                    instruction.target.typeInfo));
                 return null;
             }
 
@@ -2122,12 +2204,6 @@ namespace NeoCompose.Runtime
             string variableId)
         {
             scope.UnmarkReadOnly(variableId);
-        }
-
-        private static NeoScriptScope CreateChildScope(
-            NeoScriptScope parentScope)
-        {
-            return parentScope.CreateChild();
         }
 
         /// <summary>
@@ -2281,12 +2357,12 @@ namespace NeoCompose.Runtime
                         .Mutate(client, instruction.mutation, args, ctx);
                     return;
                 }
-                scope[variablePointer.variableId] = MutateLocalCollection(
+                scope.Assign(variablePointer.variableId, MutateLocalCollection(
                     local,
                     instruction.target.typeInfo,
                     instruction.mutation,
                     args,
-                    ctx);
+                    ctx));
                 return;
             }
 
@@ -2318,25 +2394,38 @@ namespace NeoCompose.Runtime
                 return;
             }
 
-            if (instruction.target.pointer is StaticMemberPointer staticMember)
+            if (instruction.target.pointer is StaticMemberPointer staticMember
+                && TryMutateUnboundStatic(client, instruction, staticMember, args, scope, ctx))
             {
-                var binding = new NeoStaticBinding(client, staticMember.memberId,
-                    TargetOwnership(client, instruction.target, scope, ctx));
-                if (binding.ValueId is null)
-                {
-                    PrepareWrite(client, plan =>
-                    {
-                        object initialValue = instruction.target.typeInfo.type == MemberKind.Dictionary
-                            ? new Dictionary<string, string>() : Array.Empty<string>();
-                        binding.PreparePayload(plan, initialValue);
-                        ResolveCollectionTarget(client, instruction.target, scope, ctx, plan)
-                            .Mutate(client, instruction.mutation, args, ctx);
-                    });
-                    return;
-                }
+                return;
             }
             var target = ResolveCollectionTarget(client, instruction.target, scope, ctx);
             target.Mutate(client, instruction.mutation, args, ctx);
+        }
+
+        // Its own method: the write's closure captures the call's state, and
+        // C# allocates a closure where the captured variables are declared.
+        private static bool TryMutateUnboundStatic(
+            NeoClient client,
+            CollectionCallInstruction instruction,
+            StaticMemberPointer staticMember,
+            object?[] args,
+            NeoScriptScope scope,
+            NSGetterEvaluator.Context ctx)
+        {
+            var binding = new NeoStaticBinding(client, staticMember.memberId,
+                TargetOwnership(client, instruction.target, scope, ctx));
+            if (binding.ValueId is not null)
+                return false;
+            PrepareWrite(client, plan =>
+            {
+                object initialValue = instruction.target.typeInfo.type == MemberKind.Dictionary
+                    ? new Dictionary<string, string>() : Array.Empty<string>();
+                binding.PreparePayload(plan, initialValue);
+                ResolveCollectionTarget(client, instruction.target, scope, ctx, plan)
+                    .Mutate(client, instruction.mutation, args, ctx);
+            });
+            return true;
         }
 
         private static object? Eval(
@@ -2475,44 +2564,37 @@ namespace NeoCompose.Runtime
                         return null;
                     }
                 }
-                var argumentStorage = pointer.args.Length == 0 ? Array.Empty<object?>()
-                    : System.Buffers.ArrayPool<object?>.Shared.Rent(pointer.args.Length);
+                object?[] args = NSGetterEvaluator.RentArguments(pointer);
                 try
                 {
-                    var args = argumentStorage.AsSpan(0, pointer.args.Length);
-
                     for (int i = 0; i < pointer.args.Length; i++)
                     {
                         args[i] = NSGetterEvaluator.EvaluateFunctionArgument(pointer, i, scope, ctx);
                     }
-                    string? memberId = NSGetterEvaluator.ResolveFunctionMemberId(
+                    string? memberId = NSGetterEvaluator.ResolveCallTarget(
                         pointer,
                         receiver,
-                        ctx);
+                        ctx,
+                        out NeoResolvedNSFunction? resolved);
+                    if (resolved is null)
+                        NSGetterEvaluator.MaterializePatternArguments(memberId, args, ctx);
                     if (memberId is null)
                     {
                         object? fallback = NSGetterEvaluator.EvaluateMissingMemberFallback(
                             pointer,
                             receiver,
-                            args.ToArray());
+                            args);
                         expressionState.StoreValue(resumeKey, fallback);
                         return fallback;
                     }
-                    NSGetterEvaluator.ValidateValueEqualitySignature(
-                        pointer,
-                        memberId,
-                        ctx);
                     object? value;
-                    if (client.TryGetMember(memberId, out NSFunctionMember? nsFunction))
+                    if (resolved is not null)
                     {
-                        NeoResolvedNSFunction resolved = NeoNSFunctionRuntime.ResolveSignature(
-                            client,
-                            memberId);
                         bool deferred = resolved.Deferred;
                         if (deferred && options?.AllowDeferredFunctionCalls != true)
                         {
                             throw new NeoDeferredFunctionRuntimeError(
-                                $"NSFunction '{nsFunction!.name}' ({memberId}) deferred-mode mismatch: " +
+                                $"NSFunction '{resolved.Member.name}' ({memberId}) deferred-mode mismatch: " +
                                 "an immediate NeoScript frame called its deferred signature; " +
                                 "compiled call IR is stale/corrupt.");
                         }
@@ -2530,7 +2612,7 @@ namespace NeoCompose.Runtime
                                 nested.Deferred?.DisposeFromOwner(
                                     "non-deferred NSFunction suspended");
                                 throw new NSGetterRuntimeError(
-                                    $"Non-deferred NSFunction '{nsFunction.name}' suspended; its compiled IR is stale or corrupt.");
+                                    $"Non-deferred NSFunction '{resolved.Member.name}' suspended; its compiled IR is stale or corrupt.");
                             }
                             throw new NeoFunctionCallSuspended(
                                 resumeKey,
@@ -2550,7 +2632,7 @@ namespace NeoCompose.Runtime
                             // stays unfilled.
                             value = NSGetterEvaluator.InvokeNativeFunction(
                                 memberId, receiver,
-                                NSGetterEvaluator.FillNativeCallSiteArguments(memberId, args.ToArray(), ctx), ctx);
+                                NSGetterEvaluator.FillNativeCallSiteArguments(memberId, args, ctx), ctx);
                         }
                         else
                         {
@@ -2566,7 +2648,7 @@ namespace NeoCompose.Runtime
                                     "compiled call IR is stale/corrupt.");
                             }
                             value = StartDeferredNativeFunction(
-                                client, memberId, receiver, args.ToArray(), ctx, options, resumeKey);
+                                client, memberId, receiver, args.AsSpan().ToArray(), ctx, options, resumeKey);
                         }
                     }
                     expressionState.StoreValue(resumeKey, value);
@@ -2574,11 +2656,7 @@ namespace NeoCompose.Runtime
                 }
                 finally
                 {
-                    if (argumentStorage.Length != 0)
-                    {
-                        Array.Clear(argumentStorage, 0, pointer.args.Length);
-                        System.Buffers.ArrayPool<object?>.Shared.Return(argumentStorage);
-                    }
+                    NSGetterEvaluator.ReturnArguments(pointer, args);
                 }
             }
             catch (NeoFunctionCallSuspended)
@@ -2642,7 +2720,7 @@ namespace NeoCompose.Runtime
                 throw new NSGetterRuntimeError(
                     $"Static setter target '{effectiveMemberId}' is missing, not static, or does not match its receiver.");
             }
-            if (ctx.setterCallStack.Contains(effectiveMemberId))
+            if (NSGetterEvaluator.ContainsFrame(ctx.setterCallStack, effectiveMemberId))
             {
                 string circularName = client.TryGetMember(
                     effectiveMemberId, out JsonMember? circularMember)
@@ -2686,8 +2764,9 @@ namespace NeoCompose.Runtime
 
             var nestedCtx = ctx
                 .WithSetterPushed(effectiveMemberId, isStatic ? null : receiver);
-            var nestedOptions = (options ?? NeoScriptExecutionOptions.ForUnity(client))
-                .ForProperty(effectiveMemberId);
+            var nestedOptions = options is null || ctx.constructorBody
+                ? NeoScriptExecutionOptions.ForUnityProperty(client, effectiveMemberId)
+                : options.ForProperty(effectiveMemberId);
             return Execute(
                 client,
                 setter,
@@ -3489,7 +3568,7 @@ namespace NeoCompose.Runtime
         private static int ToInt(object? value, string name)
         {
             var numeric = ToDouble(value, name);
-            if (numeric != Math.Truncate(numeric))
+            if (!NeoNumbers.IsWhole(numeric))
             {
                 throw new NSGetterRuntimeError($"{name} must be an integer.");
             }
@@ -3614,6 +3693,16 @@ namespace NeoCompose.Runtime
             JsonMember? entryMember = NSGetterEvaluator.CollectionEntryMember(local, ctx);
             if (local is object?[] array)
             {
+                // An Add builds its result directly; the List round trip
+                // below costs two more copies and allocations per entry.
+                if (mutation == CollectionMutationKind.Add && collectionType.type != MemberKind.Lookup)
+                {
+                    var added = new object?[array.Length + 1];
+                    Array.Copy(array, added, array.Length);
+                    added[array.Length] = args[0];
+                    NSGetterEvaluator.KeepEntryMember(added, entryMember);
+                    return added;
+                }
                 var arrayList = new List<object?>(array);
                 MutateLocalList(arrayList, collectionType.type, mutation, args, entryMember, ctx);
                 object?[] mutated = arrayList.ToArray();
@@ -4467,7 +4556,7 @@ namespace NeoCompose.Runtime
                         $"Vector field '{field}' must be a finite number.");
                 }
                 if (fieldType.type == MemberKind.Int
-                    && numeric != Math.Truncate(numeric))
+                    && !NeoNumbers.IsWhole(numeric))
                 {
                     throw new NSGetterRuntimeError(
                         $"Vector field '{field}' must be an integer on an integer vector; found {numeric}.");
@@ -4500,7 +4589,7 @@ namespace NeoCompose.Runtime
             private int RequireInteger(object? value)
             {
                 double numeric = ToDouble(value, $"Sprite field '{field}'");
-                if (numeric != Math.Truncate(numeric)
+                if (!NeoNumbers.IsWhole(numeric)
                     || double.IsNaN(numeric)
                     || double.IsInfinity(numeric))
                 {
@@ -5162,15 +5251,26 @@ namespace NeoCompose.Runtime
 
         private abstract class LoopExecutionState
         {
-            private readonly string bindingId;
-            private readonly bool hadPreviousBinding;
-            private readonly object? previousBinding;
-            private readonly bool readOnly;
+            private string bindingId = null!;
+            private bool hadPreviousBinding;
+            private object? previousBinding;
+            private bool readOnly;
             private NeoScriptScope? bodyScope;
-            private string[]? bodyParentBindingIds;
+            private NeoScriptScopeLayout? bodyLayout;
+            private bool? bodyDeclaresLocals;
             private bool bindingRestored;
 
             protected LoopExecutionState(
+                string bindingId,
+                NeoScriptScope scope,
+                bool readOnly = false) =>
+                Begin(bindingId, scope, readOnly);
+
+            /// <summary>
+            /// Starts a run. A reused state keeps what describes its
+            /// instruction's body, which never changes.
+            /// </summary>
+            protected void Begin(
                 string bindingId,
                 NeoScriptScope scope,
                 bool readOnly = false)
@@ -5180,6 +5280,7 @@ namespace NeoCompose.Runtime
                     bindingId,
                     out previousBinding);
                 this.readOnly = readOnly;
+                bindingRestored = false;
                 if (readOnly)
                 {
                     MarkReadOnlyBinding(
@@ -5189,37 +5290,41 @@ namespace NeoCompose.Runtime
                 }
             }
 
+            /// <summary>
+            /// The scope the body runs in. A body without locals runs in the
+            /// loop's scope, as other blocks do; one with locals gets a
+            /// pooled block that <see cref="RestoreBinding"/> returns.
+            /// </summary>
             internal NeoScriptScope EnsureBodyScope(
-                NeoScriptScope parentScope)
+                NeoScriptScope parentScope,
+                Instruction[] body,
+                ref NeoScriptScopeLayout? layout)
             {
                 if (bodyScope is not null)
                     return bodyScope;
-                bodyParentBindingIds = parentScope.Keys.ToArray();
-                bodyScope = CreateChildScope(parentScope);
+                bodyDeclaresLocals ??= DeclaresLocals(body);
+                if (bodyDeclaresLocals == false)
+                    return parentScope;
+                bodyLayout = layout ??= new NeoScriptScopeLayout(null, body);
+                bodyScope = bodyLayout.RentScope();
+                bodyScope.BindBlock(parentScope);
                 return bodyScope;
             }
 
             /// <summary>
-            /// Writes the body's updates to enclosing bindings back to the
-            /// parent scope and clears the body's own locals. The body scope
-            /// itself is kept: every iteration sees the same parent binding
-            /// set, so rebuilding it per iteration only allocated.
+            /// Clears the body's own locals. The body scope itself is kept:
+            /// rebuilding it per iteration only allocated.
             /// </summary>
-            internal void SynchronizeBodyScope(
-                NeoScriptScope parentScope)
+            internal void ResetBodyScope() => bodyScope?.ResetLocals();
+
+            /// <summary>
+            /// A paused run keeps its body scope for its continuation, so
+            /// the layout stops pooling it.
+            /// </summary>
+            internal void DetachBodyScope()
             {
-                if (bodyScope is null)
-                    return;
-                foreach (string parentBindingId in bodyParentBindingIds
-                    ?? Array.Empty<string>())
-                {
-                    parentScope[parentBindingId] = bodyScope.TryGetValue(
-                        parentBindingId,
-                        out object? value)
-                            ? value
-                            : null;
-                }
-                bodyScope.ResetLocals();
+                if (bodyScope is not null)
+                    bodyLayout!.AbandonScope(bodyScope);
             }
 
             internal void RestoreBinding(NeoScriptScope scope)
@@ -5227,7 +5332,11 @@ namespace NeoCompose.Runtime
                 if (bindingRestored)
                     return;
                 bindingRestored = true;
-                SynchronizeBodyScope(scope);
+                if (bodyScope is not null)
+                {
+                    bodyLayout!.ReturnScope(bodyScope);
+                    bodyScope = null;
+                }
                 if (readOnly)
                 {
                     UnmarkReadOnlyBinding(scope, bindingId);
@@ -5235,6 +5344,8 @@ namespace NeoCompose.Runtime
                 if (hadPreviousBinding)
                 {
                     scope[bindingId] = previousBinding;
+                    // A reused state must not keep the value alive.
+                    previousBinding = null;
                 }
                 else
                 {
@@ -5245,7 +5356,7 @@ namespace NeoCompose.Runtime
 
         private sealed class ForExecutionState : LoopExecutionState
         {
-            private readonly NeoScriptExecutionOptions? options;
+            private NeoScriptExecutionOptions? options;
 
             internal ForExecutionState(
                 ForInstruction instruction,
@@ -5254,14 +5365,26 @@ namespace NeoCompose.Runtime
                 : base(instruction.initializer.id, scope)
             {
                 Instruction = instruction;
-                this.options = options;
-                Phase = ForPhase.Initializer;
-                ExpressionState = ExpressionResumeState.ForOptions(options);
+                Start(options);
             }
 
             internal ForInstruction Instruction
             {
                 get;
+            }
+
+            /// <summary>Starts another run of the same instruction.</summary>
+            internal void Begin(NeoScriptScope scope, NeoScriptExecutionOptions? options)
+            {
+                Begin(Instruction.initializer.id, scope);
+                Start(options);
+            }
+
+            private void Start(NeoScriptExecutionOptions? options)
+            {
+                this.options = options;
+                Phase = ForPhase.Initializer;
+                ExpressionState = ExpressionResumeState.ForOptions(options);
             }
             internal ForPhase Phase
             {
@@ -5276,6 +5399,16 @@ namespace NeoCompose.Runtime
             {
                 Phase = phase;
                 ExpressionState = ExpressionResumeState.ForOptions(options);
+            }
+
+            /// <summary>
+            /// Drops the finished run's options and resume state: the
+            /// instruction outlives the client they belong to.
+            /// </summary>
+            internal void Park()
+            {
+                options = null;
+                ExpressionState = ExpressionResumeState.Immediate;
             }
         }
 
@@ -5297,12 +5430,34 @@ namespace NeoCompose.Runtime
             }
             internal ExpressionResumeState ExpressionState
             {
-                get;
+                get; private set;
             }
-            internal NSGetterEvaluator.CollectionEntrySnapshot[]? Snapshot
+
+            /// <summary>Starts another run of the same instruction.</summary>
+            internal void Begin(NeoScriptScope scope, NeoScriptExecutionOptions? options)
             {
-                get;
-                set;
+                Begin(Instruction.binding.id, scope, readOnly: true);
+                ExpressionState = ExpressionResumeState.ForOptions(options);
+                SnapshotCount = -1;
+                Index = 0;
+            }
+
+            // A reused state keeps its snapshot buffer; the entries in use
+            // are the first SnapshotCount, and -1 means none taken yet.
+            internal NSGetterEvaluator.CollectionEntrySnapshot[] Snapshot =
+                System.Array.Empty<NSGetterEvaluator.CollectionEntrySnapshot>();
+            internal int SnapshotCount = -1;
+
+            /// <summary>
+            /// Drops what the finished run held: its entries and resume
+            /// state must not outlive it.
+            /// </summary>
+            internal void Park()
+            {
+                if (SnapshotCount > 0)
+                    System.Array.Clear(Snapshot, 0, SnapshotCount);
+                SnapshotCount = -1;
+                ExpressionState = ExpressionResumeState.Immediate;
             }
             internal int Index
             {
@@ -5313,11 +5468,7 @@ namespace NeoCompose.Runtime
         private sealed class TryExecutionState
         {
             private NeoScriptScope? tryScope;
-            private string[]? tryParentBindingIds;
-            private bool tryScopeSynchronized;
             private NeoScriptScope? catchScope;
-            private string[]? catchParentBindingIds;
-            private bool catchScopeSynchronized;
             private int catchIndex;
             private NSGetterRuntimeError? originalFailure;
 
@@ -5354,31 +5505,8 @@ namespace NeoCompose.Runtime
                         "NeoScript try/catch selected an invalid catch clause; its compiled IR is stale or corrupt.");
 
             internal NeoScriptScope EnsureTryScope(
-                NeoScriptScope parentScope)
-            {
-                if (tryScope is not null)
-                    return tryScope;
-                tryParentBindingIds = parentScope.Keys.ToArray();
-                tryScope = CreateChildScope(parentScope);
-                return tryScope;
-            }
-
-            internal void SynchronizeTryScope(
-                NeoScriptScope parentScope)
-            {
-                if (tryScopeSynchronized || tryScope is null)
-                    return;
-                tryScopeSynchronized = true;
-                foreach (string bindingId in tryParentBindingIds
-                    ?? Array.Empty<string>())
-                {
-                    parentScope[bindingId] = tryScope.TryGetValue(
-                        bindingId,
-                        out object? value)
-                            ? value
-                            : null;
-                }
-            }
+                NeoScriptScope parentScope) =>
+                tryScope ??= parentScope.CreateBlock();
 
             internal void BeginCatches(NSGetterRuntimeError failure)
             {
@@ -5393,8 +5521,7 @@ namespace NeoCompose.Runtime
                 if (catchScope is not null)
                     return catchScope;
                 CatchClause clause = CurrentClause;
-                catchParentBindingIds = parentScope.Keys.ToArray();
-                catchScope = CreateChildScope(parentScope);
+                catchScope = parentScope.CreateBlock();
                 catchScope[clause.binding.id] = originalFailure?.Message
                     ?? throw new NSGetterRuntimeError(
                         "NeoScript catch clause is missing its original error.");
@@ -5402,43 +5529,12 @@ namespace NeoCompose.Runtime
                     catchScope,
                     clause.binding.id,
                     "Cannot assign to a read-only catch message binding.");
-                catchScopeSynchronized = false;
                 return catchScope;
             }
 
-            internal void SynchronizeCatchScope(
-                NeoScriptScope parentScope)
+            internal void RejectCurrentClause()
             {
-                if (catchScopeSynchronized || catchScope is null)
-                    return;
-                catchScopeSynchronized = true;
-                string catchBindingId = CurrentClause.binding.id;
-                foreach (string bindingId in catchParentBindingIds
-                    ?? Array.Empty<string>())
-                {
-                    if (string.Equals(
-                        bindingId,
-                        catchBindingId,
-                        StringComparison.Ordinal))
-                    {
-                        continue;
-                    }
-                    parentScope[bindingId] = catchScope.TryGetValue(
-                        bindingId,
-                        out object? value)
-                            ? value
-                            : null;
-                }
-                UnmarkReadOnlyBinding(catchScope, catchBindingId);
-            }
-
-            internal void RejectCurrentClause(
-                NeoScriptScope parentScope)
-            {
-                SynchronizeCatchScope(parentScope);
                 catchScope = null;
-                catchParentBindingIds = null;
-                catchScopeSynchronized = false;
                 catchIndex++;
                 PrepareCurrentClause();
             }
@@ -5471,101 +5567,6 @@ namespace NeoCompose.Runtime
                     : CurrentClause.filter is null
                         ? TryPhase.CatchBody
                         : TryPhase.Filter;
-            }
-        }
-
-        private sealed class SwitchExecutionState
-        {
-            private readonly string[][] normalizedLabels;
-            private NeoScriptScope? sectionScope;
-            private string[]? parentBindingIds;
-            private bool sectionScopeSynchronized;
-
-            internal SwitchExecutionState(
-                SwitchInstruction instruction,
-                NeoScriptExecutionOptions? options)
-            {
-                Instruction = instruction ?? throw new NeoScriptPreExecutionValidationError(
-                    "NeoScript switch instruction is missing; its compiled IR is stale or corrupt.");
-                normalizedLabels = ValidateSwitchInstructionMetadata(instruction);
-                ExpressionState = ExpressionResumeState.ForOptions(options);
-            }
-
-            internal SwitchInstruction Instruction
-            {
-                get;
-            }
-            internal ExpressionResumeState ExpressionState
-            {
-                get;
-            }
-            internal bool SelectorCompleted
-            {
-                get; private set;
-            }
-            internal object? SelectorValue
-            {
-                get; private set;
-            }
-            internal int? SelectedSectionIndex
-            {
-                get; private set;
-            }
-            internal bool SelectedDefault
-            {
-                get; private set;
-            }
-            internal Instruction[]? SelectedInstructions =>
-                SelectedSectionIndex is int index
-                    ? Instruction.sections[index].instructions
-                    : SelectedDefault
-                        ? Instruction.defaultInstructions
-                        : null;
-
-            internal NeoScriptScope EnsureSectionScope(
-                NeoScriptScope parentScope)
-            {
-                if (sectionScope is not null)
-                    return sectionScope;
-                parentBindingIds = parentScope.Keys.ToArray();
-                sectionScope = CreateChildScope(parentScope);
-                return sectionScope;
-            }
-
-            internal void SynchronizeSectionScope(
-                NeoScriptScope parentScope)
-            {
-                if (sectionScopeSynchronized || sectionScope is null)
-                    return;
-                sectionScopeSynchronized = true;
-                foreach (string bindingId in parentBindingIds
-                    ?? Array.Empty<string>())
-                {
-                    parentScope[bindingId] = sectionScope.TryGetValue(
-                        bindingId,
-                        out object? value)
-                            ? value
-                            : null;
-                }
-            }
-
-            internal void CompleteSelector(object? value)
-            {
-                SelectorValue = value;
-                SelectorCompleted = true;
-                string selectorKey = NormalizeSwitchSelector(
-                    Instruction.selectorTypeInfo,
-                    value);
-                for (int i = 0; i < normalizedLabels.Length; i++)
-                {
-                    if (Array.IndexOf(normalizedLabels[i], selectorKey) < 0)
-                    {
-                        continue;
-                    }
-                    SelectedSectionIndex = i;
-                    return;
-                }
-                SelectedDefault = Instruction.defaultInstructions is not null;
             }
         }
 
@@ -5737,12 +5738,13 @@ namespace NeoCompose.Runtime
                 cancelContinuationOnDeferredDisposal: false);
         }
 
-        internal static NeoScriptExecutionOptions ForUnity(NeoClient client)
+        /// <summary>The options a property setter runs with when its caller has none.</summary>
+        internal static NeoScriptExecutionOptions ForUnityProperty(NeoClient client, string memberId)
         {
             return new NeoScriptExecutionOptions(
                 client,
                 UnityEngine.Debug.LogWarning,
-                null,
+                memberId,
                 allowDeferredFunctionCalls: true,
                 cancelContinuationOnDeferredDisposal: false);
         }
@@ -5837,100 +5839,100 @@ namespace NeoCompose.Runtime
 
     internal readonly struct NeoScriptExecutionResult
     {
-        private readonly Func<object?, NeoScriptExecutionResult>? resume;
-        private readonly DeferredNativeFunctionSuspension? suspension;
-        private readonly Action<Exception>? failureObserver;
-        private readonly Action<Exception>? abandonmentObserver;
-        private readonly Func<Exception, NeoScriptExecutionResult?>?
-            failureRecovery;
+        // Every instruction returns one of these by value, so the shape
+        // stays two references wide: the transfer, a failure and the rare
+        // suspension share one slot. Sixteen bytes come back in registers;
+        // a wider result is copied out through a write-barriered range copy.
+        private readonly object? state;
 
-        private NeoScriptExecutionResult(
-            bool isPaused,
-            NeoScriptControlTransfer transfer,
-            object? returnValue,
-            string? suspendedMemberId,
-            NeoDeferredFunctionBase? deferred,
-            DeferredNativeFunctionSuspension? suspension,
-            Func<object?, NeoScriptExecutionResult>? resume,
-            Action<Exception>? failureObserver,
-            Action<Exception>? abandonmentObserver,
-            Func<Exception, NeoScriptExecutionResult?>? failureRecovery,
-            Exception? failure)
+        // Marker states for the non-fallthrough transfers.
+        private static readonly object ReturnState = new();
+        private static readonly object BreakState = new();
+        private static readonly object ContinueState = new();
+
+        /// <summary>A suspended frame's continuation state.</summary>
+        private sealed class PausedState
         {
-            IsPaused = isPaused;
-            Transfer = transfer;
+            internal readonly string? suspendedMemberId;
+            internal readonly NeoDeferredFunctionBase? deferred;
+            internal readonly DeferredNativeFunctionSuspension? suspension;
+            internal readonly Func<object?, NeoScriptExecutionResult>? resume;
+            internal readonly Action<Exception>? failureObserver;
+            internal readonly Action<Exception>? abandonmentObserver;
+            internal readonly Func<Exception, NeoScriptExecutionResult?>? failureRecovery;
+
+            internal PausedState(
+                string? suspendedMemberId,
+                NeoDeferredFunctionBase? deferred,
+                DeferredNativeFunctionSuspension? suspension,
+                Func<object?, NeoScriptExecutionResult>? resume,
+                Action<Exception>? failureObserver,
+                Action<Exception>? abandonmentObserver,
+                Func<Exception, NeoScriptExecutionResult?>? failureRecovery)
+            {
+                this.suspendedMemberId = suspendedMemberId;
+                this.deferred = deferred;
+                this.suspension = suspension;
+                this.resume = resume;
+                this.failureObserver = failureObserver;
+                this.abandonmentObserver = abandonmentObserver;
+                this.failureRecovery = failureRecovery;
+            }
+        }
+
+        // Starting from default leaves the unused reference null without
+        // storing it: a stored reference costs a GC write barrier.
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private NeoScriptExecutionResult(object? state, object? returnValue)
+        {
+            this = default;
+            this.state = state;
             ReturnValue = returnValue;
-            SuspendedMemberId = suspendedMemberId;
-            Deferred = deferred;
-            this.suspension = suspension;
-            this.resume = resume;
-            this.failureObserver = failureObserver;
-            this.abandonmentObserver = abandonmentObserver;
-            this.failureRecovery = failureRecovery;
-            Failure = failure;
         }
 
-        internal bool IsPaused
+        private NeoScriptExecutionResult(PausedState paused)
+            : this(paused, null)
         {
-            get;
         }
-        internal NeoScriptControlTransfer Transfer
-        {
-            get;
-        }
-        internal bool Returned => Transfer == NeoScriptControlTransfer.Return;
-        internal bool IsBreak => Transfer == NeoScriptControlTransfer.Break;
-        internal bool IsContinue => Transfer == NeoScriptControlTransfer.Continue;
-        internal bool IsFallthrough =>
-            Failure is null
-            && Transfer == NeoScriptControlTransfer.Fallthrough;
-        internal bool IsFailed => Failure is not null;
-        internal Exception? Failure
-        {
-            get;
-        }
+
+        private PausedState? pausedState => state as PausedState;
+        private DeferredNativeFunctionSuspension? suspension => pausedState?.suspension;
+        private Func<object?, NeoScriptExecutionResult>? resume => pausedState?.resume;
+        private Action<Exception>? failureObserver => pausedState?.failureObserver;
+        private Action<Exception>? abandonmentObserver => pausedState?.abandonmentObserver;
+        private Func<Exception, NeoScriptExecutionResult?>? failureRecovery => pausedState?.failureRecovery;
+
+        internal bool IsPaused => state is PausedState;
+        internal NeoScriptControlTransfer Transfer =>
+            ReferenceEquals(state, ReturnState) ? NeoScriptControlTransfer.Return
+            : ReferenceEquals(state, BreakState) ? NeoScriptControlTransfer.Break
+            : ReferenceEquals(state, ContinueState) ? NeoScriptControlTransfer.Continue
+            : NeoScriptControlTransfer.Fallthrough;
+        internal bool Returned => ReferenceEquals(state, ReturnState);
+        internal bool IsBreak => ReferenceEquals(state, BreakState);
+        internal bool IsContinue => ReferenceEquals(state, ContinueState);
+        internal bool IsFallthrough => state is null or PausedState;
+        internal bool IsFailed => state is Exception;
+        internal Exception? Failure => state as Exception;
         internal object? ReturnValue
         {
             get;
         }
-        internal string? SuspendedMemberId
-        {
-            get;
-        }
-        internal NeoDeferredFunctionBase? Deferred
-        {
-            get;
-        }
+        internal string? SuspendedMemberId => pausedState?.suspendedMemberId;
+        internal NeoDeferredFunctionBase? Deferred => pausedState?.deferred;
 
-        private static readonly NeoScriptExecutionResult FallthroughResult =
-            new(false, NeoScriptControlTransfer.Fallthrough, null, null, null, null, null, null, null, null, null);
-        private static readonly NeoScriptExecutionResult BreakResult =
-            new(false, NeoScriptControlTransfer.Break, null, null, null, null, null, null, null, null, null);
-        private static readonly NeoScriptExecutionResult ContinueResult =
-            new(false, NeoScriptControlTransfer.Continue, null, null, null, null, null, null, null, null, null);
-
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static NeoScriptExecutionResult Completed(
             bool returned,
             object? returnValue)
         {
-            // Results are immutable; the valueless fallthrough every block
-            // and loop iteration produces is one shared instance.
+            // The valueless fallthrough every block and loop iteration
+            // produces is the default result.
             if (!returned && returnValue is null)
-                return FallthroughResult;
+                return default;
             return new NeoScriptExecutionResult(
-                false,
-                returned
-                    ? NeoScriptControlTransfer.Return
-                    : NeoScriptControlTransfer.Fallthrough,
-                returnValue,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null);
+                returned ? ReturnState : null,
+                returnValue);
         }
 
         internal static NeoScriptExecutionResult Control(
@@ -5942,38 +5944,21 @@ namespace NeoCompose.Runtime
                     "Return control must carry its value through Completed.",
                     nameof(transfer));
             }
-            if (transfer == NeoScriptControlTransfer.Break)
-                return BreakResult;
-            if (transfer == NeoScriptControlTransfer.Continue)
-                return ContinueResult;
             return new NeoScriptExecutionResult(
-                false,
-                transfer,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
+                transfer switch
+                {
+                    NeoScriptControlTransfer.Break => BreakState,
+                    NeoScriptControlTransfer.Continue => ContinueState,
+                    _ => null,
+                },
                 null);
         }
 
         internal static NeoScriptExecutionResult Failed(Exception failure)
         {
             return new NeoScriptExecutionResult(
-                false,
-                NeoScriptControlTransfer.Fallthrough,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                failure ?? throw new ArgumentNullException(nameof(failure)));
+                failure ?? throw new ArgumentNullException(nameof(failure)),
+                null);
         }
 
         internal static NeoScriptExecutionResult Paused(
@@ -5982,18 +5967,14 @@ namespace NeoCompose.Runtime
             DeferredNativeFunctionSuspension suspension,
             Func<object?, NeoScriptExecutionResult> resume)
         {
-            return new NeoScriptExecutionResult(
-                true,
-                NeoScriptControlTransfer.Fallthrough,
-                null,
+            return new NeoScriptExecutionResult(new PausedState(
                 suspendedMemberId,
                 deferred,
                 suspension,
                 resume,
                 null,
                 null,
-                null,
-                null);
+                null));
         }
 
         internal void WhenDeferredSettled(
@@ -6110,10 +6091,7 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     "Paused action result is missing deferred continuation state.");
             }
-            return new NeoScriptExecutionResult(
-                true,
-                NeoScriptControlTransfer.Fallthrough,
-                null,
+            return new NeoScriptExecutionResult(new PausedState(
                 SuspendedMemberId
                     ?? throw new InvalidOperationException(
                         "Paused action result is missing its Function member id."),
@@ -6129,8 +6107,7 @@ namespace NeoCompose.Runtime
                         NeoScriptExecutionResult? recovered =
                             failureRecovery(exception);
                         return recovered?.Then(next);
-                    },
-                null);
+                    }));
         }
 
         internal NeoScriptExecutionResult ObserveFailure(
@@ -6164,18 +6141,14 @@ namespace NeoCompose.Runtime
                     abandonmentObserver(exception);
                     observer(exception);
                 };
-            return new NeoScriptExecutionResult(
-                true,
-                NeoScriptControlTransfer.Fallthrough,
-                null,
+            return new NeoScriptExecutionResult(new PausedState(
                 SuspendedMemberId,
                 Deferred,
                 suspension,
                 resume,
                 combinedFailure,
                 combinedAbandonment,
-                failureRecovery,
-                null);
+                failureRecovery));
         }
 
         internal NeoScriptExecutionResult RecoverFailure(
@@ -6230,18 +6203,14 @@ namespace NeoCompose.Runtime
                     failureObserver?.Invoke(exception);
                     return recovery(exception);
                 };
-            return new NeoScriptExecutionResult(
-                true,
-                NeoScriptControlTransfer.Fallthrough,
-                null,
+            return new NeoScriptExecutionResult(new PausedState(
                 SuspendedMemberId,
                 Deferred,
                 suspension,
                 value => resume(value).RecoverFailure(recovery),
                 null,
                 abandonmentObserver,
-                combinedRecovery,
-                null);
+                combinedRecovery));
         }
     }
 
