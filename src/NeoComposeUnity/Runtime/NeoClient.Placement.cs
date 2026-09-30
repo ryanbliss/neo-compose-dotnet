@@ -83,7 +83,7 @@ namespace NeoCompose.Runtime
                         move.Apply();
                 }
                 bool gridLeaf = InvalidateGridLeaf(next.id);
-                NotifyWritableValueChanged(ownership, next.id, "value");
+                NotifyWritableValueChanged(ownership, next.id, "value", membershipChanged: false);
                 // Lifecycle filters read generated properties, whose nodes
                 // refresh during the value notifications above.
                 foreach (var move in moves)

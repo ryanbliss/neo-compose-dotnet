@@ -30,6 +30,11 @@ namespace NeoCompose.Tests
         private sealed class ManualLiveScheduler
         {
             private readonly List<(double dueAt, AwaitableCompletionSource done)> waits = new();
+            private readonly Func<bool>? busy;
+
+            /// <param name="busy">True while work the clock started is still
+            /// settling off the clock, such as a flush persisting on a worker.</param>
+            public ManualLiveScheduler(Func<bool>? busy = null) => this.busy = busy;
 
             public double NowSeconds
             {
@@ -43,6 +48,17 @@ namespace NeoCompose.Tests
                 var source = new AwaitableCompletionSource();
                 waits.Add((NowSeconds + seconds, source));
                 return source.Awaitable;
+            }
+
+            /// <summary>Advances, then waits for the work it started to settle.</summary>
+            public async Task AdvanceAsync(double seconds)
+            {
+                Advance(seconds);
+                while (busy?.Invoke() == true)
+                {
+                    await Task.Yield();
+                    Advance(0);
+                }
             }
 
             public void Advance(double seconds)
@@ -167,7 +183,7 @@ namespace NeoCompose.Tests
             await store.LoadAsync();
 
             var sync = store.Open("save-1");
-            var scheduler = new ManualLiveScheduler();
+            var scheduler = new ManualLiveScheduler(() => sync.IsLiveFlushRunning);
             sync.LiveClock = scheduler.Now;
             sync.LiveDelay = scheduler.Delay;
             await sync.LoadSaveContentAsync();
@@ -186,7 +202,7 @@ namespace NeoCompose.Tests
                 RemoteWithValues("snap-live", forkedValues, "session-x")));
             await sync.CommitSaveContentAsync(
                 LiveSaveContent(forkedValues), replaceSnapshot: false);
-            scheduler.Advance(0.5);
+            await scheduler.AdvanceAsync(0.5);
             Assert.That(realtime.forks, Has.Count.EqualTo(1), "fork should have flushed");
         }
 
@@ -242,10 +258,10 @@ namespace NeoCompose.Tests
 
             await sync.CommitSaveContentAsync(
                 LiveSaveContent("{\"a\":1}"), replaceSnapshot: false);
-            scheduler.Advance(0.49);
+            await scheduler.AdvanceAsync(0.49);
             Assert.That(realtime.forks, Is.Empty, "still inside the debounce window");
 
-            scheduler.Advance(0.01);
+            await scheduler.AdvanceAsync(0.01);
             Assert.That(realtime.forks, Has.Count.EqualTo(1));
             var fork = realtime.forks[0];
             Assert.That(fork.customId, Is.EqualTo("save-1"));
@@ -275,7 +291,7 @@ namespace NeoCompose.Tests
             await sync.CommitSaveContentAsync(
                 LiveSaveContent("{\"a\":{\"id\":\"a\",\"value\":1}}"),
                 replaceSnapshot: false);
-            scheduler.Advance(0.5);
+            await scheduler.AdvanceAsync(0.5);
 
             Assert.That(sync.ActiveSave!.recordCache.descriptors, Has.Count.EqualTo(1));
 
@@ -287,7 +303,7 @@ namespace NeoCompose.Tests
                     "snap-live",
                     snapshotRevision: 2),
                 replaceSnapshot: false);
-            scheduler.Advance(0.5);
+            await scheduler.AdvanceAsync(0.5);
 
             Assert.That(realtime.livePatches, Has.Count.EqualTo(1));
             Assert.That(
@@ -315,7 +331,7 @@ namespace NeoCompose.Tests
             await sync.CommitSaveContentAsync(
                 LiveSaveContent(allValues.ToString(Formatting.None)),
                 replaceSnapshot: false);
-            scheduler.Advance(0.5);
+            await scheduler.AdvanceAsync(0.5);
 
             Assert.That(realtime.forks, Is.Empty,
                 "no partially populated live head is published");
@@ -340,7 +356,7 @@ namespace NeoCompose.Tests
             await sync.CommitSaveContentAsync(
                 LiveSaveContent(NumberedValues(130), "snap-live", snapshotRevision: 1),
                 replaceSnapshot: false);
-            scheduler.Advance(0.5);
+            await scheduler.AdvanceAsync(0.5);
 
             Assert.That(
                 realtime.livePatches.Select(call => call.patch.changes.Count),
@@ -376,13 +392,13 @@ namespace NeoCompose.Tests
 
             await sync.CommitSaveContentAsync(
                 LiveSaveContent("{\"a\":1}"), replaceSnapshot: false);
-            scheduler.Advance(0.3);
+            await scheduler.AdvanceAsync(0.3);
             await sync.CommitSaveContentAsync(
                 LiveSaveContent("{\"a\":2}"), replaceSnapshot: false);
-            scheduler.Advance(0.3);
+            await scheduler.AdvanceAsync(0.3);
             Assert.That(realtime.forks, Is.Empty, "the second stage restarted the debounce");
 
-            scheduler.Advance(0.2);
+            await scheduler.AdvanceAsync(0.2);
             Assert.That(realtime.forks, Has.Count.EqualTo(1), "one coalesced flush");
             var entry = (int?)ReplacedValue(realtime.forks[0].patch, "a");
             Assert.That(entry, Is.EqualTo(2), "the flush carries the latest staged state");
@@ -402,7 +418,7 @@ namespace NeoCompose.Tests
                 await sync.CommitSaveContentAsync(
                     LiveSaveContent("{\"a\":" + step + "}"), replaceSnapshot: false);
                 Assert.That(realtime.forks, Is.Empty);
-                scheduler.Advance(0.4);
+                await scheduler.AdvanceAsync(0.4);
             }
 
             Assert.That(realtime.forks, Has.Count.EqualTo(1), "flushed at the 2s cap");
@@ -418,7 +434,7 @@ namespace NeoCompose.Tests
             await sync.CommitSaveContentAsync(
                 LiveSaveContent("{\"a\":2,\"b\":true}", "snap-live"),
                 replaceSnapshot: false);
-            scheduler.Advance(0.5);
+            await scheduler.AdvanceAsync(0.5);
 
             Assert.That(realtime.forks, Has.Count.EqualTo(1), "no second fork");
             Assert.That(realtime.livePatches, Has.Count.EqualTo(1));
@@ -439,7 +455,7 @@ namespace NeoCompose.Tests
             await sync.CommitSaveContentAsync(
                 LiveSaveContent("{\"a\":1}", "snap-live"),
                 replaceSnapshot: false);
-            scheduler.Advance(0.5);
+            await scheduler.AdvanceAsync(0.5);
 
             var patch = realtime.livePatches[0].patch;
             Assert.That(ChangedValueIds(patch), Is.Empty, "\"a\" is unchanged");
@@ -459,11 +475,11 @@ namespace NeoCompose.Tests
             await sync.CommitSaveContentAsync(
                 LiveSaveContent("{\"a\":2}", "snap-live"),
                 replaceSnapshot: false);
-            scheduler.Advance(0.5);
+            await scheduler.AdvanceAsync(0.5);
             await sync.CommitSaveContentAsync(
                 LiveSaveContent("{\"a\":3,\"c\":1}", "snap-live"),
                 replaceSnapshot: false);
-            scheduler.Advance(0.5);
+            await scheduler.AdvanceAsync(0.5);
             Assert.That(realtime.livePatches, Is.Empty, "offline: deltas stay staged");
 
             realtime.livePatchResults.Enqueue(Patched("snap-live", 2));
@@ -510,6 +526,7 @@ namespace NeoCompose.Tests
                 "{}",
                 "session-x",
                 snapshotRevision: 2));
+            await WaitFor(() => liveChanges.Count != 0);
 
             Assert.That(headChanges, Is.Empty, "live applies replace the divergence event");
             Assert.That(liveChanges, Has.Count.EqualTo(1));
@@ -540,6 +557,7 @@ namespace NeoCompose.Tests
                 "{}",
                 "session-x",
                 snapshotRevision: 2));
+            await WaitFor(() => liveChanges.Count != 0);
 
             Assert.That(liveChanges, Has.Count.EqualTo(1));
             Assert.That(liveChanges[0], Does.Contain("\"a\":2"), "the dirty key wins");
@@ -548,7 +566,7 @@ namespace NeoCompose.Tests
 
             // The pending flush then sends only the dirty key.
             realtime.livePatchResults.Enqueue(Patched("snap-live", 3));
-            scheduler.Advance(0.5);
+            await scheduler.AdvanceAsync(0.5);
             Assert.That(realtime.livePatches, Has.Count.EqualTo(1));
             Assert.That(
                 ChangedValueIds(realtime.livePatches[0].patch),
@@ -573,7 +591,7 @@ namespace NeoCompose.Tests
             await sync.CommitSaveContentAsync(
                 LiveSaveContent("{\"a\":2}", "snap-live"),
                 replaceSnapshot: false);
-            scheduler.Advance(0.5);
+            await scheduler.AdvanceAsync(0.5);
 
             Assert.That(realtime.livePatches, Is.Empty, "the frozen snapshot is never patched");
             Assert.That(realtime.forks, Has.Count.EqualTo(2), "the session re-forked");
@@ -597,7 +615,7 @@ namespace NeoCompose.Tests
             await sync.CommitSaveContentAsync(
                 LiveSaveContent("{\"a\":2}", "snap-live"),
                 replaceSnapshot: false);
-            scheduler.Advance(0.5);
+            await scheduler.AdvanceAsync(0.5);
 
             Assert.That(realtime.livePatches, Has.Count.EqualTo(1));
             Assert.That(realtime.forks, Has.Count.EqualTo(2));
@@ -622,7 +640,7 @@ namespace NeoCompose.Tests
                 NeoSaveTestSupport.Remote("save-1", "snap-2", snapshotRevision: 2)));
             await sync.CommitSaveContentAsync(
                 LiveSaveContent("{\"a\":1}"), replaceSnapshot: false);
-            scheduler.Advance(0.5);
+            await scheduler.AdvanceAsync(0.5);
 
             Assert.That(realtime.forks, Has.Count.EqualTo(1));
             Assert.That(sync.ActiveSave!.snapshotId, Is.EqualTo("snap-2"));
@@ -632,7 +650,7 @@ namespace NeoCompose.Tests
 
             // Dirt was discarded by the developer's explicit choice: nothing
             // further flushes.
-            scheduler.Advance(5);
+            await scheduler.AdvanceAsync(5);
             Assert.That(realtime.forks, Has.Count.EqualTo(1));
             Assert.That(realtime.livePatches, Is.Empty);
         }
@@ -650,7 +668,7 @@ namespace NeoCompose.Tests
 
             await sync.CommitSaveContentAsync(
                 LiveSaveContent("{\"a\":1}"), replaceSnapshot: false);
-            scheduler.Advance(0.5);
+            await scheduler.AdvanceAsync(0.5);
 
             Assert.That(realtime.forks, Has.Count.EqualTo(2));
             Assert.That(realtime.forks[1].baseSnapshotId, Is.EqualTo("snap-2"));
@@ -708,11 +726,11 @@ namespace NeoCompose.Tests
                 LiveSaveContent("{\"a\":2}", "snap-live"),
                 replaceSnapshot: false);
 
-            scheduler.Advance(0.5);
+            await scheduler.AdvanceAsync(0.5);
             Assert.That(errors, Has.Count.EqualTo(1));
             Assert.That(realtime.livePatches, Has.Count.EqualTo(1));
 
-            scheduler.Advance(10);
+            await scheduler.AdvanceAsync(10);
             realtime.SetState(NeoRealtimeConnectionState.Connected);
 
             Assert.That(realtime.livePatches, Has.Count.EqualTo(1),
@@ -732,11 +750,11 @@ namespace NeoCompose.Tests
                 LiveSaveContent("{\"a\":2}", "snap-live"),
                 replaceSnapshot: false);
 
-            scheduler.Advance(0.5);
+            await scheduler.AdvanceAsync(0.5);
             Assert.That(errors, Has.Count.EqualTo(1));
             Assert.That(realtime.livePatches, Has.Count.EqualTo(1));
 
-            scheduler.Advance(10);
+            await scheduler.AdvanceAsync(10);
             realtime.SetState(NeoRealtimeConnectionState.Connected);
 
             Assert.That(realtime.livePatches, Has.Count.EqualTo(1),
@@ -765,7 +783,7 @@ namespace NeoCompose.Tests
             await sync.CommitSaveContentAsync(
                 LiveSaveContent("{\"a\":2}", "snap-live"),
                 replaceSnapshot: false);
-            scheduler.Advance(0.5);
+            await scheduler.AdvanceAsync(0.5);
 
             Assert.That(errors, Has.Count.EqualTo(1), "OnCommitError still fires");
             Assert.That(realtime.livePatches, Has.Count.EqualTo(1), "first attempt reached the server");
@@ -774,11 +792,65 @@ namespace NeoCompose.Tests
             // Once the underlying cause clears, a later flush succeeds.
             realtime.livePatchThrows = null;
             realtime.livePatchResults.Enqueue(Patched("snap-live", 2));
-            scheduler.Advance(10);
+            await scheduler.AdvanceAsync(10);
 
             Assert.That(realtime.livePatches, Has.Count.EqualTo(2),
                 "server rejection is not terminal; the staged delta retries and then succeeds");
             Assert.That(sync.ActiveSave!.snapshotRevision, Is.EqualTo(2));
+        }
+
+        // Commits serialize on a worker, so an auto-commit settles frames later.
+        private static Task SettleCommits(NeoClient client) =>
+            WaitFor(() => !client.IsCommitting);
+
+        // Revision applies copy and serialize on a worker, so they land
+        // frames after the signal.
+        private static async Task WaitFor(Func<bool> condition)
+        {
+            var deadline = DateTime.UtcNow.AddSeconds(30);
+            while (!condition())
+            {
+                Assert.That(DateTime.UtcNow, Is.LessThan(deadline), "never settled");
+                await Task.Yield();
+            }
+        }
+
+        /// <summary>A generated app over a live session, with both the
+        /// auto-commit coalescing delay and the flush throttle on manual clocks.</summary>
+        private static async Task<(NeoProjectStore store,
+            FakeApiClient api,
+            FakeRealtimeProvider realtime,
+            ManualLiveScheduler flushScheduler,
+            global::Assets.Scripts.Neo.TestProjectNeo app,
+            ManualLiveScheduler autoCommitScheduler)> LiveAppAsync()
+        {
+            var api = new FakeApiClient
+            {
+                getResult = RemoteWithValues("snap-1", "{}"),
+            };
+            var realtime = new FakeRealtimeProvider
+            {
+                State = NeoRealtimeConnectionState.Connected,
+                canCommit = true,
+            };
+            var store = new NeoProjectStore(
+                dataSource: new NeoJsonProjectDataSource(
+                    System.IO.File.ReadAllText(
+                        "Packages/com.ryanbliss.neocompose/Tests/synth-example.json")),
+                localStore: new NeoInMemoryLocalSaveStore(),
+                apiClient: api,
+                targetReleaseChannelId: LiveChannel,
+                realtimeProvider: realtime);
+            await store.LoadAsync();
+            var sync = store.Open("save-1");
+            var flushScheduler = new ManualLiveScheduler(() => sync.IsLiveFlushRunning);
+            sync.LiveClock = flushScheduler.Now;
+            sync.LiveDelay = flushScheduler.Delay;
+
+            var app = await global::Assets.Scripts.Neo.TestProjectNeo.Load(sync);
+            var autoCommitScheduler = new ManualLiveScheduler();
+            app.Client.LiveAutoCommitDelay = autoCommitScheduler.Delay;
+            return (store, api, realtime, flushScheduler, app, autoCommitScheduler);
         }
 
         /// <summary>
@@ -789,33 +861,7 @@ namespace NeoCompose.Tests
         [Test]
         public async Task SaveValueWrites_AutoCommitWhileLive_WithoutExplicitSave()
         {
-            var api = new FakeApiClient
-            {
-                getResult = RemoteWithValues("snap-1", "{}"),
-            };
-            var local = new NeoInMemoryLocalSaveStore();
-            var realtime = new FakeRealtimeProvider
-            {
-                State = NeoRealtimeConnectionState.Connected,
-                canCommit = true,
-            };
-            var store = new NeoProjectStore(
-                dataSource: new NeoJsonProjectDataSource(
-                    System.IO.File.ReadAllText(
-                        "Packages/com.ryanbliss.neocompose/Tests/synth-example.json")),
-                localStore: local,
-                apiClient: api,
-                targetReleaseChannelId: LiveChannel,
-                realtimeProvider: realtime);
-            await store.LoadAsync();
-            var sync = store.Open("save-1");
-            var flushScheduler = new ManualLiveScheduler();
-            sync.LiveClock = flushScheduler.Now;
-            sync.LiveDelay = flushScheduler.Delay;
-
-            var app = await global::Assets.Scripts.Neo.TestProjectNeo.Load(sync);
-            var autoCommitScheduler = new ManualLiveScheduler();
-            app.Client.LiveAutoCommitDelay = autoCommitScheduler.Delay;
+            var (store, _, realtime, flushScheduler, app, autoCommitScheduler) = await LiveAppAsync();
 
             // The game just plays — no CommitAsync anywhere.
             app.Save.Score = 41;
@@ -829,8 +875,9 @@ namespace NeoCompose.Tests
 
             Assert.That(realtime.forks, Is.Empty, "the auto-commit coalesces first");
             autoCommitScheduler.Advance(0.3);
+            await SettleCommits(app.Client);
             Assert.That(realtime.forks, Is.Empty, "then the flush debounce throttles");
-            flushScheduler.Advance(0.5);
+            await flushScheduler.AdvanceAsync(0.5);
 
             Assert.That(realtime.forks, Has.Count.EqualTo(1), "the write streamed out");
             Assert.That(realtime.forks[0].patch.changes, Is.Not.Empty);
@@ -839,7 +886,8 @@ namespace NeoCompose.Tests
             app.Save.Score = 42;
             realtime.livePatchResults.Enqueue(Patched("snap-live", 2));
             autoCommitScheduler.Advance(0.3);
-            flushScheduler.Advance(0.5);
+            await SettleCommits(app.Client);
+            await flushScheduler.AdvanceAsync(0.5);
 
             Assert.That(realtime.livePatches, Has.Count.EqualTo(1));
             Assert.That(realtime.livePatches[0].patch.changes, Has.Count.EqualTo(1),
@@ -860,33 +908,7 @@ namespace NeoCompose.Tests
         [Test]
         public async Task GeneratedCollectionWrites_ReplaceOwningValueRecord()
         {
-            var api = new FakeApiClient
-            {
-                getResult = RemoteWithValues("snap-1", "{}"),
-            };
-            var local = new NeoInMemoryLocalSaveStore();
-            var realtime = new FakeRealtimeProvider
-            {
-                State = NeoRealtimeConnectionState.Connected,
-                canCommit = true,
-            };
-            var store = new NeoProjectStore(
-                dataSource: new NeoJsonProjectDataSource(
-                    System.IO.File.ReadAllText(
-                        "Packages/com.ryanbliss.neocompose/Tests/synth-example.json")),
-                localStore: local,
-                apiClient: api,
-                targetReleaseChannelId: LiveChannel,
-                realtimeProvider: realtime);
-            await store.LoadAsync();
-            var sync = store.Open("save-1");
-            var flushScheduler = new ManualLiveScheduler();
-            sync.LiveClock = flushScheduler.Now;
-            sync.LiveDelay = flushScheduler.Delay;
-
-            var app = await global::Assets.Scripts.Neo.TestProjectNeo.Load(sync);
-            var autoCommitScheduler = new ManualLiveScheduler();
-            app.Client.LiveAutoCommitDelay = autoCommitScheduler.Delay;
+            var (store, _, realtime, flushScheduler, app, autoCommitScheduler) = await LiveAppAsync();
 
             app.Save.Heroes.Add(new global::Assets.Scripts.Neo.Hero(
                 Name: "Ada", Health: 7));
@@ -900,13 +922,15 @@ namespace NeoCompose.Tests
                     firstValues.ToString(Formatting.None),
                     "session-x")));
             autoCommitScheduler.Advance(0.3);
-            flushScheduler.Advance(0.5);
+            await SettleCommits(app.Client);
+            await flushScheduler.AdvanceAsync(0.5);
 
             app.Save.Heroes.Add(new global::Assets.Scripts.Neo.Hero(
                 Name: "Grace", Health: 9));
             realtime.livePatchResults.Enqueue(Patched("snap-live", 2));
             autoCommitScheduler.Advance(0.3);
-            flushScheduler.Advance(0.5);
+            await SettleCommits(app.Client);
+            await flushScheduler.AdvanceAsync(0.5);
 
             Assert.That(realtime.livePatches, Has.Count.EqualTo(1));
             var ownerChanges = realtime.livePatches[0].patch.changes
@@ -923,6 +947,126 @@ namespace NeoCompose.Tests
             Assert.That(ownerChanges[0], Is.TypeOf<GameSaveValueReplaceChange>(),
                 "collection structure is committed with value.replace");
 
+            app.Dispose();
+            store.Dispose();
+        }
+
+        /// <summary>
+        /// A co-editor revision arriving while an auto-commit is still
+        /// serializing waits for that commit to stage, so the merged content
+        /// keeps the local write instead of reverting it in memory.
+        /// </summary>
+        [Test]
+        public async Task CoEditorRevision_DuringAnInFlightCommit_KeepsTheLocalWrite()
+        {
+            var (store, api, realtime, flushScheduler, app, autoCommitScheduler) = await LiveAppAsync();
+            app.Save.Score = 41;
+            var forkedValues = (JObject)JObject.Parse(app.SerializeSaveData())["values"]!;
+            realtime.forkResults.Enqueue(NeoCommitResult.Committed(
+                RemoteWithValues(
+                    "snap-live",
+                    forkedValues.ToString(Formatting.None),
+                    "session-x")));
+            autoCommitScheduler.Advance(0.3);
+            await SettleCommits(app.Client);
+            await flushScheduler.AdvanceAsync(0.5);
+            Assert.That(realtime.forks, Has.Count.EqualTo(1));
+
+            app.Save.Score = 42;
+            autoCommitScheduler.Advance(0.3);
+            Assert.That(app.Client.IsCommitting, Is.True, "the commit is serializing");
+            // The co-editor's revision still carries the forked score.
+            api.SetValueDelta("snap-live", 2, forkedValues.ToString(Formatting.None));
+            realtime.PushHead(RemoteWithValues(
+                "snap-live",
+                "{}",
+                "session-x",
+                snapshotRevision: 2));
+            await SettleCommits(app.Client);
+
+            Assert.That(app.Save.Score, Is.EqualTo(42));
+            app.Dispose();
+            store.Dispose();
+        }
+
+        /// <summary>
+        /// A write landing while an auto-commit serializes is not in that
+        /// commit's capture, so it schedules the next auto-commit.
+        /// </summary>
+        [Test]
+        public async Task WriteDuringAnInFlightAutoCommit_SchedulesTheNextOne()
+        {
+            var (store, _, realtime, flushScheduler, app, autoCommitScheduler) = await LiveAppAsync();
+            app.Save.Score = 41;
+            var forkedValues = (JObject)JObject.Parse(app.SerializeSaveData())["values"]!;
+            realtime.forkResults.Enqueue(NeoCommitResult.Committed(
+                RemoteWithValues(
+                    "snap-live",
+                    forkedValues.ToString(Formatting.None),
+                    "session-x")));
+            autoCommitScheduler.Advance(0.3);
+            await SettleCommits(app.Client);
+            await flushScheduler.AdvanceAsync(0.5);
+            Assert.That(realtime.forks, Has.Count.EqualTo(1));
+
+            app.Save.Score = 42;
+            autoCommitScheduler.Advance(0.3);
+            Assert.That(app.Client.IsCommitting, Is.True, "the commit is serializing");
+            app.Save.Score = 43;
+            autoCommitScheduler.Advance(0.3);
+            await SettleCommits(app.Client);
+            realtime.livePatchResults.Enqueue(Patched("snap-live", 2));
+            await flushScheduler.AdvanceAsync(0.5);
+
+            Assert.That(realtime.livePatches, Has.Count.EqualTo(1));
+            var scalar = (GameSaveValuePatchChange)realtime.livePatches[0].patch.changes.Single();
+            Assert.That(scalar.set["value"].Value<int>(), Is.EqualTo(43));
+            app.Dispose();
+            store.Dispose();
+        }
+
+        /// <summary>
+        /// A commit started while a co-editor revision is being applied waits
+        /// for it: the revision reaches the game first, and the commit stages
+        /// after it, so the next flush never reverts the co-editor's value.
+        /// </summary>
+        [Test]
+        public async Task CommitDuringARevisionApply_StagesAfterIt()
+        {
+            var (store, api, realtime, flushScheduler, app, autoCommitScheduler) = await LiveAppAsync();
+            app.Save.Score = 50;
+            var coEditedValues = (JObject)JObject.Parse(app.SerializeSaveData())["values"]!;
+            app.Save.Score = 41;
+            var forkedValues = (JObject)JObject.Parse(app.SerializeSaveData())["values"]!;
+            realtime.forkResults.Enqueue(NeoCommitResult.Committed(
+                RemoteWithValues(
+                    "snap-live",
+                    forkedValues.ToString(Formatting.None),
+                    "session-x")));
+            autoCommitScheduler.Advance(0.3);
+            await SettleCommits(app.Client);
+            await flushScheduler.AdvanceAsync(0.5);
+            Assert.That(realtime.forks, Has.Count.EqualTo(1));
+
+            api.SetValueDelta("snap-live", 2, coEditedValues.ToString(Formatting.None));
+            realtime.PushHead(RemoteWithValues(
+                "snap-live",
+                "{}",
+                "session-x",
+                snapshotRevision: 2));
+            app.Save.Score = 42;
+            autoCommitScheduler.Advance(0.3);
+            await SettleCommits(app.Client);
+            realtime.livePatchResults.Enqueue(Patched("snap-live", 3));
+            await flushScheduler.AdvanceAsync(0.5);
+
+            Assert.That(app.Save.Score, Is.EqualTo(50));
+            var flushedScores = realtime.livePatches
+                .SelectMany(patch => patch.patch.changes)
+                .OfType<GameSaveValuePatchChange>()
+                .Where(change => change.set.ContainsKey("value"))
+                .Select(change => change.set["value"].Value<int>());
+            Assert.That(flushedScores, Has.No.Member(41).And.No.Member(42));
             app.Dispose();
             store.Dispose();
         }
@@ -951,7 +1095,7 @@ namespace NeoCompose.Tests
                 realtimeProvider: realtime);
             await store.LoadAsync();
             var sync = store.Open("save-1");
-            var scheduler = new ManualLiveScheduler();
+            var scheduler = new ManualLiveScheduler(() => sync.IsLiveFlushRunning);
             sync.LiveClock = scheduler.Now;
             sync.LiveDelay = scheduler.Delay;
 
@@ -960,7 +1104,7 @@ namespace NeoCompose.Tests
             await sync.CommitSaveContentAsync(
                 NeoSaveTestSupport.SaveContent("New Save", "{\"a\":1}"),
                 replaceSnapshot: false);
-            scheduler.Advance(0.5);
+            await scheduler.AdvanceAsync(0.5);
 
             Assert.That(realtime.commits, Has.Count.EqualTo(1), "classic create path");
             Assert.That(
@@ -978,7 +1122,7 @@ namespace NeoCompose.Tests
             await sync.CommitSaveContentAsync(
                 NeoSaveTestSupport.SaveContent("New Save", "{\"a\":2}"),
                 replaceSnapshot: false);
-            scheduler.Advance(0.5);
+            await scheduler.AdvanceAsync(0.5);
 
             Assert.That(realtime.commits, Has.Count.EqualTo(1), "no classic re-commit");
             Assert.That(realtime.forks, Is.Empty, "the stamped head is already live");
@@ -1001,6 +1145,7 @@ namespace NeoCompose.Tests
                 "{}",
                 "stamped",
                 snapshotRevision: 3));
+            await WaitFor(() => liveChanges.Count != 0);
             Assert.That(liveChanges, Has.Count.EqualTo(1), "web edits reach the game");
             Assert.That((int?)AppliedValue(liveChanges[0], "web")["value"], Is.EqualTo(5));
         }
@@ -1092,7 +1237,7 @@ namespace NeoCompose.Tests
             await sync.CommitSaveContentAsync(
                 LiveSaveContent("{\"stamp\":{\"value\":\"2026-06-11T11:50:29.643Z\"}}"),
                 replaceSnapshot: false);
-            scheduler.Advance(0.5);
+            await scheduler.AdvanceAsync(0.5);
 
             Assert.That(realtime.forks, Has.Count.EqualTo(1));
             var entry = ReplacedValue(realtime.forks[0].patch, "stamp");
@@ -1114,7 +1259,7 @@ namespace NeoCompose.Tests
             await sync.CommitSaveContentAsync(
                 LiveSaveContent("{\"a\":2}", "snap-live"),
                 replaceSnapshot: false);
-            scheduler.Advance(0.5);
+            await scheduler.AdvanceAsync(0.5);
             Assert.That(errors, Has.Count.EqualTo(1));
             Assert.That(realtime.livePatches, Has.Count.EqualTo(1), "one failed attempt");
 
@@ -1122,7 +1267,7 @@ namespace NeoCompose.Tests
             // same composed delta.
             realtime.livePatchThrows = null;
             realtime.livePatchResults.Enqueue(Patched("snap-live", 2));
-            scheduler.Advance(0.5);
+            await scheduler.AdvanceAsync(0.5);
             Assert.That(realtime.livePatches, Has.Count.EqualTo(2));
             Assert.That(
                 ChangedValueIds(realtime.livePatches[1].patch),

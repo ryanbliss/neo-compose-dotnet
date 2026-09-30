@@ -4010,6 +4010,67 @@ namespace NeoCompose.Tests
             finally { UnityEngine.Object.DestroyImmediate(go); }
         }
 
+        [Test]
+        public void Render_ChangedInstanceUpdatesInPlaceUntilItsHierarchyChanges()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildClassBackedTileGridProjectData());
+            var factories = new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory>
+            {
+                [ObjectClassId] = (c, node) => new TestComposedObject(c, node),
+            };
+            var obj = (TestComposedObject)NeoGeneratedTypesSupport.ResolveClassValue(client, "shop-object",
+                factories, new Dictionary<string, NeoGeneratedTypesSupport.WritableClassFactory>())!;
+            var seed = CreateTestSprite("seed");
+            var sprout = CreateTestSprite("sprout");
+            var art = new TestSpriteChild { Name = "Art", Sprite = seed };
+            obj.Children = new INeoWorldObjectValue[] { art };
+            var go = new GameObject("In-place object update test");
+            try
+            {
+                var primitive = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid");
+                var renderer = go.AddComponent<NeoTileGridRenderer>();
+                renderer.Render(new TestTileGridContent(primitive, Array.Empty<IReadOnlyNeoTileLayerRuntime>(),
+                    new[] { ObjectLayerWithSingleInstance(obj, "Default", 12) }));
+                Assert.IsTrue(renderer.TryGetObjectRoot("object-1", out var original));
+                var drawn = original.GetComponentInChildren<SpriteRenderer>();
+
+                // A stage change that swaps art keeps the GameObject it drew.
+                art.Sprite = sprout;
+                Changed();
+                Assert.IsTrue(renderer.TryGetObjectRoot("object-1", out var updated));
+                Assert.AreSame(original, updated);
+                Assert.AreSame(drawn, updated.GetComponentInChildren<SpriteRenderer>());
+                Assert.AreSame(sprout, drawn.sprite);
+
+                // A new part changes what the hierarchy is built from.
+                obj.Children = new INeoWorldObjectValue[] { art, new TestSpriteChild { Name = "Hat", Sprite = seed } };
+                Changed();
+                Assert.IsTrue(renderer.TryGetObjectRoot("object-1", out var rebuilt));
+                Assert.AreNotSame(original, rebuilt);
+                Assert.AreEqual(2, rebuilt.GetComponentsInChildren<SpriteRenderer>().Length);
+
+                // So does resizing a sprite, whose cell span is built in.
+                art.Size = new NeoReadOnlyVector3(new Vector3(2, 2, 0));
+                Changed();
+                Assert.IsTrue(renderer.TryGetObjectRoot("object-1", out var resized));
+                Assert.AreNotSame(rebuilt, resized);
+
+                void Changed() =>
+                    primitive.NotifyChanged(new NeoTileGridChangedArgs("town-grid", objectLayers: new[]
+                    {
+                        new NeoObjectLayerChangedArgs("object-layer", Array.Empty<NeoObjectInstanceId>(),
+                            new NeoObjectInstanceId[] { "object-1" }, Array.Empty<Vector2Int>(),
+                            NeoTileGridChangeSourceKind.Direct, null),
+                    }));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+                DestroyTestSprite(seed);
+                DestroyTestSprite(sprout);
+            }
+        }
+
         private sealed class PositionObjectLifecycle : NeoTileGridLifecycle
         {
             public override bool ShouldRenderObject(NeoObjectRenderContext context) =>

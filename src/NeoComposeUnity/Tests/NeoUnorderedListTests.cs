@@ -603,6 +603,37 @@ namespace NeoCompose.Tests
                 client.GetUnorderedListEntryIds(ItemsListValueId).ToArray());
         }
 
+        [Test]
+        public void MembershipChanges_NotifyTheirContainers()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
+            var notified = new List<string>();
+            client.OnWritableValueChanged += (_, id) => notified.Add(id);
+            ObjectMemberValue Entry(string containerId) => new()
+            {
+                id = "item-c",
+                classId = ItemClassId,
+                containerId = containerId,
+                value = new Dictionary<string, string>(),
+            };
+
+            client.SetSaveValue(Entry(ItemsListValueId));
+            CollectionAssert.Contains(notified, ItemsListValueId, "a new row joins its list");
+
+            notified.Clear();
+            client.SetSaveValue(Entry(NullItemsListValueId));
+            CollectionAssert.Contains(notified, ItemsListValueId, "a move leaves the old list");
+            CollectionAssert.Contains(notified, NullItemsListValueId, "a move joins the new list");
+
+            notified.Clear();
+            client.WriteTombstone(NeoValueOwnership.Save, "item-c");
+            CollectionAssert.Contains(notified, NullItemsListValueId, "a tombstone leaves its list");
+
+            notified.Clear();
+            client.SetSaveValue(Entry(NullItemsListValueId));
+            CollectionAssert.Contains(notified, NullItemsListValueId, "a restore rejoins its list");
+        }
+
         // ------------------------------------------------------------------
         // Writable ops.
         // ------------------------------------------------------------------

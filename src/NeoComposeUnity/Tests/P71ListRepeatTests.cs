@@ -5,7 +5,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using NeoCompose.Runtime.NeoScript;
@@ -18,9 +17,8 @@ namespace NeoCompose.Tests
     /// <summary>
     /// The <c>listRepeat</c> intrinsic (P71 §5.2) at the evaluator seam, where
     /// the shared <see cref="NeoScriptListRepeatParityFixture"/> cannot reach:
-    /// once-evaluation of the operands, reference identity across entries,
-    /// budget accounting, and the argument-domain failure a compiled body can
-    /// never carry.
+    /// operand order, reference identity across entries, and the
+    /// argument-domain failure a compiled body can never carry.
     ///
     /// <para>Every message here is quoted in full, never matched by substring:
     /// P71 §5.3 makes these strings a cross-runtime contract, and a partial
@@ -97,52 +95,16 @@ namespace NeoCompose.Tests
         {
             // Order is contract, not incidental (P71 §3), so it needs an
             // observable difference rather than a reading of the source: the
-            // value is a five-entry list literal under a two-entry budget and
-            // the count is a string. Value-first fails on the budget;
-            // count-first would fail on the argument domain instead.
-            var error = Assert.Throws<NeoScriptResourceLimitError>(() =>
+            // value is itself a repeat with a negative count and the count is
+            // a string. Value-first fails on the inner count; count-first
+            // would fail on the outer count's type instead.
+            var error = Assert.Throws<NSGetterRuntimeError>(() =>
                 Evaluate(
-                    ListLiteral(1, 2, 3, 4, 5),
-                    StringLiteral("3"),
-                    producedCollectionEntries: 2));
+                    ListRepeat(IntLiteral(7), IntLiteral(-1)),
+                    StringLiteral("3")));
             Assert.AreEqual(
-                "NeoScript produced collection entry limit of 2 exceeded.",
+                "List.Repeat count must be non-negative; got -1.",
                 error!.Message);
-        }
-
-        [Test]
-        public void EvaluatesTheValueExactlyOnceWhateverTheCount()
-        {
-            // The value is a five-entry list literal, so evaluating it charges
-            // five produced collection entries; the repeat itself charges four.
-            // A budget of exactly nine therefore passes only when the value is
-            // evaluated once — a second evaluation would want five more.
-            object? result = Evaluate(
-                ListLiteral(1, 2, 3, 4, 5),
-                IntLiteral(4),
-                producedCollectionEntries: 9);
-
-            var entries = (object?[])result!;
-            Assert.AreEqual(4, entries.Length);
-            foreach (object? entry in entries)
-            {
-                AssertNumbers(new double[] { 1, 2, 3, 4, 5 }, entry);
-            }
-        }
-
-        [Test]
-        public void EvaluatesTheCountExactlyOnce()
-        {
-            // Same trick on the other operand: a count expressed as the length
-            // of a three-entry list literal charges three entries of its own,
-            // and the repeat charges three more. Six is enough for one
-            // evaluation of the count and not for two.
-            object? result = Evaluate(
-                IntLiteral(7),
-                CountOfListLiteral(1, 2, 3),
-                producedCollectionEntries: 6);
-
-            AssertNumbers(new double[] { 7, 7, 7 }, result);
         }
 
         [Test]
@@ -159,48 +121,22 @@ namespace NeoCompose.Tests
                 "Every entry must be the one evaluated value, not a copy.");
         }
 
+        /// <summary>
+        /// NeoScript has no execution budget: a repeat past the old
+        /// 10,000-entry cap produces every entry.
+        /// </summary>
+        [Test]
+        public void ProducesMoreEntriesThanTheRetiredBudgetAllowed()
+        {
+            var entries = (object?[])Evaluate(IntLiteral(7), IntLiteral(20_000))!;
+            Assert.AreEqual(20_000, entries.Length);
+        }
+
         [Test]
         public void ZeroCountProducesAnEmptyList()
         {
             var entries = (object?[])Evaluate(StringLiteral("empty"), IntLiteral(0))!;
             Assert.AreEqual(0, entries.Length);
-        }
-
-        // ------------------------------------------------------------------
-        // Budget accounting (P71 §3, P54).
-        // ------------------------------------------------------------------
-
-        [Test]
-        public void ChargesTheCountToTheSharedCollectionEntryBudget()
-        {
-            AssertNumbers(
-                new double[] { 7, 7, 7 },
-                Evaluate(IntLiteral(7), IntLiteral(3), producedCollectionEntries: 3));
-
-            var error = Assert.Throws<NeoScriptResourceLimitError>(() =>
-                Evaluate(IntLiteral(7), IntLiteral(3), producedCollectionEntries: 2));
-            Assert.AreEqual(
-                "NeoScript produced collection entry limit of 2 exceeded.",
-                error!.Message);
-        }
-
-        [Test]
-        public void FailsAnOverBudgetCountBeforeAllocatingAnything()
-        {
-            var stopwatch = Stopwatch.StartNew();
-            var error = Assert.Throws<NeoScriptResourceLimitError>(() =>
-                Evaluate(
-                    IntLiteral(7),
-                    IntLiteral(1_000_000_000),
-                    producedCollectionEntries: 10));
-            stopwatch.Stop();
-
-            Assert.AreEqual(
-                "NeoScript produced collection entry limit of 10 exceeded.",
-                error!.Message);
-            // A billion-entry allocation could not return in this window; the
-            // budget check therefore ran ahead of the fill, not after it.
-            Assert.Less(stopwatch.ElapsedMilliseconds, 1_000);
         }
 
         // ------------------------------------------------------------------
@@ -218,7 +154,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void RejectsANonIntegralCountBeforeItCanChargeBudget()
+        public void RejectsANonIntegralCount()
         {
             var error = Assert.Throws<NSGetterRuntimeError>(() =>
                 Evaluate(IntLiteral(7), FloatLiteral(2.5)));
@@ -240,38 +176,11 @@ namespace NeoCompose.Tests
         // ------------------------------------------------------------------
 
         /// <summary>
-        /// Entries compare as doubles: NeoScript's Int is an integral Float,
-        /// and a literal pointer can surface it as a <c>long</c> or a
-        /// <c>double</c> depending on how the JSON operand was written, which
-        /// is not what these tests are about.
-        /// </summary>
-        private static void AssertNumbers(double[] expected, object? produced)
-        {
-            var entries = produced as object?[];
-            Assert.IsNotNull(entries, $"Expected a list, got {produced ?? "null"}.");
-            Assert.AreEqual(expected.Length, entries!.Length, "Entry count");
-            for (int index = 0; index < expected.Length; index++)
-            {
-                Assert.AreEqual(
-                    expected[index],
-                    Convert.ToDouble(entries[index]),
-                    $"Entry {index}");
-            }
-        }
-
-        /// <summary>
         /// Evaluates `return List.Repeat(&lt;value&gt;, &lt;count&gt;);` as a
-        /// `List&lt;Int&gt;`-typed getter, optionally under a tightened
-        /// collection-entry budget.
+        /// `List&lt;Int&gt;`-typed getter.
         /// </summary>
-        private static object? Evaluate(
-            Pointer valuePointer,
-            Pointer countPointer,
-            int? producedCollectionEntries = null)
+        private static object? Evaluate(Pointer valuePointer, Pointer countPointer)
         {
-            var limits = producedCollectionEntries is int cap
-                ? new NeoScriptExecutionBudgetLimits(producedCollectionEntries: cap)
-                : null;
             return NSGetterEvaluator.Evaluate(
                 new FunctionWithReturnType
                 {
@@ -287,11 +196,7 @@ namespace NeoCompose.Tests
                         },
                     },
                 },
-                new NSGetterEvaluator.Context(
-                    BuildClient(),
-                    null,
-                    null,
-                    executionBudgetLimits: limits));
+                new NSGetterEvaluator.Context(BuildClient(), null, null));
         }
 
         private static Pointer ListRepeat(Pointer valuePointer, Pointer countPointer)
@@ -331,11 +236,8 @@ namespace NeoCompose.Tests
         }
 
         /// <summary>
-        /// A list literal is the one pure pointer whose evaluation is
-        /// observable: it charges the shared collection-entry budget and
-        /// produces a fresh reference, which is what makes both
-        /// once-evaluation and shared-reference assertions possible from raw
-        /// IR.
+        /// A list literal produces a fresh reference per evaluation, which is
+        /// what makes the shared-reference assertion possible from raw IR.
         /// </summary>
         private static Pointer ListLiteral(params int[] values)
         {
@@ -349,22 +251,6 @@ namespace NeoCompose.Tests
                 type = PointerKind.ListLiteral,
                 typeInfo = ListType(),
                 entries = entries,
-            };
-        }
-
-        private static Pointer CountOfListLiteral(params int[] values)
-        {
-            return new FunctionPointer
-            {
-                type = PointerKind.Function,
-                function = new CountFunction
-                {
-                    type = FunctionKind.Count,
-                    info = new FunctionCollectionOptionalBoolInfo
-                    {
-                        collectionPointer = ListLiteral(values),
-                    },
-                },
             };
         }
 

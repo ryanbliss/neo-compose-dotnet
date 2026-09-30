@@ -605,7 +605,8 @@ namespace NeoCompose.Runtime
         /// imperative Apply closure has already run; declarative variant halves
         /// stay virtual and are replayed here after their answered pins clear.
         /// </summary>
-        internal void StampVirtualInstanceVariant(
+        /// <returns>False when the root already records this variant.</returns>
+        internal bool StampVirtualInstanceVariant(
             NeoMemberClassWritable node,
             NeoValueOwnership ownership,
             string? variantId,
@@ -622,7 +623,7 @@ namespace NeoCompose.Runtime
                 && current.instanceVariantId == variantId
                 && current.instanceVariantRowValueId == rowValueId)
             {
-                return;
+                return false;
             }
             if (ownership == NeoValueOwnership.Asset)
             {
@@ -658,6 +659,7 @@ namespace NeoCompose.Runtime
                 else
                     RefreshVirtualWrapperTree(node);
             }
+            return true;
         }
 
         /// <summary>

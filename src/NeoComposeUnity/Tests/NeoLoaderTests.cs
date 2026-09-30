@@ -5,6 +5,7 @@
 
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Collections.Generic;
 using NUnit.Framework;
 using NeoCompose.Runtime;
@@ -28,7 +29,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void NeoLoader_CommitPersistsGeneratedSaveWithNumericTimestamps()
+        public async Task NeoLoader_CommitPersistsGeneratedSaveWithNumericTimestamps()
         {
             // A fresh draft builds default save data; committing persists it to the
             // local store (the durable round-trip the removed handleSave delegate used
@@ -36,7 +37,7 @@ namespace NeoCompose.Tests
             var stack = NeoTestSaveStack.Create(LoadFixture("synth-example.json"));
             var client = stack.Load();
             Assert.IsNotNull(client);
-            client.CommitAsync().GetAwaiter().GetResult();
+            await client.CommitAsync();
             string saveBuffer = stack.PersistedContent()!;
             var save = JsonConvert.DeserializeObject<ProjectSaveData>(saveBuffer);
             Assert.IsNotNull(save);
@@ -67,11 +68,11 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void NeoLoader_WritesSaveDiagnosticsAndDedupesByCapturedValues()
+        public async Task NeoLoader_WritesSaveDiagnosticsAndDedupesByCapturedValues()
         {
             var stack = NeoTestSaveStack.Create(LoadFixture("synth-example.json"));
             var client = stack.Load();
-            client.CommitAsync().GetAwaiter().GetResult();
+            await client.CommitAsync();
 
             var serialized = JObject.Parse(stack.PersistedContent()!);
             Assert.AreEqual(1, serialized["platforms"]!.Count());
@@ -81,13 +82,105 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void NeoLoader_ClearsSaveDiagnosticsWhenDisabledAtRuntime()
+        public async Task NeoLoader_CommitStampsTheSnapshotItComparedAndThenSkipsANoOp()
+        {
+            var stack = NeoTestSaveStack.Create(LoadFixture("synth-example.json"));
+            var client = stack.Load();
+            await client.CommitAsync();
+
+            // The stamped header must match a full re-serialize exactly.
+            string committed = stack.PersistedContent()!;
+            Assert.AreEqual(client.SerializeSaveData(), committed);
+
+            await client.CommitAsync();
+            Assert.AreEqual(committed, stack.PersistedContent());
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task NeoLoader_QueuedCommitsSettleInCallOrder(bool firstFails)
+        {
+            var loader = new GatedSaveLoader(
+                JsonConvert.DeserializeObject<ProjectData>(LoadFixture("synth-example.json"))!);
+            var app = await global::Assets.Scripts.Neo.TestProjectNeo.Load(loader);
+
+            app.Save.Score = 1;
+            var first = app.CommitAsync();
+            app.Save.Score = 2;
+            var second = app.CommitAsync();
+            Assert.IsTrue(app.Client.IsCommitting);
+
+            await loader.WaitForCommits(1);
+            if (firstFails)
+                loader.gates[0].SetException(new System.InvalidOperationException("offline"));
+            else
+                loader.gates[0].SetResult();
+            try
+            {
+                await first;
+                Assert.IsFalse(firstFails);
+            }
+            catch (System.InvalidOperationException)
+            {
+                Assert.IsTrue(firstFails);
+            }
+            Assert.IsTrue(app.Client.IsCommitting, "the queued commit has not settled");
+
+            await loader.WaitForCommits(2);
+            loader.gates[1].SetResult();
+            await second;
+            Assert.IsFalse(app.Client.IsCommitting);
+            Assert.AreEqual(app.SerializeSaveData(), loader.committed.Last(),
+                "the queued commit persists the state at its turn");
+            Assert.AreEqual(firstFails ? 1 : 2, loader.committed.Count);
+            app.Dispose();
+        }
+
+        /// <summary>Holds each commit until the test settles its gate.</summary>
+        private sealed class GatedSaveLoader : INeoSaveLoader
+        {
+            public readonly List<AwaitableCompletionSource> gates = new();
+            public readonly List<string> committed = new();
+
+            public GatedSaveLoader(ProjectData schema) => Schema = schema;
+
+            public ProjectData Schema
+            {
+                get;
+            }
+            public string CustomId => "save-1";
+
+            public Awaitable<string?> LoadSaveContentAsync() =>
+                NeoAwaitable.FromResult<string?>(null);
+
+            public async Awaitable CommitSaveContentAsync(string content, bool replaceSnapshot)
+            {
+                var gate = new AwaitableCompletionSource();
+                gates.Add(gate);
+                await gate.Awaitable;
+                committed.Add(content);
+            }
+
+            // Each commit serializes on a worker before it reaches the loader.
+            public async Task WaitForCommits(int count)
+            {
+                var deadline = System.DateTime.UtcNow.AddSeconds(30);
+                while (gates.Count < count)
+                {
+                    Assert.Less(System.DateTime.UtcNow, deadline, "commit never reached the loader");
+                    await Task.Yield();
+                }
+            }
+        }
+
+        [Test]
+        public async Task NeoLoader_ClearsSaveDiagnosticsWhenDisabledAtRuntime()
         {
             var stack = NeoTestSaveStack.Create(LoadFixture("synth-example.json"));
             var client = stack.Load();
 
             client.SaveOptions.DiagnosticsEnabled = false;
-            client.CommitAsync().GetAwaiter().GetResult();
+            await client.CommitAsync();
 
             var serialized = JObject.Parse(stack.PersistedContent()!);
             Assert.AreEqual(JTokenType.Null, serialized["platforms"]!.Type);

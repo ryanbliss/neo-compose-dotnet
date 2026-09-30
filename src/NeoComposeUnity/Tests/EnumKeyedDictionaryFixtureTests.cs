@@ -74,7 +74,7 @@ namespace NeoCompose.Tests
 
             app.Save.ElementStats[Element.ice] = 5;
             Assert.AreEqual(5, app.Save.ElementStats[Element.ice]);
-            app.CommitAsync().GetAwaiter().GetResult();
+            await app.CommitAsync();
 
             // The persisted save keys the entry by the raw option id.
             string persisted = stack.PersistedContent()!;

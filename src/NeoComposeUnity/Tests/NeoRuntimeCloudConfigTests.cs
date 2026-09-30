@@ -5,6 +5,7 @@
 
 using System.IO;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using NUnit.Framework;
@@ -108,7 +109,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void CommitAsync_PersistsThroughLoaderToLocalStore()
+        public async Task CommitAsync_PersistsThroughLoaderToLocalStore()
         {
             var stack = NeoTestSaveStack.Create(LoadFixture("synth-example.json"));
             var client = stack.Load();
@@ -122,7 +123,7 @@ namespace NeoCompose.Tests
 
             Assert.IsNull(stack.PersistedContent(), "Nothing is persisted until the first commit.");
 
-            client.CommitAsync().GetAwaiter().GetResult();
+            await client.CommitAsync();
 
             var persisted = stack.PersistedContent();
             Assert.IsNotNull(persisted);

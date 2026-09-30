@@ -173,5 +173,18 @@ namespace NeoCompose.Runtime.Json
         /// The referenced value graph remains in <see cref="values"/>.
         /// </summary>
         public Dictionary<string, string?> staticBindings = new();
+
+        /// <summary>
+        /// A copy whose row and binding maps no longer follow this save's.
+        /// Writes replace rows rather than mutate them, so the copy stays a
+        /// consistent graph another thread can serialize.
+        /// </summary>
+        internal ProjectSaveData DetachedCopy()
+        {
+            var copy = (ProjectSaveData)MemberwiseClone();
+            copy.values = new Dictionary<string, MemberValue>(values);
+            copy.staticBindings = new Dictionary<string, string?>(staticBindings);
+            return copy;
+        }
     }
 }

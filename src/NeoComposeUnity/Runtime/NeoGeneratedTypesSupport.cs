@@ -472,7 +472,6 @@ namespace NeoCompose.Runtime
             NeoScript.NSGetterEvaluator.Context ctx,
             string label)
         {
-            ctx.allocationTracker.ConsumeWorkUnit();
             if (ctx.constructionStack.Count >= MaxConstructionDepth)
             {
                 var chain = new List<string>(ctx.constructionStack) { label };
@@ -2318,12 +2317,6 @@ namespace NeoCompose.Runtime
                 requireCompleteRoot,
                 trustedRuntimeRows,
                 trustedRootPlan);
-            if (scope.ExistingEvaluationContext is { } evaluationContext)
-            {
-                evaluationContext.allocationTracker
-                    .ConsumeCreatedSessionRows(rows);
-            }
-
             client.PublishConstructedSessionRows(rows);
 
             ClassMember factoryMember = trustedRuntimeRows
@@ -5076,7 +5069,6 @@ namespace NeoCompose.Runtime
                         : NeoScriptExecutor.ImportClassValueReference(plan, client, ownership, reference.Value.valueId, ctx);
                     return new NeoConstructorValueReference(imported, ownership);
                 }, env, member.name, new Dictionary<string, NeoValueOwnership>());
-            ctx.allocationTracker.ConsumeCreatedSessionRows(rows);
             return CallSiteWritePayload(payload, rows);
         }
 

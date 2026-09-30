@@ -5,6 +5,7 @@
 
 using System;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace NeoCompose.Runtime.Json
 {
@@ -102,6 +103,25 @@ namespace NeoCompose.Runtime.Json
                 throw new InvalidOperationException("Local save JSON could not be deserialized.");
             }
 
+            save.staticBindings ??= new();
+            return save;
+        }
+
+        /// <summary>
+        /// <see cref="Load"/> for a save already in memory: the header reads
+        /// from its tokens and the value rows stay the snapshot's own token,
+        /// so nothing round-trips through a string.
+        /// </summary>
+        internal static LocalGameSave FromSnapshot(JObject snapshot)
+        {
+            var header = new JObject();
+            foreach (var property in snapshot.Properties())
+                if (property.Name != "values")
+                    header[property.Name] = property.Value;
+            var save = header.ToObject<LocalGameSave>(
+                JsonSerializer.Create(NeoSaveJson.ContentSettings))
+                ?? throw new InvalidOperationException("Local save snapshot could not be read.");
+            save.values = new NeoSaveValues(snapshot["values"]);
             save.staticBindings ??= new();
             return save;
         }

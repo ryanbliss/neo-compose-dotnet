@@ -584,6 +584,10 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"{label} layer link '{linkValueId}' is missing its class id.");
             }
+            // The answer depends only on the schema, so every link of a class
+            // shares it. Failures are not cached and throw again per link.
+            if (client.LayerLinkTargetByClass.TryGetValue((linkClassId!, isTileLink), out string? cached))
+                return cached;
 
             NeoSchemaClass systemBase = ValidateLinkClass(
                 client,
@@ -621,6 +625,7 @@ namespace NeoCompose.Runtime
                     $"{label} layer link '{linkValueId}' has no effective '{relationKind}' relation.");
             }
             ValidateTargetClass(client, linkValueId, relationTargetId, isTileLink);
+            client.LayerLinkTargetByClass[(linkClassId!, isTileLink)] = relationTargetId;
             return relationTargetId;
         }
 

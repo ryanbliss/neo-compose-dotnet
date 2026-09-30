@@ -43,7 +43,12 @@ namespace HelloWorld.Assets.Tests.PlayMode
             {
                 Assert.AreEqual("Hello Earth!", client.Assets.Computed.fullText);
                 client.Save.Bits = 123;
-                client.CommitAsync().GetAwaiter().GetResult();
+                var commit = client.CommitAsync().GetAwaiter();
+                deadline = Time.realtimeSinceStartup + 30;
+                while (!commit.IsCompleted && Time.realtimeSinceStartup < deadline)
+                    yield return null;
+                Assert.IsTrue(commit.IsCompleted);
+                commit.GetResult();
             }
             using var reopened = store.Open(synchronizer.CustomId);
             pending = HelloWorldNeo.Load(reopened,

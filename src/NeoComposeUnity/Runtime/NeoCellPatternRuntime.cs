@@ -21,7 +21,7 @@ namespace NeoCompose.Runtime
                         int x = Int(args[0]), y = args[1] is null ? x : Int(args[1]);
                         var excluding = NeoCellPatternStorage.ReadExcluding(args[2]);
                         ValidateRadii(x, y);
-                        Reserve(checked((2L * x + 1) * (2L * y + 1)) - (excluding == NeoCellPatternExcluding.Center ? 1 : 0), ctx);
+                        RequireSize(checked((2L * x + 1) * (2L * y + 1)) - (excluding == NeoCellPatternExcluding.Center ? 1 : 0));
                         pattern = NeoCellPattern.Box(x, y, excluding);
                         break;
                     }
@@ -30,7 +30,7 @@ namespace NeoCompose.Runtime
                         int x = Int(args[0]), y = args[1] is null ? x : Int(args[1]);
                         var excluding = NeoCellPatternStorage.ReadExcluding(args[2]);
                         ValidateRadii(x, y);
-                        Reserve(2L * x + 2L * y + (excluding == NeoCellPatternExcluding.Center ? 0 : 1), ctx);
+                        RequireSize(2L * x + 2L * y + (excluding == NeoCellPatternExcluding.Center ? 0 : 1));
                         pattern = NeoCellPattern.Cross(x, y, excluding);
                         break;
                     }
@@ -38,7 +38,7 @@ namespace NeoCompose.Runtime
                     {
                         int radius = Int(args[0]);
                         ValidateRadii(radius, radius);
-                        Reserve(radius == 0 ? 1 : 8L * radius, ctx);
+                        RequireSize(radius == 0 ? 1 : 8L * radius);
                         pattern = NeoCellPattern.Ring(radius);
                         break;
                     }
@@ -47,7 +47,7 @@ namespace NeoCompose.Runtime
                         Vector2Int size = Vector(args[0]);
                         if (size.x <= 0 || size.y <= 0)
                             throw new NSGetterRuntimeError("Rect size must be positive.");
-                        Reserve((long)size.x * size.y, ctx);
+                        RequireSize((long)size.x * size.y);
                         pattern = NeoCellPattern.Rect(size);
                         break;
                     }
@@ -57,7 +57,7 @@ namespace NeoCompose.Runtime
                         if (length < 0)
                             throw new NSGetterRuntimeError("Line length must be nonnegative.");
                         var excluding = NeoCellPatternStorage.ReadExcluding(args[2]);
-                        Reserve((long)length + (excluding == NeoCellPatternExcluding.Center ? 0 : 1), ctx);
+                        RequireSize((long)length + (excluding == NeoCellPatternExcluding.Center ? 0 : 1));
                         pattern = NeoCellPattern.Line(Vector(args[0]), length, excluding);
                         break;
                     }
@@ -70,28 +70,25 @@ namespace NeoCompose.Runtime
                 case "system_c72d9b09-fc4c-55db-b763-f1954a536069": // Cells
                     {
                         var source = Read(receiver, ctx);
-                        Reserve(source.Count, ctx);
                         result = source.GetCells(Vector(args[0])).Select(cell => (object?)NeoVectorValues.FromVector2Int(cell)).ToArray();
                         return true;
                     }
                 case "system_1da9303d-c362-541a-a77b-244fb0ffcbb6": // WithCenter
                     {
                         var source = Read(receiver, ctx);
-                        Reserve((long)source.Count + 1, ctx);
+                        RequireSize((long)source.Count + 1);
                         pattern = source.WithCenter();
                         break;
                     }
                 case "system_7dce7f78-2c8f-5a1f-aa80-89dc217dcdff": // WithoutCenter
                     {
                         var source = Read(receiver, ctx);
-                        Reserve(source.Count, ctx);
                         pattern = source.WithoutCenter();
                         break;
                     }
                 case "system_efc67858-0c95-573f-a8a9-d7e07d0a1d55": // Translate
                     {
                         var source = Read(receiver, ctx);
-                        Reserve(source.Count, ctx);
                         pattern = source.Translate(Vector(args[0]));
                         break;
                     }
@@ -99,7 +96,7 @@ namespace NeoCompose.Runtime
                     {
                         var source = Read(receiver, ctx);
                         var other = Read(args[0], ctx);
-                        Reserve((long)source.Count + other.Count, ctx);
+                        RequireSize((long)source.Count + other.Count);
                         pattern = source.Union(other);
                         break;
                     }
@@ -127,11 +124,10 @@ namespace NeoCompose.Runtime
         private static NeoCellPattern Read(object? value, NSGetterEvaluator.Context ctx) =>
             NeoCellPatternStorage.ReadRuntime(value, ctx);
 
-        internal static void Reserve(long count, NSGetterEvaluator.Context ctx)
+        private static void RequireSize(long count)
         {
             if (count < 0 || count > int.MaxValue)
-                throw new NSGetterRuntimeError("CellPattern exceeds the produced collection entry budget.");
-            ctx.allocationTracker.ConsumeProducedCollectionEntry((int)count);
+                throw new NSGetterRuntimeError("CellPattern is too large.");
         }
 
         private static int Int(object? value)

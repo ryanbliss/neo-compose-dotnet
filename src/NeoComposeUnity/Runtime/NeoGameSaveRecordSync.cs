@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using NeoCompose.Runtime.Json;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
@@ -76,8 +77,10 @@ namespace NeoCompose.Runtime
             if (throughRevision <= save.snapshotRevision)
                 return false;
 
+            // A whole-save copy; stored values are replaced, never edited in
+            // place, so a worker copies it.
             var values = save.values.Raw is JObject current
-                ? (JObject)current.DeepClone()
+                ? await Task.Run(() => (JObject)current.DeepClone())
                 : new JObject();
             var staticBindings = new Dictionary<string, string?>(save.staticBindings);
             string? cursor = null;

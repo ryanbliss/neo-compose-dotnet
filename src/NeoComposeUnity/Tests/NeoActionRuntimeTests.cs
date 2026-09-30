@@ -421,26 +421,26 @@ namespace NeoCompose.Tests
         }
 
         /// <summary>
-        /// A budget fault is a non-catchable control fault. Renaming it into
-        /// a plain <see cref="NSGetterRuntimeError"/> would let an authored
-        /// <c>catch</c> swallow a fail-closed safety limit, so the fan-out
-        /// must let it through as itself.
+        /// A pre-execution validation failure is a non-catchable control
+        /// fault. Renaming it into a plain <see cref="NSGetterRuntimeError"/>
+        /// would let an authored <c>catch</c> swallow a compiler/runtime
+        /// incompatibility, so the fan-out must let it through as itself.
         /// </summary>
         [Test]
         public void Invoke_LetsAControlFaultThroughUnwrapped()
         {
             using NeoClient client = BuildClient(
-                (FirstListenerId, () => throw new NeoScriptResourceLimitError(
-                    "work unit budget exhausted")));
+                (FirstListenerId, () => throw new NeoScriptPreExecutionValidationError(
+                    "stale compiler revision")));
             using var node = new NeoMemberAction(
                 client,
                 ActionMemberWithListeners(MemberTarget(FirstListenerId, null)),
                 null);
 
-            var error = Assert.Throws<NeoScriptResourceLimitError>(
+            var error = Assert.Throws<NeoScriptPreExecutionValidationError>(
                 () => node.Invoke());
 
-            Assert.AreEqual("work unit budget exhausted", error!.Message);
+            Assert.AreEqual("stale compiler revision", error!.Message);
         }
 
         [Test]

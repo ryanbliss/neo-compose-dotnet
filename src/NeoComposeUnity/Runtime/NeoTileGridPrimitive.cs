@@ -2687,13 +2687,7 @@ namespace NeoCompose.Runtime
                 return null;
             try
             {
-                return NeoSchemaClassInheritance.MergeInstanceSchema(
-                    NeoSchemaClassInheritance.ResolveChain(
-                        classId,
-                        id => client.classes.TryGetValue(id, out NeoSchemaClass match) ? match : null),
-                    id => client.members.TryGetValue(id, out JsonMember member)
-                        ? member
-                        : null);
+                return client.ResolveInstanceSurfaceSchema(classId);
             }
             catch (CircularInheritanceError)
             {

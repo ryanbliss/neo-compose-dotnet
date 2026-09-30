@@ -5,10 +5,10 @@
 
 using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using NUnit.Framework;
-using UnityEngine.TestTools;
 
 namespace NeoCompose.Tests
 {
@@ -296,7 +296,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void NeoClient_INeoClientSurface_CommitsAndSerializesSaveData()
+        public async Task NeoClient_INeoClientSurface_CommitsAndSerializesSaveData()
         {
             var client = LoadClient(out string initialSave);
             INeoClient host = client;
@@ -316,11 +316,7 @@ namespace NeoCompose.Tests
             StringAssert.Contains("manual-save-value", json);
             Assert.AreEqual(1, changed);
 
-            LogAssert.Expect(
-                UnityEngine.LogType.Warning,
-                new System.Text.RegularExpressions.Regex(
-                    "NeoCompose save contains 1 unlinked value"));
-            Assert.DoesNotThrow(() => host.CommitAsync().GetAwaiter().GetResult());
+            await host.CommitAsync();
         }
     }
 }

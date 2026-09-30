@@ -64,8 +64,8 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// Commits the current save state through the active save loader (local, and
-        /// cloud when sync is configured). Logs a warning when generated factory
-        /// values exist in the save file but are not linked from the save tree.
+        /// cloud when sync is configured). Serializes on a worker and completes on
+        /// the main thread; commits queue in call order.
         /// </summary>
         /// <param name="replaceSnapshot">
         /// When true, overwrites the head snapshot in place instead of appending a new

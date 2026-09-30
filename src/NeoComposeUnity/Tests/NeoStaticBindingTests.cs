@@ -218,15 +218,7 @@ namespace NeoCompose.Tests
             string callbackKind)
         {
             NeoClient client = BuildClient();
-            bool terminal = callbackKind is FunctionKind.First
-                or FunctionKind.FirstOrDefault;
-            var ctx = new NSGetterEvaluator.Context(
-                client,
-                null,
-                null,
-                executionBudgetLimits: terminal
-                    ? new NeoScriptExecutionBudgetLimits(collectionVisits: 1)
-                    : null);
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
             var staticCount = new StaticMemberPointer
             {
                 type = PointerKind.StaticMember,
@@ -272,8 +264,24 @@ namespace NeoCompose.Tests
                             typeInfo = intType,
                             writability = WritabilityKind.Runtime,
                         },
-                        operatorValue = "=",
-                        pointer = IntPointer(27),
+                        operatorValue = "+=",
+                        pointer = new OperationPointer
+                        {
+                            type = PointerKind.Operation,
+                            operation = new ArithmeticOperation
+                            {
+                                type = OperationKind.Arithmetic,
+                                arithmetic = new ArithmeticOpInfo
+                                {
+                                    type = ArithmeticOpKind.Addition,
+                                    pointers = new Pointer[]
+                                    {
+                                        staticCount,
+                                        IntPointer(1),
+                                    },
+                                },
+                            },
+                        },
                     },
                     new ReturnInstruction
                     {
@@ -409,12 +417,15 @@ namespace NeoCompose.Tests
                 NeoValueOwnership.Session,
                 "static-count-authored",
                 out NumberMemberValue? value));
-            Assert.AreEqual(27, value!.value);
+            // The predicate adds one per visit to the authored 5: every
+            // callback visits exactly one entry, so a terminal that kept
+            // scanning past its first match would count higher.
+            Assert.AreEqual(6, value!.value);
         }
 
         [TestCase(false)]
         [TestCase(true)]
-        public void P55FirstOrDefaultWithoutPredicate_StopsAfterOneVisit(
+        public void P55FirstOrDefaultWithoutPredicate_ReturnsTheFirstEntry(
             bool dictionary)
         {
             var optionalString = new PrimitiveTypeInfo
@@ -487,12 +498,7 @@ namespace NeoCompose.Tests
                     },
                 },
             };
-            var ctx = new NSGetterEvaluator.Context(
-                BuildClient(),
-                null,
-                null,
-                executionBudgetLimits: new NeoScriptExecutionBudgetLimits(
-                    collectionVisits: 1));
+            var ctx = new NSGetterEvaluator.Context(BuildClient(), null, null);
 
             Assert.AreEqual(
                 dictionary ? "alpha" : null,

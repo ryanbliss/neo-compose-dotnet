@@ -320,6 +320,116 @@ namespace NeoCompose.Tests
                 "opaque callers force a safe full diff even when dirty hints exist");
         }
 
+        /// <summary>
+        /// Marks belong to the content captured with them: a write landing
+        /// while a commit is in flight keeps its mark for the next commit, even
+        /// after newer writes mark records of their own.
+        /// </summary>
+        [Test]
+        public async Task WriteDuringACommit_KeepsItsMarkForTheNextCommit()
+        {
+            var remote = MaterializedRemote(
+                "snap-1",
+                4,
+                "{\"a\":{\"id\":\"a\",\"value\":1}," +
+                "\"b\":{\"id\":\"b\",\"value\":2}," +
+                "\"c\":{\"id\":\"c\",\"value\":3}}");
+            var (_, sync, api) = await LoadedExistingSaveAsync(remote);
+            var firstValues =
+                "{\"a\":{\"id\":\"a\",\"value\":9}," +
+                "\"b\":{\"id\":\"b\",\"value\":2}," +
+                "\"c\":{\"id\":\"c\",\"value\":3}}";
+            var firstHead = MaterializedRemote("snap-2", 1, firstValues);
+            api.sparseCommitResults.Enqueue(NeoCommitResult.Committed(firstHead));
+            var first = LocalGameSave.FromRemote(remote);
+            first.values = new NeoSaveValues(JObject.Parse(firstValues));
+
+            sync.MarkDirtyValue("a", "value");
+            var firstDirty = sync.TakeDirtyRecords();
+            sync.MarkDirtyValue("b", "value");
+            await sync.CommitSaveContentAsync(
+                JsonConvert.SerializeObject(first),
+                first,
+                replaceSnapshot: false,
+                flushLiveImmediately: false,
+                firstDirty);
+
+            sync.MarkDirtyValue("c", "value");
+            var secondValues =
+                "{\"a\":{\"id\":\"a\",\"value\":9}," +
+                "\"b\":{\"id\":\"b\",\"value\":8}," +
+                "\"c\":{\"id\":\"c\",\"value\":7}}";
+            api.sparseCommitResults.Enqueue(NeoCommitResult.Committed(
+                MaterializedRemote("snap-3", 1, secondValues)));
+            var second = LocalGameSave.FromRemote(firstHead);
+            second.values = new NeoSaveValues(JObject.Parse(secondValues));
+            await sync.CommitSaveContentAsync(
+                JsonConvert.SerializeObject(second),
+                second,
+                replaceSnapshot: false,
+                flushLiveImmediately: false,
+                sync.TakeDirtyRecords());
+
+            Assert.That(api.sparseCommits, Has.Count.EqualTo(2));
+            Assert.That(
+                api.sparseCommits[1].request.changes
+                    .OfType<GameSaveValuePatchChange>()
+                    .Select(change => change.valueId),
+                Is.EquivalentTo(new[] { "b", "c" }));
+        }
+
+        /// <summary>
+        /// A best-effort cloud commit that failed leaves the local save ahead
+        /// of the cloud; the next commit diffs against the cloud head, so the
+        /// failed commit's writes still reach it.
+        /// </summary>
+        [Test]
+        public async Task FailedBestEffortCommit_ReachesTheCloudWithTheNextCommit()
+        {
+            var remote = MaterializedRemote(
+                "snap-1",
+                4,
+                "{\"a\":{\"id\":\"a\",\"value\":1}," +
+                "\"b\":{\"id\":\"b\",\"value\":2}}");
+            var (_, sync, api) = await LoadedExistingSaveAsync(remote);
+            var first = LocalGameSave.FromRemote(remote);
+            first.values = new NeoSaveValues(JObject.Parse(
+                "{\"a\":{\"id\":\"a\",\"value\":9}," +
+                "\"b\":{\"id\":\"b\",\"value\":2}}"));
+            sync.MarkDirtyValue("a", "value");
+            // No queued result: the transport throws and the commit stays local.
+            await sync.CommitSaveContentAsync(
+                JsonConvert.SerializeObject(first),
+                first,
+                replaceSnapshot: false,
+                flushLiveImmediately: false,
+                sync.TakeDirtyRecords());
+
+            api.sparseCommitResults.Enqueue(NeoCommitResult.Committed(MaterializedRemote(
+                "snap-2",
+                1,
+                "{\"a\":{\"id\":\"a\",\"value\":9}," +
+                "\"b\":{\"id\":\"b\",\"value\":8}}")));
+            var second = LocalGameSave.FromRemote(remote);
+            second.values = new NeoSaveValues(JObject.Parse(
+                "{\"a\":{\"id\":\"a\",\"value\":9}," +
+                "\"b\":{\"id\":\"b\",\"value\":8}}"));
+            sync.MarkDirtyValue("b", "value");
+            await sync.CommitSaveContentAsync(
+                JsonConvert.SerializeObject(second),
+                second,
+                replaceSnapshot: false,
+                flushLiveImmediately: false,
+                sync.TakeDirtyRecords());
+
+            Assert.That(api.sparseCommits, Has.Count.EqualTo(2));
+            Assert.That(
+                api.sparseCommits[1].request.changes
+                    .OfType<GameSaveValuePatchChange>()
+                    .Select(change => change.valueId),
+                Is.EquivalentTo(new[] { "a", "b" }));
+        }
+
         [Test]
         public async Task ExistingCommit_FollowsTransitionWithoutRepeatingMutation()
         {

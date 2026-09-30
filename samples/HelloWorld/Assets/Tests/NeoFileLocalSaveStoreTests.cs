@@ -30,15 +30,15 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void CommitListLoadDelete_RoundTripsByCustomId()
+        public async System.Threading.Tasks.Task CommitListLoadDelete_RoundTripsByCustomId()
         {
             var store = new NeoFileLocalSaveStore(directory);
 
             Assert.IsEmpty(store.ListSaveIdsAsync().GetAwaiter().GetResult());
             Assert.IsNull(store.LoadSaveAsync("alpha").GetAwaiter().GetResult(), "Absent save reads as null.");
 
-            store.CommitSaveAsync("alpha", "{\"name\":\"alpha\"}").GetAwaiter().GetResult();
-            store.CommitSaveAsync("beta", "{\"name\":\"beta\"}").GetAwaiter().GetResult();
+            await store.CommitSaveAsync("alpha", "{\"name\":\"alpha\"}");
+            await store.CommitSaveAsync("beta", "{\"name\":\"beta\"}");
 
             CollectionAssert.AreEquivalent(
                 new[] { "alpha", "beta" },
@@ -48,7 +48,7 @@ namespace HelloWorld.Assets.Tests
                 store.LoadSaveAsync("alpha").GetAwaiter().GetResult());
 
             // Overwrite in place.
-            store.CommitSaveAsync("alpha", "{\"name\":\"alpha-2\"}").GetAwaiter().GetResult();
+            await store.CommitSaveAsync("alpha", "{\"name\":\"alpha-2\"}");
             Assert.AreEqual(
                 "{\"name\":\"alpha-2\"}",
                 store.LoadSaveAsync("alpha").GetAwaiter().GetResult());
@@ -61,10 +61,37 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void Files_AreNamedBySaveCustomIdConvention()
+        public async System.Threading.Tasks.Task UnawaitedCommitsAndDelete_KeepCallOrder()
         {
             var store = new NeoFileLocalSaveStore(directory);
-            store.CommitSaveAsync("hero-42", "{}").GetAwaiter().GetResult();
+
+            var first = store.CommitSaveAsync("alpha", "{\"name\":\"alpha-1\"}");
+            var second = store.CommitSaveAsync("alpha", "{\"name\":\"alpha-2\"}");
+            Assert.AreEqual(
+                "{\"name\":\"alpha-2\"}",
+                store.LoadSaveAsync("alpha").GetAwaiter().GetResult(),
+                "A read sees the newest commit before its write lands.");
+            await first;
+            await second;
+            Assert.AreEqual(
+                "{\"name\":\"alpha-2\"}",
+                File.ReadAllText(Path.Combine(directory, "save-alpha.json")),
+                "The older write never lands over the newer one.");
+
+            var stale = store.CommitSaveAsync("alpha", "{\"name\":\"alpha-3\"}");
+            store.DeleteSaveAsync("alpha").GetAwaiter().GetResult();
+            await stale;
+            Assert.IsFalse(
+                File.Exists(Path.Combine(directory, "save-alpha.json")),
+                "A delete supersedes a write still in flight.");
+            Assert.IsNull(store.LoadSaveAsync("alpha").GetAwaiter().GetResult());
+        }
+
+        [Test]
+        public async System.Threading.Tasks.Task Files_AreNamedBySaveCustomIdConvention()
+        {
+            var store = new NeoFileLocalSaveStore(directory);
+            await store.CommitSaveAsync("hero-42", "{}");
 
             Assert.IsTrue(
                 File.Exists(Path.Combine(directory, "save-hero-42.json")),

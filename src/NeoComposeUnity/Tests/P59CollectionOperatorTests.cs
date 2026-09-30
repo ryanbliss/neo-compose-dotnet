@@ -25,19 +25,6 @@ namespace NeoCompose.Tests
         private static readonly int[] SourceCounts =
             { 0, 10, 1_000, 10_000, 100_000 };
 
-        [Test]
-        public void ResultCapacity_UsesRemainingP54OutputBudget()
-        {
-            var tracker = new NeoScriptAllocationTracker(
-                new NeoScriptExecutionBudgetLimits(
-                    producedCollectionEntries: 3));
-            Assert.AreEqual(3, tracker.SafeResultCapacity(100));
-            tracker.ConsumeProducedCollectionEntry(2);
-            Assert.AreEqual(1, tracker.SafeResultCapacity(100));
-            tracker.ConsumeProducedCollectionEntry();
-            Assert.AreEqual(0, tracker.SafeResultCapacity(100));
-        }
-
         [TestCase(false, false)]
         [TestCase(false, true)]
         [TestCase(true, false)]
@@ -287,23 +274,16 @@ namespace NeoCompose.Tests
             Measurement[] measurements = Enumerable.Range(0, MeasurementCount)
                 .Select(_ => MeasureOnce(getter, client, source))
                 .ToArray();
-            bool expectedLimit = sourceCount >
-                NeoScriptExecutionBudgetLimits.DefaultProducedCollectionEntries;
-            Assert.IsTrue(
-                measurements.All(measurement =>
-                    measurement.HitResourceLimit == expectedLimit),
-                $"Unexpected P54 safety-limit outcome for {scenario} at {sourceCount} entries.");
             long allocatedBytes = Median(
                 measurements.Select(measurement => measurement.AllocatedBytes)
                     .ToArray());
             double durationMs = Median(
                 measurements.Select(measurement => measurement.DurationMs)
                     .ToArray());
-            string outcome = expectedLimit ? "resource-limit" : "completed";
 
             TestContext.WriteLine(
                 $"scenario={scenario} sourceCount={sourceCount} " +
-                $"outcome={outcome} allocatedBytes={allocatedBytes} " +
+                $"allocatedBytes={allocatedBytes} " +
                 $"medianDurationMs={durationMs:F3}");
         }
 
@@ -328,16 +308,7 @@ namespace NeoCompose.Tests
             recorder.Start();
             long allocatedBefore = recorder.CurrentValue;
             var stopwatch = Stopwatch.StartNew();
-            object? result = null;
-            bool hitResourceLimit = false;
-            try
-            {
-                result = NSGetterEvaluator.Evaluate(getter, ctx);
-            }
-            catch (NeoScriptResourceLimitError)
-            {
-                hitResourceLimit = true;
-            }
+            object? result = NSGetterEvaluator.Evaluate(getter, ctx);
             stopwatch.Stop();
             long allocatedAfter = recorder.CurrentValue;
             recorder.Stop();
@@ -345,8 +316,7 @@ namespace NeoCompose.Tests
             GC.KeepAlive(result);
             return new Measurement(
                 allocatedAfter - allocatedBefore,
-                stopwatch.Elapsed.TotalMilliseconds,
-                hitResourceLimit);
+                stopwatch.Elapsed.TotalMilliseconds);
         }
 
         private static object BenchmarkCollection(bool dictionary, int count)
@@ -650,12 +620,10 @@ namespace NeoCompose.Tests
         {
             internal Measurement(
                 long allocatedBytes,
-                double durationMs,
-                bool hitResourceLimit)
+                double durationMs)
             {
                 AllocatedBytes = allocatedBytes;
                 DurationMs = durationMs;
-                HitResourceLimit = hitResourceLimit;
             }
 
             internal long AllocatedBytes
@@ -663,10 +631,6 @@ namespace NeoCompose.Tests
                 get;
             }
             internal double DurationMs
-            {
-                get;
-            }
-            internal bool HitResourceLimit
             {
                 get;
             }

@@ -26,8 +26,6 @@ namespace NeoCompose.Runtime.NeoScript
     /// </summary>
     internal sealed class NeoScriptAllocationTracker
     {
-        private readonly NeoScriptExecutionBudgetLimits limits;
-        private static readonly NeoScriptExecutionBudgetLimits DefaultLimits = new();
         // Most invocations only read existing rows; constructor bookkeeping is
         // needed only after an invocation actually creates a Session graph.
         private HashSet<string>? _allocatedRootIds;
@@ -40,17 +38,7 @@ namespace NeoCompose.Runtime.NeoScript
         private Dictionary<string, string> constructedParentByChildId => _constructedParentByChildId ??= new();
         private HashSet<string>? _parentlessAllocatedRootIds;
         private HashSet<string> parentlessAllocatedRootIds => _parentlessAllocatedRootIds ??= new();
-        private HashSet<string>? _budgetedConstructedRowIds;
-        private HashSet<string> budgetedConstructedRowIds => _budgetedConstructedRowIds ??= new();
-        private Dictionary<string, int>? _budgetedProducedEntriesByRowId;
-        private Dictionary<string, int> budgetedProducedEntriesByRowId => _budgetedProducedEntriesByRowId ??= new();
         private int activeExecutions;
-        private int loopIterations;
-        private int workUnits;
-        private int collectionVisits;
-        private int producedCollectionEntries;
-        private int constructedSessionRows;
-        private int producedStringCharacters;
         private NeoTimestamp? constructionTimestamp;
 
         internal int ActiveExecutionCount => activeExecutions;
@@ -60,26 +48,12 @@ namespace NeoCompose.Runtime.NeoScript
         private List<(string memberId, string? valueId)>? delegateFrames;
         internal List<(string memberId, string? valueId)> DelegateFrames => delegateFrames ??= new();
 
-        internal NeoScriptAllocationTracker(
-            NeoScriptExecutionBudgetLimits? limits = null)
-        {
-            this.limits = limits ?? DefaultLimits;
-        }
-
         internal void EnterExecution()
         {
             if (activeExecutions == 0)
             {
                 constructionTimestamp = null;
                 _completedAllocationRootIds?.Clear();
-                loopIterations = 0;
-                workUnits = 0;
-                collectionVisits = 0;
-                producedCollectionEntries = 0;
-                constructedSessionRows = 0;
-                producedStringCharacters = 0;
-                _budgetedConstructedRowIds?.Clear();
-                _budgetedProducedEntriesByRowId?.Clear();
                 _constructedParentByChildId?.Clear();
                 _parentlessAllocatedRootIds?.Clear();
             }
@@ -88,109 +62,6 @@ namespace NeoCompose.Runtime.NeoScript
 
         internal NeoTimestamp ConstructionTimestamp =>
             constructionTimestamp ??= NeoTimestamp.Now();
-
-        /// <summary>
-        /// Consumes one iteration from the P50 budget shared by the complete
-        /// nested NeoScript invocation. The allocation tracker already has
-        /// the required lifetime: child contexts share it, deferred execution
-        /// keeps it active, and it resets only after the outermost frame exits.
-        /// </summary>
-        internal void ConsumeLoopIteration()
-        {
-            loopIterations++;
-            if (loopIterations > NeoScriptExecutor.MaxLoopIterations)
-            {
-                throw new NeoScriptResourceLimitError(
-                    "NeoScript loop iteration limit of 10000 exceeded.");
-            }
-            ConsumeWorkUnit();
-        }
-
-        internal void ConsumeWorkUnit(int amount = 1) =>
-            Consume(
-                ref workUnits,
-                amount,
-                limits.WorkUnits,
-                "work unit");
-
-        internal void ConsumeCollectionVisit(int amount = 1) =>
-            Consume(
-                ref collectionVisits,
-                amount,
-                limits.CollectionVisits,
-                "collection visit");
-
-        internal void ConsumeProducedCollectionEntry(int amount = 1) =>
-            Consume(
-                ref producedCollectionEntries,
-                amount,
-                limits.ProducedCollectionEntries,
-                "produced collection entry");
-
-        internal int SafeResultCapacity(int sourceCount)
-        {
-            int remaining = limits.ProducedCollectionEntries
-                - producedCollectionEntries;
-            return Math.Min(sourceCount, Math.Max(0, remaining));
-        }
-
-        internal void ConsumeConstructedSessionRow(int amount = 1) =>
-            Consume(
-                ref constructedSessionRows,
-                amount,
-                limits.ConstructedSessionRows,
-                "constructed Session row");
-
-        internal void ConsumeProducedStringCharacters(int amount) =>
-            Consume(
-                ref producedStringCharacters,
-                amount,
-                limits.ProducedStringCharacters,
-                "produced string character");
-
-        internal void ConsumeCreatedSessionRows(
-            IReadOnlyCollection<MemberValue> rows)
-        {
-            int rowCount = 0;
-            int entryCount = 0;
-            foreach (MemberValue row in rows)
-            {
-                if (budgetedConstructedRowIds.Add(row.id))
-                    rowCount++;
-                int currentEntryCount = 0;
-                if (row is ArrayMemberValue arrayRow)
-                {
-                    currentEntryCount = arrayRow.value?.Length ?? 0;
-                }
-                else if (row is ObjectMemberValue objectRow)
-                {
-                    currentEntryCount = objectRow.value?.Count ?? 0;
-                }
-                budgetedProducedEntriesByRowId.TryGetValue(
-                    row.id,
-                    out int priorEntryCount);
-                if (currentEntryCount <= priorEntryCount)
-                    continue;
-                entryCount += currentEntryCount - priorEntryCount;
-                budgetedProducedEntriesByRowId[row.id] = currentEntryCount;
-            }
-            ConsumeConstructedSessionRow(rowCount);
-            ConsumeProducedCollectionEntry(entryCount);
-        }
-
-        private static void Consume(
-            ref int consumed,
-            int amount,
-            int limit,
-            string label)
-        {
-            if (amount < 0 || amount > limit - consumed)
-            {
-                throw new NeoScriptResourceLimitError(
-                    $"NeoScript {label} limit of {limit} exceeded.");
-            }
-            consumed += amount;
-        }
 
         internal void RegisterSessionRoot(string valueId)
         {
@@ -709,54 +580,7 @@ namespace NeoCompose.Runtime.NeoScript
                     IReadOnlyDictionary<string, NeoGenericEnvEntry>>?
                     genericEnvironmentCache = null,
                 IReadOnlyList<string>? constructionStack = null,
-                List<(string memberId, string? valueId)>? delegateCallStack = null,
-                NeoScriptExecutionBudgetLimits? executionBudgetLimits = null)
-                : this(
-                    client,
-                    thisValue,
-                    rootValue,
-                    contextValue,
-                    memoryStore,
-                    getterCallStack,
-                    rowUnwrapCache,
-                    rowReverseIndex,
-                    valueOwnership,
-                    setterCallStack,
-                    functionCallStack,
-                    schemaPlacementCache,
-                    callableDispatchCache,
-                    rowCacheKeysByRow,
-                    genericEnvironmentCache,
-                    constructionStack,
-                    delegateCallStack,
-                    executionBudgetLimits,
-                    sharedAllocationTracker: null)
-            {
-            }
-
-            private Context(
-                NeoClient client,
-                object? thisValue,
-                object? rootValue,
-                object? contextValue,
-                INeoDialogueMemoryStore? memoryStore,
-                IReadOnlyCollection<string>? getterCallStack,
-                Dictionary<RowCacheKey, object?>? rowUnwrapCache,
-                ConditionalWeakTable<object, RowReference>? rowReverseIndex,
-                NeoValueOwnership valueOwnership,
-                IReadOnlyCollection<string>? setterCallStack,
-                IReadOnlyList<string>? functionCallStack,
-                Dictionary<string, SchemaPlacement?>? schemaPlacementCache,
-                Dictionary<(string classId, string schemaKey), string?>? callableDispatchCache,
-                Dictionary<RowKey, HashSet<RowCacheKey>>? rowCacheKeysByRow,
-                Dictionary<
-                    string,
-                    IReadOnlyDictionary<string, NeoGenericEnvEntry>>?
-                    genericEnvironmentCache,
-                IReadOnlyList<string>? constructionStack,
-                List<(string memberId, string? valueId)>? delegateCallStack,
-                NeoScriptExecutionBudgetLimits? executionBudgetLimits,
-                NeoScriptAllocationTracker? sharedAllocationTracker)
+                List<(string memberId, string? valueId)>? delegateCallStack = null)
             {
                 this.client = client;
                 this.thisValue = thisValue;
@@ -782,11 +606,10 @@ namespace NeoCompose.Runtime.NeoScript
                 this.constructionStack = constructionStack
                     ?? System.Array.Empty<string>();
                 this.delegateCallStackOverride = delegateCallStack;
-                allocationTracker = sharedAllocationTracker
-                    ?? new NeoScriptAllocationTracker(executionBudgetLimits);
+                allocationTracker = new NeoScriptAllocationTracker();
             }
 
-            // Invocation-local caches, budget, and handlers intentionally stay shared.
+            // Invocation-local caches, allocations, and handlers intentionally stay shared.
             // Only receiver bindings and immutable call stacks differ between frames.
             private Context Fork()
             {
@@ -1407,8 +1230,6 @@ namespace NeoCompose.Runtime.NeoScript
                     return EvalFunction(fp.function, scope, ctx);
                 case ListLiteralPointer llp:
                     {
-                        ctx.allocationTracker.ConsumeProducedCollectionEntry(
-                            llp.entries.Length);
                         var arr = new object?[llp.entries.Length];
                         for (int i = 0; i < llp.entries.Length; i++)
                         {
@@ -1418,8 +1239,6 @@ namespace NeoCompose.Runtime.NeoScript
                     }
                 case DictLiteralPointer dlp:
                     {
-                        ctx.allocationTracker.ConsumeProducedCollectionEntry(
-                            dlp.entries.Length);
                         var dict = new Dictionary<string, object?>();
                         foreach (var entry in dlp.entries)
                         {
@@ -1528,8 +1347,6 @@ namespace NeoCompose.Runtime.NeoScript
                     {
                         var v = EvalPointer(sp.pointer, scope, ctx);
                         string result = FormatForInterp(v, sp.sourceType, ctx);
-                        ctx.allocationTracker.ConsumeProducedStringCharacters(
-                            result.Length);
                         return result;
                     }
                 case TileConvertPointer convert:
@@ -1636,7 +1453,6 @@ namespace NeoCompose.Runtime.NeoScript
             string? memberId = ResolveFunctionMemberId(patternCall, receiver, ctx);
             if (memberId != patternCall.memberId || !ctx.client.TryGetMember(memberId!, out FunctionMember? _))
                 throw new NSGetterRuntimeError($"CellPattern intrinsic '{patternCall.memberId}' has an invalid native declaration.");
-            ctx.allocationTracker.ConsumeWorkUnit();
             NeoCellPatternRuntime.TryInvoke(memberId!, receiver,
                 FillNativeCallSiteArguments(memberId!, args, ctx), ctx, out var result, materialize: false);
             return result;
@@ -1689,7 +1505,6 @@ namespace NeoCompose.Runtime.NeoScript
                 }
                 if (member is FunctionMember)
                 {
-                    ctx.allocationTracker.ConsumeWorkUnit();
                     return InvokeNativeFunction(memberId, receiver,
                         FillNativeCallSiteArguments(memberId, args.ToArray(), ctx), ctx);
                 }
@@ -1832,10 +1647,10 @@ namespace NeoCompose.Runtime.NeoScript
                     // listener path (P62 §3.1).
                     //
                     // Only an ordinary authored-catchable error is renamed. A
-                    // budget fault, a pre-execution validation failure, a
-                    // native-unavailable fault and a deferred-Function fault
-                    // propagate as themselves, so the host handling that keys
-                    // on their class still applies.
+                    // pre-execution validation failure, a native-unavailable
+                    // fault and a deferred-Function fault propagate as
+                    // themselves, so the host handling that keys on their
+                    // class still applies.
                     throw new NSGetterRuntimeError(
                         $"{frame()} listener {index} threw: {error.Message}");
                 }
@@ -2629,10 +2444,6 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 throw;
             }
-            catch (NeoScriptResourceLimitError)
-            {
-                throw;
-            }
             catch
             {
                 return pointer.mode == FunctionErrorCheckKind.Throws;
@@ -3245,8 +3056,6 @@ namespace NeoCompose.Runtime.NeoScript
                     foreach (var o in operands)
                         sb.Append((string)o!);
                     string result = sb.ToString();
-                    ctx.allocationTracker.ConsumeProducedStringCharacters(
-                        result.Length);
                     return result;
                 }
                 bool anyString = false;
@@ -3264,8 +3073,6 @@ namespace NeoCompose.Runtime.NeoScript
                     foreach (var o in operands)
                         sb.Append(StringifyForInterp(o));
                     string result = sb.ToString();
-                    ctx.allocationTracker.ConsumeProducedStringCharacters(
-                        result.Length);
                     return result;
                 }
             }
@@ -4022,8 +3829,7 @@ namespace NeoCompose.Runtime.NeoScript
                             string cloneId = ctx.client.CloneValueReference(
                                 source.valueId,
                                 source.ownership,
-                                source.member,
-                                ctx.allocationTracker);
+                                source.member);
                             ctx.allocationTracker.RegisterSessionRoot(cloneId);
                             if (!ctx.client.TryGetValue(
                                     NeoValueOwnership.Session,
@@ -4156,8 +3962,7 @@ namespace NeoCompose.Runtime.NeoScript
                         var c = EvalPointer(wf.info.collectionPointer, scope, ctx);
                         var inner = wf.info.function;
                         bool isList = CollectionIsList(c);
-                        int capacity = ctx.allocationTracker.SafeResultCapacity(
-                            CollectionEntryCount(c));
+                        int capacity = CollectionEntryCount(c);
                         object outAcc = isList
                             ? (object)new List<object?>(capacity)
                             : new Dictionary<string, object?>(capacity);
@@ -4174,8 +3979,6 @@ namespace NeoCompose.Runtime.NeoScript
                                 entry);
                             if (result.Returned && result.ReturnValue is bool b && b)
                             {
-                                ctx.allocationTracker
-                                    .ConsumeProducedCollectionEntry();
                                 // Re-emit valueId references rather than dereferenced
                                 // entries when we have them — matches TS semantic.
                                 object? emit = valueId is null ? entry : valueId;
@@ -4253,8 +4056,7 @@ namespace NeoCompose.Runtime.NeoScript
                         var c = EvalPointer(sf.info.collectionPointer, scope, ctx);
                         var inner = sf.info.function;
                         bool isList = CollectionIsList(c);
-                        int capacity = ctx.allocationTracker.SafeResultCapacity(
-                            CollectionEntryCount(c));
+                        int capacity = CollectionEntryCount(c);
                         var acc = new List<object?>(capacity);
                         using var callback = new PreparedCollectionCallback(
                             inner,
@@ -4269,8 +4071,6 @@ namespace NeoCompose.Runtime.NeoScript
                                 entry);
                             if (result.Returned)
                             {
-                                ctx.allocationTracker
-                                    .ConsumeProducedCollectionEntry();
                                 acc.Add(result.ReturnValue);
                             }
                             return CollectionIterationControl.Continue;
@@ -4823,22 +4623,16 @@ namespace NeoCompose.Runtime.NeoScript
                 case StringOpKind.ToLower:
                     {
                         string result = receiverText.ToLowerInvariant();
-                        ctx.allocationTracker.ConsumeProducedStringCharacters(
-                            result.Length);
                         return result;
                     }
                 case StringOpKind.ToUpper:
                     {
                         string result = receiverText.ToUpperInvariant();
-                        ctx.allocationTracker.ConsumeProducedStringCharacters(
-                            result.Length);
                         return result;
                     }
                 case StringOpKind.Trim:
                     {
                         string result = receiverText.Trim();
-                        ctx.allocationTracker.ConsumeProducedStringCharacters(
-                            result.Length);
                         return result;
                     }
                 case StringOpKind.StartsWith:
@@ -5199,13 +4993,11 @@ namespace NeoCompose.Runtime.NeoScript
                 throw new NSGetterRuntimeError(
                     $"List.Repeat count must be non-negative; got {FormatIntegralArgument(count)}.");
             }
-            // Charged before a single entry exists, so an over-budget count
-            // fails without allocating — the same accounting, counter, and
-            // error the list-literal arm performs (P54, P71 §3). A count past
-            // int range is charged as the largest chargeable amount, which the
-            // shared limit (10,000 at most) always refuses.
-            ctx.allocationTracker.ConsumeProducedCollectionEntry(
-                count > int.MaxValue ? int.MaxValue : (int)count);
+            if (count > int.MaxValue)
+            {
+                throw new NSGetterRuntimeError(
+                    $"List.Repeat count must be at most {int.MaxValue}; got {FormatIntegralArgument(count)}.");
+            }
             var entries = new object?[(int)count];
             for (int i = 0; i < entries.Length; i++)
             {
@@ -5412,7 +5204,6 @@ namespace NeoCompose.Runtime.NeoScript
             foreach (OrderedRawCollectionEntry entry in
                 OrderedRawCollectionEntries(collection))
             {
-                ctx.allocationTracker.ConsumeCollectionVisit();
                 MemberValue? retainedRow = null;
                 NeoValueOwnership? entryOwnership = null;
                 if (entry.Raw is string id)
@@ -5461,7 +5252,6 @@ namespace NeoCompose.Runtime.NeoScript
             foreach (OrderedRawCollectionEntry rawEntry in
                 OrderedRawCollectionEntries(c))
             {
-                ctx.allocationTracker.ConsumeCollectionVisit();
                 object? entry = ResolveValueIfId(
                     rawEntry.Raw,
                     ctx,

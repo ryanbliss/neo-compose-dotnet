@@ -59,8 +59,9 @@ namespace NeoCompose.Tests
             Assert.IsNull(converted.constructorArgs);
             Assert.IsNull(converted.instanceVariantId);
             CollectionAssert.Contains(notifications, source.id);
+            // The row stays in its list, so the list's membership is unchanged.
             if (containerId is not null)
-                CollectionAssert.Contains(notifications, containerId);
+                CollectionAssert.DoesNotContain(notifications, containerId);
         }
 
         [TestCase("test-tile-base")]

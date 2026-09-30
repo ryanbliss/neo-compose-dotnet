@@ -737,13 +737,14 @@ namespace NeoCompose.Runtime
         /// shadow, and searching the ownership graph for it would neither find
         /// it nor mean anything if it did.</para>
         /// </summary>
-        internal void ClearInstanceOverride()
+        /// <returns>False when no stored row pinned the member.</returns>
+        internal bool ClearInstanceOverride()
         {
             var plan = new NeoWritePlan(client);
             NeoMember leaf = ResolveLeafNode();
             string? valueId = leaf.overrideValueId ?? leaf.value?.id;
             if (string.IsNullOrEmpty(valueId))
-                return;
+                return false;
             string? parentValueId = writableParent.overrideValueId
                 ?? writableParent.value?.id;
             bool detached = false;
@@ -802,11 +803,17 @@ namespace NeoCompose.Runtime
                 client.StageUnlinkedRemovals(plan, leaf.ownership,
                     new[] { detachedValueId! }, leaf.member);
             }
-            else
+            else if (plan.TryGetWritable(leaf.ownership, valueId!, out _))
             {
                 plan.Remove(leaf.ownership, valueId!);
             }
+            else
+            {
+                // A virtual answer: nothing is pinned.
+                return false;
+            }
             plan.Commit();
+            return true;
         }
 
         /// <summary>

@@ -450,7 +450,7 @@ namespace NeoCompose.Runtime
                 ApplyDeclarativeHalves(client, record, node, ownership);
                 return;
             }
-            client.StampVirtualInstanceVariant(
+            bool changed = client.StampVirtualInstanceVariant(
                 node,
                 ownership,
                 record.id,
@@ -462,9 +462,12 @@ namespace NeoCompose.Runtime
                 ownership,
                 resolveSelectorsImmediately: true))
             {
-                answered.ClearInstanceOverride();
+                changed |= answered.ClearInstanceOverride();
             }
-            client.RefreshVirtualInstanceVariant(node, ownership);
+            // Same variant and row, and no answered pin cleared: a replay
+            // would reproduce the current expansion.
+            if (changed)
+                client.RefreshVirtualInstanceVariant(node, ownership);
         }
 
         private static void RunApplyClosure(

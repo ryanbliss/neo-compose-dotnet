@@ -532,13 +532,23 @@ namespace NeoCompose.Runtime
             if (!synchronizer.IsLiveSessionActive)
                 return;
             liveAutoCommitScheduled = true;
+            PublishLocalWritesPending();
             RunLiveAutoCommit();
+        }
+
+        /// <summary>Tells the synchronizer whether save writes are still
+        /// unstaged, so it holds realtime revisions until they are.</summary>
+        private void PublishLocalWritesPending()
+        {
+            if (loader is NeoSaveSynchronizer synchronizer)
+                synchronizer.SetLocalWritesPending(IsCommitting);
         }
 
         /// <summary><c>async void</c> on purpose: fire-and-forget off a setter;
         /// never throws past its own catch.</summary>
         private async void RunLiveAutoCommit()
         {
+            var handedOff = false;
             try
             {
                 await LiveAutoCommitDelay(LiveAutoCommitDelaySeconds);
@@ -546,13 +556,13 @@ namespace NeoCompose.Runtime
                     return;
                 if (!synchronizer.IsLiveSessionActive)
                     return;
-                // No unlinked-values warning: transient factory values mid-action
-                // are normal between explicit saves, and the auto-commit cadence
-                // would turn the hint into spam.
-                await CommitCoreAsync(
-                    replaceSnapshot: false,
-                    warnUnlinked: false,
-                    flushLiveImmediately: false);
+                // The commit is marked running before this call returns, and
+                // captures no earlier than now: a later write schedules the
+                // next auto-commit.
+                var commit = CommitCoreAsync(replaceSnapshot: false, flushLiveImmediately: false);
+                handedOff = true;
+                liveAutoCommitScheduled = false;
+                await commit;
             }
             catch (System.Exception exception)
             {
@@ -563,7 +573,11 @@ namespace NeoCompose.Runtime
             }
             finally
             {
-                liveAutoCommitScheduled = false;
+                if (!handedOff)
+                {
+                    liveAutoCommitScheduled = false;
+                    PublishLocalWritesPending();
+                }
             }
         }
 
@@ -1910,6 +1924,7 @@ namespace NeoCompose.Runtime
             worldClassIds.Clear();
             InvalidateSharedEvaluationContext();
             worldKindByClass.Clear();
+            LayerLinkTargetByClass.Clear();
             ScriptSchemaPlacements.Clear();
             ScriptCallableDispatch.Clear();
             instanceSurfaceMembers.Clear();
@@ -3240,7 +3255,8 @@ namespace NeoCompose.Runtime
         }
 
         private void NotifyWritableValueChanged(
-            NeoValueOwnership ownership, string valueId, string? changedField = null, bool valueChanged = true)
+            NeoValueOwnership ownership, string valueId, string? changedField = null, bool valueChanged = true,
+            bool membershipChanged = true)
         {
             if (valueChanged)
                 PublishWritableValueChange(ownership, valueId);
@@ -3248,7 +3264,8 @@ namespace NeoCompose.Runtime
                 foreach (NeoMember node in unchangedNodes.ToArray())
                     if (!node.isDisposed && node.ownership == ownership)
                         node.RefreshCommittedValue();
-            NotifyContainerMembershipChanged(ownership, valueId);
+            if (membershipChanged)
+                NotifyContainerMembershipChanged(ownership, valueId);
             if (ownership == NeoValueOwnership.Save)
                 RaiseSaveValueChanged(valueId, changedField);
         }
@@ -3517,8 +3534,7 @@ namespace NeoCompose.Runtime
         internal string CloneValueReference(
             string sourceValueId,
             NeoValueOwnership? sourceOwnership = null,
-            Member? sourceMember = null,
-            NeoScript.NeoScriptAllocationTracker? allocationTracker = null)
+            Member? sourceMember = null)
         {
             ObjectMemberValue? sourceRow;
             bool foundSource = sourceOwnership is NeoValueOwnership exactOwnership
@@ -3548,16 +3564,14 @@ namespace NeoCompose.Runtime
                     ? inferredSourceOwnership
                     : NeoValueOwnership.Asset),
                 sourceRow.id,
-                sourceMember,
-                allocationTracker);
+                sourceMember);
         }
 
         private string CloneOwnedValueGraphWithFreshIdsAtomic(
             NeoValueOwnership targetOwnership,
             NeoValueOwnership sourceOwnership,
             string sourceValueId,
-            Member? sourceMember,
-            NeoScript.NeoScriptAllocationTracker? allocationTracker = null)
+            Member? sourceMember)
         {
             EnsureVirtualReplayArgumentReady(sourceValueId);
             var plan = new NeoWritePlan(this);
@@ -3569,18 +3583,6 @@ namespace NeoCompose.Runtime
                 foreach (var pair in plan.Rows.ToArray())
                     if (pair.Value is not null)
                         StageConstructorDependencies(plan, pair.Value, targetOwnership);
-            if (allocationTracker is not null)
-            {
-                // The plan already identifies the clone's rows. Do not snapshot
-                // or enumerate unrelated Session state to recover this list.
-                var created = new List<MemberValue>(plan.Rows.Count);
-                foreach (var pair in plan.Rows)
-                    if (pair.Key.ownership == NeoValueOwnership.Session && pair.Value is not null
-                        && !sessionValues.ContainsKey(pair.Key.id))
-                        created.Add(pair.Value);
-                // Reject an over-budget clone before publishing any of its rows.
-                allocationTracker.ConsumeCreatedSessionRows(created);
-            }
             plan.Commit();
             return result;
         }
@@ -5816,7 +5818,7 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// Notifies subscribers bound to a member row's CONTAINER that its
-        /// membership changed (a member row was added, replaced, tombstoned,
+        /// membership changed (a member row was added, moved, restored, tombstoned,
         /// or dropped). Unordered containment never writes the container row
         /// itself, so this is the coarse invalidation signal container-bound
         /// consumers (spatial indexes, link renderers) key on.
@@ -7940,80 +7942,149 @@ namespace NeoCompose.Runtime
             return JsonConvert.DeserializeObject<ProjectSaveData>(json);
         }
 
-        public string SerializeSaveData()
+        public string SerializeSaveData() => SaveSnapshot().ToString(Formatting.None);
+
+        private JObject SaveSnapshot() => CaptureSave().Serialize();
+
+        /// <summary>
+        /// Captures the save for serialization off the main thread. Session
+        /// ownership is slot-owned, so it resolves once per class here rather
+        /// than once per row field on the worker.
+        /// </summary>
+        private SaveCapture CaptureSave()
         {
-            var snapshot = JObject.FromObject(saveData);
-            if (snapshot["values"] is JObject values)
-                foreach (var pair in saveData.values)
-                    RemoveSessionFieldLinks(pair.Value, values[pair.Key]);
-            return snapshot.ToString(Formatting.None);
+            var sessionKeysByClass = new Dictionary<string, string[]>();
+            foreach (var value in saveData.values.Values)
+                if (value is ObjectMemberValue { classId: { Length: > 0 } classId, value: { Count: > 0 } }
+                    && !sessionKeysByClass.ContainsKey(classId))
+                    sessionKeysByClass[classId] = SessionFieldKeys(classId);
+            return new SaveCapture(saveData.DetachedCopy(), sessionKeysByClass);
         }
 
-        private void RemoveSessionFieldLinks(MemberValue value, JToken? snapshot)
+        private string[] SessionFieldKeys(string classId)
         {
-            if (value is not ObjectMemberValue row || row.classId is null
-                || row.value is null || snapshot?["value"] is not JObject fields)
-                return;
-            foreach (var key in row.value.Keys)
+            List<string>? keys = null;
+            var resolved = new HashSet<string>();
+            foreach (var entry in ResolveStoredInstanceSchema(classId))
             {
-                var member = TryResolveOwnedChildMember(row, null, key);
-                if (member is not null
-                    && ChildOwnership(member, NeoValueOwnership.Save) == NeoValueOwnership.Session)
-                    fields.Remove(key);
+                if (resolved.Contains(entry.schemaKey)
+                    || !TryGetMember(entry.memberId, out Member? member))
+                    continue;
+                resolved.Add(entry.schemaKey);
+                if (ChildOwnership(member, NeoValueOwnership.Save) == NeoValueOwnership.Session)
+                    (keys ??= new List<string>()).Add(entry.schemaKey);
+            }
+            return keys?.ToArray() ?? System.Array.Empty<string>();
+        }
+
+        private sealed class SaveCapture
+        {
+            private readonly ProjectSaveData save;
+            private readonly Dictionary<string, string[]> sessionKeysByClass;
+
+            public SaveCapture(
+                ProjectSaveData save,
+                Dictionary<string, string[]> sessionKeysByClass)
+            {
+                this.save = save;
+                this.sessionKeysByClass = sessionKeysByClass;
+            }
+
+            public IReadOnlyDictionary<string, MemberValue> Values => save.values;
+
+            /// <summary>The save JSON without session-owned field links. Thread-safe.</summary>
+            public JObject Serialize()
+            {
+                var snapshot = JObject.FromObject(save);
+                if (snapshot["values"] is not JObject values)
+                    return snapshot;
+                foreach (var pair in save.values)
+                {
+                    if (pair.Value is ObjectMemberValue { classId: { } classId }
+                        && sessionKeysByClass.TryGetValue(classId, out var keys)
+                        && keys.Length > 0
+                        && values[pair.Key]?["value"] is JObject fields)
+                        foreach (var key in keys)
+                            fields.Remove(key);
+                }
+                return snapshot;
             }
         }
 
-        private bool SaveHasSemanticChanges()
+        private void CaptureCommittedSaveState()
         {
-            if (committedSaveSemanticState is null)
-                return true;
-            var current = JObject.Parse(SerializeSaveData());
-            return !JToken.DeepEquals(
-                committedSaveSemanticState,
-                NeoSemanticJson.SaveEnvelope(current));
-        }
-
-        private void CaptureCommittedSaveState(string? content = null)
-        {
-            committedSaveState = JObject.Parse(content ?? SerializeSaveData());
+            committedSaveState = SaveSnapshot();
             committedSaveSemanticState = NeoSemanticJson.SaveEnvelope(committedSaveState);
         }
 
         /// <summary>
-        /// Same-value setters may have stamped their in-memory row before the
-        /// commit boundary proved the batch semantic no-op. Put those
-        /// server-managed timestamps back so a suppressed commit is also
-        /// observationally timestamp-neutral to the running game.
+        /// Copies the header fields a commit stamps after its no-op check into
+        /// the snapshot that check already built, so the save serializes once.
         /// </summary>
-        private void RestoreCommittedSaveMetadata()
+        private void StampSaveHeader(JObject snapshot, JObject semantic)
         {
-            if (committedSaveState is null)
-                return;
-            saveData.projectId = committedSaveState["projectId"]?.Value<string>()
-                ?? saveData.projectId;
-            saveData.createdAt = ReadTimestamp(
-                committedSaveState["createdAt"],
-                saveData.createdAt);
-            saveData.updatedAt = ReadTimestamp(
-                committedSaveState["updatedAt"],
-                saveData.updatedAt);
+            snapshot["updatedAt"] = JToken.FromObject(saveData.updatedAt);
+            StampSaveHeaderField(snapshot, semantic, "platforms", saveData.platforms);
+            StampSaveHeaderField(snapshot, semantic, "systems", saveData.systems);
+            StampSaveHeaderField(snapshot, semantic, "inputDevices", saveData.inputDevices);
+        }
 
-            if (committedSaveState["values"] is not JObject baselineValues)
-                return;
-            foreach (var pair in saveData.values)
+        private static void StampSaveHeaderField(
+            JObject snapshot,
+            JObject semantic,
+            string name,
+            object? value)
+        {
+            var token = value is null ? JValue.CreateNull() : JToken.FromObject(value);
+            snapshot[name] = token;
+            semantic[name] = NeoSemanticJson.Canonicalize(token);
+        }
+
+        /// <summary>
+        /// Same-value setters may have stamped their in-memory row before the
+        /// commit boundary proved the batch semantic no-op. Finds the captured
+        /// rows whose committed timestamps differ, so a suppressed commit can
+        /// put them back and stay timestamp-neutral to the running game.
+        /// Thread-safe.
+        /// </summary>
+        private static List<(MemberValue row, NeoTimestamp createdAt, NeoTimestamp updatedAt)>
+            CommittedRowTimestamps(SaveCapture capture, JObject snapshot, JObject baseline)
+        {
+            var restores = new List<(MemberValue, NeoTimestamp, NeoTimestamp)>();
+            if (baseline["values"] is not JObject baselineValues
+                || snapshot["values"] is not JObject values)
+                return restores;
+            foreach (var pair in capture.Values)
             {
-                if (!baselineValues.TryGetValue(pair.Key, out var baselineRow))
+                if (!baselineValues.TryGetValue(pair.Key, out var baselineRow)
+                    || !NeoSemanticJson.ProjectRecordsEqual(values[pair.Key], baselineRow))
                     continue;
-                var currentRow = JToken.FromObject(pair.Value);
-                RemoveSessionFieldLinks(pair.Value, currentRow);
-                if (!NeoSemanticJson.ProjectRecordsEqual(currentRow, baselineRow))
-                    continue;
-                pair.Value.createdAt = ReadTimestamp(
-                    baselineRow["createdAt"],
-                    pair.Value.createdAt);
-                pair.Value.updatedAt = ReadTimestamp(
-                    baselineRow["updatedAt"],
-                    pair.Value.updatedAt);
+                var createdAt = ReadTimestamp(baselineRow["createdAt"], pair.Value.createdAt);
+                var updatedAt = ReadTimestamp(baselineRow["updatedAt"], pair.Value.updatedAt);
+                if (!createdAt.Equals(pair.Value.createdAt) || !updatedAt.Equals(pair.Value.updatedAt))
+                    restores.Add((pair.Value, createdAt, updatedAt));
+            }
+            return restores;
+        }
+
+        /// <param name="restoreHeader">False when a write landed after the
+        /// capture: the header then belongs to that write's commit.</param>
+        private void RestoreCommittedSaveMetadata(
+            JObject baseline,
+            List<(MemberValue row, NeoTimestamp createdAt, NeoTimestamp updatedAt)> rows,
+            bool restoreHeader)
+        {
+            if (restoreHeader)
+            {
+                saveData.projectId = baseline["projectId"]?.Value<string>()
+                    ?? saveData.projectId;
+                saveData.createdAt = ReadTimestamp(baseline["createdAt"], saveData.createdAt);
+                saveData.updatedAt = ReadTimestamp(baseline["updatedAt"], saveData.updatedAt);
+            }
+            foreach (var (row, createdAt, updatedAt) in rows)
+            {
+                row.createdAt = createdAt;
+                row.updatedAt = updatedAt;
             }
         }
 
@@ -8113,52 +8184,142 @@ namespace NeoCompose.Runtime
         }
 
         public Awaitable CommitAsync(bool replaceSnapshot = false) =>
-            CommitCoreAsync(
-                replaceSnapshot,
-                warnUnlinked: true,
-                flushLiveImmediately: true);
+            CommitCoreAsync(replaceSnapshot, flushLiveImmediately: true);
 
-        private async Awaitable CommitCoreAsync(
+        private readonly Queue<AwaitableCompletionSource> queuedCommits = new();
+        private bool commitRunning;
+
+        /// <summary>
+        /// True while save writes have not settled: a commit is running or
+        /// queued, or a live session's auto-commit is scheduled. Drives a saving
+        /// indicator; a save on quit or pause keeps running until it is false.
+        /// </summary>
+        public bool IsCommitting => commitRunning || liveAutoCommitScheduled;
+
+        /// <summary>
+        /// Commits run one at a time, in call order: each serializes on a
+        /// worker, and the persisted file must land in commit order.
+        /// </summary>
+        private async Awaitable CommitCoreAsync(bool replaceSnapshot, bool flushLiveImmediately)
+        {
+            if (commitRunning)
+            {
+                var turn = new AwaitableCompletionSource();
+                queuedCommits.Enqueue(turn);
+                await turn.Awaitable;
+            }
+            commitRunning = true;
+            PublishLocalWritesPending();
+            var synchronizer = loader as NeoSaveSynchronizer;
+            NeoSaveSynchronizer.DirtyRecords? dirty = null;
+            try
+            {
+                if (synchronizer != null)
+                {
+                    // A co-editor revision being applied lands first, so the
+                    // capture includes it and this stage persists after it.
+                    await synchronizer.WaitForRevisionApplyAsync();
+                    dirty = synchronizer.TakeDirtyRecords();
+                }
+                await CommitSaveAsync(CaptureSave(), dirty, replaceSnapshot, flushLiveImmediately);
+            }
+            catch
+            {
+                // The next commit must carry these writes to the cloud.
+                await Awaitable.MainThreadAsync();
+                if (dirty != null)
+                    synchronizer!.RestoreDirtyRecords(dirty);
+                throw;
+            }
+            finally
+            {
+                // A custom loader can complete on a worker; hand the queue on
+                // from the main thread.
+                await Awaitable.MainThreadAsync();
+                if (queuedCommits.Count > 0)
+                {
+                    queuedCommits.Dequeue().SetResult();
+                }
+                else
+                {
+                    commitRunning = false;
+                    PublishLocalWritesPending();
+                }
+            }
+        }
+
+        /// <summary>
+        /// The main thread only captures the save and stamps its header;
+        /// serializing, the no-op check and the content string run on a
+        /// worker.
+        /// </summary>
+        private async Awaitable CommitSaveAsync(
+            SaveCapture capture,
+            NeoSaveSynchronizer.DirtyRecords? dirty,
             bool replaceSnapshot,
-            bool warnUnlinked,
             bool flushLiveImmediately)
         {
-            if (!SaveHasSemanticChanges())
+            long capturedRevision = WriteRevision;
+            var baseline = committedSaveState;
+            var baselineSemantic = committedSaveSemanticState;
+            JObject snapshot;
+            JObject semantic;
+            List<(MemberValue row, NeoTimestamp createdAt, NeoTimestamp updatedAt)>? restores = null;
+            await Awaitable.BackgroundThreadAsync();
+            try
             {
-                RestoreCommittedSaveMetadata();
+                snapshot = capture.Serialize();
+                semantic = (JObject)NeoSemanticJson.SaveEnvelope(snapshot);
+                if (baseline is not null
+                    && baselineSemantic is not null
+                    && JToken.DeepEquals(baselineSemantic, semantic))
+                    restores = CommittedRowTimestamps(capture, snapshot, baseline);
+            }
+            finally
+            {
+                await Awaitable.MainThreadAsync();
+            }
+            if (restores is not null)
+            {
+                RestoreCommittedSaveMetadata(
+                    baseline!, restores, restoreHeader: WriteRevision == capturedRevision);
+                if (dirty != null)
+                    ((NeoSaveSynchronizer)loader).RestoreDirtyRecords(dirty);
                 return;
             }
 
-            if (warnUnlinked)
-            {
-                var unlinkedValueIds = FindUnlinkedSaveValueIds();
-                if (unlinkedValueIds.Count > 0)
-                {
-                    Debug.LogWarning(
-                        $"NeoCompose save contains {unlinkedValueIds.Count} unlinked value(s). " +
-                        "This can happen when generated factory values are created but never assigned. " +
-                        "Inspect them with FindUnlinkedSaveValueIds() first: RunGarbageCollector() " +
-                        "deletes every id it reports, so run it only once you have confirmed none of " +
-                        "them is a value you still intend to link.");
-                }
-            }
             var savedAt = NeoTimestamp.Now();
             saveData.updatedAt = savedAt;
             CaptureSaveDiagnostics(savedAt);
-            var content = SerializeSaveData();
+            StampSaveHeader(snapshot, semantic);
+            string content;
+            LocalGameSave local;
+            await Awaitable.BackgroundThreadAsync();
+            try
+            {
+                content = snapshot.ToString(Formatting.None);
+                local = LocalGameSaveLoader.FromSnapshot(snapshot);
+            }
+            finally
+            {
+                await Awaitable.MainThreadAsync();
+            }
             if (loader is NeoSaveSynchronizer synchronizer)
             {
                 await synchronizer.CommitSaveContentAsync(
                     content,
+                    local,
                     replaceSnapshot,
                     flushLiveImmediately,
-                    useTrackedMutations: true);
-                CaptureCommittedSaveState(content);
-                return;
+                    dirty);
             }
-
-            await loader.CommitSaveContentAsync(content, replaceSnapshot);
-            CaptureCommittedSaveState(content);
+            else
+            {
+                await loader.CommitSaveContentAsync(content, replaceSnapshot);
+                await Awaitable.MainThreadAsync();
+            }
+            committedSaveState = snapshot;
+            committedSaveSemanticState = semantic;
         }
 
         public int RunGarbageCollector()

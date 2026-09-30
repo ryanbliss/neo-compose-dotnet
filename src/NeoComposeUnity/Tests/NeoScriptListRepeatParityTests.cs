@@ -27,8 +27,8 @@ namespace NeoCompose.Tests
     /// <para>Each case carries the compiled <c>listRepeat</c> IR both runtimes
     /// receive; this side wraps it in a getter whose return type is the case's
     /// <c>typeInfo</c> and asserts the produced list entry-for-entry, or the
-    /// byte-exact error message. Once-evaluation, shared-reference entries, and
-    /// budget exhaustion are not expressible in raw IR and live in
+    /// byte-exact error message. Operand order and shared-reference entries
+    /// are not expressible in raw IR and live in
     /// <see cref="P71ListRepeatTests"/> instead.</para>
     /// </summary>
     public class NeoScriptListRepeatParityTests

@@ -12,13 +12,17 @@ namespace NeoCompose.Runtime
     /// The byte-persistence layer beneath the project store: enumerate, read,
     /// write, and delete serialized saves keyed by <c>customId</c>. This is the
     /// async replacement for the old single-file <c>LoadSave</c>/<c>HandleSave</c>
-    /// delegates — keying by id lets one device hold many local saves. A folder
-    /// implementation over <c>save-{customId}.json</c> ships with the Hello World
-    /// sample; the SDK itself only depends on this seam.
+    /// delegates — keying by id lets one device hold many local saves.
+    /// <see cref="NeoFileLocalSaveStore"/> is the folder implementation over
+    /// <c>save-{customId}.json</c>.
     /// </summary>
     /// <remarks>
     /// All operations are asynchronous (<see cref="Awaitable"/>) — there is no
-    /// synchronous persistence path anywhere in the save stack.
+    /// synchronous persistence path anywhere in the save stack. Calls may
+    /// overlap: the SDK starts a write before an earlier one settles. Writes
+    /// and deletes for one id must take effect in call order, and reads and
+    /// listings must reflect the newest call, even while its write is still in
+    /// flight.
     /// </remarks>
     public interface INeoLocalSaveStore
     {
@@ -38,8 +42,8 @@ namespace NeoCompose.Runtime
     /// <summary>
     /// An in-memory <see cref="INeoLocalSaveStore"/>. Useful as a default for
     /// transient/local-only play and as a deterministic test double. Not durable
-    /// across process restarts — durable persistence is the Hello World folder
-    /// store's job.
+    /// across process restarts — durable persistence is
+    /// <see cref="NeoFileLocalSaveStore"/>'s job.
     /// </summary>
     public sealed class NeoInMemoryLocalSaveStore : INeoLocalSaveStore
     {

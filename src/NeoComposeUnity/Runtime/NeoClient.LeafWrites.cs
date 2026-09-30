@@ -37,7 +37,7 @@ namespace NeoCompose.Runtime
             using var marker = LeafWriteMarker.Auto();
             StoreLeaf(ownership, next);
             bool gridLeaf = InvalidateGridLeaf(next.id);
-            NotifyWritableValueChanged(ownership, next.id, changedField);
+            NotifyWritableValueChanged(ownership, next.id, changedField, membershipChanged: false);
             if (gridLeaf)
                 PublishGridLeaf(ownership, next.id);
             return true;

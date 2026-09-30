@@ -18,9 +18,10 @@ namespace NeoCompose.Runtime
     /// </summary>
     /// <remarks>
     /// One file per save keyed by <c>customId</c>, so the store can manage many saves.
-    /// All operations are async to match the save stack, though this file-backed
-    /// implementation completes synchronously. Developers on platforms without file
-    /// IO can supply their own <see cref="INeoLocalSaveStore"/> instead.
+    /// All operations are async to match the save stack; commits write on a
+    /// background thread and the rest complete synchronously. Developers on
+    /// platforms without file IO can supply their own
+    /// <see cref="INeoLocalSaveStore"/> instead.
     /// </remarks>
     public sealed class NeoFileLocalSaveStore : INeoLocalSaveStore
     {
@@ -28,6 +29,12 @@ namespace NeoCompose.Runtime
         private const string FileExtension = ".json";
 
         private readonly string directory;
+        private readonly object writeGate = new();
+
+        // Content committed but not yet on disk, by customId. Reads see it
+        // immediately, and a background write lands only while its content is
+        // still the newest, so writes and deletes keep their call order.
+        private readonly Dictionary<string, string> pendingWrites = new();
 
         /// <param name="directory">
         /// The folder saves are written to; defaults to
@@ -46,32 +53,67 @@ namespace NeoCompose.Runtime
 
         public Awaitable<IReadOnlyList<string>> ListSaveIdsAsync()
         {
-            IReadOnlyList<string> ids = Directory.Exists(directory)
-                ? Directory
-                    .GetFiles(directory, $"{FilePrefix}*{FileExtension}")
-                    .Select(path => Path.GetFileNameWithoutExtension(path).Substring(FilePrefix.Length))
-                    .ToList()
-                : new List<string>();
-            return NeoAwaitable.FromResult(ids);
+            lock (writeGate)
+            {
+                IEnumerable<string> written = Directory.Exists(directory)
+                    ? Directory
+                        .GetFiles(directory, $"{FilePrefix}*{FileExtension}")
+                        .Select(path => Path.GetFileNameWithoutExtension(path).Substring(FilePrefix.Length))
+                    : Enumerable.Empty<string>();
+                IReadOnlyList<string> ids = written.Union(pendingWrites.Keys).ToList();
+                return NeoAwaitable.FromResult(ids);
+            }
         }
 
         public Awaitable<string?> LoadSaveAsync(string customId)
         {
             string path = PathFor(customId);
-            return NeoAwaitable.FromResult<string?>(File.Exists(path) ? File.ReadAllText(path) : null);
+            lock (writeGate)
+            {
+                if (pendingWrites.TryGetValue(customId, out string? pending))
+                    return NeoAwaitable.FromResult<string?>(pending);
+                return NeoAwaitable.FromResult<string?>(File.Exists(path) ? File.ReadAllText(path) : null);
+            }
         }
 
-        public Awaitable CommitSaveAsync(string customId, string content)
+        /// <summary>
+        /// Writes on a background thread and completes on the main thread,
+        /// so a large save never stalls a frame. A later commit or delete of
+        /// the same save supersedes a write still in flight.
+        /// </summary>
+        public async Awaitable CommitSaveAsync(string customId, string content)
         {
-            File.WriteAllText(PathFor(customId), content);
-            return NeoAwaitable.Completed();
+            string path = PathFor(customId);
+            lock (writeGate)
+                pendingWrites[customId] = content;
+            await Awaitable.BackgroundThreadAsync();
+            try
+            {
+                lock (writeGate)
+                {
+                    if (pendingWrites.TryGetValue(customId, out string? newest)
+                        && ReferenceEquals(newest, content))
+                    {
+                        pendingWrites.Remove(customId);
+                        File.WriteAllText(path, content);
+                    }
+                }
+            }
+            finally
+            {
+                await Awaitable.MainThreadAsync();
+            }
         }
 
         public Awaitable DeleteSaveAsync(string customId)
         {
             string path = PathFor(customId);
-            if (File.Exists(path))
-                File.Delete(path);
+            lock (writeGate)
+            {
+                pendingWrites.Remove(customId);
+                if (File.Exists(path))
+                    File.Delete(path);
+            }
             return NeoAwaitable.Completed();
         }
     }

@@ -260,6 +260,7 @@ namespace NeoCompose.Runtime
         private bool commitScratchInUse;
         private readonly HashSet<(NeoValueOwnership ownership, string valueId)> commitChangedScratch = new();
         private readonly Dictionary<(NeoValueOwnership ownership, string id), string> commitOldContainersScratch = new();
+        private readonly HashSet<(NeoValueOwnership ownership, string id)> commitSameMembershipScratch = new();
 
         internal void CommitWritePlan(NeoWritePlan plan)
         {
@@ -319,6 +320,10 @@ namespace NeoCompose.Runtime
             commitScratchInUse = true;
             HashSet<(NeoValueOwnership ownership, string valueId)> changed = pooledScratch ? commitChangedScratch : new();
             Dictionary<(NeoValueOwnership ownership, string id), string> oldContainers = pooledScratch ? commitOldContainersScratch : new();
+            // Rows that stay live in the same container. Their list wrappers
+            // hear about them through the row's own id, so the container
+            // itself did not change.
+            HashSet<(NeoValueOwnership ownership, string id)> sameMembership = pooledScratch ? commitSameMembershipScratch : new();
             try
             {
                 bool touchesWorld = false;
@@ -326,7 +331,13 @@ namespace NeoCompose.Runtime
                 {
                     if (TryResolveContainerIdForValueId(pair.Key.id, out string? containerId))
                     {
-                        oldContainers[pair.Key] = containerId!;
+                        if (pair.Value is { IsRemoved: false } next
+                            && TryGetCommittedValue(pair.Key.ownership, pair.Key.id, out MemberValue? previous)
+                            && !previous.IsRemoved
+                            && previous.containerId == next.containerId)
+                            sameMembership.Add(pair.Key);
+                        else
+                            oldContainers[pair.Key] = containerId!;
                         changed.Add((pair.Key.ownership, containerId!));
                     }
                     if (!string.IsNullOrEmpty(pair.Value?.containerId))
@@ -394,7 +405,8 @@ namespace NeoCompose.Runtime
                         NotifyWritableValueChanged(pair.Key.ownership, pair.Key.id, changedField,
                             valueChanged: !(plan.UnchangedValueIds.Contains(pair.Key.id)
                                 && pair.Value is ObjectMemberValue { classId: not null, value: not null } parentRow
-                                && WritesAnyChild(plan, pair.Key.ownership, parentRow)));
+                                && WritesAnyChild(plan, pair.Key.ownership, parentRow)),
+                            membershipChanged: !sameMembership.Contains(pair.Key));
                         if (oldContainers.TryGetValue(pair.Key, out string? containerId))
                             RaiseContainerChanged(pair.Key.ownership, containerId);
                     }
@@ -420,6 +432,7 @@ namespace NeoCompose.Runtime
                 {
                     changed.Clear();
                     oldContainers.Clear();
+                    sameMembership.Clear();
                     commitScratchInUse = false;
                 }
             }

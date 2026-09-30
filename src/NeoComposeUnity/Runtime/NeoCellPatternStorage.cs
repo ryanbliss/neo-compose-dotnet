@@ -24,15 +24,14 @@ namespace NeoCompose.Runtime
         {
             if (node.value?.value is null)
                 return null;
-            return ReadRow(client, node.value, node.ownership, null);
+            return ReadRow(client, node.value, node.ownership);
         }
 
-        private static NeoCellPattern ReadRow(NeoClient client, ObjectMemberValue row, NeoValueOwnership ownership, NSGetterEvaluator.Context? ctx)
+        private static NeoCellPattern ReadRow(NeoClient client, ObjectMemberValue row, NeoValueOwnership ownership)
         {
             var list = client.ResolveClassChildRow(row, "_offsets", ownership) as ArrayMemberValue
                 ?? throw new InvalidOperationException("CellPattern offsets are missing.");
             string[] ids = list.value ?? Array.Empty<string>();
-            ctx?.allocationTracker.ConsumeCollectionVisit(ids.Length);
             var offsets = new Vector2Int[ids.Length];
             for (int index = 0; index < offsets.Length; index++)
             {
@@ -78,7 +77,6 @@ namespace NeoCompose.Runtime
                 var result = new List<object?>();
                 foreach (object? entry in entries)
                 {
-                    ctx.allocationTracker.ConsumeProducedCollectionEntry();
                     result.Add(NormalizeNativeResult(entry, ctx, collection.entryTypeInfo));
                 }
                 return result.ToArray();
@@ -88,7 +86,6 @@ namespace NeoCompose.Runtime
                 var result = new Dictionary<string, object?>();
                 foreach (var entry in dictionary)
                 {
-                    ctx.allocationTracker.ConsumeProducedCollectionEntry();
                     result.Add(entry.Key, NormalizeNativeResult(entry.Value, ctx, collection.entryTypeInfo));
                 }
                 return result;
@@ -125,7 +122,7 @@ namespace NeoCompose.Runtime
             if (id is null || !ctx.client.TryGetValue(ownership, id, out ObjectMemberValue? row)
                 || row.classId != ClassId)
                 throw new NSGetterRuntimeError("Expected a canonical CellPattern value.");
-            return ReadRow(ctx.client, row, ownership, ctx);
+            return ReadRow(ctx.client, row, ownership);
         }
 
         private static object?[] Offsets(NeoCellPattern pattern)
