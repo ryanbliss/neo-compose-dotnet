@@ -128,7 +128,14 @@ namespace NeoCompose.Runtime.NeoScript
             out object? result)
         {
             if (value.plan.slotByKey.TryGetValue(key, out int index))
-                return TryReadDetachedSlot(value, index, ctx, out result);
+            {
+                if (!TryReadDetachedSlot(value, index, ctx, out result))
+                    return false;
+                // A lookup slot holds its selected ids, as its row does.
+                if (value.plan.slots[index].member is LookupMember lookup && result is object?[] ids)
+                    result = ReadLookupSelection(ids, lookup, ctx);
+                return true;
+            }
             result = null;
             MergedSchemaEntry? entry;
             try
@@ -196,7 +203,7 @@ namespace NeoCompose.Runtime.NeoScript
             if (value.states[index] != NeoScriptObject.DefaultSlot)
             {
                 result = slot.kind == DetachedSlotKind.List
-                    ? NeoGeneratedTypesSupport.DetachedListEntries(value, index)
+                    ? NeoGeneratedTypesSupport.DetachedArray(value, index)
                     : value.values[index];
                 return true;
             }
@@ -207,14 +214,14 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 case DetachedSlotKind.List:
                     // Fresh, never shared: the array's identity is its alias.
-                    result = NeoGeneratedTypesSupport.SetDetachedListEntries(
+                    result = NeoGeneratedTypesSupport.SetDetachedArray(
                         value,
                         index,
                         new object?[0]);
                     break;
                 case DetachedSlotKind.Leaf:
                     result = ReadDefaultLeaf(value, slot.member, ctx!);
-                    value.values[index] = result;
+                    NeoGeneratedTypesSupport.SetDetachedLeaf(value, index, result);
                     break;
             }
             value.states[index] = NeoScriptObject.DefaultReadSlot;
@@ -289,7 +296,7 @@ namespace NeoCompose.Runtime.NeoScript
                     continue;
                 }
                 if (slots[index].kind != DetachedSlotKind.List
-                    || NeoGeneratedTypesSupport.DetachedListEntries(owner, index) is not object?[] entries)
+                    || NeoGeneratedTypesSupport.DetachedArray(owner, index) is not object?[] entries)
                 {
                     continue;
                 }
@@ -321,16 +328,16 @@ namespace NeoCompose.Runtime.NeoScript
         }
 
         /// <summary>
-        /// A variable holding a detached List slot's array reads the slot's
-        /// current entries, the way an alias of a row-backed list does.
+        /// A variable holding a detached slot's array reads the slot's
+        /// current value, the way an alias of a row-backed array does.
         /// </summary>
-        private static object? ReadDetachedListAlias(
-            NeoGeneratedTypesSupport.DetachedListOrigin origin,
+        private static object? ReadDetachedArrayAlias(
+            NeoGeneratedTypesSupport.DetachedArrayOrigin origin,
             Context ctx)
         {
             NeoScriptObject owner = origin.owner;
             if (owner.attachedId is null)
-                return NeoGeneratedTypesSupport.DetachedListEntries(owner, origin.index);
+                return NeoGeneratedTypesSupport.DetachedArray(owner, origin.index);
             return DispatchSchemaMember(
                 ForwardDetached(owner, ctx),
                 owner.plan.slots[origin.index].schemaKey,

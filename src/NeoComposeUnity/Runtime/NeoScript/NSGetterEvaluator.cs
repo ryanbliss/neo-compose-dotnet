@@ -1175,8 +1175,8 @@ namespace NeoCompose.Runtime.NeoScript
                             {
                                 return UnwrapCached(listRow, ctx, listRef.ownership, listRef.member);
                             }
-                            if (NeoGeneratedTypesSupport.TryGetDetachedListOrigin(entries, out var detachedList))
-                                return ReadDetachedListAlias(detachedList!, ctx);
+                            if (NeoGeneratedTypesSupport.TryGetDetachedArrayOrigin(entries, out var detachedArray))
+                                return ReadDetachedArrayAlias(detachedArray!, ctx);
                         }
                         else if (v is NeoScriptObject { attachedId: not null } attached)
                         {
@@ -5616,11 +5616,20 @@ namespace NeoCompose.Runtime.NeoScript
             if (!ctx.client.TryGetReplayReference(id, out MemberValue? row, ownership))
                 return at;
             var v = UnwrapCached(row, ctx, ownership, member);
-            if (member is LookupMember lookup
-                && lookup.Selection != NeoMemberSelectionKind.Multi
-                && v is object?[] arr
-                && arr.Length == 1
-                && arr[0] is string singleId)
+            return member is LookupMember lookup && v is object?[] ids
+                ? ReadLookupSelection(ids, lookup, ctx)
+                : v;
+        }
+
+        /// <summary>
+        /// A lookup's read value: a single selection's object, otherwise the
+        /// selected ids.
+        /// </summary>
+        private static object? ReadLookupSelection(object?[] ids, LookupMember lookup, Context ctx)
+        {
+            if (lookup.Selection != NeoMemberSelectionKind.Multi
+                && ids.Length == 1
+                && ids[0] is string singleId)
             {
                 var singleOwnership = ResolveLookupSelectionOwnership(ctx, lookup, singleId);
                 if (ctx.client.TryGetReplayReference(singleId, out MemberValue? next, singleOwnership))
@@ -5628,7 +5637,7 @@ namespace NeoCompose.Runtime.NeoScript
                     return UnwrapCached(next, ctx, singleOwnership);
                 }
             }
-            return v;
+            return ids;
         }
 
         private static NeoValueOwnership ResolveLookupSelectionOwnership(

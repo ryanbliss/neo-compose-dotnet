@@ -52,9 +52,10 @@ namespace NeoCompose.Runtime
         /// <summary>
         /// The detached plan for <paramref name="classId"/>, or null when an
         /// instance must be built as rows from the start. Only closed,
-        /// non-generic classes whose stored members are scalars, enums, full
-        /// Class values, or ordered lists of those qualify; everything else
-        /// keeps the eager construction path.
+        /// non-generic classes whose stored members are scalars, single-selection
+        /// enums and lookups, full Class values, or ordered lists of those
+        /// except lookups qualify; everything else keeps the eager
+        /// construction path.
         /// </summary>
         internal static DetachedClassPlan? ResolveDetachedClassPlan(
             NeoClient client,
@@ -130,8 +131,10 @@ namespace NeoCompose.Runtime
                     case ListMember listMember:
                         if (slot.hasLiteralDefault && listMember.defaultValue!.value is { Length: > 0 })
                             return null;
+                        // A list entry's lookup read resolves through the
+                        // list's row, which a slot's entries don't have.
                         if (!client.TryGetMember(listMember.entryMemberId, out Member? entryMember)
-                            || entryMember is ListMember
+                            || entryMember is ListMember or LookupMember
                             || !TryClassifyDetachedMember(client, entryMember, out slot.entryKind))
                         {
                             return null;
@@ -176,8 +179,13 @@ namespace NeoCompose.Runtime
                 case Vector3Member:
                 case Vector3IntMember:
                 case ColorMember:
+                // A multi-selection can be mutated through a variable holding
+                // it, which only a row tracks.
                 case EnumMember enumMember
-                    when enumMember.enumId != NeoCellPatternStorage.ExcludingEnumId:
+                    when enumMember.enumId != NeoCellPatternStorage.ExcludingEnumId
+                        && enumMember.Selection != NeoMemberSelectionKind.Multi:
+                case LookupMember lookupMember
+                    when lookupMember.Selection != NeoMemberSelectionKind.Multi:
                     kind = DetachedSlotKind.Leaf;
                     return true;
                 case ClassMember classMember
@@ -437,7 +445,7 @@ namespace NeoCompose.Runtime
                 if (!TryAdoptDetachedEntries(target, copy))
                     return false;
                 ReleaseDetachedSlot(target, index);
-                SetDetachedListEntries(target, index, copy);
+                SetDetachedArray(target, index, copy);
                 target.states[index] = NeoScriptObject.WrittenSlot;
                 return true;
             }
@@ -447,7 +455,7 @@ namespace NeoCompose.Runtime
                 return false;
             }
             ReleaseDetachedSlot(target, index);
-            target.values[index] = stored;
+            SetDetachedLeaf(target, index, stored);
             target.states[index] = NeoScriptObject.WrittenSlot;
             return true;
         }
@@ -484,40 +492,53 @@ namespace NeoCompose.Runtime
             return true;
         }
 
-        /// <summary>Where a List slot's entry array came from, so an alias of it reads the slot's current entries.</summary>
-        internal sealed class DetachedListOrigin
+        /// <summary>
+        /// Where a slot's array came from (a List slot's entries, an enum's
+        /// options), so a variable holding it reads the slot's current value
+        /// as a variable holding a row's array reads the row's.
+        /// </summary>
+        internal sealed class DetachedArrayOrigin
         {
             internal readonly NeoScriptObject owner;
             internal readonly int index;
 
-            internal DetachedListOrigin(NeoScriptObject owner, int index)
+            internal DetachedArrayOrigin(NeoScriptObject owner, int index)
             {
                 this.owner = owner;
                 this.index = index;
             }
         }
 
-        private static readonly ConditionalWeakTable<object?[], DetachedListOrigin> DetachedListOrigins = new();
+        private static readonly ConditionalWeakTable<object?[], DetachedArrayOrigin> DetachedArrayOrigins = new();
 
-        internal static bool TryGetDetachedListOrigin(object?[] entries, out DetachedListOrigin? origin) =>
-            DetachedListOrigins.TryGetValue(entries, out origin);
+        internal static bool TryGetDetachedArrayOrigin(object?[] entries, out DetachedArrayOrigin? origin) =>
+            DetachedArrayOrigins.TryGetValue(entries, out origin);
 
-        /// <summary>Stores a List slot's entry array and records its origin.</summary>
-        internal static object?[] SetDetachedListEntries(NeoScriptObject target, int index, object?[] entries)
+        /// <summary>Stores a slot's array and records its origin.</summary>
+        internal static object?[] SetDetachedArray(NeoScriptObject target, int index, object?[] entries)
         {
             target.values[index] = entries;
-            DetachedListOrigins.AddOrUpdate(entries, new DetachedListOrigin(target, index));
+            DetachedArrayOrigins.AddOrUpdate(entries, new DetachedArrayOrigin(target, index));
             return entries;
         }
 
-        /// <summary>The current entries of a List slot: its array, rebuilt after appends.</summary>
-        internal static object?[]? DetachedListEntries(NeoScriptObject target, int index)
+        /// <summary>Stores a leaf slot's value, recording an array's origin.</summary>
+        internal static void SetDetachedLeaf(NeoScriptObject target, int index, object? value)
+        {
+            if (value is object?[] array)
+                SetDetachedArray(target, index, array);
+            else
+                target.values[index] = value;
+        }
+
+        /// <summary>The current array of a slot: a List's entries, rebuilt after appends, or a leaf's array.</summary>
+        internal static object?[]? DetachedArray(NeoScriptObject target, int index)
         {
             if (target.values[index] is object?[] entries)
                 return entries;
             if (target.listBuffers?[index] is not List<object?> buffer)
                 return null;
-            return SetDetachedListEntries(target, index, buffer.ToArray());
+            return SetDetachedArray(target, index, buffer.ToArray());
         }
 
         private static bool TryNormalizeDetachedValue(
@@ -556,9 +577,10 @@ namespace NeoCompose.Runtime
         /// <summary>
         /// The value a leaf row built from <paramref name="value"/> reads back
         /// as: numbers as double, strings verbatim (runtime writes are literal),
-        /// enums as a fresh option-id array, vectors and colors as a copy owned
+        /// an enum as a fresh one-option array, vectors and colors as a copy owned
         /// by <paramref name="target"/>, as a row copies the written payload.
-        /// Ints must be integral, as the row's shape check requires.
+        /// Ints must be integral, as the row's shape check requires. A lookup
+        /// stores the selected ids its row holds.
         /// </summary>
         private static bool TryNormalizeDetachedLeaf(
             NeoScriptObject target,
@@ -602,19 +624,22 @@ namespace NeoCompose.Runtime
                 case FloatMember when value is int or float:
                     stored = Convert.ToDouble(value);
                     return true;
-                case EnumMember enumMember when value is object?[] options:
-                    if (options.Length == 0 && enumMember.Selection != NeoMemberSelectionKind.Multi)
-                        return false;
-                    if (options.Length > 1 && enumMember.Selection != NeoMemberSelectionKind.Multi)
-                        return false;
-                    var copy = new object?[options.Length];
-                    for (int index = 0; index < options.Length; index++)
+                case EnumMember when value is object?[] { Length: 1 } options && options[0] is string:
+                    stored = new object?[] { options[0] };
+                    return true;
+                case LookupMember lookupMember:
+                    string[] ids;
+                    try
                     {
-                        if (options[index] is not string)
-                            return false;
-                        copy[index] = options[index];
+                        ids = ConstructorLookupIds(value, lookupMember);
                     }
-                    stored = copy;
+                    catch (InvalidOperationException)
+                    {
+                        return false;
+                    }
+                    var selection = new object?[ids.Length];
+                    Array.Copy(ids, selection, ids.Length);
+                    stored = selection;
                     return true;
                 default:
                     return false;
@@ -761,7 +786,7 @@ namespace NeoCompose.Runtime
                     value.client,
                     slot.member,
                     slot.kind == DetachedSlotKind.List
-                        ? DetachedListEntries(value, index)
+                        ? DetachedArray(value, index)
                         : value.values[index],
                     rows,
                     now,

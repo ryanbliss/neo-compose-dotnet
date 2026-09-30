@@ -235,6 +235,168 @@ namespace NeoCompose.Tests
             Assert.IsNotInstanceOf<NeoScriptObject>(Evaluate(client, ReportType, Report(Literal(total, MemberKind.Float))));
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void LookupField_LivesInASlot(bool fromDefault)
+        {
+            // `new Pick { Choice = line }`, or `new Pick()` whose Choice
+            // defaults to that line: the slot holds the selected ids, and a
+            // read resolves them as the row's read does.
+            NeoClient client = BuildClient(choiceDefault: fromDefault);
+            int before = client.sessionValues.Count;
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            var scope = new Dictionary<string, object?>
+            {
+                ["pick"] = NSGetterEvaluator.EvaluatePointer(
+                    fromDefault
+                        ? Construct(PickType)
+                        : Construct(PickType, Field("Choice", "member-pick-choice", Reference("line-a"))),
+                    new Dictionary<string, object?>(),
+                    ctx),
+            };
+
+            object? label = NSGetterEvaluator.EvaluatePointer(
+                Key(Key(Variable("pick"), "Choice"), "Label"),
+                scope,
+                ctx);
+
+            Assert.IsInstanceOf<NeoScriptObject>(scope["pick"]);
+            Assert.AreEqual("asset line", label);
+            Assert.AreEqual(before, client.sessionValues.Count, "Nothing needed a row yet.");
+            // Its row, once needed, holds the same selection.
+            string id = NSGetterEvaluator.AttachDetached((NeoScriptObject)scope["pick"]!, null);
+            Assert.IsTrue(client.TryGetValue(NeoValueOwnership.Session, id, out ObjectMemberValue? row));
+            Assert.IsTrue(client.TryGetValue(NeoValueOwnership.Session, row!.value!["Choice"], out ArrayMemberValue? choice));
+            CollectionAssert.AreEqual(new[] { "line-a" }, choice!.value);
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        public void MultiSelection_BuildsRows(bool lookup)
+        {
+            // A multi-selection can be mutated through a variable holding
+            // it, which only a row tracks.
+            NeoClient client = lookup
+                ? BuildClient(choiceSelection: NeoMemberSelectionKind.Multi)
+                : BuildClient(modeSelection: NeoMemberSelectionKind.Multi);
+
+            object? picked = Evaluate(
+                client,
+                PickType,
+                Construct(PickType, Field("Choice", "member-pick-choice", Reference("line-a"))));
+
+            Assert.IsNotInstanceOf<NeoScriptObject>(picked);
+        }
+
+        [Test]
+        public void EnumAlias_ReadsTheSlot()
+        {
+            // `var mode = pick.Mode; pick.Mode = .B; mode` reads .B, as an
+            // alias of the member's row does.
+            NeoClient client = BuildClient();
+            int before = client.sessionValues.Count;
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            var scope = new Dictionary<string, object?>
+            {
+                ["b"] = new object?[] { "option-b" },
+            };
+            scope["pick"] = NSGetterEvaluator.EvaluatePointer(
+                Construct(PickType, Field("Choice", "member-pick-choice", Reference("line-a"))),
+                scope,
+                ctx);
+            scope["mode"] = NSGetterEvaluator.EvaluatePointer(Key(Variable("pick"), "Mode"), scope, ctx);
+
+            NeoScriptExecutor.Execute(client, new FunctionWithReturnType
+            {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                parameters = Array.Empty<Variable>(),
+                typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null, required = true },
+                instructions = new Instruction[]
+                {
+                    new AssignInstruction
+                    {
+                        type = InstructionKind.Assign,
+                        target = new WriteTarget
+                        {
+                            pointer = Key(Variable("pick"), "Mode"),
+                            typeInfo = new EnumTypeInfo
+                            {
+                                type = MemberKind.Enum,
+                                required = true,
+                                enumId = "enum-mode",
+                            },
+                            writability = WritabilityKind.Local,
+                        },
+                        operatorValue = "=",
+                        pointer = Variable("b"),
+                    },
+                },
+            }, scope, ctx);
+
+            Assert.That(
+                NSGetterEvaluator.EvaluatePointer(Variable("mode"), scope, ctx),
+                Is.EqualTo(new object?[] { "option-b" }));
+            Assert.IsNull(((NeoScriptObject)scope["pick"]!).attachedId);
+            Assert.AreEqual(before, client.sessionValues.Count, "Nothing needed a row.");
+        }
+
+        [TestCase(CollectionMutationKind.Add, 2)]
+        [TestCase(CollectionMutationKind.Clear, 0)]
+        public void ListAlias_MutatesTheSlot(string mutation, int expected)
+        {
+            // `var lines = report.Lines; lines.<mutation>(...)` mutates the
+            // report's list, as an alias of a row-backed list does. An Add
+            // appends to the slot; anything else goes through the row.
+            NeoClient client = BuildClient();
+            int before = client.sessionValues.Count;
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            var scope = new Dictionary<string, object?>();
+            scope["report"] = NSGetterEvaluator.EvaluatePointer(Report(Literal(5, MemberKind.Int)), scope, ctx);
+            scope["lines"] = NSGetterEvaluator.EvaluatePointer(Key(Variable("report"), "Lines"), scope, ctx);
+
+            NeoScriptExecutor.Execute(client, new FunctionWithReturnType
+            {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                parameters = Array.Empty<Variable>(),
+                typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null, required = true },
+                instructions = new Instruction[]
+                {
+                    new CollectionCallInstruction
+                    {
+                        type = InstructionKind.CollectionCall,
+                        target = new WriteTarget
+                        {
+                            pointer = Variable("lines"),
+                            typeInfo = new CollectionTypeInfo
+                            {
+                                type = MemberKind.List,
+                                required = true,
+                                entryTypeInfo = LineType,
+                            },
+                            writability = WritabilityKind.Local,
+                        },
+                        mutation = mutation,
+                        args = mutation == CollectionMutationKind.Add
+                            ? new Pointer[] { Line() }
+                            : Array.Empty<Pointer>(),
+                    },
+                },
+            }, scope, ctx);
+
+            var report = (NeoScriptObject)scope["report"]!;
+            Assert.AreEqual(expected, ((object?[])NSGetterEvaluator.EvaluatePointer(Key(Variable("report"), "Lines"), scope, ctx)!).Length);
+            Assert.AreEqual(expected, ((object?[])NSGetterEvaluator.EvaluatePointer(Variable("lines"), scope, ctx)!).Length);
+            if (mutation == CollectionMutationKind.Add)
+            {
+                Assert.IsNull(report.attachedId);
+                Assert.AreEqual(before, client.sessionValues.Count, "An Add needs no row.");
+            }
+            else
+            {
+                Assert.IsNotNull(report.attachedId);
+            }
+        }
+
         private static TestReport ReadReport(NeoClient client, object? result) =>
             ReadReport(client, result, out _);
 
@@ -252,6 +414,7 @@ namespace NeoCompose.Tests
 
         private static readonly ClassTypeInfo LineType = ClassType("class-line");
         private static readonly ClassTypeInfo ReportType = ClassType("class-report");
+        private static readonly ClassTypeInfo PickType = ClassType("class-pick");
 
         /// <summary><c>return new Report { Total = 5, Lines = [new Line { Score = 3, Label = "a" }] };</c></summary>
         private static object? EvaluateReport(NeoClient client)
@@ -322,6 +485,28 @@ namespace NeoCompose.Tests
                 },
             };
 
+        private static VariablePointer Variable(string id) => new()
+        {
+            type = PointerKind.Variable,
+            variableId = id,
+        };
+
+        private static ReferencePointer Reference(string valueId) => new()
+        {
+            type = PointerKind.Reference,
+            valueId = valueId,
+        };
+
+        private static KeyOfPointer Key(Pointer receiver, string key) => new()
+        {
+            type = PointerKind.KeyOf,
+            keyOf = new KeyOf
+            {
+                pointer = receiver,
+                key = Literal(key, MemberKind.String),
+            },
+        };
+
         private static FunctionClassConstructorField Field(string key, string memberId, Pointer value) => new()
         {
             schemaKey = key,
@@ -339,7 +524,10 @@ namespace NeoCompose.Tests
             },
         };
 
-        private static NeoClient BuildClient()
+        private static NeoClient BuildClient(
+            NeoMemberSelectionKind choiceSelection = NeoMemberSelectionKind.Single,
+            bool choiceDefault = false,
+            NeoMemberSelectionKind modeSelection = NeoMemberSelectionKind.Single)
         {
             var roots = new[]
             {
@@ -406,6 +594,41 @@ namespace NeoCompose.Tests
                     defaultValue = new StringMemberValueBase { value = "" },
                 },
             };
+            // `class Pick { Line Choice; Mode Mode = .A; }`, Choice a lookup into an asset list of lines.
+            members["member-choices"] = new ListMember
+            {
+                id = "member-choices",
+                projectId = ProjectId,
+                name = "Choices",
+                kind = MemberKind.List,
+                entryMemberId = "member-report-line",
+                valueId = "value-choices",
+            };
+            members["member-pick-choice"] = new LookupMember
+            {
+                id = "member-pick-choice",
+                projectId = ProjectId,
+                name = "Choice",
+                kind = MemberKind.Lookup,
+                Requirement = NeoMemberRequirementKind.Required,
+                collectionMemberId = "member-choices",
+                collectionValueId = "value-choices",
+                Selection = choiceSelection,
+                defaultValue = choiceDefault
+                    ? new ArrayMemberValueBase { value = new[] { "line-a" } }
+                    : null,
+            };
+            members["member-pick-mode"] = new EnumMember
+            {
+                id = "member-pick-mode",
+                projectId = ProjectId,
+                name = "Mode",
+                kind = MemberKind.Enum,
+                Requirement = NeoMemberRequirementKind.Required,
+                enumId = "enum-mode",
+                Selection = modeSelection,
+                defaultValue = new ArrayMemberValueBase { value = new[] { "option-a" } },
+            };
             foreach (ClassMember root in roots)
                 members[root.id] = root;
             return NeoTestSaveStack.ClientFromSchema(new ProjectData
@@ -424,6 +647,19 @@ namespace NeoCompose.Tests
                     ["value-assets"] = RootValue("value-assets"),
                     ["value-save"] = RootValue("value-save"),
                     ["value-session"] = RootValue("value-session"),
+                    ["value-choices"] = new ArrayMemberValue { id = "value-choices", value = new[] { "line-a" } },
+                    ["line-a"] = new ObjectMemberValue
+                    {
+                        id = "line-a",
+                        classId = "class-line",
+                        value = new Dictionary<string, string>
+                        {
+                            ["Score"] = "line-a-score",
+                            ["Label"] = "line-a-label",
+                        },
+                    },
+                    ["line-a-score"] = new NumberMemberValue { id = "line-a-score", value = 1 },
+                    ["line-a-label"] = new StringMemberValue { id = "line-a-label", value = "asset line" },
                 },
                 classes = new Dictionary<string, NeoSchemaClass>
                 {
@@ -439,8 +675,27 @@ namespace NeoCompose.Tests
                         "Line",
                         ("Score", "member-line-score"),
                         ("Label", "member-line-label")),
+                    ["class-pick"] = SchemaClass(
+                        "class-pick",
+                        "Pick",
+                        ("Choice", "member-pick-choice"),
+                        ("Mode", "member-pick-mode")),
                 },
-                enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
+                enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>
+                {
+                    ["enum-mode"] = new NeoCompose.Runtime.Json.Enum
+                    {
+                        id = "enum-mode",
+                        projectId = ProjectId,
+                        name = "Mode",
+                        options = new Dictionary<string, EnumOption>
+                        {
+                            ["option-a"] = new EnumOption { text = "A" },
+                            ["option-b"] = new EnumOption { text = "B" },
+                        },
+                        optionKeyOrder = new List<string> { "option-a", "option-b" },
+                    },
+                },
             });
         }
 
