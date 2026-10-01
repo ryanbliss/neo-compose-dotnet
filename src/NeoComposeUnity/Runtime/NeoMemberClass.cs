@@ -979,7 +979,7 @@ namespace NeoCompose.Runtime
                     record.value![key] = importedValueId;
                     record.updatedAt = nowIso;
                     plan.Set(ownership, record);
-                    client.StageUnlinkedRemovals(plan, childOwnership, new[] { existingValueId }, childMember);
+                    client.StageUnlinkedRemovals(plan, childOwnership, existingValueId, childMember);
                     plan.Commit();
                     value = record;
                     ReinitializeChildren();
@@ -1234,7 +1234,7 @@ namespace NeoCompose.Runtime
             plan.Set(ownership, record);
             NeoValueOwnership removedOwnership =
                 client.ChildOwnership(removedMember, ownership);
-            client.StageUnlinkedRemovals(plan, removedOwnership, new[] { removedValueId }, removedMember);
+            client.StageUnlinkedRemovals(plan, removedOwnership, removedValueId, removedMember);
             plan.Commit();
             value = record;
 

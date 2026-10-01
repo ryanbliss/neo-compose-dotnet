@@ -52,10 +52,14 @@ namespace NeoCompose.Runtime
         internal readonly Dictionary<(NeoValueOwnership ownership, string id), MemberValue?> Rows = new();
         private Dictionary<(NeoValueOwnership ownership, string id), string>? changedFields;
         private HashSet<(NeoValueOwnership ownership, string id)>? silentRows;
-        internal readonly Dictionary<(NeoValueOwnership ownership, string memberId), (bool present, string? valueId)> Bindings = new();
+        // Most plans bind no static; they share one empty map until the first Bind.
+        private static readonly Dictionary<(NeoValueOwnership ownership, string memberId), (bool present, string? valueId)> NoBindings = new();
+        private Dictionary<(NeoValueOwnership ownership, string memberId), (bool present, string? valueId)>? bindings;
+        /// <summary>The staged static bindings. Read-only: <see cref="Bind"/> writes them.</summary>
+        internal Dictionary<(NeoValueOwnership ownership, string memberId), (bool present, string? valueId)> Bindings => bindings ?? NoBindings;
         private Dictionary<NeoMember, string>? nodeBindings;
-        private readonly List<Action> afterCommit = new();
-        private readonly List<Action> afterNotifications = new();
+        private List<Action>? afterCommit;
+        private List<Action>? afterNotifications;
         private HashSet<NeoMember>? reportsOwnChange;
         private Dictionary<string, HashSet<string>>? containerCandidates;
         // A child's staged parent, or a set when more than one row links it.
@@ -239,9 +243,9 @@ namespace NeoCompose.Runtime
         }
 
         internal void Bind(NeoValueOwnership ownership, string memberId, bool present, string? valueId) =>
-            Bindings[(ownership, memberId)] = (present, valueId);
+            (bindings ??= new())[(ownership, memberId)] = (present, valueId);
 
-        internal void AfterNotifications(Action callback) => afterNotifications.Add(callback);
+        internal void AfterNotifications(Action callback) => (afterNotifications ??= new()).Add(callback);
 
         /// <summary>
         /// Marks <paramref name="node"/> as the collection mutator behind this
@@ -269,12 +273,16 @@ namespace NeoCompose.Runtime
 
         internal void NotifyCompleted()
         {
+            if (afterNotifications is null)
+                return;
             foreach (Action callback in afterNotifications)
                 callback();
         }
-        internal void AfterCommit(Action callback) => afterCommit.Add(callback);
+        internal void AfterCommit(Action callback) => (afterCommit ??= new()).Add(callback);
         internal void NotifyCommitted()
         {
+            if (afterCommit is null)
+                return;
             foreach (Action callback in afterCommit)
                 callback();
         }
@@ -350,6 +358,16 @@ namespace NeoCompose.Runtime
         private readonly Dictionary<(NeoValueOwnership ownership, string id), string> commitOldContainersScratch = new();
         private readonly HashSet<(NeoValueOwnership ownership, string id)> commitSameMembershipScratch = new();
 
+        private static bool HasSaveRow(NeoWritePlan plan)
+        {
+            foreach (var pair in plan.Rows)
+            {
+                if (pair.Key.ownership == NeoValueOwnership.Save && pair.Value is not null)
+                    return true;
+            }
+            return false;
+        }
+
         internal void CommitWritePlan(NeoWritePlan plan)
         {
 #if NEO_COMPOSE_PROFILING
@@ -387,9 +405,11 @@ namespace NeoCompose.Runtime
             }
             if (!ReferenceEquals(plan.Client, this))
                 throw new ArgumentException("Write plan belongs to another client.", nameof(plan));
-            foreach (var pair in plan.Rows.ToArray())
-                if (pair.Key.ownership == NeoValueOwnership.Save && pair.Value is not null)
-                    StageConstructorDependencies(plan, pair.Value);
+            // Staging adds rows, so it walks a snapshot, taken only when a Save row needs one.
+            if (HasSaveRow(plan))
+                foreach (var pair in plan.Rows.ToArray())
+                    if (pair.Key.ownership == NeoValueOwnership.Save && pair.Value is not null)
+                        StageConstructorDependencies(plan, pair.Value);
             foreach (var pair in plan.Rows)
                 if (pair.Value is not null)
                     StampMapKeyForWrite(pair.Key.ownership, pair.Value);
@@ -548,10 +568,41 @@ namespace NeoCompose.Runtime
             // A detached default often has no writable rows at all. Find the
             // actual removals before walking global reachability, and share
             // that walk across all children released by one assignment.
-            var removals = new List<string>();
-            var visited = new HashSet<string>();
-            foreach (var root in roots)
-                StageOwnedRemoval(plan, ownership, root.valueId, root.member, false, visited, null, removals);
+            List<string> removals = RentIdList();
+            HashSet<string> visited = RentIdSet();
+            try
+            {
+                foreach (var root in roots)
+                    StageOwnedRemoval(plan, ownership, root.valueId, root.member, false, visited, null, removals);
+                RemoveUnreachable(plan, ownership, removals);
+            }
+            finally
+            {
+                ReturnIdList(removals);
+                ReturnIdSet(visited);
+            }
+        }
+
+        /// <summary>The one-row form above, which most removals are.</summary>
+        internal void StageUnlinkedRemovals(
+            NeoWritePlan plan, NeoValueOwnership ownership, string valueId, Member? member)
+        {
+            List<string> removals = RentIdList();
+            HashSet<string> visited = RentIdSet();
+            try
+            {
+                StageOwnedRemoval(plan, ownership, valueId, member, false, visited, null, removals);
+                RemoveUnreachable(plan, ownership, removals);
+            }
+            finally
+            {
+                ReturnIdList(removals);
+                ReturnIdSet(visited);
+            }
+        }
+
+        private void RemoveUnreachable(NeoWritePlan plan, NeoValueOwnership ownership, List<string> removals)
+        {
             if (removals.Count == 0)
                 return;
             HashSet<string> reachable;

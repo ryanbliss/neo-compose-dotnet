@@ -215,7 +215,7 @@ namespace NeoCompose.Runtime
             parentRow.updatedAt = nowIso;
             plan.Set(ownership, parentRow);
             if (previousId is not null && previousId != nextId)
-                client.StageUnlinkedRemovals(plan, entryOwnership, new[] { previousId }, entryMember);
+                client.StageUnlinkedRemovals(plan, entryOwnership, previousId, entryMember);
             CommitOwnChange(plan);
             value = parentRow;
             if (childMembers.TryGetValue(key, out NeoMember? previousChild))
@@ -241,7 +241,7 @@ namespace NeoCompose.Runtime
             parentRow.updatedAt = nowIso;
             plan.Set(ownership, parentRow);
             NeoValueOwnership entryOwnership = client.ChildOwnership(entryMember, ownership);
-            client.StageUnlinkedRemovals(plan, entryOwnership, new[] { removedValueId }, entryMember);
+            client.StageUnlinkedRemovals(plan, entryOwnership, removedValueId, entryMember);
             CommitOwnChange(plan);
             value = parentRow;
 

@@ -4667,7 +4667,7 @@ namespace NeoCompose.Runtime
                                 parentRowId));
                             rebound.updatedAt = now;
                             StoreWritableRow(plan, parentOwnership, rebound, ctx);
-                            client.StageUnlinkedRemovals(plan, ownership, new[] { existingId }, member);
+                            client.StageUnlinkedRemovals(plan, ownership, existingId, member);
                             return;
                         }
                         if (member is ListMember listMember && client.IsUnorderedList(listMember))
@@ -5166,7 +5166,7 @@ namespace NeoCompose.Runtime
                             parentRowId));
                         parent.updatedAt = NeoTimestamp.Now();
                         StoreWritableRow(plan, ownership, parent, ctx);
-                        client.StageUnlinkedRemovals(plan, ownership, new[] { childId }, EntryReleaseMember(client, parent, typeInfo));
+                        client.StageUnlinkedRemovals(plan, ownership, childId, EntryReleaseMember(client, parent, typeInfo));
                         return;
                     }
                     if (!client.TryGetValue(childId, out MemberValue? existing))
@@ -5428,7 +5428,7 @@ namespace NeoCompose.Runtime
                 row.value = next;
                 row.updatedAt = now;
                 StoreWritableRow(plan, ownership, row, ctx);
-                client.StageUnlinkedRemovals(plan, ownership, new[] { removedId }, EntryReleaseMember(client, row, entryTypeInfo));
+                client.StageUnlinkedRemovals(plan, ownership, removedId, EntryReleaseMember(client, row, entryTypeInfo));
             }
         }
 
@@ -5601,7 +5601,7 @@ namespace NeoCompose.Runtime
                                 rowId));
                             row.updatedAt = now;
                             StoreWritableRow(plan, ownership, row, ctx);
-                            client.StageUnlinkedRemovals(plan, ownership, new[] { existingId }, EntryReleaseMember(client, row, entryTypeInfo));
+                            client.StageUnlinkedRemovals(plan, ownership, existingId, EntryReleaseMember(client, row, entryTypeInfo));
                             return;
                         }
                         var next = CreateValueRow(
@@ -5669,7 +5669,7 @@ namespace NeoCompose.Runtime
                     row.value.Remove(key);
                     row.updatedAt = NeoTimestamp.Now();
                     StoreWritableRow(plan, ownership, row, ctx);
-                    client.StageUnlinkedRemovals(plan, ownership, new[] { removedId }, EntryReleaseMember(client, row, entryTypeInfo));
+                    client.StageUnlinkedRemovals(plan, ownership, removedId, EntryReleaseMember(client, row, entryTypeInfo));
                 }, preparedPlan);
             }
 

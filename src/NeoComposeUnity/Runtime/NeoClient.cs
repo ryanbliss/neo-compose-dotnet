@@ -4862,6 +4862,17 @@ namespace NeoCompose.Runtime
             idQueuePool.Push(queue);
         }
 
+        // The removal walks' found ids, pooled the same way.
+        private readonly Stack<List<string>> idListPool = new();
+
+        private List<string> RentIdList() => idListPool.Count != 0 ? idListPool.Pop() : new List<string>();
+
+        private void ReturnIdList(List<string> list)
+        {
+            list.Clear();
+            idListPool.Push(list);
+        }
+
         private void ReturnIdSet(HashSet<string> set)
         {
             if (set.Count > 64)
@@ -9016,7 +9027,7 @@ namespace NeoCompose.Runtime
         // indexed incoming edges first. This proof deliberately admits extra
         // edges: any possible root falls back to the full collector, so it can
         // never delete a row just because an edge could not be typed precisely.
-        private bool CanProveUnreachable(NeoValueOwnership ownership, IEnumerable<string> valueIds)
+        private bool CanProveUnreachable(NeoValueOwnership ownership, IReadOnlyList<string> valueIds)
         {
             if (candidateReplay is not null)
                 return false;
@@ -9039,7 +9050,7 @@ namespace NeoCompose.Runtime
 
         private bool CanProveUnreachable(
             NeoValueOwnership ownership,
-            IEnumerable<string> valueIds,
+            IReadOnlyList<string> valueIds,
             HashSet<string> staticRoots,
             HashSet<string> visited,
             HashSet<string> parents,
@@ -9049,8 +9060,8 @@ namespace NeoCompose.Runtime
                 if (ResolveStaticOwnership(member) == ownership
                     && TryResolveStaticBinding(member.id, out _, out _, out string? target))
                     staticRoots.Add(target);
-            foreach (string valueId in valueIds)
-                pending.Enqueue(valueId);
+            for (int index = 0; index < valueIds.Count; index++)
+                pending.Enqueue(valueIds[index]);
             var store = GetWritableStore(ownership);
             string rootMemberId = ownership == NeoValueOwnership.Save
                 ? data.project.rootSaveFileMemberId : data.project.rootSessionMemberId;

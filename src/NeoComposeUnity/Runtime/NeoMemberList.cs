@@ -717,7 +717,7 @@ namespace NeoCompose.Runtime
                 parentRow.value![index] = importedValueId;
                 parentRow.updatedAt = nowIso;
                 plan.Set(ownership, parentRow);
-                client.StageUnlinkedRemovals(plan, entryOwnership, new[] { entryValueId }, entryMember);
+                client.StageUnlinkedRemovals(plan, entryOwnership, entryValueId, entryMember);
                 // Inside the commit, so it merges with what the old entry heard.
                 plan.AfterNotifications(() =>
                 {
@@ -816,7 +816,7 @@ namespace NeoCompose.Runtime
             parentRow.updatedAt = nowIso;
             plan.Set(ownership, parentRow);
             NeoValueOwnership entryOwnership = client.ChildOwnership(entryMember, ownership);
-            client.StageUnlinkedRemovals(plan, entryOwnership, new[] { removedValueId }, entryMember);
+            client.StageUnlinkedRemovals(plan, entryOwnership, removedValueId, entryMember);
             CommitOwnChange(plan);
             value = parentRow;
 

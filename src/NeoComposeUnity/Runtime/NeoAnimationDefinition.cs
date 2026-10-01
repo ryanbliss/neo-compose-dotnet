@@ -800,8 +800,7 @@ namespace NeoCompose.Runtime
             }
             if (detached)
             {
-                client.StageUnlinkedRemovals(plan, leaf.ownership,
-                    new[] { detachedValueId! }, leaf.member);
+                client.StageUnlinkedRemovals(plan, leaf.ownership, detachedValueId!, leaf.member);
             }
             else if (plan.TryGetWritable(leaf.ownership, valueId!, out _))
             {
