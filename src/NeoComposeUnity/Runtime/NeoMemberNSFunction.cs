@@ -489,7 +489,13 @@ namespace NeoCompose.Runtime
         /// them by reference: building a subject stores its string, which
         /// costs a GC write barrier.
         /// </summary>
-        internal NeoScriptValueMarshaller.ValueSubject[] Subjects => subjects ??= CreateSubjects();
+        internal NeoScriptValueMarshaller.ValueSubject[] Subjects
+        {
+            // Every call reads it, and Mono's size limit leaves even the
+            // lazy null check a call.
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => subjects ?? CreateSubjects();
+        }
 
         private NeoScriptValueMarshaller.ValueSubject[] CreateSubjects()
         {
@@ -497,7 +503,7 @@ namespace NeoCompose.Runtime
             created[0] = $"return value of NSFunction '{Member.name}'";
             for (int i = 0; i < ArgumentTypes.Length; i++)
                 created[i + 1] = $"argument {i} '{ArgumentTypes[i].name}' of NSFunction '{Member.name}'";
-            return created;
+            return subjects = created;
         }
     }
 
