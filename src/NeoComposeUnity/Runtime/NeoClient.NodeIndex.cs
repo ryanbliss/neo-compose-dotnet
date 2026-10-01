@@ -10,25 +10,48 @@ namespace NeoCompose.Runtime
 {
     public partial class NeoClient
     {
-        private readonly Dictionary<string, HashSet<NeoMember>> nodesByValueId =
+        // A value id's nodes: almost always one node, else a set.
+        private readonly Dictionary<string, object> nodesByValueId =
             new(StringComparer.Ordinal);
 
         private void AddNodeValueIndex(NeoMember node, string? valueId)
         {
             if (valueId == null)
                 return;
-            if (!nodesByValueId.TryGetValue(valueId, out var nodes))
-                nodesByValueId[valueId] = nodes = new HashSet<NeoMember>();
-            nodes.Add(node);
+            if (!nodesByValueId.TryGetValue(valueId, out object? nodes))
+                nodesByValueId[valueId] = node;
+            else if (nodes is HashSet<NeoMember> set)
+                set.Add(node);
+            else if (!ReferenceEquals(nodes, node))
+                nodesByValueId[valueId] = new HashSet<NeoMember> { (NeoMember)nodes, node };
         }
 
         private void RemoveNodeValueIndex(NeoMember node, string? valueId)
         {
-            if (valueId == null || !nodesByValueId.TryGetValue(valueId, out var nodes))
+            if (valueId == null || !nodesByValueId.TryGetValue(valueId, out object? nodes))
                 return;
-            nodes.Remove(node);
-            if (nodes.Count == 0)
+            if (nodes is HashSet<NeoMember> set)
+            {
+                set.Remove(node);
+                if (set.Count == 0)
+                    nodesByValueId.Remove(valueId);
+            }
+            else if (ReferenceEquals(nodes, node))
+            {
                 nodesByValueId.Remove(valueId);
+            }
+        }
+
+        /// <summary>The nodes indexed under <paramref name="valueId"/>, copied so callers may refresh or dispose them.</summary>
+        private NeoMember[] IndexedNodes(string valueId)
+        {
+            if (!nodesByValueId.TryGetValue(valueId, out object? nodes))
+                return Array.Empty<NeoMember>();
+            if (nodes is not HashSet<NeoMember> set)
+                return new[] { (NeoMember)nodes };
+            var copy = new NeoMember[set.Count];
+            set.CopyTo(copy);
+            return copy;
         }
 
         internal void UpdateNodeValueIndex(NeoMember node, string? previousId, string? nextId)

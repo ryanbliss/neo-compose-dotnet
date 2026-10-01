@@ -388,6 +388,9 @@ namespace NeoCompose.Runtime
         // Replayed outputs are validated separately above.
         private bool IsPlacementEdge(NeoWritePlan plan, string parentId, string childId)
         {
+            // Resolved once, for whichever array row holds the child first.
+            Member? arrayMember = null;
+            bool arrayMemberKnown = false;
             MemberValue? next = plan.Resolve(parentId);
             TryGetCommittedValue(parentId, out MemberValue? previous);
             if (HasWorldKind(next?.classId ?? previous?.classId, "object"))
@@ -409,11 +412,24 @@ namespace NeoCompose.Runtime
             {
                 if (row is ObjectMemberValue obj)
                     return obj.value?.ContainsValue(childId) == true;
-                return row is ArrayMemberValue array && array.value is not null
-                    && Array.IndexOf(array.value, childId) >= 0
-                    && TryInferMemberForValueId(parentId, out Member? member) && member is ListMember;
+                if (row is not ArrayMemberValue { value: not null } array
+                    || Array.IndexOf(array.value, childId) < 0)
+                    return false;
+                if (!arrayMemberKnown)
+                {
+                    arrayMemberKnown = true;
+                    arrayMember = PlannedMember(plan, parentId);
+                }
+                return arrayMember is ListMember;
             }
         }
+
+        /// <summary>
+        /// The member of row <paramref name="id"/>: the collection mutator
+        /// behind <paramref name="plan"/> knows its own, others are inferred.
+        /// </summary>
+        private Member? PlannedMember(NeoWritePlan plan, string id) =>
+            plan.ReportingMember(id) ?? (TryInferMemberForValueId(id, out Member? member) ? member : null);
 
         private void ValidateTileRow(string tileId)
         {

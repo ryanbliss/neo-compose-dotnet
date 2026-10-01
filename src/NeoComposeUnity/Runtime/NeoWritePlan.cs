@@ -251,6 +251,22 @@ namespace NeoCompose.Runtime
         internal void ReportsOwnChange(NeoMember node) => (reportsOwnChange ??= new()).Add(node);
         internal bool IsReportingOwnChange(NeoMember node) => reportsOwnChange?.Contains(node) == true;
 
+        /// <summary>
+        /// The member of the reporting node bound to row <paramref name="valueId"/>:
+        /// a collection mutator knows its own member, which spares inferring it.
+        /// </summary>
+        internal Member? ReportingMember(string valueId)
+        {
+            if (reportsOwnChange is null)
+                return null;
+            foreach (NeoMember node in reportsOwnChange)
+            {
+                if ((node.overrideValueId ?? node.value?.id) == valueId)
+                    return node.member;
+            }
+            return null;
+        }
+
         internal void NotifyCompleted()
         {
             foreach (Action callback in afterNotifications)

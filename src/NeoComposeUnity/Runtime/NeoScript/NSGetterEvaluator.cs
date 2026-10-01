@@ -1367,7 +1367,8 @@ namespace NeoCompose.Runtime.NeoScript
 
             private const int Capacity = 64;
             private const int IndexShift = 26;
-            private readonly Entry[] entries = new Entry[Capacity];
+            // Allocated on the first read: a family that reads no collection never pays for it.
+            private Entry[]? entries;
             private ConditionalWeakTable<object, RowReference>? table;
 
             internal RowReference? Find(object collection, ConditionalWeakTable<object, RowReference> index) =>
@@ -1414,7 +1415,12 @@ namespace NeoCompose.Runtime.NeoScript
 
             private Entry[] Entries(ConditionalWeakTable<object, RowReference> index)
             {
-                if (!ReferenceEquals(table, index))
+                if (entries is null)
+                {
+                    entries = new Entry[Capacity];
+                    table = index;
+                }
+                else if (!ReferenceEquals(table, index))
                 {
                     Array.Clear(entries, 0, Capacity);
                     table = index;

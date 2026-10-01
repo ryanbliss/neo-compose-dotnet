@@ -3466,8 +3466,8 @@ namespace NeoCompose.Runtime
         {
             if (valueChanged)
                 PublishWritableValueChange(ownership, valueId, plan, node);
-            else if (nodesByValueId.TryGetValue(valueId, out var unchangedNodes))
-                foreach (NeoMember member in unchangedNodes.ToArray())
+            else
+                foreach (NeoMember member in IndexedNodes(valueId))
                     if (!member.isDisposed && member.ownership == ownership)
                         member.RefreshCommittedValue();
             if (membershipChanged)
@@ -5817,6 +5817,9 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal void EnsureWorldPartitionLoaded(string gridValueId)
         {
+            // Every node construction asks; with no partition left to load, no row needs resolving.
+            if (data.valuePartitions is null || loadedPartitionRowIds.Count >= data.valuePartitions.Count)
+                return;
             string? gridClassId = ResolveValueRow(gridValueId)?.classId;
             if (string.IsNullOrEmpty(gridClassId))
                 return;
@@ -6014,8 +6017,7 @@ namespace NeoCompose.Runtime
             var staleNodes = new HashSet<NeoMember>();
             foreach (string rowId in rowIdSet)
             {
-                if (nodesByValueId.TryGetValue(rowId, out var nodes))
-                    staleNodes.UnionWith(nodes);
+                staleNodes.UnionWith(IndexedNodes(rowId));
             }
             var staleGenerated = new List<NeoGeneratedClassValue>();
             foreach (string rowId in rowIdSet)

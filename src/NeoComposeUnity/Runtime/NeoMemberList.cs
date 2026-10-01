@@ -595,11 +595,15 @@ namespace NeoCompose.Runtime
             plan.Commit();
         }
 
+        // Kept, and a lambda: binding the virtual method group costs Mono a
+        // trampoline lookup on every add.
+        private System.Action? refreshAfterCommit;
+
         internal string PrepareAddSerialized(NeoWritePlan plan, NeoValueWritePayload? entryValue)
         {
             string id = PrepareAddSerializedCore(plan, entryValue);
             plan.ReportsOwnChange(this);
-            plan.AfterCommit(RefreshCommittedValue);
+            plan.AfterCommit(refreshAfterCommit ??= () => RefreshCommittedValue());
             plan.AfterNotifications(() => NotifyListChanged(new NeoListChangedArgs(
                 NeoListChangeKind.Add, addedValueIds: new[] { id })));
             return id;

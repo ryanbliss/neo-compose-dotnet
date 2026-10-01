@@ -402,7 +402,7 @@ namespace NeoCompose.Runtime
         protected void ReinitializeChildren(bool recordRebound = false)
         {
             var previousChildren = childMembers;
-            childMembers = new();
+            childMembers = new(mergedSchema.Count);
             // A Class member explicitly bound to a Null row has no object
             // graph to descend into. Do not confuse it with a missing or
             // malformed Object row, which must retain the existing fail-fast
@@ -425,8 +425,9 @@ namespace NeoCompose.Runtime
                 DisposeChildren(previousChildren.Values);
                 return;
             }
-            foreach (var entry in mergedSchema)
+            for (int entryIndex = 0; entryIndex < mergedSchema.Count; entryIndex++)
             {
+                MergedSchemaEntry entry = mergedSchema[entryIndex];
                 if (member.Payload == NeoMemberPayloadKind.Partial
                     && (value?.value is null
                         || !value.value.ContainsKey(entry.schemaKey)))

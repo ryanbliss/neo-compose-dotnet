@@ -231,11 +231,14 @@ namespace NeoCompose.Runtime
                 or DelegateMemberValue or ActionMemberValue)
                 return true;
 
-            // One inference answers both array checks below.
+            // One member answers both array checks below.
             Member? arrayMember = null;
-            if (next is ArrayMemberValue && TryInferMemberForValueId(id, out arrayMember)
-                && arrayMember is EnumMember or LookupMember or DialogueLookupMember)
-                return true;
+            if (next is ArrayMemberValue)
+            {
+                arrayMember = PlannedMember(plan, id);
+                if (arrayMember is EnumMember or LookupMember or DialogueLookupMember)
+                    return true;
+            }
 
             // A complete equal clone supplies its destination graph without
             // invalidating the immutable source's enclosing construction.
@@ -608,8 +611,8 @@ namespace NeoCompose.Runtime
             foreach (PreparedVirtualExpansion expansion in candidate.Expansions.Values)
                 InstallVirtualExpansion(expansion, includeNested: false);
             foreach (string root in candidate.AffectedRoots)
-                if (!candidate.RetainedRoots.Contains(root) && nodesByValueId.TryGetValue(root, out var nodes))
-                    foreach (NeoMember node in nodes.ToArray())
+                if (!candidate.RetainedRoots.Contains(root))
+                    foreach (NeoMember node in IndexedNodes(root))
                         if (!node.isDisposed && node is NeoMemberClass classNode
                             && TryGetOverlaidValue(node.ownership, root, out ObjectMemberValue? _))
                             classNode.RefreshCommittedValue();
