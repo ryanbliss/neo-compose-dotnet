@@ -209,27 +209,37 @@ namespace NeoCompose.Runtime
 
         // Every commit asks this for each row it walks past; the answer only
         // changes with the schema, which clears the cache with the class caches.
-        private readonly Dictionary<(string classId, string kind), bool> worldKindByClass = new();
+        // Each class's world kinds across its inheritance chain.
+        private readonly Dictionary<string, string[]> worldKindsByClass = new(StringComparer.Ordinal);
 
         // A layer-link class's validated target layer, cleared with the class caches.
         internal readonly Dictionary<(string classId, bool tile), string> LayerLinkTargetByClass = new();
 
-        internal bool HasWorldKind(string? classId, string kind)
+        internal bool HasWorldKind(string? classId, string kind) => HasWorldKind(WorldKinds(classId), kind);
+
+        private static bool HasWorldKind(string[] kinds, string kind)
+        {
+            for (int i = 0; i < kinds.Length; i++)
+            {
+                if (kinds[i] == kind)
+                    return true;
+            }
+            return false;
+        }
+
+        private string[] WorldKinds(string? classId)
         {
             if (string.IsNullOrEmpty(classId))
-                return false;
-            (string, string) key = (classId!, kind);
-            if (worldKindByClass.TryGetValue(key, out bool has))
-                return has;
-            has = false;
+                return Array.Empty<string>();
+            if (worldKindsByClass.TryGetValue(classId!, out string[]? kinds))
+                return kinds;
+            List<string>? found = null;
             foreach (NeoSchemaClass type in ResolveClassInheritanceChain(classId!))
-                if (type.system?["worldKind"]?.ToString() == kind)
-                {
-                    has = true;
-                    break;
-                }
-            worldKindByClass[key] = has;
-            return has;
+                if (type.system?["worldKind"]?.ToString() is string kind)
+                    (found ??= new List<string>()).Add(kind);
+            kinds = found?.ToArray() ?? Array.Empty<string>();
+            worldKindsByClass[classId!] = kinds;
+            return kinds;
         }
 
         // The walk below runs on every commit. Its collections are reused
@@ -244,6 +254,8 @@ namespace NeoCompose.Runtime
             internal readonly HashSet<string> tiles = new(StringComparer.Ordinal);
             internal readonly HashSet<string> objects = new(StringComparer.Ordinal);
             internal readonly List<string> parents = new();
+            internal readonly Dictionary<string, NeoReadOnlyTileGridPrimitive> primitives = new(StringComparer.Ordinal);
+            internal readonly Dictionary<(bool tile, string classId), HashSet<string>> compatibleLayers = new();
             internal bool inUse;
 
             internal void Clear()
@@ -255,6 +267,8 @@ namespace NeoCompose.Runtime
                 tiles.Clear();
                 objects.Clear();
                 parents.Clear();
+                primitives.Clear();
+                compatibleLayers.Clear();
             }
         }
 
@@ -321,11 +335,12 @@ namespace NeoCompose.Runtime
                     continue;
                 MemberValue? candidate = plan.Resolve(id);
                 TryGetCommittedValue(id, out MemberValue? previous);
-                if (HasWorldKind(candidate?.classId ?? previous?.classId, "tileGrid"))
+                string[] kinds = WorldKinds(candidate?.classId);
+                if (HasWorldKind(candidate?.classId is null ? WorldKinds(previous?.classId) : kinds, "tileGrid"))
                     grids.Add(id);
-                if (HasWorldKind(candidate?.classId, "tile"))
+                if (HasWorldKind(kinds, "tile"))
                     tiles.Add(id);
-                if (HasWorldKind(candidate?.classId, "object"))
+                if (HasWorldKind(kinds, "object"))
                     objects.Add(id);
                 if (!string.IsNullOrEmpty(candidate?.containerId))
                     pending.Enqueue(candidate!.containerId!);
@@ -362,12 +377,12 @@ namespace NeoCompose.Runtime
             }
             // These builders read rows and declarations only. Do not resolve
             // generated wrappers or populate persistent layer caches here.
-            var primitives = new Dictionary<string, NeoReadOnlyTileGridPrimitive>();
+            Dictionary<string, NeoReadOnlyTileGridPrimitive> primitives = scratch.primitives;
             foreach (string gridId in grids)
                 primitives[gridId] = NeoReadOnlyTileGridPrimitive.Resolve(this, gridId);
             using (ReadCandidate(plan))
             {
-                var compatibleLayers = new Dictionary<(bool tile, string classId), HashSet<string>>();
+                Dictionary<(bool tile, string classId), HashSet<string>> compatibleLayers = scratch.compatibleLayers;
                 foreach (string objectId in objects)
                     if (ResolveValueRow(objectId) is ObjectMemberValue obj && !obj.IsRemoved)
                         ValidateObjectFootprint(obj);

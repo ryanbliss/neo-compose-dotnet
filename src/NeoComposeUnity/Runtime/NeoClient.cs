@@ -2056,7 +2056,7 @@ namespace NeoCompose.Runtime
             InvalidateGetterMemo();
             worldClassIds.Clear();
             InvalidateSharedEvaluationContext();
-            worldKindByClass.Clear();
+            worldKindsByClass.Clear();
             LayerLinkTargetByClass.Clear();
             ScriptSchemaPlacements.Clear();
             ScriptCallableDispatch.Clear();
