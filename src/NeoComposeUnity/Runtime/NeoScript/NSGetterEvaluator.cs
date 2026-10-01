@@ -2331,19 +2331,7 @@ namespace NeoCompose.Runtime.NeoScript
                 && FindSchemaPlacementCached(site, ctx) is { } placement
                 && FindRowClassIdByReference(receiver, ctx) is { Length: > 0 } classId)
             {
-                MergedSchemaEntry? entry;
-                try
-                {
-                    NeoClassNode classNode = FindRowReference(receiver, ctx) is { } rowRef
-                        ? rowRef.ClassNode(ctx.client, classId)
-                        : ctx.client.ResolveClassNode(classId);
-                    entry = SurfaceMember(classNode, placement.schemaKey, site, ctx);
-                }
-                catch (CircularInheritanceError)
-                {
-                    entry = null;
-                }
-                if (entry is not null)
+                if (SurfaceRowMember(FindRowReference(receiver, ctx), classId, placement.schemaKey, site, ctx) is { } entry)
                 {
                     // Only a variant target member needs the client's lookup.
                     member = entry.member;
@@ -4234,22 +4222,7 @@ namespace NeoCompose.Runtime.NeoScript
                 ? receiverRef.ownership
                 : receiver is NeoObjectRecord receiverRecord ? receiverRecord.valueOwnership : null;
 
-            MergedSchemaEntry? entry;
-            try
-            {
-                entry = SurfaceMember(
-                    receiverRef is not null
-                        ? receiverRef.ClassNode(ctx.client, runtimeClassId!)
-                        : ctx.client.ResolveClassNode(runtimeClassId!),
-                    schemaKey,
-                    site,
-                    ctx);
-            }
-            catch (CircularInheritanceError)
-            {
-                return DispatchNoMember;
-            }
-
+            MergedSchemaEntry? entry = SurfaceRowMember(receiverRef, runtimeClassId!, schemaKey, site, ctx);
             JsonMember? member = entry?.member;
             if (member is null)
             {
@@ -4378,6 +4351,33 @@ namespace NeoCompose.Runtime.NeoScript
             }
         }
 
+        /// <summary>
+        /// The member <paramref name="schemaKey"/> names on a row of
+        /// <paramref name="classId"/>; null when it has none or its class
+        /// inherits circularly. Its own method so the exception region stays
+        /// off the caller's frame.
+        /// </summary>
+        /// <param name="rowRef">The row's reference, when there is one; it keeps the class node.</param>
+        private static MergedSchemaEntry? SurfaceRowMember(
+            RowReference? rowRef,
+            string classId,
+            string schemaKey,
+            ISchemaResolutionSite? site,
+            Context ctx)
+        {
+            try
+            {
+                NeoClassNode classNode = rowRef is not null
+                    ? rowRef.ClassNode(ctx.client, classId)
+                    : ctx.client.ResolveClassNode(classId);
+                return SurfaceMember(classNode, schemaKey, site, ctx);
+            }
+            catch (CircularInheritanceError)
+            {
+                return null;
+            }
+        }
+
         /// <param name="site">A <see cref="KeyOf"/> or <see cref="CallGetterPointer"/>, whose targets cache the entry.</param>
         private static MergedSchemaEntry? SurfaceMember(
             NeoClassNode classNode,
@@ -4437,18 +4437,7 @@ namespace NeoCompose.Runtime.NeoScript
             out MergedSchemaEntry? entry)
         {
             member = null;
-            entry = null;
-            try
-            {
-                NeoClassNode classNode = FindRowReference(receiver, ctx) is { } rowRef
-                    ? rowRef.ClassNode(ctx.client, classId)
-                    : ctx.client.ResolveClassNode(classId);
-                entry = SurfaceMember(classNode, key, site, ctx);
-            }
-            catch (CircularInheritanceError)
-            {
-                return false;
-            }
+            entry = SurfaceRowMember(FindRowReference(receiver, ctx), classId, key, site, ctx);
             if (entry is null)
                 return false;
             // The class node resolved the entry's authored member; only a
