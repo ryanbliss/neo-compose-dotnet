@@ -84,8 +84,10 @@ namespace NeoCompose.Runtime
         /// </summary>
         public void Invoke(params object?[] args)
         {
-            var ctx = client.CreateGetterContext(ownership);
-            ctx.BindRoot(NeoScriptValueMarshaller.ResolveRoot(client, ctx));
+            NeoActionValue? listeners = value?.value ?? member.defaultValue?.value;
+            if (listeners is null || listeners.listeners.Count == 0)
+                return;
+            NSGetterEvaluator.Context ctx = client.RentDirectFunctionContext(ownership);
             // The owning row is threaded in exactly as the evaluator's
             // `callAction` pointer threads it, so a listener stored with a
             // null `valueId` — every declaration default, and every
@@ -94,17 +96,22 @@ namespace NeoCompose.Runtime
             object? owner = ResolveLexicalThis(ctx);
             ctx.BindThis(owner);
             NSGetterEvaluator.InvokeAction(
-                ResolveActionValue(),
+                listeners,
                 args ?? Array.Empty<object?>(),
                 ctx,
                 owner,
-                // `{actionMemberName}[{owningRowId ?? "default"}]` — the row
-                // the action fanned out from, which is what the evaluator's
-                // frame names too. The action's own value-row id would be a
-                // different string for the same failure, and an unparented
-                // or static action has no owning row at all: "default".
-                () => $"{member.name}[{OwningRowValueId ?? "default"}]");
+                describeFrame ??= DescribeFrame);
+            client.ReturnDirectFunctionContext(ctx, null);
         }
+
+        private Func<string>? describeFrame;
+
+        // `{actionMemberName}[{owningRowId ?? "default"}]` — the row the
+        // action fanned out from, which is what the evaluator's frame names
+        // too. The action's own value-row id would be a different string for
+        // the same failure, and an unparented or static action has no owning
+        // row at all: "default".
+        private string DescribeFrame() => $"{member.name}[{OwningRowValueId ?? "default"}]";
 
         /// <summary>
         /// The listener set this node reads through: its stored row when one
