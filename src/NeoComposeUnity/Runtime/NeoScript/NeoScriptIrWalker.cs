@@ -25,6 +25,26 @@ namespace NeoCompose.Runtime.NeoScript
             return false;
         }
 
+        /// <summary>
+        /// Whether an instruction may call a Function or run an object
+        /// initializer anywhere in it, nested bodies included. IR the walker
+        /// does not know counts as calling.
+        /// </summary>
+        internal static bool MayCall(Instruction instruction)
+        {
+            try
+            {
+                return AnyPointer(instruction, IsCall);
+            }
+            catch (NotSupportedException)
+            {
+                return true;
+            }
+        }
+
+        private static readonly Func<Pointer, bool> IsCall =
+            pointer => pointer is CallFunctionPointer or ObjectInitializerPointer;
+
         private static bool AnyPointer(
             Instruction instruction,
             Func<Pointer, bool> predicate)

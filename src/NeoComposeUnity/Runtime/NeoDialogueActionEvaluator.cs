@@ -468,6 +468,7 @@ namespace NeoCompose.Runtime
             bool immediate = resumeState is null && options?.AllowDeferredFunctionCalls != true;
             ExpressionResumeState expressionState;
             NSGetterEvaluator.Context actionCtx;
+            bool pendingFrame = false;
             if (immediate
                 && options is not null
                 && options.immediateHandlers is not null
@@ -489,9 +490,18 @@ namespace NeoCompose.Runtime
                 expressionState = cachedState;
                 actionCtx = cachedCtx;
             }
+            else if (!immediate && resumeState is null)
+            {
+                // A deferred frame records nothing until an instruction can
+                // call, so it builds its recording context there: the
+                // instructions before it run on the context as is.
+                expressionState = ExpressionResumeState.Immediate;
+                actionCtx = ctx;
+                pendingFrame = true;
+            }
             else
             {
-                expressionState = resumeState ?? ExpressionResumeState.ForOptions(options);
+                expressionState = resumeState ?? ExpressionResumeState.Immediate;
                 actionCtx = BuildExpressionContext(client, ctx, expressionState, options);
                 if (immediate)
                 {
@@ -507,6 +517,12 @@ namespace NeoCompose.Runtime
                 for (; i < instructions.Length; i++)
                 {
                     var instruction = instructions[i];
+                    if (pendingFrame && instruction.MayCall)
+                    {
+                        pendingFrame = false;
+                        expressionState = new ExpressionResumeState();
+                        actionCtx = BuildExpressionContext(client, ctx, expressionState, options);
+                    }
                     // A callSiteId identifies a source location, not one dynamic
                     // invocation. Reset only the per-attempt occurrence counters
                     // so repeated calls from a collection lambda receive stable
@@ -1454,7 +1470,7 @@ namespace NeoCompose.Runtime
                     client,
                     instruction,
                     sectionByLabel,
-                    ExpressionResumeState.ForOptions(options),
+                    ExpressionResumeState.ForInstruction(instruction, options),
                     returnTypeInfo,
                     scope,
                     ctx,
@@ -2071,7 +2087,14 @@ namespace NeoCompose.Runtime
             ExpressionResumeState expressionState,
             NeoScriptExecutionOptions? options)
         {
-            if (options?.AllowDeferredFunctionCalls != true)
+            if (options?.AllowDeferredFunctionCalls == true)
+            {
+                // A deferred frame gives the shared state only to an
+                // instruction that cannot call: it never uses the handlers.
+                if (ReferenceEquals(expressionState, ExpressionResumeState.Immediate))
+                    return ctx;
+            }
+            else
             {
                 if (options is not null
                     && options.immediateHandlers is not null
@@ -2122,11 +2145,7 @@ namespace NeoCompose.Runtime
 
         private static void InitializeImmediateHandlers(NeoClient client, NeoScriptExecutionOptions options)
         {
-            options.immediateHandlers = new NSGetterEvaluator.Context.ExpressionHandlers(
-                (pointer, scope, ctx) =>
-                    CallFunction(client, pointer, scope, ctx, options, CallSiteKey(pointer)),
-                (pointer, scope, ctx) =>
-                    EvalObjectInitializer(pointer, scope, ctx, ExpressionResumeState.Immediate, options));
+            options.immediateHandlers = new ImmediateHandlers(client, options);
         }
 
         private static NSGetterEvaluator.Context BuildExpressionContext(
@@ -2149,11 +2168,53 @@ namespace NeoCompose.Runtime
                 EnsureImmediateHandlers(client, options);
                 return ctx.WithExpressionHandlers(options.immediateHandlers!);
             }
-            return ctx.WithExpressionHandlers(new NSGetterEvaluator.Context.ExpressionHandlers(
-                (pointer, currentScope, currentCtx) => EvalFunctionCall(
-                    client, pointer, currentScope, currentCtx, expressionState, options),
-                (pointer, currentScope, currentCtx) => EvalObjectInitializer(
-                    pointer, currentScope, currentCtx, expressionState, options)));
+            return ctx.WithExpressionHandlers(new FrameHandlers(client, expressionState, options));
+        }
+
+        /// <summary>
+        /// The handlers every immediate frame of one (client, options) pair
+        /// shares: the immediate resume state is stateless.
+        /// </summary>
+        private sealed class ImmediateHandlers : NSGetterEvaluator.Context.ExpressionHandlers
+        {
+            private readonly NeoClient client;
+            private readonly NeoScriptExecutionOptions options;
+
+            internal ImmediateHandlers(NeoClient client, NeoScriptExecutionOptions options)
+            {
+                this.client = client;
+                this.options = options;
+            }
+
+            internal override object? Call(CallFunctionPointer pointer, NeoScriptScope scope, NSGetterEvaluator.Context ctx) =>
+                CallFunction(client, pointer, scope, ctx, options, CallSiteKey(pointer));
+
+            internal override object? Initialize(ObjectInitializerPointer pointer, NeoScriptScope scope, NSGetterEvaluator.Context ctx) =>
+                EvalObjectInitializer(pointer, scope, ctx, ExpressionResumeState.Immediate, options);
+        }
+
+        /// <summary>The handlers of one frame, recording into its resume state.</summary>
+        private sealed class FrameHandlers : NSGetterEvaluator.Context.ExpressionHandlers
+        {
+            private readonly NeoClient client;
+            private readonly ExpressionResumeState expressionState;
+            private readonly NeoScriptExecutionOptions? options;
+
+            internal FrameHandlers(
+                NeoClient client,
+                ExpressionResumeState expressionState,
+                NeoScriptExecutionOptions? options)
+            {
+                this.client = client;
+                this.expressionState = expressionState;
+                this.options = options;
+            }
+
+            internal override object? Call(CallFunctionPointer pointer, NeoScriptScope scope, NSGetterEvaluator.Context ctx) =>
+                EvalFunctionCall(client, pointer, scope, ctx, expressionState, options);
+
+            internal override object? Initialize(ObjectInitializerPointer pointer, NeoScriptScope scope, NSGetterEvaluator.Context ctx) =>
+                EvalObjectInitializer(pointer, scope, ctx, expressionState, options);
         }
 
         private static NeoScriptExecutionResult PauseLoopExpression(
@@ -5826,7 +5887,7 @@ namespace NeoCompose.Runtime
                 Instruction = instruction;
                 this.options = options;
                 CheckCondition = instruction is not DoWhileInstruction;
-                ExpressionState = ExpressionResumeState.ForOptions(options);
+                ExpressionState = ExpressionResumeState.ForInstruction(Instruction, options);
             }
 
             internal WhileInstruction Instruction
@@ -5845,10 +5906,10 @@ namespace NeoCompose.Runtime
             internal void NextCondition()
             {
                 CheckCondition = true;
-                // Only immediate options give the shared state, which an
-                // immediate loop keeps: it records nothing.
+                // Only an instruction that cannot suspend gets the shared
+                // state, which it keeps: it records nothing.
                 if (!ReferenceEquals(ExpressionState, ExpressionResumeState.Immediate))
-                    ExpressionState = ExpressionResumeState.ForOptions(options);
+                    ExpressionState = ExpressionResumeState.ForInstruction(Instruction, options);
             }
         }
 
@@ -5882,7 +5943,7 @@ namespace NeoCompose.Runtime
             {
                 this.options = options;
                 Phase = ForPhase.Initializer;
-                ExpressionState = ExpressionResumeState.ForOptions(options);
+                ExpressionState = ExpressionResumeState.ForInstruction(Instruction, options);
             }
             internal ForPhase Phase
             {
@@ -5896,10 +5957,10 @@ namespace NeoCompose.Runtime
             internal void MoveTo(ForPhase phase)
             {
                 Phase = phase;
-                // Only immediate options give the shared state, which an
-                // immediate loop keeps: it records nothing.
+                // Only an instruction that cannot suspend gets the shared
+                // state, which it keeps: it records nothing.
                 if (!ReferenceEquals(ExpressionState, ExpressionResumeState.Immediate))
-                    ExpressionState = ExpressionResumeState.ForOptions(options);
+                    ExpressionState = ExpressionResumeState.ForInstruction(Instruction, options);
             }
 
             /// <summary>
@@ -5922,7 +5983,7 @@ namespace NeoCompose.Runtime
                 : base(instruction.binding.id, scope, readOnly: true)
             {
                 Instruction = instruction;
-                ExpressionState = ExpressionResumeState.ForOptions(options);
+                ExpressionState = ExpressionResumeState.ForInstruction(Instruction, options);
             }
 
             internal ForEachInstruction Instruction
@@ -5938,7 +5999,7 @@ namespace NeoCompose.Runtime
             internal void Begin(NeoScriptScope scope, NeoScriptExecutionOptions? options)
             {
                 Begin(Instruction.binding.id, scope, readOnly: true);
-                ExpressionState = ExpressionResumeState.ForOptions(options);
+                ExpressionState = ExpressionResumeState.ForInstruction(Instruction, options);
                 Index = 0;
             }
 
@@ -5978,7 +6039,7 @@ namespace NeoCompose.Runtime
                 ValidateTryInstructionMetadata(instruction);
                 this.options = options;
                 Phase = TryPhase.Body;
-                ExpressionState = ExpressionResumeState.ForOptions(options);
+                ExpressionState = ExpressionResumeState.ForInstruction(Instruction, options);
             }
 
             internal TryInstruction Instruction
@@ -6037,7 +6098,7 @@ namespace NeoCompose.Runtime
             internal void SelectCurrentClause()
             {
                 Phase = TryPhase.CatchBody;
-                ExpressionState = ExpressionResumeState.ForOptions(options);
+                ExpressionState = ExpressionResumeState.ForInstruction(Instruction, options);
             }
 
             internal Exception CompleteWithoutMatch()
@@ -6056,7 +6117,7 @@ namespace NeoCompose.Runtime
 
             private void PrepareCurrentClause()
             {
-                ExpressionState = ExpressionResumeState.ForOptions(options);
+                ExpressionState = ExpressionResumeState.ForInstruction(Instruction, options);
                 Phase = catchIndex >= Instruction.catches.Length
                     ? TryPhase.NoMatch
                     : CurrentClause.filter is null
@@ -6085,12 +6146,13 @@ namespace NeoCompose.Runtime
             }
 
             /// <summary>
-            /// A recording state for frames that may suspend; the shared
-            /// immediate state otherwise.
+            /// A recording state for an instruction that may suspend its
+            /// frame; the shared immediate state otherwise.
             /// </summary>
-            internal static ExpressionResumeState ForOptions(
+            internal static ExpressionResumeState ForInstruction(
+                Instruction instruction,
                 NeoScriptExecutionOptions? options) =>
-                options?.AllowDeferredFunctionCalls == true
+                options?.AllowDeferredFunctionCalls == true && instruction.MayCall
                     ? new ExpressionResumeState()
                     : Immediate;
 

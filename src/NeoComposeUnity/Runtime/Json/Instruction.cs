@@ -4,6 +4,7 @@
 #nullable enable
 
 using System;
+using System.Runtime.CompilerServices;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -32,6 +33,27 @@ namespace NeoCompose.Runtime.Json
         private protected Instruction(InstructionCode code)
         {
             this.code = code;
+        }
+
+        // 0 until first use, then 1 when the instruction cannot call and 2 when it can.
+        private byte mayCall;
+
+        /// <summary>
+        /// Whether the instruction may call a Function or run an object
+        /// initializer: the only expressions that use a frame's expression
+        /// handlers or suspend it.
+        /// </summary>
+        internal bool MayCall
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => mayCall != 0 ? mayCall == 2 : ComputeMayCall();
+        }
+
+        private bool ComputeMayCall()
+        {
+            bool calls = NeoScript.NeoScriptIrWalker.MayCall(this);
+            mayCall = calls ? (byte)2 : (byte)1;
+            return calls;
         }
     }
 

@@ -173,7 +173,7 @@ namespace NeoCompose.Tests
             Assert.That(reused, Is.SameAs(first));
             Assert.That(reused.thisValue, Is.Null);
             var callStack = new[] { "bound-function" };
-            var handlers = new NSGetterEvaluator.Context.ExpressionHandlers((_, _, _) => null, (_, _, _) => null);
+            var handlers = new StubHandlers(() => null);
             reused.BindFunction(callStack, null);
             reused.BindFrameHandlers(-1, handlers);
             client.ReturnDirectFunctionContext(reused, 1);
@@ -382,18 +382,30 @@ namespace NeoCompose.Tests
             scope["wide"] = 10L;
             Assert.That(NSGetterEvaluator.EvaluatePointer(sum, scope, context), Is.EqualTo("11"));
             int calls = 0;
-            context = context.WithExpressionHandlers(new NSGetterEvaluator.Context.ExpressionHandlers(
-                (_, _, _) =>
-                {
-                    calls++;
-                    return 2d;
-                },
-                (_, _, _) => null));
+            context = context.WithExpressionHandlers(new StubHandlers(() =>
+            {
+                calls++;
+                return 2d;
+            }));
             var divide = Add(Number(1), Number(0));
             ((ArithmeticOperation)divide.operation).arithmetic.type = ArithmeticOpKind.Division;
             ((ArithmeticOperation)divide.operation).arithmetic.pointers = new Pointer[] { Number(1), Number(0), Call("effect", "effect") };
             Assert.Throws<NSGetterRuntimeError>(() => NSGetterEvaluator.EvaluatePointer(divide, scope, context));
             Assert.That(calls, Is.EqualTo(1), "All operands execute before the arithmetic fold reports division by zero.");
+        }
+
+        private sealed class StubHandlers : NSGetterEvaluator.Context.ExpressionHandlers
+        {
+            private readonly Func<object?> call;
+
+            internal StubHandlers(Func<object?> call)
+            {
+                this.call = call;
+            }
+
+            internal override object? Call(CallFunctionPointer pointer, NeoScriptScope scope, NSGetterEvaluator.Context ctx) => call();
+
+            internal override object? Initialize(ObjectInitializerPointer pointer, NeoScriptScope scope, NSGetterEvaluator.Context ctx) => null;
         }
 
         [Test]

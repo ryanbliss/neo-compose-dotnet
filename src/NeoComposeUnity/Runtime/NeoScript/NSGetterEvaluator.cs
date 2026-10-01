@@ -581,28 +581,16 @@ namespace NeoCompose.Runtime.NeoScript
                 IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
             }
 
-            internal delegate object? LinkedFunctionCallHandler(
-                CallFunctionPointer pointer,
-                NeoScriptScope scope,
-                Context ctx);
-
             /// <summary>
             /// The call and object-initializer handlers an expression context
             /// runs with. One reference, so a frame installs and restores both
-            /// with one store.
+            /// with one store, and one object rather than a delegate per handler.
             /// </summary>
-            internal sealed class ExpressionHandlers
+            internal abstract class ExpressionHandlers
             {
-                internal readonly LinkedFunctionCallHandler call;
-                internal readonly Func<ObjectInitializerPointer, NeoScriptScope, Context, object?> initializer;
+                internal abstract object? Call(CallFunctionPointer pointer, NeoScriptScope scope, Context ctx);
 
-                internal ExpressionHandlers(
-                    LinkedFunctionCallHandler call,
-                    Func<ObjectInitializerPointer, NeoScriptScope, Context, object?> initializer)
-                {
-                    this.call = call;
-                    this.initializer = initializer;
-                }
+                internal abstract object? Initialize(ObjectInitializerPointer pointer, NeoScriptScope scope, Context ctx);
             }
 
             public NeoClient client
@@ -1970,7 +1958,7 @@ namespace NeoCompose.Runtime.NeoScript
                     }
                 case ObjectInitializerPointer initializer:
                     return ctx.expressionHandlers is { } handlers
-                        ? handlers.initializer(initializer, scope, ctx)
+                        ? handlers.Initialize(initializer, scope, ctx)
                         : NeoScriptExecutor.EvaluateImmediateObjectInitializer(initializer, scope, ctx);
                 case ConditionalPointer conditional:
                     {
@@ -2543,7 +2531,7 @@ namespace NeoCompose.Runtime.NeoScript
         {
             if (ctx.expressionHandlers is { } handlers)
             {
-                return handlers.call(pointer, scope, ctx);
+                return handlers.Call(pointer, scope, ctx);
             }
             var receiver = EvalCallReceiver(pointer.receiver, scope, ctx);
             if (pointer.optional == true && receiver is null)
