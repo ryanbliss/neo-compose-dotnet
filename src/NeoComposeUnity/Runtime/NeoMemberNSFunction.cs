@@ -153,7 +153,7 @@ namespace NeoCompose.Runtime
             MemberValue row = ReceiverRow(thisValueId);
             NSGetterEvaluator.Context ctx = client.RentDirectFunctionContext(ownership);
             object receiver = UnwrapReceiver(row, ctx);
-            NeoResolvedNSFunction function = ResolveInstanceFunction(receiver, ctx);
+            NeoResolvedNSFunction function = ResolveInstanceFunction(receiver, row, ctx);
             ctx.gridReads = gridReads;
             if (function.Deferred)
             {
@@ -187,7 +187,7 @@ namespace NeoCompose.Runtime
                 MemberValue row = ReceiverRow(thisValueId);
                 NSGetterEvaluator.Context ctx = CreateDirectContext(ownership);
                 object receiver = UnwrapReceiver(row, ctx);
-                NeoResolvedNSFunction function = ResolveInstanceFunction(receiver, ctx);
+                NeoResolvedNSFunction function = ResolveInstanceFunction(receiver, row, ctx);
                 ctx.gridReads = gridReads;
                 if (!function.Deferred)
                 {
@@ -220,15 +220,18 @@ namespace NeoCompose.Runtime
         // through memory costs Mono a write barrier per reference.
         private MemberValue ReceiverRow(string thisValueId)
         {
-            if (string.IsNullOrWhiteSpace(thisValueId))
-            {
-                throw new ArgumentException(
-                    "A non-empty receiver value id is required.",
-                    nameof(thisValueId));
-            }
             NeoValueNode? node = receiverNode;
-            if (node is not null && !string.Equals(node.id, thisValueId, StringComparison.Ordinal))
+            // A repeat receiver's id passed validation when its node was kept.
+            if (node is null || !string.Equals(node.id, thisValueId, StringComparison.Ordinal))
+            {
+                if (string.IsNullOrWhiteSpace(thisValueId))
+                {
+                    throw new ArgumentException(
+                        "A non-empty receiver value id is required.",
+                        nameof(thisValueId));
+                }
                 node = null;
+            }
             MemberValue? row = client.ReadValue(ownership, thisValueId, ref node);
             if (!ReferenceEquals(node, receiverNode))
                 receiverNode = node;
@@ -254,7 +257,8 @@ namespace NeoCompose.Runtime
                     $"NSFunction '{member.name}' cannot be invoked on a null receiver.");
         }
 
-        private NeoResolvedNSFunction ResolveInstanceFunction(object receiver, NSGetterEvaluator.Context ctx)
+        /// <param name="row">The row <paramref name="receiver"/> was unwrapped from.</param>
+        private NeoResolvedNSFunction ResolveInstanceFunction(object receiver, MemberValue row, NSGetterEvaluator.Context ctx)
         {
             // The pointer carries no missing-member fallback, so resolution
             // throws rather than answering no target.
@@ -276,7 +280,11 @@ namespace NeoCompose.Runtime
                     callSiteId = "__direct__",
                 },
                 receiver,
-                ctx)!;
+                ctx,
+                // The receiver's class comes from the row just read, except
+                // during a virtual instance replay, whose class read records
+                // a dependency an ordinary read doesn't.
+                client.IsReplayingVirtualInstance ? null : row)!;
             return target.function ?? NeoNSFunctionRuntime.ResolveSignature(client, target.memberId);
         }
 

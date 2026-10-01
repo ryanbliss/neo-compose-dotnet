@@ -3302,10 +3302,12 @@ namespace NeoCompose.Runtime.NeoScript
         /// cached targets, or null when the call has no target. A repeat call
         /// on a runtime Class the site has seen costs class-id comparisons.
         /// </summary>
+        /// <param name="receiverRow">The receiver's row, when the caller just read it.</param>
         internal static CallSiteTarget? ResolveCallTarget(
             CallFunctionPointer pointer,
             object? receiver,
-            Context ctx)
+            Context ctx,
+            MemberValue? receiverRow = null)
         {
             // Targets are immutable and published with one reference write,
             // so a site shared across clients or threads reads a whole chain.
@@ -3323,7 +3325,7 @@ namespace NeoCompose.Runtime.NeoScript
                 {
                     if (!receiverClassKnown)
                     {
-                        receiverClassId = FindRowClassIdByReference(receiver, ctx);
+                        receiverClassId = FindRowClassIdByReference(receiver, ctx, receiverRow);
                         receiverClassKnown = true;
                     }
                     if (!SameId(target.receiverClassId, receiverClassId))
@@ -8784,7 +8786,8 @@ namespace NeoCompose.Runtime.NeoScript
         // Mirrors the TS-side reliance on `ctx.vm.values.find(r => r.value === value)`.
         // ---------------------------------------------------------------
 
-        internal static string? FindRowClassIdByReference(object? value, Context ctx)
+        /// <param name="row">The row <paramref name="value"/> was unwrapped from, when the caller just read it.</param>
+        internal static string? FindRowClassIdByReference(object? value, Context ctx, MemberValue? row = null)
         {
             if (value is NeoScriptObject { attachedId: null } detached)
                 return detached.plan.classId;
@@ -8794,7 +8797,7 @@ namespace NeoCompose.Runtime.NeoScript
             // wrong overlay for an unwrapped NeoObjectRecord.
             if (FindRowReference(value, ctx) is { } rowRef)
             {
-                return ClassIdOfRowReference(rowRef, ctx);
+                return ClassIdOfRowReference(rowRef, ctx, row);
             }
             return FindReferencedClassId(value, ctx);
         }
