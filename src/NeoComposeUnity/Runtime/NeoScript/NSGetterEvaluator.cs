@@ -1839,30 +1839,25 @@ namespace NeoCompose.Runtime.NeoScript
                 ctx.NoteFreshList(copy);
                 return copy;
             }
+            switch (vp.valueTemplate)
+            {
+                case NeoDelegateValue delegateTemplate:
+                    return BindDelegateLiteral(delegateTemplate.PersistedCopy(), ctx);
+                case NeoActionValue actionTemplate:
+                    return actionTemplate.PersistedCopy();
+            }
             if (NeoDelegateValueConverter.LooksLikeValue(vp.value.value))
             {
-                NeoDelegateValue value = vp.value.value!
-                    .ToObject<NeoDelegateValue>()!;
-                if (value.IsClosure)
-                {
-                    ctx.allocationTracker.ReusableContext = false;
-                    return value.Capture(ctx.thisValue, ctx.rootValue);
-                }
-
-                // Bind implicit and explicit this.Member literals at creation,
-                // as the web evaluator does. Invocation may have a different this.
-                if (value.valueId is null
-                    && ctx.client.TryGetMember(value.memberId!, out JsonMember? member)
-                    && member.Modifier != NeoMemberModifierKind.Static)
-                {
-                    value.valueId = FindRowIdByReference(ctx.thisValue, ctx);
-                }
-                return value;
+                vp.valueTemplate = vp.value.value!.ToObject<NeoDelegateValue>()!;
+                return EvalValueLiteral(vp, ctx);
             }
             // Clear() lowers to an action literal assignment. Preserve
             // its listener-set type instead of unwrapping it as a map.
             if (vp.value.typeInfo.type == MemberKind.NSAction)
-                return vp.value.value?.ToObject<NeoActionValue>() ?? new NeoActionValue();
+            {
+                vp.valueTemplate = vp.value.value?.ToObject<NeoActionValue>() ?? new NeoActionValue();
+                return EvalValueLiteral(vp, ctx);
+            }
             JToken? literal = vp.value.value;
             if (literal is null
                 || literal.Type is JTokenType.Null
@@ -1886,6 +1881,25 @@ namespace NeoCompose.Runtime.NeoScript
                 return EvalValueLiteral(vp, ctx);
             }
             return UnwrapJToken(literal);
+        }
+
+        private static NeoDelegateValue BindDelegateLiteral(NeoDelegateValue value, Context ctx)
+        {
+            if (value.IsClosure)
+            {
+                ctx.allocationTracker.ReusableContext = false;
+                return value.Capture(ctx.thisValue, ctx.rootValue);
+            }
+
+            // Bind implicit and explicit this.Member literals at creation,
+            // as the web evaluator does. Invocation may have a different this.
+            if (value.valueId is null
+                && ctx.client.TryGetMember(value.memberId!, out JsonMember? member)
+                && member.Modifier != NeoMemberModifierKind.Static)
+            {
+                value.valueId = FindRowIdByReference(ctx.thisValue, ctx);
+            }
+            return value;
         }
 
         /// <summary>A variable read, following a row-backed or attached alias.</summary>

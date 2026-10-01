@@ -72,6 +72,9 @@ namespace NeoCompose.Runtime.Json
         internal object?[]? primitiveEntries;
         // Evaluator cache for an array literal read only by a comparison.
         internal object? comparand;
+        // Evaluator cache for a NeoDelegate or NSAction literal, parsed once
+        // and copied per evaluation.
+        internal object? valueTemplate;
     }
 
     /// <summary>Mirror of <c>INSPointerOperation</c>.</summary>
