@@ -6248,19 +6248,49 @@ namespace NeoCompose.Runtime
         private Action<Exception>? abandonmentObserver => pausedState?.abandonmentObserver;
         private Func<Exception, NeoScriptExecutionResult?>? failureRecovery => pausedState?.failureRecovery;
 
-        internal bool IsPaused => state is PausedState;
+        // Every instruction reads these; Mono's size limit would otherwise
+        // leave each a call.
+        internal bool IsPaused
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => state is PausedState;
+        }
         internal NeoScriptControlTransfer Transfer =>
             Returned ? NeoScriptControlTransfer.Return
             : ReferenceEquals(state, BreakState) ? NeoScriptControlTransfer.Break
             : ReferenceEquals(state, ContinueState) ? NeoScriptControlTransfer.Continue
             : NeoScriptControlTransfer.Fallthrough;
-        internal bool Returned => state is not null && (state is not Marker || ReferenceEquals(state, ReturnNullState));
-        internal bool IsBreak => ReferenceEquals(state, BreakState);
-        internal bool IsContinue => ReferenceEquals(state, ContinueState);
-        internal bool IsFallthrough => state is null or PausedState;
-        internal bool IsFailed => state is FailedState;
+        internal bool Returned
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => state is not null && (state is not Marker || ReferenceEquals(state, ReturnNullState));
+        }
+        internal bool IsBreak
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => ReferenceEquals(state, BreakState);
+        }
+        internal bool IsContinue
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => ReferenceEquals(state, ContinueState);
+        }
+        internal bool IsFallthrough
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => state is null or PausedState;
+        }
+        internal bool IsFailed
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => state is FailedState;
+        }
         internal Exception? Failure => (state as FailedState)?.failure;
-        internal object? ReturnValue => state is Marker ? null : state;
+        internal object? ReturnValue
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => state is Marker ? null : state;
+        }
         internal string? SuspendedMemberId => pausedState?.suspendedMemberId;
         internal NeoDeferredFunctionBase? Deferred => pausedState?.deferred;
 

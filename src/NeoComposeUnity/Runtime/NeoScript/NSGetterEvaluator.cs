@@ -3978,13 +3978,13 @@ namespace NeoCompose.Runtime.NeoScript
             bool memoize = client.CanMemoizeGetters
                 && receiver is not NeoScriptObject { attachedId: null }
                 && (receiverRef = FindRowReference(receiver, ctx)) is not null;
-            NeoClient.GetterMemoKey memoKey = default;
             if (memoize)
             {
-                memoKey = new NeoClient.GetterMemoKey(
-                    receiverRef!.ownership, receiverRef.valueId, memberId, ctx.valueOwnership);
-                NeoClient.GetterMemoEntry? hit = receiverRef.MemoizedGetter(memberId, ctx.valueOwnership);
-                if (hit is null && (hit = client.FindMemoizedGetter(memoKey)) is not null)
+                // The row reference's own slot usually answers, so the
+                // memo's key, whose two strings each cost a write barrier
+                // to store, is only built where the memo itself is read.
+                NeoClient.GetterMemoEntry? hit = receiverRef!.MemoizedGetter(memberId, ctx.valueOwnership);
+                if (hit is null && (hit = client.FindMemoizedGetter(GetterMemoKeyOf(receiverRef, memberId, ctx))) is not null)
                     receiverRef.RememberGetter(memberId, ctx.valueOwnership, hit);
                 if (hit is not null)
                 {
@@ -3995,7 +3995,7 @@ namespace NeoCompose.Runtime.NeoScript
                             client.ReplayGetterReads(hit, ctx.gridReads);
                             return hitList;
                         }
-                        client.ForgetMemoizedGetter(memoKey);
+                        client.ForgetMemoizedGetter(GetterMemoKeyOf(receiverRef, memberId, ctx));
                     }
                     else if (hit.row is null)
                     {
@@ -4010,7 +4010,7 @@ namespace NeoCompose.Runtime.NeoScript
                             client.ReplayGetterReads(hit, ctx.gridReads);
                             return UnwrapCached(hitRow, ctx, hitRef.ownership, hitRef.member, hitRef.node);
                         }
-                        client.ForgetMemoizedGetter(memoKey);
+                        client.ForgetMemoizedGetter(GetterMemoKeyOf(receiverRef, memberId, ctx));
                     }
                 }
             }
@@ -4039,6 +4039,7 @@ namespace NeoCompose.Runtime.NeoScript
                 capture = client.EndGetterReadCapture(enclosingCapture);
             }
             NeoClient.GetterMemoEntry? memoized = null;
+            NeoClient.GetterMemoKey memoKey = GetterMemoKeyOf(receiverRef!, memberId, ctx);
             if (!client.CanMemoizeGetters)
                 client.RecycleGetterCapture(capture);
             else if (result is null or string or bool or double or int or long or float)
@@ -4056,6 +4057,9 @@ namespace NeoCompose.Runtime.NeoScript
                 receiverRef!.RememberGetter(memberId, ctx.valueOwnership, memoized);
             return result;
         }
+
+        private static NeoClient.GetterMemoKey GetterMemoKeyOf(RowReference receiverRef, string memberId, Context ctx) =>
+            new(receiverRef.ownership, receiverRef.valueId, memberId, ctx.valueOwnership);
 
         internal static bool ContainsFrame(IReadOnlyCollection<string> stack, string memberId)
         {
@@ -5288,7 +5292,7 @@ namespace NeoCompose.Runtime.NeoScript
                 var cursor = new CollectionCursor(c, ctx);
                 while (cursor.MoveNextUnresolved())
                 {
-                    NeoScriptExecutionResult result = callback.Execute(in cursor, cursor.ResolveEntry());
+                    NeoScriptExecutionResult result = callback.Execute(in cursor, cursor.ResolveEntry(ctx));
                     if (result.Returned
                         && result.ReturnValue is bool matches
                         && matches)
@@ -5342,7 +5346,7 @@ namespace NeoCompose.Runtime.NeoScript
                 var listCursor = new CollectionCursor(c, ctx);
                 while (listCursor.MoveNextUnresolved())
                 {
-                    if (JsEqual(listCursor.ResolveEntry(), target))
+                    if (JsEqual(listCursor.ResolveEntry(ctx), target))
                         return BoxedTrue;
                 }
                 return BoxedFalse;
@@ -5351,7 +5355,7 @@ namespace NeoCompose.Runtime.NeoScript
             while (cursor.MoveNextUnresolved())
             {
                 if ((cursor.ValueId is { } valueId && valueId == targetReferenceId)
-                    || JsEqual(cursor.ResolveEntry(), target))
+                    || JsEqual(cursor.ResolveEntry(ctx), target))
                 {
                     return BoxedTrue;
                 }
@@ -5377,7 +5381,7 @@ namespace NeoCompose.Runtime.NeoScript
             while (cursor.MoveNextUnresolved())
             {
                 if ((cursor.ValueId is { } valueId && valueId == targetReferenceId)
-                    || JsEqual(cursor.ResolveEntry(), target))
+                    || JsEqual(cursor.ResolveEntry(ctx), target))
                 {
                     return Box(cursor.Index);
                 }
@@ -5417,7 +5421,7 @@ namespace NeoCompose.Runtime.NeoScript
                 var cursor = new CollectionCursor(c, ctx);
                 while (cursor.MoveNextUnresolved())
                 {
-                    object? entry = cursor.ResolveEntry();
+                    object? entry = cursor.ResolveEntry(ctx);
                     NeoScriptExecutionResult matched = callback.Execute(in cursor, entry);
                     if (matched.Returned && matched.ReturnValue is bool b && b)
                     {
@@ -5491,7 +5495,7 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 var cursor = new CollectionCursor(c, ctx);
                 if (cursor.MoveNextUnresolved())
-                    return cursor.ResolveEntry();
+                    return cursor.ResolveEntry(ctx);
             }
             else
             {
@@ -5506,7 +5510,7 @@ namespace NeoCompose.Runtime.NeoScript
                     var cursor = new CollectionCursor(c, ctx);
                     while (cursor.MoveNextUnresolved())
                     {
-                        object? foundValue = cursor.ResolveEntry();
+                        object? foundValue = cursor.ResolveEntry(ctx);
                         if (callback.Execute(in cursor, foundValue) is { Returned: true, ReturnValue: true })
                         {
                             callback.CompleteOperator(foundValue);
@@ -5550,7 +5554,7 @@ namespace NeoCompose.Runtime.NeoScript
                 var cursor = new CollectionCursor(c, ctx);
                 while (cursor.MoveNextUnresolved())
                 {
-                    NeoScriptExecutionResult projected = callback.Execute(in cursor, cursor.ResolveEntry());
+                    NeoScriptExecutionResult projected = callback.Execute(in cursor, cursor.ResolveEntry(ctx));
                     if (projected.Returned)
                     {
                         AppendResult(ref results, ref count, projected.ReturnValue);
@@ -5585,19 +5589,16 @@ namespace NeoCompose.Runtime.NeoScript
         /// </summary>
         private struct PreparedCollectionCallback : IDisposable
         {
-            private readonly NeoScriptScopeLayout layout;
             private readonly NeoScriptScope scope;
             private readonly bool isList;
             private readonly int parameterCount;
             private readonly Context ctx;
-            private readonly TypeInfo returnTypeInfo;
             private readonly CollectionCallbackReturnContract returnContract;
             private readonly bool returnsConstructedVector;
             // A body that only returns its entry's type test, like the filter
             // GetObjects<T> lowers to, runs the test without a frame.
             private readonly TypeInfo? entryTypeCheck;
             private readonly FunctionWithReturnType body;
-            private readonly NeoScriptExecutionOptions options;
             private readonly bool enclosingConstructorBody;
             private NeoScriptExecutionResult? ownerTerminal;
 
@@ -5639,12 +5640,11 @@ namespace NeoCompose.Runtime.NeoScript
 
                 // A callback cannot suspend, so nothing retains its scope
                 // once the operator ends; it is pooled like a function frame.
-                layout = callback.scopeLayout ??= new NeoScriptScopeLayout(callback);
+                NeoScriptScopeLayout layout = callback.scopeLayout ??= new NeoScriptScopeLayout(callback);
                 // Validates the body, so a rejected callback has rented nothing.
                 NeoScriptExecutor.EnterCallback(callback, ctx);
                 this.ctx = ctx;
                 this.returnContract = returnContract;
-                returnTypeInfo = callbackReturnType;
                 // A body that only returns a vector it constructs hands back
                 // a value nothing else holds, which needs no defensive copy.
                 returnsConstructedVector = callback.instructions is { Length: 1 } instructions
@@ -5666,7 +5666,6 @@ namespace NeoCompose.Runtime.NeoScript
                     ctx.collectionCallbackPreparationMetrics.BodyValidations++;
                 }
                 body = callback;
-                options = NeoScriptExecutionOptions.ForImmediate(ctx.client);
                 ownerTerminal = null;
                 // A callback runs on its caller's context but is not a
                 // constructor body's own statement.
@@ -5692,7 +5691,7 @@ namespace NeoCompose.Runtime.NeoScript
                     body,
                     scope,
                     ctx,
-                    options);
+                    NeoScriptExecutionOptions.ForImmediate(ctx.client));
                 if (result.IsPaused)
                 {
                     result.Deferred?.DisposeFromOwner(
@@ -5716,7 +5715,7 @@ namespace NeoCompose.Runtime.NeoScript
                     ctx.client,
                     ctx.valueOwnership,
                     result.ReturnValue,
-                    returnTypeInfo,
+                    body.typeInfo!,
                     ctx,
                     subject);
                 return NeoScriptExecutionResult.Completed(
@@ -5734,7 +5733,7 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 ctx.allocationTracker.ExitExecution(ctx.client, ctx, ownerTerminal);
                 ctx.constructorBody = enclosingConstructorBody;
-                layout.ReturnScope(scope);
+                body.scopeLayout!.ReturnScope(scope);
             }
         }
 
@@ -6782,16 +6781,15 @@ namespace NeoCompose.Runtime.NeoScript
             private readonly List<OrderedRawCollectionEntry>? ordered;
             private readonly RowReference? collectionRef;
             private readonly JsonMember? entryMember;
-            private readonly Context ctx;
             private readonly int count;
 
             internal CollectionCursor(object? collection, Context ctx)
             {
                 // Starting from default leaves the usually-null references
                 // unstored: a store through the cursor's byref costs a GC
-                // write barrier.
+                // write barrier. The context comes back with each read
+                // instead of being kept for the same reason.
                 this = default;
-                this.ctx = ctx;
                 RowReference? collectionRef = FindRowReference(collection, ctx);
                 if (collectionRef is not null)
                     this.collectionRef = collectionRef;
@@ -6834,7 +6832,7 @@ namespace NeoCompose.Runtime.NeoScript
             /// The current entry, returned rather than kept: a field store
             /// through the cursor's byref costs a write barrier.
             /// </summary>
-            internal readonly object? ResolveEntry()
+            internal readonly object? ResolveEntry(Context ctx)
             {
                 object? raw = Raw;
                 NeoValueNode? node = collectionRef?.EntryNode(Index, raw);

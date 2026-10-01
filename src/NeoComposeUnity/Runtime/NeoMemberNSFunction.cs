@@ -458,17 +458,24 @@ namespace NeoCompose.Runtime
         // Diagnostic subjects depend only on the signature. Formatting them
         // per call put three string allocations on every invocation.
         private string? callSubject;
-        private string? returnSubject;
-        private string?[]? argumentSubjects;
+        private NeoScriptValueMarshaller.ValueSubject[]? subjects;
         internal string CallSubject =>
             callSubject ??= $"NSFunction '{Member.name}' ({MemberId})";
-        internal string ReturnSubject =>
-            returnSubject ??= $"return value of NSFunction '{Member.name}'";
-        internal string ArgumentSubject(int index)
+
+        /// <summary>
+        /// The return value's subject, then each argument's. Callers pass
+        /// them by reference: building a subject stores its string, which
+        /// costs a GC write barrier.
+        /// </summary>
+        internal NeoScriptValueMarshaller.ValueSubject[] Subjects => subjects ??= CreateSubjects();
+
+        private NeoScriptValueMarshaller.ValueSubject[] CreateSubjects()
         {
-            argumentSubjects ??= new string?[ArgumentTypes.Length];
-            return argumentSubjects[index]
-                ??= $"argument {index} '{ArgumentTypes[index].name}' of NSFunction '{Member.name}'";
+            var created = new NeoScriptValueMarshaller.ValueSubject[ArgumentTypes.Length + 1];
+            created[0] = $"return value of NSFunction '{Member.name}'";
+            for (int i = 0; i < ArgumentTypes.Length; i++)
+                created[i + 1] = $"argument {i} '{ArgumentTypes[i].name}' of NSFunction '{Member.name}'";
+            return created;
         }
     }
 
@@ -808,7 +815,7 @@ namespace NeoCompose.Runtime
                         value,
                         argumentTypes[i],
                         ctx,
-                        function.ArgumentSubject(i)));
+                        in function.Subjects[i + 1]));
                 }
                 catch (Exception exception)
                 {
@@ -858,14 +865,13 @@ namespace NeoCompose.Runtime
                 throw new NSGetterRuntimeError(
                     $"NSFunction '{function.Member.name}' ended without returning a value; its compiled IR is stale or corrupt.");
             }
-            string subject = function.ReturnSubject;
             object? normalized = NeoScriptValueMarshaller.Normalize(
                 client,
                 ctx.valueOwnership,
                 execution.ReturnValue,
                 effectiveReturnType,
                 ctx,
-                subject,
+                in function.Subjects[0],
                 resolvedIdentity: boundary);
             // Marshalling usually returns the evaluator's own value; reuse
             // the executor's result instead of allocating a copy of it.
@@ -1633,7 +1639,7 @@ namespace NeoCompose.Runtime
             object? value,
             TypeInfo typeInfo,
             NSGetterEvaluator.Context ctx,
-            ValueSubject subject,
+            in ValueSubject subject,
             bool resolvedIdentity = false)
         {
             // Primitives, value references and enum ids match none of the
