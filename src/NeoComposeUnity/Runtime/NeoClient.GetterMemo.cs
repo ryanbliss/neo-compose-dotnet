@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using NeoCompose.Runtime.Json;
 
 namespace NeoCompose.Runtime
@@ -169,7 +170,16 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>A value-store read, reported to the active dependency captures.</summary>
+        // Every row read lands here, mostly with no capture open, so the
+        // check inlines into the reader.
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void NoteValueRead(string id)
+        {
+            if (capturedValueReads is not null || getterValueReadCapture is not null)
+                RecordValueRead(id);
+        }
+
+        private void RecordValueRead(string id)
         {
             capturedValueReads?.Add(id);
             getterValueReadCapture?.Add(id);
@@ -181,11 +191,15 @@ namespace NeoCompose.Runtime
             getterValueReadCapture?.UnionWith(ids);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void NoteRowRead(NeoValueOwnership ownership, string rowId)
         {
-            List<GetterRead>? reads = getterReadCapture;
-            if (reads is null)
-                return;
+            if (getterReadCapture is { } reads)
+                RecordRowRead(reads, ownership, rowId);
+        }
+
+        private static void RecordRowRead(List<GetterRead> reads, NeoValueOwnership ownership, string rowId)
+        {
             // A member read notes its receiver before each child; a repeat of
             // the previous read adds nothing to the invalidation set.
             if (reads.Count != 0)

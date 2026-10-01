@@ -8199,7 +8199,19 @@ namespace NeoCompose.Runtime.NeoScript
         private static IDictionary<string, object?>? AsObjectRecord(object? value) =>
             value as NeoObjectRecord ?? value as IDictionary<string, object?>;
 
+        // NeoScript numbers are doubles, so that test inlines into the caller.
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static bool TryAsDouble(object? value, out double result)
+        {
+            if (value is double d)
+            {
+                result = d;
+                return true;
+            }
+            return TryAsOtherDouble(value, out result);
+        }
+
+        private static bool TryAsOtherDouble(object? value, out double result)
         {
             // Objects, arrays and strings, the common non-numbers, need one test.
             if (value is not ValueType)
@@ -8209,9 +8221,6 @@ namespace NeoCompose.Runtime.NeoScript
             }
             switch (value)
             {
-                case double d:
-                    result = d;
-                    return true;
                 case float f:
                     result = f;
                     return true;

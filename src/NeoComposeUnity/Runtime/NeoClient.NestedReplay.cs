@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using NeoCompose.Runtime.Json;
 
 namespace NeoCompose.Runtime
@@ -70,6 +71,8 @@ namespace NeoCompose.Runtime
             return CommittedRow(ownership, id, node);
         }
 
+        // Every stored-member read calls this; only a replay records.
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void ReadReplayField(string? id, string key)
         {
             if (isReplayingVirtualInstance && id is not null)
