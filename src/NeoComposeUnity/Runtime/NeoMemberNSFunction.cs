@@ -873,57 +873,54 @@ namespace NeoCompose.Runtime
         }
 
         // A separate method keeps the closure off ExecuteResolved's frame;
-        // non-generic signatures build it once per resolved function.
+        // non-generic signatures build it once per resolved function. The
+        // body lives in the closure itself, saving a call per terminal.
         private static NeoScriptTerminalNormalizer CreateTerminalNormalizer(
             NeoClient client,
             NeoResolvedNSFunction function,
             TypeInfo effectiveReturnType,
-            bool boundary) =>
-            (terminal, ctx) => NormalizeTerminal(client, ctx, terminal, function, effectiveReturnType, boundary);
-
-        private static NeoScriptExecutionResult NormalizeTerminal(
-            NeoClient client,
-            NSGetterEvaluator.Context ctx,
-            NeoScriptExecutionResult execution,
-            NeoResolvedNSFunction function,
-            TypeInfo effectiveReturnType,
             bool boundary)
         {
-            if (execution.IsPaused)
-                throw new InvalidOperationException(
-                    "NSFunction terminal normalization received a paused execution.");
-            if (effectiveReturnType is VoidTypeInfo
-                || effectiveReturnType.type == MemberKind.Void)
+            bool isVoid = effectiveReturnType is VoidTypeInfo
+                || effectiveReturnType.type == MemberKind.Void;
+            return (execution, ctx) =>
             {
-                if (execution.ReturnValue is not null)
+                if (execution.IsPaused)
+                    throw new InvalidOperationException(
+                        "NSFunction terminal normalization received a paused execution.");
+                if (isVoid)
+                {
+                    if (execution.ReturnValue is not null)
+                    {
+                        throw new NSGetterRuntimeError(
+                            $"Void NSFunction '{function.Member.name}' returned a value; its compiled IR is stale or corrupt.");
+                    }
+                    return NeoScriptExecutionResult.Completed(
+                        execution.Returned,
+                        returnValue: null);
+                }
+                if (!execution.Returned)
                 {
                     throw new NSGetterRuntimeError(
-                        $"Void NSFunction '{function.Member.name}' returned a value; its compiled IR is stale or corrupt.");
+                        $"NSFunction '{function.Member.name}' ended without returning a value; its compiled IR is stale or corrupt.");
                 }
+                object? normalized = NeoScriptValueMarshaller.Normalize(
+                    client,
+                    ctx.valueOwnership,
+                    execution.ReturnValue,
+                    effectiveReturnType,
+                    ctx,
+                    in function.Subjects[0],
+                    resolvedIdentity: boundary);
+                // Marshalling usually returns the evaluator's own value;
+                // reuse the executor's result instead of allocating a copy
+                // of it.
+                if (ReferenceEquals(normalized, execution.ReturnValue))
+                    return execution;
                 return NeoScriptExecutionResult.Completed(
-                    execution.Returned,
-                    returnValue: null);
-            }
-            if (!execution.Returned)
-            {
-                throw new NSGetterRuntimeError(
-                    $"NSFunction '{function.Member.name}' ended without returning a value; its compiled IR is stale or corrupt.");
-            }
-            object? normalized = NeoScriptValueMarshaller.Normalize(
-                client,
-                ctx.valueOwnership,
-                execution.ReturnValue,
-                effectiveReturnType,
-                ctx,
-                in function.Subjects[0],
-                resolvedIdentity: boundary);
-            // Marshalling usually returns the evaluator's own value; reuse
-            // the executor's result instead of allocating a copy of it.
-            if (ReferenceEquals(normalized, execution.ReturnValue))
-                return execution;
-            return NeoScriptExecutionResult.Completed(
-                returned: true,
-                normalized);
+                    returned: true,
+                    normalized);
+            };
         }
 
         internal static bool ContainsGeneric(TypeInfo typeInfo)
