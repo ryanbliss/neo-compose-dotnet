@@ -931,6 +931,9 @@ namespace NeoCompose.Runtime.NeoScript
             private Context Fork()
             {
                 allocationTracker.ReusableContext = false;
+                // Shared, like ShareFrames' family: a fork of its own would
+                // build a fresh cache on its first collection read.
+                collectionRows ??= new CollectionRowCache();
                 var fork = (Context)MemberwiseClone();
                 fork.constructorBody = false;
                 // A fork can outlive the frames it was made in.
