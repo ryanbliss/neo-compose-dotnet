@@ -108,7 +108,7 @@ namespace NeoCompose.Runtime
             catch
             {
                 if (!exited)
-                    ctx.allocationTracker.ExitExecution(client, ctx, null);
+                    ctx.allocationTracker.ExitExecution(client, ctx, default);
                 throw;
             }
         }
@@ -150,7 +150,7 @@ namespace NeoCompose.Runtime
                 result = normalizeTerminal(result, ctx);
             }
             exited = true;
-            ctx.allocationTracker.ExitExecution(client, ctx, allocationTerminal);
+            ctx.allocationTracker.ExitExecution(client, ctx, in allocationTerminal);
             return result;
         }
 
@@ -202,7 +202,7 @@ namespace NeoCompose.Runtime
                 if (exited)
                     return;
                 exited = true;
-                ctx.allocationTracker.ExitExecution(client, ctx, null);
+                ctx.allocationTracker.ExitExecution(client, ctx, default);
             }
         }
 

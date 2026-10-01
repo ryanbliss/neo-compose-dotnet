@@ -224,10 +224,11 @@ namespace NeoCompose.Runtime.NeoScript
             }
         }
 
+        /// <param name="terminalResult">The body's result; <c>default</c>, a fallthrough, when it has none.</param>
         internal void ExitExecution(
             NeoClient client,
             NSGetterEvaluator.Context ctx,
-            NeoScriptExecutionResult? terminalResult)
+            in NeoScriptExecutionResult terminalResult)
         {
             if (activeExecutions <= 0)
             {
@@ -241,9 +242,9 @@ namespace NeoCompose.Runtime.NeoScript
             if (_allocatedRootIds is null)
                 return;
 
-            if (terminalResult?.Returned == true)
+            if (terminalResult.Returned)
             {
-                MarkEscaped(terminalResult.Value.ReturnValue, ctx);
+                MarkEscaped(terminalResult.ReturnValue, ctx);
             }
 
             completedAllocationRootIds.UnionWith(allocatedRootIds);
@@ -5850,7 +5851,7 @@ namespace NeoCompose.Runtime.NeoScript
             private readonly TypeInfo? entryTypeCheck;
             private readonly FunctionWithReturnType body;
             private readonly bool enclosingConstructorBody;
-            private NeoScriptExecutionResult? ownerTerminal;
+            private NeoScriptExecutionResult ownerTerminal;
 
             internal PreparedCollectionCallback(
                 FunctionWithReturnType callback,
@@ -5916,7 +5917,7 @@ namespace NeoCompose.Runtime.NeoScript
                     ctx.collectionCallbackPreparationMetrics.BodyValidations++;
                 }
                 body = callback;
-                ownerTerminal = null;
+                ownerTerminal = default;
                 // A callback runs on its caller's context but is not a
                 // constructor body's own statement.
                 enclosingConstructorBody = ctx.constructorBody;
@@ -5981,7 +5982,7 @@ namespace NeoCompose.Runtime.NeoScript
 
             public void Dispose()
             {
-                ctx.allocationTracker.ExitExecution(ctx.client, ctx, ownerTerminal);
+                ctx.allocationTracker.ExitExecution(ctx.client, ctx, in ownerTerminal);
                 ctx.constructorBody = enclosingConstructorBody;
                 body.scopeLayout!.ReturnScope(scope);
             }
