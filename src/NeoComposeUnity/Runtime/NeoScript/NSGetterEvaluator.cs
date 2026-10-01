@@ -1541,15 +1541,19 @@ namespace NeoCompose.Runtime.NeoScript
         public readonly struct RowKey : IEquatable<RowKey>
         {
             internal readonly NeoValueOwnership ownership;
+            // Hashed once, so a key that probes several tables hashes its id
+            // once. It fills the struct's padding beside the ownership.
+            private readonly int hash;
             internal readonly string rowId;
             internal RowKey(NeoValueOwnership ownership, string rowId)
             {
                 this.ownership = ownership;
                 this.rowId = rowId;
+                hash = unchecked(rowId.GetHashCode() * 31 + (int)ownership);
             }
             public bool Equals(RowKey other) => ownership == other.ownership && SameId(rowId, other.rowId);
             public override bool Equals(object? obj) => obj is RowKey other && Equals(other);
-            public override int GetHashCode() => unchecked(rowId.GetHashCode() * 31 + (int)ownership);
+            public override int GetHashCode() => hash;
         }
 
         /// <summary>Row identity plus the member it was unwrapped through.</summary>
