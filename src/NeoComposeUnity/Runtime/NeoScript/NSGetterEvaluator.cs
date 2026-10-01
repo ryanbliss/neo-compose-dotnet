@@ -7145,7 +7145,7 @@ namespace NeoCompose.Runtime.NeoScript
                     Array.Copy(array, raws, array.Length);
                     count = array.Length;
                 }
-                else
+                else if (!TryTakeInsertionOrder((IDictionary<string, object?>)collection, out count))
                 {
                     foreach (OrderedRawCollectionEntry entry in
                         OrderedRawCollectionEntries(collection))
@@ -7170,6 +7170,38 @@ namespace NeoCompose.Runtime.NeoScript
                     ownerships![index] = ownership;
                 }
                 Count = count;
+            }
+
+            // Without an array-index key, a dictionary's ordered entries are
+            // its own order, so its values copy without sorting.
+            private bool TryTakeInsertionOrder(IDictionary<string, object?> dictionary, out int count)
+            {
+                count = 0;
+                if (raws.Length < dictionary.Count)
+                    raws = new object?[dictionary.Count];
+                if (dictionary is Dictionary<string, object?> concrete)
+                {
+                    // Keys and values enumerate in the same order.
+                    foreach (string key in concrete.Keys)
+                    {
+                        if (TryGetEcmaArrayIndex(key, out _))
+                            return false;
+                    }
+                    concrete.Values.CopyTo(raws, 0);
+                    count = concrete.Count;
+                    return true;
+                }
+                foreach (var pair in dictionary)
+                {
+                    if (TryGetEcmaArrayIndex(pair.Key, out _))
+                    {
+                        Array.Clear(raws, 0, count);
+                        count = 0;
+                        return false;
+                    }
+                    raws[count++] = pair.Value;
+                }
+                return true;
             }
 
             internal object? Resolve(int index, Context ctx)
@@ -7257,16 +7289,21 @@ namespace NeoCompose.Runtime.NeoScript
 
         private static bool TryGetEcmaArrayIndex(string key, out uint index)
         {
-            if (!uint.TryParse(
+            // An index is digits only, so most keys fail on their first char.
+            if (key.Length == 0
+                || key[0] is < '0' or > '9'
+                || !uint.TryParse(
                     key,
                     NumberStyles.None,
                     CultureInfo.InvariantCulture,
                     out index)
                 || index == uint.MaxValue)
             {
+                index = 0;
                 return false;
             }
-            return key == index.ToString(CultureInfo.InvariantCulture);
+            // Canonical text only: "01" is a plain key.
+            return key.Length == 1 || key[0] != '0';
         }
 
         private static bool CollectionIsList(object? collection)

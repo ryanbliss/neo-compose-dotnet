@@ -191,9 +191,20 @@ namespace NeoCompose.Runtime.NeoScript
                         break;
                     case ForEachInstruction forEach:
                         Add(forEach.binding.id);
+                        AddRunInPlaceDeclarations(forEach.instructions);
                         break;
                     case ForInstruction loop:
                         Add(loop.initializer.id);
+                        AddRunInPlaceDeclarations(loop.instructions);
+                        break;
+                    case WhileInstruction loop:
+                        AddRunInPlaceDeclarations(loop.instructions);
+                        break;
+                    case SwitchInstruction switchInstruction:
+                        foreach (var section in switchInstruction.sections)
+                            AddRunInPlaceDeclarations(section.instructions);
+                        if (switchInstruction.defaultInstructions is not null)
+                            AddRunInPlaceDeclarations(switchInstruction.defaultInstructions);
                         break;
                     case IfInstruction conditional:
                         foreach (var branch in conditional.branches)
@@ -203,6 +214,43 @@ namespace NeoCompose.Runtime.NeoScript
                         break;
                 }
             }
+        }
+
+        // A loop or switch body without locals runs in this scope, so the
+        // loop bindings nested in it are this layout's too.
+        private void AddRunInPlaceDeclarations(Instruction[] body)
+        {
+            if (!DeclaresLocals(body))
+                AddDeclarations(body);
+        }
+
+        /// <summary>
+        /// Whether a block declares a local into the scope it runs in. If
+        /// branches run in their enclosing scope, so their locals count.
+        /// </summary>
+        internal static bool DeclaresLocals(Instruction[] instructions)
+        {
+            for (int i = 0; i < instructions.Length; i++)
+            {
+                switch (instructions[i])
+                {
+                    case VariableInstruction:
+                        return true;
+                    case IfInstruction conditional:
+                        foreach (var branch in conditional.branches)
+                        {
+                            if (DeclaresLocals(branch.instructions))
+                                return true;
+                        }
+                        if (conditional.elseInstructions is not null
+                            && DeclaresLocals(conditional.elseInstructions))
+                        {
+                            return true;
+                        }
+                        break;
+                }
+            }
+            return false;
         }
 
         private void Add(string id)

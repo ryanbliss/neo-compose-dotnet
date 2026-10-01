@@ -1597,36 +1597,7 @@ namespace NeoCompose.Runtime
         private static NeoScriptScope BlockScopeFor(
             Instruction[] instructions,
             NeoScriptScope scope) =>
-            DeclaresLocals(instructions) ? scope.CreateBlock() : scope;
-
-        /// <summary>
-        /// Whether a block declares a local into the scope it runs in. If
-        /// branches run in their enclosing scope, so their locals count.
-        /// </summary>
-        private static bool DeclaresLocals(Instruction[] instructions)
-        {
-            for (int i = 0; i < instructions.Length; i++)
-            {
-                switch (instructions[i])
-                {
-                    case VariableInstruction:
-                        return true;
-                    case IfInstruction conditional:
-                        foreach (var branch in conditional.branches)
-                        {
-                            if (DeclaresLocals(branch.instructions))
-                                return true;
-                        }
-                        if (conditional.elseInstructions is not null
-                            && DeclaresLocals(conditional.elseInstructions))
-                        {
-                            return true;
-                        }
-                        break;
-                }
-            }
-            return false;
-        }
+            NeoScriptScopeLayout.DeclaresLocals(instructions) ? scope.CreateBlock() : scope;
 
         private static NeoScriptExecutionResult ApplySwitchBodyTransfer(
             NeoScriptExecutionResult bodyResult)
@@ -5826,7 +5797,7 @@ namespace NeoCompose.Runtime
             {
                 if (bodyScope is not null)
                     return bodyScope;
-                bodyDeclaresLocals ??= DeclaresLocals(body);
+                bodyDeclaresLocals ??= NeoScriptScopeLayout.DeclaresLocals(body);
                 if (bodyDeclaresLocals == false)
                     return parentScope;
                 bodyLayout = layout ??= new NeoScriptScopeLayout(null, body);
