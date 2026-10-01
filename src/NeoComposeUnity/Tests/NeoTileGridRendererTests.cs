@@ -1499,8 +1499,8 @@ namespace NeoCompose.Tests
                 if (plan.ObjectInsertion is null)
                     return;
                 Assert.AreEqual("town-grid", plan.ValidatedObjectInsertionGrid);
-                Assert.IsEmpty(plan.PreparedObjectLayers);
-                Assert.IsEmpty(plan.PreparedTileLayers);
+                Assert.That(plan.PreparedObjectLayers, Is.Null.Or.Empty);
+                Assert.That(plan.PreparedTileLayers, Is.Null.Or.Empty);
                 insertions++;
             };
             var changes = new List<NeoTileGridChangedArgs>();
@@ -3027,8 +3027,8 @@ namespace NeoCompose.Tests
             });
             client.OnWritableValuesPublished += (_, plan) =>
             {
-                Assert.IsEmpty(plan.PreparedTileLayers, "Conversion must not rebuild full tile layers.");
-                Assert.IsEmpty(plan.PreparedObjectLayers, "Conversion must not rebuild unrelated object layers.");
+                Assert.That(plan.PreparedTileLayers, Is.Null.Or.Empty, "Conversion must not rebuild full tile layers.");
+                Assert.That(plan.PreparedObjectLayers, Is.Null.Or.Empty, "Conversion must not rebuild unrelated object layers.");
             };
 
             for (int i = 0; i < count; i++)

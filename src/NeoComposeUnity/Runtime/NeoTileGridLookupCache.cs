@@ -196,26 +196,28 @@ namespace NeoCompose.Runtime
         {
             if (plan.ValidatedObjectInsertionGrid == primitive.GridValueId)
                 return;
-            if (plan.ValidatedTileConversions.Count != 0)
+            if (plan.ValidatedTileConversions is { Count: not 0 } conversions)
             {
-                ApplyTileConversions(plan.ValidatedTileConversions);
+                ApplyTileConversions(conversions);
                 return;
             }
             objectLayerIds = null;
             tileLayerIds = null;
             var ids = new HashSet<string>();
             foreach (var value in changed)
-                if (!plan.UnchangedValueIds.Contains(value.valueId))
+                if (plan.UnchangedValueIds?.Contains(value.valueId) != true)
                     ids.Add(value.valueId);
             InvalidateDependents(tileLayers, changedTileLayers, ids);
             ForgetRecentTileLayers();
             InvalidateDependents(objectLayers, changedObjectLayers, ids);
             ObjectLayersVersion++;
             foreach (string layerId in changedTileLayers.Keys)
-                if (plan.PreparedTileLayers.TryGetValue((primitive.GridValueId, layerId), out var prepared))
+                if (plan.PreparedTileLayers is { } preparedTiles
+                    && preparedTiles.TryGetValue((primitive.GridValueId, layerId), out var prepared))
                     tileLayers[layerId] = BuildTileLayerIndex(prepared);
             foreach (string layerId in changedObjectLayers.Keys)
-                if (plan.PreparedObjectLayers.TryGetValue((primitive.GridValueId, layerId), out var prepared))
+                if (plan.PreparedObjectLayers is { } preparedObjects
+                    && preparedObjects.TryGetValue((primitive.GridValueId, layerId), out var prepared))
                     objectLayers[layerId] = BuildObjectLayerIndex(prepared.Records, prepared.DependencyIds);
         }
 

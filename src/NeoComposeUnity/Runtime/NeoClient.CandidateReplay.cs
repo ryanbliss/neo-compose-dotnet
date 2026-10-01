@@ -231,8 +231,10 @@ namespace NeoCompose.Runtime
                 or DelegateMemberValue or ActionMemberValue)
                 return true;
 
-            if (next is ArrayMemberValue && TryInferMemberForValueId(id, out Member? selectionMember)
-                && selectionMember is EnumMember or LookupMember or DialogueLookupMember)
+            // One inference answers both array checks below.
+            Member? arrayMember = null;
+            if (next is ArrayMemberValue && TryInferMemberForValueId(id, out arrayMember)
+                && arrayMember is EnumMember or LookupMember or DialogueLookupMember)
                 return true;
 
             // A complete equal clone supplies its destination graph without
@@ -267,7 +269,7 @@ namespace NeoCompose.Runtime
                 return KeepsEntries(oldDictionary.value, dictionary.value);
             if (next is ArrayMemberValue { value: not null } list
                 && previous is ArrayMemberValue { value: not null } oldList
-                && TryInferMemberForValueId(id, out Member? listMember) && listMember is ListMember)
+                && arrayMember is ListMember)
                 return StartsWith(list.value, oldList.value);
             return false;
         }
@@ -793,7 +795,7 @@ namespace NeoCompose.Runtime
                             Plan.Remove(pair.Key.ownership, pair.Key.id);
                         else
                             Plan.Set(pair.Key.ownership, pair.Value,
-                            plan.Fields.GetValueOrDefault(pair.Key), plan.Silent.Contains(pair.Key));
+                            plan.ChangedField(pair.Key), plan.IsSilent(pair.Key));
                         // Promotion removes a constructed Session allocation
                         // while preserving the same id in its destination store.
                         if (Allocations.ContainsKey(pair.Key.id))
@@ -802,7 +804,7 @@ namespace NeoCompose.Runtime
                     foreach (var binding in plan.Bindings)
                         Plan.Bind(binding.Key.ownership, binding.Key.memberId, binding.Value.present, binding.Value.valueId);
                     foreach (var binding in plan.NodeBindings)
-                        Plan.NodeBindings[binding.Key] = binding.Value;
+                        Plan.BindNode(binding.Key, binding.Value);
                     plan.NotifyCommitted();
                     foreach (NeoMember node in Nodes.Values.ToArray())
                         if (!node.isDisposed && (node.overrideValueId ?? node.value?.id) is string id && plan.Rows.ContainsKey((node.ownership, id)))

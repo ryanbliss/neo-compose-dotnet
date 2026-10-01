@@ -328,8 +328,8 @@ namespace NeoCompose.Tests
             client.OnWritableValuesPublished += (_, plan) =>
             {
                 plans++;
-                Assert.IsEmpty(plan.PreparedTileLayers);
-                Assert.IsEmpty(plan.PreparedObjectLayers);
+                Assert.That(plan.PreparedTileLayers, Is.Null.Or.Empty);
+                Assert.That(plan.PreparedObjectLayers, Is.Null.Or.Empty);
             };
             foreach (int value in new[] { 70, 71 })
             {

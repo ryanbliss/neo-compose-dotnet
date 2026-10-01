@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using NeoCompose.Runtime.Json;
 
@@ -43,15 +44,16 @@ namespace NeoCompose.Runtime
         internal readonly long BaseRevision;
         internal (string gridId, string layerId, string listId, string instanceId)? ObjectInsertion;
         internal string? ValidatedObjectInsertionGrid;
-        internal readonly HashSet<string> UnchangedValueIds = new();
-        internal readonly List<NeoValidatedTileConversion> ValidatedTileConversions = new();
-        internal readonly Dictionary<(string gridId, string layerId), NeoTileLayerBuild> PreparedTileLayers = new();
-        internal readonly Dictionary<(string gridId, string layerId), NeoPreparedLayerRecords<NeoObjectPlacementRecord>> PreparedObjectLayers = new();
+        // Collections most writes never fill are allocated on first use.
+        internal HashSet<string>? UnchangedValueIds;
+        internal List<NeoValidatedTileConversion>? ValidatedTileConversions;
+        internal Dictionary<(string gridId, string layerId), NeoTileLayerBuild>? PreparedTileLayers;
+        internal Dictionary<(string gridId, string layerId), NeoPreparedLayerRecords<NeoObjectPlacementRecord>>? PreparedObjectLayers;
         internal readonly Dictionary<(NeoValueOwnership ownership, string id), MemberValue?> Rows = new();
-        internal readonly Dictionary<(NeoValueOwnership ownership, string id), string?> Fields = new();
-        internal readonly HashSet<(NeoValueOwnership ownership, string id)> Silent = new();
+        private Dictionary<(NeoValueOwnership ownership, string id), string>? changedFields;
+        private HashSet<(NeoValueOwnership ownership, string id)>? silentRows;
         internal readonly Dictionary<(NeoValueOwnership ownership, string memberId), (bool present, string? valueId)> Bindings = new();
-        internal readonly Dictionary<NeoMember, string> NodeBindings = new();
+        private Dictionary<NeoMember, string>? nodeBindings;
         private readonly List<Action> afterCommit = new();
         private readonly List<Action> afterNotifications = new();
         private HashSet<NeoMember>? reportsOwnChange;
@@ -73,12 +75,31 @@ namespace NeoCompose.Runtime
             Rows[key] = row;
             containerCandidates = null;
             parentCandidates = null;
-            Fields[key] = changedField;
-            if (silent)
-                Silent.Add(key);
+            if (changedField is not null)
+                (changedFields ??= new())[key] = changedField;
             else
-                Silent.Remove(key);
+                changedFields?.Remove(key);
+            if (silent)
+                (silentRows ??= new()).Add(key);
+            else
+                silentRows?.Remove(key);
         }
+
+        internal string? ChangedField((NeoValueOwnership ownership, string id) key) =>
+            changedFields is not null && changedFields.TryGetValue(key, out string? field) ? field : null;
+
+        internal bool IsSilent((NeoValueOwnership ownership, string id) key) => silentRows?.Contains(key) == true;
+
+        internal bool TryGetNodeBinding(NeoMember node, [NotNullWhen(true)] out string? valueId)
+        {
+            valueId = null;
+            return nodeBindings?.TryGetValue(node, out valueId) == true;
+        }
+
+        internal void BindNode(NeoMember node, string valueId) => (nodeBindings ??= new())[node] = valueId;
+
+        internal IEnumerable<KeyValuePair<NeoMember, string>> NodeBindings =>
+            nodeBindings ?? (IEnumerable<KeyValuePair<NeoMember, string>>)Array.Empty<KeyValuePair<NeoMember, string>>();
 
         internal void Remove(NeoValueOwnership ownership, string id)
         {
@@ -87,7 +108,7 @@ namespace NeoCompose.Runtime
             var key = (ownership, id);
             Rows[key] = null;
             parentCandidates = null;
-            Silent.Remove(key);
+            silentRows?.Remove(key);
         }
 
         internal MemberValue? Resolve(NeoValueOwnership ownership, string id)
@@ -275,11 +296,26 @@ namespace NeoCompose.Runtime
             return TryGetCommittedOverlaidValue(ownership, id, out MemberValue? row) ? row : null;
         }
 
-        internal IDisposable ReadCandidate(NeoWritePlan plan)
+        internal CandidateReadScope ReadCandidate(NeoWritePlan plan)
         {
             NeoWritePlan? previous = candidateReadPlan;
             candidateReadPlan = plan;
-            return new NeoDisposableAction(() => candidateReadPlan = previous);
+            return new CandidateReadScope(this, previous);
+        }
+
+        /// <summary>Restores the previous candidate plan; a struct, so a scope allocates nothing.</summary>
+        internal readonly struct CandidateReadScope : IDisposable
+        {
+            private readonly NeoClient client;
+            private readonly NeoWritePlan? previous;
+
+            internal CandidateReadScope(NeoClient client, NeoWritePlan? previous)
+            {
+                this.client = client;
+                this.previous = previous;
+            }
+
+            public void Dispose() => client.candidateReadPlan = previous;
         }
 
         internal event Action<IReadOnlyCollection<(NeoValueOwnership ownership, string valueId)>, NeoWritePlan>? OnWritableValuesPublished;
@@ -351,7 +387,7 @@ namespace NeoCompose.Runtime
                 if (TryGetCommittedOwnership(row.Key.id, out var previousOwnership)
                     && previousOwnership == row.Key.ownership
                     && ReplayRowsEqual(PreviousReplayRow(row.Key.id), row.Value))
-                    plan.UnchangedValueIds.Add(row.Key.id);
+                    (plan.UnchangedValueIds ??= new()).Add(row.Key.id);
             // Notifications can commit again before this commit returns, so
             // the scratch sets serve only the outermost commit.
             bool pooledScratch = !commitScratchInUse;
@@ -426,7 +462,7 @@ namespace NeoCompose.Runtime
                     InvalidateGridDependentGetterMemo();
                 if (sharedEvaluationContext is not null)
                     foreach (var item in changed)
-                        if (!plan.Rows.ContainsKey(item) || plan.Silent.Contains(item))
+                        if (!plan.Rows.ContainsKey(item) || plan.IsSilent(item))
                             RefreshSharedEvaluationRow(item.ownership, item.valueId);
                 OnWritableValuesPublished?.Invoke(changed, plan);
                 plan.NotifyCommitted();
@@ -435,16 +471,15 @@ namespace NeoCompose.Runtime
                 {
                     foreach (var pair in plan.Rows)
                     {
-                        if (plan.Silent.Contains(pair.Key))
+                        if (plan.IsSilent(pair.Key))
                         {
                             if (pair.Key.ownership == NeoValueOwnership.Save
                                 && !suppressLiveAutoCommit && loader is NeoSaveSynchronizer synchronizer)
                                 synchronizer.MarkDirtyValue(pair.Key.id, null);
                             continue;
                         }
-                        plan.Fields.TryGetValue(pair.Key, out string? changedField);
-                        NotifyWritableValueChanged(pair.Key.ownership, pair.Key.id, changedField,
-                            valueChanged: !(plan.UnchangedValueIds.Contains(pair.Key.id)
+                        NotifyWritableValueChanged(pair.Key.ownership, pair.Key.id, plan.ChangedField(pair.Key),
+                            valueChanged: !(plan.UnchangedValueIds?.Contains(pair.Key.id) == true
                                 && pair.Value is ObjectMemberValue { classId: not null, value: not null } parentRow
                                 && WritesAnyChild(plan, pair.Key.ownership, parentRow)),
                             membershipChanged: !sameMembership.Contains(pair.Key), plan: plan);

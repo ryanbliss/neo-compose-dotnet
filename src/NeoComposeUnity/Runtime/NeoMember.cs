@@ -838,7 +838,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         private protected TValue? WritableCandidate(NeoWritePlan plan)
         {
-            string? id = plan.NodeBindings.TryGetValue(this, out string? plannedId) ? plannedId : valueId;
+            string? id = plan.TryGetNodeBinding(this, out string? plannedId) ? plannedId : valueId;
             if (id is not null && plan.Resolve(ownership, id) is TValue candidate)
                 return (TValue)client.CloneRowForWrite(candidate);
             return EnsureWritableValue();
@@ -857,7 +857,7 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException($"Cannot bind a new value on an asset-owned member '{member.id}'.");
             parent?.AssertContainingClassesCanBeConstructed();
             plan.Set(ownership, newRow);
-            plan.NodeBindings[this] = newRow.id;
+            plan.BindNode(this, newRow.id);
             plan.AfterCommit(() =>
             {
                 value = newRow;

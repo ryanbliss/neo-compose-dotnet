@@ -419,6 +419,8 @@ namespace NeoCompose.Runtime
 
         internal void ReleaseAnimationClips(NeoGeneratedClassValue target)
         {
+            if (animationClips.Count == 0)
+                return;
             string prefix = $"{target.AnimationInstanceIdentity}\u001f";
             var remove = new List<string>();
             var players = new List<INeoAnimationPlayer>();
@@ -4164,6 +4166,19 @@ namespace NeoCompose.Runtime
             return EnumerateOwnedChildLinks(parent!, parentMember).Any(link => link.valueId == childValueId);
         }
 
+        /// <summary>Whether a constructor argument of <paramref name="obj"/> names <paramref name="valueId"/>.</summary>
+        private static bool ConstructorArgsReference(ObjectMemberValue obj, string valueId)
+        {
+            if (obj.constructorArgs is null)
+                return false;
+            foreach (JToken? token in obj.constructorArgs.Values)
+            {
+                if (token?.Type == JTokenType.String && token.Value<string>() == valueId)
+                    return true;
+            }
+            return false;
+        }
+
         private static bool MightReferenceChildValueId(
             MemberValue parent,
             string childValueId)
@@ -4173,8 +4188,7 @@ namespace NeoCompose.Runtime
                 case ObjectMemberValue obj:
                     if (obj.value?.ContainsValue(childValueId) == true)
                         return true;
-                    return obj.constructorArgs?.Values.Any(token =>
-                        token?.Type == JTokenType.String && token.Value<string>() == childValueId) == true;
+                    return ConstructorArgsReference(obj, childValueId);
                 case ArrayMemberValue arr when arr.value is not null:
                     return System.Array.IndexOf(arr.value, childValueId) >= 0;
                 default:
@@ -4188,23 +4202,31 @@ namespace NeoCompose.Runtime
             // The placement index is a conservative set of payload references,
             // not proof of ownership. Inspect each candidate in BOTH writable
             // stores and still validate its schema edge at the call site.
-            var candidates = new HashSet<string>(PlacementParents(childId));
-            foreach (string id in candidates)
-                if (sessionData.values.TryGetValue(id, out var row))
-                    yield return (id, row, NeoValueOwnership.Session);
-            foreach (string id in candidates)
-                if (saveData.values.TryGetValue(id, out var row))
-                    yield return (id, row, NeoValueOwnership.Save);
-            foreach (string id in candidates)
+            HashSet<string> candidates = RentIdSet();
+            try
             {
-                if (!data.values.TryGetValue(id, out var row))
-                    continue;
-                NeoValueOwnership ownership = ResolveAuthoredOwnership(id, row);
-                // A shadow replaces the authored edge only in its own store.
-                if (ownership != NeoValueOwnership.Asset
-                    && GetWritableStore(ownership).values.ContainsKey(id))
-                    continue;
-                yield return (id, row, ownership);
+                CollectPlacementParents(childId, candidates);
+                foreach (string id in candidates)
+                    if (sessionData.values.TryGetValue(id, out var row))
+                        yield return (id, row, NeoValueOwnership.Session);
+                foreach (string id in candidates)
+                    if (saveData.values.TryGetValue(id, out var row))
+                        yield return (id, row, NeoValueOwnership.Save);
+                foreach (string id in candidates)
+                {
+                    if (!data.values.TryGetValue(id, out var row))
+                        continue;
+                    NeoValueOwnership ownership = ResolveAuthoredOwnership(id, row);
+                    // A shadow replaces the authored edge only in its own store.
+                    if (ownership != NeoValueOwnership.Asset
+                        && GetWritableStore(ownership).values.ContainsKey(id))
+                        continue;
+                    yield return (id, row, ownership);
+                }
+            }
+            finally
+            {
+                ReturnIdSet(candidates);
             }
         }
 
@@ -4810,13 +4832,37 @@ namespace NeoCompose.Runtime
             return ResolveValueRow(childId!);
         }
 
+        // Scratch id sets for the parent walks, reused between walks. A walk
+        // nested in another rents its own; a set that grew large is dropped
+        // so that clearing a pooled set stays cheap.
+        private readonly Stack<HashSet<string>> idSetPool = new();
+
+        private HashSet<string> RentIdSet() => idSetPool.Count != 0 ? idSetPool.Pop() : new HashSet<string>();
+
+        private void ReturnIdSet(HashSet<string> set)
+        {
+            if (set.Count > 64)
+                return;
+            set.Clear();
+            idSetPool.Push(set);
+        }
+
         internal bool TryInferMemberForValueId(
             string valueId,
             [NotNullWhen(true)] out Member? member)
         {
             // Most ids are indexed directly; only a walk needs the cycle guard.
-            return TryInferDirectMemberForValueId(valueId, out member)
-                || TryInferMemberForValueId(valueId, new HashSet<string>(), out member);
+            if (TryInferDirectMemberForValueId(valueId, out member))
+                return true;
+            HashSet<string> visiting = RentIdSet();
+            try
+            {
+                return TryInferMemberForValueId(valueId, visiting, out member);
+            }
+            finally
+            {
+                ReturnIdSet(visiting);
+            }
         }
 
         private bool TryInferMemberForValueId(
@@ -4881,7 +4927,7 @@ namespace NeoCompose.Runtime
                                     return true;
                                 }
                             }
-                        if (obj.constructorArgs?.Values.Any(token => token?.Type == JTokenType.String && token.Value<string>() == valueId) == true)
+                        if (ConstructorArgsReference(obj, valueId))
                         {
                             if (TryResolveConstructorSettledAggregateMember(obj, valueId, null, out Member? settled)
                                 && !NeedsOwnedMemberContext(settled))
@@ -6195,13 +6241,29 @@ namespace NeoCompose.Runtime
         // notification per container when the scope disposes, so container
         // subscribers observe a single membership change per bulk edit.
         private int containerNotificationSuspensions;
-        private readonly List<(NeoValueOwnership ownership, string containerId, NeoWritePlan? plan)>
+        private List<(NeoValueOwnership ownership, string containerId, NeoWritePlan? plan)>
             pendingContainerNotifications = new();
+        // The drained list, kept for the next flush; a flush nested in a
+        // publish finds it taken and allocates its own.
+        private List<(NeoValueOwnership ownership, string containerId, NeoWritePlan? plan)>? spareContainerNotifications;
 
-        internal System.IDisposable SuspendContainerNotifications()
+        internal ContainerNotificationScope SuspendContainerNotifications()
         {
             containerNotificationSuspensions += 1;
-            return new NeoDisposableAction(FlushContainerNotifications);
+            return new ContainerNotificationScope(this);
+        }
+
+        /// <summary>Flushes suspended container notifications; a struct, so a scope allocates nothing.</summary>
+        internal readonly struct ContainerNotificationScope : System.IDisposable
+        {
+            private readonly NeoClient client;
+
+            internal ContainerNotificationScope(NeoClient client)
+            {
+                this.client = client;
+            }
+
+            public void Dispose() => client.FlushContainerNotifications();
         }
 
         private void FlushContainerNotifications()
@@ -6211,20 +6273,28 @@ namespace NeoCompose.Runtime
                 return;
             if (pendingContainerNotifications.Count == 0)
                 return;
-            var pending = new List<(NeoValueOwnership, string, NeoWritePlan?)>(pendingContainerNotifications);
-            pendingContainerNotifications.Clear();
+            var pending = pendingContainerNotifications;
+            pendingContainerNotifications = spareContainerNotifications ?? new();
+            spareContainerNotifications = null;
             foreach (var (ownership, containerId, plan) in pending)
             {
                 PublishWritableValueChange(ownership, containerId, plan);
             }
+            pending.Clear();
+            spareContainerNotifications = pending;
         }
 
         private void RaiseContainerChanged(NeoValueOwnership ownership, string containerId, NeoWritePlan? plan = null)
         {
             if (containerNotificationSuspensions > 0)
             {
-                int index = pendingContainerNotifications.FindIndex(
-                    pending => pending.ownership == ownership && pending.containerId == containerId);
+                int index = pendingContainerNotifications.Count - 1;
+                while (index >= 0
+                    && (pendingContainerNotifications[index].ownership != ownership
+                        || pendingContainerNotifications[index].containerId != containerId))
+                {
+                    index--;
+                }
                 if (index < 0)
                     pendingContainerNotifications.Add((ownership, containerId, plan));
                 else if (!ReferenceEquals(pendingContainerNotifications[index].plan, plan))
@@ -8945,25 +9015,46 @@ namespace NeoCompose.Runtime
         {
             if (candidateReplay is not null)
                 return false;
-            var staticRoots = new HashSet<string>();
+            HashSet<string> staticRoots = RentIdSet();
+            HashSet<string> visited = RentIdSet();
+            HashSet<string> parents = RentIdSet();
+            try
+            {
+                return CanProveUnreachable(ownership, valueIds, staticRoots, visited, parents);
+            }
+            finally
+            {
+                ReturnIdSet(staticRoots);
+                ReturnIdSet(visited);
+                ReturnIdSet(parents);
+            }
+        }
+
+        private bool CanProveUnreachable(
+            NeoValueOwnership ownership,
+            IEnumerable<string> valueIds,
+            HashSet<string> staticRoots,
+            HashSet<string> visited,
+            HashSet<string> parents)
+        {
             foreach (var member in ValueInferenceIndex.StaticMembers)
                 if (ResolveStaticOwnership(member) == ownership
                     && TryResolveStaticBinding(member.id, out _, out _, out string? target))
                     staticRoots.Add(target);
             var pending = new Queue<string>(valueIds);
-            var visited = new HashSet<string>();
             var store = GetWritableStore(ownership);
+            string rootMemberId = ownership == NeoValueOwnership.Save
+                ? data.project.rootSaveFileMemberId : data.project.rootSessionMemberId;
+            string? rootValueId = data.members.TryGetValue(rootMemberId, out var rootMember) ? rootMember.valueId : null;
             while (pending.Count != 0)
             {
                 string id = pending.Dequeue();
                 if (!visited.Add(id))
                     continue;
-                string rootMemberId = ownership == NeoValueOwnership.Save
-                    ? data.project.rootSaveFileMemberId : data.project.rootSessionMemberId;
-                if (data.members.TryGetValue(rootMemberId, out var rootMember) && rootMember.valueId == id
+                if (rootValueId is not null && rootValueId == id
                     || authoredStorageRoots.TryGetValue(id, out var rootOwnership) && rootOwnership == ownership
                     || staticRoots.Contains(id)
-                    || candidateReadPlan?.Bindings.Any(binding => binding.Key.ownership == ownership && binding.Value.valueId == id) == true)
+                    || candidateReadPlan is not null && BindsValue(candidateReadPlan, ownership, id))
                     return false;
                 if (data.values.TryGetValue(id, out var authored) && authored is ObjectMemberValue { classId: not null } authoredObject
                     && TryResolveSchemaClassAllowedOwnership(authoredObject.classId, out var allowed)
@@ -8988,7 +9079,8 @@ namespace NeoCompose.Runtime
                     && expansionIds.Contains(id)
                     && (!TryResolveVirtualOwnership(id, out var expandedOwnership) || expandedOwnership == ownership))
                     pending.Enqueue(expansionRoot);
-                var parents = new HashSet<string>(PlacementParents(id));
+                parents.Clear();
+                CollectPlacementParents(id, parents);
                 if (candidateReadPlan is not null)
                     parents.UnionWith(candidateReadPlan.ParentCandidates(id));
                 foreach (string parentId in parents)
@@ -8998,9 +9090,8 @@ namespace NeoCompose.Runtime
                     if (parent is ObjectMemberValue obj)
                     {
                         Member? parentMember = TryInferMemberForValueId(parentId, out var inferred) ? inferred : null;
-                        if (obj.constructorArgs?.Values.Any(token => token?.Type == JTokenType.String && (string?)token == id) == true
-                            || obj.value is not null && (EnumerateOwnedChildLinks(obj, parentMember)
-                                .Any(link => link.valueId == id && ChildOwnership(link.member, ownership) == ownership)
+                        if (ConstructorArgsReference(obj, id)
+                            || obj.value is not null && (OwnsChildLink(obj, parentMember, id, ownership)
                                 || TryResolveVirtualPlacement(id, out var placement) && placement.parentValueId == parentId
                                     && ChildOwnership(placement.member, ownership) == ownership))
                             pending.Enqueue(parentId);
@@ -9015,6 +9106,26 @@ namespace NeoCompose.Runtime
                 }
             }
             return true;
+        }
+
+        private static bool BindsValue(NeoWritePlan plan, NeoValueOwnership ownership, string valueId)
+        {
+            foreach (var binding in plan.Bindings)
+            {
+                if (binding.Key.ownership == ownership && binding.Value.valueId == valueId)
+                    return true;
+            }
+            return false;
+        }
+
+        private bool OwnsChildLink(ObjectMemberValue obj, Member? parentMember, string childId, NeoValueOwnership ownership)
+        {
+            foreach (var link in EnumerateOwnedChildLinks(obj, parentMember))
+            {
+                if (link.valueId == childId && ChildOwnership(link.member, ownership) == ownership)
+                    return true;
+            }
+            return false;
         }
 
         // Authored rows whose class declares a writable storage are reachability

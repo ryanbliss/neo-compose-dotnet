@@ -374,7 +374,7 @@ namespace NeoCompose.Runtime
                 }
                 else
                 {
-                    child.ChildChanged -= HandleChildChanged;
+                    child.ChildChanged -= ChildChangedHandler;
                     child.Dispose();
                 }
             }
@@ -514,7 +514,7 @@ namespace NeoCompose.Runtime
                 }
                 else
                 {
-                    child.ChildChanged += HandleChildChanged;
+                    child.ChildChanged += ChildChangedHandler;
                 }
                 childMembers[entry.schemaKey] = child;
                 if (recordRebound
@@ -529,7 +529,7 @@ namespace NeoCompose.Runtime
             DisposeChildren(previousChildren.Values);
         }
 
-        private void DisposeChildren(IEnumerable<NeoMember> children)
+        private void DisposeChildren(Dictionary<string, NeoMember>.ValueCollection children)
         {
             foreach (var child in children)
             {
@@ -539,11 +539,16 @@ namespace NeoCompose.Runtime
                 }
                 else
                 {
-                    child.ChildChanged -= HandleChildChanged;
+                    child.ChildChanged -= ChildChangedHandler;
                     child.Dispose();
                 }
             }
         }
+
+        // Subscribing the method group would allocate a delegate per child.
+        private System.Action<NeoMember>? childChangedHandler;
+
+        private protected System.Action<NeoMember> ChildChangedHandler => childChangedHandler ??= HandleChildChanged;
 
         protected internal void HandleChildChanged(NeoMember child)
         {
@@ -1233,7 +1238,7 @@ namespace NeoCompose.Runtime
 
             if (childMembers.TryGetValue(key, out NeoMember? child))
             {
-                child.ChildChanged -= HandleChildChanged;
+                child.ChildChanged -= ChildChangedHandler;
                 child.Dispose();
                 childMembers.Remove(key);
                 ForgetChildSlots();

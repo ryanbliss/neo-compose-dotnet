@@ -187,13 +187,16 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>The iterator above without its enumerator objects, for the per-commit walk.</summary>
-        private void CollectPlacementParents(string childId, List<string> into)
+        private void CollectPlacementParents(string childId, ICollection<string> into)
         {
             EnsureWritablePlacementParents();
             if (writablePlacementParents!.TryGetValue(childId, out object? writable))
             {
                 if (writable is HashSet<string> set)
-                    into.AddRange(set);
+                {
+                    foreach (string parent in set)
+                        into.Add(parent);
+                }
                 else
                     into.Add((string)writable);
             }
@@ -494,7 +497,7 @@ namespace NeoCompose.Runtime
             {
                 var occupied = new HashSet<(string source, Vector2Int cell)>();
                 var build = primitive.BuildTileLayerRecords(layerId);
-                plan.PreparedTileLayers[(gridId, layerId)] = build;
+                (plan.PreparedTileLayers ??= new())[(gridId, layerId)] = build;
                 foreach (NeoTilePlacementRecord tile in build.Records)
                 {
                     ValidateTileRow(tile.PlacementValueId);
@@ -508,7 +511,7 @@ namespace NeoCompose.Runtime
                 var occupied = new Dictionary<Vector2Int, string>();
                 var dependencies = new HashSet<string>();
                 var records = primitive.BuildObjectLayerRecords(layerId, dependencies);
-                plan.PreparedObjectLayers[(gridId, layerId)] = new NeoPreparedLayerRecords<NeoObjectPlacementRecord>(records, dependencies);
+                (plan.PreparedObjectLayers ??= new())[(gridId, layerId)] = new NeoPreparedLayerRecords<NeoObjectPlacementRecord>(records, dependencies);
                 foreach (NeoObjectPlacementRecord obj in records)
                 {
                     ValidateLayerClass(obj.AssetClassId, layerId, objectImports, false, compatibleLayers);
