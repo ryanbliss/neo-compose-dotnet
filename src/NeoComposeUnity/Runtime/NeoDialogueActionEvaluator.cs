@@ -2892,7 +2892,7 @@ namespace NeoCompose.Runtime
                     client,
                     resolved,
                     receiver,
-                    ReadOnlySpan<object?>.Empty,
+                    Array.Empty<object?>(),
                     ctx,
                     options ?? NeoScriptExecutionOptions.ForImmediate(client),
                     site: pointer,

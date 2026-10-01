@@ -795,11 +795,18 @@ namespace NeoCompose.Runtime.NeoScript
 
             internal void ClearDirectInvocation()
             {
-                thisValue = null;
-                contextValue = null;
-                gridReads = null;
-                initializerPlacement = null;
-                functionCallStack = System.Array.Empty<string>();
+                // These are properties: a null store through an inlined
+                // setter still pays a write barrier, so skip clear ones.
+                if (thisValue is not null)
+                    thisValue = null;
+                if (contextValue is not null)
+                    contextValue = null;
+                if (gridReads is not null)
+                    gridReads = null;
+                if (initializerPlacement is not null)
+                    initializerPlacement = null;
+                if (!ReferenceEquals(functionCallStack, System.Array.Empty<string>()))
+                    functionCallStack = System.Array.Empty<string>();
                 genericEnvironmentCacheStore?.Clear();
                 immediateExpressionContext = null;
                 immediateExpressionSource = null;
@@ -2300,7 +2307,7 @@ namespace NeoCompose.Runtime.NeoScript
                     ctx.client,
                     resolved,
                     receiver,
-                    ReadOnlySpan<object?>.Empty,
+                    Array.Empty<object?>(),
                     ctx,
                     site: pointer,
                     siteScope: scope);
@@ -6915,6 +6922,9 @@ namespace NeoCompose.Runtime.NeoScript
         {
             if (a is null || b is null)
                 return a is null && b is null;
+            // Option ids, the usual operands, are never numbers.
+            if (a is string sa)
+                return b is string sb && sa == sb;
             // Numeric-tolerant equality (int vs double both come through as numbers).
             if (TryAsDouble(a, out double da) && TryAsDouble(b, out double db))
                 return da == db;
@@ -6923,8 +6933,6 @@ namespace NeoCompose.Runtime.NeoScript
             if (a is NeoDelegateValue { IsMemberTarget: true } leftDelegate
                 && b is NeoDelegateValue { IsMemberTarget: true } rightDelegate)
                 return leftDelegate.memberId == rightDelegate.memberId && leftDelegate.valueId == rightDelegate.valueId;
-            if (a is string sa && b is string sb)
-                return sa == sb;
             if (a is bool ba && b is bool bb)
                 return ba == bb;
             if (a is object?[] aa && b is object?[] ab)
