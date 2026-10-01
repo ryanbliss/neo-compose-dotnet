@@ -6265,15 +6265,18 @@ namespace NeoCompose.Runtime
         /// client serves every immediate frame and lets them share the
         /// cached expression handlers.
         /// </summary>
-        internal static NeoScriptExecutionOptions ForImmediate(NeoClient client)
-        {
-            return client.immediateScriptExecutionOptions ??= new NeoScriptExecutionOptions(
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static NeoScriptExecutionOptions ForImmediate(NeoClient client) =>
+            client.immediateScriptExecutionOptions ?? CreateImmediate(client);
+
+        // Out of line so ForImmediate's cached read inlines.
+        private static NeoScriptExecutionOptions CreateImmediate(NeoClient client) =>
+            client.immediateScriptExecutionOptions = new NeoScriptExecutionOptions(
                 client,
                 UnityEngine.Debug.LogWarning,
                 null,
                 allowDeferredFunctionCalls: false,
                 cancelContinuationOnDeferredDisposal: false);
-        }
 
         internal NeoClient Client => client;
 

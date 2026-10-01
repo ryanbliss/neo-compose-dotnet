@@ -61,6 +61,7 @@ namespace NeoCompose.Runtime
         // resolution is the one it was resolved under.
         private NeoResolvedNSFunction? resolved;
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private NeoResolvedNSFunction ResolveFunction()
         {
             NeoResolvedNSFunction? function = resolved;
