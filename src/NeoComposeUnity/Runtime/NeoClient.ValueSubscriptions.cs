@@ -19,7 +19,11 @@ namespace NeoCompose.Runtime
         internal IDisposable SubscribeWritableValue(string valueId, Action<NeoValueOwnership, string> handler)
         {
             if (!writableValueSubscriptions.TryGetValue(valueId, out var handlers))
+            {
                 writableValueSubscriptions[valueId] = handlers = new List<Action<NeoValueOwnership, string>>(1);
+                if (ExistingValueNode(valueId) is { } node)
+                    node.subscribers = handlers;
+            }
             handlers.Add(handler);
             return new WritableValueSubscription(this, valueId, handler);
         }
@@ -30,8 +34,11 @@ namespace NeoCompose.Runtime
                 return;
             if (!handlers.Remove(handler))
                 return;
-            if (handlers.Count == 0)
-                writableValueSubscriptions.Remove(valueId);
+            if (handlers.Count != 0)
+                return;
+            writableValueSubscriptions.Remove(valueId);
+            if (ExistingValueNode(valueId) is { } node)
+                node.subscribers = null;
         }
 
         /// <summary>
@@ -187,12 +194,17 @@ namespace NeoCompose.Runtime
             _ => change.ReplacedValueIds,
         };
 
-        private void PublishWritableValueChange(NeoValueOwnership ownership, string valueId, NeoWritePlan? plan = null)
+        /// <param name="node">The live node of <paramref name="valueId"/>, when the caller holds it.</param>
+        private void PublishWritableValueChange(
+            NeoValueOwnership ownership, string valueId, NeoWritePlan? plan = null, NeoValueNode? node = null)
         {
             RefreshSharedEvaluationRow(ownership, valueId);
+            List<Action<NeoValueOwnership, string>>? handlers = node is { live: true }
+                ? node.subscribers
+                : writableValueSubscriptions.TryGetValue(valueId, out var found) ? found : null;
             // Invoke over a snapshot so reentrant writes, subscriptions and
             // disposal during a callback neither skip nor repeat a handler.
-            if (writableValueSubscriptions.TryGetValue(valueId, out var handlers) && handlers.Count != 0)
+            if (handlers is { Count: not 0 })
             {
                 NeoWritePlan? outer = PublishingPlan;
                 PublishingPlan = plan;

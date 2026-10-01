@@ -22,6 +22,7 @@ namespace NeoCompose.Runtime
             node = new NeoValueNode(id);
             if (!FillValueNode(node))
                 return null;
+            writableValueSubscriptions.TryGetValue(id, out node.subscribers);
             valueNodes.Add(id, node);
             return node;
         }

@@ -43,7 +43,7 @@ namespace NeoCompose.Runtime
 #endif
             StoreLeaf(ownership, next, node!);
             bool gridLeaf = InvalidateGridLeaf(next.id);
-            NotifyWritableValueChanged(ownership, next.id, changedField, membershipChanged: false);
+            NotifyWritableValueChanged(ownership, next.id, changedField, membershipChanged: false, node: node);
             if (gridLeaf)
                 PublishGridLeaf(ownership, next.id);
             return true;

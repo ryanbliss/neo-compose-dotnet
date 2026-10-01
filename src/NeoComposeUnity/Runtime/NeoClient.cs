@@ -836,6 +836,9 @@ namespace NeoCompose.Runtime
             // repeated removal from a large multicast delegate is quadratic.
             OnSaveValueChanged = null;
             OnWritableValueChanged = null;
+            // Value nodes mirror these lists, so empty them as well.
+            foreach (var handlers in writableValueSubscriptions.Values)
+                handlers.Clear();
             writableValueSubscriptions.Clear();
             OnStaticBindingChanged = null;
             assets.Dispose();
@@ -3415,16 +3418,17 @@ namespace NeoCompose.Runtime
             IndexStoreWrite(ownership, value, node);
         }
 
+        /// <param name="node">The live node of <paramref name="valueId"/>, when the caller holds it.</param>
         private void NotifyWritableValueChanged(
             NeoValueOwnership ownership, string valueId, string? changedField = null, bool valueChanged = true,
-            bool membershipChanged = true, NeoWritePlan? plan = null)
+            bool membershipChanged = true, NeoWritePlan? plan = null, NeoValueNode? node = null)
         {
             if (valueChanged)
-                PublishWritableValueChange(ownership, valueId, plan);
+                PublishWritableValueChange(ownership, valueId, plan, node);
             else if (nodesByValueId.TryGetValue(valueId, out var unchangedNodes))
-                foreach (NeoMember node in unchangedNodes.ToArray())
-                    if (!node.isDisposed && node.ownership == ownership)
-                        node.RefreshCommittedValue();
+                foreach (NeoMember member in unchangedNodes.ToArray())
+                    if (!member.isDisposed && member.ownership == ownership)
+                        member.RefreshCommittedValue();
             if (membershipChanged)
                 NotifyContainerMembershipChanged(ownership, valueId, plan);
             if (ownership == NeoValueOwnership.Save)
