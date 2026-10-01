@@ -194,24 +194,43 @@ namespace NeoCompose.Runtime
             // disposal during a callback neither skip nor repeat a handler.
             if (writableValueSubscriptions.TryGetValue(valueId, out var handlers) && handlers.Count != 0)
             {
-                int count = handlers.Count;
-                var snapshot = ArrayPool<Action<NeoValueOwnership, string>>.Shared.Rent(count);
-                handlers.CopyTo(snapshot, 0);
                 NeoWritePlan? outer = PublishingPlan;
                 PublishingPlan = plan;
                 try
                 {
-                    for (int i = 0; i < count; i++)
-                        snapshot[i](ownership, valueId);
+                    // A lone handler is read out before it runs, which is
+                    // already a snapshot.
+                    if (handlers.Count == 1)
+                        handlers[0](ownership, valueId);
+                    else
+                        InvokeSnapshot(handlers, ownership, valueId);
                 }
                 finally
                 {
                     PublishingPlan = outer;
-                    Array.Clear(snapshot, 0, count);
-                    ArrayPool<Action<NeoValueOwnership, string>>.Shared.Return(snapshot);
                 }
             }
             OnWritableValueChanged?.Invoke(ownership, valueId);
+        }
+
+        private static void InvokeSnapshot(
+            List<Action<NeoValueOwnership, string>> handlers,
+            NeoValueOwnership ownership,
+            string valueId)
+        {
+            int count = handlers.Count;
+            var snapshot = ArrayPool<Action<NeoValueOwnership, string>>.Shared.Rent(count);
+            handlers.CopyTo(snapshot, 0);
+            try
+            {
+                for (int i = 0; i < count; i++)
+                    snapshot[i](ownership, valueId);
+            }
+            finally
+            {
+                Array.Clear(snapshot, 0, count);
+                ArrayPool<Action<NeoValueOwnership, string>>.Shared.Return(snapshot);
+            }
         }
 
         private sealed class WritableValueSubscription : IDisposable

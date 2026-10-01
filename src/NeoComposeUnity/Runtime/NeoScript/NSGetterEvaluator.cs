@@ -673,7 +673,18 @@ namespace NeoCompose.Runtime.NeoScript
                 if (list.Length > 0)
                     (arrayRows ??= new ArrayRowCache()).NoteFresh(list, rowReverseIndex);
             }
-            internal RowAliasIndex rowAliases => RowAliasIndexes.GetValue(rowReverseIndex, CreateRowAliasIndexCallback);
+            // The shared table's entry for rowReverseIndex, which never
+            // changes and is never removed, so the context keeps it rather
+            // than taking the table's lock on every write.
+            private RowAliasIndex? rowAliasIndex;
+            internal RowAliasIndex rowAliases =>
+                rowAliasIndex ??= RowAliasIndexes.GetValue(rowReverseIndex, CreateRowAliasIndexCallback);
+
+            /// <summary>The alias index, if a context sharing this reverse index built it.</summary>
+            internal RowAliasIndex? BuiltRowAliases =>
+                rowAliasIndex ?? (RowAliasIndexes.TryGetValue(rowReverseIndex, out RowAliasIndex built)
+                    ? rowAliasIndex = built
+                    : null);
             internal LinkedFunctionCallHandler? linkedFunctionCallHandler
             {
                 get; private set;
@@ -1340,7 +1351,7 @@ namespace NeoCompose.Runtime.NeoScript
         {
             // Reads only need object-to-row lookup. Build the reverse alias lists
             // on the first write that must update existing CLR aliases.
-            RowAliasIndexes.TryGetValue(ctx.rowReverseIndex, out var aliases);
+            RowAliasIndex? aliases = ctx.BuiltRowAliases;
             if (aliases is not null && ctx.rowReverseIndex.TryGetValue(alias, out var previous))
                 aliases.Remove(alias, previous);
             ctx.rowReverseIndex.Remove(alias);
@@ -1360,8 +1371,7 @@ namespace NeoCompose.Runtime.NeoScript
         private static void AddFreshRowReference(Context ctx, object alias, RowReference row)
         {
             ctx.rowReverseIndex.Add(alias, row);
-            if (RowAliasIndexes.TryGetValue(ctx.rowReverseIndex, out var aliases))
-                aliases.Add(alias, row);
+            ctx.BuiltRowAliases?.Add(alias, row);
             if (alias is NeoObjectRecord record)
             {
                 record.reference = row;

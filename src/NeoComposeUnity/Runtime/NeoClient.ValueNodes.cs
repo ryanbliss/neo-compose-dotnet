@@ -37,6 +37,20 @@ namespace NeoCompose.Runtime
                 DropValueNode(node);
         }
 
+        /// <summary>
+        /// Points a node at the row a store write just set. Only that
+        /// store's slot changed, so the node's other slots still hold.
+        /// </summary>
+        private void SyncStoredValueNode(NeoValueOwnership ownership, MemberValue value)
+        {
+            if (!valueNodes.TryGetValue(value.id, out NeoValueNode node))
+                return;
+            if (ownership == NeoValueOwnership.Session)
+                node.session = value;
+            else
+                node.save = value;
+        }
+
         private bool FillValueNode(NeoValueNode node)
         {
             sessionData.values.TryGetValue(node.id, out node.session);

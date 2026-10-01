@@ -5563,7 +5563,7 @@ namespace NeoCompose.Runtime
         /// <summary>Index maintenance chokepoint for a store write at <c>value.id</c>.</summary>
         private void IndexStoreWrite(NeoValueOwnership ownership, MemberValue value)
         {
-            SyncValueNode(value.id);
+            SyncStoredValueNode(ownership, value);
             IndexPlacementParent(ownership, value);
             var (byContainer, byRow) = MembershipMaps(ownership);
             if (byRow.TryGetValue(value.id, out string previousContainerId)
