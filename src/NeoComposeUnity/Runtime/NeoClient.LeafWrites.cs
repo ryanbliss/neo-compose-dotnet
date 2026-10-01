@@ -132,7 +132,10 @@ namespace NeoCompose.Runtime
                 GetWritableStore(ownership).values[next.id] = next;
                 SyncStoredValueNode(ownership, next, node);
             }
-            TouchWritableStoreUpdatedAt(ownership);
+            // Every leaf writer stamps the row with the write's clock read,
+            // so the save shares it rather than reading the clock again.
+            if (ownership == NeoValueOwnership.Save)
+                saveData.updatedAt = next.updatedAt;
             WriteRevision++;
             InvalidateGetterMemoForRow(next.id);
             if (!string.IsNullOrEmpty(next.containerId))
