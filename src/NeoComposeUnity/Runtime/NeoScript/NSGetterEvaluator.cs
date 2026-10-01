@@ -4653,12 +4653,21 @@ namespace NeoCompose.Runtime.NeoScript
         /// <returns><see cref="ArithmeticValue.BareNumber"/> when <paramref name="number"/> holds the value.</returns>
         internal static object? EvaluateValue(Pointer pointer, NeoScriptScope scope, Context ctx, out double number)
         {
-            if (pointer is OperationPointer { operation: ArithmeticOperation arithmetic })
+            // A local is the commonest operand.
+            if (pointer is VariablePointer variable)
+            {
+                if (scope.TryReadNumber(variable, out number))
+                    return ArithmeticValue.BareNumber;
+            }
+            else if (pointer is ValuePointer { primitiveResolved: true } literal)
+            {
+                number = 0;
+                return literal.primitive;
+            }
+            else if (pointer is OperationPointer { operation: ArithmeticOperation arithmetic })
                 return EvalArithmetic(arithmetic.arithmetic, scope, ctx, out number);
-            if (pointer is FunctionPointer { function: MathOpFunction math })
+            else if (pointer is FunctionPointer { function: MathOpFunction math })
                 return EvalMathOp(math.info, scope, ctx, out number);
-            if (pointer is VariablePointer variable && scope.TryReadNumber(variable, out number))
-                return ArithmeticValue.BareNumber;
             // Non-numeric reads retain row-alias refresh and all ordinary
             // interpreter semantics at the shared pointer boundary.
             number = 0;
@@ -4983,7 +4992,7 @@ namespace NeoCompose.Runtime.NeoScript
         /// </summary>
         private static object? EvaluateComparand(Pointer pointer, NeoScriptScope scope, Context ctx, out double number)
         {
-            if (pointer is ValuePointer { value: { value: JArray items } literal } vp
+            if (pointer is ValuePointer { primitiveResolved: false, value: { value: JArray items } literal } vp
                 && literal.typeInfo.type != MemberKind.NSAction)
             {
                 number = 0;

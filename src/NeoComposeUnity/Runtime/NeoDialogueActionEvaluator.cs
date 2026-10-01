@@ -764,11 +764,11 @@ namespace NeoCompose.Runtime
         private static NeoScriptExecutionResult? ApplyWhileBodyTransfer(
             NeoScriptExecutionResult result)
         {
-            if (result.Returned || result.IsFailed)
-                return result;
+            if (!result.EndsLoop)
+                return null;
             if (result.IsBreak)
                 return NeoScriptExecutionResult.Completed(returned: false, returnValue: null);
-            return null;
+            return result;
         }
 
         private static void ValidateWhileInstructionMetadata(WhileInstruction instruction)
@@ -1075,7 +1075,7 @@ namespace NeoCompose.Runtime
             ForExecutionState state,
             NeoScriptExecutionResult bodyResult)
         {
-            if (bodyResult.Returned || bodyResult.IsFailed || bodyResult.IsBreak)
+            if (bodyResult.EndsLoop)
             {
                 state.RestoreBinding(scope);
                 return true;
@@ -1300,7 +1300,7 @@ namespace NeoCompose.Runtime
             ForEachExecutionState state,
             NeoScriptExecutionResult bodyResult)
         {
-            if (bodyResult.Returned || bodyResult.IsFailed || bodyResult.IsBreak)
+            if (bodyResult.EndsLoop)
             {
                 state.RestoreBinding(scope);
                 return true;
@@ -6470,6 +6470,15 @@ namespace NeoCompose.Runtime
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => ReferenceEquals(state, ContinueState);
+        }
+        /// <summary>
+        /// A return, failure or break: a completed body that stops its loop.
+        /// A fallthrough, the common case, answers on the null check.
+        /// </summary>
+        internal bool EndsLoop
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => state is not null && !ReferenceEquals(state, ContinueState) && state is not PausedState;
         }
         internal bool IsFallthrough
         {

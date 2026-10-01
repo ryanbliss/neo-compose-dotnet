@@ -273,10 +273,20 @@ namespace NeoCompose.Runtime.NeoScript
         internal bool hasDynamicBindings;
         private readonly Dictionary<string, object?>? externalBindings;
         /// <summary>
-        /// Read-only marks with a nesting depth. One binding id is one
-        /// declaration, so every mark on it carries the same error.
+        /// Read-only marks, one per enclosing foreach or catch binding, so a
+        /// scan beats hashing every assignment's id. A nested mark of one id
+        /// stacks; one binding id is one declaration, so its marks carry the
+        /// same error.
         /// </summary>
-        private Dictionary<string, (string error, int depth)>? readOnlyBindings;
+        private ReadOnlyMark[] readOnlyMarks = Array.Empty<ReadOnlyMark>();
+        private int readOnlyMarkCount;
+
+        private struct ReadOnlyMark
+        {
+            internal string bindingId;
+            internal string error;
+        }
+
         private readonly NeoScriptScopeLayout? layout;
         // A layout slot holds a value, or a number no box holds. The two live
         // in separate arrays: Mono write-barriers a struct with a reference
@@ -703,7 +713,7 @@ namespace NeoCompose.Runtime.NeoScript
                 }
             }
             externalBindings?.Clear();
-            readOnlyBindings?.Clear();
+            ClearReadOnlyMarks();
         }
 
         /// <summary>
@@ -715,7 +725,7 @@ namespace NeoCompose.Runtime.NeoScript
         {
             if (LocalBindingCount > parameterCount)
                 ResetLocals();
-            readOnlyBindings?.Clear();
+            ClearReadOnlyMarks();
         }
 
         internal bool Remove(string bindingId)
@@ -762,38 +772,49 @@ namespace NeoCompose.Runtime.NeoScript
 
         internal void MarkReadOnly(string bindingId, string error)
         {
-            readOnlyBindings ??= new(StringComparer.Ordinal);
-            readOnlyBindings.TryGetValue(bindingId, out var mark);
-            readOnlyBindings[bindingId] = (error, mark.depth + 1);
+            if (readOnlyMarkCount == readOnlyMarks.Length)
+                Array.Resize(ref readOnlyMarks, Math.Max(2, readOnlyMarkCount * 2));
+            readOnlyMarks[readOnlyMarkCount++] = new ReadOnlyMark { bindingId = bindingId, error = error };
         }
 
         internal void UnmarkReadOnly(string bindingId)
         {
-            if (readOnlyBindings is null || !readOnlyBindings.TryGetValue(
-                    bindingId,
-                    out var mark))
-            {
+            int index = ReadOnlyMarkIndex(bindingId);
+            if (index < 0)
                 return;
+            readOnlyMarkCount--;
+            Array.Copy(readOnlyMarks, index + 1, readOnlyMarks, index, readOnlyMarkCount - index);
+            readOnlyMarks[readOnlyMarkCount] = default;
+        }
+
+        private void ClearReadOnlyMarks()
+        {
+            if (readOnlyMarkCount == 0)
+                return;
+            Array.Clear(readOnlyMarks, 0, readOnlyMarkCount);
+            readOnlyMarkCount = 0;
+        }
+
+        private int ReadOnlyMarkIndex(string bindingId)
+        {
+            for (int index = readOnlyMarkCount - 1; index >= 0; index--)
+            {
+                if (string.Equals(readOnlyMarks[index].bindingId, bindingId))
+                    return index;
             }
-            if (mark.depth > 1)
-                readOnlyBindings[bindingId] = (mark.error, mark.depth - 1);
-            else
-                readOnlyBindings.Remove(bindingId);
+            return -1;
         }
 
         internal bool TryGetReadOnlyError(string bindingId, out string? error)
         {
-            // Clearing keeps the map, so an empty one skips hashing.
-            if (readOnlyBindings is { Count: > 0 } && readOnlyBindings.TryGetValue(
-                    bindingId,
-                    out var mark))
+            for (NeoScriptScope? scope = this; scope is not null; scope = scope.Parent)
             {
-                error = mark.error;
-                return true;
-            }
-            if (Parent is not null)
-            {
-                return Parent.TryGetReadOnlyError(bindingId, out error);
+                int index = scope.ReadOnlyMarkIndex(bindingId);
+                if (index >= 0)
+                {
+                    error = scope.readOnlyMarks[index].error;
+                    return true;
+                }
             }
             error = null;
             return false;
