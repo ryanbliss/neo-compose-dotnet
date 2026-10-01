@@ -119,6 +119,106 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void StaticPatternGetter_ReadAsAnArgumentReceiverIsMemoizedUntilARowItReadChanges()
+        {
+            const string boxId = "system_aaad2df6-e31e-5f5d-95b9-e265211faed5";
+            const string areaId = "member-area";
+            var patternType = new ClassTypeInfo { type = MemberKind.Class, required = true, classId = NeoCellPatternStorage.ClassId };
+            static ValuePointer Literal(TypeInfo typeInfo, JToken value) => new()
+            {
+                type = PointerKind.Value,
+                value = new Value { typeInfo = typeInfo, value = value },
+            };
+            // static NeoCellPattern Area => NeoCellPattern.Box(width, 0);
+            var area = new NSPropertyMember
+            {
+                id = areaId,
+                projectId = "project-a",
+                name = "Area",
+                kind = MemberKind.NSProperty,
+                Modifier = NeoMemberModifierKind.Static,
+                returnTypeInfo = patternType,
+                getter = new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = new[] { new Variable { id = "__this__" }, new Variable { id = "__root__" } },
+                    typeInfo = patternType,
+                    instructions = new Instruction[]
+                    {
+                        new ReturnInstruction
+                        {
+                            type = InstructionKind.Return,
+                            pointer = new CallFunctionPointer
+                            {
+                                type = PointerKind.CallFunction,
+                                callSiteId = "area-box",
+                                memberId = boxId,
+                                receiver = CallReceiver.Static(boxId),
+                                args = new Pointer[]
+                                {
+                                    new ReferencePointer { type = PointerKind.Reference, valueId = "pattern-width" },
+                                    Literal(new PrimitiveTypeInfo { type = MemberKind.Int, required = true }, 0),
+                                    Literal(new EnumTypeInfo { type = MemberKind.Enum, required = true, enumId = NeoCellPatternStorage.ExcludingEnumId },
+                                        new JArray(NeoCellPatternStorage.NoneId)),
+                                },
+                            },
+                        },
+                    },
+                },
+            };
+            using NeoClient client = Client(data =>
+            {
+                data.values["pattern-width"] = new NumberMemberValue { id = "pattern-width", value = 1 };
+                data.members[areaId] = area;
+                data.classes["class-areas"] = new NeoSchemaClass
+                {
+                    id = "class-areas",
+                    projectId = "project-a",
+                    name = "Areas",
+                    schema = new Dictionary<string, string> { ["Area"] = areaId },
+                };
+            });
+            // GetObjects(Areas.Area.Translate((0, 0)))
+            var query = new CallFunctionPointer
+            {
+                type = PointerKind.CallFunction,
+                callSiteId = "query",
+                memberId = "system_f5ca386c-990c-54a1-8473-2d49d2cd887d",
+                args = new Pointer[]
+                {
+                    new CallFunctionPointer
+                    {
+                        type = PointerKind.CallFunction,
+                        callSiteId = "translate-area",
+                        memberId = "system_efc67858-0c95-573f-a8a9-d7e07d0a1d55",
+                        receiver = CallReceiver.Instance(new CallGetterPointer
+                        {
+                            type = PointerKind.CallGetter,
+                            memberId = areaId,
+                            receiver = CallReceiver.Static(areaId),
+                        }),
+                        args = new Pointer[]
+                        {
+                            Literal(new PrimitiveTypeInfo { type = MemberKind.Vector2Int, required = true }, JObject.FromObject(new { x = 0, y = 0 })),
+                        },
+                    },
+                },
+            };
+            var ctx = client.CreateGetterContext(NeoValueOwnership.Save);
+            var scope = new NeoScriptScope(0);
+            var key = new NeoClient.GetterMemoKey(NeoValueOwnership.Save, NeoClient.StaticGetterRowId, areaId, NeoValueOwnership.Save);
+            NeoCellPattern Area() => NeoCellPatternStorage.ReadRuntime(NSGetterEvaluator.EvaluateFunctionArgument(query, 0, scope, ctx), ctx);
+
+            CollectionAssert.AreEqual(NeoCellPattern.Box(1, 0, NeoCellPatternExcluding.None), Area());
+            Assert.IsInstanceOf<NeoCellPattern>(client.FindMemoizedGetter(key)?.scalar, "The getter's pattern is kept as offsets.");
+            CollectionAssert.AreEqual(NeoCellPattern.Box(1, 0, NeoCellPatternExcluding.None), Area());
+
+            client.SetWritableValue(NeoValueOwnership.Save, new NumberMemberValue { id = "pattern-width", value = 2 });
+            Assert.IsNull(client.FindMemoizedGetter(key), "A write to a row the getter read drops the entry.");
+            CollectionAssert.AreEqual(NeoCellPattern.Box(2, 0, NeoCellPatternExcluding.None), Area());
+        }
+
+        [Test]
         public void OnlyQueriesGrid_HoldsWhenEveryReadIsAGridQueryCellsArgument()
         {
             static VariablePointer Cells() => new()

@@ -136,7 +136,23 @@ namespace NeoCompose.Runtime
     {
         private readonly NeoClient client;
         private readonly Dictionary<string, INeoTileGridContent> contentByGrid = new();
-        private readonly Dictionary<string, (string grid, string layer, string instance)> placements = new();
+        // A class, so a lookup hands back one reference: copying a tuple of
+        // references out of the table costs a GC write barrier per field.
+        private sealed class PlacementBinding
+        {
+            internal readonly string grid;
+            internal readonly string layer;
+            internal readonly string instance;
+
+            internal PlacementBinding(string grid, string layer, string instance)
+            {
+                this.grid = grid;
+                this.layer = layer;
+                this.instance = instance;
+            }
+        }
+
+        private readonly Dictionary<string, PlacementBinding> placements = new();
         // GetObjects' buffers; filling them runs no NeoScript, so no query nests inside another.
         private readonly List<object?> queriedObjects = new();
         private Dictionary<Vector2Int, List<NeoObjectPlacementRecord>>[] layerCellsBuffer =
@@ -183,19 +199,19 @@ namespace NeoCompose.Runtime
         internal void Bind(string receiverId, string gridId, string layerId, string instanceId)
         {
             // Queries rebind the same placements every call; only a change writes.
-            if (placements.TryGetValue(receiverId, out var bound)
+            if (placements.TryGetValue(receiverId, out PlacementBinding? bound)
                 && ReferenceEquals(bound.grid, gridId)
                 && ReferenceEquals(bound.layer, layerId)
                 && ReferenceEquals(bound.instance, instanceId))
             {
                 return;
             }
-            placements[receiverId] = (gridId, layerId, instanceId);
+            placements[receiverId] = new PlacementBinding(gridId, layerId, instanceId);
         }
 
         private (INeoTileGridContent content, NeoObjectPlacementRecord placement) Resolve(string receiverId)
         {
-            if (placements.TryGetValue(receiverId, out var binding)
+            if (placements.TryGetValue(receiverId, out PlacementBinding? binding)
                 && contentByGrid.TryGetValue(binding.grid, out var content))
             {
                 var placement = content.Primitive.LookupCache.ObjectRecord(binding.layer, binding.instance);
@@ -255,6 +271,9 @@ namespace NeoCompose.Runtime
 
         /// <summary>GetObjects and GetTile, which read their one pattern argument as offsets.</summary>
         internal static bool ReadsCells(string? memberId) => memberId is GetObjectsId or GetTileId;
+
+        /// <summary>Whether the call returns a fresh array of the queried objects.</summary>
+        internal static bool ReturnsObjects(string? memberId) => memberId == GetObjectsId;
 
         // Compares layer ids rather than the list: content may reuse one
         // list across layer changes.
@@ -356,8 +375,12 @@ namespace NeoCompose.Runtime
             }
             if (!getObjects)
                 return true;
-            result = queriedObjects.ToArray();
+            object?[] objects = NSGetterEvaluator.TemporaryLists.Rent(queriedObjects.Count);
+            queriedObjects.CopyTo(objects);
             queriedObjects.Clear();
+            ctx.NoteFreshList(objects);
+            NSGetterEvaluator.TemporaryLists.MarkExclusive(objects);
+            result = objects;
             return true;
         }
 
@@ -376,7 +399,7 @@ namespace NeoCompose.Runtime
 
         private static object? RuntimeValue(string id, ref NeoValueNode? node, NSGetterEvaluator.Context ctx)
         {
-            if (!ctx.client.TryGetValue(id, ref node, out MemberValue? row))
+            if (ctx.client.ReadValue(id, ref node) is not { } row)
                 throw new NSGetterRuntimeError("Grid query result has no stored value.");
             var ownership = ctx.client.TryGetValueOwnership(id, ref node, out NeoValueOwnership found) ? found : NeoValueOwnership.Asset;
             return NSGetterEvaluator.UnwrapRow(row, ctx, ownership, node);

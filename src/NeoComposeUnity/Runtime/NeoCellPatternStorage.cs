@@ -62,8 +62,7 @@ namespace NeoCompose.Runtime
                 ref NeoValueNode? offsetNode = ref offsetNodes[index];
                 if (offsetNode is not null && !string.Equals(offsetNode.id, ids[index], StringComparison.Ordinal))
                     offsetNode = null;
-                client.TryGetValue(ownership, ids[index], ref offsetNode, out MemberValue? offset);
-                if (offset is not Vector2MemberValue { value: not null } vector)
+                if (client.ReadValue(ownership, ids[index], ref offsetNode) is not Vector2MemberValue { value: not null } vector)
                     throw new InvalidOperationException("CellPattern offset is missing.");
                 Vector2Int cell = NeoVectorValues.ToVector2Int(vector.value);
                 if (offsets is null)
@@ -179,8 +178,7 @@ namespace NeoCompose.Runtime
             string? id = rowRef?.valueId;
             var ownership = NSGetterEvaluator.RowOwnership(rowRef, value) ?? ctx.valueOwnership;
             NeoValueNode? node = rowRef?.node;
-            if (id is null || !ctx.client.TryGetValue(ownership, id, ref node, out MemberValue? stored)
-                || stored is not ObjectMemberValue { classId: ClassId } row)
+            if (id is null || ctx.client.ReadValue(ownership, id, ref node) is not ObjectMemberValue { classId: ClassId } row)
                 throw new NSGetterRuntimeError("Expected a canonical CellPattern value.");
             if (rowRef is not null && !ReferenceEquals(rowRef.node, node))
                 rowRef.node = node;

@@ -130,7 +130,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 if (TryReadDetached("Art", out object? detachedValue))
                 {
-                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, false, global::HelloWorld.Assets.Scripts.Neo.Art.Create, global::HelloWorld.Assets.Scripts.Neo.Art.CreateWritable, global::HelloWorld.Assets.Scripts.Neo.Art.CreateDetached);
+                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, false, static (factoryClient, factoryNode) => global::HelloWorld.Assets.Scripts.Neo.Art.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => global::HelloWorld.Assets.Scripts.Neo.Art.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::HelloWorld.Assets.Scripts.Neo.Art.CreateDetached(factoryClient, factoryValue, factorySaved));
                 }
                 return global::HelloWorld.Assets.Scripts.Neo.Art.Create(client, node.Get<NeoMemberClass>("Art"));
             }
@@ -142,7 +142,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 if (TryReadDetached("Audio", out object? detachedValue))
                 {
-                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, false, global::HelloWorld.Assets.Scripts.Neo.Audio.Create, global::HelloWorld.Assets.Scripts.Neo.Audio.CreateWritable, global::HelloWorld.Assets.Scripts.Neo.Audio.CreateDetached);
+                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, false, static (factoryClient, factoryNode) => global::HelloWorld.Assets.Scripts.Neo.Audio.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => global::HelloWorld.Assets.Scripts.Neo.Audio.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::HelloWorld.Assets.Scripts.Neo.Audio.CreateDetached(factoryClient, factoryValue, factorySaved));
                 }
                 return global::HelloWorld.Assets.Scripts.Neo.Audio.Create(client, node.Get<NeoMemberClass>("Audio"));
             }
@@ -154,7 +154,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 if (TryReadDetached("Computed", out object? detachedValue))
                 {
-                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, false, global::HelloWorld.Assets.Scripts.Neo.ComputedText.Create, global::HelloWorld.Assets.Scripts.Neo.ComputedText.CreateWritable, global::HelloWorld.Assets.Scripts.Neo.ComputedText.CreateDetached);
+                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, false, static (factoryClient, factoryNode) => global::HelloWorld.Assets.Scripts.Neo.ComputedText.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => global::HelloWorld.Assets.Scripts.Neo.ComputedText.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::HelloWorld.Assets.Scripts.Neo.ComputedText.CreateDetached(factoryClient, factoryValue, factorySaved));
                 }
                 return global::HelloWorld.Assets.Scripts.Neo.ComputedText.Create(client, node.Get<NeoMemberClass>("Computed"));
             }
@@ -166,7 +166,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 if (TryReadDetached("Items", out _))
                 {
-                    return DetachedReadOnlyList<IReadOnlyItem>("Items", entry => NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, entry, false, global::HelloWorld.Assets.Scripts.Neo.Item.Create, global::HelloWorld.Assets.Scripts.Neo.Item.CreateWritable, global::HelloWorld.Assets.Scripts.Neo.Item.CreateDetached), (client, child) => global::HelloWorld.Assets.Scripts.Neo.Item.Create(client, (NeoMemberClass)child));
+                    if (TryGetDetachedView<NeoReadOnlyList<IReadOnlyItem>>("Items", out var detachedView)) return detachedView;
+                    return DetachedReadOnlyList<IReadOnlyItem>("Items", entry => NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, entry, false, static (factoryClient, factoryNode) => global::HelloWorld.Assets.Scripts.Neo.Item.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => global::HelloWorld.Assets.Scripts.Neo.Item.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::HelloWorld.Assets.Scripts.Neo.Item.CreateDetached(factoryClient, factoryValue, factorySaved)), (client, child) => global::HelloWorld.Assets.Scripts.Neo.Item.Create(client, (NeoMemberClass)child));
                 }
                 var memberNode = node.Get<NeoMemberList>("Items");
                 if (TryGetStoredView<NeoReadOnlyList<IReadOnlyItem>>("Items", memberNode, out var cached)) return cached;
@@ -180,7 +181,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 if (TryReadDetached("LookupContainer", out object? detachedValue))
                 {
-                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, false, global::HelloWorld.Assets.Scripts.Neo.LookupContainer.Create, global::HelloWorld.Assets.Scripts.Neo.LookupContainer.CreateWritable, global::HelloWorld.Assets.Scripts.Neo.LookupContainer.CreateDetached);
+                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, false, static (factoryClient, factoryNode) => global::HelloWorld.Assets.Scripts.Neo.LookupContainer.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => global::HelloWorld.Assets.Scripts.Neo.LookupContainer.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::HelloWorld.Assets.Scripts.Neo.LookupContainer.CreateDetached(factoryClient, factoryValue, factorySaved));
                 }
                 return global::HelloWorld.Assets.Scripts.Neo.LookupContainer.Create(client, node.Get<NeoMemberClass>("LookupContainer"));
             }
@@ -192,7 +193,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 if (TryReadDetached("Outposts", out _))
                 {
-                    return DetachedReadOnlyList<IReadOnlyOutpost>("Outposts", entry => NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, entry, false, global::HelloWorld.Assets.Scripts.Neo.Outpost.Create, global::HelloWorld.Assets.Scripts.Neo.Outpost.CreateWritable, global::HelloWorld.Assets.Scripts.Neo.Outpost.CreateDetached), (client, child) => global::HelloWorld.Assets.Scripts.Neo.Outpost.Create(client, (NeoMemberClass)child));
+                    if (TryGetDetachedView<NeoReadOnlyList<IReadOnlyOutpost>>("Outposts", out var detachedView)) return detachedView;
+                    return DetachedReadOnlyList<IReadOnlyOutpost>("Outposts", entry => NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, entry, false, static (factoryClient, factoryNode) => global::HelloWorld.Assets.Scripts.Neo.Outpost.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => global::HelloWorld.Assets.Scripts.Neo.Outpost.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::HelloWorld.Assets.Scripts.Neo.Outpost.CreateDetached(factoryClient, factoryValue, factorySaved)), (client, child) => global::HelloWorld.Assets.Scripts.Neo.Outpost.Create(client, (NeoMemberClass)child));
                 }
                 var memberNode = node.Get<NeoMemberList>("Outposts");
                 if (TryGetStoredView<NeoReadOnlyList<IReadOnlyOutpost>>("Outposts", memberNode, out var cached)) return cached;
@@ -206,7 +208,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 if (TryReadDetached("ScreenshotEmptyGrid", out object? detachedValue))
                 {
-                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, false, global::HelloWorld.Assets.Scripts.Neo.OldConsoleLandingGrid.Create, global::HelloWorld.Assets.Scripts.Neo.OldConsoleLandingGrid.CreateWritable, global::HelloWorld.Assets.Scripts.Neo.OldConsoleLandingGrid.CreateDetached);
+                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, false, static (factoryClient, factoryNode) => global::HelloWorld.Assets.Scripts.Neo.OldConsoleLandingGrid.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => global::HelloWorld.Assets.Scripts.Neo.OldConsoleLandingGrid.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::HelloWorld.Assets.Scripts.Neo.OldConsoleLandingGrid.CreateDetached(factoryClient, factoryValue, factorySaved));
                 }
                 return global::HelloWorld.Assets.Scripts.Neo.OldConsoleLandingGrid.Create(client, node.Get<NeoMemberClass>("ScreenshotEmptyGrid"));
             }
@@ -218,7 +220,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 if (TryReadDetached("SortingLayers", out _))
                 {
-                    return DetachedReadOnlyList<IReadOnlyNeoSortingLayer>("SortingLayers", entry => NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, entry, false, global::HelloWorld.Assets.Scripts.Neo.NeoSortingLayer.Create, global::HelloWorld.Assets.Scripts.Neo.NeoSortingLayer.CreateWritable, global::HelloWorld.Assets.Scripts.Neo.NeoSortingLayer.CreateDetached), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoSortingLayer.Create(client, (NeoMemberClass)child));
+                    if (TryGetDetachedView<NeoReadOnlyList<IReadOnlyNeoSortingLayer>>("SortingLayers", out var detachedView)) return detachedView;
+                    return DetachedReadOnlyList<IReadOnlyNeoSortingLayer>("SortingLayers", entry => NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, entry, false, static (factoryClient, factoryNode) => global::HelloWorld.Assets.Scripts.Neo.NeoSortingLayer.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => global::HelloWorld.Assets.Scripts.Neo.NeoSortingLayer.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::HelloWorld.Assets.Scripts.Neo.NeoSortingLayer.CreateDetached(factoryClient, factoryValue, factorySaved)), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoSortingLayer.Create(client, (NeoMemberClass)child));
                 }
                 var memberNode = node.Get<NeoMemberList>("SortingLayers");
                 if (TryGetStoredView<NeoReadOnlyList<IReadOnlyNeoSortingLayer>>("SortingLayers", memberNode, out var cached)) return cached;
@@ -232,7 +235,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 if (TryReadDetached("Worlds", out object? detachedValue))
                 {
-                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, false, global::HelloWorld.Assets.Scripts.Neo.Worlds.Create, global::HelloWorld.Assets.Scripts.Neo.Worlds.CreateWritable, global::HelloWorld.Assets.Scripts.Neo.Worlds.CreateDetached);
+                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, false, static (factoryClient, factoryNode) => global::HelloWorld.Assets.Scripts.Neo.Worlds.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => global::HelloWorld.Assets.Scripts.Neo.Worlds.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::HelloWorld.Assets.Scripts.Neo.Worlds.CreateDetached(factoryClient, factoryValue, factorySaved));
                 }
                 return global::HelloWorld.Assets.Scripts.Neo.Worlds.Create(client, node.Get<NeoMemberClass>("Worlds"));
             }

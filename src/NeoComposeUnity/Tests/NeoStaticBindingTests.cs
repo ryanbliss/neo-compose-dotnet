@@ -86,6 +86,34 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void RepeatReads_ReuseTheBindingAndItsNodeUntilRebound()
+        {
+            NeoClient client = BuildClient();
+            client.LoadValuePartition("scores:rules-class");
+            NeoStaticBinding binding = NeoGeneratedTypesSupport.StaticBinding(
+                client,
+                "static-score",
+                NeoValueOwnership.Save);
+            binding.SetValue(NeoGeneratedTypesSupport.Value(12));
+            NeoMemberInt first = binding.GetRequiredNode<NeoMemberInt>();
+
+            Assert.AreSame(
+                binding,
+                NeoGeneratedTypesSupport.StaticBinding(client, "static-score", NeoValueOwnership.Save));
+            Assert.AreSame(first, binding.GetRequiredNode<NeoMemberInt>());
+            Assert.Throws<InvalidOperationException>(() =>
+                NeoGeneratedTypesSupport.StaticBinding(client, "static-score", NeoValueOwnership.Session));
+
+            binding.Clear();
+            binding.SetValue(NeoGeneratedTypesSupport.Value(7));
+            NeoMemberInt rebound = binding.GetRequiredNode<NeoMemberInt>();
+
+            Assert.AreNotSame(first, rebound);
+            Assert.AreEqual(binding.ValueId, rebound.overrideValueId);
+            Assert.AreEqual(7, NeoGeneratedTypesSupport.ReadInt(rebound));
+        }
+
+        [Test]
         public void OptionalSessionList_MaterializesOnlyOnFirstMutation()
         {
             NeoClient client = BuildClient();

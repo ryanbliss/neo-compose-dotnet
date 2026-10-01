@@ -545,16 +545,15 @@ namespace NeoCompose.Runtime
                     case AssignInstruction assign:
                         try
                         {
-                            var nestedSetter = ExecuteAssign(
+                            NeoScriptExecutionResult nestedSetter = ExecuteAssign(
                                 client,
                                 assign,
                                 scope,
                                 actionCtx,
                                 options);
-                            if (nestedSetter is not null
-                                && (nestedSetter.Value.IsPaused || nestedSetter.Value.Returned))
+                            if (nestedSetter.IsPaused || nestedSetter.Returned)
                             {
-                                return ResumeInstructionsAfter(client, instructions, returnTypeInfo, scope, ctx, i + 1, options, nestedSetter.Value, consumeTerminal: true);
+                                return ResumeInstructionsAfter(client, instructions, returnTypeInfo, scope, ctx, i + 1, options, nestedSetter, consumeTerminal: true);
                             }
                         }
                         catch (NeoFunctionCallSuspended suspended)
@@ -940,10 +939,8 @@ namespace NeoCompose.Runtime
                                     afterIterator: false);
                             }
                             state.ResetBodyScope();
-                            NeoScriptExecutionResult? terminal =
-                                ApplyForBodyTransfer(scope, state, bodyResult);
-                            if (terminal is not null)
-                                return terminal.Value;
+                            if (EndsForBody(scope, state, bodyResult))
+                                return LoopTerminal(bodyResult);
                             continue;
                         }
                     case ForPhase.Iterator:
@@ -955,7 +952,7 @@ namespace NeoCompose.Runtime
                                     state.ExpressionState,
                                     options);
                             state.ExpressionState.BeginInstructionAttempt();
-                            NeoScriptExecutionResult? nestedSetter;
+                            NeoScriptExecutionResult nestedSetter;
                             try
                             {
                                 nestedSetter = ExecuteAssign(
@@ -976,7 +973,7 @@ namespace NeoCompose.Runtime
                                     state,
                                     suspended);
                             }
-                            if (nestedSetter is not null && nestedSetter.Value.IsPaused)
+                            if (nestedSetter.IsPaused)
                             {
                                 return ResumeForWhenCompleted(
                                     client,
@@ -985,7 +982,7 @@ namespace NeoCompose.Runtime
                                     ctx,
                                     options,
                                     state,
-                                    nestedSetter.Value,
+                                    nestedSetter,
                                     afterIterator: true);
                             }
                             state.MoveTo(ForPhase.Condition);
@@ -1048,9 +1045,9 @@ namespace NeoCompose.Runtime
             NeoScriptExecutionResult bodyResult)
         {
             state.ResetBodyScope();
-            NeoScriptExecutionResult? terminal =
-                ApplyForBodyTransfer(scope, state, bodyResult);
-            return terminal ?? RunFor(
+            return EndsForBody(scope, state, bodyResult)
+                ? LoopTerminal(bodyResult)
+                : RunFor(
                 client,
                 returnTypeInfo,
                 scope,
@@ -1059,26 +1056,30 @@ namespace NeoCompose.Runtime
                 state);
         }
 
-        private static NeoScriptExecutionResult? ApplyForBodyTransfer(
+        // Whether a body's transfer ends the loop; if not, the loop moves on.
+        // A bool, not a nullable result: that is wider than two registers, so
+        // Mono copies it out through a write-barriered range copy.
+        private static bool EndsForBody(
             NeoScriptScope scope,
             ForExecutionState state,
             NeoScriptExecutionResult bodyResult)
         {
-            if (bodyResult.Returned || bodyResult.IsFailed)
+            if (bodyResult.Returned || bodyResult.IsFailed || bodyResult.IsBreak)
             {
                 state.RestoreBinding(scope);
-                return bodyResult;
-            }
-            if (bodyResult.IsBreak)
-            {
-                state.RestoreBinding(scope);
-                return NeoScriptExecutionResult.Completed(
-                    returned: false,
-                    returnValue: null);
+                return true;
             }
             state.MoveTo(ForPhase.Iterator);
-            return null;
+            return false;
         }
+
+        /// <summary>The result of a loop its body's transfer ended: a break falls through.</summary>
+        private static NeoScriptExecutionResult LoopTerminal(NeoScriptExecutionResult bodyResult) =>
+            bodyResult.IsBreak
+                ? NeoScriptExecutionResult.Completed(
+                    returned: false,
+                    returnValue: null)
+                : bodyResult;
 
         private static NeoScriptExecutionResult ExecuteForEach(
             NeoClient client,
@@ -1185,6 +1186,8 @@ namespace NeoCompose.Runtime
                             collection,
                             ctx,
                             ref state.Snapshot);
+                    if (state.Instruction.collectionPointer is CallGetterPointer getterCall)
+                        NSGetterEvaluator.RecycleMemoizedList(collection, getterCall.memberId);
                 }
 
                 if (state.Index >= state.SnapshotCount)
@@ -1224,10 +1227,8 @@ namespace NeoCompose.Runtime
                         bodyResult);
                 }
                 state.ResetBodyScope();
-                NeoScriptExecutionResult? terminal =
-                    ApplyForEachBodyTransfer(scope, state, bodyResult);
-                if (terminal is not null)
-                    return terminal.Value;
+                if (EndsForEachBody(scope, state, bodyResult))
+                    return LoopTerminal(bodyResult);
             }
         }
 
@@ -1268,9 +1269,9 @@ namespace NeoCompose.Runtime
             NeoScriptExecutionResult bodyResult)
         {
             state.ResetBodyScope();
-            NeoScriptExecutionResult? terminal =
-                ApplyForEachBodyTransfer(scope, state, bodyResult);
-            return terminal ?? RunForEach(
+            return EndsForEachBody(scope, state, bodyResult)
+                ? LoopTerminal(bodyResult)
+                : RunForEach(
                 client,
                 returnTypeInfo,
                 scope,
@@ -1279,25 +1280,19 @@ namespace NeoCompose.Runtime
                 state);
         }
 
-        private static NeoScriptExecutionResult? ApplyForEachBodyTransfer(
+        // As EndsForBody.
+        private static bool EndsForEachBody(
             NeoScriptScope scope,
             ForEachExecutionState state,
             NeoScriptExecutionResult bodyResult)
         {
-            if (bodyResult.Returned || bodyResult.IsFailed)
+            if (bodyResult.Returned || bodyResult.IsFailed || bodyResult.IsBreak)
             {
                 state.RestoreBinding(scope);
-                return bodyResult;
-            }
-            if (bodyResult.IsBreak)
-            {
-                state.RestoreBinding(scope);
-                return NeoScriptExecutionResult.Completed(
-                    returned: false,
-                    returnValue: null);
+                return true;
             }
             state.Index++;
-            return null;
+            return false;
         }
 
         private static void ValidateForInstructionMetadata(
@@ -1354,7 +1349,7 @@ namespace NeoCompose.Runtime
         /// section. Instructions are immutable after load, so the labels are
         /// cached on the instruction.
         /// </summary>
-        private static Dictionary<object, int> ValidateSwitchInstructionMetadata(
+        private static SwitchLabelIndex ValidateSwitchInstructionMetadata(
             SwitchInstruction? instruction)
         {
             if (instruction?.sectionByLabel is { } cached)
@@ -1390,8 +1385,7 @@ namespace NeoCompose.Runtime
                     sectionByLabel.Add(label, i);
                 }
             }
-            instruction.sectionByLabel = sectionByLabel;
-            return sectionByLabel;
+            return instruction.sectionByLabel = new SwitchLabelIndex(sectionByLabel);
         }
 
         private static void ValidateTryInstructionMetadata(
@@ -1438,7 +1432,7 @@ namespace NeoCompose.Runtime
                 throw new NeoScriptPreExecutionValidationError(
                     "NeoScript switch instruction is missing; its compiled IR is stale or corrupt.");
             }
-            Dictionary<object, int> sectionByLabel = ValidateSwitchInstructionMetadata(instruction);
+            SwitchLabelIndex sectionByLabel = ValidateSwitchInstructionMetadata(instruction);
             if (options?.AllowDeferredFunctionCalls == true)
             {
                 return RunDeferredSwitch(
@@ -1473,7 +1467,7 @@ namespace NeoCompose.Runtime
         private static NeoScriptExecutionResult RunDeferredSwitch(
             NeoClient client,
             SwitchInstruction instruction,
-            Dictionary<object, int> sectionByLabel,
+            SwitchLabelIndex sectionByLabel,
             ExpressionResumeState expressionState,
             TypeInfo returnTypeInfo,
             NeoScriptScope scope,
@@ -1888,11 +1882,58 @@ namespace NeoCompose.Runtime
         /// <summary>The instructions a selector value runs, or null when no section and no default match.</summary>
         private static Instruction[]? SelectSwitchInstructions(
             SwitchInstruction instruction,
-            Dictionary<object, int> sectionByLabel,
+            SwitchLabelIndex sectionByLabel,
             object? value) =>
-            sectionByLabel.TryGetValue(SwitchSelectorKey(instruction.selectorTypeInfo, value), out int section)
+            sectionByLabel.TryGetSection(SwitchSelectorKey(instruction.selectorTypeInfo, value), out int section)
                 ? instruction.sections[section].instructions
                 : instruction.defaultInstructions;
+
+        /// <summary>
+        /// A switch's normalized case labels and their sections. Most switches
+        /// have a few labels, which a scan compares faster than a dictionary
+        /// hashes the selector.
+        /// </summary>
+        internal sealed class SwitchLabelIndex
+        {
+            private const int ScannedLabels = 8;
+            private readonly object[]? labels;
+            private readonly int[]? sections;
+            private readonly Dictionary<object, int>? wide;
+
+            internal SwitchLabelIndex(Dictionary<object, int> sectionByLabel)
+            {
+                if (sectionByLabel.Count > ScannedLabels)
+                {
+                    wide = sectionByLabel;
+                    return;
+                }
+                labels = new object[sectionByLabel.Count];
+                sections = new int[sectionByLabel.Count];
+                int index = 0;
+                foreach (var pair in sectionByLabel)
+                {
+                    labels[index] = pair.Key;
+                    sections[index] = pair.Value;
+                    index++;
+                }
+            }
+
+            internal bool TryGetSection(object key, out int section)
+            {
+                if (wide is not null)
+                    return wide.TryGetValue(key, out section);
+                for (int i = 0; i < labels!.Length; i++)
+                {
+                    if (labels[i].Equals(key))
+                    {
+                        section = sections![i];
+                        return true;
+                    }
+                }
+                section = -1;
+                return false;
+            }
+        }
 
         private static object NormalizeSwitchLabel(
             Value label,
@@ -2066,14 +2107,15 @@ namespace NeoCompose.Runtime
 
         // The handlers are immutable and ExitFunction restores the caller's, so
         // installing them on the function's context here avoids cloning it
-        // again when its first instruction executes.
+        // again when its first instruction executes. frame is the in-place
+        // frame the body runs in, or -1 on a context of its own.
         internal static void PrepareFunctionContext(
-            NSGetterEvaluator.Context ctx, NeoScriptExecutionOptions options)
+            NSGetterEvaluator.Context ctx, NeoScriptExecutionOptions options, int frame)
         {
             if (options.AllowDeferredFunctionCalls)
                 return;
             EnsureImmediateHandlers(ctx.client, options);
-            ctx.BindExpressionHandlers(options.immediateCallHandler!, options.immediateInitializerHandler!);
+            ctx.BindFrameHandlers(frame, options.immediateCallHandler!, options.immediateInitializerHandler!);
         }
 
         private static void EnsureImmediateHandlers(NeoClient client, NeoScriptExecutionOptions options)
@@ -2088,7 +2130,7 @@ namespace NeoCompose.Runtime
             options.immediateInitializerHandler = (pointer, scope, ctx) =>
                 EvalObjectInitializer(pointer, scope, ctx, ExpressionResumeState.Immediate, options);
             options.immediateCallHandler = (pointer, scope, ctx) =>
-                EvalFunctionCall(client, pointer, scope, ctx, ExpressionResumeState.Immediate, options);
+                CallFunction(client, pointer, scope, ctx, options, CallSiteKey(pointer));
         }
 
         private static NSGetterEvaluator.Context BuildExpressionContext(
@@ -2216,7 +2258,10 @@ namespace NeoCompose.Runtime
             return next(result);
         }
 
-        private static NeoScriptExecutionResult? ExecuteAssign(
+        // A plain write returns the default fallthrough result, not a
+        // nullable one: that is wider than two registers, so Mono copies it
+        // out through a write-barriered range copy on every assignment.
+        private static NeoScriptExecutionResult ExecuteAssign(
             NeoClient client,
             AssignInstruction instruction,
             NeoScriptScope scope,
@@ -2238,10 +2283,10 @@ namespace NeoCompose.Runtime
                 {
                     throw new NSGetterRuntimeError(readOnlyError!);
                 }
-                scope.Assign(variablePointer.variableId, CoerceSetterValue(
+                scope.Assign(variablePointer, CoerceSetterValue(
                     rhs,
                     instruction.target.typeInfo));
-                return null;
+                return default;
             }
 
             if (instruction.target.writability == WritabilityKind.Setter)
@@ -2267,7 +2312,7 @@ namespace NeoCompose.Runtime
                     && Eval(keyOfPointer.keyOf.key, scope, ctx) is string key
                     && NSGetterEvaluator.TryWriteDetachedMember(detached, key, assigned, ctx))
                 {
-                    return null;
+                    return default;
                 }
                 target = ResolveKeyOfWriteTarget(client, instruction.target, keyOfPointer, receiver, scope, ctx);
             }
@@ -2276,7 +2321,7 @@ namespace NeoCompose.Runtime
                 target = ResolveTarget(client, instruction.target, scope, ctx);
             }
             target.Write(client, assigned, ctx);
-            return null;
+            return default;
         }
 
         /// <summary>
@@ -2427,22 +2472,114 @@ namespace NeoCompose.Runtime
             ExpressionResumeState expressionState,
             int instructionIndex)
         {
-            string receiverKey = "collection-receiver:" + instructionIndex;
-            Action<object?[]> mutate;
-            if (expressionState.TryGet(receiverKey, out object? cached, out _))
-                mutate = (Action<object?[]>)cached!;
-            else
+            CollectionMutation mutate;
+            if (!expressionState.Recording)
             {
                 mutate = ResolveCollectionMutation(client, instruction, scope, ctx);
-                expressionState.StoreValue(receiverKey, mutate);
             }
-            object?[] args = new object?[instruction.args.Length];
-            for (int i = 0; i < instruction.args.Length; i++)
-                args[i] = Eval(instruction.args[i], scope, ctx);
-            mutate(args);
+            else
+            {
+                // A frame that may suspend keeps the receiver it resolved, so
+                // a resumed call does not read it again.
+                string receiverKey = "collection-receiver:" + instructionIndex;
+                if (expressionState.TryGet(receiverKey, out object? cached, out _))
+                    mutate = (CollectionMutation)cached!;
+                else
+                {
+                    mutate = ResolveCollectionMutation(client, instruction, scope, ctx);
+                    expressionState.StoreValue(receiverKey, mutate);
+                }
+            }
+            // Every mutation reads its arguments without keeping the array.
+            object?[] args = NeoArgumentArrays.Rent(instruction.args.Length);
+            try
+            {
+                for (int i = 0; i < instruction.args.Length; i++)
+                    args[i] = Eval(instruction.args[i], scope, ctx);
+                mutate.Apply(client, instruction, scope, ctx, args);
+            }
+            finally
+            {
+                NeoArgumentArrays.Return(args);
+            }
         }
 
-        private static Action<object?[]> ResolveCollectionMutation(
+        /// <summary>
+        /// A collection call's receiver, resolved before its arguments
+        /// evaluate. A struct: an immediate frame applies it in place, and
+        /// only a frame that may suspend boxes it into its resume state.
+        /// </summary>
+        private readonly struct CollectionMutation
+        {
+            private enum Kind
+            {
+                // A detached object's List slot; subject is the object.
+                DetachedList,
+                // A local collection value; subject is the value.
+                Local,
+                // Subject is the resolved target.
+                Target,
+                // A static member with no bound row yet.
+                UnboundStatic,
+            }
+
+            private readonly Kind kind;
+            private readonly object? subject;
+            private readonly int slotIndex;
+
+            private CollectionMutation(Kind kind, object? subject, int slotIndex = -1)
+            {
+                this.kind = kind;
+                this.subject = subject;
+                this.slotIndex = slotIndex;
+            }
+
+            internal static CollectionMutation DetachedList(NeoScriptObject owner, int slotIndex) =>
+                new(Kind.DetachedList, owner, slotIndex);
+
+            internal static CollectionMutation Local(object? local) => new(Kind.Local, local);
+
+            internal static CollectionMutation Target(NeoResolvedCollectionTarget target) => new(Kind.Target, target);
+
+            internal static CollectionMutation UnboundStatic() => new(Kind.UnboundStatic, null);
+
+            internal void Apply(
+                NeoClient client,
+                CollectionCallInstruction instruction,
+                NeoScriptScope scope,
+                NSGetterEvaluator.Context ctx,
+                object?[] args)
+            {
+                switch (kind)
+                {
+                    case Kind.DetachedList:
+                        {
+                            var owner = (NeoScriptObject)subject!;
+                            if (owner.attachedId is null
+                                && NeoGeneratedTypesSupport.TryAddDetachedListEntry(owner, slotIndex, args[0]))
+                                return;
+                            ResolveDetachedListTarget(client, owner, slotIndex, instruction.target.typeInfo, ctx)
+                                .Mutate(client, instruction.mutation, args, ctx);
+                            return;
+                        }
+                    case Kind.Local:
+                        scope.Assign((VariablePointer)instruction.target.pointer, MutateLocalCollection(
+                            subject, instruction.target.typeInfo, instruction.mutation, args, ctx));
+                        return;
+                    case Kind.Target:
+                        ((NeoResolvedCollectionTarget)subject!).Mutate(client, instruction.mutation, args, ctx);
+                        return;
+                    default:
+                        if (!TryMutateUnboundStatic(client, instruction,
+                                (StaticMemberPointer)instruction.target.pointer, args, scope, ctx))
+                            ResolveCollectionTarget(client, instruction.target, scope, ctx)
+                                .Mutate(client, instruction.mutation, args, ctx);
+                        return;
+                }
+            }
+        }
+
+        private static CollectionMutation ResolveCollectionMutation(
             NeoClient client,
             CollectionCallInstruction instruction,
             NeoScriptScope scope,
@@ -2459,27 +2596,18 @@ namespace NeoCompose.Runtime
                     if (owner.attachedId is null
                         && instruction.mutation == CollectionMutationKind.Add
                         && WritesSessionTarget(instruction.target.writability))
-                        return args =>
-                        {
-                            if (owner.attachedId is null
-                                && NeoGeneratedTypesSupport.TryAddDetachedListEntry(owner, origin.index, args[0]))
-                                return;
-                            ResolveDetachedListTarget(client, owner, origin.index, instruction.target.typeInfo, ctx)
-                                .Mutate(client, instruction.mutation, args, ctx);
-                        };
+                        return CollectionMutation.DetachedList(owner, origin.index);
                     NSGetterEvaluator.ForwardDetached(owner, ctx);
                     local = Eval(variablePointer, scope, ctx);
                 }
                 if (local is not object?[] || FindValueId(local, ctx) is null)
-                    return args => scope.Assign(variablePointer.variableId, MutateLocalCollection(
-                        local, instruction.target.typeInfo, instruction.mutation, args, ctx));
-                var rowTarget = ResolveCollectionTarget(client, new WriteTarget
+                    return CollectionMutation.Local(local);
+                return CollectionMutation.Target(ResolveCollectionTarget(client, new WriteTarget
                 {
                     pointer = instruction.target.pointer,
                     typeInfo = instruction.target.typeInfo,
                     writability = null,
-                }, scope, ctx);
-                return args => rowTarget.Mutate(client, instruction.mutation, args, ctx);
+                }, scope, ctx));
             }
             if (instruction.target.pointer is KeyOfPointer keyOfTarget
                 && instruction.target.typeInfo.type == MemberKind.List)
@@ -2490,37 +2618,20 @@ namespace NeoCompose.Runtime
                     if (detached.attachedId is null
                         && instruction.mutation == CollectionMutationKind.Add
                         && WritesSessionTarget(instruction.target.writability)
-                        && Eval(keyOfTarget.keyOf.key, scope, ctx) is string key)
-                        return args =>
-                        {
-                            if (detached.attachedId is null
-                                && NSGetterEvaluator.TryAddDetachedListEntry(detached, key, args[0]))
-                                return;
-                            ResolveDetachedListTarget(client, detached,
-                                detached.plan.slotByKey[key], instruction.target.typeInfo, ctx)
-                                .Mutate(client, instruction.mutation, args, ctx);
-                        };
+                        && Eval(keyOfTarget.keyOf.key, scope, ctx) is string key
+                        && detached.plan.slotByKey.TryGetValue(key, out int slotIndex))
+                        return CollectionMutation.DetachedList(detached, slotIndex);
                     receiver = NSGetterEvaluator.ForwardDetached(detached, ctx);
                 }
-                var keyOfCollection = ResolveCollectionTarget(client, instruction.target, scope, ctx,
+                return CollectionMutation.Target(ResolveCollectionTarget(client, instruction.target, scope, ctx,
                     evaluatedTarget: NSGetterEvaluator.EvaluateKeyOf(keyOfTarget, receiver, scope, ctx),
-                    targetEvaluated: true, keyOfReceiver: receiver);
-                return args => keyOfCollection.Mutate(client, instruction.mutation, args, ctx);
+                    targetEvaluated: true, keyOfReceiver: receiver));
             }
-            if (instruction.target.pointer is StaticMemberPointer staticMember)
-            {
-                var binding = new NeoStaticBinding(client, staticMember.memberId,
-                    TargetOwnership(client, instruction.target, scope, ctx));
-                if (binding.ValueId is null)
-                    return args =>
-                    {
-                        if (!TryMutateUnboundStatic(client, instruction, staticMember, args, scope, ctx))
-                            ResolveCollectionTarget(client, instruction.target, scope, ctx)
-                                .Mutate(client, instruction.mutation, args, ctx);
-                    };
-            }
-            var target = ResolveCollectionTarget(client, instruction.target, scope, ctx);
-            return args => target.Mutate(client, instruction.mutation, args, ctx);
+            if (instruction.target.pointer is StaticMemberPointer staticMember
+                && NeoGeneratedTypesSupport.StaticBinding(client, staticMember.memberId,
+                    TargetOwnership(client, instruction.target, scope, ctx)).ValueId is null)
+                return CollectionMutation.UnboundStatic();
+            return CollectionMutation.Target(ResolveCollectionTarget(client, instruction.target, scope, ctx));
         }
 
         private static NeoResolvedCollectionTarget ResolveDetachedListTarget(
@@ -2558,7 +2669,7 @@ namespace NeoCompose.Runtime
             NeoScriptScope scope,
             NSGetterEvaluator.Context ctx)
         {
-            var binding = new NeoStaticBinding(client, staticMember.memberId,
+            var binding = NeoGeneratedTypesSupport.StaticBinding(client, staticMember.memberId,
                 TargetOwnership(client, instruction.target, scope, ctx));
             if (binding.ValueId is not null)
                 return false;
@@ -2681,12 +2792,9 @@ namespace NeoCompose.Runtime
             ExpressionResumeState expressionState,
             NeoScriptExecutionOptions? options)
         {
-            if (string.IsNullOrEmpty(pointer.callSiteId))
-            {
-                throw new NSGetterRuntimeError(
-                    "Function call is missing its required callSiteId.");
-            }
-            string callSiteKey = pointer.callSiteId;
+            string callSiteKey = CallSiteKey(pointer);
+            if (!expressionState.Recording)
+                return CallFunction(client, pointer, scope, ctx, options, callSiteKey);
             string resumeKey = expressionState.NextInvocationKey(callSiteKey);
             bool hasCached = expressionState.TryGet(resumeKey, out object? cachedValue, out Exception? cachedError);
             if (hasCached)
@@ -2697,112 +2805,9 @@ namespace NeoCompose.Runtime
             }
             try
             {
-                var receiver = NSGetterEvaluator.EvalCallReceiver(
-                    pointer.receiver,
-                    scope,
-                    ctx);
-                if (pointer.optional == true && receiver is null)
-                {
-                    if (!pointer.receiver.IsStatic)
-                    {
-                        expressionState.StoreValue(resumeKey, null);
-                        return null;
-                    }
-                }
-                object?[] args = NSGetterEvaluator.RentArguments(pointer);
-                try
-                {
-                    for (int i = 0; i < pointer.args.Length; i++)
-                    {
-                        args[i] = NSGetterEvaluator.EvaluateFunctionArgument(pointer, i, scope, ctx);
-                    }
-                    string? memberId = NSGetterEvaluator.ResolveCallTarget(
-                        pointer,
-                        receiver,
-                        ctx,
-                        out NeoResolvedNSFunction? resolved);
-                    if (resolved is null)
-                        NSGetterEvaluator.MaterializePatternArguments(memberId, args, ctx);
-                    if (memberId is null)
-                    {
-                        object? fallback = NSGetterEvaluator.EvaluateMissingMemberFallback(
-                            pointer,
-                            receiver,
-                            args);
-                        expressionState.StoreValue(resumeKey, fallback);
-                        return fallback;
-                    }
-                    object? value;
-                    if (resolved is not null)
-                    {
-                        bool deferred = resolved.Deferred;
-                        if (deferred && options?.AllowDeferredFunctionCalls != true)
-                        {
-                            throw new NeoDeferredFunctionRuntimeError(
-                                $"NSFunction '{resolved.Member.name}' ({memberId}) deferred-mode mismatch: " +
-                                "an immediate NeoScript frame called its deferred signature; " +
-                                "compiled call IR is stale/corrupt.");
-                        }
-                        NeoScriptExecutionResult nested = NeoNSFunctionRuntime.ExecuteResolved(
-                            client,
-                            resolved,
-                            receiver,
-                            args,
-                            ctx,
-                            options ?? NeoScriptExecutionOptions.ForImmediate(client));
-                        if (nested.IsPaused)
-                        {
-                            if (!deferred)
-                            {
-                                nested.Deferred?.DisposeFromOwner(
-                                    "non-deferred NSFunction suspended");
-                                throw new NSGetterRuntimeError(
-                                    $"Non-deferred NSFunction '{resolved.Member.name}' suspended; its compiled IR is stale or corrupt.");
-                            }
-                            throw new NeoFunctionCallSuspended(
-                                resumeKey,
-                                memberId,
-                                nested);
-                        }
-                        value = nested.ReturnValue;
-                    }
-                    else
-                    {
-                        bool deferred = client.IsNativeFunctionDeferred(memberId);
-                        if (!deferred)
-                        {
-                            // P65 §2.5 — filled BEFORE dispatch so the native
-                            // exact-arity check stands. Deferred functions reject
-                            // defaulted parameters (§1.4), so the branch below
-                            // stays unfilled.
-                            value = NSGetterEvaluator.InvokeNativeFunction(
-                                memberId, receiver,
-                                NSGetterEvaluator.FillNativeCallSiteArguments(memberId, args, ctx), ctx);
-                        }
-                        else
-                        {
-                            if (options?.AllowDeferredFunctionCalls != true)
-                            {
-                                string functionName = client.TryGetMember(
-                                    memberId, out JsonMember? deferredMember)
-                                        ? deferredMember.name
-                                        : memberId;
-                                throw new NeoDeferredFunctionRuntimeError(
-                                    $"Function '{functionName}' ({memberId}) deferred-mode mismatch: " +
-                                    "an immediate NeoScript frame called its deferred signature; " +
-                                    "compiled call IR is stale/corrupt.");
-                            }
-                            value = StartDeferredNativeFunction(
-                                client, memberId, receiver, args.AsSpan().ToArray(), ctx, options, resumeKey);
-                        }
-                    }
-                    expressionState.StoreValue(resumeKey, value);
-                    return value;
-                }
-                finally
-                {
-                    NSGetterEvaluator.ReturnArguments(pointer, args);
-                }
+                object? value = CallFunction(client, pointer, scope, ctx, options, resumeKey);
+                expressionState.StoreValue(resumeKey, value);
+                return value;
             }
             catch (NeoFunctionCallSuspended)
             {
@@ -2812,6 +2817,134 @@ namespace NeoCompose.Runtime
             {
                 expressionState.StoreError(resumeKey, exception);
                 throw;
+            }
+        }
+
+        private static string CallSiteKey(CallFunctionPointer pointer)
+        {
+            if (string.IsNullOrEmpty(pointer.callSiteId))
+            {
+                throw new NSGetterRuntimeError(
+                    "Function call is missing its required callSiteId.");
+            }
+            return pointer.callSiteId;
+        }
+
+        /// <summary>
+        /// One call through a call site. A frame that records results for a
+        /// resume wraps it; an immediate frame, which has nothing to record,
+        /// calls it directly.
+        /// </summary>
+        private static object? CallFunction(
+            NeoClient client,
+            CallFunctionPointer pointer,
+            NeoScriptScope scope,
+            NSGetterEvaluator.Context ctx,
+            NeoScriptExecutionOptions? options,
+            string resumeKey)
+        {
+            var receiver = NSGetterEvaluator.EvalCallReceiver(
+                pointer.receiver,
+                scope,
+                ctx);
+            if (pointer.optional == true && receiver is null)
+            {
+                if (!pointer.receiver.IsStatic)
+                {
+                    return null;
+                }
+            }
+            object?[] args = NSGetterEvaluator.RentArguments(pointer);
+            try
+            {
+                for (int i = 0; i < pointer.args.Length; i++)
+                {
+                    args[i] = NSGetterEvaluator.EvaluateFunctionArgument(pointer, i, scope, ctx);
+                }
+                string? memberId = NSGetterEvaluator.ResolveCallTarget(
+                    pointer,
+                    receiver,
+                    ctx,
+                    out NeoResolvedNSFunction? resolved);
+                if (resolved is null)
+                    NSGetterEvaluator.MaterializePatternArguments(memberId, args, ctx);
+                if (memberId is null)
+                {
+                    object? fallback = NSGetterEvaluator.EvaluateMissingMemberFallback(
+                        pointer,
+                        receiver,
+                        args);
+                    return fallback;
+                }
+                object? value;
+                if (resolved is not null)
+                {
+                    bool deferred = resolved.Deferred;
+                    if (deferred && options?.AllowDeferredFunctionCalls != true)
+                    {
+                        throw new NeoDeferredFunctionRuntimeError(
+                            $"NSFunction '{resolved.Member.name}' ({memberId}) deferred-mode mismatch: " +
+                            "an immediate NeoScript frame called its deferred signature; " +
+                            "compiled call IR is stale/corrupt.");
+                    }
+                    NeoScriptExecutionResult nested = NeoNSFunctionRuntime.ExecuteResolved(
+                        client,
+                        resolved,
+                        receiver,
+                        args,
+                        ctx,
+                        options ?? NeoScriptExecutionOptions.ForImmediate(client));
+                    if (nested.IsPaused)
+                    {
+                        if (!deferred)
+                        {
+                            nested.Deferred?.DisposeFromOwner(
+                                "non-deferred NSFunction suspended");
+                            throw new NSGetterRuntimeError(
+                                $"Non-deferred NSFunction '{resolved.Member.name}' suspended; its compiled IR is stale or corrupt.");
+                        }
+                        throw new NeoFunctionCallSuspended(
+                            resumeKey,
+                            memberId,
+                            nested);
+                    }
+                    value = nested.ReturnValue;
+                }
+                else
+                {
+                    client.TryResolveFunctionMember(memberId, out FunctionMember? native);
+                    if (native?.Dispatch != NeoFunctionDispatchKind.Asynchronous)
+                    {
+                        // P65 §2.5 — filled BEFORE dispatch so the native
+                        // exact-arity check stands. Deferred functions reject
+                        // defaulted parameters (§1.4), so the branch below
+                        // stays unfilled.
+                        value = NSGetterEvaluator.InvokeNativeFunction(
+                            memberId, receiver,
+                            NSGetterEvaluator.FillNativeCallSiteArguments(memberId, native, args), ctx);
+                    }
+                    else
+                    {
+                        if (options?.AllowDeferredFunctionCalls != true)
+                        {
+                            string functionName = client.TryGetMember(
+                                memberId, out JsonMember? deferredMember)
+                                    ? deferredMember.name
+                                    : memberId;
+                            throw new NeoDeferredFunctionRuntimeError(
+                                $"Function '{functionName}' ({memberId}) deferred-mode mismatch: " +
+                                "an immediate NeoScript frame called its deferred signature; " +
+                                "compiled call IR is stale/corrupt.");
+                        }
+                        value = StartDeferredNativeFunction(
+                            client, memberId, receiver, args.AsSpan().ToArray(), ctx, options, resumeKey);
+                    }
+                }
+                return value;
+            }
+            finally
+            {
+                NSGetterEvaluator.ReturnArguments(pointer, args);
             }
         }
 
@@ -3015,10 +3148,7 @@ namespace NeoCompose.Runtime
             {
                 case StaticMemberPointer staticMember:
                     return new NeoStaticMemberWriteTarget(
-                        new NeoStaticBinding(
-                            client,
-                            staticMember.memberId,
-                            client.ResolveStaticOwnership(staticMember.memberId)),
+                        client.StaticBinding(staticMember.memberId),
                         target.typeInfo);
                 case ReferencePointer reference:
                     {
@@ -3073,7 +3203,7 @@ namespace NeoCompose.Runtime
             if (target.pointer is StaticMemberPointer staticMember)
             {
                 client.TryGetMember(staticMember.memberId, out member);
-                var binding = new NeoStaticBinding(
+                var binding = NeoGeneratedTypesSupport.StaticBinding(
                     client,
                     staticMember.memberId,
                     ownership);
@@ -5805,6 +5935,9 @@ namespace NeoCompose.Runtime
 
             internal void DisableRecording() => recording = false;
 
+            /// <summary>Whether this frame keeps results for a resume.</summary>
+            internal bool Recording => recording;
+
             internal void BeginInstructionAttempt()
             {
                 invocationCounts?.Clear();
@@ -5840,6 +5973,7 @@ namespace NeoCompose.Runtime
             {
                 if (!recording)
                     return;
+                NSGetterEvaluator.TemporaryLists.Forget(value);
                 results ??= new();
                 results[callSiteId] = new CachedFunctionResult(value, null);
             }

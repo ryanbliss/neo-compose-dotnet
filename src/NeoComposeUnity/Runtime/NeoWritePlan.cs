@@ -226,7 +226,9 @@ namespace NeoCompose.Runtime
 {
     public partial class NeoClient
     {
+#if NEO_COMPOSE_PROFILING
         private static readonly Unity.Profiling.ProfilerMarker CommitWriteMarker = new("NeoCompose.Write.Commit");
+#endif
         internal long WriteRevision
         {
             get; private set;
@@ -274,7 +276,9 @@ namespace NeoCompose.Runtime
 
         internal void CommitWritePlan(NeoWritePlan plan)
         {
+#if NEO_COMPOSE_PROFILING
             using var marker = CommitWriteMarker.Auto();
+#endif
             if (nestedConstructedRows is not null)
                 foreach (var key in plan.Rows.Keys)
                     if (nestedConstructedRows.TryGetValue(key.id, out var producer)

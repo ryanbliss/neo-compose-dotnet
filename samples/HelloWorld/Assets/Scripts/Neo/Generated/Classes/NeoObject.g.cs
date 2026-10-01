@@ -181,7 +181,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var result = writableNode.Get<NeoMemberNSProperty>("Cell").Compute(valueId!);
+                var result = ComputeProperty("Cell");
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
                 var resolvedVector = NeoGeneratedTypesSupport.ReadVector2IntValue(result.value);
                 return resolvedVector ?? throw new InvalidOperationException("NSProperty returned null for a required Vector2Int value.");
@@ -280,7 +280,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         public virtual IReadOnlyList<IReadOnlyNeoObject> GetObjects(NeoCompose.Runtime.NeoCellPattern pattern)
         {
             var result = client.ScriptGridQueries.Invoke("system_f5ca386c-990c-54a1-8473-2d49d2cd887d", this, new object?[] { pattern });
-            return NeoGeneratedTypesSupport.ReadScriptList<IReadOnlyNeoObject>(result, resultEntry => { return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultEntry, false, NeoObject.Create, NeoObject.CreateWritable); });
+            return NeoGeneratedTypesSupport.ReadScriptList<IReadOnlyNeoObject>(result, resultEntry => { return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultEntry, false, static (factoryClient, factoryNode) => NeoObject.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoObject.CreateWritable(factoryClient, factoryNode)); });
         }
 
         /// <summary>
@@ -289,7 +289,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         public virtual IReadOnlyNeoTile? GetTile(NeoCompose.Runtime.NeoCellPattern pattern)
         {
             var result = client.ScriptGridQueries.Invoke("system_593e6208-e2ca-505e-9933-04b17102b6d2", this, new object?[] { pattern });
-            return NeoGeneratedTypesSupport.ReadNSPropertyClass(client, result, false, true, null, NeoTile.CreateWritable);
+            return NeoGeneratedTypesSupport.ReadNSPropertyClass(client, result, false, true, null, static (factoryClient, factoryNode) => NeoTile.CreateWritable(factoryClient, factoryNode));
         }
 
         public new sealed class Fields

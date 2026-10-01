@@ -40,7 +40,7 @@ namespace NeoCompose.Runtime
                 firstSelection = null;
                 return null;
             }
-            ResolveTargetValue(out NeoValueOwnership targetOwnership);
+            ResolveTargetValue(client, member, out NeoValueOwnership targetOwnership);
             Member entry = ResolveEntryMemberForLookup();
             // Reuse the composed key, but still consult the active registry:
             // candidate replay and same-key replacement must resolve their own node.
@@ -54,7 +54,7 @@ namespace NeoCompose.Runtime
                 firstSelection = current;
                 return current;
             }
-            firstSelection = ResolveSelection(entry, ids[0], targetOwnership);
+            firstSelection = ResolveSelection(client, entry, ids[0], targetOwnership);
             return firstSelection;
         }
 
@@ -65,14 +65,29 @@ namespace NeoCompose.Runtime
             string[] ids = Selected();
             if (ids.Length == 0)
                 return resolved;
-            ResolveTargetValue(out NeoValueOwnership targetOwnership);
+            ResolveTargetValue(client, member, out NeoValueOwnership targetOwnership);
             Member entry = ResolveEntryMemberForLookup();
             foreach (string id in ids)
-                resolved.Add(ResolveSelection(entry, id, targetOwnership));
+                resolved.Add(ResolveSelection(client, entry, id, targetOwnership));
             return resolved;
         }
 
-        private NeoMember ResolveSelection(Member entry, string id, NeoValueOwnership targetOwnership) =>
+        /// <summary>
+        /// Resolves selected id <paramref name="id"/> of
+        /// <paramref name="lookup"/> as <see cref="GetFirstSelected"/> does,
+        /// for a selection no lookup node holds.
+        /// </summary>
+        internal static NeoMember ResolveSelected(NeoClient client, LookupMember lookup, string id)
+        {
+            ResolveTargetValue(client, lookup, out NeoValueOwnership targetOwnership);
+            return ResolveSelection(
+                client,
+                ResolveEntryMember(client, ResolveTargetMember(client, lookup)),
+                id,
+                targetOwnership);
+        }
+
+        private static NeoMember ResolveSelection(NeoClient client, Member entry, string id, NeoValueOwnership targetOwnership) =>
             targetOwnership == NeoValueOwnership.Save || targetOwnership == NeoValueOwnership.Session
                 ? CreateWritable(client, entry, id, targetOwnership)
                 : Create(client, entry, id);
@@ -81,8 +96,8 @@ namespace NeoCompose.Runtime
         {
             if (string.IsNullOrWhiteSpace(valueId))
                 return false;
-            MemberValue targetValue = ResolveTargetValue(out _);
-            return ResolveCollectionEntryIds(client, ResolveTargetMember(), targetValue).Contains(valueId);
+            MemberValue targetValue = ResolveTargetValue(client, member, out _);
+            return ResolveCollectionEntryIds(client, ResolveTargetMember(client, member), targetValue).Contains(valueId);
         }
 
         internal static IEnumerable<string> ResolveCollectionEntryIds(NeoClient client, Member collection, MemberValue value)
@@ -95,27 +110,27 @@ namespace NeoCompose.Runtime
         }
 
         internal Member ResolveEntryMemberForLookup() =>
-            ResolveEntryMember(ResolveTargetMember());
+            ResolveEntryMember(client, ResolveTargetMember(client, member));
 
-        private Member ResolveTargetMember()
+        private static Member ResolveTargetMember(NeoClient client, LookupMember lookup)
         {
-            if (!client.TryGetMember(member.collectionMemberId, out Member? targetMember))
+            if (!client.TryGetMember(lookup.collectionMemberId, out Member? targetMember))
             {
                 throw new System.ArgumentOutOfRangeException(
-                    nameof(member.collectionMemberId),
-                    $"No member for collection target {member.collectionMemberId}");
+                    nameof(lookup.collectionMemberId),
+                    $"No member for collection target {lookup.collectionMemberId}");
             }
             return targetMember;
         }
 
-        private MemberValue ResolveTargetValue(out NeoValueOwnership targetOwnership)
+        private static MemberValue ResolveTargetValue(NeoClient client, LookupMember lookup, out NeoValueOwnership targetOwnership)
         {
-            Member targetMember = ResolveTargetMember();
-            string? targetValueId = ResolveTargetValueId(targetMember);
+            Member targetMember = ResolveTargetMember(client, lookup);
+            string? targetValueId = ResolveTargetValueId(client, lookup, targetMember);
             if (targetValueId is null)
             {
                 throw new System.InvalidOperationException(
-                    $"Lookup target {member.collectionMemberId} has no bound value");
+                    $"Lookup target {lookup.collectionMemberId} has no bound value");
             }
             if (!client.TryGetValue(targetValueId, out MemberValue? targetValue))
             {
@@ -126,17 +141,17 @@ namespace NeoCompose.Runtime
             return targetValue;
         }
 
-        private string? ResolveTargetValueId(Member targetMember)
+        private static string? ResolveTargetValueId(NeoClient client, LookupMember lookup, Member targetMember)
         {
             return client.TryResolveLookupCollectionValueId(
                 targetMember.id,
-                member.CollectionValueId,
+                lookup.CollectionValueId,
                 out string? targetValueId)
                     ? targetValueId
                     : null;
         }
 
-        private Member ResolveEntryMember(Member targetMember)
+        private static Member ResolveEntryMember(NeoClient client, Member targetMember)
         {
             string entryMemberId = targetMember switch
             {

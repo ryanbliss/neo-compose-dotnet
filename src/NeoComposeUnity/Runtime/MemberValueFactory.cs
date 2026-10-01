@@ -46,7 +46,7 @@ namespace NeoCompose.Runtime
                 case (BoolMember, BoolMemberValue row):
                     return row.value == Cast<bool?>(payload, member);
                 case (IntMember or FloatMember, NumberMemberValue row):
-                    return row.value == Cast<double?>(payload, member);
+                    return row.value == NumberPayload(payload, member);
                 case (StringMember, StringMemberValue row):
                     return row.neoLocalizationMode == NeoStringLocalizationMode.Literal
                         && row.value == Cast<string?>(payload, member);
@@ -114,7 +114,7 @@ namespace NeoCompose.Runtime
                     id = id,
                     createdAt = createdAt,
                     updatedAt = updatedAt,
-                    value = Cast<double?>(rawPayload, member),
+                    value = NumberPayload(rawPayload, member),
                 },
                 StringMember => new StringMemberValue
                 {
@@ -547,6 +547,19 @@ namespace NeoCompose.Runtime
             };
         }
 
+        // Cast<double?> would box the converted number on every write.
+        private static double? NumberPayload(object? payload, Member member) => payload switch
+        {
+            null => null,
+            int i => i,
+            float f => f,
+            double d => d,
+            _ => throw new System.ArgumentException(
+                $"Cannot set {member.GetType().Name} {member.id} from " +
+                $"{payload.GetType().Name}; expected {nameof(System.Double)}",
+                nameof(payload)),
+        };
+
         private static TExpected Cast<TExpected>(object? payload, Member member)
         {
             // Allow null when TExpected admits it (Nullable<T> for value
@@ -561,15 +574,6 @@ namespace NeoCompose.Runtime
             if (typeof(TExpected) == typeof(FileValue)
                 && ToFileValue(payload) is FileValue file)
                 return (TExpected)(object)file;
-            if (typeof(TExpected) == typeof(double?))
-            {
-                if (payload is int i)
-                    return (TExpected)(object)(double?)i;
-                if (payload is float f)
-                    return (TExpected)(object)(double?)f;
-                if (payload is double d)
-                    return (TExpected)(object)(double?)d;
-            }
             // Evaluated NeoScript values box string arrays (enum selections,
             // lookup ref lists) as object[]; unbox when every element fits.
             if (typeof(TExpected) == typeof(string[])

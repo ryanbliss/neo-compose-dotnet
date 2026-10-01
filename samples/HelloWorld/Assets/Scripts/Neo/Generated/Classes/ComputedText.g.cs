@@ -121,7 +121,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var result = writableNode.Get<NeoMemberNSProperty>("fullText").Compute(valueId!);
+                var result = ComputeProperty("fullText");
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
                 return (string)result.value!;
             }

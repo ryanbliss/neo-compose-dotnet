@@ -145,6 +145,119 @@ namespace NeoCompose.Runtime
         /// <summary>The temporary this view reads until it attaches; null once it has.</summary>
         internal NeoDetachedValue? PendingValue => detached;
 
+        /// <summary>
+        /// Reads single-select lookup <paramref name="key"/> of a pending
+        /// temporary without making rows: the selected entry, or null when
+        /// unset. False once it attached; the caller then reads its row.
+        /// </summary>
+        protected bool TryReadDetachedLookup(string key, out NeoMember? selected)
+        {
+            selected = null;
+            if (!TryReadDetached(key, out object? value))
+                return false;
+            if (NeoGeneratedTypesSupport.ReadSelectedId(value) is { } id)
+            {
+                var lookup = (LookupMember)detached!.plan.slots[detached.plan.slotByKey[key]].member;
+                selected = NeoMemberLookup.ResolveSelected(client, lookup, id);
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Computes NSProperty <paramref name="key"/> on this view's receiver.
+        /// A pending temporary computes as itself, so the read makes no rows.
+        /// </summary>
+        protected NSGetterResult ComputeProperty(string key)
+        {
+            if (detached is { attachedId: null } pending)
+                return NSGetterEvaluator.ComputeDetachedProperty(pending, key);
+            return writableNode.Get<NeoMemberNSProperty>(key).Compute(valueId!);
+        }
+
+        // Generated calls pass their arguments positionally, so a call
+        // allocates no argument array: the scope copies the arguments in.
+        protected object? InvokeFunction(string key) => InvokeFunction(key, Array.Empty<object?>());
+
+        protected object? InvokeFunction(string key, object? arg0)
+        {
+            object?[] args = NeoArgumentArrays.Rent(1);
+            args[0] = arg0;
+            try
+            {
+                return InvokeFunction(key, args);
+            }
+            finally
+            {
+                NeoArgumentArrays.Return(args);
+            }
+        }
+
+        protected object? InvokeFunction(string key, object? arg0, object? arg1)
+        {
+            object?[] args = NeoArgumentArrays.Rent(2);
+            args[0] = arg0;
+            args[1] = arg1;
+            try
+            {
+                return InvokeFunction(key, args);
+            }
+            finally
+            {
+                NeoArgumentArrays.Return(args);
+            }
+        }
+
+        protected object? InvokeFunction(string key, object? arg0, object? arg1, object? arg2)
+        {
+            object?[] args = NeoArgumentArrays.Rent(3);
+            args[0] = arg0;
+            args[1] = arg1;
+            args[2] = arg2;
+            try
+            {
+                return InvokeFunction(key, args);
+            }
+            finally
+            {
+                NeoArgumentArrays.Return(args);
+            }
+        }
+
+        protected object? InvokeFunction(string key, object? arg0, object? arg1, object? arg2, object? arg3)
+        {
+            object?[] args = NeoArgumentArrays.Rent(4);
+            args[0] = arg0;
+            args[1] = arg1;
+            args[2] = arg2;
+            args[3] = arg3;
+            try
+            {
+                return InvokeFunction(key, args);
+            }
+            finally
+            {
+                NeoArgumentArrays.Return(args);
+            }
+        }
+
+        /// <summary>
+        /// Calls immediate instance NSFunction <paramref name="key"/> on this
+        /// view's receiver. A pending temporary is called as itself, so the
+        /// call makes no rows.
+        /// </summary>
+        protected object? InvokeFunction(string key, object?[] args)
+        {
+            if (detached is { attachedId: null } pending)
+                return NeoNSFunctionRuntime.InvokeDetached(pending, key, args);
+            if (valueId is null)
+            {
+                throw new InvalidOperationException(
+                    $"Cannot invoke NSFunction '{key}' without a backing receiver value id.");
+            }
+            // The writable view keeps an inherited Save/Session ownership.
+            return writableNode.Get<NeoMemberNSFunction>(key).Invoke(valueId!, args);
+        }
+
         internal bool IsDisposed => isDisposed;
 
         private NeoMemberClass AttachDetachedNode()
@@ -200,8 +313,6 @@ namespace NeoCompose.Runtime
             Action? beforeWrite = null,
             Func<bool>? isReadOnly = null)
         {
-            if (TryGetDetachedView(key, out NeoList<T>? cached))
-                return cached;
             return CacheDetachedView(key, new NeoList<T>(
                 client,
                 this,
@@ -219,12 +330,11 @@ namespace NeoCompose.Runtime
             Func<object?, T> readEntry,
             Func<NeoClient, NeoMember, T> createItem)
         {
-            if (TryGetDetachedView(key, out NeoReadOnlyList<T>? cached))
-                return cached;
             return CacheDetachedView(key, new NeoReadOnlyList<T>(client, this, key, readEntry, createItem));
         }
 
-        private bool TryGetDetachedView<TView>(string key, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out TView? view)
+        /// <summary>The cached view a <see cref="DetachedList{T}"/> call made, checked first so a repeat read allocates nothing.</summary>
+        protected bool TryGetDetachedView<TView>(string key, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out TView? view)
             where TView : class
         {
             if (storedViews is not null

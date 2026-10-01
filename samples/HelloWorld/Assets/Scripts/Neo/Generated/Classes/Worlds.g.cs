@@ -106,7 +106,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 if (TryReadDetached("OldConsoleLanding", out object? detachedValue))
                 {
-                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, false, global::HelloWorld.Assets.Scripts.Neo.OldConsoleLandingGrid.Create, global::HelloWorld.Assets.Scripts.Neo.OldConsoleLandingGrid.CreateWritable, global::HelloWorld.Assets.Scripts.Neo.OldConsoleLandingGrid.CreateDetached);
+                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, false, static (factoryClient, factoryNode) => global::HelloWorld.Assets.Scripts.Neo.OldConsoleLandingGrid.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => global::HelloWorld.Assets.Scripts.Neo.OldConsoleLandingGrid.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::HelloWorld.Assets.Scripts.Neo.OldConsoleLandingGrid.CreateDetached(factoryClient, factoryValue, factorySaved));
                 }
                 return global::HelloWorld.Assets.Scripts.Neo.OldConsoleLandingGrid.Create(client, node.Get<NeoMemberClass>("OldConsoleLanding"));
             }

@@ -57,10 +57,112 @@ namespace NeoCompose.Runtime.NeoScript
                 if (Slots.ContainsKey(parameter.id))
                     throw new InvalidOperationException(
                         $"NeoScript body declares parameter '{parameter.id}' twice; its compiled IR is stale or corrupt.");
+                if (parameter.id == RootParameterId)
+                    rootSlot = Slots.Count;
                 Slots.Add(parameter.id, Slots.Count);
             }
             AddDeclarations(instructions);
+            temporaryListSlots = FindTemporaryListSlots(instructions);
         }
+
+        /// <summary>
+        /// Slots of locals no one else can hold the list of: declared once
+        /// from a Where, whose result is always a fresh array, and otherwise
+        /// only read as the collection an operator consumes. A completed body
+        /// returns their arrays to <see cref="NSGetterEvaluator.TemporaryLists"/>.
+        /// </summary>
+        internal readonly int[]? temporaryListSlots;
+
+        private int[]? FindTemporaryListSlots(Instruction[] instructions)
+        {
+            Dictionary<string, Pointer?>? declared = null;
+            CollectDeclarations(instructions, ref declared);
+            HashSet<string>? candidates = null;
+            foreach (KeyValuePair<string, Pointer?> declaration in declared ?? new Dictionary<string, Pointer?>())
+            {
+                if (declaration.Value is FunctionPointer { function: WhereFunction })
+                    (candidates ??= new HashSet<string>(StringComparer.Ordinal)).Add(declaration.Key);
+            }
+            if (candidates is null)
+                return null;
+            var consumed = new HashSet<Pointer>();
+            try
+            {
+                // Pre-order: an operator marks its collection before the
+                // walk reaches it, and any other read or write escapes.
+                NeoScriptIrWalker.AnyPointer(instructions, pointer =>
+                {
+                    if (pointer is FunctionPointer { function: var function }
+                        && ConsumedCollection(function) is VariablePointer source)
+                        consumed.Add(source);
+                    else if (pointer is VariablePointer variable && !consumed.Contains(variable))
+                        candidates.Remove(variable.variableId);
+                    return candidates.Count == 0;
+                });
+            }
+            catch (NotSupportedException)
+            {
+                return null;
+            }
+            if (candidates.Count == 0)
+                return null;
+            var slots = new int[candidates.Count];
+            int index = 0;
+            foreach (string id in candidates)
+                slots[index++] = Slots[id];
+            return slots;
+        }
+
+        // Each slot's declaration initializer; null when the id is declared
+        // more than once or binds a loop, so it never qualifies.
+        private static void CollectDeclarations(Instruction[] instructions, ref Dictionary<string, Pointer?>? declared)
+        {
+            foreach (var instruction in instructions)
+            {
+                switch (instruction)
+                {
+                    case VariableInstruction variable:
+                        declared ??= new Dictionary<string, Pointer?>(StringComparer.Ordinal);
+                        declared[variable.variable.id] = declared.ContainsKey(variable.variable.id)
+                            ? null
+                            : variable.variable.pointer;
+                        break;
+                    case ForEachInstruction forEach:
+                        (declared ??= new Dictionary<string, Pointer?>(StringComparer.Ordinal))[forEach.binding.id] = null;
+                        break;
+                    case ForInstruction loop:
+                        (declared ??= new Dictionary<string, Pointer?>(StringComparer.Ordinal))[loop.initializer.id] = null;
+                        break;
+                    case IfInstruction conditional:
+                        foreach (var branch in conditional.branches)
+                            CollectDeclarations(branch.instructions, ref declared);
+                        if (conditional.elseInstructions is not null)
+                            CollectDeclarations(conditional.elseInstructions, ref declared);
+                        break;
+                }
+            }
+        }
+
+        /// <summary>The collection an operator reads entries of without keeping it.</summary>
+        private static Pointer? ConsumedCollection(Function function) => function switch
+        {
+            CountFunction count => count.info.collectionPointer,
+            ContainsFunction contains => contains.info.collectionPointer,
+            IndexOfFunction indexOf => indexOf.info.collectionPointer,
+            FirstFunction first => first.info.collectionPointer,
+            FirstOrDefaultFunction first => first.info.collectionPointer,
+            ListIndexFunction index => index.info.collectionPointer,
+            WhereFunction where => where.info.collectionPointer,
+            SelectFunction select => select.info.collectionPointer,
+            _ => null,
+        };
+
+        private const string RootParameterId = "__root__";
+
+        // The pooled scope keeps its root parameter between calls: the root
+        // outlives them, and rebinding the same one then skips its store's
+        // write barrier.
+        private readonly int rootSlot = -1;
 
         // The bindings this scope holds: its locals, the locals of if
         // branches (which run in it), and the bindings of loops run in it.
@@ -104,8 +206,15 @@ namespace NeoCompose.Runtime.NeoScript
         }
 
         /// <summary>Releases a completed body's scope for the body's next call.</summary>
-        internal void ReturnScope(NeoScriptScope scope)
+        /// <param name="boundParameters">
+        /// How many leading parameter slots every call binds. Those keep their
+        /// values, as a callback's do, so rebinding an unchanged argument
+        /// skips its store's write barrier.
+        /// </param>
+        internal void ReturnScope(NeoScriptScope scope, int boundParameters = 0)
         {
+            if (temporaryListSlots is not null)
+                scope.ReturnTemporaryLists(temporaryListSlots);
             if (!ReferenceEquals(scope, pooledScope))
                 return;
             if (scope.BindingCapacity > MaxPooledBindings)
@@ -114,8 +223,9 @@ namespace NeoCompose.Runtime.NeoScript
             }
             else
             {
-                // Release all argument/local references before retaining the empty frame.
-                scope.ResetLocals();
+                // Release all local references but the root and the bound
+                // parameters before retaining the frame.
+                scope.ResetLocals(rootSlot, boundParameters);
                 scope.ReleaseParent();
             }
             System.Threading.Volatile.Write(ref pooledScopeInUse, 0);
@@ -158,9 +268,11 @@ namespace NeoCompose.Runtime.NeoScript
         {
             internal object? value;
             // The alias index and list alias epoch as of which value, a
-            // list, aliased no row or detached slot.
-            internal object? plainListIndex;
-            internal int plainListEpoch;
+            // list, aliased rowAlias's row, or no row or detached slot when
+            // rowAlias is null.
+            internal object? aliasIndex;
+            internal NSGetterEvaluator.RowReference? rowAlias;
+            internal int aliasEpoch;
         }
 
         private const byte EmptySlot = 0;
@@ -247,13 +359,32 @@ namespace NeoCompose.Runtime.NeoScript
         /// Assigns an existing binding in the scope that declared it, when
         /// that is an enclosing scope this block belongs to.
         /// </summary>
-        internal void Assign(string bindingId, object? value)
+        /// <summary>
+        /// Writes the binding <paramref name="variable"/> names in the nearest
+        /// block that holds it, else declares it in the nearest frame. Frames
+        /// answer from the pointer's cached slot, so a write hashes only
+        /// frames that hold dynamic bindings.
+        /// </summary>
+        internal void Assign(VariablePointer variable, object? value)
         {
             NeoScriptScope target = this;
-            while (target.block && !target.ContainsLocal(bindingId))
+            while (true)
+            {
+                int slot = target.OccupiedSlot(variable);
+                if (slot >= 0)
+                {
+                    target.SetSlotValue(slot, value);
+                    return;
+                }
+                if (!target.block || target.ContainsDynamicLocal(variable.variableId))
+                    break;
                 target = target.Parent!;
-            target.SetLocal(bindingId, value);
+            }
+            target.SetLocal(variable.variableId, value);
         }
+
+        private bool ContainsDynamicLocal(string bindingId) =>
+            externalBindings?.ContainsKey(bindingId) ?? (bindings!.Count != 0 && bindings.ContainsKey(bindingId));
 
         internal bool ContainsLocal(string bindingId) =>
             externalBindings?.ContainsKey(bindingId) ?? (bindings!.ContainsKey(bindingId)
@@ -279,8 +410,13 @@ namespace NeoCompose.Runtime.NeoScript
                 bindings![bindingId] = value;
         }
 
-        internal void SetParameter(int index, object? value) =>
+        internal void SetParameter(int index, object? value)
+        {
+            // A pooled frame's kept root is usually the one being bound.
+            if (slotKinds[index] == ValueSlot && ReferenceEquals(slotValues[index].value, value))
+                return;
             SetSlotValue(index, value);
+        }
 
         private void SetSlot(int slot, EvaluationValue value)
         {
@@ -302,7 +438,7 @@ namespace NeoCompose.Runtime.NeoScript
                 occupiedCount++;
             slotKinds[slot] = ValueSlot;
             slotValues[slot].value = value;
-            slotValues[slot].plainListEpoch = 0;
+            slotValues[slot].aliasEpoch = 0;
         }
 
         // A number slot boxes on read, as the stored struct did.
@@ -335,12 +471,18 @@ namespace NeoCompose.Runtime.NeoScript
         /// read from a nested block or callback hashes only frames that hold
         /// dynamic bindings. The value comes back as the return value: copying
         /// the stored struct through an <c>out</c> would pay a GC write barrier
-        /// for its reference on every read. <paramref name="plainList"/> is
-        /// true when the value is a list <see cref="RememberPlainList"/>
+        /// for its reference on every read. <paramref name="remembered"/> is
+        /// true when the value is a list <see cref="RememberListAlias"/>
         /// recorded for <paramref name="aliasIndex"/> since no list became an
-        /// alias.
+        /// alias; <paramref name="rowAlias"/> then gets the row it aliased,
+        /// if any, and is left alone otherwise.
         /// </summary>
-        internal object? ReadVariable(VariablePointer variable, object aliasIndex, out bool found, out bool plainList)
+        internal object? ReadVariable(
+            VariablePointer variable,
+            object aliasIndex,
+            out bool found,
+            out bool remembered,
+            ref NSGetterEvaluator.RowReference? rowAlias)
         {
             for (NeoScriptScope? scope = this; scope is not null; scope = scope.Parent)
             {
@@ -350,35 +492,43 @@ namespace NeoCompose.Runtime.NeoScript
                     found = true;
                     if (scope.slotKinds[slot] == NumberSlot)
                     {
-                        plainList = false;
+                        remembered = false;
                         return NSGetterEvaluator.Box(scope.slotNumbers[slot]);
                     }
-                    // Only RememberPlainList sets the epoch, on the list the
+                    // Only RememberListAlias sets the epoch, on the list the
                     // slot still holds, and every store resets it.
                     ref Slot stored = ref scope.slotValues[slot];
-                    plainList = stored.plainListEpoch == NSGetterEvaluator.ListAliasEpoch
-                        && ReferenceEquals(stored.plainListIndex, aliasIndex);
+                    remembered = stored.aliasEpoch == NSGetterEvaluator.ListAliasEpoch
+                        && ReferenceEquals(stored.aliasIndex, aliasIndex);
+                    if (remembered && stored.rowAlias is not null)
+                        rowAlias = stored.rowAlias;
                     return stored.value;
                 }
                 if (scope.TryGetDynamicValue(variable, out EvaluationValue value))
                 {
                     found = true;
-                    plainList = false;
+                    remembered = false;
                     return value.Box();
                 }
             }
             found = false;
-            plainList = false;
+            remembered = false;
             return null;
         }
 
         /// <summary>
         /// Records that the slot <paramref name="variable"/> reads, while it
-        /// still holds <paramref name="list"/>, aliased nothing in
+        /// still holds <paramref name="list"/>, aliased
+        /// <paramref name="rowAlias"/>'s row, or nothing when it is null, in
         /// <paramref name="aliasIndex"/> as of <paramref name="epoch"/>, read
-        /// before the lookups that found no alias.
+        /// before the lookups that found the alias.
         /// </summary>
-        internal void RememberPlainList(VariablePointer variable, object?[] list, object aliasIndex, int epoch)
+        internal void RememberListAlias(
+            VariablePointer variable,
+            object?[] list,
+            object aliasIndex,
+            int epoch,
+            NSGetterEvaluator.RowReference? rowAlias)
         {
             for (NeoScriptScope? scope = this; scope is not null; scope = scope.Parent)
             {
@@ -388,8 +538,15 @@ namespace NeoCompose.Runtime.NeoScript
                     ref Slot stored = ref scope.slotValues[slot];
                     if (ReferenceEquals(stored.value, list))
                     {
-                        stored.plainListIndex = aliasIndex;
-                        stored.plainListEpoch = epoch;
+                        // Each reference store pays a GC write barrier; a
+                        // constant null or an unchanged index skips it.
+                        if (!ReferenceEquals(stored.aliasIndex, aliasIndex))
+                            stored.aliasIndex = aliasIndex;
+                        if (rowAlias is null)
+                            stored.rowAlias = null;
+                        else
+                            stored.rowAlias = rowAlias;
+                        stored.aliasEpoch = epoch;
                     }
                     return;
                 }
@@ -477,23 +634,41 @@ namespace NeoCompose.Runtime.NeoScript
             return false;
         }
 
-        internal void ResetLocals()
+        /// <param name="keptSlot">A slot to leave bound, or -1.</param>
+        /// <param name="keptParameters">How many leading slots to leave bound.</param>
+        /// <summary>Returns the arrays the layout proved only these slots hold.</summary>
+        internal void ReturnTemporaryLists(int[] slots)
+        {
+            foreach (int slot in slots)
+            {
+                if (slotKinds[slot] == ValueSlot && slotValues[slot].value is object?[] entries)
+                    NSGetterEvaluator.TemporaryLists.Return(entries);
+            }
+        }
+
+        internal void ResetLocals(int keptSlot = -1, int keptParameters = 0)
         {
             bindings?.Clear();
             if (occupiedCount > 0)
             {
+                int kept = 0;
                 // Frames hold a handful of slots: a loop beats Array.Clear's
                 // native call.
                 for (int i = 0; i < slotKinds.Length; i++)
                 {
-                    if (slotKinds[i] != EmptySlot)
+                    if (slotKinds[i] == EmptySlot)
+                        continue;
+                    if (i == keptSlot || i < keptParameters)
                     {
-                        slotKinds[i] = EmptySlot;
-                        slotValues[i].value = null;
-                        slotValues[i].plainListIndex = null;
+                        kept++;
+                        continue;
                     }
+                    slotKinds[i] = EmptySlot;
+                    slotValues[i].value = null;
+                    slotValues[i].aliasIndex = null;
+                    slotValues[i].rowAlias = null;
                 }
-                occupiedCount = 0;
+                occupiedCount = kept;
             }
             externalBindings?.Clear();
             readOnlyBindings?.Clear();
@@ -519,7 +694,8 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 slotKinds[slot] = EmptySlot;
                 slotValues[slot].value = null;
-                slotValues[slot].plainListIndex = null;
+                slotValues[slot].aliasIndex = null;
+                slotValues[slot].rowAlias = null;
                 occupiedCount--;
                 return true;
             }
@@ -584,7 +760,8 @@ namespace NeoCompose.Runtime.NeoScript
 
         internal bool TryGetReadOnlyError(string bindingId, out string? error)
         {
-            if (readOnlyBindings is not null && readOnlyBindings.TryGetValue(
+            // Clearing keeps the map, so an empty one skips hashing.
+            if (readOnlyBindings is { Count: > 0 } && readOnlyBindings.TryGetValue(
                     bindingId,
                     out var mark))
             {

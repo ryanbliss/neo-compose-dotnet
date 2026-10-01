@@ -989,7 +989,9 @@ namespace NeoCompose.Runtime
         // throwaway graph at deterministic ids, so it gets a private context.
         private NeoScript.NSGetterEvaluator.Context? sharedEvaluationContext;
         private const int SharedRowCacheLimit = 8192;
+#if NEO_COMPOSE_PROFILING
         private static readonly Unity.Profiling.ProfilerMarker EvaluationRowRefreshMarker = new("NeoCompose.Evaluation.RefreshRow");
+#endif
 
         private void InvalidateSharedEvaluationContext()
         {
@@ -1026,7 +1028,7 @@ namespace NeoCompose.Runtime
         {
             if (isDisposed || !context.allocationTracker.ReusableContext
                 || context.allocationTracker.ActiveExecutionCount != 0
-                || result is not (null or string or bool or byte or short or int or long or float or double or decimal)
+                || !IsContextFreeResult(result)
                 || isReplayingVirtualInstance)
                 return;
             context.ClearDirectInvocation();
@@ -1040,6 +1042,15 @@ namespace NeoCompose.Runtime
                     directFunctionContexts.Add(context);
             }
         }
+
+        /// <summary>
+        /// A result that holds nothing of the frame that produced it. A
+        /// detached object keeps only its tracker, whose generation already
+        /// tells a later execution on the same tracker apart.
+        /// </summary>
+        private static bool IsContextFreeResult(object? result) =>
+            result is null or string or bool or byte or short or int or long or float or double or decimal
+            or NeoScript.NeoScriptObject { attachedId: null };
 
         internal NeoScript.NSGetterEvaluator.Context CreateGetterContext(NeoValueOwnership ownership)
         {
@@ -1065,7 +1076,9 @@ namespace NeoCompose.Runtime
             var shared = sharedEvaluationContext;
             if (shared is null)
                 return;
+#if NEO_COMPOSE_PROFILING
             using var marker = EvaluationRowRefreshMarker.Auto();
+#endif
             if (TryGetValue(ownership, valueId, out MemberValue? row))
                 NeoScript.NSGetterEvaluator.RefreshCachedRowAfterWrite(row, shared, ownership);
             else
@@ -1163,17 +1176,21 @@ namespace NeoCompose.Runtime
         /// <summary>
         /// <see cref="TryGetValue{TValue}(string, out TValue)"/> through a
         /// node the caller keeps, so an ownership read and an unwrap of the
-        /// same row share one id lookup. Overlays take the id path.
+        /// same row share one id lookup. Overlays take the id path. The row
+        /// comes back rather than through an out parameter, which would cost
+        /// a GC write barrier on every read.
         /// </summary>
-        internal bool TryGetValue(string id, ref NeoValueNode? node, [NotNullWhen(true)] out MemberValue? value)
+        internal MemberValue? ReadValue(string id, ref NeoValueNode? node)
         {
             if (candidateReplay is not null || candidateReadPlan is not null)
-                return TryGetValue(id, out value);
+            {
+                TryGetValue(id, out MemberValue? overlaid);
+                return overlaid;
+            }
             NoteValueRead(id);
             if (node is not { live: true })
                 node = ValueNode(id);
-            value = node?.session ?? node?.save ?? node?.Asset(data) ?? node?.virtualRow;
-            return value is not null;
+            return node?.session ?? node?.save ?? node?.Asset(data) ?? node?.virtualRow;
         }
 
         internal bool TryGetCommittedValue<TValue>(string id, [NotNullWhen(true)] out TValue? value) where TValue : MemberValue
@@ -1245,19 +1262,21 @@ namespace NeoCompose.Runtime
         /// <summary>
         /// <see cref="TryGetValue(NeoValueOwnership, string, out MemberValue)"/>
         /// through a node the caller keeps, so repeated reads of one row
-        /// look its id up once. Overlays take the id path.
+        /// look its id up once. Overlays take the id path. The row comes
+        /// back rather than through an out parameter, which would cost a GC
+        /// write barrier on every read.
         /// </summary>
-        internal bool TryGetValue(
-            NeoValueOwnership ownership, string id, ref NeoValueNode? node,
-            [NotNullWhen(true)] out MemberValue? value)
+        internal MemberValue? ReadValue(NeoValueOwnership ownership, string id, ref NeoValueNode? node)
         {
             if (candidateReplay is not null || candidateReadPlan is not null)
-                return TryGetValue(ownership, id, out value);
+            {
+                TryGetValue(ownership, id, out MemberValue? overlaid);
+                return overlaid;
+            }
             NoteValueRead(id);
             if (node is not { live: true })
                 node = ValueNode(id);
-            value = CommittedRow(ownership, id, node);
-            return value is not null;
+            return CommittedRow(ownership, id, node);
         }
 
         internal bool TryGetCommittedValue<TValue>(
@@ -1626,6 +1645,15 @@ namespace NeoCompose.Runtime
         // A static binding's ownership is a property of the member, so the
         // dependency key is built once per member rather than per read.
         private readonly Dictionary<string, string> staticReadKeys = new(System.StringComparer.Ordinal);
+        private readonly Dictionary<string, NeoStaticBinding> staticBindings = new(System.StringComparer.Ordinal);
+
+        /// <summary>The one binding view of a static member; it resolves its target live.</summary>
+        internal NeoStaticBinding StaticBinding(string memberId)
+        {
+            if (!staticBindings.TryGetValue(memberId, out NeoStaticBinding? binding))
+                staticBindings[memberId] = binding = new NeoStaticBinding(this, memberId);
+            return binding;
+        }
 
         private string StaticReadKey(string memberId, NeoValueOwnership ownership)
         {
@@ -1652,7 +1680,16 @@ namespace NeoCompose.Runtime
                 return false;
             }
             ownership = ResolveStaticOwnership(member);
-            NoteValueRead(StaticReadKey(memberId, ownership));
+            return TryResolveStaticBinding(member, ownership, out valueId);
+        }
+
+        /// <param name="ownership">The member's <see cref="ResolveStaticOwnership(Member)"/>.</param>
+        internal bool TryResolveStaticBinding(
+            Member member,
+            NeoValueOwnership ownership,
+            [NotNullWhen(true)] out string? valueId)
+        {
+            NoteValueRead(StaticReadKey(member.id, ownership));
             if (ownership == NeoValueOwnership.Asset)
             {
                 valueId = member.valueId;
@@ -1965,6 +2002,7 @@ namespace NeoCompose.Runtime
             ForgetSchemaResolutionSites();
             SchemaResolution = new object();
             staticReadKeys.Clear();
+            staticBindings.Clear();
             foreach (NeoClassNode node in classNodes.Values)
                 node.live = false;
             classNodes.Clear();
@@ -8689,11 +8727,15 @@ namespace NeoCompose.Runtime
             return authoredClassOwnedRoots.TryGetValue(ownership, out var roots) ? roots : new List<string>();
         }
 
+#if NEO_COMPOSE_PROFILING
         private static readonly Unity.Profiling.ProfilerMarker ReachabilityMarker = new("NeoCompose.Values.Reachability");
+#endif
 
         private HashSet<string> BuildReachableWritableValueIds(NeoValueOwnership ownership)
         {
+#if NEO_COMPOSE_PROFILING
             using var marker = ReachabilityMarker.Auto();
+#endif
             // Sparse stable-id overlay: reachability is rooted at the save/session
             // root member's authored value id (a write shadows that id in
             // place), then walks the overlaid graph. There is no override map.

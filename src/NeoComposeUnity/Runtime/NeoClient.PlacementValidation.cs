@@ -207,10 +207,14 @@ namespace NeoCompose.Runtime
 
         private WriteValidationScratch? writeValidationScratch;
 
+#if NEO_COMPOSE_PROFILING
         private static readonly Unity.Profiling.ProfilerMarker ValidatePlacementsMarker = new("NeoCompose.Write.ValidatePlacements");
+#endif
         private void ValidateWritePlan(NeoWritePlan plan)
         {
+#if NEO_COMPOSE_PROFILING
             using var sample = ValidatePlacementsMarker.Auto();
+#endif
             if (plan.Rows.Count == 0 && plan.Bindings.Count == 0)
                 return;
             WriteValidationScratch scratch;

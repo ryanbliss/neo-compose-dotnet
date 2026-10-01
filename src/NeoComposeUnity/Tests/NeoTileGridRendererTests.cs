@@ -536,6 +536,134 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void NeoScriptGridQuery_WhereCompactsAGetObjectsResultNothingElseHolds()
+        {
+            var data = BuildClassBackedTileGridProjectData();
+            data.members["system_f5ca386c-990c-54a1-8473-2d49d2cd887d"] = new FunctionMember
+            {
+                id = "system_f5ca386c-990c-54a1-8473-2d49d2cd887d",
+                projectId = "project-a",
+                name = "GetObjects",
+                kind = MemberKind.Function,
+                argumentTypes = new[]
+                {
+                    new FunctionArgumentTypeInfo { name = "pattern", type = MemberKind.Class, classId = NeoCellPatternStorage.ClassId, required = true },
+                },
+                returnTypeInfo = new CollectionTypeInfo
+                {
+                    type = MemberKind.List,
+                    required = true,
+                    entryTypeInfo = new ClassTypeInfo { type = MemberKind.Class, classId = ObjectClassId, required = true },
+                },
+            };
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            client.ScriptGridQueries.RegisterFactories(new Dictionary<string, Func<NeoClient, string, INeoTileGridContent>>
+            {
+                [GridClassId] = (c, id) =>
+                {
+                    var primitive = NeoReadOnlyTileGridPrimitive.Resolve(c, id,
+                        BuildClassBackedReadOnlyFactories(), BuildClassBackedWritableFactories());
+                    return new TestTileGridContent(primitive, Array.Empty<IReadOnlyNeoTileLayerRuntime>(),
+                        new[] { primitive.BindReadOnlyObjectLayer<TestAuthoredObjectLayer>(ObjectsLayerClassId, new[] { ObjectClassId }) });
+                },
+            });
+            // One object per cell: shop-1 sits at (10, 20), its neighbors beside it.
+            foreach ((string id, int x) in new[] { ("shop-2", 11), ("shop-3", 9) })
+            {
+                client.SetWritableValues(NeoValueOwnership.Save, new MemberValue[]
+                {
+                    new Vector3MemberValue { id = id + "-position", value = new NeoVector3Value { x = x, y = 20, z = 0 } },
+                    new Vector2MemberValue { id = id + "-origin-cell", value = new NeoVector2Value() },
+                    new ObjectMemberValue { id = id + "-origin", classId = PlacementTileClassId, containerId = id + "-placement-tiles",
+                        value = new Dictionary<string, string> { ["Cell"] = id + "-origin-cell" } },
+                    new ArrayMemberValue { id = id + "-placement-tiles", value = new[] { id + "-origin" } },
+                    new ObjectMemberValue { id = id, classId = ObjectClassId, containerId = "objects-link-objects",
+                        value = new Dictionary<string, string> { ["Position"] = id + "-position", ["PlacementTiles"] = id + "-placement-tiles" } },
+                });
+            }
+            var ctx = client.CreateGetterContext(NeoValueOwnership.Asset);
+            var scope = new NeoScriptScope(2);
+            scope["self"] = NSGetterEvaluator.UnwrapRow(client.ResolveValueRow("shop-1")!, ctx, NeoValueOwnership.Asset);
+            scope["cells"] = NeoCellPattern.Box(1);
+            static VariablePointer Variable(string id) => new()
+            {
+                type = PointerKind.Variable,
+                variableId = id
+            };
+            static Pointer Where(string predicate, string other = "self") => new FunctionPointer
+            {
+                type = PointerKind.Function,
+                function = new WhereFunction
+                {
+                    type = FunctionKind.Where,
+                    info = new FunctionCollectionBoolInfo
+                    {
+                        collectionPointer = new CallFunctionPointer
+                        {
+                            type = PointerKind.CallFunction,
+                            callSiteId = "query-" + predicate + other,
+                            memberId = "system_f5ca386c-990c-54a1-8473-2d49d2cd887d",
+                            receiver = CallReceiver.Instance(Variable("self")),
+                            args = new Pointer[] { Variable("cells") },
+                        },
+                        function = new FunctionWithReturnType
+                        {
+                            compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                            parameters = new[] { new Variable { id = "entry", pointer = Variable("entry") } },
+                            typeInfo = new PrimitiveTypeInfo { type = MemberKind.Bool, required = true },
+                            instructions = new Instruction[]
+                            {
+                                new ReturnInstruction
+                                {
+                                    type = InstructionKind.Return,
+                                    pointer = new OperationPointer
+                                    {
+                                        type = PointerKind.Operation,
+                                        operation = new BooleanOperation
+                                        {
+                                            type = OperationKind.Boolean,
+                                            expression = new BooleanExpression
+                                            {
+                                                condition = new Condition
+                                                {
+                                                    type = predicate,
+                                                    operand1 = Variable("entry"),
+                                                    operand2 = Variable(other),
+                                                },
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            };
+            string?[] Ids(object? result) =>
+                ((object?[])result!).Select(entry => NSGetterEvaluator.FindRowIdByReference(entry, ctx)).ToArray();
+
+            // Matches compact behind the entry being read: dropping the
+            // first entry must not overwrite the ones still to be read.
+            object? others = NSGetterEvaluator.EvaluatePointer(Where(OperatorKind.DoesNotEqual), scope, ctx);
+            CollectionAssert.AreEquivalent(new[] { "shop-2", "shop-3" }, Ids(others));
+            object? self = NSGetterEvaluator.EvaluatePointer(Where(OperatorKind.EqualTo), scope, ctx);
+            CollectionAssert.AreEqual(new[] { "shop-1" }, Ids(self));
+            // A trimmed result is its own array; the query array it replaced
+            // went back to the pool, and the next query reuses it.
+            object? again = NSGetterEvaluator.EvaluatePointer(Where(OperatorKind.DoesNotEqual), scope, ctx);
+            Assert.AreNotSame(others, again);
+            CollectionAssert.AreEquivalent(new[] { "shop-2", "shop-3" }, Ids(others));
+            CollectionAssert.AreEquivalent(new[] { "shop-2", "shop-3" }, Ids(again));
+            CollectionAssert.AreEqual(new[] { "shop-1" }, Ids(self));
+            // Keeping every entry returns the query array itself, which is
+            // then the result's and never pooled again.
+            object? all = NSGetterEvaluator.EvaluatePointer(Where(OperatorKind.EqualTo, "entry"), scope, ctx);
+            NSGetterEvaluator.EvaluatePointer(Where(OperatorKind.DoesNotEqual), scope, ctx);
+            NSGetterEvaluator.EvaluatePointer(Where(OperatorKind.EqualTo, "entry"), scope, ctx);
+            CollectionAssert.AreEquivalent(new[] { "shop-1", "shop-2", "shop-3" }, Ids(all));
+        }
+
+        [Test]
         public void NeoScriptGridQuery_ResolvesVirtualAuthoredPlacementBeforeContentAccess()
         {
             var data = BuildClassBackedTileGridProjectData();

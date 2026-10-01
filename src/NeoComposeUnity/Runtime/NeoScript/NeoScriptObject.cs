@@ -30,7 +30,11 @@ namespace NeoCompose.Runtime.NeoScript
 
         internal readonly NeoClient client;
         internal readonly NeoGeneratedTypesSupport.DetachedClassPlan plan;
-        internal readonly object?[] values;
+        // A plan of up to InlineSlots slots keeps them in fields, so the
+        // object is one allocation; a wider plan keeps them in an array.
+        internal const int InlineSlots = 8;
+        private object? slot0, slot1, slot2, slot3, slot4, slot5, slot6, slot7;
+        private readonly object?[]? wideSlots;
         // Slot states as bitmasks, so a plan of up to 64 slots allocates no
         // state array; a wider plan keeps one byte per slot. A written slot
         // never returns to a default state.
@@ -39,8 +43,8 @@ namespace NeoCompose.Runtime.NeoScript
         private readonly byte[]? wideStates;
         // Slots whose current array a read handed out, so its alias origin is recorded.
         private ulong exposedArraySlots;
-        /// <summary>Growable entries of List slots mutated in place; the slot value is their snapshot.</summary>
-        internal List<object?>?[]? listBuffers;
+        /// <summary>Registered with its tracker to seal its List slots' append buffers.</summary>
+        internal bool listBuffersNoted;
         /// <summary>The detached object whose slot holds this one; it materializes through that root.</summary>
         internal NeoScriptObject? owner;
         internal string? attachedId;
@@ -69,11 +73,42 @@ namespace NeoCompose.Runtime.NeoScript
         {
             this.client = client;
             this.plan = plan;
-            values = new object?[plan.slots.Length];
+            if (plan.slots.Length > InlineSlots)
+                wideSlots = new object?[plan.slots.Length];
             if (plan.slots.Length > 64)
                 wideStates = new byte[plan.slots.Length];
             this.tracker = tracker;
             trackerGeneration = tracker.Generation;
+        }
+
+        internal int SlotCount => plan.slots.Length;
+
+        /// <summary>Slot <paramref name="index"/>'s storage.</summary>
+        internal ref object? Slot(int index)
+        {
+            if (wideSlots is not null)
+                return ref wideSlots[index];
+            switch (index)
+            {
+                case 0:
+                    return ref slot0;
+                case 1:
+                    return ref slot1;
+                case 2:
+                    return ref slot2;
+                case 3:
+                    return ref slot3;
+                case 4:
+                    return ref slot4;
+                case 5:
+                    return ref slot5;
+                case 6:
+                    return ref slot6;
+                case 7:
+                    return ref slot7;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(index));
+            }
         }
 
         internal byte State(int index)

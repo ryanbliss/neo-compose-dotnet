@@ -55,6 +55,7 @@ namespace NeoCompose.Runtime.NeoScript
         internal bool ReusableContext = true;
         private List<(string memberId, string? valueId)>? delegateFrames;
         internal List<(string memberId, string? valueId)> DelegateFrames => delegateFrames ??= new();
+        private List<NeoScriptObject>? listBuffered;
 
         internal void EnterExecution()
         {
@@ -234,7 +235,10 @@ namespace NeoCompose.Runtime.NeoScript
                     "NeoScript allocation tracker execution depth underflow.");
             }
             activeExecutions--;
-            if (activeExecutions != 0 || _allocatedRootIds is null)
+            if (activeExecutions != 0)
+                return;
+            SealListBuffers();
+            if (_allocatedRootIds is null)
                 return;
 
             if (terminalResult?.Returned == true)
@@ -282,6 +286,32 @@ namespace NeoCompose.Runtime.NeoScript
             _escapedRootIds?.Clear();
             _constructedParentByChildId?.Clear();
             _parentlessAllocatedRootIds?.Clear();
+        }
+
+        /// <summary>
+        /// Remembers a detached object that took an append buffer, so the
+        /// outermost exit seals it. Outside any execution nothing exits; the
+        /// object's next read seals it instead.
+        /// </summary>
+        internal void NoteListBuffer(NeoScriptObject value)
+        {
+            if (activeExecutions == 0 || value.listBuffersNoted)
+                return;
+            value.listBuffersNoted = true;
+            (listBuffered ??= new()).Add(value);
+        }
+
+        private void SealListBuffers()
+        {
+            if (listBuffered is null)
+                return;
+            for (int index = 0; index < listBuffered.Count; index++)
+            {
+                NeoScriptObject value = listBuffered[index];
+                value.listBuffersNoted = false;
+                NeoGeneratedTypesSupport.SealDetachedLists(value);
+            }
+            listBuffered.Clear();
         }
 
         private bool TryFindConstructedOrStoredParent(
@@ -585,6 +615,28 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 get;
             }
+
+            // Shared with the context's family, like its frames.
+            private ArrayRowCache? arrayRows;
+
+            /// <summary>The row a list aliases, or null.</summary>
+            internal RowReference? ArrayRowReference(object?[] array) =>
+                (arrayRows ??= new ArrayRowCache()).Find(array, rowReverseIndex);
+
+            /// <summary>The detached slot a list aliases, or null.</summary>
+            internal NeoGeneratedTypesSupport.DetachedArrayOrigin? ArrayDetachedOrigin(object?[] array) =>
+                (arrayRows ??= new ArrayRowCache()).Detached(array, rowReverseIndex);
+
+            /// <summary>
+            /// Records a list the evaluator just allocated, so its reads skip
+            /// both alias lookups. Only a list no unwrap or slot has seen
+            /// qualifies: those register an alias without moving the epoch.
+            /// </summary>
+            internal void NoteFreshList(object?[] list)
+            {
+                if (list.Length > 0)
+                    (arrayRows ??= new ArrayRowCache()).NoteFresh(list, rowReverseIndex);
+            }
             internal RowAliasIndex rowAliases => RowAliasIndexes.GetValue(rowReverseIndex, CreateRowAliasIndexCallback);
             internal LinkedFunctionCallHandler? linkedFunctionCallHandler
             {
@@ -740,18 +792,6 @@ namespace NeoCompose.Runtime.NeoScript
                 thisValue = receiver;
             }
 
-            internal void BindExpressionHandlers(
-                LinkedFunctionCallHandler handler,
-                Func<ObjectInitializerPointer, NeoScriptScope, Context, object?> initializerHandler)
-            {
-                // Every call rebinds the same prebuilt handlers; an unchanged
-                // field skips its write barrier.
-                if (!ReferenceEquals(linkedFunctionCallHandler, handler))
-                    linkedFunctionCallHandler = handler;
-                if (!ReferenceEquals(objectInitializerHandler, initializerHandler))
-                    objectInitializerHandler = initializerHandler;
-            }
-
 
             /// <summary>
             /// The immediate-mode expression context built from THIS frame, so
@@ -832,6 +872,10 @@ namespace NeoCompose.Runtime.NeoScript
                 internal IReadOnlyList<string>? functionCallStack;
                 internal LinkedFunctionCallHandler? linkedFunctionCallHandler;
                 internal Func<ObjectInitializerPointer, NeoScriptScope, Context, object?>? objectInitializerHandler;
+                // Whether the frame replaced this and the handlers: most calls
+                // keep both, and saving them anyway write-barriers each.
+                internal bool thisSaved;
+                internal bool handlersSaved;
                 internal Context? immediateExpressionContext;
                 internal Context? immediateExpressionSource;
                 internal object? immediateExpressionState;
@@ -861,7 +905,11 @@ namespace NeoCompose.Runtime.NeoScript
             private FrameStack Frames => frameStack ??= new FrameStack();
 
             /// <summary>Runs this new context's frames on <paramref name="family"/>'s stack.</summary>
-            internal void ShareFrames(Context family) => frameStack = family.Frames;
+            internal void ShareFrames(Context family)
+            {
+                frameStack = family.Frames;
+                arrayRows = family.arrayRows ??= new ArrayRowCache();
+            }
 
             /// <summary>
             /// Runs a synchronous function frame on this context instead of a
@@ -891,10 +939,7 @@ namespace NeoCompose.Runtime.NeoScript
                 // Mono write-barriers every reference stored here: the
                 // usually-null fields keep the null exit left them.
                 ref FunctionFrame saved = ref stack.frames[frame];
-                saved.thisValue = thisValue;
                 saved.functionCallStack = functionCallStack;
-                saved.linkedFunctionCallHandler = linkedFunctionCallHandler;
-                saved.objectInitializerHandler = objectInitializerHandler;
                 // The immediate expression fields are set and cleared together.
                 if (immediateExpressionContext is not null)
                 {
@@ -913,11 +958,44 @@ namespace NeoCompose.Runtime.NeoScript
                     saved.initializerPlacement = initializerPlacement;
                 saved.constructorBody = constructorBody;
                 constructorBody = false;
-                // The same lifetime gate a fork closes.
-                allocationTracker.ReusableContext = false;
                 if (!ReferenceEquals(thisValue, receiver))
+                {
+                    saved.thisValue = thisValue;
+                    saved.thisSaved = true;
                     thisValue = receiver;
+                }
                 return frame;
+            }
+
+            /// <summary>
+            /// Installs a function body's expression handlers inside
+            /// <paramref name="frame"/>, which restores the caller's on exit;
+            /// -1 binds them on a context no frame restores.
+            /// </summary>
+            internal void BindFrameHandlers(
+                int frame,
+                LinkedFunctionCallHandler handler,
+                Func<ObjectInitializerPointer, NeoScriptScope, Context, object?> initializerHandler)
+            {
+                // Every call rebinds the same prebuilt handlers; an unchanged
+                // field skips its write barrier.
+                if (ReferenceEquals(linkedFunctionCallHandler, handler)
+                    && ReferenceEquals(objectInitializerHandler, initializerHandler))
+                {
+                    return;
+                }
+                if (frame >= 0)
+                {
+                    ref FunctionFrame saved = ref frameStack!.frames[frame];
+                    if (!saved.handlersSaved)
+                    {
+                        saved.linkedFunctionCallHandler = linkedFunctionCallHandler;
+                        saved.objectInitializerHandler = objectInitializerHandler;
+                        saved.handlersSaved = true;
+                    }
+                }
+                linkedFunctionCallHandler = handler;
+                objectInitializerHandler = initializerHandler;
             }
 
             /// <summary>
@@ -940,18 +1018,23 @@ namespace NeoCompose.Runtime.NeoScript
                 // Most fields come back unchanged. Skipping those writes skips
                 // their GC write barriers, which cost more than the compare.
                 // Clearing the frame stores constant nulls, which skip them.
-                if (!ReferenceEquals(thisValue, saved.thisValue))
+                if (saved.thisSaved)
+                {
                     thisValue = saved.thisValue;
-                saved.thisValue = null;
+                    saved.thisValue = null;
+                    saved.thisSaved = false;
+                }
                 if (!ReferenceEquals(functionCallStack, saved.functionCallStack))
                     functionCallStack = saved.functionCallStack!;
                 saved.functionCallStack = null;
-                if (!ReferenceEquals(linkedFunctionCallHandler, saved.linkedFunctionCallHandler))
+                if (saved.handlersSaved)
+                {
                     linkedFunctionCallHandler = saved.linkedFunctionCallHandler;
-                saved.linkedFunctionCallHandler = null;
-                if (!ReferenceEquals(objectInitializerHandler, saved.objectInitializerHandler))
                     objectInitializerHandler = saved.objectInitializerHandler;
-                saved.objectInitializerHandler = null;
+                    saved.linkedFunctionCallHandler = null;
+                    saved.objectInitializerHandler = null;
+                    saved.handlersSaved = false;
+                }
                 if (!ReferenceEquals(immediateExpressionContext, saved.immediateExpressionContext))
                     immediateExpressionContext = saved.immediateExpressionContext;
                 if (!ReferenceEquals(immediateExpressionSource, saved.immediateExpressionSource))
@@ -1056,6 +1139,88 @@ namespace NeoCompose.Runtime.NeoScript
             return index;
         }
 
+        /// <summary>
+        /// Lists a context family looked up in its row reverse index and the
+        /// detached-origin table, as of <see cref="ListAliasEpoch"/>: a
+        /// weak-table lookup takes a lock and hashes the list, and frames read
+        /// the same lists again and again (an enum value is a shared
+        /// one-entry list). A list becomes an alias only when first
+        /// unwrapped or exposed, so a miss stays a miss until the epoch
+        /// moves. Direct-mapped by identity hash, which Mono's non-moving GC
+        /// derives from the address without a call.
+        /// </summary>
+        private sealed class ArrayRowCache
+        {
+            private struct Entry
+            {
+                internal object?[]? array;
+                internal RowReference? row;
+                internal NeoGeneratedTypesSupport.DetachedArrayOrigin? detached;
+                internal int epoch;
+                internal bool detachedKnown;
+            }
+
+            private const int Capacity = 64;
+            private const int IndexShift = 26;
+            private readonly Entry[] entries = new Entry[Capacity];
+            private ConditionalWeakTable<object, RowReference>? table;
+
+            internal RowReference? Find(object?[] array, ConditionalWeakTable<object, RowReference> index) =>
+                Slot(array, index).row;
+
+            internal void NoteFresh(object?[] array, ConditionalWeakTable<object, RowReference> index)
+            {
+                ref Entry entry = ref Entries(index)[IndexOf(array)];
+                entry.array = array;
+                entry.row = null;
+                entry.detached = null;
+                entry.detachedKnown = true;
+                entry.epoch = ListAliasEpoch;
+            }
+
+            internal NeoGeneratedTypesSupport.DetachedArrayOrigin? Detached(
+                object?[] array,
+                ConditionalWeakTable<object, RowReference> index)
+            {
+                ref Entry entry = ref Slot(array, index);
+                if (!entry.detachedKnown)
+                {
+                    NeoGeneratedTypesSupport.TryGetDetachedArrayOrigin(array, out entry.detached);
+                    entry.detachedKnown = true;
+                }
+                return entry.detached;
+            }
+
+            private ref Entry Slot(object?[] array, ConditionalWeakTable<object, RowReference> index)
+            {
+                int current = ListAliasEpoch;
+                ref Entry entry = ref Entries(index)[IndexOf(array)];
+                if (entry.epoch != current || !ReferenceEquals(entry.array, array))
+                {
+                    index.TryGetValue(array, out RowReference? row);
+                    entry.array = array;
+                    entry.row = row;
+                    entry.detached = null;
+                    entry.detachedKnown = false;
+                    entry.epoch = current;
+                }
+                return ref entry;
+            }
+
+            private Entry[] Entries(ConditionalWeakTable<object, RowReference> index)
+            {
+                if (!ReferenceEquals(table, index))
+                {
+                    Array.Clear(entries, 0, Capacity);
+                    table = index;
+                }
+                return entries;
+            }
+
+            private static int IndexOf(object?[] array) =>
+                (int)((uint)RuntimeHelpers.GetHashCode(array) * 2654435769u >> IndexShift);
+        }
+
         internal sealed class RowAliasIndex
         {
             private readonly Dictionary<RowKey, List<WeakReference<object>>> rows = new();
@@ -1112,8 +1277,9 @@ namespace NeoCompose.Runtime.NeoScript
             internal void Remove(NeoValueOwnership ownership, string id) => rows.Remove(RowCacheRowKey(ownership, id));
         }
 
-        // Moves after any array becomes a row or detached-slot alias, so a
-        // variable can remember that its list aliased nothing as of a count.
+        // Moves after any array becomes or stops being a row alias, or becomes
+        // a detached-slot alias, so a variable can remember what its list
+        // aliased as of a count.
         private static int listAliasEpoch = 1;
 
         internal static int ListAliasEpoch => System.Threading.Volatile.Read(ref listAliasEpoch);
@@ -1156,6 +1322,8 @@ namespace NeoCompose.Runtime.NeoScript
         private static void RemoveRowReference(Context ctx, object alias)
         {
             ctx.rowReverseIndex.Remove(alias);
+            if (alias is object?[])
+                NoteListAlias();
             if (alias is NeoObjectRecord record && ReferenceEquals(record.referenceIndex, ctx.rowReverseIndex))
             {
                 record.reference = null;
@@ -1253,6 +1421,56 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 internal string id;
                 internal NeoValueNode node;
+            }
+
+            private struct GetterSlot
+            {
+                internal string memberId;
+                internal NeoValueOwnership readOwnership;
+                internal NeoClient.GetterMemoEntry entry;
+            }
+
+            // The client's memo entries for getters read on this row, so a
+            // repeated read skips hashing the memo key's two ids. A slot holds
+            // while the client keeps its entry.
+            private GetterSlot[]? getterSlots;
+            private int getterSlotCount;
+            private const int MaxGetterSlots = 8;
+
+            internal NeoClient.GetterMemoEntry? MemoizedGetter(string memberId, NeoValueOwnership readOwnership)
+            {
+                for (int i = 0; i < getterSlotCount; i++)
+                {
+                    ref GetterSlot slot = ref getterSlots![i];
+                    if (slot.readOwnership == readOwnership && string.Equals(slot.memberId, memberId))
+                        return slot.entry.forgotten ? null : slot.entry;
+                }
+                return null;
+            }
+
+            internal void RememberGetter(string memberId, NeoValueOwnership readOwnership, NeoClient.GetterMemoEntry entry)
+            {
+                for (int i = 0; i < getterSlotCount; i++)
+                {
+                    ref GetterSlot slot = ref getterSlots![i];
+                    if (slot.readOwnership == readOwnership && string.Equals(slot.memberId, memberId))
+                    {
+                        slot.entry = entry;
+                        return;
+                    }
+                }
+                // Bounded: further getters take the memo's own lookup.
+                if (getterSlotCount == MaxGetterSlots)
+                    return;
+                getterSlots ??= new GetterSlot[2];
+                if (getterSlotCount == getterSlots.Length)
+                    Array.Resize(ref getterSlots, getterSlotCount * 2);
+                getterSlots[getterSlotCount++] = new GetterSlot
+                {
+                    memberId = memberId,
+                    readOwnership = readOwnership,
+                    entry = entry,
+                };
             }
 
             // A collection row's entry nodes by position, so iterating it
@@ -1560,7 +1778,19 @@ namespace NeoCompose.Runtime.NeoScript
         private static object? EvalValueLiteral(ValuePointer vp, Context ctx)
         {
             if (vp.primitiveEntries is object?[] template)
-                return CopyEntries(template);
+            {
+                // Nothing writes an enum value in place: a slot keeps a bare
+                // id or its own copy, a row its own strings, and a local list
+                // mutation copies. So every evaluation shares one array.
+                if (vp.value.typeInfo is EnumTypeInfo)
+                {
+                    ctx.NoteFreshList(template);
+                    return template;
+                }
+                object?[] copy = CopyEntries(template);
+                ctx.NoteFreshList(copy);
+                return copy;
+            }
             if (NeoDelegateValueConverter.LooksLikeValue(vp.value.value))
             {
                 NeoDelegateValue value = vp.value.value!
@@ -1600,13 +1830,12 @@ namespace NeoCompose.Runtime.NeoScript
                 vp.primitiveResolved = true;
                 return vp.primitive;
             }
-            // An array literal of primitives (an enum option) is
-            // mutable, so each evaluation gets its own copy of one
-            // conversion.
+            // An array literal of primitives converts once; see above for
+            // which evaluations share it.
             if (literal is Newtonsoft.Json.Linq.JArray entries && IsPrimitiveArray(entries))
             {
                 vp.primitiveEntries = (object?[])UnwrapJToken(literal)!;
-                return CopyEntries(vp.primitiveEntries);
+                return EvalValueLiteral(vp, ctx);
             }
             return UnwrapJToken(literal);
         }
@@ -1614,7 +1843,8 @@ namespace NeoCompose.Runtime.NeoScript
         /// <summary>A variable read, following a row-backed or attached alias.</summary>
         private static object? EvalVariable(VariablePointer vrp, NeoScriptScope scope, Context ctx)
         {
-            var v = scope.ReadVariable(vrp, ctx.rowReverseIndex, out bool found, out bool plainList);
+            RowReference? listRef = null;
+            var v = scope.ReadVariable(vrp, ctx.rowReverseIndex, out bool found, out bool remembered, ref listRef);
             if (!found)
             {
                 throw new NSGetterRuntimeError(
@@ -1624,20 +1854,23 @@ namespace NeoCompose.Runtime.NeoScript
             // mutation replaces their fixed-size CLR array.
             if (v is object?[] entries)
             {
-                if (plainList)
+                if (remembered && listRef is null)
                     return v;
                 int epoch = ListAliasEpoch;
-                bool rowAlias = ctx.rowReverseIndex.TryGetValue(v, out RowReference listRef);
-                if (rowAlias
-                    && ctx.client.TryGetValue(listRef.ownership, listRef.valueId, ref listRef.node, out MemberValue? listRow)
-                    && listRow is ArrayMemberValue)
+                if (!remembered && ctx.ArrayRowReference(entries) is { } indexed)
+                {
+                    listRef = indexed;
+                    scope.RememberListAlias(vrp, entries, ctx.rowReverseIndex, epoch, listRef);
+                }
+                if (listRef is not null
+                    && ctx.client.ReadValue(listRef.ownership, listRef.valueId, ref listRef.node) is ArrayMemberValue listRow)
                 {
                     return UnwrapCached(listRow, ctx, listRef.ownership, listRef.member, listRef.node);
                 }
-                if (NeoGeneratedTypesSupport.TryGetDetachedArrayOrigin(entries, out var detachedArray))
-                    return ReadDetachedArrayAlias(detachedArray!, ctx);
-                if (!rowAlias)
-                    scope.RememberPlainList(vrp, entries, ctx.rowReverseIndex, epoch);
+                if (ctx.ArrayDetachedOrigin(entries) is { } detachedArray)
+                    return ReadDetachedArrayAlias(detachedArray, ctx);
+                if (listRef is null)
+                    scope.RememberListAlias(vrp, entries, ctx.rowReverseIndex, epoch, null);
             }
             else if (v is NeoScriptObject { attachedId: not null } attached)
             {
@@ -1803,7 +2036,7 @@ namespace NeoCompose.Runtime.NeoScript
             SchemaPlacement? placement = FindSchemaPlacementCached(cgp, ctx);
             if (placement is not null)
             {
-                object? dispatched = DispatchSchemaMember(innerThis, placement.schemaKey, ctx);
+                object? dispatched = DispatchSchemaMember(innerThis, placement.schemaKey, ctx, cgp);
                 if (Dispatched(dispatched))
                     return dispatched;
             }
@@ -1895,7 +2128,6 @@ namespace NeoCompose.Runtime.NeoScript
 
         internal static object? InvokeNativeFunction(string memberId, object? receiver, object?[] args, Context ctx)
         {
-            ctx.allocationTracker.ReusableContext = false;
             if (NeoCellPatternRuntime.TryInvoke(memberId, receiver, args, ctx, out object? result))
                 return result;
             if (ctx.client.ScriptGridQueries.TryInvoke(memberId, receiver, args, ctx, out result))
@@ -1916,8 +2148,9 @@ namespace NeoCompose.Runtime.NeoScript
                 || !NeoCellPatternRuntime.ProducesPattern(patternCall.memberId))
                 return EvalPointer(call.args[index], scope, ctx);
 
-            ctx.allocationTracker.ReusableContext = false;
-            var receiver = EvalCallReceiver(patternCall.receiver, scope, ctx);
+            var receiver = patternCall.receiver.pointer is CallGetterPointer { receiver: { IsStatic: true } } patternGetter
+                ? EvalStaticPatternGetter(patternGetter, scope, ctx)
+                : EvalCallReceiver(patternCall.receiver, scope, ctx);
             if (patternCall.optional == true && receiver is null && !patternCall.receiver.IsStatic)
                 return null;
             object?[] args = RentArguments(patternCall);
@@ -1936,6 +2169,48 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 ReturnArguments(patternCall, args);
             }
+        }
+
+        /// <summary>
+        /// A static getter read as the receiver of a pattern argument, like
+        /// <c>NeoCellPattern.Center</c> in <c>GetTile(NeoCellPattern.Center.Translate(cell))</c>.
+        /// Only the native call reads it, so a pattern result is kept as its
+        /// offsets, memoized like an instance getter's result: a constructed
+        /// pattern never escapes, and later reads skip constructing it.
+        /// </summary>
+        private static object? EvalStaticPatternGetter(CallGetterPointer getter, NeoScriptScope scope, Context ctx)
+        {
+            NeoClient client = ctx.client;
+            if (!client.CanMemoizeGetters || getter.dispatch == "base")
+                return EvalCallGetter(getter, scope, ctx);
+            ValidateStaticCallableReceiver(getter.receiver, getter.memberId, "getter", ctx);
+            var key = new NeoClient.GetterMemoKey(
+                ctx.valueOwnership, NeoClient.StaticGetterRowId, getter.memberId, ctx.valueOwnership);
+            if (client.FindMemoizedGetter(key) is { } hit)
+            {
+                client.ReplayGetterReads(hit, ctx.gridReads);
+                return hit.scalar;
+            }
+            NeoClient.GetterCaptureFrame enclosingCapture = client.BeginGetterReadCapture();
+            object? result;
+            NeoClient.GetterCaptureFrame capture;
+            try
+            {
+                result = EvalCallGetter(getter, scope, ctx);
+            }
+            finally
+            {
+                capture = client.EndGetterReadCapture(enclosingCapture);
+            }
+            if (result is NeoScriptObject { attachedId: null } detached
+                && detached.plan.classId == NeoCellPatternStorage.ClassId)
+            {
+                NeoCellPattern pattern = NeoCellPatternStorage.ReadRuntime(detached, ctx);
+                client.MemoizeGetter(key, pattern, null, capture);
+                return pattern;
+            }
+            client.RecycleGetterCapture(capture);
+            return result;
         }
 
         /// <summary>Constructs the pattern arguments left as offsets, unless the native target is a grid query.</summary>
@@ -2038,9 +2313,12 @@ namespace NeoCompose.Runtime.NeoScript
         {
             if (args.Length == 0)
                 return;
-            // A span clear zeroes the references as words: storing null
-            // through an object[] element still pays the GC write barrier.
-            args.AsSpan().Clear();
+            // Mono stores a constant null into an object[] without the
+            // covariance helper or the GC write barrier, and a call's few
+            // arguments clear faster in a loop than through a span, whose
+            // constructor checks the array's exact type.
+            for (int i = 0; i < args.Length; i++)
+                args[i] = null;
             if (ReferenceEquals(args, call.argumentBuffer))
                 System.Threading.Volatile.Write(ref call.argumentBufferInUse, 0);
         }
@@ -2062,12 +2340,22 @@ namespace NeoCompose.Runtime.NeoScript
             object?[] args,
             Context ctx)
         {
-            if (!ctx.client.TryResolveFunctionMember(
-                    memberId,
-                    out FunctionMember? signature))
-            {
+            ctx.client.TryResolveFunctionMember(memberId, out FunctionMember? signature);
+            return FillNativeCallSiteArguments(memberId, signature, args);
+        }
+
+        /// <summary>
+        /// <see cref="FillNativeCallSiteArguments(string, object?[], Context)"/>
+        /// for a call site that already resolved its signature, or null when
+        /// it has none.
+        /// </summary>
+        internal static object?[] FillNativeCallSiteArguments(
+            string memberId,
+            FunctionMember? signature,
+            object?[] args)
+        {
+            if (signature is null)
                 return args;
-            }
             // A full call has nothing to fill.
             if (args.Length == signature.argumentTypes.Length
                 || !NeoParameterDefaults.HasAnyDefault(signature.argumentTypes))
@@ -2227,7 +2515,7 @@ namespace NeoCompose.Runtime.NeoScript
             var nestedCtx = ctx.WithThis(lexicalThis);
             nestedCtx.BindRoot(lexicalRoot);
             var options = NeoScriptExecutionOptions.ForImmediate(ctx.client);
-            NeoScriptExecutor.PrepareFunctionContext(nestedCtx, options);
+            NeoScriptExecutor.PrepareFunctionContext(nestedCtx, options, -1);
             NeoScriptScopeLayout layout = action.scopeLayout ??= new NeoScriptScopeLayout(action);
             var scope = layout.RentScope();
             bool completed = false;
@@ -3210,7 +3498,27 @@ namespace NeoCompose.Runtime.NeoScript
         {
             if (optional && receiver is null)
                 return null;
-            receiver = UnwrapGeneratedValue(receiver, ctx);
+            // A record this context unwrapped reads its row here rather than
+            // in UnwrapGeneratedValue, so dispatch on a constant key takes
+            // the receiver's Class from that row instead of reading it again.
+            MemberValue? receiverRow = null;
+            if (receiver is NeoObjectRecord { reference: { } unwrappedRef } unwrappedRecord
+                && ReferenceEquals(unwrappedRecord.referenceIndex, ctx.rowReverseIndex)
+                && SameId(unwrappedRef.valueId, unwrappedRecord.valueId)
+                && unwrappedRef.ownership == unwrappedRecord.valueOwnership)
+            {
+                receiverRow = ctx.client.ReadReplayReference(unwrappedRef.valueId, ref unwrappedRef.node, unwrappedRef.ownership);
+                if (receiverRow is not null)
+                {
+                    receiver = UnwrapCached(receiverRow, ctx, unwrappedRef.ownership, unwrappedRef.member, unwrappedRef.node);
+                    if (!ReferenceEquals(receiver, unwrappedRecord) || keyOf.key is not ValuePointer)
+                        receiverRow = null;
+                }
+            }
+            else
+            {
+                receiver = UnwrapGeneratedValue(receiver, ctx);
+            }
             onReceiver?.Invoke(receiver);
             var key = EvalPointer(keyOf.key, scope, ctx);
             if (receiver is null)
@@ -3294,7 +3602,8 @@ namespace NeoCompose.Runtime.NeoScript
                     receiver,
                     k,
                     ctx,
-                    keyOf);
+                    keyOf,
+                    receiverRow);
                 if (Dispatched(dispatched))
                     return dispatched;
                 // Interface/static-type pointers retain the compile-time
@@ -3370,11 +3679,13 @@ namespace NeoCompose.Runtime.NeoScript
         /// entry is one and has a compiled getter) or a stored-field
         /// read.
         /// </summary>
+        /// <param name="receiverRow">The receiver's row, when the caller just read it.</param>
         private static object? DispatchSchemaMember(
             object? receiver,
             string schemaKey,
             Context ctx,
-            KeyOf? site = null)
+            ISchemaResolutionSite? site = null,
+            MemberValue? receiverRow = null)
         {
             if (receiver is NeoScriptObject { attachedId: null } detached)
             {
@@ -3391,7 +3702,7 @@ namespace NeoCompose.Runtime.NeoScript
             // lookup serves every provenance question this dispatch asks.
             RowReference? receiverRef = FindRowReference(receiver, ctx);
             string? runtimeClassId = receiverRef is not null
-                ? ClassIdOfRowReference(receiverRef, ctx)
+                ? ClassIdOfRowReference(receiverRef, ctx, receiverRow)
                 : FindRowClassIdByReference(receiver, ctx);
             if (string.IsNullOrEmpty(runtimeClassId))
             {
@@ -3449,11 +3760,21 @@ namespace NeoCompose.Runtime.NeoScript
             ctx.client.ReadReplayField(receiverRowId, schemaKey);
             if (receiverRowId is not null)
                 ctx.client.NoteRowRead(receiverOwnership ?? ctx.valueOwnership, receiverRowId);
-            bool hasStored = record!.TryGetValue(schemaKey, out var at);
-            if (hasStored)
+            var storedRecord = record as NeoObjectRecord;
+            int storedSlot = storedRecord?.StoredSlot(entry!) ?? -1;
+            object? at = null;
+            if (storedSlot >= 0 || record!.TryGetValue(schemaKey, out at))
             {
-                var storedRecord = record as NeoObjectRecord;
-                NeoValueNode? childNode = storedRecord?.ChildNode(entry!, at);
+                NeoValueNode? childNode;
+                if (storedSlot >= 0)
+                {
+                    at = storedRecord!.StoredId(storedSlot);
+                    childNode = storedRecord.StoredNode(storedSlot);
+                }
+                else
+                {
+                    childNode = storedRecord?.ChildNode(entry!, at);
+                }
                 object? child = ResolveValueIfId(at, ctx, receiverOwnership, member, ref childNode);
                 storedRecord?.RememberChildNode(entry!, at, childNode);
                 return child;
@@ -3470,12 +3791,12 @@ namespace NeoCompose.Runtime.NeoScript
             if (!string.IsNullOrEmpty(receiverRowId))
             {
                 // The record remembers its own row's children only.
-                var storedRecord = record is NeoObjectRecord own
-                    && SameId(own.valueId, receiverRowId)
-                        ? own
+                var ownRecord = storedRecord is not null
+                    && SameId(storedRecord.valueId, receiverRowId)
+                        ? storedRecord
                         : null;
                 int virtualEpoch = ctx.client.VirtualClassChildrenEpoch;
-                string? virtualChildId = storedRecord?.VirtualChildId(entry!, virtualEpoch);
+                string? virtualChildId = ownRecord?.VirtualChildId(entry!, virtualEpoch);
                 if (virtualChildId is not null
                     || ctx.client.TryGetVirtualClassChildValueId(
                         receiverRowId!,
@@ -3483,10 +3804,10 @@ namespace NeoCompose.Runtime.NeoScript
                         out virtualChildId)
                     && !string.IsNullOrEmpty(virtualChildId))
                 {
-                    NeoValueNode? childNode = storedRecord?.ChildNode(entry!, virtualChildId);
+                    NeoValueNode? childNode = ownRecord?.ChildNode(entry!, virtualChildId);
                     object? child = ResolveValueIfId(virtualChildId, ctx, receiverOwnership, member, ref childNode);
                     if (virtualEpoch >= 0)
-                        storedRecord?.RememberChildNode(entry!, virtualChildId, childNode, virtualEpoch);
+                        ownRecord?.RememberChildNode(entry!, virtualChildId, childNode, virtualEpoch);
                     return child;
                 }
             }
@@ -3533,15 +3854,19 @@ namespace NeoCompose.Runtime.NeoScript
             }
         }
 
+        /// <param name="site">A <see cref="KeyOf"/> or <see cref="CallGetterPointer"/>, whose targets cache the entry.</param>
         private static MergedSchemaEntry? SurfaceMember(
             NeoClassNode classNode,
             string schemaKey,
-            KeyOf? site,
+            ISchemaResolutionSite? site,
             Context ctx)
         {
             if (site is null)
                 return classNode.SurfaceMember(schemaKey);
-            MemberSiteTarget? targets = site.resolvedMembers;
+            ref MemberSiteTarget? siteTargets = ref site is CallGetterPointer getter
+                ? ref getter.resolvedMembers
+                : ref ((KeyOf)site).resolvedMembers;
+            MemberSiteTarget? targets = siteTargets;
             if (targets is not null
                 && !ReferenceEquals(targets.schemaResolution, ctx.client.SchemaResolution))
             {
@@ -3558,7 +3883,7 @@ namespace NeoCompose.Runtime.NeoScript
             MergedSchemaEntry? entry = classNode.SurfaceMember(schemaKey);
             if ((targets?.count ?? 0) < CallSiteTarget.MaxTargets)
             {
-                site.resolvedMembers = new MemberSiteTarget(
+                siteTargets = new MemberSiteTarget(
                     ctx.client.SchemaResolution,
                     classNode,
                     schemaKey,
@@ -3633,11 +3958,14 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 memoKey = new NeoClient.GetterMemoKey(
                     receiverRef!.ownership, receiverRef.valueId, memberId, ctx.valueOwnership);
-                if (client.TryGetMemoizedGetter(memoKey, out NeoClient.GetterMemoEntry hit))
+                NeoClient.GetterMemoEntry? hit = receiverRef.MemoizedGetter(memberId, ctx.valueOwnership);
+                if (hit is null && (hit = client.FindMemoizedGetter(memoKey)) is not null)
+                    receiverRef.RememberGetter(memberId, ctx.valueOwnership, hit);
+                if (hit is not null)
                 {
                     if (hit.list is not null)
                     {
-                        if (ResolveMemoizedList(hit.list, hit.listEntryMember, ctx) is { } hitList)
+                        if (ResolveMemoizedList(hit.list, hit.listEntryMember, ctx, lendingMemberId: memberId) is { } hitList)
                         {
                             client.ReplayGetterReads(hit, ctx.gridReads);
                             return hitList;
@@ -3685,19 +4013,22 @@ namespace NeoCompose.Runtime.NeoScript
                 ctx.ExitNested(frame);
                 capture = client.EndGetterReadCapture(enclosingCapture);
             }
+            NeoClient.GetterMemoEntry? memoized = null;
             if (!client.CanMemoizeGetters)
                 client.RecycleGetterCapture(capture);
             else if (result is null or string or bool or double or int or long or float)
-                client.MemoizeGetter(memoKey, result, null, capture);
+                memoized = client.MemoizeGetter(memoKey, result, null, capture);
             else if (result is not NeoScriptObject { attachedId: null }
                 && FindRowReference(result, ctx) is { } resultRef
                 && resultRef.ownership != NeoValueOwnership.Session)
-                client.MemoizeGetter(memoKey, null, resultRef, capture);
+                memoized = client.MemoizeGetter(memoKey, null, resultRef, capture);
             else if (result is object?[] entries
                 && MemoizableList(entries, ctx, out JsonMember? entryMember) is { } list)
-                client.MemoizeGetter(memoKey, null, null, capture, list, entryMember);
+                memoized = client.MemoizeGetter(memoKey, null, null, capture, list, entryMember);
             else
                 client.RecycleGetterCapture(capture);
+            if (memoized is not null)
+                receiverRef!.RememberGetter(memberId, ctx.valueOwnership, memoized);
             return result;
         }
 
@@ -3807,19 +4138,27 @@ namespace NeoCompose.Runtime.NeoScript
             // The reference a bare number carries.
             private static readonly object BareNumber = new();
 
-            internal readonly double Number;
+            private readonly double number;
             private readonly object? reference;
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             internal ArithmeticValue(double number)
             {
-                Number = number;
+                this.number = number;
                 reference = BareNumber;
             }
+            // Most values are not numbers: a boxed one converts when read.
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             internal ArithmeticValue(object? value)
             {
-                TryAsDouble(value, out Number);
+                number = 0;
                 reference = value;
+            }
+            /// <summary>The value as a number; 0 when <see cref="IsNumber"/> is false.</summary>
+            internal double Number => ReferenceEquals(reference, BareNumber) ? number : BoxedNumber(reference);
+            private static double BoxedNumber(object? value)
+            {
+                TryAsDouble(value, out double converted);
+                return converted;
             }
             /// <summary>Whether <see cref="Number"/> holds the value: <see cref="TryAsDouble"/>'s types.</summary>
             internal bool IsNumber =>
@@ -4162,13 +4501,15 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 // Keep the existing subtraction-based ordering, including
                 // its NaN/infinity behavior, without boxing either operand.
-                double difference = left.Number - right.Number;
+                double leftNumber = left.Number;
+                double rightNumber = right.Number;
+                double difference = leftNumber - rightNumber;
                 switch (condition.type)
                 {
                     case OperatorKind.EqualTo:
-                        return left.Number == right.Number;
+                        return leftNumber == rightNumber;
                     case OperatorKind.DoesNotEqual:
-                        return left.Number != right.Number;
+                        return leftNumber != rightNumber;
                     case OperatorKind.GreaterThan:
                         return difference > 0;
                     case OperatorKind.GreaterThanOrEqualTo:
@@ -4890,9 +5231,9 @@ namespace NeoCompose.Runtime.NeoScript
             try
             {
                 var cursor = new CollectionCursor(c, ctx);
-                while (cursor.MoveNext())
+                while (cursor.MoveNextUnresolved())
                 {
-                    NeoScriptExecutionResult result = callback.Execute(in cursor);
+                    NeoScriptExecutionResult result = callback.Execute(in cursor, cursor.ResolveEntry());
                     if (result.Returned
                         && result.ReturnValue is bool matches
                         && matches)
@@ -4928,7 +5269,29 @@ namespace NeoCompose.Runtime.NeoScript
             }
             string? targetReferenceId = target as string
                 ?? ValueIdOf(target, ctx);
-            // An entry whose stored id is the target's matches without being read.
+            if (c is object?[] entries)
+            {
+                // An entry whose stored id is the target's matches without
+                // being read, whatever the entries before it hold, so a list
+                // only builds a cursor to compare entries when no id matches.
+                if (entries.Length == 0)
+                    return BoxedFalse;
+                if (targetReferenceId is not null)
+                {
+                    for (int i = 0; i < entries.Length; i++)
+                    {
+                        if (entries[i] is string valueId && valueId == targetReferenceId)
+                            return BoxedTrue;
+                    }
+                }
+                var listCursor = new CollectionCursor(c, ctx);
+                while (listCursor.MoveNextUnresolved())
+                {
+                    if (JsEqual(listCursor.ResolveEntry(), target))
+                        return BoxedTrue;
+                }
+                return BoxedFalse;
+            }
             var cursor = new CollectionCursor(c, ctx);
             while (cursor.MoveNextUnresolved())
             {
@@ -4976,7 +5339,14 @@ namespace NeoCompose.Runtime.NeoScript
             var inner = wf.info.function;
             bool isList = CollectionIsList(c);
             int capacity = CollectionEntryCount(c);
-            object?[]? matches = isList ? new object?[capacity] : null;
+            // A grid query's own result has no other holder: its matches
+            // compact into it, behind the entry being read.
+            bool inPlace = wf.info.collectionPointer is CallFunctionPointer call
+                && NeoScriptGridQueries.ReturnsObjects(call.memberId)
+                && TemporaryLists.TakeExclusive(c);
+            object?[]? matches = isList
+                ? inPlace ? (object?[])c! : new object?[capacity]
+                : null;
             int matchCount = 0;
             Dictionary<string, object?>? matchedEntries = isList
                 ? null
@@ -4990,24 +5360,37 @@ namespace NeoCompose.Runtime.NeoScript
             try
             {
                 var cursor = new CollectionCursor(c, ctx);
-                while (cursor.MoveNext())
+                while (cursor.MoveNextUnresolved())
                 {
-                    NeoScriptExecutionResult matched = callback.Execute(in cursor);
+                    object? entry = cursor.ResolveEntry();
+                    NeoScriptExecutionResult matched = callback.Execute(in cursor, entry);
                     if (matched.Returned && matched.ReturnValue is bool b && b)
                     {
                         // Re-emit valueId references rather than dereferenced
                         // entries when we have them — matches TS semantic.
-                        object? emit = cursor.ValueId ?? cursor.Entry;
+                        object? emit = cursor.ValueId ?? entry;
                         if (matches is not null)
                             AppendResult(ref matches, ref matchCount, emit);
                         else
                             matchedEntries![cursor.Key.ToString()!] = emit;
                     }
                 }
-                object result = matches is not null
-                    ? TrimResult(matches, matchCount)
-                    : matchedEntries!;
-                KeepEntryMember(result, CollectionEntryMember(c, ctx));
+                object result;
+                if (matches is not null)
+                {
+                    object?[] list = TrimResult(matches, matchCount);
+                    if (inPlace && !ReferenceEquals(list, c))
+                        TemporaryLists.Return((object?[])c!);
+                    ctx.NoteFreshList(list);
+                    result = list;
+                }
+                else
+                {
+                    result = matchedEntries!;
+                }
+                // The source compacted in place already carries its entry member.
+                if (!ReferenceEquals(result, c))
+                    KeepEntryMember(result, CollectionEntryMember(c, ctx));
                 callback.CompleteOperator(result);
                 return result;
             }
@@ -5052,8 +5435,8 @@ namespace NeoCompose.Runtime.NeoScript
             if (inner is null)
             {
                 var cursor = new CollectionCursor(c, ctx);
-                if (cursor.MoveNext())
-                    return cursor.Entry;
+                if (cursor.MoveNextUnresolved())
+                    return cursor.ResolveEntry();
             }
             else
             {
@@ -5066,11 +5449,11 @@ namespace NeoCompose.Runtime.NeoScript
                 try
                 {
                     var cursor = new CollectionCursor(c, ctx);
-                    while (cursor.MoveNext())
+                    while (cursor.MoveNextUnresolved())
                     {
-                        if (callback.Execute(in cursor) is { Returned: true, ReturnValue: true })
+                        object? foundValue = cursor.ResolveEntry();
+                        if (callback.Execute(in cursor, foundValue) is { Returned: true, ReturnValue: true })
                         {
-                            object? foundValue = cursor.Entry;
                             callback.CompleteOperator(foundValue);
                             return foundValue;
                         }
@@ -5110,9 +5493,9 @@ namespace NeoCompose.Runtime.NeoScript
             try
             {
                 var cursor = new CollectionCursor(c, ctx);
-                while (cursor.MoveNext())
+                while (cursor.MoveNextUnresolved())
                 {
-                    NeoScriptExecutionResult projected = callback.Execute(in cursor);
+                    NeoScriptExecutionResult projected = callback.Execute(in cursor, cursor.ResolveEntry());
                     if (projected.Returned)
                     {
                         AppendResult(ref results, ref count, projected.ReturnValue);
@@ -5155,6 +5538,9 @@ namespace NeoCompose.Runtime.NeoScript
             private readonly TypeInfo returnTypeInfo;
             private readonly CollectionCallbackReturnContract returnContract;
             private readonly bool returnsConstructedVector;
+            // A body that only returns its entry's type test, like the filter
+            // GetObjects<T> lowers to, runs the test without a frame.
+            private readonly TypeInfo? entryTypeCheck;
             private readonly FunctionWithReturnType body;
             private readonly NeoScriptExecutionOptions options;
             private readonly bool enclosingConstructorBody;
@@ -5210,6 +5596,11 @@ namespace NeoCompose.Runtime.NeoScript
                     && instructions[0] is ReturnInstruction { pointer: FunctionPointer { function: VectorConstructorFunction constructor } }
                     && constructor.info.vectorType == callbackReturnType.type;
                 parameterCount = parameters.Length;
+                entryTypeCheck = callback.instructions is { Length: 1 } statements
+                    && statements[0] is ReturnInstruction { pointer: IsCheckPointer { pointer: VariablePointer tested } check }
+                    && tested.variableId == parameters[parameterCount - 1].id
+                        ? check.checkType
+                        : null;
                 scope = layout.RentScope();
                 scope.BindParent(parentScope);
                 this.isList = isList;
@@ -5228,13 +5619,19 @@ namespace NeoCompose.Runtime.NeoScript
                 ctx.constructorBody = false;
             }
 
-            internal NeoScriptExecutionResult Execute(in CollectionCursor entry)
+            internal NeoScriptExecutionResult Execute(in CollectionCursor cursor, object? entry)
             {
+                if (entryTypeCheck is not null)
+                {
+                    return NeoScriptExecutionResult.Completed(
+                        returned: true,
+                        Box(RuntimeTypeCheck(entry, entryTypeCheck, ctx)));
+                }
                 scope.ResetInvocationLocals(parameterCount);
                 // Parameter i is layout slot i: (key, entry) or (entry).
                 if (parameterCount == 2)
-                    scope.SetParameter(0, isList ? Box(entry.Index) : entry.Key.ToString());
-                scope.SetParameter(parameterCount - 1, entry.Entry);
+                    scope.SetParameter(0, isList ? Box(cursor.Index) : cursor.Key.ToString());
+                scope.SetParameter(parameterCount - 1, entry);
                 NeoScriptExecutionResult result = NeoScriptExecutor.ExecuteCallback(
                     ctx.client,
                     body,
@@ -6332,23 +6729,30 @@ namespace NeoCompose.Runtime.NeoScript
 
             internal CollectionCursor(object? collection, Context ctx)
             {
+                // Starting from default leaves the usually-null references
+                // unstored: a store through the cursor's byref costs a GC
+                // write barrier.
+                this = default;
                 this.ctx = ctx;
-                collectionRef = FindRowReference(collection, ctx);
-                entryMember = CollectionEntryMember(collectionRef, collection, ctx);
-                array = collection as object?[];
-                ordered = array is null
-                    ? new List<OrderedRawCollectionEntry>(OrderedRawCollectionEntries(collection))
-                    : null;
-                count = array?.Length ?? ordered!.Count;
+                RowReference? collectionRef = FindRowReference(collection, ctx);
+                if (collectionRef is not null)
+                    this.collectionRef = collectionRef;
+                if (CollectionEntryMember(collectionRef, collection, ctx) is { } entryMember)
+                    this.entryMember = entryMember;
+                if (collection is object?[] array)
+                {
+                    this.array = array;
+                    count = array.Length;
+                }
+                else
+                {
+                    ordered = new List<OrderedRawCollectionEntry>(OrderedRawCollectionEntries(collection));
+                    count = ordered.Count;
+                }
                 Index = -1;
-                Entry = null;
             }
 
             internal int Index
-            {
-                get; private set;
-            }
-            internal object? Entry
             {
                 get; private set;
             }
@@ -6359,14 +6763,6 @@ namespace NeoCompose.Runtime.NeoScript
             // a field store through the cursor's byref costs a write barrier.
             private readonly object? Raw => array is not null ? array[Index] : ordered![Index].Raw;
 
-            internal bool MoveNext()
-            {
-                if (!MoveNextUnresolved())
-                    return false;
-                ResolveEntry();
-                return true;
-            }
-
             /// <summary>
             /// Advances to the next entry's stored value; <see cref="ResolveEntry"/>
             /// reads the entry itself when the caller needs more than its id.
@@ -6376,13 +6772,17 @@ namespace NeoCompose.Runtime.NeoScript
                 return ++Index < count;
             }
 
-            internal object? ResolveEntry()
+            /// <summary>
+            /// The current entry, returned rather than kept: a field store
+            /// through the cursor's byref costs a write barrier.
+            /// </summary>
+            internal readonly object? ResolveEntry()
             {
                 object? raw = Raw;
                 NeoValueNode? node = collectionRef?.EntryNode(Index, raw);
-                Entry = ResolveValueIfId(raw, ctx, null, entryMember, ref node);
+                object? entry = ResolveValueIfId(raw, ctx, null, entryMember, ref node);
                 collectionRef?.RememberEntryNode(Index, count, raw, node);
-                return Entry;
+                return entry;
             }
         }
 
@@ -6564,11 +6964,7 @@ namespace NeoCompose.Runtime.NeoScript
                     {
                         if (value is not IDictionary<string, object?>)
                             return false;
-                        string? runtimeClassId = FindRowClassIdByReference(value, ctx);
-                        if (string.IsNullOrEmpty(runtimeClassId))
-                            return false;
-                        string checkClassId = (checkType as ClassTypeInfo)?.classId ?? "";
-                        return ctx.client.ClassChainContains(runtimeClassId!, checkClassId);
+                        return RuntimeClassExtends(value, (checkType as ClassTypeInfo)?.classId ?? "", ctx);
                     }
                 case MemberKind.Interface:
                     {
@@ -7438,8 +7834,10 @@ namespace NeoCompose.Runtime.NeoScript
             return result;
         }
 
+        // Re-implements the dictionary interfaces so every mutation through
+        // them drops the child slots; see StoredSlot.
         private sealed class NeoObjectRecord
-            : Dictionary<string, object?>, INeoValueReference
+            : Dictionary<string, object?>, IDictionary<string, object?>, IDictionary, INeoValueReference
         {
             public string? valueId
             {
@@ -7474,6 +7872,100 @@ namespace NeoCompose.Runtime.NeoScript
             // virtual children haven't moved.
             private ChildSlot[]? children;
             private int childCount;
+
+            /// <summary>
+            /// The slot holding <paramref name="entry"/>'s stored child, or -1,
+            /// so a repeat member read skips hashing its id. Any mutation drops
+            /// every slot, so a stored slot's id is still the record's value.
+            /// </summary>
+            internal int StoredSlot(MergedSchemaEntry entry)
+            {
+                for (int i = 0; i < childCount; i++)
+                {
+                    if (ReferenceEquals(children![i].entry, entry))
+                        return children[i].virtualEpoch < 0 ? i : -1;
+                }
+                return -1;
+            }
+
+            internal string StoredId(int slot) => children![slot].id;
+
+            internal NeoValueNode StoredNode(int slot) => children![slot].node;
+
+            object? IDictionary<string, object?>.this[string key]
+            {
+                get => this[key];
+                set
+                {
+                    childCount = 0;
+                    this[key] = value;
+                }
+            }
+
+            void IDictionary<string, object?>.Add(string key, object? value)
+            {
+                childCount = 0;
+                Add(key, value);
+            }
+
+            bool IDictionary<string, object?>.Remove(string key)
+            {
+                childCount = 0;
+                return Remove(key);
+            }
+
+            void ICollection<KeyValuePair<string, object?>>.Add(KeyValuePair<string, object?> item)
+            {
+                childCount = 0;
+                Add(item.Key, item.Value);
+            }
+
+            bool ICollection<KeyValuePair<string, object?>>.Remove(KeyValuePair<string, object?> item)
+            {
+                if (!TryGetValue(item.Key, out object? value)
+                    || !EqualityComparer<object?>.Default.Equals(value, item.Value))
+                {
+                    return false;
+                }
+                childCount = 0;
+                return Remove(item.Key);
+            }
+
+            void ICollection<KeyValuePair<string, object?>>.Clear()
+            {
+                childCount = 0;
+                Clear();
+            }
+
+            object? IDictionary.this[object key]
+            {
+                get => key is string text && TryGetValue(text, out object? value) ? value : null;
+                set
+                {
+                    childCount = 0;
+                    this[(string)key] = value;
+                }
+            }
+
+            void IDictionary.Add(object key, object? value)
+            {
+                childCount = 0;
+                Add((string)key, value);
+            }
+
+            void IDictionary.Remove(object key)
+            {
+                if (key is not string text)
+                    return;
+                childCount = 0;
+                Remove(text);
+            }
+
+            void IDictionary.Clear()
+            {
+                childCount = 0;
+                Clear();
+            }
 
             internal NeoValueNode? ChildNode(MergedSchemaEntry entry, object? id)
             {
@@ -7958,13 +8450,48 @@ namespace NeoCompose.Runtime.NeoScript
             return FindReferencedClassId(value, ctx);
         }
 
-        private static string? ClassIdOfRowReference(RowReference rowRef, Context ctx)
+        /// <summary>
+        /// Whether <paramref name="value"/>'s runtime Class is
+        /// <paramref name="expectedClassId"/> or extends it: the
+        /// <see cref="NeoClient.ClassChainContains"/> test on
+        /// <see cref="FindRowClassIdByReference"/>, answered from the class
+        /// node a row's reference keeps.
+        /// </summary>
+        internal static bool RuntimeClassExtends(object? value, string expectedClassId, Context ctx)
+        {
+            if (value is not NeoScriptObject { attachedId: null } && FindRowReference(value, ctx) is { } rowRef)
+            {
+                string? classId = ClassIdOfRowReference(rowRef, ctx);
+                if (string.IsNullOrEmpty(classId))
+                    return false;
+                return classId == expectedClassId || ClassNodeExtends(rowRef, classId!, expectedClassId, ctx);
+            }
+            string? runtimeClassId = FindRowClassIdByReference(value, ctx);
+            return !string.IsNullOrEmpty(runtimeClassId)
+                && ctx.client.ClassChainContains(runtimeClassId!, expectedClassId);
+        }
+
+        // Its own method so the exception region stays off the caller's frame.
+        private static bool ClassNodeExtends(RowReference rowRef, string classId, string expectedClassId, Context ctx)
+        {
+            try
+            {
+                return rowRef.ClassNode(ctx.client, classId).Extends(expectedClassId);
+            }
+            catch (CircularInheritanceError)
+            {
+                return false;
+            }
+        }
+
+        /// <param name="row">The row <paramref name="rowRef"/> names, when the caller just read it.</param>
+        private static string? ClassIdOfRowReference(RowReference rowRef, Context ctx, MemberValue? row = null)
         {
             {
-                if (ctx.client.ReadReplayReference(
+                if ((row ?? ctx.client.ReadReplayReference(
                         rowRef.valueId,
                         ref rowRef.node,
-                        rowRef.ownership) is not { } indexedRow)
+                        rowRef.ownership)) is not { } indexedRow)
                 {
                     // Declaration-default rows are synthetic and
                     // intentionally do not live in the client's persisted
@@ -8246,9 +8773,37 @@ namespace NeoCompose.Runtime.NeoScript
             FindRowReference(value, ctx)?.member;
 
         internal static NeoValueOwnership? FindRowOwnershipByReference(object? value, Context ctx) =>
-            value is NeoScriptObject { attachedId: null }
-                ? NeoValueOwnership.Session
-                : RowOwnership(FindRowReference(value, ctx), value);
+            FindRowOwnershipByReference(value, ctx, out _);
+
+        internal static NeoValueOwnership? FindRowOwnershipByReference(object? value, Context ctx, out RowReference? rowRef)
+        {
+            if (value is NeoScriptObject { attachedId: null })
+            {
+                rowRef = null;
+                return NeoValueOwnership.Session;
+            }
+            rowRef = FindRowReference(value, ctx);
+            return RowOwnership(rowRef, value);
+        }
+
+        /// <summary>
+        /// Entry <paramref name="index"/> of a row-backed list, read through
+        /// the list row's entry nodes the way a cursor reads it, so a repeat
+        /// read skips the id lookup.
+        /// </summary>
+        internal static object? ResolveListEntry(
+            object?[] rows,
+            int index,
+            RowReference? listRef,
+            NeoValueOwnership? ownership,
+            Context ctx)
+        {
+            object? raw = rows[index];
+            NeoValueNode? node = listRef?.EntryNode(index, raw);
+            object? entry = ResolveValueIfId(raw, ctx, ownership, null, ref node);
+            listRef?.RememberEntryNode(index, rows.Length, raw, node);
+            return entry;
+        }
 
         // Row-backed arguments can cross evaluator contexts. Their original
         // reverse index is then unavailable, but the record still carries
@@ -8292,11 +8847,21 @@ namespace NeoCompose.Runtime.NeoScript
 
         /// <summary>
         /// Rebuilds a memoized list into a fresh array the caller owns, or
-        /// null when one of its rows is gone.
+        /// null when one of its rows is gone. With <paramref name="lendingMemberId"/>,
+        /// an array with no entry member is lent out: a foreach over that
+        /// getter's call hands it back through <see cref="RecycleMemoizedList"/>
+        /// once it has taken its snapshot.
         /// </summary>
-        internal static object?[]? ResolveMemoizedList(object?[] recipe, JsonMember? entryMember, Context ctx)
+        internal static object?[]? ResolveMemoizedList(
+            object?[] recipe,
+            JsonMember? entryMember,
+            Context ctx,
+            string? lendingMemberId = null)
         {
-            var entries = new object?[recipe.Length];
+            bool lend = lendingMemberId is not null && entryMember is null;
+            var entries = lend
+                ? TemporaryLists.Rent(recipe.Length)
+                : new object?[recipe.Length];
             for (int i = 0; i < recipe.Length; i++)
             {
                 if (recipe[i] is not RowReference entryRef)
@@ -8308,8 +8873,95 @@ namespace NeoCompose.Runtime.NeoScript
                     return null;
                 entries[i] = UnwrapCached(row, ctx, entryRef.ownership, entryRef.member, entryRef.node);
             }
-            KeepEntryMember(entries, entryMember);
+            if (lend)
+                TemporaryLists.Lend(entries, lendingMemberId!);
+            else
+                KeepEntryMember(entries, entryMember);
             return entries;
+        }
+
+        /// <summary>
+        /// Takes back the array a memoized <paramref name="memberId"/> hit
+        /// just lent, when <paramref name="collection"/> is that array. The
+        /// hit returns straight to its caller, so a getter call consumed only
+        /// for its entries is the array's one holder.
+        /// </summary>
+        internal static void RecycleMemoizedList(object? collection, string memberId) =>
+            TemporaryLists.ReturnLent(collection, memberId);
+
+        /// <summary>
+        /// List arrays only the interpreter holds, pooled per small length and
+        /// thread. A memoized getter hit lends one to a foreach; a grid query's
+        /// result stays exclusive until anything else can see it, so a Where
+        /// over the call filters it in place; and a local the scope layout
+        /// proves never escapes returns its array when its body completes.
+        /// </summary>
+        internal static class TemporaryLists
+        {
+            private const int MaxPooledLength = 32;
+
+            [ThreadStatic]
+            private static object?[]?[]? free;
+            [ThreadStatic]
+            private static object?[]? lent;
+            [ThreadStatic]
+            private static string? lentMemberId;
+            [ThreadStatic]
+            private static object?[]? exclusive;
+
+            internal static object?[] Rent(int length)
+            {
+                if (length == 0 || length > MaxPooledLength || free?[length] is not object?[] entries)
+                    return new object?[length];
+                free[length] = null;
+                return entries;
+            }
+
+            /// <summary>Takes back an array nothing else holds.</summary>
+            internal static void Return(object?[] entries)
+            {
+                if (ReferenceEquals(entries, exclusive))
+                    exclusive = null;
+                if (entries.Length == 0 || entries.Length > MaxPooledLength)
+                    return;
+                DerivedEntryMembers.Remove(entries);
+                Array.Clear(entries, 0, entries.Length);
+                (free ??= new object?[MaxPooledLength + 1][])[entries.Length] = entries;
+            }
+
+            internal static void Lend(object?[] entries, string memberId)
+            {
+                lent = entries;
+                lentMemberId = memberId;
+            }
+
+            internal static void ReturnLent(object? collection, string memberId)
+            {
+                if (!ReferenceEquals(collection, lent) || lentMemberId != memberId)
+                    return;
+                object?[] entries = lent!;
+                lent = null;
+                lentMemberId = null;
+                Return(entries);
+            }
+
+            internal static void MarkExclusive(object?[] entries) => exclusive = entries;
+
+            /// <summary>Claims <paramref name="collection"/> when it is the exclusive array.</summary>
+            internal static bool TakeExclusive(object? collection)
+            {
+                if (collection is null || !ReferenceEquals(collection, exclusive))
+                    return false;
+                exclusive = null;
+                return true;
+            }
+
+            /// <summary>A value something now retains is no longer exclusive.</summary>
+            internal static void Forget(object? value)
+            {
+                if (ReferenceEquals(value, exclusive))
+                    exclusive = null;
+            }
         }
 
         /// <summary>
@@ -8317,12 +8969,28 @@ namespace NeoCompose.Runtime.NeoScript
         /// rather than written through an <c>out</c>: a reference stored
         /// through a byref pays a GC write barrier.
         /// </summary>
+        /// <summary>
+        /// Whether <paramref name="value"/> has a type the reverse index keys:
+        /// the unwraps <see cref="UnwrapCached"/> indexes. Scalars and
+        /// detached objects never are, and skip the table's locked lookup.
+        /// </summary>
+        private static bool MayBeRowAlias(object? value) =>
+            value is object?[] or IDictionary<string, object?> or NeoVector2Value or NeoColorValue;
+
         internal static RowReference? FindRowReference(object? value, Context ctx)
         {
-            if (value is NeoObjectRecord { reference: { } known } objectRecord
-                && ReferenceEquals(objectRecord.referenceIndex, ctx.rowReverseIndex))
-                return known;
-            if (value is not null && ctx.rowReverseIndex.TryGetValue(value, out RowReference rowRef))
+            if (value is NeoObjectRecord objectRecord)
+            {
+                // A record carries its own entry: it is indexed exactly when
+                // it names this index.
+                return ReferenceEquals(objectRecord.referenceIndex, ctx.rowReverseIndex)
+                    ? objectRecord.reference
+                    : null;
+            }
+            if (value is object?[] array)
+                return ctx.ArrayRowReference(array);
+            RowReference rowRef;
+            if (MayBeRowAlias(value) && ctx.rowReverseIndex.TryGetValue(value!, out rowRef))
                 return rowRef;
             // Anything that needs a detached object's row gets it.
             if (value is NeoScriptObject detached

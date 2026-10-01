@@ -132,7 +132,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 if (TryReadDetached("Collider", out object? detachedValue))
                 {
-                    return NeoGeneratedTypesSupport.ReadEnumSingle(NeoGeneratedTypesSupport.ToStringArray(detachedValue), NeoSmartTileCollider.FromOptionId) ?? throw new InvalidOperationException("Required enum 'Collider' has no selected option.");
+                    return NeoGeneratedTypesSupport.ReadEnumSingle(detachedValue, static (factoryOptionId) => NeoSmartTileCollider.FromOptionId(factoryOptionId)) ?? throw new InvalidOperationException("Required enum 'Collider' has no selected option.");
                 }
                 var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoMemberEnum>("Collider"));
                 return selected is null ? throw new InvalidOperationException("Required enum 'Collider' has no selected option.") : NeoSmartTileCollider.FromOptionId(selected);
@@ -169,7 +169,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 if (TryReadDetached("Neighbors", out _))
                 {
-                    return DetachedReadOnlyList<IReadOnlyNeoSmartTileNeighbor>("Neighbors", entry => NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, entry, false, global::HelloWorld.Assets.Scripts.Neo.NeoSmartTileNeighbor.Create, global::HelloWorld.Assets.Scripts.Neo.NeoSmartTileNeighbor.CreateWritable, global::HelloWorld.Assets.Scripts.Neo.NeoSmartTileNeighbor.CreateDetached), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoSmartTileNeighbor.Create(client, (NeoMemberClass)child));
+                    if (TryGetDetachedView<NeoReadOnlyList<IReadOnlyNeoSmartTileNeighbor>>("Neighbors", out var detachedView)) return detachedView;
+                    return DetachedReadOnlyList<IReadOnlyNeoSmartTileNeighbor>("Neighbors", entry => NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, entry, false, static (factoryClient, factoryNode) => global::HelloWorld.Assets.Scripts.Neo.NeoSmartTileNeighbor.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => global::HelloWorld.Assets.Scripts.Neo.NeoSmartTileNeighbor.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::HelloWorld.Assets.Scripts.Neo.NeoSmartTileNeighbor.CreateDetached(factoryClient, factoryValue, factorySaved)), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoSmartTileNeighbor.Create(client, (NeoMemberClass)child));
                 }
                 var memberNode = node.Get<NeoMemberList>("Neighbors");
                 if (TryGetStoredView<NeoReadOnlyList<IReadOnlyNeoSmartTileNeighbor>>("Neighbors", memberNode, out var cached)) return cached;
@@ -183,7 +184,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 if (TryReadDetached("Output", out object? detachedValue))
                 {
-                    return NeoGeneratedTypesSupport.ReadEnumSingle(NeoGeneratedTypesSupport.ToStringArray(detachedValue), NeoSmartTileOutput.FromOptionId) ?? throw new InvalidOperationException("Required enum 'Output' has no selected option.");
+                    return NeoGeneratedTypesSupport.ReadEnumSingle(detachedValue, static (factoryOptionId) => NeoSmartTileOutput.FromOptionId(factoryOptionId)) ?? throw new InvalidOperationException("Required enum 'Output' has no selected option.");
                 }
                 var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoMemberEnum>("Output"));
                 return selected is null ? throw new InvalidOperationException("Required enum 'Output' has no selected option.") : NeoSmartTileOutput.FromOptionId(selected);
@@ -196,7 +197,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 if (TryReadDetached("RuleTransform", out object? detachedValue))
                 {
-                    return NeoGeneratedTypesSupport.ReadEnumSingle(NeoGeneratedTypesSupport.ToStringArray(detachedValue), NeoSmartTileTransform.FromOptionId) ?? throw new InvalidOperationException("Required enum 'RuleTransform' has no selected option.");
+                    return NeoGeneratedTypesSupport.ReadEnumSingle(detachedValue, static (factoryOptionId) => NeoSmartTileTransform.FromOptionId(factoryOptionId)) ?? throw new InvalidOperationException("Required enum 'RuleTransform' has no selected option.");
                 }
                 var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoMemberEnum>("RuleTransform"));
                 return selected is null ? throw new InvalidOperationException("Required enum 'RuleTransform' has no selected option.") : NeoSmartTileTransform.FromOptionId(selected);

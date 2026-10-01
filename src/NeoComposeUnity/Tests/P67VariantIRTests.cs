@@ -7,7 +7,6 @@ using NeoCompose.Runtime.Json;
 using NeoCompose.Runtime.NeoScript;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
-using Unity.Profiling;
 using UnityEngine.TestTools;
 using JsonMember = NeoCompose.Runtime.Json.Member;
 
@@ -312,10 +311,10 @@ namespace NeoCompose.Tests
                     Reference(targetId),
                     VariantRef(WidgetClassId, "variant-plain")))),
                 ctx);
-            using ProfilerRecorder replays = StartReplayRecorder();
+            int before = client.VirtualClassChildrenEpoch;
             ApplyPlain();
-            long replayed = replays.CurrentValue;
-            Assert.Greater(replayed, 0, "moving to a new variant replays the root");
+            int replayed = client.VirtualClassChildrenEpoch;
+            Assert.AreNotEqual(before, replayed, "moving to a new variant replays the root");
             Assert.AreEqual("plain", ReadRowLabel(client, targetId));
             int sessionRows = client.sessionValues.Count;
             int changes = 0;
@@ -323,7 +322,7 @@ namespace NeoCompose.Tests
 
             ApplyPlain();
 
-            Assert.AreEqual(replayed, replays.CurrentValue, "re-applying replays nothing");
+            Assert.AreEqual(replayed, client.VirtualClassChildrenEpoch, "re-applying replays nothing");
             Assert.AreEqual(0, changes, "an unchanged re-application publishes nothing");
             Assert.AreEqual("plain", ReadRowLabel(client, targetId));
             Assert.AreEqual(sessionRows, client.sessionValues.Count);
@@ -362,28 +361,15 @@ namespace NeoCompose.Tests
                     VariantRef(WidgetClassId, "variant-lookup"),
                     Reference("value-target")))),
                 ctx);
-            using ProfilerRecorder replays = StartReplayRecorder();
+            int before = client.VirtualClassChildrenEpoch;
             ApplyLookup();
-            long replayed = replays.CurrentValue;
-            Assert.Greater(replayed, 0, "moving to a new variant replays the root");
+            int replayed = client.VirtualClassChildrenEpoch;
+            Assert.AreNotEqual(before, replayed, "moving to a new variant replays the root");
 
             ApplyLookup();
 
-            Assert.AreEqual(replayed, replays.CurrentValue, "re-applying replays nothing");
+            Assert.AreEqual(replayed, client.VirtualClassChildrenEpoch, "re-applying replays nothing");
             Assert.AreEqual("target", ReadRowLabel(client, targetId));
-        }
-
-        // Replays are observable only as time under their marker.
-        private static ProfilerRecorder StartReplayRecorder()
-        {
-            var recorder = new ProfilerRecorder(
-                ProfilerCategory.Scripts,
-                "NeoCompose.Replay.Root",
-                1,
-                ProfilerRecorderOptions.WrapAroundWhenCapacityReached
-                    | ProfilerRecorderOptions.SumAllSamplesInFrame);
-            recorder.Start();
-            return recorder;
         }
 
         // -------------------------------------------------------------------

@@ -21,7 +21,9 @@ namespace NeoCompose.Runtime
         // place, patching only the moved footprint and its projected tiles; a
         // tile's Cell still commits through the plan, which rebuilds the
         // layer. Any other member routed here is an ordinary leaf write.
+#if NEO_COMPOSE_PROFILING
         private static readonly Unity.Profiling.ProfilerMarker PlacementWriteMarker = new("NeoCompose.Write.Placement");
+#endif
         private const string PositionKey = "Position";
         private const string CellKey = "Cell";
         private readonly List<ObjectMove> objectMoveScratch = new();
@@ -60,7 +62,9 @@ namespace NeoCompose.Runtime
         {
             if (!CanWriteLeaf(ownership, next, member))
                 return false;
+#if NEO_COMPOSE_PROFILING
             using var marker = PlacementWriteMarker.Auto();
+#endif
             if (next.value is not { } value || !Finite(value.x) || !Finite(value.y) || !Finite(value.z))
                 throw PlacementError("object-position-invalid", $"Object '{owner.id}' requires a finite Position.");
             // Same rounding as the layer builders (ReadObjectOrigin).

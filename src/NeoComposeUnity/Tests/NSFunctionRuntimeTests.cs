@@ -28,23 +28,24 @@ namespace NeoCompose.Tests
             scope.SetEvaluationValue("saved", new NSGetterEvaluator.ArithmeticValue(7d));
             var pointer = Variable("saved");
             var aliasIndex = new object();
-            Assert.That(scope.ReadVariable(pointer, aliasIndex, out bool found, out _), Is.EqualTo(7d));
+            NSGetterEvaluator.RowReference? noAlias = null;
+            Assert.That(scope.ReadVariable(pointer, aliasIndex, out bool found, out _, ref noAlias), Is.EqualTo(7d));
             Assert.That(found, Is.True);
             Assert.That(scope.TryReadNumber(pointer, out double number), Is.True);
             Assert.That(number, Is.EqualTo(7d));
             var child = scope.CreateChild();
             child["saved"] = 99d;
-            Assert.That(child.ReadVariable(pointer, aliasIndex, out found, out _), Is.EqualTo(99d));
+            Assert.That(child.ReadVariable(pointer, aliasIndex, out found, out _, ref noAlias), Is.EqualTo(99d));
             Assert.That(found, Is.True);
             scope.ResetLocals();
-            Assert.That(scope.ReadVariable(pointer, aliasIndex, out found, out _), Is.Null);
+            Assert.That(scope.ReadVariable(pointer, aliasIndex, out found, out _, ref noAlias), Is.Null);
             Assert.That(found, Is.False);
             Assert.That(scope.TryReadNumber(pointer, out _), Is.False);
             var changedBody = Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(),
                 VariableDeclaration("other", Number(0), IntType()), VariableDeclaration("saved", Number(1), IntType()), Return(Variable("saved")));
             var changed = new NeoScriptScope(new NeoScriptScopeLayout(changedBody));
             changed["saved"] = 42d;
-            Assert.That(changed.ReadVariable(pointer, aliasIndex, out found, out _), Is.EqualTo(42d));
+            Assert.That(changed.ReadVariable(pointer, aliasIndex, out found, out _, ref noAlias), Is.EqualTo(42d));
             Assert.That(found, Is.True);
             Assert.That(JObject.FromObject(pointer).Property("runtimeBinding"), Is.Null);
             var external = new Dictionary<string, object?>();
@@ -57,7 +58,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void PlainListMemoHoldsUntilAListBecomesAnAliasOrTheSlotChanges()
+        public void ListAliasMemoHoldsUntilAListAliasChangesOrTheSlotChanges()
         {
             var body = Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(),
                 VariableDeclaration("items", Number(0), IntType()), Return(Variable("items")));
@@ -66,23 +67,56 @@ namespace NeoCompose.Tests
             scope["items"] = list;
             var pointer = Variable("items");
             var aliasIndex = new object();
-            bool Plain(object index)
+            NSGetterEvaluator.RowReference? rowAlias = null;
+            bool Remembered(object index)
             {
-                Assert.That(scope.ReadVariable(pointer, index, out _, out bool plain), Is.SameAs(list));
-                return plain;
+                rowAlias = null;
+                Assert.That(scope.ReadVariable(pointer, index, out _, out bool remembered, ref rowAlias), Is.SameAs(list));
+                return remembered;
             }
 
-            Assert.That(Plain(aliasIndex), Is.False, "Nothing was remembered yet.");
-            scope.RememberPlainList(pointer, list, aliasIndex, NSGetterEvaluator.ListAliasEpoch);
-            Assert.That(Plain(aliasIndex), Is.True);
-            Assert.That(Plain(new object()), Is.False, "Another alias index was not checked.");
+            Assert.That(Remembered(aliasIndex), Is.False, "Nothing was remembered yet.");
+            scope.RememberListAlias(pointer, list, aliasIndex, NSGetterEvaluator.ListAliasEpoch, null);
+            Assert.That(Remembered(aliasIndex), Is.True);
+            Assert.That(rowAlias, Is.Null, "A plain list names no row.");
+            Assert.That(Remembered(new object()), Is.False, "Another alias index was not checked.");
 
             NSGetterEvaluator.NoteListAlias();
-            Assert.That(Plain(aliasIndex), Is.False, "A list became an alias since.");
+            Assert.That(Remembered(aliasIndex), Is.False, "A list became an alias since.");
 
-            scope.RememberPlainList(pointer, list, aliasIndex, NSGetterEvaluator.ListAliasEpoch);
+            var row = new NSGetterEvaluator.RowReference("items-row", NeoValueOwnership.Save);
+            scope.RememberListAlias(pointer, list, aliasIndex, NSGetterEvaluator.ListAliasEpoch, row);
+            Assert.That(Remembered(aliasIndex), Is.True);
+            Assert.That(rowAlias, Is.SameAs(row));
+            NSGetterEvaluator.NoteListAlias();
+            Assert.That(Remembered(aliasIndex), Is.False, "A list alias changed since.");
+
+            scope.RememberListAlias(pointer, list, aliasIndex, NSGetterEvaluator.ListAliasEpoch, null);
             scope["items"] = list;
-            Assert.That(Plain(aliasIndex), Is.False, "A write clears the slot's memo.");
+            Assert.That(Remembered(aliasIndex), Is.False, "A write clears the slot's memo.");
+        }
+
+        [Test]
+        public void ArrayAliasCacheHoldsAMissUntilTheListAliasEpochMoves()
+        {
+            using var client = BuildClient(Array.Empty<JsonMember>(), ReceiverClass());
+            var context = new NSGetterEvaluator.Context(client, null, null);
+            var list = new object?[] { 1d };
+            var fresh = new object?[] { 2d };
+            var row = new NSGetterEvaluator.RowReference("items-row", NeoValueOwnership.Save);
+
+            Assert.That(context.ArrayRowReference(list), Is.Null);
+            context.rowReverseIndex.Add(list, row);
+            Assert.That(context.ArrayRowReference(list), Is.Null, "A miss holds while the epoch stands.");
+            NSGetterEvaluator.NoteListAlias();
+            Assert.That(context.ArrayRowReference(list), Is.SameAs(row), "A moved epoch looks the list up again.");
+
+            context.NoteFreshList(fresh);
+            Assert.That(context.ArrayRowReference(fresh), Is.Null);
+            Assert.That(context.ArrayDetachedOrigin(fresh), Is.Null);
+            context.rowReverseIndex.Add(fresh, row);
+            NSGetterEvaluator.NoteListAlias();
+            Assert.That(context.ArrayRowReference(fresh), Is.SameAs(row), "A fresh note is only as current as its epoch.");
         }
 
         [Test]
@@ -439,6 +473,89 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void ScopeLayout_OnlyALocalNothingElseCanHoldIsATemporaryList()
+        {
+            CollectionTypeInfo listType = ListType(IntType());
+            var delegateType = new DelegateTypeInfo
+            {
+                type = MemberKind.NSDelegate,
+                required = true,
+                returnTypeInfo = listType,
+                argumentTypes = Array.Empty<TypeInfo>()
+            };
+            Pointer Where() => new FunctionPointer
+            {
+                type = PointerKind.Function,
+                function = new WhereFunction
+                {
+                    type = FunctionKind.Where,
+                    info = new FunctionCollectionBoolInfo
+                    {
+                        collectionPointer = List(Number(1), Number(2)),
+                        function = new FunctionWithReturnType
+                        {
+                            compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                            parameters = new[] { LocalVariable("entry", Variable("entry"), IntType()) },
+                            instructions = new Instruction[] { Return(Boolean(true)) },
+                            typeInfo = BoolType(),
+                        },
+                    },
+                },
+            };
+            Pointer Count() => new FunctionPointer
+            {
+                type = PointerKind.Function,
+                function = new CountFunction
+                {
+                    type = FunctionKind.Count,
+                    info = new FunctionCollectionOptionalBoolInfo { collectionPointer = Variable("xs") },
+                },
+            };
+            int[]? TemporarySlots(params Instruction[] uses)
+            {
+                var instructions = new Instruction[uses.Length + 1];
+                instructions[0] = VariableDeclaration("xs", Where(), listType);
+                uses.CopyTo(instructions, 1);
+                return new NeoScriptScopeLayout(LoopAction(instructions)).temporaryListSlots;
+            }
+
+            Assert.IsNotNull(TemporarySlots(Return(Count())), "A list only an operator reads is temporary.");
+            Assert.IsNull(TemporarySlots(AssignLocal("xs", List(Number(3)), listType), Return(Count())), "reassigned");
+            Assert.IsNull(TemporarySlots(Return(Variable("xs"))), "returned");
+            Assert.IsNull(TemporarySlots(Return(new DelegateClosurePointer
+            {
+                type = PointerKind.DelegateClosure,
+                typeInfo = delegateType,
+                action = new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = new[] { Parameter("__this__", NullType()), Parameter("__root__", NullType()),
+                        Parameter("__capture_0_0__", listType) },
+                    instructions = new Instruction[] { Return(Variable("__capture_0_0__")) },
+                    typeInfo = listType,
+                },
+                captures = new Pointer[] { Variable("xs") },
+                code = "() => xs",
+            })), "captured");
+            Assert.IsNull(TemporarySlots(
+                new ForEachInstruction
+                {
+                    type = InstructionKind.ForEach,
+                    binding = new LoopBinding
+                    {
+                        id = "item",
+                        typeInfo = IntType(),
+                        isReadonly = true,
+                        writability = WritabilityKind.ReadOnly,
+                    },
+                    collectionPointer = Variable("xs"),
+                    collectionTypeInfo = listType,
+                    instructions = Array.Empty<Instruction>(),
+                },
+                Return(Number(0))), "iterated");
+        }
+
+        [Test]
         public void ImmediateFunction_ReturnedClosureRetainsValuesAfterScopeReuse()
         {
             var argument = new FunctionArgumentTypeInfo { name = "amount", type = MemberKind.Int, required = true };
@@ -500,6 +617,86 @@ namespace NeoCompose.Tests
             var node = new NeoMemberNSFunction(client, outer.id, null, NeoValueOwnership.Session);
             for (int i = 0; i < 10; i++)
                 Assert.That(node.InvokeStatic(new object?[] { i }), Is.EqualTo(i * 2));
+        }
+
+        [Test]
+        public void PooledArgumentArrays_NestedCallsOfOneArityEachGetTheirOwn()
+        {
+            object?[] outerArgs = NeoArgumentArrays.Rent(1);
+            object?[] nestedArgs = NeoArgumentArrays.Rent(1);
+            Assert.That(nestedArgs, Is.Not.SameAs(outerArgs), "A nested rent finds the slot taken.");
+            outerArgs[0] = 1;
+            nestedArgs[0] = 2;
+            NeoArgumentArrays.Return(nestedArgs);
+            Assert.That(outerArgs[0], Is.EqualTo(1));
+            NeoArgumentArrays.Return(outerArgs);
+            Assert.That(outerArgs[0], Is.Null, "A returned array keeps no argument alive.");
+
+            // Outer(amount) => Native(amount) + amount, where Native's handler
+            // calls Inner(amount * 10) from C# while Outer's array is rented.
+            var argument = new FunctionArgumentTypeInfo { name = "amount", type = MemberKind.Int, required = true };
+            var inner = ScriptFunction("inner", "Inner", false, IntType(), new[] { argument },
+                Action(IntType(), new[] { argument }, Return(Variable("__arg_0__"))));
+            inner.Modifier = NeoMemberModifierKind.Static;
+            var native = NativeFunction("native", "Native", false);
+            native.argumentTypes = new[] { argument };
+            native.Modifier = NeoMemberModifierKind.Static;
+            var call = new CallFunctionPointer
+            {
+                type = PointerKind.CallFunction,
+                memberId = native.id,
+                receiver = CallReceiver.Static(native.id),
+                args = new Pointer[] { Variable("__arg_0__") },
+                callSiteId = "nested-native",
+            };
+            var outer = ScriptFunction("outer", "Outer", false, IntType(), new[] { argument },
+                Action(IntType(), new[] { argument }, Return(Add(call, Variable("__arg_0__")))));
+            outer.Modifier = NeoMemberModifierKind.Static;
+            using var client = BuildClient(new JsonMember[] { inner, native, outer }, ReceiverClass());
+            var innerNode = new NeoMemberNSFunction(client, inner.id, null, NeoValueOwnership.Session);
+            client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+            {
+                [native.id] = (_, _, args) => innerNode.InvokeStatic((object?)(Convert.ToInt32(args[0]) * 10)),
+            });
+            var outerNode = new NeoMemberNSFunction(client, outer.id, null, NeoValueOwnership.Session);
+            for (int i = 1; i < 4; i++)
+                Assert.That(outerNode.InvokeStatic((object?)i), Is.EqualTo(i * 11));
+        }
+
+        [Test]
+        public void Switch_WithMoreLabelsThanItScansFindsEverySection()
+        {
+            // Ten sections, the last with two labels: past eight labels the
+            // index is a map instead of a scan.
+            var argument = new FunctionArgumentTypeInfo { name = "amount", type = MemberKind.Int, required = true };
+            var sections = new SwitchSection[10];
+            for (int index = 0; index < sections.Length; index++)
+            {
+                sections[index] = new SwitchSection
+                {
+                    labels = index == sections.Length - 1
+                        ? new[] { Number(index).value, Number(index + 1).value }
+                        : new[] { Number(index).value },
+                    instructions = new Instruction[] { Return(Number(index * 100)) },
+                };
+            }
+            var function = ScriptFunction("switch", "Switch", false, IntType(), new[] { argument },
+                Action(IntType(), new[] { argument }, new SwitchInstruction
+                {
+                    type = InstructionKind.Switch,
+                    selector = Variable("__arg_0__"),
+                    selectorTypeInfo = IntType(),
+                    sections = sections,
+                    defaultInstructions = new Instruction[] { Return(Number(-1)) },
+                }));
+            function.Modifier = NeoMemberModifierKind.Static;
+            using var client = BuildClient(new JsonMember[] { function }, ReceiverClass());
+            var node = new NeoMemberNSFunction(client, function.id, null, NeoValueOwnership.Session);
+
+            for (int index = 0; index < sections.Length; index++)
+                Assert.That(node.InvokeStatic((object?)index), Is.EqualTo(index * 100), $"case {index}");
+            Assert.That(node.InvokeStatic((object?)10), Is.EqualTo(900), "a section's second label");
+            Assert.That(node.InvokeStatic((object?)42), Is.EqualTo(-1), "default");
         }
 
         [Test]
@@ -1266,6 +1463,41 @@ namespace NeoCompose.Tests
                 object x = NSGetterEvaluator.UnwrapRow(row!, ctx, NeoValueOwnership.Save)!;
                 return NSGetterEvaluator.EvaluatePointer(read, new Dictionary<string, object?> { ["x"] = x }, ctx);
             }
+        }
+
+        [Test]
+        public void RepeatedMemberReadsFollowARecordMutatedThroughIDictionary()
+        {
+            var child = new ClassMember
+            {
+                id = "child",
+                name = "Child",
+                kind = MemberKind.Class,
+                classId = "receiver-class",
+                Storage = NeoMemberStorage.Save,
+            };
+            var receiver = ObjectValue("receiver-value", "receiver-class");
+            receiver.value!["Child"] = "first-child";
+            using var client = BuildClient(new JsonMember[] { child }, ReceiverClass(("Child", child.id)),
+                additionalValues: new MemberValue[] { receiver,
+                    ObjectValue("first-child", "receiver-class"), ObjectValue("second-child", "receiver-class") });
+            client.SetWritableValue(NeoValueOwnership.Save, receiver);
+            var ctx = client.CreateGetterContext(NeoValueOwnership.Save);
+            Assert.IsTrue(client.TryGetValue(NeoValueOwnership.Save, "receiver-value", out MemberValue? row));
+            var record = (IDictionary<string, object?>)NSGetterEvaluator.UnwrapRow(row!, ctx, NeoValueOwnership.Save)!;
+            var scope = new Dictionary<string, object?> { ["x"] = record };
+            KeyOfPointer read = Key(Variable("x"), "Child");
+            string? ReadId() => NSGetterEvaluator.FindRowIdByReference(NSGetterEvaluator.EvaluatePointer(read, scope, ctx), ctx);
+
+            Assert.AreEqual("first-child", ReadId());
+            Assert.AreEqual("first-child", ReadId(), "A repeat read is served from the record's child slot.");
+            record["Child"] = "second-child";
+            Assert.AreEqual("second-child", ReadId(), "A generic write drops the slot.");
+            ((System.Collections.IDictionary)record)["Child"] = "first-child";
+            Assert.AreEqual("first-child", ReadId(), "A non-generic write drops the slot.");
+            record.Remove("Child");
+            record.Add("Child", "second-child");
+            Assert.AreEqual("second-child", ReadId(), "Remove and Add drop the slot.");
         }
 
         [TestCase(false, false)]
@@ -4443,7 +4675,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void ArrayLiteralComparand_ComparesByValueAndReadsStayFresh()
+        public void ArrayLiteralComparand_ComparesByValue()
         {
             using var client = BuildClient(Array.Empty<JsonMember>(), ReceiverClass());
             var context = new NSGetterEvaluator.Context(client, null, null);
@@ -4455,11 +4687,6 @@ namespace NeoCompose.Tests
                 scope["kind"] = new object?[] { kind };
                 Assert.That(NSGetterEvaluator.EvaluatePointer(isNeed, scope, context), Is.EqualTo(kind == "need"));
             }
-            // Array identity carries list provenance, so a read that can
-            // escape still yields a new array.
-            object? first = NSGetterEvaluator.EvaluatePointer(need, scope, context);
-            Assert.That(first, Is.EqualTo(new object?[] { "need" }));
-            Assert.That(NSGetterEvaluator.EvaluatePointer(need, scope, context), Is.Not.SameAs(first));
         }
 
         [Test]

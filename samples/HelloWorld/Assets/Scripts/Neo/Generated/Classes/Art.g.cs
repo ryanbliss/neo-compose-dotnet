@@ -140,7 +140,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 if (TryReadDetached("FlareAnimation", out object? detachedValue))
                 {
-                    return NeoGeneratedTypesSupport.ReadNSPropertyClass(client, detachedValue, false, false, global::HelloWorld.Assets.Scripts.Neo.AnimationInfo.Create, global::HelloWorld.Assets.Scripts.Neo.AnimationInfo.CreateWritable, global::HelloWorld.Assets.Scripts.Neo.AnimationInfo.CreateDetached);
+                    return NeoGeneratedTypesSupport.ReadNSPropertyClass(client, detachedValue, false, false, static (factoryClient, factoryNode) => global::HelloWorld.Assets.Scripts.Neo.AnimationInfo.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => global::HelloWorld.Assets.Scripts.Neo.AnimationInfo.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::HelloWorld.Assets.Scripts.Neo.AnimationInfo.CreateDetached(factoryClient, factoryValue, factorySaved));
                 }
                 var child = node.Get<NeoMemberClass>("FlareAnimation");
                 return child.value?.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.AnimationInfo.Create(client, child);
@@ -183,7 +183,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 if (TryReadDetached("ShipAnimation", out object? detachedValue))
                 {
-                    return NeoGeneratedTypesSupport.ReadNSPropertyClass(client, detachedValue, false, false, global::HelloWorld.Assets.Scripts.Neo.AnimationInfo.Create, global::HelloWorld.Assets.Scripts.Neo.AnimationInfo.CreateWritable, global::HelloWorld.Assets.Scripts.Neo.AnimationInfo.CreateDetached);
+                    return NeoGeneratedTypesSupport.ReadNSPropertyClass(client, detachedValue, false, false, static (factoryClient, factoryNode) => global::HelloWorld.Assets.Scripts.Neo.AnimationInfo.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => global::HelloWorld.Assets.Scripts.Neo.AnimationInfo.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::HelloWorld.Assets.Scripts.Neo.AnimationInfo.CreateDetached(factoryClient, factoryValue, factorySaved));
                 }
                 var child = node.Get<NeoMemberClass>("ShipAnimation");
                 return child.value?.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.AnimationInfo.Create(client, child);

@@ -38,6 +38,11 @@ slow frames, completed GC collections, heap size, and selected
 [ProfilerRecorder](https://docs.unity3d.com/6000.0/Documentation/ScriptReference/Unity.Profiling.ProfilerRecorder.html)
 timings. Diagnostics add instrumentation; compare normal runs to normal runs.
 
+The SDK's own profiler markers (`NeoScript.<Function>`, `NeoCompose.Write.*`,
+`NeoCompose.Replay.*` and the rest) compile only when the project defines
+`NEO_COMPOSE_PROFILING` in its Scripting Define Symbols. Without it they cost
+nothing and read zero, so add it for profiling runs and remove it for timing runs.
+
 ## Recorded results, September 19, 2026
 
 Apple M3 Max, Unity 6000.5.4f1. Neowyn `aedf02c` plus its current local content;

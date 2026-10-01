@@ -66,10 +66,10 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void ArrayLiteralOfPrimitives_EvaluatesToAFreshArrayEachTime()
+        public void EnumLiteral_SharesOneArrayAcrossEvaluations()
         {
-            // An enum option literal converts once, but each evaluation
-            // owns its array, so mutating one leaves the literal intact.
+            // An enum option literal converts once, and nothing writes an
+            // enum value in place, so every evaluation reads the same array.
             using var client = LoadClient();
             var context = new NSGetterEvaluator.Context(client, null, null);
             var literal = new ValuePointer
@@ -84,12 +84,9 @@ namespace NeoCompose.Tests
             var scope = new Dictionary<string, object?>();
 
             var first = (object?[])NSGetterEvaluator.EvaluatePointer(literal, scope, context)!;
-            first[0] = "mutated";
-            var second = (object?[])NSGetterEvaluator.EvaluatePointer(literal, scope, context)!;
 
-            Assert.AreNotSame(first, second);
-            CollectionAssert.AreEqual(new object?[] { "option-a" }, second);
-            Assert.AreNotSame(second, NSGetterEvaluator.EvaluatePointer(literal, scope, context));
+            CollectionAssert.AreEqual(new object?[] { "option-a" }, first);
+            Assert.AreSame(first, NSGetterEvaluator.EvaluatePointer(literal, scope, context));
         }
 
         [Test]

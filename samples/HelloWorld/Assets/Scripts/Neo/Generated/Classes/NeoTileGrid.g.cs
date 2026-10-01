@@ -139,7 +139,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 if (TryReadDetached("Children", out _))
                 {
-                    return DetachedReadOnlyList<IReadOnlyNeoLayerGroupBase>("Children", entry => NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, entry, false, global::HelloWorld.Assets.Scripts.Neo.NeoLayerGroupBase.Create, global::HelloWorld.Assets.Scripts.Neo.NeoLayerGroupBase.CreateWritable), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoLayerGroupBase.Create(client, (NeoMemberClass)child));
+                    if (TryGetDetachedView<NeoReadOnlyList<IReadOnlyNeoLayerGroupBase>>("Children", out var detachedView)) return detachedView;
+                    return DetachedReadOnlyList<IReadOnlyNeoLayerGroupBase>("Children", entry => NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, entry, false, static (factoryClient, factoryNode) => global::HelloWorld.Assets.Scripts.Neo.NeoLayerGroupBase.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => global::HelloWorld.Assets.Scripts.Neo.NeoLayerGroupBase.CreateWritable(factoryClient, factoryNode)), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoLayerGroupBase.Create(client, (NeoMemberClass)child));
                 }
                 var memberNode = node.Get<NeoMemberList>("Children");
                 if (TryGetStoredView<NeoReadOnlyList<IReadOnlyNeoLayerGroupBase>>("Children", memberNode, out var cached)) return cached;

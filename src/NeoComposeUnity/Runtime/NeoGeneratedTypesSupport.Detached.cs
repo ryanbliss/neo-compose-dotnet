@@ -20,6 +20,8 @@ namespace NeoCompose.Runtime
             List,
         }
 
+        internal static readonly object UnreadDefault = new();
+
         /// <summary>One stored member of a <see cref="DetachedClassPlan"/>.</summary>
         internal sealed class DetachedSlot
         {
@@ -29,6 +31,11 @@ namespace NeoCompose.Runtime
             internal DetachedSlotKind kind;
             internal InitializerBody? initializer;
             internal bool hasLiteralDefault;
+            /// <summary>
+            /// The literal default once read, when it is an immutable value
+            /// every object can share; <see cref="UnreadDefault"/> until then.
+            /// </summary>
+            internal object? sharedDefault = UnreadDefault;
             /// <summary>List entry member and kind; null for other slots.</summary>
             internal Member? entryMember;
             internal DetachedSlotKind entryKind;
@@ -445,6 +452,7 @@ namespace NeoCompose.Runtime
                             slot.entryMember!,
                             slot.entryKind,
                             entries[entry],
+                            bareId: false,
                             out copy[entry]))
                     {
                         return false;
@@ -457,7 +465,7 @@ namespace NeoCompose.Runtime
                 target.MarkWritten(index);
                 return true;
             }
-            else if (!TryNormalizeDetachedValue(target, slot.member, slot.kind, value, out stored)
+            else if (!TryNormalizeDetachedValue(target, slot.member, slot.kind, value, bareId: true, out stored)
                 || stored is NeoScriptObject child && !TryAdoptDetachedChild(target, child))
             {
                 return false;
@@ -470,7 +478,9 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// Appends one entry to a List slot. The slot's entries move into a
-        /// growable buffer on the first append, so a loop of appends is linear.
+        /// pooled buffer on the first append, so a loop of appends is linear;
+        /// the next read, or the end of the running execution, seals it back
+        /// into an exact array.
         /// </summary>
         internal static bool TryAddDetachedListEntry(
             NeoScriptObject target,
@@ -480,24 +490,63 @@ namespace NeoCompose.Runtime
             DetachedSlot slot = target.plan.slots[index];
             if (slot.kind != DetachedSlotKind.List
                 || target.State(index) == NeoScriptObject.DefaultSlot && !slot.hasLiteralDefault
-                || !TryNormalizeDetachedValue(target, slot.entryMember!, slot.entryKind, entry, out object? stored)
+                || !TryNormalizeDetachedValue(
+                    target,
+                    slot.entryMember!,
+                    slot.entryKind,
+                    entry,
+                    bareId: false,
+                    out object? stored)
                 || stored is NeoScriptObject child && !TryAdoptDetachedChild(target, child))
             {
                 return false;
             }
-            target.listBuffers ??= new List<object?>?[target.plan.slots.Length];
-            List<object?>? buffer = target.listBuffers[index];
-            if (buffer is null)
+            ref object? value = ref target.Slot(index);
+            if (value is not List<object?> buffer)
             {
-                buffer = target.values[index] is object?[] entries
-                    ? new List<object?>(entries)
-                    : new List<object?>();
-                target.listBuffers[index] = buffer;
+                buffer = ListBuffers.Rent();
+                if (value is object?[] entries)
+                    buffer.AddRange(entries);
+                value = buffer;
+                target.tracker.NoteListBuffer(target);
             }
             buffer.Add(stored);
-            target.values[index] = null;
             target.MarkWritten(index);
             return true;
+        }
+
+        /// <summary>Seals every List slot of <paramref name="target"/> still holding a buffer.</summary>
+        internal static void SealDetachedLists(NeoScriptObject target)
+        {
+            for (int index = 0; index < target.SlotCount; index++)
+            {
+                if (target.Slot(index) is List<object?>)
+                    DetachedArray(target, index);
+            }
+        }
+
+        /// <summary>
+        /// Append buffers, per thread. A buffer returns once its slot seals,
+        /// so steady-state appends allocate only the sealed array.
+        /// </summary>
+        private static class ListBuffers
+        {
+            private const int MaxPooled = 16;
+            private const int MaxPooledCapacity = 1024;
+
+            [ThreadStatic]
+            private static Stack<List<object?>>? free;
+
+            internal static List<object?> Rent() =>
+                free is { Count: > 0 } ? free.Pop() : new List<object?>();
+
+            internal static void Return(List<object?> buffer)
+            {
+                buffer.Clear();
+                free ??= new Stack<List<object?>>();
+                if (free.Count < MaxPooled && buffer.Capacity <= MaxPooledCapacity)
+                    free.Push(buffer);
+            }
         }
 
         /// <summary>
@@ -525,7 +574,7 @@ namespace NeoCompose.Runtime
         /// <summary>Stores a slot's array; its origin is recorded once a read hands it out.</summary>
         internal static object?[] SetDetachedArray(NeoScriptObject target, int index, object?[] entries)
         {
-            target.values[index] = entries;
+            target.Slot(index) = entries;
             target.ClearArrayExposed(index);
             return entries;
         }
@@ -533,7 +582,7 @@ namespace NeoCompose.Runtime
         /// <summary>Stores a leaf slot's value.</summary>
         internal static void SetDetachedLeaf(NeoScriptObject target, int index, object? value)
         {
-            target.values[index] = value;
+            target.Slot(index) = value;
             target.ClearArrayExposed(index);
         }
 
@@ -555,14 +604,29 @@ namespace NeoCompose.Runtime
             return value;
         }
 
+        /// <summary>
+        /// A leaf slot's current value. A single enum option or lookup id is
+        /// stored bare and gets its one-entry array on the first read, which
+        /// the slot keeps so every reader shares one identity.
+        /// </summary>
+        internal static object? DetachedLeaf(NeoScriptObject target, int index)
+        {
+            ref object? value = ref target.Slot(index);
+            if (value is string id && target.plan.slots[index].member is EnumMember or LookupMember)
+                value = new object?[] { id };
+            return value;
+        }
+
         /// <summary>The current array of a slot: a List's entries, rebuilt after appends, or a leaf's array.</summary>
         internal static object?[]? DetachedArray(NeoScriptObject target, int index)
         {
-            if (target.values[index] is object?[] entries)
-                return entries;
-            if (target.listBuffers?[index] is not List<object?> buffer)
-                return null;
-            return SetDetachedArray(target, index, buffer.ToArray());
+            if (target.Slot(index) is List<object?> buffer)
+            {
+                object?[] sealedEntries = SetDetachedArray(target, index, buffer.ToArray());
+                ListBuffers.Return(buffer);
+                return sealedEntries;
+            }
+            return DetachedLeaf(target, index) as object?[];
         }
 
         private static bool TryNormalizeDetachedValue(
@@ -570,6 +634,7 @@ namespace NeoCompose.Runtime
             Member member,
             DetachedSlotKind kind,
             object? value,
+            bool bareId,
             out object? stored)
         {
             stored = null;
@@ -592,7 +657,7 @@ namespace NeoCompose.Runtime
                     stored = child;
                     return true;
                 case DetachedSlotKind.Leaf:
-                    return TryNormalizeDetachedLeaf(target, member, value, out stored);
+                    return TryNormalizeDetachedLeaf(target, member, value, bareId, out stored);
                 default:
                     return false;
             }
@@ -604,12 +669,15 @@ namespace NeoCompose.Runtime
         /// an enum as a fresh one-option array, vectors and colors as a copy owned
         /// by <paramref name="target"/>, as a row copies the written payload.
         /// Ints must be integral, as the row's shape check requires. A lookup
-        /// stores the selected ids its row holds.
+        /// stores the selected ids its row holds. With <paramref name="bareId"/>,
+        /// a single option or id stays a bare string until
+        /// <see cref="DetachedLeaf"/> reads it.
         /// </summary>
         private static bool TryNormalizeDetachedLeaf(
             NeoScriptObject target,
             Member member,
             object value,
+            bool bareId,
             out object? stored)
         {
             stored = null;
@@ -648,15 +716,15 @@ namespace NeoCompose.Runtime
                 case FloatMember when value is int or float:
                     stored = NSGetterEvaluator.Box(Convert.ToDouble(value));
                     return true;
-                case EnumMember when value is object?[] { Length: 1 } options && options[0] is string:
-                    stored = new object?[] { options[0] };
+                case EnumMember when value is object?[] { Length: 1 } options && options[0] is string option:
+                    stored = bareId ? option : new object?[] { option };
                     return true;
                 case LookupMember lookupMember:
                     // A single reference, the usual case, needs no id array
                     // to copy from.
                     if (LookupValueId(value) is { Length: > 0 } singleId)
                     {
-                        stored = new object?[] { singleId };
+                        stored = bareId ? singleId : new object?[] { singleId };
                         return true;
                     }
                     string[] ids;
@@ -715,20 +783,21 @@ namespace NeoCompose.Runtime
         /// <summary>Drops the ownership a slot's previous value held.</summary>
         private static void ReleaseDetachedSlot(NeoScriptObject target, int index)
         {
-            if (target.values[index] is NeoScriptObject previous)
+            ref object? value = ref target.Slot(index);
+            if (value is NeoScriptObject previous)
             {
                 previous.owner = null;
             }
-            else if (target.values[index] is object?[] entries)
+            else if (value is object?[] entries)
             {
                 ReleaseDetachedEntries(entries);
             }
-            else if (target.listBuffers?[index] is List<object?> buffer)
+            else if (value is List<object?> buffer)
             {
                 ReleaseDetachedEntries(buffer);
+                value = null;
+                ListBuffers.Return(buffer);
             }
-            if (target.listBuffers is not null)
-                target.listBuffers[index] = null;
         }
 
         private static void ReleaseDetachedEntries(IReadOnlyList<object?> entries)
@@ -742,7 +811,7 @@ namespace NeoCompose.Runtime
 
         private static void ReleaseDetachedChildren(NeoScriptObject target)
         {
-            for (int index = 0; index < target.values.Length; index++)
+            for (int index = 0; index < target.SlotCount; index++)
                 ReleaseDetachedSlot(target, index);
         }
 
@@ -815,7 +884,7 @@ namespace NeoCompose.Runtime
                     slot.member,
                     slot.kind == DetachedSlotKind.List
                         ? DetachedArray(value, index)
-                        : value.values[index],
+                        : DetachedLeaf(value, index),
                     rows,
                     now,
                     valueReference,
