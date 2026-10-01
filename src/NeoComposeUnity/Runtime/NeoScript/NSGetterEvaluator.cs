@@ -892,7 +892,9 @@ namespace NeoCompose.Runtime.NeoScript
             /// Saved frames, innermost last. Frames complete before their
             /// callers continue, so contexts sharing a row cache, which already
             /// run on one thread, share one stack. Exit clears a frame, so an
-            /// entered one starts empty.
+            /// entered one starts empty, except for the saved call stack and
+            /// <c>this</c>: those stay for the next frame at that depth, which
+            /// usually saves the same ones and so skips their write barriers.
             /// </summary>
             internal sealed class FrameStack
             {
@@ -939,7 +941,8 @@ namespace NeoCompose.Runtime.NeoScript
                 // Mono write-barriers every reference stored here: the
                 // usually-null fields keep the null exit left them.
                 ref FunctionFrame saved = ref stack.frames[frame];
-                saved.functionCallStack = functionCallStack;
+                if (!ReferenceEquals(saved.functionCallStack, functionCallStack))
+                    saved.functionCallStack = functionCallStack;
                 // The immediate expression fields are set and cleared together.
                 if (immediateExpressionContext is not null)
                 {
@@ -960,7 +963,8 @@ namespace NeoCompose.Runtime.NeoScript
                 constructorBody = false;
                 if (!ReferenceEquals(thisValue, receiver))
                 {
-                    saved.thisValue = thisValue;
+                    if (!ReferenceEquals(saved.thisValue, thisValue))
+                        saved.thisValue = thisValue;
                     saved.thisSaved = true;
                     thisValue = receiver;
                 }
@@ -1021,12 +1025,10 @@ namespace NeoCompose.Runtime.NeoScript
                 if (saved.thisSaved)
                 {
                     thisValue = saved.thisValue;
-                    saved.thisValue = null;
                     saved.thisSaved = false;
                 }
                 if (!ReferenceEquals(functionCallStack, saved.functionCallStack))
                     functionCallStack = saved.functionCallStack!;
-                saved.functionCallStack = null;
                 if (saved.handlersSaved)
                 {
                     linkedFunctionCallHandler = saved.linkedFunctionCallHandler;
