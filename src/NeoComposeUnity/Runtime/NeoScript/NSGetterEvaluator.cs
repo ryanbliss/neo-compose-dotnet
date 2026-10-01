@@ -530,8 +530,12 @@ namespace NeoCompose.Runtime.NeoScript
             }
             public object? thisValue
             {
-                get; private set;
+                get => thisValueField;
+                private set => thisValueField = value;
             }
+            // A plain field so ClearDirectInvocation's null store pays no
+            // write barrier; one through the setter does.
+            private object? thisValueField;
             public object? rootValue
             {
                 get; private set;
@@ -795,10 +799,9 @@ namespace NeoCompose.Runtime.NeoScript
 
             internal void ClearDirectInvocation()
             {
+                thisValueField = null;
                 // These are properties: a null store through an inlined
                 // setter still pays a write barrier, so skip clear ones.
-                if (thisValue is not null)
-                    thisValue = null;
                 if (contextValue is not null)
                     contextValue = null;
                 if (gridReads is not null)
