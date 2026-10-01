@@ -537,8 +537,13 @@ namespace NeoCompose.Runtime
                     for (int i = 0; i < fields.Length; i++)
                         fields[i].value = null;
                 }
-                // A span clear zeroes without the per-element store barrier.
-                arguments.AsSpan().Clear();
+                // A constant null store skips the store barrier, and a site's
+                // few arguments clear faster in a loop than through a span.
+                if (arguments is not null)
+                {
+                    for (int i = 0; i < arguments.Length; i++)
+                        arguments[i] = null;
+                }
                 inUse = false;
             }
 
@@ -4810,7 +4815,9 @@ namespace NeoCompose.Runtime
                     thisValue,
                     ctx,
                     expectValue: true,
-                    new ConstructorBodySubject("Base argument", declaredBaseArguments[i].name, record.id));
+                    "Base argument",
+                    declaredBaseArguments[i].name,
+                    record.id);
             }
             // P65 §2.5 callee-side fill, same as a direct constructor
             // call: the base overload's own current default completes each
@@ -4891,7 +4898,9 @@ namespace NeoCompose.Runtime
                 thisValue,
                 ctx,
                 expectValue: false,
-                new ConstructorBodySubject("Constructor", null, record.id));
+                "Constructor",
+                null,
+                record.id);
         }
 
         /// <summary>
@@ -4934,7 +4943,9 @@ namespace NeoCompose.Runtime
                         thisValue,
                         ctx,
                         expectValue: true,
-                        new ConstructorBodySubject("Base initializer field", field.name, record.id)),
+                        "Base initializer field",
+                        field.name,
+                        record.id),
                 });
             }
             if (thisValue is NeoScript.NeoScriptObject detached)
@@ -4954,23 +4965,12 @@ namespace NeoCompose.Runtime
         /// Names a constructor body in its errors; formatted only when one is
         /// raised, so a construction allocates no message.
         /// </summary>
-        private readonly struct ConstructorBodySubject
-        {
-            private readonly string kind;
-            private readonly string? name;
-            private readonly string constructorId;
-
-            internal ConstructorBodySubject(string kind, string? name, string constructorId)
-            {
-                this.kind = kind;
-                this.name = name;
-                this.constructorId = constructorId;
-            }
-
-            public override string ToString() => name is null
+        // Built only for an error: a struct of the parts, made on every
+        // construction, paid a write barrier per part.
+        private static string ConstructorBodySubject(string kind, string? name, string constructorId) =>
+            name is null
                 ? $"{kind} '{constructorId}'"
                 : $"{kind} '{name}' of constructor '{constructorId}'";
-        }
 
         private static string[] constructorArgumentNames = Array.Empty<string>();
 
@@ -5018,7 +5018,9 @@ namespace NeoCompose.Runtime
             object? thisValue,
             NeoScript.NSGetterEvaluator.Context ctx,
             bool expectValue,
-            ConstructorBodySubject subject)
+            string subjectKind,
+            string? subjectName,
+            string constructorId)
         {
             NeoScript.NeoScriptScopeLayout layout = body.scopeLayout ??= new NeoScript.NeoScriptScopeLayout(body);
             NeoScript.NeoScriptScope scope = layout.RentScope();
@@ -5055,13 +5057,13 @@ namespace NeoCompose.Runtime
                 if (result.IsPaused)
                 {
                     throw new InvalidOperationException(
-                        $"{subject} suspended on deferred Function '{result.SuspendedMemberId}'. A constructor cannot await.");
+                        $"{ConstructorBodySubject(subjectKind, subjectName, constructorId)} suspended on deferred Function '{result.SuspendedMemberId}'. A constructor cannot await.");
                 }
                 completed = true;
                 if (expectValue && !result.Returned)
                 {
                     throw new InvalidOperationException(
-                        $"{subject} ended without a return statement.");
+                        $"{ConstructorBodySubject(subjectKind, subjectName, constructorId)} ended without a return statement.");
                 }
                 return result.ReturnValue;
             }
