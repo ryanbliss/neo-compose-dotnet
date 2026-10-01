@@ -4668,10 +4668,22 @@ namespace NeoCompose.Runtime
             Member member)> EnumerateConstructorSettledAggregateLinks(
                 ObjectMemberValue parent,
                 Member? sourceMember = null,
-                bool includeMaterializedChildren = false)
+                bool includeMaterializedChildren = false) =>
+            // Most rows have no settling constructor; they skip the iterator.
+            SettledAggregateConstructor(parent) is { } constructor
+                ? SettledAggregateLinks(parent, constructor, sourceMember, includeMaterializedChildren)
+                : System.Array.Empty<(string, string, string, Member)>();
+
+        private IEnumerable<(
+            string parameterId,
+            string schemaKey,
+            string valueId,
+            Member member)> SettledAggregateLinks(
+                ObjectMemberValue parent,
+                ConstructorRecord constructor,
+                Member? sourceMember,
+                bool includeMaterializedChildren)
         {
-            if (SettledAggregateConstructor(parent) is not { } constructor)
-                yield break;
             foreach (SettledAggregateParameter parameter in SettledAggregateParameters(constructor))
             {
                 if (TryGetSettledAggregateLink(

@@ -8407,7 +8407,12 @@ namespace NeoCompose.Runtime
             return UnplacedClassMember(classId, (placement as ClassMember)?.classArguments, row);
         }
 
-        internal static string UnplacedClassMemberId(string classId) => $"__neo_class_value_{classId}";
+        // One id per class, so a repeated class-value read allocates none.
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> unplacedClassMemberIds =
+            new(StringComparer.Ordinal);
+
+        internal static string UnplacedClassMemberId(string classId) =>
+            unplacedClassMemberIds.GetOrAdd(classId, static id => $"__neo_class_value_{id}");
 
         /// <summary>
         /// The placement of a class value no member holds: constructed,
