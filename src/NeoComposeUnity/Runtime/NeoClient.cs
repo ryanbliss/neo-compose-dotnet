@@ -1517,9 +1517,11 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal NeoValueOwnership ChildOwnership(Member? member, NeoValueOwnership parent)
         {
+            // ChildOwnership's own switch rejects an unknown ordinal, so this
+            // per-read path skips DeclaredStorage's validation pass.
             return member is null
                 ? parent
-                : NeoMemberStorageResolution.ChildOwnership(DeclaredStorage(member), parent);
+                : NeoMemberStorageResolution.ChildOwnership(member.Storage, parent);
         }
 
         /// <summary>
