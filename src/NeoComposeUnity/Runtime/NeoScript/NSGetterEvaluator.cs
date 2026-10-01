@@ -6360,40 +6360,42 @@ namespace NeoCompose.Runtime.NeoScript
             NeoScriptScope scope,
             Context ctx)
         {
-            int arity = info.componentPointers.Length;
-            Span<float> components = arity <= 4 ? stackalloc float[arity] : new float[arity];
+            Pointer[] pointers = info.componentPointers;
+            int arity = pointers.Length;
+            // Vectors have at most three components; they stay in locals.
+            float x = 0;
+            float y = 0;
+            float z = 0;
             for (int i = 0; i < arity; i++)
             {
-                var raw = EvalPointer(info.componentPointers[i], scope, ctx);
-                if (!TryAsDouble(raw, out double numeric)
-                    || double.IsNaN(numeric)
-                    || double.IsInfinity(numeric))
-                {
-                    throw new NSGetterRuntimeError(
-                        $"{info.vectorType} component must be numeric; got {ReceiverTypeName(raw)}.");
-                }
-                components[i] = (float)numeric;
+                float component = VectorComponent(info.vectorType, pointers[i], scope, ctx);
+                if (i == 0)
+                    x = component;
+                else if (i == 1)
+                    y = component;
+                else if (i == 2)
+                    z = component;
             }
 
             switch (info.vectorType)
             {
                 case MemberKind.Vector2:
-                    EnsureVectorArity(components, 2, info.vectorType);
-                    return new NeoVector2Value { x = components[0], y = components[1] };
+                    EnsureVectorArity(arity, 2, info.vectorType);
+                    return new NeoVector2Value { x = x, y = y };
                 case MemberKind.Vector2Int:
-                    EnsureVectorArity(components, 2, info.vectorType);
-                    RequireIntegerComponent(components[0], "x");
-                    RequireIntegerComponent(components[1], "y");
-                    return new NeoVector2Value { x = components[0], y = components[1] };
+                    EnsureVectorArity(arity, 2, info.vectorType);
+                    RequireIntegerComponent(x, "x");
+                    RequireIntegerComponent(y, "y");
+                    return new NeoVector2Value { x = x, y = y };
                 case MemberKind.Vector3:
-                    EnsureVectorArity(components, 3, info.vectorType);
-                    return new NeoVector3Value { x = components[0], y = components[1], z = components[2] };
+                    EnsureVectorArity(arity, 3, info.vectorType);
+                    return new NeoVector3Value { x = x, y = y, z = z };
                 case MemberKind.Vector3Int:
-                    EnsureVectorArity(components, 3, info.vectorType);
-                    RequireIntegerComponent(components[0], "x");
-                    RequireIntegerComponent(components[1], "y");
-                    RequireIntegerComponent(components[2], "z");
-                    return new NeoVector3Value { x = components[0], y = components[1], z = components[2] };
+                    EnsureVectorArity(arity, 3, info.vectorType);
+                    RequireIntegerComponent(x, "x");
+                    RequireIntegerComponent(y, "y");
+                    RequireIntegerComponent(z, "z");
+                    return new NeoVector3Value { x = x, y = y, z = z };
                 default:
                     throw new NSGetterRuntimeError($"Unsupported vector constructor '{info.vectorType}'.");
             }
@@ -6669,44 +6671,48 @@ namespace NeoCompose.Runtime.NeoScript
                 throw new NSGetterRuntimeError(
                     $"Math.{MathOpFunctionName(info.op)} takes {arity} arguments; got {info.argPointers.Length}.");
             }
-            // Math intrinsics take at most three operands; they stay in locals.
-            object? r0 = null;
+            // Math intrinsics take at most three operands. Plain locals, not a
+            // span or a capturing helper: either moves them to memory, where
+            // every reference store pays a write barrier.
+            Pointer[] pointers = info.argPointers;
+            object? r0 = EvaluateValue(pointers[0], scope, ctx, out double v0);
             object? r1 = null;
             object? r2 = null;
-            Span<double> values = stackalloc double[3];
-            for (int i = 0; i < arity; i++)
-            {
-                object? value = EvaluateValue(info.argPointers[i], scope, ctx, out values[i]);
-                if (i == 0)
-                    r0 = value;
-                else if (i == 1)
-                    r1 = value;
-                else
-                    r2 = value;
-            }
+            double v1 = 0;
+            double v2 = 0;
+            if (arity > 1)
+                r1 = EvaluateValue(pointers[1], scope, ctx, out v1);
+            if (arity > 2)
+                r2 = EvaluateValue(pointers[2], scope, ctx, out v2);
             // Evaluate all arguments before validating any of them.
-            for (int i = 0; i < arity; i++)
-                if (ArithmeticValue.Box(Arg(i), values[i]) is null)
-                    throw new NSGetterRuntimeError($"Math.{MathOpFunctionName(info.op)} argument is null.");
+            if (r0 is null || (arity > 1 && r1 is null) || (arity > 2 && r2 is null))
+                throw new NSGetterRuntimeError($"Math.{MathOpFunctionName(info.op)} argument is null.");
             if (info.isDecimal == true)
             {
                 var decimalArgs = new object?[arity];
-                for (int i = 0; i < arity; i++)
-                    decimalArgs[i] = ArithmeticValue.Box(Arg(i), values[i]);
+                decimalArgs[0] = ArithmeticValue.Box(r0, v0);
+                if (arity > 1)
+                    decimalArgs[1] = ArithmeticValue.Box(r1, v1);
+                if (arity > 2)
+                    decimalArgs[2] = ArithmeticValue.Box(r2, v2);
                 number = 0;
                 return EvalDecimalMathOp(op, MathOpFunctionName(info.op), decimalArgs);
             }
-            for (int i = 0; i < arity; i++)
-            {
-                if (!ArithmeticValue.IsNumeric(Arg(i)))
-                    throw new NSGetterRuntimeError(
-                        $"Math.{MathOpFunctionName(info.op)} argument is not numeric: {ReceiverTypeName(Arg(i))}.");
-                values[i] = ArithmeticValue.NumberOf(Arg(i), values[i]);
-            }
-            number = EvalFloatMathOp(op, info.op, values);
+            v0 = FloatMathArgument(info.op, r0, v0);
+            if (arity > 1)
+                v1 = FloatMathArgument(info.op, r1, v1);
+            if (arity > 2)
+                v2 = FloatMathArgument(info.op, r2, v2);
+            number = EvalFloatMathOp(op, info.op, v0, v1, v2);
             return ArithmeticValue.BareNumber;
+        }
 
-            object? Arg(int index) => index == 0 ? r0 : index == 1 ? r1 : r2;
+        private static double FloatMathArgument(string wireOp, object? value, double number)
+        {
+            if (!ArithmeticValue.IsNumeric(value))
+                throw new NSGetterRuntimeError(
+                    $"Math.{MathOpFunctionName(wireOp)} argument is not numeric: {ReceiverTypeName(value)}.");
+            return ArithmeticValue.NumberOf(value, number);
         }
 
         /// <summary>
@@ -6719,16 +6725,19 @@ namespace NeoCompose.Runtime.NeoScript
         /// downstream (P69 §2.5).
         /// </summary>
         /// <param name="wireOp">The op as the IR spells it, for error messages.</param>
-        private static double EvalFloatMathOp(MathOp op, string wireOp, ReadOnlySpan<double> values)
+        /// <param name="a">The first operand.</param>
+        /// <param name="b">The second operand of a binary or ternary op.</param>
+        /// <param name="c">The third operand of a ternary op.</param>
+        private static double EvalFloatMathOp(MathOp op, string wireOp, double a, double b, double c)
         {
             switch (op)
             {
                 // Min/Max propagate NaN and order -0.0 below 0.0 in both
                 // hosts, so the standard APIs are the contract (P69 §2.2).
                 case MathOp.Min:
-                    return System.Math.Min(values[0], values[1]);
+                    return System.Math.Min(a, b);
                 case MathOp.Max:
-                    return System.Math.Max(values[0], values[1]);
+                    return System.Math.Max(a, b);
                 case MathOp.Clamp:
                     {
                         // System.Math.Clamp's algorithm, spelled out because the
@@ -6736,9 +6745,9 @@ namespace NeoCompose.Runtime.NeoScript
                         // message rather than the host's (P69 §2.3). The guard is
                         // a real comparison, so NaN bounds never trip it, and a
                         // NaN value falls through both tests and is returned.
-                        double value = values[0];
-                        double min = values[1];
-                        double max = values[2];
+                        double value = a;
+                        double min = b;
+                        double max = c;
                         if (min > max)
                         {
                             throw new NSGetterRuntimeError(MathClampBoundsMessage);
@@ -6750,30 +6759,30 @@ namespace NeoCompose.Runtime.NeoScript
                         return value;
                     }
                 case MathOp.Round:
-                    RequireFiniteMathArgument(wireOp, values[0]);
+                    RequireFiniteMathArgument(wireOp, a);
                     // System.Math.Round(double)'s default midpoint mode is
                     // already ToEven, and half-even is the pinned
                     // cross-runtime contract (P69 §2.4) — the same midpoint
                     // rule decimal.Round(digits) has always used. The web
                     // evaluator hand-rolls it, because JS rounds half up.
-                    return System.Math.Round(values[0]);
+                    return System.Math.Round(a);
                 case MathOp.Floor:
-                    RequireFiniteMathArgument(wireOp, values[0]);
-                    return System.Math.Floor(values[0]);
+                    RequireFiniteMathArgument(wireOp, a);
+                    return System.Math.Floor(a);
                 case MathOp.Ceiling:
-                    RequireFiniteMathArgument(wireOp, values[0]);
-                    return System.Math.Ceiling(values[0]);
+                    RequireFiniteMathArgument(wireOp, a);
+                    return System.Math.Ceiling(a);
                 case MathOp.Truncate:
-                    RequireFiniteMathArgument(wireOp, values[0]);
-                    return System.Math.Truncate(values[0]);
+                    RequireFiniteMathArgument(wireOp, a);
+                    return System.Math.Truncate(a);
                 case MathOp.Abs:
-                    return System.Math.Abs(values[0]);
+                    return System.Math.Abs(a);
                 case MathOp.Sign:
                     {
                         // System.Math.Sign's three-way answer, not JS's ±0/NaN
                         // one: NaN is a runtime error and both zeros give 0
                         // (P69 §2.6).
-                        double value = values[0];
+                        double value = a;
                         if (double.IsNaN(value))
                         {
                             throw new NSGetterRuntimeError("Math.Sign is undefined for NaN.");
@@ -6787,7 +6796,7 @@ namespace NeoCompose.Runtime.NeoScript
                 // Correctly rounded by IEEE 754 in both hosts, and NaN for a
                 // negative argument in both.
                 case MathOp.Sqrt:
-                    return System.Math.Sqrt(values[0]);
+                    return System.Math.Sqrt(a);
                 default:
                     throw new NSGetterRuntimeError($"Unknown math op '{wireOp}'.");
             }
@@ -7040,15 +7049,33 @@ namespace NeoCompose.Runtime.NeoScript
                 : value.ToString("R", CultureInfo.InvariantCulture);
         }
 
+        // A computed component arrives unboxed, like an arithmetic operand.
+        private static float VectorComponent(
+            MemberKind vectorType,
+            Pointer pointer,
+            NeoScriptScope scope,
+            Context ctx)
+        {
+            object? raw = EvaluateValue(pointer, scope, ctx, out double numeric);
+            if ((!ReferenceEquals(raw, ArithmeticValue.BareNumber) && !TryAsDouble(raw, out numeric))
+                || double.IsNaN(numeric)
+                || double.IsInfinity(numeric))
+            {
+                throw new NSGetterRuntimeError(
+                    $"{vectorType} component must be numeric; got {ReceiverTypeName(ArithmeticValue.Box(raw, numeric))}.");
+            }
+            return (float)numeric;
+        }
+
         private static void EnsureVectorArity(
-            ReadOnlySpan<float> components,
+            int arity,
             int expected,
             MemberKind vectorType)
         {
-            if (components.Length != expected)
+            if (arity != expected)
             {
                 throw new NSGetterRuntimeError(
-                    $"{vectorType} takes {expected} numeric arguments, got {components.Length}.");
+                    $"{vectorType} takes {expected} numeric arguments, got {arity}.");
             }
         }
 
