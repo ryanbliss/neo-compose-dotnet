@@ -414,6 +414,51 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void StaticGetterReadRunsInItsFrameWithoutAllocating()
+        {
+            var getter = new NSPropertyMember
+            {
+                id = "static-getter",
+                projectId = ProjectId,
+                name = "Five",
+                kind = MemberKind.NSProperty,
+                Modifier = NeoMemberModifierKind.Static,
+                code = "return 5;",
+                returnTypeInfo = IntType(),
+                getter = Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(), Return(Number(5))),
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            var read = new CallGetterPointer
+            {
+                type = PointerKind.CallGetter,
+                memberId = getter.id,
+                receiver = CallReceiver.Static(getter.id),
+            };
+            using var client = BuildClient(new JsonMember[] { getter }, ReceiverClass());
+            var context = new NSGetterEvaluator.Context(client, null, null);
+            var scope = new NeoScriptScope(0);
+            Assert.That(NSGetterEvaluator.EvaluatePointer(read, scope, context), Is.EqualTo(5));
+            Assert.That(context.expressionHandlers, Is.Null, "The getter's frame restores the caller's handlers.");
+
+            var recorder = UnityEngine.Profiling.Recorder.Get("GC.Alloc");
+            recorder.enabled = false;
+            recorder.FilterToCurrentThread();
+            recorder.enabled = true;
+            try
+            {
+                for (int i = 0; i < 100; i++)
+                    NSGetterEvaluator.EvaluatePointer(read, scope, context);
+            }
+            finally
+            {
+                recorder.enabled = false;
+                recorder.CollectFromAllThreads();
+            }
+            Assert.That(recorder.sampleBlockCount, Is.Zero, "A read neither forks the context nor binds the receiver by name.");
+        }
+
+        [Test]
         public void NativeCallSitePreparesArgumentsInItsPooledBufferWithoutAllocating()
         {
             var native = NativeFunction("prepared", "Prepared", false);

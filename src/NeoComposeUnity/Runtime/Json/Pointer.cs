@@ -252,11 +252,15 @@ namespace NeoCompose.Runtime.Json
         /// <summary>The runtime's schema entries for the placement's key, one per receiver Class.</summary>
         [JsonIgnore]
         internal NeoScript.NSGetterEvaluator.MemberSiteTarget? resolvedMembers;
+        /// <summary>The runtime's resolution of the <see cref="memberId"/> member.</summary>
+        [JsonIgnore]
+        internal NeoScript.NSGetterEvaluator.GetterMemberSite? getterMemberSite;
 
         void ISchemaResolutionSite.ForgetResolution()
         {
             placementSite = null;
             resolvedMembers = null;
+            getterMemberSite = null;
         }
     }
 

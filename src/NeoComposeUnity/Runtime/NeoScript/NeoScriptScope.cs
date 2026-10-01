@@ -59,6 +59,10 @@ namespace NeoCompose.Runtime.NeoScript
                         $"NeoScript body declares parameter '{parameter.id}' twice; its compiled IR is stale or corrupt.");
                 if (parameter.id == RootParameterId)
                     rootSlot = Slots.Count;
+                else if (parameter.id == ThisParameterId)
+                    thisSlot = Slots.Count;
+                else if (parameter.id == ContextParameterId)
+                    contextSlot = Slots.Count;
                 Slots.Add(parameter.id, Slots.Count);
             }
             AddDeclarations(instructions);
@@ -158,11 +162,16 @@ namespace NeoCompose.Runtime.NeoScript
         };
 
         private const string RootParameterId = "__root__";
+        private const string ThisParameterId = "__this__";
+        private const string ContextParameterId = "__context__";
 
         // The pooled scope keeps its root parameter between calls: the root
         // outlives them, and rebinding the same one then skips its store's
         // write barrier.
-        private readonly int rootSlot = -1;
+        internal readonly int rootSlot = -1;
+        // The receiver and dialogue context parameters' slots, or -1.
+        internal readonly int thisSlot = -1;
+        internal readonly int contextSlot = -1;
 
         // The bindings this scope holds: its locals, the locals of if
         // branches (which run in it), and the bindings of loops run in it.

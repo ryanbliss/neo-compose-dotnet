@@ -1736,19 +1736,38 @@ namespace NeoCompose.Runtime.NeoScript
         /// the declared-constructor path supplies the values when it creates a
         /// concrete instance.
         /// </summary>
+        /// <param name="frame">
+        /// The getter frame the body runs in, which installs the immediate
+        /// handlers as an in-place function frame does, instead of forking
+        /// the context for them on every read; -1 for none.
+        /// </param>
         internal static object? Evaluate(
             FunctionWithReturnType getter,
             Context ctx,
-            IReadOnlyList<object?> argumentValues)
+            IReadOnlyList<object?> argumentValues,
+            int frame = -1)
         {
             NeoScriptScopeLayout layout = getter.scopeLayout ??= new NeoScriptScopeLayout(getter);
             var scope = layout.RentScope();
             bool completed = false;
             try
             {
-                scope["__this__"] = ctx.thisValue;
-                scope["__root__"] = ctx.rootValue;
-                scope["__context__"] = ctx.contextValue;
+                // Declared parameters bind by slot, without hashing their names.
+                if (layout.thisSlot >= 0)
+                    scope.SetParameter(layout.thisSlot, ctx.thisValue);
+                else
+                    scope["__this__"] = ctx.thisValue;
+                if (layout.rootSlot >= 0)
+                    scope.SetParameter(layout.rootSlot, ctx.rootValue);
+                else
+                    scope["__root__"] = ctx.rootValue;
+                // Only a dialogue body declares __context__. Any other body
+                // gets it as a dynamic binding when there is one, as a
+                // setter's does.
+                if (layout.contextSlot >= 0)
+                    scope.SetParameter(layout.contextSlot, ctx.contextValue);
+                else if (ctx.contextValue is not null)
+                    scope["__context__"] = ctx.contextValue;
                 Variable[] parameters = getter.parameters ?? Array.Empty<Variable>();
                 if (argumentValues.Count > 0
                     && parameters.Length != argumentValues.Count + 2)
@@ -1765,12 +1784,15 @@ namespace NeoCompose.Runtime.NeoScript
                 // property, not a reason to maintain a second pure interpreter.
                 // Immediate options let every getter frame share the client's
                 // prebuilt expression handlers instead of closing over its own.
+                NeoScriptExecutionOptions options = NeoScriptExecutionOptions.ForImmediate(ctx.client);
+                if (frame >= 0)
+                    NeoScriptExecutor.PrepareFunctionContext(ctx, options, frame);
                 NeoScriptExecutionResult result = NeoScriptExecutor.Execute(
                     ctx.client,
                     getter,
                     scope,
                     ctx,
-                    NeoScriptExecutionOptions.ForImmediate(ctx.client));
+                    options);
                 if (result.IsPaused)
                 {
                     throw new NSGetterRuntimeError(
@@ -2220,21 +2242,23 @@ namespace NeoCompose.Runtime.NeoScript
                 throw new NSGetterRuntimeError("Base dispatch requires an instance receiver.");
             if (cgp.receiver.IsStatic)
             {
+                JsonMember? member = ResolveGetterMember(cgp, ctx);
                 ValidateStaticCallableReceiver(
                     cgp.receiver,
                     cgp.memberId,
                     "getter",
-                    ctx);
+                    member);
                 return DispatchNSGetterById(
                     cgp.memberId,
                     receiver: null,
-                    ctx);
+                    ctx,
+                    (member as NSPropertyMember)?.getter);
             }
             var innerThis = EvalCallReceiver(cgp.receiver, scope, ctx);
             if (cgp.optional == true && innerThis is null)
                 return null;
             if (cgp.dispatch == "base")
-                return DispatchNSGetterById(cgp.memberId, innerThis, ctx);
+                return DispatchNSGetterById(cgp.memberId, innerThis, ctx, (ResolveGetterMember(cgp, ctx) as NSPropertyMember)?.getter);
             // Try runtime dispatch via the receiver's classId merged
             // schema first — same trick the TS evaluator uses to
             // honor runtime overrides regardless of the static
@@ -2246,7 +2270,36 @@ namespace NeoCompose.Runtime.NeoScript
                 if (Dispatched(dispatched))
                     return dispatched;
             }
-            return DispatchNSGetterById(cgp.memberId, innerThis, ctx);
+            return DispatchNSGetterById(cgp.memberId, innerThis, ctx, (ResolveGetterMember(cgp, ctx) as NSPropertyMember)?.getter);
+        }
+
+        /// <summary>
+        /// A getter call site's member, resolved once per schema resolution
+        /// rather than looked up by id on every read.
+        /// </summary>
+        private static JsonMember? ResolveGetterMember(CallGetterPointer site, Context ctx)
+        {
+            NeoClient client = ctx.client;
+            GetterMemberSite? cached = site.getterMemberSite;
+            if (cached is not null && ReferenceEquals(cached.schemaResolution, client.SchemaResolution))
+                return cached.member;
+            client.TryGetMember(site.memberId, out JsonMember? member);
+            site.getterMemberSite = new GetterMemberSite(client.SchemaResolution, member);
+            client.RememberSchemaResolutionSite(site);
+            return member;
+        }
+
+        /// <summary>A getter call site's member under one schema resolution.</summary>
+        internal sealed class GetterMemberSite
+        {
+            internal readonly object schemaResolution;
+            internal readonly JsonMember? member;
+
+            internal GetterMemberSite(object schemaResolution, JsonMember? member)
+            {
+                this.schemaResolution = schemaResolution;
+                this.member = member;
+            }
         }
 
         /// <summary>A delegate closure over its evaluated captures.</summary>
@@ -2399,7 +2452,7 @@ namespace NeoCompose.Runtime.NeoScript
             NeoClient client = ctx.client;
             if (!client.CanMemoizeGetters || getter.dispatch == "base")
                 return EvalCallGetter(getter, scope, ctx);
-            ValidateStaticCallableReceiver(getter.receiver, getter.memberId, "getter", ctx);
+            ValidateStaticCallableReceiver(getter.receiver, getter.memberId, "getter", ResolveGetterMember(getter, ctx));
             var key = new NeoClient.GetterMemoKey(
                 ctx.valueOwnership, NeoClient.StaticGetterRowId, getter.memberId, ctx.valueOwnership);
             if (client.FindMemoizedGetter(key) is { } hit)
@@ -3675,20 +3728,28 @@ namespace NeoCompose.Runtime.NeoScript
             string callableKind,
             Context ctx)
         {
+            ctx.client.TryGetMember(targetMemberId, out JsonMember? member);
+            ValidateStaticCallableReceiver(receiver, targetMemberId, callableKind, member);
+        }
+
+        /// <param name="member">The member <paramref name="targetMemberId"/> names, if any.</param>
+        private static void ValidateStaticCallableReceiver(
+            CallReceiver receiver,
+            string targetMemberId,
+            string callableKind,
+            JsonMember? member)
+        {
             if (string.IsNullOrEmpty(receiver.memberId))
             {
                 throw new NSGetterRuntimeError(
                     $"Static {callableKind} call receiver is missing its member id.");
             }
-            if (receiver.memberId != targetMemberId)
+            if (!ReferenceEquals(receiver.memberId, targetMemberId) && receiver.memberId != targetMemberId)
             {
                 throw new NSGetterRuntimeError(
                     $"Static {callableKind} call receiver '{receiver.memberId}' does not match target '{targetMemberId}'.");
             }
-            if (!ctx.client.TryGetMember(
-                    targetMemberId,
-                    out JsonMember? member)
-                || member.Modifier != NeoMemberModifierKind.Static)
+            if (member is null || member.Modifier != NeoMemberModifierKind.Static)
             {
                 throw new NSGetterRuntimeError(
                     $"Static {callableKind} target '{targetMemberId}' is missing or is not static.");
@@ -4407,7 +4468,7 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 try
                 {
-                    return Evaluate(getter, ctx);
+                    return Evaluate(getter, ctx, Array.Empty<object?>(), frame);
                 }
                 finally
                 {
@@ -4419,7 +4480,7 @@ namespace NeoCompose.Runtime.NeoScript
             NeoClient.GetterCaptureFrame capture;
             try
             {
-                result = Evaluate(getter, ctx);
+                result = Evaluate(getter, ctx, Array.Empty<object?>(), frame);
             }
             finally
             {
