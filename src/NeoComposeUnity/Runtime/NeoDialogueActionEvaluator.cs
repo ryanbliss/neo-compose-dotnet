@@ -3410,7 +3410,8 @@ namespace NeoCompose.Runtime
             {
                 string keyString = ToStringKey(key, "Dictionary/class assignment key");
                 if (!string.IsNullOrEmpty(objectRow.classId)
-                    && NSGetterEvaluator.TryResolveSurfaceMember(keyOf, receiver, objectRow.classId!, keyString, ctx, out JsonMember? memberMember))
+                    && NSGetterEvaluator.TryResolveSurfaceMember(
+                        keyOf, receiver, objectRow.classId!, keyString, ctx, out JsonMember? memberMember, out MergedSchemaEntry? entry))
                 {
                     if (memberMember!.Mutability == NeoMemberMutabilityKind.ReadOnly)
                     {
@@ -3427,7 +3428,14 @@ namespace NeoCompose.Runtime
                     NeoValueOwnership fieldOwnership = client.ChildOwnership(memberMember, receiverOwnership);
                     if (fieldOwnership != ownership || fieldOwnership == NeoValueOwnership.Asset)
                         throw new NSGetterRuntimeError($"Member '{memberMember!.name}' is not {ownership}-owned.");
-                    return new NeoClassMemberWriteTarget(receiverRowId, keyString, memberMember!, ownership, receiverOwnership, receiverNode);
+                    return new NeoClassMemberWriteTarget(
+                        receiverRowId,
+                        keyString,
+                        memberMember!,
+                        ownership,
+                        receiverOwnership,
+                        receiverNode,
+                        NSGetterEvaluator.RememberedChildNode(receiver, entry!));
                 }
                 EnsureWritableRow(client, receiverRowId, ownership);
                 return new NeoDictionaryEntryWriteTarget(receiverRowId, keyString, targetType, ownership);
@@ -3562,7 +3570,7 @@ namespace NeoCompose.Runtime
             return client.TryGetValue(receiverOwnership, receiverRowId, out MemberValue? row)
                 && row is ObjectMemberValue { classId: string classId } && classId.Length > 0
                 && Eval(keyOf.key, scope, ctx) is string key
-                && NSGetterEvaluator.TryResolveSurfaceMember(keyOf, null, classId, key, ctx, out member)
+                && NSGetterEvaluator.TryResolveSurfaceMember(keyOf, null, classId, key, ctx, out member, out _)
                 && member!.Mutability != NeoMemberMutabilityKind.ReadOnly;
         }
 
@@ -4319,7 +4327,8 @@ namespace NeoCompose.Runtime
             // The parent row's node, so the leaf write reads it without an id lookup.
             private NeoValueNode? parentNode;
             // The node of the child the last bound-child read found, handed
-            // to the leaf store.
+            // to the leaf store. It starts as the node the receiver's own
+            // read of this member remembered.
             private NeoValueNode? childNode;
 
             public NeoClassMemberWriteTarget(
@@ -4328,7 +4337,8 @@ namespace NeoCompose.Runtime
                 JsonMember member,
                 NeoValueOwnership ownership,
                 NeoValueOwnership? parentOwnership = null,
-                NeoValueNode? parentNode = null)
+                NeoValueNode? parentNode = null,
+                NeoValueNode? childNode = null)
             {
                 this.parentRowId = parentRowId;
                 this.key = key;
@@ -4336,6 +4346,7 @@ namespace NeoCompose.Runtime
                 this.ownership = ownership;
                 this.parentOwnership = parentOwnership ?? ownership;
                 this.parentNode = parentNode;
+                this.childNode = childNode;
             }
 
             /// <summary>
@@ -4429,7 +4440,9 @@ namespace NeoCompose.Runtime
                 out MemberValue? child,
                 out MemberValue? storedChild)
             {
-                childNode = null;
+                // A node is only ever handed on for its own id.
+                if (childNode is not null && childNode.id != childId)
+                    childNode = null;
                 storedChild = client.ReadWritableValue(ownership, childId, ref childNode);
                 child = storedChild ?? client.ReadValue(ownership, childId, ref childNode);
                 return child is not null;

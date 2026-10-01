@@ -4134,10 +4134,11 @@ namespace NeoCompose.Runtime.NeoScript
             string classId,
             string key,
             Context ctx,
-            out JsonMember? member)
+            out JsonMember? member,
+            out MergedSchemaEntry? entry)
         {
             member = null;
-            MergedSchemaEntry? entry;
+            entry = null;
             try
             {
                 NeoClassNode classNode = FindRowReference(receiver, ctx) is { } rowRef
@@ -4155,6 +4156,19 @@ namespace NeoCompose.Runtime.NeoScript
             // variant target member needs the client's lookup.
             member = entry.member;
             return member is not null || ctx.client.TryGetMember(entry.memberId, out member);
+        }
+
+        /// <summary>
+        /// The node of the stored child a member read of
+        /// <paramref name="entry"/> on <paramref name="receiver"/> remembered,
+        /// or null.
+        /// </summary>
+        internal static NeoValueNode? RememberedChildNode(object? receiver, MergedSchemaEntry entry)
+        {
+            if (receiver is not NeoObjectRecord record)
+                return null;
+            int slot = record.StoredSlot(entry);
+            return slot >= 0 ? record.StoredNode(slot) : null;
         }
 
         private static object? ReadOnlyDeclarationDefault(
