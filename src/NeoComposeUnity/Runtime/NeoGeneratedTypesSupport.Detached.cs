@@ -285,7 +285,7 @@ namespace NeoCompose.Runtime
         {
             NeoClient client = resolved.client;
             int frame =
-                EnterConstructionFrame(ctx, resolved.schemaClass.name);
+                EnterConstructionFrame(ctx, resolved.schemaClass.name, ref resolved.metadata.constructionFrames);
             try
             {
                 object?[] positionalArguments = FillDeclaredArguments(

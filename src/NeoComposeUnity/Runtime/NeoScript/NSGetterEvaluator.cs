@@ -440,6 +440,32 @@ namespace NeoCompose.Runtime.NeoScript
                     return false;
                 }
 
+                private const int SiteFrames = 8;
+
+                /// <summary>
+                /// <see cref="Push(IReadOnlyList{string}, string)"/> for one
+                /// site, which keeps the frames it pushed, one per parent: a
+                /// parent too wide to scan, like the root every class
+                /// constructs from, would otherwise hash the value.
+                /// </summary>
+                internal static IReadOnlyList<string> Push(
+                    IReadOnlyList<string> parent,
+                    string value,
+                    ref CallFrameStack?[]? siteFrames)
+                {
+                    CallFrameStack?[] frames = siteFrames ??= new CallFrameStack?[SiteFrames];
+                    int used = 0;
+                    for (; used < frames.Length && frames[used] is { } frame; used++)
+                    {
+                        if (ReferenceEquals(frame.parent, parent) && ReferenceEquals(frame.value, value))
+                            return frame;
+                    }
+                    IReadOnlyList<string> pushed = Push(parent, value);
+                    if (used < frames.Length && pushed is CallFrameStack stack)
+                        frames[used] = stack;
+                    return pushed;
+                }
+
                 internal static IReadOnlyList<string> Push(IReadOnlyList<string> parent, string value)
                 {
                     if (parent is not CallFrameStack frame)
@@ -1086,9 +1112,15 @@ namespace NeoCompose.Runtime.NeoScript
             /// a constructor cannot await, so nothing retains the frame once
             /// the construction returns.
             /// </summary>
-            internal int EnterConstruction(string label)
+            internal int EnterConstruction(string label) =>
+                EnterConstructionStack(CallFrameStack.Push(constructionStack, label));
+
+            /// <param name="siteFrames">The construction site's frames, see <see cref="CallFrameStack.Push(IReadOnlyList{string}, string, ref CallFrameStack?[])"/>.</param>
+            internal int EnterConstruction(string label, ref CallFrameStack?[]? siteFrames) =>
+                EnterConstructionStack(CallFrameStack.Push(constructionStack, label, ref siteFrames));
+
+            private int EnterConstructionStack(IReadOnlyList<string> stack)
             {
-                IReadOnlyList<string> stack = CallFrameStack.Push(constructionStack, label);
                 int frame = EnterNested(thisValue);
                 constructionStack = stack;
                 return frame;
@@ -3580,7 +3612,7 @@ namespace NeoCompose.Runtime.NeoScript
             string k = key as string ?? key?.ToString() ?? "null";
             if (receiver is NeoScriptObject detached)
             {
-                if (TryReadDetachedMember(detached, k, ctx, out object? detachedValue))
+                if (TryReadDetachedMember(detached, k, ctx, out object? detachedValue, keyOf))
                     return detachedValue;
                 receiver = ForwardDetached(detached, ctx);
             }
@@ -5160,7 +5192,8 @@ namespace NeoCompose.Runtime.NeoScript
                     ctx,
                     metadata.frameLabel ??= ConstructedClassLabel(
                         ctx,
-                        constructor.info.schemaClassInfo.classId));
+                        constructor.info.schemaClassInfo.classId),
+                    ref metadata.constructionFrames);
             try
             {
                 for (int i = 0; i < fields.Length; i++)

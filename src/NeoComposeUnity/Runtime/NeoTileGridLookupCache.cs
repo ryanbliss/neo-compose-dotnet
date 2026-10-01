@@ -34,6 +34,13 @@ namespace NeoCompose.Runtime
 
         private readonly NeoReadOnlyTileGridPrimitive primitive;
         private readonly Dictionary<string, TileLayerIndex> tileLayers = new();
+        // The tile layers recent cell queries resolved, matched by id
+        // reference: a query probes every layer once per cell, and hashing a
+        // layer id costs more than the probe. Cleared whenever an index drops.
+        private const int RecentTileLayerCount = 8;
+        private readonly string?[] recentTileLayerIds = new string?[RecentTileLayerCount];
+        private readonly TileLayerIndex?[] recentTileLayers = new TileLayerIndex?[RecentTileLayerCount];
+        private int nextRecentTileLayer;
         private readonly Dictionary<string, ObjectLayerIndex> objectLayers = new();
         private readonly Dictionary<string, TileLayerIndex> changedTileLayers = new();
         private readonly Dictionary<string, ObjectLayerIndex> changedObjectLayers = new();
@@ -84,6 +91,7 @@ namespace NeoCompose.Runtime
             primitive.Client.OnValuePartitionChanged -= HandleValuePartitionChanged;
             Changed = null;
             tileLayers.Clear();
+            ForgetRecentTileLayers();
             objectLayers.Clear();
             ObjectLayersVersion++;
             changedTileLayers.Clear();
@@ -173,6 +181,8 @@ namespace NeoCompose.Runtime
             {
                 tileLayers.Remove(change.LayerId);
             }
+            if (args.TileLayers.Count != 0)
+                ForgetRecentTileLayers();
             foreach (var change in args.ObjectLayers)
             {
                 objectLayers.Remove(change.LayerId);
@@ -198,6 +208,7 @@ namespace NeoCompose.Runtime
                 if (!plan.UnchangedValueIds.Contains(value.valueId))
                     ids.Add(value.valueId);
             InvalidateDependents(tileLayers, changedTileLayers, ids);
+            ForgetRecentTileLayers();
             InvalidateDependents(objectLayers, changedObjectLayers, ids);
             ObjectLayersVersion++;
             foreach (string layerId in changedTileLayers.Keys)
@@ -256,6 +267,7 @@ namespace NeoCompose.Runtime
             objectLayerIds = null;
             tileLayerIds = null;
             tileLayers.Clear();
+            ForgetRecentTileLayers();
             objectLayers.Clear();
             ObjectLayersVersion++;
             changedTileLayers.Clear();
@@ -307,6 +319,7 @@ namespace NeoCompose.Runtime
                 if (!layer.LeafDependencyIds.Contains(valueId))
                     continue;
                 InvalidateDependents(tileLayers, changedTileLayers, new HashSet<string> { valueId });
+                ForgetRecentTileLayers();
                 return true;
             }
             return false;
@@ -452,13 +465,28 @@ namespace NeoCompose.Runtime
 
         private TileLayerIndex GetTileLayerIndex(string layerId)
         {
+            for (int i = 0; i < RecentTileLayerCount; i++)
+            {
+                if (ReferenceEquals(recentTileLayerIds[i], layerId))
+                    return recentTileLayers[i]!;
+            }
             // Every indexed layer is already known; only a build registers one.
-            if (tileLayers.TryGetValue(layerId, out var index))
-                return index;
-            knownTileLayers.Add(layerId);
-            index = BuildTileLayerIndex(primitive.BuildTileLayerRecords(layerId));
-            tileLayers[layerId] = index;
+            if (!tileLayers.TryGetValue(layerId, out var index))
+            {
+                knownTileLayers.Add(layerId);
+                index = BuildTileLayerIndex(primitive.BuildTileLayerRecords(layerId));
+                tileLayers[layerId] = index;
+            }
+            recentTileLayerIds[nextRecentTileLayer] = layerId;
+            recentTileLayers[nextRecentTileLayer] = index;
+            nextRecentTileLayer = (nextRecentTileLayer + 1) % RecentTileLayerCount;
             return index;
+        }
+
+        private void ForgetRecentTileLayers()
+        {
+            Array.Clear(recentTileLayerIds, 0, RecentTileLayerCount);
+            Array.Clear(recentTileLayers, 0, RecentTileLayerCount);
         }
 
         private static TileLayerIndex BuildTileLayerIndex(NeoTileLayerBuild build)

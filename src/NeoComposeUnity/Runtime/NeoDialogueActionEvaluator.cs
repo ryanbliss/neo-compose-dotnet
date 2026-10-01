@@ -2315,7 +2315,7 @@ namespace NeoCompose.Runtime
                 if (receiver is NeoScriptObject { attachedId: null } detached
                     && WritesSessionTarget(instruction.target.writability)
                     && Eval(keyOfPointer.keyOf.key, scope, ctx) is string key
-                    && NSGetterEvaluator.TryWriteDetachedMember(detached, key, assigned, ctx))
+                    && NSGetterEvaluator.TryWriteDetachedMember(detached, key, assigned, ctx, keyOfPointer.keyOf))
                 {
                     return default;
                 }
@@ -2624,7 +2624,7 @@ namespace NeoCompose.Runtime
                         && instruction.mutation == CollectionMutationKind.Add
                         && WritesSessionTarget(instruction.target.writability)
                         && Eval(keyOfTarget.keyOf.key, scope, ctx) is string key
-                        && detached.plan.slotByKey.TryGetValue(key, out int slotIndex))
+                        && NSGetterEvaluator.TryFindDetachedSlot(detached.plan, key, keyOfTarget.keyOf, ctx, out int slotIndex))
                         return CollectionMutation.DetachedList(detached, slotIndex);
                     receiver = NSGetterEvaluator.ForwardDetached(detached, ctx);
                 }

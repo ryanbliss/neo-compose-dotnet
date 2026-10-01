@@ -561,6 +561,7 @@ namespace NeoCompose.Runtime
             // The class's construction frame label and detached plan, kept
             // with the resolution that already lives as long as the schema.
             internal string? frameLabel;
+            internal NeoScript.NSGetterEvaluator.Context.CallFrameStack?[]? constructionFrames;
             private object? detachedPlan;
             private static readonly object NoDetachedPlan = new();
 
@@ -615,6 +616,22 @@ namespace NeoCompose.Runtime
             NeoScript.NSGetterEvaluator.Context ctx,
             string label)
         {
+            CheckConstructionDepth(ctx, label);
+            return ctx.EnterConstruction(label);
+        }
+
+        /// <param name="siteFrames">The construction site's frames, so a hot site skips the frame search.</param>
+        internal static int EnterConstructionFrame(
+            NeoScript.NSGetterEvaluator.Context ctx,
+            string label,
+            ref NeoScript.NSGetterEvaluator.Context.CallFrameStack?[]? siteFrames)
+        {
+            CheckConstructionDepth(ctx, label);
+            return ctx.EnterConstruction(label, ref siteFrames);
+        }
+
+        private static void CheckConstructionDepth(NeoScript.NSGetterEvaluator.Context ctx, string label)
+        {
             if (ctx.constructionStack.Count >= MaxConstructionDepth)
             {
                 var chain = new List<string>(ctx.constructionStack) { label };
@@ -624,7 +641,6 @@ namespace NeoCompose.Runtime
                 throw new NeoScript.NSGetterRuntimeError(
                     $"Class construction depth exceeded {MaxConstructionDepth} frames: {string.Join(" -> ", chain)}.");
             }
-            return ctx.EnterConstruction(label);
         }
 
         /// <summary>
@@ -4411,7 +4427,7 @@ namespace NeoCompose.Runtime
             NeoClient client = resolved.client;
             using var replayCapture = client.BeginNestedConstructorCapture();
             int frame =
-                EnterConstructionFrame(ctx, resolved.schemaClass.name);
+                EnterConstructionFrame(ctx, resolved.schemaClass.name, ref resolved.metadata.constructionFrames);
             try
             {
                 object?[] positionalArguments = FillDeclaredArguments(
