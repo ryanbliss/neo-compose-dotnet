@@ -6422,12 +6422,12 @@ namespace NeoCompose.Runtime.NeoScript
             Context ctx,
             out double number)
         {
-            string name = MathOpFunctionName(info.op);
-            int arity = MathOpArity(info.op);
+            MathOp op = MathOf(info);
+            int arity = MathOpArity(op);
             if (info.argPointers.Length != arity)
             {
                 throw new NSGetterRuntimeError(
-                    $"Math.{name} takes {arity} arguments; got {info.argPointers.Length}.");
+                    $"Math.{MathOpFunctionName(info.op)} takes {arity} arguments; got {info.argPointers.Length}.");
             }
             // Math intrinsics take at most three operands; they stay in locals.
             object? r0 = null;
@@ -6447,23 +6447,23 @@ namespace NeoCompose.Runtime.NeoScript
             // Evaluate all arguments before validating any of them.
             for (int i = 0; i < arity; i++)
                 if (ArithmeticValue.Box(Arg(i), values[i]) is null)
-                    throw new NSGetterRuntimeError($"Math.{name} argument is null.");
+                    throw new NSGetterRuntimeError($"Math.{MathOpFunctionName(info.op)} argument is null.");
             if (info.isDecimal == true)
             {
                 var decimalArgs = new object?[arity];
                 for (int i = 0; i < arity; i++)
                     decimalArgs[i] = ArithmeticValue.Box(Arg(i), values[i]);
                 number = 0;
-                return EvalDecimalMathOp(info.op, name, decimalArgs);
+                return EvalDecimalMathOp(op, MathOpFunctionName(info.op), decimalArgs);
             }
             for (int i = 0; i < arity; i++)
             {
                 if (!ArithmeticValue.IsNumeric(Arg(i)))
                     throw new NSGetterRuntimeError(
-                        $"Math.{name} argument is not numeric: {ReceiverTypeName(Arg(i))}.");
+                        $"Math.{MathOpFunctionName(info.op)} argument is not numeric: {ReceiverTypeName(Arg(i))}.");
                 values[i] = ArithmeticValue.NumberOf(Arg(i), values[i]);
             }
-            number = EvalFloatMathOp(info.op, name, values);
+            number = EvalFloatMathOp(op, info.op, values);
             return ArithmeticValue.BareNumber;
 
             object? Arg(int index) => index == 0 ? r0 : index == 1 ? r1 : r2;
@@ -6478,17 +6478,18 @@ namespace NeoCompose.Runtime.NeoScript
         /// minting a value the runtime's integral validation would refuse
         /// downstream (P69 §2.5).
         /// </summary>
-        private static double EvalFloatMathOp(string op, string name, ReadOnlySpan<double> values)
+        /// <param name="wireOp">The op as the IR spells it, for error messages.</param>
+        private static double EvalFloatMathOp(MathOp op, string wireOp, ReadOnlySpan<double> values)
         {
             switch (op)
             {
                 // Min/Max propagate NaN and order -0.0 below 0.0 in both
                 // hosts, so the standard APIs are the contract (P69 §2.2).
-                case MathOpKind.Min:
+                case MathOp.Min:
                     return System.Math.Min(values[0], values[1]);
-                case MathOpKind.Max:
+                case MathOp.Max:
                     return System.Math.Max(values[0], values[1]);
-                case MathOpKind.Clamp:
+                case MathOp.Clamp:
                     {
                         // System.Math.Clamp's algorithm, spelled out because the
                         // web has no native clamp and the guard must raise our
@@ -6508,26 +6509,26 @@ namespace NeoCompose.Runtime.NeoScript
                             return max;
                         return value;
                     }
-                case MathOpKind.Round:
-                    RequireFiniteMathArgument(name, values[0]);
+                case MathOp.Round:
+                    RequireFiniteMathArgument(wireOp, values[0]);
                     // System.Math.Round(double)'s default midpoint mode is
                     // already ToEven, and half-even is the pinned
                     // cross-runtime contract (P69 §2.4) — the same midpoint
                     // rule decimal.Round(digits) has always used. The web
                     // evaluator hand-rolls it, because JS rounds half up.
                     return System.Math.Round(values[0]);
-                case MathOpKind.Floor:
-                    RequireFiniteMathArgument(name, values[0]);
+                case MathOp.Floor:
+                    RequireFiniteMathArgument(wireOp, values[0]);
                     return System.Math.Floor(values[0]);
-                case MathOpKind.Ceiling:
-                    RequireFiniteMathArgument(name, values[0]);
+                case MathOp.Ceiling:
+                    RequireFiniteMathArgument(wireOp, values[0]);
                     return System.Math.Ceiling(values[0]);
-                case MathOpKind.Truncate:
-                    RequireFiniteMathArgument(name, values[0]);
+                case MathOp.Truncate:
+                    RequireFiniteMathArgument(wireOp, values[0]);
                     return System.Math.Truncate(values[0]);
-                case MathOpKind.Abs:
+                case MathOp.Abs:
                     return System.Math.Abs(values[0]);
-                case MathOpKind.Sign:
+                case MathOp.Sign:
                     {
                         // System.Math.Sign's three-way answer, not JS's ±0/NaN
                         // one: NaN is a runtime error and both zeros give 0
@@ -6545,10 +6546,10 @@ namespace NeoCompose.Runtime.NeoScript
                     }
                 // Correctly rounded by IEEE 754 in both hosts, and NaN for a
                 // negative argument in both.
-                case MathOpKind.Sqrt:
+                case MathOp.Sqrt:
                     return System.Math.Sqrt(values[0]);
                 default:
-                    throw new NSGetterRuntimeError($"Unknown math op '{op}'.");
+                    throw new NSGetterRuntimeError($"Unknown math op '{wireOp}'.");
             }
         }
 
@@ -6560,7 +6561,7 @@ namespace NeoCompose.Runtime.NeoScript
         /// <c>System.Math.Floor(decimal)</c>'s shape — except <c>Sign</c>,
         /// which is Int-typed on every numeric input.
         /// </summary>
-        private static object EvalDecimalMathOp(string op, string name, object?[] args)
+        private static object EvalDecimalMathOp(MathOp op, string name, object?[] args)
         {
             var values = new string[args.Length];
             for (int i = 0; i < args.Length; i++)
@@ -6581,11 +6582,11 @@ namespace NeoCompose.Runtime.NeoScript
                 {
                     // Ties return the first argument, which is observable:
                     // "1.10" and "1.1" are equal but not interchangeable.
-                    case MathOpKind.Min:
+                    case MathOp.Min:
                         return NeoDecimalMath.Min(values[0], values[1]);
-                    case MathOpKind.Max:
+                    case MathOp.Max:
                         return NeoDecimalMath.Max(values[0], values[1]);
-                    case MathOpKind.Clamp:
+                    case MathOp.Clamp:
                         {
                             // The §2.3 algorithm again, on exact comparisons; a
                             // decimal is never NaN, so nothing falls through.
@@ -6601,17 +6602,17 @@ namespace NeoCompose.Runtime.NeoScript
                         }
                     // Round(decimal) is defined as exactly x.Round(0), so the
                     // two spellings run the same code and can never drift.
-                    case MathOpKind.Round:
+                    case MathOp.Round:
                         return NeoDecimalMath.Round(values[0], 0);
-                    case MathOpKind.Floor:
+                    case MathOp.Floor:
                         return NeoDecimalMath.Floor(values[0]);
-                    case MathOpKind.Ceiling:
+                    case MathOp.Ceiling:
                         return NeoDecimalMath.Ceiling(values[0]);
-                    case MathOpKind.Truncate:
+                    case MathOp.Truncate:
                         return NeoDecimalMath.Truncate(values[0]);
-                    case MathOpKind.Abs:
+                    case MathOp.Abs:
                         return NeoDecimalMath.Abs(values[0]);
-                    case MathOpKind.Sign:
+                    case MathOp.Sign:
                         return (double)NeoDecimalMath.Compare(values[0], "0");
                     default:
                         // Sqrt is the one op the compiler refuses on decimals:
@@ -6632,12 +6633,12 @@ namespace NeoCompose.Runtime.NeoScript
         /// validation refuses downstream (P69 §2.5). Min/Max/Clamp/Abs/Sqrt
         /// stay Float-typed and keep host non-finite semantics.
         /// </summary>
-        private static void RequireFiniteMathArgument(string name, double value)
+        private static void RequireFiniteMathArgument(string wireOp, double value)
         {
             if (double.IsNaN(value) || double.IsInfinity(value))
             {
                 throw new NSGetterRuntimeError(
-                    $"Math.{name} requires a finite argument.");
+                    $"Math.{MathOpFunctionName(wireOp)} requires a finite argument.");
             }
         }
 
@@ -6681,18 +6682,40 @@ namespace NeoCompose.Runtime.NeoScript
         /// since the compiler already enforces arity; an unrecognized op is
         /// treated as unary so the dispatch switch reports it.
         /// </summary>
-        private static int MathOpArity(string op)
+        private static int MathOpArity(MathOp op)
         {
             switch (op)
             {
-                case MathOpKind.Clamp:
+                case MathOp.Clamp:
                     return 3;
-                case MathOpKind.Min:
-                case MathOpKind.Max:
+                case MathOp.Min:
+                case MathOp.Max:
                     return 2;
                 default:
                     return 1;
             }
+        }
+
+        // The op parsed once per call site: a string switch hashes and
+        // compares it on every evaluation.
+        private static MathOp MathOf(FunctionMathOpInfo info)
+        {
+            if (info.parsedOp != MathOp.Unresolved)
+                return info.parsedOp;
+            return info.parsedOp = info.op switch
+            {
+                MathOpKind.Min => MathOp.Min,
+                MathOpKind.Max => MathOp.Max,
+                MathOpKind.Clamp => MathOp.Clamp,
+                MathOpKind.Round => MathOp.Round,
+                MathOpKind.Floor => MathOp.Floor,
+                MathOpKind.Ceiling => MathOp.Ceiling,
+                MathOpKind.Truncate => MathOp.Truncate,
+                MathOpKind.Abs => MathOp.Abs,
+                MathOpKind.Sign => MathOp.Sign,
+                MathOpKind.Sqrt => MathOp.Sqrt,
+                _ => MathOp.Unknown,
+            };
         }
 
         // ---------------------------------------------------------------

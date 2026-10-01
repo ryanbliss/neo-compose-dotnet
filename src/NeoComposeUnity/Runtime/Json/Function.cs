@@ -285,6 +285,25 @@ namespace NeoCompose.Runtime.Json
         /// </summary>
         [JsonProperty("decimal")]
         public bool? isDecimal;
+        // Evaluator cache for op, parsed once.
+        internal MathOp parsedOp;
+    }
+
+    /// <summary>A parsed <see cref="MathOpKind"/>.</summary>
+    internal enum MathOp : byte
+    {
+        Unresolved,
+        Min,
+        Max,
+        Clamp,
+        Round,
+        Floor,
+        Ceiling,
+        Truncate,
+        Abs,
+        Sign,
+        Sqrt,
+        Unknown,
     }
 
     /// <summary>
