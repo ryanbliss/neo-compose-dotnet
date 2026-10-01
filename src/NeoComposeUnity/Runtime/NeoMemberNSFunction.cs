@@ -151,7 +151,7 @@ namespace NeoCompose.Runtime
         {
             args ??= Array.Empty<object?>();
             MemberValue row = ReceiverRow(thisValueId);
-            NSGetterEvaluator.Context ctx = client.RentDirectFunctionContext(ownership);
+            NSGetterEvaluator.Context ctx = client.RentDirectFunctionContext(ownership, function: true);
             object receiver = UnwrapReceiver(row, ctx);
             NeoResolvedNSFunction function = ResolveInstanceFunction(receiver, row, ctx);
             ctx.gridReads = gridReads;
@@ -298,7 +298,7 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"NSFunction '{function.Member.name}' is deferred; use InvokeStaticAsync.");
             }
-            NSGetterEvaluator.Context ctx = client.RentDirectFunctionContext(NeoValueOwnership.Session);
+            NSGetterEvaluator.Context ctx = client.RentDirectFunctionContext(NeoValueOwnership.Session, function: true);
             NeoScriptExecutionResult result = NeoNSFunctionRuntime.ExecuteResolved(
                 client,
                 function,
@@ -537,7 +537,7 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"NSFunction '{function.Member.name}' is deferred; use InvokeAsync.");
             }
-            NSGetterEvaluator.Context ctx = client.RentDirectFunctionContext(NeoValueOwnership.Session);
+            NSGetterEvaluator.Context ctx = client.RentDirectFunctionContext(NeoValueOwnership.Session, function: true);
             NeoScriptExecutionResult result = ExecuteResolved(
                 client,
                 function,

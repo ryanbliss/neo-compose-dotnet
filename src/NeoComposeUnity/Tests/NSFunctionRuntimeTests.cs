@@ -172,6 +172,20 @@ namespace NeoCompose.Tests
             var reused = client.RentDirectFunctionContext(NeoValueOwnership.Session);
             Assert.That(reused, Is.SameAs(first));
             Assert.That(reused.thisValue, Is.Null);
+            var callStack = new[] { "bound-function" };
+            var handlers = new NSGetterEvaluator.Context.ExpressionHandlers((_, _, _) => null, (_, _, _) => null);
+            reused.BindFunction(callStack, null);
+            reused.BindFrameHandlers(-1, handlers);
+            client.ReturnDirectFunctionContext(reused, 1);
+            var function = client.RentDirectFunctionContext(NeoValueOwnership.Session, function: true);
+            Assert.That(function, Is.SameAs(first));
+            Assert.That(function.functionCallStack, Is.SameAs(callStack), "A direct function call keeps the binding it binds again.");
+            Assert.That(function.expressionHandlers, Is.SameAs(handlers));
+            client.ReturnDirectFunctionContext(function, 1);
+            reused = client.RentDirectFunctionContext(NeoValueOwnership.Session);
+            Assert.That(reused, Is.SameAs(first));
+            Assert.That(reused.functionCallStack, Is.Empty, "Any other renter starts outside a function.");
+            Assert.That(reused.expressionHandlers, Is.Null);
             client.ReturnDirectFunctionContext(reused, 1);
             client.InvalidateSchemaResolutionCaches();
             // Every slot, not just the count: a slot above the count still

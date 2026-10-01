@@ -1037,7 +1037,8 @@ namespace NeoCompose.Runtime
             directFunctionContextCount = 0;
         }
 
-        internal NeoScript.NSGetterEvaluator.Context RentDirectFunctionContext(NeoValueOwnership ownership)
+        /// <param name="function">Whether a direct function call binds the context, which keeps the binding the last one left.</param>
+        internal NeoScript.NSGetterEvaluator.Context RentDirectFunctionContext(NeoValueOwnership ownership, bool function = false)
         {
             for (int i = directFunctionContextCount - 1; i >= 0; i--)
             {
@@ -1054,7 +1055,11 @@ namespace NeoCompose.Runtime
                     && sharedEvaluationContext is not null
                     && ReferenceEquals(context.rowUnwrapCache, sharedEvaluationContext.rowUnwrapCache)
                     && sharedEvaluationContext.rowUnwrapCache.Count <= SharedRowCacheLimit)
+                {
+                    if (!function)
+                        context.ClearFunctionBinding();
                     return context;
+                }
                 directFunctionContexts[last] = null;
             }
             var created = CreateGetterContext(ownership);

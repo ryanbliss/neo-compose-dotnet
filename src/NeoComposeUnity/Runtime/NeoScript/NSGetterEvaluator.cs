@@ -895,12 +895,21 @@ namespace NeoCompose.Runtime.NeoScript
                     gridReads = null;
                 if (initializerPlacement is not null)
                     initializerPlacement = null;
-                functionCallStackField = null;
                 genericEnvironmentCacheStore?.Clear();
                 immediateExpressionContext = null;
                 immediateExpressionSource = null;
                 immediateExpressionState = null;
                 immediateExpressionOptions = null;
+                // The function binding stays: the next direct function call
+                // usually binds the same call stack and handlers, and
+                // skipping those stores skips their write barriers. Any
+                // other renter clears it first.
+            }
+
+            /// <summary>Drops the call stack and handlers a direct function call left bound.</summary>
+            internal void ClearFunctionBinding()
+            {
+                functionCallStackField = null;
                 expressionHandlersField = null;
             }
 
@@ -915,7 +924,8 @@ namespace NeoCompose.Runtime.NeoScript
             // Only for a newly created direct-call context that no frame has seen.
             internal void BindFunction(IReadOnlyList<string> directCallStack, object? receiver)
             {
-                functionCallStackField = directCallStack;
+                if (!ReferenceEquals(functionCallStackField, directCallStack))
+                    functionCallStackField = directCallStack;
                 // A pooled context comes back with a null receiver, which a
                 // static call keeps: skip that store's write barrier.
                 if (!ReferenceEquals(thisValueField, receiver))
