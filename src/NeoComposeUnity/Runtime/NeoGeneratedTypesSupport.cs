@@ -783,7 +783,7 @@ namespace NeoCompose.Runtime
                 }
                 finally
                 {
-                    initializerContext.ExitNested(frame);
+                    initializerContext.ExitFunction(frame);
                 }
             }
         }
@@ -4533,7 +4533,7 @@ namespace NeoCompose.Runtime
             }
             finally
             {
-                ctx.ExitNested(frame);
+                ctx.ExitFunction(frame);
             }
         }
 

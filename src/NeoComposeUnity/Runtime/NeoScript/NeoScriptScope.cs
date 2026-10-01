@@ -460,8 +460,12 @@ namespace NeoCompose.Runtime.NeoScript
             if (slotKinds[slot] == EmptySlot)
                 occupiedCount++;
             slotKinds[slot] = ValueSlot;
-            slotValues[slot].value = value;
-            slotValues[slot].aliasEpoch = 0;
+            // A cleared slot holds null, and a rebound one often the same
+            // value: skip that store's write barrier.
+            ref var entry = ref slotValues[slot];
+            if (!ReferenceEquals(entry.value, value))
+                entry.value = value;
+            entry.aliasEpoch = 0;
         }
 
         // A number slot boxes on read, as the stored struct did.

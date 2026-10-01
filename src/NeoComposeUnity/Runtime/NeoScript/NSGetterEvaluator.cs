@@ -487,7 +487,10 @@ namespace NeoCompose.Runtime.NeoScript
                     IReadOnlyList<string> frames = this;
                     while (frames is CallFrameStack frame)
                     {
-                        if (frame.Count > 0 && frame.value == item)
+                        // A root holds no frames, and nothing under it does.
+                        if (frame.Count == 0)
+                            return false;
+                        if (frame.value == item)
                             return true;
                         frames = frame.parent;
                     }
@@ -634,8 +637,15 @@ namespace NeoCompose.Runtime.NeoScript
             /// </summary>
             public IReadOnlyCollection<string> getterCallStack
             {
-                get; private set;
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                get => getterCallStackFrame < 0
+                    ? getterCallStackField
+                    : frameStack!.frames[getterCallStackFrame].getterCallStack!;
             }
+            private IReadOnlyCollection<string> getterCallStackField;
+            // The frame holding the running getter's stack, or -1 for the
+            // field, for the same reason as functionCallStackFrame.
+            private int getterCallStackFrame = -1;
             /// <summary>
             /// Stack of NSProperty member ids whose setters are currently
             /// executing. Kept separate from <see cref="getterCallStack"/>,
@@ -704,8 +714,15 @@ namespace NeoCompose.Runtime.NeoScript
             /// </summary>
             public IReadOnlyList<string> constructionStack
             {
-                get; private set;
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                get => constructionStackFrame < 0
+                    ? constructionStackField
+                    : frameStack!.frames[constructionStackFrame].constructionStack!;
             }
+            private IReadOnlyList<string> constructionStackField;
+            // The frame holding the running construction's stack, or -1 for
+            // the field, for the same reason as functionCallStackFrame.
+            private int constructionStackFrame = -1;
             internal NeoValueOwnership valueOwnership
             {
                 get;
@@ -888,7 +905,7 @@ namespace NeoCompose.Runtime.NeoScript
                 this.rootValue = rootValue;
                 this.contextValue = contextValue;
                 this.memoryStore = memoryStore;
-                this.getterCallStack = getterCallStack ?? client.EmptyCallFrames;
+                getterCallStackField = getterCallStack ?? client.EmptyCallFrames;
                 this.setterCallStack = setterCallStack ?? client.EmptyCallFrames;
                 this.rowUnwrapCache = rowUnwrapCache ?? new Dictionary<RowCacheKey, object?>();
                 this.rowReverseIndex = rowReverseIndex
@@ -904,7 +921,7 @@ namespace NeoCompose.Runtime.NeoScript
                 this.callableDispatchCache = callableDispatchCache
                     ?? client.ScriptCallableDispatch;
                 genericEnvironmentCacheStore = genericEnvironmentCache;
-                this.constructionStack = constructionStack
+                constructionStackField = constructionStack
                     ?? client.EmptyCallFrames;
                 allocationTracker = new NeoScriptAllocationTracker();
             }
@@ -926,6 +943,16 @@ namespace NeoCompose.Runtime.NeoScript
                 {
                     fork.expressionHandlersField = expressionHandlers;
                     fork.expressionHandlersFrame = -1;
+                }
+                if (getterCallStackFrame >= 0)
+                {
+                    fork.getterCallStackField = getterCallStack;
+                    fork.getterCallStackFrame = -1;
+                }
+                if (constructionStackFrame >= 0)
+                {
+                    fork.constructionStackField = constructionStack;
+                    fork.constructionStackFrame = -1;
                 }
                 return fork;
             }
@@ -1058,6 +1085,8 @@ namespace NeoCompose.Runtime.NeoScript
                 internal ExpressionHandlers? expressionHandlers;
                 internal int callerFunctionCallStackFrame;
                 internal int callerExpressionHandlersFrame;
+                internal int callerGetterCallStackFrame;
+                internal int callerConstructionStackFrame;
                 // Whether the frame replaced this: most calls keep it, and
                 // saving it anyway write-barriers.
                 internal bool thisSaved;
@@ -1067,7 +1096,7 @@ namespace NeoCompose.Runtime.NeoScript
                 internal object? immediateExpressionOptions;
                 internal NeoScriptGridReads? gridReads;
                 internal ClassMember? initializerPlacement;
-                // Getter and construction frames only.
+                // Entered by getter and construction frames only.
                 internal IReadOnlyCollection<string>? getterCallStack;
                 internal IReadOnlyList<string>? constructionStack;
                 internal bool constructorBody;
@@ -1132,6 +1161,8 @@ namespace NeoCompose.Runtime.NeoScript
                 ref FunctionFrame saved = ref stack.frames[frame];
                 saved.callerFunctionCallStackFrame = functionCallStackFrame;
                 saved.callerExpressionHandlersFrame = expressionHandlersFrame;
+                saved.callerGetterCallStackFrame = getterCallStackFrame;
+                saved.callerConstructionStackFrame = constructionStackFrame;
                 // The immediate expression fields are set and cleared together.
                 if (immediateExpressionContext is not null)
                 {
@@ -1215,6 +1246,8 @@ namespace NeoCompose.Runtime.NeoScript
                 }
                 functionCallStackFrame = saved.callerFunctionCallStackFrame;
                 expressionHandlersFrame = saved.callerExpressionHandlersFrame;
+                getterCallStackFrame = saved.callerGetterCallStackFrame;
+                constructionStackFrame = saved.callerConstructionStackFrame;
                 if (!ReferenceEquals(immediateExpressionContext, saved.immediateExpressionContext))
                     immediateExpressionContext = saved.immediateExpressionContext;
                 if (!ReferenceEquals(immediateExpressionSource, saved.immediateExpressionSource))
@@ -1248,8 +1281,11 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 IReadOnlyCollection<string> stack = CallFrameStack.Push(
                     getterCallStack as IReadOnlyList<string> ?? getterCallStack.ToArray(), memberId);
-                int frame = EnterNested(receiver);
-                getterCallStack = stack;
+                int frame = EnterThis(receiver);
+                ref FunctionFrame entered = ref frameStack!.frames[frame];
+                if (!ReferenceEquals(entered.getterCallStack, stack))
+                    entered.getterCallStack = stack;
+                getterCallStackFrame = frame;
                 return frame;
             }
 
@@ -1267,30 +1303,12 @@ namespace NeoCompose.Runtime.NeoScript
 
             private int EnterConstructionStack(IReadOnlyList<string> stack)
             {
-                int frame = EnterNested(thisValue);
-                constructionStack = stack;
+                int frame = EnterThis(thisValue);
+                ref FunctionFrame entered = ref frameStack!.frames[frame];
+                if (!ReferenceEquals(entered.constructionStack, stack))
+                    entered.constructionStack = stack;
+                constructionStackFrame = frame;
                 return frame;
-            }
-
-            private int EnterNested(object? receiver)
-            {
-                int frame = EnterThis(receiver);
-                ref FunctionFrame saved = ref frameStack!.frames[frame];
-                if (!ReferenceEquals(saved.getterCallStack, getterCallStack))
-                    saved.getterCallStack = getterCallStack;
-                if (!ReferenceEquals(saved.constructionStack, constructionStack))
-                    saved.constructionStack = constructionStack;
-                return frame;
-            }
-
-            internal void ExitNested(int frame)
-            {
-                ref FunctionFrame saved = ref frameStack!.frames[frame];
-                if (!ReferenceEquals(getterCallStack, saved.getterCallStack))
-                    getterCallStack = saved.getterCallStack!;
-                if (!ReferenceEquals(constructionStack, saved.constructionStack))
-                    constructionStack = saved.constructionStack!;
-                ExitFunction(frame);
             }
 
         }
@@ -4473,7 +4491,7 @@ namespace NeoCompose.Runtime.NeoScript
                 }
                 finally
                 {
-                    ctx.ExitNested(frame);
+                    ctx.ExitFunction(frame);
                 }
             }
             NeoClient.GetterCaptureFrame enclosingCapture = client.BeginGetterReadCapture();
@@ -4485,7 +4503,7 @@ namespace NeoCompose.Runtime.NeoScript
             }
             finally
             {
-                ctx.ExitNested(frame);
+                ctx.ExitFunction(frame);
                 capture = client.EndGetterReadCapture(enclosingCapture);
             }
             NeoClient.GetterMemoEntry? memoized = null;
@@ -5661,7 +5679,7 @@ namespace NeoCompose.Runtime.NeoScript
             }
             finally
             {
-                ctx.ExitNested(frame);
+                ctx.ExitFunction(frame);
             }
         }
 
@@ -9516,6 +9534,9 @@ namespace NeoCompose.Runtime.NeoScript
 
         internal static RowReference? FindRowReference(object? value, Context ctx)
         {
+            // A static receiver, among others.
+            if (value is null)
+                return null;
             if (value is NeoObjectRecord objectRecord)
             {
                 // A record carries its own entry: it is indexed exactly when

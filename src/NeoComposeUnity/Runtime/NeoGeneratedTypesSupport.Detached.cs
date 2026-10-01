@@ -352,7 +352,7 @@ namespace NeoCompose.Runtime
             }
             finally
             {
-                ctx.ExitNested(frame);
+                ctx.ExitFunction(frame);
             }
         }
 
