@@ -593,7 +593,7 @@ namespace NeoCompose.Runtime.NeoScript
                     // Only RememberListAlias sets the epoch, on the list the
                     // slot still holds, and every store resets it.
                     ref Slot stored = ref scope.slotValues[slot];
-                    remembered = stored.aliasEpoch == NSGetterEvaluator.ListAliasEpoch
+                    remembered = stored.aliasEpoch == NSGetterEvaluator.CollectionAliasEpoch
                         && ReferenceEquals(stored.aliasIndex, aliasIndex);
                     if (remembered && stored.rowAlias is not null)
                         rowAlias = stored.rowAlias;

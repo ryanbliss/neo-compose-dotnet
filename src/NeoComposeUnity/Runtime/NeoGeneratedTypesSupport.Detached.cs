@@ -599,7 +599,7 @@ namespace NeoCompose.Runtime
                 // A List slot holds its own copy, first handed out here, so
                 // no variable can have remembered it as a plain list.
                 if (target.plan.slots[index].kind != DetachedSlotKind.List)
-                    NSGetterEvaluator.NoteListAlias();
+                    NSGetterEvaluator.NoteCollectionAlias();
             }
             return value;
         }

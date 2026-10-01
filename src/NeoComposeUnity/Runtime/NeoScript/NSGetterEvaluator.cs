@@ -778,15 +778,15 @@ namespace NeoCompose.Runtime.NeoScript
             }
 
             // Shared with the context's family, like its frames.
-            private ArrayRowCache? arrayRows;
+            private CollectionRowCache? collectionRows;
 
-            /// <summary>The row a list aliases, or null.</summary>
-            internal RowReference? ArrayRowReference(object?[] array) =>
-                (arrayRows ??= new ArrayRowCache()).Find(array, rowReverseIndex);
+            /// <summary>The row a list or dictionary aliases, or null.</summary>
+            internal RowReference? CollectionRowReference(object collection) =>
+                (collectionRows ??= new CollectionRowCache()).Find(collection, rowReverseIndex);
 
             /// <summary>The detached slot a list aliases, or null.</summary>
             internal NeoGeneratedTypesSupport.DetachedArrayOrigin? ArrayDetachedOrigin(object?[] array) =>
-                (arrayRows ??= new ArrayRowCache()).Detached(array, rowReverseIndex);
+                (collectionRows ??= new CollectionRowCache()).Detached(array, rowReverseIndex);
 
             /// <summary>
             /// Records a list the evaluator just allocated, so its reads skip
@@ -796,7 +796,7 @@ namespace NeoCompose.Runtime.NeoScript
             internal void NoteFreshList(object?[] list)
             {
                 if (list.Length > 0)
-                    (arrayRows ??= new ArrayRowCache()).NoteFresh(list, rowReverseIndex);
+                    (collectionRows ??= new CollectionRowCache()).NoteFresh(list, rowReverseIndex);
             }
             // The shared table's entry for rowReverseIndex, which never
             // changes and is never removed, so the context keeps it rather
@@ -1131,7 +1131,7 @@ namespace NeoCompose.Runtime.NeoScript
             internal void ShareFrames(Context family)
             {
                 frameStack = family.Frames;
-                arrayRows = family.arrayRows ??= new ArrayRowCache();
+                collectionRows = family.collectionRows ??= new CollectionRowCache();
             }
 
             /// <summary>
@@ -1351,20 +1351,20 @@ namespace NeoCompose.Runtime.NeoScript
         }
 
         /// <summary>
-        /// Lists a context family looked up in its row reverse index and the
-        /// detached-origin table, as of <see cref="ListAliasEpoch"/>: a
-        /// weak-table lookup takes a lock and hashes the list, and frames read
-        /// the same lists again and again (an enum value is a shared
-        /// one-entry list). A list becomes an alias only when first
-        /// unwrapped or exposed, so a miss stays a miss until the epoch
-        /// moves. Direct-mapped by identity hash, which Mono's non-moving GC
+        /// Lists and dictionaries a context family looked up in its row
+        /// reverse index, and lists in the detached-origin table, as of
+        /// <see cref="CollectionAliasEpoch"/>: a weak-table lookup takes a
+        /// lock and hashes the collection, and frames read the same ones
+        /// again and again (an enum value is a shared one-entry list). A
+        /// collection becomes an alias only when first unwrapped or exposed,
+        /// so a miss stays a miss until the epoch moves. Direct-mapped by identity hash, which Mono's non-moving GC
         /// derives from the address without a call.
         /// </summary>
-        private sealed class ArrayRowCache
+        private sealed class CollectionRowCache
         {
             private struct Entry
             {
-                internal object?[]? array;
+                internal object? collection;
                 internal RowReference? row;
                 internal NeoGeneratedTypesSupport.DetachedArrayOrigin? detached;
                 internal int epoch;
@@ -1376,17 +1376,17 @@ namespace NeoCompose.Runtime.NeoScript
             private readonly Entry[] entries = new Entry[Capacity];
             private ConditionalWeakTable<object, RowReference>? table;
 
-            internal RowReference? Find(object?[] array, ConditionalWeakTable<object, RowReference> index) =>
-                Slot(array, index).row;
+            internal RowReference? Find(object collection, ConditionalWeakTable<object, RowReference> index) =>
+                Slot(collection, index).row;
 
             internal void NoteFresh(object?[] array, ConditionalWeakTable<object, RowReference> index)
             {
                 ref Entry entry = ref Entries(index)[IndexOf(array)];
-                entry.array = array;
+                entry.collection = array;
                 entry.row = null;
                 entry.detached = null;
                 entry.detachedKnown = true;
-                entry.epoch = ListAliasEpoch;
+                entry.epoch = CollectionAliasEpoch;
             }
 
             internal NeoGeneratedTypesSupport.DetachedArrayOrigin? Detached(
@@ -1402,14 +1402,14 @@ namespace NeoCompose.Runtime.NeoScript
                 return entry.detached;
             }
 
-            private ref Entry Slot(object?[] array, ConditionalWeakTable<object, RowReference> index)
+            private ref Entry Slot(object collection, ConditionalWeakTable<object, RowReference> index)
             {
-                int current = ListAliasEpoch;
-                ref Entry entry = ref Entries(index)[IndexOf(array)];
-                if (entry.epoch != current || !ReferenceEquals(entry.array, array))
+                int current = CollectionAliasEpoch;
+                ref Entry entry = ref Entries(index)[IndexOf(collection)];
+                if (entry.epoch != current || !ReferenceEquals(entry.collection, collection))
                 {
-                    index.TryGetValue(array, out RowReference? row);
-                    entry.array = array;
+                    index.TryGetValue(collection, out RowReference? row);
+                    entry.collection = collection;
                     entry.row = row;
                     entry.detached = null;
                     entry.detachedKnown = false;
@@ -1428,8 +1428,8 @@ namespace NeoCompose.Runtime.NeoScript
                 return entries;
             }
 
-            private static int IndexOf(object?[] array) =>
-                (int)((uint)RuntimeHelpers.GetHashCode(array) * 2654435769u >> IndexShift);
+            private static int IndexOf(object collection) =>
+                (int)((uint)RuntimeHelpers.GetHashCode(collection) * 2654435769u >> IndexShift);
         }
 
         internal sealed class RowAliasIndex
@@ -1488,14 +1488,14 @@ namespace NeoCompose.Runtime.NeoScript
             internal void Remove(NeoValueOwnership ownership, string id) => rows.Remove(RowCacheRowKey(ownership, id));
         }
 
-        // Moves after any array becomes or stops being a row alias, or becomes
-        // a detached-slot alias, so a variable can remember what its list
-        // aliased as of a count.
-        private static int listAliasEpoch = 1;
+        // Moves after any list or dictionary becomes or stops being a row
+        // alias, or a list becomes a detached-slot alias, so a variable can
+        // remember what its list aliased as of a count.
+        private static int collectionAliasEpoch = 1;
 
-        internal static int ListAliasEpoch => listAliasEpoch;
+        internal static int CollectionAliasEpoch => collectionAliasEpoch;
 
-        internal static void NoteListAlias() => listAliasEpoch++;
+        internal static void NoteCollectionAlias() => collectionAliasEpoch++;
 
         private static void SetRowReference(Context ctx, object alias, RowReference row)
         {
@@ -1506,8 +1506,8 @@ namespace NeoCompose.Runtime.NeoScript
                 aliases.Remove(alias, previous);
             ctx.rowReverseIndex.Remove(alias);
             ctx.rowReverseIndex.Add(alias, row);
-            if (alias is object?[])
-                NoteListAlias();
+            if (alias is object?[] or IDictionary<string, object?>)
+                NoteCollectionAlias();
             aliases?.Add(alias, row);
             if (alias is NeoObjectRecord record)
             {
@@ -1532,8 +1532,8 @@ namespace NeoCompose.Runtime.NeoScript
         private static void RemoveRowReference(Context ctx, object alias)
         {
             ctx.rowReverseIndex.Remove(alias);
-            if (alias is object?[])
-                NoteListAlias();
+            if (alias is object?[] or IDictionary<string, object?>)
+                NoteCollectionAlias();
             if (alias is NeoObjectRecord record && ReferenceEquals(record.referenceIndex, ctx.rowReverseIndex))
             {
                 record.reference = null;
@@ -2105,8 +2105,8 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 if (remembered && listRef is null)
                     return v;
-                int epoch = ListAliasEpoch;
-                if (!remembered && ctx.ArrayRowReference(entries) is { } indexed)
+                int epoch = CollectionAliasEpoch;
+                if (!remembered && ctx.CollectionRowReference(entries) is { } indexed)
                 {
                     listRef = indexed;
                     scope.RememberListAlias(vrp, entries, ctx.rowReverseIndex, epoch, listRef);
@@ -3981,28 +3981,34 @@ namespace NeoCompose.Runtime.NeoScript
             // exact stable value ids (including numeric-looking strings).
             if (receiver is object?[] arr)
             {
-                RowReference? listRef = FindRowReference(receiver, ctx);
-                NeoValueOwnership? listOwnership = listRef?.ownership;
-                JsonMember? entryMember = CollectionEntryMember(listRef, receiver, ctx);
+                int idx;
                 if (key is string valueId)
                 {
                     Dictionary<string, int> identity = ListIdentityIndexes.GetValue(
                         arr,
                         entries => BuildListIdentityIndex((object?[])entries));
-                    if (!identity.TryGetValue(valueId, out int valueIndex))
+                    if (!identity.TryGetValue(valueId, out idx))
                     {
                         throw new NSGetterRuntimeError(
                             $"Value id '{valueId}' is not a member of this List");
                     }
-                    return ResolveValueIfId(arr[valueIndex], ctx, listOwnership, entryMember);
                 }
-                int idx = ToIntKey(key);
-                if (idx < 0 || idx >= arr.Length)
+                else
                 {
-                    throw new NSGetterRuntimeError(
-                        $"List index out of bounds: {key}");
+                    idx = ToIntKey(key);
+                    if (idx < 0 || idx >= arr.Length)
+                    {
+                        throw new NSGetterRuntimeError(
+                            $"List index out of bounds: {key}");
+                    }
                 }
-                return ResolveValueIfId(arr[idx], ctx, listOwnership, entryMember);
+                // A primitive entry is its own value: only a value id
+                // resolves through the list's row.
+                object? entry = arr[idx];
+                if (entry is not string)
+                    return entry;
+                RowReference? listRef = FindRowReference(receiver, ctx);
+                return ResolveValueIfId(entry, ctx, listRef?.ownership, CollectionEntryMember(listRef, receiver, ctx));
             }
 
             string k = key as string ?? key?.ToString() ?? "null";
@@ -4069,6 +4075,10 @@ namespace NeoCompose.Runtime.NeoScript
                 }
                 if (record!.TryGetValue(k, out var at))
                 {
+                    // A primitive is its own value: only a value id
+                    // resolves through the record's row.
+                    if (at is not string)
+                        return at;
                     RowReference? recordRef = FindRowReference(receiver, ctx);
                     return ResolveValueIfId(
                         at,
@@ -4151,9 +4161,11 @@ namespace NeoCompose.Runtime.NeoScript
             // Recover the row by reference equality on `.value`. One reverse
             // lookup serves every provenance question this dispatch asks.
             RowReference? receiverRef = FindRowReference(receiver, ctx);
+            // FindRowClassIdByReference without repeating the lookup that
+            // just missed; a detached receiver returned above.
             string? runtimeClassId = receiverRef is not null
                 ? ClassIdOfRowReference(receiverRef, ctx, receiverRow)
-                : FindRowClassIdByReference(receiver, ctx);
+                : FindReferencedClassId(receiver, ctx);
             if (string.IsNullOrEmpty(runtimeClassId))
             {
                 return DispatchNoMember;
@@ -9614,8 +9626,9 @@ namespace NeoCompose.Runtime.NeoScript
                     ? objectRecord.reference
                     : null;
             }
-            if (value is object?[] array)
-                return ctx.ArrayRowReference(array);
+            // A detached object finds its row through the record it forwards to.
+            if (value is object?[] or IDictionary<string, object?> and not NeoScriptObject)
+                return ctx.CollectionRowReference(value);
             RowReference rowRef;
             if (MayBeRowAlias(value) && ctx.rowReverseIndex.TryGetValue(value!, out rowRef))
                 return rowRef;
