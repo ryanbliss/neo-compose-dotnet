@@ -17,6 +17,16 @@ namespace NeoCompose.Runtime
 
         internal IDisposable SubscribeWritableValue(string valueId, Action<NeoValueOwnership, string> handler)
         {
+            AddWritableValueHandler(valueId, handler);
+            return new WritableValueSubscription(this, valueId, handler);
+        }
+
+        /// <summary>
+        /// <see cref="SubscribeWritableValue"/> without the subscription object,
+        /// for a node that removes its own handler with <see cref="UnsubscribeWritableValue"/>.
+        /// </summary>
+        internal void AddWritableValueHandler(string valueId, Action<NeoValueOwnership, string> handler)
+        {
             if (!writableValueSubscriptions.TryGetValue(valueId, out var handlers))
             {
                 writableValueSubscriptions[valueId] = handlers = new List<Action<NeoValueOwnership, string>>(1);
@@ -24,10 +34,9 @@ namespace NeoCompose.Runtime
                     node.subscribers = handlers;
             }
             handlers.Add(handler);
-            return new WritableValueSubscription(this, valueId, handler);
         }
 
-        private void UnsubscribeWritableValue(string valueId, Action<NeoValueOwnership, string> handler)
+        internal void UnsubscribeWritableValue(string valueId, Action<NeoValueOwnership, string> handler)
         {
             if (!writableValueSubscriptions.TryGetValue(valueId, out var handlers))
                 return;

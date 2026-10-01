@@ -61,6 +61,11 @@ namespace NeoCompose.Runtime
         /// <summary>The live value node this member last read for <paramref name="id"/>, if it holds one.</summary>
         internal NeoValueNode? HeldValueNode(string id) =>
             valueNode is { live: true } node && node.id == id ? node : null;
+
+        // One id per member, so a rowless member's default read allocates none.
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> defaultValueIds = new(System.StringComparer.Ordinal);
+        private protected static string DefaultValueId(string memberId) =>
+            defaultValueIds.GetOrAdd(memberId, static id => $"__neo_default:{id}");
         internal bool IsRegisteredWithClient
         {
             get; set;
@@ -569,7 +574,7 @@ namespace NeoCompose.Runtime
                     }
                     return MemberValueFactory.CreateFromDefault(
                         member,
-                        $"__neo_default:{member.id}",
+                        DefaultValueId(member.id),
                         member.createdAt,
                         member.updatedAt) as TValue;
                 }
@@ -618,17 +623,29 @@ namespace NeoCompose.Runtime
         {
             if (isDisposed)
                 return;
-            valueChangeSubscription?.Dispose();
+            UnsubscribeFromValueChanges();
             base.Dispose();
         }
 
-        private System.IDisposable? valueChangeSubscription;
+        // The value id this node's one reused handler listens to, if any.
+        private string? subscribedValueId;
+        private System.Action<NeoValueOwnership, string>? valueChangeHandler;
 
         private void SubscribeToValueChanges()
         {
-            valueChangeSubscription?.Dispose();
-            valueChangeSubscription = valueId is string id
-                ? client.SubscribeWritableValue(id, HandleWritableValueChanged) : null;
+            UnsubscribeFromValueChanges();
+            if (valueId is not string id)
+                return;
+            subscribedValueId = id;
+            client.AddWritableValueHandler(id, valueChangeHandler ??= HandleWritableValueChanged);
+        }
+
+        private void UnsubscribeFromValueChanges()
+        {
+            if (subscribedValueId is null)
+                return;
+            client.UnsubscribeWritableValue(subscribedValueId, valueChangeHandler!);
+            subscribedValueId = null;
         }
 
         private void HandleWritableValueChanged(
