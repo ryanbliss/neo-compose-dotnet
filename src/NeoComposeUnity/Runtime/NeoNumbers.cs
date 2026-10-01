@@ -19,22 +19,50 @@ namespace NeoCompose.Runtime
                 ? (long)value == value
                 : !double.IsNaN(value);
 
-        private const int SmallIntMin = -128;
-        // A box is immutable, so the small ints native calls pass most share one.
-        private static readonly object[] SmallInts = CreateSmallInts(1152);
+        // Scripts count, index and compare small integers far more often than
+        // they measure, so each integral value in this range shares one box.
+        // A box is immutable, so sharing one is safe.
+        private const int MinSharedBox = -128;
+        private const int MaxSharedBox = 1023;
+        private static readonly object[] SharedDoubleBoxes = CreateSharedBoxes(value => (double)value);
+        private static readonly object[] SharedIntBoxes = CreateSharedBoxes(value => value);
+        private static readonly object[] SharedFloatBoxes = CreateSharedBoxes(value => (float)value);
 
-        internal static object Box(int value)
+        private static object[] CreateSharedBoxes(System.Func<int, object> box)
         {
-            uint slot = (uint)(value - SmallIntMin);
-            return slot < (uint)SmallInts.Length ? SmallInts[slot] : value;
+            var boxes = new object[MaxSharedBox - MinSharedBox + 1];
+            for (int i = 0; i < boxes.Length; i++)
+                boxes[i] = box(i + MinSharedBox);
+            return boxes;
         }
 
-        private static object[] CreateSmallInts(int count)
+        internal static object Box(int value) =>
+            value is >= MinSharedBox and <= MaxSharedBox
+                ? SharedIntBoxes[value - MinSharedBox]
+                : value;
+
+        // Vector components and color channels read as float.
+        internal static object Box(float value)
         {
-            var boxes = new object[count];
-            for (int i = 0; i < count; i++)
-                boxes[i] = SmallIntMin + i;
-            return boxes;
+            if (value is >= MinSharedBox and <= MaxSharedBox)
+            {
+                int integral = (int)value;
+                if (integral == value && (integral != 0 || !float.IsNegative(value)))
+                    return SharedFloatBoxes[integral - MinSharedBox];
+            }
+            return value;
+        }
+
+        internal static object Box(double value)
+        {
+            if (value is >= MinSharedBox and <= MaxSharedBox)
+            {
+                int integral = (int)value;
+                // -0.0 keeps its own box: it is integral but not the shared 0.
+                if (integral == value && (integral != 0 || !double.IsNegative(value)))
+                    return SharedDoubleBoxes[integral - MinSharedBox];
+            }
+            return value;
         }
     }
 }

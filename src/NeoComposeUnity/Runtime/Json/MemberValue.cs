@@ -1595,7 +1595,9 @@ namespace NeoCompose.Runtime.Json
                     return cachedNumber = null;
                 if (cachedNumber is double previous && System.BitConverter.DoubleToInt64Bits(previous) == System.BitConverter.DoubleToInt64Bits(value.Value))
                     return cachedNumber;
-                return cachedNumber = value.Value;
+                // A small whole number reads as its shared box, so a row
+                // written with a new count reads back without allocating.
+                return cachedNumber = NeoNumbers.Box(value.Value);
             }
         }
     }
