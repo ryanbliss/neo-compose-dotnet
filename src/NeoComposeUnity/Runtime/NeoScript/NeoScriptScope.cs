@@ -218,7 +218,8 @@ namespace NeoCompose.Runtime.NeoScript
                 scope.ReturnTemporaryLists(temporaryListSlots);
             if (!ReferenceEquals(scope, pooledScope))
                 return;
-            if (scope.BindingCapacity > MaxPooledBindings)
+            // Only a dynamic binding grows the dictionary.
+            if (scope.hasDynamicBindings && scope.BindingCapacity > MaxPooledBindings)
             {
                 pooledScope = null;
             }
@@ -227,6 +228,7 @@ namespace NeoCompose.Runtime.NeoScript
                 // Release all local references but the root and the bound
                 // parameters before retaining the frame.
                 scope.ResetLocals(rootSlot, boundParameters);
+                scope.hasDynamicBindings = false;
                 scope.ReleaseParent();
             }
             pooledScopeInUse = false;
@@ -252,6 +254,10 @@ namespace NeoCompose.Runtime.NeoScript
     internal sealed class NeoScriptScope
     {
         private readonly Dictionary<string, EvaluationValue>? bindings;
+        // Set by every dynamic binding and cleared only when the layout pools
+        // the scope, which checks the dictionary's growth first. A frame that
+        // binds only slots skips the dictionary's Clear and capacity calls.
+        internal bool hasDynamicBindings;
         private readonly Dictionary<string, object?>? externalBindings;
         /// <summary>
         /// Read-only marks with a nesting depth. One binding id is one
@@ -305,7 +311,7 @@ namespace NeoCompose.Runtime.NeoScript
 
         private NeoScriptScope(NeoScriptScope parent, int capacity, bool block = false)
         {
-            Parent = parent ?? throw new ArgumentNullException(nameof(parent));
+            parentScope = parent ?? throw new ArgumentNullException(nameof(parent));
             bindings = new Dictionary<string, EvaluationValue>(capacity, StringComparer.Ordinal);
             this.block = block;
         }
@@ -314,16 +320,15 @@ namespace NeoCompose.Runtime.NeoScript
         // enclosing bindings land where those bindings were declared.
         private bool block;
 
-        internal NeoScriptScope? Parent
-        {
-            get;
-            private set;
-        }
+        internal NeoScriptScope? Parent => parentScope;
+        // A plain field so ReleaseParent's null store pays no write barrier;
+        // one through a property setter does.
+        private NeoScriptScope? parentScope;
 
         /// <summary>Adopts a pooled scope as a child of <paramref name="parent"/>, or releases it.</summary>
         internal void BindParent(NeoScriptScope? parent)
         {
-            Parent = parent;
+            parentScope = parent;
             block = false;
         }
 
@@ -331,14 +336,14 @@ namespace NeoCompose.Runtime.NeoScript
         // null argument pays.
         internal void ReleaseParent()
         {
-            Parent = null;
+            parentScope = null;
             block = false;
         }
 
         /// <summary>Adopts a pooled scope as a statement block of <paramref name="parent"/>.</summary>
         internal void BindBlock(NeoScriptScope parent)
         {
-            Parent = parent;
+            parentScope = parent;
             block = true;
         }
         internal int LocalBindingCount => externalBindings?.Count ?? bindings!.Count + occupiedCount;
@@ -398,7 +403,10 @@ namespace NeoCompose.Runtime.NeoScript
             else if (layout is not null && layout.Slots.TryGetValue(bindingId, out int slot))
                 SetSlotValue(slot, value);
             else
+            {
                 bindings![bindingId] = new EvaluationValue(value);
+                hasDynamicBindings = true;
+            }
         }
 
         /// <param name="value">An <see cref="NSGetterEvaluator.EvaluateValue"/> result.</param>
@@ -409,7 +417,10 @@ namespace NeoCompose.Runtime.NeoScript
             else if (layout is not null && layout.Slots.TryGetValue(bindingId, out int slot))
                 SetSlot(slot, value, number);
             else
+            {
                 bindings![bindingId] = new EvaluationValue(value, number);
+                hasDynamicBindings = true;
+            }
         }
 
         internal void SetParameter(int index, object? value)
@@ -651,7 +662,8 @@ namespace NeoCompose.Runtime.NeoScript
 
         internal void ResetLocals(int keptSlot = -1, int keptParameters = 0)
         {
-            bindings?.Clear();
+            if (hasDynamicBindings)
+                bindings!.Clear();
             if (occupiedCount > 0)
             {
                 int kept = 0;
