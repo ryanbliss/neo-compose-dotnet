@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using NeoCompose.Runtime.Json;
@@ -3352,9 +3353,16 @@ namespace NeoCompose.Runtime
             {
                 throw new NSGetterRuntimeError("Assignment receiver is not backed by a Neo value row.");
             }
-            NeoValueOwnership receiverOwnership = NSGetterEvaluator.FindRowOwnershipByReference(receiver, ctx)
+            NeoValueOwnership receiverOwnership = NSGetterEvaluator.FindRowOwnershipByReference(receiver, ctx, out var receiverRef)
                 ?? (client.TryGetValueOwnership(receiverRowId, out var resolvedOwnership) ? resolvedOwnership : ownership);
-            if (!client.TryGetValue(receiverOwnership, receiverRowId, out MemberValue? row))
+            // The receiver's reference keeps its row's node, so the read
+            // skips the id lookup.
+            MemberValue? row = receiverRef is not null
+                && receiverRef.valueId == receiverRowId
+                && receiverRef.ownership == receiverOwnership
+                ? client.ReadValue(receiverOwnership, receiverRowId, ref receiverRef.node)
+                : client.TryGetValue(receiverOwnership, receiverRowId, out MemberValue? found) ? found : null;
+            if (row is null)
             {
                 throw new NSGetterRuntimeError($"Missing receiver row '{receiverRowId}'.");
             }
@@ -3395,7 +3403,7 @@ namespace NeoCompose.Runtime
             {
                 string keyString = ToStringKey(key, "Dictionary/class assignment key");
                 if (!string.IsNullOrEmpty(objectRow.classId)
-                    && TryResolveClassMemberMember(client, objectRow.classId!, keyString, out JsonMember? memberMember))
+                    && NSGetterEvaluator.TryResolveSurfaceMember(keyOf, receiver, objectRow.classId!, keyString, ctx, out JsonMember? memberMember))
                 {
                     if (memberMember!.Mutability == NeoMemberMutabilityKind.ReadOnly)
                     {
@@ -3547,7 +3555,7 @@ namespace NeoCompose.Runtime
             return client.TryGetValue(receiverOwnership, receiverRowId, out MemberValue? row)
                 && row is ObjectMemberValue { classId: string classId } && classId.Length > 0
                 && Eval(keyOf.key, scope, ctx) is string key
-                && TryResolveClassMemberMember(client, classId, key, out member)
+                && NSGetterEvaluator.TryResolveSurfaceMember(keyOf, null, classId, key, ctx, out member)
                 && member!.Mutability != NeoMemberMutabilityKind.ReadOnly;
         }
 
@@ -3563,25 +3571,6 @@ namespace NeoCompose.Runtime
                     $"Cannot mutate value '{rowId}' because it is not {ownership.ToString().ToLowerInvariant()}-owned.");
             }
             return rowId;
-        }
-
-        private static bool TryResolveClassMemberMember(
-            NeoClient client,
-            string classId,
-            string key,
-            out JsonMember? member)
-        {
-            member = null;
-            MergedSchemaEntry? entry;
-            try
-            {
-                entry = client.ResolveInstanceSurfaceMember(classId, key);
-            }
-            catch (CircularInheritanceError)
-            {
-                return false;
-            }
-            return entry is not null && client.TryGetMember(entry.memberId, out member);
         }
 
         private static string? FindValueId(
@@ -4356,10 +4345,8 @@ namespace NeoCompose.Runtime
                 if (member is not (BoolMember or IntMember or FloatMember or StringMember or EnumMember
                         or Vector2Member or Vector2IntMember or Vector3Member or Vector3IntMember or ColorMember)
                     || value is NeoValuePayload or INeoValuePayloadProvider
-                    || parentOwnership != NeoValueOwnership.Asset
-                        && !client.HasWritableValue(parentOwnership, parentRowId)
-                    || !client.TryGetValue(parentOwnership, parentRowId, out ObjectMemberValue? parent)
-                    || !TryResolveBoundChild(client, parentRowId, parent, out string existingId, out MemberValue? existing)
+                    || !TryGetParent(client, out ObjectMemberValue? parent)
+                    || !TryResolveBoundChild(client, parentRowId, parent, out string existingId, out MemberValue? existing, out MemberValue? stored)
                     || existing is null)
                     return false;
                 MemberValue replaced = MemberValueFactory.Create(
@@ -4367,7 +4354,7 @@ namespace NeoCompose.Runtime
                 replaced.classId = existing.classId;
                 // An explicit override the store already holds with this value
                 // is a no-op; an inherited default still pins on first write.
-                if (client.TryGetWritableValue(ownership, existingId, out MemberValue? stored)
+                if (stored is not null
                     && !stored.IsRemoved && NeoClient.SameLeafValue(stored, replaced))
                     return true;
                 // An object's Position and a tile's Cell carry grid
@@ -4380,34 +4367,57 @@ namespace NeoCompose.Runtime
                 return true;
             }
 
+            // A non-Asset parent must be one its own store holds.
+            private bool TryGetParent(NeoClient client, [NotNullWhen(true)] out ObjectMemberValue? parent) =>
+                parentOwnership == NeoValueOwnership.Asset
+                    ? client.TryGetValue(parentOwnership, parentRowId, out parent)
+                    : client.TryGetWritableValue(parentOwnership, parentRowId, out parent);
+
+            /// <param name="storedChild">The bound child's row in its own store, or null when it only inherits one.</param>
             private bool TryResolveBoundChild(
                 NeoClient client,
                 string resolvedParentRowId,
                 ObjectMemberValue parent,
                 out string boundChildId,
-                out MemberValue? boundChild)
+                out MemberValue? boundChild,
+                out MemberValue? storedChild)
             {
                 boundChildId = string.Empty;
-                boundChild = null;
                 if (parent.value is not null
                     && parent.value.TryGetValue(key, out string bodyChildId)
-                    && client.TryGetValue(ownership, bodyChildId, out MemberValue? bodyChild))
+                    && TryReadChild(client, bodyChildId, out boundChild, out storedChild))
                 {
                     boundChildId = bodyChildId;
-                    boundChild = bodyChild;
                     return true;
                 }
                 if (client.TryGetVirtualClassChildValueId(
                         resolvedParentRowId,
                         key,
                         out string? virtualChildId)
-                    && client.TryGetValue(ownership, virtualChildId!, out MemberValue? virtualChild))
+                    && TryReadChild(client, virtualChildId!, out boundChild, out storedChild))
                 {
                     boundChildId = virtualChildId!;
-                    boundChild = virtualChild;
                     return true;
                 }
+                boundChild = null;
+                storedChild = null;
                 return false;
+            }
+
+            // A read answers with the row the child's own store holds when
+            // there is one, so a single lookup finds both.
+            private bool TryReadChild(
+                NeoClient client,
+                string childId,
+                out MemberValue? child,
+                out MemberValue? storedChild)
+            {
+                if (client.TryGetWritableValue(ownership, childId, out storedChild))
+                {
+                    child = storedChild;
+                    return true;
+                }
+                return client.TryGetValue(ownership, childId, out child);
             }
 
             public override object? ReadCurrentValue(
@@ -4420,7 +4430,8 @@ namespace NeoCompose.Runtime
                         parentRowId,
                         parent,
                         out _,
-                        out MemberValue? child)
+                        out MemberValue? child,
+                        out _)
                     || child is null)
                 {
                     return null;
@@ -4493,7 +4504,8 @@ namespace NeoCompose.Runtime
                             parentRowId,
                             parent!,
                             out string existingId,
-                            out MemberValue? existing)
+                            out MemberValue? existing,
+                            out _)
                         && existing is not null;
                     if (bound)
                     {

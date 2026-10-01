@@ -4107,6 +4107,38 @@ namespace NeoCompose.Runtime.NeoScript
             return entry;
         }
 
+        /// <summary>
+        /// The member <paramref name="key"/> names on a row of
+        /// <paramref name="classId"/>, for an access through
+        /// <paramref name="site"/> that is not a dispatched read (a write
+        /// target). The entry is cached on the site per Class, exactly as
+        /// a read's is.
+        /// </summary>
+        /// <param name="receiver">The row's evaluated object, when the caller has it; its reference keeps the class node.</param>
+        internal static bool TryResolveSurfaceMember(
+            KeyOf site,
+            object? receiver,
+            string classId,
+            string key,
+            Context ctx,
+            out JsonMember? member)
+        {
+            member = null;
+            MergedSchemaEntry? entry;
+            try
+            {
+                NeoClassNode classNode = FindRowReference(receiver, ctx) is { } rowRef
+                    ? rowRef.ClassNode(ctx.client, classId)
+                    : ctx.client.ResolveClassNode(classId);
+                entry = SurfaceMember(classNode, key, site, ctx);
+            }
+            catch (CircularInheritanceError)
+            {
+                return false;
+            }
+            return entry is not null && ctx.client.TryGetMember(entry.memberId, out member);
+        }
+
         private static object? ReadOnlyDeclarationDefault(
             JsonMember member,
             Context ctx)
