@@ -29,33 +29,21 @@ namespace NeoCompose.Runtime
         /// <summary>Selected ids in the target collection. Empty when nothing is set.</summary>
         public string[] Selected() => value?.value ?? System.Array.Empty<string>();
 
-        private NeoMember? firstSelection;
+        /// <summary>
+        /// The node last resolved for each selection slot. A kept node is
+        /// reused while its id, ownership and declaration still match and the
+        /// active registry still holds it, which skips composing its key.
+        /// </summary>
+        private NeoMember?[] selections = System.Array.Empty<NeoMember?>();
 
         /// <summary>Resolves the current first selection without allocating a result list.</summary>
         public NeoMember? GetFirstSelected()
         {
             string[] ids = Selected();
             if (ids.Length == 0)
-            {
-                firstSelection = null;
                 return null;
-            }
-            ResolveTargetValue(client, member, out NeoValueOwnership targetOwnership);
-            Member entry = ResolveEntryMemberForLookup();
-            // Reuse the composed key, but still consult the active registry:
-            // candidate replay and same-key replacement must resolve their own node.
-            if (firstSelection is not null
-                && firstSelection.overrideValueId == ids[0]
-                && firstSelection.ownership == targetOwnership
-                && firstSelection.member.RuntimeDeclarationIdentity == entry.RuntimeDeclarationIdentity
-                && client.TryGetNode(firstSelection.RegistryKey, out NeoMember? current)
-                && (targetOwnership == NeoValueOwnership.Asset || IsWritableCompatible(entry, current)))
-            {
-                firstSelection = current;
-                return current;
-            }
-            firstSelection = ResolveSelection(client, entry, ids[0], targetOwnership);
-            return firstSelection;
+            Member entry = ResolveSelectionScope(out NeoValueOwnership targetOwnership);
+            return ResolveSelectedAt(0, ids[0], entry, targetOwnership);
         }
 
         /// <summary>Resolves the current selections against their target collection.</summary>
@@ -65,11 +53,38 @@ namespace NeoCompose.Runtime
             string[] ids = Selected();
             if (ids.Length == 0)
                 return resolved;
-            ResolveTargetValue(client, member, out NeoValueOwnership targetOwnership);
-            Member entry = ResolveEntryMemberForLookup();
-            foreach (string id in ids)
-                resolved.Add(ResolveSelection(client, entry, id, targetOwnership));
+            Member entry = ResolveSelectionScope(out NeoValueOwnership targetOwnership);
+            for (int i = 0; i < ids.Length; i++)
+                resolved.Add(ResolveSelectedAt(i, ids[i], entry, targetOwnership));
             return resolved;
+        }
+
+        /// <summary>The entry member and ownership every selected id resolves against.</summary>
+        internal Member ResolveSelectionScope(out NeoValueOwnership targetOwnership)
+        {
+            Member targetMember = ResolveTargetMember(client, member);
+            ResolveTargetValue(client, member, targetMember, out targetOwnership);
+            return ResolveEntryMember(client, targetMember);
+        }
+
+        /// <summary>Resolves selected id <paramref name="id"/> at <paramref name="index"/>.</summary>
+        internal NeoMember ResolveSelectedAt(int index, string id, Member entry, NeoValueOwnership targetOwnership)
+        {
+            if (index >= selections.Length)
+                System.Array.Resize(ref selections, System.Math.Max(index + 1, Selected().Length));
+            NeoMember? kept = selections[index];
+            // Reuse the composed key, but still consult the active registry:
+            // candidate replay and same-key replacement must resolve their own node.
+            if (kept is not null
+                && kept.overrideValueId == id
+                && kept.ownership == targetOwnership
+                && kept.member.RuntimeDeclarationIdentity == entry.RuntimeDeclarationIdentity
+                && client.TryGetNode(kept.RegistryKey, out NeoMember? current)
+                && (targetOwnership == NeoValueOwnership.Asset || IsWritableCompatible(entry, current)))
+            {
+                return selections[index] = current;
+            }
+            return selections[index] = ResolveSelection(client, entry, id, targetOwnership);
         }
 
         /// <summary>
@@ -79,10 +94,11 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal static NeoMember ResolveSelected(NeoClient client, LookupMember lookup, string id)
         {
-            ResolveTargetValue(client, lookup, out NeoValueOwnership targetOwnership);
+            Member targetMember = ResolveTargetMember(client, lookup);
+            ResolveTargetValue(client, lookup, targetMember, out NeoValueOwnership targetOwnership);
             return ResolveSelection(
                 client,
-                ResolveEntryMember(client, ResolveTargetMember(client, lookup)),
+                ResolveEntryMember(client, targetMember),
                 id,
                 targetOwnership);
         }
@@ -96,8 +112,9 @@ namespace NeoCompose.Runtime
         {
             if (string.IsNullOrWhiteSpace(valueId))
                 return false;
-            MemberValue targetValue = ResolveTargetValue(client, member, out _);
-            return ResolveCollectionEntryIds(client, ResolveTargetMember(client, member), targetValue).Contains(valueId);
+            Member targetMember = ResolveTargetMember(client, member);
+            MemberValue targetValue = ResolveTargetValue(client, member, targetMember, out _);
+            return ResolveCollectionEntryIds(client, targetMember, targetValue).Contains(valueId);
         }
 
         internal static IEnumerable<string> ResolveCollectionEntryIds(NeoClient client, Member collection, MemberValue value)
@@ -108,9 +125,6 @@ namespace NeoCompose.Runtime
                 return obj.value.Values;
             return System.Array.Empty<string>();
         }
-
-        internal Member ResolveEntryMemberForLookup() =>
-            ResolveEntryMember(client, ResolveTargetMember(client, member));
 
         private static Member ResolveTargetMember(NeoClient client, LookupMember lookup)
         {
@@ -123,21 +137,26 @@ namespace NeoCompose.Runtime
             return targetMember;
         }
 
-        private static MemberValue ResolveTargetValue(NeoClient client, LookupMember lookup, out NeoValueOwnership targetOwnership)
+        private static MemberValue ResolveTargetValue(
+            NeoClient client,
+            LookupMember lookup,
+            Member targetMember,
+            out NeoValueOwnership targetOwnership)
         {
-            Member targetMember = ResolveTargetMember(client, lookup);
             string? targetValueId = ResolveTargetValueId(client, lookup, targetMember);
             if (targetValueId is null)
             {
                 throw new System.InvalidOperationException(
                     $"Lookup target {lookup.collectionMemberId} has no bound value");
             }
-            if (!client.TryGetValue(targetValueId, out MemberValue? targetValue))
+            NeoValueNode? node = null;
+            MemberValue? targetValue = client.ReadValue(targetValueId, ref node);
+            if (targetValue is null)
             {
                 throw new System.InvalidOperationException(
                     $"Lookup target value {targetValueId} not found");
             }
-            client.TryGetValueOwnership(targetValueId, out targetOwnership);
+            client.TryGetValueOwnership(targetValueId, ref node, out targetOwnership);
             return targetValue;
         }
 

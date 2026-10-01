@@ -74,6 +74,9 @@ namespace NeoCompose.Runtime
         public IEnumerator<KeyValuePair<string, NeoMember>> GetEnumerator() =>
             childMembers.GetEnumerator();
 
+        internal Dictionary<string, NeoMember>.Enumerator ChildEnumerator() =>
+            childMembers.GetEnumerator();
+
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
         protected override void Initialize(ObjectMemberValue value)

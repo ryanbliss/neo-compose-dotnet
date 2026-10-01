@@ -115,6 +115,9 @@ namespace NeoCompose.Runtime
         public IEnumerator<NeoMember> GetEnumerator() =>
             childMembers.GetEnumerator();
 
+        internal List<NeoMember>.Enumerator ChildEnumerator() =>
+            childMembers.GetEnumerator();
+
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
         protected override void Initialize(ArrayMemberValue value)
