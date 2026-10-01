@@ -6180,19 +6180,33 @@ namespace NeoCompose.Runtime
 
     internal readonly struct NeoScriptExecutionResult
     {
-        // Every instruction returns one of these by value, so the shape
-        // stays two references wide: the transfer, a failure and the rare
-        // suspension share one slot. Sixteen bytes come back in registers;
-        // a wider result is copied out through a write-barriered range copy.
+        // Every instruction returns one of these by value, so the shape is
+        // one reference: each reference a result stores costs a GC write
+        // barrier. Null is the valueless fallthrough, a marker is any other
+        // transfer, a failure or a suspension, and anything else is a
+        // returned value. Only a return carries a value.
         private readonly object? state;
 
-        // Marker states for the non-fallthrough transfers.
-        private static readonly object ReturnState = new();
-        private static readonly object BreakState = new();
-        private static readonly object ContinueState = new();
+        private class Marker
+        {
+        }
+
+        private static readonly Marker ReturnNullState = new();
+        private static readonly Marker BreakState = new();
+        private static readonly Marker ContinueState = new();
+
+        private sealed class FailedState : Marker
+        {
+            internal readonly Exception failure;
+
+            internal FailedState(Exception failure)
+            {
+                this.failure = failure;
+            }
+        }
 
         /// <summary>A suspended frame's continuation state.</summary>
-        private sealed class PausedState
+        private sealed class PausedState : Marker
         {
             internal readonly string? suspendedMemberId;
             internal readonly NeoDeferredFunctionBase? deferred;
@@ -6221,19 +6235,10 @@ namespace NeoCompose.Runtime
             }
         }
 
-        // Starting from default leaves the unused reference null without
-        // storing it: a stored reference costs a GC write barrier.
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private NeoScriptExecutionResult(object? state, object? returnValue)
+        private NeoScriptExecutionResult(object state)
         {
-            this = default;
             this.state = state;
-            ReturnValue = returnValue;
-        }
-
-        private NeoScriptExecutionResult(PausedState paused)
-            : this(paused, null)
-        {
         }
 
         private PausedState? pausedState => state as PausedState;
@@ -6245,20 +6250,17 @@ namespace NeoCompose.Runtime
 
         internal bool IsPaused => state is PausedState;
         internal NeoScriptControlTransfer Transfer =>
-            ReferenceEquals(state, ReturnState) ? NeoScriptControlTransfer.Return
+            Returned ? NeoScriptControlTransfer.Return
             : ReferenceEquals(state, BreakState) ? NeoScriptControlTransfer.Break
             : ReferenceEquals(state, ContinueState) ? NeoScriptControlTransfer.Continue
             : NeoScriptControlTransfer.Fallthrough;
-        internal bool Returned => ReferenceEquals(state, ReturnState);
+        internal bool Returned => state is not null && (state is not Marker || ReferenceEquals(state, ReturnNullState));
         internal bool IsBreak => ReferenceEquals(state, BreakState);
         internal bool IsContinue => ReferenceEquals(state, ContinueState);
         internal bool IsFallthrough => state is null or PausedState;
-        internal bool IsFailed => state is Exception;
-        internal Exception? Failure => state as Exception;
-        internal object? ReturnValue
-        {
-            get;
-        }
+        internal bool IsFailed => state is FailedState;
+        internal Exception? Failure => (state as FailedState)?.failure;
+        internal object? ReturnValue => state is Marker ? null : state;
         internal string? SuspendedMemberId => pausedState?.suspendedMemberId;
         internal NeoDeferredFunctionBase? Deferred => pausedState?.deferred;
 
@@ -6269,12 +6271,18 @@ namespace NeoCompose.Runtime
         {
             // The valueless fallthrough every block and loop iteration
             // produces is the default result.
-            if (!returned && returnValue is null)
+            if (!returned)
+            {
+                if (returnValue is not null)
+                    ThrowValuedFallthrough();
                 return default;
-            return new NeoScriptExecutionResult(
-                returned ? ReturnState : null,
-                returnValue);
+            }
+            return new NeoScriptExecutionResult(returnValue ?? ReturnNullState);
         }
+
+        // Out of line so Completed stays inlinable.
+        private static void ThrowValuedFallthrough() =>
+            throw new ArgumentException("Only a return carries a value.", "returnValue");
 
         internal static NeoScriptExecutionResult Control(
             NeoScriptControlTransfer transfer)
@@ -6285,21 +6293,18 @@ namespace NeoCompose.Runtime
                     "Return control must carry its value through Completed.",
                     nameof(transfer));
             }
-            return new NeoScriptExecutionResult(
-                transfer switch
-                {
-                    NeoScriptControlTransfer.Break => BreakState,
-                    NeoScriptControlTransfer.Continue => ContinueState,
-                    _ => null,
-                },
-                null);
+            return transfer switch
+            {
+                NeoScriptControlTransfer.Break => new NeoScriptExecutionResult(BreakState),
+                NeoScriptControlTransfer.Continue => new NeoScriptExecutionResult(ContinueState),
+                _ => default,
+            };
         }
 
         internal static NeoScriptExecutionResult Failed(Exception failure)
         {
             return new NeoScriptExecutionResult(
-                failure ?? throw new ArgumentNullException(nameof(failure)),
-                null);
+                new FailedState(failure ?? throw new ArgumentNullException(nameof(failure))));
         }
 
         internal static NeoScriptExecutionResult Paused(
