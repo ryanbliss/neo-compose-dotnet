@@ -113,6 +113,9 @@ namespace NeoCompose.Runtime
 
         public void Dispose()
         {
+            // Most evaluations read no grid or watched value: skip the walks.
+            if (grids.Count == 0 && values.Count == 0)
+                return;
             foreach (GridReads reads in grids.Values)
             {
                 reads.subscription?.Dispose();

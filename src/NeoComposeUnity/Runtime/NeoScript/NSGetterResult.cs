@@ -39,7 +39,15 @@ namespace NeoCompose.Runtime.NeoScript
             this.error = error;
         }
 
-        public static NSGetterResult Ok(object? value) => new(true, value, null);
+        // Storing a constant null error skips that store's write barrier.
+        private NSGetterResult(object? value)
+        {
+            ok = true;
+            this.value = value;
+            error = null;
+        }
+
+        public static NSGetterResult Ok(object? value) => new(value);
         public static NSGetterResult Error(string message) => new(false, null, message);
     }
 
