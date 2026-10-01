@@ -3145,18 +3145,46 @@ namespace NeoCompose.Runtime
             [NotNullWhen(true)] out MemberValue? value)
         {
             NoteValueRead(id);
-            if (ownership != NeoValueOwnership.Asset
-                && GetWritableStore(ownership).values.TryGetValue(id, out value))
-            {
-                if (!value.IsRemoved)
-                    return true;
-                value = null;
-                return false;
-            }
-            if (data.values.TryGetValue(id, out value))
-                return value is not null;
-            value = TryResolveVirtualValue(id, out MemberValue virtualRow) ? virtualRow : null;
+            value = CommittedOverlaidRow(ownership, id, ValueNode(id));
             return value is not null;
+        }
+
+        /// <summary>
+        /// <see cref="TryGetOverlaidValue(NeoValueOwnership, string, out MemberValue)"/>
+        /// through a node the caller keeps, as <see cref="ReadValue(NeoValueOwnership, string, ref NeoValueNode)"/>
+        /// does for owned reads.
+        /// </summary>
+        internal MemberValue? ReadOverlaidValue(NeoValueOwnership ownership, string id, ref NeoValueNode? node)
+        {
+            if (candidateReplay is not null || candidateReadPlan is not null)
+            {
+                TryGetOverlaidValue(ownership, id, out MemberValue? overlaid);
+                return overlaid;
+            }
+            NoteValueRead(id);
+            if (node is not { live: true })
+                node = ValueNode(id);
+            return CommittedOverlaidRow(ownership, id, node);
+        }
+
+        // The ownership's store row, unless it is a tombstone, which hides
+        // the layers beneath; then the authored row; then the virtual row.
+        private MemberValue? CommittedOverlaidRow(
+            NeoValueOwnership ownership,
+            string id,
+            NeoValueNode? node)
+        {
+            MemberValue? writable = ownership switch
+            {
+                NeoValueOwnership.Session => node?.session,
+                NeoValueOwnership.Save => node?.save,
+                NeoValueOwnership.Asset => null,
+                _ => throw new System.InvalidOperationException(
+                    $"Unknown value ownership '{ownership}'."),
+            };
+            if (writable is not null)
+                return writable.IsRemoved ? null : writable;
+            return node?.Asset(data) ?? CommittedVirtualRow(id, node);
         }
 
         /// <summary>

@@ -546,6 +546,9 @@ namespace NeoCompose.Runtime
         /// </summary>
         private string? boundValueId;
 
+        // The value node valueData last read.
+        private NeoValueNode? valueNode;
+
         /// <summary>
         /// Live read of the bound value through
         /// <see cref="NeoClient.TryGetValue{T}"/>. Returns null when
@@ -572,10 +575,10 @@ namespace NeoCompose.Runtime
 
                 // The untyped read, cast once: this body is shared across
                 // instantiations, so a generic call from it is a runtime
-                // generic-context lookup.
-                return client.TryGetOverlaidValue(ownership, resolvedValueId, out MemberValue? match)
-                    ? match as TValue
-                    : null;
+                // generic-context lookup. The node spares the id lookup.
+                if (valueNode is not null && valueNode.id != resolvedValueId)
+                    valueNode = null;
+                return client.ReadOverlaidValue(ownership, resolvedValueId, ref valueNode) as TValue;
             }
         }
 
