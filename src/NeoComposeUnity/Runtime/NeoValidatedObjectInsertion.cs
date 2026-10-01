@@ -23,7 +23,18 @@ namespace NeoCompose.Runtime
                 || !TryInferMemberForValueId(insertion.listId, out Member? listMember)
                 || listMember is not ListMember list || !IsUnorderedList(list))
                 return false;
+            return TryValidateObjectInsertion(plan, insertion, primitive, cache, root, compatibleLayers);
+        }
 
+        // Apart from the guard above, so the closures below cost nothing on
+        // the ordinary commits that never qualify.
+        private bool TryValidateObjectInsertion(NeoWritePlan plan,
+            (string gridId, string layerId, string listId, string instanceId) insertion,
+            NeoReadOnlyTileGridPrimitive primitive,
+            NeoTileGridLookupCache cache,
+            ObjectMemberValue root,
+            Dictionary<(bool tile, string classId), HashSet<string>> compatibleLayers)
+        {
             // The operation hint is not proof: adoption and constructor replay
             // may stage other writes. Only a new owned graph and an unchanged
             // unordered membership row qualify for this path.
