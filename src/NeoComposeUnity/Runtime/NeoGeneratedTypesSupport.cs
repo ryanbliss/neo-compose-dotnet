@@ -1742,19 +1742,13 @@ namespace NeoCompose.Runtime
             NeoValueOwnership? placementOwnership)
         {
             ClassMember? member = null;
-            string? registryKey = null;
             NeoValueNode? node = null;
-            return ResolveClassValue(client, valueId, readOnlyFactories, savedFactories, placementOwnership, ref member, ref registryKey, ref node);
+            return ResolveClassValue(client, valueId, readOnlyFactories, savedFactories, placementOwnership, ref member, ref node);
         }
 
         /// <param name="member">
         /// The value's inferred member: filled here when null, reused
         /// otherwise by a caller that knows the value's parent edges are unchanged.
-        /// </param>
-        /// <param name="registryKey">
-        /// The value's generated-view key under <paramref name="member"/> and
-        /// <paramref name="placementOwnership"/>: filled here when null, so a
-        /// caller that keeps the member keeps it too and resets both together.
         /// </param>
         /// <param name="node">The value's node, kept by the caller so a repeat read skips the id lookup.</param>
         internal static object? ResolveClassValue(
@@ -1764,7 +1758,6 @@ namespace NeoCompose.Runtime
             IReadOnlyDictionary<string, WritableClassFactory> savedFactories,
             NeoValueOwnership? placementOwnership,
             ref ClassMember? member,
-            ref string? registryKey,
             ref NeoValueNode? node)
         {
             NeoValueOwnership ownership = placementOwnership
@@ -1793,11 +1786,7 @@ namespace NeoCompose.Runtime
             // Generated factories memoize by declaration, placement and storage.
             // Check before constructing a node: registering a replacement would
             // strand the cached view outside subsequent replay refreshes.
-            // Without a placement ownership the value's storage can move, so
-            // only a placed value keeps its key.
-            string key = placementOwnership is null
-                ? NeoClient.MakeNodeKey(member.RuntimeDeclarationIdentity, valueId, ownership)
-                : registryKey ??= NeoClient.MakeNodeKey(member.RuntimeDeclarationIdentity, valueId, ownership);
+            var key = new NeoNodeKey(member.RuntimeDeclarationIdentity, valueId, ownership);
             if (client.TryGetGeneratedClassValue(key, out var cached)
                 && cached.classId == classId)
                 return cached;

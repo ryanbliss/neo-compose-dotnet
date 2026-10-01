@@ -19,12 +19,11 @@ namespace NeoCompose.Tests
     /// The registry's contract:
     ///
     ///   - Every constructed <see cref="NeoMember"/> registers itself
-    ///     under <c>MakeNodeKey(member.id, overrideValueId, ownership)</c>.
+    ///     under <c>NeoNodeKey(member.id, overrideValueId, ownership)</c>.
     ///   - <see cref="NeoMember.Create"/> /
     ///     <see cref="NeoMember.CreateWritable"/> short-circuit to the
     ///     registered instance when one exists for the requested key.
-    ///   - <c>overrideValueId</c> being null produces a key scoped by
-    ///     ownership; non-null appends <c>"_{valueId}"</c>.
+    ///   - An empty <c>overrideValueId</c> keys as a null one.
     /// </summary>
     public class NeoClientNodeRegistryTests
     {
@@ -68,7 +67,7 @@ namespace NeoCompose.Tests
             if (!client.TryGetNode(memberId, overrideValueId, ownership, out NeoMember? node))
             {
                 Assert.Fail(
-                    $"Registry is missing node {NeoClient.MakeNodeKey(memberId, overrideValueId, ownership)}");
+                    $"Registry is missing node {new NeoNodeKey(memberId, overrideValueId, ownership)}");
                 throw new System.InvalidOperationException("unreachable");
             }
             return node;
@@ -120,20 +119,25 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void MakeNodeKey_NoOverride_IsBareMemberId()
+        public void NodeKey_EmptyOverride_KeysAsNone()
         {
-            Assert.AreEqual("asset:member-x", NeoClient.MakeNodeKey("member-x", null));
-            Assert.AreEqual("asset:member-x", NeoClient.MakeNodeKey("member-x", ""));
-            Assert.AreEqual("save:member-x", NeoClient.MakeNodeKey(
-                "member-x",
-                null,
-                NeoValueOwnership.Save));
+            Assert.AreEqual(
+                new NeoNodeKey("member-x", null, NeoValueOwnership.Asset),
+                new NeoNodeKey("member-x", "", NeoValueOwnership.Asset));
+            Assert.AreNotEqual(
+                new NeoNodeKey("member-x", null, NeoValueOwnership.Asset),
+                new NeoNodeKey("member-x", null, NeoValueOwnership.Save));
         }
 
         [Test]
-        public void MakeNodeKey_WithOverride_AppendsValueId()
+        public void NodeKey_SeparatesMemberAndValueIds()
         {
-            Assert.AreEqual("asset:member-x_v-7", NeoClient.MakeNodeKey("member-x", "v-7"));
+            Assert.AreEqual(
+                new NeoNodeKey("member-x", "v-7", NeoValueOwnership.Asset),
+                new NeoNodeKey("member-x", "v-7", NeoValueOwnership.Asset));
+            Assert.AreNotEqual(
+                new NeoNodeKey("member-x_v-7", null, NeoValueOwnership.Asset),
+                new NeoNodeKey("member-x", "v-7", NeoValueOwnership.Asset));
         }
 
         [Test]
@@ -213,7 +217,7 @@ namespace NeoCompose.Tests
             Assert.IsNotNull(hero);
 
             Assert.IsTrue(
-                client.nodes.ContainsKey("asset:member-hero_v-dict"),
+                client.nodes.ContainsKey(new NeoNodeKey("member-hero", "v-dict", NeoValueOwnership.Asset)),
                 "Parent registers under its composed key");
             var nameChild = RequireNode(client, "member-name", "v-name");
             Assert.IsInstanceOf<NeoMemberString>(nameChild);

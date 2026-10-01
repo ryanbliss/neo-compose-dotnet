@@ -8,6 +8,35 @@ using System.Collections.Generic;
 
 namespace NeoCompose.Runtime
 {
+    /// <summary>
+    /// A node's registry identity: its declaration, the value id it is bound
+    /// to, and its storage. A generated view registers under its node's key.
+    /// </summary>
+    internal readonly struct NeoNodeKey : IEquatable<NeoNodeKey>
+    {
+        internal readonly string memberId;
+        internal readonly string? valueId;
+        internal readonly NeoValueOwnership ownership;
+
+        internal NeoNodeKey(string memberId, string? valueId, NeoValueOwnership ownership)
+        {
+            this.memberId = memberId;
+            // An empty override binds nothing, as a null one.
+            this.valueId = string.IsNullOrEmpty(valueId) ? null : valueId;
+            this.ownership = ownership;
+        }
+
+        public bool Equals(NeoNodeKey other) =>
+            ownership == other.ownership && memberId == other.memberId && valueId == other.valueId;
+
+        public override bool Equals(object? obj) => obj is NeoNodeKey other && Equals(other);
+
+        public override int GetHashCode() =>
+            unchecked((memberId.GetHashCode() * 31 + (valueId?.GetHashCode() ?? 0)) * 4 + (int)ownership);
+
+        public override string ToString() => $"{ownership}:{memberId}_{valueId}";
+    }
+
     public partial class NeoClient
     {
         // A value id's nodes: almost always one node, else a set.

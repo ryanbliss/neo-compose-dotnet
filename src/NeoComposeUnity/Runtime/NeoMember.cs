@@ -45,7 +45,7 @@ namespace NeoCompose.Runtime
         /// <summary>
         /// The override-value-id passed to the ctor — together with
         /// <see cref="Member.id"/> it composes the registry key
-        /// (<see cref="NeoClient.MakeNodeKey"/>). Lifted to the base so
+        /// (<see cref="NeoNodeKey"/>). Lifted to the base so
         /// <see cref="Dispose"/> can compute the unregister key without
         /// reaching into the typed intermediate.
         /// </summary>
@@ -53,9 +53,7 @@ namespace NeoCompose.Runtime
         {
             get;
         }
-        private string? registryKey;
-        internal string RegistryKey => registryKey ??= NeoClient.MakeNodeKey(
-            member.RuntimeDeclarationIdentity, overrideValueId, ownership);
+        internal NeoNodeKey RegistryKey => new(member.RuntimeDeclarationIdentity, overrideValueId, ownership);
         private MemberValue? boundValue;
         // The value node the typed value read last resolved.
         private protected NeoValueNode? valueNode;

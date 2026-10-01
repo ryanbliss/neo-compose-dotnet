@@ -80,7 +80,7 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// Flat registry of every constructed <see cref="NeoMember"/>,
-        /// keyed by <see cref="MakeNodeKey"/>. Each
+        /// keyed by <see cref="NeoNodeKey"/>. Each
         /// <see cref="NeoMember"/> registers itself at the end of
         /// construction so consumers (and the
         /// <see cref="NeoMember.Create"/> /
@@ -88,9 +88,9 @@ namespace NeoCompose.Runtime
         /// existing instances and reuse them rather than constructing
         /// duplicates that share the same wire identity.
         /// </summary>
-        internal IReadOnlyDictionary<string, NeoMember> nodes => nodesInternal;
-        private readonly Dictionary<string, NeoMember> nodesInternal = new();
-        private readonly Dictionary<string, NeoGeneratedClassValue> generatedValuesInternal = new();
+        internal IReadOnlyDictionary<NeoNodeKey, NeoMember> nodes => nodesInternal;
+        private readonly Dictionary<NeoNodeKey, NeoMember> nodesInternal = new();
+        private readonly Dictionary<NeoNodeKey, NeoGeneratedClassValue> generatedValuesInternal = new();
         // Moves with every change to generatedValuesInternal, so a node's kept
         // view is the registry's while it matches.
         private int generatedValuesGeneration;
@@ -6484,8 +6484,7 @@ namespace NeoCompose.Runtime
             NeoValueOwnership ownership,
             [NotNullWhen(true)] out NeoMember? node)
         {
-            string key = MakeNodeKey(memberId, overrideValueId, ownership);
-            return TryGetNode(key, out node);
+            return TryGetNode(new NeoNodeKey(memberId, overrideValueId, ownership), out node);
         }
 
         internal bool IsInCandidateReplay => candidateReplay is not null || replayAllocationScope is not null;
@@ -6500,7 +6499,7 @@ namespace NeoCompose.Runtime
             string? overrideValueId,
             NeoValueOwnership ownership,
             [NotNullWhen(true)] out NeoMember? node) =>
-            nodesInternal.TryGetValue(MakeNodeKey(memberId, overrideValueId, ownership), out node);
+            nodesInternal.TryGetValue(new NeoNodeKey(memberId, overrideValueId, ownership), out node);
 
         /// <summary>
         /// Creates a wrapper against the committed graph. Candidate overlays,
@@ -6531,7 +6530,7 @@ namespace NeoCompose.Runtime
             }
         }
 
-        internal bool TryGetNode(string registryKey, [NotNullWhen(true)] out NeoMember? node) =>
+        internal bool TryGetNode(NeoNodeKey registryKey, [NotNullWhen(true)] out NeoMember? node) =>
             (candidateReplay?.Nodes ?? nodesInternal).TryGetValue(registryKey, out node);
 
         internal bool TryGetNode(string memberId, string? overrideValueId, [NotNullWhen(true)] out NeoMember? node)
@@ -6554,7 +6553,7 @@ namespace NeoCompose.Runtime
         {
             for (var scope = replayAllocationScope; scope is not null; scope = scope.Parent)
                 scope.Nodes.Add(node);
-            string key = node.RegistryKey;
+            NeoNodeKey key = node.RegistryKey;
             if (candidateReplay is not null)
             {
                 candidateReplay.Nodes[key] = node;
@@ -6574,7 +6573,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal void UnregisterNode(NeoMember node)
         {
-            string key = node.RegistryKey;
+            NeoNodeKey key = node.RegistryKey;
             if (candidateReplay is not null)
             {
                 if (candidateReplay.Nodes.TryGetValue(key, out NeoMember? candidate) && ReferenceEquals(candidate, node))
@@ -6594,10 +6593,10 @@ namespace NeoCompose.Runtime
 
         internal bool TryGetGeneratedClassValue(string declarationId, string valueId,
             NeoValueOwnership ownership, [NotNullWhen(true)] out NeoGeneratedClassValue? value) =>
-            TryGetGeneratedClassValue(MakeNodeKey(declarationId, valueId, ownership), out value);
+            TryGetGeneratedClassValue(new NeoNodeKey(declarationId, valueId, ownership), out value);
 
-        /// <param name="registryKey">The value's <see cref="MakeNodeKey"/>.</param>
-        internal bool TryGetGeneratedClassValue(string registryKey,
+        /// <param name="registryKey">The value's node key.</param>
+        internal bool TryGetGeneratedClassValue(NeoNodeKey registryKey,
             [NotNullWhen(true)] out NeoGeneratedClassValue? value)
         {
             var registry = candidateReplay?.GeneratedValues ?? generatedValuesInternal;
@@ -6637,7 +6636,7 @@ namespace NeoCompose.Runtime
             NeoMemberClass node, TState state, System.Func<TState, TGenerated> create)
             where TGenerated : NeoGeneratedClassValue
         {
-            string key = node.RegistryKey;
+            NeoNodeKey key = node.RegistryKey;
             var registry = candidateReplay?.GeneratedValues ?? generatedValuesInternal;
             bool committed = ReferenceEquals(registry, generatedValuesInternal);
             if (registry.TryGetValue(key, out NeoGeneratedClassValue existing))
@@ -6689,7 +6688,7 @@ namespace NeoCompose.Runtime
         /// <param name="key">The <see cref="NeoMember.RegistryKey"/> of the view's node, built or not.</param>
         internal void RegisterGeneratedClassValue(
             NeoGeneratedClassValue generated,
-            string key)
+            NeoNodeKey key)
         {
             var registry = candidateReplay?.GeneratedValues ?? generatedValuesInternal;
             if (registry.TryGetValue(key, out NeoGeneratedClassValue existing)
@@ -6722,7 +6721,7 @@ namespace NeoCompose.Runtime
         internal void UnregisterGeneratedClassValue(NeoGeneratedClassValue generated, NeoMemberClass node) =>
             UnregisterGeneratedClassValue(generated, node.RegistryKey);
 
-        internal void UnregisterGeneratedClassValue(NeoGeneratedClassValue generated, string key)
+        internal void UnregisterGeneratedClassValue(NeoGeneratedClassValue generated, NeoNodeKey key)
         {
             var registry = candidateReplay?.GeneratedValues ?? generatedValuesInternal;
             if (registry.TryGetValue(key, out NeoGeneratedClassValue existing)
@@ -8472,32 +8471,6 @@ namespace NeoCompose.Runtime
                 }
             }
             return true;
-        }
-
-        /// <summary>
-        /// Composes the registry key from a member id and an
-        /// optional override-value id. Format mirrors the user-facing
-        /// spec:
-        ///   - <c>memberId</c> when no override
-        ///   - <c>$"{memberId}_{overrideValueId}"</c> when an override is set
-        /// </summary>
-        internal static string MakeNodeKey(
-            string memberId,
-            string? overrideValueId,
-            NeoValueOwnership ownership = NeoValueOwnership.Asset)
-        {
-            // Prefixes carry their colon so the key concatenates at most four
-            // parts, which needs no argument array.
-            string prefix = ownership switch
-            {
-                NeoValueOwnership.Asset => "asset:",
-                NeoValueOwnership.Save => "save:",
-                NeoValueOwnership.Session => "session:",
-                _ => "unknown:",
-            };
-            return string.IsNullOrEmpty(overrideValueId)
-                ? prefix + memberId
-                : string.Concat(prefix, memberId, "_", overrideValueId);
         }
 
         internal bool TryGetEnum<TEnum>(string id, [NotNullWhen(true)] out TEnum? enumInfo) where TEnum : Enum

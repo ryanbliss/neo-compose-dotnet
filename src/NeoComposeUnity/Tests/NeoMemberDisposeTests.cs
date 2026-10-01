@@ -137,11 +137,11 @@ namespace NeoCompose.Tests
             var nameMember = RequireMember<StringMember>(client, "member-name");
 
             var node = NeoMember.Create(client, nameMember, null);
-            Assert.IsTrue(client.nodes.ContainsKey("asset:member-name"));
+            Assert.IsTrue(client.nodes.ContainsKey(new NeoNodeKey("member-name", null, NeoValueOwnership.Asset)));
 
             node.Dispose();
             Assert.IsTrue(node.isDisposed);
-            Assert.IsFalse(client.nodes.ContainsKey("asset:member-name"));
+            Assert.IsFalse(client.nodes.ContainsKey(new NeoNodeKey("member-name", null, NeoValueOwnership.Asset)));
         }
 
         [Test]
@@ -168,13 +168,13 @@ namespace NeoCompose.Tests
 
             var first = new NeoMemberString(client, nameMember, null);
             var second = new NeoMemberString(client, nameMember, null);
-            Assert.AreSame(second, client.nodes["asset:member-name"], "Direct new is last-write-wins");
+            Assert.AreSame(second, client.nodes[new NeoNodeKey("member-name", null, NeoValueOwnership.Asset)], "Direct new is last-write-wins");
 
             first.Dispose();
             // First's Dispose tried to unregister "member-name" but the
             // registry's instance was second, so the entry stays.
-            Assert.IsTrue(client.nodes.ContainsKey("asset:member-name"));
-            Assert.AreSame(second, client.nodes["asset:member-name"]);
+            Assert.IsTrue(client.nodes.ContainsKey(new NeoNodeKey("member-name", null, NeoValueOwnership.Asset)));
+            Assert.AreSame(second, client.nodes[new NeoNodeKey("member-name", null, NeoValueOwnership.Asset)]);
         }
 
         // -----------------------------------------------------------------
@@ -188,15 +188,15 @@ namespace NeoCompose.Tests
             var heroMember = RequireMember<ClassMember>(client, "member-hero");
             // Bind to v-dict so children get walked.
             var hero = (NeoMemberClass)NeoMember.Create(client, heroMember, "v-dict");
-            Assert.IsTrue(client.nodes.ContainsKey("asset:member-name_v-name"),
+            Assert.IsTrue(client.nodes.ContainsKey(new NeoNodeKey("member-name", "v-name", NeoValueOwnership.Asset)),
                 "Pre-condition: child registered");
-            var child = client.nodes["asset:member-name_v-name"];
+            var child = client.nodes[new NeoNodeKey("member-name", "v-name", NeoValueOwnership.Asset)];
 
             hero.Dispose();
             Assert.IsTrue(hero.isDisposed);
             Assert.IsTrue(child.isDisposed, "Child should be disposed by parent's recursive Dispose");
-            Assert.IsFalse(client.nodes.ContainsKey("asset:member-hero_v-dict"));
-            Assert.IsFalse(client.nodes.ContainsKey("asset:member-name_v-name"));
+            Assert.IsFalse(client.nodes.ContainsKey(new NeoNodeKey("member-hero", "v-dict", NeoValueOwnership.Asset)));
+            Assert.IsFalse(client.nodes.ContainsKey(new NeoNodeKey("member-name", "v-name", NeoValueOwnership.Asset)));
         }
 
         // -----------------------------------------------------------------
@@ -286,7 +286,7 @@ namespace NeoCompose.Tests
             // Capture the registered child + its valueId before removal.
             Assert.IsTrue(inv.TryGet<NeoMemberString>("sword", out NeoMemberString? childBefore));
             string entryValueId = childBefore!.overrideValueId!;
-            Assert.IsTrue(client.nodes.ContainsKey($"session:member-name_{entryValueId}"));
+            Assert.IsTrue(client.nodes.ContainsKey(new NeoNodeKey("member-name", entryValueId, NeoValueOwnership.Session)));
             // Round-trip through the client to confirm the entry value
             // is sitting in saveData.values.
             Assert.IsTrue(client.TryGetValue<StringMemberValue>(entryValueId, out _));
@@ -294,7 +294,7 @@ namespace NeoCompose.Tests
             inv.Remove("sword");
 
             Assert.IsTrue(childBefore.isDisposed);
-            Assert.IsFalse(client.nodes.ContainsKey($"session:member-name_{entryValueId}"));
+            Assert.IsFalse(client.nodes.ContainsKey(new NeoNodeKey("member-name", entryValueId, NeoValueOwnership.Session)));
             Assert.IsFalse(client.TryGetValue<StringMemberValue>(entryValueId, out _),
                 "Removed entry's value row should be GC'd from saveData");
         }
@@ -314,13 +314,13 @@ namespace NeoCompose.Tests
 
             var firstChild = (NeoMemberString)tags[0];
             string firstValueId = firstChild.overrideValueId!;
-            Assert.IsTrue(client.nodes.ContainsKey($"session:member-name_{firstValueId}"));
+            Assert.IsTrue(client.nodes.ContainsKey(new NeoNodeKey("member-name", firstValueId, NeoValueOwnership.Session)));
             Assert.IsTrue(client.TryGetValue<StringMemberValue>(firstValueId, out _));
 
             tags.RemoveAt(0);
 
             Assert.IsTrue(firstChild.isDisposed);
-            Assert.IsFalse(client.nodes.ContainsKey($"session:member-name_{firstValueId}"));
+            Assert.IsFalse(client.nodes.ContainsKey(new NeoNodeKey("member-name", firstValueId, NeoValueOwnership.Session)));
             Assert.IsFalse(client.TryGetValue<StringMemberValue>(firstValueId, out _),
                 "Removed entry's value row should be GC'd from writable data");
             Assert.AreEqual(1, tags.Count);
@@ -339,13 +339,13 @@ namespace NeoCompose.Tests
 
             var nameChild = (NeoMemberString)hero["Name"];
             string nameValueId = nameChild.overrideValueId!;
-            Assert.IsTrue(client.nodes.ContainsKey($"session:member-name_{nameValueId}"));
+            Assert.IsTrue(client.nodes.ContainsKey(new NeoNodeKey("member-name", nameValueId, NeoValueOwnership.Session)));
             Assert.IsTrue(client.TryGetValue<StringMemberValue>(nameValueId, out _));
 
             hero.Remove("Name");
 
             Assert.IsTrue(nameChild.isDisposed);
-            Assert.IsFalse(client.nodes.ContainsKey($"session:member-name_{nameValueId}"));
+            Assert.IsFalse(client.nodes.ContainsKey(new NeoNodeKey("member-name", nameValueId, NeoValueOwnership.Session)));
             Assert.IsFalse(client.sessionValues.ContainsKey(nameValueId));
             Assert.IsTrue(client.TryGetValue<StringMemberValue>(nameValueId, out var authoredName));
             Assert.AreEqual("Hero", authoredName!.value, "removing a shadow preserves its authored default");

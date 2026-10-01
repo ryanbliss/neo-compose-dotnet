@@ -27,7 +27,7 @@ namespace NeoCompose.Runtime
         private NeoScriptObject? detached;
         // The registry key a view claimed when its temporary's rows attached,
         // and its watch on the root row, until its node takes both over.
-        private string? attachedRegistryKey;
+        private NeoNodeKey? attachedRegistryKey;
         private IDisposable? attachedRowSubscription;
         private readonly string fallbackClassId;
         private bool isDisposed;
@@ -303,11 +303,12 @@ namespace NeoCompose.Runtime
             string id = NSGetterEvaluator.AttachDetached(value, null);
             if (attachedRegistryKey is null)
             {
-                attachedRegistryKey = NeoClient.MakeNodeKey(
+                var key = new NeoNodeKey(
                     NeoGeneratedTypesSupport.UnplacedClassMemberId(value.plan.classId),
                     id,
                     NeoValueOwnership.Session);
-                client.RegisterGeneratedClassValue(this, attachedRegistryKey);
+                attachedRegistryKey = key;
+                client.RegisterGeneratedClassValue(this, key);
                 attachedRowSubscription = client.SubscribeWritableValue(id, HandleAttachedRowChanged);
             }
             return id;
@@ -325,11 +326,11 @@ namespace NeoCompose.Runtime
 
         private void ReleaseAttachedRows()
         {
-            if (attachedRegistryKey is null)
+            if (attachedRegistryKey is not NeoNodeKey key)
                 return;
             attachedRowSubscription!.Dispose();
             attachedRowSubscription = null;
-            client.UnregisterGeneratedClassValue(this, attachedRegistryKey);
+            client.UnregisterGeneratedClassValue(this, key);
             attachedRegistryKey = null;
         }
 

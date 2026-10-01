@@ -687,8 +687,8 @@ namespace NeoCompose.Runtime
             internal readonly NeoWritePlan Plan;
             internal bool PreparingVariant;
             internal readonly Dictionary<string, MemberValue> Allocations = new();
-            internal readonly Dictionary<string, NeoMember> Nodes = new();
-            internal readonly Dictionary<string, NeoGeneratedClassValue> GeneratedValues = new();
+            internal readonly Dictionary<NeoNodeKey, NeoMember> Nodes = new();
+            internal readonly Dictionary<NeoNodeKey, NeoGeneratedClassValue> GeneratedValues = new();
             internal readonly Dictionary<string, HashSet<string>> ContainerMembers = new();
             internal readonly Dictionary<string, HashSet<string>> Parents = new();
             internal readonly Dictionary<string, HashSet<string>> VirtualContainerMembers = new();
