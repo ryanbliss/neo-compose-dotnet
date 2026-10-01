@@ -645,18 +645,34 @@ namespace NeoCompose.Runtime.NeoScript
             /// Unlike getter/setter cycle sets, recursion is valid and is only
             /// rejected once the runtime depth cap is reached.
             /// </summary>
-            public IReadOnlyList<string> functionCallStack => functionCallStackField ?? NoFunctionCalls;
+            public IReadOnlyList<string> functionCallStack => CurrentFunctionCallStack ?? NoFunctionCalls;
             // Null while no function runs, so ClearDirectInvocation's constant
             // null store pays no write barrier; storing the empty stack does.
             private IReadOnlyList<string>? functionCallStackField;
+            // The frame holding the running function's stack, or -1 for
+            // functionCallStackField. A frame at one depth usually enters the
+            // same stack again, so keeping it there skips the write barriers
+            // that storing it here, and restoring the caller's, pay.
+            private int functionCallStackFrame = -1;
+            private IReadOnlyList<string>? CurrentFunctionCallStack
+            {
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                get => functionCallStackFrame < 0
+                    ? functionCallStackField
+                    : frameStack!.frames[functionCallStackFrame].functionCallStack;
+            }
             // Skips the interface call Count goes through for the usual
             // frame stack and for an empty one.
             internal int functionDepth
             {
                 [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                get => functionCallStackField is CallFrameStack frames
-                    ? frames.Count
-                    : functionCallStackField?.Count ?? 0;
+                get
+                {
+                    IReadOnlyList<string>? stack = CurrentFunctionCallStack;
+                    return stack is CallFrameStack frames
+                        ? frames.Count
+                        : stack?.Count ?? 0;
+                }
             }
             // A field load, where each Array.Empty call goes through a stub.
             private static readonly string[] NoFunctionCalls = System.Array.Empty<string>();
@@ -769,11 +785,17 @@ namespace NeoCompose.Runtime.NeoScript
                     : null);
             internal ExpressionHandlers? expressionHandlers
             {
-                get => expressionHandlersField;
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                get => expressionHandlersFrame < 0
+                    ? expressionHandlersField
+                    : frameStack!.frames[expressionHandlersFrame].expressionHandlers;
                 private set => expressionHandlersField = value;
             }
             // A plain field for the same reason as thisValueField.
             private ExpressionHandlers? expressionHandlersField;
+            // The frame holding the bound handlers, or -1 for the field, for
+            // the same reason as functionCallStackFrame.
+            private int expressionHandlersFrame = -1;
             /// <summary>
             /// True while a constructor body's own statements run. The body
             /// runs immediate, but a property it assigns gets a setter frame
@@ -884,6 +906,17 @@ namespace NeoCompose.Runtime.NeoScript
                 allocationTracker.ReusableContext = false;
                 var fork = (Context)MemberwiseClone();
                 fork.constructorBody = false;
+                // A fork can outlive the frames it was made in.
+                if (functionCallStackFrame >= 0)
+                {
+                    fork.functionCallStackField = CurrentFunctionCallStack;
+                    fork.functionCallStackFrame = -1;
+                }
+                if (expressionHandlersFrame >= 0)
+                {
+                    fork.expressionHandlersField = expressionHandlers;
+                    fork.expressionHandlersFrame = -1;
+                }
                 return fork;
             }
 
@@ -995,7 +1028,7 @@ namespace NeoCompose.Runtime.NeoScript
             internal Context WithFunctionPushed(string memberId, IReadOnlyList<string> directCallStack, object? receiver)
             {
                 Context child = Fork();
-                child.functionCallStackField = PushFunction(functionCallStackField, memberId, directCallStack);
+                child.functionCallStackField = PushFunction(child.functionCallStackField, memberId, directCallStack);
                 child.thisValue = receiver;
                 return child;
             }
@@ -1009,12 +1042,15 @@ namespace NeoCompose.Runtime.NeoScript
             internal struct FunctionFrame
             {
                 internal object? thisValue;
+                // The function stack and handlers the frame entered, and the
+                // frames holding the caller's.
                 internal IReadOnlyList<string>? functionCallStack;
                 internal ExpressionHandlers? expressionHandlers;
-                // Whether the frame replaced this and the handlers: most calls
-                // keep both, and saving them anyway write-barriers each.
+                internal int callerFunctionCallStackFrame;
+                internal int callerExpressionHandlersFrame;
+                // Whether the frame replaced this: most calls keep it, and
+                // saving it anyway write-barriers.
                 internal bool thisSaved;
-                internal bool handlersSaved;
                 internal Context? immediateExpressionContext;
                 internal Context? immediateExpressionSource;
                 internal object? immediateExpressionState;
@@ -1031,9 +1067,10 @@ namespace NeoCompose.Runtime.NeoScript
             /// Saved frames, innermost last. Frames complete before their
             /// callers continue, so contexts sharing a row cache, which already
             /// run on one thread, share one stack. Exit clears a frame, so an
-            /// entered one starts empty, except for the saved call stacks and
-            /// <c>this</c>: those stay for the next frame at that depth, which
-            /// usually saves the same ones and so skips their write barriers.
+            /// entered one starts empty, except for its call stacks, handlers
+            /// and saved <c>this</c>: those stay for the next frame at that
+            /// depth, which usually stores the same ones and so skips their
+            /// write barriers.
             /// </summary>
             internal sealed class FrameStack
             {
@@ -1060,9 +1097,12 @@ namespace NeoCompose.Runtime.NeoScript
             /// </summary>
             internal int EnterFunction(string memberId, IReadOnlyList<string> directCallStack, object? receiver)
             {
-                IReadOnlyList<string> stack = PushFunction(functionCallStackField, memberId, directCallStack);
+                IReadOnlyList<string> stack = PushFunction(CurrentFunctionCallStack, memberId, directCallStack);
                 int frame = EnterThis(receiver);
-                functionCallStackField = stack;
+                ref FunctionFrame entered = ref frameStack!.frames[frame];
+                if (!ReferenceEquals(entered.functionCallStack, stack))
+                    entered.functionCallStack = stack;
+                functionCallStackFrame = frame;
                 return frame;
             }
 
@@ -1080,8 +1120,8 @@ namespace NeoCompose.Runtime.NeoScript
                 // Mono write-barriers every reference stored here: the
                 // usually-null fields keep the null exit left them.
                 ref FunctionFrame saved = ref stack.frames[frame];
-                if (!ReferenceEquals(saved.functionCallStack, functionCallStackField))
-                    saved.functionCallStack = functionCallStackField;
+                saved.callerFunctionCallStackFrame = functionCallStackFrame;
+                saved.callerExpressionHandlersFrame = expressionHandlersFrame;
                 // The immediate expression fields are set and cleared together.
                 if (immediateExpressionContext is not null)
                 {
@@ -1123,17 +1163,15 @@ namespace NeoCompose.Runtime.NeoScript
                     return;
                 if (frame >= 0)
                 {
-                    ref FunctionFrame saved = ref frameStack!.frames[frame];
-                    if (!saved.handlersSaved)
-                    {
-                        // An unsaved frame already holds null, which a
-                        // caller without handlers would store again.
-                        if (expressionHandlersField is not null)
-                            saved.expressionHandlers = expressionHandlersField;
-                        saved.handlersSaved = true;
-                    }
+                    ref FunctionFrame entered = ref frameStack!.frames[frame];
+                    if (!ReferenceEquals(entered.expressionHandlers, handlers))
+                        entered.expressionHandlers = handlers;
+                    expressionHandlersFrame = frame;
                 }
-                expressionHandlersField = handlers;
+                else
+                {
+                    expressionHandlersField = handlers;
+                }
             }
 
             /// <summary>
@@ -1165,27 +1203,8 @@ namespace NeoCompose.Runtime.NeoScript
                         thisValueField = null;
                     saved.thisSaved = false;
                 }
-                IReadOnlyList<string>? callerStack = saved.functionCallStack;
-                if (!ReferenceEquals(functionCallStackField, callerStack))
-                {
-                    if (callerStack is null)
-                        functionCallStackField = null;
-                    else
-                        functionCallStackField = callerStack;
-                }
-                if (saved.handlersSaved)
-                {
-                    if (saved.expressionHandlers is { } callerHandlers)
-                    {
-                        expressionHandlersField = callerHandlers;
-                        saved.expressionHandlers = null;
-                    }
-                    else
-                    {
-                        expressionHandlersField = null;
-                    }
-                    saved.handlersSaved = false;
-                }
+                functionCallStackFrame = saved.callerFunctionCallStackFrame;
+                expressionHandlersFrame = saved.callerExpressionHandlersFrame;
                 if (!ReferenceEquals(immediateExpressionContext, saved.immediateExpressionContext))
                     immediateExpressionContext = saved.immediateExpressionContext;
                 if (!ReferenceEquals(immediateExpressionSource, saved.immediateExpressionSource))
