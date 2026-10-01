@@ -57,6 +57,12 @@ namespace NeoCompose.Runtime
         internal string RegistryKey => registryKey ??= NeoClient.MakeNodeKey(
             member.RuntimeDeclarationIdentity, overrideValueId, ownership);
         private MemberValue? boundValue;
+        // The value node the typed value read last resolved.
+        private protected NeoValueNode? valueNode;
+
+        /// <summary>The live value node this member last read for <paramref name="id"/>, if it holds one.</summary>
+        internal NeoValueNode? HeldValueNode(string id) =>
+            valueNode is { live: true } node && node.id == id ? node : null;
         internal bool IsRegisteredWithClient
         {
             get; set;
@@ -545,9 +551,6 @@ namespace NeoCompose.Runtime
         /// sibling collection items that share a template member id.
         /// </summary>
         private string? boundValueId;
-
-        // The value node valueData last read.
-        private NeoValueNode? valueNode;
 
         /// <summary>
         /// Live read of the bound value through

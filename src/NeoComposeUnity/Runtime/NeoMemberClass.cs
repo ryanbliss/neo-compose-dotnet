@@ -947,8 +947,10 @@ namespace NeoCompose.Runtime
             {
                 existingValueId = virtualExistingValueId;
             }
-            // One node answers every read of the entry's row, and the leaf write.
-            NeoValueNode? existingNode = null;
+            // One node answers every read of the entry's row, and the leaf
+            // write. The entry's live child already holds it.
+            NeoMember? existingChild = existingValueId is null ? null : FindChild(key);
+            NeoValueNode? existingNode = existingChild?.HeldValueNode(existingValueId!);
             if (existingValueId is not null
                 && client.ReadValue(childOwnership, existingValueId, ref existingNode) is { } existing)
             {
@@ -987,7 +989,6 @@ namespace NeoCompose.Runtime
                 if (client.ReadWritableValue(childOwnership, existingValueId, ref existingNode) is { } stored
                     && MemberValueFactory.MatchesLeaf(childMember, setValue?.value, stored))
                     return;
-                NeoMember? existingChild = FindChild(key);
                 // Reuse the entry's stable id: a fresh row at the same id
                 // shadows the authored default in the child's writable store.
                 MemberValue next = MemberValueFactory.Create(
