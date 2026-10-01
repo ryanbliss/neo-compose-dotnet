@@ -680,19 +680,28 @@ namespace NeoCompose.Runtime
     public partial class NeoClient
     {
         private readonly Dictionary<string, NeoTileGridLookupCache> gridLookupCaches = new();
+        // The caches in creation order, for the per-write walks: a typed
+        // array skips Mono's shared generic dictionary enumerator.
+        private NeoTileGridLookupCache[] gridLookupCacheList = System.Array.Empty<NeoTileGridLookupCache>();
 
         internal NeoTileGridLookupCache GetGridLookupCache(string gridValueId)
         {
             if (!gridLookupCaches.TryGetValue(gridValueId, out var cache))
+            {
                 gridLookupCaches[gridValueId] = cache = new NeoTileGridLookupCache(this, gridValueId);
+                int count = gridLookupCacheList.Length;
+                System.Array.Resize(ref gridLookupCacheList, count + 1);
+                gridLookupCacheList[count] = cache;
+            }
             return cache;
         }
 
         private void DisposeGridLookupCaches()
         {
-            foreach (var cache in gridLookupCaches.Values)
+            foreach (NeoTileGridLookupCache cache in gridLookupCacheList)
                 cache.Dispose();
             gridLookupCaches.Clear();
+            gridLookupCacheList = System.Array.Empty<NeoTileGridLookupCache>();
         }
     }
 }

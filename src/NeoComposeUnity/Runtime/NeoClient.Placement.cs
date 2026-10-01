@@ -82,7 +82,7 @@ namespace NeoCompose.Runtime
             {
                 // Validation changes no index; a collision leaves the store
                 // and every index as they were.
-                foreach (NeoTileGridLookupCache cache in gridLookupCaches.Values)
+                foreach (NeoTileGridLookupCache cache in gridLookupCacheList)
                     if (ObjectMove.Prepare(cache, owner.id, cell) is { } move)
                         moves.Add(move);
                 StoreLeaf(ownership, next, node!);

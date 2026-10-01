@@ -56,7 +56,7 @@ namespace NeoCompose.Runtime
         private bool InvalidateGridLeaf(string valueId)
         {
             bool invalidated = false;
-            foreach (NeoTileGridLookupCache cache in gridLookupCaches.Values)
+            foreach (NeoTileGridLookupCache cache in gridLookupCacheList)
                 invalidated |= cache.InvalidateLeaf(valueId);
             if (invalidated)
                 InvalidateGridDependentGetterMemo();
@@ -66,7 +66,7 @@ namespace NeoCompose.Runtime
         /// <summary>Reports the cells the re-flattened carried tiles changed.</summary>
         private void PublishGridLeaf(NeoValueOwnership ownership, string valueId)
         {
-            foreach (NeoTileGridLookupCache cache in gridLookupCaches.Values)
+            foreach (NeoTileGridLookupCache cache in gridLookupCacheList)
                 cache.PublishLeaf(ownership, valueId);
         }
 
