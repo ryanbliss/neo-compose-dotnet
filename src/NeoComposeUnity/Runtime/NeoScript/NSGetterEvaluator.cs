@@ -106,7 +106,13 @@ namespace NeoCompose.Runtime.NeoScript
         // operation that can retain context state keeps its ordinary lifetime.
         internal bool ReusableContext = true;
         private NeoDelegateFrameStack? delegateFrames;
-        internal NeoDelegateFrameStack DelegateFrames => delegateFrames ??= new();
+        internal NeoDelegateFrameStack DelegateFrames
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => delegateFrames ?? CreateDelegateFrames();
+        }
+
+        private NeoDelegateFrameStack CreateDelegateFrames() => delegateFrames = new();
         private List<NeoScriptObject>? listBuffered;
 
         internal void EnterExecution()
@@ -682,7 +688,11 @@ namespace NeoCompose.Runtime.NeoScript
             /// retain cycle detection across closure and member-target
             /// boundaries.
             /// </summary>
-            internal NeoDelegateFrameStack delegateCallStack => allocationTracker.DelegateFrames;
+            internal NeoDelegateFrameStack delegateCallStack
+            {
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                get => allocationTracker.DelegateFrames;
+            }
             /// <summary>
             /// P43 §7.2.3 — ordered names of the classes currently under
             /// construction. Deliberately separate from
@@ -2863,17 +2873,19 @@ namespace NeoCompose.Runtime.NeoScript
             NeoResolvedNSFunction? function = null;
             NeoClient.ResolvedNativeFunction? nativeFunction = null;
             JsonMember? member;
+            // A resolved target holds its function's id instance, so the id
+            // checks below match by reference without a string call.
             switch (target.resolvedTarget)
             {
                 case NeoResolvedNSFunction cached
                     when ReferenceEquals(cached.SchemaResolution, ctx.client.SchemaResolution)
-                        && cached.MemberId == memberId:
+                        && (ReferenceEquals(cached.MemberId, memberId) || cached.MemberId == memberId):
                     function = cached;
                     member = cached.Member;
                     break;
                 case NeoClient.ResolvedNativeFunction { member: { } cachedMember } cached
                     when ReferenceEquals(cached.schemaResolution, ctx.client.SchemaResolution)
-                        && cached.memberId == memberId:
+                        && (ReferenceEquals(cached.memberId, memberId) || cached.memberId == memberId):
                     nativeFunction = cached;
                     member = cachedMember;
                     break;
@@ -2952,6 +2964,9 @@ namespace NeoCompose.Runtime.NeoScript
                     {
                         function = NeoNSFunctionRuntime.ResolveSignature(ctx.client, memberId);
                         target.resolvedTarget = function;
+                        // The client's cached function may carry another
+                        // instance of the same id.
+                        target.memberId = function.MemberId;
                     }
                     return NeoNSFunctionRuntime.InvokeImmediate(
                         ctx.client,
