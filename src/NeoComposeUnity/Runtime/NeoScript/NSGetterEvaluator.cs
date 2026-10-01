@@ -2557,15 +2557,27 @@ namespace NeoCompose.Runtime.NeoScript
             object? lexicalRoot = value.hasLexicalEnvironment
                 ? value.lexicalRoot
                 : ctx.rootValue;
-            var nestedCtx = ctx.WithThis(lexicalThis);
-            nestedCtx.BindRoot(lexicalRoot);
-            var options = NeoScriptExecutionOptions.ForImmediate(ctx.client);
-            NeoScriptExecutor.PrepareFunctionContext(nestedCtx, options, -1);
+            // A closure completes before its caller continues, so like an
+            // immediate NSFunction it runs in a frame on the caller's context.
+            // Only another root needs a fork: frames do not save the root.
+            Context nestedCtx = ctx;
+            int frame = -1;
+            if (ReferenceEquals(lexicalRoot, ctx.rootValue))
+            {
+                frame = ctx.EnterThis(lexicalThis);
+            }
+            else
+            {
+                nestedCtx = ctx.WithThis(lexicalThis);
+                nestedCtx.BindRoot(lexicalRoot);
+            }
             NeoScriptScopeLayout layout = action.scopeLayout ??= new NeoScriptScopeLayout(action);
             var scope = layout.RentScope();
             bool completed = false;
             try
             {
+                var options = NeoScriptExecutionOptions.ForImmediate(ctx.client);
+                NeoScriptExecutor.PrepareFunctionContext(nestedCtx, options, frame);
                 scope.SetParameter(0, lexicalThis);
                 scope.SetParameter(1, lexicalRoot);
                 for (int i = 0; i < args.Length; i++)
@@ -2577,7 +2589,7 @@ namespace NeoCompose.Runtime.NeoScript
                             args[i],
                             action.parameters[i + 2].typeInfo,
                             nestedCtx,
-                            $"argument {i} of NeoDelegate closure"));
+                            NeoScriptValueMarshaller.ValueSubject.Closure("argument", i)));
                 }
                 for (int i = 0; i < captures.Length; i++)
                 {
@@ -2589,7 +2601,7 @@ namespace NeoCompose.Runtime.NeoScript
                             captures[i],
                             action.parameters[parameterIndex].typeInfo,
                             nestedCtx,
-                            $"capture {i} of NeoDelegate closure"));
+                            NeoScriptValueMarshaller.ValueSubject.Closure("capture", i)));
                 }
                 NeoScriptExecutionResult result = NeoScriptExecutor.Execute(
                     ctx.client,
@@ -2608,6 +2620,8 @@ namespace NeoCompose.Runtime.NeoScript
             }
             finally
             {
+                if (frame >= 0)
+                    ctx.ExitFunction(frame);
                 if (completed)
                     layout.ReturnScope(scope);
                 else

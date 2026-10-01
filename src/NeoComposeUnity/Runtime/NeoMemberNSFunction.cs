@@ -2493,6 +2493,7 @@ namespace NeoCompose.Runtime
                 Key,
                 DictionaryValue,
                 NativeArgument,
+                Closure,
             }
 
             private ValueSubject(string subject, Kind kind, int index, object key)
@@ -2530,6 +2531,10 @@ namespace NeoCompose.Runtime
             internal static ValueSubject NativeArgument(NeoClient.ResolvedNativeFunction function, int index) =>
                 new(function.name, Kind.NativeArgument, index, function);
 
+            /// <summary>The <paramref name="role"/> (argument or capture) <paramref name="index"/> of a NeoDelegate closure.</summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            internal static ValueSubject Closure(string role, int index) => new(role, Kind.Closure, index);
+
             public override string ToString() => kind switch
             {
                 Kind.Entry => $"entry of {subject}",
@@ -2537,6 +2542,7 @@ namespace NeoCompose.Runtime
                 Kind.Key => $"key '{key}' of {subject}",
                 Kind.DictionaryValue => $"dictionary value of {subject}",
                 Kind.NativeArgument => ((NeoClient.ResolvedNativeFunction)key!).ArgumentSubject(index),
+                Kind.Closure => $"{subject} {index} of NeoDelegate closure",
                 _ => subject,
             };
         }
