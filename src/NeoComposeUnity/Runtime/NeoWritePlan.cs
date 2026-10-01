@@ -49,7 +49,8 @@ namespace NeoCompose.Runtime
         internal List<NeoValidatedTileConversion>? ValidatedTileConversions;
         internal Dictionary<(string gridId, string layerId), NeoTileLayerBuild>? PreparedTileLayers;
         internal Dictionary<(string gridId, string layerId), NeoPreparedLayerRecords<NeoObjectPlacementRecord>>? PreparedObjectLayers;
-        internal readonly Dictionary<(NeoValueOwnership ownership, string id), MemberValue?> Rows = new();
+        // Sized for a collection write: its row, and an entry with a few fields.
+        internal readonly Dictionary<(NeoValueOwnership ownership, string id), MemberValue?> Rows = new(8);
         private Dictionary<(NeoValueOwnership ownership, string id), string>? changedFields;
         private HashSet<(NeoValueOwnership ownership, string id)>? silentRows;
         // Most plans bind no static; they share one empty map until the first Bind.
@@ -58,11 +59,16 @@ namespace NeoCompose.Runtime
         /// <summary>The staged static bindings. Read-only: <see cref="Bind"/> writes them.</summary>
         internal Dictionary<(NeoValueOwnership ownership, string memberId), (bool present, string? valueId)> Bindings => bindings ?? NoBindings;
         private Dictionary<NeoMember, string>? nodeBindings;
-        private List<Action>? afterCommit;
-        private List<Action>? afterNotifications;
-        private HashSet<NeoMember>? reportsOwnChange;
+        private Callbacks afterCommit;
+        private Callbacks afterNotifications;
+        // The collection mutators behind this plan: almost always one.
+        private NeoMember? reportingNode;
+        private List<NeoMember>? moreReportingNodes;
         private Dictionary<string, HashSet<string>>? containerCandidates;
         // A child's staged parent, or a set when more than one row links it.
+        // Plans that stage no new link share one empty map; the others rent
+        // theirs from the client until the commit ends.
+        private static readonly Dictionary<string, object> NoParentCandidates = new();
         private Dictionary<string, object>? parentCandidates;
 
         internal NeoWritePlan(NeoClient client)
@@ -78,7 +84,7 @@ namespace NeoCompose.Runtime
             var key = (ownership, row.id);
             Rows[key] = row;
             containerCandidates = null;
-            parentCandidates = null;
+            ReleaseParentCandidates();
             if (changedField is not null)
                 (changedFields ??= new())[key] = changedField;
             else
@@ -111,7 +117,7 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException("Cannot remove immutable asset data.");
             var key = (ownership, id);
             Rows[key] = null;
-            parentCandidates = null;
+            ReleaseParentCandidates();
             silentRows?.Remove(key);
         }
 
@@ -182,17 +188,17 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// The staged rows that may link <paramref name="childId"/>, beyond
+        /// Adds to <paramref name="into"/> the staged rows that may link <paramref name="childId"/>, beyond
         /// the links the client's committed placement index already holds.
         /// Every caller unions these with that index, so a staged row only
         /// contributes the children past its unchanged leading ones: an append
         /// to a long list row indexes one child, not the whole list.
         /// </summary>
-        internal IEnumerable<string> ParentCandidates(string childId)
+        internal void CollectParentCandidates(string childId, ICollection<string> into)
         {
             if (parentCandidates is null)
             {
-                parentCandidates = new Dictionary<string, object>(StringComparer.Ordinal);
+                Dictionary<string, object>? found = null;
                 // Collected rather than enumerated: a long list row's entries
                 // would each cost an enumerator call.
                 List<string> children = Client.RentIdList();
@@ -215,12 +221,13 @@ namespace NeoCompose.Runtime
                         for (int index = prefix; index < children.Count; index++)
                         {
                             string child = children[index];
-                            if (!parentCandidates.TryGetValue(child, out object? parents))
-                                parentCandidates[child] = row.id;
+                            found ??= Client.RentParentIndex();
+                            if (!found.TryGetValue(child, out object? parents))
+                                found[child] = row.id;
                             else if (parents is HashSet<string> set)
                                 set.Add(row.id);
                             else if (!string.Equals((string)parents, row.id, StringComparison.Ordinal))
-                                parentCandidates[child] = new HashSet<string>(StringComparer.Ordinal) { (string)parents, row.id };
+                                found[child] = new HashSet<string>(StringComparer.Ordinal) { (string)parents, row.id };
                         }
                     }
                 }
@@ -228,10 +235,25 @@ namespace NeoCompose.Runtime
                 {
                     Client.ReturnIdList(children);
                 }
+                parentCandidates = found ?? NoParentCandidates;
             }
-            if (!parentCandidates.TryGetValue(childId, out object? found))
-                return Array.Empty<string>();
-            return found as HashSet<string> ?? (IEnumerable<string>)new[] { (string)found };
+            if (!parentCandidates.TryGetValue(childId, out object? parentOrSet))
+                return;
+            if (parentOrSet is HashSet<string> parentSet)
+            {
+                foreach (string parent in parentSet)
+                    into.Add(parent);
+            }
+            else
+                into.Add((string)parentOrSet);
+        }
+
+        /// <summary>Drops the staged parent index, which no caller holds past a lookup, back to the client's pool.</summary>
+        internal void ReleaseParentCandidates()
+        {
+            if (parentCandidates is not null && !ReferenceEquals(parentCandidates, NoParentCandidates))
+                Client.ReturnParentIndex(parentCandidates);
+            parentCandidates = null;
         }
 
         internal IEnumerable<string> ContainerCandidates(string containerId)
@@ -255,15 +277,32 @@ namespace NeoCompose.Runtime
         internal void Bind(NeoValueOwnership ownership, string memberId, bool present, string? valueId) =>
             (bindings ??= new())[(ownership, memberId)] = (present, valueId);
 
-        internal void AfterNotifications(Action callback) => (afterNotifications ??= new()).Add(callback);
+        internal void AfterNotifications(Action callback) => afterNotifications.Add(callback);
+        internal void AfterNotifications(INeoPlanCallback callback) => afterNotifications.Add(callback);
 
         /// <summary>
         /// Marks <paramref name="node"/> as the collection mutator behind this
         /// plan: it publishes one precise change itself, so its row change
         /// must not raise a second, unknown one.
         /// </summary>
-        internal void ReportsOwnChange(NeoMember node) => (reportsOwnChange ??= new()).Add(node);
-        internal bool IsReportingOwnChange(NeoMember node) => reportsOwnChange?.Contains(node) == true;
+        internal void ReportsOwnChange(NeoMember node)
+        {
+            if (reportingNode is null)
+                reportingNode = node;
+            else if (!IsReportingOwnChange(node))
+                (moreReportingNodes ??= new List<NeoMember>()).Add(node);
+        }
+
+        internal bool IsReportingOwnChange(NeoMember node)
+        {
+            if (ReferenceEquals(reportingNode, node))
+                return true;
+            if (moreReportingNodes is not null)
+                for (int index = 0; index < moreReportingNodes.Count; index++)
+                    if (ReferenceEquals(moreReportingNodes[index], node))
+                        return true;
+            return false;
+        }
 
         /// <summary>
         /// The member of the reporting node bound to row <paramref name="valueId"/>:
@@ -271,33 +310,67 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal Member? ReportingMember(string valueId)
         {
-            if (reportsOwnChange is null)
+            if (reportingNode is null)
                 return null;
-            foreach (NeoMember node in reportsOwnChange)
-            {
-                if ((node.overrideValueId ?? node.value?.id) == valueId)
-                    return node.member;
-            }
+            if ((reportingNode.overrideValueId ?? reportingNode.value?.id) == valueId)
+                return reportingNode.member;
+            if (moreReportingNodes is not null)
+                for (int index = 0; index < moreReportingNodes.Count; index++)
+                {
+                    NeoMember node = moreReportingNodes[index];
+                    if ((node.overrideValueId ?? node.value?.id) == valueId)
+                        return node.member;
+                }
             return null;
         }
 
-        internal void NotifyCompleted()
-        {
-            if (afterNotifications is null)
-                return;
-            foreach (Action callback in afterNotifications)
-                callback();
-        }
-        internal void AfterCommit(Action callback) => (afterCommit ??= new()).Add(callback);
-        internal void NotifyCommitted()
-        {
-            if (afterCommit is null)
-                return;
-            foreach (Action callback in afterCommit)
-                callback();
-        }
+        internal void NotifyCompleted() => afterNotifications.Run();
+        internal void AfterCommit(Action callback) => afterCommit.Add(callback);
+        internal void NotifyCommitted() => afterCommit.Run();
 
         internal void Commit() => Client.CommitWritePlan(this);
+
+        /// <summary>
+        /// Callbacks in the order added: an <see cref="Action"/> or an
+        /// <see cref="INeoPlanCallback"/>. Most plans add one, which needs no list.
+        /// </summary>
+        private struct Callbacks
+        {
+            private object? first;
+            private List<object>? rest;
+
+            internal void Add(object callback)
+            {
+                if (first is null)
+                    first = callback;
+                else
+                    (rest ??= new List<object>()).Add(callback);
+            }
+
+            internal void Run()
+            {
+                if (first is not null)
+                    Invoke(first);
+                if (rest is null)
+                    return;
+                foreach (object callback in rest)
+                    Invoke(callback);
+            }
+
+            private static void Invoke(object callback)
+            {
+                if (callback is Action action)
+                    action();
+                else
+                    ((INeoPlanCallback)callback).Run();
+            }
+        }
+    }
+
+    /// <summary>Plan work that carries its own state, so it needs no closure and delegate.</summary>
+    internal interface INeoPlanCallback
+    {
+        void Run();
     }
 }
 
@@ -559,6 +632,7 @@ namespace NeoCompose.Runtime
                 }
                 if (batched)
                     EndChangeBatch();
+                plan.ReleaseParentCandidates();
             }
         }
     }

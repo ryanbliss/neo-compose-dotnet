@@ -179,6 +179,15 @@ namespace NeoCompose.Runtime
             return CreateOwnedChild(client, childMember, overrideValueId, writableFamily: true);
         }
 
+        // Keep the reference-transfer capture out of SetSerialized, so a write
+        // that moved nothing allocates no closure. The entry member is read
+        // once the plan commits.
+        private void RetargetMovedReferenceAfterCommit(
+            NeoWritePlan plan, NeoValueWritePayload setValue, string valueId, NeoValueOwnership entryOwnership)
+        {
+            plan.AfterCommit(() => setValue.RetargetMovedReference(client, entryMember, valueId, entryOwnership));
+        }
+
         /// <summary>
         /// Sets the dictionary entry under <paramref name="key"/>.
         /// Updates an existing entry in place; otherwise creates a
@@ -203,7 +212,7 @@ namespace NeoCompose.Runtime
                 if (nextId == previousId)
                     return;
                 if (sourceMoved)
-                    plan.AfterCommit(() => setValue.RetargetMovedReference(client, entryMember, nextId, entryOwnership));
+                    RetargetMovedReferenceAfterCommit(plan, setValue, nextId, entryOwnership);
             }
             else
             {

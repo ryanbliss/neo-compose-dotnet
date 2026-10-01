@@ -63,7 +63,7 @@ namespace NeoCompose.Runtime
             {
                 if (next.Count == 0)
                     return;
-                writablePlacementChildren[key] = next.ToArray();
+                writablePlacementChildren[key] = PlacementChildSnapshot(row, next);
                 foreach (string child in next)
                     AddPlacementParent(child, row.id);
                 return;
@@ -96,8 +96,13 @@ namespace NeoCompose.Runtime
             if (next.Count == 0)
                 writablePlacementChildren.Remove(key);
             else
-                writablePlacementChildren[key] = next.ToArray();
+                writablePlacementChildren[key] = PlacementChildSnapshot(row, next);
         }
+
+        // Committed id arrays are never written in place, so an array row's
+        // own ids are already the snapshot the next relink diffs against.
+        private static string[] PlacementChildSnapshot(MemberValue row, List<string> children) =>
+            row is ArrayMemberValue { value: { } ids } ? ids : children.ToArray();
 
         // A scan for a few probes, and a set built once past that.
         private static bool HoldsChild(IReadOnlyList<string> children, string child, bool few, ref HashSet<string>? set)
@@ -371,9 +376,11 @@ namespace NeoCompose.Runtime
                     }
                     pending.Enqueue(parent);
                 }
-                foreach (string parent in plan.ParentCandidates(id))
-                    if (IsPlacementEdge(plan, parent, id))
-                        pending.Enqueue(parent);
+                parentList.Clear();
+                plan.CollectParentCandidates(id, parentList);
+                for (int parentIndex = 0; parentIndex < parentList.Count; parentIndex++)
+                    if (IsPlacementEdge(plan, parentList[parentIndex], id))
+                        pending.Enqueue(parentList[parentIndex]);
             }
             // These builders read rows and declarations only. Do not resolve
             // generated wrappers or populate persistent layer caches here.

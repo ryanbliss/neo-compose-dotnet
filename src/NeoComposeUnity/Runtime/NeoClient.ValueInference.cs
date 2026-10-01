@@ -30,7 +30,7 @@ namespace NeoCompose.Runtime
                 CollectPlacementParents(childId, candidates);
                 if (candidateReadPlan is not null)
                 {
-                    candidates.UnionWith(candidateReadPlan.ParentCandidates(childId));
+                    candidateReadPlan.CollectParentCandidates(childId, candidates);
                     if (candidateReplay?.Parents.TryGetValue(childId, out var allocatedParents) == true)
                         candidates.UnionWith(allocatedParents);
                 }

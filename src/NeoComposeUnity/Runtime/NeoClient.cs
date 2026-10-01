@@ -5041,6 +5041,20 @@ namespace NeoCompose.Runtime
             idSetPool.Push(set);
         }
 
+        // Write plans' staged parent indexes, pooled the same way.
+        private readonly Stack<Dictionary<string, object>> parentIndexPool = new();
+
+        internal Dictionary<string, object> RentParentIndex() =>
+            parentIndexPool.Count != 0 ? parentIndexPool.Pop() : new Dictionary<string, object>(System.StringComparer.Ordinal);
+
+        internal void ReturnParentIndex(Dictionary<string, object> index)
+        {
+            if (index.Count > 64)
+                return;
+            index.Clear();
+            parentIndexPool.Push(index);
+        }
+
         internal bool TryInferMemberForValueId(
             string valueId,
             [NotNullWhen(true)] out Member? member)
@@ -9278,7 +9292,7 @@ namespace NeoCompose.Runtime
                 parents.Clear();
                 CollectPlacementParents(id, parents);
                 if (candidateReadPlan is not null)
-                    parents.UnionWith(candidateReadPlan.ParentCandidates(id));
+                    candidateReadPlan.CollectParentCandidates(id, parents);
                 foreach (string parentId in parents)
                 {
                     if (!TryGetOverlaidValue(ownership, parentId, out MemberValue? parent) || parent.IsRemoved)

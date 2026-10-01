@@ -592,14 +592,37 @@ namespace NeoCompose.Runtime
         // trampoline lookup on every add.
         private System.Action? refreshAfterCommit;
 
+        // Keep the reference-transfer capture out of the writers, so an entry
+        // that moved nothing allocates no closure. The entry member is read
+        // once the plan commits.
+        private void RetargetMovedReferenceAfterCommit(
+            NeoWritePlan plan, NeoValueWritePayload entryValue, string valueId, NeoValueOwnership entryOwnership)
+        {
+            plan.AfterCommit(() => entryValue.RetargetMovedReference(client, entryMember, valueId, entryOwnership));
+        }
+
         internal string PrepareAddSerialized(NeoWritePlan plan, NeoValueWritePayload? entryValue)
         {
             string id = PrepareAddSerializedCore(plan, entryValue);
             plan.ReportsOwnChange(this);
             plan.AfterCommit(refreshAfterCommit ??= () => RefreshCommittedValue());
-            plan.AfterNotifications(() => NotifyListChanged(new NeoListChangedArgs(
-                NeoListChangeKind.Add, addedValueIds: new[] { id })));
+            plan.AfterNotifications(new AddedNotification(this, id));
             return id;
+        }
+
+        private sealed class AddedNotification : INeoPlanCallback
+        {
+            private readonly NeoMemberListWritable list;
+            private readonly string valueId;
+
+            internal AddedNotification(NeoMemberListWritable list, string valueId)
+            {
+                this.list = list;
+                this.valueId = valueId;
+            }
+
+            public void Run() => list.NotifyListChanged(new NeoListChangedArgs(
+                NeoListChangeKind.Add, addedValueIds: new[] { valueId }));
         }
 
         private string PrepareAddSerializedCore(NeoWritePlan plan, NeoValueWritePayload? entryValue)
@@ -629,7 +652,7 @@ namespace NeoCompose.Runtime
                     out bool sourceMoved);
                 if (sourceMoved)
                 {
-                    plan.AfterCommit(() => entryValue.RetargetMovedReference(client, entryMember, newValueId, entryOwnership));
+                    RetargetMovedReferenceAfterCommit(plan, entryValue, newValueId, entryOwnership);
                 }
             }
             else
@@ -700,7 +723,7 @@ namespace NeoCompose.Runtime
                     out bool sourceMoved,
                     entryValueId);
                 if (sourceMoved)
-                    plan.AfterCommit(() => entryValue.RetargetMovedReference(client, entryMember, importedValueId, entryOwnership));
+                    RetargetMovedReferenceAfterCommit(plan, entryValue, importedValueId, entryOwnership);
                 if (importedValueId == entryValueId)
                 {
                     plan.Commit();
@@ -959,7 +982,7 @@ namespace NeoCompose.Runtime
                 StampContainerId(plan, entryOwnership, newValueId, containerValueId);
                 if (sourceMoved)
                 {
-                    plan.AfterCommit(() => entryValue.RetargetMovedReference(client, entryMember, newValueId, entryOwnership));
+                    RetargetMovedReferenceAfterCommit(plan, entryValue, newValueId, entryOwnership);
                 }
             }
             else

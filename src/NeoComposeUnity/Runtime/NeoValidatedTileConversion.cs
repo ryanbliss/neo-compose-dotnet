@@ -231,6 +231,7 @@ namespace NeoCompose.Runtime
             var visited = new HashSet<string>();
             var grids = new HashSet<string>();
             var links = new HashSet<string>();
+            var staged = new List<string>();
             while (pending.Count != 0)
             {
                 string id = pending.Dequeue();
@@ -248,7 +249,9 @@ namespace NeoCompose.Runtime
                     pending.Enqueue(row!.containerId!);
                 foreach (string parent in PlacementParents(id))
                     pending.Enqueue(parent);
-                foreach (string parent in plan.ParentCandidates(id))
+                staged.Clear();
+                plan.CollectParentCandidates(id, staged);
+                foreach (string parent in staged)
                     pending.Enqueue(parent);
             }
             gridValueId = grids.Count == 1 ? grids.First() : null;
