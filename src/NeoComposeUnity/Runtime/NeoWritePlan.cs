@@ -193,30 +193,40 @@ namespace NeoCompose.Runtime
             if (parentCandidates is null)
             {
                 parentCandidates = new Dictionary<string, object>(StringComparer.Ordinal);
-                foreach (var pair in Rows)
+                // Collected rather than enumerated: a long list row's entries
+                // would each cost an enumerator call.
+                List<string> children = Client.RentIdList();
+                try
                 {
-                    MemberValue? row = pair.Value;
-                    if (row is null)
-                        continue;
-                    string[]? committed = Client.IndexedPlacementChildren(pair.Key.ownership, row.id);
-                    int prefix = 0;
-                    foreach (string child in NeoClient.PlacementChildIds(row))
+                    foreach (var pair in Rows)
                     {
-                        if (committed is not null
-                            && prefix < committed.Length
-                            && string.Equals(committed[prefix], child, StringComparison.Ordinal))
-                        {
-                            prefix++;
+                        MemberValue? row = pair.Value;
+                        if (row is not ObjectMemberValue and not ArrayMemberValue)
                             continue;
+                        children.Clear();
+                        NeoClient.CollectPlacementChildIds(row, children);
+                        string[]? committed = Client.IndexedPlacementChildren(pair.Key.ownership, row.id);
+                        int prefix = 0;
+                        while (committed is not null
+                            && prefix < committed.Length
+                            && prefix < children.Count
+                            && string.Equals(committed[prefix], children[prefix], StringComparison.Ordinal))
+                            prefix++;
+                        for (int index = prefix; index < children.Count; index++)
+                        {
+                            string child = children[index];
+                            if (!parentCandidates.TryGetValue(child, out object? parents))
+                                parentCandidates[child] = row.id;
+                            else if (parents is HashSet<string> set)
+                                set.Add(row.id);
+                            else if (!string.Equals((string)parents, row.id, StringComparison.Ordinal))
+                                parentCandidates[child] = new HashSet<string>(StringComparer.Ordinal) { (string)parents, row.id };
                         }
-                        committed = null;
-                        if (!parentCandidates.TryGetValue(child, out object? parents))
-                            parentCandidates[child] = row.id;
-                        else if (parents is HashSet<string> set)
-                            set.Add(row.id);
-                        else if (!string.Equals((string)parents, row.id, StringComparison.Ordinal))
-                            parentCandidates[child] = new HashSet<string>(StringComparer.Ordinal) { (string)parents, row.id };
                     }
+                }
+                finally
+                {
+                    Client.ReturnIdList(children);
                 }
             }
             if (!parentCandidates.TryGetValue(childId, out object? found))

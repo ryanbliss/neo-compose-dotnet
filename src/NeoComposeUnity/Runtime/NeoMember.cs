@@ -854,7 +854,10 @@ namespace NeoCompose.Runtime
         /// publishes the candidate. Missing bindings are minted
         /// by the caller through BindNewValue.
         /// </summary>
-        protected TValue? EnsureWritableValue()
+        protected TValue? EnsureWritableValue() => EnsureWritableValue(sharesArrayEntries: false);
+
+        /// <param name="sharesArrayEntries">See <see cref="NeoClient.CloneRowForWrite"/>.</param>
+        private protected TValue? EnsureWritableValue(bool sharesArrayEntries)
         {
             if (ownership == NeoValueOwnership.Asset)
                 return value;
@@ -865,7 +868,7 @@ namespace NeoCompose.Runtime
             if (!client.TryGetWritableValue(ownership, id, out source)
                 && !client.TryGetOverlaidValue(ownership, id, out source))
                 return null;
-            var candidate = (TValue)client.CloneRowForWrite(source!);
+            var candidate = (TValue)client.CloneRowForWrite(source!, sharesArrayEntries);
             candidate.mark = null;
             return candidate;
         }
@@ -899,12 +902,13 @@ namespace NeoCompose.Runtime
         /// (a value-less root — which shouldn't occur for valid projects,
         /// whose roots carry an authored <c>valueId</c>).
         /// </summary>
-        private protected TValue? WritableCandidate(NeoWritePlan plan)
+        /// <param name="sharesArrayEntries">See <see cref="NeoClient.CloneRowForWrite"/>.</param>
+        private protected TValue? WritableCandidate(NeoWritePlan plan, bool sharesArrayEntries = false)
         {
             string? id = plan.TryGetNodeBinding(this, out string? plannedId) ? plannedId : valueId;
             if (id is not null && plan.Resolve(ownership, id) is TValue candidate)
-                return (TValue)client.CloneRowForWrite(candidate);
-            return EnsureWritableValue();
+                return (TValue)client.CloneRowForWrite(candidate, sharesArrayEntries);
+            return EnsureWritableValue(sharesArrayEntries);
         }
 
         protected void BindNewValue(TValue newRow)

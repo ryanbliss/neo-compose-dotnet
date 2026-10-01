@@ -3287,7 +3287,10 @@ namespace NeoCompose.Runtime
         /// writable <c>Set</c> can mutate + shadow it without touching the shared
         /// authored asset object it may have resolved through.
         /// </summary>
-        internal MemberValue CloneRowForWrite(MemberValue row) => CloneValueRow(row);
+        /// <param name="sharesArrayEntries">The caller replaces an array row's entries rather than editing them,
+        /// so the clone reads the committed array instead of copying it.</param>
+        internal MemberValue CloneRowForWrite(MemberValue row, bool sharesArrayEntries = false) =>
+            CloneValueRow(row, sharesArrayEntries);
 
         /// <summary>
         /// Ensures the value at <paramref name="id"/> is present in the
@@ -4440,6 +4443,14 @@ namespace NeoCompose.Runtime
 
         internal IEnumerable<(string valueId, Member? member)> EnumerateOwnedChildLinks(
             MemberValue row,
+            Member? sourceMember) =>
+            // Leaf rows link nothing; they skip the iterator.
+            row is ObjectMemberValue or ArrayMemberValue { value: not null }
+                ? OwnedChildLinks(row, sourceMember)
+                : System.Array.Empty<(string, Member?)>();
+
+        private IEnumerable<(string valueId, Member? member)> OwnedChildLinks(
+            MemberValue row,
             Member? sourceMember)
         {
             switch (row)
@@ -4865,9 +4876,9 @@ namespace NeoCompose.Runtime
         // The removal walks' found ids, pooled the same way.
         private readonly Stack<List<string>> idListPool = new();
 
-        private List<string> RentIdList() => idListPool.Count != 0 ? idListPool.Pop() : new List<string>();
+        internal List<string> RentIdList() => idListPool.Count != 0 ? idListPool.Pop() : new List<string>();
 
-        private void ReturnIdList(List<string> list)
+        internal void ReturnIdList(List<string> list)
         {
             list.Clear();
             idListPool.Push(list);
@@ -5179,7 +5190,7 @@ namespace NeoCompose.Runtime
             return true;
         }
 
-        private static MemberValue CloneValueRow(MemberValue row)
+        private static MemberValue CloneValueRow(MemberValue row, bool sharesArrayEntries = false)
         {
             MemberValue clone = row switch
             {
@@ -5193,7 +5204,7 @@ namespace NeoCompose.Runtime
                 },
                 ArrayMemberValue a => new ArrayMemberValue
                 {
-                    value = a.value == null ? null : (string[])a.value.Clone(),
+                    value = a.value == null || sharesArrayEntries ? a.value : (string[])a.value.Clone(),
                 },
                 ObjectMemberValue o => new ObjectMemberValue
                 {

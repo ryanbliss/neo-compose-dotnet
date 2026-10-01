@@ -33,7 +33,7 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary><see cref="PlacementChildIds"/> without its enumerator, for the per-row index.</summary>
-        private static void CollectPlacementChildIds(MemberValue row, List<string> into)
+        internal static void CollectPlacementChildIds(MemberValue row, List<string> into)
         {
             if (row is ObjectMemberValue objectRow)
             {

@@ -617,7 +617,7 @@ namespace NeoCompose.Runtime
             NeoTimestamp nowIso = NeoTimestamp.Now();
             NeoValueOwnership entryOwnership =
                 client.ChildOwnership(entryMember, ownership);
-            ArrayMemberValue parentRow = EnsureWritableArray(plan, nowIso);
+            ArrayMemberValue parentRow = EnsureWritableArray(plan, nowIso, replacesEntries: true);
 
             string newValueId;
             if (entryValue?.isValueReference == true)
@@ -706,7 +706,7 @@ namespace NeoCompose.Runtime
                     plan.Commit();
                     return;
                 }
-                ArrayMemberValue parentRow = EnsureWritableArray(plan, nowIso);
+                ArrayMemberValue parentRow = EnsureWritableArray(plan, nowIso, replacesEntries: false);
                 parentRow.value![index] = importedValueId;
                 parentRow.updatedAt = nowIso;
                 plan.Set(ownership, parentRow);
@@ -792,7 +792,7 @@ namespace NeoCompose.Runtime
             }
             var plan = new NeoWritePlan(client);
             NeoTimestamp nowIso = NeoTimestamp.Now();
-            ArrayMemberValue parentRow = EnsureWritableArray(plan, nowIso);
+            ArrayMemberValue parentRow = EnsureWritableArray(plan, nowIso, replacesEntries: true);
             string[] currentArr = parentRow.value!;
             string removedValueId = currentArr[index];
 
@@ -832,7 +832,7 @@ namespace NeoCompose.Runtime
 
             var plan = new NeoWritePlan(client);
             NeoTimestamp nowIso = NeoTimestamp.Now();
-            ArrayMemberValue parentRow = EnsureWritableArray(plan, nowIso);
+            ArrayMemberValue parentRow = EnsureWritableArray(plan, nowIso, replacesEntries: true);
             string[] removedValueIds = parentRow.value ?? System.Array.Empty<string>();
             if (removedValueIds.Length == 0)
             {
@@ -1027,7 +1027,7 @@ namespace NeoCompose.Runtime
                 if (!nextIds.Contains(id))
                     PrepareRemoveUnorderedEntry(plan, id);
             NeoTimestamp now = NeoTimestamp.Now();
-            ArrayMemberValue container = EnsureWritableArray(plan, now);
+            ArrayMemberValue container = EnsureWritableArray(plan, now, replacesEntries: true);
             container.value = isNull ? null : System.Array.Empty<string>();
             container.updatedAt = now;
             plan.Set(ownership, container);
@@ -1080,7 +1080,7 @@ namespace NeoCompose.Runtime
                 || (client.TryResolveContainerIdForValueId(entryValueId, out string? containerId) && containerId == listId);
             if (!joined)
             {
-                var container = EnsureWritableArray(plan, NeoTimestamp.Now());
+                var container = EnsureWritableArray(plan, NeoTimestamp.Now(), replacesEntries: true);
                 container.value = (container.value ?? System.Array.Empty<string>()).Where(id => id != entryValueId).ToArray();
                 plan.Set(ownership, container);
             }
@@ -1181,9 +1181,10 @@ namespace NeoCompose.Runtime
         /// clone-on-write shadow at the stable id), minting + binding a
         /// fresh empty array through the parent when nothing is bound yet.
         /// </summary>
-        private ArrayMemberValue EnsureWritableArray(NeoWritePlan plan, NeoTimestamp nowIso)
+        /// <param name="replacesEntries">The caller assigns a new entries array rather than editing this one.</param>
+        private ArrayMemberValue EnsureWritableArray(NeoWritePlan plan, NeoTimestamp nowIso, bool replacesEntries)
         {
-            var writable = WritableCandidate(plan);
+            var writable = WritableCandidate(plan, sharesArrayEntries: replacesEntries);
             if (writable is not null)
             {
                 writable.value ??= System.Array.Empty<string>();
