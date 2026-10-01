@@ -4731,11 +4731,14 @@ namespace NeoCompose.Runtime.NeoScript
             bool head = EvalCondition(expression.condition, scope, ctx);
             if (expression.connective is null)
                 return head;
-            switch (expression.connective.type)
+            // The first character tells the two LogicalOpKinds apart, without
+            // comparing the operator string to each.
+            string? type = expression.connective.type;
+            switch (type is { Length: 2 } ? type[0] : '\0')
             {
-                case LogicalOpKind.And:
+                case '&':
                     return head && EvalBooleanExpression(expression.connective.to, scope, ctx);
-                case LogicalOpKind.Or:
+                case '|':
                     return head || EvalBooleanExpression(expression.connective.to, scope, ctx);
                 default:
                     throw new NSGetterRuntimeError(
