@@ -46,6 +46,27 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void ReturnedTemporary_ComputesPropertiesAndCallsFunctionsWithoutRows()
+        {
+            NeoClient client = BuildClient();
+            TestLine line = ReadReport(client, EvaluateReport(client), out _).Lines[0];
+            int before = client.sessionValues.Count;
+
+            Assert.AreEqual(6, line.Doubled);
+            Assert.AreEqual(12, line.Scaled(4));
+            Assert.AreEqual(312345, line.Digits(1, 2, 3, 4, 5), "Five arguments pass as an array, in order.");
+            Assert.AreEqual(before, client.sessionValues.Count, "A getter or call on a temporary runs on it as itself.");
+
+            string id = line.valueId!;
+
+            Assert.Greater(client.sessionValues.Count, before);
+            Assert.AreEqual(6, line.Doubled, "An attached view computes on its row.");
+            Assert.AreEqual(9, line.Scaled(3));
+            Assert.AreEqual(354321, line.Digits(5, 4, 3, 2, 1));
+            Assert.AreEqual(id, line.valueId);
+        }
+
+        [Test]
         public void ReturnedTemporary_AttachesWhenItsIdIsNeeded()
         {
             NeoClient client = BuildClient();
@@ -270,6 +291,32 @@ namespace NeoCompose.Tests
             CollectionAssert.AreEqual(new[] { "line-a" }, choice!.value);
         }
 
+        [Test]
+        public void LookupField_ResolvesFromCSharpWithoutRows()
+        {
+            // `new Pick { Choice = line }` read from C#: the slot's selected id
+            // resolves to the line without building the temporary's rows.
+            NeoClient client = BuildClient();
+            int before = client.sessionValues.Count;
+            object? result = Evaluate(
+                client,
+                PickType,
+                Construct(PickType, Field("Choice", "member-pick-choice", Reference("line-a"))));
+            TestPick pick = NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(
+                client,
+                result,
+                true,
+                null,
+                TestPick.CreateWritable,
+                TestPick.CreateDetached);
+
+            TestLine choice = pick.Choice;
+
+            Assert.AreEqual("asset line", choice.Label);
+            Assert.AreEqual(1, choice.Score);
+            Assert.AreEqual(before, client.sessionValues.Count, "Nothing needed a row yet.");
+        }
+
         [TestCase(true)]
         [TestCase(false)]
         public void MultiSelection_BuildsRows(bool lookup)
@@ -405,6 +452,92 @@ namespace NeoCompose.Tests
             {
                 Assert.IsNotNull(report.attachedId);
             }
+        }
+
+        [Test]
+        public void ListAdd_SealsItsAppendBufferWhenTheExecutionExits()
+        {
+            NeoClient client = BuildClient();
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            var scope = new Dictionary<string, object?>();
+            var add = new FunctionWithReturnType
+            {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                parameters = Array.Empty<Variable>(),
+                typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null, required = true },
+                instructions = new Instruction[]
+                {
+                    new CollectionCallInstruction
+                    {
+                        type = InstructionKind.CollectionCall,
+                        target = new WriteTarget
+                        {
+                            pointer = Variable("lines"),
+                            typeInfo = new CollectionTypeInfo { type = MemberKind.List, required = true, entryTypeInfo = LineType },
+                            writability = WritabilityKind.Local,
+                        },
+                        mutation = CollectionMutationKind.Add,
+                        args = new Pointer[] { Line() },
+                    },
+                },
+            };
+            object?[] Lines(NeoScriptObject report)
+            {
+                scope["report"] = report;
+                return (object?[])NSGetterEvaluator.EvaluatePointer(Key(Variable("report"), "Lines"), scope, ctx)!;
+            }
+
+            var reports = new NeoScriptObject[2];
+            var sealedLines = new object?[2][];
+            for (int run = 0; run < reports.Length; run++)
+            {
+                scope["report"] = reports[run] = (NeoScriptObject)NSGetterEvaluator.EvaluatePointer(Report(Literal(5, MemberKind.Int)), scope, ctx)!;
+                scope["lines"] = NSGetterEvaluator.EvaluatePointer(Key(Variable("report"), "Lines"), scope, ctx);
+                NeoScriptExecutor.Execute(client, add, scope, ctx);
+                for (int index = 0; index < reports[run].SlotCount; index++)
+                    Assert.IsNotInstanceOf<List<object?>>(reports[run].Slot(index), "The exit sealed the append buffer.");
+                sealedLines[run] = Lines(reports[run]);
+            }
+            // The second run appended through the buffer the first returned.
+            for (int run = 0; run < reports.Length; run++)
+            {
+                Assert.AreSame(sealedLines[run], Lines(reports[run]));
+                Assert.AreEqual(2, sealedLines[run].Length);
+                Assert.IsNotNull(sealedLines[run][1]);
+            }
+            Assert.AreNotSame(sealedLines[0][1], sealedLines[1][1]);
+        }
+
+        [TestCase(NeoScriptObject.InlineSlots + 1)]
+        [TestCase(65)]
+        public void WideTemporary_KeepsEverySlotApart(int width)
+        {
+            // Past InlineSlots the slots live in an array; past 64 so do their states.
+            NeoClient client = BuildClient(wideMembers: width);
+            int before = client.sessionValues.Count;
+            ClassTypeInfo wideType = ClassType("class-wide");
+            var fields = new List<FunctionClassConstructorField>();
+            for (int index = 0; index < width; index += 2)
+                fields.Add(Field($"W{index}", $"member-wide-{index}", Literal(index * 10, MemberKind.Int)));
+            var wide = (NeoScriptObject)Evaluate(client, wideType, Construct(wideType, fields.ToArray()))!;
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            var scope = new Dictionary<string, object?> { ["wide"] = wide };
+            int Read(int index) => Convert.ToInt32(NSGetterEvaluator.EvaluatePointer(Key(Variable("wide"), $"W{index}"), scope, ctx));
+
+            for (int index = 0; index < width; index++)
+                Assert.AreEqual(index % 2 == 0 ? index * 10 : index, Read(index), $"W{index}");
+            Assert.IsNull(wide.attachedId);
+            Assert.AreEqual(before, client.sessionValues.Count, "Nothing needed a row.");
+
+            string id = NSGetterEvaluator.FindRowIdByReference(wide, ctx)!;
+            Assert.IsTrue(client.TryGetValue(NeoValueOwnership.Session, id, out ObjectMemberValue? row));
+            for (int index = 0; index < width; index += 2)
+            {
+                Assert.IsTrue(client.TryGetValue(NeoValueOwnership.Session, row!.value![$"W{index}"], out NumberMemberValue? stored), $"W{index}");
+                Assert.AreEqual(index * 10, Convert.ToInt32(stored!.BoxedValue), $"W{index}");
+            }
+            for (int index = 0; index < width; index++)
+                Assert.AreEqual(index % 2 == 0 ? index * 10 : index, Read(index), $"W{index} after attaching");
         }
 
         [Test]
@@ -632,11 +765,43 @@ namespace NeoCompose.Tests
             },
         };
 
+        private static readonly PrimitiveTypeInfo IntType = new() { type = MemberKind.Int, required = true };
+
+        private static Variable Parameter(string id, TypeInfo typeInfo) => new()
+        {
+            id = id,
+            typeInfo = typeInfo,
+            pointer = Variable(id),
+        };
+
+        /// <summary><c>this.Score</c></summary>
+        private static KeyOfPointer ThisScore() => new()
+        {
+            type = PointerKind.KeyOf,
+            keyOf = new KeyOf { pointer = Variable("__this__"), key = Literal("Score", MemberKind.String) },
+            memberId = "member-line-score",
+        };
+
+        private static OperationPointer Multiply(Pointer left, Pointer right) => new()
+        {
+            type = PointerKind.Operation,
+            operation = new ArithmeticOperation
+            {
+                type = OperationKind.Arithmetic,
+                arithmetic = new ArithmeticOpInfo
+                {
+                    type = ArithmeticOpKind.Multiplication,
+                    pointers = new[] { left, right },
+                },
+            },
+        };
+
         private static NeoClient BuildClient(
             NeoMemberSelectionKind choiceSelection = NeoMemberSelectionKind.Single,
             bool choiceDefault = false,
             NeoMemberSelectionKind modeSelection = NeoMemberSelectionKind.Single,
-            JsonMember? extraMember = null)
+            JsonMember? extraMember = null,
+            int wideMembers = 0)
         {
             var roots = new[]
             {
@@ -703,6 +868,106 @@ namespace NeoCompose.Tests
                     defaultValue = new StringMemberValueBase { value = "" },
                 },
             };
+            // `int Doubled => this.Score * 2;` and `int Scaled(int factor) => this.Score * factor;` on Line.
+            members["member-line-doubled"] = new NSPropertyMember
+            {
+                id = "member-line-doubled",
+                projectId = ProjectId,
+                name = "Doubled",
+                kind = MemberKind.NSProperty,
+                code = "return this.Score * 2;",
+                getter = new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = Array.Empty<Variable>(),
+                    typeInfo = IntType,
+                    instructions = new Instruction[]
+                    {
+                        new ReturnInstruction
+                        {
+                            type = InstructionKind.Return,
+                            pointer = Multiply(ThisScore(), Literal(2, MemberKind.Int)),
+                        },
+                    },
+                },
+                returnTypeInfo = IntType,
+            };
+            members["member-line-scaled"] = new NSFunctionMember
+            {
+                id = "member-line-scaled",
+                projectId = ProjectId,
+                name = "Scaled",
+                kind = MemberKind.NSFunction,
+                code = "return this.Score * factor;",
+                returnTypeInfo = IntType,
+                argumentTypes = new[] { new FunctionArgumentTypeInfo { name = "factor", type = MemberKind.Int, required = true } },
+                Dispatch = NeoFunctionDispatchKind.Synchronous,
+                action = new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = new[]
+                    {
+                        Parameter("__this__", LineType),
+                        Parameter("__root__", ClassType("class-root")),
+                        Parameter("__arg_0__", IntType),
+                    },
+                    typeInfo = IntType,
+                    instructions = new Instruction[]
+                    {
+                        new ReturnInstruction
+                        {
+                            type = InstructionKind.Return,
+                            pointer = Multiply(ThisScore(), Variable("__arg_0__")),
+                        },
+                    },
+                },
+            };
+            // `int Digits(int a, int b, int c, int d, int e) => Score * 100000 + a * 10000 + b * 1000 + c * 100 + d * 10 + e;`
+            var digitArguments = new FunctionArgumentTypeInfo[5];
+            var digitParameters = new Variable[7];
+            var digitTerms = new Pointer[6];
+            digitParameters[0] = Parameter("__this__", LineType);
+            digitParameters[1] = Parameter("__root__", ClassType("class-root"));
+            digitTerms[0] = Multiply(ThisScore(), Literal(100000, MemberKind.Int));
+            for (int index = 0; index < digitArguments.Length; index++)
+            {
+                digitArguments[index] = new FunctionArgumentTypeInfo { name = $"d{index}", type = MemberKind.Int, required = true };
+                digitParameters[index + 2] = Parameter($"__arg_{index}__", IntType);
+                digitTerms[index + 1] = Multiply(Variable($"__arg_{index}__"), Literal((int)Math.Pow(10, 4 - index), MemberKind.Int));
+            }
+            members["member-line-digits"] = new NSFunctionMember
+            {
+                id = "member-line-digits",
+                projectId = ProjectId,
+                name = "Digits",
+                kind = MemberKind.NSFunction,
+                code = "return this.Score * 100000 + d0 * 10000 + d1 * 1000 + d2 * 100 + d3 * 10 + d4;",
+                returnTypeInfo = IntType,
+                argumentTypes = digitArguments,
+                Dispatch = NeoFunctionDispatchKind.Synchronous,
+                action = new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = digitParameters,
+                    typeInfo = IntType,
+                    instructions = new Instruction[]
+                    {
+                        new ReturnInstruction
+                        {
+                            type = InstructionKind.Return,
+                            pointer = new OperationPointer
+                            {
+                                type = PointerKind.Operation,
+                                operation = new ArithmeticOperation
+                                {
+                                    type = OperationKind.Arithmetic,
+                                    arithmetic = new ArithmeticOpInfo { type = ArithmeticOpKind.Addition, pointers = digitTerms },
+                                },
+                            },
+                        },
+                    },
+                },
+            };
             // `class Pick { Line Choice; Mode Mode = .A; }`, Choice a lookup into an asset list of lines.
             members["member-choices"] = new ListMember
             {
@@ -742,7 +1007,7 @@ namespace NeoCompose.Tests
                 members[root.id] = root;
             if (extraMember is not null)
                 members[extraMember.id] = extraMember;
-            return NeoTestSaveStack.ClientFromSchema(new ProjectData
+            var data = new ProjectData
             {
                 project = new Project
                 {
@@ -785,7 +1050,10 @@ namespace NeoCompose.Tests
                         "class-line",
                         "Line",
                         ("Score", "member-line-score"),
-                        ("Label", "member-line-label")),
+                        ("Label", "member-line-label"),
+                        ("Doubled", "member-line-doubled"),
+                        ("Scaled", "member-line-scaled"),
+                        ("Digits", "member-line-digits")),
                     ["class-pick"] = SchemaClass(
                         "class-pick",
                         "Pick",
@@ -807,7 +1075,26 @@ namespace NeoCompose.Tests
                         optionKeyOrder = new List<string> { "option-a", "option-b" },
                     },
                 },
-            });
+            };
+            // class Wide { int W0 = 0; int W1 = 1; ... }
+            var wideSchema = new (string key, string memberId)[wideMembers];
+            for (int index = 0; index < wideMembers; index++)
+            {
+                string memberId = $"member-wide-{index}";
+                members[memberId] = new IntMember
+                {
+                    id = memberId,
+                    projectId = ProjectId,
+                    name = $"W{index}",
+                    kind = MemberKind.Int,
+                    Requirement = NeoMemberRequirementKind.Required,
+                    defaultValue = new NumberMemberValueBase { value = index },
+                };
+                wideSchema[index] = ($"W{index}", memberId);
+            }
+            if (wideMembers > 0)
+                data.classes["class-wide"] = SchemaClass("class-wide", "Wide", wideSchema);
+            return NeoTestSaveStack.ClientFromSchema(data);
         }
 
         private static ClassMember RootMember(string id, string name, NeoMemberStorage storage, string valueId) => new()
@@ -897,6 +1184,8 @@ namespace NeoCompose.Tests
                 {
                     if (TryReadDetached("Lines", out _))
                     {
+                        if (TryGetDetachedView<NeoList<TestLine>>("Lines", out var detachedView))
+                            return detachedView;
                         return DetachedList<TestLine>(
                             "Lines",
                             entry => NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, entry, true, null, TestLine.CreateWritable, TestLine.CreateDetached),
@@ -929,6 +1218,9 @@ namespace NeoCompose.Tests
             {
             }
 
+            internal static TestLine Create(NeoClient client, NeoMemberClass node) =>
+                new(client, node);
+
             internal static TestLine CreateWritable(NeoClient client, NeoMemberClassWritable node) =>
                 NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue(
                     client,
@@ -957,6 +1249,54 @@ namespace NeoCompose.Tests
                         return (string)detachedValue!;
                     return node.Get<NeoMemberString>("Label").value?.value
                         ?? throw new InvalidOperationException("Required string 'Label' has no value.");
+                }
+            }
+
+            public int Doubled
+            {
+                get
+                {
+                    var result = ComputeProperty("Doubled");
+                    if (!result.ok)
+                        throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
+                    return Convert.ToInt32(result.value);
+                }
+            }
+
+            public int Scaled(int factor) => Convert.ToInt32(InvokeFunction("Scaled", (object?)factor));
+
+            public int Digits(int a, int b, int c, int d, int e) =>
+                Convert.ToInt32(InvokeFunction("Digits", new object?[] { a, b, c, d, e }));
+        }
+
+        private sealed class TestPick : NeoGeneratedClassValue
+        {
+            private TestPick(NeoClient client, NeoMemberClass node)
+                : base(client, node, "class-pick", false, node.ownership)
+            {
+            }
+
+            private TestPick(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+                : base(client, value, isReadOnly)
+            {
+            }
+
+            internal static TestPick CreateWritable(NeoClient client, NeoMemberClassWritable node) =>
+                NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue(
+                    client,
+                    node,
+                    static (factoryClient, factoryNode) => new TestPick(factoryClient, factoryNode));
+
+            internal static TestPick CreateDetached(NeoClient client, NeoDetachedValue value, bool saved) =>
+                new(client, value, !saved);
+
+            public TestLine Choice
+            {
+                get
+                {
+                    if (TryReadDetachedLookup("Choice", out NeoMember? detachedSelection))
+                        return TestLine.Create(client, (NeoMemberClass)detachedSelection!);
+                    return TestLine.Create(client, (NeoMemberClass)node.Get<NeoMemberLookup>("Choice").GetFirstSelected()!);
                 }
             }
         }

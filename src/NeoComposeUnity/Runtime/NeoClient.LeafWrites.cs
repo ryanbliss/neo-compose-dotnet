@@ -23,7 +23,9 @@ namespace NeoCompose.Runtime
         // NeoClient.Placement.cs instead. The only other leaves the grid reads
         // are the Enabled and nested Position rows its carried tile links
         // flatten through, which InvalidateGridLeaf re-flattens.
+#if NEO_COMPOSE_PROFILING
         private static readonly Unity.Profiling.ProfilerMarker LeafWriteMarker = new("NeoCompose.Write.Leaf");
+#endif
 
         /// <summary>
         /// Stores <paramref name="next"/> in place of the committed row at the
@@ -34,7 +36,9 @@ namespace NeoCompose.Runtime
         {
             if (!CanWriteLeaf(ownership, next, member))
                 return false;
+#if NEO_COMPOSE_PROFILING
             using var marker = LeafWriteMarker.Auto();
+#endif
             StoreLeaf(ownership, next);
             bool gridLeaf = InvalidateGridLeaf(next.id);
             NotifyWritableValueChanged(ownership, next.id, changedField, membershipChanged: false);

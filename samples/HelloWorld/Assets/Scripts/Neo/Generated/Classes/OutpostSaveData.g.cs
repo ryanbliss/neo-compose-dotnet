@@ -160,7 +160,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var result = writableNode.Get<NeoMemberNSProperty>("Visited").Compute(valueId!);
+                var result = ComputeProperty("Visited");
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
                 return (bool)result.value!;
             }

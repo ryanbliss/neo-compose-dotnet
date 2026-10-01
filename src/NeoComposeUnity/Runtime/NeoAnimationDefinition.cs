@@ -1207,7 +1207,9 @@ namespace NeoCompose.Runtime
         private readonly Dictionary<string, IDisposable> valueSubscriptions = new(StringComparer.Ordinal);
         private readonly List<string> removedDependencies = new();
         private bool resolving;
+#if NEO_COMPOSE_PROFILING
         private static readonly Unity.Profiling.ProfilerMarker ResolveSegmentMarker = new("NeoCompose.Animation.ResolveSegment");
+#endif
 
         private MemberValue?[] contentRows = Array.Empty<MemberValue?>();
         private bool[] contentAuthored = Array.Empty<bool>();
@@ -1310,7 +1312,9 @@ namespace NeoCompose.Runtime
             contentPayloads = Array.Empty<NeoValueWritePayload?>();
             contentAuthored = Array.Empty<bool>();
             dependencies.Clear();
+#if NEO_COMPOSE_PROFILING
             using var marker = ResolveSegmentMarker.Auto();
+#endif
             // As before, writes made by an effect-capable getter do not invalidate
             // this resolution. Retain its subscriptions while reads are recaptured.
             resolving = true;

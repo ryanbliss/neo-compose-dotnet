@@ -4237,7 +4237,7 @@ namespace NeoCompose.Tests
             string saved;
             using (var client = NeoTestSaveStack.ClientFromSchema(data))
             {
-                var binding = new NeoStaticBinding(client, "static-thing", NeoValueOwnership.Save);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "static-thing", NeoValueOwnership.Save);
                 binding.SetValue(NeoValueWritePayload.FromValue(new Dictionary<string, string>()));
                 string countId = WriteDeepCount(binding.GetRequiredNode<NeoMemberClassWritable>());
                 binding.SetValue(NeoValueWritePayload.FromValue(new Dictionary<string, string>()));
@@ -4245,7 +4245,7 @@ namespace NeoCompose.Tests
                 saved = client.SerializeSaveData();
             }
             using var reopened = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: saved);
-            var reloaded = new NeoStaticBinding(reopened, "static-thing", NeoValueOwnership.Save);
+            var reloaded = NeoGeneratedTypesSupport.StaticBinding(reopened, "static-thing", NeoValueOwnership.Save);
             Assert.AreEqual(5d, reloaded.GetRequiredNode<NeoMemberClassWritable>().Get<NeoMemberClassWritable>("Nested")
                 .Get<NeoMemberClassWritable>("Deep").Get<NeoMemberIntWritable>("Count").value!.value);
         }

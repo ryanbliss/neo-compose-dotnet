@@ -150,7 +150,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 if (TryReadDetached("AnimatedImage", out object? detachedValue))
                 {
-                    return NeoGeneratedTypesSupport.ReadNSPropertyClass(client, detachedValue, false, false, global::HelloWorld.Assets.Scripts.Neo.AnimationInfo.Create, global::HelloWorld.Assets.Scripts.Neo.AnimationInfo.CreateWritable, global::HelloWorld.Assets.Scripts.Neo.AnimationInfo.CreateDetached);
+                    return NeoGeneratedTypesSupport.ReadNSPropertyClass(client, detachedValue, false, false, static (factoryClient, factoryNode) => global::HelloWorld.Assets.Scripts.Neo.AnimationInfo.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => global::HelloWorld.Assets.Scripts.Neo.AnimationInfo.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::HelloWorld.Assets.Scripts.Neo.AnimationInfo.CreateDetached(factoryClient, factoryValue, factorySaved));
                 }
                 var child = node.Get<NeoMemberClass>("AnimatedImage");
                 return child.value?.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.AnimationInfo.Create(client, child);
@@ -162,7 +162,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var result = writableNode.Get<NeoMemberNSProperty>("FullDisplayText").Compute(valueId!);
+                var result = ComputeProperty("FullDisplayText");
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
                 return (string)result.value!;
             }
@@ -196,7 +196,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 if (TryReadDetached("Planet", out object? detachedValue))
                 {
-                    return NeoGeneratedTypesSupport.ReadEnumSingle(NeoGeneratedTypesSupport.ToStringArray(detachedValue), Planet.FromOptionId) ?? throw new InvalidOperationException("Required enum 'Planet' has no selected option.");
+                    return NeoGeneratedTypesSupport.ReadEnumSingle(detachedValue, static (factoryOptionId) => Planet.FromOptionId(factoryOptionId)) ?? throw new InvalidOperationException("Required enum 'Planet' has no selected option.");
                 }
                 var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoMemberEnum>("Planet"));
                 return selected is null ? throw new InvalidOperationException("Required enum 'Planet' has no selected option.") : Planet.FromOptionId(selected);
@@ -208,9 +208,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var result = writableNode.Get<NeoMemberNSProperty>("Save").Compute(valueId!);
+                var result = ComputeProperty("Save");
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
-                return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result.value, true, null, OutpostSaveData.CreateWritable, OutpostSaveData.CreateDetached);
+                return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result.value, true, null, static (factoryClient, factoryNode) => OutpostSaveData.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => OutpostSaveData.CreateDetached(factoryClient, factoryValue, factorySaved));
             }
         }
 
@@ -218,9 +218,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var result = writableNode.Get<NeoMemberNSProperty>("SaveUnsafe").Compute(valueId!);
+                var result = ComputeProperty("SaveUnsafe");
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
-                return NeoGeneratedTypesSupport.ReadNSPropertyClass(client, result.value, false, true, null, OutpostSaveData.CreateWritable, OutpostSaveData.CreateDetached);
+                return NeoGeneratedTypesSupport.ReadNSPropertyClass(client, result.value, false, true, null, static (factoryClient, factoryNode) => OutpostSaveData.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => OutpostSaveData.CreateDetached(factoryClient, factoryValue, factorySaved));
             }
         }
 

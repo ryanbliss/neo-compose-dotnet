@@ -179,7 +179,7 @@ namespace NeoCompose.Runtime.Json
         public Instruction[]? defaultInstructions;
         /// <summary>The section index of each normalized case label, cached by the runtime on first validation.</summary>
         [Newtonsoft.Json.JsonIgnore]
-        internal System.Collections.Generic.Dictionary<object, int>? sectionByLabel;
+        internal NeoScriptExecutor.SwitchLabelIndex? sectionByLabel;
     }
 
     /// <summary>Read-only caught-message binding for a P52 catch clause.</summary>

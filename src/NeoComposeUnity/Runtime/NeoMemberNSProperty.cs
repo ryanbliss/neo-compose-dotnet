@@ -174,7 +174,7 @@ namespace NeoCompose.Runtime
             if (memoize)
             {
                 memoKey = new NeoClient.GetterMemoKey(ownership, thisRow!.id, member.id, ownership);
-                if (client.TryGetMemoizedGetter(memoKey, out NeoClient.GetterMemoEntry hit))
+                if (client.FindMemoizedGetter(memoKey) is { } hit)
                 {
                     ResetGridReads();
                     if (hit.list is not null)

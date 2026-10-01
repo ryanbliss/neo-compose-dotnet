@@ -11,10 +11,12 @@ namespace NeoCompose.Runtime
 {
     public partial class NeoClient
     {
+#if NEO_COMPOSE_PROFILING
         private static readonly Unity.Profiling.ProfilerMarker PrepareReplayMarker = new("NeoCompose.Write.PrepareReplay");
         private static readonly Unity.Profiling.ProfilerMarker InstallReplayMarker = new("NeoCompose.Write.InstallReplay");
         private static readonly Unity.Profiling.ProfilerMarker FindReplayMarker = new("NeoCompose.Write.FindReplay");
         private static readonly Unity.Profiling.ProfilerMarker ExpandReplayMarker = new("NeoCompose.Write.ExpandReplay");
+#endif
         private CandidateReplay? candidateReplay;
         internal MemberValue? ReplayAllocation(string id) =>
             candidateReplay is not null && candidateReplay.Allocations.TryGetValue(id, out MemberValue? row) ? row : null;
@@ -495,10 +497,16 @@ namespace NeoCompose.Runtime
 
         private CandidateReplay? ValidatePreparedWrite(NeoWritePlan plan)
         {
+#if NEO_COMPOSE_PROFILING
             using var marker = PrepareReplayMarker.Auto();
+#endif
             CandidateReplay? candidate;
+#if NEO_COMPOSE_PROFILING
             using (FindReplayMarker.Auto())
+#endif
+            {
                 candidate = PrepareCandidateExpansions(plan);
+            }
             if (candidate is null)
             {
                 ValidateWritePlan(plan);
@@ -509,9 +517,13 @@ namespace NeoCompose.Runtime
             {
                 using (ReadCandidate(plan))
                 {
+#if NEO_COMPOSE_PROFILING
                     using (ExpandReplayMarker.Auto())
+#endif
+                    {
                         foreach (string id in candidate.AffectedRoots.OrderBy(id => id).ToArray())
                             PrepareCandidateRoot(id);
+                    }
                     ValidateWritePlan(plan);
                 }
                 return candidate;
@@ -528,7 +540,9 @@ namespace NeoCompose.Runtime
         {
             if (candidate is null)
                 return;
+#if NEO_COMPOSE_PROFILING
             using var marker = InstallReplayMarker.Auto();
+#endif
             var retired = new HashSet<string>();
             foreach (string root in candidate.AffectedRoots)
             {

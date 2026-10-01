@@ -202,8 +202,25 @@ namespace NeoCompose.Runtime.Json
                 : memberId,
         };
 
+        // Every call and getter read asks; a string compare each time
+        // showed in the interpreter's profile. Keyed by the kind string
+        // itself, so reassigning kind recomputes.
+        [JsonIgnore] private string? isStaticKind;
+        [JsonIgnore] private bool isStatic;
+
         [JsonIgnore]
-        public bool IsStatic => kind == CallReceiverKind.Static;
+        public bool IsStatic
+        {
+            get
+            {
+                if (!ReferenceEquals(isStaticKind, kind))
+                {
+                    isStatic = kind == CallReceiverKind.Static;
+                    isStaticKind = kind;
+                }
+                return isStatic;
+            }
+        }
     }
 
     /// <summary>Mirror of <c>INSPointerCallGetter</c>.</summary>
@@ -223,8 +240,15 @@ namespace NeoCompose.Runtime.Json
         /// <summary>The runtime's resolution of <see cref="memberId"/>'s schema placement.</summary>
         [JsonIgnore]
         internal NeoScript.NSGetterEvaluator.PlacementSite? placementSite;
+        /// <summary>The runtime's schema entries for the placement's key, one per receiver Class.</summary>
+        [JsonIgnore]
+        internal NeoScript.NSGetterEvaluator.MemberSiteTarget? resolvedMembers;
 
-        void ISchemaResolutionSite.ForgetResolution() => placementSite = null;
+        void ISchemaResolutionSite.ForgetResolution()
+        {
+            placementSite = null;
+            resolvedMembers = null;
+        }
     }
 
     /// <summary>Mirror of <c>INSPointerCoalesce</c>.</summary>
@@ -315,8 +339,15 @@ namespace NeoCompose.Runtime.Json
         /// <summary>The runtime's resolutions of this call site, one per receiver Class.</summary>
         [JsonIgnore]
         internal NeoScript.NSGetterEvaluator.CallSiteTarget? resolvedTargets;
+        /// <summary>The site's last target its chain could not keep.</summary>
+        [JsonIgnore]
+        internal NeoScript.NSGetterEvaluator.CallSiteTarget? uncachedTarget;
 
-        void ISchemaResolutionSite.ForgetResolution() => resolvedTargets = null;
+        void ISchemaResolutionSite.ForgetResolution()
+        {
+            resolvedTargets = null;
+            uncachedTarget = null;
+        }
         /// <summary>This call site's argument buffer; see <see cref="NeoScript.NSGetterEvaluator.RentArguments"/>.</summary>
         [JsonIgnore]
         internal object?[]? argumentBuffer;

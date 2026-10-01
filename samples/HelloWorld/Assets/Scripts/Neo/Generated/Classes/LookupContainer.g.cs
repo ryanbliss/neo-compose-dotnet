@@ -107,6 +107,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetachedLookup("Lookup", out NeoMember? detachedSelection))
+                {
+                    return detachedSelection is null ? throw new InvalidOperationException("Required lookup has no selected value.") : global::HelloWorld.Assets.Scripts.Neo.LookupEntry.Create(client, (NeoMemberClass)detachedSelection);
+                }
                 var selected = node.Get<NeoMemberLookup>("Lookup").GetFirstSelected();
                 return selected is null ? throw new InvalidOperationException("Required lookup has no selected value.") : global::HelloWorld.Assets.Scripts.Neo.LookupEntry.Create(client, (NeoMemberClass)selected);
             }

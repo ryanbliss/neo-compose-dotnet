@@ -117,7 +117,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 if (TryReadDetached("ChoiceHistory", out _))
                 {
-                    return DetachedList<NeoChoiceLog>("ChoiceHistory", entry => NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, entry, true, null, global::HelloWorld.Assets.Scripts.Neo.NeoChoiceLog.CreateWritable, global::HelloWorld.Assets.Scripts.Neo.NeoChoiceLog.CreateDetached), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoChoiceLog.CreateWritable(client, (NeoMemberClassWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item));
+                    if (TryGetDetachedView<NeoList<NeoChoiceLog>>("ChoiceHistory", out var detachedView)) return detachedView;
+                    return DetachedList<NeoChoiceLog>("ChoiceHistory", entry => NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, entry, true, null, static (factoryClient, factoryNode) => global::HelloWorld.Assets.Scripts.Neo.NeoChoiceLog.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::HelloWorld.Assets.Scripts.Neo.NeoChoiceLog.CreateDetached(factoryClient, factoryValue, factorySaved)), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoChoiceLog.CreateWritable(client, (NeoMemberClassWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item));
                 }
                 var memberNode = writableNode.Get<NeoMemberListWritable>("ChoiceHistory");
                 if (TryGetStoredView<NeoList<NeoChoiceLog>>("ChoiceHistory", memberNode, out var cached)) return cached;
@@ -129,7 +130,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var result = writableNode.Get<NeoMemberNSProperty>("HasVisited").Compute(valueId!);
+                var result = ComputeProperty("HasVisited");
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
                 return (bool)result.value!;
             }

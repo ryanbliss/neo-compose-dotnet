@@ -285,7 +285,7 @@ namespace NeoCompose.Tests
             };
             schema.classes["save"].schema["StaticItems"] = "static-items";
             using var client = NeoTestSaveStack.ClientFromSchema(schema);
-            var binding = new NeoStaticBinding(client, "static-items", NeoValueOwnership.Save);
+            var binding = NeoGeneratedTypesSupport.StaticBinding(client, "static-items", NeoValueOwnership.Save);
             var pointer = new StaticMemberPointer { type = PointerKind.StaticMember, memberId = "static-items" };
             var context = new NSGetterEvaluator.Context(client, null, null);
             var scope = new Dictionary<string, object?>();

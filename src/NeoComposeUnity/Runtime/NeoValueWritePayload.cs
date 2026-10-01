@@ -44,6 +44,33 @@ namespace NeoCompose.Runtime
             return new NeoValueWritePayload(value, null, null, false);
         }
 
+        // Value payloads are immutable, so the common scalars share one each
+        // and a generated setter's write allocates no payload or box.
+        private const int MinSharedInt = -128;
+        private const int MaxSharedInt = 1023;
+        private static readonly NeoValueWritePayload?[] sharedInts =
+            new NeoValueWritePayload?[MaxSharedInt - MinSharedInt + 1];
+        private static readonly NeoValueWritePayload sharedNull = FromValue(null);
+        private static readonly NeoValueWritePayload sharedTrue = FromValue(true);
+        private static readonly NeoValueWritePayload sharedFalse = FromValue(false);
+
+        internal static NeoValueWritePayload FromInt(int value)
+        {
+            if (value < MinSharedInt || value > MaxSharedInt)
+                return FromValue(value);
+            int index = value - MinSharedInt;
+            return sharedInts[index] ??= FromValue(value);
+        }
+
+        internal static NeoValueWritePayload FromInt(int? value) =>
+            value is int number ? FromInt(number) : sharedNull;
+
+        internal static NeoValueWritePayload FromBool(bool value) =>
+            value ? sharedTrue : sharedFalse;
+
+        internal static NeoValueWritePayload FromBool(bool? value) =>
+            value is bool flag ? FromBool(flag) : sharedNull;
+
         internal static NeoValueWritePayload FromValueReference(
             string valueId,
             INeoValueReference? valueReference = null)

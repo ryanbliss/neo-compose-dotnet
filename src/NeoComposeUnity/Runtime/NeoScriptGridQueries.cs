@@ -136,7 +136,31 @@ namespace NeoCompose.Runtime
     {
         private readonly NeoClient client;
         private readonly Dictionary<string, INeoTileGridContent> contentByGrid = new();
-        private readonly Dictionary<string, (string grid, string layer, string instance)> placements = new();
+        // A class, so a lookup hands back one reference: copying a tuple of
+        // references out of the table costs a GC write barrier per field.
+        private sealed class PlacementBinding
+        {
+            internal readonly string grid;
+            internal readonly string layer;
+            internal readonly string instance;
+            // The placement last resolved, held while the grid's content and
+            // its lookup cache's object layer indexes stay the same and no
+            // grid change has moved an object.
+            internal INeoTileGridContent? content;
+            internal NeoTileGridLookupCache? cache;
+            internal NeoObjectPlacementRecord? record;
+            internal int layersVersion;
+            internal int changeEpoch;
+
+            internal PlacementBinding(string grid, string layer, string instance)
+            {
+                this.grid = grid;
+                this.layer = layer;
+                this.instance = instance;
+            }
+        }
+
+        private readonly Dictionary<string, PlacementBinding> placements = new();
         // GetObjects' buffers; filling them runs no NeoScript, so no query nests inside another.
         private readonly List<object?> queriedObjects = new();
         private Dictionary<Vector2Int, List<NeoObjectPlacementRecord>>[] layerCellsBuffer =
@@ -150,9 +174,16 @@ namespace NeoCompose.Runtime
         private IReadOnlyDictionary<string, Func<NeoClient, string, INeoTileGridContent>> factories =
             new Dictionary<string, Func<NeoClient, string, INeoTileGridContent>>();
 
+        // Moves with every grid change and content registration, so a binding's held placement is current.
+        private int changeEpoch;
+
         internal NeoScriptGridQueries(NeoClient client) => this.client = client;
         private event Action<NeoTileGridChangedArgs>? Changed;
-        internal void NotifyChanged(NeoTileGridChangedArgs change) => Changed?.Invoke(change);
+        internal void NotifyChanged(NeoTileGridChangedArgs change)
+        {
+            changeEpoch++;
+            Changed?.Invoke(change);
+        }
         internal IDisposable OnChanged(string gridId, Action<NeoTileGridChangedArgs> handler)
         {
             void Handle(NeoTileGridChangedArgs change)
@@ -178,29 +209,40 @@ namespace NeoCompose.Runtime
         }
 
         public void RegisterFactories(IReadOnlyDictionary<string, Func<NeoClient, string, INeoTileGridContent>> factories) => this.factories = factories;
-        public void RegisterContent(INeoTileGridContent content) => contentByGrid[content.Primitive.GridValueId] = content;
-        internal void RegisterContent(INeoTileGridContent content, string gridId) => contentByGrid[gridId] = content;
+        public void RegisterContent(INeoTileGridContent content) => RegisterContent(content, content.Primitive.GridValueId);
+        internal void RegisterContent(INeoTileGridContent content, string gridId)
+        {
+            contentByGrid[gridId] = content;
+            changeEpoch++;
+        }
         internal void Bind(string receiverId, string gridId, string layerId, string instanceId)
         {
             // Queries rebind the same placements every call; only a change writes.
-            if (placements.TryGetValue(receiverId, out var bound)
+            if (placements.TryGetValue(receiverId, out PlacementBinding? bound)
                 && ReferenceEquals(bound.grid, gridId)
                 && ReferenceEquals(bound.layer, layerId)
                 && ReferenceEquals(bound.instance, instanceId))
             {
                 return;
             }
-            placements[receiverId] = (gridId, layerId, instanceId);
+            placements[receiverId] = new PlacementBinding(gridId, layerId, instanceId);
         }
 
-        private (INeoTileGridContent content, NeoObjectPlacementRecord placement) Resolve(string receiverId)
+        /// <summary>The receiver's binding, holding its current content and placement.</summary>
+        private PlacementBinding Resolve(string receiverId)
         {
-            if (placements.TryGetValue(receiverId, out var binding)
-                && contentByGrid.TryGetValue(binding.grid, out var content))
+            INeoTileGridContent? content;
+            if (placements.TryGetValue(receiverId, out PlacementBinding? binding))
             {
-                var placement = content.Primitive.LookupCache.ObjectRecord(binding.layer, binding.instance);
-                if (placement is not null)
-                    return (content, placement);
+                if (binding.record is not null && binding.changeEpoch == changeEpoch)
+                {
+                    // Read on every query: the getter re-ensures an unloaded world partition.
+                    NeoTileGridLookupCache cache = binding.content!.Primitive.LookupCache;
+                    if (ReferenceEquals(cache, binding.cache) && cache.ObjectLayersVersion == binding.layersVersion)
+                        return binding;
+                }
+                if (contentByGrid.TryGetValue(binding.grid, out content) && HoldPlacement(binding, content))
+                    return binding;
                 placements.Remove(receiverId);
             }
             // Direct stored-row invocation may precede access through generated grid content.
@@ -221,7 +263,9 @@ namespace NeoCompose.Runtime
                         if (placement is null)
                             continue;
                         Bind(receiverId, current, layer.LayerId, placement.InstanceId);
-                        return (content, placement);
+                        PlacementBinding bound = placements[receiverId];
+                        HoldPlacement(bound, content);
+                        return bound;
                     }
                     break;
                 }
@@ -236,6 +280,19 @@ namespace NeoCompose.Runtime
                 current = parent;
             }
             throw new NSGetterRuntimeError("Grid queries require an actual placed NeoObject in an owning grid.");
+        }
+
+        private bool HoldPlacement(PlacementBinding binding, INeoTileGridContent content)
+        {
+            NeoTileGridLookupCache cache = content.Primitive.LookupCache;
+            binding.record = cache.ObjectRecord(binding.layer, binding.instance);
+            if (binding.record is null)
+                return false;
+            binding.content = content;
+            binding.cache = cache;
+            binding.layersVersion = cache.ObjectLayersVersion;
+            binding.changeEpoch = changeEpoch;
+            return true;
         }
 
         public object? Invoke(string memberId, INeoValueReference receiver, object?[] args)
@@ -255,6 +312,9 @@ namespace NeoCompose.Runtime
 
         /// <summary>GetObjects and GetTile, which read their one pattern argument as offsets.</summary>
         internal static bool ReadsCells(string? memberId) => memberId is GetObjectsId or GetTileId;
+
+        /// <summary>Whether the call returns a fresh array of the queried objects.</summary>
+        internal static bool ReturnsObjects(string? memberId) => memberId == GetObjectsId;
 
         // Compares layer ids rather than the list: content may reuse one
         // list across layer changes.
@@ -281,7 +341,9 @@ namespace NeoCompose.Runtime
             string receiverId = NSGetterEvaluator.FindRowIdByReference(receiver, ctx)
                 ?? (receiver as INeoValueReference)?.valueId
                 ?? throw new NSGetterRuntimeError("Grid query receiver has no placement identity.");
-            var (content, placement) = Resolve(receiverId);
+            PlacementBinding binding = Resolve(receiverId);
+            INeoTileGridContent content = binding.content!;
+            NeoObjectPlacementRecord placement = binding.record!;
             ctx.gridReads?.Record(content, placement.InstanceId, null, false);
             ctx.client.NoteGridRead(content, placement.InstanceId, null, false);
             if (getCell)
@@ -356,8 +418,12 @@ namespace NeoCompose.Runtime
             }
             if (!getObjects)
                 return true;
-            result = queriedObjects.ToArray();
+            object?[] objects = NSGetterEvaluator.TemporaryLists.Rent(queriedObjects.Count);
+            queriedObjects.CopyTo(objects);
             queriedObjects.Clear();
+            ctx.NoteFreshList(objects);
+            NSGetterEvaluator.TemporaryLists.MarkExclusive(objects);
+            result = objects;
             return true;
         }
 
@@ -376,7 +442,7 @@ namespace NeoCompose.Runtime
 
         private static object? RuntimeValue(string id, ref NeoValueNode? node, NSGetterEvaluator.Context ctx)
         {
-            if (!ctx.client.TryGetValue(id, ref node, out MemberValue? row))
+            if (ctx.client.ReadValue(id, ref node) is not { } row)
                 throw new NSGetterRuntimeError("Grid query result has no stored value.");
             var ownership = ctx.client.TryGetValueOwnership(id, ref node, out NeoValueOwnership found) ? found : NeoValueOwnership.Asset;
             return NSGetterEvaluator.UnwrapRow(row, ctx, ownership, node);

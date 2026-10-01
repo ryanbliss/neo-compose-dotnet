@@ -160,7 +160,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoLookupSet<IReadOnlyItem>(client, writableNode.Get<NeoMemberLookupWritable>("Inventory"), () => writableNode.GetOrCreateLookup("Inventory"), child => global::HelloWorld.Assets.Scripts.Neo.Item.Create(client, (NeoMemberClass)child));
+                var memberNode = writableNode.Get<NeoMemberLookupWritable>("Inventory");
+                if (TryGetStoredView<NeoLookupSet<IReadOnlyItem>>("Inventory", memberNode, out var cached)) return cached;
+                return CacheStoredView("Inventory", memberNode, new NeoLookupSet<IReadOnlyItem>(client, memberNode, () => writableNode.GetOrCreateLookup("Inventory"), child => global::HelloWorld.Assets.Scripts.Neo.Item.Create(client, (NeoMemberClass)child)));
             }
             set
             {
@@ -177,6 +179,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetachedLookup("Location", out NeoMember? detachedSelection))
+                {
+                    return detachedSelection is null ? throw new InvalidOperationException("Required lookup has no selected value.") : global::HelloWorld.Assets.Scripts.Neo.Outpost.Create(client, (NeoMemberClass)detachedSelection);
+                }
                 var selected = node.Get<NeoMemberLookup>("Location").GetFirstSelected();
                 return selected is null ? throw new InvalidOperationException("Required lookup has no selected value.") : global::HelloWorld.Assets.Scripts.Neo.Outpost.Create(client, (NeoMemberClass)selected);
             }
@@ -192,7 +198,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 if (TryReadDetached("NeoMemory", out object? detachedValue))
                 {
-                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, true, null, global::HelloWorld.Assets.Scripts.Neo.NeoMemory.CreateWritable, global::HelloWorld.Assets.Scripts.Neo.NeoMemory.CreateDetached);
+                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, true, null, static (factoryClient, factoryNode) => global::HelloWorld.Assets.Scripts.Neo.NeoMemory.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::HelloWorld.Assets.Scripts.Neo.NeoMemory.CreateDetached(factoryClient, factoryValue, factorySaved));
                 }
                 return global::HelloWorld.Assets.Scripts.Neo.NeoMemory.CreateWritable(client, writableNode.Get<NeoMemberClassWritable>("NeoMemory"));
             }
@@ -218,7 +224,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 if (TryReadDetached("Quest", out object? detachedValue))
                 {
-                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, true, null, global::HelloWorld.Assets.Scripts.Neo.QuestState.CreateWritable, global::HelloWorld.Assets.Scripts.Neo.QuestState.CreateDetached);
+                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, true, null, static (factoryClient, factoryNode) => global::HelloWorld.Assets.Scripts.Neo.QuestState.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::HelloWorld.Assets.Scripts.Neo.QuestState.CreateDetached(factoryClient, factoryValue, factorySaved));
                 }
                 return global::HelloWorld.Assets.Scripts.Neo.QuestState.CreateWritable(client, writableNode.Get<NeoMemberClassWritable>("Quest"));
             }
@@ -234,7 +240,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 if (TryReadDetached("Visited", out _))
                 {
-                    return DetachedList<PlanetVisit>("Visited", entry => NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, entry, true, null, global::HelloWorld.Assets.Scripts.Neo.PlanetVisit.CreateWritable, global::HelloWorld.Assets.Scripts.Neo.PlanetVisit.CreateDetached), (client, child) => global::HelloWorld.Assets.Scripts.Neo.PlanetVisit.CreateWritable(client, (NeoMemberClassWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item));
+                    if (TryGetDetachedView<NeoList<PlanetVisit>>("Visited", out var detachedView)) return detachedView;
+                    return DetachedList<PlanetVisit>("Visited", entry => NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, entry, true, null, static (factoryClient, factoryNode) => global::HelloWorld.Assets.Scripts.Neo.PlanetVisit.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::HelloWorld.Assets.Scripts.Neo.PlanetVisit.CreateDetached(factoryClient, factoryValue, factorySaved)), (client, child) => global::HelloWorld.Assets.Scripts.Neo.PlanetVisit.CreateWritable(client, (NeoMemberClassWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item));
                 }
                 var memberNode = writableNode.Get<NeoMemberListWritable>("Visited");
                 if (TryGetStoredView<NeoList<PlanetVisit>>("Visited", memberNode, out var cached)) return cached;
@@ -248,7 +255,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 if (TryReadDetached("World", out object? detachedValue))
                 {
-                    return NeoGeneratedTypesSupport.ReadEnumSingle(NeoGeneratedTypesSupport.ToStringArray(detachedValue), Planet.FromOptionId) ?? throw new InvalidOperationException("Required enum 'World' has no selected option.");
+                    return NeoGeneratedTypesSupport.ReadEnumSingle(detachedValue, static (factoryOptionId) => Planet.FromOptionId(factoryOptionId)) ?? throw new InvalidOperationException("Required enum 'World' has no selected option.");
                 }
                 var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoMemberEnum>("World"));
                 return selected is null ? throw new InvalidOperationException("Required enum 'World' has no selected option.") : Planet.FromOptionId(selected);

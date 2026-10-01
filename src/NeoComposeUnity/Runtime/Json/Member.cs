@@ -261,7 +261,7 @@ namespace NeoCompose.Runtime.Json
         [JsonIgnore]
         public NeoMemberRequirementKind Requirement
         {
-            get => requirement ?? resolvedShape?.Requirement ?? NeoMemberRequirementKind.Optional;
+            get => requirement ?? (resolvedShape is { } shape ? shape.Requirement : NeoMemberRequirementKind.Optional);
             set => DeclaredRequirement = value;
         }
 
@@ -269,7 +269,7 @@ namespace NeoCompose.Runtime.Json
         [JsonIgnore]
         public NeoMemberMutabilityKind Mutability
         {
-            get => mutability ?? resolvedShape?.Mutability ?? NeoMemberMutabilityKind.Mutable;
+            get => mutability ?? (resolvedShape is { } shape ? shape.Mutability : NeoMemberMutabilityKind.Mutable);
             set => DeclaredMutability = value;
         }
 
@@ -277,7 +277,7 @@ namespace NeoCompose.Runtime.Json
         [JsonIgnore]
         public NeoMemberModifierKind Modifier
         {
-            get => modifier ?? resolvedShape?.Modifier ?? NeoMemberModifierKind.Virtual;
+            get => modifier ?? (resolvedShape is { } shape ? shape.Modifier : NeoMemberModifierKind.Virtual);
             set => DeclaredModifier = value;
         }
 
@@ -285,7 +285,7 @@ namespace NeoCompose.Runtime.Json
         [JsonIgnore]
         public NeoMemberAccessKind Access
         {
-            get => access ?? resolvedShape?.Access ?? NeoMemberAccessKind.Public;
+            get => access ?? (resolvedShape is { } shape ? shape.Access : NeoMemberAccessKind.Public);
             set => DeclaredAccess = value;
         }
 
@@ -293,7 +293,7 @@ namespace NeoCompose.Runtime.Json
         [JsonIgnore]
         public NeoMemberStorage Storage
         {
-            get => storage ?? resolvedShape?.Storage ?? NeoMemberStorage.Inherit;
+            get => storage ?? (resolvedShape is { } shape ? shape.Storage : NeoMemberStorage.Inherit);
             set => DeclaredStorage = value;
         }
 
@@ -552,14 +552,14 @@ namespace NeoCompose.Runtime.Json
         [JsonIgnore]
         public NeoStringFormatKind Format
         {
-            get => format ?? resolvedShape?.Format ?? NeoStringFormatKind.Localized;
+            get => format ?? (resolvedShape is { } shape ? shape.Format : NeoStringFormatKind.Localized);
             set => DeclaredFormat = value;
         }
 
         [JsonIgnore]
         public NeoMemberSearchByKind SearchBy
         {
-            get => searchBy ?? resolvedShape?.SearchBy ?? NeoMemberSearchByKind.None;
+            get => searchBy ?? (resolvedShape is { } shape ? shape.SearchBy : NeoMemberSearchByKind.None);
             set => DeclaredSearchBy = value;
         }
 
@@ -601,7 +601,7 @@ namespace NeoCompose.Runtime.Json
         [JsonIgnore]
         public NeoDictionaryKeyKind KeyKind
         {
-            get => keyKind ?? resolvedShape?.DictionaryKeyKind ?? NeoDictionaryKeyKind.String;
+            get => keyKind ?? (resolvedShape is { } shape ? shape.DictionaryKeyKind : NeoDictionaryKeyKind.String);
             set => DeclaredKeyKind = value;
         }
 
@@ -733,7 +733,7 @@ namespace NeoCompose.Runtime.Json
         [JsonIgnore]
         public NeoListKind ListKind
         {
-            get => listKind ?? resolvedShape?.ListKind ?? NeoListKind.Ordered;
+            get => listKind ?? (resolvedShape is { } shape ? shape.ListKind : NeoListKind.Ordered);
             set => DeclaredListKind = value;
         }
 
@@ -773,7 +773,7 @@ namespace NeoCompose.Runtime.Json
         [JsonIgnore]
         public NeoMemberPayloadKind Payload
         {
-            get => payload ?? resolvedShape?.Payload ?? NeoMemberPayloadKind.Full;
+            get => payload ?? (resolvedShape is { } shape ? shape.Payload : NeoMemberPayloadKind.Full);
             set => DeclaredPayload = value;
         }
 
@@ -834,7 +834,7 @@ namespace NeoCompose.Runtime.Json
         [JsonIgnore]
         public NeoMemberPayloadKind Payload
         {
-            get => payload ?? resolvedShape?.Payload ?? NeoMemberPayloadKind.Full;
+            get => payload ?? (resolvedShape is { } shape ? shape.Payload : NeoMemberPayloadKind.Full);
             set => DeclaredPayload = value;
         }
 
@@ -860,7 +860,7 @@ namespace NeoCompose.Runtime.Json
         [JsonIgnore]
         public NeoMemberSelectionKind Selection
         {
-            get => selection ?? resolvedShape?.Selection ?? NeoMemberSelectionKind.Single;
+            get => selection ?? (resolvedShape is { } shape ? shape.Selection : NeoMemberSelectionKind.Single);
             set => DeclaredSelection = value;
         }
 
@@ -925,7 +925,7 @@ namespace NeoCompose.Runtime.Json
         [JsonIgnore]
         public NeoMemberSelectionKind Selection
         {
-            get => selection ?? resolvedShape?.Selection ?? NeoMemberSelectionKind.Single;
+            get => selection ?? (resolvedShape is { } shape ? shape.Selection : NeoMemberSelectionKind.Single);
             set => DeclaredSelection = value;
         }
 
@@ -957,7 +957,7 @@ namespace NeoCompose.Runtime.Json
         [JsonIgnore]
         public NeoMemberSelectionKind Selection
         {
-            get => selection ?? resolvedShape?.Selection ?? NeoMemberSelectionKind.Single;
+            get => selection ?? (resolvedShape is { } shape ? shape.Selection : NeoMemberSelectionKind.Single);
             set => DeclaredSelection = value;
         }
 
@@ -1179,7 +1179,7 @@ namespace NeoCompose.Runtime.Json
         [JsonIgnore]
         public NeoFunctionDispatchKind Dispatch
         {
-            get => dispatch ?? resolvedShape?.Dispatch ?? NeoFunctionDispatchKind.Synchronous;
+            get => dispatch ?? (resolvedShape is { } shape ? shape.Dispatch : NeoFunctionDispatchKind.Synchronous);
             set => DeclaredDispatch = value;
         }
 
@@ -1228,14 +1228,14 @@ namespace NeoCompose.Runtime.Json
         [JsonIgnore]
         public NeoFunctionDispatchKind Dispatch
         {
-            get => dispatch ?? resolvedShape?.Dispatch ?? NeoFunctionDispatchKind.Synchronous;
+            get => dispatch ?? (resolvedShape is { } shape ? shape.Dispatch : NeoFunctionDispatchKind.Synchronous);
             set => DeclaredDispatch = value;
         }
 
         [JsonIgnore]
         public NeoFunctionBodyKind BodyMode
         {
-            get => bodyMode ?? resolvedShape?.BodyMode ?? NeoFunctionBodyKind.Code;
+            get => bodyMode ?? (resolvedShape is { } shape ? shape.BodyMode : NeoFunctionBodyKind.Code);
             set => DeclaredBodyMode = value;
         }
 

@@ -19,7 +19,11 @@ namespace NeoCompose.Runtime
         // be re-resolved in any evaluation context are kept: scalars,
         // pointers to authored or Save rows, and derived lists of those.
         // Session rows are skipped because a getter that constructs its
-        // result must construct again.
+        // result must construct again. The one exception is a static getter
+        // read as a pattern argument's receiver: only a native call reads the
+        // pattern, so its offsets are kept under StaticGetterRowId.
+        internal const string StaticGetterRowId = "";
+
         internal readonly struct GetterMemoKey : IEquatable<GetterMemoKey>
         {
             public readonly NeoValueOwnership ownership;
@@ -43,7 +47,9 @@ namespace NeoCompose.Runtime
                 ((rowId.GetHashCode() * 31 + memberId.GetHashCode()) * 31 + (int)ownership) * 31 + (int)readOwnership);
         }
 
-        internal struct GetterMemoEntry
+        // A class, so a hit hands back one reference: copying a struct of
+        // references out of the table costs a GC write barrier per field.
+        internal sealed class GetterMemoEntry
         {
             public object? scalar;
             public NeoScript.NSGetterEvaluator.RowReference? row;
@@ -60,6 +66,9 @@ namespace NeoCompose.Runtime
             // reports the same ids, so a capture sees exactly what the
             // evaluation would have told it.
             public string[]? valueReads;
+            // Set once the memo drops the entry, so a row reference that
+            // kept it knows to look the getter up again.
+            public bool forgotten;
         }
 
         internal readonly struct GetterRead
@@ -228,10 +237,11 @@ namespace NeoCompose.Runtime
             && replayAllocationScope is null
             && !isReplayingVirtualInstance;
 
-        internal bool TryGetMemoizedGetter(GetterMemoKey key, out GetterMemoEntry entry) =>
-            getterMemo.TryGetValue(key, out entry);
+        internal GetterMemoEntry? FindMemoizedGetter(GetterMemoKey key) =>
+            getterMemo.TryGetValue(key, out GetterMemoEntry? entry) ? entry : null;
 
-        internal void MemoizeGetter(
+        /// <summary>Memoizes a getter's result and returns the entry.</summary>
+        internal GetterMemoEntry MemoizeGetter(
             GetterMemoKey key,
             object? scalar,
             NeoScript.NSGetterEvaluator.RowReference? row,
@@ -255,7 +265,7 @@ namespace NeoCompose.Runtime
             getterMemo[key] = entry;
             IndexMemoDependency(key.rowId, key);
             if (entry.reads is null)
-                return;
+                return entry;
             foreach (GetterRead read in entry.reads)
             {
                 if (read.content is null)
@@ -263,6 +273,7 @@ namespace NeoCompose.Runtime
                 else
                     gridDependentGetterMemoKeys.Add(key);
             }
+            return entry;
         }
 
         private void IndexMemoDependency(string rowId, GetterMemoKey key)
@@ -276,8 +287,9 @@ namespace NeoCompose.Runtime
 
         internal void ForgetMemoizedGetter(GetterMemoKey key)
         {
-            if (!getterMemo.Remove(key, out GetterMemoEntry entry))
+            if (!getterMemo.Remove(key, out GetterMemoEntry? entry))
                 return;
+            entry.forgotten = true;
             UnindexMemoDependency(key.rowId, key);
             gridDependentGetterMemoKeys.Remove(key);
             List<GetterRead>? reads = entry.reads;
@@ -344,6 +356,8 @@ namespace NeoCompose.Runtime
 
         internal void InvalidateGetterMemo()
         {
+            foreach (GetterMemoEntry entry in getterMemo.Values)
+                entry.forgotten = true;
             getterMemo.Clear();
             getterMemoKeysByRow.Clear();
             gridDependentGetterMemoKeys.Clear();

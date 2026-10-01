@@ -780,6 +780,14 @@ namespace NeoCompose.Runtime
             return NeoValueWritePayload.FromValue(value);
         }
 
+        public static NeoValueWritePayload Value(int value) => NeoValueWritePayload.FromInt(value);
+
+        public static NeoValueWritePayload Value(int? value) => NeoValueWritePayload.FromInt(value);
+
+        public static NeoValueWritePayload Value(bool value) => NeoValueWritePayload.FromBool(value);
+
+        public static NeoValueWritePayload Value(bool? value) => NeoValueWritePayload.FromBool(value);
+
         /// <summary>
         /// Builds a live member-id keyed static-member view. Generated
         /// properties call this from the active project singleton, so every
@@ -790,7 +798,9 @@ namespace NeoCompose.Runtime
             string memberId,
             NeoValueOwnership ownership)
         {
-            return new NeoStaticBinding(client, memberId, ownership);
+            NeoStaticBinding binding = client.StaticBinding(memberId);
+            binding.RequireOwnership(ownership);
+            return binding;
         }
 
         public static SpriteValue? SpriteValue(
@@ -1715,8 +1725,7 @@ namespace NeoCompose.Runtime
             NeoValueOwnership ownership = placementOwnership
                 ?? (client.TryGetValueOwnership(valueId, ref node, out NeoValueOwnership existing)
                     ? existing : NeoValueOwnership.Asset);
-            if (!client.TryGetValue(ownership, valueId, ref node, out MemberValue? row)
-                || row is not ObjectMemberValue value)
+            if (client.ReadValue(ownership, valueId, ref node) is not ObjectMemberValue value)
             {
                 return null;
             }
@@ -4996,7 +5005,7 @@ namespace NeoCompose.Runtime
             bool completed = false;
             try
             {
-                NeoScriptExecutor.PrepareFunctionContext(ctx, options);
+                NeoScriptExecutor.PrepareFunctionContext(ctx, options, frame);
                 NeoScriptExecutionResult result = NeoScriptExecutor.Execute(
                     client,
                     body,
@@ -8056,6 +8065,39 @@ namespace NeoCompose.Runtime
             return optionIds.Length == 0 ? default : create(optionIds[0]);
         }
 
+        /// <summary>
+        /// An evaluator enum, lookup or dialogue value's first id, read in
+        /// place: the value <see cref="ToStringArray"/> would copy its first
+        /// entry from.
+        /// </summary>
+        public static string? ReadSelectedId(object? value)
+        {
+            switch (value)
+            {
+                case string optionId:
+                    return optionId;
+                case string[] strings:
+                    return strings.Length > 0 ? strings[0] : null;
+                case object?[] objects:
+                    foreach (object? entry in objects)
+                    {
+                        if (entry is string optionId)
+                            return optionId;
+                    }
+                    return null;
+                default:
+                    return null;
+            }
+        }
+
+        public static TEnum? ReadEnumSingle<TEnum>(
+            object? value,
+            Func<string, TEnum> create)
+        {
+            string? optionId = ReadSelectedId(value);
+            return optionId is null ? default : create(optionId);
+        }
+
         // Computed collections carry evaluator values, not generated wrappers. Apply
         // the same per-entry codec as scalar getters, including ownership and nulls.
         public static IReadOnlyList<T> ReadScriptList<T>(object? value, Func<object?, T> read)
@@ -8087,6 +8129,24 @@ namespace NeoCompose.Runtime
             var values = new List<TEnum>();
             foreach (var optionId in optionIds)
                 values.Add(create(optionId));
+            return values;
+        }
+
+        public static IReadOnlyList<TEnum> ReadEnumList<TEnum>(
+            object? value,
+            Func<string, TEnum> create)
+        {
+            if (value is string[] optionIds)
+                return ReadEnumList(optionIds, create);
+            var values = new List<TEnum>();
+            if (value is object?[] entries)
+            {
+                foreach (object? entry in entries)
+                {
+                    if (entry is string optionId)
+                        values.Add(create(optionId));
+                }
+            }
             return values;
         }
 

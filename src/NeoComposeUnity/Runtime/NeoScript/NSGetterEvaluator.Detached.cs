@@ -173,6 +173,13 @@ namespace NeoCompose.Runtime.NeoScript
             if (value.attachedId is not null || !value.plan.slotByKey.TryGetValue(key, out int index))
                 return false;
             DetachedSlot slot = value.plan.slots[index];
+            if (slot.kind == DetachedSlotKind.Leaf && value.State(index) == NeoScriptObject.WrittenSlot)
+            {
+                // C# parses a bare option or lookup id itself and keeps no
+                // array, so only a NeoScript reader needs the shared one.
+                result = value.Slot(index);
+                return true;
+            }
             if (value.State(index) == NeoScriptObject.WrittenSlot
                 || !slot.hasLiteralDefault
                 || !IsLocalizedDefault(slot.member))
@@ -183,12 +190,46 @@ namespace NeoCompose.Runtime.NeoScript
             Context ctx = value.client.RentDirectFunctionContext(NeoValueOwnership.Session);
             try
             {
-                result = ReadDefaultLeaf(value, slot.member, ctx);
+                result = ReadDefaultLeaf(value, slot, ctx);
                 return true;
             }
             finally
             {
                 value.client.ReturnDirectFunctionContext(ctx, null);
+            }
+        }
+
+        /// <summary>
+        /// C#'s read of a pending object's NSProperty: the getter runs with
+        /// the temporary as <c>this</c>, as a NeoScript read of it would, so
+        /// the read makes no rows.
+        /// </summary>
+        internal static NSGetterResult ComputeDetachedProperty(NeoScriptObject value, string key)
+        {
+            Context ctx = value.client.RentDirectFunctionContext(NeoValueOwnership.Session);
+            object? result = null;
+            try
+            {
+                MergedSchemaEntry? entry = ctx.client.ResolveClassNode(value.plan.classId).SurfaceMember(key);
+                if (entry?.member is not NSPropertyMember { getter: not null })
+                {
+                    return NSGetterResult.Error(
+                        "Compiled `getter` not yet available — save the code to compile it.");
+                }
+                result = DispatchNSGetterById(entry.memberId, value, ctx);
+                return NSGetterResult.Ok(result);
+            }
+            catch (NSGetterRuntimeError ex)
+            {
+                return NSGetterResult.Error(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return NSGetterResult.Error($"Evaluator error: {ex.Message}");
+            }
+            finally
+            {
+                value.client.ReturnDirectFunctionContext(ctx, result);
             }
         }
 
@@ -206,7 +247,7 @@ namespace NeoCompose.Runtime.NeoScript
                     index,
                     slot.kind == DetachedSlotKind.List
                         ? NeoGeneratedTypesSupport.DetachedArray(value, index)
-                        : value.values[index]);
+                        : NeoGeneratedTypesSupport.DetachedLeaf(value, index));
                 return true;
             }
             result = null;
@@ -222,7 +263,7 @@ namespace NeoCompose.Runtime.NeoScript
                         new object?[0]);
                     break;
                 case DetachedSlotKind.Leaf:
-                    result = ReadDefaultLeaf(value, slot.member, ctx!);
+                    result = ReadDefaultLeaf(value, slot, ctx!);
                     NeoGeneratedTypesSupport.SetDetachedLeaf(value, index, result);
                     break;
             }
@@ -235,8 +276,22 @@ namespace NeoCompose.Runtime.NeoScript
             member is StringMember { defaultValue: StringMemberValueBase text }
             && text.neoLocalizationMode != NeoStringLocalizationMode.Literal;
 
-        /// <summary>A leaf member's literal default, read the way its default row reads.</summary>
-        private static object? ReadDefaultLeaf(NeoScriptObject owner, JsonMember member, Context ctx)
+        /// <summary>
+        /// A leaf member's literal default, read the way its default row reads.
+        /// A number, bool, literal string or null is read once per slot.
+        /// </summary>
+        private static object? ReadDefaultLeaf(NeoScriptObject owner, DetachedSlot slot, Context ctx)
+        {
+            if (!ReferenceEquals(slot.sharedDefault, NeoGeneratedTypesSupport.UnreadDefault))
+                return slot.sharedDefault;
+            object? value = CreateDefaultLeaf(owner, slot.member, ctx);
+            if (value is null or double or bool
+                || value is string && !IsLocalizedDefault(slot.member))
+                slot.sharedDefault = value;
+            return value;
+        }
+
+        private static object? CreateDefaultLeaf(NeoScriptObject owner, JsonMember member, Context ctx)
         {
             MemberValue? row = MemberValueFactory.CreateFromDefault(
                 member,
@@ -294,7 +349,7 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 if (slots[index].kind == DetachedSlotKind.Leaf)
                 {
-                    if (ReferenceEquals(owner.values[index], leaf))
+                    if (ReferenceEquals(owner.Slot(index), leaf))
                         found = index;
                     continue;
                 }

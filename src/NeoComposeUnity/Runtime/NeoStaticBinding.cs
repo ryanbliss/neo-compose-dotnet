@@ -17,11 +17,12 @@ namespace NeoCompose.Runtime
     {
         private readonly NeoClient client;
         private readonly Member member;
+        // The registered node last resolved, reused while the binding still targets its row.
+        private NeoMember? boundNode;
 
         internal NeoStaticBinding(
             NeoClient client,
-            string memberId,
-            NeoValueOwnership expectedOwnership)
+            string memberId)
         {
             this.client = client ?? throw new System.ArgumentNullException(nameof(client));
             if (!client.TryGetMember(memberId, out Member? resolvedMember))
@@ -32,6 +33,10 @@ namespace NeoCompose.Runtime
             }
             member = resolvedMember;
             Ownership = client.ResolveStaticOwnership(member);
+        }
+
+        internal void RequireOwnership(NeoValueOwnership expectedOwnership)
+        {
             if (Ownership != expectedOwnership)
             {
                 throw new System.InvalidOperationException(
@@ -51,11 +56,7 @@ namespace NeoCompose.Runtime
             get
             {
                 client.EnsureNotDisposed();
-                client.TryResolveStaticBinding(
-                    member.id,
-                    out _,
-                    out _,
-                    out string? valueId);
+                client.TryResolveStaticBinding(member, Ownership, out string? valueId);
                 return valueId;
             }
         }
@@ -72,11 +73,7 @@ namespace NeoCompose.Runtime
         {
             node = null;
             client.EnsureNotDisposed();
-            if (!client.TryResolveStaticBinding(
-                    member.id,
-                    out _,
-                    out _,
-                    out string? valueId))
+            if (!client.TryResolveStaticBinding(member, Ownership, out string? valueId))
             {
                 return false;
             }
@@ -85,9 +82,21 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException(
                     $"Static member '{member.name}' is bound to missing value '{valueId}'.");
             }
-            NeoMember resolved = Ownership == NeoValueOwnership.Asset
-                ? NeoMember.Create(client, member, valueId)
-                : NeoMember.CreateWritable(client, member, valueId, Ownership);
+            // A replay registers its nodes privately, so it never reuses or keeps one.
+            NeoMember resolved;
+            if (boundNode is { IsRegisteredWithClient: true, isDisposed: false } bound
+                && bound.overrideValueId == valueId
+                && !client.IsInCandidateReplay)
+            {
+                resolved = bound;
+            }
+            else
+            {
+                resolved = Ownership == NeoValueOwnership.Asset
+                    ? NeoMember.Create(client, member, valueId)
+                    : NeoMember.CreateWritable(client, member, valueId, Ownership);
+                boundNode = client.IsInCandidateReplay ? null : resolved;
+            }
             if (resolved is not TNode typed)
             {
                 throw new System.InvalidOperationException(
@@ -233,11 +242,7 @@ namespace NeoCompose.Runtime
             string valueId;
             NeoTimestamp createdAt = nowIso;
             MemberValue? previous = null;
-            if (client.TryResolveStaticBinding(
-                    member.id,
-                    out _,
-                    out _,
-                    out string? currentValueId))
+            if (client.TryResolveStaticBinding(member, Ownership, out string? currentValueId))
             {
                 valueId = currentValueId;
                 if (!client.TryGetOverlaidValue(Ownership, valueId, out previous))

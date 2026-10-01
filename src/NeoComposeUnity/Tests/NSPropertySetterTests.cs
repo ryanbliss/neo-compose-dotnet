@@ -418,7 +418,7 @@ namespace NeoCompose.Tests
             if (constructorBody)
             {
                 options = NeoScriptExecutionOptions.ForImmediate(client);
-                NeoScriptExecutor.PrepareFunctionContext(bodyCtx, options);
+                NeoScriptExecutor.PrepareFunctionContext(bodyCtx, options, -1);
                 bodyCtx.constructorBody = true;
             }
             NeoScriptExecutionResult result = NeoScriptExecutor.Execute(
@@ -772,7 +772,7 @@ namespace NeoCompose.Tests
                 Assert.IsTrue(miss.ok, miss.error);
                 Assert.AreEqual(5, Convert.ToInt32(miss.value));
             }
-            Assert.IsTrue(client.TryGetMemoizedGetter(key, out _),
+            Assert.IsNotNull(client.FindMemoizedGetter(key),
                 "A row-backed compute under dependency capture must still memoize.");
             CollectionAssert.Contains(first, "value-target");
 
@@ -782,7 +782,7 @@ namespace NeoCompose.Tests
             CollectionAssert.AreEquivalent(first, second, "A memo hit must report the reads the evaluation reported.");
 
             client.SetSaveValue(new NumberMemberValue { id = "value-target", value = 9, createdAt = "x", updatedAt = "x" });
-            Assert.IsFalse(client.TryGetMemoizedGetter(key, out _), "A write to a read row must drop the entry.");
+            Assert.IsNull(client.FindMemoizedGetter(key), "A write to a read row must drop the entry.");
             var third = new HashSet<string>();
             using (client.CaptureValueReads(third))
                 Assert.AreEqual(9, Convert.ToInt32(node.Compute("value-receiver").value));
@@ -814,13 +814,13 @@ namespace NeoCompose.Tests
             var node = new NeoMemberNSProperty(client, property, null);
 
             var first = (object?[])node.Compute("value-receiver").value!;
-            Assert.IsTrue(client.TryGetMemoizedGetter(ListKey(property), out NeoClient.GetterMemoEntry entry) && entry.list is not null);
+            Assert.IsTrue(client.FindMemoizedGetter(ListKey(property)) is { list: not null });
             var second = (object?[])node.Compute("value-receiver").value!;
             Assert.AreNotSame(first, second, "Every hit hands the caller its own array.");
             Assert.AreEqual(5, Convert.ToInt32(second[0]));
 
             client.SetSaveValue(new NumberMemberValue { id = "value-target", value = 9, createdAt = "x", updatedAt = "x" });
-            Assert.IsFalse(client.TryGetMemoizedGetter(ListKey(property), out _), "A write to a read row must drop the entry.");
+            Assert.IsNull(client.FindMemoizedGetter(ListKey(property)), "A write to a read row must drop the entry.");
             Assert.AreEqual(9, Convert.ToInt32(((object?[])node.Compute("value-receiver").value!)[0]));
         }
 
@@ -834,10 +834,109 @@ namespace NeoCompose.Tests
             var node = new NeoMemberNSProperty(client, property, null);
 
             var first = (object?[])node.Compute("value-receiver").value!;
-            Assert.IsTrue(client.TryGetMemoizedGetter(ListKey(property), out NeoClient.GetterMemoEntry entry) && entry.list is not null);
+            Assert.IsTrue(client.FindMemoizedGetter(ListKey(property)) is { list: not null });
             var second = (object?[])node.Compute("value-receiver").value!;
             Assert.AreNotSame(first, second);
             Assert.AreEqual("value-save", ((INeoValueReference)second[0]!).valueId);
+        }
+
+        [Test]
+        public void ForEach_RecyclesOnlyTheListItsOwnMemoHitLent()
+        {
+            using var client = BuildClient(out NSPropertyMember property);
+            property.getter = ListGetter(RootTargetPointer(), IntType());
+            client.SetSaveValue(new NumberMemberValue { id = "value-target", value = 5, createdAt = "x", updatedAt = "x" });
+            var node = new NeoMemberNSProperty(client, property, null);
+            node.Compute("value-receiver");
+            // A C# hit takes the lent array with it and is never handed back.
+            var held = (object?[])node.Compute("value-receiver").value!;
+            Assert.IsTrue(client.FindMemoizedGetter(ListKey(property)) is { list: not null });
+
+            Assert.IsTrue(client.TryGetValue(NeoValueOwnership.Asset, "value-receiver", out ObjectMemberValue? receiverRow));
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            var root = RuntimeRoot(client, ctx);
+            ctx = ctx.WithRoot(root);
+            object? receiver = NSGetterEvaluator.UnwrapRow(receiverRow!, ctx, NeoValueOwnership.Asset);
+            var sum = new VariablePointer { type = PointerKind.Variable, variableId = "sum" };
+            var body = Function(
+                new VariableInstruction
+                {
+                    type = InstructionKind.Variable,
+                    variable = new Variable { id = "sum", pointer = NumberLiteral(0), typeInfo = IntType() },
+                },
+                new ForEachInstruction
+                {
+                    type = InstructionKind.ForEach,
+                    binding = new LoopBinding
+                    {
+                        id = "item",
+                        typeInfo = IntType(),
+                        isReadonly = true,
+                        writability = WritabilityKind.ReadOnly,
+                    },
+                    collectionPointer = new CallGetterPointer
+                    {
+                        type = PointerKind.CallGetter,
+                        memberId = property.id,
+                        receiver = CallReceiver.Instance(ThisVariable()),
+                    },
+                    collectionTypeInfo = property.getter.typeInfo,
+                    instructions = new Instruction[]
+                    {
+                        new AssignInstruction
+                        {
+                            type = InstructionKind.Assign,
+                            target = new WriteTarget { pointer = sum, typeInfo = IntType(), writability = WritabilityKind.Local },
+                            operatorValue = "=",
+                            pointer = ArithmeticPointer(
+                                ArithmeticOpKind.Addition,
+                                sum,
+                                new VariablePointer { type = PointerKind.Variable, variableId = "item" }),
+                        },
+                    },
+                },
+                new ReturnInstruction { type = InstructionKind.Return, pointer = sum });
+            body.typeInfo = IntType();
+            var scope = new Dictionary<string, object?> { ["__this__"] = receiver, ["__root__"] = root };
+
+            // The first run misses, so its list is not the lent one; later
+            // runs hit and hand their lent array back after the snapshot.
+            client.SetSaveValue(new NumberMemberValue { id = "value-target", value = 7, createdAt = "x", updatedAt = "x" });
+            for (int run = 0; run < 3; run++)
+            {
+                NeoScriptExecutionResult result = NeoScriptExecutor.Execute(client, body, scope, ctx.WithThis(receiver));
+                Assert.AreEqual(7, Convert.ToInt32(result.ReturnValue), $"run {run}");
+            }
+            Assert.AreEqual(1, held.Length);
+            Assert.AreEqual(5, Convert.ToInt32(held[0]), "A list C# holds is never recycled.");
+        }
+
+        [Test]
+        public void GetterCall_DoesNotReuseAForgottenMemoEntryItsReceiverRemembers()
+        {
+            using var client = BuildClient(out NSPropertyMember property);
+            property.getter = GetterFunction();
+            client.SetSaveValue(new NumberMemberValue { id = "value-target", value = 5, createdAt = "x", updatedAt = "x" });
+            Assert.IsTrue(client.TryGetValue(NeoValueOwnership.Asset, "value-receiver", out ObjectMemberValue? receiverRow));
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            ctx = ctx.WithRoot(RuntimeRoot(client, ctx));
+            var scope = new Dictionary<string, object?>
+            {
+                ["__this__"] = NSGetterEvaluator.UnwrapRow(receiverRow!, ctx, NeoValueOwnership.Asset),
+            };
+            var call = new CallGetterPointer
+            {
+                type = PointerKind.CallGetter,
+                memberId = property.id,
+                receiver = CallReceiver.Instance(ThisVariable()),
+            };
+            int Read() => Convert.ToInt32(NSGetterEvaluator.EvaluatePointer(call, scope, ctx));
+
+            Assert.AreEqual(5, Read());
+            Assert.AreEqual(5, Read(), "The receiver remembers its memo entry.");
+            client.SetSaveValue(new NumberMemberValue { id = "value-target", value = 9, createdAt = "x", updatedAt = "x" });
+            Assert.AreEqual(9, Read(), "A write forgets the entry the receiver remembers.");
+            Assert.AreEqual(9, Read());
         }
 
         private static NeoClient.GetterMemoKey ListKey(NSPropertyMember property) => new(

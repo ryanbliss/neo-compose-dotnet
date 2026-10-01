@@ -964,11 +964,13 @@ namespace NeoCompose.Runtime
                 ExpandVirtualInstanceRootOrReport(root, failClosed: true);
         }
 
+#if NEO_COMPOSE_PROFILING
         private static readonly Unity.Profiling.ProfilerMarker ReplayRootMarker = new("NeoCompose.Replay.Root");
         private static readonly Unity.Profiling.ProfilerMarker ReplayConstructMarker = new("NeoCompose.Replay.Construct");
         private static readonly Unity.Profiling.ProfilerMarker ReplayIndexMarker = new("NeoCompose.Replay.Index");
         private static readonly Unity.Profiling.ProfilerMarker ReplayOverlayMarker = new("NeoCompose.Replay.Overlay");
         private static readonly Unity.Profiling.ProfilerMarker ReplayCleanupMarker = new("NeoCompose.Replay.Cleanup");
+#endif
 
         private ReplayAllocationScope? replayAllocationScope;
 
@@ -997,7 +999,9 @@ namespace NeoCompose.Runtime
 
             public void Dispose()
             {
+#if NEO_COMPOSE_PROFILING
                 using var marker = ReplayCleanupMarker.Auto();
+#endif
                 client.replayAllocationScope = Parent;
                 // Retire wrappers before removing rows so no listener can read
                 // a partially reclaimed constructor graph.
@@ -1021,7 +1025,9 @@ namespace NeoCompose.Runtime
 
         private PreparedVirtualExpansion ExpandVirtualInstanceRootCore(ObjectMemberValue instanceRoot, bool prepareOnly = false, NeoValueOwnership? replayOwnership = null)
         {
+#if NEO_COMPOSE_PROFILING
             using var marker = ReplayRootMarker.Auto();
+#endif
             using var nestedReplay = BeginNestedReplay();
             nestedReplayBoundaries.TryGetValue(instanceRoot.id, out var replayBoundary);
             if (replayBoundary is not null
@@ -1095,7 +1101,9 @@ namespace NeoCompose.Runtime
             var captureReads = CaptureValueReads(dependencyIds);
             try
             {
+#if NEO_COMPOSE_PROFILING
                 using var constructMarker = ReplayConstructMarker.Auto();
+#endif
                 if (!IsVirtualInstanceRoot(instanceRoot))
                 {
                     var declaration = (ClassMember)placementMember!.ShallowClone();
@@ -1144,14 +1152,18 @@ namespace NeoCompose.Runtime
 
             var claimedVirtualIds = new Dictionary<string, string>(StringComparer.Ordinal);
             VirtualExpansionNode graph;
+#if NEO_COMPOSE_PROFILING
             using (ReplayIndexMarker.Auto())
+#endif
+            {
                 graph = IndexVirtualExpansion(
-                replayBoundary?.NamespaceRoot ?? instanceRoot,
-                expandedRoot,
-                constructed.member,
-                replayBoundary?.Path ?? "$",
-                claimedVirtualIds,
-                new Dictionary<MemberValue, IReadOnlyDictionary<string, NeoGenericEnvEntry>>());
+                    replayBoundary?.NamespaceRoot ?? instanceRoot,
+                    expandedRoot,
+                    constructed.member,
+                    replayBoundary?.Path ?? "$",
+                    claimedVirtualIds,
+                    new Dictionary<MemberValue, IReadOnlyDictionary<string, NeoGenericEnvEntry>>());
+            }
             if (replayBoundary is not null)
             {
                 graph.virtualId = instanceRoot.id;
@@ -1168,7 +1180,9 @@ namespace NeoCompose.Runtime
                     || virtualValues.ContainsKey(dependency)
                     || candidateReplay?.Values.ContainsKey(dependency) == true)
                     expansion.Dependencies.Add(dependency);
+#if NEO_COMPOSE_PROFILING
             using (ReplayOverlayMarker.Auto())
+#endif
             {
                 OverlaySparseInstance(
                     expansion,
