@@ -47,20 +47,26 @@ namespace NeoCompose.Runtime
         /// when the write needs a full plan: a tile's Cell, a first write over
         /// a sparse default, or a write during replay.
         /// </summary>
+        /// <param name="node">The caller's node for <paramref name="next"/>'s id, if it holds one.</param>
         internal bool TryWritePlacement(
-            NeoValueOwnership ownership, ObjectMemberValue owner, string key, MemberValue next, Member member)
+            NeoValueOwnership ownership,
+            ObjectMemberValue owner,
+            string key,
+            MemberValue next,
+            Member member,
+            NeoValueNode? node = null)
         {
             if (!IsPlacementMember(owner.classId, key))
-                return TryWriteLeaf(ownership, next, member, "value");
+                return TryWriteLeaf(ownership, next, member, "value", node);
             if (key != PositionKey || next is not Vector3MemberValue position)
                 return false;
-            return TryWriteObjectPosition(ownership, owner, position, member);
+            return TryWriteObjectPosition(ownership, owner, position, member, node);
         }
 
         private bool TryWriteObjectPosition(
-            NeoValueOwnership ownership, ObjectMemberValue owner, Vector3MemberValue next, Member member)
+            NeoValueOwnership ownership, ObjectMemberValue owner, Vector3MemberValue next, Member member, NeoValueNode? node)
         {
-            if (!CanWriteLeaf(ownership, next, member))
+            if (!CanWriteLeaf(ownership, next, member, ref node))
                 return false;
 #if NEO_COMPOSE_PROFILING
             using var marker = PlacementWriteMarker.Auto();
@@ -79,7 +85,7 @@ namespace NeoCompose.Runtime
                 foreach (NeoTileGridLookupCache cache in gridLookupCaches.Values)
                     if (ObjectMove.Prepare(cache, owner.id, cell) is { } move)
                         moves.Add(move);
-                StoreLeaf(ownership, next);
+                StoreLeaf(ownership, next, node!);
                 if (moves.Count != 0)
                 {
                     InvalidateGridDependentGetterMemo();

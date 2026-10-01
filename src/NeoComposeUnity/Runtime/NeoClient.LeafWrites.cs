@@ -32,14 +32,16 @@ namespace NeoCompose.Runtime
         /// same id when the write is a plain leaf replacement. Returns false,
         /// having changed nothing, when the write needs a full plan.
         /// </summary>
-        internal bool TryWriteLeaf(NeoValueOwnership ownership, MemberValue next, Member member, string? changedField)
+        /// <param name="node">The caller's node for <paramref name="next"/>'s id, if it holds one.</param>
+        internal bool TryWriteLeaf(
+            NeoValueOwnership ownership, MemberValue next, Member member, string? changedField, NeoValueNode? node = null)
         {
-            if (!CanWriteLeaf(ownership, next, member))
+            if (!CanWriteLeaf(ownership, next, member, ref node))
                 return false;
 #if NEO_COMPOSE_PROFILING
             using var marker = LeafWriteMarker.Auto();
 #endif
-            StoreLeaf(ownership, next);
+            StoreLeaf(ownership, next, node!);
             bool gridLeaf = InvalidateGridLeaf(next.id);
             NotifyWritableValueChanged(ownership, next.id, changedField, membershipChanged: false);
             if (gridLeaf)
@@ -72,7 +74,8 @@ namespace NeoCompose.Runtime
         /// Whether <paramref name="next"/> replaces a committed leaf row of
         /// the same shape at the same id. Stamps the row's map key on the way.
         /// </summary>
-        private bool CanWriteLeaf(NeoValueOwnership ownership, MemberValue next, Member member)
+        /// <param name="node">A node the caller holds, if any; on success, the live node of <paramref name="next"/>'s id.</param>
+        private bool CanWriteLeaf(NeoValueOwnership ownership, MemberValue next, Member member, ref NeoValueNode? node)
         {
             if (ownership == NeoValueOwnership.Asset || !IsLeafRow(next, member))
                 return false;
@@ -91,7 +94,9 @@ namespace NeoCompose.Runtime
             // The first write over a virtual (sparse) child materializes it
             // through the plan; from then on the store holds the row. The
             // row's node answers every lookup below.
-            if (ValueNode(next.id) is not { } node)
+            if (node is not { live: true } || node.id != next.id)
+                node = ValueNode(next.id);
+            if (node is null)
                 return false;
             MemberValue? authored = node.Asset(data);
             MemberValue? previous = (ownership == NeoValueOwnership.Session ? node.session : node.save) ?? authored;
@@ -105,7 +110,7 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>The store half of a leaf write: the row, the revision and the getter memo.</summary>
-        private void StoreLeaf(NeoValueOwnership ownership, MemberValue next)
+        private void StoreLeaf(NeoValueOwnership ownership, MemberValue next, NeoValueNode node)
         {
             // Same bookkeeping as a committed plan: a row a nested constructor
             // produced can no longer be replayed from its arguments.
@@ -113,7 +118,7 @@ namespace NeoCompose.Runtime
                 && nestedConstructedRows.TryGetValue(next.id, out var producer)
                 && !ReferenceEquals(producer, nestedConstructorCapture))
                 producer.HasExternalWrites = true;
-            StoreWritableValue(ownership, next);
+            StoreWritableValue(ownership, next, node);
             TouchWritableStoreUpdatedAt(ownership);
             WriteRevision++;
             InvalidateGetterMemoForRow(next.id);

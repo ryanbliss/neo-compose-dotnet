@@ -3380,10 +3380,11 @@ namespace NeoCompose.Runtime
             plan.Commit();
         }
 
-        private void StoreWritableValue(NeoValueOwnership ownership, MemberValue value)
+        /// <param name="node">The live node of <paramref name="value"/>'s id, when the caller holds it.</param>
+        private void StoreWritableValue(NeoValueOwnership ownership, MemberValue value, NeoValueNode? node = null)
         {
             GetWritableStore(ownership).values[value.id] = value;
-            IndexStoreWrite(ownership, value);
+            IndexStoreWrite(ownership, value, node);
         }
 
         private void NotifyWritableValueChanged(
@@ -5590,9 +5591,9 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>Index maintenance chokepoint for a store write at <c>value.id</c>.</summary>
-        private void IndexStoreWrite(NeoValueOwnership ownership, MemberValue value)
+        private void IndexStoreWrite(NeoValueOwnership ownership, MemberValue value, NeoValueNode? node = null)
         {
-            SyncStoredValueNode(ownership, value);
+            SyncStoredValueNode(ownership, value, node);
             IndexPlacementParent(ownership, value);
             var (byContainer, byRow) = MembershipMaps(ownership);
             if (byRow.TryGetValue(value.id, out string previousContainerId)

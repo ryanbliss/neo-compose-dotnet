@@ -41,9 +41,10 @@ namespace NeoCompose.Runtime
         /// Points a node at the row a store write just set. Only that
         /// store's slot changed, so the node's other slots still hold.
         /// </summary>
-        private void SyncStoredValueNode(NeoValueOwnership ownership, MemberValue value)
+        /// <param name="node">The live node of <paramref name="value"/>'s id, when the caller holds it.</param>
+        private void SyncStoredValueNode(NeoValueOwnership ownership, MemberValue value, NeoValueNode? node)
         {
-            if (!valueNodes.TryGetValue(value.id, out NeoValueNode node))
+            if (node is null && !valueNodes.TryGetValue(value.id, out node))
                 return;
             if (ownership == NeoValueOwnership.Session)
                 node.session = value;

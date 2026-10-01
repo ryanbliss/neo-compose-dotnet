@@ -4319,6 +4319,9 @@ namespace NeoCompose.Runtime
             private readonly NeoValueOwnership parentOwnership;
             // The parent row's node, so the leaf write reads it without an id lookup.
             private NeoValueNode? parentNode;
+            // The node of the child the last bound-child read found, handed
+            // to the leaf store.
+            private NeoValueNode? childNode;
 
             public NeoClassMemberWriteTarget(
                 string parentRowId,
@@ -4373,7 +4376,7 @@ namespace NeoCompose.Runtime
                 // invariants; the placement API keeps the grid indexes current
                 // and falls through to the plain leaf write for every other
                 // member.
-                if (!client.TryWritePlacement(ownership, parent, key, replaced, member))
+                if (!client.TryWritePlacement(ownership, parent, key, replaced, member, childNode))
                     return false;
                 NSGetterEvaluator.RefreshCachedRowAfterWrite(replaced, ctx, ownership);
                 return true;
@@ -4427,9 +4430,9 @@ namespace NeoCompose.Runtime
                 out MemberValue? child,
                 out MemberValue? storedChild)
             {
-                NeoValueNode? node = null;
-                storedChild = client.ReadWritableValue(ownership, childId, ref node);
-                child = storedChild ?? client.ReadValue(ownership, childId, ref node);
+                childNode = null;
+                storedChild = client.ReadWritableValue(ownership, childId, ref childNode);
+                child = storedChild ?? client.ReadValue(ownership, childId, ref childNode);
                 return child is not null;
             }
 
