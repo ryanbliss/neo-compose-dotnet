@@ -30,7 +30,26 @@ namespace NeoCompose.Runtime
         // Most views never subscribe; the list comes with the first.
         private List<IDisposable>? subscriptions;
         private NeoMemberClassWritable? writableNodeCache;
-        private Dictionary<(string key, Type type), (NeoMember? node, object view)>? storedViews;
+        // A view's member views, by key and view type. A class has few and
+        // generated accessors read them by literal key, so a scan by
+        // reference beats hashing the key and the type.
+        private sealed class StoredView
+        {
+            internal readonly string key;
+            internal readonly Type type;
+            internal NeoMember? node;
+            internal object view;
+
+            internal StoredView(string key, Type type, NeoMember? node, object view)
+            {
+                this.key = key;
+                this.type = type;
+                this.node = node;
+                this.view = view;
+            }
+        }
+
+        private List<StoredView>? storedViews;
         private bool isClassDefaultReference;
         // Minted on first use: only an animated view without a row needs it.
         private string? animationWrapperIdentity;
@@ -285,8 +304,7 @@ namespace NeoCompose.Runtime
         protected bool TryGetStoredView<TView>(
             string key, NeoMember member, out TView view) where TView : class
         {
-            if (storedViews is not null
-                && storedViews.TryGetValue((key, typeof(TView)), out var cached)
+            if (FindStoredView(key, typeof(TView)) is { } cached
                 && ReferenceEquals(cached.node, member)
                 && !member.isDisposed)
             {
@@ -300,9 +318,39 @@ namespace NeoCompose.Runtime
         protected TView CacheStoredView<TView>(
             string key, NeoMember member, TView view) where TView : class
         {
-            storedViews ??= new();
-            storedViews[(key, typeof(TView))] = (member, view);
+            StoreView(key, typeof(TView), member, view);
             return view;
+        }
+
+        private StoredView? FindStoredView(string key, Type type)
+        {
+            if (storedViews is null)
+                return null;
+            for (int i = 0; i < storedViews.Count; i++)
+            {
+                StoredView entry = storedViews[i];
+                if (ReferenceEquals(entry.key, key) && ReferenceEquals(entry.type, type))
+                    return entry;
+            }
+            // A key built at runtime matches by value.
+            for (int i = 0; i < storedViews.Count; i++)
+            {
+                StoredView entry = storedViews[i];
+                if (ReferenceEquals(entry.type, type) && entry.key == key)
+                    return entry;
+            }
+            return null;
+        }
+
+        private void StoreView(string key, Type type, NeoMember? member, object view)
+        {
+            if (FindStoredView(key, type) is { } entry)
+            {
+                entry.node = member;
+                entry.view = view;
+                return;
+            }
+            (storedViews ??= new List<StoredView>()).Add(new StoredView(key, type, member, view));
         }
 
         /// <summary>A pending view's List member, reading its slot until the owner attaches.</summary>
@@ -338,9 +386,7 @@ namespace NeoCompose.Runtime
         protected bool TryGetDetachedView<TView>(string key, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out TView? view)
             where TView : class
         {
-            if (storedViews is not null
-                && storedViews.TryGetValue((key, typeof(TView)), out var cached)
-                && cached.node is null)
+            if (FindStoredView(key, typeof(TView)) is { node: null } cached)
             {
                 view = (TView)cached.view;
                 return true;
@@ -351,8 +397,7 @@ namespace NeoCompose.Runtime
 
         private TView CacheDetachedView<TView>(string key, TView view) where TView : class
         {
-            storedViews ??= new();
-            storedViews[(key, typeof(TView))] = (null, view);
+            StoreView(key, typeof(TView), null, view);
             return view;
         }
 
