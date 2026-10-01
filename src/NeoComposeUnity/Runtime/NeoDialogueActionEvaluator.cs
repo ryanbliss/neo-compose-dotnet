@@ -501,34 +501,30 @@ namespace NeoCompose.Runtime
                     ctx.immediateExpressionOptions = options;
                 }
             }
-            for (int i = startIndex; i < instructions.Length; i++)
+            int i = startIndex;
+            try
             {
-                var instruction = instructions[i];
-                // A callSiteId identifies a source location, not one dynamic
-                // invocation. Reset only the per-attempt occurrence counters
-                // so repeated calls from a collection lambda receive stable
-                // frame keys while completed results survive a replay.
-                expressionState.BeginInstructionAttempt();
-                switch (instruction)
+                for (; i < instructions.Length; i++)
                 {
-                    case VariableInstruction variable:
-                        try
-                        {
-                            object? value = NSGetterEvaluator.EvaluateValue(
-                                variable.variable.pointer,
-                                scope,
-                                actionCtx,
-                                out double number);
-                            scope.SetEvaluationValue(variable.variable, value, number);
-                        }
-                        catch (NeoFunctionCallSuspended suspended)
-                        {
-                            return PauseAtInstruction(client, instructions, returnTypeInfo, scope, ctx, i, expressionState, suspended, options);
-                        }
-                        break;
-                    case IfInstruction ifInstruction:
-                        {
-                            try
+                    var instruction = instructions[i];
+                    // A callSiteId identifies a source location, not one dynamic
+                    // invocation. Reset only the per-attempt occurrence counters
+                    // so repeated calls from a collection lambda receive stable
+                    // frame keys while completed results survive a replay.
+                    expressionState.BeginInstructionAttempt();
+                    switch (instruction)
+                    {
+                        case VariableInstruction variable:
+                            {
+                                object? value = NSGetterEvaluator.EvaluateValue(
+                                    variable.variable.pointer,
+                                    scope,
+                                    actionCtx,
+                                    out double number);
+                                scope.SetEvaluationValue(variable.variable, value, number);
+                                break;
+                            }
+                        case IfInstruction ifInstruction:
                             {
                                 bool matched = false;
                                 foreach (var branch in ifInstruction.branches)
@@ -552,171 +548,134 @@ namespace NeoCompose.Runtime
                                     if (!elseResult.IsFallthrough)
                                         return elseResult;
                                 }
+                                break;
                             }
-                            catch (NeoFunctionCallSuspended suspended)
-                            {
-                                return PauseAtInstruction(client, instructions, returnTypeInfo, scope, ctx, i, expressionState, suspended, options);
-                            }
-                            break;
-                        }
-                    case ReturnInstruction returnInstruction:
-                        try
-                        {
+                        case ReturnInstruction returnInstruction:
                             return ReturnResult(
                                 returnInstruction.pointer is null
                                     ? null
                                     : Eval(returnInstruction.pointer, scope, actionCtx),
                                 returnTypeInfo);
-                        }
-                        catch (NeoFunctionCallSuspended suspended)
-                        {
-                            return PauseAtInstruction(client, instructions, returnTypeInfo, scope, ctx, i, expressionState, suspended, options);
-                        }
-                    case ThrowInstruction throwInstruction:
-                        try
-                        {
+                        case ThrowInstruction throwInstruction:
                             throw new NSGetterRuntimeError(
                                 Eval(throwInstruction.pointer, scope, actionCtx)?.ToString() ?? "null");
-                        }
-                        catch (NeoFunctionCallSuspended suspended)
-                        {
-                            return PauseAtInstruction(client, instructions, returnTypeInfo, scope, ctx, i, expressionState, suspended, options);
-                        }
-                    case AssignInstruction assign:
-                        try
-                        {
-                            NeoScriptExecutionResult nestedSetter = ExecuteAssign(
-                                client,
-                                assign,
-                                scope,
-                                actionCtx,
-                                options);
-                            if (nestedSetter.IsPaused || nestedSetter.Returned)
+                        case AssignInstruction assign:
                             {
-                                return ResumeInstructionsAfter(client, instructions, returnTypeInfo, scope, ctx, i + 1, options, nestedSetter, consumeTerminal: true);
+                                NeoScriptExecutionResult nestedSetter = ExecuteAssign(
+                                    client,
+                                    assign,
+                                    scope,
+                                    actionCtx,
+                                    options);
+                                if (nestedSetter.IsPaused || nestedSetter.Returned)
+                                {
+                                    return ResumeInstructionsAfter(client, instructions, returnTypeInfo, scope, ctx, i + 1, options, nestedSetter, consumeTerminal: true);
+                                }
+                                break;
                             }
-                        }
-                        catch (NeoFunctionCallSuspended suspended)
-                        {
-                            return PauseAtInstruction(client, instructions, returnTypeInfo, scope, ctx, i, expressionState, suspended, options);
-                        }
-                        break;
-                    case ActionListenerInstruction listenerInstruction:
-                        try
-                        {
+                        case ActionListenerInstruction listenerInstruction:
                             ExecuteActionListener(
                                 client,
                                 listenerInstruction,
                                 scope,
                                 actionCtx);
-                        }
-                        catch (NeoFunctionCallSuspended suspended)
-                        {
-                            return PauseAtInstruction(client, instructions, returnTypeInfo, scope, ctx, i, expressionState, suspended, options);
-                        }
-                        break;
-                    case CollectionCallInstruction collectionCall:
-                        try
-                        {
+                            break;
+                        case CollectionCallInstruction collectionCall:
                             ExecuteCollectionCall(client, collectionCall, scope, actionCtx, expressionState, i);
-                        }
-                        catch (NeoFunctionCallSuspended suspended)
-                        {
-                            return PauseAtInstruction(client, instructions, returnTypeInfo, scope, ctx, i, expressionState, suspended, options);
-                        }
-                        break;
-                    case FunctionCallInstruction functionCall:
-                        try
-                        {
+                            break;
+                        case FunctionCallInstruction functionCall:
                             Eval(functionCall.call, scope, actionCtx);
-                        }
-                        catch (NeoFunctionCallSuspended suspended)
-                        {
-                            return PauseAtInstruction(client, instructions, returnTypeInfo, scope, ctx, i, expressionState, suspended, options);
-                        }
-                        break;
-                    case WhileInstruction loop:
-                        {
-                            ValidateWhileInstructionMetadata(loop);
-                            var state = new WhileExecutionState(loop, scope, options);
-                            NeoScriptExecutionResult loopResult = RunWhile(
-                                client, returnTypeInfo, scope, ctx, options, state);
-                            if (loopResult.IsPaused)
-                                return ResumeInstructionsAfter(client, instructions, returnTypeInfo, scope, ctx, i + 1, options, loopResult, consumeTerminal: false);
-                            if (!loopResult.IsFallthrough)
-                                return loopResult;
                             break;
-                        }
-                    case ForInstruction forInstruction:
-                        {
-                            NeoScriptExecutionResult loopResult = ExecuteFor(
-                                client,
-                                forInstruction,
-                                returnTypeInfo,
-                                scope,
-                                ctx,
-                                options);
-                            if (loopResult.IsPaused)
-                                return ResumeInstructionsAfter(client, instructions, returnTypeInfo, scope, ctx, i + 1, options, loopResult, consumeTerminal: false);
-                            if (!loopResult.IsFallthrough)
-                                return loopResult;
-                            break;
-                        }
-                    case ForEachInstruction forEachInstruction:
-                        {
-                            NeoScriptExecutionResult loopResult = ExecuteForEach(
-                                client,
-                                forEachInstruction,
-                                returnTypeInfo,
-                                scope,
-                                ctx,
-                                options);
-                            if (loopResult.IsPaused)
-                                return ResumeInstructionsAfter(client, instructions, returnTypeInfo, scope, ctx, i + 1, options, loopResult, consumeTerminal: false);
-                            if (!loopResult.IsFallthrough)
-                                return loopResult;
-                            break;
-                        }
-                    case SwitchInstruction switchInstruction:
-                        {
-                            NeoScriptExecutionResult switchResult = ExecuteSwitch(
-                                client,
-                                switchInstruction,
-                                returnTypeInfo,
-                                scope,
-                                ctx,
-                                options);
-                            if (switchResult.IsPaused)
-                                return ResumeInstructionsAfter(client, instructions, returnTypeInfo, scope, ctx, i + 1, options, switchResult, consumeTerminal: false);
-                            if (!switchResult.IsFallthrough)
-                                return switchResult;
-                            break;
-                        }
-                    case TryInstruction tryInstruction:
-                        {
-                            NeoScriptExecutionResult tryResult = ExecuteTry(
-                                client,
-                                tryInstruction,
-                                returnTypeInfo,
-                                scope,
-                                ctx,
-                                options);
-                            if (tryResult.IsPaused)
-                                return ResumeInstructionsAfter(client, instructions, returnTypeInfo, scope, ctx, i + 1, options, tryResult, consumeTerminal: false);
-                            if (!tryResult.IsFallthrough)
-                                return tryResult;
-                            break;
-                        }
-                    case BreakInstruction:
-                        return NeoScriptExecutionResult.Control(
-                            NeoScriptControlTransfer.Break);
-                    case ContinueInstruction:
-                        return NeoScriptExecutionResult.Control(
-                            NeoScriptControlTransfer.Continue);
-                    default:
-                        throw new NSGetterRuntimeError(
-                            $"Unknown instruction kind {instruction.GetType().Name}");
+                        case WhileInstruction loop:
+                            {
+                                ValidateWhileInstructionMetadata(loop);
+                                var state = new WhileExecutionState(loop, scope, options);
+                                NeoScriptExecutionResult loopResult = RunWhile(
+                                    client, returnTypeInfo, scope, ctx, options, state);
+                                if (loopResult.IsPaused)
+                                    return ResumeInstructionsAfter(client, instructions, returnTypeInfo, scope, ctx, i + 1, options, loopResult, consumeTerminal: false);
+                                if (!loopResult.IsFallthrough)
+                                    return loopResult;
+                                break;
+                            }
+                        case ForInstruction forInstruction:
+                            {
+                                NeoScriptExecutionResult loopResult = ExecuteFor(
+                                    client,
+                                    forInstruction,
+                                    returnTypeInfo,
+                                    scope,
+                                    ctx,
+                                    options);
+                                if (loopResult.IsPaused)
+                                    return ResumeInstructionsAfter(client, instructions, returnTypeInfo, scope, ctx, i + 1, options, loopResult, consumeTerminal: false);
+                                if (!loopResult.IsFallthrough)
+                                    return loopResult;
+                                break;
+                            }
+                        case ForEachInstruction forEachInstruction:
+                            {
+                                NeoScriptExecutionResult loopResult = ExecuteForEach(
+                                    client,
+                                    forEachInstruction,
+                                    returnTypeInfo,
+                                    scope,
+                                    ctx,
+                                    options);
+                                if (loopResult.IsPaused)
+                                    return ResumeInstructionsAfter(client, instructions, returnTypeInfo, scope, ctx, i + 1, options, loopResult, consumeTerminal: false);
+                                if (!loopResult.IsFallthrough)
+                                    return loopResult;
+                                break;
+                            }
+                        case SwitchInstruction switchInstruction:
+                            {
+                                NeoScriptExecutionResult switchResult = ExecuteSwitch(
+                                    client,
+                                    switchInstruction,
+                                    returnTypeInfo,
+                                    scope,
+                                    ctx,
+                                    options);
+                                if (switchResult.IsPaused)
+                                    return ResumeInstructionsAfter(client, instructions, returnTypeInfo, scope, ctx, i + 1, options, switchResult, consumeTerminal: false);
+                                if (!switchResult.IsFallthrough)
+                                    return switchResult;
+                                break;
+                            }
+                        case TryInstruction tryInstruction:
+                            {
+                                NeoScriptExecutionResult tryResult = ExecuteTry(
+                                    client,
+                                    tryInstruction,
+                                    returnTypeInfo,
+                                    scope,
+                                    ctx,
+                                    options);
+                                if (tryResult.IsPaused)
+                                    return ResumeInstructionsAfter(client, instructions, returnTypeInfo, scope, ctx, i + 1, options, tryResult, consumeTerminal: false);
+                                if (!tryResult.IsFallthrough)
+                                    return tryResult;
+                                break;
+                            }
+                        case BreakInstruction:
+                            return NeoScriptExecutionResult.Control(
+                                NeoScriptControlTransfer.Break);
+                        case ContinueInstruction:
+                            return NeoScriptExecutionResult.Control(
+                                NeoScriptControlTransfer.Continue);
+                        default:
+                            throw new NSGetterRuntimeError(
+                                $"Unknown instruction kind {instruction.GetType().Name}");
+                    }
                 }
+            }
+            // One region for the frame: per-instruction regions bloat every
+            // dispatch's frame. Loops, switch and try pause through their own
+            // state, so a suspension escaping one keeps propagating.
+            catch (NeoFunctionCallSuspended suspended) when (PausesAtInstruction(instructions[i]))
+            {
+                return PauseAtInstruction(client, instructions, returnTypeInfo, scope, ctx, i, expressionState, suspended, options);
             }
             return NeoScriptExecutionResult.Completed(returned: false, returnValue: null);
         }
@@ -793,6 +752,9 @@ namespace NeoCompose.Runtime
                 throw;
             }
         }
+
+        private static bool PausesAtInstruction(Instruction instruction) =>
+            instruction is not (WhileInstruction or ForInstruction or ForEachInstruction or SwitchInstruction or TryInstruction);
 
         private static NeoScriptExecutionResult? ApplyWhileBodyTransfer(
             NeoScriptExecutionResult result)
@@ -2303,10 +2265,7 @@ namespace NeoCompose.Runtime
                     throw new NSGetterRuntimeError(
                         "Cannot assign to a read-only NeoScript binding.");
                 }
-                if (TryGetReadOnlyBindingError(
-                        scope,
-                        variablePointer.variableId,
-                        out string? readOnlyError))
+                if (scope.TryGetReadOnlyError(variablePointer.variableId, out string? readOnlyError))
                 {
                     throw new NSGetterRuntimeError(readOnlyError!);
                 }
@@ -2389,14 +2348,6 @@ namespace NeoCompose.Runtime
                 or WritabilityKind.ImmutableToSessionLookup
                 or WritabilityKind.Local
                 or WritabilityKind.Runtime;
-
-        private static bool TryGetReadOnlyBindingError(
-            NeoScriptScope scope,
-            string variableId,
-            out string? error)
-        {
-            return scope.TryGetReadOnlyError(variableId, out error);
-        }
 
         private static void MarkReadOnlyBinding(
             NeoScriptScope scope,

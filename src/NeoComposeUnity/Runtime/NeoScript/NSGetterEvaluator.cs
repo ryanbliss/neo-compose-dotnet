@@ -3970,45 +3970,13 @@ namespace NeoCompose.Runtime.NeoScript
             }
             if (reportReceiver)
                 reportedReceiver = receiver;
+            if (receiver is object?[] arr)
+                return ReadListEntry(arr, keyOf.key, scope, ctx);
             var key = EvalPointer(keyOf.key, scope, ctx);
             if (receiver is null)
             {
                 throw new NSGetterRuntimeError(
                     $"Cannot read property '{key}' of null");
-            }
-
-            // List indexing: numeric keys are positional; String keys are
-            // exact stable value ids (including numeric-looking strings).
-            if (receiver is object?[] arr)
-            {
-                int idx;
-                if (key is string valueId)
-                {
-                    Dictionary<string, int> identity = ListIdentityIndexes.GetValue(
-                        arr,
-                        entries => BuildListIdentityIndex((object?[])entries));
-                    if (!identity.TryGetValue(valueId, out idx))
-                    {
-                        throw new NSGetterRuntimeError(
-                            $"Value id '{valueId}' is not a member of this List");
-                    }
-                }
-                else
-                {
-                    idx = ToIntKey(key);
-                    if (idx < 0 || idx >= arr.Length)
-                    {
-                        throw new NSGetterRuntimeError(
-                            $"List index out of bounds: {key}");
-                    }
-                }
-                // A primitive entry is its own value: only a value id
-                // resolves through the list's row.
-                object? entry = arr[idx];
-                if (entry is not string)
-                    return entry;
-                RowReference? listRef = FindRowReference(receiver, ctx);
-                return ResolveValueIfId(entry, ctx, listRef?.ownership, CollectionEntryMember(listRef, receiver, ctx));
             }
 
             string k = key as string ?? key?.ToString() ?? "null";
@@ -4091,6 +4059,60 @@ namespace NeoCompose.Runtime.NeoScript
 
             throw new NSGetterRuntimeError(
                 $"Cannot index into {ReceiverTypeName(receiver)} with key '{key}'");
+        }
+
+        // List indexing: numeric keys are positional; String keys are
+        // exact stable value ids (including numeric-looking strings).
+        private static object? ReadListEntry(object?[] list, Pointer keyPointer, NeoScriptScope scope, Context ctx)
+        {
+            int idx;
+            // A number variable indexes without boxing its value.
+            if (keyPointer is VariablePointer indexVariable && scope.TryReadNumber(indexVariable, out double position))
+            {
+                idx = ListPosition(list, position);
+            }
+            else
+            {
+                var key = EvalPointer(keyPointer, scope, ctx);
+                if (key is string valueId)
+                {
+                    Dictionary<string, int> identity = ListIdentityIndexes.GetValue(
+                        list,
+                        entries => BuildListIdentityIndex((object?[])entries));
+                    if (!identity.TryGetValue(valueId, out idx))
+                    {
+                        throw new NSGetterRuntimeError(
+                            $"Value id '{valueId}' is not a member of this List");
+                    }
+                }
+                else if (TryAsDouble(key, out position))
+                {
+                    idx = ListPosition(list, position);
+                }
+                else
+                {
+                    throw new NSGetterRuntimeError($"List index must be an integer; got '{key}'");
+                }
+            }
+            // A primitive entry is its own value: only a value id
+            // resolves through the list's row.
+            object? entry = list[idx];
+            if (entry is not string)
+                return entry;
+            RowReference? listRef = FindRowReference(list, ctx);
+            return ResolveValueIfId(entry, ctx, listRef?.ownership, CollectionEntryMember(listRef, list, ctx));
+        }
+
+        private static int ListPosition(object?[] list, double position)
+        {
+            if (!NeoNumbers.IsWhole(position))
+                throw new NSGetterRuntimeError($"List index must be an integer; got '{position}'");
+            if (position < 0 || position >= list.Length)
+            {
+                throw new NSGetterRuntimeError(
+                    $"List index out of bounds: {position}");
+            }
+            return (int)position;
         }
 
         private static Dictionary<string, int> BuildListIdentityIndex(object?[] entries)
@@ -4715,6 +4737,14 @@ namespace NeoCompose.Runtime.NeoScript
                     false,
                     ctx);
             }
+            return EvalArithmeticOperands(info, scope, ctx, out number);
+        }
+
+        // Its own method so the pool's exception region stays off the
+        // two-operand path's frame.
+        private static object? EvalArithmeticOperands(ArithmeticOpInfo info, NeoScriptScope scope, Context ctx, out double number)
+        {
+            number = 0;
             // Preserve evaluation order: evaluate every operand before folding,
             // including when an earlier division will subsequently fail.
             var operands = System.Buffers.ArrayPool<ArithmeticValue>.Shared.Rent(info.pointers.Length);
@@ -8764,19 +8794,6 @@ namespace NeoCompose.Runtime.NeoScript
                     result = 0;
                     return false;
             }
-        }
-
-        private static int ToIntKey(object? key)
-        {
-            if (TryAsDouble(key, out double d) && NeoNumbers.IsWhole(d))
-            {
-                return (int)d;
-            }
-            if (key is string s && int.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out int i))
-            {
-                return i;
-            }
-            throw new NSGetterRuntimeError($"List index must be an integer; got '{key}'");
         }
 
         private static bool TryReadVectorComponent(

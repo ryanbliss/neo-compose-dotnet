@@ -857,6 +857,9 @@ namespace NeoCompose.Runtime.NeoScript
         {
             for (NeoScriptScope? scope = this; scope is not null; scope = scope.Parent)
             {
+                // Only foreach iterators and catch messages mark a scope.
+                if (scope.readOnlyMarkCount == 0)
+                    continue;
                 int index = scope.ReadOnlyMarkIndex(bindingId);
                 if (index >= 0)
                 {
