@@ -32,16 +32,18 @@ namespace NeoCompose.Runtime
         /// same id when the write is a plain leaf replacement. Returns false,
         /// having changed nothing, when the write needs a full plan.
         /// </summary>
-        internal bool TryWriteLeaf(NeoValueOwnership ownership, MemberValue next, Member member, string? changedField)
+        /// <param name="node">The caller's node for <paramref name="next"/>'s id, if it holds one.</param>
+        internal bool TryWriteLeaf(
+            NeoValueOwnership ownership, MemberValue next, Member member, string? changedField, NeoValueNode? node = null)
         {
-            if (!CanWriteLeaf(ownership, next, member))
+            if (!CanWriteLeaf(ownership, next, member, ref node))
                 return false;
 #if NEO_COMPOSE_PROFILING
             using var marker = LeafWriteMarker.Auto();
 #endif
-            StoreLeaf(ownership, next);
+            StoreLeaf(ownership, next, node!);
             bool gridLeaf = InvalidateGridLeaf(next.id);
-            NotifyWritableValueChanged(ownership, next.id, changedField, membershipChanged: false);
+            NotifyWritableValueChanged(ownership, next.id, changedField, membershipChanged: false, node: node);
             if (gridLeaf)
                 PublishGridLeaf(ownership, next.id);
             return true;
@@ -54,7 +56,7 @@ namespace NeoCompose.Runtime
         private bool InvalidateGridLeaf(string valueId)
         {
             bool invalidated = false;
-            foreach (NeoTileGridLookupCache cache in gridLookupCaches.Values)
+            foreach (NeoTileGridLookupCache cache in gridLookupCacheList)
                 invalidated |= cache.InvalidateLeaf(valueId);
             if (invalidated)
                 InvalidateGridDependentGetterMemo();
@@ -64,7 +66,7 @@ namespace NeoCompose.Runtime
         /// <summary>Reports the cells the re-flattened carried tiles changed.</summary>
         private void PublishGridLeaf(NeoValueOwnership ownership, string valueId)
         {
-            foreach (NeoTileGridLookupCache cache in gridLookupCaches.Values)
+            foreach (NeoTileGridLookupCache cache in gridLookupCacheList)
                 cache.PublishLeaf(ownership, valueId);
         }
 
@@ -72,7 +74,8 @@ namespace NeoCompose.Runtime
         /// Whether <paramref name="next"/> replaces a committed leaf row of
         /// the same shape at the same id. Stamps the row's map key on the way.
         /// </summary>
-        private bool CanWriteLeaf(NeoValueOwnership ownership, MemberValue next, Member member)
+        /// <param name="node">A node the caller holds, if any; on success, the live node of <paramref name="next"/>'s id.</param>
+        private bool CanWriteLeaf(NeoValueOwnership ownership, MemberValue next, Member member, ref NeoValueNode? node)
         {
             if (ownership == NeoValueOwnership.Asset || !IsLeafRow(next, member))
                 return false;
@@ -89,18 +92,25 @@ namespace NeoCompose.Runtime
             if (constructorArgumentRootsByValueId.ContainsKey(next.id))
                 return false;
             // The first write over a virtual (sparse) child materializes it
-            // through the plan; from then on the store holds the row.
-            if (!GetWritableStore(ownership).values.TryGetValue(next.id, out MemberValue? previous)
-                && !data.values.TryGetValue(next.id, out previous))
+            // through the plan; from then on the store holds the row. The
+            // row's node answers every lookup below.
+            if (node is not { live: true } || node.id != next.id)
+                node = ValueNode(next.id);
+            if (node is null)
                 return false;
-            StampMapKeyForWrite(ownership, next);
+            MemberValue? authored = node.Asset(data);
+            MemberValue? previous = (ownership == NeoValueOwnership.Session ? node.session : node.save) ?? authored;
+            if (previous is null)
+                return false;
+            if (string.IsNullOrEmpty(next.mapKey))
+                StampMapKey(next, authored, ownership == NeoValueOwnership.Session ? node.save : null);
             return !previous.IsRemoved && previous.GetType() == next.GetType()
                 && previous.classId == next.classId && previous.containerId == next.containerId
                 && previous.mapKey == next.mapKey && previous.sourceValueId == next.sourceValueId;
         }
 
         /// <summary>The store half of a leaf write: the row, the revision and the getter memo.</summary>
-        private void StoreLeaf(NeoValueOwnership ownership, MemberValue next)
+        private void StoreLeaf(NeoValueOwnership ownership, MemberValue next, NeoValueNode node)
         {
             // Same bookkeeping as a committed plan: a row a nested constructor
             // produced can no longer be replayed from its arguments.
@@ -108,8 +118,24 @@ namespace NeoCompose.Runtime
                 && nestedConstructedRows.TryGetValue(next.id, out var producer)
                 && !ReferenceEquals(producer, nestedConstructorCapture))
                 producer.HasExternalWrites = true;
-            StoreWritableValue(ownership, next);
-            TouchWritableStoreUpdatedAt(ownership);
+            // A row replacing its own store's row keeps that row's container,
+            // so the store's indexes already hold it. A first write over an
+            // authored row joins them, and an enum or lookup array re-links
+            // the rows it names.
+            if ((ownership == NeoValueOwnership.Session ? node.session : node.save) is null
+                || next is ArrayMemberValue)
+            {
+                StoreWritableValue(ownership, next, node);
+            }
+            else
+            {
+                GetWritableStore(ownership).values[next.id] = next;
+                SyncStoredValueNode(ownership, next, node);
+            }
+            // Every leaf writer stamps the row with the write's clock read,
+            // so the save shares it rather than reading the clock again.
+            if (ownership == NeoValueOwnership.Save)
+                saveData.updatedAt = next.updatedAt;
             WriteRevision++;
             InvalidateGetterMemoForRow(next.id);
             if (!string.IsNullOrEmpty(next.containerId))

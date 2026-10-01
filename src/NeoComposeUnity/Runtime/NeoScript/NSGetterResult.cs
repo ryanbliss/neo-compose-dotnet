@@ -3,6 +3,8 @@
 
 #nullable enable
 
+using System.Runtime.CompilerServices;
+
 namespace NeoCompose.Runtime.NeoScript
 {
     /// <summary>
@@ -39,7 +41,19 @@ namespace NeoCompose.Runtime.NeoScript
             this.error = error;
         }
 
-        public static NSGetterResult Ok(object? value) => new(true, value, null);
+        // Storing a constant null error skips that store's write barrier.
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private NSGetterResult(object? value)
+        {
+            ok = true;
+            this.value = value;
+            error = null;
+        }
+
+        // Inlined, so a result returned through the getter's frames is built
+        // once in place rather than copied out of each call.
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static NSGetterResult Ok(object? value) => new(value);
         public static NSGetterResult Error(string message) => new(false, null, message);
     }
 
@@ -63,6 +77,7 @@ namespace NeoCompose.Runtime.NeoScript
             get;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private NSSetterResult(bool ok, bool pending, string? error)
         {
             this.ok = ok;
@@ -70,6 +85,9 @@ namespace NeoCompose.Runtime.NeoScript
             this.error = error;
         }
 
+        // Inlined, so a result returned through the setter's frames is built
+        // once in place rather than copied out of each call.
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static NSSetterResult Ok() => new(true, false, null);
         public static NSSetterResult Pending() => new(true, true, null);
         public static NSSetterResult Error(string message) => new(false, false, message);

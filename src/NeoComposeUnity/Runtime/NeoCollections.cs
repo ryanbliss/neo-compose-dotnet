@@ -7,6 +7,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using NeoCompose.Runtime.Json;
 
 namespace NeoCompose.Runtime
 {
@@ -208,21 +209,71 @@ namespace NeoCompose.Runtime
 
         public int Count => DetachedEntries() is { } entries ? entries.Length : node.Count;
 
-        public IEnumerator<T> GetEnumerator()
+        public Enumerator GetEnumerator()
         {
-            if (DetachedEntries() is { } entries)
-            {
-                foreach (object? entry in entries)
-                    yield return readDetachedEntry!(entry);
-                yield break;
-            }
-            foreach (var child in node)
-            {
-                yield return createItem(client, child);
-            }
+            object?[]? entries = DetachedEntries();
+            return entries is null ? new(this, node.ChildEnumerator()) : new(this, entries);
         }
 
+        IEnumerator<T> IEnumerable<T>.GetEnumerator() => GetEnumerator();
+
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+        /// <summary>
+        /// Enumerates the list's items. A struct, so a <c>foreach</c> over the
+        /// list allocates nothing.
+        /// </summary>
+        public struct Enumerator : IEnumerator<T>
+        {
+            private readonly NeoReadOnlyList<T> list;
+            private readonly object?[]? entries;
+            private List<NeoMember>.Enumerator children;
+            private int index;
+            private T current;
+
+            internal Enumerator(NeoReadOnlyList<T> list, object?[] entries)
+            {
+                this.list = list;
+                this.entries = entries;
+                children = default;
+                index = 0;
+                current = default!;
+            }
+
+            internal Enumerator(NeoReadOnlyList<T> list, List<NeoMember>.Enumerator children)
+            {
+                this.list = list;
+                entries = null;
+                this.children = children;
+                index = 0;
+                current = default!;
+            }
+
+            public T Current => current;
+
+            object? IEnumerator.Current => current;
+
+            public bool MoveNext()
+            {
+                if (entries is not null)
+                {
+                    if (index == entries.Length)
+                        return false;
+                    current = list.readDetachedEntry!(entries[index++]);
+                    return true;
+                }
+                if (!children.MoveNext())
+                    return false;
+                current = list.createItem(list.client, children.Current);
+                return true;
+            }
+
+            void IEnumerator.Reset() => throw new NotSupportedException();
+
+            public void Dispose()
+            {
+            }
+        }
     }
 
     public class NeoList<T> : NeoReadOnlyList<T>, IList<T>
@@ -415,15 +466,10 @@ namespace NeoCompose.Runtime
 
         public bool ContainsKey(string key) => node.ContainsKey(key);
 
-        public IEnumerator<KeyValuePair<string, T>> GetEnumerator()
-        {
-            foreach (var kvp in node)
-            {
-                yield return new KeyValuePair<string, T>(
-                    kvp.Key,
-                    createItem(client, kvp.Value));
-            }
-        }
+        public Enumerator GetEnumerator() => new(this, node.ChildEnumerator());
+
+        IEnumerator<KeyValuePair<string, T>> IEnumerable<KeyValuePair<string, T>>.GetEnumerator() =>
+            GetEnumerator();
 
         public bool TryGetValue(string key, out T value)
         {
@@ -447,6 +493,47 @@ namespace NeoCompose.Runtime
                 yield return new NeoGeneratedConstructorDictionaryEntry(
                     pair.Key,
                     pair.Value);
+            }
+        }
+
+        /// <summary>
+        /// Enumerates the dictionary's entries. A struct, so a <c>foreach</c>
+        /// over the dictionary allocates nothing.
+        /// </summary>
+        public struct Enumerator : IEnumerator<KeyValuePair<string, T>>
+        {
+            private readonly NeoReadOnlyDictionary<T> dictionary;
+            private Dictionary<string, NeoMember>.Enumerator children;
+            private KeyValuePair<string, T> current;
+
+            internal Enumerator(
+                NeoReadOnlyDictionary<T> dictionary,
+                Dictionary<string, NeoMember>.Enumerator children)
+            {
+                this.dictionary = dictionary;
+                this.children = children;
+                current = default;
+            }
+
+            public KeyValuePair<string, T> Current => current;
+
+            object IEnumerator.Current => current;
+
+            public bool MoveNext()
+            {
+                if (!children.MoveNext())
+                    return false;
+                KeyValuePair<string, NeoMember> child = children.Current;
+                current = new KeyValuePair<string, T>(
+                    child.Key,
+                    dictionary.createItem(dictionary.client, child.Value));
+                return true;
+            }
+
+            void IEnumerator.Reset() => throw new NotSupportedException();
+
+            public void Dispose()
+            {
             }
         }
     }
@@ -649,17 +736,51 @@ namespace NeoCompose.Runtime
         public bool TryGetValue(TKey key, out TValue value) =>
             entries.TryGetValue(KeyOptionId(key), out value);
 
-        public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
-        {
-            foreach (var kvp in entries)
-            {
-                yield return new KeyValuePair<TKey, TValue>(
-                    fromOptionId(kvp.Key),
-                    kvp.Value);
-            }
-        }
+        public Enumerator GetEnumerator() => new(entries.GetEnumerator(), fromOptionId);
+
+        IEnumerator<KeyValuePair<TKey, TValue>> IEnumerable<KeyValuePair<TKey, TValue>>.GetEnumerator() =>
+            GetEnumerator();
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+        /// <summary>
+        /// Enumerates the dictionary's entries. A struct, so a <c>foreach</c>
+        /// over the dictionary allocates nothing.
+        /// </summary>
+        public struct Enumerator : IEnumerator<KeyValuePair<TKey, TValue>>
+        {
+            private NeoReadOnlyDictionary<TValue>.Enumerator entries;
+            private readonly Func<string, TKey> fromOptionId;
+            private KeyValuePair<TKey, TValue> current;
+
+            internal Enumerator(
+                NeoReadOnlyDictionary<TValue>.Enumerator entries,
+                Func<string, TKey> fromOptionId)
+            {
+                this.entries = entries;
+                this.fromOptionId = fromOptionId;
+                current = default;
+            }
+
+            public KeyValuePair<TKey, TValue> Current => current;
+
+            object IEnumerator.Current => current;
+
+            public bool MoveNext()
+            {
+                if (!entries.MoveNext())
+                    return false;
+                KeyValuePair<string, TValue> entry = entries.Current;
+                current = new KeyValuePair<TKey, TValue>(fromOptionId(entry.Key), entry.Value);
+                return true;
+            }
+
+            void IEnumerator.Reset() => throw new NotSupportedException();
+
+            public void Dispose()
+            {
+            }
+        }
 
         /// <summary>
         /// Converts a typed key to its wire option-id string via the codec,
@@ -835,15 +956,56 @@ namespace NeoCompose.Runtime
             return valueId is not null && Contains(valueId);
         }
 
-        public IEnumerator<T> GetEnumerator()
-        {
-            foreach (var child in node.GetSelected())
-            {
-                yield return createItem(child);
-            }
-        }
+        public Enumerator GetEnumerator() => new(this, node.Selected());
+
+        IEnumerator<T> IEnumerable<T>.GetEnumerator() => GetEnumerator();
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+        /// <summary>
+        /// Enumerates the selected items, resolving each as it is reached. A
+        /// struct, so a <c>foreach</c> over the set allocates nothing.
+        /// </summary>
+        public struct Enumerator : IEnumerator<T>
+        {
+            private readonly NeoReadOnlyLookupSet<T> set;
+            private readonly NeoMemberLookup node;
+            private readonly string[] ids;
+            private readonly Member? entry;
+            private readonly NeoValueOwnership targetOwnership;
+            private int index;
+            private T current;
+
+            internal Enumerator(NeoReadOnlyLookupSet<T> set, string[] ids)
+            {
+                this.set = set;
+                node = set.node;
+                this.ids = ids;
+                targetOwnership = default;
+                entry = ids.Length == 0 ? null : node.ResolveSelectionScope(out targetOwnership);
+                index = 0;
+                current = default!;
+            }
+
+            public T Current => current;
+
+            object? IEnumerator.Current => current;
+
+            public bool MoveNext()
+            {
+                if (index == ids.Length)
+                    return false;
+                current = set.createItem(node.ResolveSelectedAt(index, ids[index], entry!, targetOwnership));
+                index++;
+                return true;
+            }
+
+            void IEnumerator.Reset() => throw new NotSupportedException();
+
+            public void Dispose()
+            {
+            }
+        }
     }
 
     public class NeoLookupSet<T> : NeoReadOnlyLookupSet<T>, ICollection<T>
@@ -961,15 +1123,50 @@ namespace NeoCompose.Runtime
         public bool Contains(NeoDialogueReference item) =>
             item is not null && Contains(item.Id);
 
-        public IEnumerator<NeoDialogueReference> GetEnumerator()
-        {
-            foreach (var id in node.Selected())
-            {
-                yield return new NeoDialogueReference(client, id);
-            }
-        }
+        public Enumerator GetEnumerator() => new(client, node.Selected());
+
+        IEnumerator<NeoDialogueReference> IEnumerable<NeoDialogueReference>.GetEnumerator() =>
+            GetEnumerator();
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+        /// <summary>
+        /// Enumerates the selected dialogues. A struct, so a <c>foreach</c>
+        /// over the set allocates only the references it yields.
+        /// </summary>
+        public struct Enumerator : IEnumerator<NeoDialogueReference>
+        {
+            private readonly NeoClient client;
+            private readonly string[] ids;
+            private int index;
+            private NeoDialogueReference? current;
+
+            internal Enumerator(NeoClient client, string[] ids)
+            {
+                this.client = client;
+                this.ids = ids;
+                index = 0;
+                current = null;
+            }
+
+            public NeoDialogueReference Current => current!;
+
+            object IEnumerator.Current => current!;
+
+            public bool MoveNext()
+            {
+                if (index == ids.Length)
+                    return false;
+                current = new NeoDialogueReference(client, ids[index++]);
+                return true;
+            }
+
+            void IEnumerator.Reset() => throw new NotSupportedException();
+
+            public void Dispose()
+            {
+            }
+        }
     }
 
     public class NeoDialogueReferenceSet

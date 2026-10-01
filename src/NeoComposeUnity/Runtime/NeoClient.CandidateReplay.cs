@@ -25,16 +25,35 @@ namespace NeoCompose.Runtime
         {
             if (!virtualInstanceReplayReady || isReplayingVirtualInstance)
                 return null;
+            Queue<string> pending = RentIdQueue();
+            HashSet<string> visited = RentIdSet();
+            try
+            {
+                return PrepareCandidateExpansions(plan, pending, visited);
+            }
+            finally
+            {
+                ReturnIdQueue(pending);
+                ReturnIdSet(visited);
+            }
+        }
+
+        private CandidateReplay? PrepareCandidateExpansions(
+            NeoWritePlan plan,
+            Queue<string> pending,
+            HashSet<string> visited)
+        {
             CandidateReplay? candidate = null;
             HashSet<string>? completeLocalRoots = null;
             HashSet<string>? changedPaths = null;
-            var pending = new Queue<string>(plan.Rows.Keys.Select(key => key.id));
+            foreach (var write in plan.Rows)
+                pending.Enqueue(write.Key.id);
             foreach (var write in plan.Rows)
                 EnqueueReplayFields(pending, write.Key.id, plan);
             foreach (var write in plan.Rows)
                 if (!TryGetCommittedValue(write.Key.id, out MemberValue? previous)
                     || !SameReplayIdentity(previous, write.Value))
-                    pending.Enqueue("identity:" + write.Key.id);
+                    EnqueueReplayIdentity(pending, write.Key.id);
             foreach (var binding in plan.Bindings)
             {
                 pending.Enqueue($"static:{binding.Key.ownership}:{binding.Key.memberId}");
@@ -43,7 +62,6 @@ namespace NeoCompose.Runtime
                 if (GetWritableStore(binding.Key.ownership).staticBindings.TryGetValue(binding.Key.memberId, out string? old) && old is not null)
                     pending.Enqueue(old);
             }
-            var visited = new HashSet<string>();
             using (ReadCandidate(plan))
             {
                 while (pending.Count != 0)
@@ -111,7 +129,7 @@ namespace NeoCompose.Runtime
                     {
                         pending.Enqueue(valueId);
                         if (valueId != id || !SameReplayIdentity(PreviousReplayRow(valueId), plan.Resolve(valueId)))
-                            pending.Enqueue("identity:" + valueId);
+                            EnqueueReplayIdentity(pending, valueId);
                         EnqueueReplayFields(pending, valueId, valueId == id ? plan : null);
                     }
             }
@@ -231,9 +249,14 @@ namespace NeoCompose.Runtime
                 or DelegateMemberValue or ActionMemberValue)
                 return true;
 
-            if (next is ArrayMemberValue && TryInferMemberForValueId(id, out Member? selectionMember)
-                && selectionMember is EnumMember or LookupMember or DialogueLookupMember)
-                return true;
+            // One member answers both array checks below.
+            Member? arrayMember = null;
+            if (next is ArrayMemberValue)
+            {
+                arrayMember = PlannedMember(plan, id);
+                if (arrayMember is EnumMember or LookupMember or DialogueLookupMember)
+                    return true;
+            }
 
             // A complete equal clone supplies its destination graph without
             // invalidating the immutable source's enclosing construction.
@@ -264,14 +287,30 @@ namespace NeoCompose.Runtime
             if (next is ObjectMemberValue { classId: null, value: not null } dictionary
                 && previous is ObjectMemberValue { classId: null, value: not null } oldDictionary
                 && TryInferMemberForValueId(id, out Member? member) && member is DictionaryMember)
-                return oldDictionary.value.All(pair => dictionary.value.TryGetValue(pair.Key, out string? valueId)
-                    && valueId == pair.Value);
+                return KeepsEntries(oldDictionary.value, dictionary.value);
             if (next is ArrayMemberValue { value: not null } list
                 && previous is ArrayMemberValue { value: not null } oldList
-                && TryInferMemberForValueId(id, out Member? listMember) && listMember is ListMember)
-                return list.value.Length >= oldList.value.Length
-                    && oldList.value.SequenceEqual(list.value.Take(oldList.value.Length));
+                && arrayMember is ListMember)
+                return StartsWith(list.value, oldList.value);
             return false;
+        }
+
+        private static bool KeepsEntries(Dictionary<string, string> previous, Dictionary<string, string> next)
+        {
+            foreach (var pair in previous)
+                if (!next.TryGetValue(pair.Key, out string? valueId) || valueId != pair.Value)
+                    return false;
+            return true;
+        }
+
+        private static bool StartsWith(string[] list, string[] prefix)
+        {
+            if (list.Length < prefix.Length)
+                return false;
+            for (int i = 0; i < prefix.Length; i++)
+                if (!string.Equals(list[i], prefix[i], StringComparison.Ordinal))
+                    return false;
+            return true;
         }
 
         private bool IsCompleteStoredOverlay(NeoWritePlan plan, ObjectMemberValue root, NeoValueOwnership ownership)
@@ -590,8 +629,8 @@ namespace NeoCompose.Runtime
             foreach (PreparedVirtualExpansion expansion in candidate.Expansions.Values)
                 InstallVirtualExpansion(expansion, includeNested: false);
             foreach (string root in candidate.AffectedRoots)
-                if (!candidate.RetainedRoots.Contains(root) && nodesByValueId.TryGetValue(root, out var nodes))
-                    foreach (NeoMember node in nodes.ToArray())
+                if (!candidate.RetainedRoots.Contains(root))
+                    foreach (NeoMember node in IndexedNodes(root))
                         if (!node.isDisposed && node is NeoMemberClass classNode
                             && TryGetOverlaidValue(node.ownership, root, out ObjectMemberValue? _))
                             classNode.RefreshCommittedValue();
@@ -666,8 +705,8 @@ namespace NeoCompose.Runtime
             internal readonly NeoWritePlan Plan;
             internal bool PreparingVariant;
             internal readonly Dictionary<string, MemberValue> Allocations = new();
-            internal readonly Dictionary<string, NeoMember> Nodes = new();
-            internal readonly Dictionary<string, NeoGeneratedClassValue> GeneratedValues = new();
+            internal readonly Dictionary<NeoNodeKey, NeoMember> Nodes = new();
+            internal readonly Dictionary<NeoNodeKey, NeoGeneratedClassValue> GeneratedValues = new();
             internal readonly Dictionary<string, HashSet<string>> ContainerMembers = new();
             internal readonly Dictionary<string, HashSet<string>> Parents = new();
             internal readonly Dictionary<string, HashSet<string>> VirtualContainerMembers = new();
@@ -777,7 +816,7 @@ namespace NeoCompose.Runtime
                             Plan.Remove(pair.Key.ownership, pair.Key.id);
                         else
                             Plan.Set(pair.Key.ownership, pair.Value,
-                            plan.Fields.GetValueOrDefault(pair.Key), plan.Silent.Contains(pair.Key));
+                            plan.ChangedField(pair.Key), plan.IsSilent(pair.Key));
                         // Promotion removes a constructed Session allocation
                         // while preserving the same id in its destination store.
                         if (Allocations.ContainsKey(pair.Key.id))
@@ -786,7 +825,7 @@ namespace NeoCompose.Runtime
                     foreach (var binding in plan.Bindings)
                         Plan.Bind(binding.Key.ownership, binding.Key.memberId, binding.Value.present, binding.Value.valueId);
                     foreach (var binding in plan.NodeBindings)
-                        Plan.NodeBindings[binding.Key] = binding.Value;
+                        Plan.BindNode(binding.Key, binding.Value);
                     plan.NotifyCommitted();
                     foreach (NeoMember node in Nodes.Values.ToArray())
                         if (!node.isDisposed && (node.overrideValueId ?? node.value?.id) is string id && plan.Rows.ContainsKey((node.ownership, id)))

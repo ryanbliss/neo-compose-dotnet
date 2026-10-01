@@ -36,9 +36,15 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>Mirror of <c>INSPointerReference</c>.</summary>
-    public sealed class ReferencePointer : Pointer
+    public sealed class ReferencePointer : Pointer, ISchemaResolutionSite
     {
         public string valueId = null!;
+
+        /// <summary>The evaluator's value node for <see cref="valueId"/>.</summary>
+        [JsonIgnore]
+        internal NeoValueNodeSite? valueNode;
+
+        void ISchemaResolutionSite.ForgetResolution() => valueNode = null;
 
         /// <summary>
         /// When true, resolve <see cref="valueId"/> as an authored source id
@@ -72,6 +78,9 @@ namespace NeoCompose.Runtime.Json
         internal object?[]? primitiveEntries;
         // Evaluator cache for an array literal read only by a comparison.
         internal object? comparand;
+        // Evaluator cache for a NeoDelegate or NSAction literal, parsed once
+        // and copied per evaluation.
+        internal object? valueTemplate;
     }
 
     /// <summary>Mirror of <c>INSPointerOperation</c>.</summary>
@@ -205,21 +214,37 @@ namespace NeoCompose.Runtime.Json
         // Every call and getter read asks; a string compare each time
         // showed in the interpreter's profile. Keyed by the kind string
         // itself, so reassigning kind recomputes.
-        [JsonIgnore] private string? isStaticKind;
+        [JsonIgnore] private string? classifiedKind;
         [JsonIgnore] private bool isStatic;
+        [JsonIgnore] private bool isInstance;
 
         [JsonIgnore]
         public bool IsStatic
         {
             get
             {
-                if (!ReferenceEquals(isStaticKind, kind))
-                {
-                    isStatic = kind == CallReceiverKind.Static;
-                    isStaticKind = kind;
-                }
+                if (!ReferenceEquals(classifiedKind, kind))
+                    Classify();
                 return isStatic;
             }
+        }
+
+        [JsonIgnore]
+        internal bool IsInstance
+        {
+            get
+            {
+                if (!ReferenceEquals(classifiedKind, kind))
+                    Classify();
+                return isInstance;
+            }
+        }
+
+        private void Classify()
+        {
+            isStatic = kind == CallReceiverKind.Static;
+            isInstance = kind == CallReceiverKind.Instance;
+            classifiedKind = kind;
         }
     }
 
@@ -243,11 +268,15 @@ namespace NeoCompose.Runtime.Json
         /// <summary>The runtime's schema entries for the placement's key, one per receiver Class.</summary>
         [JsonIgnore]
         internal NeoScript.NSGetterEvaluator.MemberSiteTarget? resolvedMembers;
+        /// <summary>The runtime's resolution of the <see cref="memberId"/> member.</summary>
+        [JsonIgnore]
+        internal NeoScript.NSGetterEvaluator.GetterMemberSite? getterMemberSite;
 
         void ISchemaResolutionSite.ForgetResolution()
         {
             placementSite = null;
             resolvedMembers = null;
+            getterMemberSite = null;
         }
     }
 
@@ -351,9 +380,9 @@ namespace NeoCompose.Runtime.Json
         /// <summary>This call site's argument buffer; see <see cref="NeoScript.NSGetterEvaluator.RentArguments"/>.</summary>
         [JsonIgnore]
         internal object?[]? argumentBuffer;
-        /// <summary>1 while a call holds <see cref="argumentBuffer"/>.</summary>
+        /// <summary>Whether a call holds <see cref="argumentBuffer"/>.</summary>
         [JsonIgnore]
-        internal int argumentBufferInUse;
+        internal bool argumentBufferInUse;
     }
 
     /// <summary>

@@ -508,9 +508,15 @@ namespace NeoCompose.Runtime
         {
             private RuntimeConstructorField[]? fields;
             private object?[]? arguments;
-            private int inUse;
+            private bool inUse;
 
-            internal bool TryRent() => System.Threading.Interlocked.CompareExchange(ref inUse, 1, 0) == 0;
+            internal bool TryRent()
+            {
+                if (inUse)
+                    return false;
+                inUse = true;
+                return true;
+            }
 
             internal RuntimeConstructorField[] Fields(FunctionClassConstructorField[] siteFields) =>
                 fields ??= NewFields(siteFields);
@@ -531,9 +537,14 @@ namespace NeoCompose.Runtime
                     for (int i = 0; i < fields.Length; i++)
                         fields[i].value = null;
                 }
-                // A span clear zeroes without the per-element store barrier.
-                arguments.AsSpan().Clear();
-                System.Threading.Volatile.Write(ref inUse, 0);
+                // A constant null store skips the store barrier, and a site's
+                // few arguments clear faster in a loop than through a span.
+                if (arguments is not null)
+                {
+                    for (int i = 0; i < arguments.Length; i++)
+                        arguments[i] = null;
+                }
+                inUse = false;
             }
 
             internal static RuntimeConstructorField[] NewFields(FunctionClassConstructorField[] siteFields)
@@ -561,6 +572,7 @@ namespace NeoCompose.Runtime
             // The class's construction frame label and detached plan, kept
             // with the resolution that already lives as long as the schema.
             internal string? frameLabel;
+            internal NeoScript.NSGetterEvaluator.Context.CallFrameStack?[]? constructionFrames;
             private object? detachedPlan;
             private static readonly object NoDetachedPlan = new();
 
@@ -613,7 +625,24 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal static int EnterConstructionFrame(
             NeoScript.NSGetterEvaluator.Context ctx,
-            string label)
+            string label,
+            object? receiver)
+        {
+            CheckConstructionDepth(ctx, label);
+            return ctx.EnterConstruction(label, receiver);
+        }
+
+        /// <param name="siteFrames">The construction site's frames, so a hot site skips the frame search.</param>
+        internal static int EnterConstructionFrame(
+            NeoScript.NSGetterEvaluator.Context ctx,
+            string label,
+            ref NeoScript.NSGetterEvaluator.Context.CallFrameStack?[]? siteFrames)
+        {
+            CheckConstructionDepth(ctx, label);
+            return ctx.EnterConstruction(label, ref siteFrames);
+        }
+
+        private static void CheckConstructionDepth(NeoScript.NSGetterEvaluator.Context ctx, string label)
         {
             if (ctx.constructionStack.Count >= MaxConstructionDepth)
             {
@@ -624,7 +653,6 @@ namespace NeoCompose.Runtime
                 throw new NeoScript.NSGetterRuntimeError(
                     $"Class construction depth exceeded {MaxConstructionDepth} frames: {string.Join(" -> ", chain)}.");
             }
-            return ctx.EnterConstruction(label);
         }
 
         /// <summary>
@@ -637,10 +665,14 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal sealed class NeoConstructionScope
         {
-            private readonly NeoClient client;
+            private NeoClient client;
             private readonly ConstructorChainArguments initializerArguments;
-            private HashSet<string>? lazyClassStack;
-            private Dictionary<string, NeoValueOwnership>? lazyReferenceOwnershipByPath;
+            private string? outermostClass;
+            private HashSet<string>? innerClasses;
+            private Dictionary<string, NeoValueOwnership>? referenceOwnership;
+            private Func<object?, NeoConstructorValueReference?>? valueReference;
+            private static readonly IReadOnlyDictionary<string, NeoValueOwnership> NoReferenceOwnership =
+                new Dictionary<string, NeoValueOwnership>();
             private readonly string? constructedClassId;
             private NeoScript.NSGetterEvaluator.Context? evaluationContext;
 
@@ -656,12 +688,38 @@ namespace NeoCompose.Runtime
                 this.constructedClassId = constructedClassId;
             }
 
+            /// <summary>Rebinds a pooled scope to a new construction, keeping nothing from the last.</summary>
+            internal void Rebind(NeoClient client, NeoScript.NSGetterEvaluator.Context? evaluationContext)
+            {
+                this.client = client;
+                this.evaluationContext = evaluationContext;
+                outermostClass = null;
+                innerClasses?.Clear();
+                referenceOwnership?.Clear();
+            }
+
             /// <summary>
-            /// Per-class recursion guard for literal defaults. Unchanged
-            /// behavior: a class whose literal default graph contains itself
-            /// is rejected by name.
+            /// Per-class recursion guard for literal defaults: false when
+            /// <paramref name="classId"/> is already being created, so a class
+            /// whose literal default graph contains itself is rejected by name.
+            /// Most graphs nest no class, so the outermost needs no set.
             /// </summary>
-            internal HashSet<string> classStack => lazyClassStack ??= new HashSet<string>();
+            internal bool EnterClass(string classId)
+            {
+                if (outermostClass is null)
+                {
+                    outermostClass = classId;
+                    return true;
+                }
+                return outermostClass != classId
+                    && (innerClasses ??= new HashSet<string>()).Add(classId);
+            }
+
+            internal void ExitClass(string classId)
+            {
+                if (innerClasses?.Remove(classId) != true && outermostClass == classId)
+                    outermostClass = null;
+            }
 
             /// <summary>
             /// Ownership of every already-owned value an initializer or a
@@ -669,8 +727,13 @@ namespace NeoCompose.Runtime
             /// <see cref="PrepareConstructedGraph"/> preflights and imports
             /// these after the staged graph passes shape validation.
             /// </summary>
-            internal Dictionary<string, NeoValueOwnership> referenceOwnershipByPath =>
-                lazyReferenceOwnershipByPath ??= new Dictionary<string, NeoValueOwnership>();
+            internal IReadOnlyDictionary<string, NeoValueOwnership> referenceOwnershipByPath =>
+                (IReadOnlyDictionary<string, NeoValueOwnership>?)referenceOwnership ?? NoReferenceOwnership;
+
+            internal void RecordReferenceOwnership(string path, NeoValueOwnership ownership)
+            {
+                (referenceOwnership ??= new Dictionary<string, NeoValueOwnership>())[path] = ownership;
+            }
 
             internal NeoScript.NSGetterEvaluator.Context? ExistingEvaluationContext =>
                 evaluationContext;
@@ -706,7 +769,7 @@ namespace NeoCompose.Runtime
             /// rather than copied field by field.
             /// </summary>
             internal Func<object?, NeoConstructorValueReference?> ValueReference =>
-                value => NeoScript.NSGetterEvaluator.ConstructorReferenceOf(
+                valueReference ??= value => NeoScript.NSGetterEvaluator.ConstructorReferenceOf(
                     value,
                     EvaluationContext);
 
@@ -726,44 +789,61 @@ namespace NeoCompose.Runtime
             /// </summary>
             internal object? EvaluateInitializer(
                 Member member,
-                InitializerBody init)
+                InitializerBody init) =>
+                NeoGeneratedTypesSupport.EvaluateInitializer(
+                    client,
+                    EvaluationContext,
+                    initializerArguments,
+                    constructedClassId,
+                    member,
+                    init);
+        }
+
+        /// <summary>
+        /// <see cref="NeoConstructionScope.EvaluateInitializer"/> on a context
+        /// the caller already has, without a scope to carry it.
+        /// </summary>
+        internal static object? EvaluateInitializer(
+            NeoClient client,
+            NeoScript.NSGetterEvaluator.Context initializerContext,
+            in ConstructorChainArguments initializerArguments,
+            string? constructedClassId,
+            Member member,
+            InitializerBody init)
+        {
+            if (init.compiled is null)
             {
-                if (init.compiled is null)
+                throw new InvalidOperationException(
+                    $"Initializer for '{member.name}' has no compiled body. Re-export the project from the current web app.");
+            }
+            // An initializer has no instance to read, so its frame binds none.
+            int frame =
+                EnterConstructionFrame(
+                    initializerContext,
+                    member.InitializerFrameLabel,
+                    receiver: null);
+            try
+            {
+                // A generic entry initializer constructs in its closed placement.
+                initializerContext.initializerPlacement = member as ClassMember;
+                object?[] arguments = Array.Empty<object?>();
+                int expected = Math.Max(0, (init.compiled.parameters?.Length ?? 0) - 2);
+                if (expected > 0)
                 {
-                    throw new InvalidOperationException(
-                        $"Initializer for '{member.name}' has no compiled body. Re-export the project from the current web app.");
+                    string? owner = ResolveInitializerOwner(client, init, member, constructedClassId);
+                    if (owner is null || !initializerArguments.TryGet(owner, out object?[]? scoped))
+                        throw new InvalidOperationException($"Initializer '{member.name}' cannot resolve its declaring constructor scope before member initialization.");
+                    arguments = scoped;
+                    if (arguments.Length != expected)
+                        throw new InvalidOperationException($"Initializer '{member.name}' expected {expected} arguments in '{owner}', got {arguments.Length}.");
                 }
-                NeoScript.NSGetterEvaluator.Context initializerContext = EvaluationContext;
-                int frame =
-                    EnterConstructionFrame(
-                        initializerContext,
-                        $"{member.name} initializer");
-                try
-                {
-                    // A generic entry initializer constructs in its closed placement.
-                    initializerContext.initializerPlacement = member as ClassMember;
-                    IReadOnlyList<object?> arguments = Array.Empty<object?>();
-                    int expected = Math.Max(0, (init.compiled.parameters?.Length ?? 0) - 2);
-                    if (expected > 0)
-                    {
-                        string? owner = ResolveInitializerOwner(client, init, member, constructedClassId);
-                        if (owner is null || !initializerArguments.TryGet(owner, out object?[]? scoped))
-                            throw new InvalidOperationException($"Initializer '{member.name}' cannot resolve its declaring constructor scope before member initialization.");
-                        arguments = scoped;
-                        if (arguments.Count != expected)
-                            throw new InvalidOperationException($"Initializer '{member.name}' expected {expected} arguments in '{owner}', got {arguments.Count}.");
-                    }
-                    return NeoScript.NSGetterEvaluator.Evaluate(
-                        init.compiled,
-                        initializerContext.thisValue is null
-                            ? initializerContext
-                            : initializerContext.WithThis(null),
-                        arguments);
-                }
-                finally
-                {
-                    initializerContext.ExitNested(frame);
-                }
+                // The body binds its handlers in the construction frame
+                // instead of forking for them.
+                return NeoScript.NSGetterEvaluator.Evaluate(init.compiled, initializerContext, arguments, frame);
+            }
+            finally
+            {
+                initializerContext.ExitFunction(frame);
             }
         }
 
@@ -1697,19 +1777,13 @@ namespace NeoCompose.Runtime
             NeoValueOwnership? placementOwnership)
         {
             ClassMember? member = null;
-            string? registryKey = null;
             NeoValueNode? node = null;
-            return ResolveClassValue(client, valueId, readOnlyFactories, savedFactories, placementOwnership, ref member, ref registryKey, ref node);
+            return ResolveClassValue(client, valueId, readOnlyFactories, savedFactories, placementOwnership, ref member, ref node);
         }
 
         /// <param name="member">
         /// The value's inferred member: filled here when null, reused
         /// otherwise by a caller that knows the value's parent edges are unchanged.
-        /// </param>
-        /// <param name="registryKey">
-        /// The value's generated-view key under <paramref name="member"/> and
-        /// <paramref name="placementOwnership"/>: filled here when null, so a
-        /// caller that keeps the member keeps it too and resets both together.
         /// </param>
         /// <param name="node">The value's node, kept by the caller so a repeat read skips the id lookup.</param>
         internal static object? ResolveClassValue(
@@ -1719,7 +1793,6 @@ namespace NeoCompose.Runtime
             IReadOnlyDictionary<string, WritableClassFactory> savedFactories,
             NeoValueOwnership? placementOwnership,
             ref ClassMember? member,
-            ref string? registryKey,
             ref NeoValueNode? node)
         {
             NeoValueOwnership ownership = placementOwnership
@@ -1748,11 +1821,7 @@ namespace NeoCompose.Runtime
             // Generated factories memoize by declaration, placement and storage.
             // Check before constructing a node: registering a replacement would
             // strand the cached view outside subsequent replay refreshes.
-            // Without a placement ownership the value's storage can move, so
-            // only a placed value keeps its key.
-            string key = placementOwnership is null
-                ? NeoClient.MakeNodeKey(member.RuntimeDeclarationIdentity, valueId, ownership)
-                : registryKey ??= NeoClient.MakeNodeKey(member.RuntimeDeclarationIdentity, valueId, ownership);
+            var key = new NeoNodeKey(member.RuntimeDeclarationIdentity, valueId, ownership);
             if (client.TryGetGeneratedClassValue(key, out var cached)
                 && cached.classId == classId)
                 return cached;
@@ -2461,7 +2530,8 @@ namespace NeoCompose.Runtime
             var parentRow = CreateWritableClassValueRow(
                 client,
                 classId,
-                value,
+                // The row owns its payload; the caller keeps its dictionary.
+                new Dictionary<string, string>(value),
                 rows,
                 nowIso,
                 scope,
@@ -2680,6 +2750,82 @@ namespace NeoCompose.Runtime
             bool trustedMaterialization = false,
             RuntimeClassPlan? trustedRootPlan = null)
         {
+            ConstructedGraphScratch scratch = ConstructedGraphScratch.Rent();
+            try
+            {
+                PrepareConstructedGraph(
+                    scratch,
+                    client,
+                    root,
+                    rows,
+                    scope,
+                    requireCompleteRoot,
+                    trustedMaterialization,
+                    trustedRootPlan);
+            }
+            finally
+            {
+                ConstructedGraphScratch.Return(scratch);
+            }
+        }
+
+        /// <summary>
+        /// The graph walk's collections, reused between walks. A construction
+        /// nested inside another, or one too large to clear cheaply, gets its own.
+        /// </summary>
+        private sealed class ConstructedGraphScratch
+        {
+            private const int MaxPooledRows = 64;
+
+            // Evaluation is single-threaded, so one free instance serves every client.
+            private static ConstructedGraphScratch? free;
+
+            internal readonly Dictionary<string, MemberValue> stagedById = new();
+            internal readonly HashSet<string> reachableStagedIds = new();
+            internal readonly Dictionary<string, string> ownedByPath = new();
+            internal readonly Dictionary<string, string> parentByChildId = new();
+            internal readonly List<PendingConstructorReference> pending = new();
+            internal readonly HashSet<string> traversal = new();
+            internal readonly List<string> newlyImportedRoots = new();
+            internal readonly List<(string valueId, Member member)> attachedRoots = new();
+            internal readonly Stack<(string valueId, Member? member)> attachedWalk = new();
+
+            internal static ConstructedGraphScratch Rent()
+            {
+                ConstructedGraphScratch? scratch = free;
+                free = null;
+                return scratch ?? new ConstructedGraphScratch();
+            }
+
+            internal static void Return(ConstructedGraphScratch scratch)
+            {
+                if (scratch.stagedById.Count > MaxPooledRows
+                    || scratch.ownedByPath.Count > MaxPooledRows
+                    || scratch.parentByChildId.Count > MaxPooledRows)
+                    return;
+                scratch.stagedById.Clear();
+                scratch.reachableStagedIds.Clear();
+                scratch.ownedByPath.Clear();
+                scratch.parentByChildId.Clear();
+                scratch.pending.Clear();
+                scratch.traversal.Clear();
+                scratch.newlyImportedRoots.Clear();
+                scratch.attachedRoots.Clear();
+                scratch.attachedWalk.Clear();
+                free = scratch;
+            }
+        }
+
+        private static void PrepareConstructedGraph(
+            ConstructedGraphScratch scratch,
+            NeoClient client,
+            ObjectMemberValue root,
+            List<MemberValue> rows,
+            NeoConstructionScope scope,
+            bool requireCompleteRoot,
+            bool trustedMaterialization,
+            RuntimeClassPlan? trustedRootPlan)
+        {
             IReadOnlyDictionary<string, NeoValueOwnership>
                 referenceOwnershipByPath = scope.referenceOwnershipByPath;
             if (!string.IsNullOrEmpty(root.mapKey))
@@ -2688,7 +2834,7 @@ namespace NeoCompose.Runtime
                     $"Parentless constructed Class root '{root.id}' cannot arrive pre-stamped with partition '{root.mapKey}'.");
             }
             root.mapKey = null;
-            var stagedById = new Dictionary<string, MemberValue>();
+            Dictionary<string, MemberValue> stagedById = scratch.stagedById;
             foreach (MemberValue row in rows)
             {
                 if (string.IsNullOrEmpty(row.id))
@@ -2709,10 +2855,11 @@ namespace NeoCompose.Runtime
                 }
             }
 
-            var reachableStagedIds = new HashSet<string> { root.id };
-            var ownedByPath = new Dictionary<string, string>();
-            var parentByChildId = new Dictionary<string, string>();
-            var pending = new List<PendingConstructorReference>();
+            HashSet<string> reachableStagedIds = scratch.reachableStagedIds;
+            reachableStagedIds.Add(root.id);
+            Dictionary<string, string> ownedByPath = scratch.ownedByPath;
+            Dictionary<string, string> parentByChildId = scratch.parentByChildId;
+            List<PendingConstructorReference> pending = scratch.pending;
             ValidateConstructedClassRow(
                 client,
                 root,
@@ -2725,7 +2872,7 @@ namespace NeoCompose.Runtime
                 parentByChildId,
                 pending,
                 path: root.classId!,
-                new HashSet<string>(),
+                scratch.traversal,
                 referenceOwnershipByPath,
                 requireCompleteRoot,
                 trustedMaterialization,
@@ -2790,8 +2937,8 @@ namespace NeoCompose.Runtime
                 }
             }
 
-            var newlyImportedRoots = new List<string>();
-            var attachedRoots = new List<(string valueId, Member member)>();
+            List<string> newlyImportedRoots = scratch.newlyImportedRoots;
+            List<(string valueId, Member member)> attachedRoots = scratch.attachedRoots;
             try
             {
                 foreach (PendingConstructorReference reference in pending)
@@ -2860,7 +3007,7 @@ namespace NeoCompose.Runtime
                             expectedContainerId: reference.expectedContainerId);
                     }
                 }
-                BindConstructedDelegateTargets(client, attachedRoots, stagedById, parentByChildId);
+                BindConstructedDelegateTargets(client, attachedRoots, stagedById, parentByChildId, scratch.attachedWalk);
                 if (scope.ExistingEvaluationContext is { } evaluationContext)
                 {
                     evaluationContext.allocationTracker
@@ -2881,13 +3028,13 @@ namespace NeoCompose.Runtime
 
         private static void BindConstructedDelegateTargets(
             NeoClient client,
-            IReadOnlyList<(string valueId, Member member)> attachedRoots,
+            List<(string valueId, Member member)> attachedRoots,
             Dictionary<string, MemberValue> stagedById,
-            Dictionary<string, string> parentByChildId)
+            Dictionary<string, string> parentByChildId,
+            Stack<(string valueId, Member? member)> pending)
         {
             // Initializers may construct a track separately before attaching it.
             // Include those already-published owned rows in the enclosing graph.
-            var pending = new Stack<(string valueId, Member? member)>();
             foreach (var root in attachedRoots)
                 pending.Push(root);
             while (pending.Count > 0)
@@ -2989,8 +3136,10 @@ namespace NeoCompose.Runtime
 
                 IReadOnlyDictionary<string, NeoGenericEnvEntry> env =
                     classPlan.genericEnv;
-                foreach (MergedSchemaEntry entry in schema)
+                // Indexed: an interface foreach would box its enumerator per row.
+                for (int entryIndex = 0; entryIndex < schema.Count; entryIndex++)
                 {
+                    MergedSchemaEntry entry = schema[entryIndex];
                     Member member =
                         classPlan.membersBySchemaKey[entry.schemaKey];
                     if (!IsStoredConstructorMember(member))
@@ -3034,7 +3183,6 @@ namespace NeoCompose.Runtime
                         throw new InvalidOperationException(
                             $"Constructed Class row '{path}.{entry.schemaKey}' references an empty value id.");
                     }
-                    string key = entry.schemaKey;
                     bool childIsTrustedStaged = trustedMaterialization
                         && stagedById.ContainsKey(childId);
                     ValidateConstructedValueLink(
@@ -3043,7 +3191,7 @@ namespace NeoCompose.Runtime
                         childId,
                         childIsTrustedStaged
                             ? null
-                            : replacement => row.value[key] = replacement,
+                            : ReplaceFieldValueId(row, entry.schemaKey),
                         row.mapKey,
                         classId,
                         stagedById,
@@ -3262,7 +3410,6 @@ namespace NeoCompose.Runtime
                         }
                         for (int index = 0; index < memberIds.Count; index++)
                         {
-                            int capturedIndex = index;
                             bool childIsTrustedStaged = trustedMaterialization
                                 && stagedById.ContainsKey(memberIds[index]);
                             ValidateConstructedValueLink(
@@ -3273,7 +3420,7 @@ namespace NeoCompose.Runtime
                                     ? null
                                     : isUnordered
                                     ? _ => { }
-                            : replacement => listRow.value[capturedIndex] = replacement,
+                            : ReplaceEntryValueId(listRow, index),
                                 listRow.mapKey,
                                 listRow.classId,
                                 stagedById,
@@ -3319,7 +3466,6 @@ namespace NeoCompose.Runtime
                             env);
                         foreach (string key in new List<string>(dictionaryRow.value.Keys))
                         {
-                            string capturedKey = key;
                             bool childIsTrustedStaged = trustedMaterialization
                                 && stagedById.ContainsKey(dictionaryRow.value[key]);
                             ValidateConstructedValueLink(
@@ -3328,8 +3474,7 @@ namespace NeoCompose.Runtime
                                 dictionaryRow.value[key],
                                 childIsTrustedStaged
                                     ? null
-                                    : replacement =>
-                                        dictionaryRow.value[capturedKey] = replacement,
+                                    : ReplaceFieldValueId(dictionaryRow, key),
                                 dictionaryRow.mapKey,
                                 dictionaryRow.classId,
                                 stagedById,
@@ -3351,6 +3496,14 @@ namespace NeoCompose.Runtime
                     }
             }
         }
+
+        // Built only for a link that may be replaced: a captured loop variable
+        // would allocate its closure on every iteration, trusted or not.
+        private static Action<string> ReplaceFieldValueId(ObjectMemberValue row, string key) =>
+            replacement => row.value[key] = replacement;
+
+        private static Action<string> ReplaceEntryValueId(ArrayMemberValue row, int index) =>
+            replacement => row.value[index] = replacement;
 
         private static void ValidateConstructedRowShape(
             NeoClient client,
@@ -3787,7 +3940,7 @@ namespace NeoCompose.Runtime
                     valueReference,
                     metadata.genericEnv,
                     $"{classTypeInfo.classId}.{field.schemaKey}",
-                    scope.referenceOwnershipByPath);
+                    scope);
                 if (fieldValueId is not null)
                 {
                     value[field.schemaKey] = fieldValueId;
@@ -4411,7 +4564,7 @@ namespace NeoCompose.Runtime
             NeoClient client = resolved.client;
             using var replayCapture = client.BeginNestedConstructorCapture();
             int frame =
-                EnterConstructionFrame(ctx, resolved.schemaClass.name);
+                EnterConstructionFrame(ctx, resolved.schemaClass.name, ref resolved.metadata.constructionFrames);
             try
             {
                 object?[] positionalArguments = FillDeclaredArguments(
@@ -4512,7 +4665,7 @@ namespace NeoCompose.Runtime
             }
             finally
             {
-                ctx.ExitNested(frame);
+                ctx.ExitFunction(frame);
             }
         }
 
@@ -4770,7 +4923,9 @@ namespace NeoCompose.Runtime
                     thisValue,
                     ctx,
                     expectValue: true,
-                    new ConstructorBodySubject("Base argument", declaredBaseArguments[i].name, record.id));
+                    "Base argument",
+                    declaredBaseArguments[i].name,
+                    record.id);
             }
             // P65 §2.5 callee-side fill, same as a direct constructor
             // call: the base overload's own current default completes each
@@ -4851,7 +5006,9 @@ namespace NeoCompose.Runtime
                 thisValue,
                 ctx,
                 expectValue: false,
-                new ConstructorBodySubject("Constructor", null, record.id));
+                "Constructor",
+                null,
+                record.id);
         }
 
         /// <summary>
@@ -4894,7 +5051,9 @@ namespace NeoCompose.Runtime
                         thisValue,
                         ctx,
                         expectValue: true,
-                        new ConstructorBodySubject("Base initializer field", field.name, record.id)),
+                        "Base initializer field",
+                        field.name,
+                        record.id),
                 });
             }
             if (thisValue is NeoScript.NeoScriptObject detached)
@@ -4914,23 +5073,12 @@ namespace NeoCompose.Runtime
         /// Names a constructor body in its errors; formatted only when one is
         /// raised, so a construction allocates no message.
         /// </summary>
-        private readonly struct ConstructorBodySubject
-        {
-            private readonly string kind;
-            private readonly string? name;
-            private readonly string constructorId;
-
-            internal ConstructorBodySubject(string kind, string? name, string constructorId)
-            {
-                this.kind = kind;
-                this.name = name;
-                this.constructorId = constructorId;
-            }
-
-            public override string ToString() => name is null
+        // Built only for an error: a struct of the parts, made on every
+        // construction, paid a write barrier per part.
+        private static string ConstructorBodySubject(string kind, string? name, string constructorId) =>
+            name is null
                 ? $"{kind} '{constructorId}'"
                 : $"{kind} '{name}' of constructor '{constructorId}'";
-        }
 
         private static string[] constructorArgumentNames = Array.Empty<string>();
 
@@ -4978,7 +5126,9 @@ namespace NeoCompose.Runtime
             object? thisValue,
             NeoScript.NSGetterEvaluator.Context ctx,
             bool expectValue,
-            ConstructorBodySubject subject)
+            string subjectKind,
+            string? subjectName,
+            string constructorId)
         {
             NeoScript.NeoScriptScopeLayout layout = body.scopeLayout ??= new NeoScript.NeoScriptScopeLayout(body);
             NeoScript.NeoScriptScope scope = layout.RentScope();
@@ -5015,13 +5165,13 @@ namespace NeoCompose.Runtime
                 if (result.IsPaused)
                 {
                     throw new InvalidOperationException(
-                        $"{subject} suspended on deferred Function '{result.SuspendedMemberId}'. A constructor cannot await.");
+                        $"{ConstructorBodySubject(subjectKind, subjectName, constructorId)} suspended on deferred Function '{result.SuspendedMemberId}'. A constructor cannot await.");
                 }
                 completed = true;
                 if (expectValue && !result.Returned)
                 {
                     throw new InvalidOperationException(
-                        $"{subject} ended without a return statement.");
+                        $"{ConstructorBodySubject(subjectKind, subjectName, constructorId)} ended without a return statement.");
                 }
                 return result.ReturnValue;
             }
@@ -5448,7 +5598,7 @@ namespace NeoCompose.Runtime
                         ? NeoScriptExecutor.ImportClassValueReference(client, ownership, reference.Value.valueId, ctx)
                         : NeoScriptExecutor.ImportClassValueReference(plan, client, ownership, reference.Value.valueId, ctx);
                     return new NeoConstructorValueReference(imported, ownership);
-                }, env, member.name, new Dictionary<string, NeoValueOwnership>());
+                }, env, member.name, scope: null);
             return CallSiteWritePayload(payload, rows);
         }
 
@@ -5485,8 +5635,8 @@ namespace NeoCompose.Runtime
                     // Deferred-ownership bookkeeping is for
                     // PrepareConstructedGraph's preflight, which only runs on
                     // the staged-graph path. Here the adoption already
-                    // happened above, so the map is write-only.
-                    new Dictionary<string, NeoValueOwnership>());
+                    // happened above, so there is nothing to record.
+                    scope: null);
                 field.value = CallSiteWritePayload(payload, stagedRows);
             }
         }
@@ -6043,7 +6193,7 @@ namespace NeoCompose.Runtime
                 {
                     if (reference.ownership is NeoValueOwnership ownership)
                     {
-                        scope.referenceOwnershipByPath[path] = ownership;
+                        scope.RecordReferenceOwnership(path, ownership);
                     }
                     return reference.valueId;
                 }
@@ -6057,7 +6207,7 @@ namespace NeoCompose.Runtime
                 scope.ValueReference,
                 env,
                 path,
-                scope.referenceOwnershipByPath,
+                scope,
                 preserveOptionalNull: true);
         }
 
@@ -6070,7 +6220,7 @@ namespace NeoCompose.Runtime
             Func<object?, NeoConstructorValueReference?> valueReference,
             IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv,
             string path,
-            Dictionary<string, NeoValueOwnership> referenceOwnershipByPath,
+            NeoConstructionScope? scope,
             bool preserveOptionalNull = false)
         {
             if (runtimeValue is null)
@@ -6099,7 +6249,7 @@ namespace NeoCompose.Runtime
                 // generated C# constructors and normal assignments.
                 if (source.Value.ownership is NeoValueOwnership ownership)
                 {
-                    referenceOwnershipByPath[path] = ownership;
+                    scope?.RecordReferenceOwnership(path, ownership);
                 }
                 return source.Value.valueId;
             }
@@ -6114,7 +6264,7 @@ namespace NeoCompose.Runtime
                 valueReference,
                 genericEnv,
                 path,
-                referenceOwnershipByPath);
+                scope);
             MemberValue row = MemberValueFactory.Create(
                 member,
                 payload,
@@ -6155,7 +6305,7 @@ namespace NeoCompose.Runtime
             Func<object?, NeoConstructorValueReference?> valueReference,
             IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv,
             string path,
-            Dictionary<string, NeoValueOwnership> referenceOwnershipByPath)
+            NeoConstructionScope? scope)
         {
             NeoValuePayload? wrappedPayload = runtimeValue
                 is INeoValuePayloadProvider provider
@@ -6214,7 +6364,7 @@ namespace NeoCompose.Runtime
                             valueReference,
                             genericEnv,
                             $"{path}[{ids.Count}]",
-                            referenceOwnershipByPath,
+                            scope,
                             preserveOptionalNull: true);
                         if (id is null)
                         {
@@ -6284,7 +6434,7 @@ namespace NeoCompose.Runtime
                         valueReference,
                         genericEnv,
                         $"{path}[{key}]",
-                        referenceOwnershipByPath,
+                        scope,
                         preserveOptionalNull: true);
                     if (id is null)
                     {
@@ -6647,16 +6797,15 @@ namespace NeoCompose.Runtime
             bool requireCompleteDefault = false,
             (ObjectMemberValue row, bool usesOwnBindings)? declarationRoot = null)
         {
-            if (!scope.classStack.Add(classId))
+            if (!scope.EnterClass(classId))
             {
                 throw new InvalidOperationException(
                     $"Recursive default class value creation detected for class '{classId}'.");
             }
             try
             {
-                var value = providedValue is null
-                    ? new Dictionary<string, string>()
-                    : new Dictionary<string, string>(providedValue);
+                // The row takes the caller's fresh dictionary as its own.
+                Dictionary<string, string> value = providedValue ?? new Dictionary<string, string>();
 
                 RuntimeClassPlan? resolvedClassPlan = classPlan
                     ?? (classArguments is null
@@ -6674,8 +6823,10 @@ namespace NeoCompose.Runtime
                         client,
                         classId,
                         classArguments);
-                foreach (var entry in mergedSchema)
+                // Indexed: an interface foreach would box its enumerator per row.
+                for (int entryIndex = 0; entryIndex < mergedSchema.Count; entryIndex++)
                 {
+                    MergedSchemaEntry entry = mergedSchema[entryIndex];
                     if (value.ContainsKey(entry.schemaKey))
                         continue;
                     if (declarationRoot?.row.value?.ContainsKey(entry.schemaKey) == true)
@@ -6766,7 +6917,7 @@ namespace NeoCompose.Runtime
             }
             finally
             {
-                scope.classStack.Remove(classId);
+                scope.ExitClass(classId);
             }
         }
 
@@ -8376,7 +8527,15 @@ namespace NeoCompose.Runtime
             return UnplacedClassMember(classId, (placement as ClassMember)?.classArguments, row);
         }
 
-        internal static string UnplacedClassMemberId(string classId) => $"__neo_class_value_{classId}";
+        // One id per class, so a repeated class-value read allocates none.
+        private static readonly Dictionary<string, string> unplacedClassMemberIds = new(StringComparer.Ordinal);
+
+        internal static string UnplacedClassMemberId(string classId)
+        {
+            if (!unplacedClassMemberIds.TryGetValue(classId, out string? id))
+                unplacedClassMemberIds[classId] = id = $"__neo_class_value_{classId}";
+            return id;
+        }
 
         /// <summary>
         /// The placement of a class value no member holds: constructed,

@@ -26,6 +26,13 @@ namespace NeoCompose.Runtime
     {
         protected Member entryMember;
         protected List<NeoMember> childMembers = new();
+        // The entry ids and declaration the children were last built from.
+        // Committed id arrays are never written in place, so a refresh over
+        // the same array and declaration has nothing to rebuild.
+        private IReadOnlyList<string>? childrenEntryIds;
+        private Member? childrenEntryMember;
+
+        private protected void ForgetChildrenSource() => childrenEntryIds = null;
         private Dictionary<string, NeoMember>? childrenByValueId;
         private readonly Dictionary<string, NeoRawListIndex> derivedIndexes = new();
 
@@ -115,6 +122,9 @@ namespace NeoCompose.Runtime
         public IEnumerator<NeoMember> GetEnumerator() =>
             childMembers.GetEnumerator();
 
+        internal List<NeoMember>.Enumerator ChildEnumerator() =>
+            childMembers.GetEnumerator();
+
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
         protected override void Initialize(ArrayMemberValue value)
@@ -148,10 +158,10 @@ namespace NeoCompose.Runtime
             client.UnwatchValuePartitions(this);
             foreach (var child in childMembers)
             {
-                child.ChildChanged -= HandleChildChanged;
-                child.Dispose();
+                child.Release(this);
             }
             childMembers.Clear();
+            childrenEntryIds = null;
             childrenByValueId?.Clear();
             childrenByValueId = null;
             derivedIndexes.Clear();
@@ -167,10 +177,12 @@ namespace NeoCompose.Runtime
             // child nodes so indexed fields cannot retain unloaded values.
             foreach (NeoMember child in childMembers)
             {
-                child.ChildChanged -= HandleChildChanged;
+                child.Release(this);
+                // Retired even while another container holds it.
                 child.Dispose();
             }
             childMembers = new List<NeoMember>();
+            childrenEntryIds = null;
             entryMember = ResolveEntryMember();
             ReinitializeChildren();
             InvalidateAllIndexes();
@@ -311,34 +323,55 @@ namespace NeoCompose.Runtime
         protected void ReinitializeChildren()
         {
             var previousChildren = childMembers;
-            childMembers = new();
             var entryValueIds = ResolveEntryValueIds();
+            if (value?.value is not null
+                && ReferenceEquals(entryValueIds, childrenEntryIds)
+                && ReferenceEquals(entryMember, childrenEntryMember))
+                return;
+            childrenEntryIds = null;
+            childMembers = new(entryValueIds.Count);
             if (value?.value is null)
             {
                 foreach (var child in previousChildren)
                 {
-                    child.ChildChanged -= HandleChildChanged;
-                    child.Dispose();
+                    child.Release(this);
                 }
                 return;
             }
-            // Match by identity so removing an earlier entry keeps later
-            // wrappers alive even when their ordinal changes.
-            var previousById = new Dictionary<string, NeoMember>(StringComparer.Ordinal);
-            foreach (NeoMember child in previousChildren)
-                previousById[EntryValueId(child)] = child;
-            var retained = new HashSet<NeoMember>();
-            foreach (string entryValueId in entryValueIds)
+            // Keep the unchanged leading entries in place, so an append or a
+            // removal from the end walks the list without building a map.
+            int prefix = 0;
+            while (prefix < previousChildren.Count
+                && prefix < entryValueIds.Count
+                && previousChildren[prefix].member.id == entryMember.id
+                && EntryValueId(previousChildren[prefix]) == entryValueIds[prefix])
             {
-                if (previousById.TryGetValue(entryValueId, out NeoMember existing)
+                childMembers.Add(previousChildren[prefix]);
+                prefix++;
+            }
+            // Match the rest by identity so removing an earlier entry keeps
+            // later wrappers alive even when their ordinal changes.
+            Dictionary<string, NeoMember>? previousById = null;
+            if (prefix < previousChildren.Count && prefix < entryValueIds.Count)
+            {
+                previousById = new Dictionary<string, NeoMember>(previousChildren.Count - prefix, StringComparer.Ordinal);
+                for (int i = prefix; i < previousChildren.Count; i++)
+                    previousById[EntryValueId(previousChildren[i])] = previousChildren[i];
+            }
+            HashSet<NeoMember>? retained = null;
+            for (int i = prefix; i < entryValueIds.Count; i++)
+            {
+                string entryValueId = entryValueIds[i];
+                if (previousById is not null
+                    && previousById.TryGetValue(entryValueId, out NeoMember existing)
                     && existing.member.id == entryMember.id)
                 {
                     childMembers.Add(existing);
-                    retained.Add(existing);
+                    (retained ??= new HashSet<NeoMember>()).Add(existing);
                     continue;
                 }
                 NeoMember child = CreateChild(client, entryMember, entryValueId);
-                child.ChildChanged += HandleChildChanged;
+                child.Hold(this);
                 childMembers.Add(child);
                 // A changed member declaration can replace the wrapper at
                 // an existing id. New ids enter the index through the change
@@ -349,21 +382,23 @@ namespace NeoCompose.Runtime
                     childrenByValueId[entryValueId] = child;
                 }
             }
-            foreach (var child in previousChildren)
+            for (int i = prefix; i < previousChildren.Count; i++)
             {
-                if (!retained.Contains(child))
+                NeoMember child = previousChildren[i];
+                if (retained?.Contains(child) != true)
                 {
-                    child.ChildChanged -= HandleChildChanged;
-                    child.Dispose();
+                    child.Release(this);
                 }
             }
+            childrenEntryIds = entryValueIds;
+            childrenEntryMember = entryMember;
         }
 
         // A descendant edit always reports the same immutable entry id. Weak
         // keys release cached messages when entries leave the node graph.
         private System.Runtime.CompilerServices.ConditionalWeakTable<NeoMember, NeoListChangedArgs>? childChangeNotifications;
 
-        protected void HandleChildChanged(NeoMember changed)
+        protected internal override void HandleChildChanged(NeoMember changed)
         {
             NeoMember? entry = changed;
             while (entry is not null && entry.parent != this)
@@ -553,14 +588,41 @@ namespace NeoCompose.Runtime
             plan.Commit();
         }
 
+        // Kept, and a lambda: binding the virtual method group costs Mono a
+        // trampoline lookup on every add.
+        private System.Action? refreshAfterCommit;
+
+        // Keep the reference-transfer capture out of the writers, so an entry
+        // that moved nothing allocates no closure. The entry member is read
+        // once the plan commits.
+        private void RetargetMovedReferenceAfterCommit(
+            NeoWritePlan plan, NeoValueWritePayload entryValue, string valueId, NeoValueOwnership entryOwnership)
+        {
+            plan.AfterCommit(() => entryValue.RetargetMovedReference(client, entryMember, valueId, entryOwnership));
+        }
+
         internal string PrepareAddSerialized(NeoWritePlan plan, NeoValueWritePayload? entryValue)
         {
             string id = PrepareAddSerializedCore(plan, entryValue);
             plan.ReportsOwnChange(this);
-            plan.AfterCommit(RefreshCommittedValue);
-            plan.AfterNotifications(() => NotifyListChanged(new NeoListChangedArgs(
-                NeoListChangeKind.Add, addedValueIds: new[] { id })));
+            plan.AfterCommit(refreshAfterCommit ??= () => RefreshCommittedValue());
+            plan.AfterNotifications(new AddedNotification(this, id));
             return id;
+        }
+
+        private sealed class AddedNotification : INeoPlanCallback
+        {
+            private readonly NeoMemberListWritable list;
+            private readonly string valueId;
+
+            internal AddedNotification(NeoMemberListWritable list, string valueId)
+            {
+                this.list = list;
+                this.valueId = valueId;
+            }
+
+            public void Run() => list.NotifyListChanged(new NeoListChangedArgs(
+                NeoListChangeKind.Add, addedValueIds: new[] { valueId }));
         }
 
         private string PrepareAddSerializedCore(NeoWritePlan plan, NeoValueWritePayload? entryValue)
@@ -578,7 +640,7 @@ namespace NeoCompose.Runtime
             NeoTimestamp nowIso = NeoTimestamp.Now();
             NeoValueOwnership entryOwnership =
                 client.ChildOwnership(entryMember, ownership);
-            ArrayMemberValue parentRow = EnsureWritableArray(plan, nowIso);
+            ArrayMemberValue parentRow = EnsureWritableArray(plan, nowIso, replacesEntries: true);
 
             string newValueId;
             if (entryValue?.isValueReference == true)
@@ -590,7 +652,7 @@ namespace NeoCompose.Runtime
                     out bool sourceMoved);
                 if (sourceMoved)
                 {
-                    plan.AfterCommit(() => entryValue.RetargetMovedReference(client, entryMember, newValueId, entryOwnership));
+                    RetargetMovedReferenceAfterCommit(plan, entryValue, newValueId, entryOwnership);
                 }
             }
             else
@@ -661,27 +723,26 @@ namespace NeoCompose.Runtime
                     out bool sourceMoved,
                     entryValueId);
                 if (sourceMoved)
-                    plan.AfterCommit(() => entryValue.RetargetMovedReference(client, entryMember, importedValueId, entryOwnership));
+                    RetargetMovedReferenceAfterCommit(plan, entryValue, importedValueId, entryOwnership);
                 if (importedValueId == entryValueId)
                 {
                     plan.Commit();
                     return;
                 }
-                ArrayMemberValue parentRow = EnsureWritableArray(plan, nowIso);
+                ArrayMemberValue parentRow = EnsureWritableArray(plan, nowIso, replacesEntries: false);
                 parentRow.value![index] = importedValueId;
                 parentRow.updatedAt = nowIso;
                 plan.Set(ownership, parentRow);
-                client.StageUnlinkedRemovals(plan, entryOwnership, new[] { entryValueId }, entryMember);
+                client.StageUnlinkedRemovals(plan, entryOwnership, entryValueId, entryMember);
                 // Inside the commit, so it merges with what the old entry heard.
                 plan.AfterNotifications(() =>
                 {
                     value = parentRow;
                     NeoMember previousChild = childMembers[index];
-                    previousChild.ChildChanged -= HandleChildChanged;
-                    previousChild.Dispose();
+                    previousChild.Release(this);
                     NeoMember replacementChild = CreateChild(
                         client, entryMember, importedValueId);
-                    replacementChild.ChildChanged += HandleChildChanged;
+                    replacementChild.Hold(this);
                     childMembers[index] = replacementChild;
                     NotifyListChanged(new NeoListChangedArgs(
                         NeoListChangeKind.Replace,
@@ -718,10 +779,9 @@ namespace NeoCompose.Runtime
             plan.AfterNotifications(() =>
             {
                 NeoMember replacedChild = childMembers[index];
-                replacedChild.ChildChanged -= HandleChildChanged;
-                replacedChild.Dispose();
+                replacedChild.Release(this);
                 NeoMember newChild = CreateChild(client, entryMember, entryValueId);
-                newChild.ChildChanged += HandleChildChanged;
+                newChild.Hold(this);
                 childMembers[index] = newChild;
                 NotifyListChanged(new NeoListChangedArgs(
                     NeoListChangeKind.Set,
@@ -755,7 +815,7 @@ namespace NeoCompose.Runtime
             }
             var plan = new NeoWritePlan(client);
             NeoTimestamp nowIso = NeoTimestamp.Now();
-            ArrayMemberValue parentRow = EnsureWritableArray(plan, nowIso);
+            ArrayMemberValue parentRow = EnsureWritableArray(plan, nowIso, replacesEntries: true);
             string[] currentArr = parentRow.value!;
             string removedValueId = currentArr[index];
 
@@ -770,7 +830,7 @@ namespace NeoCompose.Runtime
             parentRow.updatedAt = nowIso;
             plan.Set(ownership, parentRow);
             NeoValueOwnership entryOwnership = client.ChildOwnership(entryMember, ownership);
-            client.StageUnlinkedRemovals(plan, entryOwnership, new[] { removedValueId }, entryMember);
+            client.StageUnlinkedRemovals(plan, entryOwnership, removedValueId, entryMember);
             CommitOwnChange(plan);
             value = parentRow;
 
@@ -795,7 +855,7 @@ namespace NeoCompose.Runtime
 
             var plan = new NeoWritePlan(client);
             NeoTimestamp nowIso = NeoTimestamp.Now();
-            ArrayMemberValue parentRow = EnsureWritableArray(plan, nowIso);
+            ArrayMemberValue parentRow = EnsureWritableArray(plan, nowIso, replacesEntries: true);
             string[] removedValueIds = parentRow.value ?? System.Array.Empty<string>();
             if (removedValueIds.Length == 0)
             {
@@ -811,10 +871,10 @@ namespace NeoCompose.Runtime
 
             foreach (var child in childMembers)
             {
-                child.ChildChanged -= HandleChildChanged;
-                child.Dispose();
+                child.Release(this);
             }
             childMembers.Clear();
+            ForgetChildrenSource();
 
             NotifyListChanged(new NeoListChangedArgs(
                 NeoListChangeKind.Clear,
@@ -922,7 +982,7 @@ namespace NeoCompose.Runtime
                 StampContainerId(plan, entryOwnership, newValueId, containerValueId);
                 if (sourceMoved)
                 {
-                    plan.AfterCommit(() => entryValue.RetargetMovedReference(client, entryMember, newValueId, entryOwnership));
+                    RetargetMovedReferenceAfterCommit(plan, entryValue, newValueId, entryOwnership);
                 }
             }
             else
@@ -990,7 +1050,7 @@ namespace NeoCompose.Runtime
                 if (!nextIds.Contains(id))
                     PrepareRemoveUnorderedEntry(plan, id);
             NeoTimestamp now = NeoTimestamp.Now();
-            ArrayMemberValue container = EnsureWritableArray(plan, now);
+            ArrayMemberValue container = EnsureWritableArray(plan, now, replacesEntries: true);
             container.value = isNull ? null : System.Array.Empty<string>();
             container.updatedAt = now;
             plan.Set(ownership, container);
@@ -1043,7 +1103,7 @@ namespace NeoCompose.Runtime
                 || (client.TryResolveContainerIdForValueId(entryValueId, out string? containerId) && containerId == listId);
             if (!joined)
             {
-                var container = EnsureWritableArray(plan, NeoTimestamp.Now());
+                var container = EnsureWritableArray(plan, NeoTimestamp.Now(), replacesEntries: true);
                 container.value = (container.value ?? System.Array.Empty<string>()).Where(id => id != entryValueId).ToArray();
                 plan.Set(ownership, container);
             }
@@ -1109,7 +1169,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         private ArrayMemberValue ResolveUnorderedContainerForAdd(NeoWritePlan plan, NeoTimestamp nowIso)
         {
-            string? id = plan.NodeBindings.TryGetValue(this, out string? plannedId) ? plannedId : valueId;
+            string? id = plan.TryGetNodeBinding(this, out string? plannedId) ? plannedId : valueId;
             var resolved = id is not null ? plan.Resolve(ownership, id) as ArrayMemberValue : value ?? valueData;
             if (resolved is not null)
             {
@@ -1144,9 +1204,10 @@ namespace NeoCompose.Runtime
         /// clone-on-write shadow at the stable id), minting + binding a
         /// fresh empty array through the parent when nothing is bound yet.
         /// </summary>
-        private ArrayMemberValue EnsureWritableArray(NeoWritePlan plan, NeoTimestamp nowIso)
+        /// <param name="replacesEntries">The caller assigns a new entries array rather than editing this one.</param>
+        private ArrayMemberValue EnsureWritableArray(NeoWritePlan plan, NeoTimestamp nowIso, bool replacesEntries)
         {
-            var writable = WritableCandidate(plan);
+            var writable = WritableCandidate(plan, sharesArrayEntries: replacesEntries);
             if (writable is not null)
             {
                 writable.value ??= System.Array.Empty<string>();

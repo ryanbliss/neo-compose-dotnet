@@ -302,7 +302,15 @@ namespace NeoCompose.Runtime.Json
         [JsonIgnore]
         internal NeoScript.NSGetterEvaluator.MemberSiteTarget? resolvedMembers;
 
-        void ISchemaResolutionSite.ForgetResolution() => resolvedMembers = null;
+        /// <summary>Detached objects' slot for this read or write, one per object plan.</summary>
+        [JsonIgnore]
+        internal NeoScript.NSGetterEvaluator.DetachedSlotSite? detachedSlots;
+
+        void ISchemaResolutionSite.ForgetResolution()
+        {
+            resolvedMembers = null;
+            detachedSlots = null;
+        }
     }
 
     /// <summary>
@@ -357,6 +365,21 @@ namespace NeoCompose.Runtime.Json
         /// </summary>
         [JsonProperty("decimal")]
         public bool? isDecimal;
+        // Evaluator cache for type, parsed once.
+        internal ComparisonOp comparison;
+    }
+
+    /// <summary>A parsed <see cref="OperatorKind"/>.</summary>
+    internal enum ComparisonOp : byte
+    {
+        Unresolved,
+        EqualTo,
+        DoesNotEqual,
+        GreaterThan,
+        GreaterThanOrEqualTo,
+        LessThan,
+        LessThanOrEqualTo,
+        Unknown,
     }
 
     /// <summary>

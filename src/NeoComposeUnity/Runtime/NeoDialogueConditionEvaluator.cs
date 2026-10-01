@@ -45,7 +45,9 @@ namespace NeoCompose.Runtime
             }
 
             var ctx = BuildContext(client, dialogueContext, memoryStore);
-            var result = NSGetterEvaluator.Evaluate(getter, ctx);
+            // The context is this evaluation's own, so the body binds its
+            // handlers there instead of on a fork.
+            var result = NSGetterEvaluator.Evaluate(getter, ctx, System.Array.Empty<object?>(), handlerFrame: -1);
             if (result is bool b)
                 return b;
             throw new NSGetterRuntimeError(

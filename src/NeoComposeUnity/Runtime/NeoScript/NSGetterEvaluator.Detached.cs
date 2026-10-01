@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using NeoCompose.Runtime.Json;
 using JsonMember = NeoCompose.Runtime.Json.Member;
+using DetachedClassPlan = NeoCompose.Runtime.NeoGeneratedTypesSupport.DetachedClassPlan;
 using DetachedSlot = NeoCompose.Runtime.NeoGeneratedTypesSupport.DetachedSlot;
 using DetachedSlotKind = NeoCompose.Runtime.NeoGeneratedTypesSupport.DetachedSlotKind;
 
@@ -116,6 +117,58 @@ namespace NeoCompose.Runtime.NeoScript
             return UnwrapCached(row!, ctx, ownership, value.plan.runtimePlan.factoryMember);
         }
 
+        /// <summary>A <see cref="KeyOf"/>'s slot index for one object plan and key.</summary>
+        internal sealed class DetachedSlotSite
+        {
+            internal readonly DetachedClassPlan plan;
+            internal readonly string key;
+            internal readonly int index;
+            internal readonly DetachedSlotSite? next;
+            internal readonly int count;
+
+            internal DetachedSlotSite(DetachedClassPlan plan, string key, int index, DetachedSlotSite? next)
+            {
+                this.plan = plan;
+                this.key = key;
+                this.index = index;
+                this.next = next;
+                count = (next?.count ?? 0) + 1;
+            }
+        }
+
+        /// <summary>
+        /// <paramref name="key"/>'s slot in <paramref name="plan"/>, cached on
+        /// <paramref name="site"/> so a hot read or write skips hashing the key.
+        /// </summary>
+        internal static bool TryFindDetachedSlot(
+            DetachedClassPlan plan,
+            string key,
+            KeyOf? site,
+            Context ctx,
+            out int index)
+        {
+            if (site is null)
+                return plan.slotByKey.TryGetValue(key, out index);
+            DetachedSlotSite? slots = site.detachedSlots;
+            for (DetachedSlotSite? slot = slots; slot is not null; slot = slot.next)
+            {
+                if (ReferenceEquals(slot.plan, plan) && SameId(slot.key, key))
+                {
+                    index = slot.index;
+                    return true;
+                }
+            }
+            if (!plan.slotByKey.TryGetValue(key, out index))
+                return false;
+            if ((slots?.count ?? 0) < CallSiteTarget.MaxTargets)
+            {
+                site.detachedSlots = new DetachedSlotSite(plan, key, index, slots);
+                if (slots is null)
+                    ctx.client.RememberSchemaResolutionSite(site);
+            }
+            return true;
+        }
+
         /// <summary>
         /// Reads <paramref name="key"/> off a detached object: a stored slot,
         /// an NSProperty getter bound to the object, or a read-only
@@ -125,9 +178,10 @@ namespace NeoCompose.Runtime.NeoScript
             NeoScriptObject value,
             string key,
             Context ctx,
-            out object? result)
+            out object? result,
+            KeyOf? site = null)
         {
-            if (value.plan.slotByKey.TryGetValue(key, out int index))
+            if (TryFindDetachedSlot(value.plan, key, site, ctx, out int index))
             {
                 if (!TryReadDetachedSlot(value, index, ctx, out result))
                     return false;
@@ -140,7 +194,7 @@ namespace NeoCompose.Runtime.NeoScript
             MergedSchemaEntry? entry;
             try
             {
-                entry = ctx.client.ResolveClassNode(value.plan.classId).SurfaceMember(key);
+                entry = value.plan.ClassNode(ctx.client).SurfaceMember(key);
             }
             catch (CircularInheritanceError)
             {
@@ -210,13 +264,13 @@ namespace NeoCompose.Runtime.NeoScript
             object? result = null;
             try
             {
-                MergedSchemaEntry? entry = ctx.client.ResolveClassNode(value.plan.classId).SurfaceMember(key);
-                if (entry?.member is not NSPropertyMember { getter: not null })
+                MergedSchemaEntry? entry = value.plan.ClassNode(ctx.client).SurfaceMember(key);
+                if (entry?.member is not NSPropertyMember { getter: { } getter })
                 {
                     return NSGetterResult.Error(
                         "Compiled `getter` not yet available — save the code to compile it.");
                 }
-                result = DispatchNSGetterById(entry.memberId, value, ctx);
+                result = DispatchNSGetterById(entry.memberId, value, ctx, getter);
                 return NSGetterResult.Ok(result);
             }
             catch (NSGetterRuntimeError ex)
@@ -412,16 +466,9 @@ namespace NeoCompose.Runtime.NeoScript
             NeoScriptObject value,
             string key,
             object? assigned,
-            Context ctx) =>
-            value.plan.slotByKey.TryGetValue(key, out int index)
+            Context ctx,
+            KeyOf site) =>
+            TryFindDetachedSlot(value.plan, key, site, ctx, out int index)
             && NeoGeneratedTypesSupport.TryStoreDetachedSlot(value, index, assigned, ctx);
-
-        /// <summary>Appends to a detached object's List member when the entry can stay detached.</summary>
-        internal static bool TryAddDetachedListEntry(
-            NeoScriptObject value,
-            string key,
-            object? entry) =>
-            value.plan.slotByKey.TryGetValue(key, out int index)
-            && NeoGeneratedTypesSupport.TryAddDetachedListEntry(value, index, entry);
     }
 }

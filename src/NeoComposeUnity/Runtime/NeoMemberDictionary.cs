@@ -74,6 +74,9 @@ namespace NeoCompose.Runtime
         public IEnumerator<KeyValuePair<string, NeoMember>> GetEnumerator() =>
             childMembers.GetEnumerator();
 
+        internal Dictionary<string, NeoMember>.Enumerator ChildEnumerator() =>
+            childMembers.GetEnumerator();
+
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
         protected override void Initialize(ObjectMemberValue value)
@@ -100,8 +103,7 @@ namespace NeoCompose.Runtime
         {
             if (!BeginDisposeChildren())
                 return;
-            foreach (var child in childMembers.Values)
-                child.Dispose();
+            DisposeChildren(childMembers);
             childMembers.Clear();
             base.Dispose();
         }
@@ -112,8 +114,7 @@ namespace NeoCompose.Runtime
             childMembers = new();
             if (value?.value is null)
             {
-                foreach (var child in previousChildren.Values)
-                    child.Dispose();
+                DisposeChildren(previousChildren);
                 return;
             }
             foreach (var kvp in value.value)
@@ -129,8 +130,14 @@ namespace NeoCompose.Runtime
                 }
                 childMembers[kvp.Key] = CreateChild(client, entryMember, kvp.Value);
             }
-            foreach (var child in previousChildren.Values)
-                child.Dispose();
+            DisposeChildren(previousChildren);
+        }
+
+        // Over the pairs: a dictionary's Values view is an allocation of its own.
+        private static void DisposeChildren(Dictionary<string, NeoMember> children)
+        {
+            foreach (var pair in children)
+                pair.Value.Dispose();
         }
 
         protected Member ResolveEntryMember()
@@ -172,6 +179,15 @@ namespace NeoCompose.Runtime
             return CreateOwnedChild(client, childMember, overrideValueId, writableFamily: true);
         }
 
+        // Keep the reference-transfer capture out of SetSerialized, so a write
+        // that moved nothing allocates no closure. The entry member is read
+        // once the plan commits.
+        private void RetargetMovedReferenceAfterCommit(
+            NeoWritePlan plan, NeoValueWritePayload setValue, string valueId, NeoValueOwnership entryOwnership)
+        {
+            plan.AfterCommit(() => setValue.RetargetMovedReference(client, entryMember, valueId, entryOwnership));
+        }
+
         /// <summary>
         /// Sets the dictionary entry under <paramref name="key"/>.
         /// Updates an existing entry in place; otherwise creates a
@@ -196,7 +212,7 @@ namespace NeoCompose.Runtime
                 if (nextId == previousId)
                     return;
                 if (sourceMoved)
-                    plan.AfterCommit(() => setValue.RetargetMovedReference(client, entryMember, nextId, entryOwnership));
+                    RetargetMovedReferenceAfterCommit(plan, setValue, nextId, entryOwnership);
             }
             else
             {
@@ -212,7 +228,7 @@ namespace NeoCompose.Runtime
             parentRow.updatedAt = nowIso;
             plan.Set(ownership, parentRow);
             if (previousId is not null && previousId != nextId)
-                client.StageUnlinkedRemovals(plan, entryOwnership, new[] { previousId }, entryMember);
+                client.StageUnlinkedRemovals(plan, entryOwnership, previousId, entryMember);
             CommitOwnChange(plan);
             value = parentRow;
             if (childMembers.TryGetValue(key, out NeoMember? previousChild))
@@ -238,7 +254,7 @@ namespace NeoCompose.Runtime
             parentRow.updatedAt = nowIso;
             plan.Set(ownership, parentRow);
             NeoValueOwnership entryOwnership = client.ChildOwnership(entryMember, ownership);
-            client.StageUnlinkedRemovals(plan, entryOwnership, new[] { removedValueId }, entryMember);
+            client.StageUnlinkedRemovals(plan, entryOwnership, removedValueId, entryMember);
             CommitOwnChange(plan);
             value = parentRow;
 

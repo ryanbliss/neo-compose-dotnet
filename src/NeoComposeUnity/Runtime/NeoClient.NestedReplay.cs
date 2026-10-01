@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using NeoCompose.Runtime.Json;
 
 namespace NeoCompose.Runtime
@@ -70,6 +71,8 @@ namespace NeoCompose.Runtime
             return CommittedRow(ownership, id, node);
         }
 
+        // Every stored-member read calls this; only a replay records.
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void ReadReplayField(string? id, string key)
         {
             if (isReplayingVirtualInstance && id is not null)
@@ -82,6 +85,16 @@ namespace NeoCompose.Runtime
                 : dependency.StartsWith("identity:", StringComparison.Ordinal) ? dependency.Substring(9) : dependency;
 
         private readonly Dictionary<string, HashSet<string>> replayFieldsByValueId = new();
+
+        // Rows some replay read by identity, so a write builds an identity
+        // dependency only for rows a replay can actually depend on.
+        private readonly HashSet<string> replayIdentityIds = new(StringComparer.Ordinal);
+
+        private void EnqueueReplayIdentity(Queue<string> pending, string id)
+        {
+            if (replayIdentityIds.Contains(id))
+                pending.Enqueue("identity:" + id);
+        }
 
         private void EnqueueReplayFields(Queue<string> pending, string id, NeoWritePlan? plan = null)
         {

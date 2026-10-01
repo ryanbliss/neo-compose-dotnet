@@ -11,7 +11,7 @@ using NeoCompose.Runtime.NeoScript;
 namespace NeoCompose.Runtime
 {
     public abstract class NeoGeneratedClassValue
-        : NeoNode, IDisposable, INeoValuePayloadProvider, INeoValueReference
+        : NeoNode, IDisposable, INeoValuePayloadProvider, INeoValueReference, INeoWritableValueListener
     {
         /// <summary>
         /// The backing node. A view over a pending NeoScript temporary has
@@ -25,12 +25,35 @@ namespace NeoCompose.Runtime
         private NeoMemberClass? nodeStore;
         /// <summary>The pending temporary this view reads until it attaches.</summary>
         private NeoScriptObject? detached;
+        // The registry key a view claimed when its temporary's rows attached,
+        // until its node takes it over. The view watches the root row as
+        // long as it holds the key.
+        private NeoNodeKey? attachedRegistryKey;
         private readonly string fallbackClassId;
         private bool isDisposed;
         // Most views never subscribe; the list comes with the first.
         private List<IDisposable>? subscriptions;
         private NeoMemberClassWritable? writableNodeCache;
-        private Dictionary<(string key, Type type), (NeoMember? node, object view)>? storedViews;
+        // A view's member views, by key and view type. A class has few and
+        // generated accessors read them by literal key, so a scan by
+        // reference beats hashing the key and the type.
+        private sealed class StoredView
+        {
+            internal readonly string key;
+            internal readonly Type type;
+            internal NeoMember? node;
+            internal object view;
+
+            internal StoredView(string key, Type type, NeoMember? node, object view)
+            {
+                this.key = key;
+                this.type = type;
+                this.node = node;
+                this.view = view;
+            }
+        }
+
+        private List<StoredView>? storedViews;
         private bool isClassDefaultReference;
         // Minted on first use: only an animated view without a row needs it.
         private string? animationWrapperIdentity;
@@ -67,7 +90,9 @@ namespace NeoCompose.Runtime
 
         public string? valueId => isClassDefaultReference
             ? null
-            : node.overrideValueId ?? node.value?.id;
+            : nodeStore is null
+                ? AttachDetachedRows()
+                : node.overrideValueId ?? node.value?.id;
         public string? classId => detached?.plan.classId ?? node.ClassId;
         internal ClassMember BackingMember => node.member;
         public bool IsReadOnly
@@ -142,7 +167,7 @@ namespace NeoCompose.Runtime
             return NSGetterEvaluator.TryReadDetachedView(detached, key, out value);
         }
 
-        /// <summary>The temporary this view reads until it attaches; null once it has.</summary>
+        /// <summary>The temporary this view reads until it builds its node; its rows may already be attached.</summary>
         internal NeoDetachedValue? PendingValue => detached;
 
         /// <summary>
@@ -167,6 +192,7 @@ namespace NeoCompose.Runtime
         /// Computes NSProperty <paramref name="key"/> on this view's receiver.
         /// A pending temporary computes as itself, so the read makes no rows.
         /// </summary>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         protected NSGetterResult ComputeProperty(string key)
         {
             if (detached is { attachedId: null } pending)
@@ -260,17 +286,63 @@ namespace NeoCompose.Runtime
 
         internal bool IsDisposed => isDisposed;
 
-        private NeoMemberClass AttachDetachedNode()
+        /// <summary>
+        /// Attaches the pending temporary's rows and claims the registry key
+        /// its node will have, without building the node: an id is often all
+        /// a caller needs, and a list add retargets the view to the entry's
+        /// own node anyway.
+        /// </summary>
+        private string AttachDetachedRows()
         {
+            NeoScriptObject value = detached!;
+            // An attached view keeps its id after disposal, as a node-backed one does.
+            if (value.attachedId is string attached && (attachedRegistryKey is not null || isDisposed))
+                return attached;
             if (isDisposed)
                 throw new ObjectDisposedException(GetType().Name);
-            NeoScriptObject value = detached!;
             string id = NSGetterEvaluator.AttachDetached(value, null);
+            if (attachedRegistryKey is null)
+            {
+                var key = new NeoNodeKey(
+                    NeoGeneratedTypesSupport.UnplacedClassMemberId(value.plan.classId),
+                    id,
+                    NeoValueOwnership.Session);
+                attachedRegistryKey = key;
+                client.RegisterGeneratedClassValue(this, key);
+                client.AddWritableValueListener(id, this);
+            }
+            return id;
+        }
+
+        // A node disposes its view when its row is removed; a view without one watches the row itself.
+        void INeoWritableValueListener.OnWritableValueChanged(NeoValueOwnership ownership, string changedValueId)
+        {
+            if (ownership == NeoValueOwnership.Session
+                && !client.TryGetOverlaidValue(ownership, changedValueId, out MemberValue? _))
+            {
+                Dispose();
+            }
+        }
+
+        private void ReleaseAttachedRows()
+        {
+            if (attachedRegistryKey is not NeoNodeKey key)
+                return;
+            client.RemoveWritableValueListener(key.valueId!, this);
+            client.UnregisterGeneratedClassValue(this, key);
+            attachedRegistryKey = null;
+        }
+
+        private NeoMemberClass AttachDetachedNode()
+        {
+            NeoScriptObject value = detached!;
+            string id = AttachDetachedRows();
             NeoMemberClass attached = NeoGeneratedTypesSupport.ClassValueNode(
                 client,
                 id,
                 value.plan.classId,
                 NeoValueOwnership.Session);
+            ReleaseAttachedRows();
             nodeStore = attached;
             detached = null;
             attached.OnChanged += HandleNodeChanged;
@@ -284,8 +356,7 @@ namespace NeoCompose.Runtime
         protected bool TryGetStoredView<TView>(
             string key, NeoMember member, out TView view) where TView : class
         {
-            if (storedViews is not null
-                && storedViews.TryGetValue((key, typeof(TView)), out var cached)
+            if (FindStoredView(key, typeof(TView)) is { } cached
                 && ReferenceEquals(cached.node, member)
                 && !member.isDisposed)
             {
@@ -299,9 +370,39 @@ namespace NeoCompose.Runtime
         protected TView CacheStoredView<TView>(
             string key, NeoMember member, TView view) where TView : class
         {
-            storedViews ??= new();
-            storedViews[(key, typeof(TView))] = (member, view);
+            StoreView(key, typeof(TView), member, view);
             return view;
+        }
+
+        private StoredView? FindStoredView(string key, Type type)
+        {
+            if (storedViews is null)
+                return null;
+            for (int i = 0; i < storedViews.Count; i++)
+            {
+                StoredView entry = storedViews[i];
+                if (ReferenceEquals(entry.key, key) && ReferenceEquals(entry.type, type))
+                    return entry;
+            }
+            // A key built at runtime matches by value.
+            for (int i = 0; i < storedViews.Count; i++)
+            {
+                StoredView entry = storedViews[i];
+                if (ReferenceEquals(entry.type, type) && entry.key == key)
+                    return entry;
+            }
+            return null;
+        }
+
+        private void StoreView(string key, Type type, NeoMember? member, object view)
+        {
+            if (FindStoredView(key, type) is { } entry)
+            {
+                entry.node = member;
+                entry.view = view;
+                return;
+            }
+            (storedViews ??= new List<StoredView>()).Add(new StoredView(key, type, member, view));
         }
 
         /// <summary>A pending view's List member, reading its slot until the owner attaches.</summary>
@@ -337,9 +438,7 @@ namespace NeoCompose.Runtime
         protected bool TryGetDetachedView<TView>(string key, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out TView? view)
             where TView : class
         {
-            if (storedViews is not null
-                && storedViews.TryGetValue((key, typeof(TView)), out var cached)
-                && cached.node is null)
+            if (FindStoredView(key, typeof(TView)) is { node: null } cached)
             {
                 view = (TView)cached.view;
                 return true;
@@ -350,8 +449,7 @@ namespace NeoCompose.Runtime
 
         private TView CacheDetachedView<TView>(string key, TView view) where TView : class
         {
-            storedViews ??= new();
-            storedViews[(key, typeof(TView))] = (null, view);
+            StoreView(key, typeof(TView), null, view);
             return view;
         }
 
@@ -382,10 +480,12 @@ namespace NeoCompose.Runtime
                 return;
             isDisposed = true;
             storedViews?.Clear();
-            // A pending view never attached: nothing was registered for it,
-            // and disposing it must not make rows.
+            // A pending view has no node, and disposing it must not make rows.
             if (nodeStore is null)
+            {
+                ReleaseAttachedRows();
                 return;
+            }
             if (OwnsBackingValueLifetime)
                 client.ReleaseAnimationClips(this);
             if (subscriptions is not null)
@@ -415,9 +515,12 @@ namespace NeoCompose.Runtime
                 return;
             if (ownership == NeoValueOwnership.Asset)
                 return;
-            if (node.member.id == member.id
-                && node.overrideValueId == valueId
-                && node.ownership == ownership)
+            // An attached view that never built its node retargets without one.
+            NeoMemberClass? previous = nodeStore;
+            if (previous is not null
+                && previous.member.id == member.id
+                && previous.overrideValueId == valueId
+                && previous.ownership == ownership)
             {
                 InheritedStorageOwnership = ownership;
                 return;
@@ -435,10 +538,17 @@ namespace NeoCompose.Runtime
             }
 
             storedViews?.Clear();
-            var previous = node;
-            previous.OnChanged -= HandleNodeChanged;
-            previous.OnDisposed -= HandleNodeDisposed;
-            client.UnregisterGeneratedClassValue(this, previous);
+            if (previous is not null)
+            {
+                previous.OnChanged -= HandleNodeChanged;
+                previous.OnDisposed -= HandleNodeDisposed;
+                client.UnregisterGeneratedClassValue(this, previous);
+            }
+            else
+            {
+                ReleaseAttachedRows();
+            }
+            detached = null;
             if (writableNodeCache is not null && !ReferenceEquals(writableNodeCache, previous))
             {
                 writableNodeCache.Dispose();
@@ -451,7 +561,7 @@ namespace NeoCompose.Runtime
             node.OnDisposed += HandleNodeDisposed;
             client.RegisterGeneratedClassValue(this, node);
 
-            if (!ReferenceEquals(previous, next))
+            if (previous is not null && !ReferenceEquals(previous, next))
             {
                 previous.Dispose();
             }

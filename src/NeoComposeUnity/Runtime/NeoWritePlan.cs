@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using NeoCompose.Runtime.Json;
 
@@ -43,20 +44,32 @@ namespace NeoCompose.Runtime
         internal readonly long BaseRevision;
         internal (string gridId, string layerId, string listId, string instanceId)? ObjectInsertion;
         internal string? ValidatedObjectInsertionGrid;
-        internal readonly HashSet<string> UnchangedValueIds = new();
-        internal readonly List<NeoValidatedTileConversion> ValidatedTileConversions = new();
-        internal readonly Dictionary<(string gridId, string layerId), NeoTileLayerBuild> PreparedTileLayers = new();
-        internal readonly Dictionary<(string gridId, string layerId), NeoPreparedLayerRecords<NeoObjectPlacementRecord>> PreparedObjectLayers = new();
-        internal readonly Dictionary<(NeoValueOwnership ownership, string id), MemberValue?> Rows = new();
-        internal readonly Dictionary<(NeoValueOwnership ownership, string id), string?> Fields = new();
-        internal readonly HashSet<(NeoValueOwnership ownership, string id)> Silent = new();
-        internal readonly Dictionary<(NeoValueOwnership ownership, string memberId), (bool present, string? valueId)> Bindings = new();
-        internal readonly Dictionary<NeoMember, string> NodeBindings = new();
-        private readonly List<Action> afterCommit = new();
-        private readonly List<Action> afterNotifications = new();
-        private HashSet<NeoMember>? reportsOwnChange;
+        // Collections most writes never fill are allocated on first use.
+        internal HashSet<string>? UnchangedValueIds;
+        internal List<NeoValidatedTileConversion>? ValidatedTileConversions;
+        internal Dictionary<(string gridId, string layerId), NeoTileLayerBuild>? PreparedTileLayers;
+        internal Dictionary<(string gridId, string layerId), NeoPreparedLayerRecords<NeoObjectPlacementRecord>>? PreparedObjectLayers;
+        // Sized for a collection write: its row, and an entry with a few fields.
+        internal readonly Dictionary<(NeoValueOwnership ownership, string id), MemberValue?> Rows = new(8);
+        private Dictionary<(NeoValueOwnership ownership, string id), string>? changedFields;
+        private HashSet<(NeoValueOwnership ownership, string id)>? silentRows;
+        // Most plans bind no static; they share one empty map until the first Bind.
+        private static readonly Dictionary<(NeoValueOwnership ownership, string memberId), (bool present, string? valueId)> NoBindings = new();
+        private Dictionary<(NeoValueOwnership ownership, string memberId), (bool present, string? valueId)>? bindings;
+        /// <summary>The staged static bindings. Read-only: <see cref="Bind"/> writes them.</summary>
+        internal Dictionary<(NeoValueOwnership ownership, string memberId), (bool present, string? valueId)> Bindings => bindings ?? NoBindings;
+        private Dictionary<NeoMember, string>? nodeBindings;
+        private Callbacks afterCommit;
+        private Callbacks afterNotifications;
+        // The collection mutators behind this plan: almost always one.
+        private NeoMember? reportingNode;
+        private List<NeoMember>? moreReportingNodes;
         private Dictionary<string, HashSet<string>>? containerCandidates;
-        private Dictionary<string, HashSet<string>>? parentCandidates;
+        // A child's staged parent, or a set when more than one row links it.
+        // Plans that stage no new link share one empty map; the others rent
+        // theirs from the client until the commit ends.
+        private static readonly Dictionary<string, object> NoParentCandidates = new();
+        private Dictionary<string, object>? parentCandidates;
 
         internal NeoWritePlan(NeoClient client)
         {
@@ -71,13 +84,32 @@ namespace NeoCompose.Runtime
             var key = (ownership, row.id);
             Rows[key] = row;
             containerCandidates = null;
-            parentCandidates = null;
-            Fields[key] = changedField;
-            if (silent)
-                Silent.Add(key);
+            ReleaseParentCandidates();
+            if (changedField is not null)
+                (changedFields ??= new())[key] = changedField;
             else
-                Silent.Remove(key);
+                changedFields?.Remove(key);
+            if (silent)
+                (silentRows ??= new()).Add(key);
+            else
+                silentRows?.Remove(key);
         }
+
+        internal string? ChangedField((NeoValueOwnership ownership, string id) key) =>
+            changedFields is not null && changedFields.TryGetValue(key, out string? field) ? field : null;
+
+        internal bool IsSilent((NeoValueOwnership ownership, string id) key) => silentRows?.Contains(key) == true;
+
+        internal bool TryGetNodeBinding(NeoMember node, [NotNullWhen(true)] out string? valueId)
+        {
+            valueId = null;
+            return nodeBindings?.TryGetValue(node, out valueId) == true;
+        }
+
+        internal void BindNode(NeoMember node, string valueId) => (nodeBindings ??= new())[node] = valueId;
+
+        internal IEnumerable<KeyValuePair<NeoMember, string>> NodeBindings =>
+            nodeBindings ?? (IEnumerable<KeyValuePair<NeoMember, string>>)Array.Empty<KeyValuePair<NeoMember, string>>();
 
         internal void Remove(NeoValueOwnership ownership, string id)
         {
@@ -85,8 +117,8 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException("Cannot remove immutable asset data.");
             var key = (ownership, id);
             Rows[key] = null;
-            parentCandidates = null;
-            Silent.Remove(key);
+            ReleaseParentCandidates();
+            silentRows?.Remove(key);
         }
 
         internal MemberValue? Resolve(NeoValueOwnership ownership, string id)
@@ -155,24 +187,73 @@ namespace NeoCompose.Runtime
             return Client.TryGetCommittedOwnership(id, out ownership);
         }
 
-        internal IEnumerable<string> ParentCandidates(string childId)
+        /// <summary>
+        /// Adds to <paramref name="into"/> the staged rows that may link <paramref name="childId"/>, beyond
+        /// the links the client's committed placement index already holds.
+        /// Every caller unions these with that index, so a staged row only
+        /// contributes the children past its unchanged leading ones: an append
+        /// to a long list row indexes one child, not the whole list.
+        /// </summary>
+        internal void CollectParentCandidates(string childId, ICollection<string> into)
         {
             if (parentCandidates is null)
             {
-                parentCandidates = new Dictionary<string, HashSet<string>>();
-                foreach (MemberValue? row in Rows.Values)
+                Dictionary<string, object>? found = null;
+                // Collected rather than enumerated: a long list row's entries
+                // would each cost an enumerator call.
+                List<string> children = Client.RentIdList();
+                try
                 {
-                    if (row is null)
-                        continue;
-                    foreach (string child in NeoClient.PlacementChildIds(row))
+                    foreach (var pair in Rows)
                     {
-                        if (!parentCandidates.TryGetValue(child, out var parents))
-                            parentCandidates[child] = parents = new HashSet<string>();
-                        parents.Add(row.id);
+                        MemberValue? row = pair.Value;
+                        if (row is not ObjectMemberValue and not ArrayMemberValue)
+                            continue;
+                        children.Clear();
+                        NeoClient.CollectPlacementChildIds(row, children);
+                        string[]? committed = Client.IndexedPlacementChildren(pair.Key.ownership, row.id);
+                        int prefix = 0;
+                        while (committed is not null
+                            && prefix < committed.Length
+                            && prefix < children.Count
+                            && string.Equals(committed[prefix], children[prefix], StringComparison.Ordinal))
+                            prefix++;
+                        for (int index = prefix; index < children.Count; index++)
+                        {
+                            string child = children[index];
+                            found ??= Client.RentParentIndex();
+                            if (!found.TryGetValue(child, out object? parents))
+                                found[child] = row.id;
+                            else if (parents is HashSet<string> set)
+                                set.Add(row.id);
+                            else if (!string.Equals((string)parents, row.id, StringComparison.Ordinal))
+                                found[child] = new HashSet<string>(StringComparer.Ordinal) { (string)parents, row.id };
+                        }
                     }
                 }
+                finally
+                {
+                    Client.ReturnIdList(children);
+                }
+                parentCandidates = found ?? NoParentCandidates;
             }
-            return parentCandidates.TryGetValue(childId, out var values) ? values : Array.Empty<string>();
+            if (!parentCandidates.TryGetValue(childId, out object? parentOrSet))
+                return;
+            if (parentOrSet is HashSet<string> parentSet)
+            {
+                foreach (string parent in parentSet)
+                    into.Add(parent);
+            }
+            else
+                into.Add((string)parentOrSet);
+        }
+
+        /// <summary>Drops the staged parent index, which no caller holds past a lookup, back to the client's pool.</summary>
+        internal void ReleaseParentCandidates()
+        {
+            if (parentCandidates is not null && !ReferenceEquals(parentCandidates, NoParentCandidates))
+                Client.ReturnParentIndex(parentCandidates);
+            parentCandidates = null;
         }
 
         internal IEnumerable<string> ContainerCandidates(string containerId)
@@ -194,31 +275,102 @@ namespace NeoCompose.Runtime
         }
 
         internal void Bind(NeoValueOwnership ownership, string memberId, bool present, string? valueId) =>
-            Bindings[(ownership, memberId)] = (present, valueId);
+            (bindings ??= new())[(ownership, memberId)] = (present, valueId);
 
         internal void AfterNotifications(Action callback) => afterNotifications.Add(callback);
+        internal void AfterNotifications(INeoPlanCallback callback) => afterNotifications.Add(callback);
 
         /// <summary>
         /// Marks <paramref name="node"/> as the collection mutator behind this
         /// plan: it publishes one precise change itself, so its row change
         /// must not raise a second, unknown one.
         /// </summary>
-        internal void ReportsOwnChange(NeoMember node) => (reportsOwnChange ??= new()).Add(node);
-        internal bool IsReportingOwnChange(NeoMember node) => reportsOwnChange?.Contains(node) == true;
+        internal void ReportsOwnChange(NeoMember node)
+        {
+            if (reportingNode is null)
+                reportingNode = node;
+            else if (!IsReportingOwnChange(node))
+                (moreReportingNodes ??= new List<NeoMember>()).Add(node);
+        }
 
-        internal void NotifyCompleted()
+        internal bool IsReportingOwnChange(NeoMember node)
         {
-            foreach (Action callback in afterNotifications)
-                callback();
+            if (ReferenceEquals(reportingNode, node))
+                return true;
+            if (moreReportingNodes is not null)
+                for (int index = 0; index < moreReportingNodes.Count; index++)
+                    if (ReferenceEquals(moreReportingNodes[index], node))
+                        return true;
+            return false;
         }
+
+        /// <summary>
+        /// The member of the reporting node bound to row <paramref name="valueId"/>:
+        /// a collection mutator knows its own member, which spares inferring it.
+        /// </summary>
+        internal Member? ReportingMember(string valueId)
+        {
+            if (reportingNode is null)
+                return null;
+            if ((reportingNode.overrideValueId ?? reportingNode.value?.id) == valueId)
+                return reportingNode.member;
+            if (moreReportingNodes is not null)
+                for (int index = 0; index < moreReportingNodes.Count; index++)
+                {
+                    NeoMember node = moreReportingNodes[index];
+                    if ((node.overrideValueId ?? node.value?.id) == valueId)
+                        return node.member;
+                }
+            return null;
+        }
+
+        internal void NotifyCompleted() => afterNotifications.Run();
         internal void AfterCommit(Action callback) => afterCommit.Add(callback);
-        internal void NotifyCommitted()
-        {
-            foreach (Action callback in afterCommit)
-                callback();
-        }
+        internal void NotifyCommitted() => afterCommit.Run();
 
         internal void Commit() => Client.CommitWritePlan(this);
+
+        /// <summary>
+        /// Callbacks in the order added: an <see cref="Action"/> or an
+        /// <see cref="INeoPlanCallback"/>. Most plans add one, which needs no list.
+        /// </summary>
+        private struct Callbacks
+        {
+            private object? first;
+            private List<object>? rest;
+
+            internal void Add(object callback)
+            {
+                if (first is null)
+                    first = callback;
+                else
+                    (rest ??= new List<object>()).Add(callback);
+            }
+
+            internal void Run()
+            {
+                if (first is not null)
+                    Invoke(first);
+                if (rest is null)
+                    return;
+                foreach (object callback in rest)
+                    Invoke(callback);
+            }
+
+            private static void Invoke(object callback)
+            {
+                if (callback is Action action)
+                    action();
+                else
+                    ((INeoPlanCallback)callback).Run();
+            }
+        }
+    }
+
+    /// <summary>Plan work that carries its own state, so it needs no closure and delegate.</summary>
+    internal interface INeoPlanCallback
+    {
+        void Run();
     }
 }
 
@@ -251,11 +403,26 @@ namespace NeoCompose.Runtime
             return TryGetCommittedOverlaidValue(ownership, id, out MemberValue? row) ? row : null;
         }
 
-        internal IDisposable ReadCandidate(NeoWritePlan plan)
+        internal CandidateReadScope ReadCandidate(NeoWritePlan plan)
         {
             NeoWritePlan? previous = candidateReadPlan;
             candidateReadPlan = plan;
-            return new NeoDisposableAction(() => candidateReadPlan = previous);
+            return new CandidateReadScope(this, previous);
+        }
+
+        /// <summary>Restores the previous candidate plan; a struct, so a scope allocates nothing.</summary>
+        internal readonly struct CandidateReadScope : IDisposable
+        {
+            private readonly NeoClient client;
+            private readonly NeoWritePlan? previous;
+
+            internal CandidateReadScope(NeoClient client, NeoWritePlan? previous)
+            {
+                this.client = client;
+                this.previous = previous;
+            }
+
+            public void Dispose() => client.candidateReadPlan = previous;
         }
 
         internal event Action<IReadOnlyCollection<(NeoValueOwnership ownership, string valueId)>, NeoWritePlan>? OnWritableValuesPublished;
@@ -273,6 +440,16 @@ namespace NeoCompose.Runtime
         private readonly HashSet<(NeoValueOwnership ownership, string valueId)> commitChangedScratch = new();
         private readonly Dictionary<(NeoValueOwnership ownership, string id), string> commitOldContainersScratch = new();
         private readonly HashSet<(NeoValueOwnership ownership, string id)> commitSameMembershipScratch = new();
+
+        private static bool HasSaveRow(NeoWritePlan plan)
+        {
+            foreach (var pair in plan.Rows)
+            {
+                if (pair.Key.ownership == NeoValueOwnership.Save && pair.Value is not null)
+                    return true;
+            }
+            return false;
+        }
 
         internal void CommitWritePlan(NeoWritePlan plan)
         {
@@ -311,9 +488,11 @@ namespace NeoCompose.Runtime
             }
             if (!ReferenceEquals(plan.Client, this))
                 throw new ArgumentException("Write plan belongs to another client.", nameof(plan));
-            foreach (var pair in plan.Rows.ToArray())
-                if (pair.Key.ownership == NeoValueOwnership.Save && pair.Value is not null)
-                    StageConstructorDependencies(plan, pair.Value);
+            // Staging adds rows, so it walks a snapshot, taken only when a Save row needs one.
+            if (HasSaveRow(plan))
+                foreach (var pair in plan.Rows.ToArray())
+                    if (pair.Key.ownership == NeoValueOwnership.Save && pair.Value is not null)
+                        StageConstructorDependencies(plan, pair.Value);
             foreach (var pair in plan.Rows)
                 if (pair.Value is not null)
                     StampMapKeyForWrite(pair.Key.ownership, pair.Value);
@@ -327,7 +506,7 @@ namespace NeoCompose.Runtime
                 if (TryGetCommittedOwnership(row.Key.id, out var previousOwnership)
                     && previousOwnership == row.Key.ownership
                     && ReplayRowsEqual(PreviousReplayRow(row.Key.id), row.Value))
-                    plan.UnchangedValueIds.Add(row.Key.id);
+                    (plan.UnchangedValueIds ??= new()).Add(row.Key.id);
             // Notifications can commit again before this commit returns, so
             // the scratch sets serve only the outermost commit.
             bool pooledScratch = !commitScratchInUse;
@@ -402,7 +581,7 @@ namespace NeoCompose.Runtime
                     InvalidateGridDependentGetterMemo();
                 if (sharedEvaluationContext is not null)
                     foreach (var item in changed)
-                        if (!plan.Rows.ContainsKey(item) || plan.Silent.Contains(item))
+                        if (!plan.Rows.ContainsKey(item) || plan.IsSilent(item))
                             RefreshSharedEvaluationRow(item.ownership, item.valueId);
                 OnWritableValuesPublished?.Invoke(changed, plan);
                 plan.NotifyCommitted();
@@ -411,16 +590,15 @@ namespace NeoCompose.Runtime
                 {
                     foreach (var pair in plan.Rows)
                     {
-                        if (plan.Silent.Contains(pair.Key))
+                        if (plan.IsSilent(pair.Key))
                         {
                             if (pair.Key.ownership == NeoValueOwnership.Save
                                 && !suppressLiveAutoCommit && loader is NeoSaveSynchronizer synchronizer)
                                 synchronizer.MarkDirtyValue(pair.Key.id, null);
                             continue;
                         }
-                        plan.Fields.TryGetValue(pair.Key, out string? changedField);
-                        NotifyWritableValueChanged(pair.Key.ownership, pair.Key.id, changedField,
-                            valueChanged: !(plan.UnchangedValueIds.Contains(pair.Key.id)
+                        NotifyWritableValueChanged(pair.Key.ownership, pair.Key.id, plan.ChangedField(pair.Key),
+                            valueChanged: !(plan.UnchangedValueIds?.Contains(pair.Key.id) == true
                                 && pair.Value is ObjectMemberValue { classId: not null, value: not null } parentRow
                                 && WritesAnyChild(plan, pair.Key.ownership, parentRow)),
                             membershipChanged: !sameMembership.Contains(pair.Key), plan: plan);
@@ -454,6 +632,7 @@ namespace NeoCompose.Runtime
                 }
                 if (batched)
                     EndChangeBatch();
+                plan.ReleaseParentCandidates();
             }
         }
     }
@@ -473,10 +652,41 @@ namespace NeoCompose.Runtime
             // A detached default often has no writable rows at all. Find the
             // actual removals before walking global reachability, and share
             // that walk across all children released by one assignment.
-            var removals = new List<string>();
-            var visited = new HashSet<string>();
-            foreach (var root in roots)
-                StageOwnedRemoval(plan, ownership, root.valueId, root.member, false, visited, null, removals);
+            List<string> removals = RentIdList();
+            HashSet<string> visited = RentIdSet();
+            try
+            {
+                foreach (var root in roots)
+                    StageOwnedRemoval(plan, ownership, root.valueId, root.member, false, visited, null, removals);
+                RemoveUnreachable(plan, ownership, removals);
+            }
+            finally
+            {
+                ReturnIdList(removals);
+                ReturnIdSet(visited);
+            }
+        }
+
+        /// <summary>The one-row form above, which most removals are.</summary>
+        internal void StageUnlinkedRemovals(
+            NeoWritePlan plan, NeoValueOwnership ownership, string valueId, Member? member)
+        {
+            List<string> removals = RentIdList();
+            HashSet<string> visited = RentIdSet();
+            try
+            {
+                StageOwnedRemoval(plan, ownership, valueId, member, false, visited, null, removals);
+                RemoveUnreachable(plan, ownership, removals);
+            }
+            finally
+            {
+                ReturnIdList(removals);
+                ReturnIdSet(visited);
+            }
+        }
+
+        private void RemoveUnreachable(NeoWritePlan plan, NeoValueOwnership ownership, List<string> removals)
+        {
             if (removals.Count == 0)
                 return;
             HashSet<string> reachable;

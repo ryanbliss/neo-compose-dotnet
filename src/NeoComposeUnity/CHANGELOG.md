@@ -1,5 +1,46 @@
 # Changelog
 
+## [0.46.0] - 2026-10-01
+
+- The SDK's own overhead is cut across NeoScript evaluation, calls between C# and NeoScript, and generated C#, so what remains in a game's frame is mostly the work its scripts ask for. Measured in the HelloWorld EditMode harness, 0.45.0 → 0.46.0, median of five rounds:
+
+  | Path | 0.45.0 | 0.46.0 |
+  |---|---|---|
+  | `while` loop, per iteration | 388 ns, 1,958 allocations per evaluation | 105 ns, 3 |
+  | `for` loop, per iteration | 319 ns, 955 allocations per evaluation | 103 ns, 1 |
+  | `foreach`, per iteration | 199 ns | 65 ns |
+  | List index read, per iteration | 508 ns, 1,004 allocations per evaluation | 148 ns, 3 |
+  | Dictionary index read, per iteration | 668 ns, 1,014 allocations per evaluation | 242 ns, 13 |
+  | Dictionary `foreach`, per iteration | 410 ns, 314 allocations per evaluation | 92 ns, 15 |
+  | String concatenation, per element | 655 ns, 5 allocations | 149 ns, 1 |
+  | `Count` / `Where` / `Select` lambda, per element | 125 / 140 / 161 ns | 60 / 82 / 88 ns |
+  | Condition / `Math.Clamp` | 75 / 152 ns | 23 / 33 ns |
+  | C# → static NSFunction | 0.43 µs | 0.11 µs |
+  | C# → instance NSFunction | 0.77 µs | 0.14 µs |
+  | NeoScript → native Function | 1.76 µs, 12 allocations | 0.17 µs, 0 |
+  | NeoScript closure call | 0.49 µs, 3 allocations | 0.10 µs, 0 |
+  | NeoDelegate member-target call | 0.54 µs, 1 allocation | 0.14 µs, 0 |
+  | C# `NSAction` invoke, 2 listeners / none | 1.43 µs, 8 allocations / 0.44 µs, 6 | 0.16 µs, 0 / 0.002 µs, 0 |
+  | NeoScript action call whose listener writes | 4.47 µs, 11 allocations | 1.15 µs, 2 |
+  | Static getter / NSProperty compute | 0.72 µs, 2 allocations / 0.88 µs, 5 | 0.11 µs, 0 / 0.14 µs, 0 |
+  | Declared construction | 1.41 µs, 4.1 allocations | 0.92 µs, 2.1 |
+  | C# NSProperty setter / NeoScript assignment | 6.69 µs, 37 allocations / 5.01 µs, 33 | 1.04 µs, 2 / 1.01 µs, 3 |
+  | Generated property read / function call | 0.42 / 1.23 µs | 0.07 / 0.36 µs |
+  | Generated `int` member write | 1.68 µs | 0.59 µs |
+  | Generated list / lookup set / dictionary `foreach` | 0.35 µs, 2 allocations / 1.45 µs, 6 / 0.36 µs, 2 | 0.16 / 0.51 / 0.23 µs, 0 |
+  | Generated list `Add` of a NeoScript temporary, 50 entries | 99 µs, 492 allocations | 19 µs, 33 |
+  | Generated list `RemoveAt`, 50 entries | 118 µs, 542 allocations | 26 µs, 10 |
+  | Generated list `Add`, growing to 1,000 entries | 836 µs, 3,385 allocations | 39 µs, 33 |
+  | Generated list `RemoveAt`, shrinking from 1,000 entries | 1,043 µs, 4,868 allocations | 64 µs, 10 |
+
+  A list write's allocations no longer grow with the list: the write plan indexes only the links it changes, a list rebuilds only the children a write changed, and commit walks, staging and parent indexes are pooled. Instructions dispatch on an internal code, loops keep their locals unboxed, call sites bind their callee, its arguments and its native invoker once, and frames, scopes and contexts are pooled. Generated collections enumerate without allocating, and nodes subscribe to value changes without a delegate per subscriber. An NSFunction checks its returned value's Class identity where C# calls into NeoScript, not on every NeoScript-to-NeoScript call.
+- Removing one instance of a class no longer disposes the node of a value-less member (a Function or computed property) that every instance shares. Removing a list entry used to break that member for its siblings. Holders are now counted, and the node is disposed when the last one releases it.
+- **Breaking:** NeoScript evaluation and generated-type calls must run on one thread at a time. The pooled argument buffers, scopes, contexts and staging are no longer guarded against concurrent calls, which used to fall back to fresh allocations.
+- **Breaking:** a `NeoClient.NeoNativeFunctionInvoker`'s `args` array is valid only until the invoker returns. A NeoScript call site reuses the array for its next call, so copy any argument you keep. Generated bindings read their arguments immediately and are unaffected.
+- **Breaking:** the schema member kinds (`NullMember` through `DecimalMember`) are sealed. `Instruction` and `ActionListenerInstruction` can no longer be subclassed directly outside the SDK, and every concrete instruction except `WhileInstruction` (the base of `DoWhileInstruction`) is sealed. They are deserialized shapes, as the IR classes sealed in 0.44.0 are.
+- **Breaking (binary):** `GetEnumerator()` on `NeoReadOnlyList<T>`, `NeoReadOnlyDictionary<T>`, `NeoReadOnlyDictionary<TKey, TValue>`, `NeoReadOnlyLookupSet<T>` and `NeoReadOnlyDialogueReferenceSet` returns a public struct `Enumerator`, so `foreach` allocates nothing. Source that uses `foreach`, LINQ or the interfaces compiles unchanged. Recompile code that calls these methods directly.
+- `NeoMember.HandleChildChanged` is `protected internal virtual`. `NeoMemberClass.inheritanceChain` and `mergedSchema` are empty arrays, not empty lists, until the class resolves.
+
 ## [0.45.0] - 2026-09-30
 
 - Evaluating NeoScript costs less CPU and allocates almost nothing beyond the objects a script builds. A NeoScript temporary keeps a few members in the object itself instead of a separate slot array. An enum literal evaluates to one shared array instead of a copy per evaluation; nothing writes an enum value in place. Repeat member reads reuse the record's child slots and the Class of a row reference. Getter call sites cache their receiver's schema entry, and pooled function frames keep their bound parameters. Immediate calls skip resume bookkeeping, small switches scan their labels, and lists the evaluator allocated skip alias lookups. A call site resolves its native Function's declaration once, including a cell pattern argument's call, and a grid query keeps its receiver's placement until a grid change moves it. In Neowyn's per-plant `Evaluate`, the cost fell from 144 µs to 102–103 µs per plant at 72 plants and from 150 µs to 106–107 µs at 288 (with the profiler markers compiled out, below). Allocations fell from 84 to 8 per plant: the 6 objects the script builds, the C# view and its `Scores` array.

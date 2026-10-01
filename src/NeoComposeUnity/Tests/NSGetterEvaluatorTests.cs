@@ -2414,11 +2414,11 @@ namespace NeoCompose.Tests
             client.RecycleGetterCapture(capture);
             var ctx = new NSGetterEvaluator.Context(client, thisValue: null, rootValue: null);
             object? list = NSGetterEvaluator.Evaluate(ReturnFunction(KeyOf(root, "Commands"), MemberKind.List), ctx);
-            var listEntries = System.Array.Empty<NSGetterEvaluator.CollectionEntrySnapshot>();
-            NSGetterEvaluator.SnapshotCollectionEntries(list, ctx, ref listEntries);
+            var listEntries = new NSGetterEvaluator.CollectionSnapshot();
+            listEntries.Take(list, ctx);
             Assert.AreEqual(
                 "add pickaxe.stone",
-                listEntries[0].Resolve(ctx),
+                listEntries.Resolve(0, ctx),
                 "foreach");
             FunctionPointer Where(bool keep) => new FunctionPointer
             {
@@ -2465,11 +2465,11 @@ namespace NeoCompose.Tests
             CollectionAssert.IsEmpty(empty, "second empty Where");
             Assert.IsNull(NSGetterEvaluator.CollectionEntryMember(empty, ctx), "a shared empty array carries no entry member");
             object? filtered = NSGetterEvaluator.Evaluate(ReturnFunction(where, MemberKind.List), ctx);
-            var filteredEntries = System.Array.Empty<NSGetterEvaluator.CollectionEntrySnapshot>();
-            NSGetterEvaluator.SnapshotCollectionEntries(filtered, ctx, ref filteredEntries);
+            var filteredEntries = new NSGetterEvaluator.CollectionSnapshot();
+            filteredEntries.Take(filtered, ctx);
             Assert.AreEqual(
                 "add pickaxe.stone",
-                filteredEntries[0].Resolve(ctx),
+                filteredEntries.Resolve(0, ctx),
                 "foreach over Where");
             var scope = new Dictionary<string, object?> { ["commands"] = filtered };
             var local = new VariablePointer { type = PointerKind.Variable, variableId = "commands" };

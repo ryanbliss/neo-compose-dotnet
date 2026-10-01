@@ -45,7 +45,7 @@ namespace NeoCompose.Runtime
         /// <summary>
         /// The override-value-id passed to the ctor — together with
         /// <see cref="Member.id"/> it composes the registry key
-        /// (<see cref="NeoClient.MakeNodeKey"/>). Lifted to the base so
+        /// (<see cref="NeoNodeKey"/>). Lifted to the base so
         /// <see cref="Dispose"/> can compute the unregister key without
         /// reaching into the typed intermediate.
         /// </summary>
@@ -53,10 +53,25 @@ namespace NeoCompose.Runtime
         {
             get;
         }
-        private string? registryKey;
-        internal string RegistryKey => registryKey ??= NeoClient.MakeNodeKey(
-            member.RuntimeDeclarationIdentity, overrideValueId, ownership);
+        internal NeoNodeKey RegistryKey => new(member.RuntimeDeclarationIdentity, overrideValueId, ownership);
         private MemberValue? boundValue;
+        // The value node the typed value read last resolved.
+        private protected NeoValueNode? valueNode;
+
+        /// <summary>The live value node this member last read for <paramref name="id"/>, if it holds one.</summary>
+        internal NeoValueNode? HeldValueNode(string id) =>
+            valueNode is { live: true } node && node.id == id ? node : null;
+
+        // One id per member, so a rowless member's default read allocates none.
+        private static readonly Dictionary<string, string> defaultValueIds = new(System.StringComparer.Ordinal);
+
+        private protected static string DefaultValueId(string memberId)
+        {
+            if (!defaultValueIds.TryGetValue(memberId, out string? id))
+                defaultValueIds[memberId] = id = $"__neo_default:{memberId}";
+            return id;
+        }
+
         internal bool IsRegisteredWithClient
         {
             get; set;
@@ -118,12 +133,6 @@ namespace NeoCompose.Runtime
             get; internal set;
         }
         public event System.Action<NeoMember>? OnChanged;
-        /// <summary>
-        /// The parent container's channel: it bubbles a change inside the
-        /// write that made it, while <see cref="OnChanged"/> listeners hear a
-        /// commit once, after it (<see cref="NeoClient.RaiseChanged"/>).
-        /// </summary>
-        internal event System.Action<NeoMember>? ChildChanged;
         public event System.Action<NeoMember>? OnDisposed;
         /// <summary>
         /// True after <see cref="Dispose"/> has run. Subclasses must
@@ -143,11 +152,16 @@ namespace NeoCompose.Runtime
             isDisposingChildren = true;
             return true;
         }
-        // Every Class instance containing a declaration-backed member holds
-        // this one shared node. Holders are counted here rather than
-        // subscribed to OnChanged: a multicast delegate copies its whole
-        // invocation list per add/remove, which made each holder cost O(holders).
-        private Dictionary<NeoMemberClass, int>? declarationHolders;
+        // The containers holding this node, which hear its changes inside the
+        // write that made them, while OnChanged listeners hear a commit once,
+        // after it (NeoClient.RaiseChanged). The registry shares a node by key,
+        // so every instance of a class holds the same declaration-backed or
+        // value-less (Function, computed property) node. Holds are counted
+        // rather than subscribed: a multicast delegate copies its whole
+        // invocation list per add and remove, which made each holder cost
+        // O(holders). One holder, the usual case, needs no map.
+        private NeoMember? soleHolder;
+        private Dictionary<NeoMember, int>? holders;
 
         protected NeoMember(
             NeoClient client,
@@ -190,25 +204,51 @@ namespace NeoCompose.Runtime
             client.UnregisterNode(this);
         }
 
-        internal void RetainDeclarationReference(NeoMemberClass holder)
+        internal void Hold(NeoMember holder)
         {
-            declarationHolders ??= new Dictionary<NeoMemberClass, int>();
-            declarationHolders.TryGetValue(holder, out int count);
-            declarationHolders[holder] = count + 1;
-        }
-
-        internal void ReleaseDeclarationReference(NeoMemberClass holder)
-        {
-            if (declarationHolders is null || !declarationHolders.TryGetValue(holder, out int count))
-                return;
-            if (count > 1)
+            if (soleHolder is null && holders is null)
             {
-                declarationHolders[holder] = count - 1;
+                soleHolder = holder;
                 return;
             }
-            declarationHolders.Remove(holder);
-            if (declarationHolders.Count == 0)
-                Dispose();
+            if (holders is null)
+            {
+                holders = new Dictionary<NeoMember, int> { [soleHolder!] = 1 };
+                soleHolder = null;
+            }
+            holders.TryGetValue(holder, out int count);
+            holders[holder] = count + 1;
+        }
+
+        /// <summary>Drops one of <paramref name="holder"/>'s holds, and disposes this node once nothing holds it.</summary>
+        internal void Release(NeoMember holder)
+        {
+            if (holders is null)
+            {
+                if (soleHolder is not null && soleHolder != holder)
+                    return;
+                soleHolder = null;
+            }
+            else
+            {
+                if (holders.TryGetValue(holder, out int count))
+                {
+                    if (count > 1)
+                    {
+                        holders[holder] = count - 1;
+                        return;
+                    }
+                    holders.Remove(holder);
+                }
+                if (holders.Count != 0)
+                    return;
+            }
+            Dispose();
+        }
+
+        /// <summary>Hears a change bubbled by a node this one holds.</summary>
+        protected internal virtual void HandleChildChanged(NeoMember changed)
+        {
         }
 
         protected void NotifyChanged()
@@ -220,12 +260,32 @@ namespace NeoCompose.Runtime
         {
             if (isDisposed)
                 return;
-            ChildChanged?.Invoke(changed);
-            if (declarationHolders is { Count: > 0 })
-                foreach (NeoMemberClass holder in declarationHolders.Keys.ToArray())
-                    holder.HandleChildChanged(changed);
+            if (soleHolder is not null)
+                soleHolder.HandleChildChanged(changed);
+            else if (holders is { Count: > 0 })
+                NotifyHolders(changed);
             if (OnChanged is not null)
                 client.RaiseChanged(this, changed);
+        }
+
+        private void NotifyHolders(NeoMember changed)
+        {
+            // Over a copy: a holder may take or release holds as it hears.
+            int count = holders!.Count;
+            NeoMember[] snapshot = System.Buffers.ArrayPool<NeoMember>.Shared.Rent(count);
+            try
+            {
+                int index = 0;
+                foreach (var pair in holders)
+                    snapshot[index++] = pair.Key;
+                for (index = 0; index < count; index++)
+                    snapshot[index].HandleChildChanged(changed);
+            }
+            finally
+            {
+                System.Array.Clear(snapshot, 0, count);
+                System.Buffers.ArrayPool<NeoMember>.Shared.Return(snapshot);
+            }
         }
 
         /// <summary>The list change a queued notification carries, when this node is a list.</summary>
@@ -494,7 +554,7 @@ namespace NeoCompose.Runtime
     /// collection classes) that funnels through
     /// <c>client.SetSaveValue</c> / <c>client.AddSaveValue</c>.</para>
     /// </summary>
-    public abstract class NeoMember<TMember, TValue> : NeoMember
+    public abstract class NeoMember<TMember, TValue> : NeoMember, INeoWritableValueListener
         where TMember : Member
         where TValue : MemberValue
     {
@@ -565,14 +625,17 @@ namespace NeoCompose.Runtime
                     }
                     return MemberValueFactory.CreateFromDefault(
                         member,
-                        $"__neo_default:{member.id}",
+                        DefaultValueId(member.id),
                         member.createdAt,
                         member.updatedAt) as TValue;
                 }
 
-                if (!client.TryGetOverlaidValue(ownership, resolvedValueId, out TValue? match))
-                    return null;
-                return match;
+                // The untyped read, cast once: this body is shared across
+                // instantiations, so a generic call from it is a runtime
+                // generic-context lookup. The node spares the id lookup.
+                if (valueNode is not null && valueNode.id != resolvedValueId)
+                    valueNode = null;
+                return client.ReadOverlaidValue(ownership, resolvedValueId, ref valueNode) as TValue;
             }
         }
 
@@ -611,18 +674,33 @@ namespace NeoCompose.Runtime
         {
             if (isDisposed)
                 return;
-            valueChangeSubscription?.Dispose();
+            UnsubscribeFromValueChanges();
             base.Dispose();
         }
 
-        private System.IDisposable? valueChangeSubscription;
+        // The value id this node listens to, if any. The node is its own
+        // listener, so subscribing allocates no delegate.
+        private string? subscribedValueId;
 
         private void SubscribeToValueChanges()
         {
-            valueChangeSubscription?.Dispose();
-            valueChangeSubscription = valueId is string id
-                ? client.SubscribeWritableValue(id, HandleWritableValueChanged) : null;
+            UnsubscribeFromValueChanges();
+            if (valueId is not string id)
+                return;
+            subscribedValueId = id;
+            client.AddWritableValueListener(id, this);
         }
+
+        private void UnsubscribeFromValueChanges()
+        {
+            if (subscribedValueId is null)
+                return;
+            client.RemoveWritableValueListener(subscribedValueId, this);
+            subscribedValueId = null;
+        }
+
+        void INeoWritableValueListener.OnWritableValueChanged(NeoValueOwnership ownership, string valueId) =>
+            HandleWritableValueChanged(ownership, valueId);
 
         private void HandleWritableValueChanged(
             NeoValueOwnership changedOwnership,
@@ -785,7 +863,10 @@ namespace NeoCompose.Runtime
         /// publishes the candidate. Missing bindings are minted
         /// by the caller through BindNewValue.
         /// </summary>
-        protected TValue? EnsureWritableValue()
+        protected TValue? EnsureWritableValue() => EnsureWritableValue(sharesArrayEntries: false);
+
+        /// <param name="sharesArrayEntries">See <see cref="NeoClient.CloneRowForWrite"/>.</param>
+        private protected TValue? EnsureWritableValue(bool sharesArrayEntries)
         {
             if (ownership == NeoValueOwnership.Asset)
                 return value;
@@ -796,7 +877,7 @@ namespace NeoCompose.Runtime
             if (!client.TryGetWritableValue(ownership, id, out source)
                 && !client.TryGetOverlaidValue(ownership, id, out source))
                 return null;
-            var candidate = (TValue)client.CloneRowForWrite(source!);
+            var candidate = (TValue)client.CloneRowForWrite(source!, sharesArrayEntries);
             candidate.mark = null;
             return candidate;
         }
@@ -830,12 +911,13 @@ namespace NeoCompose.Runtime
         /// (a value-less root — which shouldn't occur for valid projects,
         /// whose roots carry an authored <c>valueId</c>).
         /// </summary>
-        private protected TValue? WritableCandidate(NeoWritePlan plan)
+        /// <param name="sharesArrayEntries">See <see cref="NeoClient.CloneRowForWrite"/>.</param>
+        private protected TValue? WritableCandidate(NeoWritePlan plan, bool sharesArrayEntries = false)
         {
-            string? id = plan.NodeBindings.TryGetValue(this, out string? plannedId) ? plannedId : valueId;
+            string? id = plan.TryGetNodeBinding(this, out string? plannedId) ? plannedId : valueId;
             if (id is not null && plan.Resolve(ownership, id) is TValue candidate)
-                return (TValue)client.CloneRowForWrite(candidate);
-            return EnsureWritableValue();
+                return (TValue)client.CloneRowForWrite(candidate, sharesArrayEntries);
+            return EnsureWritableValue(sharesArrayEntries);
         }
 
         protected void BindNewValue(TValue newRow)
@@ -851,7 +933,7 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException($"Cannot bind a new value on an asset-owned member '{member.id}'.");
             parent?.AssertContainingClassesCanBeConstructed();
             plan.Set(ownership, newRow);
-            plan.NodeBindings[this] = newRow.id;
+            plan.BindNode(this, newRow.id);
             plan.AfterCommit(() =>
             {
                 value = newRow;

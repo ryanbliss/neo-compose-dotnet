@@ -89,6 +89,32 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void ReadingItsId_KeepsTheView()
+        {
+            NeoClient client = BuildClient();
+            TestLine line = NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(
+                client,
+                Evaluate(client, LineType, Line()),
+                true,
+                null,
+                TestLine.CreateWritable,
+                TestLine.CreateDetached);
+
+            string id = line.valueId!;
+
+            Assert.IsNotNull(line.PendingValue, "An id needs the rows, not a node.");
+            Assert.AreSame(line, NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(
+                client,
+                id,
+                true,
+                null,
+                TestLine.CreateWritable,
+                TestLine.CreateDetached));
+            Assert.AreEqual(3, line.Score);
+            Assert.AreEqual(id, line.valueId);
+        }
+
+        [Test]
         public void ReturnedTemporary_WritesLandOnItsRow()
         {
             NeoClient client = BuildClient();
@@ -209,6 +235,30 @@ namespace NeoCompose.Tests
             Assert.AreEqual(2, lines.Count);
             Assert.AreEqual(2, report.Lines.Count);
             Assert.AreEqual(added.valueId, lines[1].valueId);
+        }
+
+        [Test]
+        public void RemovingAnEntry_KeepsTheComputedNodeItsSiblingsShare()
+        {
+            NeoClient client = BuildClient();
+            TestReport report = ReadReport(client, EvaluateReport(client), out _);
+            NeoList<TestLine> lines = report.Lines;
+            lines.Add(NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(
+                client,
+                Evaluate(client, LineType, Line()),
+                true,
+                null,
+                TestLine.CreateWritable,
+                TestLine.CreateDetached));
+            NeoMember kept = lines[0].BackingNode.Get<NeoMember>("Doubled");
+            Assert.AreSame(kept, lines[1].BackingNode.Get<NeoMember>("Doubled"),
+                "A value-less member's node is shared by every instance.");
+
+            lines.RemoveAt(1);
+
+            Assert.IsFalse(kept.isDisposed, "The remaining entry still holds the shared node.");
+            Assert.AreSame(kept, lines[0].BackingNode.Get<NeoMember>("Doubled"));
+            Assert.AreEqual(6, lines[0].Doubled);
         }
 
         [Test]

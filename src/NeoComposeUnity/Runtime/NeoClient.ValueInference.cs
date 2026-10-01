@@ -24,28 +24,36 @@ namespace NeoCompose.Runtime
 
         internal IEnumerable<KeyValuePair<string, MemberValue>> InferMemberParents(string childId)
         {
-            var candidates = new HashSet<string>(PlacementParents(childId));
-            if (candidateReadPlan is not null)
+            HashSet<string> candidates = RentIdSet();
+            try
             {
-                candidates.UnionWith(candidateReadPlan.ParentCandidates(childId));
-                if (candidateReplay?.Parents.TryGetValue(childId, out var allocatedParents) == true)
-                    candidates.UnionWith(allocatedParents);
-            }
-            foreach (var pair in IndexedWritableParents(childId, NeoValueOwnership.Session, sessionData.values, candidates))
-                yield return pair;
-            foreach (var pair in IndexedWritableParents(childId, NeoValueOwnership.Save, saveData.values, candidates))
-                yield return pair;
-            if (ValueInferenceIndex.Parents.TryGetValue(childId, out var parents))
-                foreach (var pair in parents)
+                CollectPlacementParents(childId, candidates);
+                if (candidateReadPlan is not null)
+                {
+                    candidateReadPlan.CollectParentCandidates(childId, candidates);
+                    if (candidateReplay?.Parents.TryGetValue(childId, out var allocatedParents) == true)
+                        candidates.UnionWith(allocatedParents);
+                }
+                foreach (var pair in IndexedWritableParents(childId, NeoValueOwnership.Session, sessionData.values, candidates))
                     yield return pair;
-            if (candidateReadPlan is not null)
-                foreach (string id in candidates)
-                    if (!sessionData.values.ContainsKey(id) && !saveData.values.ContainsKey(id)
-                        && !data.values.ContainsKey(id)
-                        && !TryGetWritableValue(NeoValueOwnership.Session, id, out MemberValue? _)
-                        && !TryGetWritableValue(NeoValueOwnership.Save, id, out MemberValue? _)
-                        && ResolveValueRow(id) is MemberValue row && MightReferenceChildValueId(row, childId))
-                        yield return new KeyValuePair<string, MemberValue>(id, row);
+                foreach (var pair in IndexedWritableParents(childId, NeoValueOwnership.Save, saveData.values, candidates))
+                    yield return pair;
+                if (ValueInferenceIndex.Parents.TryGetValue(childId, out var parents))
+                    foreach (var pair in parents)
+                        yield return pair;
+                if (candidateReadPlan is not null)
+                    foreach (string id in candidates)
+                        if (!sessionData.values.ContainsKey(id) && !saveData.values.ContainsKey(id)
+                            && !data.values.ContainsKey(id)
+                            && !TryGetWritableValue(NeoValueOwnership.Session, id, out MemberValue? _)
+                            && !TryGetWritableValue(NeoValueOwnership.Save, id, out MemberValue? _)
+                            && ResolveValueRow(id) is MemberValue row && MightReferenceChildValueId(row, childId))
+                            yield return new KeyValuePair<string, MemberValue>(id, row);
+            }
+            finally
+            {
+                ReturnIdSet(candidates);
+            }
         }
 
         private IEnumerable<KeyValuePair<string, MemberValue>> IndexedWritableParents(

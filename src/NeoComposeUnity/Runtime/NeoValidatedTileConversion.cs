@@ -70,12 +70,11 @@ namespace NeoCompose.Runtime
             if (plan.Bindings.Count != 0 || plan.Rows.Count == 0)
                 return false;
 
-            var conversions = new List<(
+            // Most writes convert no tile, so nothing is allocated until one does.
+            List<(
+                (NeoValueOwnership ownership, string id) key,
                 ObjectMemberValue next,
-                string nextCellValueId)>();
-            var conversionRootIds = new HashSet<string>();
-            var conversionRootKeys = new HashSet<(NeoValueOwnership ownership, string id)>();
-            var allowedCells = new HashSet<(NeoValueOwnership ownership, string id)>();
+                string nextCellValueId)>? conversions = null;
             foreach (var pair in plan.Rows)
             {
                 if (pair.Value is not ObjectMemberValue next
@@ -129,13 +128,19 @@ namespace NeoCompose.Runtime
                 {
                     return false;
                 }
-                conversionRootIds.Add(next.id);
-                conversionRootKeys.Add(pair.Key);
-                allowedCells.Add((pair.Key.ownership, nextCellValueId!));
-                conversions.Add((next, nextCellValueId!));
+                (conversions ??= new()).Add((pair.Key, next, nextCellValueId!));
             }
-            if (conversions.Count == 0)
+            if (conversions is null)
                 return false;
+            var conversionRootIds = new HashSet<string>();
+            var conversionRootKeys = new HashSet<(NeoValueOwnership ownership, string id)>();
+            var allowedCells = new HashSet<(NeoValueOwnership ownership, string id)>();
+            foreach (var conversion in conversions)
+            {
+                conversionRootIds.Add(conversion.next.id);
+                conversionRootKeys.Add(conversion.key);
+                allowedCells.Add((conversion.key.ownership, conversion.nextCellValueId));
+            }
             foreach (var pair in plan.Rows)
             {
                 if (conversionRootKeys.Contains(pair.Key))
@@ -146,10 +151,13 @@ namespace NeoCompose.Runtime
                     return false;
                 }
             }
-            if (candidateReplay is not null
-                && candidateReplay.AffectedRoots.Any(id => !conversionRootIds.Contains(id)))
+            if (candidateReplay is not null)
             {
-                return false;
+                foreach (string id in candidateReplay.AffectedRoots)
+                {
+                    if (!conversionRootIds.Contains(id))
+                        return false;
+                }
             }
 
             var validated = new List<NeoValidatedTileConversion>(conversions.Count);
@@ -188,7 +196,7 @@ namespace NeoCompose.Runtime
                     conversion.nextCellValueId,
                     conversion.next.updatedAt.EpochMilliseconds));
             }
-            plan.ValidatedTileConversions.AddRange(validated);
+            (plan.ValidatedTileConversions ??= new()).AddRange(validated);
             return true;
         }
 
@@ -223,6 +231,7 @@ namespace NeoCompose.Runtime
             var visited = new HashSet<string>();
             var grids = new HashSet<string>();
             var links = new HashSet<string>();
+            var staged = new List<string>();
             while (pending.Count != 0)
             {
                 string id = pending.Dequeue();
@@ -240,7 +249,9 @@ namespace NeoCompose.Runtime
                     pending.Enqueue(row!.containerId!);
                 foreach (string parent in PlacementParents(id))
                     pending.Enqueue(parent);
-                foreach (string parent in plan.ParentCandidates(id))
+                staged.Clear();
+                plan.CollectParentCandidates(id, staged);
+                foreach (string parent in staged)
                     pending.Enqueue(parent);
             }
             gridValueId = grids.Count == 1 ? grids.First() : null;

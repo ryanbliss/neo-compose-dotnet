@@ -25,7 +25,7 @@ namespace NeoCompose.Tests
             var body = Action(IntType(), new[] { argument }, VariableDeclaration("saved", Number(1), IntType()), Return(Variable("saved")));
             var layout = new NeoScriptScopeLayout(body);
             var scope = new NeoScriptScope(layout);
-            scope.SetEvaluationValue("saved", new NSGetterEvaluator.ArithmeticValue(7d));
+            scope.SetEvaluationValue("saved", NSGetterEvaluator.ArithmeticValue.BareNumber, 7d);
             var pointer = Variable("saved");
             var aliasIndex = new object();
             NSGetterEvaluator.RowReference? noAlias = null;
@@ -50,7 +50,7 @@ namespace NeoCompose.Tests
             Assert.That(JObject.FromObject(pointer).Property("runtimeBinding"), Is.Null);
             var external = new Dictionary<string, object?>();
             var wrapped = new NeoScriptScope(external);
-            wrapped.SetEvaluationValue("saved", new NSGetterEvaluator.ArithmeticValue(12d));
+            wrapped.SetEvaluationValue("saved", NSGetterEvaluator.ArithmeticValue.BareNumber, 12d);
             Assert.That(external["saved"], Is.EqualTo(12d));
             external["saved"] = 13d;
             Assert.That(wrapped.TryGetValue("saved", out var visible), Is.True);
@@ -76,28 +76,28 @@ namespace NeoCompose.Tests
             }
 
             Assert.That(Remembered(aliasIndex), Is.False, "Nothing was remembered yet.");
-            scope.RememberListAlias(pointer, list, aliasIndex, NSGetterEvaluator.ListAliasEpoch, null);
+            scope.RememberListAlias(pointer, list, aliasIndex, NSGetterEvaluator.CollectionAliasEpoch, null);
             Assert.That(Remembered(aliasIndex), Is.True);
             Assert.That(rowAlias, Is.Null, "A plain list names no row.");
             Assert.That(Remembered(new object()), Is.False, "Another alias index was not checked.");
 
-            NSGetterEvaluator.NoteListAlias();
+            NSGetterEvaluator.NoteCollectionAlias();
             Assert.That(Remembered(aliasIndex), Is.False, "A list became an alias since.");
 
             var row = new NSGetterEvaluator.RowReference("items-row", NeoValueOwnership.Save);
-            scope.RememberListAlias(pointer, list, aliasIndex, NSGetterEvaluator.ListAliasEpoch, row);
+            scope.RememberListAlias(pointer, list, aliasIndex, NSGetterEvaluator.CollectionAliasEpoch, row);
             Assert.That(Remembered(aliasIndex), Is.True);
             Assert.That(rowAlias, Is.SameAs(row));
-            NSGetterEvaluator.NoteListAlias();
+            NSGetterEvaluator.NoteCollectionAlias();
             Assert.That(Remembered(aliasIndex), Is.False, "A list alias changed since.");
 
-            scope.RememberListAlias(pointer, list, aliasIndex, NSGetterEvaluator.ListAliasEpoch, null);
+            scope.RememberListAlias(pointer, list, aliasIndex, NSGetterEvaluator.CollectionAliasEpoch, null);
             scope["items"] = list;
             Assert.That(Remembered(aliasIndex), Is.False, "A write clears the slot's memo.");
         }
 
         [Test]
-        public void ArrayAliasCacheHoldsAMissUntilTheListAliasEpochMoves()
+        public void ArrayAliasCacheHoldsAMissUntilTheCollectionAliasEpochMoves()
         {
             using var client = BuildClient(Array.Empty<JsonMember>(), ReceiverClass());
             var context = new NSGetterEvaluator.Context(client, null, null);
@@ -105,18 +105,18 @@ namespace NeoCompose.Tests
             var fresh = new object?[] { 2d };
             var row = new NSGetterEvaluator.RowReference("items-row", NeoValueOwnership.Save);
 
-            Assert.That(context.ArrayRowReference(list), Is.Null);
+            Assert.That(context.CollectionRowReference(list), Is.Null);
             context.rowReverseIndex.Add(list, row);
-            Assert.That(context.ArrayRowReference(list), Is.Null, "A miss holds while the epoch stands.");
-            NSGetterEvaluator.NoteListAlias();
-            Assert.That(context.ArrayRowReference(list), Is.SameAs(row), "A moved epoch looks the list up again.");
+            Assert.That(context.CollectionRowReference(list), Is.Null, "A miss holds while the epoch stands.");
+            NSGetterEvaluator.NoteCollectionAlias();
+            Assert.That(context.CollectionRowReference(list), Is.SameAs(row), "A moved epoch looks the list up again.");
 
             context.NoteFreshList(fresh);
-            Assert.That(context.ArrayRowReference(fresh), Is.Null);
+            Assert.That(context.CollectionRowReference(fresh), Is.Null);
             Assert.That(context.ArrayDetachedOrigin(fresh), Is.Null);
             context.rowReverseIndex.Add(fresh, row);
-            NSGetterEvaluator.NoteListAlias();
-            Assert.That(context.ArrayRowReference(fresh), Is.SameAs(row), "A fresh note is only as current as its epoch.");
+            NSGetterEvaluator.NoteCollectionAlias();
+            Assert.That(context.CollectionRowReference(fresh), Is.SameAs(row), "A fresh note is only as current as its epoch.");
         }
 
         [Test]
@@ -172,18 +172,34 @@ namespace NeoCompose.Tests
             var reused = client.RentDirectFunctionContext(NeoValueOwnership.Session);
             Assert.That(reused, Is.SameAs(first));
             Assert.That(reused.thisValue, Is.Null);
+            var callStack = new[] { "bound-function" };
+            var handlers = new StubHandlers(() => null);
+            reused.BindFunction(callStack, null);
+            reused.BindFrameHandlers(-1, handlers);
+            client.ReturnDirectFunctionContext(reused, 1);
+            var function = client.RentDirectFunctionContext(NeoValueOwnership.Session, function: true);
+            Assert.That(function, Is.SameAs(first));
+            Assert.That(function.functionCallStack, Is.SameAs(callStack), "A direct function call keeps the binding it binds again.");
+            Assert.That(function.expressionHandlers, Is.SameAs(handlers));
+            client.ReturnDirectFunctionContext(function, 1);
+            reused = client.RentDirectFunctionContext(NeoValueOwnership.Session);
+            Assert.That(reused, Is.SameAs(first));
+            Assert.That(reused.functionCallStack, Is.Empty, "Any other renter starts outside a function.");
+            Assert.That(reused.expressionHandlers, Is.Null);
             client.ReturnDirectFunctionContext(reused, 1);
             client.InvalidateSchemaResolutionCaches();
-            var pool = (System.Collections.ICollection)typeof(NeoClient).GetField("directFunctionContexts",
+            // Every slot, not just the count: a slot above the count still
+            // retains its context.
+            var pool = (object?[])typeof(NeoClient).GetField("directFunctionContexts",
                 System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(client)!;
-            Assert.That(pool.Count, Is.Zero);
+            Assert.That(pool, Is.All.Null);
             client.ReturnDirectFunctionContext(overlapping, 1);
-            Assert.That(pool.Count, Is.Zero, "Invalidation while a frame is checked out must not retain the old graph on return.");
+            Assert.That(pool, Is.All.Null, "Invalidation while a frame is checked out must not retain the old graph on return.");
             var fresh = client.RentDirectFunctionContext(NeoValueOwnership.Session);
             Assert.That(fresh, Is.Not.SameAs(first));
             fresh.WithThis(new object()); // Forked frames may retain shared state.
             client.ReturnDirectFunctionContext(fresh, 1);
-            Assert.That(pool.Count, Is.Zero);
+            Assert.That(pool, Is.All.Null);
         }
 
         [Test]
@@ -230,8 +246,8 @@ namespace NeoCompose.Tests
             using var client = BuildClient(Array.Empty<JsonMember>(), ReceiverClass());
             var context = new NSGetterEvaluator.Context(client, null, null);
             var scope = new NeoScriptScope();
-            scope.SetEvaluationValue("left", new NSGetterEvaluator.ArithmeticValue(left));
-            scope.SetEvaluationValue("right", new NSGetterEvaluator.ArithmeticValue(right));
+            scope.SetEvaluationValue("left", NSGetterEvaluator.ArithmeticValue.BareNumber, left);
+            scope.SetEvaluationValue("right", NSGetterEvaluator.ArithmeticValue.BareNumber, right);
             foreach (string op in new[] { OperatorKind.EqualTo, OperatorKind.DoesNotEqual,
                 OperatorKind.GreaterThan, OperatorKind.GreaterThanOrEqualTo, OperatorKind.LessThan, OperatorKind.LessThanOrEqualTo })
             {
@@ -366,12 +382,30 @@ namespace NeoCompose.Tests
             scope["wide"] = 10L;
             Assert.That(NSGetterEvaluator.EvaluatePointer(sum, scope, context), Is.EqualTo("11"));
             int calls = 0;
-            context = context.WithExpressionHandlers((_, _, _) => { calls++; return 2d; }, (_, _, _) => null);
+            context = context.WithExpressionHandlers(new StubHandlers(() =>
+            {
+                calls++;
+                return 2d;
+            }));
             var divide = Add(Number(1), Number(0));
             ((ArithmeticOperation)divide.operation).arithmetic.type = ArithmeticOpKind.Division;
             ((ArithmeticOperation)divide.operation).arithmetic.pointers = new Pointer[] { Number(1), Number(0), Call("effect", "effect") };
             Assert.Throws<NSGetterRuntimeError>(() => NSGetterEvaluator.EvaluatePointer(divide, scope, context));
             Assert.That(calls, Is.EqualTo(1), "All operands execute before the arithmetic fold reports division by zero.");
+        }
+
+        private sealed class StubHandlers : NSGetterEvaluator.Context.ExpressionHandlers
+        {
+            private readonly Func<object?> call;
+
+            internal StubHandlers(Func<object?> call)
+            {
+                this.call = call;
+            }
+
+            internal override object? Call(CallFunctionPointer pointer, NeoScriptScope scope, NSGetterEvaluator.Context ctx) => call();
+
+            internal override object? Initialize(ObjectInitializerPointer pointer, NeoScriptScope scope, NSGetterEvaluator.Context ctx) => null;
         }
 
         [Test]
@@ -392,26 +426,104 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void NativeInvocationRetainsOwnedArgumentsAfterPooledCallStorageIsReused()
+        public void StaticGetterReadRunsInItsFrameWithoutAllocating()
         {
-            var native = NativeFunction("retain", "Retain", false);
+            var getter = new NSPropertyMember
+            {
+                id = "static-getter",
+                projectId = ProjectId,
+                name = "Five",
+                kind = MemberKind.NSProperty,
+                Modifier = NeoMemberModifierKind.Static,
+                code = "return 5;",
+                returnTypeInfo = IntType(),
+                getter = Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(), Return(Number(5))),
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            var read = new CallGetterPointer
+            {
+                type = PointerKind.CallGetter,
+                memberId = getter.id,
+                receiver = CallReceiver.Static(getter.id),
+            };
+            using var client = BuildClient(new JsonMember[] { getter }, ReceiverClass());
+            var context = new NSGetterEvaluator.Context(client, null, null);
+            var scope = new NeoScriptScope(0);
+            Assert.That(NSGetterEvaluator.EvaluatePointer(read, scope, context), Is.EqualTo(5));
+            Assert.That(context.expressionHandlers, Is.Null, "The getter's frame restores the caller's handlers.");
+
+            var property = new NeoMemberNSProperty(client, getter, null);
+            // The first reads fill the client's context pool.
+            Assert.That(property.Compute().value, Is.EqualTo(5));
+            Assert.That(property.Compute().value, Is.EqualTo(5));
+
+            var recorder = UnityEngine.Profiling.Recorder.Get("GC.Alloc");
+            recorder.enabled = false;
+            recorder.FilterToCurrentThread();
+            recorder.enabled = true;
+            try
+            {
+                for (int i = 0; i < 100; i++)
+                {
+                    NSGetterEvaluator.EvaluatePointer(read, scope, context);
+                    property.Compute();
+                }
+            }
+            finally
+            {
+                recorder.enabled = false;
+                recorder.CollectFromAllThreads();
+            }
+            Assert.That(recorder.sampleBlockCount, Is.Zero, "A read neither forks its context nor binds the receiver by name.");
+        }
+
+        [Test]
+        public void NativeCallSitePreparesArgumentsInItsPooledBufferWithoutAllocating()
+        {
+            var native = NativeFunction("prepared", "Prepared", false);
             native.argumentTypes = new[] { Argument("value", MemberKind.Int) };
             using var client = BuildClient(new JsonMember[] { native }, ReceiverClass((native.name, native.id)));
-            object?[]? retained = null;
+            object?[]? received = null;
+            object? first = null;
             client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
             {
-                [native.id] = (_, _, args) => { retained ??= args; return args[0]; },
+                [native.id] = (_, _, args) =>
+                {
+                    received = args;
+                    first = args[0];
+                    return args[0];
+                },
             });
             var context = new NSGetterEvaluator.Context(client, null, null);
             var scope = new NeoScriptScope(1);
             scope["__this__"] = NSGetterEvaluator.UnwrapRow(ObjectValue("receiver-value", "receiver-class"), context);
-            var call = Call(native.id, "retained-arguments");
+            var call = Call(native.id, "prepared-arguments");
             call.args = new Pointer[] { Number(17) };
             Assert.That(NSGetterEvaluator.EvaluatePointer(call, scope, context), Is.EqualTo(17));
+            // The number literal arrives as the declared Int.
+            Assert.That(first, Is.TypeOf<int>().And.EqualTo(17));
+            object?[] buffer = received!;
+            Assert.That(buffer[0], Is.Null, "The site clears its buffer once the call returns.");
             call.args = new Pointer[] { Number(99) };
             Assert.That(NSGetterEvaluator.EvaluatePointer(call, scope, context), Is.EqualTo(99));
-            Assert.That(retained, Has.Length.EqualTo(1));
-            Assert.That(retained![0], Is.EqualTo(17));
+            Assert.That(received, Is.SameAs(buffer), "Every call reuses the site's buffer.");
+
+            var recorder = UnityEngine.Profiling.Recorder.Get("GC.Alloc");
+            recorder.enabled = false;
+            recorder.FilterToCurrentThread();
+            recorder.enabled = true;
+            try
+            {
+                for (int i = 0; i < 100; i++)
+                    NSGetterEvaluator.EvaluatePointer(call, scope, context);
+            }
+            finally
+            {
+                recorder.enabled = false;
+                recorder.CollectFromAllThreads();
+            }
+            Assert.That(recorder.sampleBlockCount, Is.Zero);
         }
 
         [Test]

@@ -893,8 +893,6 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal ClassMember? assetMember;
         internal object? assetMemberSchema;
-        /// <summary>The placement's generated-view key under <see cref="assetMember"/>.</summary>
-        internal string? assetRegistryKey;
         /// <summary>The placement row's value node; its own liveness guards it.</summary>
         internal NeoValueNode? assetNode;
     }
@@ -1665,7 +1663,6 @@ namespace NeoCompose.Runtime
                 if (!ReferenceEquals(record.assetMemberSchema, client.SchemaResolution))
                 {
                     record.assetMember = null;
-                    record.assetRegistryKey = null;
                     record.assetMemberSchema = client.SchemaResolution;
                 }
                 resolved = NeoGeneratedTypesSupport.ResolveClassValue(
@@ -1675,7 +1672,6 @@ namespace NeoCompose.Runtime
                     writableFactories,
                     record.Ownership,
                     ref record.assetMember,
-                    ref record.assetRegistryKey,
                     ref record.assetNode);
             }
             else

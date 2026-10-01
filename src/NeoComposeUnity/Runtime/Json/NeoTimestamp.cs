@@ -22,8 +22,12 @@ namespace NeoCompose.Runtime.Json
             get;
         }
 
+        // DateTimeOffset.ToUnixTimeMilliseconds's arithmetic, without
+        // building the DateTimeOffset.
+        private const long UnixEpochMilliseconds = 62_135_596_800_000;
+
         public static NeoTimestamp Now() =>
-            new NeoTimestamp(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+            new NeoTimestamp(DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond - UnixEpochMilliseconds);
 
         public static bool TryParse(string? value, out NeoTimestamp timestamp)
         {

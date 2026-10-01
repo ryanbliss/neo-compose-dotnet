@@ -117,6 +117,36 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void Arithmetic_StringAdditionFormatsNumbersAsTheirInvariantText()
+        {
+            // A whole number formats through an integer fast path; its text
+            // must stay the double's own, sign of zero and E notation included.
+            foreach (double number in new[] { 7d, -0d, 2.5, 1e15, 999999999999999d })
+            {
+                string text = number.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                Assert.AreEqual(
+                    "n=" + text,
+                    EvaluateReturn(
+                        Arithmetic(
+                            ArithmeticOpKind.Addition,
+                            isDecimal: null,
+                            StringLiteral("n="),
+                            NumberLiteral(number)),
+                        MemberKind.String));
+                Assert.AreEqual(
+                    text + "|" + text,
+                    EvaluateReturn(
+                        Arithmetic(
+                            ArithmeticOpKind.Addition,
+                            isDecimal: null,
+                            NumberLiteral(number),
+                            StringLiteral("|"),
+                            NumberLiteral(number)),
+                        MemberKind.String));
+            }
+        }
+
+        [Test]
         public void Arithmetic_IntOperandWidensExactly()
         {
             Assert.AreEqual(

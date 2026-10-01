@@ -33,16 +33,16 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary><see cref="PlacementChildIds"/> without its enumerator, for the per-row index.</summary>
-        private static void CollectPlacementChildIds(MemberValue row, List<string> into)
+        internal static void CollectPlacementChildIds(MemberValue row, List<string> into)
         {
             if (row is ObjectMemberValue objectRow)
             {
                 if (objectRow.value is not null)
-                    foreach (string child in objectRow.value.Values)
-                        into.Add(child);
+                    foreach (var pair in objectRow.value)
+                        into.Add(pair.Value);
                 if (objectRow.constructorArgs is not null)
-                    foreach (var token in objectRow.constructorArgs.Values)
-                        if (token?.Type == JTokenType.String && (string?)token is string child)
+                    foreach (var pair in objectRow.constructorArgs)
+                        if (pair.Value?.Type == JTokenType.String && (string?)pair.Value is string child)
                             into.Add(child);
             }
             else if (row is ArrayMemberValue { value: not null } array)
@@ -53,18 +53,68 @@ namespace NeoCompose.Runtime
         {
             if (writablePlacementParents is null)
                 return;
-            UnindexPlacementParent(ownership, row.id);
+            List<string> next = placementChildScratch;
+            next.Clear();
             // Only records and arrays link children; a leaf row has none to index.
-            if (row is not ObjectMemberValue and not ArrayMemberValue)
+            if (row is ObjectMemberValue or ArrayMemberValue)
+                CollectPlacementChildIds(row, next);
+            var key = (ownership, row.id);
+            if (!writablePlacementChildren.TryGetValue(key, out string[]? previous))
+            {
+                if (next.Count == 0)
+                    return;
+                writablePlacementChildren[key] = PlacementChildSnapshot(row, next);
+                foreach (string child in next)
+                    AddPlacementParent(child, row.id);
                 return;
-            placementChildScratch.Clear();
-            CollectPlacementChildIds(row, placementChildScratch);
-            if (placementChildScratch.Count == 0)
+            }
+            // Relink only past the unchanged leading children, so appending to
+            // or popping a long list row touches the entries that changed.
+            int prefix = 0;
+            int shared = Math.Min(previous.Length, next.Count);
+            while (prefix < shared && string.Equals(previous[prefix], next[prefix], StringComparison.Ordinal))
+                prefix++;
+            if (prefix == previous.Length && prefix == next.Count)
                 return;
-            string[] children = placementChildScratch.ToArray();
-            writablePlacementChildren[(ownership, row.id)] = children;
-            foreach (string child in children)
-                AddPlacementParent(child, row.id);
+            writablePlacementChildren.TryGetValue(
+                (ownership == NeoValueOwnership.Save ? NeoValueOwnership.Session : NeoValueOwnership.Save, row.id),
+                out string[]? kept);
+            HashSet<string>? nextSet = null;
+            HashSet<string>? keptSet = null;
+            bool few = previous.Length - prefix <= 4;
+            for (int i = prefix; i < previous.Length; i++)
+            {
+                string child = previous[i];
+                // The same id in the other store keeps the links it shares.
+                if (HoldsChild(next, child, few, ref nextSet)
+                    || (kept is not null && HoldsChild(kept, child, few, ref keptSet)))
+                    continue;
+                RemovePlacementParent(child, row.id);
+            }
+            for (int i = prefix; i < next.Count; i++)
+                AddPlacementParent(next[i], row.id);
+            if (next.Count == 0)
+                writablePlacementChildren.Remove(key);
+            else
+                writablePlacementChildren[key] = PlacementChildSnapshot(row, next);
+        }
+
+        // Committed id arrays are never written in place, so an array row's
+        // own ids are already the snapshot the next relink diffs against.
+        private static string[] PlacementChildSnapshot(MemberValue row, List<string> children) =>
+            row is ArrayMemberValue { value: { } ids } ? ids : children.ToArray();
+
+        // A scan for a few probes, and a set built once past that.
+        private static bool HoldsChild(IReadOnlyList<string> children, string child, bool few, ref HashSet<string>? set)
+        {
+            if (few)
+            {
+                for (int i = 0; i < children.Count; i++)
+                    if (string.Equals(children[i], child, StringComparison.Ordinal))
+                        return true;
+                return false;
+            }
+            return (set ??= new HashSet<string>(children, StringComparer.Ordinal)).Contains(child);
         }
 
         private void AddPlacementParent(string child, string parent)
@@ -105,6 +155,13 @@ namespace NeoCompose.Runtime
                     RemovePlacementParent(child, id);
         }
 
+        /// <summary>The children the committed placement index links from a stored row, if any.</summary>
+        internal string[]? IndexedPlacementChildren(NeoValueOwnership ownership, string id)
+        {
+            EnsureWritablePlacementParents();
+            return writablePlacementChildren.TryGetValue((ownership, id), out string[]? children) ? children : null;
+        }
+
         private void EnsureWritablePlacementParents()
         {
             if (writablePlacementParents is not null)
@@ -135,13 +192,16 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>The iterator above without its enumerator objects, for the per-commit walk.</summary>
-        private void CollectPlacementParents(string childId, List<string> into)
+        private void CollectPlacementParents(string childId, ICollection<string> into)
         {
             EnsureWritablePlacementParents();
             if (writablePlacementParents!.TryGetValue(childId, out object? writable))
             {
                 if (writable is HashSet<string> set)
-                    into.AddRange(set);
+                {
+                    foreach (string parent in set)
+                        into.Add(parent);
+                }
                 else
                     into.Add((string)writable);
             }
@@ -154,27 +214,37 @@ namespace NeoCompose.Runtime
 
         // Every commit asks this for each row it walks past; the answer only
         // changes with the schema, which clears the cache with the class caches.
-        private readonly Dictionary<(string classId, string kind), bool> worldKindByClass = new();
+        // Each class's world kinds across its inheritance chain.
+        private readonly Dictionary<string, string[]> worldKindsByClass = new(StringComparer.Ordinal);
 
         // A layer-link class's validated target layer, cleared with the class caches.
         internal readonly Dictionary<(string classId, bool tile), string> LayerLinkTargetByClass = new();
 
-        internal bool HasWorldKind(string? classId, string kind)
+        internal bool HasWorldKind(string? classId, string kind) => HasWorldKind(WorldKinds(classId), kind);
+
+        private static bool HasWorldKind(string[] kinds, string kind)
+        {
+            for (int i = 0; i < kinds.Length; i++)
+            {
+                if (kinds[i] == kind)
+                    return true;
+            }
+            return false;
+        }
+
+        private string[] WorldKinds(string? classId)
         {
             if (string.IsNullOrEmpty(classId))
-                return false;
-            (string, string) key = (classId!, kind);
-            if (worldKindByClass.TryGetValue(key, out bool has))
-                return has;
-            has = false;
+                return Array.Empty<string>();
+            if (worldKindsByClass.TryGetValue(classId!, out string[]? kinds))
+                return kinds;
+            List<string>? found = null;
             foreach (NeoSchemaClass type in ResolveClassInheritanceChain(classId!))
-                if (type.system?["worldKind"]?.ToString() == kind)
-                {
-                    has = true;
-                    break;
-                }
-            worldKindByClass[key] = has;
-            return has;
+                if (type.system?["worldKind"]?.ToString() is string kind)
+                    (found ??= new List<string>()).Add(kind);
+            kinds = found?.ToArray() ?? Array.Empty<string>();
+            worldKindsByClass[classId!] = kinds;
+            return kinds;
         }
 
         // The walk below runs on every commit. Its collections are reused
@@ -182,7 +252,6 @@ namespace NeoCompose.Runtime
         // replay) gets its own throwaway set.
         private sealed class WriteValidationScratch
         {
-            internal readonly Dictionary<string, HashSet<string>> stagedParents = new(StringComparer.Ordinal);
             internal readonly Queue<string> pending = new();
             internal readonly HashSet<string> writtenDescendants = new(StringComparer.Ordinal);
             internal readonly HashSet<string> visited = new(StringComparer.Ordinal);
@@ -190,11 +259,12 @@ namespace NeoCompose.Runtime
             internal readonly HashSet<string> tiles = new(StringComparer.Ordinal);
             internal readonly HashSet<string> objects = new(StringComparer.Ordinal);
             internal readonly List<string> parents = new();
+            internal readonly Dictionary<string, NeoReadOnlyTileGridPrimitive> primitives = new(StringComparer.Ordinal);
+            internal readonly Dictionary<(bool tile, string classId), HashSet<string>> compatibleLayers = new();
             internal bool inUse;
 
             internal void Clear()
             {
-                stagedParents.Clear();
                 pending.Clear();
                 writtenDescendants.Clear();
                 visited.Clear();
@@ -202,6 +272,8 @@ namespace NeoCompose.Runtime
                 tiles.Clear();
                 objects.Clear();
                 parents.Clear();
+                primitives.Clear();
+                compatibleLayers.Clear();
             }
         }
 
@@ -236,28 +308,21 @@ namespace NeoCompose.Runtime
 
         private void ValidateWritePlan(NeoWritePlan plan, WriteValidationScratch scratch)
         {
-            Dictionary<string, HashSet<string>> stagedParents = scratch.stagedParents;
             Queue<string> pending = scratch.pending;
             HashSet<string> writtenDescendants = scratch.writtenDescendants;
-            foreach (var key in plan.Rows.Keys)
-                writtenDescendants.Add(key.id);
+            // Pairs throughout: a dictionary's Keys or Values view allocates.
             foreach (var pair in plan.Rows)
             {
+                writtenDescendants.Add(pair.Key.id);
                 pending.Enqueue(pair.Key.id);
                 if (pair.Value is null)
                     continue;
                 if (!string.IsNullOrEmpty(pair.Value.containerId))
                     pending.Enqueue(pair.Value.containerId!);
-                foreach (string child in PlacementChildIds(pair.Value))
-                {
-                    if (!stagedParents.TryGetValue(child, out var parents))
-                        stagedParents[child] = parents = new HashSet<string>();
-                    parents.Add(pair.Key.id);
-                }
             }
-            foreach (var binding in plan.Bindings.Values)
-                if (binding.valueId is not null)
-                    pending.Enqueue(binding.valueId);
+            foreach (var binding in plan.Bindings)
+                if (binding.Value.valueId is not null)
+                    pending.Enqueue(binding.Value.valueId);
             if (candidateReplay is not null)
                 foreach (var pair in candidateReplay.Values)
                     if (!virtualValues.TryGetValue(pair.Key, out var previousVirtual)
@@ -275,11 +340,12 @@ namespace NeoCompose.Runtime
                     continue;
                 MemberValue? candidate = plan.Resolve(id);
                 TryGetCommittedValue(id, out MemberValue? previous);
-                if (HasWorldKind(candidate?.classId ?? previous?.classId, "tileGrid"))
+                string[] kinds = WorldKinds(candidate?.classId);
+                if (HasWorldKind(candidate?.classId is null ? WorldKinds(previous?.classId) : kinds, "tileGrid"))
                     grids.Add(id);
-                if (HasWorldKind(candidate?.classId, "tile"))
+                if (HasWorldKind(kinds, "tile"))
                     tiles.Add(id);
-                if (HasWorldKind(candidate?.classId, "object"))
+                if (HasWorldKind(kinds, "object"))
                     objects.Add(id);
                 if (!string.IsNullOrEmpty(candidate?.containerId))
                     pending.Enqueue(candidate!.containerId!);
@@ -310,19 +376,20 @@ namespace NeoCompose.Runtime
                     }
                     pending.Enqueue(parent);
                 }
-                if (stagedParents.TryGetValue(id, out var proposed))
-                    foreach (string parent in proposed)
-                        if (IsPlacementEdge(plan, parent, id))
-                            pending.Enqueue(parent);
+                parentList.Clear();
+                plan.CollectParentCandidates(id, parentList);
+                for (int parentIndex = 0; parentIndex < parentList.Count; parentIndex++)
+                    if (IsPlacementEdge(plan, parentList[parentIndex], id))
+                        pending.Enqueue(parentList[parentIndex]);
             }
             // These builders read rows and declarations only. Do not resolve
             // generated wrappers or populate persistent layer caches here.
-            var primitives = new Dictionary<string, NeoReadOnlyTileGridPrimitive>();
+            Dictionary<string, NeoReadOnlyTileGridPrimitive> primitives = scratch.primitives;
             foreach (string gridId in grids)
                 primitives[gridId] = NeoReadOnlyTileGridPrimitive.Resolve(this, gridId);
             using (ReadCandidate(plan))
             {
-                var compatibleLayers = new Dictionary<(bool tile, string classId), HashSet<string>>();
+                Dictionary<(bool tile, string classId), HashSet<string>> compatibleLayers = scratch.compatibleLayers;
                 foreach (string objectId in objects)
                     if (ResolveValueRow(objectId) is ObjectMemberValue obj && !obj.IsRemoved)
                         ValidateObjectFootprint(obj);
@@ -343,6 +410,9 @@ namespace NeoCompose.Runtime
         // Replayed outputs are validated separately above.
         private bool IsPlacementEdge(NeoWritePlan plan, string parentId, string childId)
         {
+            // Resolved once, for whichever array row holds the child first.
+            Member? arrayMember = null;
+            bool arrayMemberKnown = false;
             MemberValue? next = plan.Resolve(parentId);
             TryGetCommittedValue(parentId, out MemberValue? previous);
             if (HasWorldKind(next?.classId ?? previous?.classId, "object"))
@@ -364,11 +434,24 @@ namespace NeoCompose.Runtime
             {
                 if (row is ObjectMemberValue obj)
                     return obj.value?.ContainsValue(childId) == true;
-                return row is ArrayMemberValue array && array.value is not null
-                    && Array.IndexOf(array.value, childId) >= 0
-                    && TryInferMemberForValueId(parentId, out Member? member) && member is ListMember;
+                if (row is not ArrayMemberValue { value: not null } array
+                    || Array.IndexOf(array.value, childId) < 0)
+                    return false;
+                if (!arrayMemberKnown)
+                {
+                    arrayMemberKnown = true;
+                    arrayMember = PlannedMember(plan, parentId);
+                }
+                return arrayMember is ListMember;
             }
         }
+
+        /// <summary>
+        /// The member of row <paramref name="id"/>: the collection mutator
+        /// behind <paramref name="plan"/> knows its own, others are inferred.
+        /// </summary>
+        private Member? PlannedMember(NeoWritePlan plan, string id) =>
+            plan.ReportingMember(id) ?? (TryInferMemberForValueId(id, out Member? member) ? member : null);
 
         private void ValidateTileRow(string tileId)
         {
@@ -452,7 +535,7 @@ namespace NeoCompose.Runtime
             {
                 var occupied = new HashSet<(string source, Vector2Int cell)>();
                 var build = primitive.BuildTileLayerRecords(layerId);
-                plan.PreparedTileLayers[(gridId, layerId)] = build;
+                (plan.PreparedTileLayers ??= new())[(gridId, layerId)] = build;
                 foreach (NeoTilePlacementRecord tile in build.Records)
                 {
                     ValidateTileRow(tile.PlacementValueId);
@@ -466,7 +549,7 @@ namespace NeoCompose.Runtime
                 var occupied = new Dictionary<Vector2Int, string>();
                 var dependencies = new HashSet<string>();
                 var records = primitive.BuildObjectLayerRecords(layerId, dependencies);
-                plan.PreparedObjectLayers[(gridId, layerId)] = new NeoPreparedLayerRecords<NeoObjectPlacementRecord>(records, dependencies);
+                (plan.PreparedObjectLayers ??= new())[(gridId, layerId)] = new NeoPreparedLayerRecords<NeoObjectPlacementRecord>(records, dependencies);
                 foreach (NeoObjectPlacementRecord obj in records)
                 {
                     ValidateLayerClass(obj.AssetClassId, layerId, objectImports, false, compatibleLayers);

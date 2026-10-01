@@ -91,7 +91,9 @@ namespace NeoCompose.Runtime
                 client,
                 dialogueContext,
                 memoryStore);
-            object? result = NSGetterEvaluator.Evaluate(variable.getter, ctx);
+            // The context is this evaluation's own, so the body binds its
+            // handlers there instead of on a fork.
+            object? result = NSGetterEvaluator.Evaluate(variable.getter, ctx, System.Array.Empty<object?>(), handlerFrame: -1);
             if (result is string text)
                 return text;
             if (result is null)

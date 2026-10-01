@@ -490,7 +490,7 @@ namespace NeoCompose.Tests
             object? Invoke(string memberId)
             {
                 Assert.IsTrue(client.TryGetMember(memberId, out FunctionMember? function));
-                return NSGetterEvaluator.InvokeNativeFunction(memberId, function!.returnTypeInfo, null, Array.Empty<object?>(), ctx);
+                return NSGetterEvaluator.InvokeNativeFunction(memberId, null, function!.returnTypeInfo, null, Array.Empty<object?>(), ctx);
             }
         }
 

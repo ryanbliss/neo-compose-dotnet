@@ -19,9 +19,16 @@ namespace NeoCompose.Runtime
         {
             if (valueNodes.TryGetValue(id, out NeoValueNode node))
                 return node;
+            // Removed and unwritten ids are read often; a miss makes no node.
+            if (!sessionData.values.ContainsKey(id)
+                && !saveData.values.ContainsKey(id)
+                && !virtualValues.ContainsKey(id)
+                && !data.values.ContainsKey(id))
+                return null;
             node = new NeoValueNode(id);
             if (!FillValueNode(node))
                 return null;
+            writableValueSubscriptions.TryGetValue(id, out node.subscribers);
             valueNodes.Add(id, node);
             return node;
         }
@@ -35,6 +42,21 @@ namespace NeoCompose.Runtime
         {
             if (valueNodes.TryGetValue(id, out NeoValueNode node) && !FillValueNode(node))
                 DropValueNode(node);
+        }
+
+        /// <summary>
+        /// Points a node at the row a store write just set. Only that
+        /// store's slot changed, so the node's other slots still hold.
+        /// </summary>
+        /// <param name="node">The live node of <paramref name="value"/>'s id, when the caller holds it.</param>
+        private void SyncStoredValueNode(NeoValueOwnership ownership, MemberValue value, NeoValueNode? node)
+        {
+            if (node is null && !valueNodes.TryGetValue(value.id, out node))
+                return;
+            if (ownership == NeoValueOwnership.Session)
+                node.session = value;
+            else
+                node.save = value;
         }
 
         private bool FillValueNode(NeoValueNode node)

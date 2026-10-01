@@ -38,7 +38,7 @@ namespace NeoCompose.Tests
             scope.ResetLocals();
             Assert.IsTrue(NeoScriptExecutor.ExecuteCallback(client, callback, scope, ctx, options).Returned);
             Assert.AreEqual(1, ctx.allocationTracker.ActiveExecutionCount);
-            ctx.allocationTracker.ExitExecution(client, ctx, null);
+            ctx.allocationTracker.ExitExecution(client, ctx, default);
             Assert.AreEqual(0, ctx.allocationTracker.ActiveExecutionCount);
         }
 
@@ -179,7 +179,7 @@ namespace NeoCompose.Tests
                     options);
                 GC.KeepAlive(result.ReturnValue);
             }
-            ctx.allocationTracker.ExitExecution(client, ctx, null);
+            ctx.allocationTracker.ExitExecution(client, ctx, default);
             stopwatch.Stop();
             return new Measurement(
                 stopwatch.Elapsed.TotalMilliseconds,

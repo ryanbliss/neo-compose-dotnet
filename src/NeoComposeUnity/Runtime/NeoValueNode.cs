@@ -3,6 +3,7 @@
 
 #nullable enable
 
+using System.Runtime.CompilerServices;
 using NeoCompose.Runtime.Json;
 
 namespace NeoCompose.Runtime
@@ -30,6 +31,8 @@ namespace NeoCompose.Runtime
         /// <summary>A single-selection lookup row's selected id and that id's node.</summary>
         internal string? selectedId;
         internal NeoValueNode? selectedNode;
+        /// <summary>The id's writable-value listeners (one, or a list), mirrored from the client's subscription map.</summary>
+        internal object? subscribers;
         private MemberValue? asset;
         private int assetEpoch = -1;
         // The client's authored-ownership entry for this id, as of the map
@@ -43,14 +46,30 @@ namespace NeoCompose.Runtime
             this.id = id;
         }
 
-        internal MemberValue? Asset(ProjectData data)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal MemberValue? Asset(ProjectData data) =>
+            assetEpoch == data.valuesEpoch ? asset : RefreshAsset(data);
+
+        private MemberValue? RefreshAsset(ProjectData data)
         {
-            if (assetEpoch != data.valuesEpoch)
-            {
-                data.values.TryGetValue(id, out asset);
-                assetEpoch = data.valuesEpoch;
-            }
+            data.values.TryGetValue(id, out asset);
+            assetEpoch = data.valuesEpoch;
             return asset;
+        }
+    }
+
+    /// <summary>
+    /// The value node an IR site last read, kept for one client's schema
+    /// resolution: sibling clients share the IR but not their nodes.
+    /// </summary>
+    internal sealed class NeoValueNodeSite
+    {
+        internal readonly object schemaResolution;
+        internal NeoValueNode? node;
+
+        internal NeoValueNodeSite(object schemaResolution)
+        {
+            this.schemaResolution = schemaResolution;
         }
     }
 }
