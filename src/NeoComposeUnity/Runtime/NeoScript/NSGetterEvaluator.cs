@@ -2682,10 +2682,22 @@ namespace NeoCompose.Runtime.NeoScript
             object? ownerReceiver = null)
         {
             string memberId = target.memberId!;
-            if (!ctx.client.TryGetMember(memberId, out JsonMember? member))
+            NeoResolvedNSFunction? function = target.resolvedFunction;
+            JsonMember? member;
+            if (function is not null
+                && ReferenceEquals(function.SchemaResolution, ctx.client.SchemaResolution)
+                && function.MemberId == memberId)
             {
-                throw new NSGetterRuntimeError(
-                    $"NeoDelegate target member '{memberId}' does not exist.");
+                member = function.Member;
+            }
+            else
+            {
+                function = null;
+                if (!ctx.client.TryGetMember(memberId, out member))
+                {
+                    throw new NSGetterRuntimeError(
+                        $"NeoDelegate target member '{memberId}' does not exist.");
+                }
             }
             // The cycle key is the bare target frame. A listener position is
             // reported in the fan-out's message, never folded into the key:
@@ -2751,9 +2763,10 @@ namespace NeoCompose.Runtime.NeoScript
                 }
                 if (member is NSFunctionMember)
                 {
+                    function ??= target.resolvedFunction = NeoNSFunctionRuntime.ResolveSignature(ctx.client, memberId);
                     return NeoNSFunctionRuntime.InvokeImmediate(
                         ctx.client,
-                        memberId,
+                        function,
                         receiver,
                         args,
                         ctx);
@@ -2774,12 +2787,7 @@ namespace NeoCompose.Runtime.NeoScript
                     // 64-frame cap this frame already pushed.
                     // The nested action's own owner is the receiver this
                     // member target resolved against, not the outer action's.
-                    InvokeAction(
-                        ResolveActionTargetValue(actionMember, receiver, ctx),
-                        args,
-                        ctx,
-                        receiver,
-                        () => DescribeDelegateFrame(ctx, frame));
+                    InvokeActionTarget(actionMember, receiver, args, ctx, frame);
                     return null;
                 }
                 throw new NSGetterRuntimeError(
@@ -2789,6 +2797,23 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 ctx.delegateCallStack.RemoveAt(ctx.delegateCallStack.Count - 1);
             }
+        }
+
+        // Its own method so the frame-describing lambda's closure is
+        // allocated only on this branch, not on every member-target call.
+        private static void InvokeActionTarget(
+            ActionMember actionMember,
+            object? receiver,
+            object?[] args,
+            Context ctx,
+            (string memberId, string? valueId) frame)
+        {
+            InvokeAction(
+                ResolveActionTargetValue(actionMember, receiver, ctx),
+                args,
+                ctx,
+                receiver,
+                () => DescribeDelegateFrame(ctx, frame));
         }
 
         private static NeoDelegateValue ResolveDelegateTargetValue(
