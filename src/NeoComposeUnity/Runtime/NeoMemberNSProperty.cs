@@ -128,13 +128,20 @@ namespace NeoCompose.Runtime
         /// </summary>
         public NSSetterResult Set(string thisValueId, object? value)
         {
-            if (!client.TryGetValue(ownership, thisValueId, out MemberValue? row))
+            // An accessor usually sets one row's property again.
+            if (thisNode is not null && thisNode.id != thisValueId)
+                thisNode = null;
+            if (client.ReadValue(ownership, thisValueId, ref thisNode) is not { } row)
             {
                 return SetterError(
                     $"thisValueId '{thisValueId}' not found in client values");
             }
             return SetInternal(value, null, row);
         }
+
+        // The node of the row Set(thisValueId, value) last read, so a repeat
+        // looks its id up once and unwraps through the node's memo.
+        private NeoValueNode? thisNode;
 
         private NeoScriptGridReads? gridReads;
 
@@ -364,7 +371,7 @@ namespace NeoCompose.Runtime
                 return thisValue;
             if (thisRow is not null)
             {
-                return NSGetterEvaluator.UnwrapRow(thisRow, ctx, ownership);
+                return NSGetterEvaluator.UnwrapRow(thisRow, ctx, ownership, thisNode);
             }
             NeoMember? cursor = parent;
             for (int i = 0; cursor is not null && i < 32; i++)

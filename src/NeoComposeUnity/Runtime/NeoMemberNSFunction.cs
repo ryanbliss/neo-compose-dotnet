@@ -1652,25 +1652,48 @@ namespace NeoCompose.Runtime
                 this.client = client;
                 this.context = context;
             }
+            // Each root's value node, so a read looks its row id up once and
+            // unwraps through the node's memo.
+            private NeoValueNode? assetsNode;
+            private NeoValueNode? saveNode;
+            private NeoValueNode? sessionNode;
+
             public bool TryGetValue(string key, out object? value)
             {
-                NeoMemberClass? node = key switch
+                switch (key)
                 {
-                    "Assets" => client.assets,
-                    "Save" => client.save,
-                    "Session" => client.session,
-                    _ => null,
-                };
-                if (node is null)
+                    case "Assets":
+                        return TryRead(client.assets, NeoValueOwnership.Asset, ref assetsNode, out value);
+                    case "Save":
+                        return TryRead(client.save, NeoValueOwnership.Save, ref saveNode, out value);
+                    case "Session":
+                        return TryRead(client.session, NeoValueOwnership.Session, ref sessionNode, out value);
+                    default:
+                        value = null;
+                        return false;
+                }
+            }
+
+            private bool TryRead(
+                NeoMemberClass? root,
+                NeoValueOwnership ownership,
+                ref NeoValueNode? node,
+                out object? value)
+            {
+                if (root is null)
                 {
                     value = null;
                     return false;
                 }
-                NeoValueOwnership ownership = key == "Assets" ? NeoValueOwnership.Asset
-                    : key == "Save" ? NeoValueOwnership.Save : NeoValueOwnership.Session;
-                value = node.value is ObjectMemberValue row
-                    && client.TryGetValue(ownership, row.id, out ObjectMemberValue? current)
-                    ? NSGetterEvaluator.UnwrapRow(current, context, ownership) : null;
+                value = null;
+                if (root.value is ObjectMemberValue row)
+                {
+                    // A load can replace the root row.
+                    if (node is not null && node.id != row.id)
+                        node = null;
+                    if (client.ReadValue(ownership, row.id, ref node) is ObjectMemberValue current)
+                        value = NSGetterEvaluator.UnwrapRow(current, context, ownership, node);
+                }
                 return true;
             }
             public object? this[string key]
