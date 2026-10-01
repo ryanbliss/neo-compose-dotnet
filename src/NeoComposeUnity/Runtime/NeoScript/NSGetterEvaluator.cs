@@ -592,10 +592,18 @@ namespace NeoCompose.Runtime.NeoScript
             /// Unlike getter/setter cycle sets, recursion is valid and is only
             /// rejected once the runtime depth cap is reached.
             /// </summary>
-            public IReadOnlyList<string> functionCallStack
+            public IReadOnlyList<string> functionCallStack => functionCallStackField ?? NoFunctionCalls;
+            // Null while no function runs, so ClearDirectInvocation's constant
+            // null store pays no write barrier; storing the empty stack does.
+            private IReadOnlyList<string>? functionCallStackField;
+            // Skips the interface call an empty array's Count goes through.
+            internal int functionDepth
             {
-                get; private set;
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
+                get => functionCallStackField?.Count ?? 0;
             }
+            // A field load, where each Array.Empty call goes through a stub.
+            private static readonly string[] NoFunctionCalls = System.Array.Empty<string>();
             /// <summary>
             /// Ordered bound-delegate targets currently executing. This is a
             /// shared mutable stack so nested evaluator contexts retain cycle
@@ -706,8 +714,11 @@ namespace NeoCompose.Runtime.NeoScript
                     : null);
             internal ExpressionHandlers? expressionHandlers
             {
-                get; private set;
+                get => expressionHandlersField;
+                private set => expressionHandlersField = value;
             }
+            // A plain field for the same reason as thisValueField.
+            private ExpressionHandlers? expressionHandlersField;
             /// <summary>
             /// True while a constructor body's own statements run. The body
             /// runs immediate, but a property it assigns gets a setter frame
@@ -799,7 +810,7 @@ namespace NeoCompose.Runtime.NeoScript
                 this.rowCacheKeysByRow = rowCacheKeysByRow
                     ?? new Dictionary<RowKey, HashSet<RowCacheKey>>();
                 this.valueOwnership = valueOwnership;
-                this.functionCallStack = functionCallStack ?? System.Array.Empty<string>();
+                functionCallStackField = functionCallStack;
                 // Placements depend on the exported schema, not the receiver or
                 // invocation. Share them across getters and clear with schema caches.
                 this.schemaPlacementCache = schemaPlacementCache
@@ -834,14 +845,13 @@ namespace NeoCompose.Runtime.NeoScript
                     gridReads = null;
                 if (initializerPlacement is not null)
                     initializerPlacement = null;
-                if (!ReferenceEquals(functionCallStack, System.Array.Empty<string>()))
-                    functionCallStack = System.Array.Empty<string>();
+                functionCallStackField = null;
                 genericEnvironmentCacheStore?.Clear();
                 immediateExpressionContext = null;
                 immediateExpressionSource = null;
                 immediateExpressionState = null;
                 immediateExpressionOptions = null;
-                expressionHandlers = null;
+                expressionHandlersField = null;
             }
 
             /// <summary>
@@ -855,7 +865,7 @@ namespace NeoCompose.Runtime.NeoScript
             // Only for a newly created direct-call context that no frame has seen.
             internal void BindFunction(IReadOnlyList<string> directCallStack, object? receiver)
             {
-                functionCallStack = directCallStack;
+                functionCallStackField = directCallStack;
                 thisValue = receiver;
             }
 
@@ -919,7 +929,7 @@ namespace NeoCompose.Runtime.NeoScript
             internal Context WithFunctionPushed(string memberId, IReadOnlyList<string> directCallStack, object? receiver)
             {
                 Context child = Fork();
-                child.functionCallStack = PushFunction(functionCallStack, memberId, directCallStack);
+                child.functionCallStackField = PushFunction(functionCallStackField, memberId, directCallStack);
                 child.thisValue = receiver;
                 return child;
             }
@@ -984,9 +994,9 @@ namespace NeoCompose.Runtime.NeoScript
             /// </summary>
             internal int EnterFunction(string memberId, IReadOnlyList<string> directCallStack, object? receiver)
             {
-                IReadOnlyList<string> stack = PushFunction(functionCallStack, memberId, directCallStack);
+                IReadOnlyList<string> stack = PushFunction(functionCallStackField, memberId, directCallStack);
                 int frame = EnterThis(receiver);
-                functionCallStack = stack;
+                functionCallStackField = stack;
                 return frame;
             }
 
@@ -1004,8 +1014,8 @@ namespace NeoCompose.Runtime.NeoScript
                 // Mono write-barriers every reference stored here: the
                 // usually-null fields keep the null exit left them.
                 ref FunctionFrame saved = ref stack.frames[frame];
-                if (!ReferenceEquals(saved.functionCallStack, functionCallStack))
-                    saved.functionCallStack = functionCallStack;
+                if (!ReferenceEquals(saved.functionCallStack, functionCallStackField))
+                    saved.functionCallStack = functionCallStackField;
                 // The immediate expression fields are set and cleared together.
                 if (immediateExpressionContext is not null)
                 {
@@ -1062,10 +1072,10 @@ namespace NeoCompose.Runtime.NeoScript
             /// one-frame stack: only pushed frames retain their callees.
             /// </summary>
             private static IReadOnlyList<string> PushFunction(
-                IReadOnlyList<string> stack,
+                IReadOnlyList<string>? stack,
                 string memberId,
                 IReadOnlyList<string> directCallStack) =>
-                stack.Count == 0 ? directCallStack : CallFrameStack.Push(stack, memberId);
+                stack is null || stack.Count == 0 ? directCallStack : CallFrameStack.Push(stack, memberId);
 
             /// <summary>Restores the state <paramref name="frame"/> saved.</summary>
             internal void ExitFunction(int frame)
@@ -1082,8 +1092,8 @@ namespace NeoCompose.Runtime.NeoScript
                     thisValue = saved.thisValue;
                     saved.thisSaved = false;
                 }
-                if (!ReferenceEquals(functionCallStack, saved.functionCallStack))
-                    functionCallStack = saved.functionCallStack!;
+                if (!ReferenceEquals(functionCallStackField, saved.functionCallStack))
+                    functionCallStackField = saved.functionCallStack;
                 if (saved.handlersSaved)
                 {
                     expressionHandlers = saved.expressionHandlers;
