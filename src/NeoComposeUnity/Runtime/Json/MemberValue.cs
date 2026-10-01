@@ -1541,7 +1541,8 @@ namespace NeoCompose.Runtime.Json
         }
 
         /// <summary>True when this row is a removal tombstone.</summary>
-        public bool IsRemoved => mark == NeoValueMarks.Removed;
+        // Most rows carry no mark; the null test spares them a string compare.
+        public bool IsRemoved => mark is not null && mark == NeoValueMarks.Removed;
     }
 
     /// <summary>Well-known values for <see cref="MemberValue.mark"/>.</summary>

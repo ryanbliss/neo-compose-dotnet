@@ -4572,21 +4572,23 @@ namespace NeoCompose.Runtime.NeoScript
 
         private static double ApplyNumericArithmetic(string op, double left, double right)
         {
-            switch (op)
+            // Every ArithmeticOpKind is one character. Switching on it is a
+            // jump table; a string switch compares the op to each case in turn.
+            switch (op.Length == 1 ? op[0] : '\0')
             {
                 // The TS evaluator folds addition from a 0 seed, which turns a
                 // -0 sum into +0; the trailing 0 keeps that parity.
-                case ArithmeticOpKind.Addition:
+                case '+':
                     return left + right + 0d;
-                case ArithmeticOpKind.Subtraction:
+                case '-':
                     return left - right;
-                case ArithmeticOpKind.Multiplication:
+                case '*':
                     return left * right;
-                case ArithmeticOpKind.Division:
+                case '/':
                     if (right == 0)
                         throw new NSGetterRuntimeError("Division by zero");
                     return left / right;
-                case ArithmeticOpKind.Remainder:
+                case '%':
                     if (right == 0)
                         throw new NSGetterRuntimeError("Modulo by zero");
                     return left % right;
