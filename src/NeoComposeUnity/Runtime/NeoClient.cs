@@ -6840,8 +6840,12 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal sealed class ResolvedNativeFunction
         {
+            /// <summary>The <see cref="SchemaResolution"/> this was resolved under.</summary>
+            internal readonly object schemaResolution;
             internal readonly string memberId;
-            /// <summary>The name of the member <see cref="memberId"/> names, which may override <see cref="signature"/>.</summary>
+            /// <summary>The member <see cref="memberId"/> names, which may override <see cref="signature"/>.</summary>
+            internal readonly Member? member;
+            /// <summary>The name of <see cref="member"/>, or of the signature when the schema has no such member.</summary>
             internal readonly string name;
             internal readonly FunctionMember signature;
             /// <summary>Whether a platform intrinsic (a cell pattern or grid query) may answer the call instead of its invoker.</summary>
@@ -6852,12 +6856,15 @@ namespace NeoCompose.Runtime
             private IReadOnlyDictionary<string, NeoNativeFunctionInvoker>? invokerTable;
 
             internal ResolvedNativeFunction(
+                object schemaResolution,
                 string memberId,
-                string name,
+                Member? member,
                 FunctionMember signature)
             {
+                this.schemaResolution = schemaResolution;
                 this.memberId = memberId;
-                this.name = name;
+                this.member = member;
+                name = member?.name ?? signature.name;
                 this.signature = signature;
                 intrinsic = memberId.StartsWith("system_", System.StringComparison.Ordinal);
             }
@@ -6891,10 +6898,8 @@ namespace NeoCompose.Runtime
                 function = null;
                 return false;
             }
-            string name = data.members.TryGetValue(memberId, out Member? effectiveMember)
-                ? effectiveMember.name
-                : signature.name;
-            function = new ResolvedNativeFunction(memberId, name, signature);
+            data.members.TryGetValue(memberId, out Member? effectiveMember);
+            function = new ResolvedNativeFunction(SchemaResolution, memberId, effectiveMember, signature);
             return true;
         }
 

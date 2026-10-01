@@ -39,11 +39,12 @@ namespace NeoCompose.Runtime.Json
         internal bool hasLexicalEnvironment;
 
         /// <summary>
-        /// The NSFunction <see cref="memberId"/> last resolved to. Stamped with
-        /// its schema resolution, so a schema change or another client misses.
+        /// The NSFunction or native Function <see cref="memberId"/> last
+        /// resolved to. Each is stamped with its schema resolution, so a
+        /// schema change or another client misses.
         /// </summary>
         [JsonIgnore]
-        internal NeoResolvedNSFunction? resolvedFunction;
+        internal object? resolvedTarget;
 
         [JsonIgnore]
         public bool IsMemberTarget => !string.IsNullOrEmpty(memberId);

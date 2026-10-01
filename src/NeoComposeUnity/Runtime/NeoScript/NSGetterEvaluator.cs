@@ -2702,22 +2702,30 @@ namespace NeoCompose.Runtime.NeoScript
             object? ownerReceiver = null)
         {
             string memberId = target.memberId!;
-            NeoResolvedNSFunction? function = target.resolvedFunction;
+            NeoResolvedNSFunction? function = null;
+            NeoClient.ResolvedNativeFunction? nativeFunction = null;
             JsonMember? member;
-            if (function is not null
-                && ReferenceEquals(function.SchemaResolution, ctx.client.SchemaResolution)
-                && function.MemberId == memberId)
+            switch (target.resolvedTarget)
             {
-                member = function.Member;
-            }
-            else
-            {
-                function = null;
-                if (!ctx.client.TryGetMember(memberId, out member))
-                {
-                    throw new NSGetterRuntimeError(
-                        $"NeoDelegate target member '{memberId}' does not exist.");
-                }
+                case NeoResolvedNSFunction cached
+                    when ReferenceEquals(cached.SchemaResolution, ctx.client.SchemaResolution)
+                        && cached.MemberId == memberId:
+                    function = cached;
+                    member = cached.Member;
+                    break;
+                case NeoClient.ResolvedNativeFunction { member: { } cachedMember } cached
+                    when ReferenceEquals(cached.schemaResolution, ctx.client.SchemaResolution)
+                        && cached.memberId == memberId:
+                    nativeFunction = cached;
+                    member = cachedMember;
+                    break;
+                default:
+                    if (!ctx.client.TryGetMember(memberId, out member))
+                    {
+                        throw new NSGetterRuntimeError(
+                            $"NeoDelegate target member '{memberId}' does not exist.");
+                    }
+                    break;
             }
             // The cycle key is the bare target frame. A listener position is
             // reported in the fan-out's message, never folded into the key:
@@ -2774,16 +2782,22 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 if (member is FunctionMember native)
                 {
-                    if (ctx.client.IsNativeFunctionDeferred(memberId))
+                    if (nativeFunction is null && ctx.client.TryResolveNativeFunction(memberId, out nativeFunction))
+                        target.resolvedTarget = nativeFunction;
+                    if (nativeFunction?.signature.Dispatch == NeoFunctionDispatchKind.Asynchronous)
                     {
                         throw new NeoDeferredFunctionRuntimeError(
                             $"NeoDelegate target Function '{member.name}' is deferred; delegates require an immediate callable target.");
                     }
-                    return InvokeNativeFunction(memberId, null, native.returnTypeInfo, receiver, args, ctx);
+                    return InvokeNativeFunction(memberId, nativeFunction, native.returnTypeInfo, receiver, args, ctx);
                 }
                 if (member is NSFunctionMember)
                 {
-                    function ??= target.resolvedFunction = NeoNSFunctionRuntime.ResolveSignature(ctx.client, memberId);
+                    if (function is null)
+                    {
+                        function = NeoNSFunctionRuntime.ResolveSignature(ctx.client, memberId);
+                        target.resolvedTarget = function;
+                    }
                     return NeoNSFunctionRuntime.InvokeImmediate(
                         ctx.client,
                         function,
