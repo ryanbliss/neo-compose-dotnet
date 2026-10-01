@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -269,6 +270,8 @@ namespace NeoCompose.Runtime.Json
         [JsonIgnore]
         public NeoMemberMutabilityKind Mutability
         {
+            // Read on every schema member dispatch.
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => mutability ?? (resolvedShape is { } shape ? shape.Mutability : NeoMemberMutabilityKind.Mutable);
             set => DeclaredMutability = value;
         }
