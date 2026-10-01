@@ -866,7 +866,10 @@ namespace NeoCompose.Runtime.NeoScript
             internal void BindFunction(IReadOnlyList<string> directCallStack, object? receiver)
             {
                 functionCallStackField = directCallStack;
-                thisValue = receiver;
+                // A pooled context comes back with a null receiver, which a
+                // static call keeps: skip that store's write barrier.
+                if (!ReferenceEquals(thisValueField, receiver))
+                    thisValueField = receiver;
             }
 
 
