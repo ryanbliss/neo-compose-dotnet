@@ -2331,7 +2331,12 @@ namespace NeoCompose.Runtime
                 {
                     return default;
                 }
-                target = ResolveKeyOfWriteTarget(client, instruction.target, keyOfPointer, receiver, scope, ctx);
+                target = ResolveKeyOfWriteTarget(client, instruction.target, keyOfPointer, receiver, scope, ctx, rent: true);
+                if (target is NeoClassMemberWriteTarget rented)
+                {
+                    WriteRented(client, rented, assigned, ctx);
+                    return default;
+                }
             }
             else
             {
@@ -2339,6 +2344,23 @@ namespace NeoCompose.Runtime
             }
             target.Write(client, assigned, ctx);
             return default;
+        }
+
+        // Its own method so the exception region stays off ExecuteAssign's frame.
+        private static void WriteRented(
+            NeoClient client,
+            NeoClassMemberWriteTarget target,
+            object? value,
+            NSGetterEvaluator.Context ctx)
+        {
+            try
+            {
+                target.Write(client, value, ctx);
+            }
+            finally
+            {
+                target.Release();
+            }
         }
 
         /// <summary>
@@ -3192,18 +3214,20 @@ namespace NeoCompose.Runtime
         /// Resolves a keyed write on a receiver the caller already evaluated.
         /// A detached receiver materializes here, since the write needs rows.
         /// </summary>
+        /// <param name="rent">Whether a class member target comes from <see cref="NeoClassMemberWriteTarget.Rent"/>; the caller releases it.</param>
         private static NeoResolvedWriteTarget ResolveKeyOfWriteTarget(
             NeoClient client,
             WriteTarget target,
             KeyOfPointer keyOfPointer,
             object? receiver,
             NeoScriptScope scope,
-            NSGetterEvaluator.Context ctx)
+            NSGetterEvaluator.Context ctx,
+            bool rent = false)
         {
             if (receiver is NeoScriptObject detached)
                 receiver = NSGetterEvaluator.ForwardDetached(detached, ctx);
             NeoValueOwnership ownership = TargetOwnership(client, target, scope, ctx, receiver);
-            return ResolveKeyOfTarget(client, keyOfPointer.keyOf, target.typeInfo, ownership, receiver, scope, ctx);
+            return ResolveKeyOfTarget(client, keyOfPointer.keyOf, target.typeInfo, ownership, receiver, scope, ctx, rent);
         }
 
         private static NeoResolvedCollectionTarget ResolveCollectionTarget(
@@ -3345,7 +3369,8 @@ namespace NeoCompose.Runtime
             NeoValueOwnership ownership,
             object? receiver,
             NeoScriptScope scope,
-            NSGetterEvaluator.Context ctx)
+            NSGetterEvaluator.Context ctx,
+            bool rent)
         {
             object? key = Eval(keyOf.key, scope, ctx);
             string? receiverRowId = FindValueId(receiver, ctx);
@@ -3429,6 +3454,18 @@ namespace NeoCompose.Runtime
                     NeoValueOwnership fieldOwnership = client.ChildOwnership(memberMember, receiverOwnership);
                     if (fieldOwnership != ownership || fieldOwnership == NeoValueOwnership.Asset)
                         throw new NSGetterRuntimeError($"Member '{memberMember!.name}' is not {ownership}-owned.");
+                    NeoValueNode? childNode = NSGetterEvaluator.RememberedChildNode(receiver, entry!);
+                    if (rent)
+                    {
+                        return NeoClassMemberWriteTarget.Rent(
+                            receiverRowId,
+                            keyString,
+                            memberMember!,
+                            ownership,
+                            receiverOwnership,
+                            receiverNode,
+                            childNode);
+                    }
                     return new NeoClassMemberWriteTarget(
                         receiverRowId,
                         keyString,
@@ -3436,7 +3473,7 @@ namespace NeoCompose.Runtime
                         ownership,
                         receiverOwnership,
                         receiverNode,
-                        NSGetterEvaluator.RememberedChildNode(receiver, entry!));
+                        childNode);
                 }
                 EnsureWritableRow(client, receiverRowId, ownership);
                 return new NeoDictionaryEntryWriteTarget(receiverRowId, keyString, targetType, ownership);
@@ -4320,11 +4357,18 @@ namespace NeoCompose.Runtime
 
         private sealed class NeoClassMemberWriteTarget : NeoResolvedWriteTarget
         {
-            private readonly string parentRowId;
-            private readonly string key;
-            private readonly JsonMember member;
-            private readonly NeoValueOwnership ownership;
-            private readonly NeoValueOwnership parentOwnership;
+            // An assignment writes through its target before it continues,
+            // so one target serves every assignment but one that re-enters
+            // NeoScript and assigns again: that finds it in use and
+            // allocates. Unlocked, like the IR's other caches: evaluation is
+            // single-threaded.
+            private static NeoClassMemberWriteTarget? pooled;
+            private bool inUse;
+            private string parentRowId;
+            private string key;
+            private JsonMember member;
+            private NeoValueOwnership ownership;
+            private NeoValueOwnership parentOwnership;
             // The parent row's node, so the leaf write reads it without an id lookup.
             private NeoValueNode? parentNode;
             // The node of the child the last bound-child read found, handed
@@ -4348,6 +4392,52 @@ namespace NeoCompose.Runtime
                 this.parentOwnership = parentOwnership ?? ownership;
                 this.parentNode = parentNode;
                 this.childNode = childNode;
+            }
+
+            /// <summary>The pooled target, bound to this write; <see cref="Release"/> returns it.</summary>
+            internal static NeoClassMemberWriteTarget Rent(
+                string parentRowId,
+                string key,
+                JsonMember member,
+                NeoValueOwnership ownership,
+                NeoValueOwnership parentOwnership,
+                NeoValueNode? parentNode,
+                NeoValueNode? childNode)
+            {
+                NeoClassMemberWriteTarget? target = pooled;
+                if (target is null || target.inUse)
+                {
+                    target = new NeoClassMemberWriteTarget(
+                        parentRowId, key, member, ownership, parentOwnership, parentNode, childNode);
+                    pooled ??= target;
+                }
+                else
+                {
+                    target.parentRowId = parentRowId;
+                    target.key = key;
+                    target.member = member;
+                    target.ownership = ownership;
+                    target.parentOwnership = parentOwnership;
+                    target.parentNode = parentNode;
+                    target.childNode = childNode;
+                }
+                target.inUse = true;
+                return target;
+            }
+
+            /// <summary>
+            /// Ends a rented write. Clearing the references keeps a disposed
+            /// client's rows unreachable from the pool, and constant null
+            /// stores pay no write barrier.
+            /// </summary>
+            internal void Release()
+            {
+                parentRowId = null!;
+                key = null!;
+                member = null!;
+                parentNode = null;
+                childNode = null;
+                inUse = false;
             }
 
             /// <summary>
