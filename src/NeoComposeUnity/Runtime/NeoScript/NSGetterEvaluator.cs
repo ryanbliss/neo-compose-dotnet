@@ -9710,10 +9710,9 @@ namespace NeoCompose.Runtime.NeoScript
                 : null;
         }
 
-        [ThreadStatic]
         private static System.Text.StringBuilder? concatenation;
 
-        // One reused builder per thread: only the joined string allocates.
+        // One reused builder: only the joined string allocates.
         // It is taken while in use, so a nested join builds its own.
         private static string Concatenate(object?[] operands)
         {

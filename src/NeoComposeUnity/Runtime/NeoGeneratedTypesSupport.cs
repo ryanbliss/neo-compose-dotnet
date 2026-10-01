@@ -2770,14 +2770,14 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// The graph walk's collections, reused per thread. A construction
+        /// The graph walk's collections, reused between walks. A construction
         /// nested inside another, or one too large to clear cheaply, gets its own.
         /// </summary>
         private sealed class ConstructedGraphScratch
         {
             private const int MaxPooledRows = 64;
 
-            [ThreadStatic]
+            // Evaluation is single-threaded, so one free instance serves every client.
             private static ConstructedGraphScratch? free;
 
             internal readonly Dictionary<string, MemberValue> stagedById = new();
@@ -8528,11 +8528,14 @@ namespace NeoCompose.Runtime
         }
 
         // One id per class, so a repeated class-value read allocates none.
-        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> unplacedClassMemberIds =
-            new(StringComparer.Ordinal);
+        private static readonly Dictionary<string, string> unplacedClassMemberIds = new(StringComparer.Ordinal);
 
-        internal static string UnplacedClassMemberId(string classId) =>
-            unplacedClassMemberIds.GetOrAdd(classId, static id => $"__neo_class_value_{id}");
+        internal static string UnplacedClassMemberId(string classId)
+        {
+            if (!unplacedClassMemberIds.TryGetValue(classId, out string? id))
+                unplacedClassMemberIds[classId] = id = $"__neo_class_value_{classId}";
+            return id;
+        }
 
         /// <summary>
         /// The placement of a class value no member holds: constructed,

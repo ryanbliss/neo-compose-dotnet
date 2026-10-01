@@ -874,7 +874,7 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// One materialization's staged rows, reused per thread. A
+        /// One materialization's staged rows, reused between materializations. A
         /// materialization nested inside another, or one too large to clear
         /// cheaply, gets its own. Nested detached objects stage through
         /// <see cref="ValueReference"/>.
@@ -883,7 +883,7 @@ namespace NeoCompose.Runtime
         {
             private const int MaxPooledRows = 64;
 
-            [ThreadStatic]
+            // Evaluation is single-threaded, so one free instance serves every client.
             private static DetachedStaging? free;
 
             internal readonly List<MemberValue> rows = new();
@@ -916,7 +916,7 @@ namespace NeoCompose.Runtime
                     return;
                 staging.rows.Clear();
                 staging.children.Clear();
-                // Pooled per thread, so it holds no client between materializations.
+                // Pooled across clients, so it holds none between materializations.
                 staging.scope.Rebind(null!, null);
                 free = staging;
             }

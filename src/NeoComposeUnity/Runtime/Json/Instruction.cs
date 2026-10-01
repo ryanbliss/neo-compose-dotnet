@@ -338,7 +338,7 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public abstract class ActionListenerInstruction : Instruction
     {
-        protected ActionListenerInstruction()
+        private protected ActionListenerInstruction()
             : base(InstructionCode.ActionListener)
         {
         }

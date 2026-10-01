@@ -805,6 +805,7 @@ namespace NeoCompose.Runtime
                 return;
             isDisposed = true;
             activeClients.Remove(this);
+            NeoScriptExecutor.DropPooledWriteTarget();
             DisposeGridLookupCaches();
             if (liveContentSource != null)
             {
@@ -5029,6 +5030,8 @@ namespace NeoCompose.Runtime
 
         internal void ReturnIdList(List<string> list)
         {
+            if (list.Count > 64)
+                return;
             list.Clear();
             idListPool.Push(list);
         }
@@ -7353,7 +7356,7 @@ namespace NeoCompose.Runtime
                 IReadOnlyDictionary<string, NeoNativeFunctionInvoker> table,
                 [NotNullWhen(true)] out NeoNativeFunctionInvoker? found)
             {
-                if (ReferenceEquals(System.Threading.Volatile.Read(ref invokerTable), table))
+                if (ReferenceEquals(invokerTable, table))
                 {
                     found = invoker!;
                     return true;
@@ -7361,7 +7364,7 @@ namespace NeoCompose.Runtime
                 if (!table.TryGetValue(memberId, out found))
                     return false;
                 invoker = found;
-                System.Threading.Volatile.Write(ref invokerTable, table);
+                invokerTable = table;
                 return true;
             }
 

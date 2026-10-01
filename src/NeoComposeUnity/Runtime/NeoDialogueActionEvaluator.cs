@@ -4360,6 +4360,9 @@ namespace NeoCompose.Runtime
             }
         }
 
+        /// <summary>Lets a disposed client's schema go from the pooled write target.</summary>
+        internal static void DropPooledWriteTarget() => NeoClassMemberWriteTarget.DropPooled();
+
         private sealed class NeoClassMemberWriteTarget : NeoResolvedWriteTarget
         {
             // An assignment writes through its target before it continues,
@@ -4441,8 +4444,9 @@ namespace NeoCompose.Runtime
             /// <summary>
             /// Ends a rented write. Clearing the nodes keeps a disposed
             /// client's rows unreachable from the pool, and constant null
-            /// stores pay no write barrier. The ids and schema member it keeps
-            /// reach nothing else.
+            /// stores pay no write barrier. The schema member it keeps reaches
+            /// its client's IR site caches, so <see cref="DropPooled"/> lets
+            /// it go when a client is disposed.
             /// </summary>
             internal void Release()
             {
@@ -4450,6 +4454,8 @@ namespace NeoCompose.Runtime
                 childNode = null;
                 inUse = false;
             }
+
+            internal static void DropPooled() => pooled = null;
 
             /// <summary>
             /// P75: the row bound to <see cref="key"/> on the parent, resolved

@@ -63,9 +63,15 @@ namespace NeoCompose.Runtime
             valueNode is { live: true } node && node.id == id ? node : null;
 
         // One id per member, so a rowless member's default read allocates none.
-        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> defaultValueIds = new(System.StringComparer.Ordinal);
-        private protected static string DefaultValueId(string memberId) =>
-            defaultValueIds.GetOrAdd(memberId, static id => $"__neo_default:{id}");
+        private static readonly Dictionary<string, string> defaultValueIds = new(System.StringComparer.Ordinal);
+
+        private protected static string DefaultValueId(string memberId)
+        {
+            if (!defaultValueIds.TryGetValue(memberId, out string? id))
+                defaultValueIds[memberId] = id = $"__neo_default:{memberId}";
+            return id;
+        }
+
         internal bool IsRegisteredWithClient
         {
             get; set;
