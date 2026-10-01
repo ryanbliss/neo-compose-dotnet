@@ -155,7 +155,10 @@ namespace NeoCompose.Runtime
             NSGetterEvaluator.Context ctx = client.RentDirectFunctionContext(ownership, function: true);
             object receiver = UnwrapReceiver(row, ctx);
             NeoResolvedNSFunction function = ResolveInstanceFunction(receiver, row, ctx);
-            ctx.gridReads = gridReads;
+            // A rented context comes back without grid reads: skip the
+            // usual null store's write barrier.
+            if (gridReads is not null)
+                ctx.gridReads = gridReads;
             if (function.Deferred)
             {
                 throw new InvalidOperationException(
@@ -189,7 +192,8 @@ namespace NeoCompose.Runtime
                 NSGetterEvaluator.Context ctx = CreateDirectContext(ownership);
                 object receiver = UnwrapReceiver(row, ctx);
                 NeoResolvedNSFunction function = ResolveInstanceFunction(receiver, row, ctx);
-                ctx.gridReads = gridReads;
+                if (gridReads is not null)
+                    ctx.gridReads = gridReads;
                 if (!function.Deferred)
                 {
                     throw new InvalidOperationException(
@@ -223,7 +227,9 @@ namespace NeoCompose.Runtime
         {
             NeoValueNode? node = receiverNode;
             // A repeat receiver's id passed validation when its node was kept.
-            if (node is null || !string.Equals(node.id, thisValueId, StringComparison.Ordinal))
+            // A generated view passes the same id string every call.
+            if (node is null
+                || !(ReferenceEquals(node.id, thisValueId) || string.Equals(node.id, thisValueId)))
             {
                 if (string.IsNullOrWhiteSpace(thisValueId))
                 {
