@@ -4028,35 +4028,8 @@ namespace NeoCompose.Runtime
                 return true;
             }
 
-            foreach (var candidate in EnumerateParentRows(childValueId))
-            {
-                string candidateId = candidate.valueId;
-                MemberValue parent = candidate.row;
-                // Member inference walks schema/value paths and is materially
-                // more expensive than inspecting a row payload. Almost every row
-                // is irrelevant to a particular child, so reject those first.
-                // We still resolve the schema for an actual payload match below,
-                // which is what distinguishes owned Class/List/Dictionary edges
-                // from lookup/reference edges.
-                if (!MightReferenceChildValueId(parent, childValueId))
-                    continue;
-                Member? parentMember = TryInferMemberForValueId(
-                    candidateId,
-                    out Member? inferredParent)
-                        ? inferredParent
-                        : null;
-                foreach (var ownedChild in EnumerateOwnedChildLinks(parent, parentMember))
-                {
-                    NeoValueOwnership edgeOwnership =
-                        ChildOwnership(ownedChild.member, candidate.ownership);
-                    if (edgeOwnership == childOwnership
-                        && ownedChild.valueId == childValueId)
-                    {
-                        parentValueId = candidateId;
-                        return true;
-                    }
-                }
-            }
+            if (TryFindOwningParentRow(childOwnership, childValueId, out parentValueId))
+                return true;
 
             // Member valueIds are also owning roots, including schema
             // placements whose wrappers have never been instantiated.
@@ -4088,23 +4061,9 @@ namespace NeoCompose.Runtime
             // so it participates in strict-tree ownership like an ordinary
             // member root. Without this check a constructor could attach a
             // Session-static aggregate beneath a second parent.
-            // A static resolves to its proposed binding, else its store
-            // binding, else its authored valueId. Only members named by one of
-            // those three sources can be bound to this child, so resolve just
-            // those instead of every static in the schema.
-            foreach (Member candidate in StaticMembersPossiblyBoundTo(childOwnership, childValueId))
+            if (TryFindStaticOwner(childOwnership, childValueId, out Member? staticOwner))
             {
-                if (!TryResolveStaticBinding(
-                        candidate.id,
-                        out _,
-                        out NeoValueOwnership staticOwnership,
-                        out string? staticValueId)
-                    || staticOwnership != childOwnership
-                    || staticValueId != childValueId)
-                {
-                    continue;
-                }
-                parentValueId = $"static:{candidate.id}";
+                parentValueId = $"static:{staticOwner.id}";
                 return true;
             }
 
@@ -4112,29 +4071,69 @@ namespace NeoCompose.Runtime
             return false;
         }
 
-        private IEnumerable<Member> StaticMembersPossiblyBoundTo(
+        // A static resolves to its proposed binding, else its store binding,
+        // else its authored valueId. Only members named by one of those three
+        // sources can be bound to this child, so resolve just those instead of
+        // every static in the schema.
+        private bool TryFindStaticOwner(
             NeoValueOwnership ownership,
-            string valueId)
+            string valueId,
+            [NotNullWhen(true)] out Member? owner)
         {
             if (ValueInferenceIndex.MembersByValueId.TryGetValue(valueId, out var declared))
+            {
                 foreach (Member member in declared)
-                    if (member.Modifier == NeoMemberModifierKind.Static)
-                        yield return member;
+                {
+                    if (member.Modifier == NeoMemberModifierKind.Static
+                        && IsStaticBoundTo(member, ownership, valueId))
+                    {
+                        owner = member;
+                        return true;
+                    }
+                }
+            }
             if (ownership != NeoValueOwnership.Asset)
+            {
                 foreach (var binding in GetWritableStore(ownership).staticBindings)
+                {
                     if (binding.Value == valueId
                         && TryGetMember(binding.Key, out Member? bound)
-                        && bound.Modifier == NeoMemberModifierKind.Static)
-                        yield return bound;
+                        && bound.Modifier == NeoMemberModifierKind.Static
+                        && IsStaticBoundTo(bound, ownership, valueId))
+                    {
+                        owner = bound;
+                        return true;
+                    }
+                }
+            }
             if (candidateReadPlan is not null)
+            {
                 foreach (var proposed in candidateReadPlan.Bindings)
+                {
                     if (proposed.Key.ownership == ownership
                         && proposed.Value.present
                         && proposed.Value.valueId == valueId
                         && TryGetMember(proposed.Key.memberId, out Member? bound)
-                        && bound.Modifier == NeoMemberModifierKind.Static)
-                        yield return bound;
+                        && bound.Modifier == NeoMemberModifierKind.Static
+                        && IsStaticBoundTo(bound, ownership, valueId))
+                    {
+                        owner = bound;
+                        return true;
+                    }
+                }
+            }
+            owner = null;
+            return false;
         }
+
+        private bool IsStaticBoundTo(Member member, NeoValueOwnership ownership, string valueId) =>
+            TryResolveStaticBinding(
+                member.id,
+                out _,
+                out NeoValueOwnership staticOwnership,
+                out string? staticValueId)
+            && staticOwnership == ownership
+            && staticValueId == valueId;
 
         /// <summary>
         /// Verifies one already schema-validated owned edge without performing
@@ -4200,22 +4199,36 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private IEnumerable<(string valueId, MemberValue row, NeoValueOwnership ownership)>
-            EnumerateParentRows(string childId)
+        private bool TryFindOwningParentRow(
+            NeoValueOwnership childOwnership,
+            string childValueId,
+            [NotNullWhen(true)] out string? parentValueId)
         {
             // The placement index is a conservative set of payload references,
             // not proof of ownership. Inspect each candidate in BOTH writable
-            // stores and still validate its schema edge at the call site.
+            // stores and still validate its schema edge.
             HashSet<string> candidates = RentIdSet();
             try
             {
-                CollectPlacementParents(childId, candidates);
+                CollectPlacementParents(childValueId, candidates);
                 foreach (string id in candidates)
-                    if (sessionData.values.TryGetValue(id, out var row))
-                        yield return (id, row, NeoValueOwnership.Session);
+                {
+                    if (sessionData.values.TryGetValue(id, out var row)
+                        && OwnsChildEdge(id, row, NeoValueOwnership.Session, childOwnership, childValueId))
+                    {
+                        parentValueId = id;
+                        return true;
+                    }
+                }
                 foreach (string id in candidates)
-                    if (saveData.values.TryGetValue(id, out var row))
-                        yield return (id, row, NeoValueOwnership.Save);
+                {
+                    if (saveData.values.TryGetValue(id, out var row)
+                        && OwnsChildEdge(id, row, NeoValueOwnership.Save, childOwnership, childValueId))
+                    {
+                        parentValueId = id;
+                        return true;
+                    }
+                }
                 foreach (string id in candidates)
                 {
                     if (!data.values.TryGetValue(id, out var row))
@@ -4225,13 +4238,48 @@ namespace NeoCompose.Runtime
                     if (ownership != NeoValueOwnership.Asset
                         && GetWritableStore(ownership).values.ContainsKey(id))
                         continue;
-                    yield return (id, row, ownership);
+                    if (OwnsChildEdge(id, row, ownership, childOwnership, childValueId))
+                    {
+                        parentValueId = id;
+                        return true;
+                    }
                 }
             }
             finally
             {
                 ReturnIdSet(candidates);
             }
+            parentValueId = null;
+            return false;
+        }
+
+        private bool OwnsChildEdge(
+            string parentId,
+            MemberValue parent,
+            NeoValueOwnership parentOwnership,
+            NeoValueOwnership childOwnership,
+            string childValueId)
+        {
+            // Member inference walks schema/value paths and is materially
+            // more expensive than inspecting a row payload. Almost every row
+            // is irrelevant to a particular child, so reject those first.
+            // We still resolve the schema for an actual payload match below,
+            // which is what distinguishes owned Class/List/Dictionary edges
+            // from lookup/reference edges.
+            if (!MightReferenceChildValueId(parent, childValueId))
+                return false;
+            Member? parentMember = TryInferMemberForValueId(
+                parentId,
+                out Member? inferredParent)
+                    ? inferredParent
+                    : null;
+            foreach (var ownedChild in EnumerateOwnedChildLinks(parent, parentMember))
+            {
+                if (ChildOwnership(ownedChild.member, parentOwnership) == childOwnership
+                    && ownedChild.valueId == childValueId)
+                    return true;
+            }
+            return false;
         }
 
         private NeoValueOwnership ResolveAuthoredOwnership(
@@ -4442,50 +4490,155 @@ namespace NeoCompose.Runtime
             return clone.id;
         }
 
-        internal IEnumerable<(string valueId, Member? member)> EnumerateOwnedChildLinks(
+        internal OwnedChildLinks EnumerateOwnedChildLinks(
             MemberValue row,
             Member? sourceMember) =>
-            // Leaf rows link nothing; they skip the iterator.
-            row is ObjectMemberValue or ArrayMemberValue { value: not null }
-                ? OwnedChildLinks(row, sourceMember)
-                : System.Array.Empty<(string, Member?)>();
+            new(this, row, sourceMember);
 
-        private IEnumerable<(string valueId, Member? member)> OwnedChildLinks(
-            MemberValue row,
-            Member? sourceMember)
+        /// <summary>
+        /// A row's owned child links: an object's fields, then its settled
+        /// aggregate arguments; an array's entries. A struct, so a graph walk
+        /// allocates nothing per row it visits.
+        /// </summary>
+        internal readonly struct OwnedChildLinks : IEnumerable<(string valueId, Member? member)>
         {
-            switch (row)
+            private readonly NeoClient client;
+            private readonly MemberValue row;
+            private readonly Member? sourceMember;
+
+            internal OwnedChildLinks(NeoClient client, MemberValue row, Member? sourceMember)
             {
-                case ObjectMemberValue obj:
-                    if (obj.value is not null)
-                        foreach (var pair in obj.value)
+                this.client = client;
+                this.row = row;
+                this.sourceMember = sourceMember;
+            }
+
+            public Enumerator GetEnumerator() => new(client, row, sourceMember);
+
+            IEnumerator<(string valueId, Member? member)> IEnumerable<(string valueId, Member? member)>.GetEnumerator() =>
+                GetEnumerator();
+
+            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+            internal struct Enumerator : IEnumerator<(string valueId, Member? member)>
+            {
+                private const int FieldsStage = 0;
+                private const int AggregatesStage = 1;
+                private const int EntriesStage = 2;
+                private const int DoneStage = 3;
+
+                private readonly NeoClient client;
+                private readonly MemberValue row;
+                private readonly Member? sourceMember;
+                private int stage;
+                private Dictionary<string, string>.Enumerator fields;
+                private SettledAggregateParameter[]? parameters;
+                private Member? entryMember;
+                private int index;
+                private (string valueId, Member? member) current;
+
+                internal Enumerator(NeoClient client, MemberValue row, Member? sourceMember)
+                {
+                    this.client = client;
+                    this.row = row;
+                    this.sourceMember = sourceMember;
+                    fields = default;
+                    parameters = null;
+                    entryMember = null;
+                    index = 0;
+                    current = default;
+                    if (row is ObjectMemberValue obj)
+                    {
+                        if (obj.value is not null)
                         {
-                            Member? childMember = TryResolveOwnedChildMember(row, sourceMember, pair.Key);
-                            if (childMember is not null)
-                            {
-                                yield return (pair.Value, childMember);
-                            }
+                            fields = obj.value.GetEnumerator();
+                            stage = FieldsStage;
                         }
-                    foreach (var link in EnumerateConstructorSettledAggregateLinks(obj, sourceMember))
-                    {
-                        yield return (link.valueId, link.member);
+                        else
+                        {
+                            stage = AggregatesStage;
+                        }
                     }
-                    break;
-                case ArrayMemberValue arr when arr.value is not null:
-                    if (sourceMember is LookupMember)
+                    else
                     {
-                        yield break;
+                        // A leaf row links nothing.
+                        stage = row is ArrayMemberValue { value: not null } ? EntriesStage : DoneStage;
                     }
-                    Member? entryMember = TryResolveCollectionEntryMember(sourceMember);
-                    if (entryMember is null)
+                }
+
+                public (string valueId, Member? member) Current => current;
+
+                object IEnumerator.Current => current;
+
+                public bool MoveNext()
+                {
+                    while (true)
                     {
-                        yield break;
+                        switch (stage)
+                        {
+                            case FieldsStage:
+                                while (fields.MoveNext())
+                                {
+                                    KeyValuePair<string, string> pair = fields.Current;
+                                    Member? childMember = client.TryResolveOwnedChildMember(row, sourceMember, pair.Key);
+                                    if (childMember is not null)
+                                    {
+                                        current = (pair.Value, childMember);
+                                        return true;
+                                    }
+                                }
+                                stage = AggregatesStage;
+                                continue;
+                            case AggregatesStage:
+                                var obj = (ObjectMemberValue)row;
+                                if (parameters is null)
+                                {
+                                    // Most rows have no settling constructor.
+                                    if (client.SettledAggregateConstructor(obj) is not { } constructor)
+                                    {
+                                        stage = DoneStage;
+                                        return false;
+                                    }
+                                    parameters = client.SettledAggregateParameters(constructor);
+                                }
+                                while (index < parameters.Length)
+                                {
+                                    if (client.TryGetSettledAggregateLink(
+                                            obj, sourceMember, includeMaterializedChildren: false, parameters[index++],
+                                            out string? childValueId, out Member? member))
+                                    {
+                                        current = (childValueId, member);
+                                        return true;
+                                    }
+                                }
+                                stage = DoneStage;
+                                return false;
+                            case EntriesStage:
+                                string[] entries = ((ArrayMemberValue)row).value!;
+                                if (index == 0)
+                                {
+                                    entryMember = sourceMember is LookupMember
+                                        ? null
+                                        : client.TryResolveCollectionEntryMember(sourceMember);
+                                }
+                                if (entryMember is null || index >= entries.Length)
+                                {
+                                    stage = DoneStage;
+                                    return false;
+                                }
+                                current = (entries[index++], entryMember);
+                                return true;
+                            default:
+                                return false;
+                        }
                     }
-                    foreach (var childId in arr.value)
-                    {
-                        yield return (childId, entryMember);
-                    }
-                    break;
+                }
+
+                public void Reset() => throw new System.NotSupportedException();
+
+                public void Dispose()
+                {
+                }
             }
         }
 
