@@ -360,7 +360,7 @@ namespace NeoCompose.Runtime
         private readonly List<GetterMemoKey> memoInvalidationScratch = new();
 
         /// <summary>Drops every memoized getter that read one of the changed rows.</summary>
-        private void InvalidateGetterMemoForRows(IEnumerable<(NeoValueOwnership ownership, string valueId)> changed)
+        private void InvalidateGetterMemoForRows(HashSet<(NeoValueOwnership ownership, string valueId)> changed)
         {
             if (getterMemo.Count == 0)
                 return;

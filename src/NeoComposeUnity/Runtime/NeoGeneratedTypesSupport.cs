@@ -665,10 +665,14 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal sealed class NeoConstructionScope
         {
-            private readonly NeoClient client;
+            private NeoClient client;
             private readonly ConstructorChainArguments initializerArguments;
-            private HashSet<string>? lazyClassStack;
-            private Dictionary<string, NeoValueOwnership>? lazyReferenceOwnershipByPath;
+            private string? outermostClass;
+            private HashSet<string>? innerClasses;
+            private Dictionary<string, NeoValueOwnership>? referenceOwnership;
+            private Func<object?, NeoConstructorValueReference?>? valueReference;
+            private static readonly IReadOnlyDictionary<string, NeoValueOwnership> NoReferenceOwnership =
+                new Dictionary<string, NeoValueOwnership>();
             private readonly string? constructedClassId;
             private NeoScript.NSGetterEvaluator.Context? evaluationContext;
 
@@ -684,12 +688,38 @@ namespace NeoCompose.Runtime
                 this.constructedClassId = constructedClassId;
             }
 
+            /// <summary>Rebinds a pooled scope to a new construction, keeping nothing from the last.</summary>
+            internal void Rebind(NeoClient client, NeoScript.NSGetterEvaluator.Context? evaluationContext)
+            {
+                this.client = client;
+                this.evaluationContext = evaluationContext;
+                outermostClass = null;
+                innerClasses?.Clear();
+                referenceOwnership?.Clear();
+            }
+
             /// <summary>
-            /// Per-class recursion guard for literal defaults. Unchanged
-            /// behavior: a class whose literal default graph contains itself
-            /// is rejected by name.
+            /// Per-class recursion guard for literal defaults: false when
+            /// <paramref name="classId"/> is already being created, so a class
+            /// whose literal default graph contains itself is rejected by name.
+            /// Most graphs nest no class, so the outermost needs no set.
             /// </summary>
-            internal HashSet<string> classStack => lazyClassStack ??= new HashSet<string>();
+            internal bool EnterClass(string classId)
+            {
+                if (outermostClass is null)
+                {
+                    outermostClass = classId;
+                    return true;
+                }
+                return outermostClass != classId
+                    && (innerClasses ??= new HashSet<string>()).Add(classId);
+            }
+
+            internal void ExitClass(string classId)
+            {
+                if (innerClasses?.Remove(classId) != true && outermostClass == classId)
+                    outermostClass = null;
+            }
 
             /// <summary>
             /// Ownership of every already-owned value an initializer or a
@@ -697,8 +727,13 @@ namespace NeoCompose.Runtime
             /// <see cref="PrepareConstructedGraph"/> preflights and imports
             /// these after the staged graph passes shape validation.
             /// </summary>
-            internal Dictionary<string, NeoValueOwnership> referenceOwnershipByPath =>
-                lazyReferenceOwnershipByPath ??= new Dictionary<string, NeoValueOwnership>();
+            internal IReadOnlyDictionary<string, NeoValueOwnership> referenceOwnershipByPath =>
+                (IReadOnlyDictionary<string, NeoValueOwnership>?)referenceOwnership ?? NoReferenceOwnership;
+
+            internal void RecordReferenceOwnership(string path, NeoValueOwnership ownership)
+            {
+                (referenceOwnership ??= new Dictionary<string, NeoValueOwnership>())[path] = ownership;
+            }
 
             internal NeoScript.NSGetterEvaluator.Context? ExistingEvaluationContext =>
                 evaluationContext;
@@ -734,7 +769,7 @@ namespace NeoCompose.Runtime
             /// rather than copied field by field.
             /// </summary>
             internal Func<object?, NeoConstructorValueReference?> ValueReference =>
-                value => NeoScript.NSGetterEvaluator.ConstructorReferenceOf(
+                valueReference ??= value => NeoScript.NSGetterEvaluator.ConstructorReferenceOf(
                     value,
                     EvaluationContext);
 
@@ -2993,7 +3028,7 @@ namespace NeoCompose.Runtime
 
         private static void BindConstructedDelegateTargets(
             NeoClient client,
-            IReadOnlyList<(string valueId, Member member)> attachedRoots,
+            List<(string valueId, Member member)> attachedRoots,
             Dictionary<string, MemberValue> stagedById,
             Dictionary<string, string> parentByChildId,
             Stack<(string valueId, Member? member)> pending)
@@ -3905,7 +3940,7 @@ namespace NeoCompose.Runtime
                     valueReference,
                     metadata.genericEnv,
                     $"{classTypeInfo.classId}.{field.schemaKey}",
-                    scope.referenceOwnershipByPath);
+                    scope);
                 if (fieldValueId is not null)
                 {
                     value[field.schemaKey] = fieldValueId;
@@ -5563,7 +5598,7 @@ namespace NeoCompose.Runtime
                         ? NeoScriptExecutor.ImportClassValueReference(client, ownership, reference.Value.valueId, ctx)
                         : NeoScriptExecutor.ImportClassValueReference(plan, client, ownership, reference.Value.valueId, ctx);
                     return new NeoConstructorValueReference(imported, ownership);
-                }, env, member.name, new Dictionary<string, NeoValueOwnership>());
+                }, env, member.name, scope: null);
             return CallSiteWritePayload(payload, rows);
         }
 
@@ -5600,8 +5635,8 @@ namespace NeoCompose.Runtime
                     // Deferred-ownership bookkeeping is for
                     // PrepareConstructedGraph's preflight, which only runs on
                     // the staged-graph path. Here the adoption already
-                    // happened above, so the map is write-only.
-                    new Dictionary<string, NeoValueOwnership>());
+                    // happened above, so there is nothing to record.
+                    scope: null);
                 field.value = CallSiteWritePayload(payload, stagedRows);
             }
         }
@@ -6158,7 +6193,7 @@ namespace NeoCompose.Runtime
                 {
                     if (reference.ownership is NeoValueOwnership ownership)
                     {
-                        scope.referenceOwnershipByPath[path] = ownership;
+                        scope.RecordReferenceOwnership(path, ownership);
                     }
                     return reference.valueId;
                 }
@@ -6172,7 +6207,7 @@ namespace NeoCompose.Runtime
                 scope.ValueReference,
                 env,
                 path,
-                scope.referenceOwnershipByPath,
+                scope,
                 preserveOptionalNull: true);
         }
 
@@ -6185,7 +6220,7 @@ namespace NeoCompose.Runtime
             Func<object?, NeoConstructorValueReference?> valueReference,
             IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv,
             string path,
-            Dictionary<string, NeoValueOwnership> referenceOwnershipByPath,
+            NeoConstructionScope? scope,
             bool preserveOptionalNull = false)
         {
             if (runtimeValue is null)
@@ -6214,7 +6249,7 @@ namespace NeoCompose.Runtime
                 // generated C# constructors and normal assignments.
                 if (source.Value.ownership is NeoValueOwnership ownership)
                 {
-                    referenceOwnershipByPath[path] = ownership;
+                    scope?.RecordReferenceOwnership(path, ownership);
                 }
                 return source.Value.valueId;
             }
@@ -6229,7 +6264,7 @@ namespace NeoCompose.Runtime
                 valueReference,
                 genericEnv,
                 path,
-                referenceOwnershipByPath);
+                scope);
             MemberValue row = MemberValueFactory.Create(
                 member,
                 payload,
@@ -6270,7 +6305,7 @@ namespace NeoCompose.Runtime
             Func<object?, NeoConstructorValueReference?> valueReference,
             IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv,
             string path,
-            Dictionary<string, NeoValueOwnership> referenceOwnershipByPath)
+            NeoConstructionScope? scope)
         {
             NeoValuePayload? wrappedPayload = runtimeValue
                 is INeoValuePayloadProvider provider
@@ -6329,7 +6364,7 @@ namespace NeoCompose.Runtime
                             valueReference,
                             genericEnv,
                             $"{path}[{ids.Count}]",
-                            referenceOwnershipByPath,
+                            scope,
                             preserveOptionalNull: true);
                         if (id is null)
                         {
@@ -6399,7 +6434,7 @@ namespace NeoCompose.Runtime
                         valueReference,
                         genericEnv,
                         $"{path}[{key}]",
-                        referenceOwnershipByPath,
+                        scope,
                         preserveOptionalNull: true);
                     if (id is null)
                     {
@@ -6762,7 +6797,7 @@ namespace NeoCompose.Runtime
             bool requireCompleteDefault = false,
             (ObjectMemberValue row, bool usesOwnBindings)? declarationRoot = null)
         {
-            if (!scope.classStack.Add(classId))
+            if (!scope.EnterClass(classId))
             {
                 throw new InvalidOperationException(
                     $"Recursive default class value creation detected for class '{classId}'.");
@@ -6882,7 +6917,7 @@ namespace NeoCompose.Runtime
             }
             finally
             {
-                scope.classStack.Remove(classId);
+                scope.ExitClass(classId);
             }
         }
 

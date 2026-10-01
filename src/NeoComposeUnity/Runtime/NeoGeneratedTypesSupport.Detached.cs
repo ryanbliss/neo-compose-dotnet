@@ -834,31 +834,32 @@ namespace NeoCompose.Runtime
             NSGetterEvaluator.Context? scopeCtx)
         {
             NeoClient client = root.client;
-            var scope = new NeoConstructionScope(client, scopeCtx);
-            NeoTimestamp now = scopeCtx?.allocationTracker.ConstructionTimestamp
-                ?? NeoTimestamp.Now();
-            var rows = new List<MemberValue>();
-            var staged = new List<(NeoScriptObject value, ObjectMemberValue row)>();
-            Func<object?, NeoConstructorValueReference?> valueReference = null!;
-            valueReference = value => value is NeoScriptObject child
-                ? new NeoConstructorValueReference(
-                    StageDetached(child, rows, now, scope, staged, valueReference).id,
-                    null)
-                : null;
-            ObjectMemberValue rootRow = StageDetached(root, rows, now, scope, staged, valueReference);
-            PrepareConstructedGraph(
+            DetachedStaging staging = DetachedStaging.Rent(
                 client,
-                rootRow,
-                rows,
-                scope,
-                // A constructor still running may not have set every member yet.
-                requireCompleteRoot: !root.constructing,
-                trustedMaterialization: true,
-                root.plan.runtimePlan);
-            client.PublishConstructedSessionRows(rows);
-            foreach ((NeoScriptObject value, ObjectMemberValue row) in staged)
-                value.attachedId = row.id;
-            return rootRow.id;
+                scopeCtx,
+                scopeCtx?.allocationTracker.ConstructionTimestamp ?? NeoTimestamp.Now());
+            try
+            {
+                ObjectMemberValue rootRow = staging.Stage(root);
+                PrepareConstructedGraph(
+                    client,
+                    rootRow,
+                    staging.rows,
+                    staging.scope,
+                    // A constructor still running may not have set every member yet.
+                    requireCompleteRoot: !root.constructing,
+                    trustedMaterialization: true,
+                    root.plan.runtimePlan);
+                client.PublishConstructedSessionRows(staging.rows);
+                foreach ((NeoScriptObject value, ObjectMemberValue row) in staging.children)
+                    value.attachedId = row.id;
+                root.attachedId = rootRow.id;
+                return rootRow.id;
+            }
+            finally
+            {
+                DetachedStaging.Return(staging);
+            }
         }
 
         /// <summary>Stamps a declared construction's recipe, serializing its recorded arguments.</summary>
@@ -872,50 +873,107 @@ namespace NeoCompose.Runtime
                 SerializeConstructionProvenanceArgs(value.constructor, value.constructorArgs));
         }
 
-        private static ObjectMemberValue StageDetached(
-            NeoScriptObject value,
-            List<MemberValue> rows,
-            NeoTimestamp now,
-            NeoConstructionScope scope,
-            List<(NeoScriptObject value, ObjectMemberValue row)> staged,
-            Func<object?, NeoConstructorValueReference?> valueReference)
+        /// <summary>
+        /// One materialization's staged rows, reused per thread. A
+        /// materialization nested inside another, or one too large to clear
+        /// cheaply, gets its own. Nested detached objects stage through
+        /// <see cref="ValueReference"/>.
+        /// </summary>
+        private sealed class DetachedStaging
         {
-            DetachedClassPlan plan = value.plan;
-            var supplied = new Dictionary<string, string>(plan.slots.Length);
-            for (int index = 0; index < plan.slots.Length; index++)
+            private const int MaxPooledRows = 64;
+
+            [ThreadStatic]
+            private static DetachedStaging? free;
+
+            internal readonly List<MemberValue> rows = new();
+            /// <summary>Staged nested objects, attached once the graph publishes.</summary>
+            internal readonly List<(NeoScriptObject value, ObjectMemberValue row)> children = new();
+            internal readonly NeoConstructionScope scope;
+            private NeoTimestamp now;
+            private Func<object?, NeoConstructorValueReference?>? valueReference;
+
+            private DetachedStaging(NeoClient client, NSGetterEvaluator.Context? scopeCtx)
             {
-                if (value.State(index) != NeoScriptObject.WrittenSlot)
-                    continue;
-                DetachedSlot slot = plan.slots[index];
-                string? childId = MaterializeRuntimeConstructorValue(
+                scope = new NeoConstructionScope(client, scopeCtx);
+            }
+
+            internal static DetachedStaging Rent(NeoClient client, NSGetterEvaluator.Context? scopeCtx, NeoTimestamp now)
+            {
+                DetachedStaging? staging = free;
+                free = null;
+                if (staging is null)
+                    staging = new DetachedStaging(client, scopeCtx);
+                else
+                    staging.scope.Rebind(client, scopeCtx);
+                staging.now = now;
+                return staging;
+            }
+
+            internal static void Return(DetachedStaging staging)
+            {
+                if (staging.rows.Count > MaxPooledRows)
+                    return;
+                staging.rows.Clear();
+                staging.children.Clear();
+                // Pooled per thread, so it holds no client between materializations.
+                staging.scope.Rebind(null!, null);
+                free = staging;
+            }
+
+            private Func<object?, NeoConstructorValueReference?> ValueReference =>
+                valueReference ??= StageChild;
+
+            private NeoConstructorValueReference? StageChild(object? value)
+            {
+                if (value is not NeoScriptObject child)
+                    return null;
+                ObjectMemberValue row = Stage(child);
+                children.Add((child, row));
+                return new NeoConstructorValueReference(row.id, null);
+            }
+
+            internal ObjectMemberValue Stage(NeoScriptObject value)
+            {
+                DetachedClassPlan plan = value.plan;
+                var supplied = new Dictionary<string, string>(plan.slots.Length);
+                for (int index = 0; index < plan.slots.Length; index++)
+                {
+                    if (value.State(index) != NeoScriptObject.WrittenSlot)
+                        continue;
+                    DetachedSlot slot = plan.slots[index];
+                    string? childId = MaterializeRuntimeConstructorValue(
+                        value.client,
+                        slot.member,
+                        slot.kind == DetachedSlotKind.List
+                            ? DetachedArray(value, index)
+                            : DetachedLeaf(value, index),
+                        rows,
+                        now,
+                        // A leaf is a scalar, enum or lookup: none references a value.
+                        slot.kind == DetachedSlotKind.Leaf ? NoValueReference : ValueReference,
+                        plan.runtimePlan.genericEnv,
+                        slot.path,
+                        scope,
+                        preserveOptionalNull: true);
+                    if (childId is not null)
+                        supplied[slot.schemaKey] = childId;
+                }
+                ObjectMemberValue row = CreateWritableClassValueRow(
                     value.client,
-                    slot.member,
-                    slot.kind == DetachedSlotKind.List
-                        ? DetachedArray(value, index)
-                        : DetachedLeaf(value, index),
+                    plan.classId,
+                    supplied,
                     rows,
                     now,
-                    valueReference,
-                    plan.runtimePlan.genericEnv,
-                    slot.path,
-                    scope.referenceOwnershipByPath,
-                    preserveOptionalNull: true);
-                if (childId is not null)
-                    supplied[slot.schemaKey] = childId;
+                    scope,
+                    plan.classId,
+                    classPlan: plan.runtimePlan);
+                StampDetachedProvenance(value, row);
+                rows.Add(row);
+                return row;
             }
-            ObjectMemberValue row = CreateWritableClassValueRow(
-                value.client,
-                plan.classId,
-                supplied,
-                rows,
-                now,
-                scope,
-                plan.classId,
-                classPlan: plan.runtimePlan);
-            StampDetachedProvenance(value, row);
-            rows.Add(row);
-            staged.Add((value, row));
-            return row;
         }
+
+        private static readonly Func<object?, NeoConstructorValueReference?> NoValueReference = _ => null;
     }
 }

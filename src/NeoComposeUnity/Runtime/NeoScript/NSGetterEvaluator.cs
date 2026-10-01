@@ -156,7 +156,7 @@ namespace NeoCompose.Runtime.NeoScript
         /// complete and continually growing Session store.
         /// </summary>
         internal void RegisterConstructedParents(
-            IReadOnlyDictionary<string, string> parentByChildId)
+            Dictionary<string, string> parentByChildId)
         {
             foreach (var pair in parentByChildId)
             {

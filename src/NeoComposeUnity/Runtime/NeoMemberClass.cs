@@ -31,14 +31,14 @@ namespace NeoCompose.Runtime
         /// class. Empty when the chain is cyclic — see
         /// <see cref="ResolveClassContext"/>.
         /// </summary>
-        public IList<NeoSchemaClass> inheritanceChain { get; private set; } = new List<NeoSchemaClass>();
+        public IList<NeoSchemaClass> inheritanceChain { get; private set; } = System.Array.Empty<NeoSchemaClass>();
         /// <summary>
         /// Schema entries merged across <see cref="inheritanceChain"/>
         /// (base-first; child overrides win at the same key). Replaces
         /// direct <c>schemaClass.schema</c> access so descendants see fields
         /// inherited from ancestor Classes.
         /// </summary>
-        public IList<MergedSchemaEntry> mergedSchema { get; private set; } = new List<MergedSchemaEntry>();
+        public IList<MergedSchemaEntry> mergedSchema { get; private set; } = System.Array.Empty<MergedSchemaEntry>();
         /// <summary>
         /// Generic binding environment of the row's effective class
         /// (specs/class-generics.md §9): every param in the chain's
@@ -622,8 +622,8 @@ namespace NeoCompose.Runtime
             {
                 Debug.LogError(ex);
                 classNode = null;
-                inheritanceChain = new List<NeoSchemaClass>();
-                mergedSchema = new List<MergedSchemaEntry>();
+                inheritanceChain = System.Array.Empty<NeoSchemaClass>();
+                mergedSchema = System.Array.Empty<MergedSchemaEntry>();
                 GenericEnv = NeoGenericResolution.EmptyEnv;
             }
         }

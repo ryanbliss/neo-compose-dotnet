@@ -3489,7 +3489,7 @@ namespace NeoCompose.Runtime
         /// constructor result.
         /// </summary>
         internal void PublishConstructedSessionRows(
-            IReadOnlyList<MemberValue> values)
+            List<MemberValue> values)
         {
             if (nestedConstructorCapture is not null)
                 foreach (MemberValue row in values)
