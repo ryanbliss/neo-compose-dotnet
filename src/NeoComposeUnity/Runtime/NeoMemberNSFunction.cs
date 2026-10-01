@@ -150,29 +150,32 @@ namespace NeoCompose.Runtime
         public object? Invoke(string thisValueId, object?[] args, NeoScriptGridReads? gridReads = null)
         {
             args ??= Array.Empty<object?>();
-            Invocation invocation = PrepareInvocation(thisValueId, reuseContext: true);
-            invocation.Context.gridReads = gridReads;
-            if (invocation.Function.Deferred)
+            MemberValue row = ReceiverRow(thisValueId);
+            NSGetterEvaluator.Context ctx = client.RentDirectFunctionContext(ownership);
+            object receiver = UnwrapReceiver(row, ctx);
+            NeoResolvedNSFunction function = ResolveInstanceFunction(receiver, ctx);
+            ctx.gridReads = gridReads;
+            if (function.Deferred)
             {
                 throw new InvalidOperationException(
-                    $"NSFunction '{invocation.Function.Member.name}' is deferred; use InvokeAsync.");
+                    $"NSFunction '{function.Member.name}' is deferred; use InvokeAsync.");
             }
 
             NeoScriptExecutionResult result = NeoNSFunctionRuntime.ExecuteResolved(
                 client,
-                invocation.Function,
-                invocation.Receiver,
+                function,
+                receiver,
                 args,
-                invocation.Context,
+                ctx,
                 NeoScriptExecutionOptions.ForImmediate(client), ownsContext: true);
             if (result.IsPaused)
             {
                 result.Deferred?.DisposeFromOwner(
                     "synchronous NSFunction invocation suspended");
                 throw new NSGetterRuntimeError(
-                    $"Non-deferred NSFunction '{invocation.Function.Member.name}' suspended; its compiled IR is stale or corrupt.");
+                    $"Non-deferred NSFunction '{function.Member.name}' suspended; its compiled IR is stale or corrupt.");
             }
-            client.ReturnDirectFunctionContext(invocation.Context, result.ReturnValue);
+            client.ReturnDirectFunctionContext(ctx, result.ReturnValue);
             return result.ReturnValue;
         }
 
@@ -181,19 +184,22 @@ namespace NeoCompose.Runtime
             args ??= Array.Empty<object?>();
             try
             {
-                Invocation invocation = PrepareInvocation(thisValueId);
-                invocation.Context.gridReads = gridReads;
-                if (!invocation.Function.Deferred)
+                MemberValue row = ReceiverRow(thisValueId);
+                NSGetterEvaluator.Context ctx = CreateDirectContext(ownership);
+                object receiver = UnwrapReceiver(row, ctx);
+                NeoResolvedNSFunction function = ResolveInstanceFunction(receiver, ctx);
+                ctx.gridReads = gridReads;
+                if (!function.Deferred)
                 {
                     throw new InvalidOperationException(
-                        $"NSFunction '{invocation.Function.Member.name}' is immediate; use Invoke.");
+                        $"NSFunction '{function.Member.name}' is immediate; use Invoke.");
                 }
                 NeoScriptExecutionResult result = NeoNSFunctionRuntime.ExecuteResolved(
                     client,
-                    invocation.Function,
-                    invocation.Receiver,
+                    function,
+                    receiver,
                     args,
-                    invocation.Context,
+                    ctx,
                     NeoScriptExecutionOptions.ForDirectFunction(client), ownsContext: true);
                 return AwaitExecution(result);
             }
@@ -206,8 +212,13 @@ namespace NeoCompose.Runtime
         // The synthetic call site that dispatches a direct invocation; it
         // depends only on this node's member id.
         private CallFunctionPointer? directCallPointer;
+        // The last receiver's value node, so a repeat receiver skips its id
+        // lookup and reuses the node's unwrap.
+        private NeoValueNode? receiverNode;
 
-        private Invocation PrepareInvocation(string thisValueId, bool reuseContext = false)
+        // Each step returns one reference: a multi-reference struct returned
+        // through memory costs Mono a write barrier per reference.
+        private MemberValue ReceiverRow(string thisValueId)
         {
             if (string.IsNullOrWhiteSpace(thisValueId))
             {
@@ -215,23 +226,39 @@ namespace NeoCompose.Runtime
                     "A non-empty receiver value id is required.",
                     nameof(thisValueId));
             }
-            if (!client.TryGetValue(ownership, thisValueId, out MemberValue? row))
+            NeoValueNode? node = receiverNode;
+            if (node is not null && !string.Equals(node.id, thisValueId, StringComparison.Ordinal))
+                node = null;
+            MemberValue? row = client.ReadValue(ownership, thisValueId, ref node);
+            if (!ReferenceEquals(node, receiverNode))
+                receiverNode = node;
+            if (row is null)
             {
                 throw new NSGetterRuntimeError(
                     $"thisValueId '{thisValueId}' was not found in {ownership.ToString().ToLowerInvariant()} values.");
             }
+            return row;
+        }
 
-            var ctx = reuseContext ? client.RentDirectFunctionContext(ownership) : client.CreateGetterContext(ownership);
-            if (!reuseContext)
-                ctx.BindRoot(NeoScriptValueMarshaller.ResolveRoot(client, ctx));
-            object? receiver = NSGetterEvaluator.UnwrapRow(row, ctx, ownership);
-            if (receiver is null)
-            {
-                throw new NSGetterRuntimeError(
+        private NSGetterEvaluator.Context CreateDirectContext(NeoValueOwnership contextOwnership)
+        {
+            var ctx = client.CreateGetterContext(contextOwnership);
+            ctx.BindRoot(NeoScriptValueMarshaller.ResolveRoot(client, ctx));
+            return ctx;
+        }
+
+        private object UnwrapReceiver(MemberValue row, NSGetterEvaluator.Context ctx)
+        {
+            return NSGetterEvaluator.UnwrapRow(row, ctx, ownership, receiverNode)
+                ?? throw new NSGetterRuntimeError(
                     $"NSFunction '{member.name}' cannot be invoked on a null receiver.");
-            }
+        }
 
-            string effectiveMemberId = NSGetterEvaluator.ResolveFunctionMemberId(
+        private NeoResolvedNSFunction ResolveInstanceFunction(object receiver, NSGetterEvaluator.Context ctx)
+        {
+            // The pointer carries no missing-member fallback, so resolution
+            // throws rather than answering no target.
+            NSGetterEvaluator.CallSiteTarget target = NSGetterEvaluator.ResolveCallTarget(
                 directCallPointer ??= new CallFunctionPointer
                 {
                     type = PointerKind.CallFunction,
@@ -249,11 +276,8 @@ namespace NeoCompose.Runtime
                     callSiteId = "__direct__",
                 },
                 receiver,
-                ctx);
-            return new Invocation(
-                NeoNSFunctionRuntime.ResolveSignature(client, effectiveMemberId),
-                receiver,
-                ctx);
+                ctx)!;
+            return target.function ?? NeoNSFunctionRuntime.ResolveSignature(client, target.memberId);
         }
 
         /// <summary>Invokes a receiverless static NSFunction.</summary>
@@ -291,32 +315,25 @@ namespace NeoCompose.Runtime
             args ??= Array.Empty<object?>();
             try
             {
-                Invocation invocation = PrepareStaticInvocation();
-                if (!invocation.Function.Deferred)
+                NeoResolvedNSFunction function = ResolveStaticFunction();
+                NSGetterEvaluator.Context ctx = CreateDirectContext(NeoValueOwnership.Session);
+                if (!function.Deferred)
                 {
                     throw new InvalidOperationException(
-                        $"NSFunction '{invocation.Function.Member.name}' is immediate; use InvokeStatic.");
+                        $"NSFunction '{function.Member.name}' is immediate; use InvokeStatic.");
                 }
                 return AwaitExecution(NeoNSFunctionRuntime.ExecuteResolved(
                     client,
-                    invocation.Function,
+                    function,
                     receiver: null,
                     args,
-                    invocation.Context,
+                    ctx,
                     NeoScriptExecutionOptions.ForDirectFunction(client), ownsContext: true));
             }
             catch (Exception exception)
             {
                 return Task.FromException<object?>(exception);
             }
-        }
-
-        private Invocation PrepareStaticInvocation()
-        {
-            NeoResolvedNSFunction function = ResolveStaticFunction();
-            var ctx = client.CreateGetterContext(NeoValueOwnership.Session);
-            ctx.BindRoot(NeoScriptValueMarshaller.ResolveRoot(client, ctx));
-            return new Invocation(function, receiver: null, ctx);
         }
 
         private NeoResolvedNSFunction ResolveStaticFunction()
@@ -373,31 +390,6 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private readonly struct Invocation
-        {
-            internal Invocation(
-                NeoResolvedNSFunction function,
-                object? receiver,
-                NSGetterEvaluator.Context context)
-            {
-                Function = function;
-                Receiver = receiver;
-                Context = context;
-            }
-
-            internal NeoResolvedNSFunction Function
-            {
-                get;
-            }
-            internal object? Receiver
-            {
-                get;
-            }
-            internal NSGetterEvaluator.Context Context
-            {
-                get;
-            }
-        }
     }
 
     internal sealed class NeoResolvedNSFunction

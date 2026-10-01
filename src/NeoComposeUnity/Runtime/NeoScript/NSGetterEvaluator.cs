@@ -3138,12 +3138,6 @@ namespace NeoCompose.Runtime.NeoScript
             return actionRow.value ?? new NeoActionValue();
         }
 
-        internal static string? ResolveFunctionMemberId(
-            CallFunctionPointer pointer,
-            object? receiver,
-            Context ctx) =>
-            ResolveFunctionMemberId(pointer, receiver, ctx, out _, out _);
-
         /// <summary>
         /// One resolved target of a call site. Resolution reads only the
         /// schema and, for interface dispatch, the receiver's runtime Class,
@@ -3192,10 +3186,9 @@ namespace NeoCompose.Runtime.NeoScript
         }
 
         /// <summary>
-        /// <see cref="ResolveFunctionMemberId(CallFunctionPointer, object?, Context)"/>
-        /// through the call site's cached targets, or null when the call has
-        /// no target. A repeat call on a runtime Class the site has seen
-        /// costs class-id comparisons.
+        /// <see cref="ResolveFunctionMemberId"/> through the call site's
+        /// cached targets, or null when the call has no target. A repeat call
+        /// on a runtime Class the site has seen costs class-id comparisons.
         /// </summary>
         internal static CallSiteTarget? ResolveCallTarget(
             CallFunctionPointer pointer,
