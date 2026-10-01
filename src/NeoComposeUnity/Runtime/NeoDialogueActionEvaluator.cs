@@ -9,6 +9,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using NeoCompose.Runtime.Json;
+using Unity.Collections.LowLevel.Unsafe;
 using NeoCompose.Runtime.NeoScript;
 using Newtonsoft.Json.Linq;
 using JsonMember = NeoCompose.Runtime.Json.Member;
@@ -6391,11 +6392,18 @@ namespace NeoCompose.Runtime
             }
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private NeoScriptExecutionResult(object state)
         {
             this.state = state;
         }
+
+        // The constructor's reference field store write-barriers even into a
+        // stack temporary. Reading the argument's slot as this one-reference
+        // struct copies it without one, for the results every return and
+        // loop transfer builds; the result returns in a register.
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static NeoScriptExecutionResult FromState(object state) =>
+            UnsafeUtility.As<object, NeoScriptExecutionResult>(ref state);
 
         private PausedState? pausedState => state as PausedState;
         private DeferredNativeFunctionSuspension? suspension => pausedState?.suspension;
@@ -6463,7 +6471,7 @@ namespace NeoCompose.Runtime
                     ThrowValuedFallthrough();
                 return default;
             }
-            return new NeoScriptExecutionResult(returnValue ?? ReturnNullState);
+            return FromState(returnValue ?? ReturnNullState);
         }
 
         // Out of line so Completed stays inlinable.
@@ -6481,8 +6489,8 @@ namespace NeoCompose.Runtime
             }
             return transfer switch
             {
-                NeoScriptControlTransfer.Break => new NeoScriptExecutionResult(BreakState),
-                NeoScriptControlTransfer.Continue => new NeoScriptExecutionResult(ContinueState),
+                NeoScriptControlTransfer.Break => FromState(BreakState),
+                NeoScriptControlTransfer.Continue => FromState(ContinueState),
                 _ => default,
             };
         }
