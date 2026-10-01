@@ -1018,7 +1018,7 @@ namespace NeoCompose.Runtime.NeoScript
             /// Saved frames, innermost last. Frames complete before their
             /// callers continue, so contexts sharing a row cache, which already
             /// run on one thread, share one stack. Exit clears a frame, so an
-            /// entered one starts empty, except for the saved call stack and
+            /// entered one starts empty, except for the saved call stacks and
             /// <c>this</c>: those stay for the next frame at that depth, which
             /// usually saves the same ones and so skips their write barriers.
             /// </summary>
@@ -1113,11 +1113,14 @@ namespace NeoCompose.Runtime.NeoScript
                     ref FunctionFrame saved = ref frameStack!.frames[frame];
                     if (!saved.handlersSaved)
                     {
-                        saved.expressionHandlers = expressionHandlers;
+                        // An unsaved frame already holds null, which a
+                        // caller without handlers would store again.
+                        if (expressionHandlersField is not null)
+                            saved.expressionHandlers = expressionHandlersField;
                         saved.handlersSaved = true;
                     }
                 }
-                expressionHandlers = handlers;
+                expressionHandlersField = handlers;
             }
 
             /// <summary>
@@ -1139,18 +1142,35 @@ namespace NeoCompose.Runtime.NeoScript
                 ref FunctionFrame saved = ref stack.frames[frame];
                 // Most fields come back unchanged. Skipping those writes skips
                 // their GC write barriers, which cost more than the compare.
-                // Clearing the frame stores constant nulls, which skip them.
+                // Clearing the frame stores constant nulls, which skip them,
+                // and so does restoring a caller's null.
                 if (saved.thisSaved)
                 {
-                    thisValue = saved.thisValue;
+                    if (saved.thisValue is { } callerThis)
+                        thisValueField = callerThis;
+                    else
+                        thisValueField = null;
                     saved.thisSaved = false;
                 }
-                if (!ReferenceEquals(functionCallStackField, saved.functionCallStack))
-                    functionCallStackField = saved.functionCallStack;
+                IReadOnlyList<string>? callerStack = saved.functionCallStack;
+                if (!ReferenceEquals(functionCallStackField, callerStack))
+                {
+                    if (callerStack is null)
+                        functionCallStackField = null;
+                    else
+                        functionCallStackField = callerStack;
+                }
                 if (saved.handlersSaved)
                 {
-                    expressionHandlers = saved.expressionHandlers;
-                    saved.expressionHandlers = null;
+                    if (saved.expressionHandlers is { } callerHandlers)
+                    {
+                        expressionHandlersField = callerHandlers;
+                        saved.expressionHandlers = null;
+                    }
+                    else
+                    {
+                        expressionHandlersField = null;
+                    }
                     saved.handlersSaved = false;
                 }
                 if (!ReferenceEquals(immediateExpressionContext, saved.immediateExpressionContext))
@@ -1214,8 +1234,10 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 int frame = EnterThis(receiver);
                 ref FunctionFrame saved = ref frameStack!.frames[frame];
-                saved.getterCallStack = getterCallStack;
-                saved.constructionStack = constructionStack;
+                if (!ReferenceEquals(saved.getterCallStack, getterCallStack))
+                    saved.getterCallStack = getterCallStack;
+                if (!ReferenceEquals(saved.constructionStack, constructionStack))
+                    saved.constructionStack = constructionStack;
                 return frame;
             }
 
@@ -1224,10 +1246,8 @@ namespace NeoCompose.Runtime.NeoScript
                 ref FunctionFrame saved = ref frameStack!.frames[frame];
                 if (!ReferenceEquals(getterCallStack, saved.getterCallStack))
                     getterCallStack = saved.getterCallStack!;
-                saved.getterCallStack = null;
                 if (!ReferenceEquals(constructionStack, saved.constructionStack))
                     constructionStack = saved.constructionStack!;
-                saved.constructionStack = null;
                 ExitFunction(frame);
             }
 
