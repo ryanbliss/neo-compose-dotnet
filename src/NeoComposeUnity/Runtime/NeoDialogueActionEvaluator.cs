@@ -2930,7 +2930,8 @@ namespace NeoCompose.Runtime
                     return fallback;
                 }
                 string memberId = target.memberId;
-                FunctionMember? native = target.nativeSignature;
+                NeoClient.ResolvedNativeFunction? nativeFunction = target.nativeFunction;
+                FunctionMember? native = nativeFunction?.signature;
                 if (native?.Dispatch != NeoFunctionDispatchKind.Asynchronous)
                 {
                     // P65 §2.5 — filled BEFORE dispatch so the native
@@ -2938,7 +2939,7 @@ namespace NeoCompose.Runtime
                     // defaulted parameters (§1.4), so the branch below
                     // stays unfilled.
                     return NSGetterEvaluator.InvokeNativeFunction(
-                        memberId, target.native?.returnTypeInfo, receiver,
+                        memberId, nativeFunction, target.native?.returnTypeInfo, receiver,
                         NSGetterEvaluator.FillNativeCallSiteArguments(memberId, native, args), ctx);
                 }
                 else

@@ -2487,6 +2487,7 @@ namespace NeoCompose.Runtime
                 IndexedEntry,
                 Key,
                 DictionaryValue,
+                NativeArgument,
             }
 
             private ValueSubject(string subject, Kind kind, int index, object key)
@@ -2520,12 +2521,17 @@ namespace NeoCompose.Runtime
 
             internal ValueSubject DictionaryValue() => new(ToString(), Kind.DictionaryValue, 0);
 
+            /// <summary>Argument <paramref name="index"/> of a native Function call.</summary>
+            internal static ValueSubject NativeArgument(NeoClient.ResolvedNativeFunction function, int index) =>
+                new(function.name, Kind.NativeArgument, index, function);
+
             public override string ToString() => kind switch
             {
                 Kind.Entry => $"entry of {subject}",
                 Kind.IndexedEntry => $"entry {index} of {subject}",
                 Kind.Key => $"key '{key}' of {subject}",
                 Kind.DictionaryValue => $"dictionary value of {subject}",
+                Kind.NativeArgument => ((NeoClient.ResolvedNativeFunction)key!).ArgumentSubject(index),
                 _ => subject,
             };
         }

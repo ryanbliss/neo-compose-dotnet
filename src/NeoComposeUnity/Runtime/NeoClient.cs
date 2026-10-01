@@ -6602,8 +6602,20 @@ namespace NeoCompose.Runtime
             object? receiver,
             object?[] args)
         {
+            return InvokeNativeFunction(
+                ResolveNativeFunction(memberId),
+                receiver,
+                args);
+        }
+
+        internal object? InvokeNativeFunction(
+            ResolvedNativeFunction function,
+            object? receiver,
+            object?[] args)
+        {
+            string memberId = function.memberId;
             FunctionMember member = PrepareNativeFunctionInvocation(
-                memberId,
+                function,
                 args,
                 expectedDeferred: false,
                 out object?[] preparedArgs);
@@ -6758,7 +6770,7 @@ namespace NeoCompose.Runtime
             bool captureInvokerException)
         {
             FunctionMember member = PrepareNativeFunctionInvocation(
-                memberId,
+                ResolveNativeFunction(memberId),
                 args,
                 expectedDeferred: true,
                 out object?[] preparedArgs);
@@ -6822,22 +6834,66 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private FunctionMember PrepareNativeFunctionInvocation(
+        /// <summary>
+        /// A native Function's effective signature, with the names its
+        /// failures report. A call site resolves it once per schema.
+        /// </summary>
+        internal sealed class ResolvedNativeFunction
+        {
+            internal readonly string memberId;
+            /// <summary>The name of the member <see cref="memberId"/> names, which may override <see cref="signature"/>.</summary>
+            internal readonly string name;
+            internal readonly FunctionMember signature;
+
+            internal ResolvedNativeFunction(
+                string memberId,
+                string name,
+                FunctionMember signature)
+            {
+                this.memberId = memberId;
+                this.name = name;
+                this.signature = signature;
+            }
+
+            internal string ArgumentSubject(int index) =>
+                $"argument {index} '{signature.argumentTypes[index].name}' of Function '{name}' ({memberId})";
+        }
+
+        internal bool TryResolveNativeFunction(
             string memberId,
-            object?[]? args,
-            bool expectedDeferred,
-            out object?[] preparedArgs)
+            [NotNullWhen(true)] out ResolvedNativeFunction? function)
         {
             if (!TryResolveFunctionMember(memberId, out FunctionMember? signature))
+            {
+                function = null;
+                return false;
+            }
+            string name = data.members.TryGetValue(memberId, out Member? effectiveMember)
+                ? effectiveMember.name
+                : signature.name;
+            function = new ResolvedNativeFunction(memberId, name, signature);
+            return true;
+        }
+
+        private ResolvedNativeFunction ResolveNativeFunction(string memberId)
+        {
+            if (!TryResolveNativeFunction(memberId, out ResolvedNativeFunction? function))
             {
                 throw new NeoScript.NSGetterRuntimeError(
                     $"Function '{memberId}' has no effective native signature; its override chain or compiled call IR is stale/corrupt.");
             }
+            return function;
+        }
 
-            string functionName = data.members.TryGetValue(
-                    memberId, out Member? effectiveMember)
-                ? effectiveMember.name
-                : signature.name;
+        private FunctionMember PrepareNativeFunctionInvocation(
+            ResolvedNativeFunction function,
+            object?[]? args,
+            bool expectedDeferred,
+            out object?[] preparedArgs)
+        {
+            string memberId = function.memberId;
+            string functionName = function.name;
+            FunctionMember signature = function.signature;
             bool actualDeferred =
                 signature.Dispatch == NeoFunctionDispatchKind.Asynchronous;
             if (actualDeferred != expectedDeferred)
@@ -6874,22 +6930,27 @@ namespace NeoCompose.Runtime
             for (int i = 0; i < sourceArgs.Length; i++)
             {
                 FunctionArgumentTypeInfo argument = signature.argumentTypes[i];
-                string subject =
-                    $"argument {i} '{argument.name}' of Function '{functionName}' ({memberId})";
+                var subject = NeoScriptValueMarshaller.ValueSubject.NativeArgument(function, i);
                 try
                 {
+                    object? source = sourceArgs[i];
                     NeoScriptValueMarshaller.ValidateRuntimeValue(
-                        sourceArgs[i],
+                        source,
                         argument,
                         subject);
                     object? prepared = NormalizeNativeFunctionArgument(
-                        sourceArgs[i],
+                        source,
                         argument,
                         subject);
-                    NeoScriptValueMarshaller.ValidateRuntimeValue(
-                        prepared,
-                        argument,
-                        subject);
+                    // Validation reads only the value, so an argument
+                    // normalization kept has already passed it.
+                    if (!ReferenceEquals(prepared, source))
+                    {
+                        NeoScriptValueMarshaller.ValidateRuntimeValue(
+                            prepared,
+                            argument,
+                            subject);
+                    }
                     preparedArgs[i] = prepared;
                 }
                 catch (System.Exception exception)
@@ -6907,16 +6968,18 @@ namespace NeoCompose.Runtime
         private object? NormalizeNativeFunctionArgument(
             object? value,
             FunctionArgumentTypeInfo typeInfo,
-            string subject)
+            NeoScriptValueMarshaller.ValueSubject subject)
         {
             if (value is null)
                 return null;
             switch (typeInfo.type)
             {
+                // An argument already in its native form passes through
+                // rather than being boxed again.
                 case MemberKind.Int:
-                    return System.Convert.ToInt32(value);
+                    return value is int ? value : System.Convert.ToInt32(value);
                 case MemberKind.Float:
-                    return System.Convert.ToDouble(value);
+                    return value is double ? value : System.Convert.ToDouble(value);
                 case MemberKind.Decimal:
                     if (value is decimal decimalValue)
                     {
@@ -6926,7 +6989,7 @@ namespace NeoCompose.Runtime
                     {
                         return NeoScript.NSGetterEvaluator.CoerceDecimalOperand(
                             value,
-                            subject);
+                            subject.ToString());
                     }
                     return value;
                 case MemberKind.Enum:
@@ -6965,7 +7028,7 @@ namespace NeoCompose.Runtime
 
         private static string[] NormalizeNativeFunctionEnumArgument(
             object value,
-            string subject)
+            NeoScriptValueMarshaller.ValueSubject subject)
         {
             if (value is string text)
                 return new[] { text };

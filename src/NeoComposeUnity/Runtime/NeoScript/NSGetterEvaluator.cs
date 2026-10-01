@@ -2168,15 +2168,18 @@ namespace NeoCompose.Runtime.NeoScript
         }
 
         /// <param name="returnType">The Function's declared return type, which shapes its result.</param>
-        internal static object? InvokeNativeFunction(string memberId, TypeInfo? returnType,
-            object? receiver, object?[] args, Context ctx)
+        /// <param name="function">The call site's resolved signature, or null to resolve it per call.</param>
+        internal static object? InvokeNativeFunction(string memberId, NeoClient.ResolvedNativeFunction? function,
+            TypeInfo? returnType, object? receiver, object?[] args, Context ctx)
         {
             if (NeoCellPatternRuntime.TryInvoke(memberId, receiver, args, ctx, out object? result))
                 return result;
             if (ctx.client.ScriptGridQueries.TryInvoke(memberId, receiver, args, ctx, out result))
                 return result;
-            return NeoCellPatternStorage.NormalizeNativeResult(
-                ctx.client.InvokeNativeFunction(memberId, receiver, args), ctx, returnType);
+            object? value = function is null
+                ? ctx.client.InvokeNativeFunction(memberId, receiver, args)
+                : ctx.client.InvokeNativeFunction(function, receiver, args);
+            return NeoCellPatternStorage.NormalizeNativeResult(value, ctx, returnType);
         }
 
         /// <summary>
@@ -2206,7 +2209,7 @@ namespace NeoCompose.Runtime.NeoScript
                 if (target?.native is null || target.memberId != patternCall.memberId)
                     throw new NSGetterRuntimeError($"CellPattern intrinsic '{patternCall.memberId}' has an invalid native declaration.");
                 NeoCellPatternRuntime.TryInvoke(target.memberId, receiver,
-                    FillNativeCallSiteArguments(target.memberId, target.nativeSignature, args), ctx, out var result, materialize: false);
+                    FillNativeCallSiteArguments(target.memberId, target.nativeFunction?.signature, args), ctx, out var result, materialize: false);
                 return result;
             }
             finally
@@ -2316,8 +2319,8 @@ namespace NeoCompose.Runtime.NeoScript
                 }
                 if (target.native is not null)
                 {
-                    return InvokeNativeFunction(target.memberId, target.native.returnTypeInfo, receiver,
-                        FillNativeCallSiteArguments(target.memberId, target.nativeSignature, args), ctx);
+                    return InvokeNativeFunction(target.memberId, target.nativeFunction, target.native.returnTypeInfo, receiver,
+                        FillNativeCallSiteArguments(target.memberId, target.nativeFunction?.signature, args), ctx);
                 }
                 if (!ctx.client.TryGetMember(target.memberId, out JsonMember? _))
                 {
@@ -2723,7 +2726,7 @@ namespace NeoCompose.Runtime.NeoScript
                         throw new NeoDeferredFunctionRuntimeError(
                             $"NeoDelegate target Function '{member.name}' is deferred; delegates require an immediate callable target.");
                     }
-                    return InvokeNativeFunction(memberId, native.returnTypeInfo, receiver, args, ctx);
+                    return InvokeNativeFunction(memberId, null, native.returnTypeInfo, receiver, args, ctx);
                 }
                 if (member is NSFunctionMember)
                 {
@@ -3097,8 +3100,8 @@ namespace NeoCompose.Runtime.NeoScript
             internal readonly NeoResolvedNSFunction? function;
             /// <summary>The native Function <see cref="memberId"/> names; null for an NSFunction or a missing member.</summary>
             internal readonly FunctionMember? native;
-            /// <summary>The signature <see cref="native"/> calls fill against: its own, or the one it extends.</summary>
-            internal readonly FunctionMember? nativeSignature;
+            /// <summary>The signature <see cref="native"/> calls fill and validate against: its own, or the one it extends.</summary>
+            internal readonly NeoClient.ResolvedNativeFunction? nativeFunction;
             internal readonly CallSiteTarget? next;
             internal readonly int count;
 
@@ -3118,7 +3121,7 @@ namespace NeoCompose.Runtime.NeoScript
                 else
                 {
                     client.TryGetMember(memberId, out native);
-                    client.TryResolveFunctionMember(memberId, out nativeSignature);
+                    client.TryResolveNativeFunction(memberId, out nativeFunction);
                 }
                 this.next = next;
                 count = (next?.count ?? 0) + 1;
