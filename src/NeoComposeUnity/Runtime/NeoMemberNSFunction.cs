@@ -1720,7 +1720,7 @@ namespace NeoCompose.Runtime
                 case MemberKind.Bool when value is bool:
                 case MemberKind.Float when value is double && IsNumber(value):
                 case MemberKind.String when value is string:
-                case MemberKind.Int when value is double && IsIntegralNumber(value):
+                case MemberKind.Int when value is double number && IsIntegralNumber(number):
                 // A C# caller's boxed int, which is always integral.
                 case MemberKind.Int or MemberKind.Float when value is int:
                     return value;
@@ -1994,7 +1994,7 @@ namespace NeoCompose.Runtime
             object? value,
             TypeInfo typeInfo,
             NSGetterEvaluator.Context ctx,
-            ValueSubject subject) =>
+            in ValueSubject subject) =>
             Normalize(client, ownership, value, typeInfo, ctx, subject, resolvedIdentity: true);
 
         private static void ValidateResolvedIdentity(
@@ -2516,14 +2516,18 @@ namespace NeoCompose.Runtime
             };
         }
 
+        internal static bool IsIntegralNumber(double number) =>
+            !double.IsNaN(number)
+            && !double.IsInfinity(number)
+            && NeoNumbers.IsWhole(number);
+
         internal static bool IsIntegralNumber(object value)
         {
+            // A NeoScript number is a double: test it first.
             return value switch
             {
+                double number => IsIntegralNumber(number),
                 int or long or short => true,
-                double number => !double.IsNaN(number)
-                    && !double.IsInfinity(number)
-                    && NeoNumbers.IsWhole(number),
                 float number => !float.IsNaN(number)
                     && !float.IsInfinity(number)
                     && NeoNumbers.IsWhole(number),

@@ -6148,6 +6148,10 @@ namespace NeoCompose.Runtime.NeoScript
                 ctx.constructorBody = false;
             }
 
+            // Shared, so a projection copies no subject struct per entry.
+            private static readonly NeoScriptValueMarshaller.ValueSubject ProjectionSubject =
+                "collection projection callback return value";
+
             internal NeoScriptExecutionResult Execute(in CollectionCursor cursor, object? entry)
             {
                 if (entryTypeCheck is not null)
@@ -6185,14 +6189,13 @@ namespace NeoCompose.Runtime.NeoScript
                 }
                 if (returnsConstructedVector)
                     return result;
-                const string subject = "collection projection callback return value";
                 object? normalized = NeoScriptValueMarshaller.NormalizeResolved(
                     ctx.client,
                     ctx.valueOwnership,
                     result.ReturnValue,
                     body.typeInfo!,
                     ctx,
-                    subject);
+                    ProjectionSubject);
                 return NeoScriptExecutionResult.Completed(
                     returned: true,
                     normalized);

@@ -231,15 +231,42 @@ namespace NeoCompose.Runtime
             NSGetterEvaluator.Context ctx,
             NeoScriptExecutionOptions options)
         {
-            NeoScriptExecutionResult result = ExecuteInstructions(
-                client,
-                body.instructions,
-                body.typeInfo,
-                scope,
-                ctx,
-                0,
-                null,
-                options);
+            NeoScriptExecutionResult result;
+            // A lambda that only returns an expression, the common shape,
+            // runs it without the statement loop's frame; only a suspension
+            // leaves a result the checks below can reject.
+            if (body.instructions is { Length: 1 } instructions
+                && instructions[0] is ReturnInstruction { pointer: { } returned }
+                && !options.AllowDeferredFunctionCalls)
+            {
+                NSGetterEvaluator.Context expressionContext = ExpressionContextFor(
+                    client,
+                    ctx,
+                    ExpressionResumeState.Immediate,
+                    options);
+                try
+                {
+                    return ValidateTerminalAgainstBody(
+                        body,
+                        ReturnResult(Eval(returned, scope, expressionContext), body.typeInfo));
+                }
+                catch (NeoFunctionCallSuspended suspended)
+                {
+                    result = PauseAtInstruction(client, instructions, body.typeInfo, scope, ctx, 0, ExpressionResumeState.Immediate, suspended, options);
+                }
+            }
+            else
+            {
+                result = ExecuteInstructions(
+                    client,
+                    body.instructions,
+                    body.typeInfo,
+                    scope,
+                    ctx,
+                    0,
+                    null,
+                    options);
+            }
             if (result.IsFailed)
             {
                 throw result.Failure!;
@@ -254,6 +281,20 @@ namespace NeoCompose.Runtime
                     $"NeoScript body ended with an unconsumed {result.Transfer.ToString().ToLowerInvariant()} transfer; its compiled IR is stale or corrupt.");
             }
             return ValidateTerminalAgainstBody(body, result);
+        }
+
+        private static NeoScriptExecutionResult ReturnResult(object? returnValue, TypeInfo returnTypeInfo)
+        {
+            if (returnTypeInfo.type == MemberKind.Decimal
+                && returnValue is double or float or int or long or short)
+            {
+                returnValue = NSGetterEvaluator.CoerceDecimalOperand(
+                    returnValue,
+                    "return");
+            }
+            return NeoScriptExecutionResult.Completed(
+                returned: true,
+                returnValue);
         }
 
         /// <summary>
@@ -521,19 +562,11 @@ namespace NeoCompose.Runtime
                     case ReturnInstruction returnInstruction:
                         try
                         {
-                            object? returnValue = returnInstruction.pointer is null
-                                ? null
-                                : Eval(returnInstruction.pointer, scope, actionCtx);
-                            if (returnTypeInfo.type == MemberKind.Decimal
-                                && returnValue is double or float or int or long or short)
-                            {
-                                returnValue = NSGetterEvaluator.CoerceDecimalOperand(
-                                    returnValue,
-                                    "return");
-                            }
-                            return NeoScriptExecutionResult.Completed(
-                                returned: true,
-                                returnValue);
+                            return ReturnResult(
+                                returnInstruction.pointer is null
+                                    ? null
+                                    : Eval(returnInstruction.pointer, scope, actionCtx),
+                                returnTypeInfo);
                         }
                         catch (NeoFunctionCallSuspended suspended)
                         {
@@ -2113,6 +2146,16 @@ namespace NeoCompose.Runtime
                     && ReferenceEquals(cached.client, client))
                 {
                     return cached;
+                }
+                if (ReferenceEquals(expressionState, ExpressionResumeState.Immediate))
+                {
+                    // Cached as an immediate frame caches its own.
+                    NSGetterEvaluator.Context built = BuildExpressionContext(client, ctx, expressionState, options);
+                    ctx.immediateExpressionSource = ctx;
+                    ctx.immediateExpressionContext = built;
+                    ctx.immediateExpressionState = expressionState;
+                    ctx.immediateExpressionOptions = options;
+                    return built;
                 }
             }
             return BuildExpressionContext(client, ctx, expressionState, options);
