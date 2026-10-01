@@ -94,8 +94,9 @@ namespace NeoCompose.Runtime
         // Moves with every change to generatedValuesInternal, so a node's kept
         // view is the registry's while it matches.
         private int generatedValuesGeneration;
-        // Row id -> live public wrappers, so reclaiming rows never scans the registry.
-        private readonly Dictionary<string, HashSet<NeoGeneratedClassValue>> generatedValuesByValueId = new();
+        // Row id -> live public wrappers, so reclaiming rows never scans the
+        // registry. One wrapper, or a set when several views share the row.
+        private readonly Dictionary<string, object> generatedValuesByValueId = new();
         private readonly Dictionary<string, object> animationClips = new();
         /// <summary>
         /// P67 §7.2 — one <c>NeoVariant&lt;T&gt;</c> handle per (variant id or
@@ -6067,11 +6068,18 @@ namespace NeoCompose.Runtime
             var staleGenerated = new List<NeoGeneratedClassValue>();
             foreach (string rowId in rowIdSet)
             {
-                if (!generatedValuesByValueId.TryGetValue(rowId, out var wrappers))
+                if (!generatedValuesByValueId.TryGetValue(rowId, out object? wrappers))
                     continue;
-                foreach (var generated in wrappers)
-                    if (generated.valueId == rowId)
-                        staleGenerated.Add(generated);
+                if (wrappers is HashSet<NeoGeneratedClassValue> set)
+                {
+                    foreach (var generated in set)
+                        if (generated.valueId == rowId)
+                            staleGenerated.Add(generated);
+                }
+                else if (((NeoGeneratedClassValue)wrappers).valueId == rowId)
+                {
+                    staleGenerated.Add((NeoGeneratedClassValue)wrappers);
+                }
             }
             foreach (var generated in staleGenerated)
             {
@@ -6710,19 +6718,28 @@ namespace NeoCompose.Runtime
         {
             if (generated.valueId is not string valueId)
                 return;
-            if (!generatedValuesByValueId.TryGetValue(valueId, out var wrappers))
-                generatedValuesByValueId[valueId] = wrappers = new HashSet<NeoGeneratedClassValue>();
-            wrappers.Add(generated);
+            if (!generatedValuesByValueId.TryGetValue(valueId, out object? wrappers))
+                generatedValuesByValueId[valueId] = generated;
+            else if (wrappers is HashSet<NeoGeneratedClassValue> set)
+                set.Add(generated);
+            else if (!ReferenceEquals(wrappers, generated))
+                generatedValuesByValueId[valueId] = new HashSet<NeoGeneratedClassValue> { (NeoGeneratedClassValue)wrappers, generated };
         }
 
         private void UnindexGeneratedClassValue(NeoGeneratedClassValue generated)
         {
             if (generated.valueId is not string valueId
-                || !generatedValuesByValueId.TryGetValue(valueId, out var wrappers))
+                || !generatedValuesByValueId.TryGetValue(valueId, out object? wrappers))
                 return;
-            wrappers.Remove(generated);
-            if (wrappers.Count == 0)
+            if (wrappers is HashSet<NeoGeneratedClassValue> set)
+            {
+                if (set.Remove(generated) && set.Count == 0)
+                    generatedValuesByValueId.Remove(valueId);
+            }
+            else if (ReferenceEquals(wrappers, generated))
+            {
                 generatedValuesByValueId.Remove(valueId);
+            }
         }
 
         internal void RegisterGeneratedClassValue(
