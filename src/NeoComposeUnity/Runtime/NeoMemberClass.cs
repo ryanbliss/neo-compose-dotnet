@@ -154,7 +154,7 @@ namespace NeoCompose.Runtime
 
         private protected void ForgetChildSlots() => childSlotCount = 0;
 
-        private NeoMember? FindChild(string key)
+        private protected NeoMember? FindChild(string key)
         {
             if (ReferenceEquals(childSlotsSource, childMembers))
             {
@@ -295,7 +295,10 @@ namespace NeoCompose.Runtime
         /// when the key isn't in any ancestor's schema.
         /// </summary>
         protected string? LookupMergedMemberId(string key) =>
-            classNode?.SurfaceMember(key)?.memberId;
+            SurfaceEntry(key)?.memberId;
+
+        private protected MergedSchemaEntry? SurfaceEntry(string key) =>
+            classNode?.SurfaceMember(key);
 
         protected override void Initialize(ObjectMemberValue value)
         {
@@ -536,8 +539,7 @@ namespace NeoCompose.Runtime
         protected internal void HandleChildChanged(NeoMember child)
         {
             if (reportingKey is not null
-                && childMembers.TryGetValue(reportingKey, out NeoMember? reporting)
-                && ReferenceEquals(reporting, child))
+                && ReferenceEquals(FindChild(reportingKey), child))
             {
                 reportingKey = null;
             }
@@ -552,14 +554,13 @@ namespace NeoCompose.Runtime
         /// </summary>
         private protected bool ChildBubbledOwnChange(string key, NeoMember? before) =>
             before is { isDisposed: false }
-            && childMembers.TryGetValue(key, out NeoMember? current)
-            && ReferenceEquals(current, before);
+            && ReferenceEquals(FindChild(key), before);
 
         protected void NotifyChildChanged(string key)
         {
             if (key == reportingKey)
                 reportingKey = null;
-            if (childMembers.TryGetValue(key, out NeoMember? child))
+            if (FindChild(key) is { } child)
             {
                 NotifyChanged(child);
                 return;
@@ -863,16 +864,19 @@ namespace NeoCompose.Runtime
             // Resolution flows through the merged schema (inheritance
             // chain), so a Set against a key inherited from an ancestor
             // class still resolves the right child member.
-            string? schemaKeyedMemberId = LookupMergedMemberId(key);
-            if (schemaKeyedMemberId is null)
+            MergedSchemaEntry? entry = SurfaceEntry(key);
+            if (entry is null)
             {
                 throw new System.Collections.Generic.KeyNotFoundException(
                     $"Merged schema for class {schemaClass.id} (chain depth {inheritanceChain.Count}) does not contain key '{key}'");
             }
-            if (!client.TryGetMember(schemaKeyedMemberId, out Member? childMember))
+            // The class node resolved the entry's authored member; only a
+            // variant target member needs the client's lookup.
+            Member? childMember = entry.member;
+            if (childMember is null && !client.TryGetMember(entry.memberId, out childMember))
             {
                 throw new System.Exception(
-                    $"No member for {nameof(schemaKeyedMemberId)} '{schemaKeyedMemberId}'");
+                    $"No member for schemaKeyedMemberId '{entry.memberId}'");
             }
             // Generic slots substitute to their binding before any typed
             // dispatch below (required travels with the binding —
@@ -928,8 +932,10 @@ namespace NeoCompose.Runtime
             {
                 existingValueId = virtualExistingValueId;
             }
+            // One node answers every read of the entry's row, and the leaf write.
+            NeoValueNode? existingNode = null;
             if (existingValueId is not null
-                && client.TryGetValue(childOwnership, existingValueId, out MemberValue? existing))
+                && client.ReadValue(childOwnership, existingValueId, ref existingNode) is { } existing)
             {
                 if (setValue?.isValueReference == true)
                 {
@@ -963,10 +969,10 @@ namespace NeoCompose.Runtime
                     NotifyChildChanged(key);
                     return;
                 }
-                if (client.TryGetWritableValue(childOwnership, existingValueId, out MemberValue? stored)
+                if (client.ReadWritableValue(childOwnership, existingValueId, ref existingNode) is { } stored
                     && MemberValueFactory.MatchesLeaf(childMember, setValue?.value, stored))
                     return;
-                childMembers.TryGetValue(key, out NeoMember? existingChild);
+                NeoMember? existingChild = FindChild(key);
                 // Reuse the entry's stable id: a fresh row at the same id
                 // shadows the authored default in the child's writable store.
                 MemberValue next = MemberValueFactory.Create(
@@ -985,7 +991,7 @@ namespace NeoCompose.Runtime
                 if (setValue?.value is not NeoValuePayload { valueRows: { Count: > 0 } }
                     && (placement
                         ? value is not null && client.TryWritePlacement(childOwnership, value, key, next, childMember)
-                        : client.TryWriteLeaf(childOwnership, next, childMember, "value")))
+                        : client.TryWriteLeaf(childOwnership, next, childMember, "value", existingNode)))
                 {
                     if (existingChild is null || existingChild.isDisposed)
                         ReinitializeChildren();
