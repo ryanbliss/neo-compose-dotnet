@@ -238,6 +238,30 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void RemovingAnEntry_KeepsTheComputedNodeItsSiblingsShare()
+        {
+            NeoClient client = BuildClient();
+            TestReport report = ReadReport(client, EvaluateReport(client), out _);
+            NeoList<TestLine> lines = report.Lines;
+            lines.Add(NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(
+                client,
+                Evaluate(client, LineType, Line()),
+                true,
+                null,
+                TestLine.CreateWritable,
+                TestLine.CreateDetached));
+            NeoMember kept = lines[0].BackingNode.Get<NeoMember>("Doubled");
+            Assert.AreSame(kept, lines[1].BackingNode.Get<NeoMember>("Doubled"),
+                "A value-less member's node is shared by every instance.");
+
+            lines.RemoveAt(1);
+
+            Assert.IsFalse(kept.isDisposed, "The remaining entry still holds the shared node.");
+            Assert.AreSame(kept, lines[0].BackingNode.Get<NeoMember>("Doubled"));
+            Assert.AreEqual(6, lines[0].Doubled);
+        }
+
+        [Test]
         public void Subscribing_AttachesThePendingView()
         {
             NeoClient client = BuildClient();
