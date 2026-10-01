@@ -2714,6 +2714,82 @@ namespace NeoCompose.Runtime
             bool trustedMaterialization = false,
             RuntimeClassPlan? trustedRootPlan = null)
         {
+            ConstructedGraphScratch scratch = ConstructedGraphScratch.Rent();
+            try
+            {
+                PrepareConstructedGraph(
+                    scratch,
+                    client,
+                    root,
+                    rows,
+                    scope,
+                    requireCompleteRoot,
+                    trustedMaterialization,
+                    trustedRootPlan);
+            }
+            finally
+            {
+                ConstructedGraphScratch.Return(scratch);
+            }
+        }
+
+        /// <summary>
+        /// The graph walk's collections, reused per thread. A construction
+        /// nested inside another, or one too large to clear cheaply, gets its own.
+        /// </summary>
+        private sealed class ConstructedGraphScratch
+        {
+            private const int MaxPooledRows = 64;
+
+            [ThreadStatic]
+            private static ConstructedGraphScratch? free;
+
+            internal readonly Dictionary<string, MemberValue> stagedById = new();
+            internal readonly HashSet<string> reachableStagedIds = new();
+            internal readonly Dictionary<string, string> ownedByPath = new();
+            internal readonly Dictionary<string, string> parentByChildId = new();
+            internal readonly List<PendingConstructorReference> pending = new();
+            internal readonly HashSet<string> traversal = new();
+            internal readonly List<string> newlyImportedRoots = new();
+            internal readonly List<(string valueId, Member member)> attachedRoots = new();
+            internal readonly Stack<(string valueId, Member? member)> attachedWalk = new();
+
+            internal static ConstructedGraphScratch Rent()
+            {
+                ConstructedGraphScratch? scratch = free;
+                free = null;
+                return scratch ?? new ConstructedGraphScratch();
+            }
+
+            internal static void Return(ConstructedGraphScratch scratch)
+            {
+                if (scratch.stagedById.Count > MaxPooledRows
+                    || scratch.ownedByPath.Count > MaxPooledRows
+                    || scratch.parentByChildId.Count > MaxPooledRows)
+                    return;
+                scratch.stagedById.Clear();
+                scratch.reachableStagedIds.Clear();
+                scratch.ownedByPath.Clear();
+                scratch.parentByChildId.Clear();
+                scratch.pending.Clear();
+                scratch.traversal.Clear();
+                scratch.newlyImportedRoots.Clear();
+                scratch.attachedRoots.Clear();
+                scratch.attachedWalk.Clear();
+                free = scratch;
+            }
+        }
+
+        private static void PrepareConstructedGraph(
+            ConstructedGraphScratch scratch,
+            NeoClient client,
+            ObjectMemberValue root,
+            List<MemberValue> rows,
+            NeoConstructionScope scope,
+            bool requireCompleteRoot,
+            bool trustedMaterialization,
+            RuntimeClassPlan? trustedRootPlan)
+        {
             IReadOnlyDictionary<string, NeoValueOwnership>
                 referenceOwnershipByPath = scope.referenceOwnershipByPath;
             if (!string.IsNullOrEmpty(root.mapKey))
@@ -2722,7 +2798,7 @@ namespace NeoCompose.Runtime
                     $"Parentless constructed Class root '{root.id}' cannot arrive pre-stamped with partition '{root.mapKey}'.");
             }
             root.mapKey = null;
-            var stagedById = new Dictionary<string, MemberValue>();
+            Dictionary<string, MemberValue> stagedById = scratch.stagedById;
             foreach (MemberValue row in rows)
             {
                 if (string.IsNullOrEmpty(row.id))
@@ -2743,10 +2819,11 @@ namespace NeoCompose.Runtime
                 }
             }
 
-            var reachableStagedIds = new HashSet<string> { root.id };
-            var ownedByPath = new Dictionary<string, string>();
-            var parentByChildId = new Dictionary<string, string>();
-            var pending = new List<PendingConstructorReference>();
+            HashSet<string> reachableStagedIds = scratch.reachableStagedIds;
+            reachableStagedIds.Add(root.id);
+            Dictionary<string, string> ownedByPath = scratch.ownedByPath;
+            Dictionary<string, string> parentByChildId = scratch.parentByChildId;
+            List<PendingConstructorReference> pending = scratch.pending;
             ValidateConstructedClassRow(
                 client,
                 root,
@@ -2759,7 +2836,7 @@ namespace NeoCompose.Runtime
                 parentByChildId,
                 pending,
                 path: root.classId!,
-                new HashSet<string>(),
+                scratch.traversal,
                 referenceOwnershipByPath,
                 requireCompleteRoot,
                 trustedMaterialization,
@@ -2824,8 +2901,8 @@ namespace NeoCompose.Runtime
                 }
             }
 
-            var newlyImportedRoots = new List<string>();
-            var attachedRoots = new List<(string valueId, Member member)>();
+            List<string> newlyImportedRoots = scratch.newlyImportedRoots;
+            List<(string valueId, Member member)> attachedRoots = scratch.attachedRoots;
             try
             {
                 foreach (PendingConstructorReference reference in pending)
@@ -2894,7 +2971,7 @@ namespace NeoCompose.Runtime
                             expectedContainerId: reference.expectedContainerId);
                     }
                 }
-                BindConstructedDelegateTargets(client, attachedRoots, stagedById, parentByChildId);
+                BindConstructedDelegateTargets(client, attachedRoots, stagedById, parentByChildId, scratch.attachedWalk);
                 if (scope.ExistingEvaluationContext is { } evaluationContext)
                 {
                     evaluationContext.allocationTracker
@@ -2917,11 +2994,11 @@ namespace NeoCompose.Runtime
             NeoClient client,
             IReadOnlyList<(string valueId, Member member)> attachedRoots,
             Dictionary<string, MemberValue> stagedById,
-            Dictionary<string, string> parentByChildId)
+            Dictionary<string, string> parentByChildId,
+            Stack<(string valueId, Member? member)> pending)
         {
             // Initializers may construct a track separately before attaching it.
             // Include those already-published owned rows in the enclosing graph.
-            var pending = new Stack<(string valueId, Member? member)>();
             foreach (var root in attachedRoots)
                 pending.Push(root);
             while (pending.Count > 0)
@@ -3023,8 +3100,10 @@ namespace NeoCompose.Runtime
 
                 IReadOnlyDictionary<string, NeoGenericEnvEntry> env =
                     classPlan.genericEnv;
-                foreach (MergedSchemaEntry entry in schema)
+                // Indexed: an interface foreach would box its enumerator per row.
+                for (int entryIndex = 0; entryIndex < schema.Count; entryIndex++)
                 {
+                    MergedSchemaEntry entry = schema[entryIndex];
                     Member member =
                         classPlan.membersBySchemaKey[entry.schemaKey];
                     if (!IsStoredConstructorMember(member))
@@ -3068,7 +3147,6 @@ namespace NeoCompose.Runtime
                         throw new InvalidOperationException(
                             $"Constructed Class row '{path}.{entry.schemaKey}' references an empty value id.");
                     }
-                    string key = entry.schemaKey;
                     bool childIsTrustedStaged = trustedMaterialization
                         && stagedById.ContainsKey(childId);
                     ValidateConstructedValueLink(
@@ -3077,7 +3155,7 @@ namespace NeoCompose.Runtime
                         childId,
                         childIsTrustedStaged
                             ? null
-                            : replacement => row.value[key] = replacement,
+                            : ReplaceFieldValueId(row, entry.schemaKey),
                         row.mapKey,
                         classId,
                         stagedById,
@@ -3296,7 +3374,6 @@ namespace NeoCompose.Runtime
                         }
                         for (int index = 0; index < memberIds.Count; index++)
                         {
-                            int capturedIndex = index;
                             bool childIsTrustedStaged = trustedMaterialization
                                 && stagedById.ContainsKey(memberIds[index]);
                             ValidateConstructedValueLink(
@@ -3307,7 +3384,7 @@ namespace NeoCompose.Runtime
                                     ? null
                                     : isUnordered
                                     ? _ => { }
-                            : replacement => listRow.value[capturedIndex] = replacement,
+                            : ReplaceEntryValueId(listRow, index),
                                 listRow.mapKey,
                                 listRow.classId,
                                 stagedById,
@@ -3353,7 +3430,6 @@ namespace NeoCompose.Runtime
                             env);
                         foreach (string key in new List<string>(dictionaryRow.value.Keys))
                         {
-                            string capturedKey = key;
                             bool childIsTrustedStaged = trustedMaterialization
                                 && stagedById.ContainsKey(dictionaryRow.value[key]);
                             ValidateConstructedValueLink(
@@ -3362,8 +3438,7 @@ namespace NeoCompose.Runtime
                                 dictionaryRow.value[key],
                                 childIsTrustedStaged
                                     ? null
-                                    : replacement =>
-                                        dictionaryRow.value[capturedKey] = replacement,
+                                    : ReplaceFieldValueId(dictionaryRow, key),
                                 dictionaryRow.mapKey,
                                 dictionaryRow.classId,
                                 stagedById,
@@ -3385,6 +3460,14 @@ namespace NeoCompose.Runtime
                     }
             }
         }
+
+        // Built only for a link that may be replaced: a captured loop variable
+        // would allocate its closure on every iteration, trusted or not.
+        private static Action<string> ReplaceFieldValueId(ObjectMemberValue row, string key) =>
+            replacement => row.value[key] = replacement;
+
+        private static Action<string> ReplaceEntryValueId(ArrayMemberValue row, int index) =>
+            replacement => row.value[index] = replacement;
 
         private static void ValidateConstructedRowShape(
             NeoClient client,
