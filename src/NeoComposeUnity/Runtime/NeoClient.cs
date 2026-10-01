@@ -4718,18 +4718,13 @@ namespace NeoCompose.Runtime
             string key,
             [NotNullWhen(true)] out Member? member)
         {
-            member = null;
-            var merged = ResolveStoredInstanceSchema(classId);
-            foreach (var entry in merged)
+            MergedSchemaEntry? entry = ResolveClassNode(classId).SurfaceMember(key);
+            if (entry is null || !NeoSchemaClassInheritance.IsStoredInstanceMember(entry.member))
             {
-                if (entry.schemaKey == key
-                    && TryGetMember(entry.memberId, out Member? childMember))
-                {
-                    member = childMember;
-                    return true;
-                }
+                member = null;
+                return false;
             }
-            return false;
+            return TryGetMember(entry.memberId, out member);
         }
 
         private bool TryResolveRecordedConstructorSettlement(
