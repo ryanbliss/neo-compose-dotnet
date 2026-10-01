@@ -174,16 +174,18 @@ namespace NeoCompose.Tests
             Assert.That(reused.thisValue, Is.Null);
             client.ReturnDirectFunctionContext(reused, 1);
             client.InvalidateSchemaResolutionCaches();
-            var pool = (System.Collections.ICollection)typeof(NeoClient).GetField("directFunctionContexts",
+            // Every slot, not just the count: a slot above the count still
+            // retains its context.
+            var pool = (object?[])typeof(NeoClient).GetField("directFunctionContexts",
                 System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(client)!;
-            Assert.That(pool.Count, Is.Zero);
+            Assert.That(pool, Is.All.Null);
             client.ReturnDirectFunctionContext(overlapping, 1);
-            Assert.That(pool.Count, Is.Zero, "Invalidation while a frame is checked out must not retain the old graph on return.");
+            Assert.That(pool, Is.All.Null, "Invalidation while a frame is checked out must not retain the old graph on return.");
             var fresh = client.RentDirectFunctionContext(NeoValueOwnership.Session);
             Assert.That(fresh, Is.Not.SameAs(first));
             fresh.WithThis(new object()); // Forked frames may retain shared state.
             client.ReturnDirectFunctionContext(fresh, 1);
-            Assert.That(pool.Count, Is.Zero);
+            Assert.That(pool, Is.All.Null);
         }
 
         [Test]

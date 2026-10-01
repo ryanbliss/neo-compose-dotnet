@@ -817,10 +817,8 @@ namespace NeoCompose.Runtime
                 deferred.DisposeFromOwner("NeoClient disposed");
             }
             lock (resolvedNSFunctionsLock)
-            {
                 resolvedNSFunctions.Clear();
-                directFunctionContexts.Clear();
-            }
+            ClearDirectFunctionContexts();
             ForgetSchemaResolutionSites();
             animationCoordinator.Dispose();
             animationClips.Clear();
@@ -1016,28 +1014,44 @@ namespace NeoCompose.Runtime
         private void InvalidateSharedEvaluationContext()
         {
             sharedEvaluationContext = null;
-            lock (resolvedNSFunctionsLock)
-                directFunctionContexts.Clear();
+            ClearDirectFunctionContexts();
         }
 
-        private readonly List<NeoScript.NSGetterEvaluator.Context> directFunctionContexts = new();
+        // A stack in a plain array: List<T>.RemoveAt runs shared generic code
+        // on every rent. Unlocked, like the contexts it holds: evaluation is
+        // single-threaded. A rented context stays in the slot just above the
+        // count, so returning it stores nothing: each array store pays a write
+        // barrier. A context that never comes back stays reachable from that
+        // slot until another return overwrites it or the pool clears.
+        private readonly NeoScript.NSGetterEvaluator.Context?[] directFunctionContexts =
+            new NeoScript.NSGetterEvaluator.Context?[MaxPooledDirectFunctionContexts];
+        private int directFunctionContextCount;
+
+        private void ClearDirectFunctionContexts()
+        {
+            System.Array.Clear(directFunctionContexts, 0, directFunctionContexts.Length);
+            directFunctionContextCount = 0;
+        }
 
         internal NeoScript.NSGetterEvaluator.Context RentDirectFunctionContext(NeoValueOwnership ownership)
         {
-            lock (resolvedNSFunctionsLock)
+            for (int i = directFunctionContextCount - 1; i >= 0; i--)
             {
-                for (int i = directFunctionContexts.Count - 1; i >= 0; i--)
+                var context = directFunctionContexts[i]!;
+                if (context.valueOwnership != ownership)
+                    continue;
+                int last = --directFunctionContextCount;
+                if (i < last)
                 {
-                    var context = directFunctionContexts[i];
-                    if (context.valueOwnership != ownership)
-                        continue;
-                    directFunctionContexts.RemoveAt(i);
-                    if (!isReplayingVirtualInstance
-                        && sharedEvaluationContext is not null
-                        && ReferenceEquals(context.rowUnwrapCache, sharedEvaluationContext.rowUnwrapCache)
-                        && sharedEvaluationContext.rowUnwrapCache.Count <= SharedRowCacheLimit)
-                        return context;
+                    System.Array.Copy(directFunctionContexts, i + 1, directFunctionContexts, i, last - i);
+                    directFunctionContexts[last] = context;
                 }
+                if (!isReplayingVirtualInstance
+                    && sharedEvaluationContext is not null
+                    && ReferenceEquals(context.rowUnwrapCache, sharedEvaluationContext.rowUnwrapCache)
+                    && sharedEvaluationContext.rowUnwrapCache.Count <= SharedRowCacheLimit)
+                    return context;
+                directFunctionContexts[last] = null;
             }
             var created = CreateGetterContext(ownership);
             created.BindRoot(NeoScriptValueMarshaller.ResolveRoot(this, created));
@@ -1052,14 +1066,16 @@ namespace NeoCompose.Runtime
                 || isReplayingVirtualInstance)
                 return;
             context.ClearDirectInvocation();
-            lock (resolvedNSFunctionsLock)
+            // A write callback may invalidate the graph while this frame is
+            // checked out. Never put that old graph back into the pool.
+            int count = directFunctionContextCount;
+            if (sharedEvaluationContext is not null
+                && ReferenceEquals(context.rowUnwrapCache, sharedEvaluationContext.rowUnwrapCache)
+                && count < MaxPooledDirectFunctionContexts)
             {
-                // A write callback may invalidate the graph while this frame
-                // is checked out. Never put that old graph back into the pool.
-                if (!isDisposed && sharedEvaluationContext is not null
-                    && ReferenceEquals(context.rowUnwrapCache, sharedEvaluationContext.rowUnwrapCache)
-                    && directFunctionContexts.Count < MaxPooledDirectFunctionContexts)
-                    directFunctionContexts.Add(context);
+                if (!ReferenceEquals(directFunctionContexts[count], context))
+                    directFunctionContexts[count] = context;
+                directFunctionContextCount = count + 1;
             }
         }
 
