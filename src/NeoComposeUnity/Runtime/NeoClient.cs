@@ -6681,9 +6681,14 @@ namespace NeoCompose.Runtime
 
         internal void RegisterGeneratedClassValue(
             NeoGeneratedClassValue generated,
-            NeoMemberClass node)
+            NeoMemberClass node) =>
+            RegisterGeneratedClassValue(generated, node.RegistryKey);
+
+        /// <param name="key">The <see cref="NeoMember.RegistryKey"/> of the view's node, built or not.</param>
+        internal void RegisterGeneratedClassValue(
+            NeoGeneratedClassValue generated,
+            string key)
         {
-            string key = node.RegistryKey;
             var registry = candidateReplay?.GeneratedValues ?? generatedValuesInternal;
             if (registry.TryGetValue(key, out NeoGeneratedClassValue existing)
                 && !ReferenceEquals(existing, generated))
@@ -6712,9 +6717,11 @@ namespace NeoCompose.Runtime
             }
         }
 
-        internal void UnregisterGeneratedClassValue(NeoGeneratedClassValue generated, NeoMemberClass node)
+        internal void UnregisterGeneratedClassValue(NeoGeneratedClassValue generated, NeoMemberClass node) =>
+            UnregisterGeneratedClassValue(generated, node.RegistryKey);
+
+        internal void UnregisterGeneratedClassValue(NeoGeneratedClassValue generated, string key)
         {
-            string key = node.RegistryKey;
             var registry = candidateReplay?.GeneratedValues ?? generatedValuesInternal;
             if (registry.TryGetValue(key, out NeoGeneratedClassValue existing)
                 && ReferenceEquals(existing, generated))
@@ -9089,9 +9096,12 @@ namespace NeoCompose.Runtime
                         continue;
                     if (parent is ObjectMemberValue obj)
                     {
-                        Member? parentMember = TryInferMemberForValueId(parentId, out var inferred) ? inferred : null;
+                        // The row's own class types most links; inferring its member,
+                        // which can walk far, only adds generic, dictionary and
+                        // class-less ones. A link either finds is admitted.
                         if (ConstructorArgsReference(obj, id)
-                            || obj.value is not null && (OwnsChildLink(obj, parentMember, id, ownership)
+                            || obj.value is not null && (OwnsChildLink(obj, null, id, ownership)
+                                || OwnsChildLink(obj, TryInferMemberForValueId(parentId, out var inferred) ? inferred : null, id, ownership)
                                 || TryResolveVirtualPlacement(id, out var placement) && placement.parentValueId == parentId
                                     && ChildOwnership(placement.member, ownership) == ownership))
                             pending.Enqueue(parentId);

@@ -89,6 +89,32 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void ReadingItsId_KeepsTheView()
+        {
+            NeoClient client = BuildClient();
+            TestLine line = NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(
+                client,
+                Evaluate(client, LineType, Line()),
+                true,
+                null,
+                TestLine.CreateWritable,
+                TestLine.CreateDetached);
+
+            string id = line.valueId!;
+
+            Assert.IsNotNull(line.PendingValue, "An id needs the rows, not a node.");
+            Assert.AreSame(line, NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(
+                client,
+                id,
+                true,
+                null,
+                TestLine.CreateWritable,
+                TestLine.CreateDetached));
+            Assert.AreEqual(3, line.Score);
+            Assert.AreEqual(id, line.valueId);
+        }
+
+        [Test]
         public void ReturnedTemporary_WritesLandOnItsRow()
         {
             NeoClient client = BuildClient();
