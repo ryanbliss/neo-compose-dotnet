@@ -4479,9 +4479,16 @@ namespace NeoCompose.Runtime
                 // member.
                 if (!client.TryWritePlacement(ownership, parent, key, replaced, member, childNode))
                     return false;
-                NSGetterEvaluator.RefreshCachedRowAfterWrite(replaced, ctx, ownership);
+                // Scalar reads bypass the row cache, and the write that made
+                // the row scalar refreshed whatever an earlier shape left, so
+                // a scalar replacing a scalar has nothing to patch.
+                if (!IsScalarRow(existing) || !IsScalarRow(replaced))
+                    NSGetterEvaluator.RefreshCachedRowAfterWrite(replaced, ctx, ownership);
                 return true;
             }
+
+            private static bool IsScalarRow(MemberValue row) =>
+                row is NumberMemberValue or BoolMemberValue or NullMemberValue;
 
             // A non-Asset parent must be one its own store holds.
             private bool TryGetParent(NeoClient client, [NotNullWhen(true)] out ObjectMemberValue? parent)
