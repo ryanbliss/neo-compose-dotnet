@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using NeoCompose.Runtime.Json;
 using Newtonsoft.Json;
@@ -7144,6 +7145,7 @@ namespace NeoCompose.Runtime
         // The usual argument: a primitive already of its declared kind, or a
         // whole number for an Int. It passes validation and normalizes to
         // itself or its int, so it skips both.
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static object? PrepareNativePrimitive(object? value, MemberKind kind)
         {
             switch (kind)
