@@ -25,7 +25,7 @@ namespace NeoCompose.Tests
             var body = Action(IntType(), new[] { argument }, VariableDeclaration("saved", Number(1), IntType()), Return(Variable("saved")));
             var layout = new NeoScriptScopeLayout(body);
             var scope = new NeoScriptScope(layout);
-            scope.SetEvaluationValue("saved", new NSGetterEvaluator.ArithmeticValue(7d));
+            scope.SetEvaluationValue("saved", NSGetterEvaluator.ArithmeticValue.BareNumber, 7d);
             var pointer = Variable("saved");
             var aliasIndex = new object();
             NSGetterEvaluator.RowReference? noAlias = null;
@@ -50,7 +50,7 @@ namespace NeoCompose.Tests
             Assert.That(JObject.FromObject(pointer).Property("runtimeBinding"), Is.Null);
             var external = new Dictionary<string, object?>();
             var wrapped = new NeoScriptScope(external);
-            wrapped.SetEvaluationValue("saved", new NSGetterEvaluator.ArithmeticValue(12d));
+            wrapped.SetEvaluationValue("saved", NSGetterEvaluator.ArithmeticValue.BareNumber, 12d);
             Assert.That(external["saved"], Is.EqualTo(12d));
             external["saved"] = 13d;
             Assert.That(wrapped.TryGetValue("saved", out var visible), Is.True);
@@ -230,8 +230,8 @@ namespace NeoCompose.Tests
             using var client = BuildClient(Array.Empty<JsonMember>(), ReceiverClass());
             var context = new NSGetterEvaluator.Context(client, null, null);
             var scope = new NeoScriptScope();
-            scope.SetEvaluationValue("left", new NSGetterEvaluator.ArithmeticValue(left));
-            scope.SetEvaluationValue("right", new NSGetterEvaluator.ArithmeticValue(right));
+            scope.SetEvaluationValue("left", NSGetterEvaluator.ArithmeticValue.BareNumber, left);
+            scope.SetEvaluationValue("right", NSGetterEvaluator.ArithmeticValue.BareNumber, right);
             foreach (string op in new[] { OperatorKind.EqualTo, OperatorKind.DoesNotEqual,
                 OperatorKind.GreaterThan, OperatorKind.GreaterThanOrEqualTo, OperatorKind.LessThan, OperatorKind.LessThanOrEqualTo })
             {

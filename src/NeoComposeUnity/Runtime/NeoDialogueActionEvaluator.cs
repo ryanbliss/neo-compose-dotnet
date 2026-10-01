@@ -471,7 +471,12 @@ namespace NeoCompose.Runtime
                     case VariableInstruction variable:
                         try
                         {
-                            scope.SetEvaluationValue(variable.variable, NSGetterEvaluator.EvaluateValue(variable.variable.pointer, scope, actionCtx));
+                            object? value = NSGetterEvaluator.EvaluateValue(
+                                variable.variable.pointer,
+                                scope,
+                                actionCtx,
+                                out double number);
+                            scope.SetEvaluationValue(variable.variable, value, number);
                         }
                         catch (NeoFunctionCallSuspended suspended)
                         {

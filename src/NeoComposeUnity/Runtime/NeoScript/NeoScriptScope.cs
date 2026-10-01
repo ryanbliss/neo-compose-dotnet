@@ -400,14 +400,15 @@ namespace NeoCompose.Runtime.NeoScript
                 bindings![bindingId] = new EvaluationValue(value);
         }
 
-        internal void SetEvaluationValue(string bindingId, EvaluationValue value)
+        /// <param name="value">An <see cref="NSGetterEvaluator.EvaluateValue"/> result.</param>
+        internal void SetEvaluationValue(string bindingId, object? value, double number)
         {
             if (externalBindings is not null)
-                externalBindings[bindingId] = value.Box();
+                externalBindings[bindingId] = EvaluationValue.Box(value, number);
             else if (layout is not null && layout.Slots.TryGetValue(bindingId, out int slot))
-                SetSlot(slot, value);
+                SetSlot(slot, value, number);
             else
-                bindings![bindingId] = value;
+                bindings![bindingId] = new EvaluationValue(value, number);
         }
 
         internal void SetParameter(int index, object? value)
@@ -418,17 +419,17 @@ namespace NeoCompose.Runtime.NeoScript
             SetSlotValue(index, value);
         }
 
-        private void SetSlot(int slot, EvaluationValue value)
+        private void SetSlot(int slot, object? value, double number)
         {
-            if (value.Reference is not null || !value.IsNumber)
+            if (!ReferenceEquals(value, EvaluationValue.BareNumber))
             {
-                SetSlotValue(slot, value.Reference);
+                SetSlotValue(slot, value);
                 return;
             }
             if (slotKinds[slot] == EmptySlot)
                 occupiedCount++;
             slotKinds[slot] = NumberSlot;
-            slotNumbers[slot] = value.Number;
+            slotNumbers[slot] = number;
             slotValues[slot].value = null;
         }
 
@@ -445,11 +446,12 @@ namespace NeoCompose.Runtime.NeoScript
         private object? SlotValue(int slot) =>
             slotKinds[slot] == NumberSlot ? NSGetterEvaluator.Box(slotNumbers[slot]) : slotValues[slot].value;
 
-        internal void SetEvaluationValue(Variable variable, EvaluationValue value)
+        /// <param name="value">An <see cref="NSGetterEvaluator.EvaluateValue"/> result.</param>
+        internal void SetEvaluationValue(Variable variable, object? value, double number)
         {
             if (layout is null)
             {
-                SetEvaluationValue(variable.id, value);
+                SetEvaluationValue(variable.id, value, number);
                 return;
             }
             var binding = variable.runtimeBinding;
@@ -457,12 +459,12 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 if (!layout.Slots.TryGetValue(variable.id, out int slot))
                 {
-                    SetEvaluationValue(variable.id, value);
+                    SetEvaluationValue(variable.id, value, number);
                     return;
                 }
                 variable.runtimeBinding = binding = new NeoScriptVariableBinding(layout, slot);
             }
-            SetSlot(binding!.Slot, value);
+            SetSlot(binding!.Slot, value, number);
         }
 
         /// <summary>
@@ -704,36 +706,27 @@ namespace NeoCompose.Runtime.NeoScript
 
         internal bool TryGetValue(string bindingId, out object? value)
         {
-            bool found = TryGetEvaluationValue(bindingId, out var stored);
-            value = stored.Box();
-            return found;
-        }
-
-        internal bool TryGetEvaluationValue(string bindingId, out EvaluationValue value)
-        {
             if (externalBindings is not null)
             {
-                if (externalBindings.TryGetValue(bindingId, out var external))
-                {
-                    value = new EvaluationValue(external);
+                if (externalBindings.TryGetValue(bindingId, out value))
                     return true;
-                }
             }
             else
             {
                 if (layout is not null && layout.Slots.TryGetValue(bindingId, out int slot) && slotKinds[slot] != EmptySlot)
                 {
-                    value = slotKinds[slot] == NumberSlot
-                        ? new EvaluationValue(slotNumbers[slot])
-                        : new EvaluationValue(slotValues[slot].value);
+                    value = SlotValue(slot);
                     return true;
                 }
-                if (bindings!.Count > 0 && bindings.TryGetValue(bindingId, out value))
+                if (bindings!.Count > 0 && bindings.TryGetValue(bindingId, out var stored))
+                {
+                    value = stored.Box();
                     return true;
+                }
             }
             if (Parent is not null)
-                return Parent.TryGetEvaluationValue(bindingId, out value);
-            value = default;
+                return Parent.TryGetValue(bindingId, out value);
+            value = null;
             return false;
         }
 

@@ -4133,7 +4133,10 @@ namespace NeoCompose.Runtime.NeoScript
             switch (operation)
             {
                 case ArithmeticOperation arith:
-                    return EvalArithmetic(arith.arithmetic, scope, ctx).Box();
+                    {
+                        object? value = EvalArithmetic(arith.arithmetic, scope, ctx, out double number);
+                        return ArithmeticValue.Box(value, number);
+                    }
                 case BooleanOperation boolOp:
                     return Box(EvalBooleanExpression(boolOp.expression, scope, ctx));
                 default:
@@ -4145,66 +4148,87 @@ namespace NeoCompose.Runtime.NeoScript
         // Numeric intermediates remain values on the C# stack. Only crossing
         // back into the reference-valued interpreter requires a box. Strings,
         // decimal math and mixed operands retain the shared conversion path.
-        // Sixteen bytes, so a returned value comes back in registers: a wider
-        // struct is copied out through a write-barriered range copy.
+        // The hot path carries a value as a returned reference plus an `out`
+        // double: <see cref="ArithmeticValue.BareNumber"/> when the double
+        // holds it, otherwise the value itself. Neither is a heap store, where
+        // a struct's reference field is write-barriered even on the stack.
         internal readonly struct ArithmeticValue
         {
             // The reference a bare number carries.
-            private static readonly object BareNumber = new();
+            internal static readonly object BareNumber = new();
 
             private readonly double number;
             private readonly object? reference;
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            internal ArithmeticValue(double number)
+            internal ArithmeticValue(object? reference, double number)
             {
                 this.number = number;
-                reference = BareNumber;
+                this.reference = reference;
             }
             // Most values are not numbers: a boxed one converts when read.
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             internal ArithmeticValue(object? value)
             {
                 number = 0;
                 reference = value;
             }
-            /// <summary>The value as a number; 0 when <see cref="IsNumber"/> is false.</summary>
-            internal double Number => ReferenceEquals(reference, BareNumber) ? number : BoxedNumber(reference);
+            internal object? Reference => reference;
+            internal double Number => NumberOf(reference, number);
+            internal bool IsNumber => IsNumeric(reference);
+            internal object? Box() => Box(reference, number);
+
+            /// <summary>The value as a number; 0 when <see cref="IsNumeric"/> is false.</summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            internal static double NumberOf(object? reference, double number) =>
+                ReferenceEquals(reference, BareNumber) ? number : BoxedNumber(reference);
             private static double BoxedNumber(object? value)
             {
                 TryAsDouble(value, out double converted);
                 return converted;
             }
-            /// <summary>Whether <see cref="Number"/> holds the value: <see cref="TryAsDouble"/>'s types.</summary>
-            internal bool IsNumber =>
+            /// <summary>Whether <see cref="NumberOf"/> holds the value: <see cref="TryAsDouble"/>'s types.</summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            internal static bool IsNumeric(object? reference) =>
                 ReferenceEquals(reference, BareNumber)
                 || reference is ValueType and (double or float or int or long or short or decimal);
-            internal object? Box() => ReferenceEquals(reference, BareNumber) ? NSGetterEvaluator.Box(Number) : reference;
-            /// <summary>The value as given; null for a bare number or a null value.</summary>
-            internal object? Reference => ReferenceEquals(reference, BareNumber) ? null : reference;
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            internal static object? Box(object? reference, double number) =>
+                ReferenceEquals(reference, BareNumber) ? NSGetterEvaluator.Box(number) : reference;
         }
 
-        internal static ArithmeticValue EvaluateValue(Pointer pointer, NeoScriptScope scope, Context ctx)
+        /// <returns><see cref="ArithmeticValue.BareNumber"/> when <paramref name="number"/> holds the value.</returns>
+        internal static object? EvaluateValue(Pointer pointer, NeoScriptScope scope, Context ctx, out double number)
         {
             if (pointer is OperationPointer { operation: ArithmeticOperation arithmetic })
-                return EvalArithmetic(arithmetic.arithmetic, scope, ctx);
+                return EvalArithmetic(arithmetic.arithmetic, scope, ctx, out number);
             if (pointer is FunctionPointer { function: MathOpFunction math })
-                return EvalMathOp(math.info, scope, ctx);
-            if (pointer is VariablePointer variable && scope.TryReadNumber(variable, out double number))
-                return new ArithmeticValue(number);
+                return EvalMathOp(math.info, scope, ctx, out number);
+            if (pointer is VariablePointer variable && scope.TryReadNumber(variable, out number))
+                return ArithmeticValue.BareNumber;
             // Non-numeric reads retain row-alias refresh and all ordinary
             // interpreter semantics at the shared pointer boundary.
-            return new ArithmeticValue(EvalPointer(pointer, scope, ctx));
+            number = 0;
+            return EvalPointer(pointer, scope, ctx);
         }
 
-        private static ArithmeticValue EvalArithmetic(ArithmeticOpInfo info, NeoScriptScope scope, Context ctx)
+        private static object? EvalArithmetic(ArithmeticOpInfo info, NeoScriptScope scope, Context ctx, out double number)
         {
+            number = 0;
             if (info.pointers.Length == 2 && info.isDecimal != true)
             {
-                var left = EvaluateValue(info.pointers[0], scope, ctx);
-                var right = EvaluateValue(info.pointers[1], scope, ctx);
-                if (left.IsNumber && right.IsNumber)
-                    return new ArithmeticValue(ApplyNumericArithmetic(info.type, left.Number, right.Number));
-                return new ArithmeticValue(ApplyArithmetic(info.type, new[] { left.Box(), right.Box() }, false, ctx));
+                object? left = EvaluateValue(info.pointers[0], scope, ctx, out double leftNumber);
+                object? right = EvaluateValue(info.pointers[1], scope, ctx, out double rightNumber);
+                if (ArithmeticValue.IsNumeric(left) && ArithmeticValue.IsNumeric(right))
+                {
+                    number = ApplyNumericArithmetic(
+                        info.type,
+                        ArithmeticValue.NumberOf(left, leftNumber),
+                        ArithmeticValue.NumberOf(right, rightNumber));
+                    return ArithmeticValue.BareNumber;
+                }
+                return ApplyArithmetic(
+                    info.type,
+                    new[] { ArithmeticValue.Box(left, leftNumber), ArithmeticValue.Box(right, rightNumber) },
+                    false,
+                    ctx);
             }
             // Preserve evaluation order: evaluate every operand before folding,
             // including when an earlier division will subsequently fail.
@@ -4214,8 +4238,9 @@ namespace NeoCompose.Runtime.NeoScript
                 bool numeric = info.isDecimal != true && info.pointers.Length > 0;
                 for (int i = 0; i < info.pointers.Length; i++)
                 {
-                    operands[i] = EvaluateValue(info.pointers[i], scope, ctx);
-                    numeric &= operands[i].IsNumber;
+                    object? operand = EvaluateValue(info.pointers[i], scope, ctx, out double operandNumber);
+                    operands[i] = new ArithmeticValue(operand, operandNumber);
+                    numeric &= ArithmeticValue.IsNumeric(operand);
                 }
                 if (numeric)
                 {
@@ -4229,12 +4254,13 @@ namespace NeoCompose.Runtime.NeoScript
                     }
                     for (int i = 1; i < info.pointers.Length; i++)
                         result = ApplyNumericArithmetic(info.type, result, operands[i].Number);
-                    return new ArithmeticValue(result);
+                    number = result;
+                    return ArithmeticValue.BareNumber;
                 }
                 var boxed = new object?[info.pointers.Length];
                 for (int i = 0; i < boxed.Length; i++)
                     boxed[i] = operands[i].Box();
-                return new ArithmeticValue(ApplyArithmetic(info.type, boxed, info.isDecimal == true, ctx));
+                return ApplyArithmetic(info.type, boxed, info.isDecimal == true, ctx);
             }
             finally
             {
@@ -4494,14 +4520,15 @@ namespace NeoCompose.Runtime.NeoScript
         /// Elsewhere every evaluation must yield a fresh array: array identity
         /// carries list provenance.
         /// </summary>
-        private static ArithmeticValue EvaluateComparand(Pointer pointer, NeoScriptScope scope, Context ctx)
+        private static object? EvaluateComparand(Pointer pointer, NeoScriptScope scope, Context ctx, out double number)
         {
             if (pointer is ValuePointer { value: { value: JArray items } literal } vp
                 && literal.typeInfo.type != MemberKind.NSAction)
             {
-                return new ArithmeticValue(vp.comparand ??= UnwrapJToken(items));
+                number = 0;
+                return vp.comparand ??= UnwrapJToken(items);
             }
-            return EvaluateValue(pointer, scope, ctx);
+            return EvaluateValue(pointer, scope, ctx, out number);
         }
 
         private static bool EvalCondition(
@@ -4509,14 +4536,14 @@ namespace NeoCompose.Runtime.NeoScript
             NeoScriptScope scope,
             Context ctx)
         {
-            var left = EvaluateComparand(condition.operand1, scope, ctx);
-            var right = EvaluateComparand(condition.operand2, scope, ctx);
-            if (condition.isDecimal != true && left.IsNumber && right.IsNumber)
+            object? left = EvaluateComparand(condition.operand1, scope, ctx, out double leftNumber);
+            object? right = EvaluateComparand(condition.operand2, scope, ctx, out double rightNumber);
+            if (condition.isDecimal != true && ArithmeticValue.IsNumeric(left) && ArithmeticValue.IsNumeric(right))
             {
                 // Keep the existing subtraction-based ordering, including
                 // its NaN/infinity behavior, without boxing either operand.
-                double leftNumber = left.Number;
-                double rightNumber = right.Number;
+                leftNumber = ArithmeticValue.NumberOf(left, leftNumber);
+                rightNumber = ArithmeticValue.NumberOf(right, rightNumber);
                 double difference = leftNumber - rightNumber;
                 switch (condition.type)
                 {
@@ -4534,8 +4561,8 @@ namespace NeoCompose.Runtime.NeoScript
                         return difference <= 0;
                 }
             }
-            var a = left.Box();
-            var b = right.Box();
+            var a = ArithmeticValue.Box(left, leftNumber);
+            var b = ArithmeticValue.Box(right, rightNumber);
             // Decimal-stamped comparisons are exact and scale-blind
             // ("1.10" == "1.1"). Null operands (optional decimals) keep the
             // JsEqual null semantics for equality; ordering against null is
@@ -4991,7 +5018,10 @@ namespace NeoCompose.Runtime.NeoScript
                 case SelectFunction sf:
                     return EvalSelect(sf, scope, ctx);
                 case MathOpFunction mof:
-                    return EvalMathOp(mof.info, scope, ctx).Box();
+                    {
+                        object? value = EvalMathOp(mof.info, scope, ctx, out double number);
+                        return ArithmeticValue.Box(value, number);
+                    }
                 case ClassConstructorFunction constructor:
                     return EvalClassConstructor(constructor, scope, ctx);
                 case DeclaredConstructorFunction declared:
@@ -6156,10 +6186,11 @@ namespace NeoCompose.Runtime.NeoScript
         /// <see cref="NSGetterRuntimeError"/>, so authored <c>try</c> can
         /// catch it like division by zero.
         /// </summary>
-        private static ArithmeticValue EvalMathOp(
+        private static object? EvalMathOp(
             FunctionMathOpInfo info,
             NeoScriptScope scope,
-            Context ctx)
+            Context ctx,
+            out double number)
         {
             string name = MathOpFunctionName(info.op);
             int arity = MathOpArity(info.op);
@@ -6169,41 +6200,43 @@ namespace NeoCompose.Runtime.NeoScript
                     $"Math.{name} takes {arity} arguments; got {info.argPointers.Length}.");
             }
             // Math intrinsics take at most three operands; they stay in locals.
-            ArithmeticValue a0 = default;
-            ArithmeticValue a1 = default;
-            ArithmeticValue a2 = default;
+            object? r0 = null;
+            object? r1 = null;
+            object? r2 = null;
+            Span<double> values = stackalloc double[3];
             for (int i = 0; i < arity; i++)
             {
-                ArithmeticValue value = EvaluateValue(info.argPointers[i], scope, ctx);
+                object? value = EvaluateValue(info.argPointers[i], scope, ctx, out values[i]);
                 if (i == 0)
-                    a0 = value;
+                    r0 = value;
                 else if (i == 1)
-                    a1 = value;
+                    r1 = value;
                 else
-                    a2 = value;
+                    r2 = value;
             }
             // Evaluate all arguments before validating any of them.
             for (int i = 0; i < arity; i++)
-                if (!Arg(i).IsNumber && Arg(i).Box() is null)
+                if (ArithmeticValue.Box(Arg(i), values[i]) is null)
                     throw new NSGetterRuntimeError($"Math.{name} argument is null.");
             if (info.isDecimal == true)
             {
                 var decimalArgs = new object?[arity];
                 for (int i = 0; i < arity; i++)
-                    decimalArgs[i] = Arg(i).Box();
-                return new ArithmeticValue(EvalDecimalMathOp(info.op, name, decimalArgs));
+                    decimalArgs[i] = ArithmeticValue.Box(Arg(i), values[i]);
+                number = 0;
+                return EvalDecimalMathOp(info.op, name, decimalArgs);
             }
-            Span<double> values = stackalloc double[3];
             for (int i = 0; i < arity; i++)
             {
-                if (!Arg(i).IsNumber)
+                if (!ArithmeticValue.IsNumeric(Arg(i)))
                     throw new NSGetterRuntimeError(
-                        $"Math.{name} argument is not numeric: {ReceiverTypeName(Arg(i).Box())}.");
-                values[i] = Arg(i).Number;
+                        $"Math.{name} argument is not numeric: {ReceiverTypeName(Arg(i))}.");
+                values[i] = ArithmeticValue.NumberOf(Arg(i), values[i]);
             }
-            return new ArithmeticValue(EvalFloatMathOp(info.op, name, values));
+            number = EvalFloatMathOp(info.op, name, values);
+            return ArithmeticValue.BareNumber;
 
-            ArithmeticValue Arg(int index) => index == 0 ? a0 : index == 1 ? a1 : a2;
+            object? Arg(int index) => index == 0 ? r0 : index == 1 ? r1 : r2;
         }
 
         /// <summary>
