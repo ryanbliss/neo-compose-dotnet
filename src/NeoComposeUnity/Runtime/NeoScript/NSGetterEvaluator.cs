@@ -649,11 +649,14 @@ namespace NeoCompose.Runtime.NeoScript
             // Null while no function runs, so ClearDirectInvocation's constant
             // null store pays no write barrier; storing the empty stack does.
             private IReadOnlyList<string>? functionCallStackField;
-            // Skips the interface call an empty array's Count goes through.
+            // Skips the interface call Count goes through for the usual
+            // frame stack and for an empty one.
             internal int functionDepth
             {
                 [MethodImpl(MethodImplOptions.AggressiveInlining)]
-                get => functionCallStackField?.Count ?? 0;
+                get => functionCallStackField is CallFrameStack frames
+                    ? frames.Count
+                    : functionCallStackField?.Count ?? 0;
             }
             // A field load, where each Array.Empty call goes through a stub.
             private static readonly string[] NoFunctionCalls = System.Array.Empty<string>();

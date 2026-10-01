@@ -723,6 +723,27 @@ namespace NeoCompose.Runtime
             int argumentCount,
             NSGetterEvaluator.Context ctx)
         {
+            // The usual full-arity call passes every check below without
+            // entering the method that names a failure.
+            bool isStatic = function.IsStatic;
+            if ((receiver is null) == isStatic
+                && argumentCount == function.ArgumentTypes.Length
+                && ctx.functionDepth < MaxCallableDepth
+                && function.Action.parameters?.Length == argumentCount + 2
+                && !(isStatic && function.HasGenericSignature))
+            {
+                return;
+            }
+            ValidateUnusualInvocation(client, function, receiver, argumentCount, ctx);
+        }
+
+        private static void ValidateUnusualInvocation(
+            NeoClient client,
+            NeoResolvedNSFunction function,
+            object? receiver,
+            int argumentCount,
+            NSGetterEvaluator.Context ctx)
+        {
             bool isStatic = function.IsStatic;
             if (receiver is null && !isStatic)
             {
