@@ -118,7 +118,20 @@ namespace NeoCompose.Runtime
                 && nestedConstructedRows.TryGetValue(next.id, out var producer)
                 && !ReferenceEquals(producer, nestedConstructorCapture))
                 producer.HasExternalWrites = true;
-            StoreWritableValue(ownership, next, node);
+            // A row replacing its own store's row keeps that row's container,
+            // so the store's indexes already hold it. A first write over an
+            // authored row joins them, and an enum or lookup array re-links
+            // the rows it names.
+            if ((ownership == NeoValueOwnership.Session ? node.session : node.save) is null
+                || next is ArrayMemberValue)
+            {
+                StoreWritableValue(ownership, next, node);
+            }
+            else
+            {
+                GetWritableStore(ownership).values[next.id] = next;
+                SyncStoredValueNode(ownership, next, node);
+            }
             TouchWritableStoreUpdatedAt(ownership);
             WriteRevision++;
             InvalidateGetterMemoForRow(next.id);
