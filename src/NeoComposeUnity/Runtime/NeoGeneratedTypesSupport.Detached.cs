@@ -240,7 +240,6 @@ namespace NeoCompose.Runtime
                     return null;
                 }
             }
-            NeoConstructionScope? scope = null;
             for (int index = 0; index < plan.slots.Length; index++)
             {
                 DetachedSlot slot = plan.slots[index];
@@ -249,12 +248,13 @@ namespace NeoCompose.Runtime
                 {
                     continue;
                 }
-                scope ??= new NeoConstructionScope(
+                object? produced = EvaluateInitializer(
                     constructionCtx.client,
                     constructionCtx,
                     initializerArguments,
-                    constructedClassId);
-                object? produced = scope.EvaluateInitializer(slot.member, slot.initializer);
+                    constructedClassId,
+                    slot.member,
+                    slot.initializer);
                 if (!TryStoreDetachedSlot(created, index, produced, constructionCtx))
                 {
                     throw new InvalidOperationException(produced is null
