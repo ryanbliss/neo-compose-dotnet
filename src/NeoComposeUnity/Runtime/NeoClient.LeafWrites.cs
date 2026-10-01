@@ -89,11 +89,16 @@ namespace NeoCompose.Runtime
             if (constructorArgumentRootsByValueId.ContainsKey(next.id))
                 return false;
             // The first write over a virtual (sparse) child materializes it
-            // through the plan; from then on the store holds the row.
-            if (!GetWritableStore(ownership).values.TryGetValue(next.id, out MemberValue? previous)
-                && !data.values.TryGetValue(next.id, out previous))
+            // through the plan; from then on the store holds the row. The
+            // row's node answers every lookup below.
+            if (ValueNode(next.id) is not { } node)
                 return false;
-            StampMapKeyForWrite(ownership, next);
+            MemberValue? authored = node.Asset(data);
+            MemberValue? previous = (ownership == NeoValueOwnership.Session ? node.session : node.save) ?? authored;
+            if (previous is null)
+                return false;
+            if (string.IsNullOrEmpty(next.mapKey))
+                StampMapKey(next, authored, ownership == NeoValueOwnership.Session ? node.save : null);
             return !previous.IsRemoved && previous.GetType() == next.GetType()
                 && previous.classId == next.classId && previous.containerId == next.containerId
                 && previous.mapKey == next.mapKey && previous.sourceValueId == next.sourceValueId;

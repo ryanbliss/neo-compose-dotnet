@@ -3357,11 +3357,19 @@ namespace NeoCompose.Runtime
                 ?? (client.TryGetValueOwnership(receiverRowId, out var resolvedOwnership) ? resolvedOwnership : ownership);
             // The receiver's reference keeps its row's node, so the read
             // skips the id lookup.
-            MemberValue? row = receiverRef is not null
+            NeoValueNode? receiverNode = null;
+            MemberValue? row;
+            if (receiverRef is not null
                 && receiverRef.valueId == receiverRowId
-                && receiverRef.ownership == receiverOwnership
-                ? client.ReadValue(receiverOwnership, receiverRowId, ref receiverRef.node)
-                : client.TryGetValue(receiverOwnership, receiverRowId, out MemberValue? found) ? found : null;
+                && receiverRef.ownership == receiverOwnership)
+            {
+                row = client.ReadValue(receiverOwnership, receiverRowId, ref receiverRef.node);
+                receiverNode = receiverRef.node;
+            }
+            else
+            {
+                row = client.ReadValue(receiverOwnership, receiverRowId, ref receiverNode);
+            }
             if (row is null)
             {
                 throw new NSGetterRuntimeError($"Missing receiver row '{receiverRowId}'.");
@@ -3420,7 +3428,7 @@ namespace NeoCompose.Runtime
                     NeoValueOwnership fieldOwnership = client.ChildOwnership(memberMember, receiverOwnership);
                     if (fieldOwnership != ownership || fieldOwnership == NeoValueOwnership.Asset)
                         throw new NSGetterRuntimeError($"Member '{memberMember!.name}' is not {ownership}-owned.");
-                    return new NeoClassMemberWriteTarget(receiverRowId, keyString, memberMember!, ownership, receiverOwnership);
+                    return new NeoClassMemberWriteTarget(receiverRowId, keyString, memberMember!, ownership, receiverOwnership, receiverNode);
                 }
                 EnsureWritableRow(client, receiverRowId, ownership);
                 return new NeoDictionaryEntryWriteTarget(receiverRowId, keyString, targetType, ownership);
@@ -4309,19 +4317,23 @@ namespace NeoCompose.Runtime
             private readonly JsonMember member;
             private readonly NeoValueOwnership ownership;
             private readonly NeoValueOwnership parentOwnership;
+            // The parent row's node, so the leaf write reads it without an id lookup.
+            private NeoValueNode? parentNode;
 
             public NeoClassMemberWriteTarget(
                 string parentRowId,
                 string key,
                 JsonMember member,
                 NeoValueOwnership ownership,
-                NeoValueOwnership? parentOwnership = null)
+                NeoValueOwnership? parentOwnership = null,
+                NeoValueNode? parentNode = null)
             {
                 this.parentRowId = parentRowId;
                 this.key = key;
                 this.member = member;
                 this.ownership = ownership;
                 this.parentOwnership = parentOwnership ?? ownership;
+                this.parentNode = parentNode;
             }
 
             /// <summary>
@@ -4368,10 +4380,13 @@ namespace NeoCompose.Runtime
             }
 
             // A non-Asset parent must be one its own store holds.
-            private bool TryGetParent(NeoClient client, [NotNullWhen(true)] out ObjectMemberValue? parent) =>
-                parentOwnership == NeoValueOwnership.Asset
-                    ? client.TryGetValue(parentOwnership, parentRowId, out parent)
-                    : client.TryGetWritableValue(parentOwnership, parentRowId, out parent);
+            private bool TryGetParent(NeoClient client, [NotNullWhen(true)] out ObjectMemberValue? parent)
+            {
+                parent = (parentOwnership == NeoValueOwnership.Asset
+                    ? client.ReadValue(parentOwnership, parentRowId, ref parentNode)
+                    : client.ReadWritableValue(parentOwnership, parentRowId, ref parentNode)) as ObjectMemberValue;
+                return parent is not null;
+            }
 
             /// <param name="storedChild">The bound child's row in its own store, or null when it only inherits one.</param>
             private bool TryResolveBoundChild(
@@ -4405,19 +4420,17 @@ namespace NeoCompose.Runtime
             }
 
             // A read answers with the row the child's own store holds when
-            // there is one, so a single lookup finds both.
+            // there is one, and both reads share one node lookup.
             private bool TryReadChild(
                 NeoClient client,
                 string childId,
                 out MemberValue? child,
                 out MemberValue? storedChild)
             {
-                if (client.TryGetWritableValue(ownership, childId, out storedChild))
-                {
-                    child = storedChild;
-                    return true;
-                }
-                return client.TryGetValue(ownership, childId, out child);
+                NeoValueNode? node = null;
+                storedChild = client.ReadWritableValue(ownership, childId, ref node);
+                child = storedChild ?? client.ReadValue(ownership, childId, ref node);
+                return child is not null;
             }
 
             public override object? ReadCurrentValue(

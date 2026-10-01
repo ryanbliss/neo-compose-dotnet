@@ -5485,6 +5485,26 @@ namespace NeoCompose.Runtime
             return GetWritableStore(ownership).values.TryGetValue(id, out value) && value is not null;
         }
 
+        /// <summary>
+        /// <see cref="TryGetWritableValue(NeoValueOwnership, string, out MemberValue)"/>
+        /// through a node the caller keeps, as <see cref="ReadValue(NeoValueOwnership, string, ref NeoValueNode)"/>
+        /// does for overlaid reads.
+        /// </summary>
+        internal MemberValue? ReadWritableValue(NeoValueOwnership ownership, string id, ref NeoValueNode? node)
+        {
+            if (candidateReplay is not null || candidateReadPlan is not null)
+            {
+                TryGetWritableValue(ownership, id, out MemberValue? overlaid);
+                return overlaid;
+            }
+            NoteValueRead(id);
+            if (ownership == NeoValueOwnership.Asset)
+                return null;
+            if (node is not { live: true })
+                node = ValueNode(id);
+            return ownership == NeoValueOwnership.Session ? node?.session : node?.save;
+        }
+
         private ProjectSaveData GetWritableStore(NeoValueOwnership ownership)
         {
             return ownership switch
@@ -5910,16 +5930,27 @@ namespace NeoCompose.Runtime
         {
             if (!string.IsNullOrEmpty(value.mapKey))
                 return;
-            if (data.values.TryGetValue(value.id, out MemberValue authored))
+            data.values.TryGetValue(value.id, out MemberValue? authored);
+            MemberValue? saveRow = authored is null
+                && ownership == NeoValueOwnership.Session
+                && saveData.values.TryGetValue(value.id, out MemberValue? saved)
+                ? saved
+                : null;
+            StampMapKey(value, authored, saveRow);
+        }
+
+        /// <param name="authored">The authored row at <paramref name="value"/>'s id.</param>
+        /// <param name="saveRow">The save row beneath a session write, when no authored row exists.</param>
+        private void StampMapKey(MemberValue value, MemberValue? authored, MemberValue? saveRow)
+        {
+            if (authored is not null)
             {
                 value.mapKey = authored.mapKey;
                 return;
             }
-            if (ownership == NeoValueOwnership.Session
-                && saveData.values.TryGetValue(value.id, out MemberValue saveRow)
-                && !string.IsNullOrEmpty(saveRow.mapKey))
+            if (!string.IsNullOrEmpty(saveRow?.mapKey))
             {
-                value.mapKey = saveRow.mapKey;
+                value.mapKey = saveRow!.mapKey;
                 return;
             }
             if (string.IsNullOrEmpty(value.containerId))

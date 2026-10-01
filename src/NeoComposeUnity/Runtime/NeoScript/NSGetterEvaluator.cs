@@ -4149,7 +4149,12 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 return false;
             }
-            return entry is not null && ctx.client.TryGetMember(entry.memberId, out member);
+            if (entry is null)
+                return false;
+            // The class node resolved the entry's authored member; only a
+            // variant target member needs the client's lookup.
+            member = entry.member;
+            return member is not null || ctx.client.TryGetMember(entry.memberId, out member);
         }
 
         private static object? ReadOnlyDeclarationDefault(
