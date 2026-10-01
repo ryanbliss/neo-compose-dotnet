@@ -2313,6 +2313,47 @@ namespace NeoCompose.Runtime.NeoScript
             return member;
         }
 
+        /// <summary>
+        /// The member a setter write through <paramref name="site"/> runs:
+        /// on an instance receiver, the receiver Class's member at the site's
+        /// schema placement, else the site's own. Resolved through the site's
+        /// caches, as a dispatched read is.
+        /// </summary>
+        internal static string ResolveSetterMember(
+            CallGetterPointer site,
+            object? receiver,
+            Context ctx,
+            out JsonMember? member)
+        {
+            if (receiver is not null
+                && FindSchemaPlacementCached(site, ctx) is { } placement
+                && FindRowClassIdByReference(receiver, ctx) is { Length: > 0 } classId)
+            {
+                MergedSchemaEntry? entry;
+                try
+                {
+                    NeoClassNode classNode = FindRowReference(receiver, ctx) is { } rowRef
+                        ? rowRef.ClassNode(ctx.client, classId)
+                        : ctx.client.ResolveClassNode(classId);
+                    entry = SurfaceMember(classNode, placement.schemaKey, site, ctx);
+                }
+                catch (CircularInheritanceError)
+                {
+                    entry = null;
+                }
+                if (entry is not null)
+                {
+                    // Only a variant target member needs the client's lookup.
+                    member = entry.member;
+                    if (member is null)
+                        ctx.client.TryGetMember(entry.memberId, out member);
+                    return entry.memberId;
+                }
+            }
+            member = ResolveGetterMember(site, ctx);
+            return site.memberId;
+        }
+
         /// <summary>A getter call site's member under one schema resolution.</summary>
         internal sealed class GetterMemberSite
         {

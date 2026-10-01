@@ -3054,18 +3054,14 @@ namespace NeoCompose.Runtime
                 throw new NSGetterRuntimeError("Cannot invoke setter on a null receiver.");
             }
 
-            string effectiveMemberId = isStatic
-                ? callGetter.memberId
-                : ResolveSetterMemberId(
-                    client,
-                    callGetter.memberId,
-                    receiver!,
-                    ctx);
+            string effectiveMemberId = NSGetterEvaluator.ResolveSetterMember(
+                callGetter,
+                isStatic ? null : receiver,
+                ctx,
+                out JsonMember? effectiveMember);
             if (isStatic
-                && (!client.TryGetMember(
-                        effectiveMemberId,
-                        out JsonMember? staticMember)
-                    || staticMember.Modifier != NeoMemberModifierKind.Static
+                && (effectiveMember is null
+                    || effectiveMember.Modifier != NeoMemberModifierKind.Static
                     || callGetter.receiver.memberId != effectiveMemberId))
             {
                 throw new NSGetterRuntimeError(
@@ -3073,23 +3069,14 @@ namespace NeoCompose.Runtime
             }
             if (NSGetterEvaluator.ContainsFrame(ctx.setterCallStack, effectiveMemberId))
             {
-                string circularName = client.TryGetMember(
-                    effectiveMemberId, out JsonMember? circularMember)
-                        ? circularMember.name
-                        : effectiveMemberId;
                 throw new NSGetterRuntimeError(
-                    $"Circular setter call: '{circularName}'.");
+                    $"Circular setter call: '{effectiveMember?.name ?? effectiveMemberId}'.");
             }
 
-            FunctionWithReturnType? setter = ResolveCompiledSetter(
-                effectiveMemberId,
-                client);
+            FunctionWithReturnType? setter = (effectiveMember as NSPropertyMember)?.setter;
             if (setter is null)
             {
-                string missingName = client.TryGetMember(
-                    effectiveMemberId, out JsonMember? missingMember)
-                        ? missingMember.name
-                        : effectiveMemberId;
+                string missingName = effectiveMember?.name ?? effectiveMemberId;
                 throw new NSGetterRuntimeError(
                     $"NeoScript property '{missingName}' has no compiled setter — save its code to compile it.");
             }
@@ -3172,44 +3159,6 @@ namespace NeoCompose.Runtime
                 return NSGetterEvaluator.CoerceDecimalOperand(value, "setter value");
             }
             return value;
-        }
-
-        internal static string ResolveSetterMemberId(
-            NeoClient client,
-            string staticMemberId,
-            object receiver,
-            NSGetterEvaluator.Context ctx)
-        {
-            // The placement and the class's instance surface are the
-            // client's cached schema resolution, as a getter dispatch reads.
-            var placement = client.FindSchemaPlacement(staticMemberId);
-            if (placement is null)
-                return staticMemberId;
-
-            string? runtimeClassId = NSGetterEvaluator.FindRowClassIdByReference(
-                receiver,
-                ctx);
-            if (string.IsNullOrEmpty(runtimeClassId))
-                return staticMemberId;
-
-            try
-            {
-                return client.ResolveInstanceSurfaceMember(runtimeClassId!, placement.schemaKey)?.memberId
-                    ?? staticMemberId;
-            }
-            catch (CircularInheritanceError)
-            {
-                return staticMemberId;
-            }
-        }
-
-        internal static FunctionWithReturnType? ResolveCompiledSetter(
-            string memberId,
-            NeoClient client)
-        {
-            return client.TryGetMember(memberId, out NSPropertyMember? property)
-                ? property.setter
-                : null;
         }
 
         /// <summary>
@@ -6348,9 +6297,13 @@ namespace NeoCompose.Runtime
 
         // Options carry no per-call state, so each property's are built once.
         private Dictionary<string, NeoScriptExecutionOptions>? propertyOptions;
+        // A setter called again asks for the same property's.
+        private NeoScriptExecutionOptions? lastPropertyOptions;
 
         internal NeoScriptExecutionOptions ForProperty(string memberId)
         {
+            if (lastPropertyOptions is { } last && ReferenceEquals(last.propertyMemberId, memberId))
+                return last;
             propertyOptions ??= new Dictionary<string, NeoScriptExecutionOptions>(StringComparer.Ordinal);
             if (!propertyOptions.TryGetValue(memberId, out NeoScriptExecutionOptions? options))
             {
@@ -6362,6 +6315,7 @@ namespace NeoCompose.Runtime
                     CancelContinuationOnDeferredDisposal);
                 propertyOptions.Add(memberId, options);
             }
+            lastPropertyOptions = options;
             return options;
         }
 

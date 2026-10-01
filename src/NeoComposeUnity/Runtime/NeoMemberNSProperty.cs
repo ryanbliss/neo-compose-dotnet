@@ -275,6 +275,8 @@ namespace NeoCompose.Runtime
             return NSGetterResult.Ok(value);
         }
 
+        private CallGetterPointer? setterSite;
+
         private NSSetterResult SetInternal(
             object? value,
             object? thisValue,
@@ -288,12 +290,14 @@ namespace NeoCompose.Runtime
                 return SetterError("Cannot invoke setter on a null receiver.");
             }
 
-            string effectiveMemberId = NeoScriptExecutor.ResolveSetterMemberId(
-                client,
-                member.id,
+            // A C# set is the write `this.X = value` makes, so it resolves
+            // through a site of its own the way that write's does.
+            string effectiveMemberId = NSGetterEvaluator.ResolveSetterMember(
+                setterSite ??= new CallGetterPointer { memberId = member.id },
                 boundThis,
-                ctx);
-            client.TryGetMember(effectiveMemberId, out NSPropertyMember? resolvedProperty);
+                ctx,
+                out Member? resolvedMember);
+            var resolvedProperty = resolvedMember as NSPropertyMember;
             FunctionWithReturnType? setter = resolvedProperty?.setter;
             if (setter is null)
             {
