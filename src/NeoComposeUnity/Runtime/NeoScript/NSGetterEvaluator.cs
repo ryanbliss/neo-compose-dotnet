@@ -2797,7 +2797,7 @@ namespace NeoCompose.Runtime.NeoScript
                 // class, so an action fanned out on one class can never
                 // smuggle a foreign row in as `this`; anything else stays
                 // receiver-less, the pre-P62 behavior.
-                receiver = ListenerReceiverOnOwner(memberId, ownerReceiver, ctx);
+                receiver = ListenerReceiverOnOwner(target, ownerReceiver, ctx);
             }
 
             ctx.delegateCallStack.Add(frame);
@@ -3037,37 +3037,85 @@ namespace NeoCompose.Runtime.NeoScript
         /// <see cref="DispatchSchemaMember"/> uses. A listener naming a member
         /// of some other class is a target the owner row cannot supply, so it
         /// runs with no receiver rather than with the wrong one.
+        ///
+        /// <para>The answer depends only on the owner's Class, so the
+        /// listener keeps it per Class while the schema resolution
+        /// holds.</para>
         /// </summary>
         private static object? ListenerReceiverOnOwner(
-            string memberId,
+            NeoDelegateValue listener,
             object ownerReceiver,
             Context ctx)
         {
             if (AsObjectRecord(ownerReceiver) is null)
                 return null;
-            SchemaPlacement? placement = FindSchemaPlacementCached(memberId, ctx);
-            if (placement is null)
-                return null;
-            string? runtimeClassId = FindRowClassIdByReference(ownerReceiver, ctx);
+            RowReference? ownerRef = FindRowReference(ownerReceiver, ctx);
+            string? runtimeClassId = ownerRef is not null
+                ? ClassIdOfRowReference(ownerRef, ctx)
+                : FindRowClassIdByReference(ownerReceiver, ctx);
             if (string.IsNullOrEmpty(runtimeClassId))
                 return null;
+            NeoClassNode classNode;
             try
             {
-                foreach (MergedSchemaEntry entry in
-                    ctx.client.ResolveInstanceSurfaceSchema(runtimeClassId!))
-                {
-                    if (entry.schemaKey != placement.schemaKey)
-                        continue;
-                    return ctx.client.TryGetMember(entry.memberId, out JsonMember? _)
-                        ? ownerReceiver
-                        : null;
-                }
+                classNode = ownerRef is not null
+                    ? ownerRef.ClassNode(ctx.client, runtimeClassId!)
+                    : ctx.client.ResolveClassNode(runtimeClassId!);
             }
             catch (CircularInheritanceError)
             {
                 return null;
             }
-            return null;
+            ListenerOwnerTarget? targets = listener.ownerTargets as ListenerOwnerTarget;
+            if (targets is not null
+                && !ReferenceEquals(targets.schemaResolution, ctx.client.SchemaResolution))
+            {
+                targets = null;
+            }
+            for (ListenerOwnerTarget? target = targets; target is not null; target = target.next)
+            {
+                if (ReferenceEquals(target.classNode, classNode))
+                    return target.binds ? ownerReceiver : null;
+            }
+            bool binds = FindSchemaPlacementCached(listener.memberId!, ctx) is { } placement
+                && classNode.SurfaceMember(placement.schemaKey) is { } entry
+                && ctx.client.TryGetMember(entry.memberId, out JsonMember? _);
+            if ((targets?.count ?? 0) < CallSiteTarget.MaxTargets)
+            {
+                listener.ownerTargets = new ListenerOwnerTarget(
+                    ctx.client.SchemaResolution,
+                    classNode,
+                    binds,
+                    targets);
+            }
+            return binds ? ownerReceiver : null;
+        }
+
+        /// <summary>
+        /// Whether a null-<c>valueId</c> listener binds to an owner of one
+        /// Class. Like <see cref="MemberSiteTarget"/>, a listener chains one
+        /// target per owner Class and holds while the schema resolution does.
+        /// </summary>
+        private sealed class ListenerOwnerTarget
+        {
+            internal readonly object schemaResolution;
+            internal readonly NeoClassNode classNode;
+            internal readonly bool binds;
+            internal readonly ListenerOwnerTarget? next;
+            internal readonly int count;
+
+            internal ListenerOwnerTarget(
+                object schemaResolution,
+                NeoClassNode classNode,
+                bool binds,
+                ListenerOwnerTarget? next)
+            {
+                this.schemaResolution = schemaResolution;
+                this.classNode = classNode;
+                this.binds = binds;
+                this.next = next;
+                count = (next?.count ?? 0) + 1;
+            }
         }
 
         /// <summary>

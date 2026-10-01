@@ -46,6 +46,13 @@ namespace NeoCompose.Runtime.Json
         [JsonIgnore]
         internal object? resolvedTarget;
 
+        /// <summary>
+        /// The evaluator's per-Class answer to whether this listener binds to
+        /// the row that owns its action, stamped with its schema resolution.
+        /// </summary>
+        [JsonIgnore]
+        internal object? ownerTargets;
+
         [JsonIgnore]
         public bool IsMemberTarget => !string.IsNullOrEmpty(memberId);
 
