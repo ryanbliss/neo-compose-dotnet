@@ -57,6 +57,10 @@ namespace NeoCompose.Runtime
         }
             = NeoGenericResolution.EmptyEnv;
         protected Dictionary<string, NeoMember> childMembers = new();
+        // The generated view the client's registry last gave this node, and
+        // the registry generation it is current for.
+        internal NeoGeneratedClassValue? keptGeneratedValue;
+        internal int keptGeneration = -1;
         private NeoClassNode? classNode;
         private List<string>? reboundKeys;
         private string? reportingKey;
@@ -160,9 +164,14 @@ namespace NeoCompose.Runtime
             {
                 for (int i = 0; i < childSlotCount; i++)
                 {
-                    ref ChildSlot slot = ref childSlots![i];
-                    if (ReferenceEquals(slot.key, key) || slot.key == key)
-                        return slot.child;
+                    if (ReferenceEquals(childSlots![i].key, key))
+                        return childSlots[i].child;
+                }
+                // A key built at runtime matches by value.
+                for (int i = 0; i < childSlotCount; i++)
+                {
+                    if (childSlots![i].key == key)
+                        return childSlots[i].child;
                 }
             }
             else

@@ -91,6 +91,9 @@ namespace NeoCompose.Runtime
         internal IReadOnlyDictionary<string, NeoMember> nodes => nodesInternal;
         private readonly Dictionary<string, NeoMember> nodesInternal = new();
         private readonly Dictionary<string, NeoGeneratedClassValue> generatedValuesInternal = new();
+        // Moves with every change to generatedValuesInternal, so a node's kept
+        // view is the registry's while it matches.
+        private int generatedValuesGeneration;
         // Row id -> live public wrappers, so reclaiming rows never scans the registry.
         private readonly Dictionary<string, HashSet<NeoGeneratedClassValue>> generatedValuesByValueId = new();
         private readonly Dictionary<string, object> animationClips = new();
@@ -6533,14 +6536,30 @@ namespace NeoCompose.Runtime
             NeoMemberClass node,
             System.Func<TGenerated> create)
             where TGenerated : NeoGeneratedClassValue =>
-            GetOrCreateGeneratedClassValue(node, create, static factory => factory());
+            KeptGeneratedClassValue(node) as TGenerated
+                ?? GetOrCreateGeneratedClassValue(node, create, static factory => factory());
 
         internal TGenerated GetOrCreateGeneratedClassValue<TGenerated>(
             NeoMemberClass node,
             System.Func<NeoClient, NeoMemberClass, TGenerated> create)
             where TGenerated : NeoGeneratedClassValue =>
-            GetOrCreateGeneratedClassValue(node, (Client: this, Node: node, Create: create),
-                static state => state.Create(state.Client, state.Node));
+            KeptGeneratedClassValue(node) as TGenerated
+                ?? GetOrCreateGeneratedClassValue(node, (Client: this, Node: node, Create: create),
+                    static state => state.Create(state.Client, state.Node));
+
+        // A list indexer or Class member reads one node's view again, so the
+        // node keeps the view the registry gave it rather than hashing its
+        // registry key on every read.
+        private NeoGeneratedClassValue? KeptGeneratedClassValue(NeoMemberClass node) =>
+            candidateReplay is null && node.keptGeneration == generatedValuesGeneration
+                ? node.keptGeneratedValue
+                : null;
+
+        private void KeepGeneratedClassValue(NeoMemberClass node, NeoGeneratedClassValue generated)
+        {
+            node.keptGeneratedValue = generated;
+            node.keptGeneration = generatedValuesGeneration;
+        }
 
         private TGenerated GetOrCreateGeneratedClassValue<TGenerated, TState>(
             NeoMemberClass node, TState state, System.Func<TState, TGenerated> create)
@@ -6548,17 +6567,26 @@ namespace NeoCompose.Runtime
         {
             string key = node.RegistryKey;
             var registry = candidateReplay?.GeneratedValues ?? generatedValuesInternal;
+            bool committed = ReferenceEquals(registry, generatedValuesInternal);
             if (registry.TryGetValue(key, out NeoGeneratedClassValue existing))
             {
                 if (existing is TGenerated match)
+                {
+                    if (committed)
+                        KeepGeneratedClassValue(node, match);
                     return match;
+                }
                 existing.Dispose();
             }
 
             TGenerated generated = create(state);
             registry[key] = generated;
-            if (ReferenceEquals(registry, generatedValuesInternal))
+            if (committed)
+            {
+                generatedValuesGeneration++;
                 IndexGeneratedClassValue(generated);
+                KeepGeneratedClassValue(node, generated);
+            }
             return generated;
         }
 
@@ -6594,7 +6622,10 @@ namespace NeoCompose.Runtime
             }
             registry[key] = generated;
             if (ReferenceEquals(registry, generatedValuesInternal))
+            {
+                generatedValuesGeneration++;
                 IndexGeneratedClassValue(generated);
+            }
         }
 
         /// <summary>Registers <paramref name="generated"/> unless its key already has a view.</summary>
@@ -6605,7 +6636,10 @@ namespace NeoCompose.Runtime
             var registry = candidateReplay?.GeneratedValues ?? generatedValuesInternal;
             if (registry.TryAdd(node.RegistryKey, generated)
                 && ReferenceEquals(registry, generatedValuesInternal))
+            {
+                generatedValuesGeneration++;
                 IndexGeneratedClassValue(generated);
+            }
         }
 
         internal void UnregisterGeneratedClassValue(NeoGeneratedClassValue generated, NeoMemberClass node)
@@ -6617,7 +6651,10 @@ namespace NeoCompose.Runtime
             {
                 registry.Remove(key);
                 if (ReferenceEquals(registry, generatedValuesInternal))
+                {
+                    generatedValuesGeneration++;
                     UnindexGeneratedClassValue(generated);
+                }
             }
         }
 
