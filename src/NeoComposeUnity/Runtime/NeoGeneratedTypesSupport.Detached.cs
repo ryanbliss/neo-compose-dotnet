@@ -26,6 +26,8 @@ namespace NeoCompose.Runtime
         internal sealed class DetachedSlot
         {
             internal string schemaKey = null!;
+            /// <summary>The slot's construction path, <c>Class.schemaKey</c>.</summary>
+            internal string path = null!;
             internal string memberId = null!;
             internal Member member = null!;
             internal DetachedSlotKind kind;
@@ -121,6 +123,7 @@ namespace NeoCompose.Runtime
                 var slot = new DetachedSlot
                 {
                     schemaKey = entry.schemaKey,
+                    path = $"{classId}.{entry.schemaKey}",
                     memberId = entry.memberId,
                     member = member,
                     initializer = initializer,
@@ -894,7 +897,7 @@ namespace NeoCompose.Runtime
                     now,
                     valueReference,
                     plan.runtimePlan.genericEnv,
-                    $"{plan.classId}.{slot.schemaKey}",
+                    slot.path,
                     scope.referenceOwnershipByPath,
                     preserveOptionalNull: true);
                 if (childId is not null)

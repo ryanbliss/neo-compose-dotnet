@@ -2495,7 +2495,8 @@ namespace NeoCompose.Runtime
             var parentRow = CreateWritableClassValueRow(
                 client,
                 classId,
-                value,
+                // The row owns its payload; the caller keeps its dictionary.
+                new Dictionary<string, string>(value),
                 rows,
                 nowIso,
                 scope,
@@ -6768,9 +6769,8 @@ namespace NeoCompose.Runtime
             }
             try
             {
-                var value = providedValue is null
-                    ? new Dictionary<string, string>()
-                    : new Dictionary<string, string>(providedValue);
+                // The row takes the caller's fresh dictionary as its own.
+                Dictionary<string, string> value = providedValue ?? new Dictionary<string, string>();
 
                 RuntimeClassPlan? resolvedClassPlan = classPlan
                     ?? (classArguments is null
@@ -6788,8 +6788,10 @@ namespace NeoCompose.Runtime
                         client,
                         classId,
                         classArguments);
-                foreach (var entry in mergedSchema)
+                // Indexed: an interface foreach would box its enumerator per row.
+                for (int entryIndex = 0; entryIndex < mergedSchema.Count; entryIndex++)
                 {
+                    MergedSchemaEntry entry = mergedSchema[entryIndex];
                     if (value.ContainsKey(entry.schemaKey))
                         continue;
                     if (declarationRoot?.row.value?.ContainsKey(entry.schemaKey) == true)
