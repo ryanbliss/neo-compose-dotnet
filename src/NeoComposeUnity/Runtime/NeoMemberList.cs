@@ -26,6 +26,13 @@ namespace NeoCompose.Runtime
     {
         protected Member entryMember;
         protected List<NeoMember> childMembers = new();
+        // The entry ids and declaration the children were last built from.
+        // Committed id arrays are never written in place, so a refresh over
+        // the same array and declaration has nothing to rebuild.
+        private IReadOnlyList<string>? childrenEntryIds;
+        private Member? childrenEntryMember;
+
+        private protected void ForgetChildrenSource() => childrenEntryIds = null;
         private Dictionary<string, NeoMember>? childrenByValueId;
         private readonly Dictionary<string, NeoRawListIndex> derivedIndexes = new();
 
@@ -155,6 +162,7 @@ namespace NeoCompose.Runtime
                 child.Dispose();
             }
             childMembers.Clear();
+            childrenEntryIds = null;
             childrenByValueId?.Clear();
             childrenByValueId = null;
             derivedIndexes.Clear();
@@ -174,6 +182,7 @@ namespace NeoCompose.Runtime
                 child.Dispose();
             }
             childMembers = new List<NeoMember>();
+            childrenEntryIds = null;
             entryMember = ResolveEntryMember();
             ReinitializeChildren();
             InvalidateAllIndexes();
@@ -314,8 +323,13 @@ namespace NeoCompose.Runtime
         protected void ReinitializeChildren()
         {
             var previousChildren = childMembers;
-            childMembers = new();
             var entryValueIds = ResolveEntryValueIds();
+            if (value?.value is not null
+                && ReferenceEquals(entryValueIds, childrenEntryIds)
+                && ReferenceEquals(entryMember, childrenEntryMember))
+                return;
+            childrenEntryIds = null;
+            childMembers = new(entryValueIds.Count);
             if (value?.value is null)
             {
                 foreach (var child in previousChildren)
@@ -325,19 +339,36 @@ namespace NeoCompose.Runtime
                 }
                 return;
             }
-            // Match by identity so removing an earlier entry keeps later
-            // wrappers alive even when their ordinal changes.
-            var previousById = new Dictionary<string, NeoMember>(StringComparer.Ordinal);
-            foreach (NeoMember child in previousChildren)
-                previousById[EntryValueId(child)] = child;
-            var retained = new HashSet<NeoMember>();
-            foreach (string entryValueId in entryValueIds)
+            // Keep the unchanged leading entries in place, so an append or a
+            // removal from the end walks the list without building a map.
+            int prefix = 0;
+            while (prefix < previousChildren.Count
+                && prefix < entryValueIds.Count
+                && previousChildren[prefix].member.id == entryMember.id
+                && EntryValueId(previousChildren[prefix]) == entryValueIds[prefix])
             {
-                if (previousById.TryGetValue(entryValueId, out NeoMember existing)
+                childMembers.Add(previousChildren[prefix]);
+                prefix++;
+            }
+            // Match the rest by identity so removing an earlier entry keeps
+            // later wrappers alive even when their ordinal changes.
+            Dictionary<string, NeoMember>? previousById = null;
+            if (prefix < previousChildren.Count && prefix < entryValueIds.Count)
+            {
+                previousById = new Dictionary<string, NeoMember>(previousChildren.Count - prefix, StringComparer.Ordinal);
+                for (int i = prefix; i < previousChildren.Count; i++)
+                    previousById[EntryValueId(previousChildren[i])] = previousChildren[i];
+            }
+            HashSet<NeoMember>? retained = null;
+            for (int i = prefix; i < entryValueIds.Count; i++)
+            {
+                string entryValueId = entryValueIds[i];
+                if (previousById is not null
+                    && previousById.TryGetValue(entryValueId, out NeoMember existing)
                     && existing.member.id == entryMember.id)
                 {
                     childMembers.Add(existing);
-                    retained.Add(existing);
+                    (retained ??= new HashSet<NeoMember>()).Add(existing);
                     continue;
                 }
                 NeoMember child = CreateChild(client, entryMember, entryValueId);
@@ -352,14 +383,17 @@ namespace NeoCompose.Runtime
                     childrenByValueId[entryValueId] = child;
                 }
             }
-            foreach (var child in previousChildren)
+            for (int i = prefix; i < previousChildren.Count; i++)
             {
-                if (!retained.Contains(child))
+                NeoMember child = previousChildren[i];
+                if (retained?.Contains(child) != true)
                 {
                     child.ChildChanged -= HandleChildChanged;
                     child.Dispose();
                 }
             }
+            childrenEntryIds = entryValueIds;
+            childrenEntryMember = entryMember;
         }
 
         // A descendant edit always reports the same immutable entry id. Weak
@@ -818,6 +852,7 @@ namespace NeoCompose.Runtime
                 child.Dispose();
             }
             childMembers.Clear();
+            ForgetChildrenSource();
 
             NotifyListChanged(new NeoListChangedArgs(
                 NeoListChangeKind.Clear,
