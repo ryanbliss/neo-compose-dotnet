@@ -4413,28 +4413,34 @@ namespace NeoCompose.Runtime
                 }
                 else
                 {
-                    target.parentRowId = parentRowId;
-                    target.key = key;
-                    target.member = member;
+                    // A repeat assignment binds the ids and member the target
+                    // kept, and skipping those stores skips their write
+                    // barriers. Release cleared the nodes.
+                    if (!ReferenceEquals(target.parentRowId, parentRowId))
+                        target.parentRowId = parentRowId;
+                    if (!ReferenceEquals(target.key, key))
+                        target.key = key;
+                    if (!ReferenceEquals(target.member, member))
+                        target.member = member;
                     target.ownership = ownership;
                     target.parentOwnership = parentOwnership;
-                    target.parentNode = parentNode;
-                    target.childNode = childNode;
+                    if (parentNode is not null)
+                        target.parentNode = parentNode;
+                    if (childNode is not null)
+                        target.childNode = childNode;
                 }
                 target.inUse = true;
                 return target;
             }
 
             /// <summary>
-            /// Ends a rented write. Clearing the references keeps a disposed
+            /// Ends a rented write. Clearing the nodes keeps a disposed
             /// client's rows unreachable from the pool, and constant null
-            /// stores pay no write barrier.
+            /// stores pay no write barrier. The ids and schema member it keeps
+            /// reach nothing else.
             /// </summary>
             internal void Release()
             {
-                parentRowId = null!;
-                key = null!;
-                member = null!;
                 parentNode = null;
                 childNode = null;
                 inUse = false;
