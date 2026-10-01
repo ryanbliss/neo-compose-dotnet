@@ -9516,7 +9516,7 @@ namespace NeoCompose.Runtime.NeoScript
 
         /// <summary>Unwraps a memoized row result the way the evaluation that produced it did.</summary>
         internal static object? UnwrapMemoizedRow(MemberValue row, Context ctx, RowReference reference) =>
-            UnwrapCached(row, ctx, reference.ownership, reference.member);
+            UnwrapCached(row, ctx, reference.ownership, reference.member, reference.node);
 
         /// <summary>
         /// What a getter memo keeps of a derived list result: each scalar entry

@@ -104,7 +104,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         public NSGetterResult Compute(string thisValueId)
         {
-            if (!client.TryGetValue(ownership, thisValueId, out MemberValue? row))
+            if (ReadThisRow(thisValueId) is not { } row)
             {
                 return NSGetterResult.Error(
                     $"thisValueId '{thisValueId}' not found in client values");
@@ -128,10 +128,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         public NSSetterResult Set(string thisValueId, object? value)
         {
-            // An accessor usually sets one row's property again.
-            if (thisNode is not null && thisNode.id != thisValueId)
-                thisNode = null;
-            if (client.ReadValue(ownership, thisValueId, ref thisNode) is not { } row)
+            if (ReadThisRow(thisValueId) is not { } row)
             {
                 return SetterError(
                     $"thisValueId '{thisValueId}' not found in client values");
@@ -139,8 +136,16 @@ namespace NeoCompose.Runtime
             return SetInternal(value, null, row);
         }
 
-        // The node of the row Set(thisValueId, value) last read, so a repeat
-        // looks its id up once and unwraps through the node's memo.
+        // An accessor usually reads or sets one row's property again, so the
+        // node of the row last read looks a repeat up once and unwraps it
+        // through the node's memo.
+        private MemberValue? ReadThisRow(string thisValueId)
+        {
+            if (thisNode is not null && thisNode.id != thisValueId)
+                thisNode = null;
+            return client.ReadValue(ownership, thisValueId, ref thisNode);
+        }
+
         private NeoValueNode? thisNode;
 
         private NeoScriptGridReads? gridReads;
@@ -177,11 +182,20 @@ namespace NeoCompose.Runtime
             // equipped item, the clock) re-evaluates only after a row or grid
             // cell it read changes. Ad-hoc receivers are never memoized.
             bool memoize = thisValue is null && thisRow is not null && client.CanMemoizeGetters;
-            NeoClient.GetterMemoKey memoKey = default;
             if (memoize)
             {
-                memoKey = new NeoClient.GetterMemoKey(ownership, thisRow!.id, member.id, ownership);
-                if (client.FindMemoizedGetter(memoKey) is { } hit)
+                // The entry this node last read answers a repeat read of the
+                // same row until the memo forgets it, without building and
+                // hashing the memo's key.
+                NeoClient.GetterMemoEntry? hit = memoEntry is { forgotten: false } kept && memoRowId == thisRow!.id
+                    ? kept
+                    : null;
+                if (hit is null && (hit = client.FindMemoizedGetter(MemoKey(thisRow!))) is not null)
+                {
+                    memoEntry = hit;
+                    memoRowId = thisRow.id;
+                }
+                if (hit is not null)
                 {
                     ResetGridReads();
                     if (hit.list is not null)
@@ -199,14 +213,14 @@ namespace NeoCompose.Runtime
                         client.ReplayGetterReads(hit, gridReads);
                         return NSGetterResult.Ok(hit.scalar);
                     }
-                    else if (client.TryGetReplayReference(hit.row.valueId, out MemberValue? hitRow, hit.row.ownership))
+                    else if (client.ReadReplayReference(hit.row.valueId, ref hit.row.node, hit.row.ownership) is { } hitRow)
                     {
                         client.ReplayGetterReads(hit, gridReads);
                         var hitCtx = client.CreateGetterContext(ownership);
                         hitCtx.gridReads = gridReads;
-                        return NSGetterResult.Ok(NSGetterEvaluator.UnwrapMemoizedRow(hitRow!, hitCtx, hit.row));
+                        return NSGetterResult.Ok(NSGetterEvaluator.UnwrapMemoizedRow(hitRow, hitCtx, hit.row));
                     }
-                    client.ForgetMemoizedGetter(memoKey);
+                    client.ForgetMemoizedGetter(MemoKey(thisRow!));
                 }
             }
 
@@ -221,7 +235,8 @@ namespace NeoCompose.Runtime
             object? boundThis = thisValue;
             if (boundThis is null && thisRow is not null)
             {
-                boundThis = NSGetterEvaluator.UnwrapRow(thisRow, ctx, ownership);
+                // Only Compute(thisValueId) passes a row: the one thisNode holds.
+                boundThis = NSGetterEvaluator.UnwrapRow(thisRow, ctx, ownership, thisNode);
             }
             if (boundThis is null)
             {
@@ -265,22 +280,31 @@ namespace NeoCompose.Runtime
             }
             if (memoize)
             {
+                NeoClient.GetterMemoKey memoKey = MemoKey(thisRow!);
+                memoEntry = null;
                 if (!client.CanMemoizeGetters)
                     client.RecycleGetterCapture(capture);
                 else if (value is null or string or bool or double or int or long or float)
-                    client.MemoizeGetter(memoKey, value, null, capture);
+                    memoEntry = client.MemoizeGetter(memoKey, value, null, capture);
                 else if (NSGetterEvaluator.FindRowReference(value, ctx) is { } resultRef
                     && resultRef.ownership != NeoValueOwnership.Session)
-                    client.MemoizeGetter(memoKey, null, resultRef, capture);
+                    memoEntry = client.MemoizeGetter(memoKey, null, resultRef, capture);
                 else if (value is object?[] entries
                     && NSGetterEvaluator.MemoizableList(entries, ctx, out Member? entryMember) is { } list)
-                    client.MemoizeGetter(memoKey, null, null, capture, list, entryMember);
+                    memoEntry = client.MemoizeGetter(memoKey, null, null, capture, list, entryMember);
                 else
                     client.RecycleGetterCapture(capture);
+                memoRowId = memoKey.rowId;
             }
             client.ReturnDirectFunctionContext(ctx, value);
             return NSGetterResult.Ok(value);
         }
+
+        private NeoClient.GetterMemoEntry? memoEntry;
+        private string? memoRowId;
+
+        private NeoClient.GetterMemoKey MemoKey(MemberValue thisRow) =>
+            new(ownership, thisRow.id, member.id, ownership);
 
         private CallGetterPointer? setterSite;
 

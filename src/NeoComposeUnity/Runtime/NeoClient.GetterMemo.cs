@@ -62,6 +62,10 @@ namespace NeoCompose.Runtime
             // the entry's invalidation set, and a hit under dependency capture
             // (an NSProperty compute) reports them as the evaluation would have.
             public List<GetterRead>? reads;
+            // Whether reads holds a grid read. Until a recorder holds a grid
+            // it drops value reads, so replaying an entry without one into an
+            // empty recorder records nothing.
+            public bool readsGrid;
             // Every value id the evaluation reported to a dependency capture
             // (an animation segment source, a nested constructor). A hit
             // reports the same ids, so a capture sees exactly what the
@@ -236,7 +240,7 @@ namespace NeoCompose.Runtime
             // Nothing observes the reads outside a capture or grid query.
             if (entry.reads is null || (gridReads is null && getterReadCapture is null))
                 return;
-            if (gridReads is not null)
+            if (gridReads is not null && (entry.readsGrid || gridReads.RecordsGrid))
             {
                 for (int i = 0; i < entry.reads.Count; i++)
                 {
@@ -300,9 +304,14 @@ namespace NeoCompose.Runtime
             foreach (GetterRead read in entry.reads)
             {
                 if (read.content is null)
+                {
                     IndexMemoDependency(read.id, key);
+                }
                 else
+                {
+                    entry.readsGrid = true;
                     gridDependentGetterMemoKeys.Add(key);
+                }
             }
             return entry;
         }

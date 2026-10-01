@@ -84,9 +84,11 @@ namespace NeoCompose.Runtime
         }
 
         private readonly Dictionary<NeoClient, (HashSet<(NeoValueOwnership ownership, string id)> ids, Action<NeoValueOwnership, string> handler)> values = new();
+        /// <summary>Whether a grid read was recorded, so value reads are recorded too.</summary>
+        internal bool RecordsGrid => grids.Count != 0;
         internal void RecordValue(NeoClient client, NeoValueOwnership ownership, string id)
         {
-            if (grids.Count == 0 || invalidated is null)
+            if (!RecordsGrid || invalidated is null)
                 return;
             if (!values.TryGetValue(client, out var reads))
             {
