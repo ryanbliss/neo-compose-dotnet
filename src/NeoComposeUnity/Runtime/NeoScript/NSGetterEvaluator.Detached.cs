@@ -194,7 +194,7 @@ namespace NeoCompose.Runtime.NeoScript
             MergedSchemaEntry? entry;
             try
             {
-                entry = ctx.client.ResolveClassNode(value.plan.classId).SurfaceMember(key);
+                entry = value.plan.ClassNode(ctx.client).SurfaceMember(key);
             }
             catch (CircularInheritanceError)
             {
@@ -264,13 +264,13 @@ namespace NeoCompose.Runtime.NeoScript
             object? result = null;
             try
             {
-                MergedSchemaEntry? entry = ctx.client.ResolveClassNode(value.plan.classId).SurfaceMember(key);
-                if (entry?.member is not NSPropertyMember { getter: not null })
+                MergedSchemaEntry? entry = value.plan.ClassNode(ctx.client).SurfaceMember(key);
+                if (entry?.member is not NSPropertyMember { getter: { } getter })
                 {
                     return NSGetterResult.Error(
                         "Compiled `getter` not yet available — save the code to compile it.");
                 }
-                result = DispatchNSGetterById(entry.memberId, value, ctx);
+                result = DispatchNSGetterById(entry.memberId, value, ctx, getter);
                 return NSGetterResult.Ok(result);
             }
             catch (NSGetterRuntimeError ex)

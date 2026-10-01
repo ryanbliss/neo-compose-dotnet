@@ -54,6 +54,11 @@ namespace NeoCompose.Runtime
             internal Dictionary<string, int> slotByKey = null!;
             /// <summary>The class declares a required constructor, so only a declared construction may build it.</summary>
             internal bool requiresConstructor;
+            private NeoClassNode? classNode;
+
+            /// <summary>The class's node, kept while the schema it was resolved from is.</summary>
+            internal NeoClassNode ClassNode(NeoClient client) =>
+                classNode is { live: true } node ? node : classNode = client.ResolveClassNode(classId);
         }
 
         /// <summary>

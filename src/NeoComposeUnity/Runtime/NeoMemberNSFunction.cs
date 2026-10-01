@@ -535,7 +535,7 @@ namespace NeoCompose.Runtime
         internal static object? InvokeDetached(NeoScriptObject receiver, string schemaKey, object?[] args)
         {
             NeoClient client = receiver.client;
-            string memberId = client.ResolveClassNode(receiver.plan.classId).SurfaceMember(schemaKey)?.memberId
+            string memberId = receiver.plan.ClassNode(client).SurfaceMember(schemaKey)?.memberId
                 ?? throw new NSGetterRuntimeError(
                     $"Class '{receiver.plan.classId}' has no NSFunction '{schemaKey}'.");
             NeoResolvedNSFunction function = ResolveSignature(client, memberId);
