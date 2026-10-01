@@ -3,7 +3,6 @@
 #nullable enable
 
 using System;
-using System.Buffers;
 using System.Collections.Generic;
 
 namespace NeoCompose.Runtime
@@ -229,7 +228,7 @@ namespace NeoCompose.Runtime
             OnWritableValueChanged?.Invoke(ownership, valueId);
         }
 
-        private static void InvokeHandlers(
+        private void InvokeHandlers(
             List<Action<NeoValueOwnership, string>> handlers,
             NeoValueOwnership ownership,
             string valueId)
@@ -242,23 +241,41 @@ namespace NeoCompose.Runtime
                 InvokeSnapshot(handlers, ownership, valueId);
         }
 
-        private static void InvokeSnapshot(
+        // Handler snapshots by depth: a write a handler makes publishes into
+        // the next. Publication is single-threaded, as PublishingPlan is.
+        private Action<NeoValueOwnership, string>?[]?[] handlerSnapshots = Array.Empty<Action<NeoValueOwnership, string>?[]?>();
+        private int handlerSnapshotDepth;
+
+        private void InvokeSnapshot(
             List<Action<NeoValueOwnership, string>> handlers,
             NeoValueOwnership ownership,
             string valueId)
         {
             int count = handlers.Count;
-            var snapshot = ArrayPool<Action<NeoValueOwnership, string>>.Shared.Rent(count);
-            handlers.CopyTo(snapshot, 0);
+            int depth = handlerSnapshotDepth;
+            if (depth == handlerSnapshots.Length)
+                Array.Resize(ref handlerSnapshots, Math.Max(4, depth * 2));
+            Action<NeoValueOwnership, string>?[]? snapshot = handlerSnapshots[depth];
+            if (snapshot is null || snapshot.Length < count)
+                handlerSnapshots[depth] = snapshot = new Action<NeoValueOwnership, string>?[Math.Max(count, 2 * (snapshot?.Length ?? 0))];
+            handlers.CopyTo(snapshot!, 0);
+            handlerSnapshotDepth = depth + 1;
+            int i = 0;
             try
             {
-                for (int i = 0; i < count; i++)
-                    snapshot[i](ownership, valueId);
+                for (; i < count; i++)
+                {
+                    // Cleared as it runs, so the buffer keeps no handler alive.
+                    Action<NeoValueOwnership, string> handler = snapshot[i]!;
+                    snapshot[i] = null;
+                    handler(ownership, valueId);
+                }
             }
             finally
             {
-                Array.Clear(snapshot, 0, count);
-                ArrayPool<Action<NeoValueOwnership, string>>.Shared.Return(snapshot);
+                handlerSnapshotDepth = depth;
+                if (i < count)
+                    Array.Clear(snapshot, i, count - i);
             }
         }
 
