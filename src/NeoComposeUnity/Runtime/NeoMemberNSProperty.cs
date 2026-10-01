@@ -4,6 +4,7 @@
 #nullable enable
 
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using NeoCompose.Runtime.Json;
 using NeoCompose.Runtime.NeoScript;
@@ -102,15 +103,16 @@ namespace NeoCompose.Runtime
         /// when the receiver is a known stored row; the object-only
         /// overload is for ad-hoc / synthesized records.
         /// </summary>
-        public NSGetterResult Compute(string thisValueId)
-        {
-            if (ReadThisRow(thisValueId) is not { } row)
-            {
-                return NSGetterResult.Error(
-                    $"thisValueId '{thisValueId}' not found in client values");
-            }
-            return ComputeInternal(null, row);
-        }
+        // Inlined into the generated accessor, so the result is copied out of
+        // one frame fewer.
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public NSGetterResult Compute(string thisValueId) =>
+            ReadThisRow(thisValueId) is { } row
+                ? ComputeInternal(null, row)
+                : MissingReceiver(thisValueId);
+
+        private static NSGetterResult MissingReceiver(string thisValueId) =>
+            NSGetterResult.Error($"thisValueId '{thisValueId}' not found in client values");
 
         /// <summary>
         /// Executes this property's compiled setter. Deferred native

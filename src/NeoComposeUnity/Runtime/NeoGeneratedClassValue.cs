@@ -167,6 +167,7 @@ namespace NeoCompose.Runtime
         /// Computes NSProperty <paramref name="key"/> on this view's receiver.
         /// A pending temporary computes as itself, so the read makes no rows.
         /// </summary>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         protected NSGetterResult ComputeProperty(string key)
         {
             if (detached is { attachedId: null } pending)
