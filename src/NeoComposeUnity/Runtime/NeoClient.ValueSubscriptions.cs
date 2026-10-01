@@ -207,22 +207,39 @@ namespace NeoCompose.Runtime
             if (handlers is { Count: not 0 })
             {
                 NeoWritePlan? outer = PublishingPlan;
-                PublishingPlan = plan;
-                try
+                // A leaf write publishes outside any plan, so swapping null
+                // for null would only pay both stores' write barriers.
+                if (ReferenceEquals(outer, plan))
                 {
-                    // A lone handler is read out before it runs, which is
-                    // already a snapshot.
-                    if (handlers.Count == 1)
-                        handlers[0](ownership, valueId);
-                    else
-                        InvokeSnapshot(handlers, ownership, valueId);
+                    InvokeHandlers(handlers, ownership, valueId);
                 }
-                finally
+                else
                 {
-                    PublishingPlan = outer;
+                    PublishingPlan = plan;
+                    try
+                    {
+                        InvokeHandlers(handlers, ownership, valueId);
+                    }
+                    finally
+                    {
+                        PublishingPlan = outer;
+                    }
                 }
             }
             OnWritableValueChanged?.Invoke(ownership, valueId);
+        }
+
+        private static void InvokeHandlers(
+            List<Action<NeoValueOwnership, string>> handlers,
+            NeoValueOwnership ownership,
+            string valueId)
+        {
+            // A lone handler is read out before it runs, which is already a
+            // snapshot.
+            if (handlers.Count == 1)
+                handlers[0](ownership, valueId);
+            else
+                InvokeSnapshot(handlers, ownership, valueId);
         }
 
         private static void InvokeSnapshot(
