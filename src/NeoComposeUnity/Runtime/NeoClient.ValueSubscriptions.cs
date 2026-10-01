@@ -9,41 +9,59 @@ namespace NeoCompose.Runtime
 {
     public partial class NeoClient
     {
-        // One handler list per value id. A multicast delegate would copy its
-        // whole invocation array on every subscribe and unsubscribe, which an
-        // animation with sixty tracks sharing one dependency turns into an
-        // O(n²) churn on every re-resolution.
-        private readonly Dictionary<string, List<Action<NeoValueOwnership, string>>> writableValueSubscriptions = new(StringComparer.Ordinal);
+        // A value id's listeners: almost always one, a node's own, else a
+        // list. A multicast delegate would copy its whole invocation array on
+        // every subscribe and unsubscribe, which an animation with sixty
+        // tracks sharing one dependency turns into an O(n²) churn on every
+        // re-resolution.
+        private readonly Dictionary<string, object> writableValueSubscriptions = new(StringComparer.Ordinal);
 
         internal IDisposable SubscribeWritableValue(string valueId, Action<NeoValueOwnership, string> handler)
         {
-            AddWritableValueHandler(valueId, handler);
-            return new WritableValueSubscription(this, valueId, handler);
+            var subscription = new WritableValueSubscription(this, valueId, handler);
+            AddWritableValueListener(valueId, subscription);
+            return subscription;
         }
 
         /// <summary>
-        /// <see cref="SubscribeWritableValue"/> without the subscription object,
-        /// for a node that removes its own handler with <see cref="UnsubscribeWritableValue"/>.
+        /// <see cref="SubscribeWritableValue"/> without a delegate or a
+        /// subscription object, for a listener that removes itself with
+        /// <see cref="RemoveWritableValueListener"/>.
         /// </summary>
-        internal void AddWritableValueHandler(string valueId, Action<NeoValueOwnership, string> handler)
+        internal void AddWritableValueListener(string valueId, INeoWritableValueListener listener)
         {
-            if (!writableValueSubscriptions.TryGetValue(valueId, out var handlers))
+            object next;
+            if (!writableValueSubscriptions.TryGetValue(valueId, out object? listeners))
             {
-                writableValueSubscriptions[valueId] = handlers = new List<Action<NeoValueOwnership, string>>(1);
-                if (ExistingValueNode(valueId) is { } node)
-                    node.subscribers = handlers;
+                next = listener;
             }
-            handlers.Add(handler);
+            else if (listeners is List<INeoWritableValueListener> list)
+            {
+                list.Add(listener);
+                return;
+            }
+            else
+            {
+                next = new List<INeoWritableValueListener>(2) { (INeoWritableValueListener)listeners, listener };
+            }
+            writableValueSubscriptions[valueId] = next;
+            if (ExistingValueNode(valueId) is { } node)
+                node.subscribers = next;
         }
 
-        internal void UnsubscribeWritableValue(string valueId, Action<NeoValueOwnership, string> handler)
+        internal void RemoveWritableValueListener(string valueId, INeoWritableValueListener listener)
         {
-            if (!writableValueSubscriptions.TryGetValue(valueId, out var handlers))
+            if (!writableValueSubscriptions.TryGetValue(valueId, out object? listeners))
                 return;
-            if (!handlers.Remove(handler))
+            if (listeners is List<INeoWritableValueListener> list)
+            {
+                if (!list.Remove(listener) || list.Count != 0)
+                    return;
+            }
+            else if (!ReferenceEquals(listeners, listener))
+            {
                 return;
-            if (handlers.Count != 0)
-                return;
+            }
             writableValueSubscriptions.Remove(valueId);
             if (ExistingValueNode(valueId) is { } node)
                 node.subscribers = null;
@@ -207,26 +225,26 @@ namespace NeoCompose.Runtime
             NeoValueOwnership ownership, string valueId, NeoWritePlan? plan = null, NeoValueNode? node = null)
         {
             RefreshSharedEvaluationRow(ownership, valueId);
-            List<Action<NeoValueOwnership, string>>? handlers = node is { live: true }
+            object? listeners = node is { live: true }
                 ? node.subscribers
                 : writableValueSubscriptions.TryGetValue(valueId, out var found) ? found : null;
             // Invoke over a snapshot so reentrant writes, subscriptions and
-            // disposal during a callback neither skip nor repeat a handler.
-            if (handlers is { Count: not 0 })
+            // disposal during a callback neither skip nor repeat a listener.
+            if (listeners is not null)
             {
                 NeoWritePlan? outer = PublishingPlan;
                 // A leaf write publishes outside any plan, so swapping null
                 // for null would only pay both stores' write barriers.
                 if (ReferenceEquals(outer, plan))
                 {
-                    InvokeHandlers(handlers, ownership, valueId);
+                    InvokeListeners(listeners, ownership, valueId);
                 }
                 else
                 {
                     PublishingPlan = plan;
                     try
                     {
-                        InvokeHandlers(handlers, ownership, valueId);
+                        InvokeListeners(listeners, ownership, valueId);
                     }
                     finally
                     {
@@ -237,58 +255,58 @@ namespace NeoCompose.Runtime
             OnWritableValueChanged?.Invoke(ownership, valueId);
         }
 
-        private void InvokeHandlers(
-            List<Action<NeoValueOwnership, string>> handlers,
+        private void InvokeListeners(
+            object listeners,
             NeoValueOwnership ownership,
             string valueId)
         {
-            // A lone handler is read out before it runs, which is already a
-            // snapshot.
-            if (handlers.Count == 1)
-                handlers[0](ownership, valueId);
+            // A lone listener is read out before it runs, which is already a
+            // snapshot; a list is copied first.
+            if (listeners is List<INeoWritableValueListener> list)
+                InvokeSnapshot(list, ownership, valueId);
             else
-                InvokeSnapshot(handlers, ownership, valueId);
+                ((INeoWritableValueListener)listeners).OnWritableValueChanged(ownership, valueId);
         }
 
-        // Handler snapshots by depth: a write a handler makes publishes into
+        // Listener snapshots by depth: a write a listener makes publishes into
         // the next. Publication is single-threaded, as PublishingPlan is.
-        private Action<NeoValueOwnership, string>?[]?[] handlerSnapshots = Array.Empty<Action<NeoValueOwnership, string>?[]?>();
-        private int handlerSnapshotDepth;
+        private INeoWritableValueListener?[]?[] listenerSnapshots = Array.Empty<INeoWritableValueListener?[]?>();
+        private int listenerSnapshotDepth;
 
         private void InvokeSnapshot(
-            List<Action<NeoValueOwnership, string>> handlers,
+            List<INeoWritableValueListener> listeners,
             NeoValueOwnership ownership,
             string valueId)
         {
-            int count = handlers.Count;
-            int depth = handlerSnapshotDepth;
-            if (depth == handlerSnapshots.Length)
-                Array.Resize(ref handlerSnapshots, Math.Max(4, depth * 2));
-            Action<NeoValueOwnership, string>?[]? snapshot = handlerSnapshots[depth];
+            int count = listeners.Count;
+            int depth = listenerSnapshotDepth;
+            if (depth == listenerSnapshots.Length)
+                Array.Resize(ref listenerSnapshots, Math.Max(4, depth * 2));
+            INeoWritableValueListener?[]? snapshot = listenerSnapshots[depth];
             if (snapshot is null || snapshot.Length < count)
-                handlerSnapshots[depth] = snapshot = new Action<NeoValueOwnership, string>?[Math.Max(count, 2 * (snapshot?.Length ?? 0))];
-            handlers.CopyTo(snapshot!, 0);
-            handlerSnapshotDepth = depth + 1;
+                listenerSnapshots[depth] = snapshot = new INeoWritableValueListener?[Math.Max(count, 2 * (snapshot?.Length ?? 0))];
+            listeners.CopyTo(snapshot!, 0);
+            listenerSnapshotDepth = depth + 1;
             int i = 0;
             try
             {
                 for (; i < count; i++)
                 {
-                    // Cleared as it runs, so the buffer keeps no handler alive.
-                    Action<NeoValueOwnership, string> handler = snapshot[i]!;
+                    // Cleared as it runs, so the buffer keeps no listener alive.
+                    INeoWritableValueListener listener = snapshot[i]!;
                     snapshot[i] = null;
-                    handler(ownership, valueId);
+                    listener.OnWritableValueChanged(ownership, valueId);
                 }
             }
             finally
             {
-                handlerSnapshotDepth = depth;
+                listenerSnapshotDepth = depth;
                 if (i < count)
                     Array.Clear(snapshot, i, count - i);
             }
         }
 
-        private sealed class WritableValueSubscription : IDisposable
+        private sealed class WritableValueSubscription : IDisposable, INeoWritableValueListener
         {
             private NeoClient? client;
             private readonly string valueId;
@@ -301,14 +319,23 @@ namespace NeoCompose.Runtime
                 this.handler = handler;
             }
 
+            void INeoWritableValueListener.OnWritableValueChanged(NeoValueOwnership ownership, string changedValueId) =>
+                handler(ownership, changedValueId);
+
             public void Dispose()
             {
                 NeoClient? owner = client;
                 if (owner is null)
                     return;
                 client = null;
-                owner.UnsubscribeWritableValue(valueId, handler);
+                owner.RemoveWritableValueListener(valueId, this);
             }
         }
+    }
+
+    /// <summary>Hears the writable-value changes of the ids it subscribed to.</summary>
+    internal interface INeoWritableValueListener
+    {
+        void OnWritableValueChanged(NeoValueOwnership ownership, string valueId);
     }
 }

@@ -844,9 +844,9 @@ namespace NeoCompose.Runtime
             // repeated removal from a large multicast delegate is quadratic.
             OnSaveValueChanged = null;
             OnWritableValueChanged = null;
-            // Value nodes mirror these lists, so empty them as well.
-            foreach (var handlers in writableValueSubscriptions.Values)
-                handlers.Clear();
+            // Value nodes mirror these listeners, so drop them as well.
+            foreach (var pair in valueNodes)
+                pair.Value.subscribers = null;
             writableValueSubscriptions.Clear();
             OnStaticBindingChanged = null;
             assets.Dispose();

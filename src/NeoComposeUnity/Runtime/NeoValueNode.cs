@@ -31,8 +31,8 @@ namespace NeoCompose.Runtime
         /// <summary>A single-selection lookup row's selected id and that id's node.</summary>
         internal string? selectedId;
         internal NeoValueNode? selectedNode;
-        /// <summary>The id's writable-value subscribers, mirrored from the client's subscription map.</summary>
-        internal System.Collections.Generic.List<System.Action<NeoValueOwnership, string>>? subscribers;
+        /// <summary>The id's writable-value listeners (one, or a list), mirrored from the client's subscription map.</summary>
+        internal object? subscribers;
         private MemberValue? asset;
         private int assetEpoch = -1;
         // The client's authored-ownership entry for this id, as of the map

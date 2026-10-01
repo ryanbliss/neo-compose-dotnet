@@ -11,7 +11,7 @@ using NeoCompose.Runtime.NeoScript;
 namespace NeoCompose.Runtime
 {
     public abstract class NeoGeneratedClassValue
-        : NeoNode, IDisposable, INeoValuePayloadProvider, INeoValueReference
+        : NeoNode, IDisposable, INeoValuePayloadProvider, INeoValueReference, INeoWritableValueListener
     {
         /// <summary>
         /// The backing node. A view over a pending NeoScript temporary has
@@ -26,9 +26,9 @@ namespace NeoCompose.Runtime
         /// <summary>The pending temporary this view reads until it attaches.</summary>
         private NeoScriptObject? detached;
         // The registry key a view claimed when its temporary's rows attached,
-        // and its watch on the root row, until its node takes both over.
+        // until its node takes it over. The view watches the root row as
+        // long as it holds the key.
         private NeoNodeKey? attachedRegistryKey;
-        private IDisposable? attachedRowSubscription;
         private readonly string fallbackClassId;
         private bool isDisposed;
         // Most views never subscribe; the list comes with the first.
@@ -309,13 +309,13 @@ namespace NeoCompose.Runtime
                     NeoValueOwnership.Session);
                 attachedRegistryKey = key;
                 client.RegisterGeneratedClassValue(this, key);
-                attachedRowSubscription = client.SubscribeWritableValue(id, HandleAttachedRowChanged);
+                client.AddWritableValueListener(id, this);
             }
             return id;
         }
 
         // A node disposes its view when its row is removed; a view without one watches the row itself.
-        private void HandleAttachedRowChanged(NeoValueOwnership ownership, string changedValueId)
+        void INeoWritableValueListener.OnWritableValueChanged(NeoValueOwnership ownership, string changedValueId)
         {
             if (ownership == NeoValueOwnership.Session
                 && !client.TryGetOverlaidValue(ownership, changedValueId, out MemberValue? _))
@@ -328,8 +328,7 @@ namespace NeoCompose.Runtime
         {
             if (attachedRegistryKey is not NeoNodeKey key)
                 return;
-            attachedRowSubscription!.Dispose();
-            attachedRowSubscription = null;
+            client.RemoveWritableValueListener(key.valueId!, this);
             client.UnregisterGeneratedClassValue(this, key);
             attachedRegistryKey = null;
         }

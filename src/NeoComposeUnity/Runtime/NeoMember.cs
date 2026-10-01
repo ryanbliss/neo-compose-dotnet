@@ -548,7 +548,7 @@ namespace NeoCompose.Runtime
     /// collection classes) that funnels through
     /// <c>client.SetSaveValue</c> / <c>client.AddSaveValue</c>.</para>
     /// </summary>
-    public abstract class NeoMember<TMember, TValue> : NeoMember
+    public abstract class NeoMember<TMember, TValue> : NeoMember, INeoWritableValueListener
         where TMember : Member
         where TValue : MemberValue
     {
@@ -672,9 +672,9 @@ namespace NeoCompose.Runtime
             base.Dispose();
         }
 
-        // The value id this node's one reused handler listens to, if any.
+        // The value id this node listens to, if any. The node is its own
+        // listener, so subscribing allocates no delegate.
         private string? subscribedValueId;
-        private System.Action<NeoValueOwnership, string>? valueChangeHandler;
 
         private void SubscribeToValueChanges()
         {
@@ -682,16 +682,19 @@ namespace NeoCompose.Runtime
             if (valueId is not string id)
                 return;
             subscribedValueId = id;
-            client.AddWritableValueHandler(id, valueChangeHandler ??= HandleWritableValueChanged);
+            client.AddWritableValueListener(id, this);
         }
 
         private void UnsubscribeFromValueChanges()
         {
             if (subscribedValueId is null)
                 return;
-            client.UnsubscribeWritableValue(subscribedValueId, valueChangeHandler!);
+            client.RemoveWritableValueListener(subscribedValueId, this);
             subscribedValueId = null;
         }
+
+        void INeoWritableValueListener.OnWritableValueChanged(NeoValueOwnership ownership, string valueId) =>
+            HandleWritableValueChanged(ownership, valueId);
 
         private void HandleWritableValueChanged(
             NeoValueOwnership changedOwnership,
