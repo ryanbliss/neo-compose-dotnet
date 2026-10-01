@@ -724,11 +724,16 @@ namespace NeoCompose.Runtime
             // completed from the callee record's current defaults before the
             // `__arg_N__` parameters bind. Below the non-defaulted minimum and
             // above the full arity remain hard errors.
-            NeoParameterDefaults.ValidateArity(
-                argumentCount,
-                function.ArgumentTypes,
-                function.CallSubject);
-            if (ctx.functionCallStack.Count >= MaxCallableDepth)
+            // A full-arity call is valid: skip the call and the subject
+            // getter, whose cold path keeps Mono from inlining it.
+            if (argumentCount != function.ArgumentTypes.Length)
+            {
+                NeoParameterDefaults.ValidateArity(
+                    argumentCount,
+                    function.ArgumentTypes,
+                    function.CallSubject);
+            }
+            if (ctx.functionDepth >= MaxCallableDepth)
             {
                 var names = new List<string>(ctx.functionCallStack.Count + 1);
                 foreach (string id in ctx.functionCallStack)
@@ -804,7 +809,10 @@ namespace NeoCompose.Runtime
             const int argumentParameterOffset = 2;
             scope.SetParameter(0, receiver);
             scope.SetParameter(rootParameterIndex, ctx.rootValue);
+            if (function.ArgumentTypes.Length == 0)
+                return;
             int argumentCount = site?.args.Length ?? args.Length;
+            NeoScriptValueMarshaller.ValueSubject[] subjects = function.Subjects;
             for (int i = 0; i < function.ArgumentTypes.Length; i++)
             {
                 FunctionArgumentTypeInfo argument = function.ArgumentTypes[i];
@@ -837,7 +845,7 @@ namespace NeoCompose.Runtime
                         value,
                         argumentTypes[i],
                         ctx,
-                        in function.Subjects[i + 1]));
+                        in subjects[i + 1]));
                 }
                 catch (Exception exception)
                 {
