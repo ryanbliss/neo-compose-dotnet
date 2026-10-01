@@ -548,12 +548,13 @@ namespace NeoCompose.Runtime
         }
 
         // Cast<double?> would box the converted number on every write.
+        // NeoScript numbers are doubles, so that test comes first.
         private static double? NumberPayload(object? payload, Member member) => payload switch
         {
+            double d => d,
             null => null,
             int i => i,
             float f => f,
-            double d => d,
             _ => throw new System.ArgumentException(
                 $"Cannot set {member.GetType().Name} {member.id} from " +
                 $"{payload.GetType().Name}; expected {nameof(System.Double)}",
