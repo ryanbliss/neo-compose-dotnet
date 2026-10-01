@@ -2854,6 +2854,47 @@ namespace NeoCompose.Runtime
                     return null;
                 }
             }
+            // The target depends only on the receiver, so an NSFunction's
+            // arguments can evaluate straight into its parameter slots.
+            NSGetterEvaluator.CallSiteTarget? target = NSGetterEvaluator.ResolveCallTarget(
+                pointer,
+                receiver,
+                ctx);
+            if (target?.function is { } resolved)
+            {
+                bool deferred = resolved.Deferred;
+                if (deferred && options?.AllowDeferredFunctionCalls != true)
+                {
+                    throw new NeoDeferredFunctionRuntimeError(
+                        $"NSFunction '{resolved.Member.name}' ({target.memberId}) deferred-mode mismatch: " +
+                        "an immediate NeoScript frame called its deferred signature; " +
+                        "compiled call IR is stale/corrupt.");
+                }
+                NeoScriptExecutionResult nested = NeoNSFunctionRuntime.ExecuteResolved(
+                    client,
+                    resolved,
+                    receiver,
+                    ReadOnlySpan<object?>.Empty,
+                    ctx,
+                    options ?? NeoScriptExecutionOptions.ForImmediate(client),
+                    site: pointer,
+                    siteScope: scope);
+                if (nested.IsPaused)
+                {
+                    if (!deferred)
+                    {
+                        nested.Deferred?.DisposeFromOwner(
+                            "non-deferred NSFunction suspended");
+                        throw new NSGetterRuntimeError(
+                            $"Non-deferred NSFunction '{resolved.Member.name}' suspended; its compiled IR is stale or corrupt.");
+                    }
+                    throw new NeoFunctionCallSuspended(
+                        resumeKey,
+                        target.memberId,
+                        nested);
+                }
+                return nested.ReturnValue;
+            }
             object?[] args = NSGetterEvaluator.RentArguments(pointer);
             try
             {
@@ -2861,13 +2902,7 @@ namespace NeoCompose.Runtime
                 {
                     args[i] = NSGetterEvaluator.EvaluateFunctionArgument(pointer, i, scope, ctx);
                 }
-                NSGetterEvaluator.CallSiteTarget? target = NSGetterEvaluator.ResolveCallTarget(
-                    pointer,
-                    receiver,
-                    ctx);
-                NeoResolvedNSFunction? resolved = target?.function;
-                if (resolved is null)
-                    NSGetterEvaluator.MaterializePatternArguments(target?.memberId, args, ctx);
+                NSGetterEvaluator.MaterializePatternArguments(target?.memberId, args, ctx);
                 if (target is null)
                 {
                     object? fallback = NSGetterEvaluator.EvaluateMissingMemberFallback(
@@ -2877,71 +2912,33 @@ namespace NeoCompose.Runtime
                     return fallback;
                 }
                 string memberId = target.memberId;
-                object? value;
-                if (resolved is not null)
+                FunctionMember? native = target.nativeSignature;
+                if (native?.Dispatch != NeoFunctionDispatchKind.Asynchronous)
                 {
-                    bool deferred = resolved.Deferred;
-                    if (deferred && options?.AllowDeferredFunctionCalls != true)
-                    {
-                        throw new NeoDeferredFunctionRuntimeError(
-                            $"NSFunction '{resolved.Member.name}' ({memberId}) deferred-mode mismatch: " +
-                            "an immediate NeoScript frame called its deferred signature; " +
-                            "compiled call IR is stale/corrupt.");
-                    }
-                    NeoScriptExecutionResult nested = NeoNSFunctionRuntime.ExecuteResolved(
-                        client,
-                        resolved,
-                        receiver,
-                        args,
-                        ctx,
-                        options ?? NeoScriptExecutionOptions.ForImmediate(client));
-                    if (nested.IsPaused)
-                    {
-                        if (!deferred)
-                        {
-                            nested.Deferred?.DisposeFromOwner(
-                                "non-deferred NSFunction suspended");
-                            throw new NSGetterRuntimeError(
-                                $"Non-deferred NSFunction '{resolved.Member.name}' suspended; its compiled IR is stale or corrupt.");
-                        }
-                        throw new NeoFunctionCallSuspended(
-                            resumeKey,
-                            memberId,
-                            nested);
-                    }
-                    value = nested.ReturnValue;
+                    // P65 §2.5 — filled BEFORE dispatch so the native
+                    // exact-arity check stands. Deferred functions reject
+                    // defaulted parameters (§1.4), so the branch below
+                    // stays unfilled.
+                    return NSGetterEvaluator.InvokeNativeFunction(
+                        memberId, target.native?.returnTypeInfo, receiver,
+                        NSGetterEvaluator.FillNativeCallSiteArguments(memberId, native, args), ctx);
                 }
                 else
                 {
-                    FunctionMember? native = target.nativeSignature;
-                    if (native?.Dispatch != NeoFunctionDispatchKind.Asynchronous)
+                    if (options?.AllowDeferredFunctionCalls != true)
                     {
-                        // P65 §2.5 — filled BEFORE dispatch so the native
-                        // exact-arity check stands. Deferred functions reject
-                        // defaulted parameters (§1.4), so the branch below
-                        // stays unfilled.
-                        value = NSGetterEvaluator.InvokeNativeFunction(
-                            memberId, target.native?.returnTypeInfo, receiver,
-                            NSGetterEvaluator.FillNativeCallSiteArguments(memberId, native, args), ctx);
+                        string functionName = client.TryGetMember(
+                            memberId, out JsonMember? deferredMember)
+                                ? deferredMember.name
+                                : memberId;
+                        throw new NeoDeferredFunctionRuntimeError(
+                            $"Function '{functionName}' ({memberId}) deferred-mode mismatch: " +
+                            "an immediate NeoScript frame called its deferred signature; " +
+                            "compiled call IR is stale/corrupt.");
                     }
-                    else
-                    {
-                        if (options?.AllowDeferredFunctionCalls != true)
-                        {
-                            string functionName = client.TryGetMember(
-                                memberId, out JsonMember? deferredMember)
-                                    ? deferredMember.name
-                                    : memberId;
-                            throw new NeoDeferredFunctionRuntimeError(
-                                $"Function '{functionName}' ({memberId}) deferred-mode mismatch: " +
-                                "an immediate NeoScript frame called its deferred signature; " +
-                                "compiled call IR is stale/corrupt.");
-                        }
-                        value = StartDeferredNativeFunction(
-                            client, memberId, receiver, args.AsSpan().ToArray(), ctx, options, resumeKey);
-                    }
+                    return StartDeferredNativeFunction(
+                        client, memberId, receiver, args.AsSpan().ToArray(), ctx, options, resumeKey);
                 }
-                return value;
             }
             finally
             {

@@ -448,8 +448,11 @@ namespace NeoCompose.Runtime
         }
         // Terminal marshalling for the declared (non-generic) return type;
         // the resolved function is cached per client, so one delegate serves
-        // every invocation.
+        // every invocation. A C# caller's result also has its resolved
+        // identity validated; a NeoScript caller's compiled IR already
+        // proved it.
         internal NeoScriptTerminalNormalizer? TerminalNormalizer;
+        internal NeoScriptTerminalNormalizer? BoundaryTerminalNormalizer;
         internal NeoMemberNSFunction? StaticNode;
 
         // Diagnostic subjects depend only on the signature. Formatting them
@@ -523,7 +526,9 @@ namespace NeoCompose.Runtime
             NeoResolvedNSFunction function,
             object? receiver,
             ReadOnlySpan<object?> args,
-            NSGetterEvaluator.Context ctx)
+            NSGetterEvaluator.Context ctx,
+            CallFunctionPointer? site = null,
+            NeoScriptScope? siteScope = null)
         {
             if (function.Deferred)
             {
@@ -538,7 +543,9 @@ namespace NeoCompose.Runtime
                 receiver,
                 args,
                 ctx,
-                NeoScriptExecutionOptions.ForImmediate(client));
+                NeoScriptExecutionOptions.ForImmediate(client),
+                site: site,
+                siteScope: siteScope);
             if (result.IsPaused)
             {
                 result.Deferred?.DisposeFromOwner(
@@ -573,7 +580,9 @@ namespace NeoCompose.Runtime
             ReadOnlySpan<object?> args,
             NSGetterEvaluator.Context ctx,
             NeoScriptExecutionOptions options,
-            bool ownsContext = false)
+            bool ownsContext = false,
+            CallFunctionPointer? site = null,
+            NeoScriptScope? siteScope = null)
         {
 #if NEO_COMPOSE_PROFILING
             using var sample = function.Profile.Auto();
@@ -581,7 +590,7 @@ namespace NeoCompose.Runtime
             // Validation, generic resolution and parameter binding live in
             // their own methods: their locals and exception regions would
             // otherwise widen the frame every call zeroes.
-            ValidateInvocation(client, function, receiver, args.Length, ctx);
+            ValidateInvocation(client, function, receiver, site?.args.Length ?? args.Length, ctx);
             FunctionWithReturnType action = function.Action;
             bool isStatic = function.IsStatic;
             TypeInfo effectiveReturnType = function.ReturnTypeInfo;
@@ -602,11 +611,13 @@ namespace NeoCompose.Runtime
             bool poolScope = !function.Deferred;
             NeoScriptScopeLayout layout = action.scopeLayout ??= new NeoScriptScopeLayout(action);
             var scope = poolScope ? layout.RentScope() : new NeoScriptScope(layout);
+            // Until the body runs nothing but this call holds the scope.
+            bool started = false;
             bool completed = false;
             int inPlaceFrame = -1;
             try
             {
-                BindParameters(client, function, action, scope, receiver, args, ctx, effectiveArgumentTypes);
+                BindParameters(client, function, action, scope, receiver, args, site, siteScope, ctx, effectiveArgumentTypes);
 
                 NSGetterEvaluator.Context nestedCtx;
                 if (ownsContext)
@@ -626,15 +637,23 @@ namespace NeoCompose.Runtime
                 }
                 NeoScriptExecutionOptions functionOptions = options.ForFunction(function.Deferred);
                 NeoScriptExecutor.PrepareFunctionContext(nestedCtx, functionOptions, inPlaceFrame);
+                // Only the C# entry points own their context.
+                bool boundary = ownsContext;
+                NeoScriptTerminalNormalizer normalizer;
+                if (!ReferenceEquals(effectiveReturnType, function.ReturnTypeInfo))
+                    normalizer = CreateTerminalNormalizer(client, function, effectiveReturnType, boundary);
+                else if (boundary)
+                    normalizer = function.BoundaryTerminalNormalizer ??= CreateTerminalNormalizer(client, function, effectiveReturnType, true);
+                else
+                    normalizer = function.TerminalNormalizer ??= CreateTerminalNormalizer(client, function, effectiveReturnType, false);
+                started = true;
                 NeoScriptExecutionResult execution = NeoScriptExecutor.Execute(
                     client,
                     action,
                     scope,
                     nestedCtx,
                     functionOptions,
-                    ReferenceEquals(effectiveReturnType, function.ReturnTypeInfo)
-                        ? function.TerminalNormalizer ??= CreateTerminalNormalizer(client, function, effectiveReturnType)
-                        : CreateTerminalNormalizer(client, function, effectiveReturnType));
+                    normalizer);
                 completed = !execution.IsPaused;
                 return execution;
             }
@@ -646,7 +665,7 @@ namespace NeoCompose.Runtime
                 // existing lifetime rules release those scopes instead of pooling them.
                 if (poolScope)
                 {
-                    if (completed)
+                    if (completed || !started)
                         layout.ReturnScope(scope, BoundParameterCount(function));
                     else
                         layout.AbandonScope(scope);
@@ -747,6 +766,8 @@ namespace NeoCompose.Runtime
             NeoScriptScope scope,
             object? receiver,
             ReadOnlySpan<object?> args,
+            CallFunctionPointer? site,
+            NeoScriptScope? siteScope,
             NSGetterEvaluator.Context ctx,
             TypeInfo[] argumentTypes)
         {
@@ -754,12 +775,22 @@ namespace NeoCompose.Runtime
             const int argumentParameterOffset = 2;
             scope.SetParameter(0, receiver);
             scope.SetParameter(rootParameterIndex, ctx.rootValue);
+            int argumentCount = site?.args.Length ?? args.Length;
             for (int i = 0; i < function.ArgumentTypes.Length; i++)
             {
                 FunctionArgumentTypeInfo argument = function.ArgumentTypes[i];
+                // A NeoScript call site's arguments evaluate straight into
+                // their slots, in the caller's frame, rather than through an
+                // argument array each store write-barriers again.
+                object? value = i >= argumentCount
+                    ? null
+                    : site is null
+                        ? args[i]
+                        : NSGetterEvaluator.EvaluateFunctionArgument(site, i, siteScope!, ctx);
                 try
                 {
-                    object? value = i < args.Length ? args[i] : NeoParameterDefaults.DefaultRuntimeValue(argument, function.CallSubject);
+                    if (i >= argumentCount)
+                        value = NeoParameterDefaults.DefaultRuntimeValue(argument, function.CallSubject);
                     // A pattern argument left as offsets stays that way
                     // when the body only hands it to grid queries.
                     if (value is NeoCellPattern pattern)
@@ -795,15 +826,17 @@ namespace NeoCompose.Runtime
         private static NeoScriptTerminalNormalizer CreateTerminalNormalizer(
             NeoClient client,
             NeoResolvedNSFunction function,
-            TypeInfo effectiveReturnType) =>
-            (terminal, ctx) => NormalizeTerminal(client, ctx, terminal, function, effectiveReturnType);
+            TypeInfo effectiveReturnType,
+            bool boundary) =>
+            (terminal, ctx) => NormalizeTerminal(client, ctx, terminal, function, effectiveReturnType, boundary);
 
         private static NeoScriptExecutionResult NormalizeTerminal(
             NeoClient client,
             NSGetterEvaluator.Context ctx,
             NeoScriptExecutionResult execution,
             NeoResolvedNSFunction function,
-            TypeInfo effectiveReturnType)
+            TypeInfo effectiveReturnType,
+            bool boundary)
         {
             if (execution.IsPaused)
                 throw new InvalidOperationException(
@@ -826,13 +859,14 @@ namespace NeoCompose.Runtime
                     $"NSFunction '{function.Member.name}' ended without returning a value; its compiled IR is stale or corrupt.");
             }
             string subject = function.ReturnSubject;
-            object? normalized = NeoScriptValueMarshaller.NormalizeResolved(
+            object? normalized = NeoScriptValueMarshaller.Normalize(
                 client,
                 ctx.valueOwnership,
                 execution.ReturnValue,
                 effectiveReturnType,
                 ctx,
-                subject);
+                subject,
+                resolvedIdentity: boundary);
             // Marshalling usually returns the evaluator's own value; reuse
             // the executor's result instead of allocating a copy of it.
             if (ReferenceEquals(normalized, execution.ReturnValue))
@@ -2086,23 +2120,18 @@ namespace NeoCompose.Runtime
                     ? selectionRows
                     : selections;
             }
-            // Row-backed collections contain child ids. Validate their values,
-            // then preserve the collection identity for indexing and writes.
-            // Each entry resolves once for both checks.
+            // Row-backed collections contain child ids the store already
+            // typed, so they keep their identity for indexing and writes.
+            // Only a resolved-identity check reads their entries, resolving
+            // each once.
             if (rowOwnership is not null && value is object?[] rows)
             {
-                if (entryType is null)
+                if (entryType is null || !resolvedIdentity)
                     return rows;
-                bool rowEntries = entryType.type is MemberKind.Class or MemberKind.Interface;
                 for (int i = 0; i < rows.Length; i++)
                 {
                     object? entry = NSGetterEvaluator.ResolveListEntry(rows, i, rowRef, rowOwnership, ctx);
-                    // A resolved row record is already canonical: normalizing
-                    // it would only read its row again.
-                    if (!rowEntries || !NSGetterEvaluator.IsRowRecord(entry, ctx))
-                        Normalize(client, rowOwnership.Value, entry, entryType, ctx, subject.Entry());
-                    if (resolvedIdentity)
-                        ValidateResolvedRuntimeValue(client, entry, entryType, ctx, subject.Entry(i));
+                    ValidateResolvedRuntimeValue(client, entry, entryType, ctx, subject.Entry(i));
                 }
                 resolvedIdentity = false;
                 return rows;

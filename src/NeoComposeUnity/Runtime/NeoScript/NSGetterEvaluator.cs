@@ -2249,6 +2249,18 @@ namespace NeoCompose.Runtime.NeoScript
                 if (!pointer.receiver.IsStatic)
                     return null;
             }
+            CallSiteTarget? target = ResolveCallTarget(pointer, receiver, ctx);
+            if (target?.function is { } resolved)
+            {
+                return NeoNSFunctionRuntime.InvokeImmediate(
+                    ctx.client,
+                    resolved,
+                    receiver,
+                    ReadOnlySpan<object?>.Empty,
+                    ctx,
+                    site: pointer,
+                    siteScope: scope);
+            }
             object?[] args = RentArguments(pointer);
             try
             {
@@ -2256,21 +2268,10 @@ namespace NeoCompose.Runtime.NeoScript
                 {
                     args[i] = EvaluateFunctionArgument(pointer, i, scope, ctx);
                 }
-                CallSiteTarget? target = ResolveCallTarget(pointer, receiver, ctx);
-                if (target?.function is null)
-                    MaterializePatternArguments(target?.memberId, args, ctx);
+                MaterializePatternArguments(target?.memberId, args, ctx);
                 if (target is null)
                 {
                     return EvaluateMissingMemberFallback(pointer, receiver, args);
-                }
-                if (target.function is not null)
-                {
-                    return NeoNSFunctionRuntime.InvokeImmediate(
-                        ctx.client,
-                        target.function,
-                        receiver,
-                        args,
-                        ctx);
                 }
                 if (target.native is not null)
                 {
