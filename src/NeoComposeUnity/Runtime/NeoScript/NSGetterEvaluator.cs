@@ -2403,12 +2403,15 @@ namespace NeoCompose.Runtime.NeoScript
         /// <summary>Constructs the pattern arguments left as offsets, unless the native target is a grid query.</summary>
         internal static void MaterializePatternArguments(string? memberId, object?[] args, Context ctx)
         {
-            if (NeoScriptGridQueries.ReadsCells(memberId))
-                return;
             for (int i = 0; i < args.Length; i++)
             {
-                if (args[i] is NeoCellPattern pattern)
-                    args[i] = NeoCellPatternStorage.Materialize(pattern, ctx);
+                if (args[i] is not NeoCellPattern pattern)
+                    continue;
+                // Only a pattern asks which member reads it, which costs
+                // id comparisons; a grid query reads every one as offsets.
+                if (NeoScriptGridQueries.ReadsCells(memberId))
+                    return;
+                args[i] = NeoCellPatternStorage.Materialize(pattern, ctx);
             }
         }
 
