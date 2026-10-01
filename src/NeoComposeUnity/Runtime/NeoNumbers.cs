@@ -3,6 +3,8 @@
 
 #nullable enable
 
+using System.Globalization;
+
 namespace NeoCompose.Runtime
 {
     internal static class NeoNumbers
@@ -51,6 +53,34 @@ namespace NeoCompose.Runtime
                     return SharedFloatBoxes[integral - MinSharedBox];
             }
             return value;
+        }
+
+        // Whole doubles below this print the same digits through long, which
+        // skips the double formatter; larger ones may print in E notation.
+        private const double PlainIntegerMagnitude = 1e15;
+        private static readonly string?[] SharedIntegerStrings = new string?[MaxSharedBox - MinSharedBox + 1];
+
+        /// <summary>
+        /// <c>value.ToString(CultureInfo.InvariantCulture)</c>: a whole value
+        /// formats as an integer, and a small one shares its string.
+        /// </summary>
+        internal static string Format(double value)
+        {
+            if (value is > -PlainIntegerMagnitude and < PlainIntegerMagnitude)
+            {
+                long integral = (long)value;
+                // -0.0 prints its sign.
+                if (integral == value && (integral != 0 || !double.IsNegative(value)))
+                {
+                    if (integral is >= MinSharedBox and <= MaxSharedBox)
+                    {
+                        return SharedIntegerStrings[integral - MinSharedBox]
+                            ??= integral.ToString(CultureInfo.InvariantCulture);
+                    }
+                    return integral.ToString(CultureInfo.InvariantCulture);
+                }
+            }
+            return value.ToString(CultureInfo.InvariantCulture);
         }
 
         internal static object Box(double value)

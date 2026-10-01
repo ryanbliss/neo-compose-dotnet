@@ -4689,6 +4689,14 @@ namespace NeoCompose.Runtime.NeoScript
                         ArithmeticValue.NumberOf(right, rightNumber));
                     return ArithmeticValue.BareNumber;
                 }
+                // The usual non-numeric +: a string joins its two parts
+                // without an operand array or a builder.
+                if (info.type == ArithmeticOpKind.Addition && (left is string || right is string))
+                {
+                    return string.Concat(
+                        StringifyOperand(left, leftNumber),
+                        StringifyOperand(right, rightNumber));
+                }
                 return ApplyArithmetic(
                     info.type,
                     new[] { ArithmeticValue.Box(left, leftNumber), ArithmeticValue.Box(right, rightNumber) },
@@ -4751,42 +4759,13 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 return ApplyDecimalArithmetic(op, operands);
             }
-            // String concat for `+` over all-strings.
+            // `+` with any string operand concatenates every operand.
             if (op == ArithmeticOpKind.Addition)
             {
-                bool allStrings = true;
-                foreach (var o in operands)
-                {
-                    if (o is not string)
-                    {
-                        allStrings = false;
-                        break;
-                    }
-                }
-                if (allStrings)
-                {
-                    var sb = new System.Text.StringBuilder();
-                    foreach (var o in operands)
-                        sb.Append((string)o!);
-                    string result = sb.ToString();
-                    return result;
-                }
-                bool anyString = false;
                 foreach (var o in operands)
                 {
                     if (o is string)
-                    {
-                        anyString = true;
-                        break;
-                    }
-                }
-                if (anyString)
-                {
-                    var sb = new System.Text.StringBuilder();
-                    foreach (var o in operands)
-                        sb.Append(StringifyForInterp(o));
-                    string result = sb.ToString();
-                    return result;
+                        return Concatenate(operands);
                 }
             }
             // Numeric path. Coerce every operand to double; ints round-trip.
@@ -9615,6 +9594,29 @@ namespace NeoCompose.Runtime.NeoScript
                 : null;
         }
 
+        [ThreadStatic]
+        private static System.Text.StringBuilder? concatenation;
+
+        // One reused builder per thread: only the joined string allocates.
+        // It is taken while in use, so a nested join builds its own.
+        private static string Concatenate(object?[] operands)
+        {
+            System.Text.StringBuilder builder = concatenation ?? new System.Text.StringBuilder();
+            concatenation = null;
+            foreach (var o in operands)
+                builder.Append(StringifyForInterp(o));
+            string joined = builder.ToString();
+            builder.Clear();
+            concatenation = builder;
+            return joined;
+        }
+
+        /// <param name="value">An <see cref="EvaluateValue"/> result.</param>
+        private static string StringifyOperand(object? value, double number) =>
+            ReferenceEquals(value, ArithmeticValue.BareNumber)
+                ? NeoNumbers.Format(number)
+                : StringifyForInterp(value);
+
         private static string StringifyForInterp(object? v)
         {
             if (v is null)
@@ -9624,7 +9626,7 @@ namespace NeoCompose.Runtime.NeoScript
             if (v is bool b)
                 return b ? "true" : "false";
             if (TryAsDouble(v, out double d))
-                return d.ToString(CultureInfo.InvariantCulture);
+                return NeoNumbers.Format(d);
             return Newtonsoft.Json.JsonConvert.SerializeObject(v);
         }
     }
