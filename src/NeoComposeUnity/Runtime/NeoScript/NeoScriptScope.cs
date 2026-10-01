@@ -423,6 +423,7 @@ namespace NeoCompose.Runtime.NeoScript
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void SetParameter(int index, object? value)
         {
             // A pooled frame's kept root is usually the one being bound.
@@ -666,24 +667,18 @@ namespace NeoCompose.Runtime.NeoScript
                 bindings!.Clear();
             if (occupiedCount > 0)
             {
-                int kept = 0;
                 // Frames hold a handful of slots: a loop beats Array.Clear's
-                // native call.
-                for (int i = 0; i < slotKinds.Length; i++)
+                // native call. It starts past the kept parameters.
+                for (int i = keptParameters; i < slotKinds.Length; i++)
                 {
-                    if (slotKinds[i] == EmptySlot)
+                    if (slotKinds[i] == EmptySlot || i == keptSlot)
                         continue;
-                    if (i == keptSlot || i < keptParameters)
-                    {
-                        kept++;
-                        continue;
-                    }
                     slotKinds[i] = EmptySlot;
                     slotValues[i].value = null;
                     slotValues[i].aliasIndex = null;
                     slotValues[i].rowAlias = null;
+                    occupiedCount--;
                 }
-                occupiedCount = kept;
             }
             externalBindings?.Clear();
             readOnlyBindings?.Clear();
