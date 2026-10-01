@@ -21,13 +21,13 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         bool TryWritable(out NeoTile writable);
 
-        NeoReadOnlyVector2Int Cell { get; }
-
         string Name { get; }
+
+        NeoReadOnlySprite Sprite { get; }
 
         new IReadOnlyNeoSmartTile? SmartTile { get; }
 
-        NeoReadOnlySprite Sprite { get; }
+        NeoReadOnlyVector2Int Cell { get; }
 
 
         /// <summary>
@@ -101,6 +101,33 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         INeoSmartTile? INeoSmartTileSource.SmartTile => SmartTile;
 
+        public virtual string Name
+        {
+            get
+            {
+                return node.Get<NeoMemberString>("Name").value?.value ?? throw new InvalidOperationException("Required string 'Name' has no value.");
+            }
+        }
+
+        public virtual NeoReadOnlySprite Sprite
+        {
+            get
+            {
+                var memberNode = node.Get<NeoMemberSprite>("Sprite");
+                if (TryGetStoredView<NeoReadOnlySprite>("Sprite", memberNode, out var cached)) return cached;
+                return CacheStoredView("Sprite", memberNode, new NeoReadOnlySprite(memberNode));
+            }
+        }
+
+        public virtual IReadOnlyNeoSmartTile? SmartTile
+        {
+            get
+            {
+                var child = node.Get<NeoMemberClass>("SmartTile");
+                return child.value?.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.NeoSmartTile.Create(client, child);
+            }
+        }
+
         public virtual NeoVector2Int Cell
         {
             get
@@ -123,33 +150,6 @@ namespace HelloWorld.Assets.Scripts.Neo
                 var memberNode = node.Get<NeoMemberVector2Int>("Cell");
                 if (TryGetStoredView<NeoReadOnlyVector2Int>("Cell", memberNode, out var cached)) return cached;
                 return CacheStoredView("Cell", memberNode, new NeoReadOnlyVector2Int(memberNode));
-            }
-        }
-
-        public virtual string Name
-        {
-            get
-            {
-                return node.Get<NeoMemberString>("Name").value?.value ?? throw new InvalidOperationException("Required string 'Name' has no value.");
-            }
-        }
-
-        public virtual IReadOnlyNeoSmartTile? SmartTile
-        {
-            get
-            {
-                var child = node.Get<NeoMemberClass>("SmartTile");
-                return child.value?.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.NeoSmartTile.Create(client, child);
-            }
-        }
-
-        public virtual NeoReadOnlySprite Sprite
-        {
-            get
-            {
-                var memberNode = node.Get<NeoMemberSprite>("Sprite");
-                if (TryGetStoredView<NeoReadOnlySprite>("Sprite", memberNode, out var cached)) return cached;
-                return CacheStoredView("Sprite", memberNode, new NeoReadOnlySprite(memberNode));
             }
         }
 
