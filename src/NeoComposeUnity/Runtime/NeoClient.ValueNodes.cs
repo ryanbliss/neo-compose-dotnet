@@ -19,6 +19,12 @@ namespace NeoCompose.Runtime
         {
             if (valueNodes.TryGetValue(id, out NeoValueNode node))
                 return node;
+            // Removed and unwritten ids are read often; a miss makes no node.
+            if (!sessionData.values.ContainsKey(id)
+                && !saveData.values.ContainsKey(id)
+                && !virtualValues.ContainsKey(id)
+                && !data.values.ContainsKey(id))
+                return null;
             node = new NeoValueNode(id);
             if (!FillValueNode(node))
                 return null;
