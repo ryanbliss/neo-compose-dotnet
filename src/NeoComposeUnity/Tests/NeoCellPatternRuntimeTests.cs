@@ -477,15 +477,21 @@ namespace NeoCompose.Tests
             });
             var ctx = client.CreateGetterContext(NeoValueOwnership.Session);
             Assert.IsTrue(client.TryGetMember("system_51d883c9-d451-5747-bcf0-e314e44bffa8", out NSPropertyMember? count));
-            object? value = NSGetterEvaluator.InvokeNativeFunction("native-pattern", null, Array.Empty<object?>(), ctx);
+            object? value = Invoke("native-pattern");
             Assert.AreEqual(9, Convert.ToInt32(NSGetterEvaluator.Evaluate(count!.getter!, ctx.WithThis(value))));
-            var values = (object?[])NSGetterEvaluator.InvokeNativeFunction("native-patterns", null, Array.Empty<object?>(), ctx)!;
+            var values = (object?[])Invoke("native-patterns")!;
             Assert.AreEqual(5, Convert.ToInt32(NSGetterEvaluator.Evaluate(count.getter!, ctx.WithThis(values[0]))));
             var dictionary = (IReadOnlyDictionary<string, object?>)NeoCellPatternStorage.NormalizeNativeResult(
                 new ReadOnlyPatternResult(), ctx, new CollectionTypeInfo { type = MemberKind.Dictionary, required = true, entryTypeInfo = patternType })!;
             Assert.AreEqual(9, Convert.ToInt32(NSGetterEvaluator.Evaluate(count.getter!, ctx.WithThis(dictionary["pattern"]))));
-            var nested = (object?[])NSGetterEvaluator.InvokeNativeFunction("native-nested", null, Array.Empty<object?>(), ctx)!;
+            var nested = (object?[])Invoke("native-nested")!;
             Assert.AreEqual(8, Convert.ToInt32(NSGetterEvaluator.Evaluate(count.getter!, ctx.WithThis(((object?[])nested[0]!)[0]))));
+
+            object? Invoke(string memberId)
+            {
+                Assert.IsTrue(client.TryGetMember(memberId, out FunctionMember? function));
+                return NSGetterEvaluator.InvokeNativeFunction(memberId, function!.returnTypeInfo, null, Array.Empty<object?>(), ctx);
+            }
         }
 
         private sealed class ReadOnlyPatternResult : IReadOnlyDictionary<string, object?>

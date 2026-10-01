@@ -1426,6 +1426,45 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void CallSiteWithoutAReceiverClassReusesItsTargetUntilASchemaReset()
+        {
+            NSFunctionMember function = ScriptFunction("value", "Value", false, IntType(),
+                Array.Empty<FunctionArgumentTypeInfo>(), Returning(1));
+            using var client = BuildClient(new JsonMember[] { function }, ReceiverClass(("Value", function.id)));
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            var call = new CallFunctionPointer
+            {
+                type = PointerKind.CallFunction,
+                memberId = function.id,
+                receiver = CallReceiver.Instance(Variable("x")),
+                args = Array.Empty<Pointer>(),
+                callSiteId = "value-0",
+            };
+
+            Assert.AreEqual(1L, Invoke());
+            var target = call.uncachedTarget;
+            Assert.IsNotNull(target, "A receiver with no Class resolves outside the site's chain.");
+            Assert.IsNull(call.resolvedTargets);
+            Assert.AreEqual(1L, Invoke());
+            Assert.AreSame(target, call.uncachedTarget, "A repeat call reuses the site's last target.");
+
+            ((NSFunctionMember)client.members[function.id]).action = Returning(2);
+            client.InvalidateSchemaResolutionCaches();
+            Assert.IsNull(call.uncachedTarget);
+            ctx = new NSGetterEvaluator.Context(client, null, null);
+            Assert.AreEqual(2L, Invoke(), "A schema reset re-resolves the site.");
+
+            client.Dispose();
+            Assert.IsNull(call.uncachedTarget, "Shared IR must not keep a disposed client's resolutions.");
+
+            long Invoke() => Convert.ToInt64(NSGetterEvaluator.EvaluatePointer(call,
+                new Dictionary<string, object?> { ["x"] = new Dictionary<string, object?>() }, ctx));
+
+            static FunctionWithReturnType Returning(int value) => Action(IntType(),
+                Array.Empty<FunctionArgumentTypeInfo>(), Return(Literal(IntType(), new JValue(value))));
+        }
+
+        [Test]
         public void RepeatedMemberReadsFollowAChildRebind()
         {
             var child = new ClassMember

@@ -2861,14 +2861,14 @@ namespace NeoCompose.Runtime
                 {
                     args[i] = NSGetterEvaluator.EvaluateFunctionArgument(pointer, i, scope, ctx);
                 }
-                string? memberId = NSGetterEvaluator.ResolveCallTarget(
+                NSGetterEvaluator.CallSiteTarget? target = NSGetterEvaluator.ResolveCallTarget(
                     pointer,
                     receiver,
-                    ctx,
-                    out NeoResolvedNSFunction? resolved);
+                    ctx);
+                NeoResolvedNSFunction? resolved = target?.function;
                 if (resolved is null)
-                    NSGetterEvaluator.MaterializePatternArguments(memberId, args, ctx);
-                if (memberId is null)
+                    NSGetterEvaluator.MaterializePatternArguments(target?.memberId, args, ctx);
+                if (target is null)
                 {
                     object? fallback = NSGetterEvaluator.EvaluateMissingMemberFallback(
                         pointer,
@@ -2876,6 +2876,7 @@ namespace NeoCompose.Runtime
                         args);
                     return fallback;
                 }
+                string memberId = target.memberId;
                 object? value;
                 if (resolved is not null)
                 {
@@ -2912,7 +2913,7 @@ namespace NeoCompose.Runtime
                 }
                 else
                 {
-                    client.TryResolveFunctionMember(memberId, out FunctionMember? native);
+                    FunctionMember? native = target.nativeSignature;
                     if (native?.Dispatch != NeoFunctionDispatchKind.Asynchronous)
                     {
                         // P65 §2.5 — filled BEFORE dispatch so the native
@@ -2920,7 +2921,7 @@ namespace NeoCompose.Runtime
                         // defaulted parameters (§1.4), so the branch below
                         // stays unfilled.
                         value = NSGetterEvaluator.InvokeNativeFunction(
-                            memberId, receiver,
+                            memberId, target.native?.returnTypeInfo, receiver,
                             NSGetterEvaluator.FillNativeCallSiteArguments(memberId, native, args), ctx);
                     }
                     else

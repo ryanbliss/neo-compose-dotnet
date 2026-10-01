@@ -2126,13 +2126,16 @@ namespace NeoCompose.Runtime.NeoScript
             return "<dynamic>";
         }
 
-        internal static object? InvokeNativeFunction(string memberId, object? receiver, object?[] args, Context ctx)
+        /// <param name="returnType">The Function's declared return type, which shapes its result.</param>
+        internal static object? InvokeNativeFunction(string memberId, TypeInfo? returnType,
+            object? receiver, object?[] args, Context ctx)
         {
             if (NeoCellPatternRuntime.TryInvoke(memberId, receiver, args, ctx, out object? result))
                 return result;
             if (ctx.client.ScriptGridQueries.TryInvoke(memberId, receiver, args, ctx, out result))
                 return result;
-            return NormalizeNativeResult(memberId, ctx.client.InvokeNativeFunction(memberId, receiver, args), ctx);
+            return NeoCellPatternStorage.NormalizeNativeResult(
+                ctx.client.InvokeNativeFunction(memberId, receiver, args), ctx, returnType);
         }
 
         /// <summary>
@@ -2158,11 +2161,11 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 for (int i = 0; i < args.Length; i++)
                     args[i] = EvalPointer(patternCall.args[i], scope, ctx);
-                string? memberId = ResolveFunctionMemberId(patternCall, receiver, ctx);
-                if (memberId != patternCall.memberId || !ctx.client.TryGetMember(memberId!, out FunctionMember? _))
+                CallSiteTarget? target = ResolveCallTarget(patternCall, receiver, ctx);
+                if (target?.native is null || target.memberId != patternCall.memberId)
                     throw new NSGetterRuntimeError($"CellPattern intrinsic '{patternCall.memberId}' has an invalid native declaration.");
-                NeoCellPatternRuntime.TryInvoke(memberId!, receiver,
-                    FillNativeCallSiteArguments(memberId!, args, ctx), ctx, out var result, materialize: false);
+                NeoCellPatternRuntime.TryInvoke(target.memberId, receiver,
+                    FillNativeCallSiteArguments(target.memberId, target.nativeSignature, args), ctx, out var result, materialize: false);
                 return result;
             }
             finally
@@ -2253,38 +2256,34 @@ namespace NeoCompose.Runtime.NeoScript
                 {
                     args[i] = EvaluateFunctionArgument(pointer, i, scope, ctx);
                 }
-                string? memberId = ResolveCallTarget(
-                    pointer,
-                    receiver,
-                    ctx,
-                    out NeoResolvedNSFunction? function);
-                if (function is null)
-                    MaterializePatternArguments(memberId, args, ctx);
-                if (memberId is null)
+                CallSiteTarget? target = ResolveCallTarget(pointer, receiver, ctx);
+                if (target?.function is null)
+                    MaterializePatternArguments(target?.memberId, args, ctx);
+                if (target is null)
                 {
                     return EvaluateMissingMemberFallback(pointer, receiver, args);
                 }
-                if (function is not null)
+                if (target.function is not null)
                 {
                     return NeoNSFunctionRuntime.InvokeImmediate(
                         ctx.client,
-                        function,
+                        target.function,
                         receiver,
                         args,
                         ctx);
                 }
-                if (!ctx.client.TryGetMember(memberId, out JsonMember? member))
+                if (target.native is not null)
+                {
+                    return InvokeNativeFunction(target.memberId, target.native.returnTypeInfo, receiver,
+                        FillNativeCallSiteArguments(target.memberId, target.nativeSignature, args), ctx);
+                }
+                if (!ctx.client.TryGetMember(target.memberId, out JsonMember? _))
                 {
                     throw new NSGetterRuntimeError(
-                        $"Function member '{memberId}' was not found.");
-                }
-                if (member is FunctionMember)
-                {
-                    return InvokeNativeFunction(memberId, receiver,
-                        FillNativeCallSiteArguments(memberId, args, ctx), ctx);
+                        $"Function member '{target.memberId}' was not found.");
                 }
                 throw new NSGetterRuntimeError(
-                    $"Member '{memberId}' is not a callable Function member.");
+                    $"Member '{target.memberId}' is not a callable Function member.");
             }
             finally
             {
@@ -2674,14 +2673,14 @@ namespace NeoCompose.Runtime.NeoScript
             ctx.delegateCallStack.Add(frame);
             try
             {
-                if (member is FunctionMember)
+                if (member is FunctionMember native)
                 {
                     if (ctx.client.IsNativeFunctionDeferred(memberId))
                     {
                         throw new NeoDeferredFunctionRuntimeError(
                             $"NeoDelegate target Function '{member.name}' is deferred; delegates require an immediate callable target.");
                     }
-                    return InvokeNativeFunction(memberId, receiver, args, ctx);
+                    return InvokeNativeFunction(memberId, native.returnTypeInfo, receiver, args, ctx);
                 }
                 if (member is NSFunctionMember)
                 {
@@ -3053,20 +3052,31 @@ namespace NeoCompose.Runtime.NeoScript
             internal readonly string memberId;
             /// <summary>The NSFunction <see cref="memberId"/> names; null for a native Function.</summary>
             internal readonly NeoResolvedNSFunction? function;
+            /// <summary>The native Function <see cref="memberId"/> names; null for an NSFunction or a missing member.</summary>
+            internal readonly FunctionMember? native;
+            /// <summary>The signature <see cref="native"/> calls fill against: its own, or the one it extends.</summary>
+            internal readonly FunctionMember? nativeSignature;
             internal readonly CallSiteTarget? next;
             internal readonly int count;
 
             internal CallSiteTarget(
-                object schemaResolution,
+                NeoClient client,
                 string? receiverClassId,
                 string memberId,
-                NeoResolvedNSFunction? function,
                 CallSiteTarget? next)
             {
-                this.schemaResolution = schemaResolution;
+                schemaResolution = client.SchemaResolution;
                 this.receiverClassId = receiverClassId;
                 this.memberId = memberId;
-                this.function = function;
+                if (client.TryGetMember(memberId, out NSFunctionMember? _))
+                {
+                    function = NeoNSFunctionRuntime.ResolveSignature(client, memberId);
+                }
+                else
+                {
+                    client.TryGetMember(memberId, out native);
+                    client.TryResolveFunctionMember(memberId, out nativeSignature);
+                }
                 this.next = next;
                 count = (next?.count ?? 0) + 1;
             }
@@ -3074,15 +3084,14 @@ namespace NeoCompose.Runtime.NeoScript
 
         /// <summary>
         /// <see cref="ResolveFunctionMemberId(CallFunctionPointer, object?, Context)"/>
-        /// through the call site's cached targets, plus the NSFunction it
-        /// names (null for a native Function). A repeat call on a runtime
-        /// Class the site has seen costs class-id comparisons.
+        /// through the call site's cached targets, or null when the call has
+        /// no target. A repeat call on a runtime Class the site has seen
+        /// costs class-id comparisons.
         /// </summary>
-        internal static string? ResolveCallTarget(
+        internal static CallSiteTarget? ResolveCallTarget(
             CallFunctionPointer pointer,
             object? receiver,
-            Context ctx,
-            out NeoResolvedNSFunction? function)
+            Context ctx)
         {
             // Targets are immutable and published with one reference write,
             // so a site shared across clients or threads reads a whole chain.
@@ -3106,10 +3115,8 @@ namespace NeoCompose.Runtime.NeoScript
                     if (!SameId(target.receiverClassId, receiverClassId))
                         continue;
                 }
-                function = target.function;
-                return target.memberId;
+                return target;
             }
-            function = null;
             string? memberId = ResolveFunctionMemberId(
                 pointer,
                 receiver,
@@ -3119,20 +3126,26 @@ namespace NeoCompose.Runtime.NeoScript
             if (memberId is null)
                 return null;
             ValidateValueEqualitySignature(pointer, memberId, ctx);
-            if (ctx.client.TryGetMember(memberId, out NSFunctionMember? _))
-                function = NeoNSFunctionRuntime.ResolveSignature(ctx.client, memberId);
-            if (cacheable && (targets?.count ?? 0) < CallSiteTarget.MaxTargets)
+            if (!cacheable || (targets?.count ?? 0) >= CallSiteTarget.MaxTargets)
             {
-                pointer.resolvedTargets = new CallSiteTarget(
-                    ctx.client.SchemaResolution,
-                    dispatchClassId,
-                    memberId,
-                    function,
-                    targets);
-                if (targets is null)
+                // Not a dispatch the site can answer from its chain, but its
+                // last answer still serves a repeat of the same member.
+                CallSiteTarget? last = pointer.uncachedTarget;
+                bool remembered = last is not null
+                    && ReferenceEquals(last.schemaResolution, ctx.client.SchemaResolution);
+                if (remembered && SameId(last!.memberId, memberId))
+                    return last;
+                var created = new CallSiteTarget(ctx.client, dispatchClassId, memberId, null);
+                pointer.uncachedTarget = created;
+                if (!remembered)
                     ctx.client.RememberSchemaResolutionSite(pointer);
+                return created;
             }
-            return memberId;
+            var resolved = new CallSiteTarget(ctx.client, dispatchClassId, memberId, targets);
+            pointer.resolvedTargets = resolved;
+            if (targets is null)
+                ctx.client.RememberSchemaResolutionSite(pointer);
+            return resolved;
         }
 
         /// <param name="dispatchClassId">The receiver's runtime Class when it decided the target.</param>

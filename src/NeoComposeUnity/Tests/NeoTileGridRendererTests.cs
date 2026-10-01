@@ -513,6 +513,9 @@ namespace NeoCompose.Tests
                 value = new NeoVector3Value { x = 11, y = 20, z = 0 },
             });
             Assert.AreEqual(2, invalidations, "Direct Position writes must invalidate cached placement queries.");
+            Assert.IsTrue(client.ScriptGridQueries.TryInvoke("system_df1c2d06-eeec-5340-addc-740f3668c9e4", receiver,
+                Array.Empty<object?>(), ctx, out cell));
+            Assert.AreEqual(new Vector2Int(11, 20), NeoGeneratedTypesSupport.ReadVector2IntValue(cell), "A query after a move reads the moved placement.");
             directReads.Dispose();
             using var insertionReads = new NeoScriptGridReads(() => invalidations++);
             ctx.gridReads = insertionReads;
@@ -533,6 +536,73 @@ namespace NeoCompose.Tests
                 new object?[] { new NeoCellPattern(new Vector2Int(50, 50)) }, ctx, out object? inserted));
             Assert.AreEqual("new-shop", NSGetterEvaluator.FindRowIdByReference(((object?[])inserted!).Single(), ctx),
                 "A query after the insertion reads the rebuilt layer index.");
+        }
+
+        [Test]
+        public void NeoScriptGridQuery_ReResolvesAHeldPlacementWhenItsLayerIndexIsDropped()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildClassBackedTileGridProjectData());
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid",
+                BuildClassBackedReadOnlyFactories(), BuildClassBackedWritableFactories());
+            client.ScriptGridQueries.RegisterContent(new TestTileGridContent(primitive, Array.Empty<IReadOnlyNeoTileLayerRuntime>(),
+                new[] { primitive.BindReadOnlyObjectLayer<TestAuthoredObjectLayer>(ObjectsLayerClassId, new[] { ObjectClassId }) }));
+            client.ScriptGridQueries.Bind("shop-1", "town-grid", ObjectsLayerClassId, "shop-1");
+            var ctx = client.CreateGetterContext(NeoValueOwnership.Asset);
+            object? receiver = NSGetterEvaluator.UnwrapRow(client.ResolveValueRow("shop-1")!, ctx, NeoValueOwnership.Asset);
+            Assert.AreEqual(new Vector2Int(10, 20), GetCell());
+
+            // A plan's subscribers run after the lookup cache drops the layer's
+            // index and before the grid change reaches the queries.
+            Vector2Int? published = null;
+            client.OnWritableValuesPublished += (_, _) => published = GetCell();
+            client.SetWritableValues(NeoValueOwnership.Save, new MemberValue[]
+            {
+                new Vector3MemberValue { id = "shop-1-position", value = new NeoVector3Value { x = 11, y = 20 } },
+            });
+            Assert.AreEqual(new Vector2Int(11, 20), published);
+
+            Vector2Int GetCell()
+            {
+                Assert.IsTrue(client.ScriptGridQueries.TryInvoke("system_df1c2d06-eeec-5340-addc-740f3668c9e4", receiver,
+                    Array.Empty<object?>(), ctx, out object? cell));
+                return NeoGeneratedTypesSupport.ReadVector2IntValue(cell)!.Value;
+            }
+        }
+
+        [Test]
+        public void NeoScriptGridQuery_ReadsReplacementContentRegisteredForItsGrid()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildClassBackedTileGridProjectData());
+            client.ScriptGridQueries.RegisterContent(Content(client));
+            client.ScriptGridQueries.Bind("shop-1", "town-grid", ObjectsLayerClassId, "shop-1");
+            var ctx = client.CreateGetterContext(NeoValueOwnership.Asset);
+            object? receiver = NSGetterEvaluator.UnwrapRow(client.ResolveValueRow("shop-1")!, ctx, NeoValueOwnership.Asset);
+            Assert.AreEqual(new Vector2Int(10, 20), GetCell());
+
+            ProjectData moved = BuildClassBackedTileGridProjectData();
+            moved.values["shop-1-position"] = new Vector3MemberValue
+            {
+                id = "shop-1-position",
+                value = new NeoVector3Value { x = 12, y = 20 },
+            };
+            using var replacement = NeoTestSaveStack.ClientFromSchema(moved);
+            client.ScriptGridQueries.RegisterContent(Content(replacement));
+            Assert.AreEqual(new Vector2Int(12, 20), GetCell(), "A query reads the grid's current content.");
+
+            static TestTileGridContent Content(NeoClient owner)
+            {
+                var primitive = NeoReadOnlyTileGridPrimitive.Resolve(owner, "town-grid",
+                    BuildClassBackedReadOnlyFactories(), BuildClassBackedWritableFactories());
+                return new TestTileGridContent(primitive, Array.Empty<IReadOnlyNeoTileLayerRuntime>(),
+                    new[] { primitive.BindReadOnlyObjectLayer<TestAuthoredObjectLayer>(ObjectsLayerClassId, new[] { ObjectClassId }) });
+            }
+
+            Vector2Int GetCell()
+            {
+                Assert.IsTrue(client.ScriptGridQueries.TryInvoke("system_df1c2d06-eeec-5340-addc-740f3668c9e4", receiver,
+                    Array.Empty<object?>(), ctx, out object? cell));
+                return NeoGeneratedTypesSupport.ReadVector2IntValue(cell)!.Value;
+            }
         }
 
         [Test]

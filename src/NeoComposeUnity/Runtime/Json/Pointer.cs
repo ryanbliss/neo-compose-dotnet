@@ -339,8 +339,15 @@ namespace NeoCompose.Runtime.Json
         /// <summary>The runtime's resolutions of this call site, one per receiver Class.</summary>
         [JsonIgnore]
         internal NeoScript.NSGetterEvaluator.CallSiteTarget? resolvedTargets;
+        /// <summary>The site's last target its chain could not keep.</summary>
+        [JsonIgnore]
+        internal NeoScript.NSGetterEvaluator.CallSiteTarget? uncachedTarget;
 
-        void ISchemaResolutionSite.ForgetResolution() => resolvedTargets = null;
+        void ISchemaResolutionSite.ForgetResolution()
+        {
+            resolvedTargets = null;
+            uncachedTarget = null;
+        }
         /// <summary>This call site's argument buffer; see <see cref="NeoScript.NSGetterEvaluator.RentArguments"/>.</summary>
         [JsonIgnore]
         internal object?[]? argumentBuffer;
