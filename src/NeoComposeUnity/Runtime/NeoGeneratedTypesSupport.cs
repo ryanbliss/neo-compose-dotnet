@@ -620,10 +620,11 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal static int EnterConstructionFrame(
             NeoScript.NSGetterEvaluator.Context ctx,
-            string label)
+            string label,
+            object? receiver)
         {
             CheckConstructionDepth(ctx, label);
-            return ctx.EnterConstruction(label);
+            return ctx.EnterConstruction(label, receiver);
         }
 
         /// <param name="siteFrames">The construction site's frames, so a hot site skips the frame search.</param>
@@ -756,15 +757,17 @@ namespace NeoCompose.Runtime
                         $"Initializer for '{member.name}' has no compiled body. Re-export the project from the current web app.");
                 }
                 NeoScript.NSGetterEvaluator.Context initializerContext = EvaluationContext;
+                // An initializer has no instance to read, so its frame binds none.
                 int frame =
                     EnterConstructionFrame(
                         initializerContext,
-                        $"{member.name} initializer");
+                        member.InitializerFrameLabel,
+                        receiver: null);
                 try
                 {
                     // A generic entry initializer constructs in its closed placement.
                     initializerContext.initializerPlacement = member as ClassMember;
-                    IReadOnlyList<object?> arguments = Array.Empty<object?>();
+                    object?[] arguments = Array.Empty<object?>();
                     int expected = Math.Max(0, (init.compiled.parameters?.Length ?? 0) - 2);
                     if (expected > 0)
                     {
@@ -772,14 +775,12 @@ namespace NeoCompose.Runtime
                         if (owner is null || !initializerArguments.TryGet(owner, out object?[]? scoped))
                             throw new InvalidOperationException($"Initializer '{member.name}' cannot resolve its declaring constructor scope before member initialization.");
                         arguments = scoped;
-                        if (arguments.Count != expected)
-                            throw new InvalidOperationException($"Initializer '{member.name}' expected {expected} arguments in '{owner}', got {arguments.Count}.");
+                        if (arguments.Length != expected)
+                            throw new InvalidOperationException($"Initializer '{member.name}' expected {expected} arguments in '{owner}', got {arguments.Length}.");
                     }
-                    // The body binds its handlers in the construction frame, or
-                    // on the fork it owns, instead of forking for them again.
-                    return initializerContext.thisValue is null
-                        ? NeoScript.NSGetterEvaluator.Evaluate(init.compiled, initializerContext, arguments, frame)
-                        : NeoScript.NSGetterEvaluator.Evaluate(init.compiled, initializerContext.WithThis(null), arguments, -1);
+                    // The body binds its handlers in the construction frame
+                    // instead of forking for them.
+                    return NeoScript.NSGetterEvaluator.Evaluate(init.compiled, initializerContext, arguments, frame);
                 }
                 finally
                 {

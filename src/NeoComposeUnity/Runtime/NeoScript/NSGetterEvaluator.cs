@@ -1294,16 +1294,17 @@ namespace NeoCompose.Runtime.NeoScript
             /// a constructor cannot await, so nothing retains the frame once
             /// the construction returns.
             /// </summary>
-            internal int EnterConstruction(string label) =>
-                EnterConstructionStack(CallFrameStack.Push(constructionStack, label));
+            /// <param name="receiver">The frame's <c>this</c>.</param>
+            internal int EnterConstruction(string label, object? receiver) =>
+                EnterConstructionStack(CallFrameStack.Push(constructionStack, label), receiver);
 
             /// <param name="siteFrames">The construction site's frames, see <see cref="CallFrameStack.Push(IReadOnlyList{string}, string, ref CallFrameStack?[])"/>.</param>
             internal int EnterConstruction(string label, ref CallFrameStack?[]? siteFrames) =>
-                EnterConstructionStack(CallFrameStack.Push(constructionStack, label, ref siteFrames));
+                EnterConstructionStack(CallFrameStack.Push(constructionStack, label, ref siteFrames), thisValue);
 
-            private int EnterConstructionStack(IReadOnlyList<string> stack)
+            private int EnterConstructionStack(IReadOnlyList<string> stack, object? receiver)
             {
-                int frame = EnterThis(thisValue);
+                int frame = EnterThis(receiver);
                 ref FunctionFrame entered = ref frameStack!.frames[frame];
                 if (!ReferenceEquals(entered.constructionStack, stack))
                     entered.constructionStack = stack;
@@ -1763,7 +1764,7 @@ namespace NeoCompose.Runtime.NeoScript
         internal static object? Evaluate(
             FunctionWithReturnType getter,
             Context ctx,
-            IReadOnlyList<object?> argumentValues,
+            object?[] argumentValues,
             int? handlerFrame = null)
         {
             NeoScriptScopeLayout layout = getter.scopeLayout ??= new NeoScriptScopeLayout(getter);
@@ -1787,14 +1788,13 @@ namespace NeoCompose.Runtime.NeoScript
                     scope.SetParameter(layout.contextSlot, ctx.contextValue);
                 else if (ctx.contextValue is not null)
                     scope["__context__"] = ctx.contextValue;
-                Variable[] parameters = getter.parameters ?? Array.Empty<Variable>();
-                if (argumentValues.Count > 0
-                    && parameters.Length != argumentValues.Count + 2)
+                if (argumentValues.Length > 0
+                    && (getter.parameters?.Length ?? 0) != argumentValues.Length + 2)
                 {
                     throw new NSGetterRuntimeError(
-                        $"Initializer declares {Math.Max(0, parameters.Length - 2)} constructor parameter(s), but received {argumentValues.Count} value(s).");
+                        $"Initializer declares {Math.Max(0, (getter.parameters?.Length ?? 0) - 2)} constructor parameter(s), but received {argumentValues.Length} value(s).");
                 }
-                for (int i = 0; i < argumentValues.Count; i++)
+                for (int i = 0; i < argumentValues.Length; i++)
                 {
                     scope.SetParameter(i + 2, argumentValues[i]);
                 }

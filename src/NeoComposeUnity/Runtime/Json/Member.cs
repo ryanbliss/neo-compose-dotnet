@@ -122,6 +122,27 @@ namespace NeoCompose.Runtime.Json
         [JsonIgnore]
         private Dictionary<string, object?>? materializedChainResolvedFields;
 
+        [JsonIgnore]
+        private string? initializerFrameLabel;
+
+        // The name the label was built from: a substituted clone renames.
+        [JsonIgnore]
+        private string? initializerFrameLabelName;
+
+        /// <summary>The construction frame label this member's initializer runs under.</summary>
+        internal string InitializerFrameLabel
+        {
+            get
+            {
+                if (!ReferenceEquals(initializerFrameLabelName, name))
+                {
+                    initializerFrameLabel = $"{name} initializer";
+                    initializerFrameLabelName = name;
+                }
+                return initializerFrameLabel!;
+            }
+        }
+
         internal void RecordDeclaredWireFields(IEnumerable<JProperty> properties)
         {
             declaredWireFields = new HashSet<string>(StringComparer.Ordinal);

@@ -555,6 +555,26 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void MemberInitializerRunsInItsFrameUnderABoundThis()
+        {
+            NeoClient client = BuildClient();
+            var receiver = new object();
+            var ctx = new NSGetterEvaluator.Context(client, receiver, null);
+
+            // Run on the context as its owner: the public entry forks it.
+            object? result = NSGetterEvaluator.Evaluate(
+                ReturnFunction(PartConstructorPointer(null)),
+                ctx,
+                Array.Empty<object?>(),
+                handlerFrame: -1);
+
+            ObjectMemberValue root = RequireConstructedRoot(client, ctx, result);
+            Assert.AreEqual("init-tag", ReadString(client, root, "Tag"));
+            Assert.AreSame(receiver, ctx.thisValue, "The initializer's frame restores the caller's this.");
+            Assert.IsTrue(ctx.allocationTracker.ReusableContext, "The initializer clears this in its frame, not on a fork.");
+        }
+
+        [Test]
         public void DeclaredConstructor_CallSiteFieldWinsOverTheBody()
         {
             NeoClient client = BuildClient();
