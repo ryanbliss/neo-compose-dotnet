@@ -8871,6 +8871,10 @@ namespace NeoCompose.Runtime.NeoScript
         /// <param name="row">The row <paramref name="value"/> was unwrapped from, when the caller just read it.</param>
         internal static string? FindRowClassIdByReference(object? value, Context ctx, MemberValue? row = null)
         {
+            // The row the value came from names its class, as its reverse
+            // index entry would.
+            if (!string.IsNullOrEmpty(row?.classId))
+                return row!.classId;
             if (value is NeoScriptObject { attachedId: null } detached)
                 return detached.plan.classId;
             // Prefer the context's exact ownership-qualified reverse index.
