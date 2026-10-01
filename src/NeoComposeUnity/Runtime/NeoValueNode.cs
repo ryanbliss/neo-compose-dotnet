@@ -3,6 +3,7 @@
 
 #nullable enable
 
+using System.Runtime.CompilerServices;
 using NeoCompose.Runtime.Json;
 
 namespace NeoCompose.Runtime
@@ -43,13 +44,14 @@ namespace NeoCompose.Runtime
             this.id = id;
         }
 
-        internal MemberValue? Asset(ProjectData data)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal MemberValue? Asset(ProjectData data) =>
+            assetEpoch == data.valuesEpoch ? asset : RefreshAsset(data);
+
+        private MemberValue? RefreshAsset(ProjectData data)
         {
-            if (assetEpoch != data.valuesEpoch)
-            {
-                data.values.TryGetValue(id, out asset);
-                assetEpoch = data.valuesEpoch;
-            }
+            data.values.TryGetValue(id, out asset);
+            assetEpoch = data.valuesEpoch;
             return asset;
         }
     }

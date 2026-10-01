@@ -1646,6 +1646,12 @@ namespace NeoCompose.Runtime
             // rewrites in NormalizeRewritten, so they skip its chain.
             switch (typeInfo.type)
             {
+                // A value of its own kind is already valid.
+                case MemberKind.Bool when value is bool:
+                case MemberKind.Float when value is double:
+                case MemberKind.String when value is string:
+                case MemberKind.Int when value is double && IsIntegralNumber(value):
+                    return value;
                 case MemberKind.Bool or MemberKind.Int or MemberKind.Float or MemberKind.String
                     when value is double or bool or string or int:
                     break;
