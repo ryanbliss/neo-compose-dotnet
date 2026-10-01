@@ -959,6 +959,9 @@ namespace NeoCompose.Runtime.NeoScript
                     gridReads = null;
                 if (initializerPlacement is not null)
                     initializerPlacement = null;
+                // A C# setter entered its setter here.
+                if (!ReferenceEquals(setterCallStack, client.EmptyCallFrames))
+                    setterCallStack = client.EmptyCallFrames;
                 genericEnvironmentCacheStore?.Clear();
                 immediateExpressionContext = null;
                 immediateExpressionSource = null;

@@ -280,8 +280,7 @@ namespace NeoCompose.Runtime
             object? thisValue,
             MemberValue? thisRow)
         {
-            var ctx = client.CreateGetterContext(ownership);
-            ctx.BindRoot(ResolveRootValue(ctx));
+            var ctx = client.RentDirectFunctionContext(ownership);
 
             object? boundThis = ResolveThisValue(thisValue, thisRow, ctx);
             if (boundThis is null)
@@ -326,7 +325,7 @@ namespace NeoCompose.Runtime
             SetterTerminalLogger? terminalLogger = null;
             try
             {
-                // The context is this call's own, so the setter enters it in place.
+                // The rented context is this call's own, so the setter enters it in place.
                 ctx.PushSetter(effectiveMemberId, boundThis);
                 var execution = NeoScriptExecutor.ExecuteSetter(
                     client,
@@ -335,7 +334,11 @@ namespace NeoCompose.Runtime
                     ctx,
                     NeoScriptExecutionOptions.ForUnityProperty(client, effectiveMemberId));
                 if (!execution.IsPaused)
+                {
+                    // A suspended setter's continuation keeps the context.
+                    client.ReturnDirectFunctionContext(ctx, null);
                     return NSSetterResult.Ok();
+                }
 
                 terminalLogger = new SetterTerminalLogger(effectiveProperty);
                 ObservePendingExecution(execution, terminalLogger);
@@ -430,21 +433,6 @@ namespace NeoCompose.Runtime
                     $"NeoScript property setter '{property.name}' ({property.id}) failed: " +
                     exception.Message);
             }
-        }
-
-        /// <summary>
-        /// Synthesizes the runtime <c>__root__</c> value:
-        /// <c>{ Assets: &lt;assets-record&gt;, Save: &lt;save-record&gt; }</c>.
-        /// The two roots come from <see cref="NeoClient.assets"/> /
-        /// <see cref="NeoClient.save"/>'s underlying value records;
-        /// either entry is null when the corresponding root member
-        /// has no stored value. Both records are unwrapped through
-        /// the evaluator's cache so chains like <c>root.Assets.X</c>
-        /// participate in reference-equality dispatch.
-        /// </summary>
-        private object? ResolveRootValue(NSGetterEvaluator.Context ctx)
-        {
-            return NeoScriptValueMarshaller.ResolveRoot(client, ctx);
         }
     }
 }
