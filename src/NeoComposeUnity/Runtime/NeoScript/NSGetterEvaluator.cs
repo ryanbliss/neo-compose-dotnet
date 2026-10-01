@@ -2193,10 +2193,13 @@ namespace NeoCompose.Runtime.NeoScript
         internal static object? InvokeNativeFunction(string memberId, NeoClient.ResolvedNativeFunction? function,
             TypeInfo? returnType, object? receiver, object?[] args, Context ctx)
         {
-            if (NeoCellPatternRuntime.TryInvoke(memberId, receiver, args, ctx, out object? result))
-                return result;
-            if (ctx.client.ScriptGridQueries.TryInvoke(memberId, receiver, args, ctx, out result))
-                return result;
+            if (function is null || function.intrinsic)
+            {
+                if (NeoCellPatternRuntime.TryInvoke(memberId, receiver, args, ctx, out object? result))
+                    return result;
+                if (ctx.client.ScriptGridQueries.TryInvoke(memberId, receiver, args, ctx, out result))
+                    return result;
+            }
             object? value = function is null
                 ? ctx.client.InvokeNativeFunction(memberId, receiver, args)
                 : ctx.client.InvokeNativeFunction(function, receiver, args);

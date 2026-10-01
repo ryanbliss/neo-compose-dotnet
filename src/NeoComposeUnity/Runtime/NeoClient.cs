@@ -6625,7 +6625,7 @@ namespace NeoCompose.Runtime
                 throw new NeoScript.NativeFunctionDelegateUnavailableError(
                     "Native Function invocation requires constructing the generated ProjectNeo client wrapper before evaluating NeoScript.");
             }
-            if (!nativeFunctionInvokers.TryGetValue(memberId, out var invoker))
+            if (!function.TryGetInvoker(nativeFunctionInvokers, out var invoker))
             {
                 throw new NeoScript.NativeFunctionDelegateUnavailableError(
                     $"No native Function invoker is registered for member '{memberId}'.");
@@ -6844,6 +6844,12 @@ namespace NeoCompose.Runtime
             /// <summary>The name of the member <see cref="memberId"/> names, which may override <see cref="signature"/>.</summary>
             internal readonly string name;
             internal readonly FunctionMember signature;
+            /// <summary>Whether a platform intrinsic (a cell pattern or grid query) may answer the call instead of its invoker.</summary>
+            internal readonly bool intrinsic;
+            // The invoker found in invokerTable. Written before the table and
+            // read after it, so a matching table always pairs with its invoker.
+            private NeoNativeFunctionInvoker? invoker;
+            private IReadOnlyDictionary<string, NeoNativeFunctionInvoker>? invokerTable;
 
             internal ResolvedNativeFunction(
                 string memberId,
@@ -6853,6 +6859,23 @@ namespace NeoCompose.Runtime
                 this.memberId = memberId;
                 this.name = name;
                 this.signature = signature;
+                intrinsic = memberId.StartsWith("system_", System.StringComparison.Ordinal);
+            }
+
+            internal bool TryGetInvoker(
+                IReadOnlyDictionary<string, NeoNativeFunctionInvoker> table,
+                [NotNullWhen(true)] out NeoNativeFunctionInvoker? found)
+            {
+                if (ReferenceEquals(System.Threading.Volatile.Read(ref invokerTable), table))
+                {
+                    found = invoker!;
+                    return true;
+                }
+                if (!table.TryGetValue(memberId, out found))
+                    return false;
+                invoker = found;
+                System.Threading.Volatile.Write(ref invokerTable, table);
+                return true;
             }
 
             internal string ArgumentSubject(int index) =>
@@ -6930,10 +6953,15 @@ namespace NeoCompose.Runtime
             for (int i = 0; i < sourceArgs.Length; i++)
             {
                 FunctionArgumentTypeInfo argument = signature.argumentTypes[i];
+                object? source = sourceArgs[i];
+                if (TryPrepareNativePrimitive(source, argument.type, out object? primitive))
+                {
+                    preparedArgs[i] = primitive;
+                    continue;
+                }
                 var subject = NeoScriptValueMarshaller.ValueSubject.NativeArgument(function, i);
                 try
                 {
-                    object? source = sourceArgs[i];
                     NeoScriptValueMarshaller.ValidateRuntimeValue(
                         source,
                         argument,
@@ -6965,6 +6993,39 @@ namespace NeoCompose.Runtime
             return signature;
         }
 
+        // The usual argument: a primitive already of its declared kind, or a
+        // whole number for an Int. It passes validation and normalizes to
+        // itself or its int, so it skips both.
+        private static bool TryPrepareNativePrimitive(object? value, MemberKind kind, out object? prepared)
+        {
+            prepared = value;
+            switch (kind)
+            {
+                case MemberKind.Bool:
+                    return value is bool;
+                case MemberKind.String:
+                    return value is string;
+                case MemberKind.Float:
+                    return value is double number
+                        && !double.IsNaN(number)
+                        && !double.IsInfinity(number);
+                case MemberKind.Int:
+                    if (value is int)
+                        return true;
+                    if (value is double whole
+                        && whole >= int.MinValue
+                        && whole <= int.MaxValue
+                        && (int)whole == whole)
+                    {
+                        prepared = NeoNumbers.Box((int)whole);
+                        return true;
+                    }
+                    return false;
+                default:
+                    return false;
+            }
+        }
+
         private object? NormalizeNativeFunctionArgument(
             object? value,
             FunctionArgumentTypeInfo typeInfo,
@@ -6977,7 +7038,7 @@ namespace NeoCompose.Runtime
                 // An argument already in its native form passes through
                 // rather than being boxed again.
                 case MemberKind.Int:
-                    return value is int ? value : System.Convert.ToInt32(value);
+                    return value is int ? value : NeoNumbers.Box(System.Convert.ToInt32(value));
                 case MemberKind.Float:
                     return value is double ? value : System.Convert.ToDouble(value);
                 case MemberKind.Decimal:

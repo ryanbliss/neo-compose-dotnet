@@ -18,5 +18,23 @@ namespace NeoCompose.Runtime
             value is > -WholeMagnitude and < WholeMagnitude
                 ? (long)value == value
                 : !double.IsNaN(value);
+
+        private const int SmallIntMin = -128;
+        // A box is immutable, so the small ints native calls pass most share one.
+        private static readonly object[] SmallInts = CreateSmallInts(1152);
+
+        internal static object Box(int value)
+        {
+            uint slot = (uint)(value - SmallIntMin);
+            return slot < (uint)SmallInts.Length ? SmallInts[slot] : value;
+        }
+
+        private static object[] CreateSmallInts(int count)
+        {
+            var boxes = new object[count];
+            for (int i = 0; i < count; i++)
+                boxes[i] = SmallIntMin + i;
+            return boxes;
+        }
     }
 }
