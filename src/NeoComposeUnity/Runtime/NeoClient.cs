@@ -3106,16 +3106,26 @@ namespace NeoCompose.Runtime
             NeoValueOwnership ownership, string id,
             [NotNullWhen(true)] out TValue? value) where TValue : MemberValue
         {
+            TryGetOverlaidValue(ownership, id, out MemberValue? row);
+            value = row as TValue;
+            return value is not null;
+        }
+
+        // Implemented on MemberValue for the reason TryGetValue is.
+        internal bool TryGetOverlaidValue(
+            NeoValueOwnership ownership, string id,
+            [NotNullWhen(true)] out MemberValue? value)
+        {
             if (ReplayAllocation(id) is MemberValue allocated)
             {
-                value = allocated as TValue;
-                return value is not null;
+                value = allocated;
+                return true;
             }
 
             if (candidateReadPlan is null)
                 return TryGetCommittedOverlaidValue(ownership, id, out value);
             NoteValueRead(id);
-            value = candidateReadPlan.Resolve(ownership, id) as TValue;
+            value = candidateReadPlan.Resolve(ownership, id);
             return value is not null;
         }
 
@@ -3124,30 +3134,29 @@ namespace NeoCompose.Runtime
             string id,
             [NotNullWhen(true)] out TValue? value) where TValue : MemberValue
         {
+            TryGetCommittedOverlaidValue(ownership, id, out MemberValue? row);
+            value = row as TValue;
+            return value is not null;
+        }
+
+        internal bool TryGetCommittedOverlaidValue(
+            NeoValueOwnership ownership,
+            string id,
+            [NotNullWhen(true)] out MemberValue? value)
+        {
             NoteValueRead(id);
-            value = null;
-            if (ownership != NeoValueOwnership.Asset)
+            if (ownership != NeoValueOwnership.Asset
+                && GetWritableStore(ownership).values.TryGetValue(id, out value))
             {
-                var store = GetWritableStore(ownership);
-                if (store.values.TryGetValue(id, out MemberValue overlaid))
-                {
-                    if (overlaid.IsRemoved)
-                        return false;
-                    value = overlaid as TValue;
-                    return value is not null;
-                }
+                if (!value.IsRemoved)
+                    return true;
+                value = null;
+                return false;
             }
-            if (data.values.TryGetValue(id, out MemberValue assetRow))
-            {
-                value = assetRow as TValue;
+            if (data.values.TryGetValue(id, out value))
                 return value is not null;
-            }
-            if (TryResolveVirtualValue(id, out MemberValue virtualRow))
-            {
-                value = virtualRow as TValue;
-                return value is not null;
-            }
-            return false;
+            value = TryResolveVirtualValue(id, out MemberValue virtualRow) ? virtualRow : null;
+            return value is not null;
         }
 
         /// <summary>

@@ -570,9 +570,12 @@ namespace NeoCompose.Runtime
                         member.updatedAt) as TValue;
                 }
 
-                if (!client.TryGetOverlaidValue(ownership, resolvedValueId, out TValue? match))
-                    return null;
-                return match;
+                // The untyped read, cast once: this body is shared across
+                // instantiations, so a generic call from it is a runtime
+                // generic-context lookup.
+                return client.TryGetOverlaidValue(ownership, resolvedValueId, out MemberValue? match)
+                    ? match as TValue
+                    : null;
             }
         }
 
