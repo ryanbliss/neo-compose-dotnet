@@ -394,11 +394,12 @@ namespace NeoCompose.Runtime.NeoScript
                 // Frames never change and call paths repeat, so a frame keeps
                 // the frames pushed from it: one per distinct callee. Callees
                 // are schema ids and names, so the set is bounded; a frame
-                // with more than a few, like the root every class constructs
-                // from, keeps the rest by name.
+                // with more than a few dozen, like the root every class
+                // constructs from, keeps the rest by name. A reference scan
+                // of those few dozen is cheaper than hashing an id.
                 private CallFrameStack?[]? children;
                 private Dictionary<string, CallFrameStack>? wideChildren;
-                private const int ScannedChildren = 8;
+                private const int ScannedChildren = 32;
 
                 private CallFrameStack(
                     IReadOnlyList<string> parent,
@@ -443,7 +444,7 @@ namespace NeoCompose.Runtime.NeoScript
                 {
                     if (parent is not CallFrameStack frame)
                         return new CallFrameStack(parent, value);
-                    CallFrameStack?[] children = frame.children ??= new CallFrameStack?[ScannedChildren];
+                    CallFrameStack?[] children = frame.children ??= new CallFrameStack?[4];
                     // A call site pushes the same id instance every time, so
                     // a reference scan finds it without comparing contents.
                     int used = 0;
@@ -460,6 +461,11 @@ namespace NeoCompose.Runtime.NeoScript
                             return children[i]!;
                     }
                     var pushed = new CallFrameStack(frame, value);
+                    if (used == children.Length && used < ScannedChildren)
+                    {
+                        Array.Resize(ref frame.children, used * 2);
+                        children = frame.children;
+                    }
                     if (used < children.Length)
                         children[used] = pushed;
                     else
@@ -1343,7 +1349,7 @@ namespace NeoCompose.Runtime.NeoScript
                 this.ownership = ownership;
                 this.rowId = rowId;
             }
-            public bool Equals(RowKey other) => ownership == other.ownership && string.Equals(rowId, other.rowId, StringComparison.Ordinal);
+            public bool Equals(RowKey other) => ownership == other.ownership && SameId(rowId, other.rowId);
             public override bool Equals(object? obj) => obj is RowKey other && Equals(other);
             public override int GetHashCode() => unchecked(rowId.GetHashCode() * 31 + (int)ownership);
         }
@@ -1361,8 +1367,8 @@ namespace NeoCompose.Runtime.NeoScript
                 this.memberId = memberId;
             }
             public bool Equals(RowCacheKey other) => ownership == other.ownership
-                && string.Equals(rowId, other.rowId, StringComparison.Ordinal)
-                && string.Equals(memberId, other.memberId, StringComparison.Ordinal);
+                && SameId(rowId, other.rowId)
+                && SameId(memberId, other.memberId);
             public override bool Equals(object? obj) => obj is RowCacheKey other && Equals(other);
             public override int GetHashCode() => unchecked((rowId.GetHashCode() * 31 + (int)ownership) * 31 + (memberId?.GetHashCode() ?? 0));
         }
@@ -1401,7 +1407,7 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 if (classNode is { live: true } cached && ReferenceEquals(classNodeKey, classId))
                     return cached;
-                if (classNode is not { live: true } current || !string.Equals(current.Id, classId, StringComparison.Ordinal))
+                if (classNode is not { live: true } current || !SameId(current.Id, classId))
                     classNode = client.ResolveClassNode(classId);
                 classNodeKey = classId;
                 return classNode;
@@ -3792,7 +3798,10 @@ namespace NeoCompose.Runtime.NeoScript
                     childNode = storedRecord?.ChildNode(entry!, at);
                 }
                 object? child = ResolveValueIfId(at, ctx, receiverOwnership, member, ref childNode);
-                storedRecord?.RememberChildNode(entry!, at, childNode);
+                if (storedSlot >= 0)
+                    storedRecord!.RememberStoredNode(storedSlot, childNode);
+                else
+                    storedRecord?.RememberChildNode(entry!, at, childNode);
                 return child;
             }
             if (receiverRef?.member is ClassMember { Payload: NeoMemberPayloadKind.Partial })
@@ -3891,7 +3900,7 @@ namespace NeoCompose.Runtime.NeoScript
             for (MemberSiteTarget? target = targets; target is not null; target = target.next)
             {
                 if (ReferenceEquals(target.classNode, classNode)
-                    && string.Equals(target.schemaKey, schemaKey, StringComparison.Ordinal))
+                    && SameId(target.schemaKey, schemaKey))
                 {
                     return target.entry;
                 }
@@ -7940,6 +7949,13 @@ namespace NeoCompose.Runtime.NeoScript
             internal string StoredId(int slot) => children![slot].id;
 
             internal NeoValueNode StoredNode(int slot) => children![slot].node;
+
+            /// <summary><see cref="RememberChildNode"/> for the slot <see cref="StoredSlot"/> found.</summary>
+            internal void RememberStoredNode(int slot, NeoValueNode? node)
+            {
+                if (node is { live: true } && !ReferenceEquals(children![slot].node, node))
+                    children[slot].node = node;
+            }
 
             object? IDictionary<string, object?>.this[string key]
             {
