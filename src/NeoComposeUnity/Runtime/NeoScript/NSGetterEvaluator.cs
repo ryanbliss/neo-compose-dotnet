@@ -2484,16 +2484,11 @@ namespace NeoCompose.Runtime.NeoScript
 
         internal static void ReturnArguments(CallFunctionPointer call, object?[] args)
         {
-            if (args.Length == 0)
+            // A reentrant call's own array is garbage once it returns.
+            if (!ReferenceEquals(args, call.argumentBuffer))
                 return;
-            // Mono stores a constant null into an object[] without the
-            // covariance helper or the GC write barrier, and a call's few
-            // arguments clear faster in a loop than through a span, whose
-            // constructor checks the array's exact type.
-            for (int i = 0; i < args.Length; i++)
-                args[i] = null;
-            if (ReferenceEquals(args, call.argumentBuffer))
-                call.argumentBufferInUse = false;
+            NeoArgumentArrays.Clear(args);
+            call.argumentBufferInUse = false;
         }
 
         /// <summary>
