@@ -56,7 +56,8 @@ namespace NeoCompose.Runtime
         private readonly List<Action> afterNotifications = new();
         private HashSet<NeoMember>? reportsOwnChange;
         private Dictionary<string, HashSet<string>>? containerCandidates;
-        private Dictionary<string, HashSet<string>>? parentCandidates;
+        // A child's staged parent, or a set when more than one row links it.
+        private Dictionary<string, object>? parentCandidates;
 
         internal NeoWritePlan(NeoClient client)
         {
@@ -155,24 +156,47 @@ namespace NeoCompose.Runtime
             return Client.TryGetCommittedOwnership(id, out ownership);
         }
 
+        /// <summary>
+        /// The staged rows that may link <paramref name="childId"/>, beyond
+        /// the links the client's committed placement index already holds.
+        /// Every caller unions these with that index, so a staged row only
+        /// contributes the children past its unchanged leading ones: an append
+        /// to a long list row indexes one child, not the whole list.
+        /// </summary>
         internal IEnumerable<string> ParentCandidates(string childId)
         {
             if (parentCandidates is null)
             {
-                parentCandidates = new Dictionary<string, HashSet<string>>();
-                foreach (MemberValue? row in Rows.Values)
+                parentCandidates = new Dictionary<string, object>(StringComparer.Ordinal);
+                foreach (var pair in Rows)
                 {
+                    MemberValue? row = pair.Value;
                     if (row is null)
                         continue;
+                    string[]? committed = Client.IndexedPlacementChildren(pair.Key.ownership, row.id);
+                    int prefix = 0;
                     foreach (string child in NeoClient.PlacementChildIds(row))
                     {
-                        if (!parentCandidates.TryGetValue(child, out var parents))
-                            parentCandidates[child] = parents = new HashSet<string>();
-                        parents.Add(row.id);
+                        if (committed is not null
+                            && prefix < committed.Length
+                            && string.Equals(committed[prefix], child, StringComparison.Ordinal))
+                        {
+                            prefix++;
+                            continue;
+                        }
+                        committed = null;
+                        if (!parentCandidates.TryGetValue(child, out object? parents))
+                            parentCandidates[child] = row.id;
+                        else if (parents is HashSet<string> set)
+                            set.Add(row.id);
+                        else if (!string.Equals((string)parents, row.id, StringComparison.Ordinal))
+                            parentCandidates[child] = new HashSet<string>(StringComparer.Ordinal) { (string)parents, row.id };
                     }
                 }
             }
-            return parentCandidates.TryGetValue(childId, out var values) ? values : Array.Empty<string>();
+            if (!parentCandidates.TryGetValue(childId, out object? found))
+                return Array.Empty<string>();
+            return found as HashSet<string> ?? (IEnumerable<string>)new[] { (string)found };
         }
 
         internal IEnumerable<string> ContainerCandidates(string containerId)

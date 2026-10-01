@@ -264,14 +264,30 @@ namespace NeoCompose.Runtime
             if (next is ObjectMemberValue { classId: null, value: not null } dictionary
                 && previous is ObjectMemberValue { classId: null, value: not null } oldDictionary
                 && TryInferMemberForValueId(id, out Member? member) && member is DictionaryMember)
-                return oldDictionary.value.All(pair => dictionary.value.TryGetValue(pair.Key, out string? valueId)
-                    && valueId == pair.Value);
+                return KeepsEntries(oldDictionary.value, dictionary.value);
             if (next is ArrayMemberValue { value: not null } list
                 && previous is ArrayMemberValue { value: not null } oldList
                 && TryInferMemberForValueId(id, out Member? listMember) && listMember is ListMember)
-                return list.value.Length >= oldList.value.Length
-                    && oldList.value.SequenceEqual(list.value.Take(oldList.value.Length));
+                return StartsWith(list.value, oldList.value);
             return false;
+        }
+
+        private static bool KeepsEntries(Dictionary<string, string> previous, Dictionary<string, string> next)
+        {
+            foreach (var pair in previous)
+                if (!next.TryGetValue(pair.Key, out string? valueId) || valueId != pair.Value)
+                    return false;
+            return true;
+        }
+
+        private static bool StartsWith(string[] list, string[] prefix)
+        {
+            if (list.Length < prefix.Length)
+                return false;
+            for (int i = 0; i < prefix.Length; i++)
+                if (!string.Equals(list[i], prefix[i], StringComparison.Ordinal))
+                    return false;
+            return true;
         }
 
         private bool IsCompleteStoredOverlay(NeoWritePlan plan, ObjectMemberValue root, NeoValueOwnership ownership)

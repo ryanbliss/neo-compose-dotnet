@@ -53,18 +53,63 @@ namespace NeoCompose.Runtime
         {
             if (writablePlacementParents is null)
                 return;
-            UnindexPlacementParent(ownership, row.id);
+            List<string> next = placementChildScratch;
+            next.Clear();
             // Only records and arrays link children; a leaf row has none to index.
-            if (row is not ObjectMemberValue and not ArrayMemberValue)
+            if (row is ObjectMemberValue or ArrayMemberValue)
+                CollectPlacementChildIds(row, next);
+            var key = (ownership, row.id);
+            if (!writablePlacementChildren.TryGetValue(key, out string[]? previous))
+            {
+                if (next.Count == 0)
+                    return;
+                writablePlacementChildren[key] = next.ToArray();
+                foreach (string child in next)
+                    AddPlacementParent(child, row.id);
                 return;
-            placementChildScratch.Clear();
-            CollectPlacementChildIds(row, placementChildScratch);
-            if (placementChildScratch.Count == 0)
+            }
+            // Relink only past the unchanged leading children, so appending to
+            // or popping a long list row touches the entries that changed.
+            int prefix = 0;
+            int shared = Math.Min(previous.Length, next.Count);
+            while (prefix < shared && string.Equals(previous[prefix], next[prefix], StringComparison.Ordinal))
+                prefix++;
+            if (prefix == previous.Length && prefix == next.Count)
                 return;
-            string[] children = placementChildScratch.ToArray();
-            writablePlacementChildren[(ownership, row.id)] = children;
-            foreach (string child in children)
-                AddPlacementParent(child, row.id);
+            writablePlacementChildren.TryGetValue(
+                (ownership == NeoValueOwnership.Save ? NeoValueOwnership.Session : NeoValueOwnership.Save, row.id),
+                out string[]? kept);
+            HashSet<string>? nextSet = null;
+            HashSet<string>? keptSet = null;
+            bool few = previous.Length - prefix <= 4;
+            for (int i = prefix; i < previous.Length; i++)
+            {
+                string child = previous[i];
+                // The same id in the other store keeps the links it shares.
+                if (HoldsChild(next, child, few, ref nextSet)
+                    || (kept is not null && HoldsChild(kept, child, few, ref keptSet)))
+                    continue;
+                RemovePlacementParent(child, row.id);
+            }
+            for (int i = prefix; i < next.Count; i++)
+                AddPlacementParent(next[i], row.id);
+            if (next.Count == 0)
+                writablePlacementChildren.Remove(key);
+            else
+                writablePlacementChildren[key] = next.ToArray();
+        }
+
+        // A scan for a few probes, and a set built once past that.
+        private static bool HoldsChild(IReadOnlyList<string> children, string child, bool few, ref HashSet<string>? set)
+        {
+            if (few)
+            {
+                for (int i = 0; i < children.Count; i++)
+                    if (string.Equals(children[i], child, StringComparison.Ordinal))
+                        return true;
+                return false;
+            }
+            return (set ??= new HashSet<string>(children, StringComparer.Ordinal)).Contains(child);
         }
 
         private void AddPlacementParent(string child, string parent)
@@ -103,6 +148,13 @@ namespace NeoCompose.Runtime
             foreach (string child in children)
                 if (retained is null || !retained.Contains(child))
                     RemovePlacementParent(child, id);
+        }
+
+        /// <summary>The children the committed placement index links from a stored row, if any.</summary>
+        internal string[]? IndexedPlacementChildren(NeoValueOwnership ownership, string id)
+        {
+            EnsureWritablePlacementParents();
+            return writablePlacementChildren.TryGetValue((ownership, id), out string[]? children) ? children : null;
         }
 
         private void EnsureWritablePlacementParents()
@@ -182,7 +234,6 @@ namespace NeoCompose.Runtime
         // replay) gets its own throwaway set.
         private sealed class WriteValidationScratch
         {
-            internal readonly Dictionary<string, HashSet<string>> stagedParents = new(StringComparer.Ordinal);
             internal readonly Queue<string> pending = new();
             internal readonly HashSet<string> writtenDescendants = new(StringComparer.Ordinal);
             internal readonly HashSet<string> visited = new(StringComparer.Ordinal);
@@ -194,7 +245,6 @@ namespace NeoCompose.Runtime
 
             internal void Clear()
             {
-                stagedParents.Clear();
                 pending.Clear();
                 writtenDescendants.Clear();
                 visited.Clear();
@@ -236,7 +286,6 @@ namespace NeoCompose.Runtime
 
         private void ValidateWritePlan(NeoWritePlan plan, WriteValidationScratch scratch)
         {
-            Dictionary<string, HashSet<string>> stagedParents = scratch.stagedParents;
             Queue<string> pending = scratch.pending;
             HashSet<string> writtenDescendants = scratch.writtenDescendants;
             foreach (var key in plan.Rows.Keys)
@@ -248,12 +297,6 @@ namespace NeoCompose.Runtime
                     continue;
                 if (!string.IsNullOrEmpty(pair.Value.containerId))
                     pending.Enqueue(pair.Value.containerId!);
-                foreach (string child in PlacementChildIds(pair.Value))
-                {
-                    if (!stagedParents.TryGetValue(child, out var parents))
-                        stagedParents[child] = parents = new HashSet<string>();
-                    parents.Add(pair.Key.id);
-                }
             }
             foreach (var binding in plan.Bindings.Values)
                 if (binding.valueId is not null)
@@ -310,10 +353,9 @@ namespace NeoCompose.Runtime
                     }
                     pending.Enqueue(parent);
                 }
-                if (stagedParents.TryGetValue(id, out var proposed))
-                    foreach (string parent in proposed)
-                        if (IsPlacementEdge(plan, parent, id))
-                            pending.Enqueue(parent);
+                foreach (string parent in plan.ParentCandidates(id))
+                    if (IsPlacementEdge(plan, parent, id))
+                        pending.Enqueue(parent);
             }
             // These builders read rows and declarations only. Do not resolve
             // generated wrappers or populate persistent layer caches here.
