@@ -86,6 +86,16 @@ namespace NeoCompose.Runtime
 
         private readonly Dictionary<string, HashSet<string>> replayFieldsByValueId = new();
 
+        // Rows some replay read by identity, so a write builds an identity
+        // dependency only for rows a replay can actually depend on.
+        private readonly HashSet<string> replayIdentityIds = new(StringComparer.Ordinal);
+
+        private void EnqueueReplayIdentity(Queue<string> pending, string id)
+        {
+            if (replayIdentityIds.Contains(id))
+                pending.Enqueue("identity:" + id);
+        }
+
         private void EnqueueReplayFields(Queue<string> pending, string id, NeoWritePlan? plan = null)
         {
             if (!replayFieldsByValueId.TryGetValue(id, out var fields))

@@ -53,7 +53,7 @@ namespace NeoCompose.Runtime
             foreach (var write in plan.Rows)
                 if (!TryGetCommittedValue(write.Key.id, out MemberValue? previous)
                     || !SameReplayIdentity(previous, write.Value))
-                    pending.Enqueue("identity:" + write.Key.id);
+                    EnqueueReplayIdentity(pending, write.Key.id);
             foreach (var binding in plan.Bindings)
             {
                 pending.Enqueue($"static:{binding.Key.ownership}:{binding.Key.memberId}");
@@ -129,7 +129,7 @@ namespace NeoCompose.Runtime
                     {
                         pending.Enqueue(valueId);
                         if (valueId != id || !SameReplayIdentity(PreviousReplayRow(valueId), plan.Resolve(valueId)))
-                            pending.Enqueue("identity:" + valueId);
+                            EnqueueReplayIdentity(pending, valueId);
                         EnqueueReplayFields(pending, valueId, valueId == id ? plan : null);
                     }
             }

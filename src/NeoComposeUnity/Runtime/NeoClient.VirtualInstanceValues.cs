@@ -380,6 +380,7 @@ namespace NeoCompose.Runtime
             nestedReplayRootsByOwner.Clear();
             constructorArgumentRootsByValueId.Clear();
             replayFieldsByValueId.Clear();
+            replayIdentityIds.Clear();
             constructorArgumentValueIdsByRoot.Clear();
             MemberValue[] allRows = data.values.Values
                 .Concat(saveData.values.Values)
@@ -540,7 +541,11 @@ namespace NeoCompose.Runtime
                 fields.Add(valueId);
             }
             if (!constructorArgumentRootsByValueId.TryGetValue(indexKey, out var roots))
+            {
                 constructorArgumentRootsByValueId[indexKey] = roots = new HashSet<string>(StringComparer.Ordinal);
+                if (valueId.StartsWith("identity:", StringComparison.Ordinal))
+                    replayIdentityIds.Add(valueId.Substring(9));
+            }
             roots.Add(rootId);
             if (!constructorArgumentValueIdsByRoot.TryGetValue(rootId, out var values))
                 constructorArgumentValueIdsByRoot[rootId] = values = new HashSet<string>(StringComparer.Ordinal);
@@ -572,6 +577,10 @@ namespace NeoCompose.Runtime
                         string parent = valueId.Substring(6, valueId.IndexOf('\n') - 6);
                         if (replayFieldsByValueId.TryGetValue(parent, out var fields) && fields.Remove(valueId) && fields.Count == 0)
                             replayFieldsByValueId.Remove(parent);
+                    }
+                    else if (valueId.StartsWith("identity:", StringComparison.Ordinal))
+                    {
+                        replayIdentityIds.Remove(valueId.Substring(9));
                     }
                 }
             }
