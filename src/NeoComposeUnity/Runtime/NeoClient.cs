@@ -1051,10 +1051,11 @@ namespace NeoCompose.Runtime
                     System.Array.Copy(directFunctionContexts, i + 1, directFunctionContexts, i, last - i);
                     directFunctionContexts[last] = context;
                 }
+                // Replacing the shared graph empties the pool, and only
+                // contexts on the current graph return to it, so a pooled
+                // context always shares the current row cache.
                 if (!isReplayingVirtualInstance
-                    && sharedEvaluationContext is not null
-                    && ReferenceEquals(context.rowUnwrapCache, sharedEvaluationContext.rowUnwrapCache)
-                    && sharedEvaluationContext.rowUnwrapCache.Count <= SharedRowCacheLimit)
+                    && context.rowUnwrapCache.Count <= SharedRowCacheLimit)
                 {
                     if (!function)
                         context.ClearFunctionBinding();
