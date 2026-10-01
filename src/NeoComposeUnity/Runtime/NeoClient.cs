@@ -9132,7 +9132,16 @@ namespace NeoCompose.Runtime
 
         private bool OwnsChildLink(ObjectMemberValue obj, Member? parentMember, string childId, NeoValueOwnership ownership)
         {
-            foreach (var link in EnumerateOwnedChildLinks(obj, parentMember))
+            // Match the id first, so only the linking key resolves its member.
+            if (obj.value is not null)
+                foreach (var pair in obj.value)
+                {
+                    if (pair.Value == childId
+                        && TryResolveOwnedChildMember(obj, parentMember, pair.Key) is { } member
+                        && ChildOwnership(member, ownership) == ownership)
+                        return true;
+                }
+            foreach (var link in EnumerateConstructorSettledAggregateLinks(obj, parentMember))
             {
                 if (link.valueId == childId && ChildOwnership(link.member, ownership) == ownership)
                     return true;
