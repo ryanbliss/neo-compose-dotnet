@@ -106,6 +106,7 @@ namespace NeoCompose.Runtime.Json
         [JsonProperty("readonly")]
         public bool isReadonly;
         public string? writability;
+        [JsonIgnore] internal NeoScript.NeoScriptVariableBinding? runtimeBinding;
     }
 
     public class WhileInstruction : Instruction

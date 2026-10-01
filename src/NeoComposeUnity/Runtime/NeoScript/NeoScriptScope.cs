@@ -375,16 +375,13 @@ namespace NeoCompose.Runtime.NeoScript
             new(this, 0, block: true);
 
         /// <summary>
-        /// Assigns an existing binding in the scope that declared it, when
-        /// that is an enclosing scope this block belongs to.
-        /// </summary>
-        /// <summary>
         /// Writes the binding <paramref name="variable"/> names in the nearest
         /// block that holds it, else declares it in the nearest frame. Frames
         /// answer from the pointer's cached slot, so a write hashes only
         /// frames that hold dynamic bindings.
         /// </summary>
-        internal void Assign(VariablePointer variable, object? value)
+        /// <param name="value">A value, or an <see cref="NSGetterEvaluator.EvaluateValue"/> result.</param>
+        internal void Assign(VariablePointer variable, object? value, double number = 0)
         {
             NeoScriptScope target = this;
             while (true)
@@ -392,14 +389,14 @@ namespace NeoCompose.Runtime.NeoScript
                 int slot = target.OccupiedSlot(variable);
                 if (slot >= 0)
                 {
-                    target.SetSlotValue(slot, value);
+                    target.SetSlot(slot, value, number);
                     return;
                 }
                 if (!target.block || target.ContainsDynamicLocal(variable.variableId))
                     break;
                 target = target.Parent!;
             }
-            target.SetLocal(variable.variableId, value);
+            target.SetEvaluationValue(variable.variableId, value, number);
         }
 
         private bool ContainsDynamicLocal(string bindingId) =>
@@ -477,22 +474,30 @@ namespace NeoCompose.Runtime.NeoScript
             slotKinds[slot] == NumberSlot ? NSGetterEvaluator.Box(slotNumbers[slot]) : slotValues[slot].value;
 
         /// <param name="value">An <see cref="NSGetterEvaluator.EvaluateValue"/> result.</param>
-        internal void SetEvaluationValue(Variable variable, object? value, double number)
+        internal void SetEvaluationValue(Variable variable, object? value, double number) =>
+            SetEvaluationValue(variable.id, ref variable.runtimeBinding, value, number);
+
+        /// <summary>Binds a <c>foreach</c> variable to its next entry.</summary>
+        internal void SetLocal(LoopBinding loopBinding, object? value) =>
+            SetEvaluationValue(loopBinding.id, ref loopBinding.runtimeBinding, value, 0);
+
+        // The declaration's slot is cached on it, so a rebinding hashes nothing.
+        private void SetEvaluationValue(string bindingId, ref NeoScriptVariableBinding? cachedBinding, object? value, double number)
         {
             if (layout is null)
             {
-                SetEvaluationValue(variable.id, value, number);
+                SetEvaluationValue(bindingId, value, number);
                 return;
             }
-            var binding = variable.runtimeBinding;
+            var binding = cachedBinding;
             if (!ReferenceEquals(binding?.Layout, layout))
             {
-                if (!layout.Slots.TryGetValue(variable.id, out int slot))
+                if (!layout.Slots.TryGetValue(bindingId, out int slot))
                 {
-                    SetEvaluationValue(variable.id, value, number);
+                    SetEvaluationValue(bindingId, value, number);
                     return;
                 }
-                variable.runtimeBinding = binding = new NeoScriptVariableBinding(layout, slot);
+                cachedBinding = binding = new NeoScriptVariableBinding(layout, slot);
             }
             SetSlot(binding!.Slot, value, number);
         }

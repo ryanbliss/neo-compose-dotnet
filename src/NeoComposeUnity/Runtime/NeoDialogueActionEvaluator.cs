@@ -709,8 +709,7 @@ namespace NeoCompose.Runtime
                         try
                         {
                             shouldEnter = EvaluateBoolean(
-                                state.Instruction.condition, scope, expressionContext,
-                                state.Instruction.type + " condition");
+                                state.Instruction.condition, scope, expressionContext);
                         }
                         catch (NeoFunctionCallSuspended suspended)
                         {
@@ -900,8 +899,7 @@ namespace NeoCompose.Runtime
                                 shouldEnter = EvaluateBoolean(
                                     state.Instruction.condition,
                                     scope,
-                                    expressionContext,
-                                    "for condition");
+                                    expressionContext);
                             }
                             catch (NeoFunctionCallSuspended suspended)
                             {
@@ -1172,7 +1170,7 @@ namespace NeoCompose.Runtime
         {
             while (true)
             {
-                if (state.SnapshotCount < 0)
+                if (state.Snapshot.Count < 0)
                 {
                     NSGetterEvaluator.Context expressionContext =
                         ExpressionContextFor(
@@ -1200,16 +1198,12 @@ namespace NeoCompose.Runtime
                             state,
                             suspended);
                     }
-                    state.SnapshotCount =
-                        NSGetterEvaluator.SnapshotCollectionEntries(
-                            collection,
-                            ctx,
-                            ref state.Snapshot);
+                    state.Snapshot.Take(collection, ctx);
                     if (state.Instruction.collectionPointer is CallGetterPointer getterCall)
                         NSGetterEvaluator.RecycleMemoizedList(collection, getterCall.memberId);
                 }
 
-                if (state.Index >= state.SnapshotCount)
+                if (state.Index >= state.Snapshot.Count)
                 {
                     state.RestoreBinding(scope);
                     return NeoScriptExecutionResult.Completed(
@@ -1217,10 +1211,11 @@ namespace NeoCompose.Runtime
                         returnValue: null);
                 }
 
-                scope[state.Instruction.binding.id] =
+                scope.SetLocal(
+                    state.Instruction.binding,
                     CoerceSetterValue(
-                        state.Snapshot[state.Index].Resolve(ctx),
-                        state.Instruction.binding.typeInfo);
+                        state.Snapshot.Resolve(state.Index, ctx),
+                        state.Instruction.binding.typeInfo));
                 NeoScriptScope bodyScope = state.EnsureBodyScope(
                     scope,
                     state.Instruction.instructions,
@@ -1676,8 +1671,7 @@ namespace NeoCompose.Runtime
                                 matched = EvaluateBoolean(
                                     clause.filter!,
                                     catchScope,
-                                    expressionContext,
-                                    "catch filter");
+                                    expressionContext);
                             }
                             catch (NeoFunctionCallSuspended suspended)
                             {
@@ -2286,9 +2280,10 @@ namespace NeoCompose.Runtime
             NSGetterEvaluator.Context ctx,
             NeoScriptExecutionOptions? options)
         {
-            object? rhs = Eval(instruction.pointer, scope, ctx);
             if (instruction.target.pointer is VariablePointer variablePointer)
             {
+                // A number stays unboxed into the local, as a declaration's does.
+                object? local = NSGetterEvaluator.EvaluateValue(instruction.pointer, scope, ctx, out double number);
                 if (instruction.target.writability == WritabilityKind.ReadOnly)
                 {
                     throw new NSGetterRuntimeError(
@@ -2301,11 +2296,17 @@ namespace NeoCompose.Runtime
                 {
                     throw new NSGetterRuntimeError(readOnlyError!);
                 }
-                scope.Assign(variablePointer, CoerceSetterValue(
-                    rhs,
-                    instruction.target.typeInfo));
+                if (instruction.target.typeInfo.type == MemberKind.Decimal)
+                {
+                    local = CoerceSetterValue(
+                        NSGetterEvaluator.ArithmeticValue.Box(local, number),
+                        instruction.target.typeInfo);
+                }
+                scope.Assign(variablePointer, local, number);
                 return default;
             }
+
+            object? rhs = Eval(instruction.pointer, scope, ctx);
 
             if (instruction.target.writability == WritabilityKind.Setter)
             {
@@ -2992,8 +2993,7 @@ namespace NeoCompose.Runtime
         private static bool EvaluateBoolean(
             BooleanExpression expression,
             NeoScriptScope scope,
-            NSGetterEvaluator.Context ctx,
-            string subject = "If condition")
+            NSGetterEvaluator.Context ctx)
         {
             return NSGetterEvaluator.EvalBooleanExpression(expression, scope, ctx);
         }
@@ -5869,7 +5869,11 @@ namespace NeoCompose.Runtime
             internal void NextCondition()
             {
                 CheckCondition = true;
-                ExpressionState = ExpressionResumeState.ForOptions(options);
+                // An immediate loop gets the same shared state every time:
+                // skip that store's write barrier.
+                ExpressionResumeState next = ExpressionResumeState.ForOptions(options);
+                if (!ReferenceEquals(ExpressionState, next))
+                    ExpressionState = next;
             }
         }
 
@@ -5917,7 +5921,9 @@ namespace NeoCompose.Runtime
             internal void MoveTo(ForPhase phase)
             {
                 Phase = phase;
-                ExpressionState = ExpressionResumeState.ForOptions(options);
+                ExpressionResumeState next = ExpressionResumeState.ForOptions(options);
+                if (!ReferenceEquals(ExpressionState, next))
+                    ExpressionState = next;
             }
 
             /// <summary>
@@ -5957,15 +5963,11 @@ namespace NeoCompose.Runtime
             {
                 Begin(Instruction.binding.id, scope, readOnly: true);
                 ExpressionState = ExpressionResumeState.ForOptions(options);
-                SnapshotCount = -1;
                 Index = 0;
             }
 
-            // A reused state keeps its snapshot buffer; the entries in use
-            // are the first SnapshotCount, and -1 means none taken yet.
-            internal NSGetterEvaluator.CollectionEntrySnapshot[] Snapshot =
-                System.Array.Empty<NSGetterEvaluator.CollectionEntrySnapshot>();
-            internal int SnapshotCount = -1;
+            // A reused state keeps its snapshot buffers.
+            internal readonly NSGetterEvaluator.CollectionSnapshot Snapshot = new();
 
             /// <summary>
             /// Drops what the finished run held: its entries and resume
@@ -5973,9 +5975,7 @@ namespace NeoCompose.Runtime
             /// </summary>
             internal void Park()
             {
-                if (SnapshotCount > 0)
-                    System.Array.Clear(Snapshot, 0, SnapshotCount);
-                SnapshotCount = -1;
+                Snapshot.Clear();
                 ExpressionState = ExpressionResumeState.Immediate;
             }
             internal int Index

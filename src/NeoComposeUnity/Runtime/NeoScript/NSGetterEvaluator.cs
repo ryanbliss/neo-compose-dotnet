@@ -7113,38 +7113,81 @@ namespace NeoCompose.Runtime.NeoScript
         }
 
         /// <summary>
-        /// One ordered raw membership retained at <c>foreach</c> entry. A
+        /// The ordered raw memberships retained at <c>foreach</c> entry. A
         /// removed Save/Session child row is retained by reference so the
         /// original entry can still be resolved later in the invocation;
-        /// this is a membership snapshot, never a deep value clone.
+        /// this is a membership snapshot, never a deep value clone. A reused
+        /// snapshot keeps its buffers.
         /// </summary>
-        internal readonly struct CollectionEntrySnapshot
+        internal sealed class CollectionSnapshot
         {
-            private readonly object? raw;
-            private readonly NeoValueOwnership? ownership;
-            private readonly MemberValue? retainedRow;
-            private readonly JsonMember? entryMember;
+            // The raw entries, copied in one block. Only a row id entry has a
+            // retained row and ownership, at its index of the parallel arrays.
+            private object?[] raws = Array.Empty<object?>();
+            private MemberValue?[]? rows;
+            private NeoValueOwnership[]? ownerships;
+            private JsonMember? entryMember;
 
-            internal CollectionEntrySnapshot(
-                object? raw,
-                NeoValueOwnership? ownership,
-                MemberValue? retainedRow,
-                JsonMember? entryMember)
+            /// <summary>The entries in use; -1 when no snapshot is taken.</summary>
+            internal int Count { get; private set; } = -1;
+
+            internal void Take(object? collection, Context ctx)
             {
-                this.raw = raw;
-                this.ownership = ownership;
-                this.retainedRow = retainedRow;
-                this.entryMember = entryMember;
+                if (collection is not object?[]
+                    && collection is not IDictionary<string, object?>)
+                {
+                    throw new NSGetterRuntimeError(
+                        "foreach receiver must be a List, Dictionary, Set/Lookup, or derived collection view.");
+                }
+
+                RowReference? collectionRef = FindRowReference(collection, ctx);
+                JsonMember? collectionMember = collectionRef?.CollectionMember(ctx.client);
+                entryMember = CollectionEntryMember(collectionRef, collection, ctx);
+                NeoValueOwnership? collectionOwnership = collectionMember is LookupMember
+                    ? null
+                    : FindRowOwnershipByReference(collection, ctx);
+                int count = 0;
+                if (collection is object?[] array)
+                {
+                    if (raws.Length < array.Length)
+                        raws = new object?[array.Length];
+                    Array.Copy(array, raws, array.Length);
+                    count = array.Length;
+                }
+                else
+                {
+                    foreach (OrderedRawCollectionEntry entry in
+                        OrderedRawCollectionEntries(collection))
+                    {
+                        if (count == raws.Length)
+                            Array.Resize(ref raws, Math.Max(4, count * 2));
+                        raws[count++] = entry.Raw;
+                    }
+                }
+                for (int index = 0; index < count; index++)
+                {
+                    if (raws[index] is not string id)
+                        continue;
+                    if (rows is null || rows.Length < raws.Length)
+                    {
+                        Array.Resize(ref rows, raws.Length);
+                        Array.Resize(ref ownerships, raws.Length);
+                    }
+                    NeoValueOwnership ownership = collectionOwnership ?? ResolveOwnershipForValueId(ctx, id);
+                    ctx.client.TryGetValue(ownership, id, out MemberValue? retainedRow);
+                    rows[index] = retainedRow;
+                    ownerships![index] = ownership;
+                }
+                Count = count;
             }
 
-            internal object? Resolve(Context ctx)
+            internal object? Resolve(int index, Context ctx)
             {
-                if (raw is not string id)
+                if (raws[index] is not string id)
                 {
-                    return raw;
+                    return raws[index];
                 }
-                NeoValueOwnership resolvedOwnership = ownership
-                    ?? ResolveOwnershipForValueId(ctx, id);
+                NeoValueOwnership resolvedOwnership = ownerships![index];
                 bool hasExactCurrentRow = resolvedOwnership == NeoValueOwnership.Asset
                     || ctx.client.HasWritableValue(resolvedOwnership, id);
                 if (hasExactCurrentRow
@@ -7155,9 +7198,23 @@ namespace NeoCompose.Runtime.NeoScript
                 {
                     return UnwrapCached(currentRow, ctx, resolvedOwnership, entryMember);
                 }
+                MemberValue? retainedRow = rows![index];
                 return retainedRow is null
-                    ? raw
+                    ? id
                     : UnwrapCached(retainedRow, ctx, resolvedOwnership, entryMember);
+            }
+
+            /// <summary>Drops what a finished run held.</summary>
+            internal void Clear()
+            {
+                if (Count > 0)
+                {
+                    Array.Clear(raws, 0, Count);
+                    if (rows is not null)
+                        Array.Clear(rows, 0, Math.Min(Count, rows.Length));
+                }
+                entryMember = null;
+                Count = -1;
             }
         }
 
@@ -7219,61 +7276,6 @@ namespace NeoCompose.Runtime.NeoScript
                 return false;
             }
             return key == index.ToString(CultureInfo.InvariantCulture);
-        }
-
-        /// <summary>
-        /// Snapshots a foreach receiver's entries into <paramref name="entries"/>,
-        /// growing it only when the collection outgrows it, and returns the
-        /// entry count.
-        /// </summary>
-        internal static int SnapshotCollectionEntries(
-            object? collection,
-            Context ctx,
-            ref CollectionEntrySnapshot[] entries)
-        {
-            if (collection is not object?[]
-                && collection is not IDictionary<string, object?>)
-            {
-                throw new NSGetterRuntimeError(
-                    "foreach receiver must be a List, Dictionary, Set/Lookup, or derived collection view.");
-            }
-
-            RowReference? collectionRef = FindRowReference(collection, ctx);
-            JsonMember? collectionMember = collectionRef?.CollectionMember(ctx.client);
-            JsonMember? entryMember = CollectionEntryMember(collectionRef, collection, ctx);
-            NeoValueOwnership? collectionOwnership = collectionMember is LookupMember
-                ? null
-                : FindRowOwnershipByReference(collection, ctx);
-            if (collection is object?[] array)
-            {
-                if (entries.Length < array.Length)
-                    entries = new CollectionEntrySnapshot[array.Length];
-                for (int index = 0; index < array.Length; index++)
-                    entries[index] = SnapshotEntry(array[index], collectionOwnership, entryMember, ctx);
-                return array.Length;
-            }
-            int count = 0;
-            foreach (OrderedRawCollectionEntry entry in
-                OrderedRawCollectionEntries(collection))
-            {
-                if (count == entries.Length)
-                    Array.Resize(ref entries, Math.Max(4, count * 2));
-                entries[count++] = SnapshotEntry(entry.Raw, collectionOwnership, entryMember, ctx);
-            }
-            return count;
-        }
-
-        private static CollectionEntrySnapshot SnapshotEntry(
-            object? raw,
-            NeoValueOwnership? collectionOwnership,
-            JsonMember? entryMember,
-            Context ctx)
-        {
-            if (raw is not string id)
-                return new CollectionEntrySnapshot(raw, null, null, entryMember);
-            NeoValueOwnership ownership = collectionOwnership ?? ResolveOwnershipForValueId(ctx, id);
-            ctx.client.TryGetValue(ownership, id, out MemberValue? retainedRow);
-            return new CollectionEntrySnapshot(raw, ownership, retainedRow, entryMember);
         }
 
         private static bool CollectionIsList(object? collection)
