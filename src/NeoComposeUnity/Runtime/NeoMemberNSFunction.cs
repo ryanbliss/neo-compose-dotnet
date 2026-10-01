@@ -1682,6 +1682,8 @@ namespace NeoCompose.Runtime
                 case MemberKind.Float when value is double && IsNumber(value):
                 case MemberKind.String when value is string:
                 case MemberKind.Int when value is double && IsIntegralNumber(value):
+                // A C# caller's boxed int, which is always integral.
+                case MemberKind.Int or MemberKind.Float when value is int:
                     return value;
                 case MemberKind.Bool or MemberKind.Int or MemberKind.Float or MemberKind.String
                     when value is double or bool or string or int:
