@@ -1084,8 +1084,10 @@ namespace NeoCompose.Runtime
         /// detached object keeps only its tracker, whose generation already
         /// tells a later execution on the same tracker apart.
         /// </summary>
+        // Most common first: NeoScript numbers are doubles, which a C# entry
+        // point hands back as the declared int, float or double.
         private static bool IsContextFreeResult(object? result) =>
-            result is null or string or bool or byte or short or int or long or float or double or decimal
+            result is null or double or int or float or bool or string or long or byte or short or decimal
             or NeoScript.NeoScriptObject { attachedId: null };
 
         internal NeoScript.NSGetterEvaluator.Context CreateGetterContext(NeoValueOwnership ownership)
