@@ -56,7 +56,10 @@ namespace NeoCompose.Runtime
             get; private set;
         }
             = NeoGenericResolution.EmptyEnv;
-        protected Dictionary<string, NeoMember> childMembers = new();
+        // Construction replaces this with the built children; until then every
+        // node shares one empty map, which nothing writes.
+        private static readonly Dictionary<string, NeoMember> NoChildren = new();
+        protected Dictionary<string, NeoMember> childMembers = NoChildren;
         // The generated view the client's registry last gave this node, and
         // the registry generation it is current for.
         internal NeoGeneratedClassValue? keptGeneratedValue;
@@ -366,18 +369,7 @@ namespace NeoCompose.Runtime
         {
             if (!BeginDisposeChildren())
                 return;
-            foreach (var child in childMembers.Values)
-            {
-                if (child.member.Mutability == NeoMemberMutabilityKind.ReadOnly)
-                {
-                    child.ReleaseDeclarationReference(this);
-                }
-                else
-                {
-                    child.ChildChanged -= ChildChangedHandler;
-                    child.Dispose();
-                }
-            }
+            DisposeChildren(childMembers);
             childMembers.Clear();
             ForgetChildSlots();
             base.Dispose();
@@ -416,13 +408,13 @@ namespace NeoCompose.Runtime
                     || (client.TryGetWritableValue(ownership, resolvedValueId, out MemberValue? stored)
                         && stored.IsRemoved)))
             {
-                DisposeChildren(previousChildren.Values);
+                DisposeChildren(previousChildren);
                 return;
             }
             if (member.Requirement != NeoMemberRequirementKind.Required
                 && value is { value: null })
             {
-                DisposeChildren(previousChildren.Values);
+                DisposeChildren(previousChildren);
                 return;
             }
             for (int entryIndex = 0; entryIndex < mergedSchema.Count; entryIndex++)
@@ -509,14 +501,7 @@ namespace NeoCompose.Runtime
                 {
                     child = CreateChild(client, childMember, childValueId);
                 }
-                if (childMember.Mutability == NeoMemberMutabilityKind.ReadOnly)
-                {
-                    child.RetainDeclarationReference(this);
-                }
-                else
-                {
-                    child.ChildChanged += ChildChangedHandler;
-                }
+                child.Hold(this);
                 childMembers[entry.schemaKey] = child;
                 if (recordRebound
                     && (child.overrideValueId ?? child.value?.id)
@@ -527,31 +512,17 @@ namespace NeoCompose.Runtime
                     (reboundKeys ??= new List<string>()).Add(entry.schemaKey);
                 }
             }
-            DisposeChildren(previousChildren.Values);
+            DisposeChildren(previousChildren);
         }
 
-        private void DisposeChildren(Dictionary<string, NeoMember>.ValueCollection children)
+        // Over the pairs: a dictionary's Values view is an allocation of its own.
+        private void DisposeChildren(Dictionary<string, NeoMember> children)
         {
-            foreach (var child in children)
-            {
-                if (child.member.Mutability == NeoMemberMutabilityKind.ReadOnly)
-                {
-                    child.ReleaseDeclarationReference(this);
-                }
-                else
-                {
-                    child.ChildChanged -= ChildChangedHandler;
-                    child.Dispose();
-                }
-            }
+            foreach (var pair in children)
+                pair.Value.Release(this);
         }
 
-        // Subscribing the method group would allocate a delegate per child.
-        private System.Action<NeoMember>? childChangedHandler;
-
-        private protected System.Action<NeoMember> ChildChangedHandler => childChangedHandler ??= HandleChildChanged;
-
-        protected internal void HandleChildChanged(NeoMember child)
+        protected internal override void HandleChildChanged(NeoMember child)
         {
             if (reportingKey is not null
                 && ReferenceEquals(FindChild(reportingKey), child))
@@ -1240,8 +1211,7 @@ namespace NeoCompose.Runtime
 
             if (childMembers.TryGetValue(key, out NeoMember? child))
             {
-                child.ChildChanged -= ChildChangedHandler;
-                child.Dispose();
+                child.Release(this);
                 childMembers.Remove(key);
                 ForgetChildSlots();
             }

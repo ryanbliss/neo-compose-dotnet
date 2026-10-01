@@ -158,8 +158,7 @@ namespace NeoCompose.Runtime
             client.UnwatchValuePartitions(this);
             foreach (var child in childMembers)
             {
-                child.ChildChanged -= ChildChangedHandler;
-                child.Dispose();
+                child.Release(this);
             }
             childMembers.Clear();
             childrenEntryIds = null;
@@ -178,7 +177,8 @@ namespace NeoCompose.Runtime
             // child nodes so indexed fields cannot retain unloaded values.
             foreach (NeoMember child in childMembers)
             {
-                child.ChildChanged -= ChildChangedHandler;
+                child.Release(this);
+                // Retired even while another container holds it.
                 child.Dispose();
             }
             childMembers = new List<NeoMember>();
@@ -334,8 +334,7 @@ namespace NeoCompose.Runtime
             {
                 foreach (var child in previousChildren)
                 {
-                    child.ChildChanged -= ChildChangedHandler;
-                    child.Dispose();
+                    child.Release(this);
                 }
                 return;
             }
@@ -372,7 +371,7 @@ namespace NeoCompose.Runtime
                     continue;
                 }
                 NeoMember child = CreateChild(client, entryMember, entryValueId);
-                child.ChildChanged += ChildChangedHandler;
+                child.Hold(this);
                 childMembers.Add(child);
                 // A changed member declaration can replace the wrapper at
                 // an existing id. New ids enter the index through the change
@@ -388,8 +387,7 @@ namespace NeoCompose.Runtime
                 NeoMember child = previousChildren[i];
                 if (retained?.Contains(child) != true)
                 {
-                    child.ChildChanged -= ChildChangedHandler;
-                    child.Dispose();
+                    child.Release(this);
                 }
             }
             childrenEntryIds = entryValueIds;
@@ -400,12 +398,7 @@ namespace NeoCompose.Runtime
         // keys release cached messages when entries leave the node graph.
         private System.Runtime.CompilerServices.ConditionalWeakTable<NeoMember, NeoListChangedArgs>? childChangeNotifications;
 
-        // Subscribing the method group would allocate a delegate per child.
-        private System.Action<NeoMember>? childChangedHandler;
-
-        private protected System.Action<NeoMember> ChildChangedHandler => childChangedHandler ??= HandleChildChanged;
-
-        protected void HandleChildChanged(NeoMember changed)
+        protected internal override void HandleChildChanged(NeoMember changed)
         {
             NeoMember? entry = changed;
             while (entry is not null && entry.parent != this)
@@ -723,11 +716,10 @@ namespace NeoCompose.Runtime
                 {
                     value = parentRow;
                     NeoMember previousChild = childMembers[index];
-                    previousChild.ChildChanged -= ChildChangedHandler;
-                    previousChild.Dispose();
+                    previousChild.Release(this);
                     NeoMember replacementChild = CreateChild(
                         client, entryMember, importedValueId);
-                    replacementChild.ChildChanged += ChildChangedHandler;
+                    replacementChild.Hold(this);
                     childMembers[index] = replacementChild;
                     NotifyListChanged(new NeoListChangedArgs(
                         NeoListChangeKind.Replace,
@@ -764,10 +756,9 @@ namespace NeoCompose.Runtime
             plan.AfterNotifications(() =>
             {
                 NeoMember replacedChild = childMembers[index];
-                replacedChild.ChildChanged -= ChildChangedHandler;
-                replacedChild.Dispose();
+                replacedChild.Release(this);
                 NeoMember newChild = CreateChild(client, entryMember, entryValueId);
-                newChild.ChildChanged += ChildChangedHandler;
+                newChild.Hold(this);
                 childMembers[index] = newChild;
                 NotifyListChanged(new NeoListChangedArgs(
                     NeoListChangeKind.Set,
@@ -857,8 +848,7 @@ namespace NeoCompose.Runtime
 
             foreach (var child in childMembers)
             {
-                child.ChildChanged -= ChildChangedHandler;
-                child.Dispose();
+                child.Release(this);
             }
             childMembers.Clear();
             ForgetChildrenSource();

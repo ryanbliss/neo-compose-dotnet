@@ -38,11 +38,11 @@ namespace NeoCompose.Runtime
             if (row is ObjectMemberValue objectRow)
             {
                 if (objectRow.value is not null)
-                    foreach (string child in objectRow.value.Values)
-                        into.Add(child);
+                    foreach (var pair in objectRow.value)
+                        into.Add(pair.Value);
                 if (objectRow.constructorArgs is not null)
-                    foreach (var token in objectRow.constructorArgs.Values)
-                        if (token?.Type == JTokenType.String && (string?)token is string child)
+                    foreach (var pair in objectRow.constructorArgs)
+                        if (pair.Value?.Type == JTokenType.String && (string?)pair.Value is string child)
                             into.Add(child);
             }
             else if (row is ArrayMemberValue { value: not null } array)
@@ -305,19 +305,19 @@ namespace NeoCompose.Runtime
         {
             Queue<string> pending = scratch.pending;
             HashSet<string> writtenDescendants = scratch.writtenDescendants;
-            foreach (var key in plan.Rows.Keys)
-                writtenDescendants.Add(key.id);
+            // Pairs throughout: a dictionary's Keys or Values view allocates.
             foreach (var pair in plan.Rows)
             {
+                writtenDescendants.Add(pair.Key.id);
                 pending.Enqueue(pair.Key.id);
                 if (pair.Value is null)
                     continue;
                 if (!string.IsNullOrEmpty(pair.Value.containerId))
                     pending.Enqueue(pair.Value.containerId!);
             }
-            foreach (var binding in plan.Bindings.Values)
-                if (binding.valueId is not null)
-                    pending.Enqueue(binding.valueId);
+            foreach (var binding in plan.Bindings)
+                if (binding.Value.valueId is not null)
+                    pending.Enqueue(binding.Value.valueId);
             if (candidateReplay is not null)
                 foreach (var pair in candidateReplay.Values)
                     if (!virtualValues.TryGetValue(pair.Key, out var previousVirtual)

@@ -127,12 +127,6 @@ namespace NeoCompose.Runtime
             get; internal set;
         }
         public event System.Action<NeoMember>? OnChanged;
-        /// <summary>
-        /// The parent container's channel: it bubbles a change inside the
-        /// write that made it, while <see cref="OnChanged"/> listeners hear a
-        /// commit once, after it (<see cref="NeoClient.RaiseChanged"/>).
-        /// </summary>
-        internal event System.Action<NeoMember>? ChildChanged;
         public event System.Action<NeoMember>? OnDisposed;
         /// <summary>
         /// True after <see cref="Dispose"/> has run. Subclasses must
@@ -152,11 +146,16 @@ namespace NeoCompose.Runtime
             isDisposingChildren = true;
             return true;
         }
-        // Every Class instance containing a declaration-backed member holds
-        // this one shared node. Holders are counted here rather than
-        // subscribed to OnChanged: a multicast delegate copies its whole
-        // invocation list per add/remove, which made each holder cost O(holders).
-        private Dictionary<NeoMemberClass, int>? declarationHolders;
+        // The containers holding this node, which hear its changes inside the
+        // write that made them, while OnChanged listeners hear a commit once,
+        // after it (NeoClient.RaiseChanged). The registry shares a node by key,
+        // so every instance of a class holds the same declaration-backed or
+        // value-less (Function, computed property) node. Holds are counted
+        // rather than subscribed: a multicast delegate copies its whole
+        // invocation list per add and remove, which made each holder cost
+        // O(holders). One holder, the usual case, needs no map.
+        private NeoMember? soleHolder;
+        private Dictionary<NeoMember, int>? holders;
 
         protected NeoMember(
             NeoClient client,
@@ -199,25 +198,51 @@ namespace NeoCompose.Runtime
             client.UnregisterNode(this);
         }
 
-        internal void RetainDeclarationReference(NeoMemberClass holder)
+        internal void Hold(NeoMember holder)
         {
-            declarationHolders ??= new Dictionary<NeoMemberClass, int>();
-            declarationHolders.TryGetValue(holder, out int count);
-            declarationHolders[holder] = count + 1;
-        }
-
-        internal void ReleaseDeclarationReference(NeoMemberClass holder)
-        {
-            if (declarationHolders is null || !declarationHolders.TryGetValue(holder, out int count))
-                return;
-            if (count > 1)
+            if (soleHolder is null && holders is null)
             {
-                declarationHolders[holder] = count - 1;
+                soleHolder = holder;
                 return;
             }
-            declarationHolders.Remove(holder);
-            if (declarationHolders.Count == 0)
-                Dispose();
+            if (holders is null)
+            {
+                holders = new Dictionary<NeoMember, int> { [soleHolder!] = 1 };
+                soleHolder = null;
+            }
+            holders.TryGetValue(holder, out int count);
+            holders[holder] = count + 1;
+        }
+
+        /// <summary>Drops one of <paramref name="holder"/>'s holds, and disposes this node once nothing holds it.</summary>
+        internal void Release(NeoMember holder)
+        {
+            if (holders is null)
+            {
+                if (soleHolder is not null && soleHolder != holder)
+                    return;
+                soleHolder = null;
+            }
+            else
+            {
+                if (holders.TryGetValue(holder, out int count))
+                {
+                    if (count > 1)
+                    {
+                        holders[holder] = count - 1;
+                        return;
+                    }
+                    holders.Remove(holder);
+                }
+                if (holders.Count != 0)
+                    return;
+            }
+            Dispose();
+        }
+
+        /// <summary>Hears a change bubbled by a node this one holds.</summary>
+        protected internal virtual void HandleChildChanged(NeoMember changed)
+        {
         }
 
         protected void NotifyChanged()
@@ -229,12 +254,32 @@ namespace NeoCompose.Runtime
         {
             if (isDisposed)
                 return;
-            ChildChanged?.Invoke(changed);
-            if (declarationHolders is { Count: > 0 })
-                foreach (NeoMemberClass holder in declarationHolders.Keys.ToArray())
-                    holder.HandleChildChanged(changed);
+            if (soleHolder is not null)
+                soleHolder.HandleChildChanged(changed);
+            else if (holders is { Count: > 0 })
+                NotifyHolders(changed);
             if (OnChanged is not null)
                 client.RaiseChanged(this, changed);
+        }
+
+        private void NotifyHolders(NeoMember changed)
+        {
+            // Over a copy: a holder may take or release holds as it hears.
+            int count = holders!.Count;
+            NeoMember[] snapshot = System.Buffers.ArrayPool<NeoMember>.Shared.Rent(count);
+            try
+            {
+                int index = 0;
+                foreach (var pair in holders)
+                    snapshot[index++] = pair.Key;
+                for (index = 0; index < count; index++)
+                    snapshot[index].HandleChildChanged(changed);
+            }
+            finally
+            {
+                System.Array.Clear(snapshot, 0, count);
+                System.Buffers.ArrayPool<NeoMember>.Shared.Return(snapshot);
+            }
         }
 
         /// <summary>The list change a queued notification carries, when this node is a list.</summary>

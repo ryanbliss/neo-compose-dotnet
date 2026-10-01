@@ -103,8 +103,7 @@ namespace NeoCompose.Runtime
         {
             if (!BeginDisposeChildren())
                 return;
-            foreach (var child in childMembers.Values)
-                child.Dispose();
+            DisposeChildren(childMembers);
             childMembers.Clear();
             base.Dispose();
         }
@@ -115,8 +114,7 @@ namespace NeoCompose.Runtime
             childMembers = new();
             if (value?.value is null)
             {
-                foreach (var child in previousChildren.Values)
-                    child.Dispose();
+                DisposeChildren(previousChildren);
                 return;
             }
             foreach (var kvp in value.value)
@@ -132,8 +130,14 @@ namespace NeoCompose.Runtime
                 }
                 childMembers[kvp.Key] = CreateChild(client, entryMember, kvp.Value);
             }
-            foreach (var child in previousChildren.Values)
-                child.Dispose();
+            DisposeChildren(previousChildren);
+        }
+
+        // Over the pairs: a dictionary's Values view is an allocation of its own.
+        private static void DisposeChildren(Dictionary<string, NeoMember> children)
+        {
+            foreach (var pair in children)
+                pair.Value.Dispose();
         }
 
         protected Member ResolveEntryMember()
