@@ -2494,18 +2494,34 @@ namespace NeoCompose.Runtime.NeoScript
             object?[] args,
             Context ctx,
             object? ownerReceiver = null,
-            Func<string>? actionFrame = null)
+            Func<string>? actionFrame = null) =>
+            InvokeListeners(value, args, ctx, ownerReceiver, actionFrame);
+
+        /// <param name="frame">
+        /// Names the failing frame only when a listener fails: the action
+        /// <see cref="Pointer"/> an IR call read the action through (named
+        /// against <paramref name="ownerReceiver"/>), a caller's
+        /// <see cref="Func{TResult}"/>, or null for the unnamed fallback. A
+        /// pointer needs no closure, so the IR call allocates nothing for it.
+        /// </param>
+        private static void InvokeListeners(
+            object? value,
+            object?[]? args,
+            Context ctx,
+            object? ownerReceiver,
+            object? frame)
         {
-            NeoActionValue actionValue = CoerceActionValue(value);
+            NeoActionValue? actionValue = CoerceActionValue(value);
+            if (actionValue is null)
+                return;
             args ??= Array.Empty<object?>();
-            Func<string> frame = actionFrame ?? UnnamedActionFrame;
             for (int index = 0; index < actionValue.listeners.Count; index++)
             {
                 NeoDelegateValue listener = actionValue.listeners[index];
                 if (listener is null || !listener.IsMemberTarget)
                 {
                     throw new NSGetterRuntimeError(
-                        $"{frame()} listener {index} is not a member target; only member targets are valid listeners.");
+                        $"{ActionFrameName(frame, ownerReceiver, ctx)} listener {index} is not a member target; only member targets are valid listeners.");
                 }
                 try
                 {
@@ -2529,34 +2545,41 @@ namespace NeoCompose.Runtime.NeoScript
                     // themselves, so the host handling that keys on their
                     // class still applies.
                     throw new NSGetterRuntimeError(
-                        $"{frame()} listener {index} threw: {error.Message}");
+                        $"{ActionFrameName(frame, ownerReceiver, ctx)} listener {index} threw: {error.Message}");
                 }
             }
         }
 
         /// <summary>
-        /// The frame for an action invoked through a caller that cannot name
-        /// the member or the owning row — the same fallback label the TS
-        /// evaluator uses for a non-member action pointer.
+        /// The frame a failing listener is reported under. A caller that
+        /// cannot name the member or the owning row gets the same fallback
+        /// label the TS evaluator uses for a non-member action pointer.
         /// </summary>
-        private static string UnnamedActionFrame() => "action[default]";
+        private static string ActionFrameName(
+            object? frame,
+            object? owner,
+            Context ctx) => frame switch
+            {
+                Pointer pointer => ActionInvocationFrame(pointer, owner, ctx),
+                Func<string> describe => describe(),
+                _ => "action[default]",
+            };
 
         /// <summary>
-        /// Normalizes an evaluated NSAction value. A missing value is the
-        /// rest state — the empty listener set — because an action is never
-        /// nullable (P62 §2.1).
+        /// Normalizes an evaluated NSAction value. A missing value is null:
+        /// the rest state — the empty listener set — because an action is
+        /// never nullable (P62 §2.1), and firing it does nothing.
         /// </summary>
-        private static NeoActionValue CoerceActionValue(object? value)
+        private static NeoActionValue? CoerceActionValue(object? value)
         {
             switch (value)
             {
                 case null:
-                    return new NeoActionValue();
+                    return null;
                 case NeoActionValue typed:
                     return typed;
                 case JObject json:
-                    return json.ToObject<NeoActionValue>()
-                        ?? new NeoActionValue();
+                    return json.ToObject<NeoActionValue>();
                 default:
                     throw new NSGetterRuntimeError(
                         $"NSAction value is not a listener set; received {value.GetType().Name}.");
@@ -2926,16 +2949,16 @@ namespace NeoCompose.Runtime.NeoScript
                 owner = null;
                 return EvalPointer(pointer, scope, ctx);
             }
-            object? captured = null;
-            object? action = EvalKeyOf(
+            owner = null;
+            return EvalKeyOfReceiver(
+                EvalPointer(keyOfPointer.keyOf.pointer, scope, ctx),
                 keyOfPointer.keyOf,
                 scope,
                 ctx,
                 keyOfPointer.optional == true,
                 keyOfPointer.memberId,
-                receiver => captured = receiver);
-            owner = captured;
-            return action;
+                ref owner,
+                reportReceiver: true);
         }
 
         /// <summary>
@@ -2958,8 +2981,6 @@ namespace NeoCompose.Runtime.NeoScript
                 : memberId!;
         }
 
-        // Separate from EvalPointer so the frame-name closure is only
-        // allocated for action calls, not for every pointer evaluation.
         private static void EvalCallAction(
             CallActionPointer actionCall,
             NeoScriptScope scope,
@@ -2970,17 +2991,14 @@ namespace NeoCompose.Runtime.NeoScript
                 scope,
                 ctx,
                 out object? owner);
-            var args = new object?[actionCall.args.Length];
+            object?[] args = actionCall.args.Length == 0
+                ? Array.Empty<object?>()
+                : new object?[actionCall.args.Length];
             for (int i = 0; i < args.Length; i++)
             {
                 args[i] = EvalPointer(actionCall.args[i], scope, ctx);
             }
-            InvokeAction(
-                actionValue,
-                args,
-                ctx,
-                owner,
-                () => ActionInvocationFrame(actionCall.action, owner, ctx));
+            InvokeListeners(actionValue, args, ctx, owner, actionCall.action);
         }
 
         /// <summary>
@@ -3578,28 +3596,24 @@ namespace NeoCompose.Runtime.NeoScript
         // KeyOf — schema-key dispatch with runtime-classId override hook
         // ---------------------------------------------------------------
 
-        /// <param name="onReceiver">
-        /// Reports the evaluated receiver to the caller (P62 §3.3). An action
-        /// call needs the row it read the action off, and this is the only
-        /// way to get it without evaluating the receiver subexpression a
-        /// second time. Reported after unwrapping, so the caller sees the
-        /// same row the key access dispatched against.
-        /// </param>
         private static object? EvalKeyOf(
             KeyOf keyOf,
             NeoScriptScope scope,
             Context ctx,
             bool optional,
-            string? pinnedMemberId,
-            Action<object?>? onReceiver = null) =>
-            EvalKeyOfReceiver(
+            string? pinnedMemberId)
+        {
+            object? unused = null;
+            return EvalKeyOfReceiver(
                 EvalPointer(keyOf.pointer, scope, ctx),
                 keyOf,
                 scope,
                 ctx,
                 optional,
                 pinnedMemberId,
-                onReceiver);
+                ref unused,
+                reportReceiver: false);
+        }
 
         /// <summary>
         /// Reads <paramref name="pointer"/> off a receiver the caller already
@@ -3610,15 +3624,28 @@ namespace NeoCompose.Runtime.NeoScript
             KeyOfPointer pointer,
             object? receiver,
             NeoScriptScope scope,
-            Context ctx) =>
-            EvalKeyOfReceiver(
+            Context ctx)
+        {
+            object? unused = null;
+            return EvalKeyOfReceiver(
                 receiver,
                 pointer.keyOf,
                 scope,
                 ctx,
                 pointer.optional == true,
-                pointer.memberId);
+                pointer.memberId,
+                ref unused,
+                reportReceiver: false);
+        }
 
+        /// <param name="reportedReceiver">
+        /// Receives the evaluated receiver when
+        /// <paramref name="reportReceiver"/> is set (P62 §3.3). An action
+        /// call needs the row it read the action off, and this is the only
+        /// way to get it without evaluating the receiver subexpression a
+        /// second time. Reported after unwrapping, so the caller sees the
+        /// same row the key access dispatched against.
+        /// </param>
         private static object? EvalKeyOfReceiver(
             object? receiver,
             KeyOf keyOf,
@@ -3626,7 +3653,8 @@ namespace NeoCompose.Runtime.NeoScript
             Context ctx,
             bool optional,
             string? pinnedMemberId,
-            Action<object?>? onReceiver = null)
+            ref object? reportedReceiver,
+            bool reportReceiver)
         {
             if (optional && receiver is null)
                 return null;
@@ -3651,7 +3679,8 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 receiver = UnwrapGeneratedValue(receiver, ctx);
             }
-            onReceiver?.Invoke(receiver);
+            if (reportReceiver)
+                reportedReceiver = receiver;
             var key = EvalPointer(keyOf.key, scope, ctx);
             if (receiver is null)
             {
