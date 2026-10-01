@@ -55,4 +55,19 @@ namespace NeoCompose.Runtime
             return asset;
         }
     }
+
+    /// <summary>
+    /// The value node an IR site last read, kept for one client's schema
+    /// resolution: sibling clients share the IR but not their nodes.
+    /// </summary>
+    internal sealed class NeoValueNodeSite
+    {
+        internal readonly object schemaResolution;
+        internal NeoValueNode? node;
+
+        internal NeoValueNodeSite(object schemaResolution)
+        {
+            this.schemaResolution = schemaResolution;
+        }
+    }
 }

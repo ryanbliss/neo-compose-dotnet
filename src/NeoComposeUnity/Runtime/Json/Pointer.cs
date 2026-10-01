@@ -36,9 +36,15 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>Mirror of <c>INSPointerReference</c>.</summary>
-    public sealed class ReferencePointer : Pointer
+    public sealed class ReferencePointer : Pointer, ISchemaResolutionSite
     {
         public string valueId = null!;
+
+        /// <summary>The evaluator's value node for <see cref="valueId"/>.</summary>
+        [JsonIgnore]
+        internal NeoValueNodeSite? valueNode;
+
+        void ISchemaResolutionSite.ForgetResolution() => valueNode = null;
 
         /// <summary>
         /// When true, resolve <see cref="valueId"/> as an authored source id

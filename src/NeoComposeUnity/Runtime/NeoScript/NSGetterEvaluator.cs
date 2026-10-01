@@ -1957,8 +1957,14 @@ namespace NeoCompose.Runtime.NeoScript
         /// <summary>A value reference's row.</summary>
         private static object? EvalReference(ReferencePointer rp, Context ctx)
         {
-            NeoValueNode? node = null;
-            var ownership = ResolveOwnershipForValueId(ctx, rp.valueId, ref node);
+            NeoValueNodeSite? site = rp.valueNode;
+            if (site is null || !ReferenceEquals(site.schemaResolution, ctx.client.SchemaResolution))
+            {
+                rp.valueNode = site = new NeoValueNodeSite(ctx.client.SchemaResolution);
+                ctx.client.RememberSchemaResolutionSite(rp);
+            }
+            var ownership = ResolveOwnershipForValueId(ctx, rp.valueId, ref site.node);
+            NeoValueNode? node = site.node;
             MemberValue? row = null;
             if (rp.withProvenance == true
                 && FindRowIdByReference(ctx.thisValue, ctx) is string receiverId)
@@ -2779,18 +2785,15 @@ namespace NeoCompose.Runtime.NeoScript
             object? receiver = null;
             if (target.valueId is not null)
             {
+                NeoValueNode? node = null;
                 NeoValueOwnership ownership = ResolveOwnershipForValueId(
                     ctx,
-                    target.valueId);
-                if (!ctx.client.TryGetValue(
-                        ownership,
-                        target.valueId,
-                        out MemberValue? row))
-                {
-                    throw new NSGetterRuntimeError(
+                    target.valueId,
+                    ref node);
+                MemberValue row = ctx.client.ReadValue(ownership, target.valueId, ref node)
+                    ?? throw new NSGetterRuntimeError(
                         $"NeoDelegate target '{member.name}' has missing receiver value '{target.valueId}'.");
-                }
-                receiver = UnwrapCached(row, ctx, ownership);
+                receiver = UnwrapCached(row, ctx, ownership, node: node);
             }
             else if (ownerReceiver is not null)
             {
