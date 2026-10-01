@@ -512,10 +512,11 @@ namespace NeoCompose.Runtime
                     // so repeated calls from a collection lambda receive stable
                     // frame keys while completed results survive a replay.
                     expressionState.BeginInstructionAttempt();
-                    switch (instruction)
+                    switch (instruction.code)
                     {
-                        case VariableInstruction variable:
+                        case InstructionCode.Variable:
                             {
+                                var variable = (VariableInstruction)instruction;
                                 object? value = NSGetterEvaluator.EvaluateValue(
                                     variable.variable.pointer,
                                     scope,
@@ -524,8 +525,9 @@ namespace NeoCompose.Runtime
                                 scope.SetEvaluationValue(variable.variable, value, number);
                                 break;
                             }
-                        case IfInstruction ifInstruction:
+                        case InstructionCode.If:
                             {
+                                var ifInstruction = (IfInstruction)instruction;
                                 bool matched = false;
                                 foreach (var branch in ifInstruction.branches)
                                 {
@@ -550,20 +552,23 @@ namespace NeoCompose.Runtime
                                 }
                                 break;
                             }
-                        case ReturnInstruction returnInstruction:
-                            return ReturnResult(
-                                returnInstruction.pointer is null
-                                    ? null
-                                    : Eval(returnInstruction.pointer, scope, actionCtx),
-                                returnTypeInfo);
-                        case ThrowInstruction throwInstruction:
+                        case InstructionCode.Return:
+                            {
+                                var returnInstruction = (ReturnInstruction)instruction;
+                                return ReturnResult(
+                                    returnInstruction.pointer is null
+                                        ? null
+                                        : Eval(returnInstruction.pointer, scope, actionCtx),
+                                    returnTypeInfo);
+                            }
+                        case InstructionCode.Throw:
                             throw new NSGetterRuntimeError(
-                                Eval(throwInstruction.pointer, scope, actionCtx)?.ToString() ?? "null");
-                        case AssignInstruction assign:
+                                Eval(((ThrowInstruction)instruction).pointer, scope, actionCtx)?.ToString() ?? "null");
+                        case InstructionCode.Assign:
                             {
                                 NeoScriptExecutionResult nestedSetter = ExecuteAssign(
                                     client,
-                                    assign,
+                                    (AssignInstruction)instruction,
                                     scope,
                                     actionCtx,
                                     options);
@@ -573,21 +578,22 @@ namespace NeoCompose.Runtime
                                 }
                                 break;
                             }
-                        case ActionListenerInstruction listenerInstruction:
+                        case InstructionCode.ActionListener:
                             ExecuteActionListener(
                                 client,
-                                listenerInstruction,
+                                (ActionListenerInstruction)instruction,
                                 scope,
                                 actionCtx);
                             break;
-                        case CollectionCallInstruction collectionCall:
-                            ExecuteCollectionCall(client, collectionCall, scope, actionCtx, expressionState, i);
+                        case InstructionCode.CollectionCall:
+                            ExecuteCollectionCall(client, (CollectionCallInstruction)instruction, scope, actionCtx, expressionState, i);
                             break;
-                        case FunctionCallInstruction functionCall:
-                            Eval(functionCall.call, scope, actionCtx);
+                        case InstructionCode.FunctionCall:
+                            Eval(((FunctionCallInstruction)instruction).call, scope, actionCtx);
                             break;
-                        case WhileInstruction loop:
+                        case InstructionCode.While:
                             {
+                                var loop = (WhileInstruction)instruction;
                                 ValidateWhileInstructionMetadata(loop);
                                 var state = new WhileExecutionState(loop, scope, options);
                                 NeoScriptExecutionResult loopResult = RunWhile(
@@ -598,11 +604,11 @@ namespace NeoCompose.Runtime
                                     return loopResult;
                                 break;
                             }
-                        case ForInstruction forInstruction:
+                        case InstructionCode.For:
                             {
                                 NeoScriptExecutionResult loopResult = ExecuteFor(
                                     client,
-                                    forInstruction,
+                                    (ForInstruction)instruction,
                                     returnTypeInfo,
                                     scope,
                                     ctx,
@@ -613,11 +619,11 @@ namespace NeoCompose.Runtime
                                     return loopResult;
                                 break;
                             }
-                        case ForEachInstruction forEachInstruction:
+                        case InstructionCode.ForEach:
                             {
                                 NeoScriptExecutionResult loopResult = ExecuteForEach(
                                     client,
-                                    forEachInstruction,
+                                    (ForEachInstruction)instruction,
                                     returnTypeInfo,
                                     scope,
                                     ctx,
@@ -628,11 +634,11 @@ namespace NeoCompose.Runtime
                                     return loopResult;
                                 break;
                             }
-                        case SwitchInstruction switchInstruction:
+                        case InstructionCode.Switch:
                             {
                                 NeoScriptExecutionResult switchResult = ExecuteSwitch(
                                     client,
-                                    switchInstruction,
+                                    (SwitchInstruction)instruction,
                                     returnTypeInfo,
                                     scope,
                                     ctx,
@@ -643,11 +649,11 @@ namespace NeoCompose.Runtime
                                     return switchResult;
                                 break;
                             }
-                        case TryInstruction tryInstruction:
+                        case InstructionCode.Try:
                             {
                                 NeoScriptExecutionResult tryResult = ExecuteTry(
                                     client,
-                                    tryInstruction,
+                                    (TryInstruction)instruction,
                                     returnTypeInfo,
                                     scope,
                                     ctx,
@@ -658,10 +664,10 @@ namespace NeoCompose.Runtime
                                     return tryResult;
                                 break;
                             }
-                        case BreakInstruction:
+                        case InstructionCode.Break:
                             return NeoScriptExecutionResult.Control(
                                 NeoScriptControlTransfer.Break);
-                        case ContinueInstruction:
+                        case InstructionCode.Continue:
                             return NeoScriptExecutionResult.Control(
                                 NeoScriptControlTransfer.Continue);
                         default:
@@ -754,7 +760,7 @@ namespace NeoCompose.Runtime
         }
 
         private static bool PausesAtInstruction(Instruction instruction) =>
-            instruction is not (WhileInstruction or ForInstruction or ForEachInstruction or SwitchInstruction or TryInstruction);
+            instruction.code is not (InstructionCode.While or InstructionCode.For or InstructionCode.ForEach or InstructionCode.Switch or InstructionCode.Try);
 
         private static NeoScriptExecutionResult? ApplyWhileBodyTransfer(
             NeoScriptExecutionResult result)
@@ -5703,7 +5709,8 @@ namespace NeoCompose.Runtime
             private bool readOnly;
             private NeoScriptScope? bodyScope;
             private NeoScriptScopeLayout? bodyLayout;
-            private bool? bodyDeclaresLocals;
+            private bool bodyLocalsKnown;
+            private bool bodyDeclaresLocals;
             private bool bindingRestored;
 
             protected LoopExecutionState(
@@ -5748,8 +5755,12 @@ namespace NeoCompose.Runtime
             {
                 if (bodyScope is not null)
                     return bodyScope;
-                bodyDeclaresLocals ??= NeoScriptScopeLayout.DeclaresLocals(body);
-                if (bodyDeclaresLocals == false)
+                if (!bodyLocalsKnown)
+                {
+                    bodyDeclaresLocals = NeoScriptScopeLayout.DeclaresLocals(body);
+                    bodyLocalsKnown = true;
+                }
+                if (!bodyDeclaresLocals)
                     return parentScope;
                 bodyLayout = layout ??= new NeoScriptScopeLayout(null, body);
                 bodyScope = bodyLayout.RentScope();
@@ -5834,11 +5845,10 @@ namespace NeoCompose.Runtime
             internal void NextCondition()
             {
                 CheckCondition = true;
-                // An immediate loop gets the same shared state every time:
-                // skip that store's write barrier.
-                ExpressionResumeState next = ExpressionResumeState.ForOptions(options);
-                if (!ReferenceEquals(ExpressionState, next))
-                    ExpressionState = next;
+                // Only immediate options give the shared state, which an
+                // immediate loop keeps: it records nothing.
+                if (!ReferenceEquals(ExpressionState, ExpressionResumeState.Immediate))
+                    ExpressionState = ExpressionResumeState.ForOptions(options);
             }
         }
 
@@ -5886,9 +5896,10 @@ namespace NeoCompose.Runtime
             internal void MoveTo(ForPhase phase)
             {
                 Phase = phase;
-                ExpressionResumeState next = ExpressionResumeState.ForOptions(options);
-                if (!ReferenceEquals(ExpressionState, next))
-                    ExpressionState = next;
+                // Only immediate options give the shared state, which an
+                // immediate loop keeps: it records nothing.
+                if (!ReferenceEquals(ExpressionState, ExpressionResumeState.Immediate))
+                    ExpressionState = ExpressionResumeState.ForOptions(options);
             }
 
             /// <summary>
@@ -6088,6 +6099,7 @@ namespace NeoCompose.Runtime
             /// <summary>Whether this frame keeps results for a resume.</summary>
             internal bool Recording => recording;
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             internal void BeginInstructionAttempt()
             {
                 invocationCounts?.Clear();

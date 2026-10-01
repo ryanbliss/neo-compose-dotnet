@@ -507,11 +507,18 @@ namespace NeoCompose.Runtime.NeoScript
                 SetSlotValue(slot, value);
                 return;
             }
-            if (slotKinds[slot] == EmptySlot)
-                occupiedCount++;
-            slotKinds[slot] = NumberSlot;
+            byte kind = slotKinds[slot];
+            if (kind != NumberSlot)
+            {
+                // An empty slot already holds null: only a value slot's
+                // reference needs the barriered store that drops it.
+                if (kind == EmptySlot)
+                    occupiedCount++;
+                else
+                    slotValues[slot].value = null;
+                slotKinds[slot] = NumberSlot;
+            }
             slotNumbers[slot] = number;
-            slotValues[slot].value = null;
         }
 
         private void SetSlotValue(int slot, object? value)
@@ -655,15 +662,21 @@ namespace NeoCompose.Runtime.NeoScript
         {
             for (NeoScriptScope? scope = this; scope is not null; scope = scope.Parent)
             {
-                int slot = scope.OccupiedSlot(variable);
+                // OccupiedSlot, reading the slot's kind once.
+                var binding = variable.runtimeBinding;
+                int slot = binding is not null && ReferenceEquals(binding.Layout, scope.layout)
+                    ? binding.Slot
+                    : scope.BindSlot(variable);
                 if (slot >= 0)
                 {
-                    if (scope.slotKinds[slot] == NumberSlot)
+                    byte kind = scope.slotKinds[slot];
+                    if (kind == NumberSlot)
                     {
                         number = scope.slotNumbers[slot];
                         return true;
                     }
-                    return NSGetterEvaluator.TryAsDouble(scope.slotValues[slot].value, out number);
+                    if (kind != EmptySlot)
+                        return NSGetterEvaluator.TryAsDouble(scope.slotValues[slot].value, out number);
                 }
                 if (scope.TryGetDynamicValue(variable, out EvaluationValue value))
                 {

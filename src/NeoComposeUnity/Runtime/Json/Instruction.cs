@@ -22,6 +22,36 @@ namespace NeoCompose.Runtime.Json
     {
         /// <summary>One of <see cref="InstructionKind"/>.</summary>
         public string type = null!;
+
+        /// <summary>
+        /// The interpreter's dispatch key: a jump table, where a switch on
+        /// the instruction's type tests each case's type in turn.
+        /// </summary>
+        internal readonly InstructionCode code;
+
+        private protected Instruction(InstructionCode code)
+        {
+            this.code = code;
+        }
+    }
+
+    internal enum InstructionCode : byte
+    {
+        Variable,
+        If,
+        Return,
+        Throw,
+        Assign,
+        CollectionCall,
+        FunctionCall,
+        While,
+        For,
+        ForEach,
+        Break,
+        Continue,
+        Switch,
+        Try,
+        ActionListener,
     }
 
     /// <summary>
@@ -30,6 +60,11 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public sealed class VariableInstruction : Instruction
     {
+        public VariableInstruction()
+            : base(InstructionCode.Variable)
+        {
+        }
+
         public Variable variable = null!;
     }
 
@@ -42,6 +77,11 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public sealed class IfInstruction : Instruction
     {
+        public IfInstruction()
+            : base(InstructionCode.If)
+        {
+        }
+
         public ConditionalBranch[] branches = null!;
 
         [JsonProperty("else")]
@@ -58,6 +98,11 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public sealed class ReturnInstruction : Instruction
     {
+        public ReturnInstruction()
+            : base(InstructionCode.Return)
+        {
+        }
+
         public Pointer? pointer;
     }
 
@@ -68,6 +113,11 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public sealed class ThrowInstruction : Instruction
     {
+        public ThrowInstruction()
+            : base(InstructionCode.Throw)
+        {
+        }
+
         public Pointer pointer = null!;
     }
 
@@ -78,6 +128,11 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public sealed class AssignInstruction : Instruction
     {
+        public AssignInstruction()
+            : base(InstructionCode.Assign)
+        {
+        }
+
         public WriteTarget target = null!;
         [JsonProperty("operator")]
         public string operatorValue = null!;
@@ -87,6 +142,11 @@ namespace NeoCompose.Runtime.Json
     /// <summary>Mirror of <c>INSInstructionCollectionCall</c>.</summary>
     public sealed class CollectionCallInstruction : Instruction
     {
+        public CollectionCallInstruction()
+            : base(InstructionCode.CollectionCall)
+        {
+        }
+
         public WriteTarget target = null!;
         /// <summary>One of <see cref="CollectionMutationKind"/>.</summary>
         public string mutation = null!;
@@ -95,6 +155,11 @@ namespace NeoCompose.Runtime.Json
 
     public sealed class FunctionCallInstruction : Instruction
     {
+        public FunctionCallInstruction()
+            : base(InstructionCode.FunctionCall)
+        {
+        }
+
         public Pointer call = null!;
     }
 
@@ -111,6 +176,11 @@ namespace NeoCompose.Runtime.Json
 
     public class WhileInstruction : Instruction
     {
+        public WhileInstruction()
+            : base(InstructionCode.While)
+        {
+        }
+
         [JsonIgnore]
         internal NeoScript.NeoScriptScopeLayout? bodyLayout;
         public BooleanExpression condition = null!;
@@ -124,6 +194,11 @@ namespace NeoCompose.Runtime.Json
     /// <summary>Mirror of the P50 <c>for</c> instruction.</summary>
     public sealed class ForInstruction : Instruction
     {
+        public ForInstruction()
+            : base(InstructionCode.For)
+        {
+        }
+
         public Variable initializer = null!;
         public BooleanExpression condition = null!;
         public AssignInstruction iterator = null!;
@@ -139,6 +214,11 @@ namespace NeoCompose.Runtime.Json
     /// <summary>Mirror of the P50 <c>forEach</c> instruction.</summary>
     public sealed class ForEachInstruction : Instruction
     {
+        public ForEachInstruction()
+            : base(InstructionCode.ForEach)
+        {
+        }
+
         public LoopBinding binding = null!;
         public Pointer collectionPointer = null!;
         public TypeInfo collectionTypeInfo = null!;
@@ -154,11 +234,19 @@ namespace NeoCompose.Runtime.Json
     /// <summary>Exits the nearest enclosing loop or switch.</summary>
     public sealed class BreakInstruction : Instruction
     {
+        public BreakInstruction()
+            : base(InstructionCode.Break)
+        {
+        }
     }
 
     /// <summary>Advances the nearest enclosing loop.</summary>
     public sealed class ContinueInstruction : Instruction
     {
+        public ContinueInstruction()
+            : base(InstructionCode.Continue)
+        {
+        }
     }
 
     /// <summary>
@@ -174,6 +262,11 @@ namespace NeoCompose.Runtime.Json
     /// <summary>Mirror of the P51 <c>switch</c> instruction.</summary>
     public sealed class SwitchInstruction : Instruction
     {
+        public SwitchInstruction()
+            : base(InstructionCode.Switch)
+        {
+        }
+
         public Pointer selector = null!;
         public TypeInfo selectorTypeInfo = null!;
         public SwitchSection[] sections = null!;
@@ -203,6 +296,11 @@ namespace NeoCompose.Runtime.Json
     /// <summary>Mirror of the P52 <c>try</c> instruction.</summary>
     public sealed class TryInstruction : Instruction
     {
+        public TryInstruction()
+            : base(InstructionCode.Try)
+        {
+        }
+
         public Instruction[] instructions = null!;
         public CatchClause[] catches = null!;
     }
@@ -218,6 +316,11 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public abstract class ActionListenerInstruction : Instruction
     {
+        protected ActionListenerInstruction()
+            : base(InstructionCode.ActionListener)
+        {
+        }
+
         public WriteTarget target = null!;
         public Pointer listener = null!;
     }
