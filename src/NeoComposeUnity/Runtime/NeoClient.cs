@@ -1130,6 +1130,9 @@ namespace NeoCompose.Runtime
 #if NEO_COMPOSE_PROFILING
             using var marker = EvaluationRowRefreshMarker.Auto();
 #endif
+            // Most writes change a row no evaluation unwrapped: skip reading it.
+            if (!NeoScript.NSGetterEvaluator.MayCacheRow(shared, ownership, valueId))
+                return;
             if (TryGetValue(ownership, valueId, out MemberValue? row))
                 NeoScript.NSGetterEvaluator.RefreshCachedRowAfterWrite(row, shared, ownership);
             else

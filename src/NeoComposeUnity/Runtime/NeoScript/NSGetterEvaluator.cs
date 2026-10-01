@@ -1480,6 +1480,8 @@ namespace NeoCompose.Runtime.NeoScript
             }
 
             internal void Remove(NeoValueOwnership ownership, string id) => rows.Remove(RowCacheRowKey(ownership, id));
+
+            internal bool Contains(RowKey key) => rows.ContainsKey(key);
         }
 
         // Moves after any list or dictionary becomes or stops being a row
@@ -8450,6 +8452,19 @@ namespace NeoCompose.Runtime.NeoScript
         {
             foreach (string rowId in rowIds)
                 EvictCachedRow(ctx, ownership, rowId);
+        }
+
+        /// <summary>
+        /// Whether a write to the row may need <see cref="RefreshCachedRowAfterWrite"/>
+        /// or <see cref="EvictCachedRow"/>: the context unwrapped it, or an
+        /// alias may name it. An alias index no write built yet may hold any.
+        /// </summary>
+        internal static bool MayCacheRow(Context ctx, NeoValueOwnership ownership, string rowId)
+        {
+            RowKey key = RowCacheRowKey(ownership, rowId);
+            return ctx.rowCacheKeysByRow.ContainsKey(key)
+                || ctx.BuiltRowAliases is not { } aliases
+                || aliases.Contains(key);
         }
 
         internal static void EvictCachedRow(Context ctx, NeoValueOwnership ownership, string rowId)
