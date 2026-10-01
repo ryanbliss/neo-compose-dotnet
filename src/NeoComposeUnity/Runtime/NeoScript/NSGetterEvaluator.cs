@@ -1646,7 +1646,9 @@ namespace NeoCompose.Runtime.NeoScript
                 for (int i = 0; i < getterSlotCount; i++)
                 {
                     ref GetterSlot slot = ref getterSlots![i];
-                    if (slot.readOwnership == readOwnership && string.Equals(slot.memberId, memberId))
+                    // A site passes the same id instance every time.
+                    if (slot.readOwnership == readOwnership
+                        && (ReferenceEquals(slot.memberId, memberId) || slot.memberId == memberId))
                         return slot.entry.forgotten ? null : slot.entry;
                 }
                 return null;
@@ -2257,9 +2259,12 @@ namespace NeoCompose.Runtime.NeoScript
         /// <summary>A getter call, dispatched on the receiver's runtime Class.</summary>
         private static object? EvalCallGetter(CallGetterPointer cgp, NeoScriptScope scope, Context ctx)
         {
-            if (cgp.dispatch == "base" && cgp.receiver.IsStatic)
+            // Most sites dispatch virtually: a null check skips the compare.
+            bool baseDispatch = cgp.dispatch is not null && cgp.dispatch == "base";
+            bool isStatic = cgp.receiver.IsStatic;
+            if (baseDispatch && isStatic)
                 throw new NSGetterRuntimeError("Base dispatch requires an instance receiver.");
-            if (cgp.receiver.IsStatic)
+            if (isStatic)
             {
                 JsonMember? member = ResolveGetterMember(cgp, ctx);
                 ValidateStaticCallableReceiver(
@@ -2276,7 +2281,7 @@ namespace NeoCompose.Runtime.NeoScript
             var innerThis = EvalCallReceiver(cgp.receiver, scope, ctx);
             if (cgp.optional == true && innerThis is null)
                 return null;
-            if (cgp.dispatch == "base")
+            if (baseDispatch)
                 return DispatchNSGetterById(cgp.memberId, innerThis, ctx, (ResolveGetterMember(cgp, ctx) as NSPropertyMember)?.getter);
             // Try runtime dispatch via the receiver's classId merged
             // schema first — same trick the TS evaluator uses to
@@ -3733,7 +3738,7 @@ namespace NeoCompose.Runtime.NeoScript
             }
             if (receiver.IsStatic)
                 return null;
-            if (receiver.kind != CallReceiverKind.Instance || receiver.pointer is null)
+            if (!receiver.IsInstance || receiver.pointer is null)
             {
                 throw new NSGetterRuntimeError(
                     $"Unsupported call receiver kind '{receiver.kind ?? "<missing>"}'.");
@@ -4193,7 +4198,7 @@ namespace NeoCompose.Runtime.NeoScript
                 {
                     return DispatchMatchedNoValue;
                 }
-                return DispatchNSGetterById(entry.memberId, receiver, ctx, getter);
+                return DispatchNSGetterById(entry.memberId, receiver, ctx, getter, receiverRef);
             }
 
             ctx.client.ReadReplayField(receiverRowId, schemaKey);
@@ -4421,11 +4426,13 @@ namespace NeoCompose.Runtime.NeoScript
         /// override chain, including authored-code null clears.
         /// </summary>
         /// <param name="getter">The member's compiled getter when the caller already resolved it.</param>
+        /// <param name="receiverRef">The receiver's row reference when the caller already found it.</param>
         private static object? DispatchNSGetterById(
             string memberId,
             object? receiver,
             Context ctx,
-            FunctionWithReturnType? getter = null)
+            FunctionWithReturnType? getter = null,
+            RowReference? receiverRef = null)
         {
             if (ContainsFrame(ctx.getterCallStack, memberId))
             {
@@ -4442,10 +4449,9 @@ namespace NeoCompose.Runtime.NeoScript
                     $"Getter '{name}' has no compiled `getter` — save its code to compile it");
             }
             NeoClient client = ctx.client;
-            RowReference? receiverRef = null;
             bool memoize = client.CanMemoizeGetters
                 && receiver is not NeoScriptObject { attachedId: null }
-                && (receiverRef = FindRowReference(receiver, ctx)) is not null;
+                && (receiverRef ??= FindRowReference(receiver, ctx)) is not null;
             if (memoize)
             {
                 // The row reference's own slot usually answers, so the
@@ -4532,7 +4538,7 @@ namespace NeoCompose.Runtime.NeoScript
         internal static bool ContainsFrame(IReadOnlyCollection<string> stack, string memberId)
         {
             if (stack is Context.CallFrameStack pushed)
-                return pushed.Contains(memberId);
+                return pushed.Count != 0 && pushed.Contains(memberId);
             if (stack is IReadOnlyList<string> frames)
             {
                 for (int i = 0; i < frames.Count; i++)

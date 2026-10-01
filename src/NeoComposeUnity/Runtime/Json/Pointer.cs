@@ -214,21 +214,37 @@ namespace NeoCompose.Runtime.Json
         // Every call and getter read asks; a string compare each time
         // showed in the interpreter's profile. Keyed by the kind string
         // itself, so reassigning kind recomputes.
-        [JsonIgnore] private string? isStaticKind;
+        [JsonIgnore] private string? classifiedKind;
         [JsonIgnore] private bool isStatic;
+        [JsonIgnore] private bool isInstance;
 
         [JsonIgnore]
         public bool IsStatic
         {
             get
             {
-                if (!ReferenceEquals(isStaticKind, kind))
-                {
-                    isStatic = kind == CallReceiverKind.Static;
-                    isStaticKind = kind;
-                }
+                if (!ReferenceEquals(classifiedKind, kind))
+                    Classify();
                 return isStatic;
             }
+        }
+
+        [JsonIgnore]
+        internal bool IsInstance
+        {
+            get
+            {
+                if (!ReferenceEquals(classifiedKind, kind))
+                    Classify();
+                return isInstance;
+            }
+        }
+
+        private void Classify()
+        {
+            isStatic = kind == CallReceiverKind.Static;
+            isInstance = kind == CallReceiverKind.Instance;
+            classifiedKind = kind;
         }
     }
 

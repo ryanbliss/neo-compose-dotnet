@@ -217,7 +217,18 @@ namespace NeoCompose.Runtime
             getterReadCapture?.Add(new GetterRead(content, placementId, cell, tile));
 
         /// <summary>Reports a memoized getter's recorded reads as if it had run.</summary>
+        // Every memo hit calls this, and usually nothing observes its reads.
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void ReplayGetterReads(GetterMemoEntry entry, NeoScriptGridReads? gridReads)
+        {
+            if (gridReads is not null
+                || getterReadCapture is not null
+                || capturedValueReads is not null
+                || getterValueReadCapture is not null)
+                ReplayObservedGetterReads(entry, gridReads);
+        }
+
+        private void ReplayObservedGetterReads(GetterMemoEntry entry, NeoScriptGridReads? gridReads)
         {
             if (entry.valueReads is not null && (capturedValueReads is not null || getterValueReadCapture is not null))
                 foreach (string id in entry.valueReads)
@@ -245,11 +256,17 @@ namespace NeoCompose.Runtime
         /// grid-read capture (<see cref="NeoScriptGridReads"/>) do not
         /// disable memoization: a hit replays the entry's recorded reads.
         /// </summary>
-        internal bool CanMemoizeGetters =>
-            candidateReplay is null
-            && candidateReadPlan is null
-            && replayAllocationScope is null
-            && !isReplayingVirtualInstance;
+        internal bool CanMemoizeGetters
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return candidateReplay is null
+                    && candidateReadPlan is null
+                    && replayAllocationScope is null
+                    && !isReplayingVirtualInstance;
+            }
+        }
 
         internal GetterMemoEntry? FindMemoizedGetter(GetterMemoKey key) =>
             getterMemo.TryGetValue(key, out GetterMemoEntry? entry) ? entry : null;
