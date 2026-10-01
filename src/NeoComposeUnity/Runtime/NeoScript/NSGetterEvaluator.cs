@@ -4751,6 +4751,7 @@ namespace NeoCompose.Runtime.NeoScript
             NeoScriptScope scope,
             Context ctx)
         {
+            ComparisonOp op = ComparisonOf(condition);
             object? left = EvaluateComparand(condition.operand1, scope, ctx, out double leftNumber);
             object? right = EvaluateComparand(condition.operand2, scope, ctx, out double rightNumber);
             if (condition.isDecimal != true && ArithmeticValue.IsNumeric(left) && ArithmeticValue.IsNumeric(right))
@@ -4760,19 +4761,19 @@ namespace NeoCompose.Runtime.NeoScript
                 leftNumber = ArithmeticValue.NumberOf(left, leftNumber);
                 rightNumber = ArithmeticValue.NumberOf(right, rightNumber);
                 double difference = leftNumber - rightNumber;
-                switch (condition.type)
+                switch (op)
                 {
-                    case OperatorKind.EqualTo:
+                    case ComparisonOp.EqualTo:
                         return leftNumber == rightNumber;
-                    case OperatorKind.DoesNotEqual:
+                    case ComparisonOp.DoesNotEqual:
                         return leftNumber != rightNumber;
-                    case OperatorKind.GreaterThan:
+                    case ComparisonOp.GreaterThan:
                         return difference > 0;
-                    case OperatorKind.GreaterThanOrEqualTo:
+                    case ComparisonOp.GreaterThanOrEqualTo:
                         return difference >= 0;
-                    case OperatorKind.LessThan:
+                    case ComparisonOp.LessThan:
                         return difference < 0;
-                    case OperatorKind.LessThanOrEqualTo:
+                    case ComparisonOp.LessThanOrEqualTo:
                         return difference <= 0;
                 }
             }
@@ -4788,11 +4789,11 @@ namespace NeoCompose.Runtime.NeoScript
                 bool bIsNull = b is null;
                 if (aIsNull || bIsNull)
                 {
-                    switch (condition.type)
+                    switch (op)
                     {
-                        case OperatorKind.EqualTo:
+                        case ComparisonOp.EqualTo:
                             return aIsNull && bIsNull;
-                        case OperatorKind.DoesNotEqual:
+                        case ComparisonOp.DoesNotEqual:
                             return !(aIsNull && bIsNull);
                         default:
                             throw new NSGetterRuntimeError(
@@ -4802,43 +4803,61 @@ namespace NeoCompose.Runtime.NeoScript
                 int comparison = NeoDecimalMath.Compare(
                     CoerceDecimalOperand(a, "comparison"),
                     CoerceDecimalOperand(b, "comparison"));
-                switch (condition.type)
+                switch (op)
                 {
-                    case OperatorKind.EqualTo:
+                    case ComparisonOp.EqualTo:
                         return comparison == 0;
-                    case OperatorKind.DoesNotEqual:
+                    case ComparisonOp.DoesNotEqual:
                         return comparison != 0;
-                    case OperatorKind.GreaterThan:
+                    case ComparisonOp.GreaterThan:
                         return comparison > 0;
-                    case OperatorKind.GreaterThanOrEqualTo:
+                    case ComparisonOp.GreaterThanOrEqualTo:
                         return comparison >= 0;
-                    case OperatorKind.LessThan:
+                    case ComparisonOp.LessThan:
                         return comparison < 0;
-                    case OperatorKind.LessThanOrEqualTo:
+                    case ComparisonOp.LessThanOrEqualTo:
                         return comparison <= 0;
                     default:
                         throw new NSGetterRuntimeError(
                             $"Unknown comparison operator '{condition.type}'");
                 }
             }
-            switch (condition.type)
+            switch (op)
             {
-                case OperatorKind.EqualTo:
+                case ComparisonOp.EqualTo:
                     return JsEqual(a, b);
-                case OperatorKind.DoesNotEqual:
+                case ComparisonOp.DoesNotEqual:
                     return !JsEqual(a, b);
-                case OperatorKind.GreaterThan:
+                case ComparisonOp.GreaterThan:
                     return NumericCompare(a, b) > 0;
-                case OperatorKind.GreaterThanOrEqualTo:
+                case ComparisonOp.GreaterThanOrEqualTo:
                     return NumericCompare(a, b) >= 0;
-                case OperatorKind.LessThan:
+                case ComparisonOp.LessThan:
                     return NumericCompare(a, b) < 0;
-                case OperatorKind.LessThanOrEqualTo:
+                case ComparisonOp.LessThanOrEqualTo:
                     return NumericCompare(a, b) <= 0;
                 default:
                     throw new NSGetterRuntimeError(
                         $"Unknown comparison operator '{condition.type}'");
             }
+        }
+
+        // The operator parsed once per condition: a string switch compares
+        // it to each case in turn on every evaluation.
+        private static ComparisonOp ComparisonOf(Condition condition)
+        {
+            if (condition.comparison != ComparisonOp.Unresolved)
+                return condition.comparison;
+            return condition.comparison = condition.type switch
+            {
+                OperatorKind.EqualTo => ComparisonOp.EqualTo,
+                OperatorKind.DoesNotEqual => ComparisonOp.DoesNotEqual,
+                OperatorKind.GreaterThan => ComparisonOp.GreaterThan,
+                OperatorKind.GreaterThanOrEqualTo => ComparisonOp.GreaterThanOrEqualTo,
+                OperatorKind.LessThan => ComparisonOp.LessThan,
+                OperatorKind.LessThanOrEqualTo => ComparisonOp.LessThanOrEqualTo,
+                _ => ComparisonOp.Unknown,
+            };
         }
 
         // ---------------------------------------------------------------

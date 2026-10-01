@@ -365,6 +365,21 @@ namespace NeoCompose.Runtime.Json
         /// </summary>
         [JsonProperty("decimal")]
         public bool? isDecimal;
+        // Evaluator cache for type, parsed once.
+        internal ComparisonOp comparison;
+    }
+
+    /// <summary>A parsed <see cref="OperatorKind"/>.</summary>
+    internal enum ComparisonOp : byte
+    {
+        Unresolved,
+        EqualTo,
+        DoesNotEqual,
+        GreaterThan,
+        GreaterThanOrEqualTo,
+        LessThan,
+        LessThanOrEqualTo,
+        Unknown,
     }
 
     /// <summary>
