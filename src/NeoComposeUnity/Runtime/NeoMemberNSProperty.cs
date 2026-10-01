@@ -281,8 +281,7 @@ namespace NeoCompose.Runtime
             MemberValue? thisRow)
         {
             var ctx = client.CreateGetterContext(ownership);
-            object? rootValue = ResolveRootValue(ctx);
-            ctx.BindRoot(rootValue);
+            ctx.BindRoot(ResolveRootValue(ctx));
 
             object? boundThis = ResolveThisValue(thisValue, thisRow, ctx);
             if (boundThis is null)
@@ -295,9 +294,8 @@ namespace NeoCompose.Runtime
                 member.id,
                 boundThis,
                 ctx);
-            var setter = NeoScriptExecutor.ResolveCompiledSetter(
-                effectiveMemberId,
-                client);
+            client.TryGetMember(effectiveMemberId, out NSPropertyMember? resolvedProperty);
+            FunctionWithReturnType? setter = resolvedProperty?.setter;
             if (setter is null)
             {
                 return SetterError(
@@ -324,37 +322,28 @@ namespace NeoCompose.Runtime
                 return SetterError($"Setter value conversion failed: {ex.Message}");
             }
 
-            var scope = new Dictionary<string, object?>
-            {
-                ["__this__"] = boundThis,
-                ["__root__"] = rootValue,
-                ["__value__"] = normalizedValue,
-            };
-            NSPropertyMember effectiveProperty = client.TryGetMember(
-                effectiveMemberId, out NSPropertyMember? resolvedProperty)
-                    ? resolvedProperty!
-                    : member;
-            var terminalLogger = new SetterTerminalLogger(effectiveProperty);
+            NSPropertyMember effectiveProperty = resolvedProperty ?? member;
+            SetterTerminalLogger? terminalLogger = null;
             try
             {
-                var execution = NeoScriptExecutor.Execute(
+                // The context is this call's own, so the setter enters it in place.
+                ctx.PushSetter(effectiveMemberId, boundThis);
+                var execution = NeoScriptExecutor.ExecuteSetter(
                     client,
                     setter,
-                    scope,
-                    ctx.WithSetterPushed(effectiveMemberId, boundThis),
-                    NeoScriptExecutionOptions.ForUnityProperty(client, effectiveMemberId),
-                    (terminal, _) => NeoScriptExecutor.ValidateStatementTerminal(
-                        terminal,
-                        "NeoScript property setter"));
+                    normalizedValue,
+                    ctx,
+                    NeoScriptExecutionOptions.ForUnityProperty(client, effectiveMemberId));
                 if (!execution.IsPaused)
                     return NSSetterResult.Ok();
 
+                terminalLogger = new SetterTerminalLogger(effectiveProperty);
                 ObservePendingExecution(execution, terminalLogger);
                 return NSSetterResult.Pending();
             }
             catch (System.Exception ex)
             {
-                terminalLogger.Log(ex);
+                (terminalLogger ??= new SetterTerminalLogger(effectiveProperty)).Log(ex);
                 return NSSetterResult.Error(ex.Message);
             }
         }

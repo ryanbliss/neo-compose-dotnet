@@ -986,6 +986,8 @@ namespace NeoCompose.Runtime
         }
 
         internal NeoScriptExecutionOptions? immediateScriptExecutionOptions;
+        internal NeoScriptExecutionOptions? unityPropertyScriptExecutionOptions;
+        internal NeoScriptExecutionOptions? directFunctionScriptExecutionOptions;
         private const int MaxPooledDirectFunctionContexts = 16;
         internal MergedSchemaEntry? ResolveInstanceSurfaceMember(string classId, string key) =>
             ResolveClassNode(classId).SurfaceMember(key);

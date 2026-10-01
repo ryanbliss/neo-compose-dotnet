@@ -1056,10 +1056,16 @@ namespace NeoCompose.Runtime.NeoScript
             internal Context WithSetterPushed(string memberId, object? receiver)
             {
                 Context child = Fork();
-                child.setterCallStack = CallFrameStack.Push(
-                    setterCallStack as IReadOnlyList<string> ?? setterCallStack.ToArray(), memberId);
-                child.thisValue = receiver;
+                child.PushSetter(memberId, receiver);
                 return child;
+            }
+
+            /// <summary>Enters a setter on a context its caller owns outright, without a fork.</summary>
+            internal void PushSetter(string memberId, object? receiver)
+            {
+                setterCallStack = CallFrameStack.Push(
+                    setterCallStack as IReadOnlyList<string> ?? setterCallStack.ToArray(), memberId);
+                thisValue = receiver;
             }
 
             internal Context WithFunctionPushed(string memberId, IReadOnlyList<string> directCallStack, object? receiver)

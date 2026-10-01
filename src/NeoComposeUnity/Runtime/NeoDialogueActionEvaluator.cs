@@ -3069,32 +3069,67 @@ namespace NeoCompose.Runtime
             // not apply the operator a second time.
             object? value = CoerceSetterValue(rhs, instruction.target.typeInfo);
 
-            var nestedScope = new Dictionary<string, object?>
-            {
-                ["__root__"] = ctx.rootValue,
-                ["__value__"] = value,
-            };
-            if (!isStatic)
-                nestedScope["__this__"] = receiver;
-            if (ctx.contextValue is not null)
-            {
-                nestedScope["__context__"] = ctx.contextValue;
-            }
-
             var nestedCtx = ctx
                 .WithSetterPushed(effectiveMemberId, isStatic ? null : receiver);
             var nestedOptions = options is null || ctx.constructorBody
                 ? NeoScriptExecutionOptions.ForUnityProperty(client, effectiveMemberId)
                 : options.ForProperty(effectiveMemberId);
-            return Execute(
-                client,
-                setter,
-                nestedScope,
-                nestedCtx,
-                nestedOptions,
-                (terminal, _) => ValidateStatementTerminal(
-                    terminal,
-                    "NeoScript property setter"));
+            return ExecuteSetter(client, setter, value, nestedCtx, nestedOptions);
+        }
+
+        /// <summary>
+        /// Runs a compiled setter in its body's pooled scope, binding the
+        /// <c>[__this__, __root__, __value__]</c> parameters by slot. The
+        /// receiver and root are <paramref name="ctx"/>'s.
+        /// </summary>
+        internal static NeoScriptExecutionResult ExecuteSetter(
+            NeoClient client,
+            FunctionWithReturnType setter,
+            object? value,
+            NSGetterEvaluator.Context ctx,
+            NeoScriptExecutionOptions options)
+        {
+            NeoScriptScopeLayout layout = setter.scopeLayout ??= new NeoScriptScopeLayout(setter);
+            NeoScriptScope scope = layout.RentScope();
+            bool completed = false;
+            try
+            {
+                if (layout.thisSlot >= 0)
+                    scope.SetParameter(layout.thisSlot, ctx.thisValue);
+                else
+                    scope["__this__"] = ctx.thisValue;
+                if (layout.rootSlot >= 0)
+                    scope.SetParameter(layout.rootSlot, ctx.rootValue);
+                else
+                    scope["__root__"] = ctx.rootValue;
+                if (layout.valueSlot >= 0)
+                    scope.SetParameter(layout.valueSlot, value);
+                else
+                    scope[NeoScriptScopeLayout.ValueParameterId] = value;
+                if (layout.contextSlot >= 0)
+                    scope.SetParameter(layout.contextSlot, ctx.contextValue);
+                else if (ctx.contextValue is not null)
+                    scope["__context__"] = ctx.contextValue;
+                NeoScriptExecutionResult result = Execute(
+                    client,
+                    setter,
+                    scope,
+                    ctx,
+                    options,
+                    (terminal, _) => ValidateStatementTerminal(
+                        terminal,
+                        "NeoScript property setter"));
+                completed = !result.IsPaused;
+                return result;
+            }
+            finally
+            {
+                // A suspended setter's continuation still holds the scope.
+                if (completed)
+                    layout.ReturnScope(scope);
+                else
+                    layout.AbandonScope(scope);
+            }
         }
 
         private static object? CoerceSetterValue(object? value, TypeInfo typeInfo)
@@ -3113,9 +3148,9 @@ namespace NeoCompose.Runtime
             object receiver,
             NSGetterEvaluator.Context ctx)
         {
-            var placement = NeoSchemaClassInheritance.FindSchemaPlacement(
-                staticMemberId,
-                client.classes.Values);
+            // The placement and the class's instance surface are the
+            // client's cached schema resolution, as a getter dispatch reads.
+            var placement = client.FindSchemaPlacement(staticMemberId);
             if (placement is null)
                 return staticMemberId;
 
@@ -3125,27 +3160,15 @@ namespace NeoCompose.Runtime
             if (string.IsNullOrEmpty(runtimeClassId))
                 return staticMemberId;
 
-            IList<NeoSchemaClass> chain;
             try
             {
-                chain = client.ResolveClassInheritanceChain(runtimeClassId!);
+                return client.ResolveInstanceSurfaceMember(runtimeClassId!, placement.schemaKey)?.memberId
+                    ?? staticMemberId;
             }
             catch (CircularInheritanceError)
             {
                 return staticMemberId;
             }
-            foreach (var entry in NeoSchemaClassInheritance.MergeInstanceSchema(
-                chain,
-                id => client.TryGetMember(id, out JsonMember? member)
-                    ? member
-                    : null))
-            {
-                if (entry.schemaKey == placement.schemaKey)
-                {
-                    return entry.memberId;
-                }
-            }
-            return staticMemberId;
         }
 
         internal static FunctionWithReturnType? ResolveCompiledSetter(
@@ -6239,26 +6262,23 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>The options a property setter runs with when its caller has none.</summary>
-        internal static NeoScriptExecutionOptions ForUnityProperty(NeoClient client, string memberId)
-        {
-            return new NeoScriptExecutionOptions(
+        internal static NeoScriptExecutionOptions ForUnityProperty(NeoClient client, string memberId) =>
+            (client.unityPropertyScriptExecutionOptions ??= new NeoScriptExecutionOptions(
                 client,
                 UnityEngine.Debug.LogWarning,
-                memberId,
+                null,
                 allowDeferredFunctionCalls: true,
-                cancelContinuationOnDeferredDisposal: false);
-        }
+                cancelContinuationOnDeferredDisposal: false))
+            .ForProperty(memberId);
 
         internal static NeoScriptExecutionOptions ForDirectFunction(
-            NeoClient client)
-        {
-            return new NeoScriptExecutionOptions(
+            NeoClient client) =>
+            client.directFunctionScriptExecutionOptions ??= new NeoScriptExecutionOptions(
                 client,
                 UnityEngine.Debug.LogWarning,
                 null,
                 allowDeferredFunctionCalls: true,
                 cancelContinuationOnDeferredDisposal: true);
-        }
 
         /// <summary>
         /// Immediate options carry no per-call state, so one instance per
@@ -6287,14 +6307,23 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal NSGetterEvaluator.Context.ExpressionHandlers? immediateHandlers;
 
+        // Options carry no per-call state, so each property's are built once.
+        private Dictionary<string, NeoScriptExecutionOptions>? propertyOptions;
+
         internal NeoScriptExecutionOptions ForProperty(string memberId)
         {
-            return new NeoScriptExecutionOptions(
-                client,
-                warning,
-                memberId,
-                AllowDeferredFunctionCalls,
-                CancelContinuationOnDeferredDisposal);
+            propertyOptions ??= new Dictionary<string, NeoScriptExecutionOptions>(StringComparer.Ordinal);
+            if (!propertyOptions.TryGetValue(memberId, out NeoScriptExecutionOptions? options))
+            {
+                options = new NeoScriptExecutionOptions(
+                    client,
+                    warning,
+                    memberId,
+                    AllowDeferredFunctionCalls,
+                    CancelContinuationOnDeferredDisposal);
+                propertyOptions.Add(memberId, options);
+            }
+            return options;
         }
 
         internal NeoScriptExecutionOptions ForFunction(bool deferred)
