@@ -1648,7 +1648,7 @@ namespace NeoCompose.Runtime
             {
                 // A value of its own kind is already valid.
                 case MemberKind.Bool when value is bool:
-                case MemberKind.Float when value is double:
+                case MemberKind.Float when value is double && IsNumber(value):
                 case MemberKind.String when value is string:
                 case MemberKind.Int when value is double && IsIntegralNumber(value):
                     return value;
@@ -2137,18 +2137,23 @@ namespace NeoCompose.Runtime
                     ? selectionRows
                     : selections;
             }
-            // Row-backed collections contain child ids the store already
-            // typed, so they keep their identity for indexing and writes.
-            // Only a resolved-identity check reads their entries, resolving
-            // each once.
+            // Row-backed collections contain child ids. Validate their values,
+            // then preserve the collection identity for indexing and writes.
+            // Each entry resolves once for both checks.
             if (rowOwnership is not null && value is object?[] rows)
             {
-                if (entryType is null || !resolvedIdentity)
+                if (entryType is null)
                     return rows;
+                bool rowEntries = entryType.type is MemberKind.Class or MemberKind.Interface;
                 for (int i = 0; i < rows.Length; i++)
                 {
                     object? entry = NSGetterEvaluator.ResolveListEntry(rows, i, rowRef, rowOwnership, ctx);
-                    ValidateResolvedRuntimeValue(client, entry, entryType, ctx, subject.Entry(i));
+                    // A resolved row record is already canonical: normalizing
+                    // it would only read its row again.
+                    if (!rowEntries || !NSGetterEvaluator.IsRowRecord(entry, ctx))
+                        Normalize(client, rowOwnership.Value, entry, entryType, ctx, subject.Entry());
+                    if (resolvedIdentity)
+                        ValidateResolvedRuntimeValue(client, entry, entryType, ctx, subject.Entry(i));
                 }
                 resolvedIdentity = false;
                 return rows;
