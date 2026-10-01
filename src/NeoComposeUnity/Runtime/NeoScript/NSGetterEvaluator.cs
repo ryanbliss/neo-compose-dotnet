@@ -524,6 +524,25 @@ namespace NeoCompose.Runtime.NeoScript
                 NeoScriptScope scope,
                 Context ctx);
 
+            /// <summary>
+            /// The call and object-initializer handlers an expression context
+            /// runs with. One reference, so a frame installs and restores both
+            /// with one store.
+            /// </summary>
+            internal sealed class ExpressionHandlers
+            {
+                internal readonly LinkedFunctionCallHandler call;
+                internal readonly Func<ObjectInitializerPointer, NeoScriptScope, Context, object?> initializer;
+
+                internal ExpressionHandlers(
+                    LinkedFunctionCallHandler call,
+                    Func<ObjectInitializerPointer, NeoScriptScope, Context, object?> initializer)
+                {
+                    this.call = call;
+                    this.initializer = initializer;
+                }
+            }
+
             public NeoClient client
             {
                 get;
@@ -685,11 +704,7 @@ namespace NeoCompose.Runtime.NeoScript
                 rowAliasIndex ?? (RowAliasIndexes.TryGetValue(rowReverseIndex, out RowAliasIndex built)
                     ? rowAliasIndex = built
                     : null);
-            internal LinkedFunctionCallHandler? linkedFunctionCallHandler
-            {
-                get; private set;
-            }
-            internal Func<ObjectInitializerPointer, NeoScriptScope, Context, object?>? objectInitializerHandler
+            internal ExpressionHandlers? expressionHandlers
             {
                 get; private set;
             }
@@ -826,8 +841,7 @@ namespace NeoCompose.Runtime.NeoScript
                 immediateExpressionSource = null;
                 immediateExpressionState = null;
                 immediateExpressionOptions = null;
-                linkedFunctionCallHandler = null;
-                objectInitializerHandler = null;
+                expressionHandlers = null;
             }
 
             /// <summary>
@@ -886,13 +900,10 @@ namespace NeoCompose.Runtime.NeoScript
                 return child;
             }
 
-            internal Context WithExpressionHandlers(
-                LinkedFunctionCallHandler handler,
-                Func<ObjectInitializerPointer, NeoScriptScope, Context, object?> initializerHandler)
+            internal Context WithExpressionHandlers(ExpressionHandlers handlers)
             {
                 Context child = Fork();
-                child.linkedFunctionCallHandler = handler;
-                child.objectInitializerHandler = initializerHandler;
+                child.expressionHandlers = handlers;
                 return child;
             }
 
@@ -923,8 +934,7 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 internal object? thisValue;
                 internal IReadOnlyList<string>? functionCallStack;
-                internal LinkedFunctionCallHandler? linkedFunctionCallHandler;
-                internal Func<ObjectInitializerPointer, NeoScriptScope, Context, object?>? objectInitializerHandler;
+                internal ExpressionHandlers? expressionHandlers;
                 // Whether the frame replaced this and the handlers: most calls
                 // keep both, and saving them anyway write-barriers each.
                 internal bool thisSaved;
@@ -1029,30 +1039,22 @@ namespace NeoCompose.Runtime.NeoScript
             /// <paramref name="frame"/>, which restores the caller's on exit;
             /// -1 binds them on a context no frame restores.
             /// </summary>
-            internal void BindFrameHandlers(
-                int frame,
-                LinkedFunctionCallHandler handler,
-                Func<ObjectInitializerPointer, NeoScriptScope, Context, object?> initializerHandler)
+            internal void BindFrameHandlers(int frame, ExpressionHandlers handlers)
             {
                 // Every call rebinds the same prebuilt handlers; an unchanged
                 // field skips its write barrier.
-                if (ReferenceEquals(linkedFunctionCallHandler, handler)
-                    && ReferenceEquals(objectInitializerHandler, initializerHandler))
-                {
+                if (ReferenceEquals(expressionHandlers, handlers))
                     return;
-                }
                 if (frame >= 0)
                 {
                     ref FunctionFrame saved = ref frameStack!.frames[frame];
                     if (!saved.handlersSaved)
                     {
-                        saved.linkedFunctionCallHandler = linkedFunctionCallHandler;
-                        saved.objectInitializerHandler = objectInitializerHandler;
+                        saved.expressionHandlers = expressionHandlers;
                         saved.handlersSaved = true;
                     }
                 }
-                linkedFunctionCallHandler = handler;
-                objectInitializerHandler = initializerHandler;
+                expressionHandlers = handlers;
             }
 
             /// <summary>
@@ -1084,10 +1086,8 @@ namespace NeoCompose.Runtime.NeoScript
                     functionCallStack = saved.functionCallStack!;
                 if (saved.handlersSaved)
                 {
-                    linkedFunctionCallHandler = saved.linkedFunctionCallHandler;
-                    objectInitializerHandler = saved.objectInitializerHandler;
-                    saved.linkedFunctionCallHandler = null;
-                    saved.objectInitializerHandler = null;
+                    expressionHandlers = saved.expressionHandlers;
+                    saved.expressionHandlers = null;
                     saved.handlersSaved = false;
                 }
                 if (!ReferenceEquals(immediateExpressionContext, saved.immediateExpressionContext))
@@ -1792,8 +1792,8 @@ namespace NeoCompose.Runtime.NeoScript
                         return EvalPointer(cp.right, scope, ctx);
                     }
                 case ObjectInitializerPointer initializer:
-                    return ctx.objectInitializerHandler is not null
-                        ? ctx.objectInitializerHandler(initializer, scope, ctx)
+                    return ctx.expressionHandlers is { } handlers
+                        ? handlers.initializer(initializer, scope, ctx)
                         : NeoScriptExecutor.EvaluateImmediateObjectInitializer(initializer, scope, ctx);
                 case ConditionalPointer conditional:
                     {
@@ -2326,9 +2326,9 @@ namespace NeoCompose.Runtime.NeoScript
             NeoScriptScope scope,
             Context ctx)
         {
-            if (ctx.linkedFunctionCallHandler is not null)
+            if (ctx.expressionHandlers is { } handlers)
             {
-                return ctx.linkedFunctionCallHandler(pointer, scope, ctx);
+                return handlers.call(pointer, scope, ctx);
             }
             var receiver = EvalCallReceiver(pointer.receiver, scope, ctx);
             if (pointer.optional == true && receiver is null)

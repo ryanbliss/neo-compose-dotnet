@@ -428,8 +428,8 @@ namespace NeoCompose.Runtime
             NSGetterEvaluator.Context actionCtx;
             if (immediate
                 && options is not null
-                && options.immediateCallHandler is not null
-                && ReferenceEquals(ctx.linkedFunctionCallHandler, options.immediateCallHandler))
+                && options.immediateHandlers is not null
+                && ReferenceEquals(ctx.expressionHandlers, options.immediateHandlers))
             {
                 // The caller's frame already installed the shared immediate
                 // handlers for these options, so this frame (a nested call
@@ -2107,8 +2107,8 @@ namespace NeoCompose.Runtime
             if (options?.AllowDeferredFunctionCalls != true)
             {
                 if (options is not null
-                    && options.immediateCallHandler is not null
-                    && ReferenceEquals(ctx.linkedFunctionCallHandler, options.immediateCallHandler))
+                    && options.immediateHandlers is not null
+                    && ReferenceEquals(ctx.expressionHandlers, options.immediateHandlers))
                 {
                     return ctx;
                 }
@@ -2133,22 +2133,23 @@ namespace NeoCompose.Runtime
             if (options.AllowDeferredFunctionCalls)
                 return;
             EnsureImmediateHandlers(ctx.client, options);
-            ctx.BindFrameHandlers(frame, options.immediateCallHandler!, options.immediateInitializerHandler!);
+            ctx.BindFrameHandlers(frame, options.immediateHandlers!);
         }
 
         private static void EnsureImmediateHandlers(NeoClient client, NeoScriptExecutionOptions options)
         {
-            if (options.immediateCallHandler is not null)
+            if (options.immediateHandlers is not null)
                 return;
             InitializeImmediateHandlers(client, options);
         }
 
         private static void InitializeImmediateHandlers(NeoClient client, NeoScriptExecutionOptions options)
         {
-            options.immediateInitializerHandler = (pointer, scope, ctx) =>
-                EvalObjectInitializer(pointer, scope, ctx, ExpressionResumeState.Immediate, options);
-            options.immediateCallHandler = (pointer, scope, ctx) =>
-                CallFunction(client, pointer, scope, ctx, options, CallSiteKey(pointer));
+            options.immediateHandlers = new NSGetterEvaluator.Context.ExpressionHandlers(
+                (pointer, scope, ctx) =>
+                    CallFunction(client, pointer, scope, ctx, options, CallSiteKey(pointer)),
+                (pointer, scope, ctx) =>
+                    EvalObjectInitializer(pointer, scope, ctx, ExpressionResumeState.Immediate, options));
         }
 
         private static NSGetterEvaluator.Context BuildExpressionContext(
@@ -2169,15 +2170,13 @@ namespace NeoCompose.Runtime
                 // depend only on (client, options): build them once and let
                 // every nested frame inherit them through the context fork.
                 EnsureImmediateHandlers(client, options);
-                return ctx.WithExpressionHandlers(
-                    options.immediateCallHandler,
-                    options.immediateInitializerHandler!);
+                return ctx.WithExpressionHandlers(options.immediateHandlers!);
             }
-            return ctx.WithExpressionHandlers(
+            return ctx.WithExpressionHandlers(new NSGetterEvaluator.Context.ExpressionHandlers(
                 (pointer, currentScope, currentCtx) => EvalFunctionCall(
                     client, pointer, currentScope, currentCtx, expressionState, options),
                 (pointer, currentScope, currentCtx) => EvalObjectInitializer(
-                    pointer, currentScope, currentCtx, expressionState, options));
+                    pointer, currentScope, currentCtx, expressionState, options)));
         }
 
         private static NeoScriptExecutionResult PauseLoopExpression(
@@ -6165,9 +6164,7 @@ namespace NeoCompose.Runtime
         /// options. Built once by the executor; see
         /// <see cref="NeoScriptExecutor"/>'s expression context construction.
         /// </summary>
-        internal NSGetterEvaluator.Context.LinkedFunctionCallHandler? immediateCallHandler;
-        internal Func<ObjectInitializerPointer, NeoScriptScope, NSGetterEvaluator.Context, object?>?
-            immediateInitializerHandler;
+        internal NSGetterEvaluator.Context.ExpressionHandlers? immediateHandlers;
 
         internal NeoScriptExecutionOptions ForProperty(string memberId)
         {

@@ -366,7 +366,13 @@ namespace NeoCompose.Tests
             scope["wide"] = 10L;
             Assert.That(NSGetterEvaluator.EvaluatePointer(sum, scope, context), Is.EqualTo("11"));
             int calls = 0;
-            context = context.WithExpressionHandlers((_, _, _) => { calls++; return 2d; }, (_, _, _) => null);
+            context = context.WithExpressionHandlers(new NSGetterEvaluator.Context.ExpressionHandlers(
+                (_, _, _) =>
+                {
+                    calls++;
+                    return 2d;
+                },
+                (_, _, _) => null));
             var divide = Add(Number(1), Number(0));
             ((ArithmeticOperation)divide.operation).arithmetic.type = ArithmeticOpKind.Division;
             ((ArithmeticOperation)divide.operation).arithmetic.pointers = new Pointer[] { Number(1), Number(0), Call("effect", "effect") };
