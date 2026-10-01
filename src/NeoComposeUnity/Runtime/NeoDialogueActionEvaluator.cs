@@ -789,11 +789,17 @@ namespace NeoCompose.Runtime
             // A run that completes leaves its state unreferenced, so the
             // instruction keeps it for the next run; a paused run's state
             // belongs to its continuation.
-            var state = System.Threading.Interlocked.Exchange(ref instruction.idleState, null) as ForExecutionState;
+            var state = instruction.idleState as ForExecutionState;
             if (state is null)
+            {
                 state = new ForExecutionState(instruction, scope, options);
+            }
             else
+            {
+                // Claimed, so a recursive run of this loop builds its own.
+                instruction.idleState = null;
                 state.Begin(scope, options);
+            }
             NeoScriptExecutionResult result = RunFor(client, returnTypeInfo, scope, ctx, options, state);
             if (!result.IsPaused)
             {
@@ -1096,11 +1102,17 @@ namespace NeoCompose.Runtime
         {
             ValidateForEachInstructionMetadata(instruction);
             // Reused as ExecuteFor reuses its state.
-            var state = System.Threading.Interlocked.Exchange(ref instruction.idleState, null) as ForEachExecutionState;
+            var state = instruction.idleState as ForEachExecutionState;
             if (state is null)
+            {
                 state = new ForEachExecutionState(instruction, scope, options);
+            }
             else
+            {
+                // Claimed, so a recursive run of this loop builds its own.
+                instruction.idleState = null;
                 state.Begin(scope, options);
+            }
             NeoScriptExecutionResult result = RunForEach(
                 client,
                 returnTypeInfo,
@@ -2689,6 +2701,7 @@ namespace NeoCompose.Runtime
             return true;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static object? Eval(
             Pointer pointer,
             NeoScriptScope scope,

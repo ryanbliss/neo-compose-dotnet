@@ -508,9 +508,15 @@ namespace NeoCompose.Runtime
         {
             private RuntimeConstructorField[]? fields;
             private object?[]? arguments;
-            private int inUse;
+            private bool inUse;
 
-            internal bool TryRent() => System.Threading.Interlocked.CompareExchange(ref inUse, 1, 0) == 0;
+            internal bool TryRent()
+            {
+                if (inUse)
+                    return false;
+                inUse = true;
+                return true;
+            }
 
             internal RuntimeConstructorField[] Fields(FunctionClassConstructorField[] siteFields) =>
                 fields ??= NewFields(siteFields);
@@ -533,7 +539,7 @@ namespace NeoCompose.Runtime
                 }
                 // A span clear zeroes without the per-element store barrier.
                 arguments.AsSpan().Clear();
-                System.Threading.Volatile.Write(ref inUse, 0);
+                inUse = false;
             }
 
             internal static RuntimeConstructorField[] NewFields(FunctionClassConstructorField[] siteFields)

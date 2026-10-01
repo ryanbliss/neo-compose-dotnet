@@ -351,9 +351,9 @@ namespace NeoCompose.Runtime.Json
         /// <summary>This call site's argument buffer; see <see cref="NeoScript.NSGetterEvaluator.RentArguments"/>.</summary>
         [JsonIgnore]
         internal object?[]? argumentBuffer;
-        /// <summary>1 while a call holds <see cref="argumentBuffer"/>.</summary>
+        /// <summary>Whether a call holds <see cref="argumentBuffer"/>.</summary>
         [JsonIgnore]
-        internal int argumentBufferInUse;
+        internal bool argumentBufferInUse;
     }
 
     /// <summary>

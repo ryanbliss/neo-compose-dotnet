@@ -1322,9 +1322,9 @@ namespace NeoCompose.Runtime.NeoScript
         // aliased as of a count.
         private static int listAliasEpoch = 1;
 
-        internal static int ListAliasEpoch => System.Threading.Volatile.Read(ref listAliasEpoch);
+        internal static int ListAliasEpoch => listAliasEpoch;
 
-        internal static void NoteListAlias() => System.Threading.Interlocked.Increment(ref listAliasEpoch);
+        internal static void NoteListAlias() => listAliasEpoch++;
 
         private static void SetRowReference(Context ctx, object alias, RowReference row)
         {
@@ -1704,6 +1704,7 @@ namespace NeoCompose.Runtime.NeoScript
             return EvalPointer(pointer, new NeoScriptScope(scope), ctx);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static object? EvaluatePointer(
             Pointer pointer,
             NeoScriptScope scope,
@@ -2337,15 +2338,16 @@ namespace NeoCompose.Runtime.NeoScript
         /// owns one buffer: a reentrant or concurrent call through the same
         /// site finds it in use and allocates its own. Arguments never
         /// outlive the call — callees copy what they keep. The buffer stays
-        /// on the site and an int flag tracks its use, so a call stores no
+        /// on the site and a flag tracks its use, so a call stores no
         /// reference into the site (Mono write-barriers each one).
         /// </summary>
         internal static object?[] RentArguments(CallFunctionPointer call)
         {
             if (call.args.Length == 0)
                 return Array.Empty<object?>();
-            if (System.Threading.Interlocked.CompareExchange(ref call.argumentBufferInUse, 1, 0) != 0)
+            if (call.argumentBufferInUse)
                 return new object?[call.args.Length];
+            call.argumentBufferInUse = true;
             return call.argumentBuffer ??= new object?[call.args.Length];
         }
 
@@ -2360,7 +2362,7 @@ namespace NeoCompose.Runtime.NeoScript
             for (int i = 0; i < args.Length; i++)
                 args[i] = null;
             if (ReferenceEquals(args, call.argumentBuffer))
-                System.Threading.Volatile.Write(ref call.argumentBufferInUse, 0);
+                call.argumentBufferInUse = false;
         }
 
         /// <summary>

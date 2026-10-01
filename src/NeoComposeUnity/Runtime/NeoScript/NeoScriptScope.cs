@@ -31,11 +31,11 @@ namespace NeoCompose.Runtime.NeoScript
 
         // A synchronous body's scope is idle again before the body's next
         // call, so one retained scope serves every call but a recursive one.
-        // The scope stays on the layout and an int flag tracks its use, so a
-        // call stores no reference into the layout (Mono write-barriers each
-        // one).
+        // The scope stays on the layout and a flag tracks its use, so a call
+        // stores no reference into the layout (Mono write-barriers each one).
+        // A plain flag, like the IR's other caches: evaluation is single-threaded.
         private NeoScriptScope? pooledScope;
-        private int pooledScopeInUse;
+        private bool pooledScopeInUse;
 
         /// <summary>
         /// Whether a constructor body's parameters are the positional
@@ -200,8 +200,9 @@ namespace NeoCompose.Runtime.NeoScript
 
         internal NeoScriptScope RentScope()
         {
-            if (System.Threading.Interlocked.CompareExchange(ref pooledScopeInUse, 1, 0) != 0)
+            if (pooledScopeInUse)
                 return new NeoScriptScope(this);
+            pooledScopeInUse = true;
             return pooledScope ??= new NeoScriptScope(this);
         }
 
@@ -228,7 +229,7 @@ namespace NeoCompose.Runtime.NeoScript
                 scope.ResetLocals(rootSlot, boundParameters);
                 scope.ReleaseParent();
             }
-            System.Threading.Volatile.Write(ref pooledScopeInUse, 0);
+            pooledScopeInUse = false;
         }
 
         /// <summary>
@@ -240,7 +241,7 @@ namespace NeoCompose.Runtime.NeoScript
             if (!ReferenceEquals(scope, pooledScope))
                 return;
             pooledScope = null;
-            System.Threading.Volatile.Write(ref pooledScopeInUse, 0);
+            pooledScopeInUse = false;
         }
     }
 
