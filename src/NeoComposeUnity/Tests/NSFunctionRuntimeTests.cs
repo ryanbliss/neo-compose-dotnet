@@ -76,28 +76,28 @@ namespace NeoCompose.Tests
             }
 
             Assert.That(Remembered(aliasIndex), Is.False, "Nothing was remembered yet.");
-            scope.RememberListAlias(pointer, list, aliasIndex, NSGetterEvaluator.ListAliasEpoch, null);
+            scope.RememberListAlias(pointer, list, aliasIndex, NSGetterEvaluator.CollectionAliasEpoch, null);
             Assert.That(Remembered(aliasIndex), Is.True);
             Assert.That(rowAlias, Is.Null, "A plain list names no row.");
             Assert.That(Remembered(new object()), Is.False, "Another alias index was not checked.");
 
-            NSGetterEvaluator.NoteListAlias();
+            NSGetterEvaluator.NoteCollectionAlias();
             Assert.That(Remembered(aliasIndex), Is.False, "A list became an alias since.");
 
             var row = new NSGetterEvaluator.RowReference("items-row", NeoValueOwnership.Save);
-            scope.RememberListAlias(pointer, list, aliasIndex, NSGetterEvaluator.ListAliasEpoch, row);
+            scope.RememberListAlias(pointer, list, aliasIndex, NSGetterEvaluator.CollectionAliasEpoch, row);
             Assert.That(Remembered(aliasIndex), Is.True);
             Assert.That(rowAlias, Is.SameAs(row));
-            NSGetterEvaluator.NoteListAlias();
+            NSGetterEvaluator.NoteCollectionAlias();
             Assert.That(Remembered(aliasIndex), Is.False, "A list alias changed since.");
 
-            scope.RememberListAlias(pointer, list, aliasIndex, NSGetterEvaluator.ListAliasEpoch, null);
+            scope.RememberListAlias(pointer, list, aliasIndex, NSGetterEvaluator.CollectionAliasEpoch, null);
             scope["items"] = list;
             Assert.That(Remembered(aliasIndex), Is.False, "A write clears the slot's memo.");
         }
 
         [Test]
-        public void ArrayAliasCacheHoldsAMissUntilTheListAliasEpochMoves()
+        public void ArrayAliasCacheHoldsAMissUntilTheCollectionAliasEpochMoves()
         {
             using var client = BuildClient(Array.Empty<JsonMember>(), ReceiverClass());
             var context = new NSGetterEvaluator.Context(client, null, null);
@@ -105,18 +105,18 @@ namespace NeoCompose.Tests
             var fresh = new object?[] { 2d };
             var row = new NSGetterEvaluator.RowReference("items-row", NeoValueOwnership.Save);
 
-            Assert.That(context.ArrayRowReference(list), Is.Null);
+            Assert.That(context.CollectionRowReference(list), Is.Null);
             context.rowReverseIndex.Add(list, row);
-            Assert.That(context.ArrayRowReference(list), Is.Null, "A miss holds while the epoch stands.");
-            NSGetterEvaluator.NoteListAlias();
-            Assert.That(context.ArrayRowReference(list), Is.SameAs(row), "A moved epoch looks the list up again.");
+            Assert.That(context.CollectionRowReference(list), Is.Null, "A miss holds while the epoch stands.");
+            NSGetterEvaluator.NoteCollectionAlias();
+            Assert.That(context.CollectionRowReference(list), Is.SameAs(row), "A moved epoch looks the list up again.");
 
             context.NoteFreshList(fresh);
-            Assert.That(context.ArrayRowReference(fresh), Is.Null);
+            Assert.That(context.CollectionRowReference(fresh), Is.Null);
             Assert.That(context.ArrayDetachedOrigin(fresh), Is.Null);
             context.rowReverseIndex.Add(fresh, row);
-            NSGetterEvaluator.NoteListAlias();
-            Assert.That(context.ArrayRowReference(fresh), Is.SameAs(row), "A fresh note is only as current as its epoch.");
+            NSGetterEvaluator.NoteCollectionAlias();
+            Assert.That(context.CollectionRowReference(fresh), Is.SameAs(row), "A fresh note is only as current as its epoch.");
         }
 
         [Test]
