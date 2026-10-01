@@ -25,10 +25,29 @@ namespace NeoCompose.Runtime
         {
             if (!virtualInstanceReplayReady || isReplayingVirtualInstance)
                 return null;
+            Queue<string> pending = RentIdQueue();
+            HashSet<string> visited = RentIdSet();
+            try
+            {
+                return PrepareCandidateExpansions(plan, pending, visited);
+            }
+            finally
+            {
+                ReturnIdQueue(pending);
+                ReturnIdSet(visited);
+            }
+        }
+
+        private CandidateReplay? PrepareCandidateExpansions(
+            NeoWritePlan plan,
+            Queue<string> pending,
+            HashSet<string> visited)
+        {
             CandidateReplay? candidate = null;
             HashSet<string>? completeLocalRoots = null;
             HashSet<string>? changedPaths = null;
-            var pending = new Queue<string>(plan.Rows.Keys.Select(key => key.id));
+            foreach (var write in plan.Rows)
+                pending.Enqueue(write.Key.id);
             foreach (var write in plan.Rows)
                 EnqueueReplayFields(pending, write.Key.id, plan);
             foreach (var write in plan.Rows)
@@ -43,7 +62,6 @@ namespace NeoCompose.Runtime
                 if (GetWritableStore(binding.Key.ownership).staticBindings.TryGetValue(binding.Key.memberId, out string? old) && old is not null)
                     pending.Enqueue(old);
             }
-            var visited = new HashSet<string>();
             using (ReadCandidate(plan))
             {
                 while (pending.Count != 0)

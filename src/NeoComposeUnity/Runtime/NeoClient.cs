@@ -4839,6 +4839,17 @@ namespace NeoCompose.Runtime
 
         private HashSet<string> RentIdSet() => idSetPool.Count != 0 ? idSetPool.Pop() : new HashSet<string>();
 
+        // The walks' pending queues, pooled the same way.
+        private readonly Stack<Queue<string>> idQueuePool = new();
+
+        private Queue<string> RentIdQueue() => idQueuePool.Count != 0 ? idQueuePool.Pop() : new Queue<string>();
+
+        private void ReturnIdQueue(Queue<string> queue)
+        {
+            queue.Clear();
+            idQueuePool.Push(queue);
+        }
+
         private void ReturnIdSet(HashSet<string> set)
         {
             if (set.Count > 64)
@@ -9000,15 +9011,17 @@ namespace NeoCompose.Runtime
             HashSet<string> staticRoots = RentIdSet();
             HashSet<string> visited = RentIdSet();
             HashSet<string> parents = RentIdSet();
+            Queue<string> pending = RentIdQueue();
             try
             {
-                return CanProveUnreachable(ownership, valueIds, staticRoots, visited, parents);
+                return CanProveUnreachable(ownership, valueIds, staticRoots, visited, parents, pending);
             }
             finally
             {
                 ReturnIdSet(staticRoots);
                 ReturnIdSet(visited);
                 ReturnIdSet(parents);
+                ReturnIdQueue(pending);
             }
         }
 
@@ -9017,13 +9030,15 @@ namespace NeoCompose.Runtime
             IEnumerable<string> valueIds,
             HashSet<string> staticRoots,
             HashSet<string> visited,
-            HashSet<string> parents)
+            HashSet<string> parents,
+            Queue<string> pending)
         {
             foreach (var member in ValueInferenceIndex.StaticMembers)
                 if (ResolveStaticOwnership(member) == ownership
                     && TryResolveStaticBinding(member.id, out _, out _, out string? target))
                     staticRoots.Add(target);
-            var pending = new Queue<string>(valueIds);
+            foreach (string valueId in valueIds)
+                pending.Enqueue(valueId);
             var store = GetWritableStore(ownership);
             string rootMemberId = ownership == NeoValueOwnership.Save
                 ? data.project.rootSaveFileMemberId : data.project.rootSessionMemberId;
