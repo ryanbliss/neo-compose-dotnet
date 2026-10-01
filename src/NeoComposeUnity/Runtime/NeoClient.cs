@@ -867,6 +867,23 @@ namespace NeoCompose.Runtime
             return false;
         }
 
+        // The untyped lookup most callers make. Mono shares one generic body
+        // across reference instantiations, so the generic overload's cast is
+        // a runtime type lookup even when TMember is Member itself.
+        internal bool TryGetMember(string id, [NotNullWhen(true)] out Member? member)
+        {
+            if (data.members.TryGetValue(id, out member))
+                return member is not null;
+            if (variantTargetMembers.Count != 0
+                && variantTargetMembers.TryGetValue(id, out ClassMember? target))
+            {
+                member = target;
+                return true;
+            }
+            member = null;
+            return false;
+        }
+
         internal bool TryGetClass(string id, [NotNullWhen(true)] out NeoSchemaClass? schemaClass)
         {
             if (data.classes.TryGetValue(id, out NeoSchemaClass idMatch))
@@ -5428,31 +5445,35 @@ namespace NeoCompose.Runtime
             string id,
             [NotNullWhen(true)] out TValue? value) where TValue : MemberValue
         {
+            TryGetWritableValue(ownership, id, out MemberValue? row);
+            value = row as TValue;
+            return value is not null;
+        }
+
+        // Implemented on MemberValue for the reason TryGetValue is.
+        internal bool TryGetWritableValue(
+            NeoValueOwnership ownership,
+            string id,
+            [NotNullWhen(true)] out MemberValue? value)
+        {
             if (ownership == NeoValueOwnership.Session && candidateReplay?.Allocations.TryGetValue(id, out MemberValue? allocated) == true)
             {
-                value = allocated as TValue;
+                value = allocated;
                 return value is not null;
             }
             if (candidateReadPlan?.Rows.TryGetValue((ownership, id), out MemberValue? proposed) == true)
             {
-                value = proposed as TValue;
+                value = proposed;
                 return value is not null;
             }
 
             NoteValueRead(id);
-            value = null;
             if (ownership == NeoValueOwnership.Asset)
-                return false;
-            if (!GetWritableStore(ownership).values.TryGetValue(id, out MemberValue row))
             {
+                value = null;
                 return false;
             }
-            if (row is not TValue typed)
-            {
-                return false;
-            }
-            value = typed;
-            return true;
+            return GetWritableStore(ownership).values.TryGetValue(id, out value) && value is not null;
         }
 
         private ProjectSaveData GetWritableStore(NeoValueOwnership ownership)
