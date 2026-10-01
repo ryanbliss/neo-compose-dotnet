@@ -555,11 +555,16 @@ namespace NeoCompose.Runtime
             null => null,
             int i => i,
             float f => f,
-            _ => throw new System.ArgumentException(
+            _ => throw NumberPayloadMismatch(payload, member),
+        };
+
+        // Its own method so the message's string building stays off
+        // NumberPayload's frame.
+        private static System.ArgumentException NumberPayloadMismatch(object payload, Member member) =>
+            new System.ArgumentException(
                 $"Cannot set {member.GetType().Name} {member.id} from " +
                 $"{payload.GetType().Name}; expected {nameof(System.Double)}",
-                nameof(payload)),
-        };
+                nameof(payload));
 
         private static TExpected Cast<TExpected>(object? payload, Member member)
         {
