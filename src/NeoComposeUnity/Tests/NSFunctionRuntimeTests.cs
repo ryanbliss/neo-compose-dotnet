@@ -400,26 +400,51 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void NativeInvocationRetainsOwnedArgumentsAfterPooledCallStorageIsReused()
+        public void NativeCallSitePreparesArgumentsInItsPooledBufferWithoutAllocating()
         {
-            var native = NativeFunction("retain", "Retain", false);
+            var native = NativeFunction("prepared", "Prepared", false);
             native.argumentTypes = new[] { Argument("value", MemberKind.Int) };
             using var client = BuildClient(new JsonMember[] { native }, ReceiverClass((native.name, native.id)));
-            object?[]? retained = null;
+            object?[]? received = null;
+            object? first = null;
             client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
             {
-                [native.id] = (_, _, args) => { retained ??= args; return args[0]; },
+                [native.id] = (_, _, args) =>
+                {
+                    received = args;
+                    first = args[0];
+                    return args[0];
+                },
             });
             var context = new NSGetterEvaluator.Context(client, null, null);
             var scope = new NeoScriptScope(1);
             scope["__this__"] = NSGetterEvaluator.UnwrapRow(ObjectValue("receiver-value", "receiver-class"), context);
-            var call = Call(native.id, "retained-arguments");
+            var call = Call(native.id, "prepared-arguments");
             call.args = new Pointer[] { Number(17) };
             Assert.That(NSGetterEvaluator.EvaluatePointer(call, scope, context), Is.EqualTo(17));
+            // The number literal arrives as the declared Int.
+            Assert.That(first, Is.TypeOf<int>().And.EqualTo(17));
+            object?[] buffer = received!;
+            Assert.That(buffer[0], Is.Null, "The site clears its buffer once the call returns.");
             call.args = new Pointer[] { Number(99) };
             Assert.That(NSGetterEvaluator.EvaluatePointer(call, scope, context), Is.EqualTo(99));
-            Assert.That(retained, Has.Length.EqualTo(1));
-            Assert.That(retained![0], Is.EqualTo(17));
+            Assert.That(received, Is.SameAs(buffer), "Every call reuses the site's buffer.");
+
+            var recorder = UnityEngine.Profiling.Recorder.Get("GC.Alloc");
+            recorder.enabled = false;
+            recorder.FilterToCurrentThread();
+            recorder.enabled = true;
+            try
+            {
+                for (int i = 0; i < 100; i++)
+                    NSGetterEvaluator.EvaluatePointer(call, scope, context);
+            }
+            finally
+            {
+                recorder.enabled = false;
+                recorder.CollectFromAllThreads();
+            }
+            Assert.That(recorder.sampleBlockCount, Is.Zero);
         }
 
         [Test]

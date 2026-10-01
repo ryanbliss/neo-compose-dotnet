@@ -2223,8 +2223,9 @@ namespace NeoCompose.Runtime.NeoScript
 
         /// <param name="returnType">The Function's declared return type, which shapes its result.</param>
         /// <param name="function">The call site's resolved signature, or null to resolve it per call.</param>
+        /// <param name="ownsArguments">Whether <paramref name="args"/> is a call site's rented buffer.</param>
         internal static object? InvokeNativeFunction(string memberId, NeoClient.ResolvedNativeFunction? function,
-            TypeInfo? returnType, object? receiver, object?[] args, Context ctx)
+            TypeInfo? returnType, object? receiver, object?[] args, Context ctx, bool ownsArguments = false)
         {
             if (function is null || function.intrinsic)
             {
@@ -2234,8 +2235,8 @@ namespace NeoCompose.Runtime.NeoScript
                     return result;
             }
             object? value = function is null
-                ? ctx.client.InvokeNativeFunction(memberId, receiver, args)
-                : ctx.client.InvokeNativeFunction(function, receiver, args);
+                ? ctx.client.InvokeNativeFunction(memberId, receiver, args, ownsArguments)
+                : ctx.client.InvokeNativeFunction(function, receiver, args, ownsArguments);
             return NeoCellPatternStorage.NormalizeNativeResult(value, ctx, returnType);
         }
 
@@ -2377,7 +2378,8 @@ namespace NeoCompose.Runtime.NeoScript
                 if (target.native is not null)
                 {
                     return InvokeNativeFunction(target.memberId, target.nativeFunction, target.native.returnTypeInfo, receiver,
-                        FillNativeCallSiteArguments(target.memberId, target.nativeFunction?.signature, args), ctx);
+                        FillNativeCallSiteArguments(target.memberId, target.nativeFunction?.signature, args), ctx,
+                        ownsArguments: true);
                 }
                 if (!ctx.client.TryGetMember(target.memberId, out JsonMember? _))
                 {

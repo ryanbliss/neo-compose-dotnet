@@ -25,6 +25,10 @@ namespace NeoCompose.Runtime
         private static readonly HashSet<NeoClient> activeClients = new();
 
         public delegate string BuildSaveName();
+        /// <param name="args">
+        /// The prepared arguments, valid only until the invoker returns: a
+        /// NeoScript call site reuses the array for its next call.
+        /// </param>
         public delegate object? NeoNativeFunctionInvoker(
             NeoClient client,
             object? receiver,
@@ -6711,28 +6715,37 @@ namespace NeoCompose.Runtime
             deferredNativeFunctionInvokers = invokers;
         }
 
+        /// <param name="ownsArguments">
+        /// Whether <paramref name="args"/> is the caller's own scratch array,
+        /// which the arguments are then prepared in place in.
+        /// </param>
         internal object? InvokeNativeFunction(
             string memberId,
             object? receiver,
-            object?[] args)
+            object?[] args,
+            bool ownsArguments = false)
         {
             return InvokeNativeFunction(
                 ResolveNativeFunction(memberId),
                 receiver,
-                args);
+                args,
+                ownsArguments);
         }
 
+        /// <inheritdoc cref="InvokeNativeFunction(string, object?, object?[], bool)"/>
         internal object? InvokeNativeFunction(
             ResolvedNativeFunction function,
             object? receiver,
-            object?[] args)
+            object?[] args,
+            bool ownsArguments = false)
         {
             string memberId = function.memberId;
-            FunctionMember member = PrepareNativeFunctionInvocation(
+            FunctionMember member = function.signature;
+            object?[] preparedArgs = PrepareNativeFunctionInvocation(
                 function,
                 args,
                 expectedDeferred: false,
-                out object?[] preparedArgs);
+                inPlace: ownsArguments);
             ValidateNativeFunctionReceiver(member, receiver);
             if (nativeFunctionInvokers is null)
             {
@@ -6883,11 +6896,13 @@ namespace NeoCompose.Runtime
             bool normalizeReturnValue,
             bool captureInvokerException)
         {
-            FunctionMember member = PrepareNativeFunctionInvocation(
-                ResolveNativeFunction(memberId),
+            ResolvedNativeFunction function = ResolveNativeFunction(memberId);
+            FunctionMember member = function.signature;
+            object?[] preparedArgs = PrepareNativeFunctionInvocation(
+                function,
                 args,
                 expectedDeferred: true,
-                out object?[] preparedArgs);
+                inPlace: false);
             ValidateNativeFunctionReceiver(member, receiver);
             if (deferredNativeFunctionInvokers is null)
             {
@@ -7027,11 +7042,12 @@ namespace NeoCompose.Runtime
             return function;
         }
 
-        private FunctionMember PrepareNativeFunctionInvocation(
+        /// <summary>The prepared arguments: <paramref name="args"/> itself when <paramref name="inPlace"/>.</summary>
+        private object?[] PrepareNativeFunctionInvocation(
             ResolvedNativeFunction function,
             object?[]? args,
             bool expectedDeferred,
-            out object?[] preparedArgs)
+            bool inPlace)
         {
             string memberId = function.memberId;
             string functionName = function.name;
@@ -7063,19 +7079,20 @@ namespace NeoCompose.Runtime
             }
 
             if (sourceArgs.Length == 0)
-            {
-                preparedArgs = System.Array.Empty<object?>();
-                return signature;
-            }
+                return sourceArgs;
 
-            preparedArgs = new object?[sourceArgs.Length];
+            object?[] preparedArgs = inPlace ? sourceArgs : new object?[sourceArgs.Length];
             for (int i = 0; i < sourceArgs.Length; i++)
             {
                 FunctionArgumentTypeInfo argument = signature.argumentTypes[i];
                 object? source = sourceArgs[i];
-                if (TryPrepareNativePrimitive(source, argument.type, out object? primitive))
+                object? primitive = PrepareNativePrimitive(source, argument.type);
+                if (!ReferenceEquals(primitive, NotNativePrimitive))
                 {
-                    preparedArgs[i] = primitive;
+                    // In place, an argument that prepares to itself stores
+                    // nothing, so it skips the write barrier.
+                    if (!ReferenceEquals(preparedArgs[i], primitive))
+                        preparedArgs[i] = primitive;
                     continue;
                 }
                 var subject = NeoScriptValueMarshaller.ValueSubject.NativeArgument(function, i);
@@ -7098,7 +7115,8 @@ namespace NeoCompose.Runtime
                             argument,
                             subject);
                     }
-                    preparedArgs[i] = prepared;
+                    if (!ReferenceEquals(preparedArgs[i], prepared))
+                        preparedArgs[i] = prepared;
                 }
                 catch (System.Exception exception)
                 {
@@ -7109,39 +7127,44 @@ namespace NeoCompose.Runtime
                         exception.Message);
                 }
             }
-            return signature;
+            return preparedArgs;
         }
+
+        // Returned for an argument PrepareNativePrimitive leaves to the full
+        // path, rather than through an out value: a byref reference store
+        // pays a write barrier.
+        private static readonly object NotNativePrimitive = new();
 
         // The usual argument: a primitive already of its declared kind, or a
         // whole number for an Int. It passes validation and normalizes to
         // itself or its int, so it skips both.
-        private static bool TryPrepareNativePrimitive(object? value, MemberKind kind, out object? prepared)
+        private static object? PrepareNativePrimitive(object? value, MemberKind kind)
         {
-            prepared = value;
             switch (kind)
             {
                 case MemberKind.Bool:
-                    return value is bool;
+                    return value is bool ? value : NotNativePrimitive;
                 case MemberKind.String:
-                    return value is string;
+                    return value is string ? value : NotNativePrimitive;
                 case MemberKind.Float:
                     return value is double number
                         && !double.IsNaN(number)
-                        && !double.IsInfinity(number);
+                        && !double.IsInfinity(number)
+                        ? value
+                        : NotNativePrimitive;
                 case MemberKind.Int:
                     if (value is int)
-                        return true;
+                        return value;
                     if (value is double whole
                         && whole >= int.MinValue
                         && whole <= int.MaxValue
                         && (int)whole == whole)
                     {
-                        prepared = NeoNumbers.Box((int)whole);
-                        return true;
+                        return NeoNumbers.Box((int)whole);
                     }
-                    return false;
+                    return NotNativePrimitive;
                 default:
-                    return false;
+                    return NotNativePrimitive;
             }
         }
 

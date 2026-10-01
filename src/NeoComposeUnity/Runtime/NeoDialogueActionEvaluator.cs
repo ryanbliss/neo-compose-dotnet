@@ -2940,7 +2940,8 @@ namespace NeoCompose.Runtime
                     // stays unfilled.
                     return NSGetterEvaluator.InvokeNativeFunction(
                         memberId, nativeFunction, target.native?.returnTypeInfo, receiver,
-                        NSGetterEvaluator.FillNativeCallSiteArguments(memberId, native, args), ctx);
+                        NSGetterEvaluator.FillNativeCallSiteArguments(memberId, native, args), ctx,
+                        ownsArguments: true);
                 }
                 else
                 {
