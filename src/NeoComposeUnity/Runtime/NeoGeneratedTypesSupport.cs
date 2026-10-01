@@ -775,12 +775,11 @@ namespace NeoCompose.Runtime
                         if (arguments.Count != expected)
                             throw new InvalidOperationException($"Initializer '{member.name}' expected {expected} arguments in '{owner}', got {arguments.Count}.");
                     }
-                    return NeoScript.NSGetterEvaluator.Evaluate(
-                        init.compiled,
-                        initializerContext.thisValue is null
-                            ? initializerContext
-                            : initializerContext.WithThis(null),
-                        arguments);
+                    // The body binds its handlers in the construction frame, or
+                    // on the fork it owns, instead of forking for them again.
+                    return initializerContext.thisValue is null
+                        ? NeoScript.NSGetterEvaluator.Evaluate(init.compiled, initializerContext, arguments, frame)
+                        : NeoScript.NSGetterEvaluator.Evaluate(init.compiled, initializerContext.WithThis(null), arguments, -1);
                 }
                 finally
                 {

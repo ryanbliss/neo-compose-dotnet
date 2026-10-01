@@ -1736,16 +1736,17 @@ namespace NeoCompose.Runtime.NeoScript
         /// the declared-constructor path supplies the values when it creates a
         /// concrete instance.
         /// </summary>
-        /// <param name="frame">
-        /// The getter frame the body runs in, which installs the immediate
-        /// handlers as an in-place function frame does, instead of forking
-        /// the context for them on every read; -1 for none.
+        /// <param name="handlerFrame">
+        /// The frame the body runs in, or -1 for a context of its own: the
+        /// immediate handlers are installed there, as an in-place function
+        /// call installs them, instead of on a fork of the context per
+        /// evaluation. Null leaves the context's handlers alone.
         /// </param>
         internal static object? Evaluate(
             FunctionWithReturnType getter,
             Context ctx,
             IReadOnlyList<object?> argumentValues,
-            int frame = -1)
+            int? handlerFrame = null)
         {
             NeoScriptScopeLayout layout = getter.scopeLayout ??= new NeoScriptScopeLayout(getter);
             var scope = layout.RentScope();
@@ -1785,7 +1786,7 @@ namespace NeoCompose.Runtime.NeoScript
                 // Immediate options let every getter frame share the client's
                 // prebuilt expression handlers instead of closing over its own.
                 NeoScriptExecutionOptions options = NeoScriptExecutionOptions.ForImmediate(ctx.client);
-                if (frame >= 0)
+                if (handlerFrame is int frame)
                     NeoScriptExecutor.PrepareFunctionContext(ctx, options, frame);
                 NeoScriptExecutionResult result = NeoScriptExecutor.Execute(
                     ctx.client,

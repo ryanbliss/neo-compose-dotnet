@@ -441,6 +441,11 @@ namespace NeoCompose.Tests
             Assert.That(NSGetterEvaluator.EvaluatePointer(read, scope, context), Is.EqualTo(5));
             Assert.That(context.expressionHandlers, Is.Null, "The getter's frame restores the caller's handlers.");
 
+            var property = new NeoMemberNSProperty(client, getter, null);
+            // The first reads fill the client's context pool.
+            Assert.That(property.Compute().value, Is.EqualTo(5));
+            Assert.That(property.Compute().value, Is.EqualTo(5));
+
             var recorder = UnityEngine.Profiling.Recorder.Get("GC.Alloc");
             recorder.enabled = false;
             recorder.FilterToCurrentThread();
@@ -448,14 +453,17 @@ namespace NeoCompose.Tests
             try
             {
                 for (int i = 0; i < 100; i++)
+                {
                     NSGetterEvaluator.EvaluatePointer(read, scope, context);
+                    property.Compute();
+                }
             }
             finally
             {
                 recorder.enabled = false;
                 recorder.CollectFromAllThreads();
             }
-            Assert.That(recorder.sampleBlockCount, Is.Zero, "A read neither forks the context nor binds the receiver by name.");
+            Assert.That(recorder.sampleBlockCount, Is.Zero, "A read neither forks its context nor binds the receiver by name.");
         }
 
         [Test]

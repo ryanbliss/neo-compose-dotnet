@@ -238,7 +238,10 @@ namespace NeoCompose.Runtime
             try
             {
                 ctx.BindThis(boundThis);
-                value = NSGetterEvaluator.Evaluate(getter, ctx);
+                // The rented context is this read's own, so the body binds
+                // its handlers there rather than on a fork, which would also
+                // keep the context out of the pool.
+                value = NSGetterEvaluator.Evaluate(getter, ctx, System.Array.Empty<object?>(), handlerFrame: -1);
             }
             catch (NSGetterRuntimeError ex)
             {
