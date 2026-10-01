@@ -19,6 +19,58 @@ using JsonEnum = NeoCompose.Runtime.Json.Enum;
 namespace NeoCompose.Runtime.NeoScript
 {
     /// <summary>
+    /// The bound-delegate targets currently executing, innermost last.
+    /// </summary>
+    internal sealed class NeoDelegateFrameStack
+    {
+        internal const int MaxDepth = 64;
+
+        // Parallel arrays, not a list of tuples: building, adding and
+        // clearing a tuple frame each stored both references, and every
+        // reference store pays a write barrier. A pop leaves its slot
+        // behind, so re-entering the same frame stores nothing; the ids it
+        // keeps reachable are the schema's and rows' own strings.
+        private string[] memberIds = new string[4];
+        private string?[] valueIds = new string?[4];
+        private int count;
+
+        internal int Count => count;
+
+        internal string MemberId(int index) => memberIds[index];
+
+        internal string? ValueId(int index) => valueIds[index];
+
+        internal bool Contains(string memberId, string? valueId)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                if (NSGetterEvaluator.SameId(memberIds[i], memberId)
+                    && NSGetterEvaluator.SameId(valueIds[i], valueId))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        internal void Push(string memberId, string? valueId)
+        {
+            if (count == memberIds.Length)
+            {
+                Array.Resize(ref memberIds, count * 2);
+                Array.Resize(ref valueIds, count * 2);
+            }
+            if (!ReferenceEquals(memberIds[count], memberId))
+                memberIds[count] = memberId;
+            if (!ReferenceEquals(valueIds[count], valueId))
+                valueIds[count] = valueId;
+            count++;
+        }
+
+        internal void Pop() => count--;
+    }
+
+    /// <summary>
     /// Tracks Session-backed class values created by NeoScript constructor
     /// intrinsics for one logical invocation. Nested NSFunction/setter/getter
     /// executions share the tracker, so a temporary returned into its caller
@@ -53,8 +105,8 @@ namespace NeoCompose.Runtime.NeoScript
         // Conservative lifetime gate for direct synchronous frame reuse. Any
         // operation that can retain context state keeps its ordinary lifetime.
         internal bool ReusableContext = true;
-        private List<(string memberId, string? valueId)>? delegateFrames;
-        internal List<(string memberId, string? valueId)> DelegateFrames => delegateFrames ??= new();
+        private NeoDelegateFrameStack? delegateFrames;
+        internal NeoDelegateFrameStack DelegateFrames => delegateFrames ??= new();
         private List<NeoScriptObject>? listBuffered;
 
         internal void EnterExecution()
@@ -606,13 +658,12 @@ namespace NeoCompose.Runtime.NeoScript
             // A field load, where each Array.Empty call goes through a stub.
             private static readonly string[] NoFunctionCalls = System.Array.Empty<string>();
             /// <summary>
-            /// Ordered bound-delegate targets currently executing. This is a
-            /// shared mutable stack so nested evaluator contexts retain cycle
-            /// detection across closure and member-target boundaries.
+            /// Ordered bound-delegate targets currently executing. The
+            /// allocation tracker shares it, so nested evaluator contexts
+            /// retain cycle detection across closure and member-target
+            /// boundaries.
             /// </summary>
-            private List<(string memberId, string? valueId)>? delegateCallStackOverride;
-            internal List<(string memberId, string? valueId)> delegateCallStack =>
-                delegateCallStackOverride ?? allocationTracker.DelegateFrames;
+            internal NeoDelegateFrameStack delegateCallStack => allocationTracker.DelegateFrames;
             /// <summary>
             /// P43 §7.2.3 — ordered names of the classes currently under
             /// construction. Deliberately separate from
@@ -795,8 +846,7 @@ namespace NeoCompose.Runtime.NeoScript
                     string,
                     IReadOnlyDictionary<string, NeoGenericEnvEntry>>?
                     genericEnvironmentCache = null,
-                IReadOnlyList<string>? constructionStack = null,
-                List<(string memberId, string? valueId)>? delegateCallStack = null)
+                IReadOnlyList<string>? constructionStack = null)
             {
                 this.client = client;
                 this.thisValue = thisValue;
@@ -821,7 +871,6 @@ namespace NeoCompose.Runtime.NeoScript
                 genericEnvironmentCacheStore = genericEnvironmentCache;
                 this.constructionStack = constructionStack
                     ?? client.EmptyCallFrames;
-                this.delegateCallStackOverride = delegateCallStack;
                 allocationTracker = new NeoScriptAllocationTracker();
             }
 
@@ -2719,35 +2768,39 @@ namespace NeoCompose.Runtime.NeoScript
         // The stack holds ids; names are only spelled out for an error.
         private static string DescribeDelegateCallStack(
             Context ctx,
-            (string memberId, string? valueId) frame)
+            string memberId,
+            string? valueId)
         {
             var text = new System.Text.StringBuilder();
-            foreach (var entry in ctx.delegateCallStack)
-                AppendDelegateFrame(text, ctx, entry);
-            AppendDelegateFrame(text, ctx, frame);
+            NeoDelegateFrameStack frames = ctx.delegateCallStack;
+            for (int i = 0; i < frames.Count; i++)
+                AppendDelegateFrame(text, ctx, frames.MemberId(i), frames.ValueId(i));
+            AppendDelegateFrame(text, ctx, memberId, valueId);
             return text.ToString();
         }
 
         private static string DescribeDelegateFrame(
             Context ctx,
-            (string memberId, string? valueId) frame)
+            string memberId,
+            string? valueId)
         {
             var text = new System.Text.StringBuilder();
-            AppendDelegateFrame(text, ctx, frame);
+            AppendDelegateFrame(text, ctx, memberId, valueId);
             return text.ToString();
         }
 
         private static void AppendDelegateFrame(
             System.Text.StringBuilder text,
             Context ctx,
-            (string memberId, string? valueId) frame)
+            string memberId,
+            string? valueId)
         {
             if (text.Length != 0)
                 text.Append(" -> ");
-            string name = ctx.client.TryGetMember(frame.memberId, out JsonMember? member)
+            string name = ctx.client.TryGetMember(memberId, out JsonMember? member)
                 ? member.name
-                : frame.memberId;
-            text.Append(name).Append('[').Append(frame.valueId ?? "default").Append(']');
+                : memberId;
+            text.Append(name).Append('[').Append(valueId ?? "default").Append(']');
         }
 
         private static object? InvokeDelegateMemberTarget(
@@ -2786,16 +2839,16 @@ namespace NeoCompose.Runtime.NeoScript
             // reported in the fan-out's message, never folded into the key:
             // the same (member, row) re-entered at a different listener index
             // is the same frame, and the TS evaluator keys it that way too.
-            (string memberId, string? valueId) frame = (memberId, target.valueId);
-            if (ctx.delegateCallStack.Contains(frame))
+            NeoDelegateFrameStack frames = ctx.delegateCallStack;
+            if (frames.Contains(memberId, target.valueId))
             {
                 throw new NSGetterRuntimeError(
-                    $"NeoDelegate target cycle: {DescribeDelegateCallStack(ctx, frame)}.");
+                    $"NeoDelegate target cycle: {DescribeDelegateCallStack(ctx, memberId, target.valueId)}.");
             }
-            if (ctx.delegateCallStack.Count >= 64)
+            if (frames.Count >= NeoDelegateFrameStack.MaxDepth)
             {
                 throw new NSGetterRuntimeError(
-                    $"NeoDelegate call stack exceeded 64 frames: {DescribeDelegateCallStack(ctx, frame)}.");
+                    $"NeoDelegate call stack exceeded {NeoDelegateFrameStack.MaxDepth} frames: {DescribeDelegateCallStack(ctx, memberId, target.valueId)}.");
             }
 
             object? receiver = null;
@@ -2829,7 +2882,7 @@ namespace NeoCompose.Runtime.NeoScript
                 receiver = ListenerReceiverOnOwner(target, ownerReceiver, ctx);
             }
 
-            ctx.delegateCallStack.Add(frame);
+            frames.Push(memberId, target.valueId);
             try
             {
                 if (member is FunctionMember native)
@@ -2873,7 +2926,7 @@ namespace NeoCompose.Runtime.NeoScript
                     // 64-frame cap this frame already pushed.
                     // The nested action's own owner is the receiver this
                     // member target resolved against, not the outer action's.
-                    InvokeActionTarget(actionMember, receiver, args, ctx, frame);
+                    InvokeActionTarget(actionMember, receiver, args, ctx, memberId, target.valueId);
                     return null;
                 }
                 throw new NSGetterRuntimeError(
@@ -2881,7 +2934,7 @@ namespace NeoCompose.Runtime.NeoScript
             }
             finally
             {
-                ctx.delegateCallStack.RemoveAt(ctx.delegateCallStack.Count - 1);
+                frames.Pop();
             }
         }
 
@@ -2892,14 +2945,15 @@ namespace NeoCompose.Runtime.NeoScript
             object? receiver,
             object?[] args,
             Context ctx,
-            (string memberId, string? valueId) frame)
+            string memberId,
+            string? valueId)
         {
             InvokeAction(
                 ResolveActionTargetValue(actionMember, receiver, ctx),
                 args,
                 ctx,
                 receiver,
-                () => DescribeDelegateFrame(ctx, frame));
+                () => DescribeDelegateFrame(ctx, memberId, valueId));
         }
 
         private static NeoDelegateValue ResolveDelegateTargetValue(
