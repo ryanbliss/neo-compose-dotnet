@@ -501,12 +501,12 @@ namespace NeoCompose.Runtime.Json
     /// no direct C# analog; <c>object?</c> with the implicit invariant
     /// "always null" is the practical equivalent.
     /// </summary>
-    public class NullMember : Member<object?>
+    public sealed class NullMember : Member<object?>
     {
     }
 
     /// <summary>Mirror of TS-side <c>TMemberBool</c>.</summary>
-    public class BoolMember : Member<bool?>
+    public sealed class BoolMember : Member<bool?>
     {
     }
 
@@ -517,7 +517,7 @@ namespace NeoCompose.Runtime.Json
     /// <see cref="maxValue"/> are <c>number?</c> on the TS side —
     /// nullable here so absence is distinguishable from "explicitly 0".
     /// </summary>
-    public class IntMember : Member<double?>
+    public sealed class IntMember : Member<double?>
     {
         public float? minValue;
         public float? maxValue;
@@ -529,7 +529,7 @@ namespace NeoCompose.Runtime.Json
     /// <see cref="decimalPoints"/> as <c>null</c> means "no rounding";
     /// <c>0</c> would be "round to integer".
     /// </summary>
-    public class FloatMember : Member<double?>
+    public sealed class FloatMember : Member<double?>
     {
         public float? minValue;
         public float? maxValue;
@@ -537,7 +537,7 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>Mirror of TS-side <c>TMemberString</c>.</summary>
-    public class StringMember : Member<string?>
+    public sealed class StringMember : Member<string?>
     {
         [JsonProperty("format", NullValueHandling = NullValueHandling.Ignore)]
         private NeoStringFormatKind? format;
@@ -587,7 +587,7 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>Mirror of TS-side <c>TMemberDictionary</c>.</summary>
-    public class DictionaryMember : Member<Dictionary<string, string>?>
+    public sealed class DictionaryMember : Member<Dictionary<string, string>?>
     {
         public string entryMemberId = null!;
 
@@ -714,7 +714,7 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>Mirror of TS-side <c>TMemberList</c>.</summary>
-    public class ListMember : Member<string[]?>
+    public sealed class ListMember : Member<string[]?>
     {
         public string entryMemberId = null!;
 
@@ -760,7 +760,7 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>Mirror of TS-side <c>TMemberClass</c>.</summary>
-    public class ClassMember : Member<Dictionary<string, string>?>
+    public sealed class ClassMember : Member<Dictionary<string, string>?>
     {
         public string classId = null!;
 
@@ -819,7 +819,7 @@ namespace NeoCompose.Runtime.Json
     /// <c>object?</c>. Defaults belong to this declaration; nullability comes
     /// from the binding type.
     /// </summary>
-    public class GenericMember : Member<object?>
+    public sealed class GenericMember : Member<object?>
     {
         /// <summary>Id of a generic param in this member's placement scope.</summary>
         public string genericParamId = null!;
@@ -851,7 +851,7 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>Mirror of TS-side <c>TMemberEnum</c>.</summary>
-    public class EnumMember : Member<string[]?>
+    public sealed class EnumMember : Member<string[]?>
     {
         public string enumId = null!;
         [JsonProperty("selection", NullValueHandling = NullValueHandling.Ignore)]
@@ -884,7 +884,7 @@ namespace NeoCompose.Runtime.Json
     /// and absence both mean that the runtime resolves the collection value
     /// from its placement.
     /// </summary>
-    public class LookupMember : Member<string[]?>, ISchemaResolutionSite
+    public sealed class LookupMember : Member<string[]?>, ISchemaResolutionSite
     {
         public string collectionMemberId = null!;
         private string? _collectionValueId;
@@ -949,7 +949,7 @@ namespace NeoCompose.Runtime.Json
     /// selectable dialogues to a single (Standard) dialogue group; <c>null</c>
     /// means any manually-triggerable dialogue.
     /// </summary>
-    public class DialogueLookupMember : Member<string[]?>
+    public sealed class DialogueLookupMember : Member<string[]?>
     {
         [JsonProperty("selection", NullValueHandling = NullValueHandling.Ignore)]
         private NeoMemberSelectionKind? selection;
@@ -982,7 +982,7 @@ namespace NeoCompose.Runtime.Json
     /// declared return type; <see cref="getter"/> and <see cref="setter"/>
     /// are the server-compiled IR bodies.
     /// </summary>
-    public class NSPropertyMember : Member<object?>
+    public sealed class NSPropertyMember : Member<object?>
     {
         public string code = null!;
         public TypeInfo returnTypeInfo = null!;
@@ -1168,7 +1168,7 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>Mirror of TS-side <c>TMemberFunction</c>.</summary>
-    public class FunctionMember : Member<object?>
+    public sealed class FunctionMember : Member<object?>
     {
         [JsonConverter(typeof(FunctionReturnTypeInfoConverter))]
         public TypeInfo returnTypeInfo = null!;
@@ -1329,46 +1329,46 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>Mirror of TS-side <c>TMemberVariant</c>.</summary>
-    public class VariantMember : Member<VariantRefValue?>
+    public sealed class VariantMember : Member<VariantRefValue?>
     {
         public TypeInfo? targetTypeInfo;
         public TypeInfo? valueTypeInfo;
     }
 
     /// <summary>Mirror of TS-side <c>TMemberSprite</c>.</summary>
-    public class SpriteMember : Member<SpriteValue?>
+    public sealed class SpriteMember : Member<SpriteValue?>
     {
         public string? templateId;
     }
 
     /// <summary>Mirror of TS-side <c>TMemberAudio</c>.</summary>
-    public class AudioMember : Member<FileValue?>
+    public sealed class AudioMember : Member<FileValue?>
     {
         public string? templateId;
     }
 
     /// <summary>Mirror of TS-side <c>TMemberVector2</c>.</summary>
-    public class Vector2Member : Member<NeoVector2Value?>
+    public sealed class Vector2Member : Member<NeoVector2Value?>
     {
     }
 
     /// <summary>Mirror of TS-side <c>TMemberVector2Int</c>.</summary>
-    public class Vector2IntMember : Member<NeoVector2Value?>
+    public sealed class Vector2IntMember : Member<NeoVector2Value?>
     {
     }
 
     /// <summary>Mirror of TS-side <c>TMemberVector3</c>.</summary>
-    public class Vector3Member : Member<NeoVector3Value?>
+    public sealed class Vector3Member : Member<NeoVector3Value?>
     {
     }
 
     /// <summary>Mirror of TS-side <c>TMemberVector3Int</c>.</summary>
-    public class Vector3IntMember : Member<NeoVector3Value?>
+    public sealed class Vector3IntMember : Member<NeoVector3Value?>
     {
     }
 
     /// <summary>Mirror of TS-side <c>TMemberColor</c>.</summary>
-    public class ColorMember : Member<NeoColorValue?>
+    public sealed class ColorMember : Member<NeoColorValue?>
     {
     }
 
@@ -1384,7 +1384,7 @@ namespace NeoCompose.Runtime.Json
     /// never enforces them (parity with Float). <see cref="decimalPoints"/>
     /// is <c>number?</c> on the wire — nullable here.
     /// </summary>
-    public class DecimalMember : Member<string?>
+    public sealed class DecimalMember : Member<string?>
     {
         public string? minValue;
         public string? maxValue;

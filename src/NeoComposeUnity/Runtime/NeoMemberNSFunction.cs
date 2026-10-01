@@ -1649,6 +1649,11 @@ namespace NeoCompose.Runtime
                 case MemberKind.Bool or MemberKind.Int or MemberKind.Float or MemberKind.String
                     when value is double or bool or string or int:
                     break;
+                // The usual Class value: a record this context unwrapped from
+                // a row, which is canonical and passes the shape check.
+                case MemberKind.Class or MemberKind.Interface
+                    when !resolvedIdentity && NSGetterEvaluator.IsRowRecord(value, ctx):
+                    return value;
                 case MemberKind.Class or MemberKind.Interface
                     when value is INeoValueReference reference:
                     value = UnwrapReference(client, ownership, value, reference, ctx, subject);
