@@ -117,24 +117,68 @@ namespace NeoCompose.Runtime
         public TNeoMember Get<TNeoMember>(string key)
             where TNeoMember : NeoMember
         {
-            if (!TryGet(key, out TNeoMember? member))
-            {
-                throw new System.Collections.Generic.KeyNotFoundException(
-                    $"No child {nameof(NeoMember)} for {nameof(key)} '{key}' on {nameof(NeoMemberClass)} {this.member.id}");
-            }
-            return member;
+            // Not through TryGet: a shared generic call and its out parameter
+            // cost more than the lookup on every generated accessor read.
+            if (FindChild(key) is TNeoMember member)
+                return member;
+            throw new System.Collections.Generic.KeyNotFoundException(
+                $"No child {nameof(NeoMember)} for {nameof(key)} '{key}' on {nameof(NeoMemberClass)} {this.member.id}");
         }
 
         public bool TryGet<TNeoMember>(string key, [NotNullWhen(true)] out TNeoMember? outMember)
             where TNeoMember : NeoMember
         {
-            if (childMembers.TryGetValue(key, out NeoMember? check) && check is TNeoMember match)
+            if (FindChild(key) is TNeoMember match)
             {
                 outMember = match;
                 return true;
             }
             outMember = null;
             return false;
+        }
+
+        // Generated accessors look children up by the same literal keys on
+        // every read, so the children found last answer by reference before
+        // the dictionary hashes the key. Slots hold while childMembers is the
+        // dictionary they were found in and nothing removed from it.
+        private struct ChildSlot
+        {
+            public string key;
+            public NeoMember child;
+        }
+
+        private ChildSlot[]? childSlots;
+        private int childSlotCount;
+        private Dictionary<string, NeoMember>? childSlotsSource;
+        private const int MaxChildSlots = 8;
+
+        private protected void ForgetChildSlots() => childSlotCount = 0;
+
+        private NeoMember? FindChild(string key)
+        {
+            if (ReferenceEquals(childSlotsSource, childMembers))
+            {
+                for (int i = 0; i < childSlotCount; i++)
+                {
+                    ref ChildSlot slot = ref childSlots![i];
+                    if (ReferenceEquals(slot.key, key) || slot.key == key)
+                        return slot.child;
+                }
+            }
+            else
+            {
+                childSlotCount = 0;
+                childSlotsSource = childMembers;
+            }
+            if (!childMembers.TryGetValue(key, out NeoMember? child))
+                return null;
+            // Bounded: further children take the dictionary.
+            if (childSlotCount < MaxChildSlots)
+            {
+                childSlots ??= new ChildSlot[MaxChildSlots];
+                childSlots[childSlotCount++] = new ChildSlot { key = key, child = child };
+            }
+            return child;
         }
 
         /// <summary>
@@ -323,6 +367,7 @@ namespace NeoCompose.Runtime
                 }
             }
             childMembers.Clear();
+            ForgetChildSlots();
             base.Dispose();
         }
 
@@ -1176,6 +1221,7 @@ namespace NeoCompose.Runtime
                 child.ChildChanged -= HandleChildChanged;
                 child.Dispose();
                 childMembers.Remove(key);
+                ForgetChildSlots();
             }
 
             NotifyChanged();
