@@ -555,7 +555,13 @@ namespace NeoCompose.Runtime
 
         internal NeoWriteBatch? PendingScriptWrites => scriptWriteBatch;
 
-        internal void EnterScriptWrites() => scriptWriteDepth++;
+        internal void EnterScriptWrites()
+        {
+            // A getter an execution's writes reach is heard once, after it
+            // exits, so its watchers read it once and never mid-execution.
+            if (scriptWriteDepth++ == 0)
+                HoldGetterChanges();
+        }
 
         internal void ExitScriptWrites()
         {
@@ -567,10 +573,18 @@ namespace NeoCompose.Runtime
             }
             finally
             {
-                if (scriptChangeBatchOpen)
+                try
                 {
-                    scriptChangeBatchOpen = false;
-                    EndChangeBatch();
+                    // Released into the execution's change batch, when it has one.
+                    ReleaseGetterChanges();
+                }
+                finally
+                {
+                    if (scriptChangeBatchOpen)
+                    {
+                        scriptChangeBatchOpen = false;
+                        EndChangeBatch();
+                    }
                 }
             }
         }

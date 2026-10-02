@@ -1077,6 +1077,41 @@ namespace NeoCompose.Tests
             Assert.AreEqual(4, Convert.ToInt32(view.ComputeComputed().value));
         }
 
+        [Test]
+        public void ComputedOnChanged_HearsOneScriptExecutionOnce()
+        {
+            using var client = BuildClient(out NSPropertyMember property);
+            property.getter = GetterFunction();
+            var view = TestReceiverView.Create(client, "value-receiver");
+            var values = new List<int>();
+            using var watch = view.OnComputedChanged((value, _) => values.Add(value));
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            var root = RuntimeRoot(client, ctx);
+            ctx = ctx.WithRoot(root);
+            // root.Save.Target = 5; root.Save.Target = 6; root.Save.Target = 7;
+            var action = Function(
+                RootTargetAssignment(5),
+                RootTargetAssignment(6),
+                RootTargetAssignment(7));
+
+            NeoScriptExecutor.Execute(client, action, new Dictionary<string, object?> { ["__root__"] = root }, ctx);
+
+            CollectionAssert.AreEqual(new[] { 7 }, values, "The handler reads the getter once, after the execution.");
+        }
+
+        private static AssignInstruction RootTargetAssignment(double value) => new()
+        {
+            type = InstructionKind.Assign,
+            target = new WriteTarget
+            {
+                pointer = RootTargetPointer(),
+                typeInfo = IntType(),
+                writability = WritabilityKind.Runtime,
+            },
+            operatorValue = "=",
+            pointer = NumberLiteral(value),
+        };
+
         // return this.Count;
         private static FunctionWithReturnType ThisCountGetter()
         {
