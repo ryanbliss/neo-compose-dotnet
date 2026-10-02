@@ -1217,6 +1217,8 @@ namespace NeoCompose.Runtime
                 client.capturedValueReads = previous;
                 if (propagate && reads is not null)
                     previous?.UnionWith(reads);
+                // Effects a write inside the capture queued run once it ends.
+                client.DrainDeferredEffects();
             }
         }
 

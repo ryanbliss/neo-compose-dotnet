@@ -384,6 +384,25 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void AnEffectAValueReadCaptureQueuedRunsWhenTheCaptureEnds()
+        {
+            using Fixture fixture = Build(plants: 1);
+            fixture.client.StartEffects();
+            var watcher = new NeoMemberClassWritable(fixture.client, "member-watcher", "value-watcher", NeoValueOwnership.Save);
+
+            // Animation segments resolve inside a value-read capture, which
+            // outlasts the getter's own drain.
+            using (fixture.client.CaptureValueReads(new HashSet<string>()))
+            {
+                watcher.Get<NeoMemberNSProperty>("Poked").Compute("value-watcher");
+                Assert.AreEqual(1, fixture.RunsOf("plant-0"));
+            }
+
+            Assert.AreEqual(2, fixture.RunsOf("plant-0"));
+            Assert.AreEqual(("plant-0", 40), fixture.recorded[^1]);
+        }
+
+        [Test]
         [Explicit("Effect run measurement; run serially by name.")]
         public void EffectPerformance_RunAgainstDirectCall()
         {
