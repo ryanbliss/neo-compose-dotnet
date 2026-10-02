@@ -67,6 +67,110 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void GetterReturningATemporary_ReadsWithoutRows()
+        {
+            NeoClient client = BuildClient();
+            using var line = new NeoMemberClass(client, "member-report-line", "line-a", NeoValueOwnership.Asset);
+            int before = client.sessionValues.Count;
+
+            NSGetterResult result = line.Get<NeoMemberNSProperty>("Summary").Compute("line-a");
+
+            Assert.IsTrue(result.ok, result.error);
+            Assert.IsInstanceOf<NeoScriptObject>(result.value);
+            Assert.IsNull(((NeoScriptObject)result.value!).attachedId, "Deciding what the memo keeps attaches nothing.");
+            Assert.AreEqual(1, ReadReport(client, result.value).Total);
+            Assert.AreEqual(before, client.sessionValues.Count, "A getter's temporary needs no row, as a function's doesn't.");
+        }
+
+        [Test]
+        public void GetterReturningATemporary_ReportsWhatItReadOnEveryRead()
+        {
+            NeoClient client = BuildClient();
+            using var line = new NeoMemberClass(client, "member-report-line", "line-a", NeoValueOwnership.Asset);
+            NeoMemberNSProperty summary = line.Get<NeoMemberNSProperty>("Summary");
+            var first = new HashSet<string>();
+            using (client.CaptureValueReads(first))
+                Assert.IsTrue(summary.Compute("line-a").ok);
+
+            // The first read returned a temporary, so this one records no
+            // value ids of its own.
+            var second = new HashSet<string>();
+            using (client.CaptureValueReads(second))
+                Assert.IsTrue(summary.Compute("line-a").ok);
+
+            CollectionAssert.Contains(first, "line-a-score");
+            CollectionAssert.AreEquivalent(first, second, "An enclosing capture still hears every value read.");
+        }
+
+        [Test]
+        public void GetterThatReturnedATemporary_KeepsAKeepableResultOnTheNextRead()
+        {
+            NeoClient client = BuildClient();
+            Assert.IsTrue(client.TryGetMember("member-line-summary", out NSPropertyMember? summaryMember));
+            // if (this.Score == 0) return null; return new Report { Total = this.Score, ... };
+            summaryMember!.getter.instructions = new Instruction[]
+            {
+                new IfInstruction
+                {
+                    type = InstructionKind.If,
+                    branches = new[]
+                    {
+                        new ConditionalBranch
+                        {
+                            expression = new BooleanExpression
+                            {
+                                condition = new Condition
+                                {
+                                    type = OperatorKind.EqualTo,
+                                    operand1 = ThisScore(),
+                                    operand2 = Literal(0, MemberKind.Int),
+                                },
+                            },
+                            instructions = new Instruction[]
+                            {
+                                new ReturnInstruction
+                                {
+                                    type = InstructionKind.Return,
+                                    pointer = new ValuePointer
+                                    {
+                                        type = PointerKind.Value,
+                                        value = new Value
+                                        {
+                                            typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null, required = true },
+                                            value = JValue.CreateNull(),
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+                new ReturnInstruction { type = InstructionKind.Return, pointer = Report(ThisScore()) },
+            };
+            TestLine line = ReadReport(client, EvaluateReport(client), out _).Lines[0];
+            string id = line.valueId!;
+            Assert.IsTrue(client.TryGetValue(NeoValueOwnership.Session, id, out ObjectMemberValue? row));
+            string scoreId = row!.value!["Score"];
+            NeoMemberNSProperty summary = line.BackingNode.Get<NeoMemberNSProperty>("Summary");
+            var key = new NeoClient.GetterMemoKey(
+                NeoValueOwnership.Session, id, "member-line-summary", NeoValueOwnership.Session);
+            Assert.IsInstanceOf<NeoScriptObject>(summary.Compute(id).value);
+
+            // Expecting another temporary, this read left its value ids to
+            // the enclosing capture, so its null is not kept.
+            client.SetWritableValue(NeoValueOwnership.Session, new NumberMemberValue { id = scoreId, value = 0 });
+            Assert.IsNull(summary.Compute(id).value);
+            Assert.IsNull(client.FindMemoizedGetter(key), "A result whose value ids went elsewhere can't be replayed.");
+
+            Assert.IsNull(summary.Compute(id).value);
+            Assert.IsNotNull(client.FindMemoizedGetter(key), "The next read records its value ids and keeps the result.");
+            var captured = new HashSet<string>();
+            using (client.CaptureValueReads(captured))
+                Assert.IsNull(summary.Compute(id).value);
+            CollectionAssert.Contains(captured, scoreId, "The kept result replays the value ids it read.");
+        }
+
+        [Test]
         public void ReturnedTemporary_AttachesWhenItsIdIsNeeded()
         {
             NeoClient client = BuildClient();
@@ -722,7 +826,7 @@ namespace NeoCompose.Tests
             Field("Label", "member-line-label", Literal("a", MemberKind.String)));
 
         /// <summary><c>new Report { Total = total, Lines = [Line()] }</c></summary>
-        private static FunctionPointer Report(ValuePointer total) =>
+        private static FunctionPointer Report(Pointer total) =>
             Construct(
                 ReportType,
                 Field("Total", "member-report-total", total),
@@ -942,6 +1046,30 @@ namespace NeoCompose.Tests
                 },
                 returnTypeInfo = IntType,
             };
+            // `Report Summary => new Report { Total = this.Score, Lines = [new Line { Score = 3, Label = "a" }] };` on Line.
+            members["member-line-summary"] = new NSPropertyMember
+            {
+                id = "member-line-summary",
+                projectId = ProjectId,
+                name = "Summary",
+                kind = MemberKind.NSProperty,
+                code = "return new Report { Total = this.Score, Lines = [new Line { Score = 3, Label = \"a\" }] };",
+                getter = new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = Array.Empty<Variable>(),
+                    typeInfo = ReportType,
+                    instructions = new Instruction[]
+                    {
+                        new ReturnInstruction
+                        {
+                            type = InstructionKind.Return,
+                            pointer = Report(Key(Variable("__this__"), "Score")),
+                        },
+                    },
+                },
+                returnTypeInfo = ReportType,
+            };
             members["member-line-scaled"] = new NSFunctionMember
             {
                 id = "member-line-scaled",
@@ -1102,6 +1230,7 @@ namespace NeoCompose.Tests
                         ("Score", "member-line-score"),
                         ("Label", "member-line-label"),
                         ("Doubled", "member-line-doubled"),
+                        ("Summary", "member-line-summary"),
                         ("Scaled", "member-line-scaled"),
                         ("Digits", "member-line-digits")),
                     ["class-pick"] = SchemaClass(
