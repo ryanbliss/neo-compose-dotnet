@@ -5,7 +5,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -18,8 +17,6 @@ namespace NeoCompose.Tests
 {
     public sealed class NeoAnimationClipTests
     {
-        private const string PackageRoot = "Packages/com.ryanbliss.neocompose/Tests";
-
         /// <summary>
         /// NUnit test-case metadata only accepts literal values, and
         /// NeoPlayDirection is the SDK-shipped option-id wrapper class — so
@@ -1082,8 +1079,7 @@ namespace NeoCompose.Tests
 
         private static NeoClient CreateClient()
         {
-            string json = File.ReadAllText(Path.Combine(PackageRoot, "synth-example.json"));
-            return NeoTestSaveStack.LoadClient(json);
+            return NeoTestSaveStack.Create(NeoTestSaveStack.SynthExample).Load();
         }
 
         private sealed class TestTarget : NeoGeneratedClassValue

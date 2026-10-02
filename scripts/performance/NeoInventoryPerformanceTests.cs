@@ -1,3 +1,5 @@
+#if NEO_COMPOSE_NEOWYN_TESTS
+// Opt in with the NEO_COMPOSE_NEOWYN_TESTS scripting define.
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -239,3 +241,5 @@ public class NeoInventoryPerformanceTests
         Assert.That(flow.State, Is.EqualTo(state), flow.Message);
     }
 }
+
+#endif

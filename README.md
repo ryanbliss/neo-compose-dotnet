@@ -109,6 +109,14 @@ causes addressed, and remaining equipment-change cost.
   assembly demonstrates how a downstream project consumes + tests against
   the package.
 
+Neowyn integration tests are excluded by default. To opt in, add
+`NEO_COMPOSE_NEOWYN_TESTS` to **Player Settings → Other Settings → Scripting
+Define Symbols** for the active target, then run the tests normally. This enables
+the captured Neowyn export regression in the package and the game-dependent
+probes in `scripts/performance/` when copied into an isolated Neowyn project.
+Remove the symbol to return to the default SDK suite. Small synthetic SDK
+regressions remain enabled.
+
 ## License
 
 MIT. See [LICENSE](./LICENSE).

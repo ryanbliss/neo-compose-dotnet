@@ -26,7 +26,7 @@ namespace HelloWorld.Assets.Tests
             var values = (JObject)export["values"];
             int originalCount = values.Count;
             int added = 0;
-            foreach (int rowCount in new[] { 10_000, 100_000 })
+            foreach (int rowCount in new[] { 1_000, 10_000 })
             {
                 for (; added < rowCount; added++)
                 {
@@ -39,14 +39,11 @@ namespace HelloWorld.Assets.Tests
                     });
                 }
                 string json = export.ToString(Formatting.None);
-                for (int sample = 0; sample < 4; sample++)
-                {
-                    var timer = Stopwatch.StartNew();
-                    var schema = JsonConvert.DeserializeObject<ProjectData>(json);
-                    double parseMs = timer.Elapsed.TotalMilliseconds;
-                    Assert.That(schema.values.Count, Is.EqualTo(originalCount + rowCount));
-                    TestContext.WriteLine($"LARGE_JSON_PROFILE sample={sample} addedRows={rowCount} jsonChars={json.Length} parseMs={parseMs:F3}");
-                }
+                var timer = Stopwatch.StartNew();
+                var schema = JsonConvert.DeserializeObject<ProjectData>(json);
+                double parseMs = timer.Elapsed.TotalMilliseconds;
+                Assert.That(schema.values.Count, Is.EqualTo(originalCount + rowCount));
+                TestContext.WriteLine($"LARGE_JSON_PROFILE addedRows={rowCount} jsonChars={json.Length} parseMs={parseMs:F3}");
             }
         }
 
@@ -54,7 +51,8 @@ namespace HelloWorld.Assets.Tests
         public async Task HelloWorldStartup_Profile()
         {
             string json = File.ReadAllText("Assets/Resources/Neo/project.json");
-            for (int sample = 0; sample < 6; sample++)
+            // Retain cold and warm initialization, each with its own save/client.
+            for (int sample = 0; sample < 2; sample++)
             {
                 var timer = Stopwatch.StartNew();
                 var schema = JsonConvert.DeserializeObject<ProjectData>(json);

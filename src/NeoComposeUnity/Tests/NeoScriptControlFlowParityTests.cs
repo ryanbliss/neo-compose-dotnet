@@ -5,7 +5,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using NeoCompose.Runtime;
@@ -27,9 +26,6 @@ namespace NeoCompose.Tests
     /// </summary>
     public class NeoScriptControlFlowParityTests
     {
-        private const string PackageRoot =
-            "Packages/com.ryanbliss.neocompose/Tests";
-
         /// <summary>
         /// The web evaluator still stops this case at its 10,000-iteration
         /// budget. The Unity runtime has no execution budget, so here the
@@ -142,7 +138,7 @@ namespace NeoCompose.Tests
         {
             JObject testCase = RequireCase(caseName);
             FunctionWithReturnType getter = Getter(testCase, caseName);
-            NeoClient client = LoadClient();
+            using NeoClient client = LoadClient();
             var ctx = new NSGetterEvaluator.Context(client, null, null);
 
             if (caseName == WebBudgetCase)
@@ -186,7 +182,8 @@ namespace NeoCompose.Tests
                 Assert.Throws<JsonSerializationException>(() => Getter(testCase, name));
                 return;
             }
-            var ctx = new NSGetterEvaluator.Context(LoadClient(), null, null);
+            using NeoClient client = LoadClient();
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
             object? result = NSGetterEvaluator.Evaluate(Getter(testCase, name), ctx);
             AssertTokenMatches(testCase["expected"]!, JToken.FromObject(result!), name);
         }
@@ -251,9 +248,7 @@ namespace NeoCompose.Tests
 
         private static NeoClient LoadClient()
         {
-            string json = File.ReadAllText(
-                Path.Combine(PackageRoot, "synth-example.json"));
-            return NeoTestSaveStack.LoadClient(json);
+            return NeoTestSaveStack.Create(NeoTestSaveStack.SynthExample).Load();
         }
 
         private static FunctionWithReturnType Getter(
