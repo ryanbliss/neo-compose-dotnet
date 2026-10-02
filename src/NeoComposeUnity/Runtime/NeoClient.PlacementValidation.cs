@@ -496,7 +496,7 @@ namespace NeoCompose.Runtime
                         ValidateObjectFootprint(obj);
                 if (TryValidateObjectInsertion(plan, primitives, compatibleLayers))
                     return;
-                if (TryValidateDirectTileConversions(plan, primitives, compatibleLayers))
+                if (TryValidateDirectTileConversions(plan, scratch))
                     return;
                 foreach (string tileId in tiles)
                     ValidateTileRow(tileId);

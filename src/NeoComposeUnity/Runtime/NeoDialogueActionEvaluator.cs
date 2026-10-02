@@ -4705,7 +4705,8 @@ namespace NeoCompose.Runtime
             private bool TryWriteLeaf(NeoClient client, object? value, NSGetterEvaluator.Context ctx)
             {
                 if (member is not (BoolMember or IntMember or FloatMember or StringMember or EnumMember
-                        or Vector2Member or Vector2IntMember or Vector3Member or Vector3IntMember or ColorMember)
+                        or Vector2Member or Vector2IntMember or Vector3Member or Vector3IntMember or ColorMember
+                        or SpriteMember or AudioMember)
                     || value is NeoValuePayload or INeoValuePayloadProvider
                     || !TryGetParent(client, out ObjectMemberValue? parent)
                     || !TryResolveBoundChild(client, parentRowId, parent, out string existingId, out MemberValue? existing, out MemberValue? stored)

@@ -929,7 +929,8 @@ namespace NeoCompose.Runtime
             {
                 case NeoMemberClass classNode:
                     classNode.RefreshChildrenAfterConstruction();
-                    foreach (NeoMember child in classNode.Select(pair => pair.Value).ToArray())
+                    // An unbound function or getter has nothing to refresh.
+                    foreach (NeoMember child in classNode.BoundChildren.ToArray())
                         RefreshVirtualWrapperTree(child);
                     break;
                 case NeoMemberList listNode:

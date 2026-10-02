@@ -62,10 +62,7 @@ namespace NeoCompose.Runtime
 
     public partial class NeoClient
     {
-        private bool TryValidateDirectTileConversions(
-            NeoWritePlan plan,
-            Dictionary<string, NeoReadOnlyTileGridPrimitive> primitives,
-            Dictionary<(bool tile, string classId), HashSet<string>> compatibleLayers)
+        private bool TryValidateDirectTileConversions(NeoWritePlan plan, WriteValidationScratch scratch)
         {
             if (plan.Bindings.Count != 0 || plan.Rows.Count == 0)
                 return false;
@@ -166,7 +163,7 @@ namespace NeoCompose.Runtime
                 if (!TryResolveDirectTileRoute(
                         plan,
                         conversion.next,
-                        primitives,
+                        scratch,
                         out string? gridValueId,
                         out NeoGridLayerLinkModel? link))
                 {
@@ -187,7 +184,7 @@ namespace NeoCompose.Runtime
                     link!.LayerId,
                     imports,
                     tile: true,
-                    compatibleLayers);
+                    scratch.compatibleLayers);
                 validated.Add(new NeoValidatedTileConversion(
                     gridValueId!,
                     link.LayerId,
@@ -220,7 +217,7 @@ namespace NeoCompose.Runtime
         private bool TryResolveDirectTileRoute(
             NeoWritePlan plan,
             ObjectMemberValue placement,
-            Dictionary<string, NeoReadOnlyTileGridPrimitive> primitives,
+            WriteValidationScratch scratch,
             out string? gridValueId,
             out NeoGridLayerLinkModel? link)
         {
@@ -231,7 +228,7 @@ namespace NeoCompose.Runtime
             var visited = new HashSet<string>();
             var grids = new HashSet<string>();
             var links = new HashSet<string>();
-            var staged = new List<string>();
+            List<string> parents = scratch.parents;
             while (pending.Count != 0)
             {
                 string id = pending.Dequeue();
@@ -245,18 +242,22 @@ namespace NeoCompose.Runtime
                     if (HasWorldKind(objectRow.classId, "tileLayerLink"))
                         links.Add(id);
                 }
-                if (!string.IsNullOrEmpty(row?.containerId))
-                    pending.Enqueue(row!.containerId!);
-                foreach (string parent in PlacementParents(id))
-                    pending.Enqueue(parent);
-                staged.Clear();
-                plan.CollectParentCandidates(id, staged);
-                foreach (string parent in staged)
-                    pending.Enqueue(parent);
+                string? containerId = row?.containerId;
+                if (!string.IsNullOrEmpty(containerId))
+                    pending.Enqueue(containerId!);
+                // Containment only, as the validator walks: a row that
+                // references the grid does not place this tile. The
+                // container is queued already, so its edge needs no test.
+                parents.Clear();
+                CollectPlacementParents(id, parents);
+                plan.CollectParentCandidates(id, parents);
+                foreach (string parent in parents)
+                    if (parent != containerId && IsPlacementEdge(plan, scratch, parent, id))
+                        pending.Enqueue(parent);
             }
             gridValueId = grids.Count == 1 ? grids.First() : null;
             string? linkValueId = links.Count == 1 ? links.First() : null;
-            NeoReadOnlyTileGridPrimitive? primitive = gridValueId is not null && primitives.TryGetValue(gridValueId, out var found)
+            NeoReadOnlyTileGridPrimitive? primitive = gridValueId is not null && scratch.primitives.TryGetValue(gridValueId, out var found)
                 ? found
                 : null;
             link = primitive is not null && linkValueId is not null
