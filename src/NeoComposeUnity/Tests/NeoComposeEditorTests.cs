@@ -424,6 +424,7 @@ namespace NeoCompose.Tests
             var api = new FakeApiClient();
             api.deltaResponse = new NeoComposeUnityExportDeltaManifestResponse
             {
+                codegenRevision = "codegen-current",
                 readBase = PublishedReadBase(),
                 cursor = new NeoComposeUnityExportCursor
                 {
@@ -1033,6 +1034,7 @@ namespace NeoCompose.Tests
             originalJson = assets.files[projectPath];
             api.deltaResponseForCall = call => new NeoComposeUnityExportDeltaManifestResponse
             {
+                codegenRevision = "codegen-current",
                 readBase = PublishedReadBase("tx-" + (call + 1)),
                 cursor = new NeoComposeUnityExportCursor { createdAt = call + 1 },
                 records = new List<NeoComposeUnityExportHeadDescriptor>
@@ -1255,6 +1257,7 @@ namespace NeoCompose.Tests
             {
                 deltaResponse = new NeoComposeUnityExportDeltaManifestResponse
                 {
+                    codegenRevision = "codegen-current",
                     readBase = PublishedReadBase(),
                     cursor = new NeoComposeUnityExportCursor
                     {
@@ -1304,6 +1307,41 @@ namespace NeoCompose.Tests
             Assert.AreEqual(1, api.snapshotExportCalls);
         }
 
+        [TestCase(null)]
+        [TestCase("previous-generator")]
+        [TestCase("codegen-current")]
+        public async Task Synchronizer_CodegenRevisionRefreshesUnchangedProjectOnce(string? cachedRevision)
+        {
+            var config = MakeConfig();
+            var api = new FakeApiClient();
+            api.exportResponse.syncState = new NeoComposeUnityExportSyncState();
+            var assets = new FakeAssetService();
+            assets.files["Assets/Resources/Neo/project.json"] = "{}";
+            var cache = new FakeExportCache { state = new NeoComposeUnityExportSyncState() };
+            StampCachedExport(assets, cache.state!);
+            new NeoComposeGeneratedFiles(assets, config.generatedTypesDirectory, config.projectId,
+                api.exportResponse.generatedFiles, cachedRevision).Apply();
+            assets.writtenPaths.Clear();
+            var synchronizer = new NeoComposeSynchronizer(api, new FakeConfirmationService(true), assets, cache);
+
+            var first = await synchronizer.SynchronizeAsync(config);
+            Assert.IsTrue(first.success, first.message);
+            Assert.AreEqual(cachedRevision == "codegen-current" ? 0 : 1, api.fullExportCalls);
+            Assert.AreEqual(cachedRevision == null ? 0 : 1, api.deltaExportCalls);
+            if (cachedRevision != null)
+                Assert.AreEqual(cachedRevision, api.requestedCodegenRevisions[0]);
+            if (api.fullExportCalls != 0)
+                Assert.IsNotEmpty(api.lastGeneratedFileHashes!, "Revision invalidation must retain hash negotiation.");
+            Assert.IsFalse(assets.writtenPaths.Contains("Assets/Scripts/Neo/Generated/Project.g.cs"));
+            Assert.AreEqual("codegen-current", JObject.Parse(assets.files["Assets/Scripts/Neo/NeoGeneratedFiles.json"])["codegenRevision"]?.Value<string>());
+
+            StampCachedExport(assets, cache.state!);
+            var second = await synchronizer.SynchronizeAsync(config);
+            Assert.IsTrue(second.success, second.message);
+            Assert.AreEqual(cachedRevision == "codegen-current" ? 0 : 1, api.fullExportCalls);
+            Assert.AreEqual("codegen-current", api.requestedCodegenRevisions[api.requestedCodegenRevisions.Count - 1]);
+        }
+
         [Test]
         public async Task Synchronizer_FullResyncExportsInFullOnce()
         {
@@ -1317,6 +1355,7 @@ namespace NeoCompose.Tests
             api.exportResponse.syncState = new NeoComposeUnityExportSyncState { cursor = afterReset };
             api.deltaResponseForCall = call => new NeoComposeUnityExportDeltaManifestResponse
             {
+                codegenRevision = "codegen-current",
                 readBase = PublishedReadBase(),
                 fullResync = call == 1,
                 cursor = afterReset,
@@ -2632,7 +2671,7 @@ namespace NeoCompose.Tests
             new NeoComposeGeneratedFiles(assets, "Assets/Scripts/Neo", "project-1", new[] { files[0] }).Apply();
             Assert.IsFalse(assets.FileExists("Assets/Scripts/Neo/Generated/Enums/id-two.g.cs"));
             Assert.AreEqual("handwritten", assets.files[unchanged]);
-            Assert.IsTrue(NeoComposeGeneratedFiles.IsCurrent(assets, "Assets/Scripts/Neo", "project-1"));
+            Assert.IsTrue(NeoComposeGeneratedFiles.IsCurrent(assets, "Assets/Scripts/Neo", "project-1", out _));
         }
 
         [Test]
@@ -2644,14 +2683,14 @@ namespace NeoCompose.Tests
             var files = new[] { new NeoComposeGeneratedFile { id = "Generated/Project.g.cs", path = "Generated/Project.g.cs", content = "new" } };
             new NeoComposeGeneratedFiles(assets, "Assets/Scripts/Neo", "project-1", files).Apply();
             Assert.IsFalse(assets.FileExists(oldPath));
-            Assert.IsTrue(NeoComposeGeneratedFiles.IsCurrent(assets, "Assets/Scripts/Neo", "project-1"));
-            Assert.IsFalse(NeoComposeGeneratedFiles.IsCurrent(assets, "Assets/Scripts/Neo", "another-project"));
+            Assert.IsTrue(NeoComposeGeneratedFiles.IsCurrent(assets, "Assets/Scripts/Neo", "project-1", out _));
+            Assert.IsFalse(NeoComposeGeneratedFiles.IsCurrent(assets, "Assets/Scripts/Neo", "another-project", out _));
             assets.files["Assets/Scripts/Neo/Generated/Project.g.cs"] = "edited";
-            Assert.IsFalse(NeoComposeGeneratedFiles.IsCurrent(assets, "Assets/Scripts/Neo", "project-1"));
+            Assert.IsFalse(NeoComposeGeneratedFiles.IsCurrent(assets, "Assets/Scripts/Neo", "project-1", out _));
             assets.files.Remove("Assets/Scripts/Neo/Generated/Project.g.cs");
-            Assert.IsFalse(NeoComposeGeneratedFiles.IsCurrent(assets, "Assets/Scripts/Neo", "project-1"));
+            Assert.IsFalse(NeoComposeGeneratedFiles.IsCurrent(assets, "Assets/Scripts/Neo", "project-1", out _));
             new NeoComposeGeneratedFiles(assets, "Assets/Scripts/Neo", "project-1", files).Apply();
-            Assert.IsTrue(NeoComposeGeneratedFiles.IsCurrent(assets, "Assets/Scripts/Neo", "project-1"));
+            Assert.IsTrue(NeoComposeGeneratedFiles.IsCurrent(assets, "Assets/Scripts/Neo", "project-1", out _));
         }
 
         [TestCase("../Other.cs")]
@@ -2685,7 +2724,7 @@ namespace NeoCompose.Tests
             Assert.Throws<IOException>(() => new NeoComposeGeneratedFiles(assets,
                 "Assets/Scripts/Neo", "project-1", files).Apply());
             CollectionAssert.AreEquivalent(original, assets.files);
-            Assert.IsTrue(NeoComposeGeneratedFiles.IsCurrent(assets, "Assets/Scripts/Neo", "project-1"));
+            Assert.IsTrue(NeoComposeGeneratedFiles.IsCurrent(assets, "Assets/Scripts/Neo", "project-1", out _));
         }
 
         [Test]
@@ -2745,7 +2784,7 @@ namespace NeoCompose.Tests
                 CollectionAssert.DoesNotContain(entries, "Item.g.cs.meta");
                 CollectionAssert.Contains(entries, name + ".g.cs");
                 CollectionAssert.Contains(entries, name + ".g.cs.meta");
-                Assert.IsTrue(NeoComposeGeneratedFiles.IsCurrent(assets, TempRoot, "project"));
+                Assert.IsTrue(NeoComposeGeneratedFiles.IsCurrent(assets, TempRoot, "project", out _));
             }
             finally { CleanupTempRoot(); }
         }
@@ -2871,7 +2910,7 @@ namespace NeoCompose.Tests
             if (!assets.files.TryGetValue(path, out var content))
                 return;
             new NeoComposeGeneratedFiles(assets, "Assets/Scripts/Neo", projectId,
-                new[] { new NeoComposeGeneratedFile { id = "Generated/Project.g.cs", path = "Generated/Project.g.cs", content = content } }).Apply();
+                new[] { new NeoComposeGeneratedFile { id = "Generated/Project.g.cs", path = "Generated/Project.g.cs", content = content } }, "codegen-current").Apply();
             assets.writtenPaths.Clear();
             assets.createdDirectories.Clear();
         }
@@ -2880,6 +2919,7 @@ namespace NeoCompose.Tests
         {
             public readonly NeoComposeUnityExportResponse exportResponse = new()
             {
+                codegenRevision = "codegen-current",
                 readBase = PublishedReadBase(),
                 projectId = "project-1",
                 projectName = "Project One",
@@ -2897,6 +2937,7 @@ namespace NeoCompose.Tests
             public string? lastExportVersionId;
             public NeoComposeUnityExportDeltaManifestResponse deltaResponse = new()
             {
+                codegenRevision = "codegen-current",
                 readBase = PublishedReadBase(),
                 cursor = new NeoComposeUnityExportCursor(),
             };
@@ -2905,6 +2946,7 @@ namespace NeoCompose.Tests
             public int deltaExportCalls;
             public int snapshotExportCalls;
             public readonly List<NeoComposeUnityExportCursor> requestedCursors = new();
+            public readonly List<string?> requestedCodegenRevisions = new();
             public readonly List<string[]> requestedSnapshotIds = new();
             public System.Func<int, NeoComposeUnityExportDeltaManifestResponse>? deltaResponseForCall;
             public System.Func<int, string[], NeoComposeProjectReadBase, NeoComposeUnityExportSnapshotResponse>? snapshotResponseForCall;
@@ -2971,11 +3013,13 @@ namespace NeoCompose.Tests
                 string apiBaseUrl,
                 string projectId,
                 string versionId,
-                NeoComposeUnityExportCursor cursor)
+                NeoComposeUnityExportCursor cursor,
+                string? codegenRevision = null)
             {
                 deltaExportCalls++;
                 lastExportVersionId = versionId;
                 requestedCursors.Add(cursor);
+                requestedCodegenRevisions.Add(codegenRevision);
                 return Task.FromResult(deltaResponseForCall?.Invoke(deltaExportCalls) ?? deltaResponse);
             }
 

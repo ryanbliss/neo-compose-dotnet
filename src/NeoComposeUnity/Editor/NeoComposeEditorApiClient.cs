@@ -36,7 +36,8 @@ namespace NeoCompose.Unity.Editor
             string apiBaseUrl,
             string projectId,
             string versionId,
-            NeoComposeUnityExportCursor cursor);
+            NeoComposeUnityExportCursor cursor,
+            string? codegenRevision = null);
         Task<NeoComposeUnityExportSnapshotResponse> ExportProjectSnapshotsAsync(
             string apiBaseUrl,
             string projectId,
@@ -198,7 +199,8 @@ namespace NeoCompose.Unity.Editor
             string apiBaseUrl,
             string projectId,
             string versionId,
-            NeoComposeUnityExportCursor cursor)
+            NeoComposeUnityExportCursor cursor,
+            string? codegenRevision = null)
         {
             RequireProjectId(projectId);
             RequireVersionId(versionId);
@@ -213,7 +215,8 @@ namespace NeoCompose.Unity.Editor
                 JsonConvert.SerializeObject(new
                 {
                     versionId,
-                    cursor
+                    cursor,
+                    codegenRevision = codegenRevision ?? "",
                 }));
             return Deserialize<NeoComposeUnityExportDeltaManifestResponse>(json, "project export delta");
         }

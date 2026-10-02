@@ -152,6 +152,7 @@ namespace NeoCompose.Unity.Editor
     public sealed class NeoComposeUnityExportResponse
     {
         public string mode = "full";
+        public string? codegenRevision;
         public NeoComposeProjectReadBase? readBase;
         public string projectId = "";
         public string projectName = "";
@@ -210,6 +211,7 @@ namespace NeoCompose.Unity.Editor
     public sealed class NeoComposeUnityExportDeltaManifestResponse
     {
         public string mode = "incremental";
+        public string? codegenRevision;
         public NeoComposeProjectReadBase? readBase;
         public bool fullResync;
         public bool codegenAffected;
