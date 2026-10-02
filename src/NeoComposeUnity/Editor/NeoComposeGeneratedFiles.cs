@@ -19,7 +19,7 @@ namespace NeoCompose.Unity.Editor
         private const int SchemaVersion = 1;
         private readonly INeoComposeEditorAssetService assets;
         private readonly string directory;
-        private readonly List<NeoComposeGeneratedFile> writes = new();
+        private readonly List<(string path, string content)> writes = new();
         private readonly List<string> deletes = new();
         private readonly Dictionary<string, string?> metadata = new();
         private readonly string manifestContent;
@@ -64,7 +64,7 @@ namespace NeoCompose.Unity.Editor
                     throw new InvalidOperationException($"Duplicate generated C# identity: {file.id}");
                 if (string.IsNullOrWhiteSpace(file.content))
                     throw new InvalidOperationException($"The export returned empty generated C#: {file.path}");
-                manifest.files.Add(new Entry { id = file.id, path = file.path, hash = Hash(file.content) });
+                manifest.files.Add(new Entry { id = file.id, path = file.path, hash = Hash(file.content!) });
             }
             var incomingById = manifest.files.ToDictionary(file => file.id);
             foreach (var old in previousFiles)
@@ -85,7 +85,7 @@ namespace NeoCompose.Unity.Editor
                     metadata[path] = assets.FileExists(oldMeta) ? assets.ReadAllText(oldMeta) : null;
                 }
                 if (deletedPaths.Contains(path) || !assets.FileExists(path) || assets.ReadAllText(path) != file.content)
-                    writes.Add(new NeoComposeGeneratedFile { id = file.id, path = path, content = file.content });
+                    writes.Add((path, file.content!));
             }
             var monolith = PathFor(NeoComposeEditorDefaults.GeneratedTypesFileName);
             if (assets.FileExists(monolith) || assets.FileExists(monolith + ".meta"))
@@ -116,6 +116,42 @@ namespace NeoCompose.Unity.Editor
             catch (JsonException) { return false; }
             catch (InvalidOperationException) { return false; }
             catch (IOException) { return false; }
+        }
+
+        // Keep the bytes we advertised: disk edits during the request must not
+        // become the contents of a server-confirmed unchanged file.
+        internal sealed class DownloadCache
+        {
+            private readonly Dictionary<string, string> contents = new(StringComparer.Ordinal);
+            public Dictionary<string, string> Hashes { get; } = new(StringComparer.Ordinal);
+
+            public DownloadCache(INeoComposeEditorAssetService assets, string directory, string projectId)
+            {
+                var manifest = ReadManifest(assets, NeoComposePathUtility.CombineAssetPath(directory, ManifestFileName));
+                if (manifest == null || manifest.projectId != projectId)
+                    return;
+                foreach (var file in manifest.files)
+                {
+                    var path = NeoComposePathUtility.CombineAssetPath(directory, file.path);
+                    if (!assets.FileExists(path))
+                        continue;
+                    var content = assets.ReadAllText(path);
+                    contents.Add(file.id, content);
+                    Hashes.Add(file.id, Hash(content));
+                }
+            }
+
+            public void RestoreContents(IReadOnlyList<NeoComposeGeneratedFile> files)
+            {
+                foreach (var file in files)
+                {
+                    if (file.content != null)
+                        continue;
+                    if (!Hashes.TryGetValue(file.id, out var hash) || hash != file.contentHash)
+                        throw new InvalidOperationException($"No matching local contents for generated C#: {file.path}");
+                    file.content = contents[file.id];
+                }
+            }
         }
 
         public IReadOnlyList<string> Apply()

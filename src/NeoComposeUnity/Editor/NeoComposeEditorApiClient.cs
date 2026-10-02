@@ -4,6 +4,7 @@
 #nullable enable
 
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using UnityEngine.Networking;
@@ -29,7 +30,8 @@ namespace NeoCompose.Unity.Editor
             string namespaceForGeneratedTypes,
             bool singleton);
 
-        Task<NeoComposeUnityExportResponse> ExportProjectAsync(string apiBaseUrl, string projectId, string versionId);
+        Task<NeoComposeUnityExportResponse> ExportProjectAsync(string apiBaseUrl, string projectId, string versionId,
+            IReadOnlyDictionary<string, string>? generatedFileHashes = null);
         Task<NeoComposeUnityExportDeltaManifestResponse> ExportProjectDeltaAsync(
             string apiBaseUrl,
             string projectId,
@@ -175,7 +177,8 @@ namespace NeoCompose.Unity.Editor
         public async Task<NeoComposeUnityExportResponse> ExportProjectAsync(
             string apiBaseUrl,
             string projectId,
-            string versionId)
+            string versionId,
+            IReadOnlyDictionary<string, string>? generatedFileHashes = null)
         {
             RequireProjectId(projectId);
             RequireVersionId(versionId);
@@ -184,7 +187,8 @@ namespace NeoCompose.Unity.Editor
             var json = await PostAuthorizedAsync(
                 apiBaseUrl, url, operation, JsonConvert.SerializeObject(new
                 {
-                    versionId
+                    versionId,
+                    generatedFileHashes = generatedFileHashes ?? new Dictionary<string, string>(),
                 }),
                 timeoutSeconds: FullExportTimeoutSeconds);
             return Deserialize<NeoComposeUnityExportResponse>(json, "project export");

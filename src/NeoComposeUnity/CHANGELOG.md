@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.48.3] - 2026-10-02
+
+- Full Unity exports send hashes of the local generated C# files and download only changed contents when the server supports hash negotiation. Missing files and local edits are repaired; renames preserve Unity GUIDs. `INeoComposeEditorApiClient.ExportProjectAsync` now accepts an optional `generatedFileHashes` argument, and `NeoComposeGeneratedFile.content` can be null when its `contentHash` matches the request.
+- Timestamp-only updates and literal sprite slice changes that retain the same file stay on the incremental export path. Script and structural edits still rebuild the export when they may change media inclusion. Adding a reference to a file outside the current export now correctly rebuilds the file manifest.
+- Generated Tile and RuleTile assets retain a stable name and are saved only when their serialized contents change. Effective sprite and rule changes are still detected even when the tile class timestamp is unchanged. The tile database is saved only when its entries change.
+
 ## [0.48.2] - 2026-10-02
 
 - A getter read from C# that returns an object its body constructed no longer writes that object to the store. To decide whether the memo could keep the result, the read looked up the result's row, and a temporary has a row only once it is attached, so every read attached the whole object. A function returning the same object never did. In Neowyn, this alone took a read of a plant's `Evaluation` getter from 461 µs and 346 allocations to 154–155 µs and 8.2.

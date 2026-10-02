@@ -145,7 +145,8 @@ namespace NeoCompose.Unity.Editor
     {
         public string id = "";
         public string path = "";
-        public string content = "";
+        public string? content = "";
+        public string? contentHash;
     }
 
     public sealed class NeoComposeUnityExportResponse
