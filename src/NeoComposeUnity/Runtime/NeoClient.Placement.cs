@@ -78,6 +78,10 @@ namespace NeoCompose.Runtime
             List<ObjectMove> moves = objectMoveScratch;
             if (moves.Count != 0)
                 moves = new List<ObjectMove>();
+            // Getter watchers hear the move once every index it touches is
+            // current.
+            HoldGetterChanges();
+            bool gridLeaf = false;
             try
             {
                 // Validation changes no index; a collision leaves the store
@@ -86,13 +90,11 @@ namespace NeoCompose.Runtime
                     if (ObjectMove.Prepare(cache, owner.id, cell) is { } move)
                         moves.Add(move);
                 StoreLeaf(ownership, next, node!);
-                if (moves.Count != 0)
-                {
-                    InvalidateGridDependentGetterMemo();
-                    foreach (var move in moves)
-                        move.Apply();
-                }
-                bool gridLeaf = InvalidateGridLeaf(next.id);
+                // Each move publishes its change to the getter memo as it
+                // applies, before anything else reads.
+                foreach (var move in moves)
+                    move.Apply();
+                gridLeaf = InvalidateGridLeaf(next.id);
                 NotifyWritableValueChanged(ownership, next.id, "value", membershipChanged: false, node: node);
                 // Lifecycle filters read generated properties, whose nodes
                 // refresh during the value notifications above.
@@ -104,6 +106,9 @@ namespace NeoCompose.Runtime
             finally
             {
                 moves.Clear();
+                if (gridLeaf)
+                    EndGridChange();
+                ReleaseGetterChanges();
             }
             return true;
         }

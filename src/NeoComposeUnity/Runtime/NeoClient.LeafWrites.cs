@@ -43,17 +43,31 @@ namespace NeoCompose.Runtime
 #if NEO_COMPOSE_PROFILING
             using var marker = LeafWriteMarker.Auto();
 #endif
-            StoreLeaf(ownership, next, node!);
-            bool gridLeaf = InvalidateGridLeaf(next.id);
-            NotifyWritableValueChanged(ownership, next.id, changedField, membershipChanged: false, node: node);
-            if (gridLeaf)
-                PublishGridLeaf(ownership, next.id);
+            // Getter watchers hear the write once the grid it re-flattens is
+            // current.
+            HoldGetterChanges();
+            bool gridLeaf = false;
+            try
+            {
+                StoreLeaf(ownership, next, node!);
+                gridLeaf = InvalidateGridLeaf(next.id);
+                NotifyWritableValueChanged(ownership, next.id, changedField, membershipChanged: false, node: node);
+                if (gridLeaf)
+                    PublishGridLeaf(ownership, next.id);
+            }
+            finally
+            {
+                if (gridLeaf)
+                    EndGridChange();
+                ReleaseGetterChanges();
+            }
             return true;
         }
 
         /// <summary>
         /// Drops the carried tiles that read the written row, before value
-        /// notifications run, so nothing reads the grid stale.
+        /// notifications run, so nothing reads the grid stale. When it drops
+        /// any, a grid change is pending until <see cref="PublishGridLeaf"/>.
         /// </summary>
         private bool InvalidateGridLeaf(string valueId)
         {
@@ -61,7 +75,7 @@ namespace NeoCompose.Runtime
             foreach (NeoTileGridLookupCache cache in gridLookupCacheList)
                 invalidated |= cache.InvalidateLeaf(valueId);
             if (invalidated)
-                InvalidateGridDependentGetterMemo();
+                BeginGridChange();
             return invalidated;
         }
 

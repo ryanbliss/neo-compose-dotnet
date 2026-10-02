@@ -17,7 +17,7 @@ using JsonMember = NeoCompose.Runtime.Json.Member;
 
 namespace NeoCompose.Tests
 {
-    public class NSPropertySetterTests
+    public partial class NSPropertySetterTests
     {
         [Test]
         public void Set_WritesThroughSaveTarget()
@@ -939,6 +939,199 @@ namespace NeoCompose.Tests
             Assert.AreEqual(9, Read());
         }
 
+        [Test]
+        public void ComputedOnChanged_NotifiesOnlyTheInstanceWhoseReadRowChanged()
+        {
+            using var client = BuildClient(out NSPropertyMember property);
+            property.getter = ThisCountGetter();
+            var first = TestReceiverView.Create(client, "value-receiver");
+            var second = TestReceiverView.Create(client, "value-receiver-2");
+            var firstValues = new List<int>();
+            var secondValues = new List<int>();
+            using var firstWatch = first.OnComputedChanged((value, _) => firstValues.Add(value));
+            using var secondWatch = second.OnComputedChanged((value, _) => secondValues.Add(value));
+
+            client.SetSaveValue(Number("value-receiver-count", 7));
+            CollectionAssert.AreEqual(new[] { 7 }, firstValues, "Subscribing arms the getter without a prior read.");
+            CollectionAssert.IsEmpty(secondValues, "Another instance's getter read nothing that changed.");
+
+            client.SetSaveValue(Number("value-receiver-count", 8));
+            CollectionAssert.AreEqual(new[] { 7, 8 }, firstValues, "The handler's read re-arms the watch.");
+
+            client.SetSaveValue(Number("value-receiver-2-count", 3));
+            CollectionAssert.AreEqual(new[] { 3 }, secondValues);
+            CollectionAssert.AreEqual(new[] { 7, 8 }, firstValues);
+        }
+
+        [Test]
+        public void ComputedOnChanged_HearsALeafWriteAfterItCompletes()
+        {
+            using var client = BuildClient(out NSPropertyMember property);
+            property.getter = ThisCountGetter();
+            var view = TestReceiverView.Create(client, "value-receiver");
+            Assert.IsTrue(client.TryGetMember("member-count", out JsonMember? count));
+            var values = new List<int>();
+            using var watch = view.OnComputedChanged((value, _) => values.Add(value));
+
+            Assert.IsTrue(client.TryWriteLeaf(NeoValueOwnership.Save, Number("value-receiver-count", 7), count!, "value"));
+            CollectionAssert.AreEqual(new[] { 7 }, values);
+            Assert.IsTrue(client.TryWriteLeaf(NeoValueOwnership.Save, Number("value-receiver-count", 9), count!, "value"));
+            CollectionAssert.AreEqual(new[] { 7, 9 }, values);
+        }
+
+        [Test]
+        public void ComputedOnChanged_HearsAGetterWhoseResultIsNotMemoized()
+        {
+            var rootType = new ClassTypeInfo { type = MemberKind.Class, required = true, classId = "class-root" };
+            using var client = BuildClient(out NSPropertyMember property, propertyType: rootType);
+            // return root.Session; a Session row result is never memoized.
+            property.getter = Function(new ReturnInstruction
+            {
+                type = InstructionKind.Return,
+                pointer = KeyOf(RootVariable(), "Session"),
+            });
+            property.getter.typeInfo = rootType;
+            var view = TestReceiverView.Create(client, "value-receiver");
+            int changes = 0;
+            using var watch = view.WatchAnyChange((owner, changed, _) =>
+            {
+                if (owner.BackingNode.TryGetSchemaKeyForChild(changed, out string? key) && key == "Computed")
+                    changes++;
+            });
+            Assert.IsTrue(view.ComputeComputed().ok);
+            Assert.IsNull(client.FindMemoizedGetter(new NeoClient.GetterMemoKey(
+                NeoValueOwnership.Save, "value-receiver", property.id, NeoValueOwnership.Save)),
+                "Only the reads are kept; the value is computed again.");
+
+            client.SetWritableValue(NeoValueOwnership.Session, ObjectValue(
+                "value-session", "class-root", ("Target", "value-session-target")));
+            Assert.AreEqual(1, changes);
+            client.SetWritableValue(NeoValueOwnership.Session, ObjectValue(
+                "value-session", "class-root", ("Target", "value-session-target")));
+            Assert.AreEqual(1, changes, "A watch fires once until the getter is read again.");
+            Assert.IsTrue(view.ComputeComputed().ok);
+            client.SetWritableValue(NeoValueOwnership.Session, ObjectValue(
+                "value-session", "class-root", ("Target", "value-session-target")));
+            Assert.AreEqual(2, changes);
+        }
+
+        [Test]
+        public void ComputedOnChanged_StopsAfterTheSubscriptionIsDisposed()
+        {
+            using var client = BuildClient(out NSPropertyMember property);
+            property.getter = ThisCountGetter();
+            var view = TestReceiverView.Create(client, "value-receiver");
+            var values = new List<int>();
+            IDisposable watch = view.OnComputedChanged((value, _) => values.Add(value));
+            client.SetSaveValue(Number("value-receiver-count", 7));
+            watch.Dispose();
+            client.SetSaveValue(Number("value-receiver-count", 8));
+            CollectionAssert.AreEqual(new[] { 7 }, values);
+        }
+
+        [Test]
+        public void ComputedOnChanged_HearsAGetterWhoseReadFailed()
+        {
+            using var client = BuildClient(out NSPropertyMember property);
+            // if (this.Count == 0) throw "No count yet"; return this.Count;
+            property.getter = Function(
+                new IfInstruction
+                {
+                    type = InstructionKind.If,
+                    branches = new[]
+                    {
+                        new ConditionalBranch
+                        {
+                            expression = new BooleanExpression
+                            {
+                                condition = new Condition
+                                {
+                                    type = OperatorKind.EqualTo,
+                                    operand1 = KeyOf(ThisVariable(), "Count"),
+                                    operand2 = NumberLiteral(0),
+                                },
+                            },
+                            instructions = new Instruction[]
+                            {
+                                new ThrowInstruction { type = InstructionKind.Throw, pointer = StringLiteral("No count yet") },
+                            },
+                        },
+                    },
+                },
+                new ReturnInstruction { type = InstructionKind.Return, pointer = KeyOf(ThisVariable(), "Count") });
+            property.getter.typeInfo = IntType();
+            client.SetSaveValue(Number("value-receiver-count", 0));
+            var view = TestReceiverView.Create(client, "value-receiver");
+            int changes = 0;
+            using var watch = view.WatchAnyChange((owner, changed, _) =>
+            {
+                if (owner.BackingNode.TryGetSchemaKeyForChild(changed, out string? key) && key == "Computed")
+                    changes++;
+            });
+            NSGetterResult failed = view.ComputeComputed();
+            Assert.IsFalse(failed.ok);
+            StringAssert.Contains("No count yet", failed.error);
+
+            client.SetSaveValue(Number("value-receiver-count", 4));
+            Assert.AreEqual(1, changes, "A failed read still hears a change to what it read.");
+            Assert.AreEqual(4, Convert.ToInt32(view.ComputeComputed().value));
+        }
+
+        [Test]
+        public void ComputedOnChanged_HearsOneScriptExecutionOnce()
+        {
+            using var client = BuildClient(out NSPropertyMember property);
+            property.getter = GetterFunction();
+            var view = TestReceiverView.Create(client, "value-receiver");
+            var values = new List<int>();
+            using var watch = view.OnComputedChanged((value, _) => values.Add(value));
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            var root = RuntimeRoot(client, ctx);
+            ctx = ctx.WithRoot(root);
+            // root.Save.Target = 5; root.Save.Target = 6; root.Save.Target = 7;
+            var action = Function(
+                RootTargetAssignment(5),
+                RootTargetAssignment(6),
+                RootTargetAssignment(7));
+
+            NeoScriptExecutor.Execute(client, action, new Dictionary<string, object?> { ["__root__"] = root }, ctx);
+
+            CollectionAssert.AreEqual(new[] { 7 }, values, "The handler reads the getter once, after the execution.");
+        }
+
+        private static AssignInstruction RootTargetAssignment(double value) => new()
+        {
+            type = InstructionKind.Assign,
+            target = new WriteTarget
+            {
+                pointer = RootTargetPointer(),
+                typeInfo = IntType(),
+                writability = WritabilityKind.Runtime,
+            },
+            operatorValue = "=",
+            pointer = NumberLiteral(value),
+        };
+
+        // return this.Count;
+        private static FunctionWithReturnType ThisCountGetter()
+        {
+            FunctionWithReturnType getter = Function(new ReturnInstruction
+            {
+                type = InstructionKind.Return,
+                pointer = KeyOf(ThisVariable(), "Count"),
+            });
+            getter.typeInfo = IntType();
+            return getter;
+        }
+
+        private static NumberMemberValue Number(string id, double value) => new()
+        {
+            id = id,
+            value = value,
+            createdAt = "x",
+            updatedAt = "x",
+        };
+
         private static NeoClient.GetterMemoKey ListKey(NSPropertyMember property) => new(
             NeoValueOwnership.Asset, "value-receiver", property.id, NeoValueOwnership.Asset);
 
@@ -1002,6 +1195,16 @@ namespace NeoCompose.Tests
                 name = "Target",
                 kind = MemberKind.Int,
                 valueId = "value-target",
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            var countMember = new IntMember
+            {
+                id = "member-count",
+                projectId = "project-setter",
+                name = "Count",
+                kind = MemberKind.Int,
+                valueId = "value-receiver-count",
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -1071,6 +1274,7 @@ namespace NeoCompose.Tests
                     [rootSession.id] = rootSession,
                     [receiverMember.id] = receiverMember,
                     [targetMember.id] = targetMember,
+                    [countMember.id] = countMember,
                     [baseProperty.id] = baseProperty,
                     [derivedProperty.id] = derivedProperty,
                     [captureFunction.id] = captureFunction,
@@ -1101,7 +1305,28 @@ namespace NeoCompose.Tests
                         createdAt = "x",
                         updatedAt = "x",
                     },
-                    ["value-receiver"] = ObjectValue("value-receiver", "class-receiver"),
+                    ["value-receiver"] = ObjectValue(
+                        "value-receiver",
+                        "class-receiver",
+                        ("Count", "value-receiver-count")),
+                    ["value-receiver-count"] = new NumberMemberValue
+                    {
+                        id = "value-receiver-count",
+                        value = 1,
+                        createdAt = "x",
+                        updatedAt = "x",
+                    },
+                    ["value-receiver-2"] = ObjectValue(
+                        "value-receiver-2",
+                        "class-receiver",
+                        ("Count", "value-receiver-2-count")),
+                    ["value-receiver-2-count"] = new NumberMemberValue
+                    {
+                        id = "value-receiver-2-count",
+                        value = 2,
+                        createdAt = "x",
+                        updatedAt = "x",
+                    },
                     ["value-derived-receiver"] = ObjectValue(
                         "value-derived-receiver",
                         "class-derived-receiver"),
@@ -1115,7 +1340,8 @@ namespace NeoCompose.Tests
                     ["class-receiver"] = NeoSchemaClass(
                         "class-receiver",
                         "Receiver",
-                        ("Computed", baseProperty.id)),
+                        ("Computed", baseProperty.id),
+                        extraSchema: ("Count", countMember.id)),
                     ["class-derived-receiver"] = NeoSchemaClass(
                         "class-derived-receiver",
                         "DerivedReceiver",
@@ -1369,17 +1595,21 @@ namespace NeoCompose.Tests
             string id,
             string name,
             (string key, string memberId) schema,
-            string? extendsClassId = null)
+            string? extendsClassId = null,
+            (string key, string memberId)? extraSchema = null)
         {
+            var entries = new Dictionary<string, string>
+            {
+                [schema.key] = schema.memberId,
+            };
+            if (extraSchema is { } extra)
+                entries[extra.key] = extra.memberId;
             return new NeoSchemaClass
             {
                 id = id,
                 projectId = "project-setter",
                 name = name,
-                schema = new Dictionary<string, string>
-                {
-                    [schema.key] = schema.memberId,
-                },
+                schema = entries,
                 extendsClassId = extendsClassId,
                 createdAt = "x",
                 updatedAt = "x",
@@ -1429,6 +1659,39 @@ namespace NeoCompose.Tests
                         NeoValueOwnership.Session)
                     : null,
             };
+        }
+
+        /// <summary>The shape generated C# takes for <c>class Receiver</c>'s computed member.</summary>
+        private sealed class TestReceiverView : NeoGeneratedClassValue
+        {
+            private static readonly NeoField<int> Computed = new("Computed");
+
+            private TestReceiverView(NeoClient client, NeoMemberClass node)
+                : base(client, node, "class-receiver", false, node.ownership)
+            {
+            }
+
+            internal static TestReceiverView Create(NeoClient client, string valueId) =>
+                NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue(
+                    client,
+                    new NeoMemberClassWritable(client, "member-receiver-value", valueId, NeoValueOwnership.Save),
+                    static (factoryClient, factoryNode) => new TestReceiverView(factoryClient, factoryNode));
+
+            internal NSGetterResult ComputeComputed() => ComputeProperty("Computed");
+
+            private int ComputedValue
+            {
+                get
+                {
+                    var result = ComputeProperty("Computed");
+                    if (!result.ok)
+                        throw new InvalidOperationException(result.error);
+                    return Convert.ToInt32(result.value);
+                }
+            }
+
+            internal IDisposable OnComputedChanged(Action<int, NeoChangeSource> handler) =>
+                WatchField(Computed, handler, () => ComputedValue);
         }
 
         private sealed class TestEnumOption

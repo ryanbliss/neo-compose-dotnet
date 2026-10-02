@@ -19,6 +19,14 @@ namespace NeoCompose.Tests
         internal static NeoClient Client(Action<ProjectData>? configure = null)
         {
             ProjectData data = NeoGenericTestFixture.BuildProjectData();
+            AddCellPatternSchema(data);
+            configure?.Invoke(data);
+            return NeoTestSaveStack.ClientFromSchema(data);
+        }
+
+        /// <summary>Adds the NeoCellPattern classes, members, enums and constructors.</summary>
+        internal static void AddCellPatternSchema(ProjectData data)
+        {
             var seed = JObject.Parse(File.ReadAllText("Packages/com.ryanbliss.neocompose/Tests/cell-pattern-seed.json"));
             foreach (var item in seed["classes"]!)
             {
@@ -41,8 +49,6 @@ namespace NeoCompose.Tests
                 var value = item.ToObject<ConstructorRecord>()!;
                 data.constructors[value.id] = value;
             }
-            configure?.Invoke(data);
-            return NeoTestSaveStack.ClientFromSchema(data);
         }
 
         [Test]

@@ -215,6 +215,15 @@ namespace NeoCompose.Runtime
             return view;
         }
 
+        /// <summary>The computed member child whose getter is <paramref name="memberId"/>, if this node holds one.</summary>
+        internal NeoMemberNSProperty? FindGetterChild(string memberId)
+        {
+            foreach (var pair in childMembers)
+                if (pair.Value is NeoMemberNSProperty getter && getter.member.id == memberId)
+                    return getter;
+            return null;
+        }
+
         internal bool TryGetSchemaKeyForChild(
             NeoMember child,
             [NotNullWhen(true)] out string? schemaKey)

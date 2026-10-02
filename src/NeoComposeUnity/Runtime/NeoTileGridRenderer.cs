@@ -176,8 +176,15 @@ namespace NeoCompose.Runtime
         private sealed class ObjectVisibilityIndex : IDisposable
         {
             private readonly NeoTileGridRenderer renderer;
+            private readonly Action<NeoGeneratedClassValue, NeoMember> instanceChanged;
 
-            public ObjectVisibilityIndex(NeoTileGridRenderer renderer) => this.renderer = renderer;
+            public ObjectVisibilityIndex(
+                NeoTileGridRenderer renderer,
+                Action<NeoGeneratedClassValue, NeoMember> instanceChanged)
+            {
+                this.renderer = renderer;
+                this.instanceChanged = instanceChanged;
+            }
 
             public List<RenderedObjectVisibility> Buckets { get; } = new();
 
@@ -211,7 +218,7 @@ namespace NeoCompose.Runtime
                 if (trackPosition && value is NeoGeneratedClassValue generated)
                 {
                     bucket.PositionBinding = new NestedObjectPositionBinding(
-                        renderer, value, generated, sortPoint);
+                        renderer, value, generated, sortPoint, instanceChanged);
                     bucket.PositionBinding.Register(gameObject.transform);
                 }
                 if (value.valueId is string valueId)
@@ -318,7 +325,8 @@ namespace NeoCompose.Runtime
                 NeoTileGridRenderer renderer,
                 INeoWorldObjectValue value,
                 NeoGeneratedClassValue generated,
-                SortPointPair? sortPoint)
+                SortPointPair? sortPoint,
+                Action<NeoGeneratedClassValue, NeoMember> instanceChanged)
             {
                 this.renderer = renderer;
                 this.value = value;
@@ -327,6 +335,10 @@ namespace NeoCompose.Runtime
                 Action refresh = Refresh;
                 subscription = generated.WatchAnyChange((owner, changed, _) =>
                 {
+                    // A getter's change is raised on this value alone, where a
+                    // write bubbles to the placement, so it is passed on.
+                    if (changed is NeoMemberNSProperty)
+                        instanceChanged(owner, changed);
                     // Descendant writes bubble to composition owners. Only the
                     // owner's Position (or replacement of the owner) can move it,
                     // and only its group's own writes can move the sort point.
@@ -1426,7 +1438,10 @@ namespace NeoCompose.Runtime
         /// the GameObject, so the Neo data model stays the single source of
         /// truth for placement.
         /// </summary>
-        private void TrackObjectPosition(NeoObjectProjection instance, SortPointPair? sortPoint)
+        /// <returns>The handler, which nested values pass their getter changes to.</returns>
+        private Action<NeoGeneratedClassValue, NeoMember> TrackObjectPosition(
+            NeoObjectProjection instance,
+            SortPointPair? sortPoint)
         {
             var instanceId = instance.InstanceId;
             var value = instance.Object;
@@ -1448,20 +1463,22 @@ namespace NeoCompose.Runtime
                 positionDirty = sortPointDirty = visibilityDirty = spritesDirty = false;
             }
             Action refresh = RefreshRendering;
+            void Changed(NeoGeneratedClassValue changedValue, NeoMember changedMember)
+            {
+                positionDirty = true;
+                // A Position write never reads the sort point; a container
+                // write may have bubbled from the group.
+                sortPointDirty |= sortPoint is not null
+                    && (changedMember is NeoMemberClass or NeoMemberList or NeoMemberDictionary
+                        || sortPoint.IsGroupChange(changedMember));
+                visibilityDirty |= ChangeCanCarryEnabled(changedValue, changedMember);
+                spritesDirty |= ChangeCanCarrySpriteState(changedValue, changedMember);
+                value.Client.RefreshAnimationRendering(refresh);
+            }
             DisposeObjectPositionSubscription(instanceId);
             objectPositionSubscriptionsByInstanceId[instanceId] = value.WatchAnyChange(
-                (changedValue, changedMember, _) =>
-                {
-                    positionDirty = true;
-                    // A Position write never reads the sort point; a container
-                    // write may have bubbled from the group.
-                    sortPointDirty |= sortPoint is not null
-                        && (changedMember is NeoMemberClass or NeoMemberList or NeoMemberDictionary
-                            || sortPoint.IsGroupChange(changedMember));
-                    visibilityDirty |= ChangeCanCarryEnabled(changedValue, changedMember);
-                    spritesDirty |= ChangeCanCarrySpriteState(changedValue, changedMember);
-                    value.Client.RefreshAnimationRendering(refresh);
-                });
+                (changedValue, changedMember, _) => Changed(changedValue, changedMember));
+            return Changed;
         }
 
         /// <summary>
@@ -1964,9 +1981,9 @@ namespace NeoCompose.Runtime
             // parented under a group that already exists.
             var sortPoint = AttachSortingGroup(go, layer, instance.Object, sortingOrder);
             var content = sortPoint?.Content ?? go.transform;
-            TrackObjectPosition(instance, sortPoint);
+            var changed = TrackObjectPosition(instance, sortPoint);
 
-            var visibility = new ObjectVisibilityIndex(this);
+            var visibility = new ObjectVisibilityIndex(this, changed);
             objectVisibilityByInstanceId[instance.InstanceId] = visibility;
             var sprites = new List<RenderedObjectSprite>();
             objectSpritesByInstanceId[instance.InstanceId] = sprites;

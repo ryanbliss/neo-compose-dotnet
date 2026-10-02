@@ -150,26 +150,6 @@ namespace NeoCompose.Runtime
 
         private NeoValueNode? thisNode;
 
-        private NeoScriptGridReads? gridReads;
-
-        // One read set per property node, cleared per evaluation: a getter
-        // read every frame must not allocate a recorder and its delegate
-        // on each read.
-        private NeoScriptGridReads ResetGridReads()
-        {
-            if (gridReads is null)
-                gridReads = new NeoScriptGridReads(NotifyChanged);
-            else
-                gridReads.Reset();
-            return gridReads;
-        }
-
-        public override void Dispose()
-        {
-            gridReads?.Dispose();
-            base.Dispose();
-        }
-
         private NSGetterResult ComputeInternal(object? thisValue, MemberValue? thisRow)
         {
             var getter = resolvedGetter;
@@ -190,6 +170,7 @@ namespace NeoCompose.Runtime
                 // same row until the memo forgets it, without building and
                 // hashing the memo's key.
                 NeoClient.GetterMemoEntry? hit = memoEntry is { forgotten: false } kept && memoRowId == thisRow!.id
+                    && client.HoldsCurrentReads(kept)
                     ? kept
                     : null;
                 if (hit is null && (hit = client.FindMemoizedGetter(MemoKey(thisRow!))) is not null)
@@ -199,27 +180,24 @@ namespace NeoCompose.Runtime
                 }
                 if (hit is not null)
                 {
-                    ResetGridReads();
                     if (hit.list is not null)
                     {
                         var listCtx = client.CreateGetterContext(ownership);
-                        listCtx.gridReads = gridReads;
                         if (NSGetterEvaluator.ResolveMemoizedList(hit.list, hit.listEntryMember, listCtx) is { } hitList)
                         {
-                            client.ReplayGetterReads(hit, gridReads);
+                            client.ReplayGetterReads(hit);
                             return NSGetterResult.Ok(hitList);
                         }
                     }
                     else if (hit.row is null)
                     {
-                        client.ReplayGetterReads(hit, gridReads);
+                        client.ReplayGetterReads(hit);
                         return NSGetterResult.Ok(hit.scalar);
                     }
                     else if (client.ReadReplayReference(hit.row.valueId, ref hit.row.node, hit.row.ownership) is { } hitRow)
                     {
-                        client.ReplayGetterReads(hit, gridReads);
+                        client.ReplayGetterReads(hit);
                         var hitCtx = client.CreateGetterContext(ownership);
-                        hitCtx.gridReads = gridReads;
                         return NSGetterResult.Ok(NSGetterEvaluator.UnwrapMemoizedRow(hitRow, hitCtx, hit.row));
                     }
                     client.ForgetMemoizedGetter(MemoKey(thisRow!));
@@ -232,7 +210,6 @@ namespace NeoCompose.Runtime
             // on `root.Assets.X` and `this.foo` rounds-trips through
             // reference equality.
             var ctx = client.RentDirectFunctionContext(ownership);
-            ctx.gridReads = ResetGridReads();
 
             object? boundThis = thisValue;
             if (boundThis is null && thisRow is not null)
@@ -258,7 +235,8 @@ namespace NeoCompose.Runtime
 
             NeoClient.GetterCaptureFrame enclosingCapture = memoize ? client.BeginGetterReadCapture() : default;
             NeoClient.GetterCaptureFrame capture = default;
-            object? value;
+            object? value = null;
+            string? error = null;
             try
             {
                 ctx.BindThis(boundThis);
@@ -269,11 +247,11 @@ namespace NeoCompose.Runtime
             }
             catch (NSGetterRuntimeError ex)
             {
-                return NSGetterResult.Error(ex.Message);
+                error = ex.Message;
             }
             catch (System.Exception ex)
             {
-                return NSGetterResult.Error($"Evaluator error: {ex.Message}");
+                error = $"Evaluator error: {ex.Message}";
             }
             finally
             {
@@ -286,6 +264,10 @@ namespace NeoCompose.Runtime
                 memoEntry = null;
                 if (!client.CanMemoizeGetters)
                     client.RecycleGetterCapture(capture);
+                // A failed read keeps only what it read, so a watch hears the
+                // change that lets it succeed.
+                else if (error is not null)
+                    client.MemoizeGetterReads(memoKey, capture);
                 else if (value is null or string or bool or double or int or long or float)
                     memoEntry = client.MemoizeGetter(memoKey, value, null, capture);
                 else if (NSGetterEvaluator.FindRowReference(value, ctx) is { } resultRef
@@ -295,9 +277,11 @@ namespace NeoCompose.Runtime
                     && NSGetterEvaluator.MemoizableList(entries, ctx, out Member? entryMember) is { } list)
                     memoEntry = client.MemoizeGetter(memoKey, null, null, capture, list, entryMember);
                 else
-                    client.RecycleGetterCapture(capture);
+                    client.MemoizeGetterReads(memoKey, capture);
                 memoRowId = memoKey.rowId;
             }
+            if (error is not null)
+                return NSGetterResult.Error(error);
             client.ReturnDirectFunctionContext(ctx, value);
             return NSGetterResult.Ok(value);
         }

@@ -9,134 +9,6 @@ using UnityEngine;
 
 namespace NeoCompose.Runtime
 {
-    /// <summary>Placement reads retained by an evaluation, including cells with no matches.</summary>
-    public sealed class NeoScriptGridReads : IDisposable
-    {
-        private sealed class GridReads
-        {
-            internal readonly HashSet<Vector2Int> objects = new();
-            internal readonly HashSet<Vector2Int> tiles = new();
-            internal readonly HashSet<string> placements = new();
-            internal IDisposable? subscription;
-            internal IDisposable? layerSubscription;
-        }
-        private readonly Dictionary<INeoTileGridContent, GridReads> grids = new();
-        private readonly Action? invalidated;
-        public NeoScriptGridReads(Action? invalidated = null) => this.invalidated = invalidated;
-
-        internal void Record(INeoTileGridContent content, string placementId, Vector2Int? cell, bool tile)
-        {
-            if (!grids.TryGetValue(content, out GridReads reads))
-            {
-                reads = new GridReads();
-                grids.Add(content, reads);
-                SubscribeGrid(content, reads);
-            }
-            reads.placements.Add(placementId);
-            if (cell is Vector2Int queried)
-                (tile ? reads.tiles : reads.objects).Add(queried);
-        }
-
-        private void SubscribeGrid(INeoTileGridContent content, GridReads reads)
-        {
-            if (invalidated is null)
-                return;
-            reads.subscription = content.Primitive.Client.ScriptGridQueries.OnChanged(content.Primitive.GridValueId, change =>
-            {
-                foreach (var layer in change.ObjectLayers)
-                {
-                    foreach (var id in layer.ChangedInstances)
-                        if (reads.placements.Contains(id.Value))
-                        {
-                            Invalidate();
-                            return;
-                        }
-                    foreach (var changed in layer.ChangedCells)
-                        if (reads.objects.Contains(changed))
-                        {
-                            Invalidate();
-                            return;
-                        }
-                }
-                foreach (var layer in change.TileLayers)
-                    foreach (var changed in layer.ChangedCells)
-                        if (reads.tiles.Contains(changed))
-                        {
-                            Invalidate();
-                            return;
-                        }
-            });
-            reads.layerSubscription = content.Primitive.Client.ScriptGridQueries.OnLayerInvalidated(content.Primitive.GridValueId,
-                (layerId, tileLayer) =>
-                {
-                    if (tileLayer ? reads.tiles.Count > 0 : reads.objects.Count > 0 || reads.placements.Count > 0)
-                        Invalidate();
-                });
-        }
-
-        private bool isInvalidated;
-        private void Invalidate()
-        {
-            if (isInvalidated)
-                return;
-            isInvalidated = true;
-            invalidated?.Invoke();
-        }
-
-        private readonly Dictionary<NeoClient, (HashSet<(NeoValueOwnership ownership, string id)> ids, Action<NeoValueOwnership, string> handler)> values = new();
-        /// <summary>Whether a grid read was recorded, so value reads are recorded too.</summary>
-        internal bool RecordsGrid => grids.Count != 0;
-        internal void RecordValue(NeoClient client, NeoValueOwnership ownership, string id)
-        {
-            if (!RecordsGrid || invalidated is null)
-                return;
-            if (!values.TryGetValue(client, out var reads))
-            {
-                reads = SubscribeValues(client);
-                values.Add(client, reads);
-            }
-            reads.ids.Add((ownership, id));
-        }
-
-        // Keep callback captures off RecordValue's hot frame, including its
-        // no-grid early return. Merely reading a scalar needs no closure.
-        private (HashSet<(NeoValueOwnership ownership, string id)> ids, Action<NeoValueOwnership, string> handler)
-            SubscribeValues(NeoClient client)
-        {
-            var ids = new HashSet<(NeoValueOwnership ownership, string id)>();
-            void Changed(NeoValueOwnership ownership, string id)
-            {
-                if (ids.Contains((ownership, id)))
-                    Invalidate();
-            }
-            client.OnWritableValueChanged += Changed;
-            return (ids, Changed);
-        }
-
-        public void Dispose()
-        {
-            // Most evaluations read no grid or watched value: skip the walks.
-            if (grids.Count == 0 && values.Count == 0)
-                return;
-            foreach (GridReads reads in grids.Values)
-            {
-                reads.subscription?.Dispose();
-                reads.layerSubscription?.Dispose();
-            }
-            grids.Clear();
-            foreach (var reads in values)
-                reads.Key.OnWritableValueChanged -= reads.Value.handler;
-            values.Clear();
-        }
-
-        /// <summary>Drops every recorded read and subscription so the same instance can record a new evaluation.</summary>
-        internal void Reset()
-        {
-            Dispose();
-            isInvalidated = false;
-        }
-    }
-
     public sealed class NeoScriptGridQueries
     {
         private readonly NeoClient client;
@@ -188,34 +60,15 @@ namespace NeoCompose.Runtime
         private int changeEpoch;
 
         internal NeoScriptGridQueries(NeoClient client) => this.client = client;
-        private event Action<NeoTileGridChangedArgs>? Changed;
+
+        /// <summary>
+        /// A grid change, once its indexes are current: moves the held
+        /// placements on and forgets the getters that read what it names.
+        /// </summary>
         internal void NotifyChanged(NeoTileGridChangedArgs change)
         {
             changeEpoch++;
-            Changed?.Invoke(change);
-        }
-        internal IDisposable OnChanged(string gridId, Action<NeoTileGridChangedArgs> handler)
-        {
-            void Handle(NeoTileGridChangedArgs change)
-            {
-                if (change.GridValueId == gridId)
-                    handler(change);
-            }
-            Changed += Handle;
-            return new NeoDisposableSubscription(() => Changed -= Handle);
-        }
-
-        private event Action<string, string, bool>? LayerInvalidated;
-        internal void NotifyLayerInvalidated(string gridId, string layerId, bool tile) => LayerInvalidated?.Invoke(gridId, layerId, tile);
-        internal IDisposable OnLayerInvalidated(string gridId, Action<string, bool> handler)
-        {
-            void Handle(string changedGrid, string layerId, bool tile)
-            {
-                if (gridId == changedGrid)
-                    handler(layerId, tile);
-            }
-            LayerInvalidated += Handle;
-            return new NeoDisposableSubscription(() => LayerInvalidated -= Handle);
+            client.InvalidateGetterMemoForGridChange(change);
         }
 
         public void RegisterFactories(IReadOnlyDictionary<string, Func<NeoClient, string, INeoTileGridContent>> factories) => this.factories = factories;
@@ -369,7 +222,6 @@ namespace NeoCompose.Runtime
             PlacementBinding binding = Resolve(receiverId);
             INeoTileGridContent content = binding.content!;
             NeoObjectPlacementRecord placement = binding.record!;
-            ctx.gridReads?.Record(content, placement.InstanceId, null, false);
             ctx.client.NoteGridRead(content, placement.InstanceId, null, false);
             if (getCell)
             {
@@ -410,7 +262,6 @@ namespace NeoCompose.Runtime
             for (int offset = 0; offset < pattern.Count; offset++)
             {
                 Vector2Int cell = pattern.CellAt(origin, offset);
-                ctx.gridReads?.Record(content, placement.InstanceId, cell, getTile);
                 ctx.client.NoteGridRead(content, placement.InstanceId, cell, getTile);
                 if (getTile)
                 {

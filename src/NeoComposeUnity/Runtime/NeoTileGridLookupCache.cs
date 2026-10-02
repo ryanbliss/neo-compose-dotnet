@@ -174,9 +174,11 @@ namespace NeoCompose.Runtime
         // ------------------------------------------------------------------
 
         /// <summary>Grid-level change notifications (mutations, link renderer
-        /// projections) invalidate the named layers directly.</summary>
+        /// projections) invalidate the named layers directly. A dropped layer
+        /// diffs no later write, so getters that read this grid re-read it.</summary>
         public void Apply(NeoTileGridChangedArgs args)
         {
+            primitive.Client.InvalidateGetterMemoForGrid(primitive.GridValueId);
             foreach (var change in args.TileLayers)
             {
                 tileLayers.Remove(change.LayerId);
