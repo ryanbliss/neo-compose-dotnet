@@ -1955,24 +1955,28 @@ namespace NeoCompose.Tests
             CollectionAssert.AreEquivalent(before, client.sessionValues.Keys);
         }
 
-        [Test]
-        public void GeneratedConstructor_ImportedStampFailureRollsBackFreshClone()
+        [TestCase(false)]
+        [TestCase(true)]
+        public void GeneratedConstructor_ImportedStampFailureRollsBackFreshClone(bool sharedGetterResult)
         {
             NeoClient client = BuildClient();
+            NeoValueOwnership ownership = sharedGetterResult ? NeoValueOwnership.Session : NeoValueOwnership.Save;
             const string childId = "bad-partition-child";
             const string valueId = "bad-partition-value";
             SeedOwnedChild(
                 client,
-                NeoValueOwnership.Save,
+                ownership,
                 childId,
                 valueId,
                 "bad-partition");
             Assert.IsTrue(client.TryGetValue(
-                NeoValueOwnership.Save,
+                ownership,
                 valueId,
                 out StringMemberValue? sourceValue));
             sourceValue!.mapKey = "unexpected-partition";
-            client.SetWritableValue(NeoValueOwnership.Save, sourceValue);
+            client.SetWritableValue(ownership, sourceValue);
+            if (sharedGetterResult)
+                client.ValueNode(childId)!.sharedGetterResult = true;
             var before = new HashSet<string>(client.sessionValues.Keys);
 
             InvalidOperationException error = Assert.Throws<InvalidOperationException>(() =>

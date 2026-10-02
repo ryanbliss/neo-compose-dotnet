@@ -92,8 +92,7 @@ namespace NeoCompose.Tests
             using (client.CaptureValueReads(first))
                 Assert.IsTrue(summary.Compute("line-a").ok);
 
-            // The first read returned a temporary, so this one records no
-            // value ids of its own.
+            // A hit replays the original evaluation's value reads.
             var second = new HashSet<string>();
             using (client.CaptureValueReads(second))
                 Assert.IsTrue(summary.Compute("line-a").ok);
@@ -156,18 +155,262 @@ namespace NeoCompose.Tests
                 NeoValueOwnership.Session, id, "member-line-summary", NeoValueOwnership.Session);
             Assert.IsInstanceOf<NeoScriptObject>(summary.Compute(id).value);
 
-            // Expecting another temporary, this read left its value ids to
-            // the enclosing capture, so its null is not kept.
+            // Invalidation can change the result's representation.
             client.SetWritableValue(NeoValueOwnership.Session, new NumberMemberValue { id = scoreId, value = 0 });
             Assert.IsNull(summary.Compute(id).value);
-            Assert.IsNull(client.FindMemoizedGetter(key), "A result whose value ids went elsewhere can't be replayed.");
-
-            Assert.IsNull(summary.Compute(id).value);
-            Assert.IsNotNull(client.FindMemoizedGetter(key), "The next read records its value ids and keeps the result.");
+            Assert.IsNotNull(client.FindMemoizedGetter(key), "The first rebuilt result is kept, including null.");
             var captured = new HashSet<string>();
             using (client.CaptureValueReads(captured))
                 Assert.IsNull(summary.Compute(id).value);
             CollectionAssert.Contains(captured, scoreId, "The kept result replays the value ids it read.");
+        }
+
+        [Test]
+        public void ConstructedGetter_SharesItsMutableResultAcrossExecutions()
+        {
+            using NeoClient client = BuildClient();
+            using var line = new NeoMemberClass(client, "member-report-line", "line-a", NeoValueOwnership.Asset);
+            NeoMemberNSProperty getter = line.Get<NeoMemberNSProperty>("Summary");
+            object? first = getter.Compute("line-a").value;
+            TestReport report = ReadReport(client, first);
+            var call = new CallGetterPointer
+            {
+                type = PointerKind.CallGetter,
+                memberId = "member-line-summary",
+                receiver = CallReceiver.Instance(new ReferencePointer { type = PointerKind.Reference, valueId = "line-a" }),
+            };
+            Assert.AreSame(first, getter.Compute("line-a").value);
+            Assert.AreSame(first, Evaluate(client, ReportType, call, NeoValueOwnership.Asset), "Nested dispatch shares the C# memo.");
+            Assert.AreSame(first, Evaluate(client, ReportType, call, NeoValueOwnership.Asset), "A later execution keeps the result alive.");
+            report.Total = 19;
+            Assert.AreSame(report, ReadReport(client, getter.Compute("line-a").value));
+            Assert.AreEqual(19, ReadReport(client, Evaluate(client, ReportType, call, NeoValueOwnership.Asset)).Total);
+            string id = report.valueId!;
+            Assert.IsTrue(client.TryGetValue(NeoValueOwnership.Session, id, out ObjectMemberValue? _));
+            Assert.AreEqual(id, ReadReport(client, getter.Compute("line-a").value).valueId);
+        }
+
+        [Test]
+        public void ConstructedGetter_WatcherRebuildsOnceAndForgettingReleasesTheResult()
+        {
+            using NeoClient client = BuildClient();
+            TestLine line = ReadReport(client, EvaluateReport(client), out _).Lines[0];
+            string id = line.valueId!;
+            NeoMemberNSProperty getter = line.BackingNode.Get<NeoMemberNSProperty>("Summary");
+            var key = new NeoClient.GetterMemoKey(NeoValueOwnership.Session, id, "member-line-summary", NeoValueOwnership.Session);
+            object? first = getter.Compute(id).value;
+            NeoClient.GetterMemoEntry entry = client.FindMemoizedGetter(key)!;
+            Assert.IsNotNull(entry);
+            Assert.IsFalse(entry.valueless);
+            var heard = new List<object?>();
+            using IDisposable watch = line.WatchAnyChange((_, changed, _) =>
+            {
+                if (changed.member.id == "member-line-summary")
+                    heard.Add(getter.Compute(id).value);
+            });
+            Assert.IsTrue(client.TryGetValue(NeoValueOwnership.Session, id, out ObjectMemberValue? row));
+            client.SetWritableValue(NeoValueOwnership.Session, new NumberMemberValue { id = row!.value!["Score"], value = 8 });
+            Assert.AreEqual(1, heard.Count);
+            Assert.AreNotSame(first, heard[0]);
+            Assert.AreSame(heard[0], getter.Compute(id).value, "The watcher already rebuilt it.");
+            Assert.AreEqual(8, ReadReport(client, heard[0]).Total);
+            Assert.IsTrue(entry.forgotten);
+            Assert.IsNull(entry.scalar, "A property node retaining a forgotten entry must not retain its constructed graph.");
+            Assert.AreEqual(3, ReadReport(client, first).Total, "Existing holders retain the old value.");
+            client.EnterScriptWrites();
+            try
+            {
+                client.SetWritableValue(NeoValueOwnership.Session, new NumberMemberValue { id = row.value["Score"], value = 9 });
+                client.SetWritableValue(NeoValueOwnership.Session, new NumberMemberValue { id = row.value["Score"], value = 10 });
+                Assert.AreEqual(1, heard.Count, "A held execution defers notifications.");
+            }
+            finally
+            {
+                client.ExitScriptWrites();
+            }
+            Assert.AreEqual(2, heard.Count, "The execution produces one notification and rebuild.");
+            Assert.AreEqual(10, ReadReport(client, heard[1]).Total);
+            Assert.AreSame(heard[1], getter.Compute(id).value);
+        }
+
+        [TestCase(NeoValueOwnership.Session)]
+        [TestCase(NeoValueOwnership.Save)]
+        public void ConstructedGetter_AssignmentCopiesItsOwnedGraph(NeoValueOwnership destination)
+        {
+            using NeoClient client = BuildClient();
+            using var line = new NeoMemberClass(client, "member-report-line", "line-a", NeoValueOwnership.Asset);
+            NeoMemberNSProperty getter = line.Get<NeoMemberNSProperty>("Summary");
+            TestReport report = ReadReport(client, getter.Compute("line-a").value);
+            string original = report.valueId!;
+            string copy = client.ImportValueReference(destination, original);
+            Assert.AreNotEqual(original, copy);
+            Assert.IsTrue(client.TryGetValue(destination, copy, out ObjectMemberValue? copied));
+            Assert.IsTrue(client.TryGetValue(NeoValueOwnership.Session, original, out ObjectMemberValue? source));
+            Assert.AreNotEqual(source!.value!["Lines"], copied!.value!["Lines"]);
+            client.SetWritableValue(destination, new NumberMemberValue { id = copied.value["Total"], value = 25 });
+            Assert.AreEqual(1, report.Total);
+            report.Total = 33;
+            Assert.IsTrue(client.TryGetValue(destination, copied.value["Total"], out NumberMemberValue? copiedTotal));
+            Assert.AreEqual(25, copiedTotal!.value);
+            Assert.AreSame(report, ReadReport(client, getter.Compute("line-a").value));
+            // Owned children of the shared result also copy when assigned.
+            string child = report.Lines[0].valueId!;
+            Assert.AreNotEqual(child, client.ImportValueReference(destination, child));
+            TestLine added = NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(
+                client, Evaluate(client, LineType, Line()), true, null, TestLine.CreateWritable, TestLine.CreateDetached);
+            report.Lines.Add(added);
+            string addedId = added.valueId!;
+            Assert.AreNotEqual(addedId, client.ImportValueReference(destination, addedId),
+                "A child added after materialization inherits the shared owner's copy semantics.");
+        }
+
+        [Test]
+        public void ConstructedGetter_AnOuterGetterTracksWritesToTheSharedResult()
+        {
+            using NeoClient client = BuildClient();
+            ConfigureSummaryTotalGetter(client);
+            using var line = new NeoMemberClass(client, "member-report-line", "line-a", NeoValueOwnership.Asset);
+            NeoMemberNSProperty summary = line.Get<NeoMemberNSProperty>("Summary");
+            NeoMemberNSProperty total = line.Get<NeoMemberNSProperty>("Doubled");
+            object? shared = summary.Compute("line-a").value;
+            Assert.AreEqual(1, Convert.ToInt32(total.Compute("line-a").value));
+            ReadReport(client, shared).Total = 29;
+            Assert.AreEqual(29, Convert.ToInt32(total.Compute("line-a").value));
+            Assert.AreSame(shared, summary.Compute("line-a").value, "The producer does not depend on its own output.");
+        }
+
+        private static void ConfigureSummaryTotalGetter(NeoClient client, string field = "Total")
+        {
+            Assert.IsTrue(client.TryGetMember("member-line-doubled", out NSPropertyMember? outer));
+            outer!.getter.instructions = new Instruction[]
+            {
+                new ReturnInstruction
+                {
+                    type = InstructionKind.Return,
+                    pointer = Key(new CallGetterPointer
+                    {
+                        type = PointerKind.CallGetter, memberId = "member-line-summary",
+                        receiver = CallReceiver.Instance(Variable("__this__")),
+                    }, field),
+                },
+            };
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void ConstructedGetter_AttachedDuringEvaluationDoesNotDependOnItsOwnOutput(bool importSharedChild)
+        {
+            var finalize = new FunctionMember
+            {
+                id = "finalize-report",
+                name = "FinalizeReport",
+                projectId = ProjectId,
+                kind = MemberKind.Function,
+                Modifier = NeoMemberModifierKind.Static,
+                returnTypeInfo = ReportType,
+                argumentTypes = new[] { new FunctionArgumentTypeInfo { name = "report", type = MemberKind.Class, classId = "class-report", required = true } },
+                Dispatch = NeoFunctionDispatchKind.Synchronous,
+            };
+            using NeoClient client = BuildClient(extraMember: finalize);
+            using var line = new NeoMemberClass(client, "member-report-line", "line-a", NeoValueOwnership.Asset);
+            NeoMemberNSProperty getter = line.Get<NeoMemberNSProperty>("Summary");
+            string? sharedChildId = importSharedChild
+                ? ReadReport(client, getter.Compute("line-a").value).Lines[0].valueId
+                : null;
+            client.InvalidateGetterMemo();
+            int evaluations = 0;
+            client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+            {
+                [finalize.id] = (_, _, args) =>
+                {
+                    evaluations++;
+                    TestReport report = ReadReport(client, args[0]);
+                    _ = report.valueId;
+                    report.Total += 1;
+                    if (importSharedChild)
+                        NeoGeneratedTypesSupport.SetValue((NeoMemberClassWritable)report.Lines[0].BackingNode,
+                            "Score", NeoGeneratedTypesSupport.Value(report.Lines[0].Score + 1));
+                    return args[0];
+                },
+            });
+            Assert.IsTrue(client.TryGetMember("member-line-summary", out NSPropertyMember? property));
+            property!.getter.instructions = new Instruction[]
+            {
+                new ReturnInstruction
+                {
+                    type = InstructionKind.Return,
+                    pointer = new CallFunctionPointer
+                    {
+                        type = PointerKind.CallFunction, memberId = finalize.id, receiver = CallReceiver.Static(finalize.id),
+                        args = new Pointer[] { Report(ThisScore(), sharedChildId is null ? null : new ReferencePointer { type = PointerKind.Reference, valueId = sharedChildId }) }, callSiteId = "finalize-report-call",
+                    },
+                },
+            };
+            ConfigureSummaryTotalGetter(client);
+            NeoMemberNSProperty outerGetter = line.Get<NeoMemberNSProperty>("Doubled");
+            Assert.AreEqual(2, Convert.ToInt32(outerGetter.Compute("line-a").value), "Construct inside a nested getter first.");
+            NSGetterResult first = getter.Compute("line-a");
+            Assert.IsTrue(first.ok, first.error);
+            TestReport report = ReadReport(client, first.value);
+            Assert.AreEqual(2, report.Total);
+            Assert.AreEqual(report.valueId, ReadReport(client, getter.Compute("line-a").value).valueId);
+            report.Total = 17;
+            Assert.AreEqual(17, Convert.ToInt32(outerGetter.Compute("line-a").value), "The enclosing getter must depend on the nested getter's shared output.");
+            Assert.AreEqual(17, ReadReport(client, getter.Compute("line-a").value).Total);
+            if (importSharedChild)
+            {
+                Assert.AreEqual(4, report.Lines[0].Score);
+                Assert.AreNotEqual(sharedChildId, report.Lines[0].valueId);
+                NeoGeneratedTypesSupport.SetValue((NeoMemberClassWritable)report.Lines[0].BackingNode,
+                    "Score", NeoGeneratedTypesSupport.Value(41));
+                Assert.AreEqual(report.valueId, ReadReport(client, getter.Compute("line-a").value).valueId);
+            }
+            Assert.AreEqual(1, evaluations, "Reading and writing the newly constructed output never invalidates its own getter.");
+            Assert.AreNotEqual(report.valueId, client.ImportValueReference(NeoValueOwnership.Save, report.valueId!));
+        }
+
+        [Test]
+        public void ConstructedGetter_ClassCloneSurvivesNestedScalarConsumersAndCopiesOnAssignment()
+        {
+            using NeoClient client = BuildClient();
+            TestLine source = ReadReport(client, EvaluateReport(client), out _).Lines[0];
+            string id = source.valueId!;
+            Assert.IsTrue(client.TryGetMember("member-line-summary", out NSPropertyMember? property));
+            property!.returnTypeInfo = LineType;
+            property.getter.typeInfo = LineType;
+            property.getter.instructions = new Instruction[]
+            {
+                new ReturnInstruction
+                {
+                    type = InstructionKind.Return,
+                    pointer = new FunctionPointer
+                    {
+                        type = PointerKind.Function,
+                        function = new ClassCloneFunction
+                        {
+                            type = FunctionKind.ClassClone,
+                            info = new FunctionClassCloneInfo { receiverPointer = Variable("__this__"), schemaClassInfo = LineType },
+                        },
+                    },
+                },
+            };
+            ConfigureSummaryTotalGetter(client, "Score");
+            NeoMemberNSProperty getter = source.BackingNode.Get<NeoMemberNSProperty>("Summary");
+            NeoMemberNSProperty outer = source.BackingNode.Get<NeoMemberNSProperty>("Doubled");
+            Assert.AreEqual(3, Convert.ToInt32(outer.Compute(id).value));
+            TestLine ReadClone() => NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(
+                client, getter.Compute(id).value, true, null, TestLine.CreateWritable, TestLine.CreateDetached);
+            TestLine clone = ReadClone();
+            string cloneId = clone.valueId!;
+            Assert.AreEqual(3, clone.Score, "The memo retains the clone after the outer execution returns a scalar.");
+            NeoGeneratedTypesSupport.SetValue((NeoMemberClassWritable)clone.BackingNode, "Score", NeoGeneratedTypesSupport.Value(17));
+            Assert.AreEqual(17, Convert.ToInt32(outer.Compute(id).value));
+            Assert.AreEqual(cloneId, ReadClone().valueId, "Writing the output does not rebuild its producer.");
+            Assert.AreNotEqual(cloneId, client.ImportValueReference(NeoValueOwnership.Save, cloneId));
+            NeoGeneratedTypesSupport.SetValue((NeoMemberClassWritable)source.BackingNode, "Score", NeoGeneratedTypesSupport.Value(8));
+            Assert.AreNotEqual(cloneId, ReadClone().valueId);
+            Assert.AreEqual(8, ReadClone().Score);
+            Assert.AreEqual(17, clone.Score);
         }
 
         [Test]
@@ -826,7 +1069,7 @@ namespace NeoCompose.Tests
             Field("Label", "member-line-label", Literal("a", MemberKind.String)));
 
         /// <summary><c>new Report { Total = total, Lines = [Line()] }</c></summary>
-        private static FunctionPointer Report(Pointer total) =>
+        private static FunctionPointer Report(Pointer total, Pointer? line = null) =>
             Construct(
                 ReportType,
                 Field("Total", "member-report-total", total),
@@ -839,11 +1082,11 @@ namespace NeoCompose.Tests
                         required = true,
                         entryTypeInfo = LineType,
                     },
-                    entries = new Pointer[] { Line() },
+                    entries = new Pointer[] { line ?? Line() },
                 }));
 
         /// <summary><c>return value;</c></summary>
-        private static object? Evaluate(NeoClient client, ClassTypeInfo type, Pointer value) =>
+        private static object? Evaluate(NeoClient client, ClassTypeInfo type, Pointer value, NeoValueOwnership ownership = NeoValueOwnership.Save) =>
             NSGetterEvaluator.Evaluate(
                 new FunctionWithReturnType
                 {
@@ -855,7 +1098,7 @@ namespace NeoCompose.Tests
                         new ReturnInstruction { type = InstructionKind.Return, pointer = value },
                     },
                 },
-                new NSGetterEvaluator.Context(client, null, null));
+                new NSGetterEvaluator.Context(client, null, null, valueOwnership: ownership));
 
         private static ClassTypeInfo ClassType(string classId) => new()
         {

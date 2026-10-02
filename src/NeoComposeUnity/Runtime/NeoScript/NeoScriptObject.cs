@@ -15,7 +15,7 @@ namespace NeoCompose.Runtime.NeoScript
     /// filling and reading a result object costs no store traffic.
     ///
     /// <para>The first time anything needs a row — its id, a write the slots
-    /// cannot take, an assignment into a stored owner, a return to C# — the
+    /// cannot take, an assignment into a stored owner — the
     /// object materializes as one Session graph through the ordinary
     /// constructor staging path, together with every detached object it owns.
     /// From then on it forwards to that row: the evaluator swaps in the row's
@@ -48,6 +48,37 @@ namespace NeoCompose.Runtime.NeoScript
         /// <summary>The detached object whose slot holds this one; it materializes through that root.</summary>
         internal NeoScriptObject? owner;
         internal string? attachedId;
+        // A getter result has an independent lifetime. Its graph may be read
+        // and mutated by callers, but a stored owner must take a copy.
+        internal bool sharedGetterResult;
+        internal void ShareGetterResult()
+        {
+            NeoScriptObject root = this;
+            while (root.owner is not null)
+                root = root.owner;
+            if (root.sharedGetterResult)
+                return;
+            // Mark each owned object once so every later field read and
+            // assignment checks one flag, independent of graph depth.
+            Stack<NeoScriptObject>? pending = null;
+            NeoScriptObject current = root;
+            while (true)
+            {
+                current.sharedGetterResult = true;
+                for (int i = 0; i < current.SlotCount; i++)
+                {
+                    if (current.Slot(i) is NeoScriptObject child && !child.sharedGetterResult)
+                        (pending ??= new()).Push(child);
+                    else if (current.Slot(i) is IReadOnlyList<object?> entries)
+                        for (int j = 0; j < entries.Count; j++)
+                            if (entries[j] is NeoScriptObject entry && !entry.sharedGetterResult)
+                                (pending ??= new()).Push(entry);
+                }
+                if (pending is null || pending.Count == 0)
+                    break;
+                current = pending.Pop();
+            }
+        }
         /// <summary>
         /// The P75 creation recipe of a declared construction, serialized onto
         /// the row at materialization; null for a schema-derived construction.

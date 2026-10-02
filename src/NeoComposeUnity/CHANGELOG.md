@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.49.0] - 2026-10-02
+
+- Class-valued computed getters now keep the object they construct. Repeated C# and NeoScript reads share that mutable instance until a row or grid dependency changes. A watcher's re-read rebuilds it once for later readers. Existing Session row results are also memoized.
+- Constructed getter results remain computed values with no storage setting. Detached results stay in memory until a caller needs Session rows or a value ID. Assigning a result or its owned child into a stored member takes an independent copy. Construction and clone output rows are excluded from the producer's dependencies, while getters reading the shared output still observe mutations.
+- In the explicit getter fan-out fixture, repeated construction fell from 1.35–1.41 µs and 200 bytes per read to 0.21–0.22 µs and no per-read allocation at 100 and 1,000 receivers. Generated C# accessors are unchanged.
+
 ## [0.48.3] - 2026-10-02
 
 - Full Unity exports send hashes of the local generated C# files and download only changed contents when the server supports hash negotiation. Missing files and local edits are repaired; renames preserve Unity GUIDs. `INeoComposeEditorApiClient.ExportProjectAsync` now accepts an optional `generatedFileHashes` argument, and `NeoComposeGeneratedFile.content` can be null when its `contentHash` matches the request.

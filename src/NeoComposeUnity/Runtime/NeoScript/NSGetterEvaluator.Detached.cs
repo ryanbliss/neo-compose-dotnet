@@ -43,7 +43,7 @@ namespace NeoCompose.Runtime.NeoScript
             while (root.owner is not null)
                 root = root.owner;
             NeoScriptAllocationTracker tracker = root.tracker;
-            bool live = tracker.ActiveExecutionCount > 0
+            bool live = !root.sharedGetterResult && tracker.ActiveExecutionCount > 0
                 && tracker.Generation == root.trackerGeneration;
             Context? scopeCtx = live && ctx?.allocationTracker == tracker ? ctx : null;
             string rootId;
@@ -183,6 +183,13 @@ namespace NeoCompose.Runtime.NeoScript
             out object? result,
             KeyOf? site = null)
         {
+            // Another getter reading a shared result's fields must observe
+            // later writes to those fields. Its own construction stays in slots.
+            if (value.sharedGetterResult && ctx.client.IsCapturingGetterReads)
+            {
+                result = null;
+                return false;
+            }
             if (TryFindDetachedSlot(value.plan, key, site, ctx, out int index))
             {
                 if (!TryReadDetachedSlot(value, index, ctx, out result))
@@ -225,6 +232,12 @@ namespace NeoCompose.Runtime.NeoScript
         /// </summary>
         internal static bool TryReadDetachedView(NeoScriptObject value, string key, out object? result)
         {
+            if (value.sharedGetterResult && value.client.IsCapturingGetterReads)
+            {
+                AttachDetached(value, null);
+                result = null;
+                return false;
+            }
             result = null;
             if (value.attachedId is not null || !value.plan.slotByKey.TryGetValue(key, out int index))
                 return false;

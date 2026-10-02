@@ -653,6 +653,7 @@ namespace NeoCompose.Runtime
                 case DetachedSlotKind.Class:
                     // A constructor still running keeps its own root.
                     if (value is not NeoScriptObject { attachedId: null, owner: null, constructing: false } child
+                        || child.sharedGetterResult
                         || child == target
                         || child.plan.classId != ((ClassMember)member).classId
                             && !IsAssignableNeoSchemaClass(
@@ -764,6 +765,8 @@ namespace NeoCompose.Runtime
                 if (cursor == child)
                     return false;
             }
+            if (target.sharedGetterResult)
+                child.ShareGetterResult();
             child.owner = target;
             return true;
         }
@@ -850,7 +853,10 @@ namespace NeoCompose.Runtime
                     requireCompleteRoot: !root.constructing,
                     trustedMaterialization: true,
                     root.plan.runtimePlan);
-                client.PublishConstructedSessionRows(staging.rows);
+                client.PublishConstructedSessionRows(staging.rows, trackGetterConstruction: !root.sharedGetterResult);
+                if (root.sharedGetterResult)
+                    foreach (MemberValue row in staging.rows)
+                        client.ValueNode(row.id)!.sharedGetterResult = true;
                 foreach ((NeoScriptObject value, ObjectMemberValue row) in staging.children)
                     value.attachedId = row.id;
                 root.attachedId = rootRow.id;

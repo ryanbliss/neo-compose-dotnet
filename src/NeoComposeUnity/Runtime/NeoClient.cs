@@ -3533,8 +3533,10 @@ namespace NeoCompose.Runtime
         /// constructor result.
         /// </summary>
         internal void PublishConstructedSessionRows(
-            List<MemberValue> values)
+            List<MemberValue> values, bool trackGetterConstruction = true)
         {
+            if (trackGetterConstruction)
+                NoteGetterConstruction(values);
             if (nestedConstructorCapture is not null)
                 foreach (MemberValue row in values)
                     for (var scope = nestedConstructorCapture; scope is not null; scope = scope.Parent)
@@ -3674,6 +3676,12 @@ namespace NeoCompose.Runtime
             {
                 return sourceValueId;
             }
+            if (sourceOwnership == NeoValueOwnership.Session
+                && ExistingValueNode(sourceValueId)?.sharedGetterResult == true)
+            {
+                TryInferMemberForValueId(sourceValueId, out Member? sharedMember);
+                return PrepareFreshClone(plan, targetOwnership, sourceOwnership, sourceValueId, sharedMember);
+            }
             if (sourceOwnership == targetOwnership)
             {
                 // Reassigning a slot to the exact row it already owns is a
@@ -3686,6 +3694,11 @@ namespace NeoCompose.Runtime
                 }
                 if (TryFindOwnedParent(targetOwnership, sourceValueId, out string? parentValueId))
                 {
+                    if (sourceOwnership == NeoValueOwnership.Session && HasSharedGetterAncestor(parentValueId))
+                    {
+                        TryInferMemberForValueId(sourceValueId, out Member? sharedChildMember);
+                        return PrepareFreshClone(plan, targetOwnership, sourceOwnership, sourceValueId, sharedChildMember);
+                    }
                     throw new System.InvalidOperationException(
                         $"Class value '{sourceValueId}' is already owned by parent value '{parentValueId}' and cannot be assigned to another parent. Use .Clone() to create an independent Class value before assigning it.");
                 }
@@ -3874,6 +3887,9 @@ namespace NeoCompose.Runtime
                         $"Cannot clone value graph: owned value row '{sourceValueId}' does not exist.");
                 }
 
+                // The copy reads the plan's pending source as-is. Track its
+                // inputs without flushing that plan while the clone is staged.
+                NotePendingRead(sourceValueId);
                 MemberValue clone = CloneValueRow(sourceRow);
                 clone.id = System.Guid.NewGuid().ToString();
                 clone.sourceValueId = sourceRow.sourceValueId ?? sourceRow.id;
@@ -3957,6 +3973,8 @@ namespace NeoCompose.Runtime
                 }
 
                 plan.Set(targetOwnership, clone);
+                if (targetOwnership == NeoValueOwnership.Session && getterReadCapture is not null)
+                    (getterConstructedRows ??= new HashSet<string>(System.StringComparer.Ordinal)).Add(clone.id);
                 // A Session clone can outlive the Save-owned object whose
                 // child was supplied as a constructor-only input. Retain that
                 // replay dependency in the clone's Session store before the

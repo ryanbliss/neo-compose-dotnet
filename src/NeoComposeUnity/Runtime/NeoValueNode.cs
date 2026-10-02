@@ -24,6 +24,8 @@ namespace NeoCompose.Runtime
         internal NeoValueOwnership virtualOwnership;
         /// <summary>False once the client dropped the node; a holder resolves the id again.</summary>
         internal bool live = true;
+        /// <summary>A materialized getter temporary is copied when assigned to a stored owner.</summary>
+        internal bool sharedGetterResult;
         /// <summary>The evaluator's canonical unwraps of this row.</summary>
         internal NeoScript.NSGetterEvaluator.UnwrapMemo? unwrapMemo;
         /// <summary>A native type's read of this row (a CellPattern's offsets), which validates itself.</summary>
