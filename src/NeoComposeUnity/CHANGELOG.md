@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.47.1] - 2026-10-01
+
+- Assigning a Class value another parent owns to a member in another store, like `this.HeldColor = item.Color` from a Save script with `item` an asset, copies it with fresh ids. It used to write a Save or Session row at the source's id, which every unscoped reader of the source then saw instead: writing through the new member changed the source too, and assigning `null` to the member cleared it. A save written that way could fail to load with "has a computed default and cannot be materialized as a literal". A value nothing else owns still keeps its ids.
+
 ## [0.47.0] - 2026-10-01
 
 - NeoScript mutations of a stored list, lookup set or dictionary no longer cost time proportional to the collection on every call, so N mutations in one execution are linear, not quadratic. Every `Add`, `Insert`, `RemoveAt`, `Remove`, `Clear` and `dict[key] = value` used to commit on its own, copying the whole row each time. One execution's mutations now stage into one batch: a list grows in a buffer and takes its exact row once, and the entries the mutations released are released once. Measured in the HelloWorld EditMode harness, 0.46.0 → 0.47.0, median ns per mutation:

@@ -805,7 +805,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void SameIdCopiesKeepTheirOwnPendingCollections()
+        public void SessionCopiesKeepTheirOwnPendingCollections()
         {
             using var client = NeoTestSaveStack.ClientFromSchema(Schema(false));
             string items = Field("save", "Items");
@@ -821,11 +821,40 @@ namespace NeoCompose.Tests
 
             string saveItem = ((ArrayMemberValue)client.saveValues["items"]).value!.Single();
             string sessionItem = ((ArrayMemberValue)client.sessionValues["session-items"]).value!.Single();
-            Assert.AreEqual(saveItem, sessionItem, "A Session copy of a Save graph keeps its ids.");
+            Assert.AreNotEqual(saveItem, sessionItem, "A Session copy of an owned Save value takes its own ids.");
             CollectionAssert.AreEqual(new[] { "a" }, StoredTags(client, saveItem));
             string sessionTags = ((ObjectMemberValue)client.sessionValues[sessionItem]).value!["Tags"];
             CollectionAssert.AreEqual(new[] { "a", "b" }, ((ArrayMemberValue)client.sessionValues[sessionTags]).value!
                 .Select(id => ((StringMemberValue)client.sessionValues[id]).value));
+        }
+
+        [Test]
+        public void SameIdCopiesKeepTheirOwnPendingCollections()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(Schema(false));
+            string items = Field("save", "Items");
+            string sessionItems = Field("session", "Items");
+
+            // Save.Items.Add(new Item(Name: "a"));
+            Run(client, NullTypeJson, Call(items, ItemsTypeJson, "save", "Add", New("a")));
+            string saveItem = ((ArrayMemberValue)client.saveValues["items"]).value!.Single();
+
+            // Save.Items[0].Tags.Add("a"); var released = Save.Items[0]; Save.Items.RemoveAt(0);
+            // Session.Items.Add(released); Session.Items[0].Tags.Add("b");
+            Run(client, NullTypeJson,
+                Call(Index(Index(items, Number(0)), Text("Tags")), NamesTypeJson, "save", "Add", Text("a")),
+                Declare("released", ItemTypeJson, Index(items, Number(0))),
+                Call(items, ItemsTypeJson, "save", "RemoveAt", Number(0)),
+                Call(sessionItems, ItemsTypeJson, "session", "Add", Var("released")),
+                Call(Index(Index(sessionItems, Number(0)), Text("Tags")), NamesTypeJson, "session", "Add", Text("b")));
+
+            string sessionItem = ((ArrayMemberValue)client.sessionValues["session-items"]).value!.Single();
+            Assert.AreEqual(saveItem, sessionItem, "A Session copy of a released Save entry keeps its ids.");
+            string sessionTags = ((ObjectMemberValue)client.sessionValues[sessionItem]).value!["Tags"];
+            CollectionAssert.AreEqual(new[] { "a", "b" }, ((ArrayMemberValue)client.sessionValues[sessionTags]).value!
+                .Select(id => ((StringMemberValue)client.sessionValues[id]).value));
+            Assert.IsFalse(client.saveValues.Values.OfType<StringMemberValue>().Any(value => value.value == "b"),
+                "The Session copy's pending entries must not be stored in Save.");
         }
 
         [Test]
