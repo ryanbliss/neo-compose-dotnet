@@ -804,6 +804,7 @@ namespace NeoCompose.Runtime
             if (isDisposed)
                 return;
             isDisposed = true;
+            StopEffects();
             activeClients.Remove(this);
             NeoScriptExecutor.DropPooledWriteTarget();
             DisposeGridLookupCaches();
@@ -1782,7 +1783,10 @@ namespace NeoCompose.Runtime
             NeoValueOwnership ownership,
             [NotNullWhen(true)] out string? valueId)
         {
-            NoteValueRead(StaticReadKey(member.id, ownership));
+            string readKey = StaticReadKey(member.id, ownership);
+            NoteValueRead(readKey);
+            // A rebind forgets every getter; an effect hears this key.
+            NoteRowRead(readKey);
             if (ownership == NeoValueOwnership.Asset)
             {
                 valueId = member.valueId;
@@ -2115,6 +2119,7 @@ namespace NeoCompose.Runtime
             NeoGeneratedTypesSupport.InvalidateConstructorSchemaCaches(this);
             settledAggregateParameters.Clear();
             readOnlyDeclarationDefaults.Clear();
+            ApplyEffectSchema();
         }
 
         private void NormalizeClassSchemas()
@@ -6019,6 +6024,7 @@ namespace NeoCompose.Runtime
         /// <summary>Index maintenance chokepoint for a store write at <c>value.id</c>.</summary>
         private void IndexStoreWrite(NeoValueOwnership ownership, MemberValue value, NeoValueNode? node = null)
         {
+            NoteEffectRowChange(value.id, value);
             SyncStoredValueNode(ownership, value, node);
             IndexPlacementParent(ownership, value);
             var (byContainer, byRow) = MembershipMaps(ownership);
@@ -6040,6 +6046,7 @@ namespace NeoCompose.Runtime
         /// <summary>Index maintenance chokepoint for a store removal at <paramref name="id"/>.</summary>
         private void IndexStoreRemove(NeoValueOwnership ownership, string id)
         {
+            NoteEffectRowChange(id, null);
             SyncValueNode(id);
             UnindexPlacementParent(ownership, id);
             var (byContainer, byRow) = MembershipMaps(ownership);
@@ -6240,6 +6247,8 @@ namespace NeoCompose.Runtime
             }
             loadedPartitionRowIds[mapKey] = rowIds;
             data.valuesEpoch++;
+            foreach (MemberValue row in rows.Values)
+                NoteEffectPartitionRow(row);
             // The merged rows are now reachable from the main map (a grid's
             // Children list hangs off a main-resident grid root). Classify
             // them before their sparse roots replay: an expansion stamps its
@@ -6298,6 +6307,8 @@ namespace NeoCompose.Runtime
             DisposeWrappersTouchingRows(rowIds.Concat(virtualRowIds));
             foreach (var rowId in rowIds)
             {
+                if (data.values.TryGetValue(rowId, out MemberValue unloaded))
+                    NoteEffectPartitionRow(unloaded);
                 if (authoredContainerByRow.TryGetValue(rowId, out string containerId))
                 {
                     if (authoredEntriesByContainer.TryGetValue(containerId, out var members))
@@ -7245,9 +7256,32 @@ namespace NeoCompose.Runtime
                 throw new NeoScript.NativeFunctionDelegateUnavailableError(
                     $"No native Function invoker is registered for member '{memberId}'.");
             }
+            if (InEffectCapture())
+                return InvokeNativeOutsideEffectCapture(member, invoker, receiver, preparedArgs);
             return NormalizeNativeFunctionReturn(
                 member.returnTypeInfo,
                 invoker(this, receiver, preparedArgs));
+        }
+
+        // What native code reads is never an effect's dependency (P97 §2.2).
+        private object? InvokeNativeOutsideEffectCapture(
+            FunctionMember member,
+            NeoNativeFunctionInvoker invoker,
+            object? receiver,
+            object?[] preparedArgs)
+        {
+            List<GetterRead>? capture = getterReadCapture;
+            getterReadCapture = null;
+            try
+            {
+                return NormalizeNativeFunctionReturn(
+                    member.returnTypeInfo,
+                    invoker(this, receiver, preparedArgs));
+            }
+            finally
+            {
+                getterReadCapture = capture;
+            }
         }
 
         /// <summary>

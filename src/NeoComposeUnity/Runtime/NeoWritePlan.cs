@@ -680,6 +680,7 @@ namespace NeoCompose.Runtime
             // itself did not change.
             HashSet<(NeoValueOwnership ownership, string id)> sameMembership = pooledScratch ? commitSameMembershipScratch : new();
             bool batched = false;
+            bool held = false;
             bool gridChange = false;
             try
             {
@@ -738,11 +739,17 @@ namespace NeoCompose.Runtime
                     foreignWriteRevision = WriteRevision;
                 BeginChangeBatch();
                 batched = true;
+                // Effects the commit queues run once it publishes, inside its change batch.
+                HoldGetterChanges();
+                held = true;
                 InstallCandidateExpansions(preparedExpansions, changed);
                 if (plan.Bindings.Count != 0)
+                {
                     InvalidateGetterMemo();
-                else
-                    InvalidateGetterMemoForRows(changed);
+                    foreach (var binding in plan.Bindings)
+                        InvalidateGetterMemoForRow(StaticReadKey(binding.Key.memberId, binding.Key.ownership));
+                }
+                InvalidateGetterMemoForRows(changed);
                 if (sharedEvaluationContext is not null)
                     foreach (var item in changed)
                         if (!plan.Rows.ContainsKey(item) || plan.IsSilent(item))
@@ -798,9 +805,17 @@ namespace NeoCompose.Runtime
                 }
                 if (gridChange)
                     EndGridChange();
-                if (batched)
-                    EndChangeBatch();
-                plan.ReleaseParentCandidates();
+                try
+                {
+                    if (held)
+                        ReleaseGetterChanges();
+                }
+                finally
+                {
+                    if (batched)
+                        EndChangeBatch();
+                    plan.ReleaseParentCandidates();
+                }
             }
         }
     }

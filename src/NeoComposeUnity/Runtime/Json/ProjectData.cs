@@ -13,6 +13,10 @@ namespace NeoCompose.Runtime.Json
     public static class NeoProjectExportContract
     {
         /// <summary>
+        /// 33 admits the P97 function <c>effect</c> setting. An older SDK
+        /// would ignore it and never run an effect, so it must refuse the
+        /// export instead.
+        ///
         /// 32 admits the P93 <c>Writable</c> member storage ordinal (4). An
         /// older SDK would fail the load with "Unknown member storage ordinal
         /// '4'" instead of this gate's upgrade message.
@@ -91,7 +95,7 @@ namespace NeoCompose.Runtime.Json
         /// the wrong configuration rather than an error. It must reject the
         /// export.
         /// </summary>
-        public const int CurrentSchemaVersion = 32;
+        public const int CurrentSchemaVersion = 33;
 
         internal static string? GetSchemaVersionError(ProjectExportMetadata? metadata)
         {
@@ -746,8 +750,8 @@ namespace NeoCompose.Runtime.Json
             if (obj.Property(removedField) is null)
                 return;
             throw new JsonSerializationException(
-                $"{context} uses removed field '{removedField}'; schema "
-                + $"{NeoProjectExportContract.CurrentSchemaVersion} removed it without replacement.");
+                $"{context} uses removed field '{removedField}', which schema "
+                + $"{NeoProjectExportContract.CurrentSchemaVersion} has no replacement for.");
         }
 
         private static void Reject(

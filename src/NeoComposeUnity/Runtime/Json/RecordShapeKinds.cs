@@ -96,6 +96,14 @@ namespace NeoCompose.Runtime.Json
     {
         Code = 0, UI = 1
     }
+    /// <summary>
+    /// P97 §1.1 — whether the runtime runs a class function by itself. Auto
+    /// runs it for every live instance and again whenever what it read changes.
+    /// </summary>
+    public enum NeoEffectKind
+    {
+        None = 0, Auto = 1
+    }
     public enum NeoPropertyAccessorsKind
     {
         Get = 0, GetSet = 1
@@ -211,6 +219,8 @@ namespace NeoCompose.Runtime.Json
         internal NeoMemberSelectionKind Selection;
         internal NeoFunctionDispatchKind Dispatch;
         internal NeoFunctionBodyKind BodyMode;
+        /// <summary>P97 §1.4 — the nearest explicit <c>effect</c> on the member chain.</summary>
+        internal NeoEffectKind Effect;
         /// <summary>
         /// P76 §1 rule 1 — the nearest explicit <c>distribution</c> on the
         /// effective member chain. Nullable on purpose, and the only enum axis
@@ -296,6 +306,7 @@ namespace NeoCompose.Runtime.Json
                 Selection = Selection,
                 Dispatch = Dispatch,
                 BodyMode = BodyMode,
+                Effect = Effect,
                 Distribution = Distribution,
             };
             clone.CopyChainResolvedValuesFrom(this);
@@ -618,6 +629,7 @@ namespace NeoCompose.Runtime.Json
                     _ => inherited.Dispatch,
                 },
                 BodyMode = (member as NSFunctionMember)?.DeclaredBodyMode ?? inherited.BodyMode,
+                Effect = (member as NSFunctionMember)?.DeclaredEffect ?? inherited.Effect,
                 // P76 §1 rule 1. Absence inherits; it never resolves to an
                 // ordinal here, so an explicit `.Sparse` override of an
                 // automatically-Packed member stays distinguishable from a
@@ -643,6 +655,7 @@ namespace NeoCompose.Runtime.Json
             Selection = NeoMemberSelectionKind.Single,
             Dispatch = NeoFunctionDispatchKind.Synchronous,
             BodyMode = NeoFunctionBodyKind.Code,
+            Effect = NeoEffectKind.None,
             // No default: an empty chain is automatic, not Sparse.
             Distribution = null,
         };

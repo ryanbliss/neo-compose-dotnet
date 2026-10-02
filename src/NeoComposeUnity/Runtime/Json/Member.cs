@@ -1263,6 +1263,32 @@ namespace NeoCompose.Runtime.Json
             set => DeclaredBodyMode = value;
         }
 
+        /// <summary>
+        /// P97 §1.4 — whether the runtime runs this function for every live
+        /// instance of a class that resolves to it. Absent inherits along
+        /// the override chain; an explicit None stops an inherited effect.
+        /// </summary>
+        [JsonProperty("effect", NullValueHandling = NullValueHandling.Ignore)]
+        private NeoEffectKind? effect;
+
+        [JsonIgnore]
+        public NeoEffectKind Effect
+        {
+            get => effect ?? (resolvedShape is { } shape ? shape.Effect : NeoEffectKind.None);
+            set => DeclaredEffect = value;
+        }
+
+        [JsonIgnore]
+        internal NeoEffectKind? DeclaredEffect
+        {
+            get => effect;
+            set
+            {
+                effect = value;
+                InvalidateResolvedShape();
+            }
+        }
+
         [JsonIgnore]
         internal NeoFunctionDispatchKind? DeclaredDispatch
         {

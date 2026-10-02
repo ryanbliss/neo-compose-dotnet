@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.51.0] - 2026-10-02
+
+- P97 `@effect` functions. A NeoScript function marked `@effect` runs once for every live instance of its class, then again whenever something its last run read changes. That can be a row in any store, a grid cell or placement it queried, or a memoized getter's reads. The function member's new `Effect` field (`NeoEffectKind.None` or `Auto`, schema 33) carries the marker. An override inherits it when absent and may turn it on or off for its class and below.
+- Authored rows are live. A Save or Session row is live while an authored row, its store's root, or a static binding holds it through its owned parents. An instance starts when the commit or load that makes it live drains, and stops when a commit removes or replaces it, a store or partition unloads, or the client is disposed. A variant swap replaces the instance.
+- Effects drain at the outermost write boundary: a NeoScript execution, a commit, a leaf write, or `RunTransaction`. They drain before getter watchers hear the settled state, and their writes join the same change batch. An effect's own writes never run it again. Effects that write what each other read stop after `NeoClient.EffectRunsPerDrain` (100) runs of one effect in a drain, logging a `NeoEffectCycleException`. A run that throws logs a `NeoEffectException` naming its class, member, and instance, and keeps the reads it made before throwing. Native function handlers run outside the capture, so their reads are never dependencies.
+- `NeoClient.StartEffects()` starts them and is idempotent. Generated project clients call it once their native function invokers and views are registered. The server codegen revision changed with it, so the next synchronization regenerates existing projects; code generated before then runs no effects. A project with no `@effect` function pays a field check per write and indexes nothing.
+- Rebinding a static member reruns the effects that read it. A loaded or unloaded value partition now forgets the getters that read its grid, its rows, or their containers.
+- Measured in the explicit HelloWorld fixtures, a write plus the effect run it causes costs 4.6 µs against 3.4 µs for the same write plus a direct call to the same body, and allocates less. A change one instance read runs only that instance's effect: 4.3–4.5 µs per write at 100 and 1,000 instances. A change every instance read costs 3.8 µs and 468 bytes per run at both sizes. A run that reads the same rows as its last run leaves the dependency index untouched.
+
 ## [0.50.1] - 2026-10-02
 
 - Synchronization refreshes generated code after server codegen changes, including projects with no record edits. The generated-file manifest stores the server revision and sends it with incremental requests. Missing or changed revisions force one full export while unchanged C# contents still use hash negotiation. SDK package versions do not invalidate the export.
