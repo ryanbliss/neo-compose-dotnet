@@ -35,6 +35,8 @@ namespace NeoCompose.Runtime
             public readonly string rowId;
             public readonly string memberId;
             public readonly NeoValueOwnership readOwnership;
+            // Hashed once: every read an entry indexes adds the key to a set.
+            private readonly int hash;
 
             public GetterMemoKey(NeoValueOwnership ownership, string rowId, string memberId, NeoValueOwnership readOwnership)
             {
@@ -42,14 +44,15 @@ namespace NeoCompose.Runtime
                 this.rowId = rowId;
                 this.memberId = memberId;
                 this.readOwnership = readOwnership;
+                hash = unchecked(
+                    ((rowId.GetHashCode() * 31 + memberId.GetHashCode()) * 31 + (int)ownership) * 31 + (int)readOwnership);
             }
 
             public bool Equals(GetterMemoKey other) =>
-                ownership == other.ownership && readOwnership == other.readOwnership
+                hash == other.hash && ownership == other.ownership && readOwnership == other.readOwnership
                 && rowId == other.rowId && memberId == other.memberId;
             public override bool Equals(object? obj) => obj is GetterMemoKey other && Equals(other);
-            public override int GetHashCode() => unchecked(
-                ((rowId.GetHashCode() * 31 + memberId.GetHashCode()) * 31 + (int)ownership) * 31 + (int)readOwnership);
+            public override int GetHashCode() => hash;
         }
 
         // A class, so a hit hands back one reference: copying a struct of
@@ -62,9 +65,10 @@ namespace NeoCompose.Runtime
             // each entry is a scalar or the RowReference of a row entry.
             public object?[]? list;
             public Member? listEntryMember;
-            // The rows and grid cells the evaluation read, in order. They are
-            // the entry's invalidation set, and a hit under dependency capture
-            // (an NSProperty compute) reports them as the evaluation would have.
+            // The rows and grid cells the evaluation read, each once, in order.
+            // They are the entry's invalidation set, and a hit under dependency
+            // capture (an NSProperty compute) reports them as the evaluation
+            // would have.
             public List<GetterRead>? reads;
             // Whether reads holds a grid read. Such an entry answers only
             // while no grid change is pending: a write can move the grid's
@@ -89,13 +93,11 @@ namespace NeoCompose.Runtime
             public readonly INeoTileGridContent? content;
             public readonly UnityEngine.Vector2Int? cell;
             public readonly bool tile;
-            public readonly NeoValueOwnership ownership;
             /// <summary>The row id, or a grid read's placement id.</summary>
             public readonly string id;
 
-            public GetterRead(NeoValueOwnership ownership, string id)
+            public GetterRead(string id)
             {
-                this.ownership = ownership;
                 this.id = id;
                 content = null;
                 cell = null;
@@ -107,7 +109,6 @@ namespace NeoCompose.Runtime
                 this.content = content;
                 this.cell = cell;
                 this.tile = tile;
-                ownership = default;
                 id = placementId;
             }
         }
@@ -145,8 +146,12 @@ namespace NeoCompose.Runtime
         // published the change that forgets the getters that read them.
         private int gridChangesPending;
         private List<GetterRead>? getterReadCapture;
-        private HashSet<string>? getterValueReadCapture;
-        private readonly Stack<HashSet<string>> valueReadCapturePool = new();
+        // Appended as read, duplicates and all: only an entry that can hit
+        // replays them, so only it pays to make them distinct.
+        private List<string>? getterValueReadCapture;
+        private readonly Stack<List<string>> valueReadCapturePool = new();
+        private readonly IdSet distinctIds = new();
+        private readonly HashSet<GetterRead> distinctGridReads = new(GridReadIdentity.Instance);
         // Every write forgets the getters that read the row and the next
         // evaluation records them again, so the read lists and per-row key
         // sets are recycled instead of reallocated each frame.
@@ -156,25 +161,30 @@ namespace NeoCompose.Runtime
         internal readonly struct GetterCaptureFrame
         {
             internal readonly List<GetterRead>? reads;
-            internal readonly HashSet<string>? valueReads;
+            internal readonly List<string>? valueReads;
 
-            internal GetterCaptureFrame(List<GetterRead>? reads, HashSet<string>? valueReads)
+            internal GetterCaptureFrame(List<GetterRead>? reads, List<string>? valueReads)
             {
                 this.reads = reads;
                 this.valueReads = valueReads;
             }
         }
 
-        /// <summary>Starts recording reads for a getter being memoized; returns the enclosing capture.</summary>
-        internal GetterCaptureFrame BeginGetterReadCapture()
+        /// <summary>
+        /// Starts recording reads for a getter being memoized; returns the
+        /// enclosing capture. A reads-only capture leaves value ids to the
+        /// enclosing one, for a getter whose entry can keep only its reads.
+        /// </summary>
+        internal GetterCaptureFrame BeginGetterReadCapture(bool readsOnly = false)
         {
             var previous = new GetterCaptureFrame(getterReadCapture, getterValueReadCapture);
             getterReadCapture = readCapturePool.Count != 0
                 ? readCapturePool.Pop()
                 : new List<GetterRead>();
-            getterValueReadCapture = valueReadCapturePool.Count != 0
-                ? valueReadCapturePool.Pop()
-                : new HashSet<string>(StringComparer.Ordinal);
+            if (!readsOnly)
+                getterValueReadCapture = valueReadCapturePool.Count != 0
+                    ? valueReadCapturePool.Pop()
+                    : new List<string>();
             return previous;
         }
 
@@ -185,13 +195,17 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal GetterCaptureFrame EndGetterReadCapture(GetterCaptureFrame previous)
         {
-            var capture = new GetterCaptureFrame(getterReadCapture, getterValueReadCapture);
+            // A reads-only capture left the enclosing value list open.
+            List<string>? valueReads = ReferenceEquals(getterValueReadCapture, previous.valueReads)
+                ? null
+                : getterValueReadCapture;
+            var capture = new GetterCaptureFrame(getterReadCapture, valueReads);
             getterReadCapture = previous.reads;
             getterValueReadCapture = previous.valueReads;
             if (capture.reads is { Count: not 0 })
                 previous.reads?.AddRange(capture.reads);
             if (capture.valueReads is { Count: not 0 })
-                previous.valueReads?.UnionWith(capture.valueReads);
+                previous.valueReads?.AddRange(capture.valueReads);
             return capture;
         }
 
@@ -232,42 +246,40 @@ namespace NeoCompose.Runtime
         /// A read of what a held script batch holds pending, reported to the
         /// active captures without committing it.
         /// </summary>
-        internal void NotePendingRead(NeoValueOwnership ownership, string id)
+        internal void NotePendingRead(string id)
         {
             capturedValueReads?.Add(id);
             getterValueReadCapture?.Add(id);
             if (getterReadCapture is { } reads)
-                RecordRowRead(reads, ownership, id);
+                RecordRowRead(reads, id);
         }
 
         internal void NoteValueReads(IEnumerable<string> ids)
         {
             capturedValueReads?.UnionWith(ids);
-            getterValueReadCapture?.UnionWith(ids);
+            getterValueReadCapture?.AddRange(ids);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void NoteRowRead(NeoValueOwnership ownership, string rowId)
+        internal void NoteRowRead(string rowId)
         {
             if (scriptWriteBatch?.Touches(rowId) == true)
                 ObserveScriptWrites(rowId);
             if (getterReadCapture is { } reads)
-                RecordRowRead(reads, ownership, rowId);
+                RecordRowRead(reads, rowId);
         }
 
-        private static void RecordRowRead(List<GetterRead> reads, NeoValueOwnership ownership, string rowId)
+        private static void RecordRowRead(List<GetterRead> reads, string rowId)
         {
             // A member read notes its receiver before each child; a repeat of
             // the previous read adds nothing to the invalidation set.
             if (reads.Count != 0)
             {
                 GetterRead previous = reads[reads.Count - 1];
-                if (previous.content is null
-                    && previous.ownership == ownership
-                    && ReferenceEquals(previous.id, rowId))
+                if (previous.content is null && ReferenceEquals(previous.id, rowId))
                     return;
             }
-            reads.Add(new GetterRead(ownership, rowId));
+            reads.Add(new GetterRead(rowId));
         }
 
         internal void NoteGridRead(INeoTileGridContent content, string placementId, UnityEngine.Vector2Int? cell, bool tile) =>
@@ -286,9 +298,15 @@ namespace NeoCompose.Runtime
 
         private void ReplayObservedGetterReads(GetterMemoEntry entry)
         {
-            if (entry.valueReads is not null && (capturedValueReads is not null || getterValueReadCapture is not null))
-                foreach (string id in entry.valueReads)
-                    NoteValueRead(id);
+            if (entry.valueReads is { } ids && (capturedValueReads is not null || getterValueReadCapture is not null))
+            {
+                // Only a getter capture is open: it takes the ids as they are.
+                if (capturedValueReads is null && scriptWriteBatch is null)
+                    getterValueReadCapture!.AddRange(ids);
+                else
+                    foreach (string id in ids)
+                        NoteValueRead(id);
+            }
             if (entry.reads is not null)
                 getterReadCapture?.AddRange(entry.reads);
         }
@@ -312,10 +330,24 @@ namespace NeoCompose.Runtime
             }
         }
 
-        internal GetterMemoEntry? FindMemoizedGetter(GetterMemoKey key)
+        internal GetterMemoEntry? FindMemoizedGetter(GetterMemoKey key) => FindMemoizedGetter(key, out _);
+
+        /// <summary>
+        /// Also says whether evaluating <paramref name="key"/> again can skip
+        /// a capture of its own: a live valueless entry already holds its
+        /// reads, so none changed and the result again can't be kept. An
+        /// enclosing capture still records the reads as they happen.
+        /// </summary>
+        internal GetterMemoEntry? FindMemoizedGetter(GetterMemoKey key, out bool holdsValuelessReads)
         {
-            if (!getterMemo.TryGetValue(key, out GetterMemoEntry? entry) || entry.valueless)
+            holdsValuelessReads = false;
+            if (!getterMemo.TryGetValue(key, out GetterMemoEntry? entry))
                 return null;
+            if (entry.valueless)
+            {
+                holdsValuelessReads = HoldsCurrentReads(entry);
+                return null;
+            }
             return entry.readsGrid ? CurrentGridReader(key, entry) : entry;
         }
 
@@ -361,12 +393,104 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal void MemoizeGetterReads(GetterMemoKey key, GetterCaptureFrame capture)
         {
-            // A live entry already holds these reads: none of them changed.
+            // A live entry stays even where it can't vouch for its reads: a
+            // pending grid change refuses a new entry and forgets this one,
+            // and committing a held batch forgets it if it touched what it read.
             if (!WatchesGetters(key.rowId)
                 || (getterMemo.TryGetValue(key, out GetterMemoEntry? kept) && kept.valueless))
                 RecycleGetterCapture(capture);
             else
                 Memoize(key, new GetterMemoEntry { valueless = true }, capture);
+        }
+
+        // Compacts each id's first occurrence to the front of ids and copies
+        // those out; the caller clears ids.
+        private string[] Distinct(List<string> ids)
+        {
+            distinctIds.Reserve(ids.Count);
+            int kept = 0;
+            for (int i = 0; i < ids.Count; i++)
+            {
+                string id = ids[i];
+                if (distinctIds.Add(id))
+                    ids[kept++] = id;
+            }
+            distinctIds.Clear();
+            var distinct = new string[kept];
+            ids.CopyTo(0, distinct, 0, kept);
+            return distinct;
+        }
+
+        // A capture holds every nested read, a row once per member read
+        // through it. The entry keeps each read once, so indexing, forgetting
+        // and every replay into an enclosing capture walk only distinct ones.
+        private void KeepDistinct(List<GetterRead> reads)
+        {
+            distinctIds.Reserve(reads.Count);
+            int kept = 0;
+            for (int i = 0; i < reads.Count; i++)
+            {
+                GetterRead read = reads[i];
+                if (read.content is null ? distinctIds.Add(read.id) : distinctGridReads.Add(read))
+                    reads[kept++] = read;
+            }
+            reads.RemoveRange(kept, reads.Count - kept);
+            distinctIds.Clear();
+            distinctGridReads.Clear();
+        }
+
+        // The ids one capture read, compared by reference: rows and values
+        // are read through the ids they store, so one row's reads share one
+        // string, and nothing hashes its characters. An id read through a
+        // copy is merely kept twice. Open addressing over a table at most
+        // half full, cleared slot by slot, so a capture costs its own size.
+        private sealed class IdSet
+        {
+            private string?[] slots = new string?[256];
+            private readonly List<int> filled = new();
+
+            /// <summary>Sizes the table for <paramref name="count"/> adds.</summary>
+            internal void Reserve(int count)
+            {
+                int size = slots.Length;
+                while (size < count * 2)
+                    size *= 2;
+                if (size != slots.Length)
+                    slots = new string?[size];
+            }
+
+            internal bool Add(string id)
+            {
+                int mask = slots.Length - 1;
+                int slot = RuntimeHelpers.GetHashCode(id) & mask;
+                while (slots[slot] is { } held)
+                {
+                    if (ReferenceEquals(held, id))
+                        return false;
+                    slot = (slot + 1) & mask;
+                }
+                slots[slot] = id;
+                filled.Add(slot);
+                return true;
+            }
+
+            internal void Clear()
+            {
+                foreach (int slot in filled)
+                    slots[slot] = null;
+                filled.Clear();
+            }
+        }
+
+        private sealed class GridReadIdentity : IEqualityComparer<GetterRead>
+        {
+            internal static readonly GridReadIdentity Instance = new();
+
+            public bool Equals(GetterRead x, GetterRead y) =>
+                ReferenceEquals(x.id, y.id) && ReferenceEquals(x.content, y.content) && x.cell == y.cell && x.tile == y.tile;
+
+            public int GetHashCode(GetterRead read) => unchecked(
+                RuntimeHelpers.GetHashCode(read.id) * 31 + (read.cell?.GetHashCode() ?? 0));
         }
 
         private GetterMemoEntry? Memoize(GetterMemoKey key, GetterMemoEntry entry, GetterCaptureFrame capture)
@@ -379,13 +503,17 @@ namespace NeoCompose.Runtime
                 return null;
             }
             if (capture.reads is { Count: not 0 })
+            {
+                KeepDistinct(capture.reads);
                 entry.reads = capture.reads;
+            }
             else if (capture.reads is not null)
                 readCapturePool.Push(capture.reads);
             if (capture.valueReads is not null)
             {
-                if (capture.valueReads.Count != 0)
-                    entry.valueReads = capture.valueReads.ToArray();
+                // A valueless entry never hits, so nothing replays its ids.
+                if (capture.valueReads.Count != 0 && !entry.valueless)
+                    entry.valueReads = Distinct(capture.valueReads);
                 capture.valueReads.Clear();
                 valueReadCapturePool.Push(capture.valueReads);
             }
