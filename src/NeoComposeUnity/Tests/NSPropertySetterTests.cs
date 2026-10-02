@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
@@ -937,6 +938,54 @@ namespace NeoCompose.Tests
             client.SetSaveValue(new NumberMemberValue { id = "value-target", value = 9, createdAt = "x", updatedAt = "x" });
             Assert.AreEqual(9, Read(), "A write forgets the entry the receiver remembers.");
             Assert.AreEqual(9, Read());
+        }
+
+        [Test]
+        public void GetterChild_BindsOnFirstReadAndKeepsItsNode()
+        {
+            using var client = BuildClient(out _);
+            using var node = new NeoMemberClassWritable(client, "member-receiver-value", "value-receiver", NeoValueOwnership.Save);
+            Assert.IsFalse(node.BoundChildren.Any(child => child is NeoMemberNSProperty), "Construction binds no getter.");
+
+            var getter = node.Get<NeoMemberNSProperty>("Computed");
+            Assert.AreSame(getter, node.Get<NeoMemberNSProperty>("Computed"));
+            node.RefreshChildrenAfterConstruction();
+            Assert.AreSame(getter, node.Get<NeoMemberNSProperty>("Computed"), "A rebind keeps a bound getter's node.");
+
+            using var other = new NeoMemberClassWritable(client, "member-receiver-value", "value-receiver", NeoValueOwnership.Save);
+            Assert.IsTrue(other.Any(pair => pair.Key == "Computed" && pair.Value is NeoMemberNSProperty), "Enumeration binds every getter.");
+        }
+
+        [Test]
+        public void GetterChild_BoundDuringACandidateOutlivesIt()
+        {
+            using var client = BuildClient(out _);
+            using var node = new NeoMemberClassWritable(client, "member-receiver-value", "value-receiver", NeoValueOwnership.Save);
+            NeoMemberNSProperty? getter = null;
+
+            client.PrepareVariantApply(node, _ => getter = node.Get<NeoMemberNSProperty>("Computed"));
+
+            Assert.IsNotNull(getter);
+            Assert.IsFalse(getter!.isDisposed, "A node that outlives the candidate keeps the getter it bound during it.");
+            Assert.AreSame(getter, node.Get<NeoMemberNSProperty>("Computed"));
+        }
+
+        [Test]
+        public void ComputedOnChanged_NamesAGetterTheWatchingViewNeverRead()
+        {
+            using var client = BuildClient(out NSPropertyMember property);
+            property.getter = ThisCountGetter();
+            var view = TestReceiverView.Create(client, "value-receiver");
+            var changedKeys = new List<string?>();
+            using var watch = view.WatchAnyChange((_, changed, _) =>
+                changedKeys.Add(view.BackingNode.TryGetSchemaKeyForChild(changed, out string? key) ? key : null));
+            Assert.IsFalse(view.BackingNode.BoundChildren.Any(child => child is NeoMemberNSProperty), "The view has not read its getter.");
+            using var reader = new NeoMemberClassWritable(client, "member-receiver-value", "value-receiver", NeoValueOwnership.Save);
+            Assert.IsTrue(reader.Get<NeoMemberNSProperty>("Computed").Compute("value-receiver").ok);
+
+            client.SetSaveValue(Number("value-receiver-count", 7));
+
+            CollectionAssert.Contains(changedKeys, "Computed", "The watching view names the getter by its own child.");
         }
 
         [Test]

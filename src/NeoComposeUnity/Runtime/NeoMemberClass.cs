@@ -66,11 +66,16 @@ namespace NeoCompose.Runtime
         internal int keptGeneration = -1;
         private NeoClassNode? classNode;
         private List<string>? reboundKeys;
+        // Whether a function or getter child is still unbound.
+        private bool callablesDeferred;
+        // Whether this node belongs to the candidate replay it was built in.
+        private readonly bool candidateNode;
         private string? reportingKey;
 
         public NeoMemberClass(NeoClient client, string memberId, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
             : base(client, memberId, overrideValueId, ownership)
         {
+            candidateNode = client.BuildsCandidateNodes;
             schemaClass = ResolveSchemaClass();
             ResolveClassContext();
             // Schema-driven init runs after `schemaClass` + merged schema are
@@ -84,6 +89,7 @@ namespace NeoCompose.Runtime
         public NeoMemberClass(NeoClient client, ClassMember member, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
             : base(client, member, overrideValueId, ownership)
         {
+            candidateNode = client.BuildsCandidateNodes;
             schemaClass = ResolveSchemaClass();
             ResolveClassContext();
             ReinitializeChildren();
@@ -183,7 +189,13 @@ namespace NeoCompose.Runtime
                 childSlotsSource = childMembers;
             }
             if (!childMembers.TryGetValue(key, out NeoMember? child))
-                return null;
+            {
+                if (!callablesDeferred)
+                    return null;
+                child = BindCallable(key);
+                if (child is null)
+                    return null;
+            }
             // Bounded: further children take the dictionary.
             if (childSlotCount < MaxChildSlots)
             {
@@ -215,9 +227,13 @@ namespace NeoCompose.Runtime
             return view;
         }
 
+        /// <summary>The children bound so far, without binding a deferred function or getter.</summary>
+        internal Dictionary<string, NeoMember>.ValueCollection BoundChildren => childMembers.Values;
+
         /// <summary>The computed member child whose getter is <paramref name="memberId"/>, if this node holds one.</summary>
         internal NeoMemberNSProperty? FindGetterChild(string memberId)
         {
+            BindCallables();
             foreach (var pair in childMembers)
                 if (pair.Value is NeoMemberNSProperty getter && getter.member.id == memberId)
                     return getter;
@@ -380,6 +396,7 @@ namespace NeoCompose.Runtime
                 return;
             DisposeChildren(childMembers);
             childMembers.Clear();
+            callablesDeferred = false;
             ForgetChildSlots();
             base.Dispose();
         }
@@ -404,6 +421,7 @@ namespace NeoCompose.Runtime
         {
             var previousChildren = childMembers;
             childMembers = new(mergedSchema.Count);
+            callablesDeferred = false;
             // A Class member explicitly bound to a Null row has no object
             // graph to descend into. Do not confuse it with a missing or
             // malformed Object row, which must retain the existing fail-fast
@@ -429,99 +447,154 @@ namespace NeoCompose.Runtime
             for (int entryIndex = 0; entryIndex < mergedSchema.Count; entryIndex++)
             {
                 MergedSchemaEntry entry = mergedSchema[entryIndex];
-                if (member.Payload == NeoMemberPayloadKind.Partial
-                    && (value?.value is null
-                        || !value.value.ContainsKey(entry.schemaKey)))
+                if (!HasChild(entry))
+                    continue;
+                // A function or getter binds when first read, which most
+                // trees never do. One already bound keeps its node.
+                if (IsCallable(entry.member!) && !previousChildren.ContainsKey(entry.schemaKey))
                 {
+                    callablesDeferred = true;
                     continue;
                 }
-                if (entry.member is null)
-                    continue;
-                Member childMember = SubstituteChildMember(entry.member);
-                if (member.useDeclarationDefaults)
-                {
-                    // Class references and sparse layer settings inherit declaration
-                    // defaults. A declaration's editable stored row is not that default.
-                    var declaration = childMember.ShallowClone();
-                    declaration.valueId = null;
-                    declaration.useDeclarationDefaults = true;
-                    declaration.substitutedDeclarationIdentity =
-                        $"__neo_class_default_member:{member.RuntimeDeclarationIdentity}/{childMember.RuntimeDeclarationIdentity}";
-                    childMember = declaration;
-                }
-                string? childValueId = null;
-                if (childMember.Mutability != NeoMemberMutabilityKind.ReadOnly)
-                {
-                    if (value?.value is not null
-                        && value.value.TryGetValue(entry.schemaKey, out string valueIdForKey))
-                    {
-                        childValueId = valueIdForKey;
-                    }
-                    else if (overrideValueId is null
-                        && member.defaultValue?.value is not null
-                        && member.defaultValue.value.TryGetValue(
-                            entry.schemaKey,
-                            out string defaultValueIdForKey))
-                    {
-                        // A member's own authored row may be sparse even when
-                        // its declaration carries a composite default. Missing
-                        // keys inherit that default child row; authored row
-                        // keys still win above. Externally-bound instance rows
-                        // keep absence meaningful (for example an omitted
-                        // optional tile-grid assetValueId). Partial Class
-                        // members never reach this branch for missing keys.
-                        childValueId = defaultValueIdForKey;
-                    }
-                    else if (resolvedValueId is not null
-                        && client.TryGetVirtualClassChildValueId(
-                            resolvedValueId,
-                            entry.schemaKey,
-                            out string? virtualChildValueId))
-                    {
-                        childValueId = virtualChildValueId;
-                    }
-                }
-                if (previousChildren.TryGetValue(entry.schemaKey, out NeoMember? existing)
-                    // A P75 rebuild mints new rows at the SAME deterministic
-                    // virtual ids and disposes the wrappers holding the old
-                    // ones. Matching ids therefore no longer implies the
-                    // wrapper is still usable — a disposed one would serve the
-                    // previous expansion for the rest of its life.
-                    && !existing.isDisposed
-                    && existing.member.id == childMember.id
-                    && (existing.overrideValueId == childValueId
-                        || existing.value?.id == childValueId))
-                {
-                    childMembers[entry.schemaKey] = existing;
-                    previousChildren.Remove(entry.schemaKey);
-                    continue;
-                }
-                // A sparse root's wrapper tree exists before its constructor
-                // replay. Computed children bind when replay refreshes that
-                // tree, including through intermediate Class children.
-                if (childValueId is null
-                    && client.IsAwaitingVirtualInstanceInitializers(value)
-                    && MemberValueFactory.InitializerOf(childMember) is not null)
-                {
-                    continue;
-                }
-                NeoMember child;
-                using (client.EnterVirtualInstanceChildConstruction(value))
-                {
-                    child = CreateChild(client, childMember, childValueId);
-                }
-                child.Hold(this);
-                childMembers[entry.schemaKey] = child;
-                if (recordRebound
-                    && (child.overrideValueId ?? child.value?.id)
-                        != (previousChildren.TryGetValue(entry.schemaKey, out NeoMember? replaced)
-                            ? replaced.overrideValueId ?? replaced.value?.id
-                            : null))
-                {
-                    (reboundKeys ??= new List<string>()).Add(entry.schemaKey);
-                }
+                BindChild(entry, previousChildren, resolvedValueId, recordRebound, committed: false);
             }
             DisposeChildren(previousChildren);
+        }
+
+        private bool HasChild(MergedSchemaEntry entry) =>
+            entry.member is not null
+            && (member.Payload != NeoMemberPayloadKind.Partial
+                || value?.value is not null && value.value.ContainsKey(entry.schemaKey));
+
+        // A node built outside the active candidate replay outlives it.
+        private bool OutlivesCandidate => !candidateNode && client.BuildsCandidateNodes;
+
+        // Functions and getters hold no row of their own.
+        private static bool IsCallable(Member member) =>
+            member is NSFunctionMember or NSPropertyMember or FunctionMember;
+
+        private NeoMember? BindCallable(string key)
+        {
+            if (classNode?.SurfaceMember(key) is not { member: { } declared } entry
+                || !IsCallable(declared)
+                || !HasChild(entry))
+                return null;
+            BindChild(entry, NoChildren, valueId, recordRebound: false, OutlivesCandidate);
+            return childMembers.TryGetValue(key, out NeoMember? child) ? child : null;
+        }
+
+        /// <summary>Binds every deferred callable, for readers that walk all children.</summary>
+        private void BindCallables()
+        {
+            if (!callablesDeferred)
+                return;
+            callablesDeferred = false;
+            bool committed = OutlivesCandidate;
+            for (int entryIndex = 0; entryIndex < mergedSchema.Count; entryIndex++)
+            {
+                MergedSchemaEntry entry = mergedSchema[entryIndex];
+                if (HasChild(entry) && IsCallable(entry.member!) && !childMembers.ContainsKey(entry.schemaKey))
+                    BindChild(entry, NoChildren, valueId, recordRebound: false, committed);
+            }
+        }
+
+        /// <param name="committed">
+        /// Create the child in the committed graph: a node that outlives a
+        /// candidate replay binding a deferred callable during it would
+        /// otherwise hold a child the candidate disposes.
+        /// </param>
+        private void BindChild(
+            MergedSchemaEntry entry,
+            Dictionary<string, NeoMember> previousChildren,
+            string? resolvedValueId,
+            bool recordRebound,
+            bool committed)
+        {
+            Member childMember = SubstituteChildMember(entry.member!);
+            if (member.useDeclarationDefaults)
+            {
+                // Class references and sparse layer settings inherit declaration
+                // defaults. A declaration's editable stored row is not that default.
+                var declaration = childMember.ShallowClone();
+                declaration.valueId = null;
+                declaration.useDeclarationDefaults = true;
+                declaration.substitutedDeclarationIdentity =
+                    $"__neo_class_default_member:{member.RuntimeDeclarationIdentity}/{childMember.RuntimeDeclarationIdentity}";
+                childMember = declaration;
+            }
+            string? childValueId = null;
+            if (childMember.Mutability != NeoMemberMutabilityKind.ReadOnly)
+            {
+                if (value?.value is not null
+                    && value.value.TryGetValue(entry.schemaKey, out string valueIdForKey))
+                {
+                    childValueId = valueIdForKey;
+                }
+                else if (overrideValueId is null
+                    && member.defaultValue?.value is not null
+                    && member.defaultValue.value.TryGetValue(
+                        entry.schemaKey,
+                        out string defaultValueIdForKey))
+                {
+                    // A member's own authored row may be sparse even when
+                    // its declaration carries a composite default. Missing
+                    // keys inherit that default child row; authored row
+                    // keys still win above. Externally-bound instance rows
+                    // keep absence meaningful (for example an omitted
+                    // optional tile-grid assetValueId). Partial Class
+                    // members never reach this branch for missing keys.
+                    childValueId = defaultValueIdForKey;
+                }
+                else if (resolvedValueId is not null
+                    && client.TryGetVirtualClassChildValueId(
+                        resolvedValueId,
+                        entry.schemaKey,
+                        out string? virtualChildValueId))
+                {
+                    childValueId = virtualChildValueId;
+                }
+            }
+            if (previousChildren.TryGetValue(entry.schemaKey, out NeoMember? existing)
+                // A P75 rebuild mints new rows at the SAME deterministic
+                // virtual ids and disposes the wrappers holding the old
+                // ones. Matching ids therefore no longer implies the
+                // wrapper is still usable — a disposed one would serve the
+                // previous expansion for the rest of its life.
+                && !existing.isDisposed
+                && existing.member.id == childMember.id
+                && (existing.overrideValueId == childValueId
+                    || existing.value?.id == childValueId))
+            {
+                childMembers[entry.schemaKey] = existing;
+                previousChildren.Remove(entry.schemaKey);
+                return;
+            }
+            // A sparse root's wrapper tree exists before its constructor
+            // replay. Computed children bind when replay refreshes that
+            // tree, including through intermediate Class children.
+            if (childValueId is null
+                && client.IsAwaitingVirtualInstanceInitializers(value)
+                && MemberValueFactory.InitializerOf(childMember) is not null)
+            {
+                return;
+            }
+            NeoMember child;
+            using (client.EnterVirtualInstanceChildConstruction(value))
+            {
+                child = committed
+                    ? client.CreateCommittedNode(() => CreateChild(client, childMember, childValueId))
+                    : CreateChild(client, childMember, childValueId);
+            }
+            child.Hold(this);
+            childMembers[entry.schemaKey] = child;
+            if (recordRebound
+                && (child.overrideValueId ?? child.value?.id)
+                    != (previousChildren.TryGetValue(entry.schemaKey, out NeoMember? replaced)
+                        ? replaced.overrideValueId ?? replaced.value?.id
+                        : null))
+            {
+                (reboundKeys ??= new List<string>()).Add(entry.schemaKey);
+            }
         }
 
         // Over the pairs: a dictionary's Values view is an allocation of its own.
@@ -565,6 +638,7 @@ namespace NeoCompose.Runtime
 
         public IEnumerator<KeyValuePair<string, NeoMember>> GetEnumerator()
         {
+            BindCallables();
             return childMembers.GetEnumerator();
         }
 

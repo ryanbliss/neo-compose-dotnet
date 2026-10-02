@@ -6858,6 +6858,9 @@ namespace NeoCompose.Runtime
             }
         }
 
+        /// <summary>Whether a candidate replay is active, so the nodes built now die with it.</summary>
+        internal bool BuildsCandidateNodes => candidateReplay is not null;
+
         internal bool TryGetNode(NeoNodeKey registryKey, [NotNullWhen(true)] out NeoMember? node) =>
             (candidateReplay?.Nodes ?? nodesInternal).TryGetValue(registryKey, out node);
 

@@ -1349,6 +1349,52 @@ namespace NeoCompose.Tests
             Assert.AreEqual(revision + 1, client.WriteRevision, "Assigning the value the store already holds writes nothing.");
         }
 
+        [TestCase(MemberKind.Sprite)]
+        [TestCase(MemberKind.Audio)]
+        public void AssetFieldWriteStoresTheChildWithoutAWritePlan(MemberKind kind)
+        {
+            bool sprite = kind == MemberKind.Sprite;
+            JsonMember asset = sprite
+                ? new SpriteMember { id = "asset", name = "Asset", kind = kind, Storage = NeoMemberStorage.Save, valueId = "asset-value" }
+                : new AudioMember { id = "asset", name = "Asset", kind = kind, Storage = NeoMemberStorage.Save, valueId = "asset-value" };
+            object Asset(int slice) => sprite
+                ? new SpriteValue { fileId = "sheet", sliceIndex = slice }
+                : new FileValue { fileId = $"clip-{slice}" };
+            MemberValue Row(int slice) => sprite
+                ? new SpriteMemberValue { id = "asset-value", value = (SpriteValue)Asset(slice) }
+                : new FileMemberValue { id = "asset-value", value = (FileValue)Asset(slice) };
+            var assetType = new PrimitiveTypeInfo { type = kind, required = true };
+            FunctionArgumentTypeInfo assetArgument = Argument("Next", kind);
+            var function = ScriptFunction("set-asset", "SetAsset", false, assetType,
+                new[] { assetArgument }, Action(assetType, new[] { assetArgument },
+                    new AssignInstruction
+                    {
+                        type = InstructionKind.Assign,
+                        operatorValue = "=",
+                        target = new WriteTarget { pointer = Key(Variable("__this__"), "Asset"), typeInfo = assetType, writability = WritabilityKind.Save },
+                        pointer = Variable("__arg_0__")
+                    }, Return(Key(Variable("__this__"), "Asset"))));
+            var receiver = ObjectValue("receiver-value", "receiver-class");
+            receiver.value!["Asset"] = "asset-value";
+            using var client = BuildClient(new JsonMember[] { asset, function }, ReceiverClass(("Asset", asset.id), ("SetAsset", function.id)),
+                additionalValues: new MemberValue[] { receiver, Row(1) });
+            client.SetWritableValue(NeoValueOwnership.Save, receiver);
+            client.SetWritableValue(NeoValueOwnership.Save, Row(1));
+            int plans = 0;
+            client.OnWritableValuesPublished += (_, _) => plans++;
+            long revision = client.WriteRevision;
+            var node = new NeoMemberNSFunction(client, function, null, NeoValueOwnership.Save);
+
+            node.Invoke("receiver-value", new[] { Asset(1) });
+            Assert.AreEqual(revision, client.WriteRevision, "Assigning the value the store already holds writes nothing.");
+
+            node.Invoke("receiver-value", new[] { Asset(2) });
+            Assert.AreEqual(0, plans, "A leaf replacement at a stable id needs no write plan.");
+            Assert.AreEqual(revision + 1, client.WriteRevision, "A leaf replacement is one revision.");
+            Assert.IsTrue(client.TryGetWritableValue(NeoValueOwnership.Save, "asset-value", out MemberValue? written));
+            Assert.IsTrue(NeoClient.SameLeafValue(Row(2), written!));
+        }
+
         [Test]
         public void GeneratedLeafSetterStoresTheChildWithoutAWritePlan()
         {
