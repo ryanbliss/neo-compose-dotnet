@@ -98,6 +98,28 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void ChangesOneBoundaryHoldsRunAnEffectOnce()
+        {
+            using Fixture fixture = Build(plants: 2);
+            fixture.client.StartEffects();
+            fixture.recorded.Clear();
+
+            // Plant 0 reads both rows; each is written twice.
+            fixture.client.RunTransaction(() =>
+            {
+                fixture.WriteNumber("plant-0-count", "member-count", 10);
+                fixture.WriteNumber("value-target", "member-target", 1);
+                fixture.WriteNumber("plant-0-count", "member-count", 20);
+                fixture.WriteNumber("value-target", "member-target", 2);
+                Assert.AreEqual(1, fixture.RunsOf("plant-0"), "Nothing runs while the transaction holds.");
+            });
+
+            Assert.AreEqual(2, fixture.RunsOf("plant-0"));
+            Assert.AreEqual(2, fixture.RunsOf("plant-1"));
+            CollectionAssert.AreEqual(new[] { ("plant-0", 22), ("plant-1", 3) }, fixture.recorded, "Each run sees the settled rows.");
+        }
+
+        [Test]
         public void EffectWritesRunTheEffectsThatReadThemInTheSameDrain()
         {
             using Fixture fixture = Build(plants: 2);
