@@ -1065,6 +1065,100 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void ComputedOnChanged_RereadingAnUnmemoizedGetterKeepsItsWatchAndReportsItsReads()
+        {
+            var rootType = new ClassTypeInfo { type = MemberKind.Class, required = true, classId = "class-root" };
+            using var client = BuildClient(out NSPropertyMember property, propertyType: rootType);
+            // return root.Session; a Session row result is never memoized.
+            property.getter = Function(new ReturnInstruction
+            {
+                type = InstructionKind.Return,
+                pointer = KeyOf(RootVariable(), "Session"),
+            });
+            property.getter.typeInfo = rootType;
+            var view = TestReceiverView.Create(client, "value-receiver");
+            int changes = 0;
+            using var watch = view.WatchAnyChange((owner, changed, _) =>
+            {
+                if (owner.BackingNode.TryGetSchemaKeyForChild(changed, out string? key) && key == "Computed")
+                    changes++;
+            });
+            var first = new HashSet<string>();
+            using (client.CaptureValueReads(first))
+                Assert.IsTrue(view.ComputeComputed().ok);
+            CollectionAssert.IsNotEmpty(first);
+
+            var second = new HashSet<string>();
+            using (client.CaptureValueReads(second))
+                Assert.IsTrue(view.ComputeComputed().ok);
+            Assert.IsTrue(view.ComputeComputed().ok);
+
+            CollectionAssert.AreEquivalent(first, second, "A reread with nothing changed reports what the first read did.");
+            client.SetWritableValue(NeoValueOwnership.Session, ObjectValue(
+                "value-session", "class-root", ("Target", "value-session-target")));
+            Assert.AreEqual(1, changes, "The first read's reads still hear the change.");
+        }
+
+        [Test]
+        public void GetterCall_ReadingAGetterThatKeepsOnlyItsReadsStillRecordsThem()
+        {
+            var rootType = new ClassTypeInfo { type = MemberKind.Class, required = true, classId = "class-root" };
+            using var client = BuildClient(out NSPropertyMember property, propertyType: rootType);
+            // if (this.Count == 0) return root.Save; return root.Session;
+            property.getter = Function(
+                new IfInstruction
+                {
+                    type = InstructionKind.If,
+                    branches = new[]
+                    {
+                        new ConditionalBranch
+                        {
+                            expression = new BooleanExpression
+                            {
+                                condition = new Condition
+                                {
+                                    type = OperatorKind.EqualTo,
+                                    operand1 = KeyOf(ThisVariable(), "Count"),
+                                    operand2 = NumberLiteral(0),
+                                },
+                            },
+                            instructions = new Instruction[]
+                            {
+                                new ReturnInstruction { type = InstructionKind.Return, pointer = KeyOf(RootVariable(), "Save") },
+                            },
+                        },
+                    },
+                },
+                new ReturnInstruction { type = InstructionKind.Return, pointer = KeyOf(RootVariable(), "Session") });
+            property.getter.typeInfo = rootType;
+            // return this.Computed.Target;
+            Assert.IsTrue(client.TryGetMember("member-outer-property", out NSPropertyMember? outer));
+            outer!.getter = Function(new ReturnInstruction
+            {
+                type = InstructionKind.Return,
+                pointer = KeyOf(new CallGetterPointer
+                {
+                    type = PointerKind.CallGetter,
+                    memberId = property.id,
+                    receiver = CallReceiver.Instance(ThisVariable()),
+                }, "Target"),
+            });
+            outer.getter.typeInfo = IntType();
+            client.SetWritableValue(NeoValueOwnership.Session, Number("value-session-target", 5));
+            var view = TestReceiverView.Create(client, "value-receiver");
+            using var watch = view.WatchAnyChange((_, _, _) => { });
+            // A Session row result keeps only the reads, for the watch.
+            Assert.IsTrue(view.ComputeComputed().ok);
+            var getter = view.BackingNode.Get<NeoMemberNSProperty>("Outer");
+            Assert.AreEqual(5, Convert.ToInt32(getter.Compute("value-receiver").value));
+            Assert.AreEqual(5, Convert.ToInt32(getter.Compute("value-receiver").value));
+
+            client.SetSaveValue(Number("value-receiver-count", 0));
+
+            Assert.AreEqual(0, Convert.ToInt32(getter.Compute("value-receiver").value), "The outer getter recorded what the inner one read.");
+        }
+
+        [Test]
         public void ComputedOnChanged_StopsAfterTheSubscriptionIsDisposed()
         {
             using var client = BuildClient(out NSPropertyMember property);
@@ -1262,6 +1356,10 @@ namespace NeoCompose.Tests
                 "Computed",
                 baseSetter,
                 returnTypeInfo: propertyType);
+            var outerProperty = Property(
+                "member-outer-property",
+                "Outer",
+                null);
             var derivedProperty = Property(
                 "member-derived-property",
                 "Computed",
@@ -1326,6 +1424,7 @@ namespace NeoCompose.Tests
                     [countMember.id] = countMember,
                     [baseProperty.id] = baseProperty,
                     [derivedProperty.id] = derivedProperty,
+                    [outerProperty.id] = outerProperty,
                     [captureFunction.id] = captureFunction,
                     [deferredFunction.id] = deferredFunction,
                 },
@@ -1390,7 +1489,7 @@ namespace NeoCompose.Tests
                         "class-receiver",
                         "Receiver",
                         ("Computed", baseProperty.id),
-                        extraSchema: ("Count", countMember.id)),
+                        extraSchema: new[] { ("Count", countMember.id), ("Outer", outerProperty.id) }),
                     ["class-derived-receiver"] = NeoSchemaClass(
                         "class-derived-receiver",
                         "DerivedReceiver",
@@ -1645,13 +1744,13 @@ namespace NeoCompose.Tests
             string name,
             (string key, string memberId) schema,
             string? extendsClassId = null,
-            (string key, string memberId)? extraSchema = null)
+            (string key, string memberId)[]? extraSchema = null)
         {
             var entries = new Dictionary<string, string>
             {
                 [schema.key] = schema.memberId,
             };
-            if (extraSchema is { } extra)
+            foreach (var extra in extraSchema ?? Array.Empty<(string key, string memberId)>())
                 entries[extra.key] = extra.memberId;
             return new NeoSchemaClass
             {

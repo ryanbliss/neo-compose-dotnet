@@ -4419,7 +4419,7 @@ namespace NeoCompose.Runtime.NeoScript
 
         private static object? ResolvePendingEntry(NeoWriteBatch.PendingCollection pending, string entryId, Context ctx)
         {
-            ctx.client.NotePendingRead(pending.Ownership, pending.Row.id);
+            ctx.client.NotePendingRead(pending.Row.id);
             return ResolveValueIfId(entryId, ctx, pending.Ownership, pending.EntryMember);
         }
 
@@ -4568,7 +4568,7 @@ namespace NeoCompose.Runtime.NeoScript
 
             ctx.client.ReadReplayField(receiverRowId, schemaKey);
             if (receiverRowId is not null)
-                ctx.client.NoteRowRead(receiverOwnership ?? ctx.valueOwnership, receiverRowId);
+                ctx.client.NoteRowRead(receiverRowId);
             var storedRecord = record as NeoObjectRecord;
             int storedSlot = storedRecord?.StoredSlot(entry!) ?? -1;
             object? at = null;
@@ -4833,6 +4833,7 @@ namespace NeoCompose.Runtime.NeoScript
             bool memoize = client.CanMemoizeGetters
                 && receiver is not NeoScriptObject { attachedId: null }
                 && (receiverRef ??= FindRowReference(receiver, ctx)) is not null;
+            bool holdsValuelessReads = false;
             if (memoize)
             {
                 // The row reference's own slot usually answers, so the
@@ -4841,7 +4842,7 @@ namespace NeoCompose.Runtime.NeoScript
                 NeoClient.GetterMemoEntry? hit = receiverRef!.MemoizedGetter(memberId, ctx.valueOwnership);
                 if (hit is not null && !client.HoldsCurrentReads(hit))
                     hit = null;
-                if (hit is null && (hit = client.FindMemoizedGetter(GetterMemoKeyOf(receiverRef, memberId, ctx))) is not null)
+                if (hit is null && (hit = client.FindMemoizedGetter(GetterMemoKeyOf(receiverRef, memberId, ctx), out holdsValuelessReads)) is not null)
                     receiverRef.RememberGetter(memberId, ctx.valueOwnership, hit);
                 if (hit is not null)
                 {
@@ -4871,6 +4872,9 @@ namespace NeoCompose.Runtime.NeoScript
                     }
                 }
             }
+            // A live valueless entry already holds what this evaluation reads.
+            if (holdsValuelessReads)
+                memoize = false;
             int frame = ctx.EnterGetter(memberId, receiver);
             if (!memoize)
             {
@@ -6142,7 +6146,7 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 if (EvalPendingCollection(cf.info.collectionPointer, PendingRead.Count, scope, ctx, out c) is { } pending)
                 {
-                    ctx.client.NotePendingRead(pending.Ownership, pending.Row.id);
+                    ctx.client.NotePendingRead(pending.Row.id);
                     return Box(pending is NeoWriteBatch.PendingList list
                         ? list.Count
                         : ((ObjectMemberValue)pending.Row).value!.Count);
@@ -6198,7 +6202,7 @@ namespace NeoCompose.Runtime.NeoScript
                 if ((target as string ?? ValueIdOf(target, ctx)) is { } sought
                     && ((NeoWriteBatch.PendingList)pending).Contains(sought))
                 {
-                    ctx.client.NotePendingRead(pending.Ownership, pending.Row.id);
+                    ctx.client.NotePendingRead(pending.Row.id);
                     return BoxedTrue;
                 }
                 c = ResolveValueIfId(pending.Row.id, ctx, pending.Ownership, pending.CollectionMember);
@@ -8386,7 +8390,7 @@ namespace NeoCompose.Runtime.NeoScript
             JsonMember? member = null,
             NeoValueNode? node = null)
         {
-            ctx.client.NoteRowRead(ownership, row.id);
+            ctx.client.NoteRowRead(row.id);
             // Scalars have value semantics and no writable CLR aliases. Read the
             // current row directly instead of allocating cache keys and an index
             // entry just to retain a box. Structured values still need identity.

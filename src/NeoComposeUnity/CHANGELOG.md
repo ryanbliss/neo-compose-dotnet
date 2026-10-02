@@ -1,10 +1,19 @@
 # Changelog
 
-## [0.48.2] - 2026-10-02
+## [0.48.3] - 2026-10-02
 
 - Full Unity exports send hashes of the local generated C# files and download only changed contents when the server supports hash negotiation. Missing files and local edits are repaired; renames preserve Unity GUIDs. `INeoComposeEditorApiClient.ExportProjectAsync` now accepts an optional `generatedFileHashes` argument, and `NeoComposeGeneratedFile.content` can be null when its `contentHash` matches the request.
 - Timestamp-only updates and literal sprite slice changes that retain the same file stay on the incremental export path. Script and structural edits still rebuild the export when they may change media inclusion. Adding a reference to a file outside the current export now correctly rebuilds the file manifest.
 - Generated Tile and RuleTile assets retain a stable name and are saved only when their serialized contents change. Effective sprite and rule changes are still detected even when the tile class timestamp is unchanged. The tile database is saved only when its entries change.
+
+## [0.48.2] - 2026-10-02
+
+- A getter read from C# that returns an object its body constructed no longer writes that object to the store. To decide whether the memo could keep the result, the read looked up the result's row, and a temporary has a row only once it is attached, so every read attached the whole object. A function returning the same object never did. In Neowyn, this alone took a read of a plant's `Evaluation` getter from 461 µs and 346 allocations to 154–155 µs and 8.2.
+- Reading a getter again while a still-current, value-less memo entry already holds its reads records nothing new. Nothing it read has changed, so the result again can't be kept, and an enclosing capture still records the reads as they happen. A repeat read of `Evaluation`, which Neowyn's plant controller watches, went from 154–155 µs to 79–82 µs. The same body as a function measures 78 µs.
+- A memo entry keeps each read once. A capture records reads in lists as they happen, and the entry it becomes drops the repeats, comparing ids by reference: a row's reads share the id string it stores. Memo keys hash once. Indexing, forgetting, and every replay into an enclosing capture now walk only distinct reads; an `Evaluation` capture holds about 115 of its 480–540.
+- A getter whose last result was a temporary records no value ids of its own, since its entry keeps only reads. An enclosing capture still records them.
+- Together, with the first fix as the baseline: the read an `OnChanged` handler makes after a change went from 254–256 µs to 129–143 µs, against 78 µs for the function, which tracks nothing. A cold read, with every memo entry forgotten, went from 286–295 µs to 160–170 µs, against 108 µs for the function. Memoizable getters recompute faster too: `CurrentStage` from 18.2 to 13.1–14.6 µs, `CanHarvest` from 26.7 to 19.3–20.8 µs.
+- A night of growth at 288 plants, 0.48.1 → 0.48.2: 51.3–51.5 MB allocated with a 540–553 ms worst frame → 22.4 MB and 253–278 ms. The same night with `Evaluate()` as a function allocates 19.9 MB, with a 227–249 ms worst frame. Watering every plant: 20.2 MB → 10.2 MB.
 
 ## [0.48.1] - 2026-10-02
 
