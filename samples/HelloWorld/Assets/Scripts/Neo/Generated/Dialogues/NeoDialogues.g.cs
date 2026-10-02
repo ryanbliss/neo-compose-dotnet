@@ -16,7 +16,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         public OutpostsDialogues Outposts { get; }
 
         internal NeoDialogues(HelloWorldNeo project, NeoDialogueRuntimeOptions? options)
-            : base(project.Client, options, project.Save.NeoMemory, project.ResolveDialogueValue)
+            : base(project, options, project.Save.NeoMemory)
         {
             Outposts = new OutpostsDialogues(this, "9acf9982-4b14-4cc1-bc26-5aba3dfa3f9a");
         }

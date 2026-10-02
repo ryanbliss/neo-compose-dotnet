@@ -192,12 +192,5 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 ["b44d80a9-7760-4919-8844-0cb71d08b788"] = (client, id) => ReadOnlyOldConsoleLandingGridContent.Resolve(client, id),
             };
-
-        internal object? ResolveDialogueValue(string valueId) =>
-            NeoGeneratedTypesSupport.ResolveClassValue(
-                Client,
-                valueId,
-                DialogueReadOnlyValueFactories,
-                DialogueWritableValueFactories);
     }
 }

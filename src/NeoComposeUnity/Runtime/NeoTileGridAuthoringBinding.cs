@@ -115,7 +115,7 @@ namespace NeoCompose.Runtime
             CancellationTokenSource refreshCancellation = BeginRefresh(cancellationToken);
             long generation = refreshGeneration;
             NeoProjectStore? nextStore = null;
-            IDisposable? nextProject = null;
+            NeoProjectClient? nextProject = null;
             NeoClient? nextClient = null;
             NeoTileGridRenderer? targetRenderer = null;
             bool published = false;
@@ -161,10 +161,9 @@ namespace NeoCompose.Runtime
                         "Neo Compose first so generated C# wrappers are available.");
                 }
 
-                nextProject = ConstructGeneratedProject(generatedProjectType, nextClient);
+                nextProject = NeoProjectClient.Construct(generatedProjectType, nextClient);
                 nextClient = null;
                 INeoTileGridContent content = ResolveGeneratedGridContent(
-                    generatedProjectType,
                     nextProject,
                     valueId);
                 ThrowIfRefreshIsStale(generation, refreshCancellation);
@@ -348,11 +347,7 @@ namespace NeoCompose.Runtime
             var configuredNamespace = NeoComposeConfig.LoadDefault()?.namespaceForGeneratedTypes;
             var candidates = AppDomain.CurrentDomain.GetAssemblies()
                 .SelectMany(SafeGetTypes)
-                .Where(type =>
-                    typeof(INeoClient).IsAssignableFrom(type) &&
-                    type.GetMethod(
-                        "ResolveDialogueValue",
-                        BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic) != null)
+                .Where(type => !type.IsAbstract && typeof(NeoProjectClient).IsAssignableFrom(type))
                 .ToArray();
             if (!string.IsNullOrWhiteSpace(configuredNamespace))
             {
@@ -380,47 +375,11 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private static IDisposable ConstructGeneratedProject(
-            Type generatedProjectType,
-            NeoClient client)
-        {
-            var constructor = generatedProjectType.GetConstructor(
-                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
-                binder: null,
-                types: new[] { typeof(NeoClient), typeof(NeoDialogueRuntimeOptions) },
-                modifiers: null);
-            if (constructor != null)
-            {
-                return (IDisposable)constructor.Invoke(new object?[] { client, null });
-            }
-
-            constructor = generatedProjectType.GetConstructor(
-                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
-                binder: null,
-                types: new[] { typeof(NeoClient) },
-                modifiers: null);
-            if (constructor != null)
-            {
-                return (IDisposable)constructor.Invoke(new object[] { client });
-            }
-
-            throw new MissingMethodException(
-                generatedProjectType.FullName,
-                ".ctor(NeoClient, NeoDialogueRuntimeOptions)");
-        }
-
         private static INeoTileGridContent ResolveGeneratedGridContent(
-            Type generatedProjectType,
-            IDisposable generatedProject,
+            NeoProjectClient generatedProject,
             string gridValueId)
         {
-            var resolveMethod = generatedProjectType.GetMethod(
-                    "ResolveDialogueValue",
-                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
-                ?? throw new MissingMethodException(
-                    generatedProjectType.FullName,
-                    "ResolveDialogueValue");
-            var grid = resolveMethod.Invoke(generatedProject, new object[] { gridValueId })
+            var grid = generatedProject.ResolveValue(gridValueId)
                 ?? throw new InvalidOperationException(
                     $"Generated project could not resolve TileGrid value '{gridValueId}'.");
             object? content = grid.GetType()

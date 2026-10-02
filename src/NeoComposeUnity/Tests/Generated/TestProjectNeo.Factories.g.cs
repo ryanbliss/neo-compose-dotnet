@@ -138,12 +138,5 @@ namespace Assets.Scripts.Neo
                 [typeof(global::Assets.Scripts.Neo.NeoSpriteObject)] = "system_d48b66ab-4d59-47e7-a25a-591fe97062de",
                 [typeof(global::Assets.Scripts.Neo.NeoSpriteAnimationSegment)] = "system_ffc766b3-f3ac-4c20-91cf-38ff7e8e88f3",
             };
-
-        internal object? ResolveDialogueValue(string valueId) =>
-            NeoGeneratedTypesSupport.ResolveClassValue(
-                Client,
-                valueId,
-                DialogueReadOnlyValueFactories,
-                DialogueWritableValueFactories);
     }
 }

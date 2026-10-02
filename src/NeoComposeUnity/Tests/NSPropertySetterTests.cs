@@ -1242,6 +1242,78 @@ namespace NeoCompose.Tests
             CollectionAssert.AreEqual(new[] { 7 }, values, "The handler reads the getter once, after the execution.");
         }
 
+        [Test]
+        public void RunTransaction_RaisesEachChangeOnceAfterItReturns()
+        {
+            using var client = BuildClient(out NSPropertyMember property);
+            property.getter = GetterFunction();
+            var view = TestReceiverView.Create(client, "value-receiver");
+            var values = new List<int>();
+            var changed = new List<string>();
+            using var computedWatch = view.OnComputedChanged((value, _) => values.Add(value));
+            using var anyWatch = view.WatchAnyChange((_, member, _) => changed.Add(member.member.name));
+
+            client.RunTransaction(() =>
+            {
+                client.SetSaveValue(Number("value-target", 5));
+                client.SetSaveValue(Number("value-receiver-count", 2));
+                client.SetSaveValue(Number("value-target", 6));
+                client.SetSaveValue(Number("value-receiver-count", 3));
+                Assert.AreEqual(6, Convert.ToInt32(view.ComputeComputed().value), "Writes commit as they happen.");
+                CollectionAssert.IsEmpty(values);
+                CollectionAssert.IsEmpty(changed);
+            });
+
+            CollectionAssert.AreEqual(new[] { 6 }, values);
+            CollectionAssert.AreEquivalent(new[] { "Count", "Computed" }, changed, "Each changed member raises once.");
+        }
+
+        [Test]
+        public void RunTransaction_NestedTransactionsAndScriptsRaiseWithTheOutermost()
+        {
+            using var client = BuildClient(out NSPropertyMember property);
+            property.getter = GetterFunction();
+            var view = TestReceiverView.Create(client, "value-receiver");
+            var values = new List<int>();
+            using var watch = view.OnComputedChanged((value, _) => values.Add(value));
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            var root = RuntimeRoot(client, ctx);
+            ctx = ctx.WithRoot(root);
+
+            client.RunTransaction(() =>
+            {
+                client.RunTransaction(() => client.SetSaveValue(Number("value-target", 5)));
+                // root.Save.Target = 6;
+                NeoScriptExecutor.Execute(
+                    client,
+                    Function(RootTargetAssignment(6)),
+                    new Dictionary<string, object?> { ["__root__"] = root },
+                    ctx);
+                CollectionAssert.IsEmpty(values, "Neither the inner transaction nor the execution raises.");
+                client.SetSaveValue(Number("value-target", 7));
+            });
+
+            CollectionAssert.AreEqual(new[] { 7 }, values);
+        }
+
+        [Test]
+        public void RunTransaction_ThatThrowsKeepsItsWritesAndStillRaises()
+        {
+            using var client = BuildClient(out NSPropertyMember property);
+            property.getter = GetterFunction();
+            var view = TestReceiverView.Create(client, "value-receiver");
+            var values = new List<int>();
+            using var watch = view.OnComputedChanged((value, _) => values.Add(value));
+
+            Assert.Throws<InvalidOperationException>(() => client.RunTransaction(() =>
+            {
+                client.SetSaveValue(Number("value-target", 5));
+                throw new InvalidOperationException("Transaction failed.");
+            }));
+
+            CollectionAssert.AreEqual(new[] { 5 }, values);
+        }
+
         private static AssignInstruction RootTargetAssignment(double value) => new()
         {
             type = InstructionKind.Assign,

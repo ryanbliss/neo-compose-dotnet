@@ -2104,7 +2104,7 @@ namespace NeoCompose.Tests
         public void PostSynchronizeProcessor_OnlyResolvesImplementedCallbacks()
         {
             CollectionAssert.AreEquivalent(new[] { "callback", "inherited" },
-                NeoComposePostSynchronizeProcessor.GetSynchronizeCallbackClassIds(typeof(CallbackProject)));
+                NeoComposePostSynchronizeProcessor.GetSynchronizeCallbackClassIds(CallbackProject.NeoClassIdsByType));
         }
 
         [Test]
