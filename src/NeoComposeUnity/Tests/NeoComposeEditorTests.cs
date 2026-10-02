@@ -454,7 +454,7 @@ namespace NeoCompose.Tests
             assets.files["Assets/Scripts/Neo/Generated/Project.g.cs"] = "// existing generated";
             assets.files["Assets/Resources/Neo/project.json"] = @"{
   ""metadata"": {
-    ""schemaVersion"": 32,
+    ""schemaVersion"": 33,
     ""projectId"": ""project-1"",
     ""versionId"": ""version-1"",
     ""projectDocumentContentHash"": ""old-document-hash"",
@@ -855,7 +855,7 @@ namespace NeoCompose.Tests
                 value["value"] = JObject.Parse("{\"instructions\":[{\"type\":\"return\",\"pointer\":{\"type\":\"value\",\"value\":{\"typeInfo\":{\"type\":0,\"required\":true},\"value\":\"file-1\"}}}]}");
             var original = new JObject
             {
-                ["metadata"] = new JObject { ["schemaVersion"] = 32 },
+                ["metadata"] = new JObject { ["schemaVersion"] = 33 },
                 ["variantFolders"] = new JObject(),
                 ["values"] = new JObject { ["value-1"] = value },
                 ["files"] = new JObject(),
@@ -945,7 +945,7 @@ namespace NeoCompose.Tests
             }
             var originalJson = new JObject
             {
-                ["metadata"] = new JObject { ["schemaVersion"] = 32 },
+                ["metadata"] = new JObject { ["schemaVersion"] = 33 },
                 ["project"] = new JObject { ["id"] = "project-1" },
                 ["variantFolders"] = new JObject(),
                 ["values"] = new JObject(),
@@ -1009,7 +1009,7 @@ namespace NeoCompose.Tests
             var api = new FakeApiClient();
             var assets = new FakeAssetService();
             const string projectPath = "Assets/Resources/Neo/project.json";
-            var originalJson = "{\"variantFolders\":{},\"metadata\":{\"schemaVersion\":32,\"projectId\":\"project-1\",\"versionId\":\"version-1\"},\"project\":{\"id\":\"project-1\"},\"values\":{\"v\":{\"id\":\"v\",\"value\":1}},\"files\":{},\"textureTemplates\":{},\"audioClipTemplates\":{}}";
+            var originalJson = "{\"variantFolders\":{},\"metadata\":{\"schemaVersion\":33,\"projectId\":\"project-1\",\"versionId\":\"version-1\"},\"project\":{\"id\":\"project-1\"},\"values\":{\"v\":{\"id\":\"v\",\"value\":1}},\"files\":{},\"textureTemplates\":{},\"audioClipTemplates\":{}}";
             assets.files[projectPath] = originalJson;
             assets.files["Assets/Scripts/Neo/Generated/Project.g.cs"] = "// existing";
             NeoComposeUnityExportCachedSnapshot Snapshot(int value) => new()
@@ -1547,7 +1547,7 @@ namespace NeoCompose.Tests
             var api = new FakeApiClient();
             api.exportResponse.projectJson = @"
 {
-  ""metadata"": { ""schemaVersion"": 32, ""projectId"": ""project-1"", ""versionId"": ""version-1"" },
+  ""metadata"": { ""schemaVersion"": 33, ""projectId"": ""project-1"", ""versionId"": ""version-1"" },
   ""variantFolders"": {},
   ""project"": {
     ""_id"": ""project-1"",
@@ -1678,7 +1678,7 @@ namespace NeoCompose.Tests
             var api = new FakeApiClient();
             api.exportResponse.projectJson = @"
 {
-  ""metadata"": { ""schemaVersion"": 32, ""projectId"": ""project-1"", ""versionId"": ""version-1"" },
+  ""metadata"": { ""schemaVersion"": 33, ""projectId"": ""project-1"", ""versionId"": ""version-1"" },
   ""variantFolders"": {},
   ""project"": {
     ""_id"": ""project-1"",
@@ -1806,7 +1806,7 @@ namespace NeoCompose.Tests
             var api = new FakeApiClient();
             api.exportResponse.projectJson = @"
 {
-  ""metadata"": { ""schemaVersion"": 32, ""projectId"": ""project-1"", ""versionId"": ""version-1"" },
+  ""metadata"": { ""schemaVersion"": 33, ""projectId"": ""project-1"", ""versionId"": ""version-1"" },
   ""variantFolders"": {},
   ""project"": {
     ""_id"": ""project-1"",
@@ -2507,7 +2507,7 @@ namespace NeoCompose.Tests
         {
             return @"
 {
-  ""metadata"": { ""schemaVersion"": 32, ""projectId"": ""project-1"", ""versionId"": ""version-1"" },
+  ""metadata"": { ""schemaVersion"": 33, ""projectId"": ""project-1"", ""versionId"": ""version-1"" },
   ""variantFolders"": {},
   ""project"": {
     ""_id"": ""project-1"",
@@ -2533,7 +2533,7 @@ namespace NeoCompose.Tests
         private static string ProjectJsonWithLocalization(string mainLocale)
         {
             return @"{
-  ""metadata"": { ""schemaVersion"": 32, ""projectId"": ""project-1"", ""versionId"": ""version-1"" },
+  ""metadata"": { ""schemaVersion"": 33, ""projectId"": ""project-1"", ""versionId"": ""version-1"" },
   ""variantFolders"": {},
   ""project"": {
     ""exportSettings"": {
