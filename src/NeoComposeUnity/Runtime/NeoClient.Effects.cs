@@ -24,13 +24,20 @@ namespace NeoCompose.Runtime
 
         private sealed class EffectState
         {
+            internal readonly GetterMemoKey key;
             internal readonly MergedSchemaEntry entry;
             internal NeoMemberNSFunction? function;
             internal List<GetterRead>? reads;
             internal int drain;
             internal int runs;
+            internal bool queued;
+            internal bool stopped;
 
-            internal EffectState(MergedSchemaEntry entry) => this.entry = entry;
+            internal EffectState(GetterMemoKey key, MergedSchemaEntry entry)
+            {
+                this.key = key;
+                this.entry = entry;
+            }
         }
 
         private sealed class EffectInstance
@@ -49,15 +56,14 @@ namespace NeoCompose.Runtime
             }
         }
 
-        // Whether any function in the schema declares @effect: without one,
-        // every hook below stays a field check.
-        private bool projectHasEffects;
         private bool effectsRequested;
+        // Whether a requested schema declares an @effect: without one, every
+        // hook below stays a field check.
         private bool effectsStarted;
         private readonly Dictionary<GetterMemoKey, EffectState> effectsByKey = new();
         private readonly Dictionary<string, EffectInstance> effectInstances = new(StringComparer.Ordinal);
-        private readonly Queue<GetterMemoKey> pendingEffects = new();
-        private readonly HashSet<GetterMemoKey> pendingEffectSet = new();
+        // A stopped state may stay queued; the drain skips it.
+        private readonly Queue<EffectState> pendingEffects = new();
         // Rows whose effect instances a drain must start, stop or keep.
         private readonly List<string> dirtyEffectRows = new();
         private readonly HashSet<string> dirtyEffectRowSet = new(StringComparer.Ordinal);
@@ -66,6 +72,9 @@ namespace NeoCompose.Runtime
         private readonly HashSet<string> effectOrphans = new(StringComparer.Ordinal);
         private bool effectOrphansDirty;
         private bool effectRescanPending;
+        // A boundary released effects it could not run, which the blocker's
+        // own exit runs.
+        private bool effectDrainDeferred;
         private readonly Dictionary<string, bool> effectLiveness = new(StringComparer.Ordinal);
         private readonly List<string> effectLivenessPath = new();
         private readonly Dictionary<(string memberId, NeoValueOwnership ownership), NeoMemberNSFunction> effectFunctions = new();
@@ -92,19 +101,19 @@ namespace NeoCompose.Runtime
 
         private void ApplyEffectSchema()
         {
-            projectHasEffects = false;
+            if (!effectsRequested)
+                return;
+            DisposeEffectFunctions();
+            bool hasEffects = false;
             foreach (Member member in data.members.Values)
             {
                 if (member is NSFunctionMember { DeclaredEffect: NeoEffectKind.Auto })
                 {
-                    projectHasEffects = true;
+                    hasEffects = true;
                     break;
                 }
             }
-            if (!effectsRequested)
-                return;
-            DisposeEffectFunctions();
-            if (!projectHasEffects)
+            if (!hasEffects)
             {
                 StopEffects();
                 return;
@@ -124,12 +133,12 @@ namespace NeoCompose.Runtime
             effectsByKey.Clear();
             effectInstances.Clear();
             pendingEffects.Clear();
-            pendingEffectSet.Clear();
             dirtyEffectRows.Clear();
             dirtyEffectRowSet.Clear();
             effectOrphans.Clear();
             effectOrphansDirty = false;
             effectRescanPending = false;
+            effectDrainDeferred = false;
             DisposeEffectFunctions();
         }
 
@@ -167,24 +176,31 @@ namespace NeoCompose.Runtime
             && getterValueReadCapture is null
             && capturedValueReads is null;
 
-        /// <summary>A row write or removal at <paramref name="id"/>; <paramref name="value"/> is null for a removal.</summary>
+        /// <summary>A write or removal at <paramref name="id"/> in one store; <paramref name="value"/> is null for a removal.</summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void NoteEffectRowChange(string id, MemberValue? value)
+        private void NoteEffectRowChange(NeoValueOwnership ownership, string id, MemberValue? value)
         {
             if (effectsStarted)
-                TrackEffectRowChange(id, value);
+                TrackEffectRowChange(ownership, id, value);
         }
 
-        private void TrackEffectRowChange(string id, MemberValue? value)
+        private void TrackEffectRowChange(NeoValueOwnership ownership, string id, MemberValue? value)
         {
-            if (effectOrphans.Count != 0)
+            // Only a row that holds others can attach an orphan's ancestor.
+            if (effectOrphans.Count != 0 && value is ObjectMemberValue or ArrayMemberValue)
                 effectOrphansDirty = true;
+            // A row's kind is its member's, so only an object row or a
+            // removal can start, keep or stop an instance.
+            if (value is not (null or ObjectMemberValue))
+                return;
             if (effectInstances.TryGetValue(id, out EffectInstance? tracked))
             {
-                // A write that leaves an instance in place keeps it live.
+                // A write that leaves an instance in place, in a store no
+                // nearer than the one it resolves from, keeps it live.
                 if (value is ObjectMemberValue { IsRemoved: false } row
                     && row.classId == tracked.node.Id
-                    && row.containerId == tracked.containerId)
+                    && row.containerId == tracked.containerId
+                    && ownership <= tracked.ownership)
                     return;
                 MarkEffectRow(id);
             }
@@ -214,27 +230,67 @@ namespace NeoCompose.Runtime
                 InvalidateGetterMemoForRow(row.containerId!);
         }
 
+        /// <summary>
+        /// A loaded partition may hold orphaned writable rows; an unloaded one
+        /// may have held live ones.
+        /// </summary>
+        private void NoteEffectPartitionChange(bool loaded)
+        {
+            if (!effectsStarted)
+                return;
+            if (loaded)
+            {
+                if (effectOrphans.Count != 0)
+                    effectOrphansDirty = true;
+                return;
+            }
+            foreach (var pair in effectInstances)
+                if (pair.Value.ownership != NeoValueOwnership.Asset)
+                    MarkEffectRow(pair.Key);
+        }
+
+        /// <summary>A static binding changed, which may attach an orphan.</summary>
+        private void NoteEffectBindingChange()
+        {
+            if (effectsStarted && effectOrphans.Count != 0)
+                effectOrphansDirty = true;
+        }
+
         private void QueueEffect(GetterMemoKey key)
         {
             if (runningEffect is { } running && running.Equals(key))
                 return;
-            if (pendingEffectSet.Add(key))
-                pendingEffects.Enqueue(key);
+            if (effectsByKey.TryGetValue(key, out EffectState? state))
+                Enqueue(state);
+        }
+
+        private void Enqueue(EffectState state)
+        {
+            if (state.queued)
+                return;
+            state.queued = true;
+            pendingEffects.Enqueue(state);
         }
 
         private void DrainEffects()
         {
             if (!CanDrainEffects)
+            {
+                effectDrainDeferred = true;
                 return;
+            }
+            effectDrainDeferred = false;
             effectDrain++;
             while (true)
             {
                 SyncEffectInstances();
                 if (pendingEffects.Count == 0)
                     return;
-                GetterMemoKey key = pendingEffects.Dequeue();
-                if (!pendingEffectSet.Remove(key) || !effectsByKey.TryGetValue(key, out EffectState? state))
+                EffectState state = pendingEffects.Dequeue();
+                state.queued = false;
+                if (state.stopped)
                     continue;
+                GetterMemoKey key = state.key;
                 if (state.drain != effectDrain)
                 {
                     state.drain = effectDrain;
@@ -251,12 +307,39 @@ namespace NeoCompose.Runtime
                 if (state.runs > EffectRunsPerDrain)
                     continue;
                 state.runs++;
-                RunEffect(key, state);
+                RunEffect(state);
             }
         }
 
-        private void RunEffect(GetterMemoKey key, EffectState state)
+        /// <summary>Runs effects a blocked boundary released, once the blocker exits.</summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void DrainDeferredEffects()
         {
+            if (effectDrainDeferred && getterChangeHolds == 0 && CanDrainEffects)
+            {
+                HoldGetterChanges();
+                ReleaseGetterChanges();
+            }
+        }
+
+        private void RunEffect(EffectState state)
+        {
+            // Value callbacks the run's writes reach run after its capture:
+            // what they read is never the effect's.
+            BeginChangeBatch();
+            try
+            {
+                RunEffectCaptured(state);
+            }
+            finally
+            {
+                EndChangeBatch();
+            }
+        }
+
+        private void RunEffectCaptured(EffectState state)
+        {
+            GetterMemoKey key = state.key;
             // Its previous reads stay indexed through the run, since a run
             // usually reads the same rows again.
             GetterCaptureFrame enclosing = BeginGetterReadCapture(readsOnly: true);
@@ -265,7 +348,7 @@ namespace NeoCompose.Runtime
             GetterCaptureFrame capture;
             try
             {
-                (state.function ??= EffectFunction(key, state)).Invoke(key.rowId, Array.Empty<object?>());
+                (state.function ??= EffectFunction(state)).Invoke(key.rowId, Array.Empty<object?>());
             }
             catch (Exception exception)
             {
@@ -282,13 +365,14 @@ namespace NeoCompose.Runtime
             }
             // A run that detached its own instance stopped it, which
             // unindexed its reads.
-            if (!effectsByKey.TryGetValue(key, out EffectState? current) || !ReferenceEquals(current, state))
+            if (state.stopped)
             {
                 RecycleGetterCapture(capture);
                 return;
             }
+            // Kept as read: a deterministic run repeats its reads in order, and
+            // the index takes a repeat as a no-op.
             List<GetterRead> reads = capture.reads!;
-            KeepDistinct(reads);
             if (state.reads is { } previous)
             {
                 if (SameReads(previous, reads))
@@ -320,8 +404,9 @@ namespace NeoCompose.Runtime
             return true;
         }
 
-        private NeoMemberNSFunction EffectFunction(GetterMemoKey key, EffectState state)
+        private NeoMemberNSFunction EffectFunction(EffectState state)
         {
+            GetterMemoKey key = state.key;
             if (!effectFunctions.TryGetValue((key.memberId, key.ownership), out NeoMemberNSFunction? function))
                 effectFunctions[(key.memberId, key.ownership)] = function =
                     new NeoMemberNSFunction(this, (NSFunctionMember)state.entry.member!, null, key.ownership);
@@ -361,13 +446,32 @@ namespace NeoCompose.Runtime
             effectLiveness.Clear();
         }
 
-        // First runs go by store, then by row order (P97 §2.7).
+        // First runs go by store, then by row order (P97 §2.7). A virtual
+        // row belongs to its root's store.
         private void MarkEveryEffectRow()
         {
+            List<string>? virtualSave = null;
+            List<string>? virtualSession = null;
             MarkEffectRows(data.values);
+            foreach (var pair in virtualValues)
+            {
+                if (!IsEffectRow(pair.Value) || !virtualValueOwnership.TryGetValue(pair.Key, out NeoValueOwnership ownership))
+                    continue;
+                if (ownership == NeoValueOwnership.Asset)
+                    MarkEffectRow(pair.Key);
+                else if (ownership == NeoValueOwnership.Save)
+                    (virtualSave ??= new List<string>()).Add(pair.Key);
+                else
+                    (virtualSession ??= new List<string>()).Add(pair.Key);
+            }
             MarkEffectRows(saveValues);
+            if (virtualSave is not null)
+                foreach (string id in virtualSave)
+                    MarkEffectRow(id);
             MarkEffectRows(sessionValues);
-            MarkEffectRows(virtualValues);
+            if (virtualSession is not null)
+                foreach (string id in virtualSession)
+                    MarkEffectRow(id);
             foreach (string id in effectInstances.Keys)
                 MarkEffectRow(id);
         }
@@ -375,10 +479,13 @@ namespace NeoCompose.Runtime
         private void MarkEffectRows(IEnumerable<KeyValuePair<string, MemberValue>> rows)
         {
             foreach (var pair in rows)
-                if (pair.Value is ObjectMemberValue { IsRemoved: false, classId: { } classId }
-                    && ResolveClassNode(classId).Effects.Length != 0)
+                if (IsEffectRow(pair.Value))
                     MarkEffectRow(pair.Key);
         }
+
+        private bool IsEffectRow(MemberValue row) =>
+            row is ObjectMemberValue { IsRemoved: false, classId: { } classId }
+            && ResolveClassNode(classId).Effects.Length != 0;
 
         private void SyncEffectInstance(string id)
         {
@@ -423,8 +530,9 @@ namespace NeoCompose.Runtime
             {
                 var key = new GetterMemoKey(ownership, id, effects[i].memberId, ownership, DependentKind.Effect);
                 keys[i] = key;
-                effectsByKey[key] = new EffectState(effects[i]);
-                QueueEffect(key);
+                var state = new EffectState(key, effects[i]);
+                effectsByKey[key] = state;
+                Enqueue(state);
             }
             effectInstances[id] = new EffectInstance(node, ownership, keys, containerId);
         }
@@ -433,8 +541,10 @@ namespace NeoCompose.Runtime
         {
             foreach (GetterMemoKey key in instance.keys)
             {
-                pendingEffectSet.Remove(key);
-                if (effectsByKey.Remove(key, out EffectState? state) && state.reads is { } reads)
+                if (!effectsByKey.Remove(key, out EffectState? state))
+                    continue;
+                state.stopped = true;
+                if (state.reads is { } reads)
                     UnindexReads(key, reads);
             }
             effectInstances.Remove(id);
@@ -468,7 +578,7 @@ namespace NeoCompose.Runtime
                 }
                 if (parent.StartsWith("member:", StringComparison.Ordinal))
                 {
-                    live = IsRootMemberEdge(parent);
+                    live = IsRootMemberEdge(parent) || IsStaticDefaultEdge(parent, ownership, current);
                     break;
                 }
                 if (!TryGetCommittedOwnership(parent, out ownership))
@@ -486,6 +596,12 @@ namespace NeoCompose.Runtime
             return IsMemberEdge(edge, project.rootSaveFileMemberId)
                 || IsMemberEdge(edge, project.rootSessionMemberId);
         }
+
+        // An unrebound writable static holds its default through its member edge.
+        private bool IsStaticDefaultEdge(string edge, NeoValueOwnership ownership, string id) =>
+            TryGetMember(edge.Substring("member:".Length), out Member? member)
+            && member.Modifier == NeoMemberModifierKind.Static
+            && IsStaticBoundTo(member, ownership, id);
 
         private static bool IsMemberEdge(string edge, string? memberId) =>
             memberId is not null

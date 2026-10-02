@@ -1217,6 +1217,31 @@ namespace NeoCompose.Runtime.Json
                 InvalidateResolvedShape();
             }
         }
+
+        /// <summary>
+        /// P97 §1.4 — a native override never runs as an effect, but its
+        /// explicit None still stops an inherited one for the chain below it.
+        /// </summary>
+        [JsonProperty("effect", NullValueHandling = NullValueHandling.Ignore)]
+        private NeoEffectKind? effect;
+
+        [JsonIgnore]
+        public NeoEffectKind Effect
+        {
+            get => effect ?? (resolvedShape is { } shape ? shape.Effect : NeoEffectKind.None);
+            set => DeclaredEffect = value;
+        }
+
+        [JsonIgnore]
+        internal NeoEffectKind? DeclaredEffect
+        {
+            get => effect;
+            set
+            {
+                effect = value;
+                InvalidateResolvedShape();
+            }
+        }
     }
 
     /// <summary>

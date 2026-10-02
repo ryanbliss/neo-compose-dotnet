@@ -28,9 +28,12 @@ namespace NeoCompose.Tests
     ///   @effect(kind: .None) override void Check() { ... }
     ///   @effect override void Plain() { ... } }
     /// class Watcher { @effect void Watch() { root.Save.Target = root.Save.Signal; }
-    ///   int Seen => root.Save.Signal + root.Save.Target; }
+    ///   int Seen => root.Save.Signal + root.Save.Target;
+    ///   int NativeSeen => root.Save.NativeOnly;
+    ///   int Poked => this.Poke(); }
     /// </code>
-    /// <c>Record</c> is native: it counts runs and reads <c>root.Save.NativeOnly</c>.
+    /// <c>Record</c> is native: it counts runs and reads <c>NativeSeen</c>.
+    /// <c>Poke</c> is native: it writes <c>plant-0</c>'s Count.
     /// </summary>
     public class NeoEffectTests
     {
@@ -42,6 +45,7 @@ namespace NeoCompose.Tests
             internal NeoClient client = null!;
             internal readonly List<(string plant, int value)> recorded = new();
             internal string? throwFor;
+            internal NeoMemberNSProperty? nativeSeen;
 
             internal int RunsOf(string plantId) => (int)ReadNumber($"{plantId}-runs");
 
@@ -133,7 +137,45 @@ namespace NeoCompose.Tests
 
             fixture.WriteNumber("value-native-only", "member-native-only", 9);
 
-            Assert.AreEqual(1, fixture.RunsOf("plant-0"), "Record read NativeOnly, but the effect did not.");
+            Assert.AreEqual(1, fixture.RunsOf("plant-0"), "Record's NeoScript read NativeOnly, but the effect did not.");
+        }
+
+        [Test]
+        public void ValueCallbacksARunReachAreNotDependencies()
+        {
+            using Fixture fixture = Build(plants: 1);
+            var plant = new NeoMemberClassWritable(fixture.client, "member-plant-entry", "plant-0", NeoValueOwnership.Save);
+            NeoMemberNSProperty seen = NativeSeen(fixture.client);
+            int callbacks = 0;
+            plant.OnChanged += _ =>
+            {
+                callbacks++;
+                seen.Compute("value-watcher");
+            };
+            fixture.client.StartEffects();
+            fixture.WriteNumber("plant-0-count", "member-count", 3);
+            Assert.Greater(callbacks, 0, "The run's Runs write reached the plant's callback.");
+
+            fixture.WriteNumber("value-native-only", "member-native-only", 9);
+
+            Assert.AreEqual(2, fixture.RunsOf("plant-0"), "The callback read NativeOnly, but the effect did not.");
+        }
+
+        [Test]
+        public void ACommitRunsEffectsBeforeItsValueCallbacks()
+        {
+            using Fixture fixture = Build(plants: 1);
+            fixture.client.StartEffects();
+            var plant = new NeoMemberClassWritable(fixture.client, "member-plant-entry", "plant-0", NeoValueOwnership.Save);
+            var seen = new List<(string plant, int value)>();
+            plant.OnChanged += _ => seen.Add(fixture.recorded[^1]);
+
+            var plan = new NeoWritePlan(fixture.client);
+            plan.Set(NeoValueOwnership.Save, Number("plant-0-count", 50));
+            plan.Commit();
+
+            CollectionAssert.IsNotEmpty(seen);
+            Assert.AreEqual(("plant-0", 50), seen[0], "The commit's callbacks hear the state its effects settled.");
         }
 
         [Test]
@@ -232,6 +274,116 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void ANativeOverrideResolvesItsEffectAlongTheChain()
+        {
+            // class QuietPlant : Plant { @effect(kind: .None) native override void Check(); }
+            // class QuietLeaf : QuietPlant { native override void Check(); }
+            using Fixture fixture = Build(plants: 0, configure: data =>
+            {
+                data.members["member-check-quiet"] = NativeOverride("member-check-quiet", "member-check", NeoEffectKind.None);
+                data.members["member-check-leaf"] = NativeOverride("member-check-leaf", "member-check-quiet", null);
+                data.members["member-check-loud"] = NativeOverride("member-check-loud", "member-check", null);
+            });
+
+            Assert.AreEqual(NeoEffectKind.None, NativeEffect(fixture.client, "member-check-quiet"));
+            Assert.AreEqual(NeoEffectKind.None, NativeEffect(fixture.client, "member-check-leaf"), "Its None holds below it.");
+            Assert.AreEqual(NeoEffectKind.Auto, NativeEffect(fixture.client, "member-check-loud"), "Absence inherits.");
+        }
+
+        [Test]
+        public void AVariantSwapStopsTheOldInstanceAndStartsItsReplacement()
+        {
+            using Fixture fixture = Build(plants: 1);
+            fixture.client.StartEffects();
+
+            var swap = new NeoWritePlan(fixture.client);
+            swap.Set(NeoValueOwnership.Save, Plant("plant-0", "class-derived-plant"));
+            swap.Commit();
+            Assert.AreEqual(11, fixture.RunsOf("plant-0"), "The replacement runs its own Plain once.");
+
+            fixture.WriteNumber("plant-0-count", "member-count", 6);
+            Assert.AreEqual(11, fixture.RunsOf("plant-0"), "The replacement turned Check off.");
+            Assert.AreEqual(1, fixture.RecordedCount("plant-0"));
+        }
+
+        [Test]
+        public void AWritableStaticHoldsItsDefaultInstance()
+        {
+            using Fixture fixture = Build(plants: 0, configure: data =>
+            {
+                data.members["member-static-plant"] = new ClassMember
+                {
+                    id = "member-static-plant",
+                    projectId = ProjectId,
+                    name = "StaticPlant",
+                    kind = MemberKind.Class,
+                    classId = "class-plant",
+                    valueId = "static-plant",
+                    Storage = NeoMemberStorage.Save,
+                    Modifier = NeoMemberModifierKind.Static,
+                    Requirement = NeoMemberRequirementKind.Required,
+                };
+                data.classes["class-save-root"].schema["StaticPlant"] = "member-static-plant";
+                data.values["static-plant-count"] = Number("static-plant-count", 4);
+                data.values["static-plant-runs"] = Number("static-plant-runs", 0);
+                data.values["static-plant"] = Plant("static-plant", "class-plant", containerId: null);
+            });
+            fixture.client.StartEffects();
+            Assert.AreEqual(1, fixture.RecordedCount("static-plant"));
+
+            fixture.WriteNumber("static-plant-count", "member-count", 5);
+
+            Assert.AreEqual(2, fixture.RecordedCount("static-plant"));
+            Assert.AreEqual(("static-plant", 5), fixture.recorded[^1]);
+        }
+
+        [Test]
+        public void LoadingAPartitionStartsTheInstancesItHoldsAndUnloadingStopsThem()
+        {
+            using Fixture fixture = Build(plants: 1, configure: data =>
+            {
+                data.valuePartitions = new Dictionary<string, JToken>
+                {
+                    ["garden"] = JObject.FromObject(new Dictionary<string, MemberValue>
+                    {
+                        ["value-bed"] = new ArrayMemberValue { id = "value-bed", value = Array.Empty<string>() },
+                    }),
+                };
+            });
+            fixture.client.StartEffects();
+            fixture.client.SetWritableValues(NeoValueOwnership.Save, new MemberValue[]
+            {
+                Number("bed-plant-count", 3),
+                Number("bed-plant-runs", 0),
+                Plant("bed-plant", "class-plant", containerId: "value-bed"),
+            });
+            Assert.AreEqual(0, fixture.RecordedCount("bed-plant"), "Its bed is not loaded.");
+
+            fixture.client.LoadValuePartition("garden");
+            Assert.AreEqual(1, fixture.RecordedCount("bed-plant"));
+
+            fixture.client.UnloadValuePartition("garden");
+            fixture.WriteNumber("value-target", "member-target", 2);
+            Assert.AreEqual(1, fixture.RecordedCount("bed-plant"), "Unloading its bed stopped it.");
+            Assert.AreEqual(2, fixture.RecordedCount("plant-0"));
+        }
+
+        [Test]
+        public void AnEffectAGetterReadQueuedRunsWhenTheReadReturns()
+        {
+            using Fixture fixture = Build(plants: 1);
+            fixture.client.StartEffects();
+            var watcher = new NeoMemberClassWritable(fixture.client, "member-watcher", "value-watcher", NeoValueOwnership.Save);
+
+            // Poked calls the native Poke, which writes plant-0's Count while
+            // the getter's read capture blocks the drain.
+            watcher.Get<NeoMemberNSProperty>("Poked").Compute("value-watcher");
+
+            Assert.AreEqual(2, fixture.RunsOf("plant-0"));
+            Assert.AreEqual(("plant-0", 40), fixture.recorded[^1]);
+        }
+
+        [Test]
         [Explicit("Effect run measurement; run serially by name.")]
         public void EffectPerformance_RunAgainstDirectCall()
         {
@@ -239,6 +391,7 @@ namespace NeoCompose.Tests
             const int samples = 5;
             using Fixture effects = Build(plants);
             using Fixture direct = Build(plants);
+            using Fixture writes = Build(plants);
             effects.client.StartEffects();
             var function = new NeoMemberNSFunction(direct.client, "member-check", null, NeoValueOwnership.Save);
             Assert.IsTrue(effects.client.TryGetMember("member-count", out JsonMember? count));
@@ -258,14 +411,26 @@ namespace NeoCompose.Tests
 
             WriteEach(effects, call: false);
             WriteEach(direct, call: true);
+            WriteEach(writes, call: false);
             var effect = PerformanceSampling.Repeat(samples, () => WriteEach(effects, call: false));
             var called = PerformanceSampling.Repeat(samples, () => WriteEach(direct, call: true));
+            var written = PerformanceSampling.Repeat(samples, () => WriteEach(writes, call: false));
             Assert.AreEqual(1 + 2 * (1 + samples), effects.RunsOf("plant-0"), "Each Count write runs its plant once.");
             PerformanceSampling.Report("Effect", "write-then-run", $"plants={plants}", effect, rows.Length);
             PerformanceSampling.Report("Effect", "write-then-call", $"plants={plants}", called, rows.Length);
-            effect.Sort((a, b) => a.Ms.CompareTo(b.Ms));
-            called.Sort((a, b) => a.Ms.CompareTo(b.Ms));
-            Assert.LessOrEqual(effect[samples / 2].Ms, 1.5 * called[samples / 2].Ms);
+            PerformanceSampling.Report("Effect", "write-only", $"plants={plants}", written, rows.Length);
+            // The gate compares the run with the call, net of the write both share (P97 §7).
+            double run = Median(effect, sample => sample.Ms) - Median(written, sample => sample.Ms);
+            double call = Median(called, sample => sample.Ms) - Median(written, sample => sample.Ms);
+            Debug.Log($"[Effect] run/call = {run / call:F2}x; run {Median(effect, sample => sample.GcBytes) - Median(written, sample => sample.GcBytes)} B, call {Median(called, sample => sample.GcBytes) - Median(written, sample => sample.GcBytes)} B per {rows.Length} writes");
+            Assert.LessOrEqual(run, 1.5 * call);
+        }
+
+        private static double Median(List<PerformanceSampling.Sample> samples, Func<PerformanceSampling.Sample, double> value)
+        {
+            var values = samples.ConvertAll(sample => value(sample));
+            values.Sort();
+            return values[values.Count / 2];
         }
 
         [Test]
@@ -315,7 +480,7 @@ namespace NeoCompose.Tests
         // Fixture.
         // ------------------------------------------------------------------
 
-        private static Fixture Build(int plants, Instruction? plantCheck = null)
+        private static Fixture Build(int plants, Instruction? plantCheck = null, Action<ProjectData>? configure = null)
         {
             var members = new List<JsonMember>
             {
@@ -350,6 +515,13 @@ namespace NeoCompose.Tests
                     argumentTypes = new[] { new FunctionArgumentTypeInfo { name = "value", type = MemberKind.Int, required = true } },
                     Dispatch = NeoFunctionDispatchKind.Synchronous,
                 },
+                new FunctionMember
+                {
+                    id = "member-poke", projectId = ProjectId, name = "Poke", kind = MemberKind.Function,
+                    returnTypeInfo = new PrimitiveTypeInfo { type = MemberKind.Int, required = true },
+                    argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
+                    Dispatch = NeoFunctionDispatchKind.Synchronous,
+                },
                 ScriptFunction("member-check", "Check", NeoEffectKind.Auto, null,
                     plantCheck ?? Assign(KeyOf(This(), "Runs"), Add(KeyOf(This(), "Runs"), Literal(1))),
                     plantCheck is null ? RecordCall(Add(KeyOf(This(), "Count"), RootSave("Target"))) : null),
@@ -361,26 +533,16 @@ namespace NeoCompose.Tests
                     Assign(KeyOf(This(), "Runs"), Add(KeyOf(This(), "Runs"), Literal(10)))),
                 ScriptFunction("member-watch", "Watch", NeoEffectKind.Auto, null,
                     Assign(RootSave("Target"), RootSave("Signal"))),
-                new NSPropertyMember
+                Getter("member-seen", "Seen", Add(RootSave("Signal"), RootSave("Target"))),
+                Getter("member-native-seen", "NativeSeen", RootSave("NativeOnly")),
+                Getter("member-poked", "Poked", new CallFunctionPointer
                 {
-                    id = "member-seen", projectId = ProjectId, name = "Seen", kind = MemberKind.NSProperty,
-                    code = "return root.Save.Signal + root.Save.Target;",
-                    returnTypeInfo = new PrimitiveTypeInfo { type = MemberKind.Int, required = true },
-                    getter = new FunctionWithReturnType
-                    {
-                        compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
-                        parameters = Array.Empty<Variable>(),
-                        instructions = new Instruction[]
-                        {
-                            new ReturnInstruction
-                            {
-                                type = InstructionKind.Return,
-                                pointer = Add(RootSave("Signal"), RootSave("Target")),
-                            },
-                        },
-                        typeInfo = new PrimitiveTypeInfo { type = MemberKind.Int, required = true },
-                    },
-                },
+                    type = PointerKind.CallFunction,
+                    memberId = "member-poke",
+                    receiver = CallReceiver.Instance(This()),
+                    args = Array.Empty<Pointer>(),
+                    callSiteId = "poke",
+                }),
             };
             var values = new List<MemberValue>
             {
@@ -417,7 +579,8 @@ namespace NeoCompose.Tests
                         ("Count", "member-count"), ("Runs", "member-runs"), ("Check", "member-check"), ("Plain", "member-plain")),
                     ["class-derived-plant"] = Class("class-derived-plant", "class-plant",
                         ("Check", "member-check-off"), ("Plain", "member-plain-on")),
-                    ["class-watcher"] = Class("class-watcher", null, ("Watch", "member-watch"), ("Seen", "member-seen")),
+                    ["class-watcher"] = Class("class-watcher", null, ("Watch", "member-watch"), ("Seen", "member-seen"),
+                        ("NativeSeen", "member-native-seen"), ("Poked", "member-poked")),
                 },
                 enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
             };
@@ -425,6 +588,7 @@ namespace NeoCompose.Tests
                 data.members[member.id] = member;
             foreach (MemberValue value in values)
                 data.values[value.id] = value;
+            configure?.Invoke(data);
 
             var fixture = new Fixture();
             fixture.client = NeoTestSaveStack.ClientFromSchema(data);
@@ -433,12 +597,18 @@ namespace NeoCompose.Tests
                 ["member-record"] = (client, receiver, args) =>
                 {
                     string plant = NeoGeneratedTypesSupport.ValueId(receiver)!;
-                    // Native code reads through the client; none of it is an effect's dependency.
-                    Assert.IsTrue(client.TryGetValue(NeoValueOwnership.Save, "value-native-only", out MemberValue? _));
+                    // NeoScript a native function runs is never an effect's dependency.
+                    (fixture.nativeSeen ??= NativeSeen(client)).Compute("value-watcher");
                     if (plant == fixture.throwFor)
                         throw new InvalidOperationException($"Record failed for {plant}.");
                     fixture.recorded.Add((plant, Convert.ToInt32(args[0])));
                     return null;
+                },
+                ["member-poke"] = (client, _, _) =>
+                {
+                    Assert.IsTrue(client.TryGetMember("member-count", out JsonMember? count));
+                    Assert.IsTrue(client.TryWriteLeaf(NeoValueOwnership.Save, Number("plant-0-count", 40), count!, "value"));
+                    return 1;
                 },
             });
             // Plants are save rows the game created, as a NeoScript list add writes them.
@@ -464,6 +634,31 @@ namespace NeoCompose.Tests
             fixture.client.SetWritableValues(NeoValueOwnership.Save, plantRows.ToArray());
             return fixture;
         }
+
+        private static FunctionMember NativeOverride(string id, string extendsMemberId, NeoEffectKind? effect)
+        {
+            var function = new FunctionMember
+            {
+                id = id,
+                projectId = ProjectId,
+                name = "Check",
+                kind = MemberKind.Function,
+                extendsMemberId = extendsMemberId,
+            };
+            if (effect is NeoEffectKind kind)
+                function.Effect = kind;
+            return function;
+        }
+
+        private static NeoEffectKind NativeEffect(NeoClient client, string memberId)
+        {
+            Assert.IsTrue(client.TryGetMember(memberId, out JsonMember? member));
+            return ((FunctionMember)member!).Effect;
+        }
+
+        private static NeoMemberNSProperty NativeSeen(NeoClient client) =>
+            new NeoMemberClassWritable(client, "member-watcher", "value-watcher", NeoValueOwnership.Save)
+                .Get<NeoMemberNSProperty>("NativeSeen");
 
         private static ObjectMemberValue SaveRoot(string watcherId) => ObjectValue("value-save", "class-save-root",
             ("Plants", PlantsListId), ("Watcher", watcherId), ("Target", "value-target"),
@@ -536,6 +731,26 @@ namespace NeoCompose.Tests
                 function.Effect = kind;
             return function;
         }
+
+        private static NSPropertyMember Getter(string id, string name, Pointer result) => new()
+        {
+            id = id,
+            projectId = ProjectId,
+            name = name,
+            kind = MemberKind.NSProperty,
+            code = "compiled test getter",
+            returnTypeInfo = new PrimitiveTypeInfo { type = MemberKind.Int, required = true },
+            getter = new FunctionWithReturnType
+            {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                parameters = Array.Empty<Variable>(),
+                instructions = new Instruction[]
+                {
+                    new ReturnInstruction { type = InstructionKind.Return, pointer = result },
+                },
+                typeInfo = new PrimitiveTypeInfo { type = MemberKind.Int, required = true },
+            },
+        };
 
         private static Variable Parameter(string id) => new()
         {

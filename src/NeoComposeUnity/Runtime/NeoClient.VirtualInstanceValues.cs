@@ -954,6 +954,8 @@ namespace NeoCompose.Runtime
                 ExpandVirtualInstanceRootCore(instanceRoot);
             }
             finally { replayingVirtualRootIds.Remove(instanceRoot.id); }
+            // Effects its constructors' writes queued run once no replay encloses them.
+            DrainDeferredEffects();
         }
 
         private void EnsureVirtualReplayArgumentReady(string valueId)
@@ -1670,7 +1672,7 @@ namespace NeoCompose.Runtime
             foreach (var pair in expansion.Values)
             {
                 virtualValues[pair.Key] = pair.Value;
-                NoteEffectRowChange(pair.Key, pair.Value);
+                NoteEffectRowChange(expansion.Ownership[pair.Key], pair.Key, pair.Value);
                 EvictSharedEvaluationRow(pair.Key);
                 virtualValueOwnership[pair.Key] = expansion.Ownership[pair.Key];
                 SyncValueNode(pair.Key);
@@ -2174,7 +2176,7 @@ namespace NeoCompose.Runtime
                 foreach (string valueId in valueIds)
                 {
                     virtualValues.Remove(valueId);
-                    NoteEffectRowChange(valueId, null);
+                    NoteEffectRowChange(virtualValueOwnership.GetValueOrDefault(valueId), valueId, null);
                     EvictSharedEvaluationRow(valueId);
                     virtualValueOwnership.Remove(valueId);
                     SyncValueNode(valueId);

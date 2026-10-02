@@ -748,6 +748,7 @@ namespace NeoCompose.Runtime
                     InvalidateGetterMemo();
                     foreach (var binding in plan.Bindings)
                         InvalidateGetterMemoForRow(StaticReadKey(binding.Key.memberId, binding.Key.ownership));
+                    NoteEffectBindingChange();
                 }
                 InvalidateGetterMemoForRows(changed);
                 if (sharedEvaluationContext is not null)

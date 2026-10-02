@@ -629,7 +629,12 @@ namespace NeoCompose.Runtime.Json
                     _ => inherited.Dispatch,
                 },
                 BodyMode = (member as NSFunctionMember)?.DeclaredBodyMode ?? inherited.BodyMode,
-                Effect = (member as NSFunctionMember)?.DeclaredEffect ?? inherited.Effect,
+                Effect = member switch
+                {
+                    FunctionMember function => function.DeclaredEffect ?? inherited.Effect,
+                    NSFunctionMember function => function.DeclaredEffect ?? inherited.Effect,
+                    _ => inherited.Effect,
+                },
                 // P76 §1 rule 1. Absence inherits; it never resolves to an
                 // ordinal here, so an explicit `.Sparse` override of an
                 // automatically-Packed member stays distinguishable from a
