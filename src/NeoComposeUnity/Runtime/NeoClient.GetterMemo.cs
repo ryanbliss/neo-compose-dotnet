@@ -80,7 +80,7 @@ namespace NeoCompose.Runtime
             // capture (an NSProperty compute) reports them as the evaluation
             // would have.
             public IdBuffer? reads;
-            public List<GridRead>? gridReads;
+            public GridReadBuffer? gridReads;
             // Every value id the evaluation reported to a dependency capture
             // (an animation segment source, a nested constructor). A hit
             // reports the same ids, so a capture sees exactly what the
@@ -94,10 +94,11 @@ namespace NeoCompose.Runtime
             // The getter capture this entry's reads were last replayed into.
             public long replayedIn;
             public GetterMemoKey key;
-            // A forgotten entry stays in the memo, retired, with its row reads
-            // and the row index lists that hold it. Evaluating the getter
-            // again over the same rows revives it, so only its grid reads,
-            // numbered by generation, are indexed again.
+            // A forgotten entry stays in the memo, retired, with its reads
+            // and the index lists that hold it. Evaluating the getter again
+            // over the same rows and cells revives it, indexing nothing. Grid
+            // readers are numbered by generation, so a new set of grid reads
+            // leaves the old ones dead in their lists.
             public int rowMemberships;
             public int gridMemberships;
             public int gridGeneration;
@@ -183,7 +184,7 @@ namespace NeoCompose.Runtime
         private int gridChangesPending;
         private IdBuffer? getterReadCapture;
         // Opened by a capture's first grid read.
-        private List<GridRead>? getterGridReadCapture;
+        private GridReadBuffer? getterGridReadCapture;
         private HashSet<string>? getterConstructedRows;
         internal bool IsCapturingGetterReads => getterReadCapture is not null;
         // Appended as read, duplicates and all: only an entry that can hit
@@ -195,7 +196,7 @@ namespace NeoCompose.Runtime
         // evaluation records them again, so the read lists and index lists
         // are recycled instead of reallocated each frame.
         private readonly Stack<IdBuffer> readListPool = new();
-        private readonly Stack<List<GridRead>> gridReadPool = new();
+        private readonly Stack<GridReadBuffer> gridReadPool = new();
         private readonly Stack<List<GetterMemoEntry>> memoEntryListPool = new();
         private readonly Stack<List<GridMemoReader>> gridMemoReaderListPool = new();
 
@@ -216,12 +217,12 @@ namespace NeoCompose.Runtime
         internal readonly struct GetterCaptureFrame
         {
             internal readonly IdBuffer? reads;
-            internal readonly List<GridRead>? gridReads;
+            internal readonly GridReadBuffer? gridReads;
             internal readonly IdBuffer? valueReads;
             internal readonly HashSet<string>? constructedRows;
             internal readonly long id;
 
-            internal GetterCaptureFrame(IdBuffer? reads, List<GridRead>? gridReads, IdBuffer? valueReads, HashSet<string>? constructedRows, long id)
+            internal GetterCaptureFrame(IdBuffer? reads, GridReadBuffer? gridReads, IdBuffer? valueReads, HashSet<string>? constructedRows, long id)
             {
                 this.reads = reads;
                 this.gridReads = gridReads;
@@ -263,8 +264,8 @@ namespace NeoCompose.Runtime
             readListPool.Push(ids);
         }
 
-        private List<GridRead> OpenGridReadCapture() =>
-            getterGridReadCapture ??= gridReadPool.Count != 0 ? gridReadPool.Pop() : new List<GridRead>();
+        private GridReadBuffer OpenGridReadCapture() =>
+            getterGridReadCapture ??= gridReadPool.Count != 0 ? gridReadPool.Pop() : new GridReadBuffer();
 
         private bool CapturesValueReads
         {
@@ -297,8 +298,7 @@ namespace NeoCompose.Runtime
             }
             if (capture.reads is not null)
                 KeepDistinct(capture.reads);
-            if (capture.gridReads is not null)
-                KeepDistinct(capture.gridReads);
+            capture.gridReads?.KeepDistinct(distinctGridReads);
             getterConstructedRows = previous.constructedRows;
             getterCaptureId = previous.id;
             getterReadCapture = previous.reads;
@@ -397,7 +397,7 @@ namespace NeoCompose.Runtime
                 ReturnReadList(capture.valueReads);
         }
 
-        private void ReturnGridReads(List<GridRead> reads)
+        private void ReturnGridReads(GridReadBuffer reads)
         {
             reads.Clear();
             gridReadPool.Push(reads);
@@ -629,17 +629,94 @@ namespace NeoCompose.Runtime
         // and every replay into an enclosing capture walk only distinct ones.
         private void KeepDistinct(IdBuffer reads) => distinctIds.KeepDistinct(reads);
 
-        private void KeepDistinct(List<GridRead> reads)
+        /// <summary>
+        /// The grid reads a capture recorded, in order. An array rather than
+        /// a List, so a scan compares reads in place: copying one out copies
+        /// its references, each behind a GC write barrier.
+        /// </summary>
+        internal sealed class GridReadBuffer
         {
-            int kept = 0;
-            for (int i = 0; i < reads.Count; i++)
+            // A getter's few queries mostly reread the same cells, so a
+            // capture this small scans its kept reads rather than hashing.
+            private const int ScannedDistinctLimit = 32;
+
+            private GridRead[] items = new GridRead[8];
+            private int count;
+
+            internal int Count => count;
+
+            internal ref readonly GridRead this[int index] => ref items[index];
+
+            internal void Add(in GridRead read)
             {
-                GridRead read = reads[i];
-                if (distinctGridReads.Add(read))
-                    reads[kept++] = read;
+                if (count == items.Length)
+                    Array.Resize(ref items, count * 2);
+                items[count++] = read;
             }
-            reads.RemoveRange(kept, reads.Count - kept);
-            distinctGridReads.Clear();
+
+            internal void AddRange(GridReadBuffer reads)
+            {
+                int needed = count + reads.count;
+                if (needed > items.Length)
+                {
+                    int size = items.Length * 2;
+                    while (size < needed)
+                        size *= 2;
+                    Array.Resize(ref items, size);
+                }
+                Array.Copy(reads.items, 0, items, count, reads.count);
+                count = needed;
+            }
+
+            /// <summary>Compacts each read's first occurrence to the front.</summary>
+            internal void KeepDistinct(HashSet<GridRead> seen)
+            {
+                int kept = 0;
+                for (int i = 0; i < count; i++)
+                {
+                    ref readonly GridRead read = ref items[i];
+                    if (count <= ScannedDistinctLimit ? Holds(read, kept) : !seen.Add(read))
+                        continue;
+                    if (kept != i)
+                        items[kept] = read;
+                    kept++;
+                }
+                seen.Clear();
+                Array.Clear(items, kept, count - kept);
+                count = kept;
+            }
+
+            // Whether the first `length` reads hold one equal to read.
+            private bool Holds(in GridRead read, int length)
+            {
+                for (int i = 0; i < length; i++)
+                {
+                    if (Same(items[i], read))
+                        return true;
+                }
+                return false;
+            }
+
+            internal bool SameReads(GridReadBuffer other)
+            {
+                if (other.count != count)
+                    return false;
+                for (int i = 0; i < count; i++)
+                {
+                    if (!Same(items[i], other.items[i]))
+                        return false;
+                }
+                return true;
+            }
+
+            internal static bool Same(in GridRead x, in GridRead y) =>
+                ReferenceEquals(x.placementId, y.placementId) && ReferenceEquals(x.content, y.content) && x.cell == y.cell && x.tile == y.tile;
+
+            internal void Clear()
+            {
+                Array.Clear(items, 0, count);
+                count = 0;
+            }
         }
 
         /// <summary>
@@ -760,8 +837,7 @@ namespace NeoCompose.Runtime
         {
             internal static readonly GridReadIdentity Instance = new();
 
-            public bool Equals(GridRead x, GridRead y) =>
-                ReferenceEquals(x.placementId, y.placementId) && ReferenceEquals(x.content, y.content) && x.cell == y.cell && x.tile == y.tile;
+            public bool Equals(GridRead x, GridRead y) => GridReadBuffer.Same(x, y);
 
             public int GetHashCode(GridRead read) => unchecked(
                 RuntimeHelpers.GetHashCode(read.placementId) * 31 + (read.cell?.GetHashCode() ?? 0));
@@ -840,9 +916,19 @@ namespace NeoCompose.Runtime
                         IndexRowReader(ids[i], entry);
                 }
             }
-            entry.gridReads = capture.gridReads;
-            if (entry.gridReads is not null)
-                IndexGridReads(entry);
+            if (ReferenceEquals(entry, previous) && SameGridReads(entry.gridReads, capture.gridReads))
+            {
+                // The grid lists still hold the entry too.
+                if (capture.gridReads is not null)
+                    ReturnGridReads(capture.gridReads);
+            }
+            else
+            {
+                DropGridReaders(entry);
+                entry.gridReads = capture.gridReads;
+                if (entry.gridReads is not null)
+                    IndexGridReads(entry);
+            }
             if (deadMemoIndexEntries > MinDeadMemoIndexSweep && deadMemoIndexEntries * 2 > memoIndexEntries)
                 SweepMemoIndexes();
             return entry;
@@ -874,6 +960,13 @@ namespace NeoCompose.Runtime
             return true;
         }
 
+        private static bool SameGridReads(GridReadBuffer? previous, GridReadBuffer? reads)
+        {
+            if (previous is null || reads is null)
+                return previous is null && reads is null;
+            return previous.SameReads(reads);
+        }
+
         private void IndexRowReader(string id, GetterMemoEntry entry)
         {
             if (!getterMemoEntriesByRow.TryGetValue(id, out List<GetterMemoEntry>? entries))
@@ -890,8 +983,10 @@ namespace NeoCompose.Runtime
             var reader = new GridMemoReader(entry);
             string? indexedGrid = null;
             int gridHash = 0;
-            foreach (GridRead read in entry.gridReads!)
+            GridReadBuffer reads = entry.gridReads!;
+            for (int i = 0; i < reads.Count; i++)
             {
+                ref readonly GridRead read = ref reads[i];
                 string grid = read.content.Primitive.GridValueId;
                 // A query records each cell under one grid.
                 if (!ReferenceEquals(grid, indexedGrid))
@@ -925,9 +1020,9 @@ namespace NeoCompose.Runtime
         internal bool ForgetMemoizedGetter(GetterMemoKey key) =>
             getterMemo.TryGetValue(key, out GetterMemoEntry? entry) && ForgetMemoEntry(entry);
 
-        // Retires the entry: the row lists keep it, to revive or until a
+        // Retires the entry: the index lists keep it, to revive or until a
         // change to a row it read abandons it, so forgetting costs the same
-        // however many rows the getter read. Its grid readers die.
+        // however many rows and cells the getter read.
         private bool ForgetMemoEntry(GetterMemoEntry entry)
         {
             if (entry.forgotten)
@@ -936,21 +1031,13 @@ namespace NeoCompose.Runtime
             // A revived entry's reads may differ from those a capture still
             // open took from it.
             entry.replayedIn = 0;
-            deadMemoIndexEntries += entry.gridMemberships;
-            entry.gridMemberships = 0;
-            entry.gridGeneration++;
-            // Nothing replays a forgotten entry. It keeps its row reads to
-            // compare with the next evaluation's.
-            if (entry.gridReads is { } gridReads)
-            {
-                entry.gridReads = null;
-                ReturnGridReads(gridReads);
-            }
+            // Nothing replays a forgotten entry. It keeps its reads to compare
+            // with the next evaluation's.
             return true;
         }
 
         // A forgotten entry the memo will not revive; the caller removes or
-        // replaces its memo slot. Its row readers die.
+        // replaces its memo slot. Its readers die.
         private void AbandonMemoEntry(GetterMemoEntry entry)
         {
             entry.abandoned = true;
@@ -960,6 +1047,19 @@ namespace NeoCompose.Runtime
                 entry.reads = null;
                 ReturnReadList(reads);
             }
+            DropGridReaders(entry);
+        }
+
+        // Kills the entry's grid readers where their lists hold them.
+        private void DropGridReaders(GetterMemoEntry entry)
+        {
+            if (entry.gridReads is not { } gridReads)
+                return;
+            entry.gridReads = null;
+            deadMemoIndexEntries += entry.gridMemberships;
+            entry.gridMemberships = 0;
+            entry.gridGeneration++;
+            ReturnGridReads(gridReads);
         }
 
         private const int MinDeadMemoIndexSweep = 4096;
@@ -1095,7 +1195,8 @@ namespace NeoCompose.Runtime
         {
             if (!index.Remove(read, out List<GridMemoReader>? readers))
                 return;
-            // Forgetting kills the getters' readers; effects stay listed.
+            // Every live reader stays listed: a forgotten getter that reads
+            // the same cells again revives, and the next change must find it.
             int kept = 0;
             for (int i = 0; i < readers.Count; i++)
             {
@@ -1103,8 +1204,7 @@ namespace NeoCompose.Runtime
                 if (!reader.IsLive)
                     continue;
                 memoInvalidationScratch.Add(reader.entry);
-                if (reader.entry.key.kind == DependentKind.Effect)
-                    readers[kept++] = reader;
+                readers[kept++] = reader;
             }
             DropDeadReaders(readers.Count - kept);
             KeepListed(index, read, readers, kept, gridMemoReaderListPool);

@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.51.3] - 2026-10-02
+
+- A forgotten getter keeps its grid readers listed, as it already kept its row readers. Evaluating it again over the same cells revives it without indexing them again; a change to a row it read still drops them.
+- A capture keeps its grid reads in an array and compares them in place, without copying each read's references out of a list.
+- A collection callback whose body only tests its entry's type with `is` no longer rents a scope.
+- Assigning a bool, string or number to a detached object's member checks scalar members first.
+- In Neowyn, with 288 plants, re-evaluating `Evaluation` took the same time as on 0.51.2, within the noise of a loaded machine. Over four alternating 8-round passes the per-plant mean was 102.3 µs against 102.8 µs with every memo entry forgotten, 87.9 against 87.5 µs after watering, and 116.6 against 116.0 µs after a change to each plant's own row.
+
 ## [0.51.2] - 2026-10-02
 
 - Recomputing a getter after something it read changed costs less. In Neowyn, with 288 plants and 20 rounds each, re-evaluating `Evaluation` took:

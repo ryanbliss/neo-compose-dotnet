@@ -4058,7 +4058,8 @@ namespace NeoCompose.Runtime.NeoScript
                     return Box(channel);
                 }
             }
-            if (k == "Id")
+            // Tested by length first: a member key rarely has two characters.
+            if (k.Length == 2 && k == "Id")
             {
                 if (receiver is INeoValueReference reference
                     && !string.IsNullOrEmpty(reference.valueId))
@@ -6539,32 +6540,39 @@ namespace NeoCompose.Runtime.NeoScript
                         "Collection predicate callback must declare a required return type.");
                 }
 
+                // Only the fields a callback uses are stored: each reference
+                // store into the struct costs a GC write barrier.
+                this = default;
                 // A callback cannot suspend, so nothing retains its scope
                 // once the operator ends; it is pooled like a function frame.
                 NeoScriptScopeLayout layout = callback.scopeLayout ??= new NeoScriptScopeLayout(callback);
                 // Validates the body, so a rejected callback has rented nothing.
                 NeoScriptExecutor.EnterCallback(callback, ctx);
                 this.ctx = ctx;
-                // A body that only returns a vector it constructs hands back
-                // a value nothing else holds, which needs no defensive copy.
-                returnsConstructedVector = callback.instructions is { Length: 1 } instructions
-                    && instructions[0] is ReturnInstruction { pointer: FunctionPointer { function: VectorConstructorFunction constructor } }
-                    && constructor.info.vectorType == callbackReturnType.type;
                 parameterCount = parameters.Length;
-                entryTypeCheck = callback.instructions is { Length: 1 } statements
-                    && statements[0] is ReturnInstruction { pointer: IsCheckPointer { pointer: VariablePointer tested } check }
-                    && tested.variableId == parameters[parameterCount - 1].id
-                        ? check.checkType
-                        : null;
-                scope = layout.RentScope();
-                scope.BindParent(parentScope);
-                this.isList = isList;
                 if (ctx.collectionCallbackPreparationMetrics is not null)
                 {
                     ctx.collectionCallbackPreparationMetrics
                         .BindingPlanCreations++;
                     ctx.collectionCallbackPreparationMetrics.BodyValidations++;
                 }
+                Instruction[]? statements = callback.instructions;
+                if (statements is { Length: 1 }
+                    && statements[0] is ReturnInstruction { pointer: IsCheckPointer { pointer: VariablePointer tested } check }
+                    && tested.variableId == parameters[parameterCount - 1].id)
+                {
+                    // The type test runs on the entry alone, in no scope.
+                    entryTypeCheck = check.checkType;
+                    return;
+                }
+                // A body that only returns a vector it constructs hands back
+                // a value nothing else holds, which needs no defensive copy.
+                returnsConstructedVector = statements is { Length: 1 }
+                    && statements[0] is ReturnInstruction { pointer: FunctionPointer { function: VectorConstructorFunction constructor } }
+                    && constructor.info.vectorType == callbackReturnType.type;
+                scope = layout.RentScope();
+                scope.BindParent(parentScope);
+                this.isList = isList;
                 body = callback;
                 options = NeoScriptExecutionOptions.ForImmediate(ctx.client);
                 expression = NeoScriptExecutor.CallbackExpression(callback);
@@ -6575,7 +6583,6 @@ namespace NeoCompose.Runtime.NeoScript
                     && expression is OperationPointer { operation: BooleanOperation booleanOperation }
                         ? booleanOperation.expression
                         : null;
-                ownerTerminal = default;
                 // A callback runs on its caller's context but is not a
                 // constructor body's own statement.
                 enclosingConstructorBody = ctx.constructorBody;
@@ -6686,6 +6693,8 @@ namespace NeoCompose.Runtime.NeoScript
             public void Dispose()
             {
                 ctx.allocationTracker.ExitExecution(ctx.client, ctx, in ownerTerminal);
+                if (entryTypeCheck is not null)
+                    return;
                 ctx.constructorBody = enclosingConstructorBody;
                 body.scopeLayout!.ReturnScope(scope);
             }
