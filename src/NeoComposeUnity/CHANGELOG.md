@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.51.1] - 2026-10-02
+
+- An authored row that only defines a value is no longer an effect instance: a variant's graph, an authored row only constructor arguments name (such as a variant's `Overrides` template), and every row either owns, including the virtual rows a variant's root replays. Authored rows now find liveness through their owned parents as Save and Session rows do, so a listed or bound row that a constructor argument also names stays live, as does an authored row nothing owns, such as a partition's. Loading or unloading a partition row that has constructor arguments rechecks every instance. Neowyn's sparse plant stage templates had run `@effect CheckCues` at load, and every run threw.
+
 ## [0.51.0] - 2026-10-02
 
 - P97 `@effect` functions. A NeoScript function marked `@effect` runs once for every live instance of its class, then again whenever something its last run read changes. That can be a row in any store, a grid cell or placement it queried, or a memoized getter's reads. The function member's new `Effect` field (`NeoEffectKind.None` or `Auto`, schema 33) carries the marker. An override inherits it when absent and may turn it on or off for its class and below.

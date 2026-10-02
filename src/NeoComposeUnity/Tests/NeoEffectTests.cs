@@ -360,6 +360,102 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void AnAuthoredInstanceRunsButAConstructorArgumentDoesNot()
+        {
+            // class Maker(Plant template, Pot pot, Plant listed) — a variant's
+            // overrides template is an authored row only a constructor argument
+            // names. What it owns defines a value too; a listed row the
+            // argument also names is still the list's.
+            using Fixture fixture = Build(plants: 0, plantCheck: RecordCall(KeyOf(This(), "Count")), configure: data =>
+            {
+                FunctionArgumentTypeInfo[] arguments =
+                {
+                    new() { name = "template", type = MemberKind.Class, classId = "class-plant", required = true },
+                    new() { name = "pot", type = MemberKind.Class, classId = "class-pot", required = true },
+                    new() { name = "listed", type = MemberKind.Class, classId = "class-plant", required = true },
+                };
+                var maker = new ConstructorRecord
+                {
+                    id = "ctor-maker",
+                    projectId = ProjectId,
+                    classId = "class-maker",
+                    argumentTypes = arguments,
+                    code = "// hand-built",
+                    action = new FunctionWithReturnType
+                    {
+                        compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                        parameters = new[]
+                        {
+                            Parameter("__this__"),
+                            Parameter("__root__"),
+                            Parameter("__arg_0__", new ClassTypeInfo { type = MemberKind.Class, required = true, classId = "class-plant" }),
+                            Parameter("__arg_1__", new ClassTypeInfo { type = MemberKind.Class, required = true, classId = "class-pot" }),
+                            Parameter("__arg_2__", new ClassTypeInfo { type = MemberKind.Class, required = true, classId = "class-plant" }),
+                        },
+                        instructions = Array.Empty<Instruction>(),
+                        typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null, required = true },
+                    },
+                    createdAt = "x",
+                    updatedAt = "x",
+                };
+                data.constructors[maker.id] = maker;
+                data.members["member-asset-plant"] = new ClassMember
+                {
+                    id = "member-asset-plant",
+                    projectId = ProjectId,
+                    name = "Plant",
+                    kind = MemberKind.Class,
+                    classId = "class-plant",
+                    Requirement = NeoMemberRequirementKind.Required,
+                };
+                data.members["member-maker"] = new ClassMember
+                {
+                    id = "member-maker",
+                    projectId = ProjectId,
+                    name = "Maker",
+                    kind = MemberKind.Class,
+                    classId = "class-maker",
+                    Requirement = NeoMemberRequirementKind.Required,
+                };
+                ((ClassMember)data.members["member-root-assets"]).classId = "class-assets";
+                data.classes["class-assets"] = Class("class-assets", null,
+                    ("Plant", "member-asset-plant"), ("Plants", "member-plants"), ("Maker", "member-maker"));
+                data.classes["class-pot"] = Class("class-pot", null, ("Plant", "member-asset-plant"));
+                data.classes["class-maker"] = Class("class-maker", null);
+                data.classes["class-maker"].constructorIds = new[] { maker.id };
+                data.values["value-assets"] = ObjectValue("value-assets", "class-assets",
+                    ("Plant", "asset-plant"), ("Plants", "asset-plants"), ("Maker", "asset-maker"));
+                data.values["asset-plant-count"] = Number("asset-plant-count", 3);
+                data.values["asset-plant"] = ObjectValue("asset-plant", "class-plant", ("Count", "asset-plant-count"));
+                // An authored list holds its entries by their stamps alone.
+                data.values["asset-plants"] = new ArrayMemberValue { id = "asset-plants", value = Array.Empty<string>() };
+                data.values["asset-listed-count"] = Number("asset-listed-count", 5);
+                data.values["asset-listed-runs"] = Number("asset-listed-runs", 0);
+                data.values["asset-listed"] = Plant("asset-listed", "class-plant", containerId: "asset-plants");
+                data.values["asset-template-count"] = Number("asset-template-count", 4);
+                data.values["asset-template"] = ObjectValue("asset-template", "class-plant", ("Count", "asset-template-count"));
+                data.values["asset-pot"] = ObjectValue("asset-pot", "class-pot", ("Plant", "asset-potted"));
+                data.values["asset-potted-count"] = Number("asset-potted-count", 6);
+                data.values["asset-potted"] = ObjectValue("asset-potted", "class-plant", ("Count", "asset-potted-count"));
+                ObjectMemberValue makerRow = ObjectValue("asset-maker", "class-maker");
+                makerRow.instanceConstructorId = maker.id;
+                makerRow.constructorArgs = new Dictionary<string, JToken?>
+                {
+                    [NeoClient.ConstructorParameterId(maker, 0)] = "asset-template",
+                    [NeoClient.ConstructorParameterId(maker, 1)] = "asset-pot",
+                    [NeoClient.ConstructorParameterId(maker, 2)] = "asset-listed",
+                };
+                data.values[makerRow.id] = makerRow;
+            });
+            fixture.client.StartEffects();
+
+            Assert.AreEqual(1, fixture.RecordedCount("asset-plant"), "An authored instance the assets root holds runs.");
+            Assert.AreEqual(1, fixture.RecordedCount("asset-listed"), "A listed instance a constructor argument names runs.");
+            Assert.AreEqual(0, fixture.RecordedCount("asset-template"), "A constructor argument is not an instance.");
+            Assert.AreEqual(0, fixture.RecordedCount("asset-potted"), "What a constructor argument owns is not an instance.");
+        }
+
+        [Test]
         public void LoadingAPartitionStartsTheInstancesItHoldsAndUnloadingStopsThem()
         {
             using Fixture fixture = Build(plants: 1, configure: data =>
@@ -793,10 +889,10 @@ namespace NeoCompose.Tests
             },
         };
 
-        private static Variable Parameter(string id) => new()
+        private static Variable Parameter(string id, TypeInfo? typeInfo = null) => new()
         {
             id = id,
-            typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null, required = true },
+            typeInfo = typeInfo ?? new PrimitiveTypeInfo { type = MemberKind.Null, required = true },
             pointer = new VariablePointer { type = PointerKind.Variable, variableId = id },
         };
 

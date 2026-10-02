@@ -225,6 +225,9 @@ namespace NeoCompose.Runtime
             if (effectInstances.ContainsKey(row.id)
                 || row is ObjectMemberValue { classId: { } classId } && ResolveClassNode(classId).Effects.Length != 0)
                 MarkEffectRow(row.id);
+            // Its arguments may make or unmake a definition, and everything it owns.
+            if (row is ObjectMemberValue { constructorArgs: { Count: > 0 } })
+                effectRescanPending = true;
             InvalidateGetterMemoForRow(row.id);
             if (!string.IsNullOrEmpty(row.containerId))
                 InvalidateGetterMemoForRow(row.containerId!);
@@ -550,9 +553,11 @@ namespace NeoCompose.Runtime
             effectInstances.Remove(id);
         }
 
-        // An authored row is live; a writable row is live while an authored
-        // row, its store's root or a static binding owns it, through its
-        // owned parents (P97 §2.1).
+        // A row is live while its owned parents lead to its store's root, a
+        // static binding, or an authored row nothing owns, such as a
+        // partition's (P97 §2.1). A row that only defines a value is not: a
+        // variant's graph, an authored row only constructor arguments name,
+        // such as a variant's overrides template, and every row they own.
         private bool IsEffectInstanceLive(NeoValueOwnership ownership, string id)
         {
             effectLivenessPath.Clear();
@@ -561,16 +566,16 @@ namespace NeoCompose.Runtime
             // An owned chain is a tree, so a cycle is malformed data.
             for (int depth = 0; depth < 256; depth++)
             {
-                if (ownership == NeoValueOwnership.Asset)
-                {
-                    live = true;
-                    break;
-                }
                 if (effectLiveness.TryGetValue(current, out live))
                     break;
                 effectLivenessPath.Add(current);
-                if (!TryFindOwnedParent(ownership, current, out string? parent))
+                if (ownership == NeoValueOwnership.Asset && VariantGraphs.ContainsKey(current))
                     break;
+                if (!TryFindOwnedParent(ownership, current, out string? parent))
+                {
+                    live = ownership == NeoValueOwnership.Asset && !IsConstructorInput(current);
+                    break;
+                }
                 if (parent.StartsWith("static:", StringComparison.Ordinal))
                 {
                     live = true;
@@ -578,7 +583,9 @@ namespace NeoCompose.Runtime
                 }
                 if (parent.StartsWith("member:", StringComparison.Ordinal))
                 {
-                    live = IsRootMemberEdge(parent) || IsStaticDefaultEdge(parent, ownership, current);
+                    live = ownership == NeoValueOwnership.Asset
+                        || IsRootMemberEdge(parent)
+                        || IsStaticDefaultEdge(parent, ownership, current);
                     break;
                 }
                 if (!TryGetCommittedOwnership(parent, out ownership))
@@ -588,6 +595,17 @@ namespace NeoCompose.Runtime
             foreach (string visited in effectLivenessPath)
                 effectLiveness[visited] = live;
             return live;
+        }
+
+        // Whether constructor arguments are all that name an unowned authored row.
+        private bool IsConstructorInput(string id)
+        {
+            if (!ValueInferenceIndex.Parents.TryGetValue(id, out var parents))
+                return false;
+            foreach (var parent in parents)
+                if (parent.Value is not ObjectMemberValue row || row.value?.ContainsValue(id) == true)
+                    return false;
+            return true;
         }
 
         private bool IsRootMemberEdge(string edge)

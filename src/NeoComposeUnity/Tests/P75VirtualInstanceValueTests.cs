@@ -2977,73 +2977,7 @@ namespace NeoCompose.Tests
         public void ApplyingAVariantKeepsTheRootsVirtualDefaultsInItsCandidate()
         {
             ProjectData data = BuildConstructedUnorderedChildrenProjectData();
-            // Thing.Variants.Other: Initialize is `new Thing()`.
-            var variantClass = SchemaClass("thing-variant-class", "NeoVariant", NeoMemberStorage.Immutable);
-            variantClass.schema["Initialize"] = "thing-variant-initialize";
-            data.classes[variantClass.id] = variantClass;
-            data.members["thing-variant-initialize"] = new DelegateMember
-            {
-                id = "thing-variant-initialize",
-                projectId = "p75-project",
-                name = "Initialize",
-                kind = MemberKind.NSDelegate,
-                Requirement = NeoMemberRequirementKind.Optional,
-                Storage = NeoMemberStorage.Immutable,
-                returnTypeInfo = ClassType("thing-class"),
-                argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
-            };
-            data.values["thing-variant-graph"] = ObjectValue(
-                "thing-variant-graph",
-                variantClass.id,
-                new Dictionary<string, string> { ["Initialize"] = "thing-variant-closure" });
-            data.values["thing-variant-closure"] = new DelegateMemberValue
-            {
-                id = "thing-variant-closure",
-                value = new NeoDelegateValue
-                {
-                    code = "() => new Thing()",
-                    action = new FunctionWithReturnType
-                    {
-                        compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
-                        parameters = new[]
-                        {
-                            ConstructorVariable("__this__", ClassType("thing-class")),
-                            ConstructorVariable("__root__", ClassType("__root__")),
-                        },
-                        typeInfo = ClassType("thing-class"),
-                        instructions = new Instruction[]
-                        {
-                            new ReturnInstruction
-                            {
-                                type = InstructionKind.Return,
-                                pointer = new FunctionPointer
-                                {
-                                    type = PointerKind.Function,
-                                    function = new DeclaredConstructorFunction
-                                    {
-                                        type = FunctionKind.DeclaredConstructor,
-                                        info = new DeclaredConstructorInfo
-                                        {
-                                            schemaClassInfo = ClassType("thing-class"),
-                                            constructorId = "thing-ctor",
-                                            args = Array.Empty<DeclaredConstructorArgument>(),
-                                            fields = Array.Empty<FunctionClassConstructorField>(),
-                                        },
-                                    },
-                                },
-                            },
-                        },
-                    },
-                },
-            };
-            data.variants["thing-variant"] = new VariantRecord
-            {
-                id = "thing-variant",
-                projectId = "p75-project",
-                classId = "thing-class",
-                name = "Other",
-                valueId = "thing-variant-graph",
-            };
+            AddThingVariant(data);
             using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
             NeoMemberClassWritable thing = client.save.Get<NeoMemberClassWritable>("Thing");
             string rootId = thing.value!.id;
@@ -3063,6 +2997,146 @@ namespace NeoCompose.Tests
             Assert.AreEqual("thing-variant", ((ObjectMemberValue)client.ResolveValueRow(rootId)!).instanceVariantId);
             var entry = (NeoMemberClassWritable)thing.Get<NeoMemberList>("Children").Single();
             Assert.AreEqual("Sprite", entry.Get<NeoMemberStringWritable>("Name").value!.value);
+        }
+
+        /// <summary>
+        /// A variant's root replays its <c>Overrides</c> template into a
+        /// virtual instance, which defines the variant rather than living in
+        /// the game, so its effects never run (P97 §2.1). Neowyn's sparse plant
+        /// stage templates threw from every cue check on load.
+        /// </summary>
+        [Test]
+        public void AVariantsOverridesTemplateRunsNoEffect()
+        {
+            ProjectData data = BuildConstructedUnorderedChildrenProjectData();
+            AddThingVariant(data);
+            // NeoVariant(Thing overrides): the authored variant names a sparse
+            // template as its argument, and `Overrides = overrides` replays it.
+            var overridesArgument = new FunctionArgumentTypeInfo
+            {
+                name = "overrides",
+                type = MemberKind.Class,
+                classId = "thing-class",
+                required = true,
+            };
+            Variable[] variantParameters =
+            {
+                ConstructorVariable("__this__", ClassType("thing-variant-class")),
+                ConstructorVariable("__root__", ClassType("__root__")),
+                ConstructorVariable("__arg_0__", overridesArgument),
+            };
+            var variantConstructor = new ConstructorRecord
+            {
+                id = "thing-variant-ctor",
+                projectId = "p75-project",
+                classId = "thing-variant-class",
+                argumentTypes = new[] { overridesArgument },
+                code = string.Empty,
+                action = new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = variantParameters,
+                    typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null, required = true },
+                    instructions = Array.Empty<Instruction>(),
+                },
+            };
+            data.constructors[variantConstructor.id] = variantConstructor;
+            data.classes["thing-variant-class"].constructorIds = new[] { variantConstructor.id };
+            data.members["thing-variant-overrides"] = new ClassMember
+            {
+                id = "thing-variant-overrides",
+                projectId = "p75-project",
+                name = "Overrides",
+                kind = MemberKind.Class,
+                classId = "thing-class",
+                Requirement = NeoMemberRequirementKind.Required,
+                defaultValue = new ObjectMemberValueBase
+                {
+                    init = ReturnVariableInitializer("overrides", ClassType("thing-class"), variantParameters, "__arg_0__"),
+                },
+            };
+            data.classes["thing-variant-class"].schema["Overrides"] = "thing-variant-overrides";
+            data.values["thing-variant-template"] = ObjectValue("thing-variant-template", "thing-class", new Dictionary<string, string>());
+            var graph = (ObjectMemberValue)data.values["thing-variant-graph"];
+            graph.instanceConstructorId = variantConstructor.id;
+            graph.constructorArgs = new Dictionary<string, JToken?>
+            {
+                [NeoClient.ConstructorParameterId(variantConstructor, 0)] = "thing-variant-template",
+            };
+            // class Thing, Entry { native void Record(); @effect void Check() { this.Record(); } }
+            data.members["thing-record"] = new FunctionMember
+            {
+                id = "thing-record",
+                projectId = "p75-project",
+                name = "Record",
+                kind = MemberKind.Function,
+                returnTypeInfo = new VoidTypeInfo { type = MemberKind.Void, required = true },
+                argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
+                Dispatch = NeoFunctionDispatchKind.Synchronous,
+            };
+            foreach (string classId in new[] { "thing-class", "entry-class" })
+            {
+                var self = new VariablePointer { type = PointerKind.Variable, variableId = "__this__" };
+                data.members[$"{classId}-check"] = new NSFunctionMember
+                {
+                    id = $"{classId}-check",
+                    projectId = "p75-project",
+                    name = "Check",
+                    kind = MemberKind.NSFunction,
+                    code = "this.Record();",
+                    returnTypeInfo = new VoidTypeInfo { type = MemberKind.Void, required = true },
+                    argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
+                    Dispatch = NeoFunctionDispatchKind.Synchronous,
+                    Effect = NeoEffectKind.Auto,
+                    action = new FunctionWithReturnType
+                    {
+                        compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                        parameters = new[]
+                        {
+                            ConstructorVariable("__this__", ClassType(classId)),
+                            ConstructorVariable("__root__", ClassType("__root__")),
+                        },
+                        typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null, required = true },
+                        instructions = new Instruction[]
+                        {
+                            new FunctionCallInstruction
+                            {
+                                type = InstructionKind.FunctionCall,
+                                call = new CallFunctionPointer
+                                {
+                                    type = PointerKind.CallFunction,
+                                    memberId = "thing-record",
+                                    receiver = CallReceiver.Instance(self),
+                                    args = Array.Empty<Pointer>(),
+                                    callSiteId = $"{classId}-record",
+                                },
+                            },
+                        },
+                    },
+                };
+                data.classes[classId].schema["Record"] = "thing-record";
+                data.classes[classId].schema["Check"] = $"{classId}-check";
+            }
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            var ran = new List<string>();
+            client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+            {
+                ["thing-record"] = (_, receiver, _) =>
+                {
+                    ran.Add(NeoGeneratedTypesSupport.ValueId(receiver)!);
+                    return null;
+                },
+            });
+
+            client.StartEffects();
+
+            NeoMemberClassWritable thing = client.save.Get<NeoMemberClassWritable>("Thing");
+            var live = thing.Get<NeoMemberList>("Children")
+                .Select(entry => ((NeoMemberClassWritable)entry).value!.id)
+                .Prepend(thing.value!.id)
+                .ToList();
+            Assert.Greater(live.Count, 1, "The live Thing constructs entries.");
+            CollectionAssert.AreEquivalent(live, ran, "Only the live Thing and its entries run; the variant's template and its entries do not.");
         }
 
         /// <summary>
@@ -5650,6 +5724,77 @@ namespace NeoCompose.Tests
             ((ClassMember)data.members["thing-nested"]).valueId =
                 "nested-template";
             return data;
+        }
+
+        // Thing.Variants.Other: Initialize is `new Thing()`.
+        private static void AddThingVariant(ProjectData data)
+        {
+            var variantClass = SchemaClass("thing-variant-class", "NeoVariant", NeoMemberStorage.Immutable);
+            variantClass.schema["Initialize"] = "thing-variant-initialize";
+            data.classes[variantClass.id] = variantClass;
+            data.members["thing-variant-initialize"] = new DelegateMember
+            {
+                id = "thing-variant-initialize",
+                projectId = "p75-project",
+                name = "Initialize",
+                kind = MemberKind.NSDelegate,
+                Requirement = NeoMemberRequirementKind.Optional,
+                Storage = NeoMemberStorage.Immutable,
+                returnTypeInfo = ClassType("thing-class"),
+                argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
+            };
+            data.values["thing-variant-graph"] = ObjectValue(
+                "thing-variant-graph",
+                variantClass.id,
+                new Dictionary<string, string> { ["Initialize"] = "thing-variant-closure" });
+            data.values["thing-variant-closure"] = new DelegateMemberValue
+            {
+                id = "thing-variant-closure",
+                value = new NeoDelegateValue
+                {
+                    code = "() => new Thing()",
+                    action = new FunctionWithReturnType
+                    {
+                        compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                        parameters = new[]
+                        {
+                            ConstructorVariable("__this__", ClassType("thing-class")),
+                            ConstructorVariable("__root__", ClassType("__root__")),
+                        },
+                        typeInfo = ClassType("thing-class"),
+                        instructions = new Instruction[]
+                        {
+                            new ReturnInstruction
+                            {
+                                type = InstructionKind.Return,
+                                pointer = new FunctionPointer
+                                {
+                                    type = PointerKind.Function,
+                                    function = new DeclaredConstructorFunction
+                                    {
+                                        type = FunctionKind.DeclaredConstructor,
+                                        info = new DeclaredConstructorInfo
+                                        {
+                                            schemaClassInfo = ClassType("thing-class"),
+                                            constructorId = "thing-ctor",
+                                            args = Array.Empty<DeclaredConstructorArgument>(),
+                                            fields = Array.Empty<FunctionClassConstructorField>(),
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            };
+            data.variants["thing-variant"] = new VariantRecord
+            {
+                id = "thing-variant",
+                projectId = "p75-project",
+                classId = "thing-class",
+                name = "Other",
+                valueId = "thing-variant-graph",
+            };
         }
 
         /// <summary>
