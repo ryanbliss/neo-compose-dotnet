@@ -29,6 +29,7 @@ namespace NeoCompose.Unity.Editor
         {
             public int schemaVersion;
             public string projectId = "";
+            public string? codegenRevision;
             public List<Entry> files = new();
         }
 
@@ -40,7 +41,7 @@ namespace NeoCompose.Unity.Editor
         }
 
         public NeoComposeGeneratedFiles(INeoComposeEditorAssetService assets,
-            string directory, string projectId, IReadOnlyList<NeoComposeGeneratedFile> files)
+            string directory, string projectId, IReadOnlyList<NeoComposeGeneratedFile> files, string? codegenRevision = null)
         {
             this.assets = assets;
             this.directory = directory;
@@ -48,7 +49,7 @@ namespace NeoCompose.Unity.Editor
                 throw new InvalidOperationException("The full export returned empty generated C#. Update the Neo Compose server and synchronize again.");
             var expected = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var identities = new HashSet<string>(StringComparer.Ordinal);
-            var manifest = new Manifest { schemaVersion = SchemaVersion, projectId = projectId };
+            var manifest = new Manifest { schemaVersion = SchemaVersion, projectId = projectId, codegenRevision = codegenRevision };
             var previous = ReadManifest(assets, ManifestPath);
             var previousFiles = previous?.files ?? new List<Entry>();
             var previousById = previousFiles.ToDictionary(file => file.id);
@@ -96,8 +97,9 @@ namespace NeoCompose.Unity.Editor
         public IEnumerable<string> ReplacedPaths => deletes.Concat(writes.Select(file => file.path)).Concat(metadata.Keys);
 
         // The manifest is local integrity evidence, independent of runtime compatibility hashes.
-        public static bool IsCurrent(INeoComposeEditorAssetService assets, string directory, string projectId)
+        public static bool IsCurrent(INeoComposeEditorAssetService assets, string directory, string projectId, out string? codegenRevision)
         {
+            codegenRevision = null;
             try
             {
                 if (assets.FileExists(NeoComposePathUtility.CombineAssetPath(directory,
@@ -107,6 +109,7 @@ namespace NeoCompose.Unity.Editor
                     NeoComposePathUtility.CombineAssetPath(directory, ManifestFileName));
                 if (manifest == null || manifest.projectId != projectId)
                     return false;
+                codegenRevision = manifest.codegenRevision;
                 return manifest.files.All(file =>
                 {
                     var path = NeoComposePathUtility.CombineAssetPath(directory, file.path);

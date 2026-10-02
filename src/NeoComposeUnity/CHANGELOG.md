@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.50.1] - 2026-10-02
+
+- Synchronization refreshes generated code after server codegen changes, including projects with no record edits. The generated-file manifest stores the server revision and sends it with incremental requests. Missing or changed revisions force one full export while unchanged C# contents still use hash negotiation. SDK package versions do not invalidate the export.
+- `ExportProjectDeltaAsync` accepts an optional `codegenRevision` argument; full and incremental export responses expose the server revision.
+
 ## [0.50.0] - 2026-10-02
 
 - `NeoClient.RunTransaction(Action)` holds the `OnChanged` handlers a block of C# writes reaches until the block returns, as a NeoScript execution already does: each changed field raises once, after every write. Writes still commit as they happen, so reads inside see them. Nothing rolls back when the block throws, and the held handlers still run. Transactions nest, and NeoScript executions inside join the outermost. Watering 288 plants in Neowyn with its loop wrapped took 185–209 ms instead of 328–355 ms, with a 194–219 ms worst frame instead of 339–366 ms; it allocates up to 0.8 MB more for the held changes.

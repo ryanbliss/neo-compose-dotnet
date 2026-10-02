@@ -135,6 +135,16 @@ namespace NeoCompose.Tests
             Assert.AreEqual("hash", response.generatedFiles[0].contentHash);
         }
 
+        [Test]
+        public async Task DeltaExport_SendsCachedGeneratorRevision()
+        {
+            var http = new FakeHttpClient();
+            var client = NewClient(new FakeProvider("token"), http);
+            await client.ExportProjectDeltaAsync(ApiBaseUrl, ProjectId, VersionId,
+                new NeoComposeUnityExportCursor(), "cached-generator");
+            Assert.AreEqual("cached-generator", JObject.Parse(http.sends[0].body!)["codegenRevision"]?.Value<string>());
+        }
+
         // UAUTH-030
         [Test]
         public async Task EveryAuthorizedRequest_AttachesBearerToken()

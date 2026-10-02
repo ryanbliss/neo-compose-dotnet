@@ -137,7 +137,7 @@ namespace NeoCompose.Unity.Editor
                 }
 
                 var generatedFiles = isIncremental ? null : new NeoComposeGeneratedFiles(
-                    assets, config.generatedTypesDirectory, config.projectId, exportResponse.generatedFiles);
+                    assets, config.generatedTypesDirectory, config.projectId, exportResponse.generatedFiles, exportResponse.codegenRevision);
 
                 if (diagnosticErrors.Length > 0)
                 {
@@ -311,7 +311,8 @@ namespace NeoCompose.Unity.Editor
             };
             if (!assets.FileExists(projectJsonPath))
                 return null;
-            if (!NeoComposeGeneratedFiles.IsCurrent(assets, config.generatedTypesDirectory, config.projectId))
+            if (!NeoComposeGeneratedFiles.IsCurrent(assets, config.generatedTypesDirectory, config.projectId, out var codegenRevision)
+                || string.IsNullOrEmpty(codegenRevision))
                 return null;
 
             JObject root;
@@ -336,8 +337,10 @@ namespace NeoCompose.Unity.Editor
                 config.apiBaseUrl,
                 config.projectId,
                 config.versionId,
-                state.cursor);
-            if (delta.fullResync || delta.cursor == null)
+                state.cursor,
+                codegenRevision);
+            if (delta.fullResync || delta.cursor == null
+                || !string.Equals(codegenRevision, delta.codegenRevision, StringComparison.Ordinal))
                 return null;
             var readBase = RequireReadBase(delta.readBase);
             // Value records are the high-volume content path and map directly
