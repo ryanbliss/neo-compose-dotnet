@@ -306,6 +306,10 @@ namespace NeoCompose.Runtime.Json
         [JsonIgnore]
         internal NeoScript.NSGetterEvaluator.DetachedSlotSite? detachedSlots;
 
+        /// <summary>The held write batch shape (<see cref="NeoWriteBatch.Shape"/>) under which this read can't reach a pending collection.</summary>
+        [JsonIgnore]
+        internal int pendingUnreachedShape;
+
         void ISchemaResolutionSite.ForgetResolution()
         {
             resolvedMembers = null;

@@ -2384,32 +2384,30 @@ namespace NeoCompose.Runtime
             if (instruction.target.pointer is KeyOfPointer keyOfPointer)
             {
                 object? receiver;
-                if (client.PendingScriptWrites is not null && keyOfPointer.keyOf.pointer is KeyOfPointer collectionKeyOf)
+                if (client.PendingScriptWrites is { HasCollections: true } && WritesStorage(instruction.target))
                 {
-                    // An entry of a dictionary the held batch mutates is
-                    // written without reading the dictionary, which would
-                    // commit the batch.
-                    object? collectionReceiver = Eval(collectionKeyOf.keyOf.pointer, scope, ctx);
-                    if (PendingCollection(client, instruction.target, collectionKeyOf, collectionReceiver, scope, ctx)
-                        is NeoDictionaryWriteTarget pending)
+                    // An entry of a collection the held batch mutates is
+                    // written without reading the collection, which would
+                    // commit it.
+                    if (NSGetterEvaluator.EvalPendingCollection(
+                            keyOfPointer.keyOf.pointer, NSGetterEvaluator.PendingRead.Entry, scope, ctx, out receiver)
+                        is { } pending)
                     {
-                        pending.Set(client, ToStringKey(Eval(keyOfPointer.keyOf.key, scope, ctx), "Dictionary/class assignment key"), assigned, ctx);
+                        object? entryKey = Eval(keyOfPointer.keyOf.key, scope, ctx);
+                        if (pending is not NeoWriteBatch.PendingList)
+                            PendingDictionaryTarget(pending, instruction.target.typeInfo)
+                                .Set(client, ToStringKey(entryKey, "Dictionary/class assignment key"), assigned, ctx);
+                        else if (entryKey is string)
+                            throw new NSGetterRuntimeError(ListIdAssignmentError);
+                        else
+                            new NeoListIndexWriteTarget(pending.Row.id, ToInt(entryKey, "List assignment index"), instruction.target.typeInfo, pending.Ownership)
+                                .Write(client, assigned, ctx);
                         return default;
                     }
-                    receiver = NSGetterEvaluator.EvaluateKeyOf(collectionKeyOf, collectionReceiver, scope, ctx);
                 }
                 else
                 {
                     receiver = Eval(keyOfPointer.keyOf.pointer, scope, ctx);
-                    // So is one through an alias of the dictionary.
-                    if (client.PendingScriptWrites is NeoWriteBatch batch
-                        && WritesStorage(instruction.target)
-                        && FindValueId(receiver, ctx) is string receiverId
-                        && batch.Target(receiverId) is NeoDictionaryWriteTarget alias)
-                    {
-                        alias.Set(client, ToStringKey(Eval(keyOfPointer.keyOf.key, scope, ctx), "Dictionary/class assignment key"), assigned, ctx);
-                        return default;
-                    }
                 }
                 if (receiver is NeoScriptObject { attachedId: null } detached
                     && WritesSessionTarget(instruction.target.writability)
@@ -2768,6 +2766,11 @@ namespace NeoCompose.Runtime
                 // skips the snapshot the checks below would copy.
                 if (IsLocalListAdd(instruction) && scope.ReadLocalList(variablePointer) is { Read: false } unread)
                     return CollectionMutation.Unread(unread);
+                // Resolving an alias of a pending collection reads it, which
+                // would store it on every mutation.
+                if (client.PendingScriptWrites is { HasCollections: true } aliasBatch
+                    && NSGetterEvaluator.FindPendingTarget(variablePointer, scope, ctx, out _, out _, out _) is { } pendingAlias)
+                    return CollectionMutation.Target(PendingTarget(client, aliasBatch, pendingAlias, instruction.target.typeInfo));
                 if (!scope.TryGetValue(variablePointer.variableId, out var local))
                     throw new NSGetterRuntimeError($"Variable '{variablePointer.variableId}' is not in scope");
                 if (local is object?[] aliased
@@ -2793,7 +2796,25 @@ namespace NeoCompose.Runtime
             if (instruction.target.pointer is KeyOfPointer keyOfTarget
                 && instruction.target.typeInfo.type is MemberKind.List or MemberKind.Dictionary)
             {
-                object? receiver = Eval(keyOfTarget.keyOf.pointer, scope, ctx);
+                object? receiver;
+                if (client.PendingScriptWrites is { HasCollections: true } batch && WritesStorage(instruction.target))
+                {
+                    if (NSGetterEvaluator.FindPendingTarget(keyOfTarget, scope, ctx, out receiver, out var owner, out object? entry) is { } pending)
+                        return CollectionMutation.Target(PendingTarget(client, batch, pending, instruction.target.typeInfo));
+                    // An entry of a pending collection: its store is the
+                    // collection's, and reading the collection would commit it.
+                    if (owner is not null)
+                        return CollectionMutation.Target(ResolveCollectionTarget(client, new WriteTarget
+                        {
+                            pointer = keyOfTarget,
+                            typeInfo = instruction.target.typeInfo,
+                            writability = owner.Ownership == NeoValueOwnership.Save ? WritabilityKind.Save : WritabilityKind.Session,
+                        }, scope, ctx, evaluatedTarget: entry, targetEvaluated: true));
+                }
+                else
+                {
+                    receiver = Eval(keyOfTarget.keyOf.pointer, scope, ctx);
+                }
                 if (receiver is NeoScriptObject detached)
                 {
                     if (detached.attachedId is null
@@ -2805,12 +2826,14 @@ namespace NeoCompose.Runtime
                         return CollectionMutation.DetachedList(detached, slotIndex);
                     receiver = NSGetterEvaluator.ForwardDetached(detached, ctx);
                 }
-                if (PendingCollection(client, instruction.target, keyOfTarget, receiver, scope, ctx) is { } pending)
-                    return CollectionMutation.Target(pending);
                 return CollectionMutation.Target(ResolveCollectionTarget(client, instruction.target, scope, ctx,
                     evaluatedTarget: NSGetterEvaluator.EvaluateKeyOf(keyOfTarget, receiver, scope, ctx),
                     targetEvaluated: true, keyOfReceiver: receiver));
             }
+            if (instruction.target.pointer is ReferencePointer or StaticMemberPointer
+                && client.PendingScriptWrites is { HasCollections: true } rootBatch
+                && NSGetterEvaluator.FindPendingTarget(instruction.target.pointer, scope, ctx, out _, out _, out _) is { } root)
+                return CollectionMutation.Target(PendingTarget(client, rootBatch, root, instruction.target.typeInfo));
             if (instruction.target.pointer is StaticMemberPointer staticMember
                 && NeoGeneratedTypesSupport.StaticBinding(client, staticMember.memberId,
                     TargetOwnership(client, instruction.target, scope, ctx)).ValueId is null)
@@ -2818,34 +2841,47 @@ namespace NeoCompose.Runtime
             return CollectionMutation.Target(ResolveCollectionTarget(client, instruction.target, scope, ctx));
         }
 
-        /// <summary>
-        /// The collection a held write batch already mutates at
-        /// <paramref name="receiver"/>'s constant key, found without reading
-        /// it: a read commits the batch, so each of N mutations would cost N.
-        /// </summary>
+        private const string ListIdAssignmentError =
+            "Assignment through a List value-id index is read-only; mutate the returned entry or use a positional index.";
+
         private static bool WritesStorage(WriteTarget target) =>
             target.writability is WritabilityKind.Save or WritabilityKind.Session or WritabilityKind.Runtime or WritabilityKind.Local;
 
-        private static NeoResolvedCollectionTarget? PendingCollection(
+        /// <summary>
+        /// The target that mutates <paramref name="pending"/>. A list an
+        /// index write made pending has none yet, nor does a collection that
+        /// moved stores with its owner.
+        /// </summary>
+        private static NeoResolvedCollectionTarget PendingTarget(
             NeoClient client,
-            WriteTarget target,
-            KeyOfPointer keyOf,
-            object? receiver,
-            NeoScriptScope scope,
-            NSGetterEvaluator.Context ctx)
+            NeoWriteBatch batch,
+            NeoWriteBatch.PendingCollection pending,
+            TypeInfo collectionType)
         {
-            if (client.PendingScriptWrites is not NeoWriteBatch batch
-                || !WritesStorage(target)
-                || keyOf.keyOf.key is not ValuePointer
-                || Eval(keyOf.keyOf.key, scope, ctx) is not string key
-                || FindValueId(receiver, ctx) is not string receiverId
-                || !client.TryGetValue(receiverId, out ObjectMemberValue? receiverRow)
-                || receiverRow.value is null
-                || !receiverRow.value.TryGetValue(key, out string? rowId))
-                return null;
-            // A Runtime or Local target's store is the row's own, and a row
-            // id lives in one store.
-            return batch.Target(rowId) as NeoResolvedCollectionTarget;
+            if (pending.Target is NeoResolvedCollectionTarget target)
+                return target;
+            string id = pending.Row.id;
+            if (collectionType is LookupTypeInfo lookup)
+                target = new NeoLookupSetWriteTarget(id, lookup, pending.Ownership);
+            else if (pending is NeoWriteBatch.PendingList)
+            {
+                batch.ResolveMembers(pending);
+                target = new NeoListWriteTarget(id, EntryTypeInfo(collectionType), pending.EntryMember, pending.Ownership);
+            }
+            else
+                return PendingDictionaryTarget(pending, EntryTypeInfo(collectionType));
+            pending.Target = target;
+            return target;
+        }
+
+        // A move leaves a pending collection no target in its new store.
+        private static NeoDictionaryWriteTarget PendingDictionaryTarget(NeoWriteBatch.PendingCollection pending, TypeInfo entryType)
+        {
+            if (pending.Target is NeoDictionaryWriteTarget existing)
+                return existing;
+            var target = new NeoDictionaryWriteTarget(pending.Row.id, entryType, pending.Ownership);
+            pending.Target ??= target;
+            return target;
         }
 
         private static NeoResolvedCollectionTarget ResolveDetachedListTarget(
@@ -2968,7 +3004,7 @@ namespace NeoCompose.Runtime
             NeoScriptExecutionOptions? options,
             string resumeKey)
         {
-            var suspension = new DeferredNativeFunctionSuspension();
+            var suspension = new DeferredNativeFunctionSuspension(client);
             var deferredHandle = client.StartDeferredNativeFunction(
                 memberId,
                 receiver,
@@ -3576,8 +3612,7 @@ namespace NeoCompose.Runtime
             {
                 if (key is string)
                 {
-                    throw new NSGetterRuntimeError(
-                        "Assignment through a List value-id index is read-only; mutate the returned entry or use a positional index.");
+                    throw new NSGetterRuntimeError(ListIdAssignmentError);
                 }
                 return new NeoListIndexWriteTarget(receiverRowId, ToInt(key, "List assignment index"), targetType, ownership);
             }
@@ -3829,14 +3864,15 @@ namespace NeoCompose.Runtime
                 string importedId = client.ImportValueReference(
                     ownership,
                     sourceValueId,
-                    out bool sourceMoved,
+                    out HashSet<string>? movedIds,
                     currentDestinationValueId);
-                if (sourceMoved && hadSourceOwnership)
+                if (movedIds is not null && hadSourceOwnership)
                 {
                     NSGetterEvaluator.RetargetCachedRowsAfterMove(
                         ctx,
                         sourceOwnership,
-                        ownership);
+                        ownership,
+                        movedIds);
                 }
                 return importedId;
             }
@@ -3985,10 +4021,12 @@ namespace NeoCompose.Runtime
             object? value,
             string id,
             NeoTimestamp createdAt,
-            NeoTimestamp updatedAt)
+            NeoTimestamp updatedAt,
+            NSGetterEvaluator.Context ctx)
         {
             if (member is LookupMember lookup && value is not null)
                 value = NeoGeneratedTypesSupport.ConstructorLookupIds(value, lookup);
+            value = NeoGeneratedTypesSupport.MaterializeCollectionAssignment(client, member, value, ownership, ctx, plan);
             var payload = value is INeoValuePayloadProvider provider
                 ? provider.ToNeoValuePayload()
                 : value;
@@ -4351,18 +4389,29 @@ namespace NeoCompose.Runtime
         }
 
         // A member built from a TypeInfo names no schema entry member, so it
-        // can't reach a nested List or Dictionary's entries. Releasing one
-        // takes the schema member instead.
-        private static JsonMember ReleaseMember(NeoClient client, string valueId, TypeInfo typeInfo) =>
+        // can't reach a nested List or Dictionary's entries. Building or
+        // releasing one takes the schema member instead.
+        private static JsonMember RowMember(NeoClient client, string valueId, TypeInfo typeInfo) =>
             typeInfo.type is MemberKind.List or MemberKind.Dictionary
                 && client.TryInferMemberForValueId(valueId, out JsonMember? member)
                 ? member : MemberFromTypeInfo(typeInfo);
 
-        private static JsonMember EntryReleaseMember(NeoClient client, MemberValue collectionRow, TypeInfo entryTypeInfo) =>
+        private static JsonMember EntryMember(NeoClient client, MemberValue collectionRow, TypeInfo entryTypeInfo) =>
             entryTypeInfo.type is MemberKind.List or MemberKind.Dictionary
                 && client.TryInferMemberForValueId(collectionRow.id, out JsonMember? collection)
                 && client.TryResolveCollectionEntryMember(collection, collectionRow) is JsonMember entry
                 ? entry : MemberFromTypeInfo(entryTypeInfo);
+
+        /// <summary>
+        /// Stages a writable copy of authored collection row <paramref name="id"/>,
+        /// whose entry a write replaces in place: the collection joins the
+        /// writable store before its entry does.
+        /// </summary>
+        private static void ShadowAuthoredRow(NeoWritePlan plan, NeoClient client, NeoValueOwnership ownership, string id)
+        {
+            if (!plan.TryGetWritable(ownership, id, out _) && plan.TryGet(ownership, id, out MemberValue? authored))
+                plan.Set(ownership, client.CloneRowForWrite(authored!), silent: true);
+        }
 
         // An assigned value replaces the slot's row at the same id, so the
         // previous value's owned rows are released.
@@ -4381,9 +4430,17 @@ namespace NeoCompose.Runtime
             {
                 bool hadSourceOwnership = plan.TryGetOwnership(sourceValueId, out NeoValueOwnership sourceOwnership);
                 string importedId = client.ImportValueReference(plan, ownership, sourceValueId,
-                    out bool moved, currentDestinationValueId);
-                if (moved && hadSourceOwnership)
-                    plan.AfterCommit(() => NSGetterEvaluator.RetargetCachedRowsAfterMove(ctx, sourceOwnership, ownership));
+                    out HashSet<string>? movedIds, currentDestinationValueId);
+                if (movedIds is not null && hadSourceOwnership)
+                {
+                    // A held batch commits later, but the execution's aliases
+                    // read the moved rows now.
+                    Action retarget = () => NSGetterEvaluator.RetargetCachedRowsAfterMove(ctx, sourceOwnership, ownership, movedIds);
+                    if (plan.HeldBy is not null)
+                        plan.HeldBy.AfterCommit(retarget);
+                    else
+                        plan.AfterCommit(retarget);
+                }
                 return importedId;
             }
             catch (InvalidOperationException ex)
@@ -4429,16 +4486,18 @@ namespace NeoCompose.Runtime
                     {
                         throw new NSGetterRuntimeError($"Missing target row '{writableRowId}'.");
                     }
+                    JsonMember member = RowMember(client, writableRowId, typeInfo);
                     var next = CreateValueRow(
                         plan, client,
                         ownership,
-                        MemberFromTypeInfo(typeInfo),
+                        member,
                         value,
                         writableRowId,
                         existing.createdAt,
-                        NeoTimestamp.Now());
+                        NeoTimestamp.Now(),
+                        ctx);
                     next.classId = existing.classId;
-                    StoreReplacedRow(plan, client, ownership, next, ReleaseMember(client, writableRowId, typeInfo), ctx);
+                    StoreReplacedRow(plan, client, ownership, next, member, ctx);
                 });
             }
         }
@@ -4494,17 +4553,14 @@ namespace NeoCompose.Runtime
                             : NeoValueWritePayload.FromValueReference(
                                 valueId,
                                 value as INeoValueReference);
-                        binding.SetValue(payload);
-                        if (hadSourceOwnership
-                            && sourceOwnership == NeoValueOwnership.Session
-                            && binding.Ownership == NeoValueOwnership.Save
-                            && !client.HasWritableValue(sourceOwnership, valueId!)
-                            && client.HasWritableValue(binding.Ownership, valueId!))
+                        binding.SetValue(payload, out HashSet<string>? movedIds);
+                        if (hadSourceOwnership && movedIds is not null)
                         {
                             NSGetterEvaluator.RetargetCachedRowsAfterMove(
                                 ctx,
                                 sourceOwnership,
-                                binding.Ownership);
+                                binding.Ownership,
+                                movedIds);
                         }
                     }
                     else
@@ -4861,7 +4917,7 @@ namespace NeoCompose.Runtime
                             plan.AfterCommit(() => NSGetterEvaluator.InvalidateCachedCollection(existingId, ownership, ctx));
                             return;
                         }
-                        var replaced = CreateValueRow(plan, client, ownership, member, value, existingId, existing!.createdAt, now);
+                        var replaced = CreateValueRow(plan, client, ownership, member, value, existingId, existing!.createdAt, now, ctx);
                         replaced.classId = existing.classId;
                         StoreReplacedRow(plan, client, ownership, replaced, member, ctx);
                         return;
@@ -4887,7 +4943,7 @@ namespace NeoCompose.Runtime
                     else
                     {
                         var childId = Guid.NewGuid().ToString();
-                        var next = CreateValueRow(plan, client, ownership, member, value, childId, now, now);
+                        var next = CreateValueRow(plan, client, ownership, member, value, childId, now, now, ctx);
                         StoreWritableRow(plan, ownership, next, ctx);
                         linked.value![key] = childId;
                     }
@@ -5314,54 +5370,57 @@ namespace NeoCompose.Runtime
                 object? value,
                 NSGetterEvaluator.Context ctx)
             {
-                PrepareWrite(client, plan =>
+                string? referenceId = TryGetClassValueReferenceId(value, typeInfo, ctx, out string? id) ? id : null;
+                WriteCollection(client, parentRowId, null, batch =>
                 {
-                    PrepareWritableRow(plan, client, parentRowId, ownership);
-                    if (!client.TryGetValue(parentRowId, out ArrayMemberValue? parent)
-                        || parent.value == null
-                        || index < 0
-                        || index >= parent.value.Length)
-                    {
+                    EnsureWritableRow(client, parentRowId, ownership);
+                    NeoWritePlan plan = batch.Plan;
+                    // A value replaces the entry's row in place, which leaves
+                    // the list as it is; only a new entry changes it.
+                    var pending = batch.Collection(ownership, parentRowId) as NeoWriteBatch.PendingList;
+                    ArrayMemberValue? committed = null;
+                    if (pending is null && !plan.TryGet(ownership, parentRowId, out committed))
+                        throw new NSGetterRuntimeError($"Missing list row '{parentRowId}'.");
+                    int count = pending?.Count ?? committed!.value?.Length ?? 0;
+                    if (index < 0 || index >= count)
                         throw new NSGetterRuntimeError($"List index out of bounds: {index}");
-                    }
-                    var childId = parent.value[index];
-                    if (TryGetClassValueReferenceId(
-                            value,
-                            typeInfo,
-                            ctx,
-                            out string? referenceId))
+                    MemberValue listRow = pending?.Row ?? committed!;
+                    string childId = pending is not null ? pending[index] : committed!.value![index];
+                    if (referenceId is null)
                     {
-                        string importedId = ImportClassValueReference(
+                        if (!client.TryGetValue(childId, out MemberValue? existing))
+                            throw new NSGetterRuntimeError($"Missing list child row '{childId}'.");
+                        JsonMember entryMember = EntryMember(client, listRow, typeInfo);
+                        var next = CreateValueRow(
                             plan, client,
                             ownership,
-                            referenceId!,
-                            ctx,
-                            childId);
-                        if (importedId == childId)
-                            return;
-                        parent.value[index] = importedId;
-                        plan.AfterCommit(() => ctx.allocationTracker.RegisterConstructedParent(
-                            importedId,
-                            parentRowId));
-                        parent.updatedAt = NeoTimestamp.Now();
-                        StoreWritableRow(plan, ownership, parent, ctx);
-                        client.StageUnlinkedRemovals(plan, ownership, childId, EntryReleaseMember(client, parent, typeInfo));
+                            entryMember,
+                            value,
+                            childId,
+                            existing.createdAt,
+                            NeoTimestamp.Now(),
+                            ctx);
+                        next.classId = existing.classId;
+                        ShadowAuthoredRow(plan, client, ownership, parentRowId);
+                        StoreReplacedRow(plan, client, ownership, next, entryMember, ctx);
                         return;
                     }
-                    if (!client.TryGetValue(childId, out MemberValue? existing))
-                    {
-                        throw new NSGetterRuntimeError($"Missing list child row '{childId}'.");
-                    }
-                    var next = CreateValueRow(
+                    string importedId = ImportClassValueReference(
                         plan, client,
                         ownership,
-                        MemberFromTypeInfo(typeInfo),
-                        value,
-                        childId,
-                        existing.createdAt,
-                        NeoTimestamp.Now());
-                    next.classId = existing.classId;
-                    StoreReplacedRow(plan, client, ownership, next, EntryReleaseMember(client, parent, typeInfo), ctx);
+                        referenceId,
+                        ctx,
+                        childId);
+                    if (importedId == childId)
+                        return;
+                    // The list changes last: one that throws leaves it as it was.
+                    JsonMember released = EntryMember(client, listRow, typeInfo);
+                    NeoWriteBatch.PendingList list = batch.List(ownership, parentRowId, ctx, null);
+                    batch.Gain(ownership, importedId, parentRowId);
+                    batch.AfterCommit(() => ctx.allocationTracker.RegisterConstructedParent(
+                        importedId,
+                        parentRowId));
+                    batch.Release(ownership, list.Set(index, importedId, NeoTimestamp.Now()), released);
                 });
             }
         }
@@ -5480,10 +5539,6 @@ namespace NeoCompose.Runtime
                         out string? id)
                         ? id
                         : null;
-                // An import refuses a value another parent owns, which a
-                // pending entry's committed parent may no longer be.
-                if (inserts && referenceId is not null && client.PendingScriptWrites?.HoldsEntry(referenceId) == true)
-                    client.CommitScriptWrites();
                 WriteCollection(client, rowId, preparedPlan, batch =>
                 {
                     EnsureWritableRow(client, rowId, ownership);
@@ -5518,14 +5573,15 @@ namespace NeoCompose.Runtime
                                     batch.Plan.Set(ownership, CreateValueRow(
                                         batch.Plan, client,
                                         ownership,
-                                        MemberFromTypeInfo(entryTypeInfo),
+                                        EntryMember(client, list.Row, entryTypeInfo),
                                         args[mutation == CollectionMutationKind.Insert ? 1 : 0],
                                         childId,
                                         now,
-                                        now));
+                                        now,
+                                        ctx));
                                 }
                                 list.Insert(insertionIndex, childId, now);
-                                batch.Gain(childId);
+                                batch.Gain(ownership, childId, rowId);
                                 return;
                             }
                         case CollectionMutationKind.RemoveAt:
@@ -5533,7 +5589,7 @@ namespace NeoCompose.Runtime
                                 int index = ToInt(args[0], "RemoveAt index");
                                 if (index < 0 || index >= list.Count)
                                     throw new NSGetterRuntimeError($"List index out of bounds: {index}");
-                                batch.Release(ownership, list.RemoveAt(index, now), EntryReleaseMember(client, list.Row, entryTypeInfo));
+                                batch.Release(ownership, list.RemoveAt(index, now), EntryMember(client, list.Row, entryTypeInfo));
                                 return;
                             }
                         case CollectionMutationKind.Remove:
@@ -5543,13 +5599,13 @@ namespace NeoCompose.Runtime
                                     && (!client.TryGetValue(list[i], out MemberValue? child)
                                         || !JsEqual(ReadEntryValue(child, entryMember, ctx), args[0])))
                                     continue;
-                                batch.Release(ownership, list.RemoveAt(i, now), EntryReleaseMember(client, list.Row, entryTypeInfo));
+                                batch.Release(ownership, list.RemoveAt(i, now), EntryMember(client, list.Row, entryTypeInfo));
                                 return;
                             }
                             return;
                         case CollectionMutationKind.Clear:
                             {
-                                JsonMember releaseMember = EntryReleaseMember(client, list.Row, entryTypeInfo);
+                                JsonMember releaseMember = EntryMember(client, list.Row, entryTypeInfo);
                                 foreach (string clearedId in list.Clear(now))
                                     batch.Release(ownership, clearedId, releaseMember);
                                 return;
@@ -5672,34 +5728,34 @@ namespace NeoCompose.Runtime
                 NSGetterEvaluator.Context ctx)
             {
                 string? referenceId = TryGetClassValueReferenceId(value, entryTypeInfo, ctx, out string? id) ? id : null;
-                // An import refuses a value another parent owns, which a
-                // pending entry's committed parent may no longer be.
-                if (referenceId is not null && client.PendingScriptWrites?.HoldsEntry(referenceId) == true)
-                    client.CommitScriptWrites();
                 WriteCollection(client, rowId, preparedPlan, batch =>
                 {
                     EnsureWritableRow(client, rowId, ownership);
                     NeoWritePlan plan = batch.Plan;
-                    NeoWriteBatch.PendingCollection dictionary = batch.Dictionary(ownership, rowId, ctx, this);
-                    var row = (ObjectMemberValue)dictionary.Row;
                     NeoTimestamp now = NeoTimestamp.Now();
-                    // The staged row changes in place, which a failed
-                    // mutation can't undo, so it changes last.
-                    if (row.value!.TryGetValue(key, out string existingId)
+                    // A value replaces an existing entry's row in place, which
+                    // leaves the dictionary as it is; only a new entry changes it.
+                    MemberValue? current = batch.Collection(ownership, rowId)?.Row;
+                    if (current is null && !plan.TryGet(ownership, rowId, out current))
+                        throw new NSGetterRuntimeError($"Missing dictionary row '{rowId}'.");
+                    if (((ObjectMemberValue)current!).value?.TryGetValue(key, out string existingId) == true
                         && client.TryGetValue(existingId, out MemberValue? existing))
                     {
                         if (referenceId is null)
                         {
+                            JsonMember entryMember = EntryMember(client, current, entryTypeInfo);
                             var next = CreateValueRow(
                                 plan, client,
                                 ownership,
-                                MemberFromTypeInfo(entryTypeInfo),
+                                entryMember,
                                 value,
                                 existingId,
                                 existing.createdAt,
-                                now);
+                                now,
+                                ctx);
                             next.classId = existing.classId;
-                            StoreReplacedRow(plan, client, ownership, next, EntryReleaseMember(client, row, entryTypeInfo), ctx);
+                            ShadowAuthoredRow(plan, client, ownership, rowId);
+                            StoreReplacedRow(plan, client, ownership, next, entryMember, ctx);
                             return;
                         }
                         string replacementId = ImportClassValueReference(
@@ -5713,10 +5769,11 @@ namespace NeoCompose.Runtime
                         batch.AfterCommit(() => ctx.allocationTracker.RegisterConstructedParent(
                             replacementId,
                             rowId));
-                        batch.Release(ownership, existingId, EntryReleaseMember(client, row, entryTypeInfo));
-                        batch.Gain(replacementId);
-                        row.value[key] = replacementId;
-                        dictionary.Changes(now);
+                        batch.Release(ownership, existingId, EntryMember(client, current, entryTypeInfo));
+                        batch.Gain(ownership, replacementId, rowId);
+                        // The pending row changes in place, which a failed
+                        // mutation can't undo, so it changes last.
+                        Change(batch.Dictionary(ownership, rowId, ctx, this), key, replacementId, now);
                         return;
                     }
                     string childId;
@@ -5738,16 +5795,22 @@ namespace NeoCompose.Runtime
                         plan.Set(ownership, CreateValueRow(
                             plan, client,
                             ownership,
-                            MemberFromTypeInfo(entryTypeInfo),
+                            EntryMember(client, current, entryTypeInfo),
                             value,
                             childId,
                             now,
-                            now));
+                            now,
+                            ctx));
                     }
-                    batch.Gain(childId);
-                    row.value[key] = childId;
-                    dictionary.Changes(now);
+                    batch.Gain(ownership, childId, rowId);
+                    Change(batch.Dictionary(ownership, rowId, ctx, this), key, childId, now);
                 });
+            }
+
+            private static void Change(NeoWriteBatch.PendingCollection dictionary, string key, string id, NeoTimestamp now)
+            {
+                ((ObjectMemberValue)dictionary.Row).value![key] = id;
+                dictionary.Changes(now);
             }
 
             private void Remove(
@@ -5762,7 +5825,7 @@ namespace NeoCompose.Runtime
                     var row = (ObjectMemberValue)dictionary.Row;
                     if (!row.value!.TryGetValue(key, out string removedId))
                         return;
-                    batch.Release(ownership, removedId, EntryReleaseMember(client, row, entryTypeInfo));
+                    batch.Release(ownership, removedId, EntryMember(client, row, entryTypeInfo));
                     row.value.Remove(key);
                     dictionary.Changes(NeoTimestamp.Now());
                 });
@@ -5777,7 +5840,7 @@ namespace NeoCompose.Runtime
                     EnsureWritableRow(client, rowId, ownership);
                     NeoWriteBatch.PendingCollection dictionary = batch.Dictionary(ownership, rowId, ctx, this);
                     var row = (ObjectMemberValue)dictionary.Row;
-                    JsonMember releaseMember = EntryReleaseMember(client, row, entryTypeInfo);
+                    JsonMember releaseMember = EntryMember(client, row, entryTypeInfo);
                     foreach (string removedId in row.value!.Values)
                         batch.Release(ownership, removedId, releaseMember);
                     row.value.Clear();
@@ -6661,12 +6724,14 @@ namespace NeoCompose.Runtime
             var failureObserver = this.failureObserver;
             var abandonmentObserver = this.abandonmentObserver;
             var resume = this.resume;
+            var suspension = this.suspension;
 
             if (suspension == null || resume == null)
             {
                 throw new InvalidOperationException(
                     "Cannot attach deferred handlers to a completed action result.");
             }
+            NeoClient client = suspension.Client;
             void FailObserved(Exception exception)
             {
                 if (failureRecovery is not null)
@@ -6674,7 +6739,17 @@ namespace NeoCompose.Runtime
                     NeoScriptExecutionResult? recovered;
                     try
                     {
-                        recovered = failureRecovery(exception);
+                        // The catch frames' mutations batch as the frames
+                        // that suspended them did.
+                        client.EnterScriptWrites();
+                        try
+                        {
+                            recovered = failureRecovery(exception);
+                        }
+                        finally
+                        {
+                            client.ExitScriptWrites();
+                        }
                     }
                     catch (Exception recoveryException)
                     {
@@ -6712,7 +6787,17 @@ namespace NeoCompose.Runtime
                     NeoScriptExecutionResult resumed;
                     try
                     {
-                        resumed = resume(value);
+                        // The resumed frames' mutations batch as the frames
+                        // that suspended them did.
+                        client.EnterScriptWrites();
+                        try
+                        {
+                            resumed = resume(value);
+                        }
+                        finally
+                        {
+                            client.ExitScriptWrites();
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -6892,6 +6977,7 @@ namespace NeoCompose.Runtime
 
     internal sealed class DeferredNativeFunctionSuspension
     {
+        internal readonly NeoClient Client;
         private readonly object sync = new();
         private Action<object?>? completeContinuation;
         private Action<Exception>? failContinuation;
@@ -6904,6 +6990,8 @@ namespace NeoCompose.Runtime
         private Exception? abandonmentException;
         private bool invokerReturned;
         private bool completedInline;
+
+        internal DeferredNativeFunctionSuspension(NeoClient client) => Client = client;
 
         internal void Complete(object? completedValue)
         {

@@ -89,9 +89,23 @@ namespace NeoCompose.Runtime
             return CreateOwnedChild(client, childMember, overrideValueId, writableFamily: false);
         }
 
-        public NeoMember this[int index] => childMembers[index];
+        public NeoMember this[int index]
+        {
+            get
+            {
+                ObserveScriptWrites();
+                return childMembers[index];
+            }
+        }
 
-        public int Count => childMembers.Count;
+        public int Count
+        {
+            get
+            {
+                ObserveScriptWrites();
+                return childMembers.Count;
+            }
+        }
 
         internal NeoListChangedArgs? ActiveListChange
         {
@@ -119,11 +133,17 @@ namespace NeoCompose.Runtime
             }
         }
 
-        public IEnumerator<NeoMember> GetEnumerator() =>
-            childMembers.GetEnumerator();
+        public IEnumerator<NeoMember> GetEnumerator()
+        {
+            ObserveScriptWrites();
+            return childMembers.GetEnumerator();
+        }
 
-        internal List<NeoMember>.Enumerator ChildEnumerator() =>
-            childMembers.GetEnumerator();
+        internal List<NeoMember>.Enumerator ChildEnumerator()
+        {
+            ObserveScriptWrites();
+            return childMembers.GetEnumerator();
+        }
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
@@ -199,6 +219,7 @@ namespace NeoCompose.Runtime
         {
             if (valueId is null)
                 throw new ArgumentNullException(nameof(valueId));
+            ObserveScriptWrites();
             EnsureIdentityIndex();
             IndexDiagnostics.IdentityLookupCount += 1;
             return childrenByValueId!.TryGetValue(valueId, out child);
@@ -208,6 +229,7 @@ namespace NeoCompose.Runtime
         {
             if (valueId is null)
                 throw new ArgumentNullException(nameof(valueId));
+            ObserveScriptWrites();
             EnsureIdentityIndex();
             IndexDiagnostics.IdentityLookupCount += 1;
             return childrenByValueId!.ContainsKey(valueId);
@@ -583,6 +605,8 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal void AddSerialized(NeoValueWritePayload? entryValue)
         {
+            // Commits a held script batch before the plan takes its base revision.
+            ObserveScriptWrites();
             var plan = new NeoWritePlan(client);
             PrepareAddSerialized(plan, entryValue);
             plan.Commit();
@@ -603,6 +627,7 @@ namespace NeoCompose.Runtime
 
         internal string PrepareAddSerialized(NeoWritePlan plan, NeoValueWritePayload? entryValue)
         {
+            ObserveScriptWrites();
             string id = PrepareAddSerializedCore(plan, entryValue);
             plan.ReportsOwnChange(this);
             plan.AfterCommit(refreshAfterCommit ??= () => RefreshCommittedValue());
@@ -693,6 +718,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal void SetSerialized(int index, NeoValueWritePayload? entryValue)
         {
+            ObserveScriptWrites();
             if (IsUnordered)
             {
                 throw new System.InvalidOperationException(
@@ -799,6 +825,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         public void RemoveAt(int index)
         {
+            ObserveScriptWrites();
             if (IsUnordered)
             {
                 var entryIds = ResolveEntryValueIds();
@@ -843,6 +870,7 @@ namespace NeoCompose.Runtime
 
         internal void ClearSerialized()
         {
+            ObserveScriptWrites();
             if (IsUnordered)
             {
                 ClearSerializedUnordered();
@@ -888,6 +916,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         public void Remove(NeoMember entry)
         {
+            ObserveScriptWrites();
             if (entry is null)
                 throw new System.ArgumentNullException(nameof(entry));
             string? entryValueId = entry.value?.id;
@@ -907,6 +936,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         public void RemoveById(string entryValueId)
         {
+            ObserveScriptWrites();
             if (!IsUnordered)
             {
                 var orderedIds = ResolveEntryValueIds();
@@ -1028,6 +1058,8 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal void AssignSerialized(NeoValueWritePayload? setValue)
         {
+            // Commits a held script batch before the plan takes its base revision.
+            ObserveScriptWrites();
             var plan = new NeoWritePlan(client);
             PrepareAssignSerialized(plan, setValue);
             plan.Commit();
@@ -1035,6 +1067,7 @@ namespace NeoCompose.Runtime
 
         internal void PrepareAssignSerialized(NeoWritePlan plan, NeoValueWritePayload? setValue)
         {
+            ObserveScriptWrites();
             if (!IsUnordered)
                 throw new System.InvalidOperationException($"List '{member.id}' is ordered.");
             bool isNull = setValue is null || setValue.isNull;

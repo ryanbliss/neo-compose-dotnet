@@ -74,18 +74,19 @@ namespace NeoCompose.Runtime
         // Each staged row's prior state while a checkpoint is open.
         private List<RowEntry>? journal;
         private int openCheckpoints;
+        /// <summary>The held script batch this plan stages for, which every row it stages touches.</summary>
+        internal NeoWriteBatch? HeldBy;
 
         internal NeoWritePlan(NeoClient client)
         {
-            client.CommitScriptWrites();
             Client = client;
             BaseRevision = client.WriteRevision;
         }
 
         /// <summary>
-        /// Takes the current revision as this plan's base. Only a script
-        /// write batch does: nothing commits under it but leaf writes, and
-        /// it commits before any leaf write over a row it stages.
+        /// Takes the current revision as this plan's base. Only a held
+        /// script batch's plan does: it commits before anything else reads
+        /// or writes a row it stages.
         /// </summary>
         internal void Rebase() => BaseRevision = Client.WriteRevision;
 
@@ -280,6 +281,10 @@ namespace NeoCompose.Runtime
         /// <summary>Stages <paramref name="row"/> at <paramref name="key"/>, keeping a built parent index current.</summary>
         private void Restage((NeoValueOwnership ownership, string id) key, MemberValue? row)
         {
+            if (HeldBy is not null)
+                HeldBy.Touch(key.id);
+            else if (Client.PendingScriptWrites is not null)
+                Client.ObserveScriptWrites(key.id);
             if (parentCandidates is not null && Rows.TryGetValue(key, out MemberValue? previous))
                 IndexParentCandidates(key.ownership, previous, add: false);
             Rows[key] = row;
@@ -513,6 +518,11 @@ namespace NeoCompose.Runtime
             get; private set;
         }
 
+        // The revision of the latest write a prepared plan conflicts with. A
+        // held script batch's commits don't count: a plan that reads or
+        // writes a row the batch stages commits it first.
+        private long foreignWriteRevision;
+
         private NeoWritePlan? candidateReadPlan;
         internal MemberValue? ResolveWritePlanGlobalFallback(NeoWritePlan plan, string id)
         {
@@ -580,6 +590,24 @@ namespace NeoCompose.Runtime
 
         internal void CommitWritePlan(NeoWritePlan plan)
         {
+            if (scriptWriteBatch is null)
+            {
+                CommitPreparedPlan(plan);
+                return;
+            }
+            commitsUnderScriptBatch++;
+            try
+            {
+                CommitPreparedPlan(plan);
+            }
+            finally
+            {
+                commitsUnderScriptBatch--;
+            }
+        }
+
+        private void CommitPreparedPlan(NeoWritePlan plan)
+        {
 #if NEO_COMPOSE_PROFILING
             using var marker = CommitWriteMarker.Auto();
 #endif
@@ -624,10 +652,10 @@ namespace NeoCompose.Runtime
                 if (pair.Value is not null)
                     StampMapKeyForWrite(pair.Key.ownership, pair.Value);
 
-            if (plan.BaseRevision != WriteRevision)
+            if (plan.BaseRevision < foreignWriteRevision)
                 throw new InvalidOperationException("The data graph changed while this write was being prepared.");
             CandidateReplay? preparedExpansions = ValidatePreparedWrite(plan);
-            if (plan.BaseRevision != WriteRevision)
+            if (plan.BaseRevision < foreignWriteRevision)
                 throw new InvalidOperationException("The data graph changed during candidate validation.");
             foreach (var row in plan.Rows)
                 if (TryGetCommittedOwnership(row.Key.id, out var previousOwnership)
@@ -697,6 +725,8 @@ namespace NeoCompose.Runtime
                     TouchWritableStoreUpdatedAt(pair.Key.ownership);
                 }
                 WriteRevision++;
+                if (plan.HeldBy is null)
+                    foreignWriteRevision = WriteRevision;
                 BeginChangeBatch();
                 batched = true;
                 InstallCandidateExpansions(preparedExpansions, changed);
@@ -843,7 +873,10 @@ namespace NeoCompose.Runtime
             NeoWritePlan plan, NeoValueOwnership ownership, MemberValue next, Member? member,
             string? changedField = null)
         {
-            MemberValue? previous = plan.Resolve(ownership, next.id);
+            // A pending collection's row is the one replaced, and preparing
+            // the batch must not restage it over the replacement.
+            MemberValue? previous = plan.HeldBy?.PendingRow(ownership, next.id) ?? plan.Resolve(ownership, next.id);
+            plan.HeldBy?.Discard(ownership, next.id);
             plan.Set(ownership, next, changedField);
             StageVirtualFootprintRemoval(plan, ownership, next.id);
             if (previous is null)
@@ -873,7 +906,7 @@ namespace NeoCompose.Runtime
         {
             if (reachable?.Contains(valueId) == true || !visited.Add(valueId))
                 return;
-            MemberValue? row = plan.Resolve(ownership, valueId);
+            MemberValue? row = plan.HeldBy?.PendingRow(ownership, valueId) ?? plan.Resolve(ownership, valueId);
             if (row is not null)
             {
                 foreach (var child in EnumerateOwnedChildLinks(row, member))
@@ -894,6 +927,7 @@ namespace NeoCompose.Runtime
             }
             if (tombstone)
             {
+                plan.HeldBy?.Discard(ownership, valueId);
                 NeoTimestamp now = NeoTimestamp.Now();
                 plan.Set(ownership, new NullMemberValue
                 {
@@ -904,7 +938,8 @@ namespace NeoCompose.Runtime
                 }, "mark");
                 StageVirtualFootprintRemoval(plan, ownership, valueId);
             }
-            else if (plan.TryGetWritable(ownership, valueId, out _))
+            // A pending collection is writable once the held batch commits.
+            else if (plan.TryGetWritable(ownership, valueId, out _) || plan.HeldBy?.Collection(ownership, valueId) is not null)
             {
                 if (removals is not null)
                     removals.Add(valueId);
@@ -915,6 +950,7 @@ namespace NeoCompose.Runtime
 
         private void RemoveOwnedRow(NeoWritePlan plan, NeoValueOwnership ownership, string valueId)
         {
+            plan.HeldBy?.Discard(ownership, valueId);
             plan.Remove(ownership, valueId);
             StageVirtualFootprintRemoval(plan, ownership, valueId);
         }

@@ -3,6 +3,7 @@
 
 #nullable enable
 
+using System.Collections.Generic;
 using NeoCompose.Runtime.Json;
 
 namespace NeoCompose.Runtime
@@ -171,12 +172,17 @@ namespace NeoCompose.Runtime
         /// null clears the binding (a binding tombstone), rather than creating
         /// a typeless/null synthetic row.
         /// </summary>
-        public void SetValue(NeoValueWritePayload? payload)
+        public void SetValue(NeoValueWritePayload? payload) => SetValue(payload, out _);
+
+        /// <inheritdoc cref="SetValue(NeoValueWritePayload)"/>
+        /// <param name="movedValueIds">The rows a bound reference moved here rather than copied; null when none moved.</param>
+        internal void SetValue(NeoValueWritePayload? payload, out HashSet<string>? movedValueIds)
         {
             EnsureWritable();
+            movedValueIds = null;
             if (payload?.isValueReference == true)
             {
-                BindValueReference(payload);
+                movedValueIds = BindValueReference(payload);
                 return;
             }
             if (payload is null || payload.isNull)
@@ -289,7 +295,7 @@ namespace NeoCompose.Runtime
             return valueId;
         }
 
-        private void BindValueReference(NeoValueWritePayload payload)
+        private HashSet<string>? BindValueReference(NeoValueWritePayload payload)
         {
             if (member is not ClassMember classMember)
             {
@@ -313,7 +319,7 @@ namespace NeoCompose.Runtime
 
             var plan = new NeoWritePlan(client);
             string importedValueId = sourceValueId;
-            bool sourceMoved = false;
+            HashSet<string>? movedValueIds = null;
             if (client.TryGetValueOwnership(
                     sourceValueId,
                     out NeoValueOwnership sourceOwnership)
@@ -323,7 +329,7 @@ namespace NeoCompose.Runtime
                 importedValueId = client.ImportValueReference(
                     plan, Ownership,
                     sourceValueId,
-                    out sourceMoved,
+                    out movedValueIds,
                     ValueId);
             }
             string? expectedMapKey = client.ResolveStaticMapKey(member);
@@ -348,12 +354,13 @@ namespace NeoCompose.Runtime
                 plan.Set(Ownership, stamped);
             }
             plan.Bind(Ownership, member.id, true, importedValueId);
-            if (sourceMoved)
+            if (movedValueIds is not null)
             {
                 plan.AfterCommit(() => payload.RetargetMovedReference(
                     client, member, importedValueId, Ownership));
             }
             plan.Commit();
+            return movedValueIds;
         }
 
         private bool IsAssignableNeoSchemaClass(string actualClassId, string expectedClassId)

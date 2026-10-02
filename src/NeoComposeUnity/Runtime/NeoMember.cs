@@ -55,6 +55,13 @@ namespace NeoCompose.Runtime
         }
         internal NeoNodeKey RegistryKey => new(member.RuntimeDeclarationIdentity, overrideValueId, ownership);
         private MemberValue? boundValue;
+
+        /// <summary>
+        /// Commits what a held NeoScript batch holds pending of this node's
+        /// row before C# reads or writes it: the node holds the committed row.
+        /// </summary>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        internal void ObserveScriptWrites() => client.ObserveHostRead(boundValue?.id);
         // The value node the typed value read last resolved.
         private protected NeoValueNode? valueNode;
 

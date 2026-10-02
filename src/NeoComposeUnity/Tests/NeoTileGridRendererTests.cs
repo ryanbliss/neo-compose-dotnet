@@ -539,6 +539,82 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void NeoScriptGridQueryLeavesAnUnrelatedPendingListPending()
+        {
+            var data = BuildClassBackedTileGridProjectData();
+            data.classes["root-class"].schema["Log"] = "log-member";
+            data.members["log-member"] = new ListMember { id = "log-member", name = "Log", kind = MemberKind.List, entryMemberId = "log-entry-member" };
+            data.members["log-entry-member"] = new StringMember { id = "log-entry-member", name = "Entry", kind = MemberKind.String };
+            ((ObjectMemberValue)data.values["root-save-value"]).value["Log"] = "log";
+            data.values["log"] = new ArrayMemberValue { id = "log", value = Array.Empty<string>() };
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid",
+                BuildClassBackedReadOnlyFactories(), BuildClassBackedWritableFactories());
+            client.ScriptGridQueries.RegisterContent(new TestTileGridContent(primitive, Array.Empty<IReadOnlyNeoTileLayerRuntime>(),
+                new[] { primitive.BindReadOnlyObjectLayer<TestAuthoredObjectLayer>(ObjectsLayerClassId, new[] { ObjectClassId }) }));
+            client.ScriptGridQueries.Bind("shop-1", "town-grid", ObjectsLayerClassId, "shop-1");
+            var ctx = client.CreateGetterContext(NeoValueOwnership.Asset);
+            object? receiver = NSGetterEvaluator.UnwrapRow(client.ResolveValueRow("shop-1")!, ctx, NeoValueOwnership.Asset);
+            int logCommits = 0;
+            client.OnWritableValuesPublished += (_, plan) =>
+            {
+                if (plan.Rows.ContainsKey((NeoValueOwnership.Save, "log")))
+                    logCommits++;
+            };
+            var stringType = new PrimitiveTypeInfo { type = MemberKind.String, required = true };
+            var add = new FunctionWithReturnType
+            {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                parameters = Array.Empty<Variable>(),
+                typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null, required = true },
+                instructions = new Instruction[]
+                {
+                    new CollectionCallInstruction
+                    {
+                        type = InstructionKind.CollectionCall,
+                        target = new WriteTarget
+                        {
+                            // Save.Log
+                            pointer = new KeyOfPointer
+                            {
+                                type = PointerKind.KeyOf,
+                                keyOf = new KeyOf
+                                {
+                                    pointer = new ReferencePointer { type = PointerKind.Reference, valueId = "root-save-value" },
+                                    key = new ValuePointer { type = PointerKind.Value, value = new Value { typeInfo = stringType, value = new JValue("Log") } },
+                                },
+                            },
+                            typeInfo = new CollectionTypeInfo { type = MemberKind.List, required = true, entryTypeInfo = stringType },
+                            writability = WritabilityKind.Save,
+                        },
+                        mutation = CollectionMutationKind.Add,
+                        args = new Pointer[] { new ValuePointer { type = PointerKind.Value, value = new Value { typeInfo = stringType, value = new JValue("x") } } },
+                    },
+                },
+            };
+
+            // One execution that alternates Log.Add with grid queries.
+            client.EnterScriptWrites();
+            try
+            {
+                for (int i = 0; i < 3; i++)
+                {
+                    NeoScriptExecutor.Execute(client, add, new Dictionary<string, object?>(), ctx);
+                    Assert.IsTrue(client.ScriptGridQueries.TryInvoke("system_df1c2d06-eeec-5340-addc-740f3668c9e4", receiver,
+                        Array.Empty<object?>(), ctx, out object? cell));
+                    Assert.AreEqual(new Vector2Int(10, 20), NeoGeneratedTypesSupport.ReadVector2IntValue(cell));
+                }
+            }
+            finally
+            {
+                client.ExitScriptWrites();
+            }
+
+            Assert.AreEqual(1, logCommits, "A grid query must not store a pending list no layer index reads.");
+            Assert.AreEqual(3, ((ArrayMemberValue)client.saveValues["log"]).value!.Length);
+        }
+
+        [Test]
         public void NeoScriptGridQuery_ReResolvesAHeldPlacementWhenItsLayerIndexIsDropped()
         {
             using var client = NeoTestSaveStack.ClientFromSchema(BuildClassBackedTileGridProjectData());

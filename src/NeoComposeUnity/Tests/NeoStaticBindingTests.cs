@@ -1667,9 +1667,9 @@ namespace NeoCompose.Tests
             string savedParentId = client.ImportValueReference(
                 NeoValueOwnership.Save,
                 stagedParentId,
-                out bool sourceMoved);
+                out HashSet<string>? movedIds);
 
-            Assert.IsTrue(sourceMoved);
+            Assert.IsNotNull(movedIds);
             Assert.AreEqual(stagedParentId, savedParentId);
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Save,
@@ -1742,9 +1742,9 @@ namespace NeoCompose.Tests
             string importedParentId = client.ImportValueReference(
                 NeoValueOwnership.Save,
                 parentId,
-                out bool sourceMoved);
+                out HashSet<string>? movedIds);
 
-            Assert.IsFalse(sourceMoved);
+            Assert.IsNull(movedIds);
             Assert.AreNotEqual(parentId, importedParentId);
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Save,
@@ -1781,9 +1781,9 @@ namespace NeoCompose.Tests
             string importedChildId = client.ImportValueReference(
                 NeoValueOwnership.Save,
                 childId,
-                out bool sourceMoved);
+                out HashSet<string>? movedIds);
 
-            Assert.IsFalse(sourceMoved);
+            Assert.IsNull(movedIds);
             Assert.AreNotEqual(childId, importedChildId);
             Assert.IsTrue(client.TryFindOwnedParent(
                 NeoValueOwnership.Session,

@@ -283,6 +283,18 @@ namespace NeoCompose.Runtime
                 GetObjectLayerIndex(layerId);
         }
 
+        /// <summary>Whether a built layer index read row <paramref name="valueId"/>.</summary>
+        internal bool DependsOn(string valueId)
+        {
+            foreach (TileLayerIndex layer in tileLayers.Values)
+                if (layer.DependencyIds.Contains(valueId))
+                    return true;
+            foreach (ObjectLayerIndex layer in objectLayers.Values)
+                if (layer.DependencyIds.Contains(valueId))
+                    return true;
+            return false;
+        }
+
         private static void InvalidateDependents<TIndex>(
             Dictionary<string, TIndex> indexes,
             Dictionary<string, TIndex> changedIndexes,

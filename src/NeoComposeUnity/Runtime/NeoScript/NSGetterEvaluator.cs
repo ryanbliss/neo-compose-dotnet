@@ -3941,9 +3941,19 @@ namespace NeoCompose.Runtime.NeoScript
             bool optional,
             string? pinnedMemberId)
         {
+            object? receiver;
+            if (ctx.client.PendingScriptWrites is { HasCollections: true } batch
+                && keyOf.pendingUnreachedShape != batch.Shape
+                && MayReachPending(keyOf, batch, scope, ctx))
+            {
+                if (EvalPendingCollection(keyOf.pointer, PendingRead.Entry, scope, ctx, out receiver) is { } pending)
+                    return ReadPendingEntry(pending, keyOf.key, scope, ctx);
+            }
+            else
+                receiver = EvalPointer(keyOf.pointer, scope, ctx);
             object? unused = null;
             return EvalKeyOfReceiver(
-                EvalPointer(keyOf.pointer, scope, ctx),
+                receiver,
                 keyOf,
                 scope,
                 ctx,
@@ -4125,7 +4135,7 @@ namespace NeoCompose.Runtime.NeoScript
             // A number variable indexes without boxing its value.
             if (keyPointer is VariablePointer indexVariable && scope.TryReadNumber(indexVariable, out double position))
             {
-                idx = ListPosition(list, position);
+                idx = ListPosition(list.Length, position);
             }
             else
             {
@@ -4143,7 +4153,7 @@ namespace NeoCompose.Runtime.NeoScript
                 }
                 else if (TryAsDouble(key, out position))
                 {
-                    idx = ListPosition(list, position);
+                    idx = ListPosition(list.Length, position);
                 }
                 else
                 {
@@ -4159,11 +4169,298 @@ namespace NeoCompose.Runtime.NeoScript
             return ResolveValueIfId(entry, ctx, listRef?.ownership, CollectionEntryMember(listRef, list, ctx));
         }
 
-        private static int ListPosition(object?[] list, double position)
+        /// <summary>What a read of a pending collection asks, which decides the collections it can answer.</summary>
+        internal enum PendingRead
+        {
+            /// <summary>The entry count: a List, Dictionary or multi-select Lookup.</summary>
+            Count,
+            /// <summary>One entry by position, id or key: a List or Dictionary.</summary>
+            Entry,
+            /// <summary>Whether an entry has a given id: a List or multi-select Lookup.</summary>
+            Membership,
+            /// <summary>The collection a mutation changes: any pending collection.</summary>
+            Target,
+        }
+
+        /// <summary>
+        /// The held write batch's pending collection <paramref name="pointer"/>
+        /// names, found without reading it, when it can answer
+        /// <paramref name="read"/> (see <see cref="Answers"/>); otherwise
+        /// null, with <paramref name="value"/> the pointer's value. A read commits a
+        /// pending collection, whose row costs its length to store, so N
+        /// reads among N mutations would cost N².
+        /// </summary>
+        internal static NeoWriteBatch.PendingCollection? EvalPendingCollection(
+            Pointer pointer,
+            PendingRead read,
+            NeoScriptScope scope,
+            Context ctx,
+            out object? value) =>
+            FindPending(pointer, read, scope, ctx, evaluate: true, out value, out _, out _);
+
+        /// <summary>
+        /// The pending collection a mutation of <paramref name="pointer"/>
+        /// targets, found without reading it. Otherwise null, with
+        /// <paramref name="receiver"/> the key's receiver, and, when the
+        /// target is an entry of a pending collection, <paramref name="owner"/>
+        /// that collection and <paramref name="entry"/> the entry.
+        /// </summary>
+        internal static NeoWriteBatch.PendingCollection? FindPendingTarget(
+            Pointer pointer,
+            NeoScriptScope scope,
+            Context ctx,
+            out object? receiver,
+            out NeoWriteBatch.PendingCollection? owner,
+            out object? entry) =>
+            FindPending(pointer, PendingRead.Target, scope, ctx, evaluate: false, out entry, out receiver, out owner);
+
+        /// <summary>
+        /// Whether <paramref name="pointer"/> may name a pending collection
+        /// or an entry of one, decided from its shape: a read that can't
+        /// takes the ordinary path, which costs what it costs with no batch.
+        /// </summary>
+        private static bool MayReachPending(KeyOf site, NeoWriteBatch batch, NeoScriptScope scope, Context ctx)
+        {
+            // Constant keys off a root reference reach the same rows each
+            // time, so the site remembers the batch shape that proved it can't.
+            bool constant = true;
+            KeyOf keyOf = site;
+            while (true)
+            {
+                // An index reaches an entry, pending only as its list is,
+                // unless an entry is itself a pending collection.
+                Pointer key = keyOf.key;
+                if (key is ValuePointer { primitiveIsNumber: true })
+                {
+                    if (batch.HasUnkeyedMembers)
+                        return true;
+                }
+                else if (key is ValuePointer)
+                {
+                    if (batch.HasUnkeyedMembers || EvalPointer(key, scope, ctx) is not string field || batch.IsFieldKey(field))
+                        return true;
+                }
+                else if (key is VariablePointer variable && scope.TryReadNumber(variable, out _))
+                {
+                    if (batch.HasUnkeyedMembers)
+                        return true;
+                    constant = false;
+                }
+                else
+                    return true;
+                switch (keyOf.pointer)
+                {
+                    case KeyOfPointer receiver:
+                        keyOf = receiver.keyOf;
+                        continue;
+                    case ReferencePointer reference:
+                        if (batch.HasCollection(reference.valueId))
+                            return true;
+                        // So does every receiver along it.
+                        for (KeyOf? proven = constant ? site : null; proven is not null; proven = (proven.pointer as KeyOfPointer)?.keyOf)
+                            proven.pendingUnreachedShape = batch.Shape;
+                        return false;
+                    case VariablePointer:
+                    case StaticMemberPointer:
+                        return true;
+                    default:
+                        return false;
+                }
+            }
+        }
+
+        /// <summary>The pending collection at root reference <paramref name="valueId"/>.</summary>
+        internal static NeoWriteBatch.PendingCollection? PendingReference(NeoWriteBatch batch, string valueId, Context ctx) =>
+            batch.HasCollection(valueId) ? batch.Collection(ResolveOwnershipForValueId(ctx, valueId), valueId) : null;
+
+        /// <param name="evaluate">Whether a miss evaluates the pointer's value; an entry of a pending collection always does.</param>
+        private static NeoWriteBatch.PendingCollection? FindPending(
+            Pointer pointer,
+            PendingRead read,
+            NeoScriptScope scope,
+            Context ctx,
+            bool evaluate,
+            out object? value,
+            out object? receiver,
+            out NeoWriteBatch.PendingCollection? owner)
+        {
+            NeoWriteBatch batch = ctx.client.PendingScriptWrites!;
+            receiver = null;
+            owner = null;
+            if (pointer is KeyOfPointer keyOf)
+            {
+                // The receiver resolves the same way, so an entry of a pending
+                // collection reads through its pending row.
+                if (FindPending(keyOf.keyOf.pointer, PendingRead.Entry, scope, ctx, evaluate: true, out receiver, out _, out _) is { } outer)
+                {
+                    owner = outer;
+                    string? entryId = PendingEntryId(outer, keyOf.keyOf.key, scope, ctx);
+                    if (entryId is not null && Answers(batch, outer.Ownership, entryId, read) is { } nested)
+                    {
+                        value = null;
+                        return nested;
+                    }
+                    value = entryId is null ? outer.Row.id : ResolvePendingEntry(outer, entryId, ctx);
+                    return null;
+                }
+                if (keyOf.keyOf.key is ValuePointer
+                    && EvalPointer(keyOf.keyOf.key, scope, ctx) is string key
+                    && StoredMemberId(batch, receiver, key, ctx, out NeoValueOwnership memberOwnership) is string memberId
+                    && Answers(batch, memberOwnership, memberId, read) is { } member)
+                {
+                    value = null;
+                    return member;
+                }
+                value = evaluate ? EvaluateKeyOf(keyOf, receiver, scope, ctx) : null;
+                return null;
+            }
+            if (pointer is ReferencePointer reference
+                && PendingReference(batch, reference.valueId, ctx) is { } referenced
+                && Answers(batch, referenced, read))
+            {
+                value = null;
+                return referenced;
+            }
+            if (pointer is StaticMemberPointer staticMember
+                && ctx.client.TryResolveStaticBinding(staticMember.memberId, out Member? bindingMember, out NeoValueOwnership staticOwnership, out string? staticValueId)
+                && batch.Collection(staticOwnership, staticValueId) is { } bound
+                && Answers(batch, bound, read, bindingMember))
+            {
+                value = null;
+                return bound;
+            }
+            if (pointer is VariablePointer variable)
+            {
+                RowReference? alias = null;
+                object? raw = scope.ReadVariable(variable, ctx.rowReverseIndex, out bool found, out bool remembered, ref alias);
+                // A Class record is never a collection.
+                RowReference? aliasReference = !found ? null
+                    : raw is object?[] entries ? remembered ? alias : ctx.CollectionRowReference(entries)
+                    : raw is NeoObjectRecord { reference: { classId: not null } } ? null
+                    : FindRowReference(raw, ctx);
+                if (aliasReference is not null && Answers(batch, aliasReference.ownership, aliasReference.valueId, read) is { } aliased)
+                {
+                    value = null;
+                    return aliased;
+                }
+                // Only a list alias or a detached object reads anything more.
+                if (found && raw is not object?[] && raw is not NeoScriptObject)
+                {
+                    value = raw;
+                    return null;
+                }
+            }
+            value = evaluate ? EvalPointer(pointer, scope, ctx) : null;
+            return null;
+        }
+
+        /// <summary>
+        /// The row id <paramref name="receiver"/>'s row stores at
+        /// <paramref name="key"/>, found without reading that row; null when
+        /// no pending collection can be a member of <paramref name="receiver"/>.
+        /// </summary>
+        private static string? StoredMemberId(
+            NeoWriteBatch batch, object? receiver, string key, Context ctx, out NeoValueOwnership ownership)
+        {
+            // A member lives in its receiver's store.
+            RowReference? reference = FindRowReference(receiver, ctx);
+            string? receiverId = reference?.valueId ?? (receiver as INeoValueReference)?.valueId;
+            if (string.IsNullOrEmpty(receiverId))
+            {
+                ownership = default;
+                return null;
+            }
+            ownership = reference?.ownership ?? ResolveOwnershipForValueId(ctx, receiverId!);
+            if (batch.PendingField(ownership, receiverId!, key) is { } pending)
+                return pending;
+            return batch.MayParent(ownership, receiverId!)
+                && ctx.client.TryGetOverlaidValue(ownership, receiverId!, out MemberValue? receiverRow)
+                && receiverRow is ObjectMemberValue { value: { } fields }
+                && fields.TryGetValue(key, out string? memberId)
+                    ? memberId
+                    : null;
+        }
+
+        /// <summary>The pending collection at <paramref name="id"/> when it answers <paramref name="read"/>.</summary>
+        private static NeoWriteBatch.PendingCollection? Answers(NeoWriteBatch batch, NeoValueOwnership ownership, string id, PendingRead read) =>
+            batch.Collection(ownership, id) is { } pending && Answers(batch, pending, read) ? pending : null;
+
+        /// <param name="member">The collection's member, when the read knows it: a static's row has no parent to infer it from.</param>
+        private static bool Answers(
+            NeoWriteBatch batch, NeoWriteBatch.PendingCollection pending, PendingRead read, Member? member = null)
+        {
+            if (read == PendingRead.Target)
+                return true;
+            batch.ResolveMembers(pending, member);
+            return pending.CollectionMember switch
+            {
+                ListMember => read != PendingRead.Membership || pending.EntryMember is ClassMember,
+                DictionaryMember => read != PendingRead.Membership,
+                LookupMember { Selection: NeoMemberSelectionKind.Multi } => read != PendingRead.Entry,
+                _ => false,
+            };
+        }
+
+        /// <summary>A pending List or Dictionary's entry, as <see cref="ReadListEntry"/> and a key read find it.</summary>
+        private static object? ReadPendingEntry(
+            NeoWriteBatch.PendingCollection pending,
+            Pointer keyPointer,
+            NeoScriptScope scope,
+            Context ctx)
+        {
+            string? entryId = PendingEntryId(pending, keyPointer, scope, ctx);
+            return entryId is null ? pending.Row.id : ResolvePendingEntry(pending, entryId, ctx);
+        }
+
+        /// <summary>The id of a pending List or Dictionary's entry; null for a Dictionary's <c>Id</c> key, which reads the row's own id.</summary>
+        private static string? PendingEntryId(
+            NeoWriteBatch.PendingCollection pending,
+            Pointer keyPointer,
+            NeoScriptScope scope,
+            Context ctx)
+        {
+            if (pending is NeoWriteBatch.PendingList list)
+                return PendingListEntry(list, keyPointer, scope, ctx);
+            var key = EvalPointer(keyPointer, scope, ctx);
+            string k = key as string ?? key?.ToString() ?? "null";
+            if (k == "Id")
+                return null;
+            if (!((ObjectMemberValue)pending.Row).value!.TryGetValue(k, out string? entryId))
+                throw new NSGetterRuntimeError($"Missing key '{k}' on object");
+            return entryId;
+        }
+
+        private static object? ResolvePendingEntry(NeoWriteBatch.PendingCollection pending, string entryId, Context ctx)
+        {
+            ctx.client.NotePendingRead(pending.Ownership, pending.Row.id);
+            return ResolveValueIfId(entryId, ctx, pending.Ownership, pending.EntryMember);
+        }
+
+        private static string PendingListEntry(
+            NeoWriteBatch.PendingList list,
+            Pointer keyPointer,
+            NeoScriptScope scope,
+            Context ctx)
+        {
+            if (keyPointer is VariablePointer indexVariable && scope.TryReadNumber(indexVariable, out double position))
+                return list[ListPosition(list.Count, position)];
+            var key = EvalPointer(keyPointer, scope, ctx);
+            if (key is string valueId)
+            {
+                if (!list.Contains(valueId))
+                    throw new NSGetterRuntimeError($"Value id '{valueId}' is not a member of this List");
+                return valueId;
+            }
+            if (TryAsDouble(key, out position))
+                return list[ListPosition(list.Count, position)];
+            throw new NSGetterRuntimeError($"List index must be an integer; got '{key}'");
+        }
+
+        private static int ListPosition(int length, double position)
         {
             if (!NeoNumbers.IsWhole(position))
                 throw new NSGetterRuntimeError($"List index must be an integer; got '{position}'");
-            if (position < 0 || position >= list.Length)
+            if (position < 0 || position >= length)
             {
                 throw new NSGetterRuntimeError(
                     $"List index out of bounds: {position}");
@@ -5850,8 +6147,20 @@ namespace NeoCompose.Runtime.NeoScript
             NeoScriptScope scope,
             Context ctx)
         {
-            var c = EvalPointer(cf.info.collectionPointer, scope, ctx);
             var inner = cf.info.function;
+            object? c;
+            if (inner is null && ctx.client.PendingScriptWrites is { HasCollections: true })
+            {
+                if (EvalPendingCollection(cf.info.collectionPointer, PendingRead.Count, scope, ctx, out c) is { } pending)
+                {
+                    ctx.client.NotePendingRead(pending.Ownership, pending.Row.id);
+                    return Box(pending is NeoWriteBatch.PendingList list
+                        ? list.Count
+                        : ((ObjectMemberValue)pending.Row).value!.Count);
+                }
+            }
+            else
+                c = EvalPointer(cf.info.collectionPointer, scope, ctx);
             if (inner is null)
                 return Box(CollectionLength(c));
 
@@ -5886,8 +6195,25 @@ namespace NeoCompose.Runtime.NeoScript
             NeoScriptScope scope,
             Context ctx)
         {
-            var c = EvalPointer(cnf.info.collectionPointer, scope, ctx);
-            var target = EvalPointer(cnf.info.valuePointer, scope, ctx);
+            object? c;
+            NeoWriteBatch.PendingCollection? pending = null;
+            if (ctx.client.PendingScriptWrites is { HasCollections: true })
+                pending = EvalPendingCollection(cnf.info.collectionPointer, PendingRead.Membership, scope, ctx, out c);
+            else
+                c = EvalPointer(cnf.info.collectionPointer, scope, ctx);
+            object? target = EvalPointer(cnf.info.valuePointer, scope, ctx);
+            if (pending is not null)
+            {
+                // An entry with the target's id matches without being read;
+                // only a miss compares entries, which reads them all.
+                if ((target as string ?? ValueIdOf(target, ctx)) is { } sought
+                    && ((NeoWriteBatch.PendingList)pending).Contains(sought))
+                {
+                    ctx.client.NotePendingRead(pending.Ownership, pending.Row.id);
+                    return BoxedTrue;
+                }
+                c = ResolveValueIfId(pending.Row.id, ctx, pending.Ownership, pending.CollectionMember);
+            }
             if (c is string s)
             {
                 if (target is not string ts)
@@ -8464,52 +8790,32 @@ namespace NeoCompose.Runtime.NeoScript
         }
 
         /// <summary>
-        /// Retargets every cached CLR alias whose row was atomically moved
-        /// from one writable store to another. Row ids remain stable during a
-        /// Session-to-Save promotion; only provenance changes.
+        /// Retargets the cached CLR aliases of <paramref name="movedRowIds"/>,
+        /// which were atomically moved from one writable store to another.
+        /// Row ids remain stable during a Session-to-Save promotion; only
+        /// provenance changes.
         /// </summary>
         internal static void RetargetCachedRowsAfterMove(
             Context ctx,
             NeoValueOwnership sourceOwnership,
-            NeoValueOwnership targetOwnership)
+            NeoValueOwnership targetOwnership,
+            IEnumerable<string> movedRowIds)
         {
             if (sourceOwnership == targetOwnership)
                 return;
-            var movedRowIds = new HashSet<string>();
-            foreach (var pair in ctx.rowReverseIndex.ToArray())
-            {
-                RowReference row = pair.Value;
-                if (row.ownership != sourceOwnership
-                    || ctx.client.HasWritableValue(sourceOwnership, row.valueId)
-                    || !ctx.client.HasWritableValue(targetOwnership, row.valueId))
-                {
-                    continue;
-                }
-                SetRowReference(ctx, pair.Key, new RowReference(
-                    row.valueId,
-                    targetOwnership,
-                    row.classId,
-                    row.member));
-                movedRowIds.Add(row.valueId);
-            }
-
-            foreach (RowKey rowCacheKey in ctx.rowCacheKeysByRow.Keys.ToArray())
-            {
-                if (rowCacheKey.ownership != sourceOwnership)
-                {
-                    continue;
-                }
-                string rowId = rowCacheKey.rowId;
-                if (ctx.client.HasWritableValue(sourceOwnership, rowId)
-                    || !ctx.client.HasWritableValue(targetOwnership, rowId))
-                {
-                    continue;
-                }
-                movedRowIds.Add(rowId);
-            }
-
+            var aliases = new List<object>();
             foreach (string rowId in movedRowIds)
             {
+                if (ctx.client.HasWritableValue(sourceOwnership, rowId)
+                    || !ctx.client.HasWritableValue(targetOwnership, rowId))
+                    continue;
+                aliases.Clear();
+                ctx.rowAliases.GetInto(sourceOwnership, rowId, aliases);
+                foreach (object alias in aliases)
+                {
+                    if (ctx.rowReverseIndex.TryGetValue(alias, out RowReference row) && row.ownership == sourceOwnership)
+                        SetRowReference(ctx, alias, new RowReference(rowId, targetOwnership, row.classId, row.member));
+                }
                 RetargetCachedRow(
                     ctx,
                     sourceOwnership,
