@@ -807,6 +807,119 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void Compute_ForgottenEntryRevivesOverTheSameReadsAndStillInvalidates()
+        {
+            using var client = BuildClient(out NSPropertyMember property);
+            client.SetSaveValue(new NumberMemberValue { id = "value-target", value = 5, createdAt = "x", updatedAt = "x" });
+            var node = new NeoMemberNSProperty(client, property, null);
+            var key = new NeoClient.GetterMemoKey(
+                NeoValueOwnership.Asset, "value-receiver", property.id, NeoValueOwnership.Asset);
+
+            Assert.AreEqual(5, Convert.ToInt32(node.Compute("value-receiver").value));
+            NeoClient.GetterMemoEntry entry = client.FindMemoizedGetter(key)!;
+            Assert.IsTrue(client.ForgetMemoizedGetter(key));
+            Assert.IsNull(client.FindMemoizedGetter(key), "A forgotten entry never hits.");
+
+            Assert.AreEqual(5, Convert.ToInt32(node.Compute("value-receiver").value));
+            Assert.AreSame(entry, client.FindMemoizedGetter(key), "Evaluating over the same rows revives the entry.");
+
+            client.SetSaveValue(new NumberMemberValue { id = "value-target", value = 9, createdAt = "x", updatedAt = "x" });
+            Assert.IsNull(client.FindMemoizedGetter(key), "The revived entry's row lists still drop it.");
+            Assert.AreEqual(9, Convert.ToInt32(node.Compute("value-receiver").value));
+        }
+
+        [Test]
+        public void MemoizeGetterReads_NeverRevivesAnEntryThatHeldAValue()
+        {
+            using var client = BuildClient(out NSPropertyMember property);
+            client.SetSaveValue(new NumberMemberValue { id = "value-target", value = 5, createdAt = "x", updatedAt = "x" });
+            var node = new NeoMemberNSProperty(client, property, null);
+            var key = new NeoClient.GetterMemoKey(
+                NeoValueOwnership.Asset, "value-receiver", property.id, NeoValueOwnership.Asset);
+            Assert.AreEqual(5, Convert.ToInt32(node.Compute("value-receiver").value));
+            NeoClient.GetterMemoEntry entry = client.FindMemoizedGetter(key)!;
+            using var view = new NeoMemberClassWritable(client, "member-receiver-value", "value-receiver", NeoValueOwnership.Save);
+            using IDisposable watch = client.WatchGetters("value-receiver", view);
+            client.ForgetMemoizedGetter(key);
+
+            // The same reads, kept for the watchers of a result the memo can't keep.
+            NeoClient.GetterCaptureFrame enclosing = client.BeginGetterReadCapture();
+            client.ReplayGetterReads(entry);
+            client.MemoizeGetterReads(key, client.EndGetterReadCapture(enclosing));
+
+            Assert.IsTrue(entry.forgotten, "Whoever kept the entry never sees it valueless.");
+            Assert.IsNull(client.FindMemoizedGetter(key, out bool holdsValuelessReads));
+            Assert.IsTrue(holdsValuelessReads, "A new valueless entry keeps the reads.");
+        }
+
+        [Test]
+        public void Compute_ChangeToARowAForgottenEntryReadAbandonsIt()
+        {
+            using var client = BuildClient(out NSPropertyMember property);
+            client.SetSaveValue(new NumberMemberValue { id = "value-target", value = 5, createdAt = "x", updatedAt = "x" });
+            var node = new NeoMemberNSProperty(client, property, null);
+            var key = new NeoClient.GetterMemoKey(
+                NeoValueOwnership.Asset, "value-receiver", property.id, NeoValueOwnership.Asset);
+
+            Assert.AreEqual(5, Convert.ToInt32(node.Compute("value-receiver").value));
+            NeoClient.GetterMemoEntry entry = client.FindMemoizedGetter(key)!;
+            client.ForgetMemoizedGetter(key);
+            client.SetSaveValue(new NumberMemberValue { id = "value-target", value = 9, createdAt = "x", updatedAt = "x" });
+
+            Assert.AreEqual(9, Convert.ToInt32(node.Compute("value-receiver").value));
+            NeoClient.GetterMemoEntry rebuilt = client.FindMemoizedGetter(key)!;
+            Assert.AreNotSame(entry, rebuilt, "An entry no row list holds can't be revived.");
+            client.SetSaveValue(new NumberMemberValue { id = "value-target", value = 3, createdAt = "x", updatedAt = "x" });
+            Assert.IsNull(client.FindMemoizedGetter(key));
+            Assert.AreEqual(3, Convert.ToInt32(node.Compute("value-receiver").value));
+        }
+
+        [Test]
+        public void Compute_StaysCorrectAcrossDeadReaderSweeps()
+        {
+            using var client = BuildClient(out NSPropertyMember property);
+            var node = new NeoMemberNSProperty(client, property, null);
+            var key = new NeoClient.GetterMemoKey(
+                NeoValueOwnership.Asset, "value-receiver", property.id, NeoValueOwnership.Asset);
+
+            // Each change abandons the entry, leaving it dead in the
+            // receiver's list until enough accumulate to sweep.
+            for (int value = 0; value < 10000; value++)
+            {
+                client.SetSaveValue(new NumberMemberValue { id = "value-target", value = value, createdAt = "x", updatedAt = "x" });
+                Assert.IsNull(client.FindMemoizedGetter(key));
+                Assert.AreEqual(value, Convert.ToInt32(node.Compute("value-receiver").value));
+                Assert.IsNotNull(client.FindMemoizedGetter(key));
+            }
+        }
+
+        [Test]
+        public void ReplayGetterReads_ReachesANestedCaptureAfterTheEnclosingOneReplayedThem()
+        {
+            using var client = BuildClient(out NSPropertyMember property);
+            client.SetSaveValue(new NumberMemberValue { id = "value-target", value = 5, createdAt = "x", updatedAt = "x" });
+            var node = new NeoMemberNSProperty(client, property, null);
+            node.Compute("value-receiver");
+            NeoClient.GetterMemoEntry entry = client.FindMemoizedGetter(new NeoClient.GetterMemoKey(
+                NeoValueOwnership.Asset, "value-receiver", property.id, NeoValueOwnership.Asset))!;
+            string[] reads = entry.reads!.ToArray();
+            CollectionAssert.Contains(reads, "value-target");
+
+            NeoClient.GetterCaptureFrame outer = client.BeginGetterReadCapture();
+            client.ReplayGetterReads(entry);
+            NeoClient.GetterCaptureFrame inner = client.BeginGetterReadCapture();
+            client.ReplayGetterReads(entry);
+            NeoClient.GetterCaptureFrame innerCapture = client.EndGetterReadCapture(inner);
+            client.ReplayGetterReads(entry);
+            NeoClient.GetterCaptureFrame outerCapture = client.EndGetterReadCapture(outer);
+
+            CollectionAssert.AreEqual(reads, innerCapture.reads!.ToArray(), "A nested capture records what its enclosing one already holds.");
+            CollectionAssert.AreEqual(reads, outerCapture.reads!.ToArray(), "Each capture keeps a replayed read once.");
+            client.RecycleGetterCapture(innerCapture);
+            client.RecycleGetterCapture(outerCapture);
+        }
+
+        [Test]
         public void Compute_MemoizesADerivedListOfScalarsUntilAReadRowChanges()
         {
             using var client = BuildClient(out NSPropertyMember property);

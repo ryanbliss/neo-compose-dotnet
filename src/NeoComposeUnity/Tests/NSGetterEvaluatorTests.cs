@@ -2410,7 +2410,7 @@ namespace NeoCompose.Tests
             var enclosing = client.BeginGetterReadCapture();
             Assert.AreEqual(true, Evaluate(contains, MemberKind.Bool), "id match");
             var capture = client.EndGetterReadCapture(enclosing);
-            Assert.IsFalse(capture.reads!.Exists(read => read.id == "value-command"), "the matched entry is not read");
+            Assert.IsFalse(capture.reads!.Contains("value-command"), "the matched entry is not read");
             client.RecycleGetterCapture(capture);
             var ctx = new NSGetterEvaluator.Context(client, thisValue: null, rootValue: null);
             object? list = NSGetterEvaluator.Evaluate(ReturnFunction(KeyOf(root, "Commands"), MemberKind.List), ctx);

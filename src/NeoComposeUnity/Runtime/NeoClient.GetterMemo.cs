@@ -38,7 +38,7 @@ namespace NeoCompose.Runtime
             public readonly string memberId;
             public readonly NeoValueOwnership readOwnership;
             public readonly DependentKind kind;
-            // Hashed once: every read an entry indexes adds the key to a set.
+            // Hashed once: every memo lookup hashes the key.
             private readonly int hash;
 
             public GetterMemoKey(
@@ -79,23 +79,40 @@ namespace NeoCompose.Runtime
             // They are the entry's invalidation set, and a hit under dependency
             // capture (an NSProperty compute) reports them as the evaluation
             // would have.
-            public List<GetterRead>? reads;
-            // Whether reads holds a grid read. Such an entry answers only
-            // while no grid change is pending: a write can move the grid's
-            // indexes before the change that names the cells it moved.
-            public bool readsGrid;
+            public IdBuffer? reads;
+            public List<GridRead>? gridReads;
             // Every value id the evaluation reported to a dependency capture
             // (an animation segment source, a nested constructor). A hit
             // reports the same ids, so a capture sees exactly what the
-            // evaluation would have told it.
+            // evaluation would have told it. Null when no capture listened:
+            // the entry then answers only reads no capture observes.
             public string[]? valueReads;
-            // Set once the memo drops the entry, so a row reference that
-            // kept it knows to look the getter up again.
+            // Set once the memo forgets the entry: something it read changed,
+            // or a read is replacing it. A row reference that kept it skips
+            // it; a forgotten entry never hits until the memo revives it.
             public bool forgotten;
+            // The getter capture this entry's reads were last replayed into.
+            public long replayedIn;
+            public GetterMemoKey key;
+            // A forgotten entry stays in the memo, retired, with its row reads
+            // and the row index lists that hold it. Evaluating the getter
+            // again over the same rows revives it, so only its grid reads,
+            // numbered by generation, are indexed again.
+            public int rowMemberships;
+            public int gridMemberships;
+            public int gridGeneration;
+            // Out of the memo for good: a change to a row it read dropped a
+            // list holding it, or a new entry replaced it.
+            public bool abandoned;
             // A watched getter whose result the memo can't keep, or whose
             // read failed, still keeps its reads, so a change reaches its
             // watchers. It never hits.
             public bool valueless;
+
+            // An entry that read a grid answers only while no grid change is
+            // pending: a write can move the grid's indexes before the change
+            // that names the cells it moved.
+            public bool readsGrid => gridReads is not null;
 
             internal void ForgetResult()
             {
@@ -108,28 +125,22 @@ namespace NeoCompose.Runtime
             }
         }
 
-        internal readonly struct GetterRead
+        // A grid query's read: one cell, or with no cell the receiver's
+        // placement. Row reads are bare ids, so the reads nearly every getter
+        // records copy a reference rather than this struct.
+        internal readonly struct GridRead
         {
-            public readonly INeoTileGridContent? content;
+            public readonly INeoTileGridContent content;
             public readonly UnityEngine.Vector2Int? cell;
             public readonly bool tile;
-            /// <summary>The row id, or a grid read's placement id.</summary>
-            public readonly string id;
+            public readonly string placementId;
 
-            public GetterRead(string id)
-            {
-                this.id = id;
-                content = null;
-                cell = null;
-                tile = false;
-            }
-
-            public GetterRead(INeoTileGridContent content, string placementId, UnityEngine.Vector2Int? cell, bool tile)
+            public GridRead(INeoTileGridContent content, string placementId, UnityEngine.Vector2Int? cell, bool tile)
             {
                 this.content = content;
                 this.cell = cell;
                 this.tile = tile;
-                id = placementId;
+                this.placementId = placementId;
             }
         }
 
@@ -157,60 +168,108 @@ namespace NeoCompose.Runtime
         }
 
         private readonly Dictionary<GetterMemoKey, GetterMemoEntry> getterMemo = new();
-        private readonly Dictionary<string, HashSet<GetterMemoKey>> getterMemoKeysByRow = new(StringComparer.Ordinal);
-        private readonly Dictionary<GridCellRead, HashSet<GetterMemoKey>> getterMemoKeysByGridCell = new();
+        // The entries that read each row, cell, placement and grid. Lists may
+        // still hold abandoned entries and past grid generations, dead
+        // members the counts say when to sweep.
+        private readonly Dictionary<string, List<GetterMemoEntry>> getterMemoEntriesByRow = new(StringComparer.Ordinal);
+        private readonly Dictionary<GridCellRead, List<GridMemoReader>> getterMemoEntriesByGridCell = new();
         // A query reads its receiver's placement, so moving it changes the result.
-        private readonly Dictionary<string, HashSet<GetterMemoKey>> getterMemoKeysByPlacement = new(StringComparer.Ordinal);
-        private readonly Dictionary<string, HashSet<GetterMemoKey>> getterMemoKeysByGrid = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, List<GridMemoReader>> getterMemoEntriesByPlacement = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, List<GridMemoReader>> getterMemoEntriesByGrid = new(StringComparer.Ordinal);
+        private int memoIndexEntries;
+        private int deadMemoIndexEntries;
         // Open while a write has changed a grid's indexes but not yet
         // published the change that forgets the getters that read them.
         private int gridChangesPending;
-        private List<GetterRead>? getterReadCapture;
+        private IdBuffer? getterReadCapture;
+        // Opened by a capture's first grid read.
+        private List<GridRead>? getterGridReadCapture;
         private HashSet<string>? getterConstructedRows;
         internal bool IsCapturingGetterReads => getterReadCapture is not null;
         // Appended as read, duplicates and all: only an entry that can hit
         // replays them, so only it pays to make them distinct.
-        private List<string>? getterValueReadCapture;
-        private readonly Stack<List<string>> valueReadCapturePool = new();
-        private readonly IdSet distinctIds = new();
-        private readonly HashSet<GetterRead> distinctGridReads = new(GridReadIdentity.Instance);
+        private IdBuffer? getterValueReadCapture;
+        private readonly IdCompactor distinctIds = new();
+        private readonly HashSet<GridRead> distinctGridReads = new(GridReadIdentity.Instance);
         // Every write forgets the getters that read the row and the next
-        // evaluation records them again, so the read lists and per-row key
-        // sets are recycled instead of reallocated each frame.
-        private readonly Stack<List<GetterRead>> readCapturePool = new();
-        private readonly Stack<HashSet<GetterMemoKey>> memoKeySetPool = new();
+        // evaluation records them again, so the read lists and index lists
+        // are recycled instead of reallocated each frame.
+        private readonly Stack<IdBuffer> readListPool = new();
+        private readonly Stack<List<GridRead>> gridReadPool = new();
+        private readonly Stack<List<GetterMemoEntry>> memoEntryListPool = new();
+        private readonly Stack<List<GridMemoReader>> gridMemoReaderListPool = new();
+
+        private readonly struct GridMemoReader
+        {
+            internal readonly GetterMemoEntry entry;
+            internal readonly int generation;
+
+            internal GridMemoReader(GetterMemoEntry entry)
+            {
+                this.entry = entry;
+                generation = entry.gridGeneration;
+            }
+
+            internal bool IsLive => generation == entry.gridGeneration;
+        }
 
         internal readonly struct GetterCaptureFrame
         {
-            internal readonly List<GetterRead>? reads;
-            internal readonly List<string>? valueReads;
+            internal readonly IdBuffer? reads;
+            internal readonly List<GridRead>? gridReads;
+            internal readonly IdBuffer? valueReads;
             internal readonly HashSet<string>? constructedRows;
+            internal readonly long id;
 
-            internal GetterCaptureFrame(List<GetterRead>? reads, List<string>? valueReads, HashSet<string>? constructedRows = null)
+            internal GetterCaptureFrame(IdBuffer? reads, List<GridRead>? gridReads, IdBuffer? valueReads, HashSet<string>? constructedRows, long id)
             {
                 this.reads = reads;
+                this.gridReads = gridReads;
                 this.valueReads = valueReads;
                 this.constructedRows = constructedRows;
+                this.id = id;
             }
         }
 
+        // Numbers each capture, so a reader can tell whether a row is
+        // already in the open one. Zero while none is open.
+        private long getterCaptureId;
+        private long lastGetterCaptureId;
+
         /// <summary>
         /// Starts recording reads for a getter being memoized; returns the
-        /// enclosing capture. A reads-only capture leaves value ids to the
-        /// enclosing one, for a getter whose entry can keep only its reads.
+        /// enclosing capture. Value ids are recorded only while a dependency
+        /// capture listens: most getters are read with none open. A
+        /// reads-only capture leaves them to the enclosing one, for a
+        /// dependent that keeps only its reads.
         /// </summary>
         internal GetterCaptureFrame BeginGetterReadCapture(bool readsOnly = false)
         {
-            var previous = new GetterCaptureFrame(getterReadCapture, getterValueReadCapture, getterConstructedRows);
+            var previous = new GetterCaptureFrame(getterReadCapture, getterGridReadCapture, getterValueReadCapture, getterConstructedRows, getterCaptureId);
+            getterCaptureId = ++lastGetterCaptureId;
             getterConstructedRows = null;
-            getterReadCapture = readCapturePool.Count != 0
-                ? readCapturePool.Pop()
-                : new List<GetterRead>();
-            if (!readsOnly)
-                getterValueReadCapture = valueReadCapturePool.Count != 0
-                    ? valueReadCapturePool.Pop()
-                    : new List<string>();
+            getterGridReadCapture = null;
+            getterReadCapture = RentReadList();
+            if (!readsOnly && CapturesValueReads)
+                getterValueReadCapture = RentReadList();
             return previous;
+        }
+
+        private IdBuffer RentReadList() => readListPool.Count != 0 ? readListPool.Pop() : new IdBuffer();
+
+        private void ReturnReadList(IdBuffer ids)
+        {
+            ids.Clear();
+            readListPool.Push(ids);
+        }
+
+        private List<GridRead> OpenGridReadCapture() =>
+            getterGridReadCapture ??= gridReadPool.Count != 0 ? gridReadPool.Pop() : new List<GridRead>();
+
+        private bool CapturesValueReads
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => capturedValueReads is not null || getterValueReadCapture is not null;
         }
 
         /// <summary>
@@ -220,47 +279,51 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal GetterCaptureFrame EndGetterReadCapture(GetterCaptureFrame previous)
         {
-            // A reads-only capture left the enclosing value list open.
-            List<string>? valueReads = ReferenceEquals(getterValueReadCapture, previous.valueReads)
+            // A capture no dependency capture listened to left the value list as it was.
+            IdBuffer? valueReads = ReferenceEquals(getterValueReadCapture, previous.valueReads)
                 ? null
                 : getterValueReadCapture;
-            var capture = new GetterCaptureFrame(getterReadCapture, valueReads, getterConstructedRows);
+            var capture = new GetterCaptureFrame(getterReadCapture, getterGridReadCapture, valueReads, getterConstructedRows, getterCaptureId);
             // Accumulating into a freshly constructed result does not make
-            // that result an input. Compact once, before enclosing captures
-            // inherit the reads, without scanning the Session store.
+            // that result an input, and the capture keeps each read once.
+            // Compact before enclosing captures inherit the reads, without
+            // scanning the Session store.
             if (getterConstructedRows is { } constructed)
             {
                 if (capture.reads is { } reads)
-                {
-                    int kept = 0;
-                    for (int i = 0; i < reads.Count; i++)
-                    {
-                        GetterRead read = reads[i];
-                        if (read.content is not null || !constructed.Contains(read.id))
-                            reads[kept++] = read;
-                    }
-                    reads.RemoveRange(kept, reads.Count - kept);
-                }
+                    RemoveConstructed(reads, constructed);
                 if (capture.valueReads is { } ids)
-                {
-                    int kept = 0;
-                    for (int i = 0; i < ids.Count; i++)
-                    {
-                        string id = ids[i];
-                        if (!constructed.Contains(id))
-                            ids[kept++] = id;
-                    }
-                    ids.RemoveRange(kept, ids.Count - kept);
-                }
+                    RemoveConstructed(ids, constructed);
             }
+            if (capture.reads is not null)
+                KeepDistinct(capture.reads);
+            if (capture.gridReads is not null)
+                KeepDistinct(capture.gridReads);
             getterConstructedRows = previous.constructedRows;
+            getterCaptureId = previous.id;
             getterReadCapture = previous.reads;
+            getterGridReadCapture = previous.gridReads;
             getterValueReadCapture = previous.valueReads;
             if (capture.reads is { Count: not 0 })
                 previous.reads?.AddRange(capture.reads);
+            if (capture.gridReads is not null && previous.reads is not null)
+                OpenGridReadCapture().AddRange(capture.gridReads);
             if (capture.valueReads is { Count: not 0 })
                 previous.valueReads?.AddRange(capture.valueReads);
             return capture;
+        }
+
+        private static void RemoveConstructed(IdBuffer ids, HashSet<string> constructed)
+        {
+            string[] items = ids.items;
+            int kept = 0;
+            for (int i = 0; i < ids.Count; i++)
+            {
+                string id = items[i];
+                if (!constructed.Contains(id))
+                    items[kept++] = id;
+            }
+            ids.Truncate(kept);
         }
 
         // Only eager construction needs row bookkeeping. Detached results
@@ -327,15 +390,17 @@ namespace NeoCompose.Runtime
         internal void RecycleGetterCapture(GetterCaptureFrame capture)
         {
             if (capture.reads is not null)
-            {
-                capture.reads.Clear();
-                readCapturePool.Push(capture.reads);
-            }
+                ReturnReadList(capture.reads);
+            if (capture.gridReads is not null)
+                ReturnGridReads(capture.gridReads);
             if (capture.valueReads is not null)
-            {
-                capture.valueReads.Clear();
-                valueReadCapturePool.Push(capture.valueReads);
-            }
+                ReturnReadList(capture.valueReads);
+        }
+
+        private void ReturnGridReads(List<GridRead> reads)
+        {
+            reads.Clear();
+            gridReadPool.Push(reads);
         }
 
         /// <summary>A value-store read, reported to the active dependency captures.</summary>
@@ -383,21 +448,37 @@ namespace NeoCompose.Runtime
                 RecordRowRead(reads, rowId);
         }
 
-        private static void RecordRowRead(List<GetterRead> reads, string rowId)
+        /// <summary>
+        /// Notes a read of a row through a holder that stamps the capture it
+        /// last entered, so rereads under one capture record nothing.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void NoteRowRead(string rowId, ref long capturedIn)
+        {
+            if (scriptWriteBatch?.Touches(rowId) == true)
+                ObserveScriptWrites(rowId);
+            if (getterReadCapture is { } reads && capturedIn != getterCaptureId)
+            {
+                capturedIn = getterCaptureId;
+                RecordRowRead(reads, rowId);
+            }
+        }
+
+        private static void RecordRowRead(IdBuffer reads, string rowId)
         {
             // A member read notes its receiver before each child; a repeat of
             // the previous read adds nothing to the invalidation set.
-            if (reads.Count != 0)
-            {
-                GetterRead previous = reads[reads.Count - 1];
-                if (previous.content is null && ReferenceEquals(previous.id, rowId))
-                    return;
-            }
-            reads.Add(new GetterRead(rowId));
+            int count = reads.Count;
+            if (count != 0 && ReferenceEquals(reads.items[count - 1], rowId))
+                return;
+            reads.Add(rowId);
         }
 
-        internal void NoteGridRead(INeoTileGridContent content, string placementId, UnityEngine.Vector2Int? cell, bool tile) =>
-            getterReadCapture?.Add(new GetterRead(content, placementId, cell, tile));
+        internal void NoteGridRead(INeoTileGridContent content, string placementId, UnityEngine.Vector2Int? cell, bool tile)
+        {
+            if (getterReadCapture is not null)
+                OpenGridReadCapture().Add(new GridRead(content, placementId, cell, tile));
+        }
 
         /// <summary>Reports a memoized getter's recorded reads as if it had run.</summary>
         // Every memo hit calls this, and usually nothing observes its reads.
@@ -421,8 +502,14 @@ namespace NeoCompose.Runtime
                     foreach (string id in ids)
                         NoteValueRead(id);
             }
+            // A capture already holds the reads of an entry it replayed.
+            if (getterReadCapture is null || entry.replayedIn == getterCaptureId)
+                return;
+            entry.replayedIn = getterCaptureId;
             if (entry.reads is not null)
-                getterReadCapture?.AddRange(entry.reads);
+                getterReadCapture.AddRange(entry.reads);
+            if (entry.gridReads is not null)
+                OpenGridReadCapture().AddRange(entry.gridReads);
         }
 
         /// <summary>
@@ -455,24 +542,28 @@ namespace NeoCompose.Runtime
         internal GetterMemoEntry? FindMemoizedGetter(GetterMemoKey key, out bool holdsValuelessReads)
         {
             holdsValuelessReads = false;
-            if (!getterMemo.TryGetValue(key, out GetterMemoEntry? entry))
+            if (!getterMemo.TryGetValue(key, out GetterMemoEntry? entry) || entry.forgotten)
                 return null;
             if (entry.valueless)
             {
                 holdsValuelessReads = HoldsCurrentReads(entry);
                 return null;
             }
+            if (entry.valueReads is null && CapturesValueReads)
+                return null;
             return entry.readsGrid ? CurrentGridReader(key, entry) : entry;
         }
 
         /// <summary>
         /// Whether an entry a caller kept (a node's or row reference's slot)
         /// still answers without asking the memo: one that read a grid must
-        /// ask while a grid change or a held script batch is pending.
+        /// ask while a grid change or a held script batch is pending, and one
+        /// that kept no value ids while a dependency capture listens.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal bool HoldsCurrentReads(GetterMemoEntry entry) =>
-            !entry.readsGrid || (gridChangesPending == 0 && scriptWriteBatch is null);
+            (!entry.readsGrid || (gridChangesPending == 0 && scriptWriteBatch is null))
+            && (entry.valueReads is not null || entry.valueless || !CapturesValueReads);
 
         private GetterMemoEntry? CurrentGridReader(GetterMemoKey key, GetterMemoEntry entry)
         {
@@ -485,7 +576,7 @@ namespace NeoCompose.Runtime
             // The batch forgets the getters that read what it touches, but a
             // grid query reads through indexes it can't name.
             CommitScriptWritesForGrid();
-            return getterMemo.TryGetValue(key, out entry) && !entry.valueless ? entry : null;
+            return getterMemo.TryGetValue(key, out entry) && !entry.forgotten && !entry.valueless ? entry : null;
         }
 
         /// <summary>
@@ -498,8 +589,17 @@ namespace NeoCompose.Runtime
             NeoScript.NSGetterEvaluator.RowReference? row,
             GetterCaptureFrame capture,
             object?[]? list = null,
-            Member? listEntryMember = null) =>
-            Memoize(key, new GetterMemoEntry { scalar = scalar, row = row, list = list, listEntryMember = listEntryMember }, capture);
+            Member? listEntryMember = null)
+        {
+            GetterMemoEntry? entry = Memoize(key, capture, valueless: false);
+            if (entry is null)
+                return null;
+            entry.scalar = scalar;
+            entry.row = row;
+            entry.list = list;
+            entry.listEntryMember = listEntryMember;
+            return entry;
+        }
 
         /// <summary>
         /// Keeps the reads of a getter whose result the memo can't keep, for
@@ -511,234 +611,399 @@ namespace NeoCompose.Runtime
             // pending grid change refuses a new entry and forgets this one,
             // and committing a held batch forgets it if it touched what it read.
             if (!WatchesGetters(key.rowId)
-                || (getterMemo.TryGetValue(key, out GetterMemoEntry? kept) && kept.valueless))
+                || (getterMemo.TryGetValue(key, out GetterMemoEntry? kept) && !kept.forgotten && kept.valueless))
                 RecycleGetterCapture(capture);
             else
-                Memoize(key, new GetterMemoEntry { valueless = true }, capture);
+                Memoize(key, capture, valueless: true);
         }
 
-        // Compacts each id's first occurrence to the front of ids and copies
-        // those out; the caller clears ids.
-        private string[] Distinct(List<string> ids)
+        // Copies out each id's first occurrence; the caller clears ids.
+        private string[] Distinct(IdBuffer ids)
         {
-            distinctIds.Reserve(ids.Count);
-            int kept = 0;
-            for (int i = 0; i < ids.Count; i++)
-            {
-                string id = ids[i];
-                if (distinctIds.Add(id))
-                    ids[kept++] = id;
-            }
-            distinctIds.Clear();
-            var distinct = new string[kept];
-            ids.CopyTo(0, distinct, 0, kept);
-            return distinct;
+            distinctIds.KeepDistinct(ids);
+            return ids.ToArray();
         }
 
         // A capture holds every nested read, a row once per member read
         // through it. The entry keeps each read once, so indexing, forgetting
         // and every replay into an enclosing capture walk only distinct ones.
-        private void KeepDistinct(List<GetterRead> reads)
+        private void KeepDistinct(IdBuffer reads) => distinctIds.KeepDistinct(reads);
+
+        private void KeepDistinct(List<GridRead> reads)
         {
-            distinctIds.Reserve(reads.Count);
             int kept = 0;
             for (int i = 0; i < reads.Count; i++)
             {
-                GetterRead read = reads[i];
-                if (read.content is null ? distinctIds.Add(read.id) : distinctGridReads.Add(read))
+                GridRead read = reads[i];
+                if (distinctGridReads.Add(read))
                     reads[kept++] = read;
             }
             reads.RemoveRange(kept, reads.Count - kept);
-            distinctIds.Clear();
             distinctGridReads.Clear();
         }
 
-        // The ids one capture read, compared by reference: rows and values
-        // are read through the ids they store, so one row's reads share one
-        // string, and nothing hashes its characters. An id read through a
-        // copy is merely kept twice. Open addressing over a table at most
-        // half full, cleared slot by slot, so a capture costs its own size.
-        private sealed class IdSet
+        /// <summary>
+        /// The ids a capture recorded, in order. A sealed buffer rather than a
+        /// List: Mono shares List code across reference types and inlines
+        /// none of its calls, and every row read appends here.
+        /// </summary>
+        internal sealed class IdBuffer
         {
-            private string?[] slots = new string?[256];
-            private readonly List<int> filled = new();
+            internal string[] items = new string[16];
+            private int count;
 
-            /// <summary>Sizes the table for <paramref name="count"/> adds.</summary>
-            internal void Reserve(int count)
+            internal int Count => count;
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            internal void Add(string id)
             {
-                int size = slots.Length;
+                if (count == items.Length)
+                    Array.Resize(ref items, count * 2);
+                items[count++] = id;
+            }
+
+            internal void AddRange(IdBuffer ids) => AddRange(ids.items, ids.count);
+
+            internal void AddRange(string[] ids) => AddRange(ids, ids.Length);
+
+            internal void AddRange(IEnumerable<string> ids)
+            {
+                foreach (string id in ids)
+                    Add(id);
+            }
+
+            private void AddRange(string[] ids, int length)
+            {
+                int needed = count + length;
+                if (needed > items.Length)
+                {
+                    int size = items.Length * 2;
+                    while (size < needed)
+                        size *= 2;
+                    Array.Resize(ref items, size);
+                }
+                Array.Copy(ids, 0, items, count, length);
+                count = needed;
+            }
+
+            internal bool Contains(string id) => Array.IndexOf(items, id, 0, count) >= 0;
+
+            internal string[] ToArray()
+            {
+                var ids = new string[count];
+                Array.Copy(items, ids, count);
+                return ids;
+            }
+
+            /// <summary>Keeps the first <paramref name="kept"/> ids.</summary>
+            internal void Truncate(int kept)
+            {
+                Array.Clear(items, kept, count - kept);
+                count = kept;
+            }
+
+            internal void Clear() => Truncate(0);
+        }
+
+        // Compacts each id's first occurrence to the front of a list. Ids
+        // compare by reference: rows and values are read through the ids they
+        // store, so one row's reads share one string, and nothing hashes its
+        // characters. An id read through a copy is merely kept twice. Open
+        // addressing over a table at most half full that holds kept
+        // positions stamped by pass, so a pass stores no references, which
+        // each cost a write barrier, and clears nothing.
+        private sealed class IdCompactor
+        {
+            private int[] positions = new int[256];
+            private int[] passes = new int[256];
+            private int pass;
+
+            internal void KeepDistinct(IdBuffer buffer)
+            {
+                string[] ids = buffer.items;
+                int count = buffer.Count;
+                int size = positions.Length;
                 while (size < count * 2)
                     size *= 2;
-                if (size != slots.Length)
-                    slots = new string?[size];
-            }
-
-            internal bool Add(string id)
-            {
-                int mask = slots.Length - 1;
-                int slot = RuntimeHelpers.GetHashCode(id) & mask;
-                while (slots[slot] is { } held)
+                if (size != positions.Length)
                 {
-                    if (ReferenceEquals(held, id))
-                        return false;
-                    slot = (slot + 1) & mask;
+                    positions = new int[size];
+                    passes = new int[size];
+                    pass = 0;
                 }
-                slots[slot] = id;
-                filled.Add(slot);
-                return true;
-            }
-
-            internal void Clear()
-            {
-                foreach (int slot in filled)
-                    slots[slot] = null;
-                filled.Clear();
+                if (++pass == int.MaxValue)
+                {
+                    Array.Clear(passes, 0, passes.Length);
+                    pass = 1;
+                }
+                int mask = size - 1;
+                int kept = 0;
+                for (int i = 0; i < count; i++)
+                {
+                    string id = ids[i];
+                    int slot = RuntimeHelpers.GetHashCode(id) & mask;
+                    while (passes[slot] == pass && !ReferenceEquals(ids[positions[slot]], id))
+                        slot = (slot + 1) & mask;
+                    if (passes[slot] == pass)
+                        continue;
+                    passes[slot] = pass;
+                    positions[slot] = kept;
+                    if (kept != i)
+                        ids[kept] = id;
+                    kept++;
+                }
+                buffer.Truncate(kept);
             }
         }
 
-        private sealed class GridReadIdentity : IEqualityComparer<GetterRead>
+        private sealed class GridReadIdentity : IEqualityComparer<GridRead>
         {
             internal static readonly GridReadIdentity Instance = new();
 
-            public bool Equals(GetterRead x, GetterRead y) =>
-                ReferenceEquals(x.id, y.id) && ReferenceEquals(x.content, y.content) && x.cell == y.cell && x.tile == y.tile;
+            public bool Equals(GridRead x, GridRead y) =>
+                ReferenceEquals(x.placementId, y.placementId) && ReferenceEquals(x.content, y.content) && x.cell == y.cell && x.tile == y.tile;
 
-            public int GetHashCode(GetterRead read) => unchecked(
-                RuntimeHelpers.GetHashCode(read.id) * 31 + (read.cell?.GetHashCode() ?? 0));
+            public int GetHashCode(GridRead read) => unchecked(
+                RuntimeHelpers.GetHashCode(read.placementId) * 31 + (read.cell?.GetHashCode() ?? 0));
         }
 
-        private GetterMemoEntry? Memoize(GetterMemoKey key, GetterMemoEntry entry, GetterCaptureFrame capture)
+        // Returns the entry for the caller to fill with the result.
+        private GetterMemoEntry? Memoize(GetterMemoKey key, GetterCaptureFrame capture, bool valueless)
         {
+            getterMemo.TryGetValue(key, out GetterMemoEntry? entry);
             // The pending change must still find the entry that read the old
             // grid, to forget it and tell its watchers.
-            if (gridChangesPending != 0 && getterMemo.TryGetValue(key, out GetterMemoEntry? held) && held.readsGrid)
+            if (gridChangesPending != 0 && entry is { forgotten: false, readsGrid: true })
             {
                 RecycleGetterCapture(capture);
                 return null;
             }
-            if (capture.reads is { Count: not 0 })
-            {
-                KeepDistinct(capture.reads);
-                entry.reads = capture.reads;
-            }
-            else if (capture.reads is not null)
-                readCapturePool.Push(capture.reads);
+            string[]? valueReads = null;
             if (capture.valueReads is not null)
             {
                 // A valueless entry never hits, so nothing replays its ids.
-                if (capture.valueReads.Count != 0 && !entry.valueless)
-                    entry.valueReads = Distinct(capture.valueReads);
-                capture.valueReads.Clear();
-                valueReadCapturePool.Push(capture.valueReads);
+                if (!valueless)
+                    valueReads = capture.valueReads.Count != 0 ? Distinct(capture.valueReads) : Array.Empty<string>();
+                ReturnReadList(capture.valueReads);
             }
-            ForgetMemoizedGetter(key);
-            getterMemo[key] = entry;
-            IndexMemoDependency(getterMemoKeysByRow, key.rowId, key);
-            if (entry.reads is not null)
-                entry.readsGrid = IndexReads(key, entry.reads);
+            // Whoever kept an entry that held a value answers from it, so it
+            // never comes back valueless.
+            if (valueless && entry is { valueless: false })
+            {
+                DropDependent(entry);
+                entry = null;
+            }
+            GetterMemoEntry dependent = IndexDependent(key, entry, capture);
+            if (!ReferenceEquals(dependent, entry))
+                getterMemo[key] = dependent;
+            dependent.valueless = valueless;
+            dependent.valueReads = valueReads;
+            return dependent;
+        }
+
+        /// <summary>
+        /// Indexes a capture's reads for <paramref name="key"/>, reviving
+        /// <paramref name="previous"/> when it read the same rows, and
+        /// returns the live entry. Takes the capture's read lists.
+        /// </summary>
+        private GetterMemoEntry IndexDependent(GetterMemoKey key, GetterMemoEntry? previous, GetterCaptureFrame capture)
+        {
+            IdBuffer? reads = capture.reads;
+            if (reads is { Count: 0 })
+            {
+                ReturnReadList(reads);
+                reads = null;
+            }
+            GetterMemoEntry entry;
+            if (previous is not null)
+                ForgetMemoEntry(previous);
+            if (previous is not null && SameReads(previous.reads, reads))
+            {
+                // The row lists still hold the entry.
+                entry = previous;
+                entry.forgotten = false;
+                if (reads is not null)
+                    ReturnReadList(reads);
+            }
+            else
+            {
+                if (previous is not null)
+                    AbandonMemoEntry(previous);
+                entry = new GetterMemoEntry { key = key, reads = reads };
+                // An effect depends on what it read alone (P97 §3.1).
+                if (key.kind == DependentKind.Getter)
+                    IndexRowReader(key.rowId, entry);
+                if (reads is not null)
+                {
+                    string[] ids = reads.items;
+                    for (int i = 0; i < reads.Count; i++)
+                        IndexRowReader(ids[i], entry);
+                }
+            }
+            entry.gridReads = capture.gridReads;
+            if (entry.gridReads is not null)
+                IndexGridReads(entry);
+            if (deadMemoIndexEntries > MinDeadMemoIndexSweep && deadMemoIndexEntries * 2 > memoIndexEntries)
+                SweepMemoIndexes();
             return entry;
         }
 
-        /// <summary>Indexes <paramref name="key"/> under each read; returns whether one read a grid.</summary>
-        private bool IndexReads(GetterMemoKey key, List<GetterRead> reads)
+        /// <summary>Takes an entry out of every index for good.</summary>
+        private void DropDependent(GetterMemoEntry entry)
         {
-            bool readsGrid = false;
+            ForgetMemoEntry(entry);
+            AbandonMemoEntry(entry);
+        }
+
+        private static bool SameReads(IdBuffer? previous, IdBuffer? reads)
+        {
+            if (previous is null || reads is null)
+                return previous is null && reads is null;
+            int count = reads.Count;
+            if (previous.Count != count)
+                return false;
+            // One row's reads share one id instance, so an evaluation over
+            // the same rows mostly records the same references in the same
+            // order. A rewritten row is read through its new row's id, an
+            // equal string.
+            string[] before = previous.items;
+            string[] after = reads.items;
+            for (int i = 0; i < count; i++)
+                if (!string.Equals(before[i], after[i]))
+                    return false;
+            return true;
+        }
+
+        private void IndexRowReader(string id, GetterMemoEntry entry)
+        {
+            if (!getterMemoEntriesByRow.TryGetValue(id, out List<GetterMemoEntry>? entries))
+                getterMemoEntriesByRow[id] = entries = memoEntryListPool.Count != 0
+                    ? memoEntryListPool.Pop()
+                    : new List<GetterMemoEntry>();
+            entries.Add(entry);
+            entry.rowMemberships++;
+            memoIndexEntries++;
+        }
+
+        private void IndexGridReads(GetterMemoEntry entry)
+        {
+            var reader = new GridMemoReader(entry);
             string? indexedGrid = null;
             int gridHash = 0;
-            foreach (GetterRead read in reads)
+            foreach (GridRead read in entry.gridReads!)
             {
-                if (read.content is null)
-                {
-                    IndexMemoDependency(getterMemoKeysByRow, read.id, key);
-                    continue;
-                }
-                readsGrid = true;
                 string grid = read.content.Primitive.GridValueId;
                 // A query records each cell under one grid.
                 if (!ReferenceEquals(grid, indexedGrid))
                 {
-                    IndexMemoDependency(getterMemoKeysByGrid, grid, key);
+                    IndexGridReader(getterMemoEntriesByGrid, grid, reader);
                     indexedGrid = grid;
                     gridHash = grid.GetHashCode();
                 }
                 if (read.cell is UnityEngine.Vector2Int cell)
-                    IndexMemoDependency(getterMemoKeysByGridCell, new GridCellRead(grid, gridHash, cell, read.tile), key);
+                    IndexGridReader(getterMemoEntriesByGridCell, new GridCellRead(grid, gridHash, cell, read.tile), reader);
                 else
-                    IndexMemoDependency(getterMemoKeysByPlacement, read.id, key);
+                    IndexGridReader(getterMemoEntriesByPlacement, read.placementId, reader);
             }
-            return readsGrid;
         }
 
-        private void IndexMemoDependency<TRead>(Dictionary<TRead, HashSet<GetterMemoKey>> index, TRead read, GetterMemoKey key)
+        private void IndexGridReader<TRead>(Dictionary<TRead, List<GridMemoReader>> index, TRead read, GridMemoReader reader)
         {
-            if (!index.TryGetValue(read, out HashSet<GetterMemoKey>? keys))
-                index[read] = keys = memoKeySetPool.Count != 0
-                    ? memoKeySetPool.Pop()
-                    : new HashSet<GetterMemoKey>();
-            keys.Add(key);
+            if (!index.TryGetValue(read, out List<GridMemoReader>? readers))
+                index[read] = readers = gridMemoReaderListPool.Count != 0
+                    ? gridMemoReaderListPool.Pop()
+                    : new List<GridMemoReader>();
+            readers.Add(reader);
+            reader.entry.gridMemberships++;
+            memoIndexEntries++;
         }
 
         /// <summary>
         /// Drops a memoized getter without telling its watchers: a read is
         /// replacing it. Returns whether the memo held it.
         /// </summary>
-        internal bool ForgetMemoizedGetter(GetterMemoKey key)
+        internal bool ForgetMemoizedGetter(GetterMemoKey key) =>
+            getterMemo.TryGetValue(key, out GetterMemoEntry? entry) && ForgetMemoEntry(entry);
+
+        // Retires the entry: the row lists keep it, to revive or until a
+        // change to a row it read abandons it, so forgetting costs the same
+        // however many rows the getter read. Its grid readers die.
+        private bool ForgetMemoEntry(GetterMemoEntry entry)
         {
-            if (!getterMemo.Remove(key, out GetterMemoEntry? entry))
+            if (entry.forgotten)
                 return false;
             entry.ForgetResult();
-            UnindexMemoDependency(getterMemoKeysByRow, key.rowId, key);
-            List<GetterRead>? reads = entry.reads;
-            if (reads is null)
-                return true;
-            // The entry owned the list; nothing replays a forgotten entry.
-            entry.reads = null;
-            UnindexReads(key, reads);
+            // A revived entry's reads may differ from those a capture still
+            // open took from it.
+            entry.replayedIn = 0;
+            deadMemoIndexEntries += entry.gridMemberships;
+            entry.gridMemberships = 0;
+            entry.gridGeneration++;
+            // Nothing replays a forgotten entry. It keeps its row reads to
+            // compare with the next evaluation's.
+            if (entry.gridReads is { } gridReads)
+            {
+                entry.gridReads = null;
+                ReturnGridReads(gridReads);
+            }
             return true;
         }
 
-        /// <summary>Drops <paramref name="key"/> from each read's index and recycles the list.</summary>
-        private void UnindexReads(GetterMemoKey key, List<GetterRead> reads)
+        // A forgotten entry the memo will not revive; the caller removes or
+        // replaces its memo slot. Its row readers die.
+        private void AbandonMemoEntry(GetterMemoEntry entry)
         {
-            string? unindexedGrid = null;
-            int gridHash = 0;
-            foreach (GetterRead read in reads)
+            entry.abandoned = true;
+            deadMemoIndexEntries += entry.rowMemberships;
+            if (entry.reads is { } reads)
             {
-                if (read.content is null)
-                {
-                    UnindexMemoDependency(getterMemoKeysByRow, read.id, key);
-                    continue;
-                }
-                string grid = read.content.Primitive.GridValueId;
-                if (!ReferenceEquals(grid, unindexedGrid))
-                {
-                    UnindexMemoDependency(getterMemoKeysByGrid, grid, key);
-                    unindexedGrid = grid;
-                    gridHash = grid.GetHashCode();
-                }
-                if (read.cell is UnityEngine.Vector2Int cell)
-                    UnindexMemoDependency(getterMemoKeysByGridCell, new GridCellRead(grid, gridHash, cell, read.tile), key);
-                else
-                    UnindexMemoDependency(getterMemoKeysByPlacement, read.id, key);
+                entry.reads = null;
+                ReturnReadList(reads);
             }
-            reads.Clear();
-            readCapturePool.Push(reads);
         }
 
-        private void UnindexMemoDependency<TRead>(Dictionary<TRead, HashSet<GetterMemoKey>> index, TRead read, GetterMemoKey key)
+        private const int MinDeadMemoIndexSweep = 4096;
+
+        // Once dead readers outnumber live ones, every index list drops them,
+        // so the indexes stay within twice their live size and a sweep costs
+        // no more than the changes that called for it. A retired entry is not
+        // dead: it costs what it did live, and a later read revives it.
+        private void SweepMemoIndexes()
         {
-            if (!index.TryGetValue(read, out HashSet<GetterMemoKey>? keys))
-                return;
-            keys.Remove(key);
-            if (keys.Count != 0)
-                return;
-            index.Remove(read);
-            memoKeySetPool.Push(keys);
+            memoIndexEntries = 0;
+            deadMemoIndexEntries = 0;
+            SweepMemoIndex(getterMemoEntriesByRow, entries => entries.RemoveAll(entry => entry.abandoned), memoEntryListPool);
+            SweepMemoIndex(getterMemoEntriesByGridCell, readers => readers.RemoveAll(reader => !reader.IsLive), gridMemoReaderListPool);
+            SweepMemoIndex(getterMemoEntriesByPlacement, readers => readers.RemoveAll(reader => !reader.IsLive), gridMemoReaderListPool);
+            SweepMemoIndex(getterMemoEntriesByGrid, readers => readers.RemoveAll(reader => !reader.IsLive), gridMemoReaderListPool);
         }
 
-        // Forgetting mutates the key sets being walked, so each pass copies
-        // into one reused list rather than allocating a copy per changed row.
-        private readonly List<GetterMemoKey> memoInvalidationScratch = new();
+        private void SweepMemoIndex<TRead, TReader>(
+            Dictionary<TRead, List<TReader>> index,
+            Func<List<TReader>, int> removeDead,
+            Stack<List<TReader>> pool)
+        {
+            List<TRead>? emptied = null;
+            foreach (var pair in index)
+            {
+                List<TReader> readers = pair.Value;
+                removeDead(readers);
+                memoIndexEntries += readers.Count;
+                if (readers.Count == 0)
+                    (emptied ??= new List<TRead>()).Add(pair.Key);
+            }
+            if (emptied is null)
+                return;
+            foreach (TRead read in emptied)
+            {
+                pool.Push(index[read]);
+                index.Remove(read);
+            }
+        }
+
+        // Forgetting may re-enter the memo through a watcher, so each pass
+        // collects the readers first, into a reused list.
+        private readonly List<GetterMemoEntry> memoInvalidationScratch = new();
 
         /// <summary>Drops every memoized getter that read one of the changed rows.</summary>
         private void InvalidateGetterMemoForRows(HashSet<(NeoValueOwnership ownership, string valueId)> changed)
@@ -752,11 +1017,31 @@ namespace NeoCompose.Runtime
         /// <summary>Drops every memoized getter that read one row.</summary>
         internal void InvalidateGetterMemoForRow(string valueId)
         {
-            if (!HasReadDependents
-                || !getterMemoKeysByRow.TryGetValue(valueId, out HashSet<GetterMemoKey>? keys))
+            if (!HasReadDependents || !getterMemoEntriesByRow.Remove(valueId, out List<GetterMemoEntry>? entries))
                 return;
-            memoInvalidationScratch.Clear();
-            memoInvalidationScratch.AddRange(keys);
+            // A getter that read the row leaves the memo for good, retired or
+            // not: no list would tell a revived entry the row changed again.
+            // An effect keeps listening to its last run's reads until it runs
+            // again, so only effects stay listed.
+            int kept = 0;
+            for (int i = 0; i < entries.Count; i++)
+            {
+                GetterMemoEntry entry = entries[i];
+                if (entry.abandoned)
+                    continue;
+                if (entry.key.kind == DependentKind.Effect)
+                {
+                    memoInvalidationScratch.Add(entry);
+                    entries[kept++] = entry;
+                    continue;
+                }
+                if (!entry.forgotten)
+                    memoInvalidationScratch.Add(entry);
+                getterMemo.Remove(entry.key);
+                AbandonMemoEntry(entry);
+            }
+            DropDeadReaders(entries.Count - kept);
+            KeepListed(getterMemoEntriesByRow, valueId, entries, kept, memoEntryListPool);
             ForgetChangedGetters();
         }
 
@@ -764,9 +1049,8 @@ namespace NeoCompose.Runtime
         internal void InvalidateGetterMemoForGridChange(NeoTileGridChangedArgs change)
         {
             string grid = change.GridValueId;
-            if (!HasReadDependents || !getterMemoKeysByGrid.ContainsKey(grid))
+            if (!HasReadDependents || !getterMemoEntriesByGrid.ContainsKey(grid))
                 return;
-            memoInvalidationScratch.Clear();
             int gridHash = grid.GetHashCode();
             IReadOnlyList<NeoObjectLayerChangedArgs> objectLayers = change.ObjectLayers;
             for (int i = 0; i < objectLayers.Count; i++)
@@ -774,8 +1058,7 @@ namespace NeoCompose.Runtime
                 NeoObjectLayerChangedArgs layer = objectLayers[i];
                 IReadOnlyList<NeoObjectInstanceId> instances = layer.ChangedInstances;
                 for (int j = 0; j < instances.Count; j++)
-                    if (getterMemoKeysByPlacement.TryGetValue(instances[j].Value, out HashSet<GetterMemoKey>? keys))
-                        memoInvalidationScratch.AddRange(keys);
+                    CollectGridReaders(getterMemoEntriesByPlacement, instances[j].Value);
                 CollectCellReaders(grid, gridHash, layer.ChangedCells, tile: false);
             }
             IReadOnlyList<NeoTileLayerChangedArgs> tileLayers = change.TileLayers;
@@ -787,17 +1070,15 @@ namespace NeoCompose.Runtime
         private void CollectCellReaders(string grid, int gridHash, IReadOnlyList<UnityEngine.Vector2Int> cells, bool tile)
         {
             for (int i = 0; i < cells.Count; i++)
-                if (getterMemoKeysByGridCell.TryGetValue(new GridCellRead(grid, gridHash, cells[i], tile), out HashSet<GetterMemoKey>? keys))
-                    memoInvalidationScratch.AddRange(keys);
+                CollectGridReaders(getterMemoEntriesByGridCell, new GridCellRead(grid, gridHash, cells[i], tile));
         }
 
         /// <summary>Drops every memoized getter that read a grid whose indexes changed without naming what.</summary>
         internal void InvalidateGetterMemoForGrid(string gridValueId)
         {
-            if (!HasReadDependents || !getterMemoKeysByGrid.TryGetValue(gridValueId, out HashSet<GetterMemoKey>? keys))
+            if (!HasReadDependents)
                 return;
-            memoInvalidationScratch.Clear();
-            memoInvalidationScratch.AddRange(keys);
+            CollectGridReaders(getterMemoEntriesByGrid, gridValueId);
             ForgetChangedGetters();
         }
 
@@ -810,9 +1091,46 @@ namespace NeoCompose.Runtime
             }
         }
 
+        private void CollectGridReaders<TRead>(Dictionary<TRead, List<GridMemoReader>> index, TRead read)
+        {
+            if (!index.Remove(read, out List<GridMemoReader>? readers))
+                return;
+            // Forgetting kills the getters' readers; effects stay listed.
+            int kept = 0;
+            for (int i = 0; i < readers.Count; i++)
+            {
+                GridMemoReader reader = readers[i];
+                if (!reader.IsLive)
+                    continue;
+                memoInvalidationScratch.Add(reader.entry);
+                if (reader.entry.key.kind == DependentKind.Effect)
+                    readers[kept++] = reader;
+            }
+            DropDeadReaders(readers.Count - kept);
+            KeepListed(index, read, readers, kept, gridMemoReaderListPool);
+        }
+
+        // Lists the first kept readers again under the key, or recycles the list.
+        private static void KeepListed<TRead, TReader>(
+            Dictionary<TRead, List<TReader>> index,
+            TRead read,
+            List<TReader> readers,
+            int kept,
+            Stack<List<TReader>> pool)
+        {
+            if (kept != 0)
+            {
+                readers.RemoveRange(kept, readers.Count - kept);
+                index.Add(read, readers);
+                return;
+            }
+            readers.Clear();
+            pool.Push(readers);
+        }
+
         /// <summary>
-        /// Forgets the collected getters, a key collected twice once, and
-        /// tells the watchers of their receivers; queues the collected effects.
+        /// Forgets the collected entries, one collected twice once, and tells
+        /// the watchers of their receivers; queues the collected effects.
         /// </summary>
         private void ForgetChangedGetters()
         {
@@ -823,11 +1141,11 @@ namespace NeoCompose.Runtime
             {
                 for (int i = 0; i < memoInvalidationScratch.Count; i++)
                 {
-                    GetterMemoKey key = memoInvalidationScratch[i];
-                    if (key.kind == DependentKind.Effect)
-                        QueueEffect(key);
-                    else if (ForgetMemoizedGetter(key) && getterWatchersByRow.Count != 0)
-                        QueueGetterChange(key);
+                    GetterMemoEntry entry = memoInvalidationScratch[i];
+                    if (entry.key.kind == DependentKind.Effect)
+                        QueueEffect(entry.key);
+                    else if (ForgetMemoEntry(entry) && getterWatchersByRow.Count != 0)
+                        QueueGetterChange(entry.key);
                 }
                 memoInvalidationScratch.Clear();
             }
@@ -837,31 +1155,41 @@ namespace NeoCompose.Runtime
             }
         }
 
+        private void DropDeadReaders(int count)
+        {
+            memoIndexEntries -= count;
+            deadMemoIndexEntries -= count;
+        }
+
         /// <summary>
         /// Drops every memoized getter, telling the watchers of each. Effects
         /// keep their reads: the caller names what changed for them.
         /// </summary>
         internal void InvalidateGetterMemo()
         {
-            if (effectsByKey.Count != 0)
+            HoldGetterChanges();
+            try
             {
-                memoInvalidationScratch.Clear();
-                memoInvalidationScratch.AddRange(getterMemo.Keys);
-                ForgetChangedGetters();
-                return;
+                foreach (GetterMemoEntry entry in getterMemo.Values)
+                {
+                    if (ForgetMemoEntry(entry) && getterWatchersByRow.Count != 0)
+                        QueueGetterChange(entry.key);
+                    AbandonMemoEntry(entry);
+                }
+                getterMemo.Clear();
+                if (effectsByKey.Count != 0)
+                    return;
+                getterMemoEntriesByRow.Clear();
+                getterMemoEntriesByGridCell.Clear();
+                getterMemoEntriesByPlacement.Clear();
+                getterMemoEntriesByGrid.Clear();
+                memoIndexEntries = 0;
+                deadMemoIndexEntries = 0;
             }
-            foreach (var pair in getterMemo)
+            finally
             {
-                pair.Value.ForgetResult();
-                if (getterWatchersByRow.Count != 0)
-                    QueueGetterChange(pair.Key);
+                ReleaseGetterChanges();
             }
-            getterMemo.Clear();
-            getterMemoKeysByRow.Clear();
-            getterMemoKeysByGridCell.Clear();
-            getterMemoKeysByPlacement.Clear();
-            getterMemoKeysByGrid.Clear();
-            FlushGetterChanges();
         }
 
         // The views that hear a getter on the row they show change, by row

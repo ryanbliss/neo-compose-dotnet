@@ -7275,7 +7275,7 @@ namespace NeoCompose.Runtime
             object? receiver,
             object?[] preparedArgs)
         {
-            List<GetterRead>? capture = getterReadCapture;
+            IdBuffer? capture = getterReadCapture;
             getterReadCapture = null;
             try
             {

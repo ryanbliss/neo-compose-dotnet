@@ -1604,6 +1604,8 @@ namespace NeoCompose.Runtime.NeoScript
             private JsonMember? entryMember;
             /// <summary>The row's value node, kept so repeated reads skip the id lookup.</summary>
             internal NeoValueNode? node;
+            // The getter capture that last recorded a read of this row.
+            internal long capturedIn;
             private NeoClassNode? classNode;
             // The class id instance classNode was last matched to: row class
             // ids are separate strings from the schema's, so reads of the same
@@ -4568,7 +4570,7 @@ namespace NeoCompose.Runtime.NeoScript
 
             ctx.client.ReadReplayField(receiverRowId, schemaKey);
             if (receiverRowId is not null)
-                ctx.client.NoteRowRead(receiverRowId);
+                ctx.client.NoteRowRead(receiverRowId, ref receiverRef!.capturedIn);
             var storedRecord = record as NeoObjectRecord;
             int storedSlot = storedRecord?.StoredSlot(entry!) ?? -1;
             object? at = null;
@@ -8396,7 +8398,10 @@ namespace NeoCompose.Runtime.NeoScript
             JsonMember? member = null,
             NeoValueNode? node = null)
         {
-            ctx.client.NoteRowRead(row.id);
+            if (node is not null && ReferenceEquals(node.id, row.id))
+                ctx.client.NoteRowRead(row.id, ref node.capturedIn);
+            else
+                ctx.client.NoteRowRead(row.id);
             // Scalars have value semantics and no writable CLR aliases. Read the
             // current row directly instead of allocating cache keys and an index
             // entry just to retain a box. Structured values still need identity.
