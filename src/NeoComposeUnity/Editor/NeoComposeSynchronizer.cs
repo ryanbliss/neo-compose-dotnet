@@ -251,13 +251,16 @@ namespace NeoCompose.Unity.Editor
             {
                 try
                 {
-                    var result = await TryBuildIncrementalExportAsync(
-                        config, projectJsonPath, onProgress)
-                        ?? new IncrementalExportAttempt
-                        {
-                            response = await apiClient.ExportProjectAsync(
-                                config.apiBaseUrl, config.projectId, config.versionId),
-                        };
+                    var result = await TryBuildIncrementalExportAsync(config, projectJsonPath, onProgress);
+                    if (result == null)
+                    {
+                        var generated = new NeoComposeGeneratedFiles.DownloadCache(
+                            assets, config.generatedTypesDirectory, config.projectId);
+                        var response = await apiClient.ExportProjectAsync(
+                            config.apiBaseUrl, config.projectId, config.versionId, generated.Hashes);
+                        generated.RestoreContents(response.generatedFiles);
+                        result = new IncrementalExportAttempt { response = response };
+                    }
                     var readBase = RequireReadBase(result.response.readBase);
                     // Even a fully cached or unchanged assembly needs a final server check.
                     await ReadSnapshotsAsync(config,
@@ -390,9 +393,10 @@ namespace NeoCompose.Unity.Editor
             var headsByKey = state.heads.ToDictionary(HeadKey);
             var valueIndex = new ExportedValueDeltaIndex(
                 root, delta.records.Select(record => record.recordId));
-            var projectFileIds = root["files"] is JObject files
-                ? files.Properties().Select(property => property.Name).ToHashSet(StringComparer.Ordinal)
-                : new HashSet<string>(StringComparer.Ordinal);
+            var projectFileIds = state.heads.Where(head => head.recordKind == "project-file" && !head.deleted)
+                .Select(head => head.recordId).ToHashSet(StringComparer.Ordinal);
+            if (root["files"] is JObject files)
+                projectFileIds.UnionWith(files.Properties().Select(property => property.Name));
 
             foreach (var descriptor in delta.records)
             {
@@ -411,8 +415,9 @@ namespace NeoCompose.Unity.Editor
                 // File inclusion is a global reachability calculation. A value
                 // that adds or removes any known file id uses the full export
                 // rather than risking a stale asset manifest.
-                if (TokenContainsAnyString(oldValue, projectFileIds)
+                if ((TokenContainsAnyString(oldValue, projectFileIds)
                     || TokenContainsAnyString(snapshot?.data, projectFileIds))
+                    && !HasUnchangedMediaReference(oldValue, snapshot?.data))
                 {
                     return null;
                 }
@@ -597,19 +602,41 @@ namespace NeoCompose.Unity.Editor
             return state;
         }
 
+        private static bool HasUnchangedMediaReference(JToken? previous, JToken? next)
+        {
+            if (previous is not JObject oldRow || next is not JObject newRow)
+                return false;
+            // A different class, constructor, generic binding, or owner can change
+            // how the same payload is interpreted. Ignore only update timestamps.
+            static bool IsContext(string name) => name != "value" && name != "updatedAt" && name != "createdAt";
+            foreach (var field in oldRow.Properties())
+                if (IsContext(field.Name) && !JToken.DeepEquals(field.Value, newRow[field.Name]))
+                    return false;
+            foreach (var field in newRow.Properties())
+                if (IsContext(field.Name) && oldRow.Property(field.Name) == null)
+                    return false;
+            if (JToken.DeepEquals(oldRow["value"], newRow["value"]))
+                return true;
+            // Only a literal sprite's slice may change. Raw file-id sets cannot
+            // prove that changed NeoScript still uses the same media references.
+            if (oldRow["value"] is not JObject oldValue || newRow["value"] is not JObject newValue)
+                return false;
+            if (oldValue["fileId"]?.Type != JTokenType.String || !JToken.DeepEquals(oldValue["fileId"], newValue["fileId"]))
+                return false;
+            if (oldValue["sliceIndex"]?.Type != JTokenType.Integer || newValue["sliceIndex"]?.Type != JTokenType.Integer)
+                return false;
+            return oldValue.Count == 2 && newValue.Count == 2;
+        }
+
         private static bool TokenContainsAnyString(JToken? token, HashSet<string> expected)
         {
             if (token == null || expected.Count == 0)
                 return false;
             if (token.Type == JTokenType.String)
-            {
                 return token.Value<string>() is string value && expected.Contains(value);
-            }
             foreach (var child in token.Children())
-            {
                 if (TokenContainsAnyString(child, expected))
                     return true;
-            }
             return false;
         }
 

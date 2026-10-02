@@ -123,6 +123,18 @@ namespace NeoCompose.Tests
             Assert.IsNull(response!.readBase!.logicalRevisionId);
         }
 
+        [Test]
+        public async Task FullExport_SendsGeneratedFileHashesAndReadsOmittedContents()
+        {
+            var http = new FakeHttpClient { body = "{\"generatedFiles\":[{\"id\":\"one\",\"path\":\"Generated/One.g.cs\",\"content\":null,\"contentHash\":\"hash\"}]}" };
+            var client = NewClient(new FakeProvider("token"), http);
+            var response = await client.ExportProjectAsync(ApiBaseUrl, ProjectId, VersionId,
+                new Dictionary<string, string> { ["one"] = "hash" });
+            Assert.AreEqual("hash", JObject.Parse(http.sends[0].body!)["generatedFileHashes"]?["one"]?.Value<string>());
+            Assert.IsNull(response.generatedFiles[0].content);
+            Assert.AreEqual("hash", response.generatedFiles[0].contentHash);
+        }
+
         // UAUTH-030
         [Test]
         public async Task EveryAuthorizedRequest_AttachesBearerToken()

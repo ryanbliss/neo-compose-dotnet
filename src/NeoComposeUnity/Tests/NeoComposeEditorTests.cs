@@ -789,9 +789,10 @@ namespace NeoCompose.Tests
             Assert.IsNull(nextRows[2].Parent, "Applying a snapshot must not reparent or mutate its cached payload.");
         }
 
-        [TestCase(false)]
-        [TestCase(true)]
-        public async Task Synchronizer_NestedFileReferenceRequiresFullExport(bool inOldValue)
+        [TestCase(false, true)]
+        [TestCase(true, true)]
+        [TestCase(false, false)]
+        public async Task Synchronizer_NestedFileReferenceRequiresFullExport(bool inOldValue, bool alreadyExported)
         {
             var config = MakeConfig();
             var api = new FakeApiClient();
@@ -802,7 +803,7 @@ namespace NeoCompose.Tests
             {
                 ["metadata"] = new JObject(),
                 ["values"] = new JObject { ["value-1"] = inOldValue ? fileReference : plainValue },
-                ["files"] = new JObject { ["file-1"] = new JObject() },
+                ["files"] = alreadyExported ? new JObject { ["file-1"] = new JObject() } : new JObject(),
             };
             api.deltaResponse.records.Add(new NeoComposeUnityExportHeadDescriptor
             {
@@ -822,6 +823,13 @@ namespace NeoCompose.Tests
             assets.files["Assets/Resources/Neo/project.json"] = original.ToString(Formatting.None);
             assets.files["Assets/Scripts/Neo/Generated/Project.g.cs"] = "// existing";
             var cache = new FakeExportCache { state = new NeoComposeUnityExportSyncState() };
+            cache.state.heads.Add(new NeoComposeUnityExportHeadDescriptor
+            {
+                recordKind = "project-file",
+                recordId = "file-1",
+                snapshotId = "file-snapshot",
+                contentHash = "file-hash",
+            });
             StampCachedExport(assets, cache.state!);
             SeedGeneratedFiles(assets);
             var synchronizer = new NeoComposeSynchronizer(
@@ -831,6 +839,67 @@ namespace NeoCompose.Tests
 
             Assert.IsTrue(result.success, result.message);
             Assert.AreEqual(1, api.fullExportCalls);
+        }
+
+        [TestCase("slice", false)]
+        [TestCase("timestamp", false)]
+        [TestCase("class", true)]
+        [TestCase("script", true)]
+        public async Task Synchronizer_UsesIncrementalOnlyForProvenUnchangedMediaReferences(string edit, bool requiresFull)
+        {
+            var config = MakeConfig();
+            var api = new FakeApiClient();
+            var value = JObject.Parse("{\"id\":\"value-1\",\"value\":{\"fileId\":\"file-1\",\"sliceIndex\":1}}");
+            if (edit == "script")
+                value["value"] = JObject.Parse("{\"instructions\":[{\"type\":\"return\",\"pointer\":{\"type\":\"value\",\"value\":{\"typeInfo\":{\"type\":0,\"required\":true},\"value\":\"file-1\"}}}]}");
+            var original = new JObject
+            {
+                ["metadata"] = new JObject { ["schemaVersion"] = 32 },
+                ["variantFolders"] = new JObject(),
+                ["values"] = new JObject { ["value-1"] = value },
+                ["files"] = new JObject(),
+            };
+            var changed = (JObject)value.DeepClone();
+            changed["updatedAt"] = 200;
+            if (edit == "slice")
+                changed["value"]!["sliceIndex"] = 2;
+            if (edit == "class")
+                changed["classId"] = "different-class";
+            if (edit == "script")
+                changed["value"] = JObject.Parse("{\"instructions\":[{\"type\":\"return\",\"pointer\":{\"type\":\"function\",\"function\":{\"type\":\"imageSlice\",\"info\":{\"filePointer\":{\"type\":\"value\",\"value\":{\"typeInfo\":{\"type\":0,\"required\":true},\"value\":\"file-1\"}}}}}}]}");
+            api.deltaResponse.records.Add(new NeoComposeUnityExportHeadDescriptor
+            {
+                recordKind = "value",
+                recordId = "value-1",
+                snapshotId = "snapshot-1",
+            });
+            api.snapshotResponse.snapshots.Add(new NeoComposeUnityExportCachedSnapshot
+            {
+                id = "snapshot-1",
+                recordKind = "value",
+                recordId = "value-1",
+                contentHash = "hash-1",
+                data = changed,
+            });
+            var assets = new FakeAssetService();
+            assets.files["Assets/Resources/Neo/project.json"] = original.ToString(Formatting.None);
+            assets.files["Assets/Scripts/Neo/Generated/Project.g.cs"] = "// existing";
+            var cache = new FakeExportCache { state = new NeoComposeUnityExportSyncState() };
+            cache.state.heads.Add(new NeoComposeUnityExportHeadDescriptor
+            {
+                recordKind = "project-file",
+                recordId = "file-1",
+                snapshotId = "file-snapshot",
+                contentHash = "file-hash",
+            });
+            StampCachedExport(assets, cache.state);
+            SeedGeneratedFiles(assets);
+            var result = await new NeoComposeSynchronizer(api, new FakeConfirmationService(true), assets, cache)
+                .SynchronizeAsync(config);
+            Assert.IsTrue(result.success, result.message);
+            Assert.AreEqual(requiresFull ? 1 : 0, api.fullExportCalls);
+            if (!requiresFull)
+                Assert.IsTrue(JToken.DeepEquals(changed, JObject.Parse(assets.files["Assets/Resources/Neo/project.json"])["values"]?["value-1"]));
         }
 
         [TestCase(64)]
@@ -2131,6 +2200,25 @@ namespace NeoCompose.Tests
                 Assert.AreEqual(1, database.TileAssets.Count);
                 string guid = AssetDatabase.AssetPathToGUID(tilePath);
 
+                Assert.AreEqual(classId, original!.name);
+                var untouchedTime = new System.DateTime(2001, 1, 1, 0, 0, 0, System.DateTimeKind.Utc);
+                File.SetLastWriteTimeUtc(tilePath, untouchedTime);
+                File.SetLastWriteTimeUtc(databasePath, untouchedTime);
+                var serializedTile = File.ReadAllText(tilePath);
+                NeoComposePostSynchronizeProcessor.SynchronizeGeneratedTileAssets(data, databasePath, client, factories);
+                Assert.AreEqual(untouchedTime, File.GetLastWriteTimeUtc(tilePath));
+                Assert.AreEqual(untouchedTime, File.GetLastWriteTimeUtc(databasePath));
+                Assert.AreEqual(serializedTile, File.ReadAllText(tilePath));
+
+                // Effective dependencies change without touching the class timestamp.
+                var replacementSprite = Sprite.Create(texture, new Rect(0, 0, 1, 1), Vector2.one);
+                var oldSprite = sprite;
+                sprite = replacementSprite;
+                NeoComposePostSynchronizeProcessor.SynchronizeGeneratedTileAssets(data, databasePath, client, factories);
+                Assert.AreSame(replacementSprite, ((UnityEngine.Tilemaps.Tile)original).sprite);
+                Assert.AreNotEqual(untouchedTime, File.GetLastWriteTimeUtc(tilePath));
+                UnityEngine.Object.DestroyImmediate(oldSprite);
+
                 // A prior per-value entry can share the same class ID. Sync must
                 // discard that mapping/file while retaining the canonical asset.
                 var legacy = ScriptableObject.CreateInstance<UnityEngine.Tilemaps.Tile>();
@@ -2720,6 +2808,63 @@ namespace NeoCompose.Tests
             CollectionAssert.AreEquivalent(original, assets.files);
         }
 
+        [Test]
+        public async Task Synchronizer_FullExportReusesVerifiedCodeAndRepairsOnlyChangedFiles()
+        {
+            const string directory = "Assets/Scripts/Neo";
+            var config = MakeConfig();
+            var assets = new FakeAssetService();
+            var api = new FakeApiClient();
+            var original = new[] {
+                new NeoComposeGeneratedFile { id = "same", path = "Generated/Same.g.cs", content = "// same" },
+                new NeoComposeGeneratedFile { id = "edited", path = "Generated/Edited.g.cs", content = "// server" },
+                new NeoComposeGeneratedFile { id = "missing", path = "Generated/Missing.g.cs", content = "// missing" },
+                new NeoComposeGeneratedFile { id = "deleted", path = "Generated/Deleted.g.cs", content = "// deleted" },
+            };
+            new NeoComposeGeneratedFiles(assets, directory, config.projectId, original).Apply();
+            assets.files[directory + "/Generated/Edited.g.cs"] = "// locally edited";
+            assets.files.Remove(directory + "/Generated/Missing.g.cs");
+            var snapshot = new NeoComposeGeneratedFiles.DownloadCache(assets, directory, config.projectId);
+            api.exportResponse.generatedFiles = new List<NeoComposeGeneratedFile> {
+                new() { id = "same", path = "Generated/Same.g.cs", content = null, contentHash = snapshot.Hashes["same"] },
+                original[1], original[2],
+            };
+            assets.writtenPaths.Clear();
+            var result = await new NeoComposeSynchronizer(api, new FakeConfirmationService(true), assets)
+                .SynchronizeAsync(config);
+            Assert.IsTrue(result.success, result.message);
+            Assert.AreEqual(snapshot.Hashes["edited"], api.lastGeneratedFileHashes!["edited"]);
+            Assert.IsFalse(api.lastGeneratedFileHashes.ContainsKey("missing"));
+            Assert.IsFalse(assets.writtenPaths.Contains(directory + "/Generated/Same.g.cs"));
+            Assert.AreEqual("// server", assets.files[directory + "/Generated/Edited.g.cs"]);
+            Assert.AreEqual("// missing", assets.files[directory + "/Generated/Missing.g.cs"]);
+            Assert.IsFalse(assets.files.ContainsKey(directory + "/Generated/Deleted.g.cs"));
+        }
+
+        [Test]
+        public void GeneratedFiles_CachedDownloadPreservesRenamesAndRejectsUnverifiedOmissions()
+        {
+            const string directory = "Assets/Scripts/Neo";
+            var assets = new FakeAssetService();
+            var original = new NeoComposeGeneratedFile { id = "one", path = "Generated/Old.g.cs", content = "// original" };
+            new NeoComposeGeneratedFiles(assets, directory, "project", new[] { original }).Apply();
+            assets.files[directory + "/Generated/Old.g.cs.meta"] = "guid: keep";
+            var snapshot = new NeoComposeGeneratedFiles.DownloadCache(assets, directory, "project");
+            assets.files[directory + "/Generated/Old.g.cs"] = "// edited during request";
+            var renamed = new NeoComposeGeneratedFile { id = "one", path = "Generated/New.g.cs", content = null, contentHash = snapshot.Hashes["one"] };
+            snapshot.RestoreContents(new[] { renamed });
+            new NeoComposeGeneratedFiles(assets, directory, "project", new[] { renamed }).Apply();
+            Assert.AreEqual("// original", assets.files[directory + "/Generated/New.g.cs"]);
+            Assert.AreEqual("guid: keep", assets.files[directory + "/Generated/New.g.cs.meta"]);
+            renamed.content = null;
+            renamed.contentHash = "wrong";
+            Assert.Throws<System.InvalidOperationException>(() => snapshot.RestoreContents(new[] { renamed }));
+            var otherProject = new NeoComposeGeneratedFiles.DownloadCache(assets, directory, "other");
+            Assert.IsEmpty(otherProject.Hashes);
+            renamed.contentHash = snapshot.Hashes["one"];
+            Assert.Throws<System.InvalidOperationException>(() => otherProject.RestoreContents(new[] { renamed }));
+        }
+
         private static void SeedGeneratedFiles(FakeAssetService assets, string projectId = "project-1")
         {
             const string path = "Assets/Scripts/Neo/Generated/Project.g.cs";
@@ -2811,8 +2956,12 @@ namespace NeoCompose.Tests
                 return Task.FromResult(editResponse);
             }
 
-            public Task<NeoComposeUnityExportResponse> ExportProjectAsync(string apiBaseUrl, string projectId, string versionId)
+            public IReadOnlyDictionary<string, string>? lastGeneratedFileHashes;
+
+            public Task<NeoComposeUnityExportResponse> ExportProjectAsync(string apiBaseUrl, string projectId, string versionId,
+                IReadOnlyDictionary<string, string>? generatedFileHashes = null)
             {
+                lastGeneratedFileHashes = generatedFileHashes;
                 fullExportCalls++;
                 lastExportVersionId = versionId;
                 return Task.FromResult(exportResponse);

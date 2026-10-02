@@ -379,9 +379,17 @@ namespace NeoCompose.Unity.Editor
                 });
             }
 
-            assetDatabase.ReplaceTileAssets(tileEntries);
-            EditorUtility.SetDirty(assetDatabase);
-            AssetDatabase.SaveAssets();
+            var previous = assetDatabase.TileAssets;
+            if (previous.Count != tileEntries.Count || previous.Where((entry, index) =>
+                    entry.TileClassId != tileEntries[index].TileClassId
+                    || entry.AssetPath != tileEntries[index].AssetPath
+                    || entry.ContentHash != tileEntries[index].ContentHash
+                    || entry.TileBase != tileEntries[index].TileBase).Any())
+            {
+                assetDatabase.ReplaceTileAssets(tileEntries);
+                EditorUtility.SetDirty(assetDatabase);
+                AssetDatabase.SaveAssetIfDirty(assetDatabase);
+            }
         }
 
         /// <summary>Concrete tile definitions, including classes used only by lazy placements.</summary>
@@ -432,6 +440,8 @@ namespace NeoCompose.Unity.Editor
         private static TileBase PersistGeneratedTileAsset(string assetPath, TileBase generatedTile)
         {
             EnsureAssetDirectory(assetPath);
+            // CreateAsset uses the filename. Use that name on subsequent syncs too.
+            generatedTile.name = Path.GetFileNameWithoutExtension(assetPath);
             var existing = AssetDatabase.LoadAssetAtPath<TileBase>(assetPath);
             if (existing == null || existing.GetType() != generatedTile.GetType())
             {
@@ -440,9 +450,10 @@ namespace NeoCompose.Unity.Editor
                 return generatedTile;
             }
 
-            EditorUtility.CopySerialized(generatedTile, existing);
-            existing.name = generatedTile.name;
-            EditorUtility.SetDirty(existing);
+            // Resolve the desired tile every time: dependencies can change without
+            // changing this class's timestamp (inherited defaults, sprites, rules).
+            EditorUtility.CopySerializedIfDifferent(generatedTile, existing);
+            AssetDatabase.SaveAssetIfDirty(existing);
             UnityEngine.Object.DestroyImmediate(generatedTile);
             return existing;
         }

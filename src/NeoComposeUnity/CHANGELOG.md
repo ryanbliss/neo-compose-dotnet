@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.48.2] - 2026-10-02
+
+- Full Unity exports send hashes of the local generated C# files and download only changed contents when the server supports hash negotiation. Missing files and local edits are repaired; renames preserve Unity GUIDs. `INeoComposeEditorApiClient.ExportProjectAsync` now accepts an optional `generatedFileHashes` argument, and `NeoComposeGeneratedFile.content` can be null when its `contentHash` matches the request.
+- Timestamp-only updates and literal sprite slice changes that retain the same file stay on the incremental export path. Script and structural edits still rebuild the export when they may change media inclusion. Adding a reference to a file outside the current export now correctly rebuilds the file manifest.
+- Generated Tile and RuleTile assets retain a stable name and are saved only when their serialized contents change. Effective sprite and rule changes are still detected even when the tile class timestamp is unchanged. The tile database is saved only when its entries change.
+
 ## [0.48.1] - 2026-10-02
 
 - A variant apply no longer walks the whole save to decide which rows it released. It proves them unreachable from their own incoming links, as other writes already did, and its commit reuses the apply's last replay of the root instead of replaying it again. Planting in Neowyn, measured in its EditMode harness over 12 batches of 12 plants, 0.48.0 → 0.48.1: a batch took 377–692 ms and allocated 64–117 MB, growing with the garden; it now takes 79–128 ms and 18–19 MB at every garden size.
