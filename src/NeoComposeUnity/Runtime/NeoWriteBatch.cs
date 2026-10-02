@@ -454,7 +454,9 @@ namespace NeoCompose.Runtime
             {
                 if (!owned || Count == ids.Length)
                 {
-                    var grown = new string[Math.Max(4, Count * 2)];
+                    // The first change copies exactly: most executions make
+                    // one, and Seal then stores the copy without another.
+                    var grown = new string[owned ? Math.Max(4, Count * 2) : Count + 1];
                     Array.Copy(ids, grown, Count);
                     ids = grown;
                     owned = true;

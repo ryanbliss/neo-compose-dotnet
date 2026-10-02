@@ -259,22 +259,11 @@ namespace NeoCompose.Runtime
             NeoReadOnlyTileGridPrimitive? primitive = gridValueId is not null && primitives.TryGetValue(gridValueId, out var found)
                 ? found
                 : null;
-            link = null;
-            if (primitive is not null && linkValueId is not null)
-            {
-                foreach (NeoGridLayerLinkModel candidate in primitive.ResolveGridLinks(null))
-                {
-                    if (!candidate.IsTileLink
-                        || candidate.LinkValueId != linkValueId
-                        || candidate.ListValueId != placement.containerId)
-                    {
-                        continue;
-                    }
-                    if (link is not null)
-                        return false;
-                    link = candidate;
-                }
-            }
+            link = primitive is not null && linkValueId is not null
+                && primitive.ResolveGridLink(linkValueId) is { IsTileLink: true } candidate
+                && candidate.ListValueId == placement.containerId
+                ? candidate
+                : null;
             return gridValueId is not null && primitive is not null && link is not null;
         }
 

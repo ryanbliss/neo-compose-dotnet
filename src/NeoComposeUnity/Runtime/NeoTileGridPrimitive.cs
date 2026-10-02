@@ -1933,44 +1933,64 @@ namespace NeoCompose.Runtime
         internal IReadOnlyList<NeoGridLayerLinkModel> ResolveGridLinks(HashSet<string>? dependencyIds)
         {
             var links = new List<NeoGridLayerLinkModel>();
-            dependencyIds?.Add(GridValueId);
-            if (client.ResolveValueRow(GridValueId) is not ObjectMemberValue gridRow)
-                return links;
-            if (gridRow.IsRemoved)
-                return links;
-            if (string.IsNullOrEmpty(gridRow.classId))
-                return links;
-            string? childrenKey = FindSchemaKey(gridRow.classId!, ChildrenKeyCandidates);
-            if (childrenKey is null)
-                return links;
-            if (client.ResolveClassChildRow(gridRow, childrenKey)
-                    is not ArrayMemberValue childrenList)
+            foreach (var linkValueId in ResolveGridLinkIds(dependencyIds))
             {
-                return links;
-            }
-            string childrenListId = childrenList.id;
-
-            foreach (var linkValueId in ResolveListEntryIds(childrenListId, dependencyIds))
-            {
-                dependencyIds?.Add(linkValueId);
-                if (client.ResolveValueRow(linkValueId) is not ObjectMemberValue linkRow)
-                    continue;
-                if (linkRow.IsRemoved)
-                    continue;
-                if (string.IsNullOrEmpty(linkRow.classId))
-                    continue;
-                var link = ResolveLinkModel(linkValueId, linkRow, dependencyIds);
+                var link = ResolveLinkModel(linkValueId, dependencyIds);
                 if (link is not null)
                     links.Add(link);
             }
             return links;
         }
 
+        /// <summary>
+        /// The grid's link <paramref name="linkValueId"/> when its children
+        /// hold it exactly once, resolving no other link.
+        /// </summary>
+        internal NeoGridLayerLinkModel? ResolveGridLink(string linkValueId)
+        {
+            bool found = false;
+            foreach (var id in ResolveGridLinkIds(null))
+            {
+                if (id != linkValueId)
+                    continue;
+                if (found)
+                    return null;
+                found = true;
+            }
+            return found ? ResolveLinkModel(linkValueId, null) : null;
+        }
+
+        private IReadOnlyList<string> ResolveGridLinkIds(HashSet<string>? dependencyIds)
+        {
+            dependencyIds?.Add(GridValueId);
+            if (client.ResolveValueRow(GridValueId) is not ObjectMemberValue gridRow)
+                return Array.Empty<string>();
+            if (gridRow.IsRemoved)
+                return Array.Empty<string>();
+            if (string.IsNullOrEmpty(gridRow.classId))
+                return Array.Empty<string>();
+            string? childrenKey = FindSchemaKey(gridRow.classId!, ChildrenKeyCandidates);
+            if (childrenKey is null)
+                return Array.Empty<string>();
+            if (client.ResolveClassChildRow(gridRow, childrenKey)
+                    is not ArrayMemberValue childrenList)
+            {
+                return Array.Empty<string>();
+            }
+            return ResolveListEntryIds(childrenList.id, dependencyIds);
+        }
+
         private NeoGridLayerLinkModel? ResolveLinkModel(
             string linkValueId,
-            ObjectMemberValue linkRow,
             HashSet<string>? dependencyIds)
         {
+            dependencyIds?.Add(linkValueId);
+            if (client.ResolveValueRow(linkValueId) is not ObjectMemberValue linkRow)
+                return null;
+            if (linkRow.IsRemoved)
+                return null;
+            if (string.IsNullOrEmpty(linkRow.classId))
+                return null;
             string classId = linkRow.classId!;
             string? tilesKey = FindSchemaKey(classId, TilesKeyCandidates);
             if (tilesKey is not null

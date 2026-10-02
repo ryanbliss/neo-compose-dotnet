@@ -9339,8 +9339,6 @@ namespace NeoCompose.Runtime
 
         private bool CanProveUnreachable(NeoValueOwnership ownership, IReadOnlyList<string> valueIds)
         {
-            if (candidateReplay is not null)
-                return false;
             HashSet<string> staticRoots = RentIdSet();
             HashSet<string> visited = RentIdSet();
             HashSet<string> parents = RentIdSet();
@@ -9418,6 +9416,22 @@ namespace NeoCompose.Runtime
                 CollectPlacementParents(id, parents);
                 if (candidateReadPlan is not null)
                     candidateReadPlan.CollectParentCandidates(id, parents);
+                if (candidateReplay is not null)
+                {
+                    // A replay's proposed expansion is not indexed; any id in
+                    // it falls back to the full collector.
+                    if (candidateReplay.Values.ContainsKey(id)
+                        || candidateReplay.Placements.ContainsKey(id)
+                        || candidateReplay.Allocations.ContainsKey(id))
+                        return false;
+                    if (candidateReplay.Parents.TryGetValue(id, out var allocationParents))
+                        parents.UnionWith(allocationParents);
+                    // The replay hides a placement by its root, the collector
+                    // a parent's links by the parent's own root. Offer the
+                    // committed parent too; its link test below decides.
+                    if (virtualClassPlacementByChildId.TryGetValue(id, out var committedPlacement))
+                        parents.Add(committedPlacement.parentValueId);
+                }
                 foreach (string parentId in parents)
                 {
                     if (!TryGetOverlaidValue(ownership, parentId, out MemberValue? parent) || parent.IsRemoved)
@@ -9426,12 +9440,14 @@ namespace NeoCompose.Runtime
                     {
                         // The row's own class types most links; inferring its member,
                         // which can walk far, only adds generic, dictionary and
-                        // class-less ones. A link either finds is admitted.
+                        // class-less ones. A link either finds is admitted. A
+                        // placement alone is no edge: a cleared override keeps
+                        // its slot's placement, but the collector follows only
+                        // the parent's virtual class-child links.
                         if (ConstructorArgsReference(obj, id)
                             || obj.value is not null && (OwnsChildLink(obj, null, id, ownership, membership)
                                 || OwnsChildLink(obj, TryInferMemberForValueId(parentId, out var inferred) ? inferred : null, id, ownership, membership)
-                                || TryResolveVirtualPlacement(id, out var placement) && placement.parentValueId == parentId
-                                    && ChildOwnership(placement.member, ownership) == ownership))
+                                || TryResolveVirtualClassChildren(parentId, out var links) && links.ContainsValue(id)))
                             pending.Enqueue(parentId);
                     }
                     else if (parent is ArrayMemberValue { value: not null } array && membership.Holds(array.value, id))

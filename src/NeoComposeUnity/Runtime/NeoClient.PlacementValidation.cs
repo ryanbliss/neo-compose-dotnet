@@ -53,27 +53,25 @@ namespace NeoCompose.Runtime
         {
             if (writablePlacementParents is null)
                 return;
-            List<string> next = placementChildScratch;
-            next.Clear();
-            // Only records and arrays link children; a leaf row has none to index.
-            if (row is ObjectMemberValue or ArrayMemberValue)
-                CollectPlacementChildIds(row, next);
+            // An array row's ids are its children; only a record's are collected.
+            string[]? ids = (row as ArrayMemberValue)?.value;
+            List<string> scratch = placementChildScratch;
+            scratch.Clear();
+            if (row is ObjectMemberValue)
+                CollectPlacementChildIds(row, scratch);
+            IReadOnlyList<string> next = (IReadOnlyList<string>?)ids ?? scratch;
             var key = (ownership, row.id);
             if (!writablePlacementChildren.TryGetValue(key, out string[]? previous))
             {
                 if (next.Count == 0)
                     return;
-                writablePlacementChildren[key] = PlacementChildSnapshot(row, next);
-                foreach (string child in next)
-                    AddPlacementParent(child, row.id);
+                writablePlacementChildren[key] = ids ?? scratch.ToArray();
+                AddPlacementParents(ids, scratch, 0, row.id);
                 return;
             }
             // Relink only past the unchanged leading children, so appending to
             // or popping a long list row touches the entries that changed.
-            int prefix = 0;
-            int shared = Math.Min(previous.Length, next.Count);
-            while (prefix < shared && string.Equals(previous[prefix], next[prefix], StringComparison.Ordinal))
-                prefix++;
+            int prefix = SharedPrefix(previous, ids, scratch);
             if (prefix == previous.Length && prefix == next.Count)
                 return;
             writablePlacementChildren.TryGetValue(
@@ -91,18 +89,62 @@ namespace NeoCompose.Runtime
                     continue;
                 RemovePlacementParent(child, row.id);
             }
-            for (int i = prefix; i < next.Count; i++)
-                AddPlacementParent(next[i], row.id);
+            AddPlacementParents(ids, scratch, prefix, row.id);
+            // Committed id arrays are never written in place, so an array
+            // row's own ids are already the snapshot the next relink diffs.
             if (next.Count == 0)
                 writablePlacementChildren.Remove(key);
             else
-                writablePlacementChildren[key] = PlacementChildSnapshot(row, next);
+                writablePlacementChildren[key] = ids ?? scratch.ToArray();
         }
 
-        // Committed id arrays are never written in place, so an array row's
-        // own ids are already the snapshot the next relink diffs against.
-        private static string[] PlacementChildSnapshot(MemberValue row, List<string> children) =>
-            row is ArrayMemberValue { value: { } ids } ? ids : children.ToArray();
+        // Indexes an id array directly; Mono calls an array's IReadOnlyList
+        // indexer through an interface thunk.
+        private void AddPlacementParents(string[]? ids, List<string> collected, int from, string parentId)
+        {
+            if (ids is not null)
+            {
+                for (int i = from; i < ids.Length; i++)
+                    AddPlacementParent(ids[i], parentId);
+                return;
+            }
+            for (int i = from; i < collected.Count; i++)
+                AddPlacementParent(collected[i], parentId);
+        }
+
+        /// <summary>
+        /// How many leading children <paramref name="previous"/> shares with a
+        /// row's children: its id array when it has one, else
+        /// <paramref name="collected"/>.
+        /// </summary>
+        internal static int SharedPrefix(string[] previous, string[]? ids, List<string> collected)
+        {
+            if (ids is not null)
+                return SharedPrefix(previous, ids);
+            int prefix = 0;
+            int shared = Math.Min(previous.Length, collected.Count);
+            while (prefix < shared && string.Equals(previous[prefix], collected[prefix], StringComparison.Ordinal))
+                prefix++;
+            return prefix;
+        }
+
+        /// <summary>
+        /// How many leading ids two id arrays share. An appended array keeps
+        /// the committed id instances, so an inlined identity test answers
+        /// almost every entry without a call to <c>string.Equals</c>.
+        /// </summary>
+        internal static int SharedPrefix(string[] previous, string[] next)
+        {
+            if (ReferenceEquals(previous, next))
+                return previous.Length;
+            int prefix = 0;
+            int shared = Math.Min(previous.Length, next.Length);
+            while (prefix < shared
+                && (ReferenceEquals(previous[prefix], next[prefix])
+                    || string.Equals(previous[prefix], next[prefix], StringComparison.Ordinal)))
+                prefix++;
+            return prefix;
+        }
 
         // A scan for a few probes, and a set built once past that.
         private static bool HoldsChild(IReadOnlyList<string> children, string child, bool few, ref HashSet<string>? set)
@@ -263,12 +305,12 @@ namespace NeoCompose.Runtime
             internal bool Holds(string[] ids, string id)
             {
                 if (ids.Length <= 16)
-                    return Array.IndexOf(ids, id) >= 0;
+                    return Scan(ids, id);
                 sets ??= new Dictionary<object, HashSet<string>?>();
                 if (!sets.TryGetValue(ids, out HashSet<string>? set))
                 {
                     sets[ids] = null;
-                    return Array.IndexOf(ids, id) >= 0;
+                    return Scan(ids, id);
                 }
                 if (set is null)
                     sets[ids] = set = new HashSet<string>(ids, StringComparer.Ordinal);
@@ -291,6 +333,17 @@ namespace NeoCompose.Runtime
             }
 
             internal void Clear() => sets?.Clear();
+
+            // From the end: the child a commit writes is usually the one it
+            // appended, and it usually shares the array's id instance, which
+            // the inlined identity test answers without a call.
+            private static bool Scan(string[] ids, string id)
+            {
+                for (int i = ids.Length - 1; i >= 0; i--)
+                    if (ReferenceEquals(ids[i], id) || string.Equals(ids[i], id, StringComparison.Ordinal))
+                        return true;
+                return false;
+            }
         }
 
         private sealed class WriteValidationScratch
@@ -305,6 +358,8 @@ namespace NeoCompose.Runtime
             internal readonly Dictionary<string, NeoReadOnlyTileGridPrimitive> primitives = new(StringComparer.Ordinal);
             internal readonly Dictionary<(bool tile, string classId), HashSet<string>> compatibleLayers = new();
             internal readonly CollectionMembership children = new();
+            // Each array parent's member, which every child's edge asks for.
+            internal readonly Dictionary<string, Member?> arrayMembers = new(StringComparer.Ordinal);
             internal bool inUse;
 
             internal void Clear()
@@ -319,6 +374,7 @@ namespace NeoCompose.Runtime
                 primitives.Clear();
                 compatibleLayers.Clear();
                 children.Clear();
+                arrayMembers.Clear();
             }
         }
 
@@ -455,9 +511,6 @@ namespace NeoCompose.Runtime
         // Replayed outputs are validated separately above.
         private bool IsPlacementEdge(NeoWritePlan plan, WriteValidationScratch scratch, string parentId, string childId)
         {
-            // Resolved once, for whichever array row holds the child first.
-            Member? arrayMember = null;
-            bool arrayMemberKnown = false;
             MemberValue? next = plan.Resolve(parentId);
             TryGetCommittedValue(parentId, out MemberValue? previous);
             if (HasWorldKind(next?.classId ?? previous?.classId, "object"))
@@ -482,11 +535,8 @@ namespace NeoCompose.Runtime
                 if (row is not ArrayMemberValue { value: not null } array
                     || !scratch.children.Holds(array.value, childId))
                     return false;
-                if (!arrayMemberKnown)
-                {
-                    arrayMemberKnown = true;
-                    arrayMember = PlannedMember(plan, parentId);
-                }
+                if (!scratch.arrayMembers.TryGetValue(parentId, out Member? arrayMember))
+                    scratch.arrayMembers[parentId] = arrayMember = PlannedMember(plan, parentId);
                 return arrayMember is ListMember;
             }
         }
