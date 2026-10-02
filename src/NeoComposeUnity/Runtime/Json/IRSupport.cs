@@ -426,6 +426,8 @@ namespace NeoCompose.Runtime.Json
         public TypeInfo typeInfo = null!;
         /// <summary>One of <see cref="WritabilityKind"/>.</summary>
         public string? writability;
+        // Evaluator cache: 1 when writability is ReadOnly, -1 otherwise, 0 until read.
+        internal sbyte readOnly;
     }
 
     /// <summary>

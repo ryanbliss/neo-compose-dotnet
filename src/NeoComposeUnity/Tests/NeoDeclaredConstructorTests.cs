@@ -1482,9 +1482,9 @@ namespace NeoCompose.Tests
                 out JsonMember? inferred));
             Assert.AreEqual(parts.id, inferred!.id);
             root.value = null;
-            Assert.IsTrue(client.StillHasOwnedChildReference(NeoValueOwnership.Asset, root.id, frames.id),
+            Assert.IsTrue(client.StillHasOwnedChildReference(NeoValueOwnership.Asset, root.id, frames.id, new()),
                 "Settled constructor arguments remain inspectable when the parent body is null.");
-            Assert.IsFalse(client.StillHasOwnedChildReference(NeoValueOwnership.Asset, root.id, "unrelated"));
+            Assert.IsFalse(client.StillHasOwnedChildReference(NeoValueOwnership.Asset, root.id, "unrelated", new()));
         }
 
         [Test]

@@ -1340,6 +1340,36 @@ namespace NeoCompose.Runtime
             return CommittedRow(ownership, id, node);
         }
 
+        /// <summary>
+        /// The row <paramref name="ownership"/>'s store holds at
+        /// <paramref name="id"/>, or its asset row for an Asset read, through
+        /// a node the caller keeps; null when the store holds none. A
+        /// collection snapshot reads each entry's current row this way.
+        /// </summary>
+        internal MemberValue? ReadOwnRow(NeoValueOwnership ownership, string id, ref NeoValueNode? node)
+        {
+            if (candidateReplay is not null || candidateReadPlan is not null)
+            {
+                return (ownership == NeoValueOwnership.Asset || HasWritableValue(ownership, id))
+                    && TryGetValue(ownership, id, out MemberValue? overlaid)
+                        ? overlaid
+                        : null;
+            }
+            if (node is not { live: true })
+                node = ValueNode(id);
+            MemberValue? row = ownership switch
+            {
+                NeoValueOwnership.Session => node?.session,
+                NeoValueOwnership.Save => node?.save,
+                NeoValueOwnership.Asset => CommittedRow(ownership, id, node),
+                _ => throw new System.InvalidOperationException(
+                    $"Unknown value ownership '{ownership}'."),
+            };
+            if (row is not null || ownership == NeoValueOwnership.Asset)
+                NoteValueRead(id);
+            return row;
+        }
+
         internal bool TryGetCommittedValue<TValue>(
             NeoValueOwnership ownership,
             string id,
@@ -4142,18 +4172,21 @@ namespace NeoCompose.Runtime
         /// to guard its short-lived parent links against subsequent mutation:
         /// a stale link falls back to <see cref="TryFindOwnedParent"/>.
         /// </summary>
+        /// <param name="ownedChildren">
+        /// Each parent's owned child ids, filled on first use. Cleanup checks
+        /// every root it constructed, often under one parent, which a scan of
+        /// that parent per root would make N².
+        /// </param>
         internal bool StillHasOwnedChildReference(
             NeoValueOwnership ownership,
             string parentValueId,
-            string childValueId)
+            string childValueId,
+            Dictionary<string, HashSet<string>?> ownedChildren)
         {
-            if (!TryGetValue(
-                    ownership,
-                    parentValueId,
-                    out MemberValue? parent))
-            {
+            if (!ownedChildren.TryGetValue(parentValueId, out HashSet<string>? children))
+                ownedChildren[parentValueId] = children = OwnedChildReferences(ownership, parentValueId);
+            if (children is null)
                 return false;
-            }
             if (TryGetValue(
                     ownership,
                     childValueId,
@@ -4162,13 +4195,28 @@ namespace NeoCompose.Runtime
             {
                 return true;
             }
-            if (!MightReferenceChildValueId(parent!, childValueId))
-                return false;
-            if (EnumerateOwnedChildLinks(parent!, null).Any(link => link.valueId == childValueId))
-                return true;
-            TryInferMemberForValueId(parentValueId, out Member? parentMember);
-            return EnumerateOwnedChildLinks(parent!, parentMember).Any(link => link.valueId == childValueId);
+            return children.Contains(childValueId);
         }
+
+        private HashSet<string>? OwnedChildReferences(NeoValueOwnership ownership, string parentValueId)
+        {
+            if (!TryGetValue(ownership, parentValueId, out MemberValue? parent))
+                return null;
+            var children = new HashSet<string>(System.StringComparer.Ordinal);
+            foreach (var link in EnumerateOwnedChildLinks(parent!, null))
+                children.Add(link.valueId);
+            TryInferMemberForValueId(parentValueId, out Member? parentMember);
+            foreach (var link in EnumerateOwnedChildLinks(parent!, parentMember))
+                children.Add(link.valueId);
+            return children;
+        }
+
+        /// <summary>
+        /// Whether reclaiming Session root <paramref name="valueId"/> could
+        /// remove anything: a write that moved it out left no row behind.
+        /// </summary>
+        internal bool HoldsSessionRoot(string valueId) =>
+            candidateReplay is not null || sessionData.values.ContainsKey(valueId);
 
         /// <summary>Whether a constructor argument of <paramref name="obj"/> names <paramref name="valueId"/>.</summary>
         private static bool ConstructorArgsReference(ObjectMemberValue obj, string valueId)
@@ -7093,6 +7141,7 @@ namespace NeoCompose.Runtime
             object?[] args,
             bool ownsArguments = false)
         {
+            CommitScriptWrites();
             string memberId = function.memberId;
             FunctionMember member = function.signature;
             object?[] preparedArgs = PrepareNativeFunctionInvocation(
@@ -7250,6 +7299,7 @@ namespace NeoCompose.Runtime
             bool normalizeReturnValue,
             bool captureInvokerException)
         {
+            CommitScriptWrites();
             ResolvedNativeFunction function = ResolveNativeFunction(memberId);
             FunctionMember member = function.signature;
             object?[] preparedArgs = PrepareNativeFunctionInvocation(
@@ -9220,6 +9270,9 @@ namespace NeoCompose.Runtime
         // indexed incoming edges first. This proof deliberately admits extra
         // edges: any possible root falls back to the full collector, so it can
         // never delete a row just because an edge could not be typed precisely.
+        // The unreachability walk's membership memo, kept between walks.
+        private CollectionMembership? idleMembership;
+
         private bool CanProveUnreachable(NeoValueOwnership ownership, IReadOnlyList<string> valueIds)
         {
             if (candidateReplay is not null)
@@ -9228,9 +9281,11 @@ namespace NeoCompose.Runtime
             HashSet<string> visited = RentIdSet();
             HashSet<string> parents = RentIdSet();
             Queue<string> pending = RentIdQueue();
+            CollectionMembership membership = idleMembership ?? new CollectionMembership();
+            idleMembership = null;
             try
             {
-                return CanProveUnreachable(ownership, valueIds, staticRoots, visited, parents, pending);
+                return CanProveUnreachable(ownership, valueIds, staticRoots, visited, parents, pending, membership);
             }
             finally
             {
@@ -9238,6 +9293,8 @@ namespace NeoCompose.Runtime
                 ReturnIdSet(visited);
                 ReturnIdSet(parents);
                 ReturnIdQueue(pending);
+                membership.Clear();
+                idleMembership = membership;
             }
         }
 
@@ -9247,7 +9304,8 @@ namespace NeoCompose.Runtime
             HashSet<string> staticRoots,
             HashSet<string> visited,
             HashSet<string> parents,
-            Queue<string> pending)
+            Queue<string> pending,
+            CollectionMembership membership)
         {
             foreach (var member in ValueInferenceIndex.StaticMembers)
                 if (ResolveStaticOwnership(member) == ownership
@@ -9306,13 +9364,13 @@ namespace NeoCompose.Runtime
                         // which can walk far, only adds generic, dictionary and
                         // class-less ones. A link either finds is admitted.
                         if (ConstructorArgsReference(obj, id)
-                            || obj.value is not null && (OwnsChildLink(obj, null, id, ownership)
-                                || OwnsChildLink(obj, TryInferMemberForValueId(parentId, out var inferred) ? inferred : null, id, ownership)
+                            || obj.value is not null && (OwnsChildLink(obj, null, id, ownership, membership)
+                                || OwnsChildLink(obj, TryInferMemberForValueId(parentId, out var inferred) ? inferred : null, id, ownership, membership)
                                 || TryResolveVirtualPlacement(id, out var placement) && placement.parentValueId == parentId
                                     && ChildOwnership(placement.member, ownership) == ownership))
                             pending.Enqueue(parentId);
                     }
-                    else if (parent is ArrayMemberValue { value: not null } array && System.Array.IndexOf(array.value, id) >= 0)
+                    else if (parent is ArrayMemberValue { value: not null } array && membership.Holds(array.value, id))
                     {
                         if (TryInferMemberForValueId(parentId, out var member)
                             && member is LookupMember or EnumMember or DialogueLookupMember)
@@ -9334,10 +9392,11 @@ namespace NeoCompose.Runtime
             return false;
         }
 
-        private bool OwnsChildLink(ObjectMemberValue obj, Member? parentMember, string childId, NeoValueOwnership ownership)
+        private bool OwnsChildLink(ObjectMemberValue obj, Member? parentMember, string childId, NeoValueOwnership ownership,
+            CollectionMembership membership)
         {
             // Match the id first, so only the linking key resolves its member.
-            if (obj.value is not null)
+            if (obj.value is not null && membership.Holds(obj.value, childId))
                 foreach (var pair in obj.value)
                 {
                     if (pair.Value == childId

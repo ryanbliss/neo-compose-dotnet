@@ -41,7 +41,10 @@ namespace NeoCompose.Runtime
     internal sealed class NeoWritePlan
     {
         internal readonly NeoClient Client;
-        internal readonly long BaseRevision;
+        internal long BaseRevision
+        {
+            get; private set;
+        }
         internal (string gridId, string layerId, string listId, string instanceId)? ObjectInsertion;
         internal string? ValidatedObjectInsertionGrid;
         // Collections most writes never fill are allocated on first use.
@@ -65,16 +68,103 @@ namespace NeoCompose.Runtime
         private NeoMember? reportingNode;
         private List<NeoMember>? moreReportingNodes;
         private Dictionary<string, HashSet<string>>? containerCandidates;
-        // A child's staged parent, or a set when more than one row links it.
-        // Plans that stage no new link share one empty map; the others rent
-        // theirs from the client until the commit ends.
-        private static readonly Dictionary<string, object> NoParentCandidates = new();
+        // A child's staged parent, or a set when more than one row links it,
+        // rented from the client until the commit ends.
         private Dictionary<string, object>? parentCandidates;
+        // Each staged row's prior state while a checkpoint is open.
+        private List<RowEntry>? journal;
+        private int openCheckpoints;
 
         internal NeoWritePlan(NeoClient client)
         {
+            client.CommitScriptWrites();
             Client = client;
             BaseRevision = client.WriteRevision;
+        }
+
+        /// <summary>
+        /// Takes the current revision as this plan's base. Only a script
+        /// write batch does: nothing commits under it but leaf writes, and
+        /// it commits before any leaf write over a row it stages.
+        /// </summary>
+        internal void Rebase() => BaseRevision = Client.WriteRevision;
+
+        /// <summary>Opens a checkpoint <see cref="Rollback"/> returns the plan to.</summary>
+        internal Checkpoint Open()
+        {
+            openCheckpoints++;
+            return new Checkpoint((journal ??= new List<RowEntry>()).Count, afterCommit.Count);
+        }
+
+        /// <summary>Keeps what was staged since the last open checkpoint.</summary>
+        internal void Close()
+        {
+            if (--openCheckpoints == 0)
+                journal!.Clear();
+        }
+
+        /// <summary>Drops what was staged since <paramref name="checkpoint"/>.</summary>
+        internal void Rollback(Checkpoint checkpoint)
+        {
+            for (int index = journal!.Count - 1; index >= checkpoint.Journal; index--)
+            {
+                RowEntry entry = journal[index];
+                if (entry.Staged)
+                    Rows[entry.Key] = entry.Row;
+                else
+                    Rows.Remove(entry.Key);
+                if (entry.ChangedField is not null)
+                    (changedFields ??= new())[entry.Key] = entry.ChangedField;
+                else
+                    changedFields?.Remove(entry.Key);
+                if (entry.Silent)
+                    (silentRows ??= new()).Add(entry.Key);
+                else
+                    silentRows?.Remove(entry.Key);
+            }
+            journal.RemoveRange(checkpoint.Journal, journal.Count - checkpoint.Journal);
+            afterCommit.Truncate(checkpoint.AfterCommit);
+            containerCandidates = null;
+            ReleaseParentCandidates();
+            Close();
+        }
+
+        private void Record((NeoValueOwnership ownership, string id) key)
+        {
+            if (openCheckpoints == 0)
+                return;
+            bool staged = Rows.TryGetValue(key, out MemberValue? row);
+            journal!.Add(new RowEntry(key, staged, row, ChangedField(key), IsSilent(key)));
+        }
+
+        internal readonly struct Checkpoint
+        {
+            internal readonly int Journal;
+            internal readonly int AfterCommit;
+
+            internal Checkpoint(int journal, int afterCommit)
+            {
+                Journal = journal;
+                AfterCommit = afterCommit;
+            }
+        }
+
+        private readonly struct RowEntry
+        {
+            internal readonly (NeoValueOwnership ownership, string id) Key;
+            internal readonly bool Staged;
+            internal readonly MemberValue? Row;
+            internal readonly string? ChangedField;
+            internal readonly bool Silent;
+
+            internal RowEntry((NeoValueOwnership ownership, string id) key, bool staged, MemberValue? row, string? changedField, bool silent)
+            {
+                Key = key;
+                Staged = staged;
+                Row = row;
+                ChangedField = changedField;
+                Silent = silent;
+            }
         }
 
         internal void Set(NeoValueOwnership ownership, MemberValue row, string? changedField = null, bool silent = false)
@@ -82,9 +172,9 @@ namespace NeoCompose.Runtime
             if (ownership == NeoValueOwnership.Asset)
                 throw new InvalidOperationException("Cannot write immutable asset data.");
             var key = (ownership, row.id);
-            Rows[key] = row;
+            Record(key);
+            Restage(key, row);
             containerCandidates = null;
-            ReleaseParentCandidates();
             if (changedField is not null)
                 (changedFields ??= new())[key] = changedField;
             else
@@ -116,8 +206,8 @@ namespace NeoCompose.Runtime
             if (ownership == NeoValueOwnership.Asset)
                 throw new InvalidOperationException("Cannot remove immutable asset data.");
             var key = (ownership, id);
-            Rows[key] = null;
-            ReleaseParentCandidates();
+            Record(key);
+            Restage(key, null);
             silentRows?.Remove(key);
         }
 
@@ -187,55 +277,32 @@ namespace NeoCompose.Runtime
             return Client.TryGetCommittedOwnership(id, out ownership);
         }
 
+        /// <summary>Stages <paramref name="row"/> at <paramref name="key"/>, keeping a built parent index current.</summary>
+        private void Restage((NeoValueOwnership ownership, string id) key, MemberValue? row)
+        {
+            if (parentCandidates is not null && Rows.TryGetValue(key, out MemberValue? previous))
+                IndexParentCandidates(key.ownership, previous, add: false);
+            Rows[key] = row;
+            if (parentCandidates is not null)
+                IndexParentCandidates(key.ownership, row, add: true);
+        }
+
         /// <summary>
         /// Adds to <paramref name="into"/> the staged rows that may link <paramref name="childId"/>, beyond
         /// the links the client's committed placement index already holds.
         /// Every caller unions these with that index, so a staged row only
         /// contributes the children past its unchanged leading ones: an append
-        /// to a long list row indexes one child, not the whole list.
+        /// to a long list row indexes one child, not the whole list. Built
+        /// once, then kept current as rows stage: a plan that stages many
+        /// rows and asks after each would otherwise rebuild it each time.
         /// </summary>
         internal void CollectParentCandidates(string childId, ICollection<string> into)
         {
             if (parentCandidates is null)
             {
-                Dictionary<string, object>? found = null;
-                // Collected rather than enumerated: a long list row's entries
-                // would each cost an enumerator call.
-                List<string> children = Client.RentIdList();
-                try
-                {
-                    foreach (var pair in Rows)
-                    {
-                        MemberValue? row = pair.Value;
-                        if (row is not ObjectMemberValue and not ArrayMemberValue)
-                            continue;
-                        children.Clear();
-                        NeoClient.CollectPlacementChildIds(row, children);
-                        string[]? committed = Client.IndexedPlacementChildren(pair.Key.ownership, row.id);
-                        int prefix = 0;
-                        while (committed is not null
-                            && prefix < committed.Length
-                            && prefix < children.Count
-                            && string.Equals(committed[prefix], children[prefix], StringComparison.Ordinal))
-                            prefix++;
-                        for (int index = prefix; index < children.Count; index++)
-                        {
-                            string child = children[index];
-                            found ??= Client.RentParentIndex();
-                            if (!found.TryGetValue(child, out object? parents))
-                                found[child] = row.id;
-                            else if (parents is HashSet<string> set)
-                                set.Add(row.id);
-                            else if (!string.Equals((string)parents, row.id, StringComparison.Ordinal))
-                                found[child] = new HashSet<string>(StringComparer.Ordinal) { (string)parents, row.id };
-                        }
-                    }
-                }
-                finally
-                {
-                    Client.ReturnIdList(children);
-                }
-                parentCandidates = found ?? NoParentCandidates;
+                parentCandidates = Client.RentParentIndex();
+                foreach (var pair in Rows)
+                    IndexParentCandidates(pair.Key.ownership, pair.Value, add: true);
             }
             if (!parentCandidates.TryGetValue(childId, out object? parentOrSet))
                 return;
@@ -248,10 +315,57 @@ namespace NeoCompose.Runtime
                 into.Add((string)parentOrSet);
         }
 
+        private void IndexParentCandidates(NeoValueOwnership ownership, MemberValue? row, bool add)
+        {
+            if (row is not ObjectMemberValue and not ArrayMemberValue)
+                return;
+            // Collected rather than enumerated: a long list row's entries
+            // would each cost an enumerator call.
+            List<string> children = Client.RentIdList();
+            try
+            {
+                NeoClient.CollectPlacementChildIds(row, children);
+                string[]? committed = Client.IndexedPlacementChildren(ownership, row.id);
+                int prefix = 0;
+                while (committed is not null
+                    && prefix < committed.Length
+                    && prefix < children.Count
+                    && string.Equals(committed[prefix], children[prefix], StringComparison.Ordinal))
+                    prefix++;
+                for (int index = prefix; index < children.Count; index++)
+                {
+                    string child = children[index];
+                    if (!parentCandidates!.TryGetValue(child, out object? parents))
+                    {
+                        if (add)
+                            parentCandidates[child] = row.id;
+                    }
+                    else if (parents is HashSet<string> set)
+                    {
+                        if (add)
+                            set.Add(row.id);
+                        else
+                            set.Remove(row.id);
+                    }
+                    else if (!string.Equals((string)parents, row.id, StringComparison.Ordinal))
+                    {
+                        if (add)
+                            parentCandidates[child] = new HashSet<string>(StringComparer.Ordinal) { (string)parents, row.id };
+                    }
+                    else if (!add)
+                        parentCandidates.Remove(child);
+                }
+            }
+            finally
+            {
+                Client.ReturnIdList(children);
+            }
+        }
+
         /// <summary>Drops the staged parent index, which no caller holds past a lookup, back to the client's pool.</summary>
         internal void ReleaseParentCandidates()
         {
-            if (parentCandidates is not null && !ReferenceEquals(parentCandidates, NoParentCandidates))
+            if (parentCandidates is not null)
                 Client.ReturnParentIndex(parentCandidates);
             parentCandidates = null;
         }
@@ -338,6 +452,19 @@ namespace NeoCompose.Runtime
         {
             private object? first;
             private List<object>? rest;
+
+            internal int Count => first is null ? 0 : 1 + (rest?.Count ?? 0);
+
+            internal void Truncate(int count)
+            {
+                if (count == 0)
+                {
+                    first = null;
+                    rest = null;
+                }
+                else
+                    rest?.RemoveRange(count - 1, rest.Count - (count - 1));
+            }
 
             internal void Add(object callback)
             {

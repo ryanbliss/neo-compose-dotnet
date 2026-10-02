@@ -179,12 +179,14 @@ namespace NeoCompose.Runtime
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void NoteValueRead(string id)
         {
-            if (capturedValueReads is not null || getterValueReadCapture is not null)
+            if (capturedValueReads is not null || getterValueReadCapture is not null || scriptWriteBatch is not null)
                 RecordValueRead(id);
         }
 
         private void RecordValueRead(string id)
         {
+            if (scriptWriteBatch is not null)
+                CommitScriptWritesReading(id);
             capturedValueReads?.Add(id);
             getterValueReadCapture?.Add(id);
         }
@@ -198,6 +200,8 @@ namespace NeoCompose.Runtime
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void NoteRowRead(NeoValueOwnership ownership, string rowId)
         {
+            if (scriptWriteBatch is not null)
+                CommitScriptWritesReading(rowId);
             if (getterReadCapture is { } reads)
                 RecordRowRead(reads, ownership, rowId);
         }
@@ -272,8 +276,17 @@ namespace NeoCompose.Runtime
             }
         }
 
-        internal GetterMemoEntry? FindMemoizedGetter(GetterMemoKey key) =>
-            getterMemo.TryGetValue(key, out GetterMemoEntry? entry) ? entry : null;
+        internal GetterMemoEntry? FindMemoizedGetter(GetterMemoKey key)
+        {
+            if (!getterMemo.TryGetValue(key, out GetterMemoEntry? entry))
+                return null;
+            if (scriptWriteBatch is null)
+                return entry;
+            // A hit reads nothing, so it can't commit the batch the way the
+            // reads it replaces would have.
+            CommitScriptWritesObserved(entry);
+            return getterMemo.TryGetValue(key, out entry) ? entry : null;
+        }
 
         /// <summary>Memoizes a getter's result and returns the entry.</summary>
         internal GetterMemoEntry MemoizeGetter(

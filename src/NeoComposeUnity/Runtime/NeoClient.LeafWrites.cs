@@ -36,6 +36,8 @@ namespace NeoCompose.Runtime
         internal bool TryWriteLeaf(
             NeoValueOwnership ownership, MemberValue next, Member member, string? changedField, NeoValueNode? node = null)
         {
+            if (scriptWriteBatch?.Stages(next.id) == true)
+                CommitScriptWrites();
             if (!CanWriteLeaf(ownership, next, member, ref node))
                 return false;
 #if NEO_COMPOSE_PROFILING

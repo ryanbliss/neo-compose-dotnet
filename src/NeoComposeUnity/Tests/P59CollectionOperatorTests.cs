@@ -130,6 +130,85 @@ namespace NeoCompose.Tests
                 (object?[])result!);
         }
 
+        [TestCase(MemberKind.Float)]
+        [TestCase(MemberKind.Int)]
+        public void Select_NumericProjectionKeepsItsReturnType(MemberKind returnKind)
+        {
+            // [1, 2].Select(x => x / 2): a half is a Float but not an Int.
+            Pointer select = JsonConvert.DeserializeObject<Pointer>(@"{
+                'type':'function',
+                'function':{'type':'select','info':{
+                    'collectionPointer':{'type':'listLiteral','typeInfo':{'type':6,'required':true,'entryTypeInfo':{'type':2,'required':true}},'entries':[
+                        {'type':'value','value':{'typeInfo':{'type':2,'required':true},'value':1}},
+                        {'type':'value','value':{'typeInfo':{'type':2,'required':true},'value':2}}]},
+                    'function':{
+                        'compilerRevision':REVISION,
+                        'parameters':[{'id':'x','typeInfo':{'type':2,'required':true},'pointer':{'type':'variable','variableId':'x'}}],
+                        'typeInfo':{'type':RETURN,'required':true},
+                        'instructions':[{'type':'return','pointer':{'type':'operation','operation':{'type':'arithmetic','arithmetic':{'type':'/','pointers':[
+                            {'type':'variable','variableId':'x'},
+                            {'type':'value','value':{'typeInfo':{'type':2,'required':true},'value':2}}]}}}}]}}}}"
+                .Replace("REVISION", FunctionWithReturnType.CurrentCompilerRevision.ToString(CultureInfo.InvariantCulture))
+                .Replace("RETURN", ((int)returnKind).ToString(CultureInfo.InvariantCulture)))!;
+
+            if (returnKind == MemberKind.Float)
+            {
+                CollectionAssert.AreEqual(new object?[] { 0.5, 1d }, (object?[])Evaluate(select)!);
+                return;
+            }
+            InvalidOperationException error = Assert.Throws<InvalidOperationException>(() => Evaluate(select))!;
+            StringAssert.Contains("collection projection callback return value", error.Message);
+        }
+
+        [Test]
+        public void LocalAdd_GrowsInPlaceWhileEveryReadKeepsItsList()
+        {
+            // var items = []; var before = items;
+            // var i = 0; while (i < 6) { items.Add(i); i = i + 1; }
+            // var read = items; items.Add(6); var afterRead = items; items.Add(7);
+            // return [before.Count, read.Count, afterRead.Count, items.Count, items[7], read[5]];
+            const string intType = "{'type':2,'required':true}";
+            const string listType = "{'type':6,'required':true,'entryTypeInfo':" + intType + "}";
+            static string Number(int value) => "{'type':'value','value':{'typeInfo':" + intType + ",'value':" + value + "}}";
+            static string Var(string id) => "{'type':'variable','variableId':'" + id + "'}";
+            static string Declare(string id, string type, string pointer) =>
+                "{'type':'variable','variable':{'id':'" + id + "','typeInfo':" + type + ",'pointer':" + pointer + "}}";
+            static string Add(string pointer) =>
+                "{'type':'collectionCall','target':{'pointer':" + Var("items") + ",'typeInfo':" + listType + ",'writability':'local'},'mutation':'Add','args':[" + pointer + "]}";
+            static string Count(string id) =>
+                "{'type':'function','function':{'type':'count','info':{'collectionPointer':" + Var(id) + "}}}";
+            static string Index(string id, int index) =>
+                "{'type':'keyOf','keyOf':{'pointer':" + Var(id) + ",'key':" + Number(index) + "}}";
+            string body = string.Join(",",
+                Declare("items", listType, "{'type':'listLiteral','typeInfo':" + listType + ",'entries':[]}"),
+                Declare("before", listType, Var("items")),
+                Declare("i", intType, Number(0)),
+                "{'type':'while','condition':{'condition':{'type':'lessThan','operand1':" + Var("i") + ",'operand2':" + Number(6) + "}},'instructions':["
+                    + Add(Var("i")) + ","
+                    + "{'type':'assign','target':{'pointer':" + Var("i") + ",'typeInfo':" + intType + ",'writability':'local'},'operator':'=','pointer':"
+                    + "{'type':'operation','operation':{'type':'arithmetic','arithmetic':{'type':'+','pointers':[" + Var("i") + "," + Number(1) + "]}}}}]}",
+                Declare("read", listType, Var("items")),
+                Add(Number(6)),
+                Declare("afterRead", listType, Var("items")),
+                Add(Number(7)),
+                "{'type':'return','pointer':{'type':'listLiteral','typeInfo':" + listType + ",'entries':["
+                    + string.Join(",", Count("before"), Count("read"), Count("afterRead"), Count("items"), Index("items", 7), Index("read", 5))
+                    + "]}}");
+            var getter = JsonConvert.DeserializeObject<FunctionWithReturnType>(
+                "{'compilerRevision':" + FunctionWithReturnType.CurrentCompilerRevision
+                + ",'parameters':[],'typeInfo':" + listType + ",'instructions':[" + body + "]}")!;
+            var ctx = new NSGetterEvaluator.Context(BuildClient(), null, null);
+
+            // Twice, so the second run reuses the pooled frame the first left.
+            for (int run = 0; run < 2; run++)
+            {
+                CollectionAssert.AreEqual(
+                    new object?[] { 0d, 6d, 7d, 8d, 7d, 5d },
+                    (object?[])NSGetterEvaluator.Evaluate(getter, ctx)!,
+                    $"run {run}");
+            }
+        }
+
         [TestCase(false)]
         [TestCase(true)]
         public void Count_WithoutPredicateReturnsCollectionLength(bool dictionary)

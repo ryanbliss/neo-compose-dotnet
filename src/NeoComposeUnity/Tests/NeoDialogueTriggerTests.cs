@@ -1342,6 +1342,28 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void ActionsNode_LookupSetAddTwice_StoresTheSelectionOnce()
+        {
+            var client = CreateClient();
+            client.SetSaveValue(new ArrayMemberValue
+            {
+                id = "save-inventory-value",
+                createdAt = Now,
+                updatedAt = Now,
+                value = new string[0],
+            });
+            var root = new TestDialogues(
+                client,
+                valueResolver: valueId => new TestLookupValue(valueId));
+            Assert.IsTrue(root.TryTrigger("dialogue-action-lookup-add-twice", out NeoDialogue dialogue));
+
+            dialogue.Start();
+
+            Assert.IsTrue(client.TryGetValue("save-inventory-value", out ArrayMemberValue? inventory));
+            CollectionAssert.AreEqual(new[] { "asset-item-value" }, inventory!.value);
+        }
+
+        [Test]
         public void ActionsNode_LookupSetAddThroughRootPath_NotifiesExistingLookupSetWrapper()
         {
             var client = CreateClient();
@@ -2610,6 +2632,14 @@ namespace NeoCompose.Tests
                             CollectionMutationKind.Add,
                             ContextKeyPointer("primary")),
                         primaryLinkedValueId: "asset-item-value"),
+                    ["dialogue-action-lookup-add-twice"] = ActionDialogue(
+                        "dialogue-action-lookup-add-twice",
+                        ActionFunction(new[]
+                        {
+                            LookupAddInstruction(),
+                            LookupAddInstruction(),
+                        }),
+                        primaryLinkedValueId: "asset-item-value"),
                     ["dialogue-action-lookup-add-root-path"] = ActionDialogue(
                         "dialogue-action-lookup-add-root-path",
                         CollectionAction(
@@ -3709,6 +3739,17 @@ namespace NeoCompose.Tests
                 },
             });
         }
+
+        private static Instruction LookupAddInstruction() =>
+            CollectionAction(
+                new ReferencePointer
+                {
+                    type = PointerKind.Reference,
+                    valueId = "save-inventory-value",
+                },
+                LookupTypeInfo("member-items", ClassTypeInfo("class-item")),
+                CollectionMutationKind.Add,
+                ContextKeyPointer("primary")).instructions[0];
 
         private static FunctionWithReturnType ThrowAction(string message)
         {

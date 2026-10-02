@@ -3,9 +3,11 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using NeoCompose.Runtime.NeoScript;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 
@@ -320,6 +322,218 @@ namespace NeoCompose.Tests
             Assert.AreEqual(1, publications);
         }
 
+        [Test]
+        public void StoredListMutationsInOneExecutionCommitOnce()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(Schema(false));
+            int publications = 0;
+            client.OnWritableValuesChanged += _ => publications++;
+
+            // Save.Names.Add("a"); Save.Names.Add("b"); Save.Names.Insert(0, "first");
+            // Save.Names.RemoveAt(1); Save.Names.Add("c"); Save.Names.RemoveAt(3);
+            Run(client, NullTypeJson,
+                Call(Names, NamesTypeJson, "save", "Add", Text("a")),
+                Call(Names, NamesTypeJson, "save", "Add", Text("b")),
+                Call(Names, NamesTypeJson, "save", "Insert", Number(0), Text("first")),
+                Call(Names, NamesTypeJson, "save", "RemoveAt", Number(1)),
+                Call(Names, NamesTypeJson, "save", "Add", Text("c")),
+                Call(Names, NamesTypeJson, "save", "RemoveAt", Number(3)));
+
+            Assert.AreEqual(1, publications, "One execution's list mutations must publish together.");
+            CollectionAssert.AreEqual(new[] { "first", "a", "b" }, StoredNames(client));
+            Assert.IsFalse(client.saveValues.ContainsKey("name-0"), "A removed entry must be released.");
+            CollectionAssert.DoesNotContain(StoredStrings(client), "c",
+                "An entry added and removed in one execution must be released.");
+        }
+
+        [Test]
+        public void RuntimeTargetedListMutationsCommitOnce()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(Schema(false));
+            int publications = 0;
+            client.OnWritableValuesChanged += _ => publications++;
+
+            // As `this.Names` compiles in a method: Runtime writability, resolved from the receiver.
+            // this.Names.Add("a"); this.Names.Add("b"); this.Names.RemoveAt(0);
+            Run(client, NullTypeJson,
+                Call(Names, NamesTypeJson, "runtime", "Add", Text("a")),
+                Call(Names, NamesTypeJson, "runtime", "Add", Text("b")),
+                Call(Names, NamesTypeJson, "runtime", "RemoveAt", Number(0)));
+
+            Assert.AreEqual(1, publications, "Runtime-targeted mutations must batch like Save-targeted ones.");
+            CollectionAssert.AreEqual(new[] { "a", "b" }, StoredNames(client));
+        }
+
+        [Test]
+        public void StoredListReadsObserveEarlierMutations()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(Schema(false));
+            int publications = 0;
+            client.OnWritableValuesChanged += _ => publications++;
+
+            // Save.Names.Add("a"); var afterAdd = Save.Names.Count; Save.Names.Add("b");
+            // return [afterAdd, Save.Names.Count];
+            object? result = Run(client, ListTypeJson(NumberTypeJson),
+                Call(Names, NamesTypeJson, "save", "Add", Text("a")),
+                Declare("afterAdd", NumberTypeJson, Count(Names)),
+                Call(Names, NamesTypeJson, "save", "Add", Text("b")),
+                Return(NumberTypeJson, Var("afterAdd"), Count(Names)));
+
+            CollectionAssert.AreEqual(new object?[] { 2d, 3d }, (object?[])result!);
+            Assert.AreEqual(2, publications, "A read commits the mutations before it.");
+            CollectionAssert.AreEqual(new[] { "zero", "a", "b" }, StoredNames(client));
+        }
+
+        [Test]
+        public void CaughtStoredListFailureKeepsTheExecutionsOtherMutations()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(Schema(false));
+
+            // Save.Names.Add("a"); try { Save.Names.RemoveAt(5); } catch (e) { } Save.Names.Add("b");
+            Run(client, NullTypeJson,
+                Call(Names, NamesTypeJson, "save", "Add", Text("a")),
+                "{'type':'try','instructions':[" + Call(Names, NamesTypeJson, "save", "RemoveAt", Number(5)) + "],"
+                    + "'catches':[{'binding':{'id':'e','typeInfo':" + StringTypeJson + ",'readonly':true},'instructions':[]}]}",
+                Call(Names, NamesTypeJson, "save", "Add", Text("b")));
+
+            CollectionAssert.AreEqual(new[] { "zero", "a", "b" }, StoredNames(client));
+        }
+
+        [Test]
+        public void ConstructedEntryStaysWritableAfterItsAdd()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(Schema(false));
+
+            // var item = new Item(Name: "made"); Save.Items.Add(item); item.Name = "renamed";
+            Run(client, NullTypeJson,
+                Declare("item", ItemTypeJson, New("made")),
+                Call(Field("save", "Items"), ItemsTypeJson, "save", "Add", Var("item")),
+                Assign(Index(Var("item"), Text("Name")), StringTypeJson, "runtime", Text("renamed")));
+
+            string[] items = ((ArrayMemberValue)client.saveValues["items"]).value!;
+            Assert.AreEqual(1, items.Length);
+            string nameId = ((ObjectMemberValue)client.saveValues[items[0]]).value!["Name"];
+            Assert.AreEqual("renamed", ((StringMemberValue)client.saveValues[nameId]).value);
+        }
+
+        [Test]
+        public void AddingOneConstructedEntryTwiceFails()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(Schema(false));
+
+            // var item = new Item(Name: "made"); Save.Items.Add(item); Save.Items.Add(item);
+            Assert.Catch(() => Run(client, NullTypeJson,
+                Declare("item", ItemTypeJson, New("made")),
+                Call(Field("save", "Items"), ItemsTypeJson, "save", "Add", Var("item")),
+                Call(Field("save", "Items"), ItemsTypeJson, "save", "Add", Var("item"))));
+        }
+
+        [Test]
+        public void ConstructedSessionEntriesSurviveTheExecutionsExit()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(Schema(false));
+
+            // Session.Items.Add(new Item(Name: "first")); Session.Items.Add(new Item(Name: "second"));
+            Run(client, NullTypeJson,
+                Call(Field("session", "Items"), ItemsTypeJson, "session", "Add", New("first")),
+                Call(Field("session", "Items"), ItemsTypeJson, "session", "Add", New("second")));
+
+            Assert.IsTrue(client.TryGetValue("session-items", out ArrayMemberValue? items));
+            Assert.AreEqual(2, items!.value!.Length);
+            foreach (string id in items.value)
+                Assert.IsTrue(client.TryGetValue(id, out ObjectMemberValue? _), $"Entry '{id}' must stay stored.");
+        }
+
+        [Test]
+        public void DictionaryAliasObservesEarlierMutations()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(Schema(false));
+            int publications = 0;
+            client.OnWritableValuesChanged += _ => publications++;
+            string byKey = Field("save", "ByKey");
+
+            // var alias = Save.ByKey; Save.ByKey.Add("b", "2"); alias["a"] = "1"; Save.ByKey["a"] = "3";
+            // Save.ByKey.Add("c", "4"); Save.ByKey.Remove("c");
+            // return [alias["a"], alias["b"], Save.ByKey["a"]];
+            object? result = Run(client, ListTypeJson(StringTypeJson),
+                Declare("alias", ByKeyTypeJson, byKey),
+                Call(byKey, ByKeyTypeJson, "save", "Add", Text("b"), Text("2")),
+                Assign(Index(Var("alias"), Text("a")), StringTypeJson, "save", Text("1")),
+                Assign(Index(byKey, Text("a")), StringTypeJson, "save", Text("3")),
+                Call(byKey, ByKeyTypeJson, "save", "Add", Text("c"), Text("4")),
+                Call(byKey, ByKeyTypeJson, "save", "Remove", Text("c")),
+                Return(StringTypeJson, Index(Var("alias"), Text("a")), Index(Var("alias"), Text("b")), Index(byKey, Text("a"))));
+
+            CollectionAssert.AreEqual(new object?[] { "3", "2", "3" }, (object?[])result!);
+            Assert.AreEqual(1, publications, "The mutations before the first read must publish together.");
+            var dictionary = client.save.Get<NeoMemberDictionaryWritable>("ByKey");
+            Assert.AreEqual(2, dictionary.Count);
+            CollectionAssert.DoesNotContain(StoredStrings(client), "4", "A removed entry must be released.");
+        }
+
+        private const string NullTypeJson = "{'type':0,'required':true}";
+        private const string NumberTypeJson = "{'type':2,'required':true}";
+        private const string StringTypeJson = "{'type':3,'required':true}";
+        private const string ItemTypeJson = "{'type':7,'required':true,'classId':'item'}";
+        private const string NamesTypeJson = "{'type':6,'required':true,'entryTypeInfo':" + StringTypeJson + "}";
+        private const string ItemsTypeJson = "{'type':6,'required':true,'entryTypeInfo':" + ItemTypeJson + "}";
+        private const string ByKeyTypeJson = "{'type':5,'required':true,'entryTypeInfo':" + StringTypeJson + "}";
+        private static readonly string Names = Field("save", "Names");
+
+        private static string ListTypeJson(string entry) => "{'type':6,'required':true,'entryTypeInfo':" + entry + "}";
+
+        private static string Text(string value) => "{'type':'value','value':{'typeInfo':" + StringTypeJson + ",'value':'" + value + "'}}";
+
+        private static string Number(int value) => "{'type':'value','value':{'typeInfo':" + NumberTypeJson + ",'value':" + value + "}}";
+
+        private static string Var(string id) => "{'type':'variable','variableId':'" + id + "'}";
+
+        private static string Index(string pointer, string key) => "{'type':'keyOf','keyOf':{'pointer':" + pointer + ",'key':" + key + "}}";
+
+        private static string Field(string valueId, string key) => Index("{'type':'reference','valueId':'" + valueId + "'}", Text(key));
+
+        private static string Count(string pointer) => "{'type':'function','function':{'type':'count','info':{'collectionPointer':" + pointer + "}}}";
+
+        private static string New(string name) =>
+            "{'type':'function','function':{'type':'classConstructor','info':{'schemaClassInfo':" + ItemTypeJson
+            + ",'fields':[{'schemaKey':'Name','memberId':'name','valuePointer':" + Text(name) + "}]}}}";
+
+        private static string Declare(string id, string type, string pointer) =>
+            "{'type':'variable','variable':{'id':'" + id + "','typeInfo':" + type + ",'pointer':" + pointer + "}}";
+
+        private static string Call(string target, string type, string writability, string mutation, params string[] args) =>
+            "{'type':'collectionCall','target':{'pointer':" + target + ",'typeInfo':" + type + ",'writability':'" + writability + "'},"
+            + "'mutation':'" + mutation + "','args':[" + string.Join(",", args) + "]}";
+
+        private static string Assign(string target, string type, string writability, string value) =>
+            "{'type':'assign','target':{'pointer':" + target + ",'typeInfo':" + type + ",'writability':'" + writability + "'},"
+            + "'operator':'=','pointer':" + value + "}";
+
+        private static string Return(string entryType, params string[] entries) =>
+            "{'type':'return','pointer':{'type':'listLiteral','typeInfo':" + ListTypeJson(entryType) + ",'entries':[" + string.Join(",", entries) + "]}}";
+
+        private static object? Run(NeoClient client, string returnType, params string[] instructions)
+        {
+            var body = JsonConvert.DeserializeObject<FunctionWithReturnType>(
+                "{'compilerRevision':" + FunctionWithReturnType.CurrentCompilerRevision + ",'parameters':[],'typeInfo':" + returnType
+                + ",'instructions':[" + string.Join(",", instructions) + "]}")!;
+            NeoScriptExecutionResult result = NeoScriptExecutor.Execute(
+                client, body, new Dictionary<string, object?>(), new NSGetterEvaluator.Context(client, null, null));
+            if (result.IsFailed)
+                throw result.Failure!;
+            return result.ReturnValue;
+        }
+
+        private static IEnumerable<string?> StoredNames(NeoClient client) =>
+            ((ArrayMemberValue)client.saveValues["names"]).value!.Select(id =>
+            {
+                Assert.IsTrue(client.TryGetValue(id, out StringMemberValue? name), $"Entry '{id}' must be stored.");
+                return name!.value;
+            }).ToArray();
+
+        private static IEnumerable<string?> StoredStrings(NeoClient client) =>
+            client.saveValues.Values.OfType<StringMemberValue>().Select(value => value.value).ToArray();
+
         private static void Execute(NeoClient client, NSGetterEvaluator.Context context,
             Dictionary<string, object?> scope, string mutation, params Pointer[] arguments) =>
             ExecuteTarget(client, context, scope,
@@ -388,12 +602,13 @@ namespace NeoCompose.Tests
                     ["empty"] = new NeoSchemaClass { id = "empty", name = "Empty", schema = new() },
                     ["save"] = new NeoSchemaClass { id = "save", name = "Save", schema = new() { ["Items"] = "items-member", ["ByKey"] = "by-key-member", ["Names"] = "names-member", ["Part"] = "part-member" } },
                     ["item"] = new NeoSchemaClass { id = "item", name = "Item", schema = new() { ["Name"] = "name" } },
+                    ["session"] = new NeoSchemaClass { id = "session", name = "Session", schema = new() { ["Items"] = "items-member" } },
                 },
                 members = new()
                 {
                     ["assets-root"] = Root("assets-root", "assets", "empty"),
                     ["save-root"] = Root("save-root", "save", "save"),
-                    ["session-root"] = Root("session-root", "session", "empty"),
+                    ["session-root"] = Root("session-root", "session", "session"),
                     ["items-member"] = new ListMember { id = "items-member", name = "Items", kind = MemberKind.List, entryMemberId = "entry", ListKind = unordered ? NeoListKind.Unordered : NeoListKind.Ordered, Requirement = NeoMemberRequirementKind.Required },
                     ["entry"] = new ClassMember { id = "entry", name = "Item", kind = MemberKind.Class, classId = "item", Requirement = NeoMemberRequirementKind.Required },
                     ["name"] = new StringMember { id = "name", name = "Name", kind = MemberKind.String, Requirement = NeoMemberRequirementKind.Required },
@@ -407,7 +622,8 @@ namespace NeoCompose.Tests
                 {
                     ["assets"] = new ObjectMemberValue { id = "assets", classId = "empty", value = new() },
                     ["save"] = new ObjectMemberValue { id = "save", classId = "save", value = new() { ["Items"] = "items", ["ByKey"] = "by-key", ["Names"] = "names", ["Part"] = "part" } },
-                    ["session"] = new ObjectMemberValue { id = "session", classId = "empty", value = new() },
+                    ["session"] = new ObjectMemberValue { id = "session", classId = "session", value = new() { ["Items"] = "session-items" } },
+                    ["session-items"] = new ArrayMemberValue { id = "session-items", value = Array.Empty<string>() },
                     ["items"] = new ArrayMemberValue { id = "items", value = Array.Empty<string>() },
                     ["by-key"] = new ObjectMemberValue { id = "by-key", value = new() },
                     ["names"] = new ArrayMemberValue { id = "names", value = new[] { "name-0" } },

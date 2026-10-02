@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.47.0] - 2026-10-01
+
+- NeoScript mutations of a stored list, lookup set or dictionary no longer cost time proportional to the collection on every call, so N mutations in one execution are linear, not quadratic. Every `Add`, `Insert`, `RemoveAt`, `Remove`, `Clear` and `dict[key] = value` used to commit on its own, copying the whole row each time. One execution's mutations now stage into one batch: a list grows in a buffer and takes its exact row once, and the entries the mutations released are released once. Measured in the HelloWorld EditMode harness, 0.46.0 → 0.47.0, median ns per mutation:
+
+  | Mutation, N in one execution | N = 100 | N = 400 | N = 1,600 |
+  |---|---|---|---|
+  | `Save.Names.Add(x)` | 31,800 → 9,800 | 59,900 → 8,700 | 171,300 → 8,400 |
+  | `Save.Names.Insert(0, x)` | 57,700 → 11,300 | 150,800 → 8,600 | 501,700 → 8,600 |
+  | `Save.Names.RemoveAt(0)` | 45,900 → 3,000 | 132,500 → 2,800 | 438,900 → 2,800 |
+  | `Save.Dict.Add(k, x)` | 43,000 → 8,200 | 110,700 → 7,400 | 394,500 → 7,400 |
+  | `Save.Dict[k] = x` | 43,800 → 9,300 | 110,000 → 7,500 | 389,200 → 7,300 |
+  | `Save.Items.Add(new Item())` | 61,100 → 20,700 | 116,800 → 19,700 | 315,700 → 21,700 |
+  | `Session.Items.Add(new Item())` | 33,700 → 8,800 | 69,800 → 7,700 | 221,900 → 7,700 |
+
+  The batch commits before anything could observe it: a read of a collection or entry it changed, a leaf write over one, any other write, a native call, a grid query and the end of the execution. Scripts read exactly what they wrote. The commits that write a collection, validate it and reclaim an execution's temporaries no longer scan it once per entry either.
+- One NeoScript execution's collection mutations now raise one change notification per collection, not one per mutation, unless a read between them commits the batch early.
+- A local list's `Add` grows the list in place instead of copying it: 1,000 `Add`s to a local list went from ~1,640–1,890 to ~157–175 ns each.
+- A `Select` lambda returning a number of its declared type skips coercion: ~71 → ~49 ns per element. Loops read numeric literals unboxed, and collection snapshots read each entry's row through a node they keep.
+
 ## [0.46.0] - 2026-10-01
 
 - The SDK's own overhead is cut across NeoScript evaluation, calls between C# and NeoScript, and generated C#, so what remains in a game's frame is mostly the work its scripts ask for. Measured in the HelloWorld EditMode harness, 0.45.0 → 0.46.0, median of five rounds:

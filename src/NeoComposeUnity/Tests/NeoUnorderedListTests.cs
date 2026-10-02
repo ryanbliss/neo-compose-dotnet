@@ -1011,7 +1011,8 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.StillHasOwnedChildReference(
                 NeoValueOwnership.Save,
                 "item-c",
-                "nested-c"));
+                "nested-c",
+                new()));
 
             string clonedBagId = client.CloneValueReference("bag-value", NeoValueOwnership.Save);
             Assert.IsTrue(client.TryGetValue(
