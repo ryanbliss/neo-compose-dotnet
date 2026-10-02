@@ -5,11 +5,9 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using NeoCompose.Runtime;
 using NUnit.Framework;
-using Unity.Profiling;
 using UnityEngine;
 
 namespace NeoCompose.Tests
@@ -121,10 +119,10 @@ namespace NeoCompose.Tests
             {
                 Spawn();
                 Despawn();
-                var spawn = new List<SortPointSample>();
+                var spawn = new List<PerformanceSampling.Sample>();
                 for (int sample = 0; sample < SortPointSamples; sample++)
                 {
-                    spawn.Add(Measure(Spawn));
+                    spawn.Add(PerformanceSampling.Measure(Spawn));
                     Despawn();
                 }
 
@@ -183,65 +181,10 @@ namespace NeoCompose.Tests
             return spawned;
         }
 
-        private readonly struct SortPointSample
-        {
-            public SortPointSample(double ms, long gcBytes)
-            {
-                Ms = ms;
-                GcBytes = gcBytes;
-            }
+        private static List<PerformanceSampling.Sample> Sample(Action action) =>
+            PerformanceSampling.Repeat(SortPointSamples, action);
 
-            public double Ms
-            {
-                get;
-            }
-
-            /// <summary>Unity's "GC Allocated In Frame" counter.</summary>
-            public long GcBytes
-            {
-                get;
-            }
-        }
-
-        private static List<SortPointSample> Sample(Action action)
-        {
-            var samples = new List<SortPointSample>();
-            for (int sample = 0; sample < SortPointSamples; sample++)
-                samples.Add(Measure(action));
-            return samples;
-        }
-
-        private static SortPointSample Measure(Action action)
-        {
-            using var recorder = new ProfilerRecorder(
-                ProfilerCategory.Memory,
-                "GC Allocated In Frame",
-                1,
-                ProfilerRecorderOptions.WrapAroundWhenCapacityReached
-                    | ProfilerRecorderOptions.SumAllSamplesInFrame);
-            Assert.IsTrue(recorder.Valid, "Unity GC allocation counter is unavailable.");
-            recorder.Start();
-            long gcBefore = recorder.CurrentValue;
-            var stopwatch = Stopwatch.StartNew();
-            action();
-            stopwatch.Stop();
-            long gcAfter = recorder.CurrentValue;
-            recorder.Stop();
-            return new SortPointSample(
-                stopwatch.Elapsed.TotalMilliseconds,
-                gcAfter - gcBefore);
-        }
-
-        private static void Report(string name, int count, List<SortPointSample> samples, int per)
-        {
-            var ms = samples.Select(sample => sample.Ms).OrderBy(value => value).ToArray();
-            var bytes = samples.Select(sample => sample.GcBytes).OrderBy(value => value).ToArray();
-            TestContext.WriteLine(
-                $"P92 {name} objects={count} per={per} " +
-                $"medianMs={ms[ms.Length / 2]:F3} minMs={ms[0]:F3} maxMs={ms[^1]:F3} " +
-                $"medianBytes={bytes[bytes.Length / 2]} minBytes={bytes[0]} maxBytes={bytes[^1]} " +
-                $"samplesMs=[{string.Join(",", samples.Select(sample => sample.Ms.ToString("F3")))}] " +
-                $"samplesBytes=[{string.Join(",", samples.Select(sample => sample.GcBytes))}]");
-        }
+        private static void Report(string name, int count, List<PerformanceSampling.Sample> samples, int per) =>
+            PerformanceSampling.Report("P92", name, $"objects={count}", samples, per);
     }
 }

@@ -17,7 +17,7 @@ using JsonMember = NeoCompose.Runtime.Json.Member;
 
 namespace NeoCompose.Tests
 {
-    public class NSPropertySetterTests
+    public partial class NSPropertySetterTests
     {
         [Test]
         public void Set_WritesThroughSaveTarget()
