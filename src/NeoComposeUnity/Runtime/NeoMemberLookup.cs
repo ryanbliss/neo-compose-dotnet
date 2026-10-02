@@ -27,7 +27,11 @@ namespace NeoCompose.Runtime
             : base(client, member, overrideValueId, ownership) { }
 
         /// <summary>Selected ids in the target collection. Empty when nothing is set.</summary>
-        public string[] Selected() => value?.value ?? System.Array.Empty<string>();
+        public string[] Selected()
+        {
+            ObserveScriptWrites();
+            return value?.value ?? System.Array.Empty<string>();
+        }
 
         /// <summary>
         /// The node last resolved for each selection slot. A kept node is
@@ -203,6 +207,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         public void Set(string[]? selectedIds)
         {
+            ObserveScriptWrites();
             if (member.Requirement == NeoMemberRequirementKind.Required && (selectedIds is null || selectedIds.Length == 0))
             {
                 throw new System.ArgumentNullException(

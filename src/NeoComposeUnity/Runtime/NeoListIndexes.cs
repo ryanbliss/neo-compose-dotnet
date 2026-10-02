@@ -174,6 +174,7 @@ namespace NeoCompose.Runtime
 
         private void EnsureBuiltAndValid()
         {
+            list.ObserveScriptWrites();
             EnsureBuilt();
             if (definition.Kind == NeoListIndexKind.Unique && duplicateKeys is { Count: > 0 })
             {

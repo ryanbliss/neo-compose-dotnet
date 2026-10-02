@@ -75,6 +75,9 @@ namespace NeoCompose.Runtime.Json
         // array literal of primitives (see NSGetterEvaluator).
         internal bool primitiveResolved;
         internal object? primitive;
+        // A numeric primitive's value, so arithmetic reads it unboxed.
+        internal bool primitiveIsNumber;
+        internal double primitiveNumber;
         internal object?[]? primitiveEntries;
         // Evaluator cache for an array literal read only by a comparison.
         internal object? comparand;

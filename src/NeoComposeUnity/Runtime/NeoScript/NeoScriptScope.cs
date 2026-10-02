@@ -309,6 +309,61 @@ namespace NeoCompose.Runtime.NeoScript
     }
 
     /// <summary>
+    /// A local list that <c>Add</c> grows in amortized steps. A list value
+    /// is an exact-length array, so a read takes a snapshot, kept until the
+    /// next Add. An array a read was handed is never written again.
+    /// </summary>
+    internal sealed class LocalList
+    {
+        private object?[] entries;
+        private int count;
+        private readonly Member? entryMember;
+        private object?[]? snapshot;
+
+        /// <summary><paramref name="list"/> with <paramref name="entry"/> added.</summary>
+        internal LocalList(object?[] list, object? entry, Member? entryMember)
+        {
+            // The first Add allocates exactly, as a one-off Add did.
+            entries = new object?[list.Length + 1];
+            Array.Copy(list, entries, list.Length);
+            entries[list.Length] = entry;
+            count = entries.Length;
+            this.entryMember = entryMember;
+        }
+
+        /// <summary>
+        /// Whether a read holds the list as it stands. Only then can anything
+        /// else have learned of it, as a row's or detached object's list.
+        /// </summary>
+        internal bool Read => snapshot is not null;
+
+        internal bool IsSnapshot(object?[] list) => ReferenceEquals(snapshot, list);
+
+        internal void Add(object? entry)
+        {
+            // A full array may be a read's snapshot: grow into a new one.
+            if (count == entries.Length)
+                Array.Resize(ref entries, Math.Max(4, count * 2));
+            entries[count++] = entry;
+            snapshot = null;
+        }
+
+        internal object?[] Snapshot()
+        {
+            if (snapshot is not null)
+                return snapshot;
+            object?[] exact = entries;
+            if (count != entries.Length)
+            {
+                exact = new object?[count];
+                Array.Copy(entries, exact, count);
+            }
+            NSGetterEvaluator.KeepEntryMember(exact, entryMember);
+            return snapshot = exact;
+        }
+    }
+
+    /// <summary>
     /// A lexical NeoScript scope frame. Writes stay local while reads and
     /// read-only diagnostics walk the parent chain.
     /// </summary>
@@ -356,6 +411,8 @@ namespace NeoCompose.Runtime.NeoScript
         private const byte EmptySlot = 0;
         private const byte ValueSlot = 1;
         private const byte NumberSlot = 2;
+        // A LocalList that Add grows.
+        private const byte ListSlot = 3;
         private readonly Slot[] slotValues = Array.Empty<Slot>();
         private readonly double[] slotNumbers = Array.Empty<double>();
         private readonly byte[] slotKinds = Array.Empty<byte>();
@@ -535,8 +592,55 @@ namespace NeoCompose.Runtime.NeoScript
         }
 
         // A number slot boxes on read, as the stored struct did.
-        private object? SlotValue(int slot) =>
-            slotKinds[slot] == NumberSlot ? NSGetterEvaluator.Box(slotNumbers[slot]) : slotValues[slot].value;
+        private object? SlotValue(int slot) => slotKinds[slot] switch
+        {
+            NumberSlot => NSGetterEvaluator.Box(slotNumbers[slot]),
+            ListSlot => ((LocalList)slotValues[slot].value!).Snapshot(),
+            _ => slotValues[slot].value,
+        };
+
+        /// <summary>
+        /// The <see cref="LocalList"/> the slot local <paramref name="variable"/>
+        /// holds, read without taking its snapshot, or null.
+        /// </summary>
+        internal LocalList? ReadLocalList(VariablePointer variable)
+        {
+            for (NeoScriptScope? scope = this; scope is not null; scope = scope.Parent)
+            {
+                int slot = scope.OccupiedSlot(variable);
+                if (slot >= 0)
+                    return scope.slotKinds[slot] == ListSlot ? (LocalList)scope.slotValues[slot].value! : null;
+                if (scope.TryGetDynamicValue(variable, out _))
+                    return null;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Stores <paramref name="list"/> in the slot that holds
+        /// <paramref name="variable"/>, as <see cref="Assign"/> would its
+        /// snapshot. False when the variable is not a slot local.
+        /// </summary>
+        internal bool AssignLocalList(VariablePointer variable, LocalList list)
+        {
+            NeoScriptScope target = this;
+            while (true)
+            {
+                int slot = target.OccupiedSlot(variable);
+                if (slot >= 0)
+                {
+                    if (target.slotKinds[slot] != ListSlot || !ReferenceEquals(target.slotValues[slot].value, list))
+                    {
+                        target.SetSlotValue(slot, list);
+                        target.slotKinds[slot] = ListSlot;
+                    }
+                    return true;
+                }
+                if (!target.block || target.ContainsDynamicLocal(variable.variableId))
+                    return false;
+                target = target.Parent!;
+            }
+        }
 
         /// <param name="value">An <see cref="NSGetterEvaluator.EvaluateValue"/> result.</param>
         internal void SetEvaluationValue(Variable variable, object? value, double number) =>
@@ -592,10 +696,13 @@ namespace NeoCompose.Runtime.NeoScript
                 if (slot >= 0)
                 {
                     found = true;
-                    if (scope.slotKinds[slot] == NumberSlot)
+                    byte kind = scope.slotKinds[slot];
+                    if (kind != ValueSlot)
                     {
                         remembered = false;
-                        return NSGetterEvaluator.Box(scope.slotNumbers[slot]);
+                        return kind == NumberSlot
+                            ? NSGetterEvaluator.Box(scope.slotNumbers[slot])
+                            : ((LocalList)scope.slotValues[slot].value!).Snapshot();
                     }
                     // Only RememberListAlias sets the epoch, on the list the
                     // slot still holds, and every store resets it.
@@ -784,8 +891,13 @@ namespace NeoCompose.Runtime.NeoScript
         /// </summary>
         internal void ResetInvocationLocals(int parameterCount)
         {
-            if (LocalBindingCount > parameterCount)
+            // A frame without dynamic bindings holds only its slots, so it
+            // skips reading the dictionary's count.
+            if (occupiedCount > parameterCount
+                || (hasDynamicBindings || externalBindings is not null) && LocalBindingCount > parameterCount)
+            {
                 ResetLocals();
+            }
             ClearReadOnlyMarks();
         }
 

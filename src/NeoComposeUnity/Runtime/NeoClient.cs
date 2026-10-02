@@ -1340,6 +1340,36 @@ namespace NeoCompose.Runtime
             return CommittedRow(ownership, id, node);
         }
 
+        /// <summary>
+        /// The row <paramref name="ownership"/>'s store holds at
+        /// <paramref name="id"/>, or its asset row for an Asset read, through
+        /// a node the caller keeps; null when the store holds none. A
+        /// collection snapshot reads each entry's current row this way.
+        /// </summary>
+        internal MemberValue? ReadOwnRow(NeoValueOwnership ownership, string id, ref NeoValueNode? node)
+        {
+            if (candidateReplay is not null || candidateReadPlan is not null)
+            {
+                return (ownership == NeoValueOwnership.Asset || HasWritableValue(ownership, id))
+                    && TryGetValue(ownership, id, out MemberValue? overlaid)
+                        ? overlaid
+                        : null;
+            }
+            if (node is not { live: true })
+                node = ValueNode(id);
+            MemberValue? row = ownership switch
+            {
+                NeoValueOwnership.Session => node?.session,
+                NeoValueOwnership.Save => node?.save,
+                NeoValueOwnership.Asset => CommittedRow(ownership, id, node),
+                _ => throw new System.InvalidOperationException(
+                    $"Unknown value ownership '{ownership}'."),
+            };
+            if (row is not null || ownership == NeoValueOwnership.Asset)
+                NoteValueRead(id);
+            return row;
+        }
+
         internal bool TryGetCommittedValue<TValue>(
             NeoValueOwnership ownership,
             string id,
@@ -3589,14 +3619,15 @@ namespace NeoCompose.Runtime
                 currentDestinationValueId);
         }
 
+        /// <param name="movedValueIds">The rows the import moved rather than copied; null when it copied.</param>
         internal string ImportValueReference(
             NeoValueOwnership targetOwnership,
             string sourceValueId,
-            out bool sourceMoved,
+            out HashSet<string>? movedValueIds,
             string? currentDestinationValueId = null)
         {
             var plan = new NeoWritePlan(this);
-            string result = ImportValueReference(plan, targetOwnership, sourceValueId, out sourceMoved, currentDestinationValueId);
+            string result = ImportValueReference(plan, targetOwnership, sourceValueId, out movedValueIds, currentDestinationValueId);
             plan.Commit();
             return result;
         }
@@ -3608,11 +3639,24 @@ namespace NeoCompose.Runtime
             out bool sourceMoved,
             string? currentDestinationValueId = null)
         {
+            string result = ImportValueReference(plan, targetOwnership, sourceValueId, out HashSet<string>? moved, currentDestinationValueId);
+            sourceMoved = moved is not null;
+            return result;
+        }
+
+        /// <inheritdoc cref="ImportValueReference(NeoValueOwnership, string, out HashSet{string}, string)"/>
+        internal string ImportValueReference(
+            NeoWritePlan plan,
+            NeoValueOwnership targetOwnership,
+            string sourceValueId,
+            out HashSet<string>? movedValueIds,
+            string? currentDestinationValueId = null)
+        {
             if (targetOwnership == NeoValueOwnership.Asset)
             {
                 throw new System.InvalidOperationException("Cannot import a writable value into asset ownership.");
             }
-            sourceMoved = false;
+            movedValueIds = null;
             if (!plan.TryGetOwnership(sourceValueId, out NeoValueOwnership sourceOwnership))
             {
                 return sourceValueId;
@@ -3650,33 +3694,37 @@ namespace NeoCompose.Runtime
                         ? collisionMember
                         : null);
             }
-            bool moveCandidate = sourceOwnership == NeoValueOwnership.Session
-                && targetOwnership == NeoValueOwnership.Save
-                && (CanProveUnreachable(NeoValueOwnership.Session, new[] { sourceValueId })
-                    || !BuildReachableWritableValueIds(NeoValueOwnership.Session).Contains(sourceValueId));
-            if (moveCandidate)
+            if (sourceOwnership == NeoValueOwnership.Session && targetOwnership == NeoValueOwnership.Save)
             {
                 Member? sourceMember = TryInferMemberForValueId(
                     sourceValueId,
                     out Member? inferredSourceMember)
                         ? inferredSourceMember
                         : null;
-                // Parentless runtime Session aggregates are deliberately not
-                // global reachability roots. Their authoritative owned edges
-                // still matter: moving one of their descendants into Save
-                // would leave the Session parent dangling. A parented source
-                // therefore clones for the new Save owner even when ordinary
-                // global reachability does not include it.
-                bool parented = TryFindOwnedParent(
-                        NeoValueOwnership.Session,
-                        sourceValueId,
-                        out _);
-                if (parented)
+                // Moving a parented source into Save would leave its Session
+                // parent dangling, so it clones for the new Save owner,
+                // reachable or not: only a parentless source needs the
+                // reachability walk.
+                if (TryFindOwnedParent(NeoValueOwnership.Session, sourceValueId, out _))
                 {
                     return PrepareFreshClone(plan,
                         targetOwnership,
                         sourceOwnership,
                         sourceValueId,
+                        sourceMember);
+                }
+                // An entry a pending collection released is unreachable, which
+                // the committed rows can't show yet.
+                bool released = scriptWriteBatch?.TryGetEntryParent(sourceOwnership, sourceValueId, out _) == true;
+                if (!released
+                    && !CanProveUnreachable(NeoValueOwnership.Session, new[] { sourceValueId })
+                    && BuildReachableWritableValueIds(NeoValueOwnership.Session).Contains(sourceValueId))
+                {
+                    return CloneValueGraphToOwnership(
+                        plan,
+                        targetOwnership,
+                        sourceValueId,
+                        new Dictionary<string, string>(),
                         sourceMember);
                 }
                 // A parentless Session graph is normally moved into Save with
@@ -3698,14 +3746,14 @@ namespace NeoCompose.Runtime
                         sourceValueId,
                         sourceMember);
                 }
+                movedValueIds = new HashSet<string>(System.StringComparer.Ordinal);
                 PromoteValueGraph(
                     plan,
                     NeoValueOwnership.Session,
                     NeoValueOwnership.Save,
                     sourceValueId,
-                    new HashSet<string>(),
+                    movedValueIds,
                     sourceMember);
-                sourceMoved = true;
                 return sourceValueId;
             }
             return CloneValueGraphToOwnership(
@@ -3827,7 +3875,7 @@ namespace NeoCompose.Runtime
             }
             try
             {
-                if (!plan.TryGet(sourceOwnership, sourceValueId, out MemberValue? sourceRow))
+                if ((plan.HeldBy?.PendingRow(sourceOwnership, sourceValueId) ?? plan.Resolve(sourceOwnership, sourceValueId)) is not { } sourceRow)
                 {
                     throw new System.InvalidOperationException(
                         $"Cannot clone value graph: owned value row '{sourceValueId}' does not exist.");
@@ -4001,6 +4049,11 @@ namespace NeoCompose.Runtime
             string childValueId,
             [NotNullWhen(true)] out string? parentValueId)
         {
+            // A held batch's pending collections own the entries they gained
+            // and no longer own the ones they released; their rows say so
+            // only once the batch commits.
+            if (scriptWriteBatch?.TryGetEntryParent(childOwnership, childValueId, out parentValueId) == true)
+                return parentValueId is not null;
             // Unordered-list ownership is an immutable membership stamp on
             // the child row itself. A candidate replay's constructor rows are
             // Session allocations of that candidate, not committed rows.
@@ -4142,18 +4195,21 @@ namespace NeoCompose.Runtime
         /// to guard its short-lived parent links against subsequent mutation:
         /// a stale link falls back to <see cref="TryFindOwnedParent"/>.
         /// </summary>
+        /// <param name="ownedChildren">
+        /// Each parent's owned child ids, filled on first use. Cleanup checks
+        /// every root it constructed, often under one parent, which a scan of
+        /// that parent per root would make N².
+        /// </param>
         internal bool StillHasOwnedChildReference(
             NeoValueOwnership ownership,
             string parentValueId,
-            string childValueId)
+            string childValueId,
+            Dictionary<string, HashSet<string>?> ownedChildren)
         {
-            if (!TryGetValue(
-                    ownership,
-                    parentValueId,
-                    out MemberValue? parent))
-            {
+            if (!ownedChildren.TryGetValue(parentValueId, out HashSet<string>? children))
+                ownedChildren[parentValueId] = children = OwnedChildReferences(ownership, parentValueId);
+            if (children is null)
                 return false;
-            }
             if (TryGetValue(
                     ownership,
                     childValueId,
@@ -4162,13 +4218,28 @@ namespace NeoCompose.Runtime
             {
                 return true;
             }
-            if (!MightReferenceChildValueId(parent!, childValueId))
-                return false;
-            if (EnumerateOwnedChildLinks(parent!, null).Any(link => link.valueId == childValueId))
-                return true;
-            TryInferMemberForValueId(parentValueId, out Member? parentMember);
-            return EnumerateOwnedChildLinks(parent!, parentMember).Any(link => link.valueId == childValueId);
+            return children.Contains(childValueId);
         }
+
+        private HashSet<string>? OwnedChildReferences(NeoValueOwnership ownership, string parentValueId)
+        {
+            if (!TryGetValue(ownership, parentValueId, out MemberValue? parent))
+                return null;
+            var children = new HashSet<string>(System.StringComparer.Ordinal);
+            foreach (var link in EnumerateOwnedChildLinks(parent!, null))
+                children.Add(link.valueId);
+            TryInferMemberForValueId(parentValueId, out Member? parentMember);
+            foreach (var link in EnumerateOwnedChildLinks(parent!, parentMember))
+                children.Add(link.valueId);
+            return children;
+        }
+
+        /// <summary>
+        /// Whether reclaiming Session root <paramref name="valueId"/> could
+        /// remove anything: a write that moved it out left no row behind.
+        /// </summary>
+        internal bool HoldsSessionRoot(string valueId) =>
+            candidateReplay is not null || sessionData.values.ContainsKey(valueId);
 
         /// <summary>Whether a constructor argument of <paramref name="obj"/> names <paramref name="valueId"/>.</summary>
         private static bool ConstructorArgsReference(ObjectMemberValue obj, string valueId)
@@ -4310,7 +4381,8 @@ namespace NeoCompose.Runtime
         {
             if (!visited.Add(valueId))
                 return;
-            if (!plan.TryGetWritable(sourceOwnership, valueId, out MemberValue? row))
+            MemberValue? row = plan.HeldBy?.PendingRow(sourceOwnership, valueId);
+            if (row is null && !plan.TryGetWritable(sourceOwnership, valueId, out row))
                 return;
 
             plan.Set(targetOwnership, CloneValueRow(row));
@@ -4340,6 +4412,7 @@ namespace NeoCompose.Runtime
                     PromoteValueGraph(plan, sourceOwnership, targetOwnership, id, visited, entry);
             }
             plan.Remove(sourceOwnership, valueId);
+            plan.HeldBy?.Rehome(valueId, sourceOwnership, targetOwnership);
         }
 
         private bool OwnedValueGraphCollidesWithOwnership(
@@ -4423,7 +4496,10 @@ namespace NeoCompose.Runtime
         {
             if (remappedIds.TryGetValue(sourceValueId, out string existingId))
                 return existingId;
-            if (!plan.TryGet(sourceValueId, out MemberValue? sourceRow))
+            MemberValue? pendingRow = plan.HeldBy is { } held && plan.TryGetOwnership(sourceValueId, out NeoValueOwnership pendingOwnership)
+                ? held.PendingRow(pendingOwnership, sourceValueId)
+                : null;
+            if ((pendingRow ?? plan.Resolve(sourceValueId)) is not { } sourceRow)
             {
                 return sourceValueId;
             }
@@ -7093,6 +7169,9 @@ namespace NeoCompose.Runtime
             object?[] args,
             bool ownsArguments = false)
         {
+            // Native code reads rows through views, which observe pending
+            // collections themselves (NeoMember.ObserveScriptWrites).
+            CommitScriptRows();
             string memberId = function.memberId;
             FunctionMember member = function.signature;
             object?[] preparedArgs = PrepareNativeFunctionInvocation(
@@ -7250,6 +7329,7 @@ namespace NeoCompose.Runtime
             bool normalizeReturnValue,
             bool captureInvokerException)
         {
+            CommitScriptRows();
             ResolvedNativeFunction function = ResolveNativeFunction(memberId);
             FunctionMember member = function.signature;
             object?[] preparedArgs = PrepareNativeFunctionInvocation(
@@ -9220,6 +9300,9 @@ namespace NeoCompose.Runtime
         // indexed incoming edges first. This proof deliberately admits extra
         // edges: any possible root falls back to the full collector, so it can
         // never delete a row just because an edge could not be typed precisely.
+        // The unreachability walk's membership memo, kept between walks.
+        private CollectionMembership? idleMembership;
+
         private bool CanProveUnreachable(NeoValueOwnership ownership, IReadOnlyList<string> valueIds)
         {
             if (candidateReplay is not null)
@@ -9228,9 +9311,11 @@ namespace NeoCompose.Runtime
             HashSet<string> visited = RentIdSet();
             HashSet<string> parents = RentIdSet();
             Queue<string> pending = RentIdQueue();
+            CollectionMembership membership = idleMembership ?? new CollectionMembership();
+            idleMembership = null;
             try
             {
-                return CanProveUnreachable(ownership, valueIds, staticRoots, visited, parents, pending);
+                return CanProveUnreachable(ownership, valueIds, staticRoots, visited, parents, pending, membership);
             }
             finally
             {
@@ -9238,6 +9323,8 @@ namespace NeoCompose.Runtime
                 ReturnIdSet(visited);
                 ReturnIdSet(parents);
                 ReturnIdQueue(pending);
+                membership.Clear();
+                idleMembership = membership;
             }
         }
 
@@ -9247,7 +9334,8 @@ namespace NeoCompose.Runtime
             HashSet<string> staticRoots,
             HashSet<string> visited,
             HashSet<string> parents,
-            Queue<string> pending)
+            Queue<string> pending,
+            CollectionMembership membership)
         {
             foreach (var member in ValueInferenceIndex.StaticMembers)
                 if (ResolveStaticOwnership(member) == ownership
@@ -9306,13 +9394,13 @@ namespace NeoCompose.Runtime
                         // which can walk far, only adds generic, dictionary and
                         // class-less ones. A link either finds is admitted.
                         if (ConstructorArgsReference(obj, id)
-                            || obj.value is not null && (OwnsChildLink(obj, null, id, ownership)
-                                || OwnsChildLink(obj, TryInferMemberForValueId(parentId, out var inferred) ? inferred : null, id, ownership)
+                            || obj.value is not null && (OwnsChildLink(obj, null, id, ownership, membership)
+                                || OwnsChildLink(obj, TryInferMemberForValueId(parentId, out var inferred) ? inferred : null, id, ownership, membership)
                                 || TryResolveVirtualPlacement(id, out var placement) && placement.parentValueId == parentId
                                     && ChildOwnership(placement.member, ownership) == ownership))
                             pending.Enqueue(parentId);
                     }
-                    else if (parent is ArrayMemberValue { value: not null } array && System.Array.IndexOf(array.value, id) >= 0)
+                    else if (parent is ArrayMemberValue { value: not null } array && membership.Holds(array.value, id))
                     {
                         if (TryInferMemberForValueId(parentId, out var member)
                             && member is LookupMember or EnumMember or DialogueLookupMember)
@@ -9334,10 +9422,11 @@ namespace NeoCompose.Runtime
             return false;
         }
 
-        private bool OwnsChildLink(ObjectMemberValue obj, Member? parentMember, string childId, NeoValueOwnership ownership)
+        private bool OwnsChildLink(ObjectMemberValue obj, Member? parentMember, string childId, NeoValueOwnership ownership,
+            CollectionMembership membership)
         {
             // Match the id first, so only the linking key resolves its member.
-            if (obj.value is not null)
+            if (obj.value is not null && membership.Holds(obj.value, childId))
                 foreach (var pair in obj.value)
                 {
                     if (pair.Value == childId

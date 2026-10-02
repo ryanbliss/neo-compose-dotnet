@@ -250,6 +250,49 @@ namespace NeoCompose.Runtime
         // The walk below runs on every commit. Its collections are reused
         // between commits; a validation nested inside another (a candidate
         // replay) gets its own throwaway set.
+        /// <summary>
+        /// Membership of long collections, as sets keyed by the array or map
+        /// that holds them and built when a walk asks after one a second time:
+        /// one that releases or stages N entries of it asks N times, which
+        /// scans would make N², while most walks ask once.
+        /// </summary>
+        internal sealed class CollectionMembership
+        {
+            private Dictionary<object, HashSet<string>?>? sets;
+
+            internal bool Holds(string[] ids, string id)
+            {
+                if (ids.Length <= 16)
+                    return Array.IndexOf(ids, id) >= 0;
+                sets ??= new Dictionary<object, HashSet<string>?>();
+                if (!sets.TryGetValue(ids, out HashSet<string>? set))
+                {
+                    sets[ids] = null;
+                    return Array.IndexOf(ids, id) >= 0;
+                }
+                if (set is null)
+                    sets[ids] = set = new HashSet<string>(ids, StringComparer.Ordinal);
+                return set.Contains(id);
+            }
+
+            internal bool Holds(Dictionary<string, string> fields, string id)
+            {
+                if (fields.Count <= 16)
+                    return fields.ContainsValue(id);
+                sets ??= new Dictionary<object, HashSet<string>?>();
+                if (!sets.TryGetValue(fields, out HashSet<string>? set))
+                {
+                    sets[fields] = null;
+                    return fields.ContainsValue(id);
+                }
+                if (set is null)
+                    sets[fields] = set = new HashSet<string>(fields.Values, StringComparer.Ordinal);
+                return set.Contains(id);
+            }
+
+            internal void Clear() => sets?.Clear();
+        }
+
         private sealed class WriteValidationScratch
         {
             internal readonly Queue<string> pending = new();
@@ -261,6 +304,7 @@ namespace NeoCompose.Runtime
             internal readonly List<string> parents = new();
             internal readonly Dictionary<string, NeoReadOnlyTileGridPrimitive> primitives = new(StringComparer.Ordinal);
             internal readonly Dictionary<(bool tile, string classId), HashSet<string>> compatibleLayers = new();
+            internal readonly CollectionMembership children = new();
             internal bool inUse;
 
             internal void Clear()
@@ -274,6 +318,7 @@ namespace NeoCompose.Runtime
                 parents.Clear();
                 primitives.Clear();
                 compatibleLayers.Clear();
+                children.Clear();
             }
         }
 
@@ -356,7 +401,7 @@ namespace NeoCompose.Runtime
                 for (int parentIndex = 0; parentIndex < parentList.Count; parentIndex++)
                 {
                     string parent = parentList[parentIndex];
-                    if (!IsPlacementEdge(plan, parent, id))
+                    if (!IsPlacementEdge(plan, scratch, parent, id))
                         continue;
                     if (writtenDescendants.Contains(id))
                         writtenDescendants.Add(parent);
@@ -379,7 +424,7 @@ namespace NeoCompose.Runtime
                 parentList.Clear();
                 plan.CollectParentCandidates(id, parentList);
                 for (int parentIndex = 0; parentIndex < parentList.Count; parentIndex++)
-                    if (IsPlacementEdge(plan, parentList[parentIndex], id))
+                    if (IsPlacementEdge(plan, scratch, parentList[parentIndex], id))
                         pending.Enqueue(parentList[parentIndex]);
             }
             // These builders read rows and declarations only. Do not resolve
@@ -408,7 +453,7 @@ namespace NeoCompose.Runtime
         // arguments. Those are references, not containment: editing a catalog
         // or config row must not walk every world object that references it.
         // Replayed outputs are validated separately above.
-        private bool IsPlacementEdge(NeoWritePlan plan, string parentId, string childId)
+        private bool IsPlacementEdge(NeoWritePlan plan, WriteValidationScratch scratch, string parentId, string childId)
         {
             // Resolved once, for whichever array row holds the child first.
             Member? arrayMember = null;
@@ -433,9 +478,9 @@ namespace NeoCompose.Runtime
             bool Owns(MemberValue? row)
             {
                 if (row is ObjectMemberValue obj)
-                    return obj.value?.ContainsValue(childId) == true;
+                    return obj.value is not null && scratch.children.Holds(obj.value, childId);
                 if (row is not ArrayMemberValue { value: not null } array
-                    || Array.IndexOf(array.value, childId) < 0)
+                    || !scratch.children.Holds(array.value, childId))
                     return false;
                 if (!arrayMemberKnown)
                 {

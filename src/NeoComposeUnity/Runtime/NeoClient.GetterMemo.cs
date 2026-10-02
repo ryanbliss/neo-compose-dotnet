@@ -179,14 +179,28 @@ namespace NeoCompose.Runtime
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void NoteValueRead(string id)
         {
-            if (capturedValueReads is not null || getterValueReadCapture is not null)
+            if (capturedValueReads is not null || getterValueReadCapture is not null || scriptWriteBatch?.Touches(id) == true)
                 RecordValueRead(id);
         }
 
         private void RecordValueRead(string id)
         {
+            if (scriptWriteBatch?.Touches(id) == true)
+                ObserveScriptWrites(id);
             capturedValueReads?.Add(id);
             getterValueReadCapture?.Add(id);
+        }
+
+        /// <summary>
+        /// A read of what a held script batch holds pending, reported to the
+        /// active captures without committing it.
+        /// </summary>
+        internal void NotePendingRead(NeoValueOwnership ownership, string id)
+        {
+            capturedValueReads?.Add(id);
+            getterValueReadCapture?.Add(id);
+            if (getterReadCapture is { } reads)
+                RecordRowRead(reads, ownership, id);
         }
 
         internal void NoteValueReads(IEnumerable<string> ids)
@@ -198,6 +212,8 @@ namespace NeoCompose.Runtime
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void NoteRowRead(NeoValueOwnership ownership, string rowId)
         {
+            if (scriptWriteBatch?.Touches(rowId) == true)
+                ObserveScriptWrites(rowId);
             if (getterReadCapture is { } reads)
                 RecordRowRead(reads, ownership, rowId);
         }
@@ -256,7 +272,8 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// False while any read must observe proposed rather than committed
-        /// state. Dependency captures (<see cref="CaptureValueReads"/>) and
+        /// state, or committed rather than a held script batch's pending
+        /// state, as a plan commit under one does. Dependency captures (<see cref="CaptureValueReads"/>) and
         /// grid-read capture (<see cref="NeoScriptGridReads"/>) do not
         /// disable memoization: a hit replays the entry's recorded reads.
         /// </summary>
@@ -268,12 +285,22 @@ namespace NeoCompose.Runtime
                 return candidateReplay is null
                     && candidateReadPlan is null
                     && replayAllocationScope is null
-                    && !isReplayingVirtualInstance;
+                    && !isReplayingVirtualInstance
+                    && commitsUnderScriptBatch == 0;
             }
         }
 
-        internal GetterMemoEntry? FindMemoizedGetter(GetterMemoKey key) =>
-            getterMemo.TryGetValue(key, out GetterMemoEntry? entry) ? entry : null;
+        internal GetterMemoEntry? FindMemoizedGetter(GetterMemoKey key)
+        {
+            if (!getterMemo.TryGetValue(key, out GetterMemoEntry? entry))
+                return null;
+            if (scriptWriteBatch is null || !entry.readsGrid)
+                return entry;
+            // The batch forgets the getters that read what it touches, but a
+            // grid query reads through indexes it can't name.
+            CommitScriptWritesForGrid();
+            return getterMemo.TryGetValue(key, out entry) ? entry : null;
+        }
 
         /// <summary>Memoizes a getter's result and returns the entry.</summary>
         internal GetterMemoEntry MemoizeGetter(
@@ -369,7 +396,7 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>Drops every memoized getter that read one row.</summary>
-        private void InvalidateGetterMemoForRow(string valueId)
+        internal void InvalidateGetterMemoForRow(string valueId)
         {
             if (getterMemo.Count == 0
                 || !getterMemoKeysByRow.TryGetValue(valueId, out HashSet<GetterMemoKey>? keys))

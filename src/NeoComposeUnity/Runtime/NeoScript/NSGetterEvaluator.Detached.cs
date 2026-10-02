@@ -109,6 +109,8 @@ namespace NeoCompose.Runtime.NeoScript
         internal static object? ForwardDetached(NeoScriptObject value, Context ctx)
         {
             string id = AttachDetached(value, ctx);
+            // A pending collection add may hold the row until the batch commits.
+            ctx.client.NoteValueRead(id);
             NeoValueOwnership ownership = ctx.client.TryGetValueOwnership(id, out NeoValueOwnership stored)
                 ? stored
                 : NeoValueOwnership.Session;

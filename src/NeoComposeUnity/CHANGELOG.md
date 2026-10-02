@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.47.0] - 2026-10-01
+
+- NeoScript mutations of a stored list, lookup set or dictionary no longer cost time proportional to the collection on every call, so N mutations in one execution are linear, not quadratic. Every `Add`, `Insert`, `RemoveAt`, `Remove`, `Clear` and `dict[key] = value` used to commit on its own, copying the whole row each time. One execution's mutations now stage into one batch: a list grows in a buffer and takes its exact row once, and the entries the mutations released are released once. Measured in the HelloWorld EditMode harness, 0.46.0 → 0.47.0, median ns per mutation:
+
+  | Mutation, N in one execution | N = 100 | N = 400 | N = 1,600 |
+  |---|---|---|---|
+  | `Save.Names.Add(x)` | 31,800 → 8,900 | 59,900 → 8,200 | 171,300 → 7,900 |
+  | `Save.Names.Insert(0, x)` | 57,700 → 8,800 | 150,800 → 8,200 | 501,700 → 8,200 |
+  | `Save.Names.RemoveAt(0)` | 45,900 → 2,900 | 132,500 → 2,600 | 438,900 → 2,700 |
+  | `Save.Dict.Add(k, x)` | 43,000 → 7,900 | 110,700 → 7,300 | 394,500 → 7,100 |
+  | `Save.Dict[k] = x` | 43,800 → 7,900 | 110,000 → 7,200 | 389,200 → 7,100 |
+  | `Save.Items.Add(new Item())` | 61,100 → 20,800 | 116,800 → 19,800 | 315,700 → 19,900 |
+  | `Session.Items.Add(new Item())` | 33,700 → 7,500 | 69,800 → 6,800 | 221,900 → 7,700 |
+
+  The batch stays pending across the reads and writes a loop interleaves with its mutations: `Count`, index and key reads, a `Contains` that finds its entry, index and key writes, compound assignments like `dict[k] += v`, reads and writes through a pending entry, like `Items[0].Name` or `Groups[k].Add(x)`, moving entries between collections, and the continuation or `catch` after an `await`. A native call or a C# view read commits what came before it, and a grid query does so only when a layer index reads a pending collection. Scripts read exactly what they wrote. Median ns per loop iteration, N = 100 → N = 1,600: `Names.Add(x); c = Names.Count` 10,700 → 8,800; `Names.Add(x); Names[i] = y` 12,400 → 11,300; `Dict[k] = x; Dict[k] += x` 18,000 → 15,800; `Names.Add(x); Save.Gold = i` 10,500 → 9,700. A read the batch can't affect, like `Save.Part.Name` while `Save.Names` is pending, costs what it costs with no batch. The commits that write a collection, validate it and reclaim an execution's temporaries no longer scan it once per entry either.
+- Once a NeoScript execution has mutated a stored collection, C# `OnChanged` handlers for its writes wait until the outermost execution exits, and then run in the order their changes were first raised, not in program order. From then on, a handler never runs inside a C# write the execution called. A handler that reacts to one member by reading another no longer sees a collection without the execution's earlier mutations. Each changed collection raises one notification per execution, not one per mutation.
+- Adding an entry of a Session collection to a Save collection copies it with fresh ids, whether or not anything else still reaches it. It used to keep its ids when it stayed reachable.
+- Assigning a collection to a list index or dictionary key, like `Groups[k] = ["x"]`, stores its entries as rows, as assigning it to a class member does. It used to store each value as if it were an entry's id.
+- A local list's `Add` grows the list in place instead of copying it: 1,000 `Add`s to a local list went from ~1,640–1,890 to ~157–175 ns each.
+- A `Select` lambda returning a number of its declared type skips coercion: ~71 → ~49 ns per element. Loops read numeric literals unboxed, and collection snapshots read each entry's row through a node they keep.
+
 ## [0.46.0] - 2026-10-01
 
 - The SDK's own overhead is cut across NeoScript evaluation, calls between C# and NeoScript, and generated C#, so what remains in a game's frame is mostly the work its scripts ask for. Measured in the HelloWorld EditMode harness, 0.45.0 → 0.46.0, median of five rounds:

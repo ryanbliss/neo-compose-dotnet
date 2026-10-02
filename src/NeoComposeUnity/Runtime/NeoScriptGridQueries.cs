@@ -361,6 +361,8 @@ namespace NeoCompose.Runtime
             bool getTile = memberId == GetTileId;
             if (!getCell && !getObjects && !getTile)
                 return false;
+            // The grid indexes only committed placements.
+            ctx.client.CommitScriptWritesForGrid();
             string receiverId = NSGetterEvaluator.FindRowIdByReference(receiver, ctx)
                 ?? (receiver as INeoValueReference)?.valueId
                 ?? throw new NSGetterRuntimeError("Grid query receiver has no placement identity.");

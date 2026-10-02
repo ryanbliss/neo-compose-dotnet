@@ -36,6 +36,8 @@ namespace NeoCompose.Runtime
         internal bool TryWriteLeaf(
             NeoValueOwnership ownership, MemberValue next, Member member, string? changedField, NeoValueNode? node = null)
         {
+            if (scriptWriteBatch?.Touches(next.id) == true)
+                ObserveScriptWrites(next.id);
             if (!CanWriteLeaf(ownership, next, member, ref node))
                 return false;
 #if NEO_COMPOSE_PROFILING
@@ -137,6 +139,7 @@ namespace NeoCompose.Runtime
             if (ownership == NeoValueOwnership.Save)
                 saveData.updatedAt = next.updatedAt;
             WriteRevision++;
+            foreignWriteRevision = WriteRevision;
             InvalidateGetterMemoForRow(next.id);
             if (!string.IsNullOrEmpty(next.containerId))
                 InvalidateGetterMemoForRow(next.containerId!);

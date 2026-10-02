@@ -306,6 +306,10 @@ namespace NeoCompose.Runtime.Json
         [JsonIgnore]
         internal NeoScript.NSGetterEvaluator.DetachedSlotSite? detachedSlots;
 
+        /// <summary>The held write batch shape (<see cref="NeoWriteBatch.Shape"/>) under which this read can't reach a pending collection.</summary>
+        [JsonIgnore]
+        internal int pendingUnreachedShape;
+
         void ISchemaResolutionSite.ForgetResolution()
         {
             resolvedMembers = null;
@@ -426,6 +430,8 @@ namespace NeoCompose.Runtime.Json
         public TypeInfo typeInfo = null!;
         /// <summary>One of <see cref="WritabilityKind"/>.</summary>
         public string? writability;
+        // Evaluator cache: 1 when writability is ReadOnly, -1 otherwise, 0 until read.
+        internal sbyte readOnly;
     }
 
     /// <summary>

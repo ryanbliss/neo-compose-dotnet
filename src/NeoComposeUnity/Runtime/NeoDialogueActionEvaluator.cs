@@ -84,6 +84,7 @@ namespace NeoCompose.Runtime
         {
             ValidateBodyForExecution(body);
             ctx.allocationTracker.EnterExecution();
+            client.EnterScriptWrites();
             bool exited = false;
             try
             {
@@ -111,6 +112,10 @@ namespace NeoCompose.Runtime
                 if (!exited)
                     ctx.allocationTracker.ExitExecution(client, ctx, default);
                 throw;
+            }
+            finally
+            {
+                client.ExitScriptWrites();
             }
         }
 
@@ -231,42 +236,15 @@ namespace NeoCompose.Runtime
             NSGetterEvaluator.Context ctx,
             NeoScriptExecutionOptions options)
         {
-            NeoScriptExecutionResult result;
-            // A lambda that only returns an expression, the common shape,
-            // runs it without the statement loop's frame; only a suspension
-            // leaves a result the checks below can reject.
-            if (body.instructions is { Length: 1 } instructions
-                && instructions[0] is ReturnInstruction { pointer: { } returned }
-                && !options.AllowDeferredFunctionCalls)
-            {
-                NSGetterEvaluator.Context expressionContext = ExpressionContextFor(
-                    client,
-                    ctx,
-                    ExpressionResumeState.Immediate,
-                    options);
-                try
-                {
-                    return ValidateTerminalAgainstBody(
-                        body,
-                        ReturnResult(Eval(returned, scope, expressionContext), body.typeInfo));
-                }
-                catch (NeoFunctionCallSuspended suspended)
-                {
-                    result = PauseAtInstruction(client, instructions, body.typeInfo, scope, ctx, 0, ExpressionResumeState.Immediate, suspended, options);
-                }
-            }
-            else
-            {
-                result = ExecuteInstructions(
-                    client,
-                    body.instructions,
-                    body.typeInfo,
-                    scope,
-                    ctx,
-                    0,
-                    null,
-                    options);
-            }
+            NeoScriptExecutionResult result = ExecuteInstructions(
+                client,
+                body.instructions,
+                body.typeInfo,
+                scope,
+                ctx,
+                0,
+                null,
+                options);
             if (result.IsFailed)
             {
                 throw result.Failure!;
@@ -283,18 +261,40 @@ namespace NeoCompose.Runtime
             return ValidateTerminalAgainstBody(body, result);
         }
 
-        private static NeoScriptExecutionResult ReturnResult(object? returnValue, TypeInfo returnTypeInfo)
+        /// <summary>
+        /// The expression a callback body only returns, so an immediate
+        /// callback evaluates it per entry without a statement frame, where
+        /// nothing can suspend; null for any other body.
+        /// </summary>
+        internal static Pointer? CallbackExpression(FunctionWithReturnType body) =>
+            body.instructions is { Length: 1 } instructions
+            && instructions[0] is ReturnInstruction { pointer: { } returned }
+            && !IsStatementBodyType(body.typeInfo)
+                ? returned
+                : null;
+
+        /// <summary>The context an immediate frame's expressions run on.</summary>
+        internal static NSGetterEvaluator.Context ImmediateExpressionContext(
+            NeoClient client,
+            NSGetterEvaluator.Context ctx,
+            NeoScriptExecutionOptions options) =>
+            ExpressionContextFor(client, ctx, ExpressionResumeState.Immediate, options);
+
+        private static NeoScriptExecutionResult ReturnResult(object? returnValue, TypeInfo returnTypeInfo) =>
+            NeoScriptExecutionResult.Completed(
+                returned: true,
+                CoerceReturnValue(returnValue, returnTypeInfo));
+
+        internal static object? CoerceReturnValue(object? returnValue, TypeInfo returnTypeInfo)
         {
             if (returnTypeInfo.type == MemberKind.Decimal
                 && returnValue is double or float or int or long or short)
             {
-                returnValue = NSGetterEvaluator.CoerceDecimalOperand(
+                return NSGetterEvaluator.CoerceDecimalOperand(
                     returnValue,
                     "return");
             }
-            return NeoScriptExecutionResult.Completed(
-                returned: true,
-                returnValue);
+            return returnValue;
         }
 
         /// <summary>
@@ -400,13 +400,7 @@ namespace NeoCompose.Runtime
             TypeInfo returnType = body.typeInfo
                 ?? throw new NSGetterRuntimeError(
                     "NeoScript body is missing its compiled return type.");
-            if (returnType is VoidTypeInfo
-                || returnType.type == MemberKind.Void
-                // Existing action/setter IR uses Null as its statement-body
-                // result marker. Preserve fallthrough for that wire shape;
-                // NSGetterEvaluator still enforces an explicit return at the
-                // getter boundary after allocation cleanup.
-                || returnType.type == MemberKind.Null)
+            if (IsStatementBodyType(returnType))
             {
                 if (execution.ReturnValue is not null)
                 {
@@ -427,6 +421,15 @@ namespace NeoCompose.Runtime
             // against the resolved signature before allocation cleanup.
             return execution;
         }
+
+        private static bool IsStatementBodyType(TypeInfo? returnType) =>
+            returnType is VoidTypeInfo
+            || returnType?.type == MemberKind.Void
+            // Existing action/setter IR uses Null as its statement-body
+            // result marker. Preserve fallthrough for that wire shape;
+            // NSGetterEvaluator still enforces an explicit return at the
+            // getter boundary after allocation cleanup.
+            || returnType?.type == MemberKind.Null;
 
         /// <summary>
         /// Setters and dialogue actions are statement bodies. Their compiled
@@ -461,7 +464,8 @@ namespace NeoCompose.Runtime
             NSGetterEvaluator.Context ctx,
             int startIndex,
             ExpressionResumeState? resumeState,
-            NeoScriptExecutionOptions? options)
+            NeoScriptExecutionOptions? options,
+            NSGetterEvaluator.Context? immediateContext = null)
         {
             // Immediate frames record nothing, so every block of one frame can
             // share a single expression context and resume state.
@@ -469,7 +473,14 @@ namespace NeoCompose.Runtime
             ExpressionResumeState expressionState;
             NSGetterEvaluator.Context actionCtx;
             bool pendingFrame = false;
-            if (immediate
+            if (immediateContext is not null)
+            {
+                // A nested block of an immediate frame: the enclosing block
+                // already resolved the frame's context.
+                expressionState = ExpressionResumeState.Immediate;
+                actionCtx = immediateContext;
+            }
+            else if (immediate
                 && options is not null
                 && options.immediateHandlers is not null
                 && ReferenceEquals(ctx.expressionHandlers, options.immediateHandlers))
@@ -550,7 +561,7 @@ namespace NeoCompose.Runtime
                                     if (EvaluateBoolean(branch.expression, scope, actionCtx))
                                     {
                                         matched = true;
-                                        var branchResult = ExecuteInstructions(client, branch.instructions, returnTypeInfo, scope, ctx, 0, null, options);
+                                        var branchResult = ExecuteInstructions(client, branch.instructions, returnTypeInfo, scope, ctx, 0, null, options, immediate ? actionCtx : null);
                                         if (branchResult.IsPaused)
                                             return ResumeInstructionsAfter(client, instructions, returnTypeInfo, scope, ctx, i + 1, options, branchResult, consumeTerminal: false);
                                         if (!branchResult.IsFallthrough)
@@ -560,7 +571,7 @@ namespace NeoCompose.Runtime
                                 }
                                 if (!matched && ifInstruction.elseInstructions != null)
                                 {
-                                    var elseResult = ExecuteInstructions(client, ifInstruction.elseInstructions, returnTypeInfo, scope, ctx, 0, null, options);
+                                    var elseResult = ExecuteInstructions(client, ifInstruction.elseInstructions, returnTypeInfo, scope, ctx, 0, null, options, immediate ? actionCtx : null);
                                     if (elseResult.IsPaused)
                                         return ResumeInstructionsAfter(client, instructions, returnTypeInfo, scope, ctx, i + 1, options, elseResult, consumeTerminal: false);
                                     if (!elseResult.IsFallthrough)
@@ -582,9 +593,17 @@ namespace NeoCompose.Runtime
                                 Eval(((ThrowInstruction)instruction).pointer, scope, actionCtx)?.ToString() ?? "null");
                         case InstructionCode.Assign:
                             {
+                                var assign = (AssignInstruction)instruction;
+                                // A local write returns nothing, so it skips
+                                // the result a setter's write may carry.
+                                if (assign.target.pointer is VariablePointer local)
+                                {
+                                    AssignLocal(assign, local, scope, actionCtx);
+                                    break;
+                                }
                                 NeoScriptExecutionResult nestedSetter = ExecuteAssign(
                                     client,
-                                    (AssignInstruction)instruction,
+                                    assign,
                                     scope,
                                     actionCtx,
                                     options);
@@ -612,6 +631,7 @@ namespace NeoCompose.Runtime
                                 var loop = (WhileInstruction)instruction;
                                 ValidateWhileInstructionMetadata(loop);
                                 var state = new WhileExecutionState(loop, scope, options);
+                                state.ImmediateContext = immediate ? actionCtx : null;
                                 NeoScriptExecutionResult loopResult = RunWhile(
                                     client, returnTypeInfo, scope, ctx, options, state);
                                 if (loopResult.IsPaused)
@@ -628,7 +648,8 @@ namespace NeoCompose.Runtime
                                     returnTypeInfo,
                                     scope,
                                     ctx,
-                                    options);
+                                    options,
+                                    immediate ? actionCtx : null);
                                 if (loopResult.IsPaused)
                                     return ResumeInstructionsAfter(client, instructions, returnTypeInfo, scope, ctx, i + 1, options, loopResult, consumeTerminal: false);
                                 if (!loopResult.IsFallthrough)
@@ -643,7 +664,8 @@ namespace NeoCompose.Runtime
                                     returnTypeInfo,
                                     scope,
                                     ctx,
-                                    options);
+                                    options,
+                                    immediate ? actionCtx : null);
                                 if (loopResult.IsPaused)
                                     return ResumeInstructionsAfter(client, instructions, returnTypeInfo, scope, ctx, i + 1, options, loopResult, consumeTerminal: false);
                                 if (!loopResult.IsFallthrough)
@@ -716,8 +738,8 @@ namespace NeoCompose.Runtime
                 {
                     if (state.CheckCondition)
                     {
-                        var expressionContext = ExpressionContextFor(
-                            client, ctx, state.ExpressionState, options);
+                        var expressionContext = state.ImmediateContext
+                            ?? ExpressionContextFor(client, ctx, state.ExpressionState, options);
                         state.ExpressionState.BeginInstructionAttempt();
                         bool shouldEnter;
                         try
@@ -741,7 +763,7 @@ namespace NeoCompose.Runtime
                     }
                     NeoScriptExecutionResult result = ExecuteInstructions(
                         client, state.Instruction.instructions, returnTypeInfo,
-                        state.EnsureBodyScope(scope, state.Instruction.instructions, ref state.Instruction.bodyLayout), ctx, 0, null, options);
+                        state.EnsureBodyScope(scope, state.Instruction.instructions, ref state.Instruction.bodyLayout), ctx, 0, null, options, state.ImmediateContext);
                     if (result.IsPaused)
                     {
                         state.DetachBodyScope();
@@ -778,6 +800,7 @@ namespace NeoCompose.Runtime
         private static bool PausesAtInstruction(Instruction instruction) =>
             instruction.code is not (InstructionCode.While or InstructionCode.For or InstructionCode.ForEach or InstructionCode.Switch or InstructionCode.Try);
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static NeoScriptExecutionResult? ApplyWhileBodyTransfer(
             NeoScriptExecutionResult result)
         {
@@ -801,7 +824,8 @@ namespace NeoCompose.Runtime
             TypeInfo returnTypeInfo,
             NeoScriptScope scope,
             NSGetterEvaluator.Context ctx,
-            NeoScriptExecutionOptions? options)
+            NeoScriptExecutionOptions? options,
+            NSGetterEvaluator.Context? immediateContext)
         {
             ValidateForInstructionMetadata(instruction);
             // A run that completes leaves its state unreferenced, so the
@@ -818,6 +842,7 @@ namespace NeoCompose.Runtime
                 instruction.idleState = null;
                 state.Begin(scope, options);
             }
+            state.ImmediateContext = immediateContext;
             NeoScriptExecutionResult result = RunFor(client, returnTypeInfo, scope, ctx, options, state);
             if (!result.IsPaused)
             {
@@ -874,7 +899,8 @@ namespace NeoCompose.Runtime
                     case ForPhase.Initializer:
                         {
                             NSGetterEvaluator.Context expressionContext =
-                                ExpressionContextFor(
+                                state.ImmediateContext
+                                ?? ExpressionContextFor(
                                     client,
                                     ctx,
                                     state.ExpressionState,
@@ -904,7 +930,8 @@ namespace NeoCompose.Runtime
                     case ForPhase.Condition:
                         {
                             NSGetterEvaluator.Context expressionContext =
-                                ExpressionContextFor(
+                                state.ImmediateContext
+                                ?? ExpressionContextFor(
                                     client,
                                     ctx,
                                     state.ExpressionState,
@@ -953,7 +980,8 @@ namespace NeoCompose.Runtime
                                 ctx,
                                 0,
                                 null,
-                                options);
+                                options,
+                                state.ImmediateContext);
                             if (bodyResult.IsPaused)
                             {
                                 return ResumeForWhenCompleted(
@@ -974,7 +1002,8 @@ namespace NeoCompose.Runtime
                     case ForPhase.Iterator:
                         {
                             NSGetterEvaluator.Context expressionContext =
-                                ExpressionContextFor(
+                                state.ImmediateContext
+                                ?? ExpressionContextFor(
                                     client,
                                     ctx,
                                     state.ExpressionState,
@@ -1087,6 +1116,7 @@ namespace NeoCompose.Runtime
         // Whether a body's transfer ends the loop; if not, the loop moves on.
         // A bool, not a nullable result: that is wider than two registers, so
         // Mono copies it out through a write-barriered range copy.
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool EndsForBody(
             NeoScriptScope scope,
             ForExecutionState state,
@@ -1115,7 +1145,8 @@ namespace NeoCompose.Runtime
             TypeInfo returnTypeInfo,
             NeoScriptScope scope,
             NSGetterEvaluator.Context ctx,
-            NeoScriptExecutionOptions? options)
+            NeoScriptExecutionOptions? options,
+            NSGetterEvaluator.Context? immediateContext)
         {
             ValidateForEachInstructionMetadata(instruction);
             // Reused as ExecuteFor reuses its state.
@@ -1130,6 +1161,7 @@ namespace NeoCompose.Runtime
                 instruction.idleState = null;
                 state.Begin(scope, options);
             }
+            state.ImmediateContext = immediateContext;
             NeoScriptExecutionResult result = RunForEach(
                 client,
                 returnTypeInfo,
@@ -1190,7 +1222,8 @@ namespace NeoCompose.Runtime
                 if (state.Snapshot.Count < 0)
                 {
                     NSGetterEvaluator.Context expressionContext =
-                        ExpressionContextFor(
+                        state.ImmediateContext
+                        ?? ExpressionContextFor(
                             client,
                             ctx,
                             state.ExpressionState,
@@ -1245,7 +1278,8 @@ namespace NeoCompose.Runtime
                     ctx,
                     0,
                     null,
-                    options);
+                    options,
+                    state.ImmediateContext);
                 if (bodyResult.IsPaused)
                 {
                     return ResumeForEachWhenCompleted(
@@ -1312,6 +1346,7 @@ namespace NeoCompose.Runtime
         }
 
         // As EndsForBody.
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool EndsForEachBody(
             NeoScriptScope scope,
             ForEachExecutionState state,
@@ -2325,24 +2360,7 @@ namespace NeoCompose.Runtime
         {
             if (instruction.target.pointer is VariablePointer variablePointer)
             {
-                // A number stays unboxed into the local, as a declaration's does.
-                object? local = NSGetterEvaluator.EvaluateValue(instruction.pointer, scope, ctx, out double number);
-                if (instruction.target.writability == WritabilityKind.ReadOnly)
-                {
-                    throw new NSGetterRuntimeError(
-                        "Cannot assign to a read-only NeoScript binding.");
-                }
-                if (scope.TryGetReadOnlyError(variablePointer.variableId, out string? readOnlyError))
-                {
-                    throw new NSGetterRuntimeError(readOnlyError!);
-                }
-                if (instruction.target.typeInfo.type == MemberKind.Decimal)
-                {
-                    local = CoerceSetterValue(
-                        NSGetterEvaluator.ArithmeticValue.Box(local, number),
-                        instruction.target.typeInfo);
-                }
-                scope.Assign(variablePointer, local, number);
+                AssignLocal(instruction, variablePointer, scope, ctx);
                 return default;
             }
 
@@ -2365,7 +2383,32 @@ namespace NeoCompose.Runtime
             NeoResolvedWriteTarget target;
             if (instruction.target.pointer is KeyOfPointer keyOfPointer)
             {
-                object? receiver = Eval(keyOfPointer.keyOf.pointer, scope, ctx);
+                object? receiver;
+                if (client.PendingScriptWrites is { HasCollections: true } && WritesStorage(instruction.target))
+                {
+                    // An entry of a collection the held batch mutates is
+                    // written without reading the collection, which would
+                    // commit it.
+                    if (NSGetterEvaluator.EvalPendingCollection(
+                            keyOfPointer.keyOf.pointer, NSGetterEvaluator.PendingRead.Entry, scope, ctx, out receiver)
+                        is { } pending)
+                    {
+                        object? entryKey = Eval(keyOfPointer.keyOf.key, scope, ctx);
+                        if (pending is not NeoWriteBatch.PendingList)
+                            PendingDictionaryTarget(pending, instruction.target.typeInfo)
+                                .Set(client, ToStringKey(entryKey, "Dictionary/class assignment key"), assigned, ctx);
+                        else if (entryKey is string)
+                            throw new NSGetterRuntimeError(ListIdAssignmentError);
+                        else
+                            new NeoListIndexWriteTarget(pending.Row.id, ToInt(entryKey, "List assignment index"), instruction.target.typeInfo, pending.Ownership)
+                                .Write(client, assigned, ctx);
+                        return default;
+                    }
+                }
+                else
+                {
+                    receiver = Eval(keyOfPointer.keyOf.pointer, scope, ctx);
+                }
                 if (receiver is NeoScriptObject { attachedId: null } detached
                     && WritesSessionTarget(instruction.target.writability)
                     && Eval(keyOfPointer.keyOf.key, scope, ctx) is string key
@@ -2386,6 +2429,40 @@ namespace NeoCompose.Runtime
             }
             target.Write(client, assigned, ctx);
             return default;
+        }
+
+        private static void AssignLocal(
+            AssignInstruction instruction,
+            VariablePointer variablePointer,
+            NeoScriptScope scope,
+            NSGetterEvaluator.Context ctx)
+        {
+            // A number stays unboxed into the local, as a declaration's does.
+            object? local = NSGetterEvaluator.EvaluateValue(instruction.pointer, scope, ctx, out double number);
+            if (IsReadOnly(instruction.target))
+            {
+                throw new NSGetterRuntimeError(
+                    "Cannot assign to a read-only NeoScript binding.");
+            }
+            if (scope.TryGetReadOnlyError(variablePointer.variableId, out string? readOnlyError))
+            {
+                throw new NSGetterRuntimeError(readOnlyError!);
+            }
+            if (instruction.target.typeInfo.type == MemberKind.Decimal)
+            {
+                local = CoerceSetterValue(
+                    NSGetterEvaluator.ArithmeticValue.Box(local, number),
+                    instruction.target.typeInfo);
+            }
+            scope.Assign(variablePointer, local, number);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsReadOnly(WriteTarget target)
+        {
+            if (target.readOnly == 0)
+                target.readOnly = target.writability == WritabilityKind.ReadOnly ? (sbyte)1 : (sbyte)-1;
+            return target.readOnly > 0;
         }
 
         // Its own method so the exception region stays off ExecuteAssign's frame.
@@ -2594,6 +2671,8 @@ namespace NeoCompose.Runtime
                 Target,
                 // A static member with no bound row yet.
                 UnboundStatic,
+                // Subject is a local list no read holds.
+                UnreadList,
             }
 
             private readonly Kind kind;
@@ -2611,6 +2690,8 @@ namespace NeoCompose.Runtime
                 new(Kind.DetachedList, owner, slotIndex);
 
             internal static CollectionMutation Local(object? local) => new(Kind.Local, local);
+
+            internal static CollectionMutation Unread(LocalList list) => new(Kind.UnreadList, list);
 
             internal static CollectionMutation Target(NeoResolvedCollectionTarget target) => new(Kind.Target, target);
 
@@ -2636,9 +2717,30 @@ namespace NeoCompose.Runtime
                             return;
                         }
                     case Kind.Local:
-                        scope.Assign((VariablePointer)instruction.target.pointer, MutateLocalCollection(
-                            subject, instruction.target.typeInfo, instruction.mutation, args, ctx));
-                        return;
+                        {
+                            var variable = (VariablePointer)instruction.target.pointer;
+                            if (subject is object?[] list && IsLocalListAdd(instruction))
+                            {
+                                // The list a read holds keeps growing in place.
+                                LocalList? held = scope.ReadLocalList(variable);
+                                if (held is not null && held.IsSnapshot(list))
+                                    held.Add(args[0]);
+                                else
+                                    held = new LocalList(list, args[0], NSGetterEvaluator.CollectionEntryMember(list, ctx));
+                                StoreLocalList(scope, variable, held);
+                                return;
+                            }
+                            scope.Assign(variable, MutateLocalCollection(
+                                subject, instruction.target.typeInfo, instruction.mutation, args, ctx));
+                            return;
+                        }
+                    case Kind.UnreadList:
+                        {
+                            var list = (LocalList)subject!;
+                            list.Add(args[0]);
+                            StoreLocalList(scope, (VariablePointer)instruction.target.pointer, list);
+                            return;
+                        }
                     case Kind.Target:
                         ((NeoResolvedCollectionTarget)subject!).Mutate(client, instruction.mutation, args, ctx);
                         return;
@@ -2660,6 +2762,15 @@ namespace NeoCompose.Runtime
         {
             if (instruction.target.pointer is VariablePointer variablePointer)
             {
+                // Nothing else can hold a list no read has taken, so its Add
+                // skips the snapshot the checks below would copy.
+                if (IsLocalListAdd(instruction) && scope.ReadLocalList(variablePointer) is { Read: false } unread)
+                    return CollectionMutation.Unread(unread);
+                // Resolving an alias of a pending collection reads it, which
+                // would store it on every mutation.
+                if (client.PendingScriptWrites is { HasCollections: true } aliasBatch
+                    && NSGetterEvaluator.FindPendingTarget(variablePointer, scope, ctx, out _, out _, out _) is { } pendingAlias)
+                    return CollectionMutation.Target(PendingTarget(client, aliasBatch, pendingAlias, instruction.target.typeInfo));
                 if (!scope.TryGetValue(variablePointer.variableId, out var local))
                     throw new NSGetterRuntimeError($"Variable '{variablePointer.variableId}' is not in scope");
                 if (local is object?[] aliased
@@ -2683,12 +2794,31 @@ namespace NeoCompose.Runtime
                 }, scope, ctx));
             }
             if (instruction.target.pointer is KeyOfPointer keyOfTarget
-                && instruction.target.typeInfo.type == MemberKind.List)
+                && instruction.target.typeInfo.type is MemberKind.List or MemberKind.Dictionary)
             {
-                object? receiver = Eval(keyOfTarget.keyOf.pointer, scope, ctx);
+                object? receiver;
+                if (client.PendingScriptWrites is { HasCollections: true } batch && WritesStorage(instruction.target))
+                {
+                    if (NSGetterEvaluator.FindPendingTarget(keyOfTarget, scope, ctx, out receiver, out var owner, out object? entry) is { } pending)
+                        return CollectionMutation.Target(PendingTarget(client, batch, pending, instruction.target.typeInfo));
+                    // An entry of a pending collection: its store is the
+                    // collection's, and reading the collection would commit it.
+                    if (owner is not null)
+                        return CollectionMutation.Target(ResolveCollectionTarget(client, new WriteTarget
+                        {
+                            pointer = keyOfTarget,
+                            typeInfo = instruction.target.typeInfo,
+                            writability = owner.Ownership == NeoValueOwnership.Save ? WritabilityKind.Save : WritabilityKind.Session,
+                        }, scope, ctx, evaluatedTarget: entry, targetEvaluated: true));
+                }
+                else
+                {
+                    receiver = Eval(keyOfTarget.keyOf.pointer, scope, ctx);
+                }
                 if (receiver is NeoScriptObject detached)
                 {
                     if (detached.attachedId is null
+                        && instruction.target.typeInfo.type == MemberKind.List
                         && instruction.mutation == CollectionMutationKind.Add
                         && WritesSessionTarget(instruction.target.writability)
                         && Eval(keyOfTarget.keyOf.key, scope, ctx) is string key
@@ -2700,11 +2830,58 @@ namespace NeoCompose.Runtime
                     evaluatedTarget: NSGetterEvaluator.EvaluateKeyOf(keyOfTarget, receiver, scope, ctx),
                     targetEvaluated: true, keyOfReceiver: receiver));
             }
+            if (instruction.target.pointer is ReferencePointer or StaticMemberPointer
+                && client.PendingScriptWrites is { HasCollections: true } rootBatch
+                && NSGetterEvaluator.FindPendingTarget(instruction.target.pointer, scope, ctx, out _, out _, out _) is { } root)
+                return CollectionMutation.Target(PendingTarget(client, rootBatch, root, instruction.target.typeInfo));
             if (instruction.target.pointer is StaticMemberPointer staticMember
                 && NeoGeneratedTypesSupport.StaticBinding(client, staticMember.memberId,
                     TargetOwnership(client, instruction.target, scope, ctx)).ValueId is null)
                 return CollectionMutation.UnboundStatic();
             return CollectionMutation.Target(ResolveCollectionTarget(client, instruction.target, scope, ctx));
+        }
+
+        private const string ListIdAssignmentError =
+            "Assignment through a List value-id index is read-only; mutate the returned entry or use a positional index.";
+
+        private static bool WritesStorage(WriteTarget target) =>
+            target.writability is WritabilityKind.Save or WritabilityKind.Session or WritabilityKind.Runtime or WritabilityKind.Local;
+
+        /// <summary>
+        /// The target that mutates <paramref name="pending"/>. A list an
+        /// index write made pending has none yet, nor does a collection that
+        /// moved stores with its owner.
+        /// </summary>
+        private static NeoResolvedCollectionTarget PendingTarget(
+            NeoClient client,
+            NeoWriteBatch batch,
+            NeoWriteBatch.PendingCollection pending,
+            TypeInfo collectionType)
+        {
+            if (pending.Target is NeoResolvedCollectionTarget target)
+                return target;
+            string id = pending.Row.id;
+            if (collectionType is LookupTypeInfo lookup)
+                target = new NeoLookupSetWriteTarget(id, lookup, pending.Ownership);
+            else if (pending is NeoWriteBatch.PendingList)
+            {
+                batch.ResolveMembers(pending);
+                target = new NeoListWriteTarget(id, EntryTypeInfo(collectionType), pending.EntryMember, pending.Ownership);
+            }
+            else
+                return PendingDictionaryTarget(pending, EntryTypeInfo(collectionType));
+            pending.Target = target;
+            return target;
+        }
+
+        // A move leaves a pending collection no target in its new store.
+        private static NeoDictionaryWriteTarget PendingDictionaryTarget(NeoWriteBatch.PendingCollection pending, TypeInfo entryType)
+        {
+            if (pending.Target is NeoDictionaryWriteTarget existing)
+                return existing;
+            var target = new NeoDictionaryWriteTarget(pending.Row.id, entryType, pending.Ownership);
+            pending.Target ??= target;
+            return target;
         }
 
         private static NeoResolvedCollectionTarget ResolveDetachedListTarget(
@@ -2827,7 +3004,7 @@ namespace NeoCompose.Runtime
             NeoScriptExecutionOptions? options,
             string resumeKey)
         {
-            var suspension = new DeferredNativeFunctionSuspension();
+            var suspension = new DeferredNativeFunctionSuspension(client);
             var deferredHandle = client.StartDeferredNativeFunction(
                 memberId,
                 receiver,
@@ -3022,6 +3199,7 @@ namespace NeoCompose.Runtime
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool EvaluateBoolean(
             BooleanExpression expression,
             NeoScriptScope scope,
@@ -3331,6 +3509,8 @@ namespace NeoCompose.Runtime
             {
                 throw new NSGetterRuntimeError("Collection mutation target is not backed by a Neo value row.");
             }
+            if (preparedPlan is null && client.PendingScriptWrites?.Target(ownership, rowId) is NeoResolvedCollectionTarget pending)
+                return pending;
             if (member is null && target.typeInfo.type == MemberKind.List)
                 client.TryInferMemberForValueId(rowId, out member);
             if (target.typeInfo is not LookupTypeInfo
@@ -3432,8 +3612,7 @@ namespace NeoCompose.Runtime
             {
                 if (key is string)
                 {
-                    throw new NSGetterRuntimeError(
-                        "Assignment through a List value-id index is read-only; mutate the returned entry or use a positional index.");
+                    throw new NSGetterRuntimeError(ListIdAssignmentError);
                 }
                 return new NeoListIndexWriteTarget(receiverRowId, ToInt(key, "List assignment index"), targetType, ownership);
             }
@@ -3685,14 +3864,15 @@ namespace NeoCompose.Runtime
                 string importedId = client.ImportValueReference(
                     ownership,
                     sourceValueId,
-                    out bool sourceMoved,
+                    out HashSet<string>? movedIds,
                     currentDestinationValueId);
-                if (sourceMoved && hadSourceOwnership)
+                if (movedIds is not null && hadSourceOwnership)
                 {
                     NSGetterEvaluator.RetargetCachedRowsAfterMove(
                         ctx,
                         sourceOwnership,
-                        ownership);
+                        ownership,
+                        movedIds);
                 }
                 return importedId;
             }
@@ -3841,10 +4021,12 @@ namespace NeoCompose.Runtime
             object? value,
             string id,
             NeoTimestamp createdAt,
-            NeoTimestamp updatedAt)
+            NeoTimestamp updatedAt,
+            NSGetterEvaluator.Context ctx)
         {
             if (member is LookupMember lookup && value is not null)
                 value = NeoGeneratedTypesSupport.ConstructorLookupIds(value, lookup);
+            value = NeoGeneratedTypesSupport.MaterializeCollectionAssignment(client, member, value, ownership, ctx, plan);
             var payload = value is INeoValuePayloadProvider provider
                 ? provider.ToNeoValuePayload()
                 : value;
@@ -4016,6 +4198,18 @@ namespace NeoCompose.Runtime
             return Equals(a, b);
         }
 
+        // A local list's Add, which grows a LocalList rather than copying.
+        private static bool IsLocalListAdd(CollectionCallInstruction instruction) =>
+            instruction.mutation == CollectionMutationKind.Add
+            && instruction.target.typeInfo.type != MemberKind.Lookup;
+
+        // Keeps a grown list in its slot; any other binding takes its snapshot.
+        private static void StoreLocalList(NeoScriptScope scope, VariablePointer variable, LocalList list)
+        {
+            if (!scope.AssignLocalList(variable, list))
+                scope.Assign(variable, list.Snapshot());
+        }
+
         private static object? MutateLocalCollection(
             object? local,
             TypeInfo collectionType,
@@ -4160,6 +4354,23 @@ namespace NeoCompose.Runtime
                 plan.Commit();
         }
 
+        /// <summary>
+        /// Stages one mutation of collection <paramref name="rowId"/> into
+        /// the client's held batch, or into a batch of its own that commits
+        /// now unless <paramref name="preparedPlan"/> belongs to the caller.
+        /// </summary>
+        private static void WriteCollection(NeoClient client, string rowId, NeoWritePlan? preparedPlan, Action<NeoWriteBatch> mutate)
+        {
+            NeoWriteBatch? held = preparedPlan is null ? client.ScriptWriteBatch(rowId) : null;
+            NeoWriteBatch batch = held ?? new NeoWriteBatch(preparedPlan ?? new NeoWritePlan(client), held: false);
+            batch.Stage(mutate);
+            if (held is not null)
+                return;
+            batch.Prepare();
+            if (preparedPlan is null && (batch.Plan.Rows.Count != 0 || batch.Plan.Bindings.Count != 0))
+                batch.Plan.Commit();
+        }
+
         private static string PrepareWritableRow(NeoWritePlan plan, NeoClient client,
             string rowId, NeoValueOwnership ownership)
         {
@@ -4178,18 +4389,29 @@ namespace NeoCompose.Runtime
         }
 
         // A member built from a TypeInfo names no schema entry member, so it
-        // can't reach a nested List or Dictionary's entries. Releasing one
-        // takes the schema member instead.
-        private static JsonMember ReleaseMember(NeoClient client, string valueId, TypeInfo typeInfo) =>
+        // can't reach a nested List or Dictionary's entries. Building or
+        // releasing one takes the schema member instead.
+        private static JsonMember RowMember(NeoClient client, string valueId, TypeInfo typeInfo) =>
             typeInfo.type is MemberKind.List or MemberKind.Dictionary
                 && client.TryInferMemberForValueId(valueId, out JsonMember? member)
                 ? member : MemberFromTypeInfo(typeInfo);
 
-        private static JsonMember EntryReleaseMember(NeoClient client, MemberValue collectionRow, TypeInfo entryTypeInfo) =>
+        private static JsonMember EntryMember(NeoClient client, MemberValue collectionRow, TypeInfo entryTypeInfo) =>
             entryTypeInfo.type is MemberKind.List or MemberKind.Dictionary
                 && client.TryInferMemberForValueId(collectionRow.id, out JsonMember? collection)
                 && client.TryResolveCollectionEntryMember(collection, collectionRow) is JsonMember entry
                 ? entry : MemberFromTypeInfo(entryTypeInfo);
+
+        /// <summary>
+        /// Stages a writable copy of authored collection row <paramref name="id"/>,
+        /// whose entry a write replaces in place: the collection joins the
+        /// writable store before its entry does.
+        /// </summary>
+        private static void ShadowAuthoredRow(NeoWritePlan plan, NeoClient client, NeoValueOwnership ownership, string id)
+        {
+            if (!plan.TryGetWritable(ownership, id, out _) && plan.TryGet(ownership, id, out MemberValue? authored))
+                plan.Set(ownership, client.CloneRowForWrite(authored!), silent: true);
+        }
 
         // An assigned value replaces the slot's row at the same id, so the
         // previous value's owned rows are released.
@@ -4208,9 +4430,17 @@ namespace NeoCompose.Runtime
             {
                 bool hadSourceOwnership = plan.TryGetOwnership(sourceValueId, out NeoValueOwnership sourceOwnership);
                 string importedId = client.ImportValueReference(plan, ownership, sourceValueId,
-                    out bool moved, currentDestinationValueId);
-                if (moved && hadSourceOwnership)
-                    plan.AfterCommit(() => NSGetterEvaluator.RetargetCachedRowsAfterMove(ctx, sourceOwnership, ownership));
+                    out HashSet<string>? movedIds, currentDestinationValueId);
+                if (movedIds is not null && hadSourceOwnership)
+                {
+                    // A held batch commits later, but the execution's aliases
+                    // read the moved rows now.
+                    Action retarget = () => NSGetterEvaluator.RetargetCachedRowsAfterMove(ctx, sourceOwnership, ownership, movedIds);
+                    if (plan.HeldBy is not null)
+                        plan.HeldBy.AfterCommit(retarget);
+                    else
+                        plan.AfterCommit(retarget);
+                }
                 return importedId;
             }
             catch (InvalidOperationException ex)
@@ -4256,16 +4486,18 @@ namespace NeoCompose.Runtime
                     {
                         throw new NSGetterRuntimeError($"Missing target row '{writableRowId}'.");
                     }
+                    JsonMember member = RowMember(client, writableRowId, typeInfo);
                     var next = CreateValueRow(
                         plan, client,
                         ownership,
-                        MemberFromTypeInfo(typeInfo),
+                        member,
                         value,
                         writableRowId,
                         existing.createdAt,
-                        NeoTimestamp.Now());
+                        NeoTimestamp.Now(),
+                        ctx);
                     next.classId = existing.classId;
-                    StoreReplacedRow(plan, client, ownership, next, ReleaseMember(client, writableRowId, typeInfo), ctx);
+                    StoreReplacedRow(plan, client, ownership, next, member, ctx);
                 });
             }
         }
@@ -4321,17 +4553,14 @@ namespace NeoCompose.Runtime
                             : NeoValueWritePayload.FromValueReference(
                                 valueId,
                                 value as INeoValueReference);
-                        binding.SetValue(payload);
-                        if (hadSourceOwnership
-                            && sourceOwnership == NeoValueOwnership.Session
-                            && binding.Ownership == NeoValueOwnership.Save
-                            && !client.HasWritableValue(sourceOwnership, valueId!)
-                            && client.HasWritableValue(binding.Ownership, valueId!))
+                        binding.SetValue(payload, out HashSet<string>? movedIds);
+                        if (hadSourceOwnership && movedIds is not null)
                         {
                             NSGetterEvaluator.RetargetCachedRowsAfterMove(
                                 ctx,
                                 sourceOwnership,
-                                binding.Ownership);
+                                binding.Ownership,
+                                movedIds);
                         }
                     }
                     else
@@ -4688,7 +4917,7 @@ namespace NeoCompose.Runtime
                             plan.AfterCommit(() => NSGetterEvaluator.InvalidateCachedCollection(existingId, ownership, ctx));
                             return;
                         }
-                        var replaced = CreateValueRow(plan, client, ownership, member, value, existingId, existing!.createdAt, now);
+                        var replaced = CreateValueRow(plan, client, ownership, member, value, existingId, existing!.createdAt, now, ctx);
                         replaced.classId = existing.classId;
                         StoreReplacedRow(plan, client, ownership, replaced, member, ctx);
                         return;
@@ -4714,7 +4943,7 @@ namespace NeoCompose.Runtime
                     else
                     {
                         var childId = Guid.NewGuid().ToString();
-                        var next = CreateValueRow(plan, client, ownership, member, value, childId, now, now);
+                        var next = CreateValueRow(plan, client, ownership, member, value, childId, now, now, ctx);
                         StoreWritableRow(plan, ownership, next, ctx);
                         linked.value![key] = childId;
                     }
@@ -5141,54 +5370,57 @@ namespace NeoCompose.Runtime
                 object? value,
                 NSGetterEvaluator.Context ctx)
             {
-                PrepareWrite(client, plan =>
+                string? referenceId = TryGetClassValueReferenceId(value, typeInfo, ctx, out string? id) ? id : null;
+                WriteCollection(client, parentRowId, null, batch =>
                 {
-                    PrepareWritableRow(plan, client, parentRowId, ownership);
-                    if (!client.TryGetValue(parentRowId, out ArrayMemberValue? parent)
-                        || parent.value == null
-                        || index < 0
-                        || index >= parent.value.Length)
-                    {
+                    EnsureWritableRow(client, parentRowId, ownership);
+                    NeoWritePlan plan = batch.Plan;
+                    // A value replaces the entry's row in place, which leaves
+                    // the list as it is; only a new entry changes it.
+                    var pending = batch.Collection(ownership, parentRowId) as NeoWriteBatch.PendingList;
+                    ArrayMemberValue? committed = null;
+                    if (pending is null && !plan.TryGet(ownership, parentRowId, out committed))
+                        throw new NSGetterRuntimeError($"Missing list row '{parentRowId}'.");
+                    int count = pending?.Count ?? committed!.value?.Length ?? 0;
+                    if (index < 0 || index >= count)
                         throw new NSGetterRuntimeError($"List index out of bounds: {index}");
-                    }
-                    var childId = parent.value[index];
-                    if (TryGetClassValueReferenceId(
-                            value,
-                            typeInfo,
-                            ctx,
-                            out string? referenceId))
+                    MemberValue listRow = pending?.Row ?? committed!;
+                    string childId = pending is not null ? pending[index] : committed!.value![index];
+                    if (referenceId is null)
                     {
-                        string importedId = ImportClassValueReference(
+                        if (!client.TryGetValue(childId, out MemberValue? existing))
+                            throw new NSGetterRuntimeError($"Missing list child row '{childId}'.");
+                        JsonMember entryMember = EntryMember(client, listRow, typeInfo);
+                        var next = CreateValueRow(
                             plan, client,
                             ownership,
-                            referenceId!,
-                            ctx,
-                            childId);
-                        if (importedId == childId)
-                            return;
-                        parent.value[index] = importedId;
-                        plan.AfterCommit(() => ctx.allocationTracker.RegisterConstructedParent(
-                            importedId,
-                            parentRowId));
-                        parent.updatedAt = NeoTimestamp.Now();
-                        StoreWritableRow(plan, ownership, parent, ctx);
-                        client.StageUnlinkedRemovals(plan, ownership, childId, EntryReleaseMember(client, parent, typeInfo));
+                            entryMember,
+                            value,
+                            childId,
+                            existing.createdAt,
+                            NeoTimestamp.Now(),
+                            ctx);
+                        next.classId = existing.classId;
+                        ShadowAuthoredRow(plan, client, ownership, parentRowId);
+                        StoreReplacedRow(plan, client, ownership, next, entryMember, ctx);
                         return;
                     }
-                    if (!client.TryGetValue(childId, out MemberValue? existing))
-                    {
-                        throw new NSGetterRuntimeError($"Missing list child row '{childId}'.");
-                    }
-                    var next = CreateValueRow(
+                    string importedId = ImportClassValueReference(
                         plan, client,
                         ownership,
-                        MemberFromTypeInfo(typeInfo),
-                        value,
-                        childId,
-                        existing.createdAt,
-                        NeoTimestamp.Now());
-                    next.classId = existing.classId;
-                    StoreReplacedRow(plan, client, ownership, next, EntryReleaseMember(client, parent, typeInfo), ctx);
+                        referenceId,
+                        ctx,
+                        childId);
+                    if (importedId == childId)
+                        return;
+                    // The list changes last: one that throws leaves it as it was.
+                    JsonMember released = EntryMember(client, listRow, typeInfo);
+                    NeoWriteBatch.PendingList list = batch.List(ownership, parentRowId, ctx, null);
+                    batch.Gain(ownership, importedId, parentRowId);
+                    batch.AfterCommit(() => ctx.allocationTracker.RegisterConstructedParent(
+                        importedId,
+                        parentRowId));
+                    batch.Release(ownership, list.Set(index, importedId, NeoTimestamp.Now()), released);
                 });
             }
         }
@@ -5298,14 +5530,19 @@ namespace NeoCompose.Runtime
                 object?[] args,
                 NSGetterEvaluator.Context ctx)
             {
-                PrepareWrite(client, plan =>
+                bool inserts = mutation is CollectionMutationKind.Add or CollectionMutationKind.Insert;
+                string? referenceId = (inserts || mutation == CollectionMutationKind.Remove)
+                    && TryGetClassValueReferenceId(
+                        args[mutation == CollectionMutationKind.Insert ? 1 : 0],
+                        entryTypeInfo,
+                        ctx,
+                        out string? id)
+                        ? id
+                        : null;
+                WriteCollection(client, rowId, preparedPlan, batch =>
                 {
-                    PrepareWritableRow(plan, client, rowId, ownership);
-                    if (!client.TryGetValue(rowId, out ArrayMemberValue? row))
-                    {
-                        throw new NSGetterRuntimeError($"Missing list row '{rowId}'.");
-                    }
-                    row.value ??= Array.Empty<string>();
+                    EnsureWritableRow(client, rowId, ownership);
+                    NeoWriteBatch.PendingList list = batch.List(ownership, rowId, ctx, this);
                     NeoTimestamp now = NeoTimestamp.Now();
                     switch (mutation)
                     {
@@ -5314,127 +5551,69 @@ namespace NeoCompose.Runtime
                             {
                                 int insertionIndex = mutation == CollectionMutationKind.Insert
                                     ? ToInt(args[0], "Insert index")
-                                    : row.value.Length;
-                                if (insertionIndex < 0 || insertionIndex > row.value.Length)
+                                    : list.Count;
+                                if (insertionIndex < 0 || insertionIndex > list.Count)
                                     throw new NSGetterRuntimeError("List.Insert index is out of range.");
-                                object? insertedValue = args[mutation == CollectionMutationKind.Insert ? 1 : 0];
-                                if (TryGetClassValueReferenceId(
-                                        insertedValue,
-                                        entryTypeInfo,
-                                        ctx,
-                                        out string? referenceId))
+                                string childId;
+                                if (referenceId is not null)
                                 {
-                                    var referencedNext = new string[row.value.Length + 1];
-                                    Array.Copy(row.value, 0, referencedNext, 0, insertionIndex);
-                                    Array.Copy(row.value, insertionIndex, referencedNext, insertionIndex + 1, row.value.Length - insertionIndex);
-                                    string importedId = ImportClassValueReference(
-                                        plan, client,
+                                    childId = ImportClassValueReference(
+                                        batch.Plan, client,
                                         ownership,
-                                        referenceId!,
+                                        referenceId,
                                         ctx);
-                                    plan.AfterCommit(() => ctx.allocationTracker.RegisterConstructedParent(
+                                    string importedId = childId;
+                                    batch.AfterCommit(() => ctx.allocationTracker.RegisterConstructedParent(
                                         importedId,
                                         rowId));
-                                    referencedNext[insertionIndex] = importedId;
-                                    row.value = referencedNext;
-                                    row.updatedAt = now;
-                                    StoreWritableRow(plan, ownership, row, ctx);
-                                    return;
                                 }
-                                var childId = Guid.NewGuid().ToString();
-                                var child = CreateValueRow(
-                                    plan, client,
-                                    ownership,
-                                    MemberFromTypeInfo(entryTypeInfo),
-                                    insertedValue,
-                                    childId,
-                                    now,
-                                    now);
-                                StoreWritableRow(plan, ownership, child, ctx);
-                                var next = new string[row.value.Length + 1];
-                                Array.Copy(row.value, 0, next, 0, insertionIndex);
-                                Array.Copy(row.value, insertionIndex, next, insertionIndex + 1, row.value.Length - insertionIndex);
-                                next[insertionIndex] = childId;
-                                row.value = next;
-                                row.updatedAt = now;
-                                StoreWritableRow(plan, ownership, row, ctx);
+                                else
+                                {
+                                    childId = Guid.NewGuid().ToString();
+                                    batch.Plan.Set(ownership, CreateValueRow(
+                                        batch.Plan, client,
+                                        ownership,
+                                        EntryMember(client, list.Row, entryTypeInfo),
+                                        args[mutation == CollectionMutationKind.Insert ? 1 : 0],
+                                        childId,
+                                        now,
+                                        now,
+                                        ctx));
+                                }
+                                list.Insert(insertionIndex, childId, now);
+                                batch.Gain(ownership, childId, rowId);
                                 return;
                             }
                         case CollectionMutationKind.RemoveAt:
-                            RemoveAt(
-                                plan, client,
-                                ownership,
-                                row,
-                                ToInt(args[0], "RemoveAt index"),
-                                now,
-                                entryTypeInfo,
-                                ctx);
-                            return;
-                        case CollectionMutationKind.Remove:
                             {
-                                string? referenceId = TryGetClassValueReferenceId(
-                                    args[0],
-                                    entryTypeInfo,
-                                    ctx,
-                                    out string? matchedReferenceId)
-                                        ? matchedReferenceId
-                                        : null;
-                                for (int i = 0; i < row.value.Length; i++)
-                                {
-                                    if (referenceId != null && row.value[i] == referenceId)
-                                    {
-                                        RemoveAt(plan, client, ownership, row, i, now, entryTypeInfo, ctx);
-                                        return;
-                                    }
-                                    if (!client.TryGetValue(row.value[i], out MemberValue? child))
-                                        continue;
-                                    if (!JsEqual(ReadEntryValue(child, entryMember, ctx), args[0]))
-                                        continue;
-                                    RemoveAt(plan, client, ownership, row, i, now, entryTypeInfo, ctx);
-                                    return;
-                                }
+                                int index = ToInt(args[0], "RemoveAt index");
+                                if (index < 0 || index >= list.Count)
+                                    throw new NSGetterRuntimeError($"List index out of bounds: {index}");
+                                batch.Release(ownership, list.RemoveAt(index, now), EntryMember(client, list.Row, entryTypeInfo));
                                 return;
                             }
+                        case CollectionMutationKind.Remove:
+                            for (int i = 0; i < list.Count; i++)
+                            {
+                                if (list[i] != referenceId
+                                    && (!client.TryGetValue(list[i], out MemberValue? child)
+                                        || !JsEqual(ReadEntryValue(child, entryMember, ctx), args[0])))
+                                    continue;
+                                batch.Release(ownership, list.RemoveAt(i, now), EntryMember(client, list.Row, entryTypeInfo));
+                                return;
+                            }
+                            return;
                         case CollectionMutationKind.Clear:
                             {
-                                var removedIds = row.value;
-                                row.value = Array.Empty<string>();
-                                row.updatedAt = now;
-                                StoreWritableRow(plan, ownership, row, ctx);
-                                client.StageUnlinkedRemovals(plan, ownership, removedIds, EntryReleaseMember(client, row, entryTypeInfo));
+                                JsonMember releaseMember = EntryMember(client, list.Row, entryTypeInfo);
+                                foreach (string clearedId in list.Clear(now))
+                                    batch.Release(ownership, clearedId, releaseMember);
                                 return;
                             }
                         default:
                             throw new NSGetterRuntimeError($"Unsupported list mutation '{mutation}'.");
                     }
-                }, preparedPlan);
-            }
-
-            private static void RemoveAt(
-                NeoWritePlan plan, NeoClient client,
-                NeoValueOwnership ownership,
-                ArrayMemberValue row,
-                int index,
-                NeoTimestamp now,
-                TypeInfo entryTypeInfo,
-                NSGetterEvaluator.Context ctx)
-            {
-                if (row.value == null || index < 0 || index >= row.value.Length)
-                {
-                    throw new NSGetterRuntimeError($"List index out of bounds: {index}");
-                }
-                string removedId = row.value[index];
-                var next = new string[row.value.Length - 1];
-                for (int i = 0, j = 0; i < row.value.Length; i++)
-                {
-                    if (i == index)
-                        continue;
-                    next[j++] = row.value[i];
-                }
-                row.value = next;
-                row.updatedAt = now;
-                StoreWritableRow(plan, ownership, row, ctx);
-                client.StageUnlinkedRemovals(plan, ownership, removedId, EntryReleaseMember(client, row, entryTypeInfo));
+                });
             }
         }
 
@@ -5459,69 +5638,42 @@ namespace NeoCompose.Runtime
                 object?[] args,
                 NSGetterEvaluator.Context ctx)
             {
-                PrepareWrite(client, plan =>
+                WriteCollection(client, rowId, preparedPlan, batch =>
                 {
                     EnsureWritableRow(client, rowId, ownership);
-                    if (!client.TryGetValue(rowId, out ArrayMemberValue? row))
-                    {
-                        throw new NSGetterRuntimeError($"Missing lookup row '{rowId}'.");
-                    }
-                    row = (ArrayMemberValue)client.CloneRowForWrite(row);
-                    row.value ??= Array.Empty<string>();
+                    NeoWriteBatch.PendingList list = batch.List(ownership, rowId, ctx, this);
                     NeoTimestamp now = NeoTimestamp.Now();
                     switch (mutation)
                     {
                         case CollectionMutationKind.Add:
                             {
                                 string selectionId = ResolveLookupSelectionId(client, typeInfo, args[0], ctx);
-                                foreach (string existingId in row.value)
-                                {
-                                    if (existingId == selectionId)
-                                        return;
-                                }
-                                var next = new string[row.value.Length + 1];
-                                Array.Copy(row.value, next, row.value.Length);
-                                next[row.value.Length] = selectionId;
-                                row.value = next;
-                                row.updatedAt = now;
-                                StoreWritableRow(plan, ownership, row, ctx);
+                                if (!list.Contains(selectionId))
+                                    list.Insert(list.Count, selectionId, now);
                                 return;
                             }
                         case CollectionMutationKind.Remove:
                             {
                                 string selectionId = ResolveLookupSelectionId(client, typeInfo, args[0], ctx);
-                                int index = -1;
-                                for (int i = 0; i < row.value.Length; i++)
+                                if (!list.Contains(selectionId))
+                                    return;
+                                for (int i = 0; i < list.Count; i++)
                                 {
-                                    if (row.value[i] == selectionId)
+                                    if (list[i] == selectionId)
                                     {
-                                        index = i;
-                                        break;
+                                        list.RemoveAt(i, now);
+                                        return;
                                     }
                                 }
-                                if (index < 0)
-                                    return;
-                                var next = new string[row.value.Length - 1];
-                                for (int i = 0, j = 0; i < row.value.Length; i++)
-                                {
-                                    if (i == index)
-                                        continue;
-                                    next[j++] = row.value[i];
-                                }
-                                row.value = next;
-                                row.updatedAt = now;
-                                StoreWritableRow(plan, ownership, row, ctx);
                                 return;
                             }
                         case CollectionMutationKind.Clear:
-                            row.value = Array.Empty<string>();
-                            row.updatedAt = now;
-                            StoreWritableRow(plan, ownership, row, ctx);
+                            list.Clear(now);
                             return;
                         default:
                             throw new NSGetterRuntimeError($"Unsupported lookup set mutation '{mutation}'.");
                     }
-                }, preparedPlan);
+                });
             }
         }
 
@@ -5575,87 +5727,90 @@ namespace NeoCompose.Runtime
                 object? value,
                 NSGetterEvaluator.Context ctx)
             {
-                PrepareWrite(client, plan =>
+                string? referenceId = TryGetClassValueReferenceId(value, entryTypeInfo, ctx, out string? id) ? id : null;
+                WriteCollection(client, rowId, preparedPlan, batch =>
                 {
-                    PrepareWritableRow(plan, client, rowId, ownership);
-                    if (!client.TryGetValue(rowId, out ObjectMemberValue? row))
-                    {
-                        throw new NSGetterRuntimeError($"Missing dictionary row '{rowId}'.");
-                    }
-                    row.value ??= new Dictionary<string, string>();
+                    EnsureWritableRow(client, rowId, ownership);
+                    NeoWritePlan plan = batch.Plan;
                     NeoTimestamp now = NeoTimestamp.Now();
-                    if (row.value.TryGetValue(key, out string existingId)
+                    // A value replaces an existing entry's row in place, which
+                    // leaves the dictionary as it is; only a new entry changes it.
+                    MemberValue? current = batch.Collection(ownership, rowId)?.Row;
+                    if (current is null && !plan.TryGet(ownership, rowId, out current))
+                        throw new NSGetterRuntimeError($"Missing dictionary row '{rowId}'.");
+                    if (((ObjectMemberValue)current!).value?.TryGetValue(key, out string existingId) == true
                         && client.TryGetValue(existingId, out MemberValue? existing))
                     {
-                        if (TryGetClassValueReferenceId(
-                                value,
-                                entryTypeInfo,
-                                ctx,
-                                out string? referenceId))
+                        if (referenceId is null)
                         {
-                            string importedId = ImportClassValueReference(
+                            JsonMember entryMember = EntryMember(client, current, entryTypeInfo);
+                            var next = CreateValueRow(
                                 plan, client,
                                 ownership,
-                                referenceId!,
-                                ctx,
-                                existingId);
-                            if (importedId == existingId)
-                                return;
-                            row.value[key] = importedId;
-                            plan.AfterCommit(() => ctx.allocationTracker.RegisterConstructedParent(
-                                importedId,
-                                rowId));
-                            row.updatedAt = now;
-                            StoreWritableRow(plan, ownership, row, ctx);
-                            client.StageUnlinkedRemovals(plan, ownership, existingId, EntryReleaseMember(client, row, entryTypeInfo));
+                                entryMember,
+                                value,
+                                existingId,
+                                existing.createdAt,
+                                now,
+                                ctx);
+                            next.classId = existing.classId;
+                            ShadowAuthoredRow(plan, client, ownership, rowId);
+                            StoreReplacedRow(plan, client, ownership, next, entryMember, ctx);
                             return;
                         }
-                        var next = CreateValueRow(
+                        string replacementId = ImportClassValueReference(
                             plan, client,
                             ownership,
-                            MemberFromTypeInfo(entryTypeInfo),
-                            value,
-                            existingId,
-                            existing.createdAt,
-                            now);
-                        next.classId = existing.classId;
-                        StoreReplacedRow(plan, client, ownership, next, EntryReleaseMember(client, row, entryTypeInfo), ctx);
+                            referenceId,
+                            ctx,
+                            existingId);
+                        if (replacementId == existingId)
+                            return;
+                        batch.AfterCommit(() => ctx.allocationTracker.RegisterConstructedParent(
+                            replacementId,
+                            rowId));
+                        batch.Release(ownership, existingId, EntryMember(client, current, entryTypeInfo));
+                        batch.Gain(ownership, replacementId, rowId);
+                        // The pending row changes in place, which a failed
+                        // mutation can't undo, so it changes last.
+                        Change(batch.Dictionary(ownership, rowId, ctx, this), key, replacementId, now);
+                        return;
+                    }
+                    string childId;
+                    if (referenceId is not null)
+                    {
+                        childId = ImportClassValueReference(
+                            plan, client,
+                            ownership,
+                            referenceId,
+                            ctx);
+                        string importedId = childId;
+                        batch.AfterCommit(() => ctx.allocationTracker.RegisterConstructedParent(
+                            importedId,
+                            rowId));
                     }
                     else
                     {
-                        if (TryGetClassValueReferenceId(
-                                value,
-                                entryTypeInfo,
-                                ctx,
-                                out string? referenceId))
-                        {
-                            row.value[key] = ImportClassValueReference(
-                                plan, client,
-                                ownership,
-                                referenceId!,
-                                ctx);
-                            plan.AfterCommit(() => ctx.allocationTracker.RegisterConstructedParent(
-                                row.value[key],
-                                rowId));
-                            row.updatedAt = now;
-                            StoreWritableRow(plan, ownership, row, ctx);
-                            return;
-                        }
-                        var childId = Guid.NewGuid().ToString();
-                        var next = CreateValueRow(
+                        childId = Guid.NewGuid().ToString();
+                        plan.Set(ownership, CreateValueRow(
                             plan, client,
                             ownership,
-                            MemberFromTypeInfo(entryTypeInfo),
+                            EntryMember(client, current, entryTypeInfo),
                             value,
                             childId,
                             now,
-                            now);
-                        StoreWritableRow(plan, ownership, next, ctx);
-                        row.value[key] = childId;
+                            now,
+                            ctx));
                     }
-                    row.updatedAt = now;
-                    StoreWritableRow(plan, ownership, row, ctx);
-                }, preparedPlan);
+                    batch.Gain(ownership, childId, rowId);
+                    Change(batch.Dictionary(ownership, rowId, ctx, this), key, childId, now);
+                });
+            }
+
+            private static void Change(NeoWriteBatch.PendingCollection dictionary, string key, string id, NeoTimestamp now)
+            {
+                ((ObjectMemberValue)dictionary.Row).value![key] = id;
+                dictionary.Changes(now);
             }
 
             private void Remove(
@@ -5663,40 +5818,34 @@ namespace NeoCompose.Runtime
                 string key,
                 NSGetterEvaluator.Context ctx)
             {
-                PrepareWrite(client, plan =>
+                WriteCollection(client, rowId, preparedPlan, batch =>
                 {
-                    PrepareWritableRow(plan, client, rowId, ownership);
-                    if (!client.TryGetValue(rowId, out ObjectMemberValue? row)
-                        || row.value == null
-                        || !row.value.TryGetValue(key, out string removedId))
-                    {
+                    EnsureWritableRow(client, rowId, ownership);
+                    NeoWriteBatch.PendingCollection dictionary = batch.Dictionary(ownership, rowId, ctx, this);
+                    var row = (ObjectMemberValue)dictionary.Row;
+                    if (!row.value!.TryGetValue(key, out string removedId))
                         return;
-                    }
+                    batch.Release(ownership, removedId, EntryMember(client, row, entryTypeInfo));
                     row.value.Remove(key);
-                    row.updatedAt = NeoTimestamp.Now();
-                    StoreWritableRow(plan, ownership, row, ctx);
-                    client.StageUnlinkedRemovals(plan, ownership, removedId, EntryReleaseMember(client, row, entryTypeInfo));
-                }, preparedPlan);
+                    dictionary.Changes(NeoTimestamp.Now());
+                });
             }
 
             private void Clear(
                 NeoClient client,
                 NSGetterEvaluator.Context ctx)
             {
-                PrepareWrite(client, plan =>
+                WriteCollection(client, rowId, preparedPlan, batch =>
                 {
-                    PrepareWritableRow(plan, client, rowId, ownership);
-                    if (!client.TryGetValue(rowId, out ObjectMemberValue? row)
-                        || row.value == null)
-                    {
-                        return;
-                    }
-                    var removedIds = new List<string>(row.value.Values);
+                    EnsureWritableRow(client, rowId, ownership);
+                    NeoWriteBatch.PendingCollection dictionary = batch.Dictionary(ownership, rowId, ctx, this);
+                    var row = (ObjectMemberValue)dictionary.Row;
+                    JsonMember releaseMember = EntryMember(client, row, entryTypeInfo);
+                    foreach (string removedId in row.value!.Values)
+                        batch.Release(ownership, removedId, releaseMember);
                     row.value.Clear();
-                    row.updatedAt = NeoTimestamp.Now();
-                    StoreWritableRow(plan, ownership, row, ctx);
-                    client.StageUnlinkedRemovals(plan, ownership, removedIds, EntryReleaseMember(client, row, entryTypeInfo));
-                }, preparedPlan);
+                    dictionary.Changes(NeoTimestamp.Now());
+                });
             }
         }
 
@@ -5728,6 +5877,12 @@ namespace NeoCompose.Runtime
             private bool bodyLocalsKnown;
             private bool bodyDeclaresLocals;
             private bool bindingRestored;
+
+            /// <summary>
+            /// The enclosing immediate frame's expression context, which the
+            /// loop's expressions and body reuse; null in a deferred frame.
+            /// </summary>
+            internal NSGetterEvaluator.Context? ImmediateContext;
 
             protected LoopExecutionState(
                 string? bindingId,
@@ -5788,6 +5943,7 @@ namespace NeoCompose.Runtime
             /// Clears the body's own locals. The body scope itself is kept:
             /// rebuilding it per iteration only allocated.
             /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             internal void ResetBodyScope() => bodyScope?.ResetLocals();
 
             /// <summary>
@@ -5802,6 +5958,8 @@ namespace NeoCompose.Runtime
 
             internal void RestoreBinding(NeoScriptScope scope)
             {
+                // A parked state outlives the client the context belongs to.
+                ImmediateContext = null;
                 if (bindingRestored)
                     return;
                 bindingRestored = true;
@@ -5858,6 +6016,7 @@ namespace NeoCompose.Runtime
                 get; private set;
             }
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             internal void NextCondition()
             {
                 CheckCondition = true;
@@ -6565,12 +6724,14 @@ namespace NeoCompose.Runtime
             var failureObserver = this.failureObserver;
             var abandonmentObserver = this.abandonmentObserver;
             var resume = this.resume;
+            var suspension = this.suspension;
 
             if (suspension == null || resume == null)
             {
                 throw new InvalidOperationException(
                     "Cannot attach deferred handlers to a completed action result.");
             }
+            NeoClient client = suspension.Client;
             void FailObserved(Exception exception)
             {
                 if (failureRecovery is not null)
@@ -6578,7 +6739,17 @@ namespace NeoCompose.Runtime
                     NeoScriptExecutionResult? recovered;
                     try
                     {
-                        recovered = failureRecovery(exception);
+                        // The catch frames' mutations batch as the frames
+                        // that suspended them did.
+                        client.EnterScriptWrites();
+                        try
+                        {
+                            recovered = failureRecovery(exception);
+                        }
+                        finally
+                        {
+                            client.ExitScriptWrites();
+                        }
                     }
                     catch (Exception recoveryException)
                     {
@@ -6616,7 +6787,17 @@ namespace NeoCompose.Runtime
                     NeoScriptExecutionResult resumed;
                     try
                     {
-                        resumed = resume(value);
+                        // The resumed frames' mutations batch as the frames
+                        // that suspended them did.
+                        client.EnterScriptWrites();
+                        try
+                        {
+                            resumed = resume(value);
+                        }
+                        finally
+                        {
+                            client.ExitScriptWrites();
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -6796,6 +6977,7 @@ namespace NeoCompose.Runtime
 
     internal sealed class DeferredNativeFunctionSuspension
     {
+        internal readonly NeoClient Client;
         private readonly object sync = new();
         private Action<object?>? completeContinuation;
         private Action<Exception>? failContinuation;
@@ -6808,6 +6990,8 @@ namespace NeoCompose.Runtime
         private Exception? abandonmentException;
         private bool invokerReturned;
         private bool completedInline;
+
+        internal DeferredNativeFunctionSuspension(NeoClient client) => Client = client;
 
         internal void Complete(object? completedValue)
         {

@@ -53,15 +53,34 @@ namespace NeoCompose.Runtime
             return CreateOwnedChild(client, childMember, overrideValueId, writableFamily: false);
         }
 
-        public NeoMember this[string key] => childMembers[key];
+        public NeoMember this[string key]
+        {
+            get
+            {
+                ObserveScriptWrites();
+                return childMembers[key];
+            }
+        }
 
-        public int Count => childMembers.Count;
+        public int Count
+        {
+            get
+            {
+                ObserveScriptWrites();
+                return childMembers.Count;
+            }
+        }
 
-        public bool ContainsKey(string key) => childMembers.ContainsKey(key);
+        public bool ContainsKey(string key)
+        {
+            ObserveScriptWrites();
+            return childMembers.ContainsKey(key);
+        }
 
         public bool TryGet<TNeoMember>(string key, [NotNullWhen(true)] out TNeoMember? outMember)
             where TNeoMember : NeoMember
         {
+            ObserveScriptWrites();
             if (childMembers.TryGetValue(key, out NeoMember? check) && check is TNeoMember match)
             {
                 outMember = match;
@@ -71,11 +90,17 @@ namespace NeoCompose.Runtime
             return false;
         }
 
-        public IEnumerator<KeyValuePair<string, NeoMember>> GetEnumerator() =>
-            childMembers.GetEnumerator();
+        public IEnumerator<KeyValuePair<string, NeoMember>> GetEnumerator()
+        {
+            ObserveScriptWrites();
+            return childMembers.GetEnumerator();
+        }
 
-        internal Dictionary<string, NeoMember>.Enumerator ChildEnumerator() =>
-            childMembers.GetEnumerator();
+        internal Dictionary<string, NeoMember>.Enumerator ChildEnumerator()
+        {
+            ObserveScriptWrites();
+            return childMembers.GetEnumerator();
+        }
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
@@ -197,6 +222,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal void SetSerialized(string key, NeoValueWritePayload? setValue)
         {
+            ObserveScriptWrites();
             if (entryMember.Requirement == NeoMemberRequirementKind.Required && (setValue is null || setValue.isNull))
                 throw new System.ArgumentNullException(nameof(setValue), "Cannot be null when entry member is required");
             var plan = new NeoWritePlan(client);
@@ -239,6 +265,7 @@ namespace NeoCompose.Runtime
 
         public void Remove(string key)
         {
+            ObserveScriptWrites();
             if (value?.value is null)
                 return;
             if (!value.value.ContainsKey(key))

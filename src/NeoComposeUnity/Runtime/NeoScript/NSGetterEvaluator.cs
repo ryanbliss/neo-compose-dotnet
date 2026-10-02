@@ -203,13 +203,14 @@ namespace NeoCompose.Runtime.NeoScript
             // there is nothing to retain and no owned-parent graph to scan.
             if (_allocatedRootIds is null || _allocatedRootIds.Count == 0)
                 return;
-            MarkEscaped(value, ctx, new HashSet<object>());
+            MarkEscaped(value, ctx, new HashSet<object>(), new Dictionary<string, HashSet<string>?>(StringComparer.Ordinal));
         }
 
         private void MarkEscaped(
             object? value,
             NSGetterEvaluator.Context ctx,
-            HashSet<object> visited)
+            HashSet<object> visited,
+            Dictionary<string, HashSet<string>?> ownedChildren)
         {
             if (value is null || value is string || value.GetType().IsValueType)
             {
@@ -222,22 +223,22 @@ namespace NeoCompose.Runtime.NeoScript
                 // A detached graph holds no rows yet; an attached one escapes
                 // through its root like any constructed row.
                 if (detached.attachedId is not null)
-                    MarkAllocationGroupEscaped(detached.attachedId, ctx);
+                    MarkAllocationGroupEscaped(detached.attachedId, ctx, ownedChildren);
                 return;
             }
 
             string? valueId = NSGetterEvaluator.FindRowIdByReference(value, ctx);
             if (valueId is not null)
             {
-                MarkAllocationGroupEscaped(valueId, ctx);
+                MarkAllocationGroupEscaped(valueId, ctx, ownedChildren);
             }
 
             if (value is System.Collections.IDictionary dictionary)
             {
                 foreach (System.Collections.DictionaryEntry entry in dictionary)
                 {
-                    MarkEscaped(entry.Key, ctx, visited);
-                    MarkEscaped(entry.Value, ctx, visited);
+                    MarkEscaped(entry.Key, ctx, visited, ownedChildren);
+                    MarkEscaped(entry.Value, ctx, visited, ownedChildren);
                 }
                 return;
             }
@@ -245,14 +246,15 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 foreach (object? entry in enumerable)
                 {
-                    MarkEscaped(entry, ctx, visited);
+                    MarkEscaped(entry, ctx, visited, ownedChildren);
                 }
             }
         }
 
         private void MarkAllocationGroupEscaped(
             string valueId,
-            NSGetterEvaluator.Context ctx)
+            NSGetterEvaluator.Context ctx,
+            Dictionary<string, HashSet<string>?> ownedChildren)
         {
             // A NeoScript return may expose any object-shaped row in a
             // constructor graph (for example a nested Class, List, or
@@ -271,6 +273,7 @@ namespace NeoCompose.Runtime.NeoScript
                 if (!TryFindConstructedOrStoredParent(
                         ctx.client,
                         cursor,
+                        ownedChildren,
                         out string? parentValueId)
                     || string.IsNullOrEmpty(parentValueId)
                     || parentValueId.StartsWith("member:", StringComparison.Ordinal)
@@ -299,6 +302,8 @@ namespace NeoCompose.Runtime.NeoScript
             SealListBuffers();
             if (_allocatedRootIds is null)
                 return;
+            // Reclaiming decides from where the roots live now.
+            client.CommitScriptWrites();
 
             if (terminalResult.Returned)
             {
@@ -307,8 +312,13 @@ namespace NeoCompose.Runtime.NeoScript
 
             completedAllocationRootIds.UnionWith(allocatedRootIds);
 
+            var ownedChildren = new Dictionary<string, HashSet<string>?>(StringComparer.Ordinal);
             foreach (string valueId in allocatedRootIds.ToArray())
             {
+                // A root a write moved out of Session left nothing to reclaim,
+                // and proving it parentless would search its new parent.
+                if (!client.HoldsSessionRoot(valueId))
+                    continue;
                 // Strict construction ownership is a tree. A constructor root
                 // with any live owned parent is therefore reclaimed or kept as
                 // part of that parent's top-level graph; evaluating its whole
@@ -317,6 +327,7 @@ namespace NeoCompose.Runtime.NeoScript
                 bool hasParent = TryFindConstructedOrStoredParent(
                         client,
                         valueId,
+                        ownedChildren,
                         out string? _);
                 if (hasParent)
                 {
@@ -376,6 +387,7 @@ namespace NeoCompose.Runtime.NeoScript
         private bool TryFindConstructedOrStoredParent(
             NeoClient client,
             string childValueId,
+            Dictionary<string, HashSet<string>?> ownedChildren,
             out string? parentValueId)
         {
             if (constructedParentByChildId.TryGetValue(
@@ -384,7 +396,8 @@ namespace NeoCompose.Runtime.NeoScript
                 && client.StillHasOwnedChildReference(
                     NeoValueOwnership.Session,
                     constructedParent,
-                    childValueId))
+                    childValueId,
+                    ownedChildren))
             {
                 parentValueId = constructedParent;
                 return true;
@@ -2063,6 +2076,7 @@ namespace NeoCompose.Runtime.NeoScript
                 // Primitive literals unwrap to immutable CLR values:
                 // convert the token once, not on every evaluation.
                 vp.primitive = UnwrapJToken(literal);
+                vp.primitiveIsNumber = TryAsDouble(vp.primitive, out vp.primitiveNumber);
                 vp.primitiveResolved = true;
                 return vp.primitive;
             }
@@ -3927,9 +3941,19 @@ namespace NeoCompose.Runtime.NeoScript
             bool optional,
             string? pinnedMemberId)
         {
+            object? receiver;
+            if (ctx.client.PendingScriptWrites is { HasCollections: true } batch
+                && keyOf.pendingUnreachedShape != batch.Shape
+                && MayReachPending(keyOf, batch, scope, ctx))
+            {
+                if (EvalPendingCollection(keyOf.pointer, PendingRead.Entry, scope, ctx, out receiver) is { } pending)
+                    return ReadPendingEntry(pending, keyOf.key, scope, ctx);
+            }
+            else
+                receiver = EvalPointer(keyOf.pointer, scope, ctx);
             object? unused = null;
             return EvalKeyOfReceiver(
-                EvalPointer(keyOf.pointer, scope, ctx),
+                receiver,
                 keyOf,
                 scope,
                 ctx,
@@ -3982,6 +4006,13 @@ namespace NeoCompose.Runtime.NeoScript
         {
             if (optional && receiver is null)
                 return null;
+            // A list unwraps to itself.
+            if (receiver is object?[] list)
+            {
+                if (reportReceiver)
+                    reportedReceiver = receiver;
+                return ReadListEntry(list, keyOf.key, scope, ctx);
+            }
             // A record this context unwrapped reads its row here rather than
             // in UnwrapGeneratedValue, so dispatch on a constant key takes
             // the receiver's Class from that row instead of reading it again.
@@ -4104,7 +4135,7 @@ namespace NeoCompose.Runtime.NeoScript
             // A number variable indexes without boxing its value.
             if (keyPointer is VariablePointer indexVariable && scope.TryReadNumber(indexVariable, out double position))
             {
-                idx = ListPosition(list, position);
+                idx = ListPosition(list.Length, position);
             }
             else
             {
@@ -4122,7 +4153,7 @@ namespace NeoCompose.Runtime.NeoScript
                 }
                 else if (TryAsDouble(key, out position))
                 {
-                    idx = ListPosition(list, position);
+                    idx = ListPosition(list.Length, position);
                 }
                 else
                 {
@@ -4138,11 +4169,298 @@ namespace NeoCompose.Runtime.NeoScript
             return ResolveValueIfId(entry, ctx, listRef?.ownership, CollectionEntryMember(listRef, list, ctx));
         }
 
-        private static int ListPosition(object?[] list, double position)
+        /// <summary>What a read of a pending collection asks, which decides the collections it can answer.</summary>
+        internal enum PendingRead
+        {
+            /// <summary>The entry count: a List, Dictionary or multi-select Lookup.</summary>
+            Count,
+            /// <summary>One entry by position, id or key: a List or Dictionary.</summary>
+            Entry,
+            /// <summary>Whether an entry has a given id: a List or multi-select Lookup.</summary>
+            Membership,
+            /// <summary>The collection a mutation changes: any pending collection.</summary>
+            Target,
+        }
+
+        /// <summary>
+        /// The held write batch's pending collection <paramref name="pointer"/>
+        /// names, found without reading it, when it can answer
+        /// <paramref name="read"/> (see <see cref="Answers"/>); otherwise
+        /// null, with <paramref name="value"/> the pointer's value. A read commits a
+        /// pending collection, whose row costs its length to store, so N
+        /// reads among N mutations would cost N².
+        /// </summary>
+        internal static NeoWriteBatch.PendingCollection? EvalPendingCollection(
+            Pointer pointer,
+            PendingRead read,
+            NeoScriptScope scope,
+            Context ctx,
+            out object? value) =>
+            FindPending(pointer, read, scope, ctx, evaluate: true, out value, out _, out _);
+
+        /// <summary>
+        /// The pending collection a mutation of <paramref name="pointer"/>
+        /// targets, found without reading it. Otherwise null, with
+        /// <paramref name="receiver"/> the key's receiver, and, when the
+        /// target is an entry of a pending collection, <paramref name="owner"/>
+        /// that collection and <paramref name="entry"/> the entry.
+        /// </summary>
+        internal static NeoWriteBatch.PendingCollection? FindPendingTarget(
+            Pointer pointer,
+            NeoScriptScope scope,
+            Context ctx,
+            out object? receiver,
+            out NeoWriteBatch.PendingCollection? owner,
+            out object? entry) =>
+            FindPending(pointer, PendingRead.Target, scope, ctx, evaluate: false, out entry, out receiver, out owner);
+
+        /// <summary>
+        /// Whether <paramref name="pointer"/> may name a pending collection
+        /// or an entry of one, decided from its shape: a read that can't
+        /// takes the ordinary path, which costs what it costs with no batch.
+        /// </summary>
+        private static bool MayReachPending(KeyOf site, NeoWriteBatch batch, NeoScriptScope scope, Context ctx)
+        {
+            // Constant keys off a root reference reach the same rows each
+            // time, so the site remembers the batch shape that proved it can't.
+            bool constant = true;
+            KeyOf keyOf = site;
+            while (true)
+            {
+                // An index reaches an entry, pending only as its list is,
+                // unless an entry is itself a pending collection.
+                Pointer key = keyOf.key;
+                if (key is ValuePointer { primitiveIsNumber: true })
+                {
+                    if (batch.HasUnkeyedMembers)
+                        return true;
+                }
+                else if (key is ValuePointer)
+                {
+                    if (batch.HasUnkeyedMembers || EvalPointer(key, scope, ctx) is not string field || batch.IsFieldKey(field))
+                        return true;
+                }
+                else if (key is VariablePointer variable && scope.TryReadNumber(variable, out _))
+                {
+                    if (batch.HasUnkeyedMembers)
+                        return true;
+                    constant = false;
+                }
+                else
+                    return true;
+                switch (keyOf.pointer)
+                {
+                    case KeyOfPointer receiver:
+                        keyOf = receiver.keyOf;
+                        continue;
+                    case ReferencePointer reference:
+                        if (batch.HasCollection(reference.valueId))
+                            return true;
+                        // So does every receiver along it.
+                        for (KeyOf? proven = constant ? site : null; proven is not null; proven = (proven.pointer as KeyOfPointer)?.keyOf)
+                            proven.pendingUnreachedShape = batch.Shape;
+                        return false;
+                    case VariablePointer:
+                    case StaticMemberPointer:
+                        return true;
+                    default:
+                        return false;
+                }
+            }
+        }
+
+        /// <summary>The pending collection at root reference <paramref name="valueId"/>.</summary>
+        internal static NeoWriteBatch.PendingCollection? PendingReference(NeoWriteBatch batch, string valueId, Context ctx) =>
+            batch.HasCollection(valueId) ? batch.Collection(ResolveOwnershipForValueId(ctx, valueId), valueId) : null;
+
+        /// <param name="evaluate">Whether a miss evaluates the pointer's value; an entry of a pending collection always does.</param>
+        private static NeoWriteBatch.PendingCollection? FindPending(
+            Pointer pointer,
+            PendingRead read,
+            NeoScriptScope scope,
+            Context ctx,
+            bool evaluate,
+            out object? value,
+            out object? receiver,
+            out NeoWriteBatch.PendingCollection? owner)
+        {
+            NeoWriteBatch batch = ctx.client.PendingScriptWrites!;
+            receiver = null;
+            owner = null;
+            if (pointer is KeyOfPointer keyOf)
+            {
+                // The receiver resolves the same way, so an entry of a pending
+                // collection reads through its pending row.
+                if (FindPending(keyOf.keyOf.pointer, PendingRead.Entry, scope, ctx, evaluate: true, out receiver, out _, out _) is { } outer)
+                {
+                    owner = outer;
+                    string? entryId = PendingEntryId(outer, keyOf.keyOf.key, scope, ctx);
+                    if (entryId is not null && Answers(batch, outer.Ownership, entryId, read) is { } nested)
+                    {
+                        value = null;
+                        return nested;
+                    }
+                    value = entryId is null ? outer.Row.id : ResolvePendingEntry(outer, entryId, ctx);
+                    return null;
+                }
+                if (keyOf.keyOf.key is ValuePointer
+                    && EvalPointer(keyOf.keyOf.key, scope, ctx) is string key
+                    && StoredMemberId(batch, receiver, key, ctx, out NeoValueOwnership memberOwnership) is string memberId
+                    && Answers(batch, memberOwnership, memberId, read) is { } member)
+                {
+                    value = null;
+                    return member;
+                }
+                value = evaluate ? EvaluateKeyOf(keyOf, receiver, scope, ctx) : null;
+                return null;
+            }
+            if (pointer is ReferencePointer reference
+                && PendingReference(batch, reference.valueId, ctx) is { } referenced
+                && Answers(batch, referenced, read))
+            {
+                value = null;
+                return referenced;
+            }
+            if (pointer is StaticMemberPointer staticMember
+                && ctx.client.TryResolveStaticBinding(staticMember.memberId, out Member? bindingMember, out NeoValueOwnership staticOwnership, out string? staticValueId)
+                && batch.Collection(staticOwnership, staticValueId) is { } bound
+                && Answers(batch, bound, read, bindingMember))
+            {
+                value = null;
+                return bound;
+            }
+            if (pointer is VariablePointer variable)
+            {
+                RowReference? alias = null;
+                object? raw = scope.ReadVariable(variable, ctx.rowReverseIndex, out bool found, out bool remembered, ref alias);
+                // A Class record is never a collection.
+                RowReference? aliasReference = !found ? null
+                    : raw is object?[] entries ? remembered ? alias : ctx.CollectionRowReference(entries)
+                    : raw is NeoObjectRecord { reference: { classId: not null } } ? null
+                    : FindRowReference(raw, ctx);
+                if (aliasReference is not null && Answers(batch, aliasReference.ownership, aliasReference.valueId, read) is { } aliased)
+                {
+                    value = null;
+                    return aliased;
+                }
+                // Only a list alias or a detached object reads anything more.
+                if (found && raw is not object?[] && raw is not NeoScriptObject)
+                {
+                    value = raw;
+                    return null;
+                }
+            }
+            value = evaluate ? EvalPointer(pointer, scope, ctx) : null;
+            return null;
+        }
+
+        /// <summary>
+        /// The row id <paramref name="receiver"/>'s row stores at
+        /// <paramref name="key"/>, found without reading that row; null when
+        /// no pending collection can be a member of <paramref name="receiver"/>.
+        /// </summary>
+        private static string? StoredMemberId(
+            NeoWriteBatch batch, object? receiver, string key, Context ctx, out NeoValueOwnership ownership)
+        {
+            // A member lives in its receiver's store.
+            RowReference? reference = FindRowReference(receiver, ctx);
+            string? receiverId = reference?.valueId ?? (receiver as INeoValueReference)?.valueId;
+            if (string.IsNullOrEmpty(receiverId))
+            {
+                ownership = default;
+                return null;
+            }
+            ownership = reference?.ownership ?? ResolveOwnershipForValueId(ctx, receiverId!);
+            if (batch.PendingField(ownership, receiverId!, key) is { } pending)
+                return pending;
+            return batch.MayParent(ownership, receiverId!)
+                && ctx.client.TryGetOverlaidValue(ownership, receiverId!, out MemberValue? receiverRow)
+                && receiverRow is ObjectMemberValue { value: { } fields }
+                && fields.TryGetValue(key, out string? memberId)
+                    ? memberId
+                    : null;
+        }
+
+        /// <summary>The pending collection at <paramref name="id"/> when it answers <paramref name="read"/>.</summary>
+        private static NeoWriteBatch.PendingCollection? Answers(NeoWriteBatch batch, NeoValueOwnership ownership, string id, PendingRead read) =>
+            batch.Collection(ownership, id) is { } pending && Answers(batch, pending, read) ? pending : null;
+
+        /// <param name="member">The collection's member, when the read knows it: a static's row has no parent to infer it from.</param>
+        private static bool Answers(
+            NeoWriteBatch batch, NeoWriteBatch.PendingCollection pending, PendingRead read, Member? member = null)
+        {
+            if (read == PendingRead.Target)
+                return true;
+            batch.ResolveMembers(pending, member);
+            return pending.CollectionMember switch
+            {
+                ListMember => read != PendingRead.Membership || pending.EntryMember is ClassMember,
+                DictionaryMember => read != PendingRead.Membership,
+                LookupMember { Selection: NeoMemberSelectionKind.Multi } => read != PendingRead.Entry,
+                _ => false,
+            };
+        }
+
+        /// <summary>A pending List or Dictionary's entry, as <see cref="ReadListEntry"/> and a key read find it.</summary>
+        private static object? ReadPendingEntry(
+            NeoWriteBatch.PendingCollection pending,
+            Pointer keyPointer,
+            NeoScriptScope scope,
+            Context ctx)
+        {
+            string? entryId = PendingEntryId(pending, keyPointer, scope, ctx);
+            return entryId is null ? pending.Row.id : ResolvePendingEntry(pending, entryId, ctx);
+        }
+
+        /// <summary>The id of a pending List or Dictionary's entry; null for a Dictionary's <c>Id</c> key, which reads the row's own id.</summary>
+        private static string? PendingEntryId(
+            NeoWriteBatch.PendingCollection pending,
+            Pointer keyPointer,
+            NeoScriptScope scope,
+            Context ctx)
+        {
+            if (pending is NeoWriteBatch.PendingList list)
+                return PendingListEntry(list, keyPointer, scope, ctx);
+            var key = EvalPointer(keyPointer, scope, ctx);
+            string k = key as string ?? key?.ToString() ?? "null";
+            if (k == "Id")
+                return null;
+            if (!((ObjectMemberValue)pending.Row).value!.TryGetValue(k, out string? entryId))
+                throw new NSGetterRuntimeError($"Missing key '{k}' on object");
+            return entryId;
+        }
+
+        private static object? ResolvePendingEntry(NeoWriteBatch.PendingCollection pending, string entryId, Context ctx)
+        {
+            ctx.client.NotePendingRead(pending.Ownership, pending.Row.id);
+            return ResolveValueIfId(entryId, ctx, pending.Ownership, pending.EntryMember);
+        }
+
+        private static string PendingListEntry(
+            NeoWriteBatch.PendingList list,
+            Pointer keyPointer,
+            NeoScriptScope scope,
+            Context ctx)
+        {
+            if (keyPointer is VariablePointer indexVariable && scope.TryReadNumber(indexVariable, out double position))
+                return list[ListPosition(list.Count, position)];
+            var key = EvalPointer(keyPointer, scope, ctx);
+            if (key is string valueId)
+            {
+                if (!list.Contains(valueId))
+                    throw new NSGetterRuntimeError($"Value id '{valueId}' is not a member of this List");
+                return valueId;
+            }
+            if (TryAsDouble(key, out position))
+                return list[ListPosition(list.Count, position)];
+            throw new NSGetterRuntimeError($"List index must be an integer; got '{key}'");
+        }
+
+        private static int ListPosition(int length, double position)
         {
             if (!NeoNumbers.IsWhole(position))
                 throw new NSGetterRuntimeError($"List index must be an integer; got '{position}'");
-            if (position < 0 || position >= list.Length)
+            if (position < 0 || position >= length)
             {
                 throw new NSGetterRuntimeError(
                     $"List index out of bounds: {position}");
@@ -4744,13 +5062,35 @@ namespace NeoCompose.Runtime.NeoScript
             return EvalPointer(pointer, scope, ctx);
         }
 
+        /// <summary>
+        /// <see cref="EvaluateValue"/> for an arithmetic or comparison
+        /// operand: a local's number or a numeric literal reads without its
+        /// frame.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static object? EvaluateOperand(Pointer pointer, NeoScriptScope scope, Context ctx, out double number)
+        {
+            if (pointer is VariablePointer variable)
+            {
+                if (scope.TryReadNumber(variable, out number))
+                    return ArithmeticValue.BareNumber;
+                return EvalPointer(pointer, scope, ctx);
+            }
+            if (pointer is ValuePointer { primitiveIsNumber: true } literal)
+            {
+                number = literal.primitiveNumber;
+                return ArithmeticValue.BareNumber;
+            }
+            return EvaluateValue(pointer, scope, ctx, out number);
+        }
+
         private static object? EvalArithmetic(ArithmeticOpInfo info, NeoScriptScope scope, Context ctx, out double number)
         {
             number = 0;
             if (info.pointers.Length == 2 && info.isDecimal != true)
             {
-                object? left = EvaluateValue(info.pointers[0], scope, ctx, out double leftNumber);
-                object? right = EvaluateValue(info.pointers[1], scope, ctx, out double rightNumber);
+                object? left = EvaluateOperand(info.pointers[0], scope, ctx, out double leftNumber);
+                object? right = EvaluateOperand(info.pointers[1], scope, ctx, out double rightNumber);
                 if (ArithmeticValue.IsNumeric(left) && ArithmeticValue.IsNumeric(right))
                 {
                     number = ApplyNumericArithmetic(
@@ -5055,7 +5395,7 @@ namespace NeoCompose.Runtime.NeoScript
                 number = 0;
                 return vp.comparand ??= UnwrapJToken(items);
             }
-            return EvaluateValue(pointer, scope, ctx, out number);
+            return EvaluateOperand(pointer, scope, ctx, out number);
         }
 
         private static bool EvalCondition(
@@ -5156,6 +5496,7 @@ namespace NeoCompose.Runtime.NeoScript
 
         // The operator parsed once per condition: a string switch compares
         // it to each case in turn on every evaluation.
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static ComparisonOp ComparisonOf(Condition condition)
         {
             if (condition.comparison != ComparisonOp.Unresolved)
@@ -5806,8 +6147,20 @@ namespace NeoCompose.Runtime.NeoScript
             NeoScriptScope scope,
             Context ctx)
         {
-            var c = EvalPointer(cf.info.collectionPointer, scope, ctx);
             var inner = cf.info.function;
+            object? c;
+            if (inner is null && ctx.client.PendingScriptWrites is { HasCollections: true })
+            {
+                if (EvalPendingCollection(cf.info.collectionPointer, PendingRead.Count, scope, ctx, out c) is { } pending)
+                {
+                    ctx.client.NotePendingRead(pending.Ownership, pending.Row.id);
+                    return Box(pending is NeoWriteBatch.PendingList list
+                        ? list.Count
+                        : ((ObjectMemberValue)pending.Row).value!.Count);
+                }
+            }
+            else
+                c = EvalPointer(cf.info.collectionPointer, scope, ctx);
             if (inner is null)
                 return Box(CollectionLength(c));
 
@@ -5824,13 +6177,8 @@ namespace NeoCompose.Runtime.NeoScript
                 var cursor = new CollectionCursor(c, ctx);
                 while (cursor.MoveNextUnresolved())
                 {
-                    NeoScriptExecutionResult result = callback.Execute(in cursor, cursor.ResolveEntry(ctx));
-                    if (result.Returned
-                        && result.ReturnValue is bool matches
-                        && matches)
-                    {
+                    if (callback.Test(in cursor, cursor.ResolveEntry(ctx)))
                         count++;
-                    }
                 }
                 object boxedCount = Box(count);
                 callback.CompleteOperator(boxedCount);
@@ -5847,8 +6195,25 @@ namespace NeoCompose.Runtime.NeoScript
             NeoScriptScope scope,
             Context ctx)
         {
-            var c = EvalPointer(cnf.info.collectionPointer, scope, ctx);
-            var target = EvalPointer(cnf.info.valuePointer, scope, ctx);
+            object? c;
+            NeoWriteBatch.PendingCollection? pending = null;
+            if (ctx.client.PendingScriptWrites is { HasCollections: true })
+                pending = EvalPendingCollection(cnf.info.collectionPointer, PendingRead.Membership, scope, ctx, out c);
+            else
+                c = EvalPointer(cnf.info.collectionPointer, scope, ctx);
+            object? target = EvalPointer(cnf.info.valuePointer, scope, ctx);
+            if (pending is not null)
+            {
+                // An entry with the target's id matches without being read;
+                // only a miss compares entries, which reads them all.
+                if ((target as string ?? ValueIdOf(target, ctx)) is { } sought
+                    && ((NeoWriteBatch.PendingList)pending).Contains(sought))
+                {
+                    ctx.client.NotePendingRead(pending.Ownership, pending.Row.id);
+                    return BoxedTrue;
+                }
+                c = ResolveValueIfId(pending.Row.id, ctx, pending.Ownership, pending.CollectionMember);
+            }
             if (c is string s)
             {
                 if (target is not string ts)
@@ -5954,8 +6319,7 @@ namespace NeoCompose.Runtime.NeoScript
                 while (cursor.MoveNextUnresolved())
                 {
                     object? entry = cursor.ResolveEntry(ctx);
-                    NeoScriptExecutionResult matched = callback.Execute(in cursor, entry);
-                    if (matched.Returned && matched.ReturnValue is bool b && b)
+                    if (callback.Test(in cursor, entry))
                     {
                         // Re-emit valueId references rather than dereferenced
                         // entries when we have them — matches TS semantic.
@@ -6043,7 +6407,7 @@ namespace NeoCompose.Runtime.NeoScript
                     while (cursor.MoveNextUnresolved())
                     {
                         object? foundValue = cursor.ResolveEntry(ctx);
-                        if (callback.Execute(in cursor, foundValue) is { Returned: true, ReturnValue: true })
+                        if (callback.Test(in cursor, foundValue))
                         {
                             callback.CompleteOperator(foundValue);
                             return foundValue;
@@ -6086,11 +6450,9 @@ namespace NeoCompose.Runtime.NeoScript
                 var cursor = new CollectionCursor(c, ctx);
                 while (cursor.MoveNextUnresolved())
                 {
-                    NeoScriptExecutionResult projected = callback.Execute(in cursor, cursor.ResolveEntry(ctx));
-                    if (projected.Returned)
-                    {
-                        AppendResult(ref results, ref count, projected.ReturnValue);
-                    }
+                    object? projected = callback.Project(in cursor, cursor.ResolveEntry(ctx));
+                    if (!ReferenceEquals(projected, PreparedCollectionCallback.NoProjection))
+                        AppendResult(ref results, ref count, projected);
                 }
                 object?[] result = TrimResult(results, count);
                 callback.CompleteOperator(result);
@@ -6125,12 +6487,18 @@ namespace NeoCompose.Runtime.NeoScript
             private readonly bool isList;
             private readonly int parameterCount;
             private readonly Context ctx;
-            private readonly CollectionCallbackReturnContract returnContract;
             private readonly bool returnsConstructedVector;
             // A body that only returns its entry's type test, like the filter
             // GetObjects<T> lowers to, runs the test without a frame.
             private readonly TypeInfo? entryTypeCheck;
             private readonly FunctionWithReturnType body;
+            private readonly NeoScriptExecutionOptions options;
+            // A body that only returns an expression, the common lambda
+            // shape, evaluates it per entry without a statement frame.
+            private readonly Pointer? expression;
+            private readonly Context expressionContext;
+            // A predicate returning a condition tests it without a box.
+            private readonly BooleanExpression? condition;
             private readonly bool enclosingConstructorBody;
             private NeoScriptExecutionResult ownerTerminal;
 
@@ -6176,7 +6544,6 @@ namespace NeoCompose.Runtime.NeoScript
                 // Validates the body, so a rejected callback has rented nothing.
                 NeoScriptExecutor.EnterCallback(callback, ctx);
                 this.ctx = ctx;
-                this.returnContract = returnContract;
                 // A body that only returns a vector it constructs hands back
                 // a value nothing else holds, which needs no defensive copy.
                 returnsConstructedVector = callback.instructions is { Length: 1 } instructions
@@ -6198,6 +6565,15 @@ namespace NeoCompose.Runtime.NeoScript
                     ctx.collectionCallbackPreparationMetrics.BodyValidations++;
                 }
                 body = callback;
+                options = NeoScriptExecutionOptions.ForImmediate(ctx.client);
+                expression = NeoScriptExecutor.CallbackExpression(callback);
+                expressionContext = expression is null
+                    ? ctx
+                    : NeoScriptExecutor.ImmediateExpressionContext(ctx.client, ctx, options);
+                condition = returnContract == CollectionCallbackReturnContract.Predicate
+                    && expression is OperationPointer { operation: BooleanOperation booleanOperation }
+                        ? booleanOperation.expression
+                        : null;
                 ownerTerminal = default;
                 // A callback runs on its caller's context but is not a
                 // constructor body's own statement.
@@ -6205,29 +6581,82 @@ namespace NeoCompose.Runtime.NeoScript
                 ctx.constructorBody = false;
             }
 
+            // Project's answer when the body returned nothing.
+            internal static readonly object NoProjection = new();
+
             // Shared, so a projection copies no subject struct per entry.
             private static readonly NeoScriptValueMarshaller.ValueSubject ProjectionSubject =
                 "collection projection callback return value";
 
-            internal NeoScriptExecutionResult Execute(in CollectionCursor cursor, object? entry)
+            /// <summary>
+            /// A projection callback's value for one entry, or
+            /// <see cref="NoProjection"/> when its body returned nothing.
+            /// </summary>
+            internal object? Project(in CollectionCursor cursor, object? entry)
             {
                 if (entryTypeCheck is not null)
+                    return Box(RuntimeTypeCheck(entry, entryTypeCheck, ctx));
+                BindEntry(in cursor, entry);
+                TypeInfo returnType = body.typeInfo!;
+                object? value;
+                if (expression is null)
                 {
-                    return NeoScriptExecutionResult.Completed(
-                        returned: true,
-                        Box(RuntimeTypeCheck(entry, entryTypeCheck, ctx)));
+                    NeoScriptExecutionResult result = Run();
+                    if (!result.Returned)
+                        return NoProjection;
+                    value = result.ReturnValue;
                 }
-                scope.ResetInvocationLocals(parameterCount);
-                // Parameter i is layout slot i: (key, entry) or (entry).
-                if (parameterCount == 2)
-                    scope.SetParameter(0, isList ? Box(cursor.Index) : cursor.Key.ToString());
-                scope.SetParameter(parameterCount - 1, entry);
-                NeoScriptExecutionResult result = NeoScriptExecutor.ExecuteCallback(
+                else
+                {
+                    value = EvaluateValue(expression, scope, expressionContext, out double number);
+                    if (ReferenceEquals(value, ArithmeticValue.BareNumber))
+                    {
+                        value = Box(number);
+                        // A finite number is already a Float, and a whole one an Int.
+                        if (returnType.type == MemberKind.Float && double.IsFinite(number)
+                            || returnType.type == MemberKind.Int && NeoScriptValueMarshaller.IsIntegralNumber(number))
+                        {
+                            return value;
+                        }
+                    }
+                    value = NeoScriptExecutor.CoerceReturnValue(value, returnType);
+                }
+                if (returnsConstructedVector)
+                    return value;
+                return NeoScriptValueMarshaller.NormalizeResolved(
                     ctx.client,
-                    body,
-                    scope,
+                    ctx.valueOwnership,
+                    value,
+                    returnType,
                     ctx,
-                    NeoScriptExecutionOptions.ForImmediate(ctx.client));
+                    ProjectionSubject);
+            }
+
+            /// <summary>Runs a predicate callback for one entry.</summary>
+            internal bool Test(in CollectionCursor cursor, object? entry)
+            {
+                if (entryTypeCheck is not null)
+                    return RuntimeTypeCheck(entry, entryTypeCheck, ctx);
+                BindEntry(in cursor, entry);
+                if (condition is not null)
+                    return EvalBooleanExpression(condition, scope, expressionContext);
+                object? returned = expression is null
+                    ? Run().ReturnValue
+                    : NeoScriptExecutor.CoerceReturnValue(
+                        EvaluatePointer(expression, scope, expressionContext),
+                        body.typeInfo!);
+                if (returned is not bool passed)
+                {
+                    throw new NSGetterRuntimeError(
+                        "Collection predicate callback returned a value that does not match its required Bool contract.");
+                }
+                return passed;
+            }
+
+            // Runs a statement body, which cannot suspend.
+            private NeoScriptExecutionResult Run()
+            {
+                NeoScriptExecutionResult result = NeoScriptExecutor.ExecuteCallback(ctx.client, body, scope, ctx, options);
                 if (result.IsPaused)
                 {
                     result.Deferred?.DisposeFromOwner(
@@ -6235,27 +6664,16 @@ namespace NeoCompose.Runtime.NeoScript
                     throw new NSGetterRuntimeError(
                         "Collection callbacks cannot call deferred Functions.");
                 }
-                if (returnContract == CollectionCallbackReturnContract.Predicate)
-                {
-                    if (result.ReturnValue is not bool)
-                    {
-                        throw new NSGetterRuntimeError(
-                            "Collection predicate callback returned a value that does not match its required Bool contract.");
-                    }
-                    return result;
-                }
-                if (returnsConstructedVector)
-                    return result;
-                object? normalized = NeoScriptValueMarshaller.NormalizeResolved(
-                    ctx.client,
-                    ctx.valueOwnership,
-                    result.ReturnValue,
-                    body.typeInfo!,
-                    ctx,
-                    ProjectionSubject);
-                return NeoScriptExecutionResult.Completed(
-                    returned: true,
-                    normalized);
+                return result;
+            }
+
+            private void BindEntry(in CollectionCursor cursor, object? entry)
+            {
+                scope.ResetInvocationLocals(parameterCount);
+                // Parameter i is layout slot i: (key, entry) or (entry).
+                if (parameterCount == 2)
+                    scope.SetParameter(0, isList ? Box(cursor.Index) : cursor.Key.ToString());
+                scope.SetParameter(parameterCount - 1, entry);
             }
 
             internal void CompleteOperator(object? returnValue)
@@ -7194,6 +7612,8 @@ namespace NeoCompose.Runtime.NeoScript
             // retained row and ownership, at its index of the parallel arrays.
             private object?[] raws = Array.Empty<object?>();
             private MemberValue?[]? rows;
+            // Each row's value node, so a resolve looks no id up.
+            private NeoValueNode?[]? nodes;
             private NeoValueOwnership[]? ownerships;
             private JsonMember? entryMember;
 
@@ -7240,11 +7660,16 @@ namespace NeoCompose.Runtime.NeoScript
                     if (rows is null || rows.Length < raws.Length)
                     {
                         Array.Resize(ref rows, raws.Length);
+                        Array.Resize(ref nodes, raws.Length);
                         Array.Resize(ref ownerships, raws.Length);
                     }
-                    NeoValueOwnership ownership = collectionOwnership ?? ResolveOwnershipForValueId(ctx, id);
-                    ctx.client.TryGetValue(ownership, id, out MemberValue? retainedRow);
-                    rows[index] = retainedRow;
+                    // The collection's row keeps each entry's node, as a
+                    // cursor's does, so a repeat run looks no id up.
+                    NeoValueNode? node = collectionRef?.EntryNode(index, id);
+                    NeoValueOwnership ownership = collectionOwnership ?? ResolveOwnershipForValueId(ctx, id, ref node);
+                    rows[index] = ctx.client.ReadValue(ownership, id, ref node);
+                    nodes![index] = node;
+                    collectionRef?.RememberEntryNode(index, count, id, node);
                     ownerships![index] = ownership;
                 }
                 Count = count;
@@ -7289,16 +7714,9 @@ namespace NeoCompose.Runtime.NeoScript
                     return raws[index];
                 }
                 NeoValueOwnership resolvedOwnership = ownerships![index];
-                bool hasExactCurrentRow = resolvedOwnership == NeoValueOwnership.Asset
-                    || ctx.client.HasWritableValue(resolvedOwnership, id);
-                if (hasExactCurrentRow
-                    && ctx.client.TryGetValue(
-                        resolvedOwnership,
-                        id,
-                        out MemberValue? currentRow))
-                {
-                    return UnwrapCached(currentRow, ctx, resolvedOwnership, entryMember);
-                }
+                ref NeoValueNode? node = ref nodes![index];
+                if (ctx.client.ReadOwnRow(resolvedOwnership, id, ref node) is { } currentRow)
+                    return UnwrapCached(currentRow, ctx, resolvedOwnership, entryMember, node);
                 MemberValue? retainedRow = rows![index];
                 return retainedRow is null
                     ? id
@@ -7312,7 +7730,10 @@ namespace NeoCompose.Runtime.NeoScript
                 {
                     Array.Clear(raws, 0, Count);
                     if (rows is not null)
+                    {
                         Array.Clear(rows, 0, Math.Min(Count, rows.Length));
+                        Array.Clear(nodes!, 0, Math.Min(Count, nodes!.Length));
+                    }
                 }
                 entryMember = null;
                 Count = -1;
@@ -7405,6 +7826,8 @@ namespace NeoCompose.Runtime.NeoScript
             private readonly List<OrderedRawCollectionEntry>? ordered;
             private readonly RowReference? collectionRef;
             private readonly JsonMember? entryMember;
+            // The entry member's, resolved once rather than per entry.
+            private readonly NeoValueOwnership? entryOwnership;
             private readonly int count;
 
             internal CollectionCursor(object? collection, Context ctx)
@@ -7418,7 +7841,10 @@ namespace NeoCompose.Runtime.NeoScript
                 if (collectionRef is not null)
                     this.collectionRef = collectionRef;
                 if (CollectionEntryMember(collectionRef, collection, ctx) is { } entryMember)
+                {
                     this.entryMember = entryMember;
+                    entryOwnership = ctx.client.ConcreteDeclaredOwnership(entryMember);
+                }
                 if (collection is object?[] array)
                 {
                     this.array = array;
@@ -7459,8 +7885,10 @@ namespace NeoCompose.Runtime.NeoScript
             internal readonly object? ResolveEntry(Context ctx)
             {
                 object? raw = Raw;
+                if (raw is not string id)
+                    return raw;
                 NeoValueNode? node = collectionRef?.EntryNode(Index, raw);
-                object? entry = ResolveValueIfId(raw, ctx, null, entryMember, ref node);
+                object? entry = ResolveValueId(id, ctx, null, entryOwnership, entryMember, ref node);
                 collectionRef?.RememberEntryNode(Index, count, raw, node);
                 return entry;
             }
@@ -7698,21 +8126,30 @@ namespace NeoCompose.Runtime.NeoScript
         {
             if (at is not string id)
                 return at;
+            NeoValueOwnership? declared = preferredOwnership is null && member is not null
+                ? ctx.client.ConcreteDeclaredOwnership(member)
+                : null;
+            return ResolveValueId(id, ctx, preferredOwnership, declared, member, ref node);
+        }
+
+        /// <param name="declaredOwnership">
+        /// <paramref name="member"/>'s concrete declared ownership, which
+        /// decides when there is no <paramref name="preferredOwnership"/>.
+        /// </param>
+        private static object? ResolveValueId(
+            string id,
+            Context ctx,
+            NeoValueOwnership? preferredOwnership,
+            NeoValueOwnership? declaredOwnership,
+            JsonMember? member,
+            ref NeoValueNode? node)
+        {
             ctx.client.ReadNestedConstructorResult(id);
-            NeoValueOwnership ownership;
-            if (preferredOwnership is NeoValueOwnership parent)
-            {
-                ownership = ctx.client.ChildOwnership(member, parent);
-            }
-            else
-            {
-                NeoValueOwnership? declared = member is null
-                    ? null
-                    : ctx.client.ConcreteDeclaredOwnership(member);
-                ownership = declared ?? ResolveOwnershipForValueId(ctx, id, ref node);
-            }
+            NeoValueOwnership ownership = preferredOwnership is NeoValueOwnership parent
+                ? ctx.client.ChildOwnership(member, parent)
+                : declaredOwnership ?? ResolveOwnershipForValueId(ctx, id, ref node);
             if (ctx.client.ReadReplayReference(id, ref node, ownership) is not { } row)
-                return at;
+                return id;
             var v = UnwrapCached(row, ctx, ownership, member, node);
             return member is LookupMember lookup && v is object?[] ids
                 ? ReadLookupSelection(ids, lookup, ctx, node)
@@ -8353,52 +8790,32 @@ namespace NeoCompose.Runtime.NeoScript
         }
 
         /// <summary>
-        /// Retargets every cached CLR alias whose row was atomically moved
-        /// from one writable store to another. Row ids remain stable during a
-        /// Session-to-Save promotion; only provenance changes.
+        /// Retargets the cached CLR aliases of <paramref name="movedRowIds"/>,
+        /// which were atomically moved from one writable store to another.
+        /// Row ids remain stable during a Session-to-Save promotion; only
+        /// provenance changes.
         /// </summary>
         internal static void RetargetCachedRowsAfterMove(
             Context ctx,
             NeoValueOwnership sourceOwnership,
-            NeoValueOwnership targetOwnership)
+            NeoValueOwnership targetOwnership,
+            IEnumerable<string> movedRowIds)
         {
             if (sourceOwnership == targetOwnership)
                 return;
-            var movedRowIds = new HashSet<string>();
-            foreach (var pair in ctx.rowReverseIndex.ToArray())
-            {
-                RowReference row = pair.Value;
-                if (row.ownership != sourceOwnership
-                    || ctx.client.HasWritableValue(sourceOwnership, row.valueId)
-                    || !ctx.client.HasWritableValue(targetOwnership, row.valueId))
-                {
-                    continue;
-                }
-                SetRowReference(ctx, pair.Key, new RowReference(
-                    row.valueId,
-                    targetOwnership,
-                    row.classId,
-                    row.member));
-                movedRowIds.Add(row.valueId);
-            }
-
-            foreach (RowKey rowCacheKey in ctx.rowCacheKeysByRow.Keys.ToArray())
-            {
-                if (rowCacheKey.ownership != sourceOwnership)
-                {
-                    continue;
-                }
-                string rowId = rowCacheKey.rowId;
-                if (ctx.client.HasWritableValue(sourceOwnership, rowId)
-                    || !ctx.client.HasWritableValue(targetOwnership, rowId))
-                {
-                    continue;
-                }
-                movedRowIds.Add(rowId);
-            }
-
+            var aliases = new List<object>();
             foreach (string rowId in movedRowIds)
             {
+                if (ctx.client.HasWritableValue(sourceOwnership, rowId)
+                    || !ctx.client.HasWritableValue(targetOwnership, rowId))
+                    continue;
+                aliases.Clear();
+                ctx.rowAliases.GetInto(sourceOwnership, rowId, aliases);
+                foreach (object alias in aliases)
+                {
+                    if (ctx.rowReverseIndex.TryGetValue(alias, out RowReference row) && row.ownership == sourceOwnership)
+                        SetRowReference(ctx, alias, new RowReference(rowId, targetOwnership, row.classId, row.member));
+                }
                 RetargetCachedRow(
                     ctx,
                     sourceOwnership,
