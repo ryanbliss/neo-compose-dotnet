@@ -571,7 +571,7 @@ namespace NeoCompose.Tests
                 return tile is not null;
             }
             Assert.IsFalse(MemoizeTileQuery(), "No link covers the cell yet.");
-            Assert.IsFalse(client.FindMemoizedGetter(key)!.reads!.Any(read => read.content is null && read.id == "shop-1-children"),
+            Assert.IsFalse(client.FindMemoizedGetter(key)!.reads?.Contains("shop-1-children") == true,
                 "The drop below comes from the grid change, not a row the query read.");
             var published = new List<Vector2Int>();
             using var subscription = primitive.OnChanged(change =>

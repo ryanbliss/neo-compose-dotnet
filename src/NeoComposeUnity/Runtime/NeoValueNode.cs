@@ -28,6 +28,8 @@ namespace NeoCompose.Runtime
         internal bool sharedGetterResult;
         /// <summary>The evaluator's canonical unwraps of this row.</summary>
         internal NeoScript.NSGetterEvaluator.UnwrapMemo? unwrapMemo;
+        /// <summary>The getter capture that last recorded a read of this row.</summary>
+        internal long capturedIn;
         /// <summary>A native type's read of this row (a CellPattern's offsets), which validates itself.</summary>
         internal object? nativeRead;
         /// <summary>A single-selection lookup row's selected id and that id's node.</summary>

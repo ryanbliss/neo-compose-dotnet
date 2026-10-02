@@ -67,18 +67,39 @@ namespace NeoCompose.Runtime.NeoScript
                 current.sharedGetterResult = true;
                 for (int i = 0; i < current.SlotCount; i++)
                 {
-                    if (current.Slot(i) is NeoScriptObject child && !child.sharedGetterResult)
-                        (pending ??= new()).Push(child);
-                    else if (current.Slot(i) is IReadOnlyList<object?> entries)
-                        for (int j = 0; j < entries.Count; j++)
-                            if (entries[j] is NeoScriptObject entry && !entry.sharedGetterResult)
-                                (pending ??= new()).Push(entry);
+                    // The slot shapes that own children, as ReleaseDetachedSlot
+                    // reads them; exact type tests skip the covariant
+                    // interface check every scalar slot would pay.
+                    object? value = current.Slot(i);
+                    if (value is NeoScriptObject child)
+                    {
+                        if (!child.sharedGetterResult)
+                            (pending ??= new()).Push(child);
+                    }
+                    else if (value is object?[] array)
+                    {
+                        PushUnshared(array, ref pending);
+                    }
+                    else if (value is List<object?> buffer)
+                    {
+                        PushUnshared(buffer, ref pending);
+                    }
                 }
                 if (pending is null || pending.Count == 0)
                     break;
                 current = pending.Pop();
             }
         }
+
+        private static void PushUnshared(IReadOnlyList<object?> entries, ref Stack<NeoScriptObject>? pending)
+        {
+            for (int j = 0; j < entries.Count; j++)
+            {
+                if (entries[j] is NeoScriptObject entry && !entry.sharedGetterResult)
+                    (pending ??= new()).Push(entry);
+            }
+        }
+
         /// <summary>
         /// The P75 creation recipe of a declared construction, serialized onto
         /// the row at materialization; null for a schema-derived construction.

@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.51.2] - 2026-10-02
+
+- Recomputing a getter after something it read changed costs less. In Neowyn, with 288 plants and 20 rounds each, re-evaluating `Evaluation` took:
+
+  | Plant evaluate (µs per plant) | 0.51.1 | 0.51.2 |
+  |---|---|---|
+  | Every plant's memo entry forgotten | 189.6 | 101.2 |
+  | After watering (grid reads only) | 153.1 | 86.3 |
+  | After a change to each plant's own row | 189.8 | 115.4 |
+
+  `CurrentStage` dropped from 13.6 to 6.6 µs and `CanHarvest` from 18.9 to 7.1 µs.
+- The memo lists, for each row, cell, placement and grid, the entries that read it. A change takes a row's whole list out of the index. A forgotten entry keeps its row reads, and evaluating the getter again over the same rows revives it, so only its grid reads are indexed again. Dead readers are swept once they outnumber live ones.
+- A capture records a row once per capture: row references and value nodes remember the capture that last read them. A capture removes repeated reads once, comparing ids by reference, before an enclosing capture inherits them. A memo hit replays an entry's reads into a capture at most once.
+- Effects stay listed under the reads of their last run when a change queues them, and a run over the same rows revives the entry it replaces. In the HelloWorld fixture, net of the write that causes it, an effect run costs 2.9–3.1 µs and 160 bytes against 3.55 µs and 162 bytes on 0.51.1.
+- A getter evaluated while no dependency capture listens no longer records value ids. Its entry misses once under a capture, which evaluates the getter again and keeps the ids.
+
 ## [0.51.1] - 2026-10-02
 
 - An authored row that only defines a value is no longer an effect instance: a variant's graph, an authored row only constructor arguments name (such as a variant's `Overrides` template), and every row either owns, including the virtual rows a variant's root replays. Authored rows now find liveness through their owned parents as Save and Session rows do, so a listed or bound row that a constructor argument also names stays live, as does an authored row nothing owns, such as a partition's. Loading or unloading a partition row that has constructor arguments rechecks every instance. Neowyn's sparse plant stage templates had run `@effect CheckCues` at load, and every run threw.

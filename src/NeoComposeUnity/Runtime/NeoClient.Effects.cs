@@ -27,7 +27,8 @@ namespace NeoCompose.Runtime
             internal readonly GetterMemoKey key;
             internal readonly MergedSchemaEntry entry;
             internal NeoMemberNSFunction? function;
-            internal List<GetterRead>? reads;
+            // The last run's reads, indexed under the effect's key.
+            internal GetterMemoEntry? dependency;
             internal int drain;
             internal int runs;
             internal bool queued;
@@ -79,7 +80,7 @@ namespace NeoCompose.Runtime
         private readonly List<string> effectLivenessPath = new();
         private readonly Dictionary<(string memberId, NeoValueOwnership ownership), NeoMemberNSFunction> effectFunctions = new();
         // The run's own capture, which native calls suspend.
-        private List<GetterRead>? effectReadCapture;
+        private IdBuffer? effectReadCapture;
         // The running effect, which its own writes never queue (P97 §2.4).
         private GetterMemoKey? runningEffect;
         private int effectDrain;
@@ -127,9 +128,13 @@ namespace NeoCompose.Runtime
         private void StopEffects()
         {
             effectsStarted = false;
-            foreach (var pair in effectsByKey)
-                if (pair.Value.reads is { } reads)
-                    UnindexReads(pair.Key, reads);
+            // A run these stop while it is under way keeps no reads.
+            foreach (EffectState state in effectsByKey.Values)
+            {
+                state.stopped = true;
+                if (state.dependency is { } dependency)
+                    DropDependent(dependency);
+            }
             effectsByKey.Clear();
             effectInstances.Clear();
             pendingEffects.Clear();
@@ -373,38 +378,9 @@ namespace NeoCompose.Runtime
                 RecycleGetterCapture(capture);
                 return;
             }
-            // Kept as read: a deterministic run repeats its reads in order, and
-            // the index takes a repeat as a no-op.
-            List<GetterRead> reads = capture.reads!;
-            if (state.reads is { } previous)
-            {
-                if (SameReads(previous, reads))
-                {
-                    RecycleGetterCapture(capture);
-                    return;
-                }
-                UnindexReads(key, previous);
-            }
-            state.reads = reads;
-            IndexReads(key, reads);
-        }
-
-        // A rewritten row is read through its new row's id, an equal string.
-        private static bool SameReads(List<GetterRead> previous, List<GetterRead> reads)
-        {
-            if (previous.Count != reads.Count)
-                return false;
-            for (int i = 0; i < reads.Count; i++)
-            {
-                GetterRead was = previous[i];
-                GetterRead read = reads[i];
-                if (!ReferenceEquals(was.content, read.content)
-                    || was.cell != read.cell
-                    || was.tile != read.tile
-                    || !string.Equals(was.id, read.id))
-                    return false;
-            }
-            return true;
+            // A deterministic run repeats its reads, which revives the
+            // entry the run replaces.
+            state.dependency = IndexDependent(key, state.dependency, capture);
         }
 
         private NeoMemberNSFunction EffectFunction(EffectState state)
@@ -547,8 +523,8 @@ namespace NeoCompose.Runtime
                 if (!effectsByKey.Remove(key, out EffectState? state))
                     continue;
                 state.stopped = true;
-                if (state.reads is { } reads)
-                    UnindexReads(key, reads);
+                if (state.dependency is { } dependency)
+                    DropDependent(dependency);
             }
             effectInstances.Remove(id);
         }
