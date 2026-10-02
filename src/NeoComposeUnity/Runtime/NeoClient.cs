@@ -3678,41 +3678,30 @@ namespace NeoCompose.Runtime
                 }
                 return sourceValueId;
             }
-            // Stable-id overlay imports normally preserve the source id.
-            // If that id is already owned inside the destination graph,
-            // preserving it would attach the same destination row twice.
-            // This is the one cross-store correction required by strict-tree
-            // ownership: import a fresh-id graph instead.
+            Member? sourceMember = TryInferMemberForValueId(
+                sourceValueId,
+                out Member? inferredSourceMember)
+                    ? inferredSourceMember
+                    : null;
+            // A cross-store import keeps the source's ids only for a value
+            // nothing else owns. Keeping them for a value the destination
+            // graph already owns would attach that row twice. Keeping them
+            // for a value another parent owns would shadow the parent's row
+            // for unscoped readers, so a write through the new slot would
+            // rewrite the parent's value. Either way the new owner takes a
+            // fresh-id copy, unless the slot already holds this row.
             if (currentDestinationValueId != sourceValueId
-                && TryFindOwnedParent(targetOwnership, sourceValueId, out _))
+                && (TryFindOwnedParent(targetOwnership, sourceValueId, out _)
+                    || TryFindOwnedParent(sourceOwnership, sourceValueId, out _)))
             {
                 return PrepareFreshClone(plan,
                     targetOwnership,
                     sourceOwnership,
                     sourceValueId,
-                    TryInferMemberForValueId(sourceValueId, out Member? collisionMember)
-                        ? collisionMember
-                        : null);
+                    sourceMember);
             }
             if (sourceOwnership == NeoValueOwnership.Session && targetOwnership == NeoValueOwnership.Save)
             {
-                Member? sourceMember = TryInferMemberForValueId(
-                    sourceValueId,
-                    out Member? inferredSourceMember)
-                        ? inferredSourceMember
-                        : null;
-                // Moving a parented source into Save would leave its Session
-                // parent dangling, so it clones for the new Save owner,
-                // reachable or not: only a parentless source needs the
-                // reachability walk.
-                if (TryFindOwnedParent(NeoValueOwnership.Session, sourceValueId, out _))
-                {
-                    return PrepareFreshClone(plan,
-                        targetOwnership,
-                        sourceOwnership,
-                        sourceValueId,
-                        sourceMember);
-                }
                 // An entry a pending collection released is unreachable, which
                 // the committed rows can't show yet.
                 bool released = scriptWriteBatch?.TryGetEntryParent(sourceOwnership, sourceValueId, out _) == true;
@@ -3761,9 +3750,7 @@ namespace NeoCompose.Runtime
                 targetOwnership,
                 sourceValueId,
                 new Dictionary<string, string>(),
-                TryInferMemberForValueId(sourceValueId, out Member? inferredMember)
-                    ? inferredMember
-                : null);
+                sourceMember);
         }
 
         /// <summary>
@@ -3839,13 +3826,6 @@ namespace NeoCompose.Runtime
             EnsureVirtualReplayArgumentReady(sourceValueId);
             var plan = new NeoWritePlan(this);
             string result = PrepareFreshClone(plan, targetOwnership, sourceOwnership, sourceValueId, sourceMember);
-            // A detached clone can outlive the Save-owned object whose child
-            // was supplied as a constructor-only input. Retain that replay
-            // dependency in the clone's Session store before unlinking source.
-            if (targetOwnership == NeoValueOwnership.Session && candidateReplay is null)
-                foreach (var pair in plan.Rows.ToArray())
-                    if (pair.Value is not null)
-                        StageConstructorDependencies(plan, pair.Value, targetOwnership);
             plan.Commit();
             return result;
         }
@@ -3964,6 +3944,12 @@ namespace NeoCompose.Runtime
                 }
 
                 plan.Set(targetOwnership, clone);
+                // A Session clone can outlive the Save-owned object whose
+                // child was supplied as a constructor-only input. Retain that
+                // replay dependency in the clone's Session store before the
+                // source unlinks it.
+                if (targetOwnership == NeoValueOwnership.Session && candidateReplay is null)
+                    StageConstructorDependencies(plan, clone, targetOwnership);
 
                 // Unordered list membership is stored on the member rows,
                 // rather than as ids in the list's (empty) array payload.
@@ -4041,7 +4027,7 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// Finds the authoritative owned parent edge for a value in one
-        /// writable ownership graph. Wrapper instances are deliberately not
+        /// ownership graph. Wrapper instances are deliberately not
         /// consulted: they are only views and may not currently exist.
         /// </summary>
         internal bool TryFindOwnedParent(
@@ -4058,9 +4044,14 @@ namespace NeoCompose.Runtime
             // the child row itself. A candidate replay's constructor rows are
             // Session allocations of that candidate, not committed rows.
             MemberValue? child = null;
-            IReadOnlyDictionary<string, MemberValue> childRows = childOwnership == NeoValueOwnership.Session
-                ? sessionValues : GetWritableStore(childOwnership).values;
-            if (!childRows.TryGetValue(childValueId, out child)
+            IReadOnlyDictionary<string, MemberValue>? childRows = childOwnership switch
+            {
+                NeoValueOwnership.Session => sessionValues,
+                // Asset rows are only authored, which the fallback below reads.
+                NeoValueOwnership.Asset => null,
+                _ => GetWritableStore(childOwnership).values,
+            };
+            if (childRows?.TryGetValue(childValueId, out child) != true
                 && data.values.TryGetValue(childValueId, out MemberValue authoredChild)
                 && ResolveAuthoredOwnership(childValueId, authoredChild) == childOwnership)
             {

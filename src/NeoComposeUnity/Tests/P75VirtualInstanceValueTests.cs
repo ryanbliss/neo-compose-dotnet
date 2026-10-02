@@ -243,6 +243,70 @@ namespace NeoCompose.Tests
             Assert.AreEqual(5, saved.Get<NeoMemberIntWritable>("Count").value!.value);
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void AssigningAssetOwnedValueToSaveSlotLeavesSourceIntact(bool virtualSource)
+        {
+            var data = BuildNestedProjectData();
+            foreach (string classId in new[] { "thing-class", "nested-class", "deep-class" })
+                data.classes[classId].allowedStorage = NeoMemberStorage.Inherit;
+            data.members["source-member"] = new ClassMember
+            {
+                id = "source-member",
+                projectId = "p75-project",
+                name = "Source",
+                kind = MemberKind.Class,
+                classId = "thing-class",
+                Requirement = NeoMemberRequirementKind.Required,
+                Storage = NeoMemberStorage.Inherit,
+            };
+            data.members["held-member"] = new ClassMember
+            {
+                id = "held-member",
+                projectId = "p75-project",
+                name = "Held",
+                kind = MemberKind.Class,
+                classId = "nested-class",
+                Requirement = NeoMemberRequirementKind.Optional,
+                Storage = NeoMemberStorage.Save,
+                defaultValue = new ObjectMemberValueBase { value = null },
+            };
+            data.classes["assets-root-class"].schema["Source"] = "source-member";
+            data.classes["save-root-class"].schema["Held"] = "held-member";
+            ((ObjectMemberValue)data.values["value-assets"]).value!["Source"] = "source-thing";
+            var source = ObjectValue("source-thing", "thing-class");
+            if (!virtualSource)
+            {
+                source.value!["Nested"] = "source-nested";
+                data.values["source-nested"] = ObjectValue("source-nested", "nested-class");
+            }
+            data.values["source-thing"] = source;
+            string content;
+            string sourceId;
+            using (var client = NeoTestSaveStack.ClientFromSchema(data))
+            {
+                var nested = client.assets.Get<NeoMemberClass>("Source").Get<NeoMemberClass>("Nested");
+                sourceId = nested.value!.id;
+                client.save.SetSerializedValue("Held", NeoValueWritePayload.FromValueReference(sourceId));
+                var held = client.save.Get<NeoMemberClassWritable>("Held");
+                Assert.AreNotEqual(sourceId, held.value!.id,
+                    "The Save slot owns a copy; the asset parent keeps its own value.");
+                Assert.IsFalse(client.saveValues.ContainsKey(sourceId),
+                    "A Save row at the source id would shadow it for every Save reader.");
+                held.Get<NeoMemberClassWritable>("Deep").Get<NeoMemberIntWritable>("Count").Set(9);
+                client.save.SetSerializedValue("Held", null);
+                Assert.IsNull(held.value?.value);
+                Assert.IsTrue(client.TryGetValue(sourceId, out ObjectMemberValue? seen));
+                Assert.IsNotNull(seen!.value, "Clearing the slot must not clear the source for unscoped readers.");
+                Assert.AreEqual(5, nested.Get<NeoMemberClass>("Deep").Get<NeoMemberInt>("Count").value!.value);
+                content = client.SerializeSaveData();
+            }
+            using var reloaded = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: content);
+            var reloadedNested = reloaded.assets.Get<NeoMemberClass>("Source").Get<NeoMemberClass>("Nested");
+            Assert.AreEqual(sourceId, reloadedNested.value!.id);
+            Assert.AreEqual(5, reloadedNested.Get<NeoMemberClass>("Deep").Get<NeoMemberInt>("Count").value!.value);
+        }
+
         [TestCase(false, false)]
         [TestCase(true, false)]
         [TestCase(false, true)]
@@ -1452,8 +1516,10 @@ namespace NeoCompose.Tests
         [TestCase(false, false, MemberKind.List)]
         [TestCase(false, false, MemberKind.Dictionary)]
         [TestCase(false, false, MemberKind.Class, true)]
+        [TestCase(false, false, MemberKind.Class, true, true)]
         public void SavingConstructorOnlyArgumentsPreservesSharedDependencies(
-            bool clone, bool trackedPatch = false, MemberKind argumentKind = MemberKind.Class, bool detachClone = false)
+            bool clone, bool trackedPatch = false, MemberKind argumentKind = MemberKind.Class, bool detachClone = false,
+            bool detachByImport = false)
         {
             var data = BuildProjectData();
             data.classes["thing-class"].allowedStorage = NeoMemberStorage.Inherit;
@@ -1583,7 +1649,9 @@ namespace NeoCompose.Tests
                 {
                     using var storedClient = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: client.SerializeSaveData());
                     var storedRoot = (ObjectMemberValue)storedClient.CloneRowForWrite(storedClient.save.value!);
-                    string detached = storedClient.CloneValueReference(storedRoot.value!["First"], NeoValueOwnership.Save);
+                    string detached = detachByImport
+                        ? storedClient.ImportValueReference(NeoValueOwnership.Session, storedRoot.value!["First"])
+                        : storedClient.CloneValueReference(storedRoot.value!["First"], NeoValueOwnership.Save);
                     storedRoot.value.Remove("First");
                     storedRoot.value.Remove("Second");
                     storedClient.SetSaveValue(storedRoot);

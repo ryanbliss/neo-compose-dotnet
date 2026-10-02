@@ -21,7 +21,7 @@ namespace NeoCompose.Runtime
     internal sealed class NeoWriteBatch
     {
         private readonly bool held;
-        // By store: a Session copy of a Save graph keeps its ids.
+        // By store: a Session copy of a released Save entry keeps its ids.
         private readonly Dictionary<(NeoValueOwnership ownership, string id), PendingCollection> collections = new();
         private List<(NeoValueOwnership ownership, string id, Member? member)>? releases;
         // The entries pending collections gained, by the collection that
