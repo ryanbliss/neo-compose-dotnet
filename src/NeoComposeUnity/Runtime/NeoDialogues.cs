@@ -42,6 +42,15 @@ namespace NeoCompose.Runtime
 
         public event Action<NeoDialogueEligibilityError>? OnEligibleError;
 
+        /// <summary>Dialogues over <paramref name="project"/>, whose values resolve to its generated views.</summary>
+        protected NeoDialoguesBase(
+            NeoProjectClient project,
+            NeoDialogueRuntimeOptions? options,
+            INeoDialogueMemoryStore? memoryStore)
+            : this(project.Client, options, memoryStore, project.ResolveValue)
+        {
+        }
+
         protected NeoDialoguesBase(
             NeoClient client,
             NeoDialogueRuntimeOptions? options = null,

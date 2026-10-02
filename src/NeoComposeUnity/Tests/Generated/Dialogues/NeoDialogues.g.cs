@@ -16,7 +16,7 @@ namespace Assets.Scripts.Neo
         public StandardDialogues Standard { get; }
 
         internal NeoDialogues(TestProjectNeo project, NeoDialogueRuntimeOptions? options)
-            : base(project.Client, options, project.Save.NeoMemory, project.ResolveDialogueValue)
+            : base(project, options, project.Save.NeoMemory)
         {
             Standard = new StandardDialogues(this, "dialogue-group-standard");
         }

@@ -658,7 +658,7 @@ namespace NeoCompose.Tests
         {
             var app = LoadGeneratedClient(out _);
 
-            var assetHero = (Hero)app.ResolveDialogueValue("v-dict")!;
+            var assetHero = (Hero)app.ResolveValue("v-dict")!;
             Vector3 authoredPosition = assetHero.Position;
             Vector3 pathEntry = assetHero.Path[0];
 
@@ -713,7 +713,7 @@ namespace NeoCompose.Tests
         public void GeneratedCollectionElementLeaf_ReadOnlyOwnerRefusesFieldWrite()
         {
             var app = LoadGeneratedClient(out _);
-            var assetHero = (Hero)app.ResolveDialogueValue("v-dict")!;
+            var assetHero = (Hero)app.ResolveValue("v-dict")!;
             Assert.IsTrue(assetHero.IsReadOnly);
 
             Vector3 before = assetHero.Path[0];
@@ -760,7 +760,7 @@ namespace NeoCompose.Tests
         public void GeneratedVectorFunction_UsesUnityNativeSignature()
         {
             var app = LoadGeneratedClient(out _);
-            var hero = (Hero)app.ResolveDialogueValue("v-dict")!;
+            var hero = (Hero)app.ResolveValue("v-dict")!;
             hero.FunctionHandler = new VectorFunctionHandler();
 
             var moved = hero.MoveTo(new Vector3(1, 2, 3), new Vector2Int(4, 5));
@@ -772,7 +772,7 @@ namespace NeoCompose.Tests
         public void GeneratedUserInterface_DeferredFunctionReturnsCompletedTaskResult()
         {
             var app = LoadGeneratedClient(out _);
-            var hero = (Hero)app.ResolveDialogueValue("v-dict")!;
+            var hero = (Hero)app.ResolveValue("v-dict")!;
             var wrapper = new GenericFunctionHeroContract(hero);
             var handler = new DeferredTransformHandler();
             wrapper.FunctionHandler = handler;
@@ -1148,7 +1148,7 @@ namespace NeoCompose.Tests
         {
             var app = LoadGeneratedClient(out _);
 
-            var assetResolved = app.ResolveDialogueValue("v-dict");
+            var assetResolved = app.ResolveValue("v-dict");
 
             Assert.IsInstanceOf<Hero>(assetResolved);
             var assetHero = (Hero)assetResolved!;
@@ -1158,7 +1158,7 @@ namespace NeoCompose.Tests
             Assert.AreEqual("v-dict", assetHero.valueId);
 
             var savedHero = new Hero(Name: "Saved Hero", Health: 9);
-            var savedResolved = app.ResolveDialogueValue(savedHero.valueId!);
+            var savedResolved = app.ResolveValue(savedHero.valueId!);
 
             Assert.IsInstanceOf<Hero>(savedResolved);
             var writableHero = (Hero)savedResolved!;

@@ -11,26 +11,20 @@ using UnityEngine;
 
 namespace HelloWorld.Assets.Scripts.Neo
 {
-    public sealed partial class HelloWorldNeo : INeoClient
+    public sealed partial class HelloWorldNeo : NeoProjectClient
     {
         public static HelloWorldNeo Instance { get; private set; } = null!;
 
         internal static HelloWorldNeo RequireInstance() => Instance ?? throw new InvalidOperationException("HelloWorldNeo.Instance has not been initialized.");
 
-        public NeoClient Client { get; }
-        public NeoMemberClass AssetsRoot => Client.AssetsRoot;
-        public NeoMemberClassWritable SaveRoot => Client.SaveRoot;
-        public NeoMemberClassWritable SessionRoot => Client.SessionRoot;
-        public NeoLocalization Localization => Client.Localization;
         public IReadOnlyAssets Assets { get; }
         public Save Save { get; }
         public Session Session { get; }
         public NeoDialogues Dialogues { get; }
 
         public HelloWorldNeo(NeoClient client, NeoDialogueRuntimeOptions? dialogueOptions = null)
+            : base(client, DialogueReadOnlyValueFactories, DialogueWritableValueFactories, NeoClassIdsByType)
         {
-            Client = client;
-            Client.RegisterGeneratedClassFactories(DialogueReadOnlyValueFactories, DialogueWritableValueFactories);
             Client.ScriptGridQueries.RegisterFactories(ScriptGridContentFactories);
             Client.RegisterNativeFunctionInvokers(NativeFunctionInvokers);
             Client.RegisterDeferredNativeFunctionInvokers(DeferredNativeFunctionInvokers);
@@ -54,21 +48,5 @@ namespace HelloWorld.Assets.Scripts.Neo
                 throw;
             }
         }
-
-        public INeoSaveLoader Synchronizer => Client.Synchronizer;
-
-        public INeoApiClient? ApiClient => Client.ApiClient;
-
-        public NeoAuthentication? Authentication => Client.Authentication;
-
-        public string SerializeSaveData() => Client.SerializeSaveData();
-
-        public Awaitable CommitAsync(bool replaceSnapshot = false) => Client.CommitAsync(replaceSnapshot);
-
-        public int RunGarbageCollector() => Client.RunGarbageCollector();
-
-        public IReadOnlyList<string> FindUnlinkedSaveValueIds() => Client.FindUnlinkedSaveValueIds();
-
-        public void Dispose() => Client.Dispose();
     }
 }

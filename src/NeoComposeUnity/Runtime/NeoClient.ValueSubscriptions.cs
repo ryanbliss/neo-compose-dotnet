@@ -109,6 +109,38 @@ namespace NeoCompose.Runtime
             pendingChanges.Add((node, changed, listChange));
         }
 
+        /// <summary>
+        /// Runs <paramref name="transaction"/> and holds the OnChanged handlers
+        /// its writes reach until it returns, as a NeoScript execution does:
+        /// each changed field raises once, after every write. Writes still
+        /// commit as they happen, so reads inside see them. Nothing rolls back
+        /// when it throws, and the held handlers still run. Transactions nest;
+        /// the outermost raises.
+        /// </summary>
+        public void RunTransaction(Action transaction)
+        {
+            if (transaction is null)
+                throw new ArgumentNullException(nameof(transaction));
+            BeginChangeBatch();
+            HoldGetterChanges();
+            try
+            {
+                transaction();
+            }
+            finally
+            {
+                try
+                {
+                    // Released into the batch, so a getter's watchers hear it with the rest.
+                    ReleaseGetterChanges();
+                }
+                finally
+                {
+                    EndChangeBatch();
+                }
+            }
+        }
+
         private void BeginChangeBatch()
         {
             changeBatchDepth++;

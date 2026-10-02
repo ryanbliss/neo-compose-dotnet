@@ -267,23 +267,15 @@ namespace NeoCompose.Unity.Editor
                 store,
                 assetDatabasePath,
                 cancellationToken);
-            MethodInfo resolveMethod = generatedProjectType.GetMethod(
-                    "ResolveDialogueValue",
-                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
-                ?? throw new MissingMethodException(
-                    generatedProjectType.FullName,
-                    "ResolveDialogueValue");
-
             var synchronized = new HashSet<string>();
-            var readOnlyFactories = GetGeneratedReadOnlyFactories(generatedProjectType);
-            var client = GetGeneratedClient(generatedProjectType, project);
+            NeoClient client = project.Client;
             SynchronizeGeneratedTileAssets(
                 projectData,
                 assetDatabasePath,
                 client,
-                readOnlyFactories);
+                project.ReadOnlyValueFactories);
 
-            var callbackClassIds = GetSynchronizeCallbackClassIds(generatedProjectType);
+            var callbackClassIds = GetSynchronizeCallbackClassIds(project.ClassIdsByType);
             if (callbackClassIds.Count == 0)
                 return;
             foreach (string valueId in EnumerateProjectValueIds(projectData))
@@ -294,7 +286,7 @@ namespace NeoCompose.Unity.Editor
                     || !callbackClassIds.Contains(
                         NeoGeneratedTypesSupport.ResolveClassValueClassId(client, valueId, value) ?? ""))
                     continue;
-                object? resolved = resolveMethod.Invoke(project, new object[] { valueId });
+                object? resolved = project.ResolveValue(valueId);
                 if (resolved is not NeoGeneratedClassValue classValue)
                     continue;
                 string key = classValue.valueId ?? valueId;
@@ -305,12 +297,8 @@ namespace NeoCompose.Unity.Editor
             }
         }
 
-        internal static HashSet<string> GetSynchronizeCallbackClassIds(Type generatedProjectType)
+        internal static HashSet<string> GetSynchronizeCallbackClassIds(IReadOnlyDictionary<Type, string> classIds)
         {
-            var classIds = generatedProjectType.GetField(
-                    "NeoClassIdsByType", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)
-                ?.GetValue(null) as IReadOnlyDictionary<Type, string>
-                ?? throw new MissingFieldException(generatedProjectType.FullName, "NeoClassIdsByType");
             return classIds
                 .Where(entry => entry.Key.GetMethod(nameof(NeoGeneratedClassValue.OnDidSynchronize))
                     ?.DeclaringType is Type declaringType && declaringType != typeof(NeoGeneratedClassValue))
@@ -504,34 +492,6 @@ namespace NeoCompose.Unity.Editor
             return $"{tileClassId}:{updatedAt}:{tileKind}";
         }
 
-        private static NeoClient GetGeneratedClient(
-            Type generatedProjectType,
-            IDisposable project)
-        {
-            PropertyInfo property = generatedProjectType.GetProperty(
-                    "Client",
-                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
-                ?? throw new MissingMemberException(generatedProjectType.FullName, "Client");
-            return property.GetValue(project) as NeoClient
-                ?? throw new InvalidOperationException(
-                    $"Generated project '{generatedProjectType.FullName}' did not expose a NeoClient.");
-        }
-
-        private static IReadOnlyDictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory>
-            GetGeneratedReadOnlyFactories(Type generatedProjectType)
-        {
-            PropertyInfo property = generatedProjectType.GetProperty(
-                    "NeoReadOnlyValueFactories",
-                    BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)
-                ?? throw new MissingMemberException(
-                    generatedProjectType.FullName,
-                    "NeoReadOnlyValueFactories");
-            return property.GetValue(null)
-                    as IReadOnlyDictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory>
-                ?? throw new InvalidOperationException(
-                    $"Generated project '{generatedProjectType.FullName}' exposed an invalid NeoReadOnlyValueFactories map.");
-        }
-
         private static string SanitizeAssetFileName(string value)
         {
             var invalid = Path.GetInvalidFileNameChars();
@@ -542,7 +502,7 @@ namespace NeoCompose.Unity.Editor
             return string.IsNullOrWhiteSpace(sanitized) ? "neo-tile" : sanitized;
         }
 
-        internal static async Awaitable<IDisposable> LoadGeneratedProjectAsync(
+        internal static async Awaitable<NeoProjectClient> LoadGeneratedProjectAsync(
             Type generatedProjectType,
             NeoProjectStore store,
             string assetDatabasePath,
@@ -559,29 +519,7 @@ namespace NeoCompose.Unity.Editor
 
             try
             {
-                ConstructorInfo? constructor = generatedProjectType.GetConstructor(
-                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
-                    binder: null,
-                    types: new[] { typeof(NeoClient), typeof(NeoDialogueRuntimeOptions) },
-                    modifiers: null);
-                if (constructor != null)
-                {
-                    return (IDisposable)constructor.Invoke(new object?[] { client, null });
-                }
-
-                constructor = generatedProjectType.GetConstructor(
-                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
-                    binder: null,
-                    types: new[] { typeof(NeoClient) },
-                    modifiers: null);
-                if (constructor != null)
-                {
-                    return (IDisposable)constructor.Invoke(new object[] { client });
-                }
-
-                throw new MissingMethodException(
-                    generatedProjectType.FullName,
-                    ".ctor(NeoClient, NeoDialogueRuntimeOptions)");
+                return NeoProjectClient.Construct(generatedProjectType, client);
             }
             catch
             {
@@ -618,16 +556,10 @@ namespace NeoCompose.Unity.Editor
                 {
                     if (type.IsAbstract || type.IsInterface)
                         continue;
-                    if (!typeof(INeoClient).IsAssignableFrom(type))
+                    if (!typeof(NeoProjectClient).IsAssignableFrom(type))
                         continue;
                     if (!string.IsNullOrWhiteSpace(generatedNamespace) && type.Namespace != generatedNamespace)
                         continue;
-                    if (type.GetMethod(
-                            "ResolveDialogueValue",
-                            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic) == null)
-                    {
-                        continue;
-                    }
                     return type;
                 }
             }
@@ -643,7 +575,7 @@ namespace NeoCompose.Unity.Editor
             {
                 string message =
                     "Neo Compose post-synchronize hooks could not run because no generated project type " +
-                    $"implementing {nameof(INeoClient)} was found in namespace " +
+                    $"extending {nameof(NeoProjectClient)} was found in namespace " +
                     $"'{generation.GeneratedNamespace}'.";
                 generation.Status = NeoPostSynchronizeGenerationStatus.Failed;
                 generation.Error = message;

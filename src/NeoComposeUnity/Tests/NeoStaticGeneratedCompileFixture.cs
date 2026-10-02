@@ -11,17 +11,12 @@ using UnityEngine;
 
 namespace NeoCompose.StaticCompileFixture
 {
-    public sealed class StaticCompileSmokeNeo : INeoClient
+    public sealed class StaticCompileSmokeNeo : NeoProjectClient
     {
         public static StaticCompileSmokeNeo Instance { get; private set; } = null!;
 
         internal static StaticCompileSmokeNeo RequireInstance() => Instance ?? throw new InvalidOperationException("StaticCompileSmokeNeo.Instance has not been initialized.");
 
-        public NeoClient Client { get; }
-        public NeoMemberClass AssetsRoot => Client.AssetsRoot;
-        public NeoMemberClassWritable SaveRoot => Client.SaveRoot;
-        public NeoMemberClassWritable SessionRoot => Client.SessionRoot;
-        public NeoLocalization Localization => Client.Localization;
         public IReadOnlySmokeRoot Assets { get; }
         public SmokeRoot Save { get; }
         public SmokeRoot Session { get; }
@@ -56,13 +51,6 @@ namespace NeoCompose.StaticCompileFixture
                 [typeof(global::NeoCompose.StaticCompileFixture.SmokeRoot)] = "static-smoke-root-class",
                 [typeof(global::NeoCompose.StaticCompileFixture.SmokeRules)] = "static-smoke-rules-class",
             };
-
-        internal object? ResolveDialogueValue(string valueId) =>
-            NeoGeneratedTypesSupport.ResolveClassValue(
-                Client,
-                valueId,
-                DialogueReadOnlyValueFactories,
-                DialogueWritableValueFactories);
 
         private static readonly IReadOnlyDictionary<string, NeoClient.NeoNativeFunctionInvoker> NativeFunctionInvokers =
             new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
@@ -104,13 +92,12 @@ namespace NeoCompose.StaticCompileFixture
             };
 
         public StaticCompileSmokeNeo(NeoClient client, NeoDialogueRuntimeOptions? dialogueOptions = null)
+            : base(client, DialogueReadOnlyValueFactories, DialogueWritableValueFactories, NeoClassIdsByType)
         {
             if (Instance is not null)
             {
                 throw new InvalidOperationException("Only one active StaticCompileSmokeNeo is allowed while generated static members are enabled. Dispose the existing project client first.");
             }
-            Client = client;
-            Client.RegisterGeneratedClassFactories(DialogueReadOnlyValueFactories, DialogueWritableValueFactories);
             Client.RegisterNativeFunctionInvokers(NativeFunctionInvokers);
             Client.RegisterDeferredNativeFunctionInvokers(DeferredNativeFunctionInvokers);
             Instance = this;
@@ -134,23 +121,9 @@ namespace NeoCompose.StaticCompileFixture
             }
         }
 
-        public INeoSaveLoader Synchronizer => Client.Synchronizer;
-
-        public INeoApiClient? ApiClient => Client.ApiClient;
-
-        public NeoAuthentication? Authentication => Client.Authentication;
-
-        public string SerializeSaveData() => Client.SerializeSaveData();
-
-        public Awaitable CommitAsync(bool replaceSnapshot = false) => Client.CommitAsync(replaceSnapshot);
-
-        public int RunGarbageCollector() => Client.RunGarbageCollector();
-
-        public IReadOnlyList<string> FindUnlinkedSaveValueIds() => Client.FindUnlinkedSaveValueIds();
-
-        public void Dispose()
+        public override void Dispose()
         {
-            Client.Dispose();
+            base.Dispose();
             if (ReferenceEquals(Instance, this)) Instance = null!;
         }
     }
@@ -158,7 +131,7 @@ namespace NeoCompose.StaticCompileFixture
     public sealed class NeoDialogues : NeoDialoguesBase
     {
         internal NeoDialogues(StaticCompileSmokeNeo project, NeoDialogueRuntimeOptions? options)
-            : base(project.Client, options, null, project.ResolveDialogueValue)
+            : base(project, options, null)
         {
         }
     }
