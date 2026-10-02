@@ -78,8 +78,9 @@ namespace NeoCompose.Runtime
             // Set once the memo drops the entry, so a row reference that
             // kept it knows to look the getter up again.
             public bool forgotten;
-            // A watched getter whose result the memo can't keep still keeps
-            // its reads, so a change reaches its watchers. It never hits.
+            // A watched getter whose result the memo can't keep, or whose
+            // read failed, still keeps its reads, so a change reaches its
+            // watchers. It never hits.
             public bool valueless;
         }
 
