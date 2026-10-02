@@ -2837,6 +2837,17 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetVirtualClassChildValueId(deepId, "Extra", out string? afterId));
             Assert.AreEqual(extraId, afterId);
             Assert.AreEqual(3d, Deep(client).Get<NeoMemberIntWritable>("Extra").value!.value);
+
+            // A variant replay of the enclosing root releases rows, and
+            // must not release the override under the stored nested root.
+            NeoMemberClassWritable thing = client.save.Get<NeoMemberClassWritable>("Thing");
+            thing.value!.instanceVariantId = "previous-variant";
+            Assert.DoesNotThrow(() => NeoGeneratedTypesSupport.ApplyVariant(
+                new SparseThingValue(client, thing),
+                NeoGeneratedTypesSupport.ResolveBaseVariant<SparseThingValue>(client, "thing-class")));
+            Assert.IsTrue(client.sessionValues.ContainsKey(extraId!), "the override row survives");
+            Assert.AreEqual(3d, Deep(client).Get<NeoMemberIntWritable>("Extra").value!.value);
+            Assert.AreEqual(8d, Deep(client).Get<NeoMemberIntWritable>("Count").value!.value);
         }
 
         private sealed class SparseThingValue : NeoGeneratedClassValue
@@ -2925,6 +2936,9 @@ namespace NeoCompose.Tests
                     NeoGeneratedTypesSupport.ResolveBaseVariant<SparseThingValue>(
                         client,
                         "thing-class")));
+                CollectionAssert.IsEmpty(
+                    client.FindUnlinkedSaveValueIds(),
+                    "the replay leaves no stored row unreachable");
             }
 
             void AssertEntry(NeoMemberClassWritable root)
@@ -3169,6 +3183,9 @@ namespace NeoCompose.Tests
                     new SparseEntryValue(second, Entry(thing)),
                     NeoGeneratedTypesSupport.ResolveBaseVariant<SparseEntryValue>(second, "entry-class")));
                 AssertEntry(thing, "Sprite", "call-site");
+                CollectionAssert.IsEmpty(
+                    second.FindUnlinkedSaveValueIds(),
+                    "returning to Base removes the entry's own variant rows");
                 saved = second.SerializeSaveData();
             }
             using NeoClient third = NeoTestSaveStack.ClientFromSchema(

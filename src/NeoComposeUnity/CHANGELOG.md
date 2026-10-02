@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.48.1] - 2026-10-02
+
+- A variant apply no longer walks the whole save to decide which rows it released. It proves them unreachable from their own incoming links, as other writes already did, and its commit reuses the apply's last replay of the root instead of replaying it again. Planting in Neowyn, measured in its EditMode harness over 12 batches of 12 plants, 0.48.0 → 0.48.1: a batch took 377–692 ms and allocated 64–117 MB, growing with the garden; it now takes 79–128 ms and 18–19 MB at every garden size.
+- A night of growth in Neowyn, 144 plants, converts ~170 tiles and swaps 144 variants. Each tile conversion now resolves only the grid link it converts under, not every link on the grid. Setting a different rule tile no longer refreshes its 3×3 neighborhood a second time after Unity's own rule tile refresh, and sprite lookups find their asset database entry by file id instead of scanning every synced file. A night went from 113–123 ms to 103–107 ms in the same harness.
+- Relinking a list row and rebuilding a list's children test id instances before calling into string comparison, and a collection's first change in an execution copies its ids exactly once.
+
 ## [0.48.0] - 2026-10-01
 
 - A computed property's `OnChanged` fires when anything its getter read changes: a row, a grid cell, or a placement. It used to fire only for a getter that queried a grid, and then for every instance of the class, because instances share the property's node. It now fires for the one instance whose getter read the change, once per read: the handler reads the new value, which arms it again. `OnChanged(Fields.X, handler)` and `OnChanged(handler)` read each computed field once when they subscribe, so they hear the first change. A getter whose result can't be memoized, like one returning a Session row, or whose read failed, is heard the same way.

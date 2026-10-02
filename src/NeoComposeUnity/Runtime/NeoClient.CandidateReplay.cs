@@ -291,7 +291,7 @@ namespace NeoCompose.Runtime
             if (next is ArrayMemberValue { value: not null } list
                 && previous is ArrayMemberValue { value: not null } oldList
                 && arrayMember is ListMember)
-                return StartsWith(list.value, oldList.value);
+                return SharedPrefix(oldList.value, list.value) == oldList.value.Length;
             return false;
         }
 
@@ -299,16 +299,6 @@ namespace NeoCompose.Runtime
         {
             foreach (var pair in previous)
                 if (!next.TryGetValue(pair.Key, out string? valueId) || valueId != pair.Value)
-                    return false;
-            return true;
-        }
-
-        private static bool StartsWith(string[] list, string[] prefix)
-        {
-            if (list.Length < prefix.Length)
-                return false;
-            for (int i = 0; i < prefix.Length; i++)
-                if (!string.Equals(list[i], prefix[i], StringComparison.Ordinal))
                     return false;
             return true;
         }
@@ -359,6 +349,14 @@ namespace NeoCompose.Runtime
             return true;
         }
 
+        // The sparse root whose expansion overlays this materialized node.
+        private string? OverlayingRoot(string id, ObjectMemberValue row) =>
+            !IsVirtualInstanceRoot(row)
+                && virtualRootByFootprintId.TryGetValue(id, out string? root)
+                && root != id
+                ? root
+                : null;
+
         private void PrepareCandidateRoot(string rootId)
         {
             CandidateReplay candidate = candidateReplay!;
@@ -397,9 +395,7 @@ namespace NeoCompose.Runtime
             // A materialized node inside a sparse root is overlaid by that
             // root's expansion. Replaying it again as a separate default root
             // would replace stable descendant paths with a new id namespace.
-            if (!IsVirtualInstanceRoot(root)
-                && virtualRootByFootprintId.TryGetValue(rootId, out string? containingRoot)
-                && containingRoot != rootId && candidate.AffectedRoots.Contains(containingRoot))
+            if (OverlayingRoot(rootId, root) is string containingRoot && candidate.AffectedRoots.Contains(containingRoot))
                 return;
             // A stored nested instance is the placing root's spine exactly
             // when that root's replay claims it (IsMaterializedSpine).
@@ -434,6 +430,8 @@ namespace NeoCompose.Runtime
                     candidate.HiddenVirtualIds.ExceptWith(retainedIds);
                 return;
             }
+            if (TryReusePreparedVariant(candidate, root, replayOwnership, boundary))
+                return;
             if (!replayingVirtualRootIds.Add(rootId))
                 throw new InvalidOperationException($"Sparse constructor dependency cycle at '{rootId}'.");
             try
@@ -704,6 +702,7 @@ namespace NeoCompose.Runtime
         {
             internal readonly NeoWritePlan Plan;
             internal bool PreparingVariant;
+            internal PreparedVariant? PreparedVariant;
             internal readonly Dictionary<string, MemberValue> Allocations = new();
             internal readonly Dictionary<NeoNodeKey, NeoMember> Nodes = new();
             internal readonly Dictionary<NeoNodeKey, NeoGeneratedClassValue> GeneratedValues = new();

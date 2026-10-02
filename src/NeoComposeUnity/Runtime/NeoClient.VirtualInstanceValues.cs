@@ -1178,7 +1178,7 @@ namespace NeoCompose.Runtime
                 graph.virtualId = instanceRoot.id;
                 RestoreNestedCallSiteFields(graph, replayBoundary);
             }
-            var expansion = new PreparedVirtualExpansion(instanceRoot);
+            var expansion = new PreparedVirtualExpansion(instanceRoot) { RootOwnership = ownership };
             foreach (string dependency in dependencyIds)
                 if (dependency.StartsWith("static:", StringComparison.Ordinal)
                     || dependency.StartsWith("identity:", StringComparison.Ordinal)
@@ -1644,6 +1644,9 @@ namespace NeoCompose.Runtime
             internal readonly HashSet<string> Dependencies = new();
             internal readonly List<PreparedVirtualExpansion> Nested = new();
             internal NestedReplayBoundary? Boundary;
+
+            // The ownership a root expansion replayed under.
+            internal NeoValueOwnership RootOwnership;
 
             internal PreparedVirtualExpansion(ObjectMemberValue root) => Root = root;
 

@@ -16,12 +16,17 @@ namespace NeoCompose.Runtime
     /// Maps Neo Compose file ids to imported Unity asset paths so runtime
     /// code can resolve file-backed members after a scene reload.
     /// </summary>
-    public sealed class NeoAssetDatabase : ScriptableObject
+    public sealed class NeoAssetDatabase : ScriptableObject, ISerializationCallbackReceiver
     {
         [SerializeField]
         private List<NeoAssetDatabaseEntry> files = new();
         [SerializeField]
         private List<NeoAssetDatabaseTileEntry> tileAssets = new();
+
+        // Entries by file id, built on a lookup. Entry ids are settable, so a
+        // hit is checked against its entry and a miss scans.
+        [NonSerialized]
+        private Dictionary<string, NeoAssetDatabaseEntry>? filesById;
 
         /// <summary>
         /// Loads the default synchronized asset database from Resources.
@@ -156,14 +161,39 @@ namespace NeoCompose.Runtime
         {
             if (string.IsNullOrWhiteSpace(fileId))
                 return null;
+            if (filesById is not null
+                && filesById.TryGetValue(fileId, out var indexed)
+                && indexed.FileId == fileId)
+            {
+                return indexed;
+            }
             foreach (var entry in files)
             {
                 if (entry.FileId == fileId)
+                {
+                    IndexFiles();
                     return entry;
+                }
             }
 
             return null;
         }
+
+        private void IndexFiles()
+        {
+            filesById = new Dictionary<string, NeoAssetDatabaseEntry>(files.Count, StringComparer.Ordinal);
+            foreach (var entry in files)
+            {
+                if (entry.FileId is not null)
+                    filesById.TryAdd(entry.FileId, entry);
+            }
+        }
+
+        void ISerializationCallbackReceiver.OnBeforeSerialize()
+        {
+        }
+
+        void ISerializationCallbackReceiver.OnAfterDeserialize() => filesById = null;
 
         public NeoAssetDatabaseTileEntry? TryGetTileEntryForClass(string tileClassId)
         {
@@ -288,6 +318,7 @@ namespace NeoCompose.Runtime
         public void RemoveFile(string fileId)
         {
             files.RemoveAll(entry => entry.FileId == fileId);
+            filesById = null;
         }
 
         internal void ReplaceTileAssets(List<NeoAssetDatabaseTileEntry> entries) => tileAssets = entries;

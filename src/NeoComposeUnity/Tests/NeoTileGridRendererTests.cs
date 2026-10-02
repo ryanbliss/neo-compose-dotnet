@@ -5385,6 +5385,93 @@ namespace NeoCompose.Tests
         }
 
         /// <summary>
+        /// A smart tile painted beside another refreshes it through Unity's
+        /// rule tile refresh, which the renderer does not repeat.
+        /// </summary>
+        [Test]
+        public void Render_PaintingASmartNeighborRefreshesTheSmartTileBesideIt()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(
+                BuildClassBackedTileGridProjectData());
+            var factories = BuildInheritanceTileFactories();
+            var smartTileValue = (TestTile)NeoGeneratedTypesSupport.ResolveClassValue(
+                client,
+                "floor-tile",
+                factories,
+                new Dictionary<string, NeoGeneratedTypesSupport.WritableClassFactory>())!;
+            var neighborValue = (TestTile)NeoGeneratedTypesSupport.ResolveClassValue(
+                client,
+                "sub-tile",
+                factories,
+                new Dictionary<string, NeoGeneratedTypesSupport.WritableClassFactory>())!;
+            var defaultSprite = CreateTestSprite("smart-default");
+            var connectedSprite = CreateTestSprite("smart-connected");
+            var neighborSprite = CreateTestSprite("smart-neighbor-default");
+            var neighborConnectedSprite = CreateTestSprite("smart-neighbor-connected");
+            smartTileValue.Sprite = defaultSprite;
+            neighborValue.Sprite = neighborSprite;
+            smartTileValue.SmartTile = SmartTileWithInheritsClassNeighbor(
+                connectedSprite,
+                BaseTileClassId);
+            neighborValue.SmartTile = SmartTileWithInheritsClassNeighbor(
+                neighborConnectedSprite,
+                BaseTileClassId);
+
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
+                client,
+                "town-grid",
+                factories,
+                new Dictionary<string, NeoGeneratedTypesSupport.WritableClassFactory>());
+            var layer = new MutableTestTileLayerRuntime(
+                "background-layer",
+                "Background",
+                TileClassId);
+            layer.SetTile(new NeoTileProjection(
+                "smart-origin",
+                "background-layer",
+                Vector2Int.zero,
+                smartTileValue,
+                0));
+            var content = new TestTileGridContent(primitive, new[] { layer });
+            var go = new GameObject("NeoTileGridRenderer smart beside smart test");
+
+            try
+            {
+                var renderer = go.AddComponent<NeoTileGridRenderer>();
+                renderer.Render(content);
+
+                var tilemap = go.GetComponentInChildren<Tilemap>();
+                Assert.IsNotNull(tilemap);
+                Assert.AreSame(defaultSprite, tilemap!.GetSprite(Vector3Int.zero));
+
+                layer.SetTile(new NeoTileProjection(
+                    "smart-neighbor",
+                    BackgroundLayerClassId,
+                    new Vector2Int(1, 0),
+                    neighborValue,
+                    1));
+                primitive.NotifyTileLayerChanged(
+                    "background-layer",
+                    Array.Empty<Vector2Int>(),
+                    new[] { new Vector2Int(1, 0) },
+                    NeoTileGridChangeSourceKind.Direct,
+                    null);
+
+                Assert.IsInstanceOf<NeoRuleTile>(tilemap.GetTile(new Vector3Int(1, 0, 0)));
+                Assert.AreSame(neighborSprite, tilemap.GetSprite(new Vector3Int(1, 0, 0)));
+                Assert.AreSame(connectedSprite, tilemap.GetSprite(Vector3Int.zero));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+                DestroyTestSprite(defaultSprite);
+                DestroyTestSprite(connectedSprite);
+                DestroyTestSprite(neighborSprite);
+                DestroyTestSprite(neighborConnectedSprite);
+            }
+        }
+
+        /// <summary>
         /// Smart tile <c>This</c>/<c>NotThis</c> are DEFINITION identity: the
         /// web's <c>ISmartTileNeighborContext</c> pins the compared identity to
         /// "ALWAYS the concrete tile class id ... never a per-derivation

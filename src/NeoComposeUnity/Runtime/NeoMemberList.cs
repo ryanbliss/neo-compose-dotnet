@@ -350,6 +350,9 @@ namespace NeoCompose.Runtime
                 && ReferenceEquals(entryValueIds, childrenEntryIds)
                 && ReferenceEquals(entryMember, childrenEntryMember))
                 return;
+            // The ids the children were built for, one per child, while the
+            // entry member that built them stands.
+            IReadOnlyList<string>? previousIds = ReferenceEquals(entryMember, childrenEntryMember) ? childrenEntryIds : null;
             childrenEntryIds = null;
             childMembers = new(entryValueIds.Count);
             if (value?.value is null)
@@ -363,14 +366,31 @@ namespace NeoCompose.Runtime
             // Keep the unchanged leading entries in place, so an append or a
             // removal from the end walks the list without building a map.
             int prefix = 0;
-            while (prefix < previousChildren.Count
-                && prefix < entryValueIds.Count
-                && previousChildren[prefix].member.id == entryMember.id
-                && EntryValueId(previousChildren[prefix]) == entryValueIds[prefix])
+            if (previousIds is string[] previousArray && entryValueIds is string[] nextArray)
             {
-                childMembers.Add(previousChildren[prefix]);
-                prefix++;
+                // Ordered lists hold their row arrays; indexing them through
+                // IReadOnlyList costs Mono an interface call per entry.
+                prefix = NeoClient.SharedPrefix(previousArray, nextArray);
             }
+            else if (previousIds is not null)
+            {
+                int shared = Math.Min(previousIds.Count, entryValueIds.Count);
+                while (prefix < shared && previousIds[prefix] == entryValueIds[prefix])
+                    prefix++;
+            }
+            else
+            {
+                while (prefix < previousChildren.Count
+                    && prefix < entryValueIds.Count
+                    && previousChildren[prefix].member.id == entryMember.id
+                    && EntryValueId(previousChildren[prefix]) == entryValueIds[prefix])
+                    prefix++;
+            }
+            if (prefix == previousChildren.Count)
+                childMembers.AddRange(previousChildren);
+            else
+                for (int i = 0; i < prefix; i++)
+                    childMembers.Add(previousChildren[i]);
             // Match the rest by identity so removing an earlier entry keeps
             // later wrappers alive even when their ordinal changes.
             Dictionary<string, NeoMember>? previousById = null;
@@ -770,6 +790,7 @@ namespace NeoCompose.Runtime
                         client, entryMember, importedValueId);
                     replacementChild.Hold(this);
                     childMembers[index] = replacementChild;
+                    ForgetChildrenSource();
                     NotifyListChanged(new NeoListChangedArgs(
                         NeoListChangeKind.Replace,
                         removedValueIds: new[] { entryValueId },

@@ -54,6 +54,9 @@ namespace NeoCompose.Runtime
         internal Dictionary<(string gridId, string layerId), NeoPreparedLayerRecords<NeoObjectPlacementRecord>>? PreparedObjectLayers;
         // Sized for a collection write: its row, and an entry with a few fields.
         internal readonly Dictionary<(NeoValueOwnership ownership, string id), MemberValue?> Rows = new(8);
+        // Counts staged row and binding changes, so a replay prepared against
+        // this plan can tell the plan still matches it.
+        internal int Version;
         private Dictionary<(NeoValueOwnership ownership, string id), string>? changedFields;
         private HashSet<(NeoValueOwnership ownership, string id)>? silentRows;
         // Most plans bind no static; they share one empty map until the first Bind.
@@ -110,6 +113,7 @@ namespace NeoCompose.Runtime
             for (int index = journal!.Count - 1; index >= checkpoint.Journal; index--)
             {
                 RowEntry entry = journal[index];
+                Version++;
                 if (entry.Staged)
                     Rows[entry.Key] = entry.Row;
                 else
@@ -288,6 +292,7 @@ namespace NeoCompose.Runtime
             if (parentCandidates is not null && Rows.TryGetValue(key, out MemberValue? previous))
                 IndexParentCandidates(key.ownership, previous, add: false);
             Rows[key] = row;
+            Version++;
             if (parentCandidates is not null)
                 IndexParentCandidates(key.ownership, row, add: true);
         }
@@ -324,22 +329,21 @@ namespace NeoCompose.Runtime
         {
             if (row is not ObjectMemberValue and not ArrayMemberValue)
                 return;
-            // Collected rather than enumerated: a long list row's entries
-            // would each cost an enumerator call.
-            List<string> children = Client.RentIdList();
+            // An array row's ids are its children; a record's are collected
+            // rather than enumerated, which would cost an enumerator call each.
+            string[]? ids = (row as ArrayMemberValue)?.value;
+            List<string> collected = Client.RentIdList();
             try
             {
-                NeoClient.CollectPlacementChildIds(row, children);
+                if (row is ObjectMemberValue)
+                    NeoClient.CollectPlacementChildIds(row, collected);
                 string[]? committed = Client.IndexedPlacementChildren(ownership, row.id);
-                int prefix = 0;
-                while (committed is not null
-                    && prefix < committed.Length
-                    && prefix < children.Count
-                    && string.Equals(committed[prefix], children[prefix], StringComparison.Ordinal))
-                    prefix++;
-                for (int index = prefix; index < children.Count; index++)
+                int prefix = committed is null ? 0 : NeoClient.SharedPrefix(committed, ids, collected);
+                int count = ids?.Length ?? collected.Count;
+                for (int index = prefix; index < count; index++)
                 {
-                    string child = children[index];
+                    // An id array is indexed directly, not through IReadOnlyList.
+                    string child = ids is not null ? ids[index] : collected[index];
                     if (!parentCandidates!.TryGetValue(child, out object? parents))
                     {
                         if (add)
@@ -363,7 +367,7 @@ namespace NeoCompose.Runtime
             }
             finally
             {
-                Client.ReturnIdList(children);
+                Client.ReturnIdList(collected);
             }
         }
 
@@ -393,8 +397,11 @@ namespace NeoCompose.Runtime
                 ? candidates : Array.Empty<string>();
         }
 
-        internal void Bind(NeoValueOwnership ownership, string memberId, bool present, string? valueId) =>
+        internal void Bind(NeoValueOwnership ownership, string memberId, bool present, string? valueId)
+        {
+            Version++;
             (bindings ??= new())[(ownership, memberId)] = (present, valueId);
+        }
 
         internal void AfterNotifications(Action callback) => afterNotifications.Add(callback);
         internal void AfterNotifications(INeoPlanCallback callback) => afterNotifications.Add(callback);

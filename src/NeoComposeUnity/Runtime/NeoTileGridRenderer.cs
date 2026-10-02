@@ -2393,6 +2393,10 @@ namespace NeoCompose.Runtime
             TileBase? previousTile,
             TileBase? nextTile)
         {
+            // Setting a different rule tile already refreshes it and every
+            // neighbor whose rules read its cell.
+            if (nextTile is RuleTile && !ReferenceEquals(previousTile, nextTile))
+                return;
             if (RequiresManualRefresh(previousTile) || RequiresManualRefresh(nextTile))
             {
                 RefreshTileAndNeighbors(tilemap, position);
