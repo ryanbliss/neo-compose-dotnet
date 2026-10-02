@@ -626,8 +626,14 @@ namespace NeoCompose.Runtime
                 handler(this, changed, client.CurrentChangeSource);
             }
             node.OnChanged += Handle;
-            return TrackSubscription(new NeoDisposableSubscription(
-                () => node.OnChanged -= Handle));
+            // A handler that hears every change reads what it needs itself,
+            // which records the reads its getters will be heard by.
+            IDisposable? getters = WatchGetters();
+            return TrackSubscription(new NeoDisposableSubscription(() =>
+            {
+                node.OnChanged -= Handle;
+                getters?.Dispose();
+            }));
         }
 
         protected IDisposable WatchField<T>(
@@ -654,8 +660,14 @@ namespace NeoCompose.Runtime
             _ = callback.Method.MethodHandle.GetFunctionPointer();
 #endif
             node.OnChanged += Handle;
-            return TrackSubscription(new NeoDisposableSubscription(
-                () => node.OnChanged -= Handle));
+            IDisposable? getters = WatchGetters();
+            if (getters is not null)
+                ReadGetter(field.Key);
+            return TrackSubscription(new NeoDisposableSubscription(() =>
+            {
+                node.OnChanged -= Handle;
+                getters?.Dispose();
+            }));
         }
 
         protected IDisposable WatchChanges<TFields>(
@@ -692,8 +704,32 @@ namespace NeoCompose.Runtime
                 handler(new NeoChangedArgs<TFields>(changes, client.CurrentChangeSource));
             }
             node.OnChanged += Handle;
-            return TrackSubscription(new NeoDisposableSubscription(
-                () => node.OnChanged -= Handle));
+            IDisposable? getters = WatchGetters();
+            if (getters is not null)
+                foreach (var pair in orderedReaders)
+                    ReadGetter(pair.Key.Key);
+            return TrackSubscription(new NeoDisposableSubscription(() =>
+            {
+                node.OnChanged -= Handle;
+                getters?.Dispose();
+            }));
+        }
+
+        /// <summary>
+        /// Raises this view's node when a getter on its row loses its
+        /// memoized result because something it read changed. A getter is
+        /// heard once per read, so each handler reads it again.
+        /// </summary>
+        private IDisposable? WatchGetters() =>
+            isClassDefaultReference || valueId is not string id
+                ? null
+                : client.WatchGetters(id, node);
+
+        /// <summary>Reads getter <paramref name="key"/>, if it is one, so its reads are recorded.</summary>
+        private void ReadGetter(string key)
+        {
+            if (node.TryGet<NeoMemberNSProperty>(key, out _))
+                _ = ComputeProperty(key);
         }
 
         private bool CanReadChange()

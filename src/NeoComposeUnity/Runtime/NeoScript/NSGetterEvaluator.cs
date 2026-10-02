@@ -854,11 +854,6 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 get; set;
             }
-            internal NeoScriptGridReads? gridReads
-            {
-                get; set;
-            }
-
             internal bool TryGetConstructionClassContext(
                 string classId,
                 out IReadOnlyDictionary<string, GenericBinding>? classArguments,
@@ -968,8 +963,6 @@ namespace NeoCompose.Runtime.NeoScript
                 // setter still pays a write barrier, so skip clear ones.
                 if (contextValue is not null)
                     contextValue = null;
-                if (gridReads is not null)
-                    gridReads = null;
                 if (initializerPlacement is not null)
                     initializerPlacement = null;
                 // A C# setter entered its setter here.
@@ -1107,7 +1100,6 @@ namespace NeoCompose.Runtime.NeoScript
                 internal Context? immediateExpressionSource;
                 internal object? immediateExpressionState;
                 internal object? immediateExpressionOptions;
-                internal NeoScriptGridReads? gridReads;
                 internal ClassMember? initializerPlacement;
                 // Entered by getter and construction frames only.
                 internal IReadOnlyCollection<string>? getterCallStack;
@@ -1188,8 +1180,6 @@ namespace NeoCompose.Runtime.NeoScript
                     immediateExpressionState = null;
                     immediateExpressionOptions = null;
                 }
-                if (gridReads is not null)
-                    saved.gridReads = gridReads;
                 if (initializerPlacement is not null)
                     saved.initializerPlacement = initializerPlacement;
                 saved.constructorBody = constructorBody;
@@ -1276,9 +1266,6 @@ namespace NeoCompose.Runtime.NeoScript
                     saved.immediateExpressionState = null;
                     saved.immediateExpressionOptions = null;
                 }
-                if (!ReferenceEquals(gridReads, saved.gridReads))
-                    gridReads = saved.gridReads;
-                saved.gridReads = null;
                 if (!ReferenceEquals(initializerPlacement, saved.initializerPlacement))
                     initializerPlacement = saved.initializerPlacement;
                 saved.initializerPlacement = null;
@@ -2536,7 +2523,7 @@ namespace NeoCompose.Runtime.NeoScript
                 ctx.valueOwnership, NeoClient.StaticGetterRowId, getter.memberId, ctx.valueOwnership);
             if (client.FindMemoizedGetter(key) is { } hit)
             {
-                client.ReplayGetterReads(hit, ctx.gridReads);
+                client.ReplayGetterReads(hit);
                 return hit.scalar;
             }
             NeoClient.GetterCaptureFrame enclosingCapture = client.BeginGetterReadCapture();
@@ -4852,6 +4839,8 @@ namespace NeoCompose.Runtime.NeoScript
                 // memo's key, whose two strings each cost a write barrier
                 // to store, is only built where the memo itself is read.
                 NeoClient.GetterMemoEntry? hit = receiverRef!.MemoizedGetter(memberId, ctx.valueOwnership);
+                if (hit is not null && !client.HoldsCurrentReads(hit))
+                    hit = null;
                 if (hit is null && (hit = client.FindMemoizedGetter(GetterMemoKeyOf(receiverRef, memberId, ctx))) is not null)
                     receiverRef.RememberGetter(memberId, ctx.valueOwnership, hit);
                 if (hit is not null)
@@ -4860,14 +4849,14 @@ namespace NeoCompose.Runtime.NeoScript
                     {
                         if (ResolveMemoizedList(hit.list, hit.listEntryMember, ctx, lendingMemberId: memberId) is { } hitList)
                         {
-                            client.ReplayGetterReads(hit, ctx.gridReads);
+                            client.ReplayGetterReads(hit);
                             return hitList;
                         }
                         client.ForgetMemoizedGetter(GetterMemoKeyOf(receiverRef, memberId, ctx));
                     }
                     else if (hit.row is null)
                     {
-                        client.ReplayGetterReads(hit, ctx.gridReads);
+                        client.ReplayGetterReads(hit);
                         return hit.scalar;
                     }
                     else
@@ -4875,7 +4864,7 @@ namespace NeoCompose.Runtime.NeoScript
                         RowReference hitRef = hit.row;
                         if (client.ReadReplayReference(hitRef.valueId, ref hitRef.node, hitRef.ownership) is { } hitRow)
                         {
-                            client.ReplayGetterReads(hit, ctx.gridReads);
+                            client.ReplayGetterReads(hit);
                             return UnwrapCached(hitRow, ctx, hitRef.ownership, hitRef.member, hitRef.node);
                         }
                         client.ForgetMemoizedGetter(GetterMemoKeyOf(receiverRef, memberId, ctx));
@@ -8397,7 +8386,6 @@ namespace NeoCompose.Runtime.NeoScript
             JsonMember? member = null,
             NeoValueNode? node = null)
         {
-            ctx.gridReads?.RecordValue(ctx.client, ownership, row.id);
             ctx.client.NoteRowRead(ownership, row.id);
             // Scalars have value semantics and no writable CLR aliases. Read the
             // current row directly instead of allocating cache keys and an index

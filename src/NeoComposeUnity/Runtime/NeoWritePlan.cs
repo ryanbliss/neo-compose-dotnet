@@ -673,9 +673,9 @@ namespace NeoCompose.Runtime
             // itself did not change.
             HashSet<(NeoValueOwnership ownership, string id)> sameMembership = pooledScratch ? commitSameMembershipScratch : new();
             bool batched = false;
+            bool gridChange = false;
             try
             {
-                bool touchesWorld = false;
                 foreach (var pair in plan.Rows)
                 {
                     if (TryResolveContainerIdForValueId(pair.Key.id, out string? containerId))
@@ -692,9 +692,6 @@ namespace NeoCompose.Runtime
                     if (!string.IsNullOrEmpty(pair.Value?.containerId))
                         changed.Add((pair.Key.ownership, pair.Value!.containerId!));
                     changed.Add(pair.Key);
-                    if (!touchesWorld)
-                        touchesWorld = IsWorldClass(pair.Value?.classId)
-                            || TryGetCommittedValue(pair.Key.id, out MemberValue? previousRow) && IsWorldClass(previousRow?.classId);
                 }
                 foreach (var binding in plan.Bindings)
                 {
@@ -704,6 +701,11 @@ namespace NeoCompose.Runtime
                     if (binding.Value.valueId is string next)
                         changed.Add((binding.Key.ownership, next));
                 }
+                // Grid indexes go stale with the rows, and stay so until their
+                // change publishes: a getter that read a grid is no hit
+                // until then.
+                BeginGridChange();
+                gridChange = true;
                 foreach (var pair in plan.Rows)
                 {
                     if (pair.Value is null)
@@ -734,8 +736,6 @@ namespace NeoCompose.Runtime
                     InvalidateGetterMemo();
                 else
                     InvalidateGetterMemoForRows(changed);
-                if (touchesWorld)
-                    InvalidateGridDependentGetterMemo();
                 if (sharedEvaluationContext is not null)
                     foreach (var item in changed)
                         if (!plan.Rows.ContainsKey(item) || plan.IsSilent(item))
@@ -743,6 +743,8 @@ namespace NeoCompose.Runtime
                 OnWritableValuesPublished?.Invoke(changed, plan);
                 plan.NotifyCommitted();
                 OnWritableValuesChanged?.Invoke(changed);
+                EndGridChange();
+                gridChange = false;
                 using (SuspendContainerNotifications())
                 {
                     foreach (var pair in plan.Rows)
@@ -787,6 +789,8 @@ namespace NeoCompose.Runtime
                     sameMembership.Clear();
                     commitScratchInUse = false;
                 }
+                if (gridChange)
+                    EndGridChange();
                 if (batched)
                     EndChangeBatch();
                 plan.ReleaseParentCandidates();

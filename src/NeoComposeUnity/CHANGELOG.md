@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.48.0] - 2026-10-01
+
+- A computed property's `OnChanged` fires when anything its getter read changes: a row, a grid cell, or a placement. It used to fire only for a getter that queried a grid, and then for every instance of the class, because instances share the property's node. It now fires for the one instance whose getter read the change, once per read: the handler reads the new value, which arms it again. `OnChanged(Fields.X, handler)` and `OnChanged(handler)` read each computed field once when they subscribe, so they hear the first change. A getter whose result can't be memoized, like one returning a Session row, is heard the same way.
+- The getter memo is the getters' only dependency tracking. Dropping a memoized getter because something it read changed is what notifies its watchers. A grid change now drops only the getters that read a cell or placement it names, instead of every getter that queried any grid on any write to a world row.
+- A leaf write, a placed object's move, a partition load or unload and a schema reset notify getter watchers once every index they touch is current, so a handler never reads a grid mid-write.
+- A getter that queried a grid, read again through the same property node or row reference while a NeoScript execution held pending writes, could answer from before those writes. It now commits what the grid query would see first, as a read through the memo already did.
+- Breaking: `NeoScriptGridReads` is removed, and `NeoMemberNSFunction.Invoke` and `InvokeAsync` no longer take a `gridReads` parameter.
+
 ## [0.47.1] - 2026-10-01
 
 - Assigning a Class value another parent owns to a member in another store, like `this.HeldColor = item.Color` from a Save script with `item` an asset, copies it with fresh ids. It used to write a Save or Session row at the source's id, which every unscoped reader of the source then saw instead: writing through the new member changed the source too, and assigning `null` to the member cleared it. A save written that way could fail to load with "has a computed default and cannot be materialized as a literal". A value nothing else owns still keeps its ids.

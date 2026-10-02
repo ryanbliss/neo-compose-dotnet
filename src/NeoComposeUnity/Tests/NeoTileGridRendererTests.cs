@@ -488,54 +488,69 @@ namespace NeoCompose.Tests
                 Array.Empty<object?>(), ctx, out object? cell));
             Assert.AreEqual(new Vector2Int(10, 20), NeoGeneratedTypesSupport.ReadVector2IntValue(cell));
             Assert.AreEqual(1, created);
-            int invalidations = 0;
-            using var reads = new NeoScriptGridReads(() => invalidations++);
-            ctx.gridReads = reads;
-            Assert.IsTrue(client.ScriptGridQueries.TryInvoke("system_f5ca386c-990c-54a1-8473-2d49d2cd887d", receiver,
-                new object?[] { new NeoCellPattern(new Vector2Int(50, 50)) }, ctx, out object? result));
-            Assert.IsEmpty((object?[])result!);
+            // A getter that queried the grid stays memoized until a change
+            // reaches a cell or placement it read.
+            var key = new NeoClient.GetterMemoKey(NeoValueOwnership.Asset, "shop-1", "grid-getter", NeoValueOwnership.Asset);
+            void MemoizeQuery(Vector2Int offset)
+            {
+                NeoClient.GetterCaptureFrame enclosing = client.BeginGetterReadCapture();
+                Assert.IsTrue(client.ScriptGridQueries.TryInvoke("system_f5ca386c-990c-54a1-8473-2d49d2cd887d", receiver,
+                    new object?[] { new NeoCellPattern(offset) }, ctx, out object? queried));
+                Assert.IsEmpty((object?[])queried!);
+                client.MemoizeGetter(key, 0, null, client.EndGetterReadCapture(enclosing));
+                Assert.IsNotNull(client.FindMemoizedGetter(key));
+            }
+            MemoizeQuery(new Vector2Int(50, 50));
             void Change(Vector2Int changed) => client.ScriptGridQueries.NotifyChanged(new NeoTileGridChangedArgs("town-grid",
                 objectLayers: new[] { new NeoObjectLayerChangedArgs(ObjectsLayerClassId, Array.Empty<NeoObjectInstanceId>(),
                     Array.Empty<NeoObjectInstanceId>(), new[] { changed }, NeoTileGridChangeSourceKind.Direct, null) }));
             Change(new Vector2Int(99, 99));
-            Assert.AreEqual(0, invalidations);
+            Assert.IsNotNull(client.FindMemoizedGetter(key), "A change to a cell the getter never read keeps it.");
             Change(new Vector2Int(60, 70));
-            Assert.AreEqual(1, invalidations);
+            Assert.IsNull(client.FindMemoizedGetter(key), "A change to a queried empty cell drops it.");
             Assert.AreEqual(1, created);
-            reads.Dispose();
-            using var directReads = new NeoScriptGridReads(() => invalidations++);
-            ctx.gridReads = directReads;
-            client.ScriptGridQueries.TryInvoke("system_f5ca386c-990c-54a1-8473-2d49d2cd887d", receiver,
-                new object?[] { new NeoCellPattern(new Vector2Int(50, 50)) }, ctx, out _);
+
+            MemoizeQuery(new Vector2Int(50, 50));
             client.SetWritableValue(NeoValueOwnership.Save, new Vector3MemberValue
             {
                 id = "shop-1-position",
                 value = new NeoVector3Value { x = 11, y = 20, z = 0 },
             });
-            Assert.AreEqual(2, invalidations, "Direct Position writes must invalidate cached placement queries.");
+            Assert.IsNull(client.FindMemoizedGetter(key), "Moving the queried receiver drops it.");
             Assert.IsTrue(client.ScriptGridQueries.TryInvoke("system_df1c2d06-eeec-5340-addc-740f3668c9e4", receiver,
                 Array.Empty<object?>(), ctx, out cell));
             Assert.AreEqual(new Vector2Int(11, 20), NeoGeneratedTypesSupport.ReadVector2IntValue(cell), "A query after a move reads the moved placement.");
-            directReads.Dispose();
-            using var insertionReads = new NeoScriptGridReads(() => invalidations++);
-            ctx.gridReads = insertionReads;
-            client.ScriptGridQueries.TryInvoke("system_f5ca386c-990c-54a1-8473-2d49d2cd887d", receiver,
-                new object?[] { new NeoCellPattern(new Vector2Int(50, 50)) }, ctx, out _);
-            client.SetWritableValues(NeoValueOwnership.Save, new MemberValue[]
+
+            MemoizeQuery(new Vector2Int(50, 50));
+            MemberValue[] Shop(string id, int x, int y) => new MemberValue[]
             {
-                new Vector3MemberValue { id = "new-shop-position", value = new NeoVector3Value { x = 61, y = 70, z = 0 } },
-                new Vector2MemberValue { id = "new-shop-origin-cell", value = new NeoVector2Value() },
-                new ObjectMemberValue { id = "new-shop-origin", classId = PlacementTileClassId, containerId = "new-shop-placement-tiles",
-                    value = new Dictionary<string, string> { ["Cell"] = "new-shop-origin-cell" } },
-                new ArrayMemberValue { id = "new-shop-placement-tiles", value = new[] { "new-shop-origin" } },
-                new ObjectMemberValue { id = "new-shop", classId = ObjectClassId, containerId = "objects-link-objects",
-                    value = new Dictionary<string, string> { ["Position"] = "new-shop-position", ["PlacementTiles"] = "new-shop-placement-tiles" } },
-            });
-            Assert.AreEqual(3, invalidations, "New containment membership must invalidate a prior empty-cell query.");
+                new Vector3MemberValue { id = id + "-position", value = new NeoVector3Value { x = x, y = y, z = 0 } },
+                new Vector2MemberValue { id = id + "-origin-cell", value = new NeoVector2Value() },
+                new ObjectMemberValue { id = id + "-origin", classId = PlacementTileClassId, containerId = id + "-placement-tiles",
+                    value = new Dictionary<string, string> { ["Cell"] = id + "-origin-cell" } },
+                new ArrayMemberValue { id = id + "-placement-tiles", value = new[] { id + "-origin" } },
+                new ObjectMemberValue { id = id, classId = ObjectClassId, containerId = "objects-link-objects",
+                    value = new Dictionary<string, string> { ["Position"] = id + "-position", ["PlacementTiles"] = id + "-placement-tiles" } },
+            };
+            client.SetWritableValues(NeoValueOwnership.Save, Shop("far-shop", 300, 300));
+            Assert.IsNotNull(client.FindMemoizedGetter(key), "Placing an object on a cell the getter never read keeps it.");
+            client.SetWritableValues(NeoValueOwnership.Save, Shop("new-shop", 61, 70));
+            Assert.IsNull(client.FindMemoizedGetter(key), "New containment membership on a queried empty cell drops it.");
             Assert.IsTrue(client.ScriptGridQueries.TryInvoke("system_f5ca386c-990c-54a1-8473-2d49d2cd887d", receiver,
                 new object?[] { new NeoCellPattern(new Vector2Int(50, 50)) }, ctx, out object? inserted));
             Assert.AreEqual("new-shop", NSGetterEvaluator.FindRowIdByReference(((object?[])inserted!).Single(), ctx),
                 "A query after the insertion reads the rebuilt layer index.");
+
+            MemoizeQueryAt(new Vector2Int(289, 280));
+            NeoGeneratedTypesSupport.SetPlacementVector3(WritableObject(client, "far-shop"), "Position", new NeoReadOnlyVector3(301, 300, 0));
+            Assert.IsNull(client.FindMemoizedGetter(key), "A placement move off a queried cell drops it.");
+            void MemoizeQueryAt(Vector2Int offset)
+            {
+                NeoClient.GetterCaptureFrame enclosing = client.BeginGetterReadCapture();
+                Assert.IsTrue(client.ScriptGridQueries.TryInvoke("system_f5ca386c-990c-54a1-8473-2d49d2cd887d", receiver,
+                    new object?[] { new NeoCellPattern(offset) }, ctx, out _));
+                client.MemoizeGetter(key, 0, null, client.EndGetterReadCapture(enclosing));
+            }
         }
 
         [Test]

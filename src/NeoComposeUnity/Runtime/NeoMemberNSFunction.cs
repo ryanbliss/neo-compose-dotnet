@@ -148,17 +148,13 @@ namespace NeoCompose.Runtime
             }
         }
 
-        public object? Invoke(string thisValueId, object?[] args, NeoScriptGridReads? gridReads = null)
+        public object? Invoke(string thisValueId, object?[] args)
         {
             args ??= Array.Empty<object?>();
             MemberValue row = ReceiverRow(thisValueId);
             NSGetterEvaluator.Context ctx = client.RentDirectFunctionContext(ownership, function: true);
             object receiver = UnwrapReceiver(row, ctx);
             NeoResolvedNSFunction function = ResolveInstanceFunction(receiver, row, ctx);
-            // A rented context comes back without grid reads: skip the
-            // usual null store's write barrier.
-            if (gridReads is not null)
-                ctx.gridReads = gridReads;
             if (function.Deferred)
             {
                 throw new InvalidOperationException(
@@ -183,7 +179,7 @@ namespace NeoCompose.Runtime
             return result.ReturnValue;
         }
 
-        public Task<object?> InvokeAsync(string thisValueId, object?[] args, NeoScriptGridReads? gridReads = null)
+        public Task<object?> InvokeAsync(string thisValueId, object?[] args)
         {
             args ??= Array.Empty<object?>();
             try
@@ -192,8 +188,6 @@ namespace NeoCompose.Runtime
                 NSGetterEvaluator.Context ctx = CreateDirectContext(ownership);
                 object receiver = UnwrapReceiver(row, ctx);
                 NeoResolvedNSFunction function = ResolveInstanceFunction(receiver, row, ctx);
-                if (gridReads is not null)
-                    ctx.gridReads = gridReads;
                 if (!function.Deferred)
                 {
                     throw new InvalidOperationException(

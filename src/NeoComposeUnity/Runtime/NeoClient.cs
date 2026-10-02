@@ -2079,6 +2079,20 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal void InvalidateSchemaResolutionCaches()
         {
+            // Getter watchers hear the dropped memo once every cache is reset.
+            HoldGetterChanges();
+            try
+            {
+                ResetSchemaResolutionCaches();
+            }
+            finally
+            {
+                ReleaseGetterChanges();
+            }
+        }
+
+        private void ResetSchemaResolutionCaches()
+        {
             // Function bodies, signatures, and terminal normalizers belong to the
             // current schema just like getter and dispatch metadata.
             lock (resolvedNSFunctionsLock)
@@ -2086,7 +2100,6 @@ namespace NeoCompose.Runtime
             authoredValueInferenceIndex = null;
             authoredClassOwnedRoots = null;
             InvalidateGetterMemo();
-            worldClassIds.Clear();
             InvalidateSharedEvaluationContext();
             worldKindsByClass.Clear();
             LayerLinkTargetByClass.Clear();
@@ -6131,6 +6144,21 @@ namespace NeoCompose.Runtime
         /// </summary>
         public void LoadValuePartition(string mapKey)
         {
+            // Getter watchers hear the dropped memo once the partition's
+            // rows and indexes are current.
+            HoldGetterChanges();
+            try
+            {
+                LoadValuePartitionRows(mapKey);
+            }
+            finally
+            {
+                ReleaseGetterChanges();
+            }
+        }
+
+        private void LoadValuePartitionRows(string mapKey)
+        {
             EnsureNotDisposed();
             if (string.IsNullOrEmpty(mapKey))
             {
@@ -6223,6 +6251,21 @@ namespace NeoCompose.Runtime
         /// writes is a caller bug (commit or discard them first).
         /// </summary>
         public void UnloadValuePartition(string mapKey)
+        {
+            // Getter watchers hear the dropped memo once the partition's
+            // rows and indexes are current.
+            HoldGetterChanges();
+            try
+            {
+                UnloadValuePartitionRows(mapKey);
+            }
+            finally
+            {
+                ReleaseGetterChanges();
+            }
+        }
+
+        private void UnloadValuePartitionRows(string mapKey)
         {
             EnsureNotDisposed();
             if (!loadedPartitionRowIds.TryGetValue(mapKey, out HashSet<string> rowIds))

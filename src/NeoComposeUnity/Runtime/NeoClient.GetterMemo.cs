@@ -15,14 +15,18 @@ namespace NeoCompose.Runtime
         // NSProperty getters are pure functions of their receiver row and the
         // rows and grid cells they read, so a result stays valid until one of
         // those changes. Every memoized evaluation records its reads; a commit
-        // drops the entries that read a changed row, and a world-content
-        // change drops the entries that queried a grid. Only results that can
-        // be re-resolved in any evaluation context are kept: scalars,
+        // drops the entries that read a changed row, and a grid change drops
+        // the entries that read a cell or placement it names. Only results
+        // that can be re-resolved in any evaluation context are kept: scalars,
         // pointers to authored or Save rows, and derived lists of those.
         // Session rows are skipped because a getter that constructs its
         // result must construct again. The one exception is a static getter
         // read as a pattern argument's receiver: only a native call reads the
         // pattern, so its offsets are kept under StaticGetterRowId.
+        //
+        // The memo is also the getters' only dependency tracking: dropping an
+        // entry because something it read changed is what tells the views
+        // watching its receiver row that the getter changed (WatchGetters).
         internal const string StaticGetterRowId = "";
 
         internal readonly struct GetterMemoKey : IEquatable<GetterMemoKey>
@@ -62,9 +66,9 @@ namespace NeoCompose.Runtime
             // the entry's invalidation set, and a hit under dependency capture
             // (an NSProperty compute) reports them as the evaluation would have.
             public List<GetterRead>? reads;
-            // Whether reads holds a grid read. Until a recorder holds a grid
-            // it drops value reads, so replaying an entry without one into an
-            // empty recorder records nothing.
+            // Whether reads holds a grid read. Such an entry answers only
+            // while no grid change is pending: a write can move the grid's
+            // indexes before the change that names the cells it moved.
             public bool readsGrid;
             // Every value id the evaluation reported to a dependency capture
             // (an animation segment source, a nested constructor). A hit
@@ -74,6 +78,9 @@ namespace NeoCompose.Runtime
             // Set once the memo drops the entry, so a row reference that
             // kept it knows to look the getter up again.
             public bool forgotten;
+            // A watched getter whose result the memo can't keep still keeps
+            // its reads, so a change reaches its watchers. It never hits.
+            public bool valueless;
         }
 
         internal readonly struct GetterRead
@@ -104,9 +111,35 @@ namespace NeoCompose.Runtime
             }
         }
 
+        // A grid cell a getter queried, named the way a grid change names it.
+        private readonly struct GridCellRead : IEquatable<GridCellRead>
+        {
+            private readonly string grid;
+            private readonly UnityEngine.Vector2Int cell;
+            private readonly bool tile;
+
+            public GridCellRead(string grid, UnityEngine.Vector2Int cell, bool tile)
+            {
+                this.grid = grid;
+                this.cell = cell;
+                this.tile = tile;
+            }
+
+            public bool Equals(GridCellRead other) =>
+                cell == other.cell && tile == other.tile && grid == other.grid;
+            public override bool Equals(object? obj) => obj is GridCellRead other && Equals(other);
+            public override int GetHashCode() => unchecked((cell.GetHashCode() * 31 + grid.GetHashCode()) * 2 + (tile ? 1 : 0));
+        }
+
         private readonly Dictionary<GetterMemoKey, GetterMemoEntry> getterMemo = new();
         private readonly Dictionary<string, HashSet<GetterMemoKey>> getterMemoKeysByRow = new(StringComparer.Ordinal);
-        private readonly HashSet<GetterMemoKey> gridDependentGetterMemoKeys = new();
+        private readonly Dictionary<GridCellRead, HashSet<GetterMemoKey>> getterMemoKeysByGridCell = new();
+        // A query reads its receiver's placement, so moving it changes the result.
+        private readonly Dictionary<string, HashSet<GetterMemoKey>> getterMemoKeysByPlacement = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, HashSet<GetterMemoKey>> getterMemoKeysByGrid = new(StringComparer.Ordinal);
+        // Open while a write has changed a grid's indexes but not yet
+        // published the change that forgets the getters that read them.
+        private int gridChangesPending;
         private List<GetterRead>? getterReadCapture;
         private HashSet<string>? getterValueReadCapture;
         private readonly Stack<HashSet<string>> valueReadCapturePool = new();
@@ -239,43 +272,28 @@ namespace NeoCompose.Runtime
         /// <summary>Reports a memoized getter's recorded reads as if it had run.</summary>
         // Every memo hit calls this, and usually nothing observes its reads.
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void ReplayGetterReads(GetterMemoEntry entry, NeoScriptGridReads? gridReads)
+        internal void ReplayGetterReads(GetterMemoEntry entry)
         {
-            if (gridReads is not null
-                || getterReadCapture is not null
+            if (getterReadCapture is not null
                 || capturedValueReads is not null
                 || getterValueReadCapture is not null)
-                ReplayObservedGetterReads(entry, gridReads);
+                ReplayObservedGetterReads(entry);
         }
 
-        private void ReplayObservedGetterReads(GetterMemoEntry entry, NeoScriptGridReads? gridReads)
+        private void ReplayObservedGetterReads(GetterMemoEntry entry)
         {
             if (entry.valueReads is not null && (capturedValueReads is not null || getterValueReadCapture is not null))
                 foreach (string id in entry.valueReads)
                     NoteValueRead(id);
-            // Nothing observes the reads outside a capture or grid query.
-            if (entry.reads is null || (gridReads is null && getterReadCapture is null))
-                return;
-            if (gridReads is not null && (entry.readsGrid || gridReads.RecordsGrid))
-            {
-                for (int i = 0; i < entry.reads.Count; i++)
-                {
-                    GetterRead read = entry.reads[i];
-                    if (read.content is null)
-                        gridReads.RecordValue(this, read.ownership, read.id);
-                    else
-                        gridReads.Record(read.content, read.id, read.cell, read.tile);
-                }
-            }
-            getterReadCapture?.AddRange(entry.reads);
+            if (entry.reads is not null)
+                getterReadCapture?.AddRange(entry.reads);
         }
 
         /// <summary>
         /// False while any read must observe proposed rather than committed
         /// state, or committed rather than a held script batch's pending
-        /// state, as a plan commit under one does. Dependency captures (<see cref="CaptureValueReads"/>) and
-        /// grid-read capture (<see cref="NeoScriptGridReads"/>) do not
-        /// disable memoization: a hit replays the entry's recorded reads.
+        /// state, as a plan commit under one does. Dependency captures (<see cref="CaptureValueReads"/>)
+        /// do not disable memoization: a hit replays the entry's recorded reads.
         /// </summary>
         internal bool CanMemoizeGetters
         {
@@ -292,26 +310,60 @@ namespace NeoCompose.Runtime
 
         internal GetterMemoEntry? FindMemoizedGetter(GetterMemoKey key)
         {
-            if (!getterMemo.TryGetValue(key, out GetterMemoEntry? entry))
+            if (!getterMemo.TryGetValue(key, out GetterMemoEntry? entry) || entry.valueless)
                 return null;
-            if (scriptWriteBatch is null || !entry.readsGrid)
+            return entry.readsGrid ? CurrentGridReader(key, entry) : entry;
+        }
+
+        /// <summary>
+        /// Whether an entry a caller kept (a node's or row reference's slot)
+        /// still answers without asking the memo: one that read a grid must
+        /// ask while a grid change or a held script batch is pending.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal bool HoldsCurrentReads(GetterMemoEntry entry) =>
+            !entry.readsGrid || (gridChangesPending == 0 && scriptWriteBatch is null);
+
+        private GetterMemoEntry? CurrentGridReader(GetterMemoKey key, GetterMemoEntry entry)
+        {
+            // The grid's indexes already changed, but the change that
+            // forgets what read them is not yet published.
+            if (gridChangesPending != 0)
+                return null;
+            if (scriptWriteBatch is null)
                 return entry;
             // The batch forgets the getters that read what it touches, but a
             // grid query reads through indexes it can't name.
             CommitScriptWritesForGrid();
-            return getterMemo.TryGetValue(key, out entry) ? entry : null;
+            return getterMemo.TryGetValue(key, out entry) && !entry.valueless ? entry : null;
         }
 
-        /// <summary>Memoizes a getter's result and returns the entry.</summary>
-        internal GetterMemoEntry MemoizeGetter(
+        /// <summary>
+        /// Memoizes a getter's result and returns the entry, or null while a
+        /// pending grid change holds the entry it would replace.
+        /// </summary>
+        internal GetterMemoEntry? MemoizeGetter(
             GetterMemoKey key,
             object? scalar,
             NeoScript.NSGetterEvaluator.RowReference? row,
             GetterCaptureFrame capture,
             object?[]? list = null,
-            Member? listEntryMember = null)
+            Member? listEntryMember = null) =>
+            Memoize(key, new GetterMemoEntry { scalar = scalar, row = row, list = list, listEntryMember = listEntryMember }, capture);
+
+        /// <summary>Keeps the reads of a watched getter whose result the memo can't keep.</summary>
+        internal void MemoizeGetterReads(GetterMemoKey key, GetterCaptureFrame capture) =>
+            Memoize(key, new GetterMemoEntry { valueless = true }, capture);
+
+        private GetterMemoEntry? Memoize(GetterMemoKey key, GetterMemoEntry entry, GetterCaptureFrame capture)
         {
-            var entry = new GetterMemoEntry { scalar = scalar, row = row, list = list, listEntryMember = listEntryMember };
+            // The pending change must still find the entry that read the old
+            // grid, to forget it and tell its watchers.
+            if (gridChangesPending != 0 && getterMemo.TryGetValue(key, out GetterMemoEntry? held) && held.readsGrid)
+            {
+                RecycleGetterCapture(capture);
+                return null;
+            }
             if (capture.reads is { Count: not 0 })
                 entry.reads = capture.reads;
             else if (capture.reads is not null)
@@ -325,60 +377,80 @@ namespace NeoCompose.Runtime
             }
             ForgetMemoizedGetter(key);
             getterMemo[key] = entry;
-            IndexMemoDependency(key.rowId, key);
+            IndexMemoDependency(getterMemoKeysByRow, key.rowId, key);
             if (entry.reads is null)
                 return entry;
+            string? indexedGrid = null;
             foreach (GetterRead read in entry.reads)
             {
                 if (read.content is null)
                 {
-                    IndexMemoDependency(read.id, key);
+                    IndexMemoDependency(getterMemoKeysByRow, read.id, key);
+                    continue;
                 }
-                else
+                entry.readsGrid = true;
+                string grid = read.content.Primitive.GridValueId;
+                // A query records each cell under one grid.
+                if (!ReferenceEquals(grid, indexedGrid))
                 {
-                    entry.readsGrid = true;
-                    gridDependentGetterMemoKeys.Add(key);
+                    IndexMemoDependency(getterMemoKeysByGrid, grid, key);
+                    indexedGrid = grid;
                 }
+                if (read.cell is UnityEngine.Vector2Int cell)
+                    IndexMemoDependency(getterMemoKeysByGridCell, new GridCellRead(grid, cell, read.tile), key);
+                else
+                    IndexMemoDependency(getterMemoKeysByPlacement, read.id, key);
             }
             return entry;
         }
 
-        private void IndexMemoDependency(string rowId, GetterMemoKey key)
+        private void IndexMemoDependency<TRead>(Dictionary<TRead, HashSet<GetterMemoKey>> index, TRead read, GetterMemoKey key)
         {
-            if (!getterMemoKeysByRow.TryGetValue(rowId, out HashSet<GetterMemoKey>? keys))
-                getterMemoKeysByRow[rowId] = keys = memoKeySetPool.Count != 0
+            if (!index.TryGetValue(read, out HashSet<GetterMemoKey>? keys))
+                index[read] = keys = memoKeySetPool.Count != 0
                     ? memoKeySetPool.Pop()
                     : new HashSet<GetterMemoKey>();
             keys.Add(key);
         }
 
+        /// <summary>Drops a memoized getter without telling its watchers: a read is replacing it.</summary>
         internal void ForgetMemoizedGetter(GetterMemoKey key)
         {
             if (!getterMemo.Remove(key, out GetterMemoEntry? entry))
                 return;
             entry.forgotten = true;
-            UnindexMemoDependency(key.rowId, key);
-            gridDependentGetterMemoKeys.Remove(key);
+            UnindexMemoDependency(getterMemoKeysByRow, key.rowId, key);
             List<GetterRead>? reads = entry.reads;
             if (reads is null)
                 return;
             foreach (GetterRead read in reads)
+            {
                 if (read.content is null)
-                    UnindexMemoDependency(read.id, key);
+                {
+                    UnindexMemoDependency(getterMemoKeysByRow, read.id, key);
+                    continue;
+                }
+                string grid = read.content.Primitive.GridValueId;
+                UnindexMemoDependency(getterMemoKeysByGrid, grid, key);
+                if (read.cell is UnityEngine.Vector2Int cell)
+                    UnindexMemoDependency(getterMemoKeysByGridCell, new GridCellRead(grid, cell, read.tile), key);
+                else
+                    UnindexMemoDependency(getterMemoKeysByPlacement, read.id, key);
+            }
             // The entry owned the list; nothing replays a forgotten entry.
             entry.reads = null;
             reads.Clear();
             readCapturePool.Push(reads);
         }
 
-        private void UnindexMemoDependency(string rowId, GetterMemoKey key)
+        private void UnindexMemoDependency<TRead>(Dictionary<TRead, HashSet<GetterMemoKey>> index, TRead read, GetterMemoKey key)
         {
-            if (!getterMemoKeysByRow.TryGetValue(rowId, out HashSet<GetterMemoKey>? keys))
+            if (!index.TryGetValue(read, out HashSet<GetterMemoKey>? keys))
                 return;
             keys.Remove(key);
             if (keys.Count != 0)
                 return;
-            getterMemoKeysByRow.Remove(rowId);
+            index.Remove(read);
             memoKeySetPool.Push(keys);
         }
 
@@ -401,45 +473,173 @@ namespace NeoCompose.Runtime
             if (getterMemo.Count == 0
                 || !getterMemoKeysByRow.TryGetValue(valueId, out HashSet<GetterMemoKey>? keys))
                 return;
-            ForgetMemoizedGetters(keys);
-        }
-
-        /// <summary>Drops every memoized getter that queried a grid.</summary>
-        internal void InvalidateGridDependentGetterMemo()
-        {
-            if (gridDependentGetterMemoKeys.Count == 0)
-                return;
-            ForgetMemoizedGetters(gridDependentGetterMemoKeys);
-        }
-
-        private void ForgetMemoizedGetters(HashSet<GetterMemoKey> keys)
-        {
             memoInvalidationScratch.Clear();
             memoInvalidationScratch.AddRange(keys);
-            for (int i = 0; i < memoInvalidationScratch.Count; i++)
-                ForgetMemoizedGetter(memoInvalidationScratch[i]);
-            memoInvalidationScratch.Clear();
+            ForgetChangedGetters();
         }
 
+        /// <summary>Drops every memoized getter that read a cell or placement the grid change names.</summary>
+        internal void InvalidateGetterMemoForGridChange(NeoTileGridChangedArgs change)
+        {
+            string grid = change.GridValueId;
+            if (getterMemo.Count == 0 || !getterMemoKeysByGrid.ContainsKey(grid))
+                return;
+            memoInvalidationScratch.Clear();
+            foreach (NeoObjectLayerChangedArgs layer in change.ObjectLayers)
+            {
+                foreach (NeoObjectInstanceId id in layer.ChangedInstances)
+                    if (getterMemoKeysByPlacement.TryGetValue(id.Value, out HashSet<GetterMemoKey>? keys))
+                        memoInvalidationScratch.AddRange(keys);
+                CollectCellReaders(grid, layer.ChangedCells, tile: false);
+            }
+            foreach (NeoTileLayerChangedArgs layer in change.TileLayers)
+                CollectCellReaders(grid, layer.ChangedCells, tile: true);
+            ForgetChangedGetters();
+        }
+
+        private void CollectCellReaders(string grid, IReadOnlyList<UnityEngine.Vector2Int> cells, bool tile)
+        {
+            for (int i = 0; i < cells.Count; i++)
+                if (getterMemoKeysByGridCell.TryGetValue(new GridCellRead(grid, cells[i], tile), out HashSet<GetterMemoKey>? keys))
+                    memoInvalidationScratch.AddRange(keys);
+        }
+
+        /// <summary>Drops every memoized getter that read a grid whose indexes changed without naming what.</summary>
+        internal void InvalidateGetterMemoForGrid(string gridValueId)
+        {
+            if (getterMemo.Count == 0 || !getterMemoKeysByGrid.TryGetValue(gridValueId, out HashSet<GetterMemoKey>? keys))
+                return;
+            memoInvalidationScratch.Clear();
+            memoInvalidationScratch.AddRange(keys);
+            ForgetChangedGetters();
+        }
+
+        /// <summary>
+        /// Forgets the collected keys, a key collected twice once, and tells
+        /// the watchers of their receivers.
+        /// </summary>
+        private void ForgetChangedGetters()
+        {
+            for (int i = 0; i < memoInvalidationScratch.Count; i++)
+            {
+                GetterMemoKey key = memoInvalidationScratch[i];
+                if (!getterMemo.ContainsKey(key))
+                    continue;
+                ForgetMemoizedGetter(key);
+                if (getterWatchersByRow.Count != 0)
+                    QueueGetterChange(key);
+            }
+            memoInvalidationScratch.Clear();
+            FlushGetterChanges();
+        }
+
+        /// <summary>Drops every memoized getter, telling the watchers of each.</summary>
         internal void InvalidateGetterMemo()
         {
-            foreach (GetterMemoEntry entry in getterMemo.Values)
-                entry.forgotten = true;
+            foreach (var pair in getterMemo)
+            {
+                pair.Value.forgotten = true;
+                if (getterWatchersByRow.Count != 0)
+                    QueueGetterChange(pair.Key);
+            }
             getterMemo.Clear();
             getterMemoKeysByRow.Clear();
-            gridDependentGetterMemoKeys.Clear();
+            getterMemoKeysByGridCell.Clear();
+            getterMemoKeysByPlacement.Clear();
+            getterMemoKeysByGrid.Clear();
+            FlushGetterChanges();
         }
 
-        private readonly Dictionary<string, bool> worldClassIds = new(StringComparer.Ordinal);
+        // The views that hear a getter on the row they show change, by row
+        // id, once per subscription. A getter's node is shared by every
+        // instance of its class, so a change raises on the view's node
+        // instead, naming that instance alone.
+        private readonly Dictionary<string, List<NeoMember>> getterWatchersByRow = new(StringComparer.Ordinal);
+        private List<(NeoMember node, NeoMember getter)> pendingGetterChanges = new();
+        private List<(NeoMember node, NeoMember getter)>? spareGetterChanges;
+        private readonly HashSet<(NeoMember node, NeoMember getter)> pendingGetterChangeSet = new();
+        private int getterChangeHolds;
 
-        /// <summary>Whether rows of this class are grid, tile or object placements, so a write to one can change grid queries.</summary>
-        private bool IsWorldClass(string? classId)
+        /// <summary>
+        /// Raises <paramref name="node"/>'s OnChanged, with the getter's node
+        /// as the changed child, whenever the memo drops a getter on
+        /// <paramref name="rowId"/> because something it read changed. A
+        /// watch hears a getter once per read: the first change drops the
+        /// entry, and the next read records it again.
+        /// </summary>
+        internal IDisposable WatchGetters(string rowId, NeoMember node)
         {
-            if (string.IsNullOrEmpty(classId))
-                return false;
-            if (!worldClassIds.TryGetValue(classId!, out bool world))
-                worldClassIds[classId!] = world = HasWorldKind(classId, "tileGrid") || HasWorldKind(classId, "tile") || HasWorldKind(classId, "object");
-            return world;
+            if (!getterWatchersByRow.TryGetValue(rowId, out List<NeoMember>? nodes))
+                getterWatchersByRow[rowId] = nodes = new List<NeoMember>(1);
+            nodes.Add(node);
+            return new NeoDisposableSubscription(() =>
+            {
+                if (!getterWatchersByRow.TryGetValue(rowId, out List<NeoMember>? watching))
+                    return;
+                watching.Remove(node);
+                if (watching.Count == 0)
+                    getterWatchersByRow.Remove(rowId);
+            });
         }
+
+        /// <summary>Whether a view watches the getters on <paramref name="rowId"/>.</summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal bool WatchesGetters(string rowId) =>
+            getterWatchersByRow.Count != 0 && getterWatchersByRow.ContainsKey(rowId);
+
+        private void QueueGetterChange(GetterMemoKey key)
+        {
+            if (!getterWatchersByRow.TryGetValue(key.rowId, out List<NeoMember>? nodes))
+                return;
+            foreach (NeoMember node in nodes)
+            {
+                // The view names the getter by its own child, so a key-filtered
+                // listener finds it.
+                if (node is NeoMemberClass owner
+                    && owner.FindGetterChild(key.memberId) is { } getter
+                    && pendingGetterChangeSet.Add((node, getter)))
+                    pendingGetterChanges.Add((node, getter));
+            }
+        }
+
+        /// <summary>
+        /// Raises the queued getter changes. Inside a commit they join its
+        /// change batch; a leaf, placement or partition write holds them
+        /// until every index it touches is current.
+        /// </summary>
+        private void FlushGetterChanges()
+        {
+            if (getterChangeHolds != 0 || pendingGetterChanges.Count == 0)
+                return;
+            // A listener's own write queues and raises its own changes.
+            var draining = pendingGetterChanges;
+            pendingGetterChanges = spareGetterChanges ?? new();
+            spareGetterChanges = null;
+            pendingGetterChangeSet.Clear();
+            try
+            {
+                foreach (var (node, getter) in draining)
+                    if (!node.isDisposed)
+                        RaiseChanged(node, getter);
+            }
+            finally
+            {
+                draining.Clear();
+                spareGetterChanges = draining;
+            }
+        }
+
+        internal void HoldGetterChanges() => getterChangeHolds++;
+
+        internal void ReleaseGetterChanges()
+        {
+            if (--getterChangeHolds == 0)
+                FlushGetterChanges();
+        }
+
+        /// <summary>Opens a window in which grid indexes changed ahead of the change that names them.</summary>
+        internal void BeginGridChange() => gridChangesPending++;
+
+        internal void EndGridChange() => gridChangesPending--;
     }
 }
