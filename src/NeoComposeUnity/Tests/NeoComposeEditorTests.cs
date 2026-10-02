@@ -547,6 +547,8 @@ namespace NeoCompose.Tests
                 cache.state?.snapshots.Select(snapshot => snapshot.id).ToArray());
         }
 
+#if NEO_COMPOSE_NEOWYN_TESTS
+        [Category("Neowyn")]
         [TestCase(false)]
         [TestCase(true)]
         public async Task Synchronizer_DeletesCapturedBoulderAndPreservesSharedRows(bool includeFileManifest)
@@ -672,6 +674,8 @@ namespace NeoCompose.Tests
             using var client = NeoTestSaveStack.LoadClient(writtenJson);
             Assert.IsNotNull(client);
         }
+
+#endif
 
         private static void StampCachedExport(
             FakeAssetService assets, NeoComposeUnityExportSyncState state)

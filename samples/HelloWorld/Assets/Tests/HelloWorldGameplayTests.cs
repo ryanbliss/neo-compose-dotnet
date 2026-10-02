@@ -22,11 +22,6 @@ namespace HelloWorld.Assets.Tests
     /// </summary>
     public class HelloWorldGameplayTests
     {
-        private const string SampleProjectJson = "Assets/Resources/Neo/project.json";
-
-        private static readonly string SampleProjectSourceJson =
-            File.ReadAllText(SampleProjectJson);
-
         private string saveDirectory;
         private readonly List<GameObject> spawned = new();
         private readonly List<HelloWorldNeo> clients = new();
@@ -75,7 +70,7 @@ namespace HelloWorld.Assets.Tests
         private NeoProjectStore LoadedStore()
         {
             var store = new NeoProjectStore(
-                dataSource: new NeoJsonProjectDataSource(SampleProjectSourceJson),
+                dataSource: SampleProjectFixture.Source,
                 localStore: new NeoFileLocalSaveStore(saveDirectory));
             store.LoadAsync().GetAwaiter().GetResult();
             stores.Add(store);

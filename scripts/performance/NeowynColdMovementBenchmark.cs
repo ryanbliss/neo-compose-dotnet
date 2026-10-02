@@ -1,6 +1,9 @@
 // Copyright (c) Ryan Bliss and contributors. All rights reserved.
 // Licensed under the MIT License.
 
+#if NEO_COMPOSE_NEOWYN_TESTS
+// Opt in with the NEO_COMPOSE_NEOWYN_TESTS scripting define.
+
 // Copy into Assets/Tests/Editor in an isolated Neowyn checkout.
 // Measures first input without warming position, facing, or animation setters.
 using System;
@@ -86,3 +89,5 @@ public class NeowynColdMovementBenchmark
         Assert.AreEqual(state, flow.State, flow.Message);
     }
 }
+
+#endif

@@ -32,11 +32,6 @@ namespace HelloWorld.Assets.Tests
         // where the fixtures live inside the package — different file
         // tree, different prefix.)
         private const string FixturesRoot = "Assets/Tests";
-        private const string SampleProjectRoot = "Assets/Resources/Neo";
-        private static readonly string SampleProjectJson =
-            File.ReadAllText(Path.Combine(SampleProjectRoot, "project.json"));
-        private static NeoJsonProjectDataSource CreateSampleProjectSource() =>
-            new NeoJsonProjectDataSource(SampleProjectJson);
 
         private readonly List<System.IDisposable> ownedResources = new();
 
@@ -169,7 +164,7 @@ namespace HelloWorld.Assets.Tests
             Assert.AreEqual(typeof(NeoList<NeoPlacementTile>), typeof(NeoObject).GetProperty("PlacementTiles")!.PropertyType);
             Assert.IsNull(typeof(NeoPlacementTile).GetProperty("Sprite"));
             Assert.IsFalse(typeof(NeoPlacementTile).GetMethods().Any(method => method.Name == "TryConvert"));
-            var project = JObject.Parse(SampleProjectJson);
+            var project = JObject.Parse(SampleProjectFixture.Json);
             var placement = project["classes"]!["system_ccc3330c-2db5-44dc-9c8e-5ebfe430dec9"]!;
             Assert.IsNull(placement["extendsClassId"]?.Value<string>());
             Assert.AreEqual("system_b0b3c45c-a87d-4218-b056-7418ef46aac5", placement["schema"]!["Cell"]!.Value<string>());
@@ -184,7 +179,7 @@ namespace HelloWorld.Assets.Tests
             Assert.IsTrue(typeof(NeoObjectLayerLink).IsAbstract);
             Assert.AreEqual(typeof(NeoObjectLayerLink), typeof(ObjectLayerLink).BaseType);
 
-            var project = JObject.Parse(SampleProjectJson);
+            var project = JObject.Parse(SampleProjectFixture.Json);
             var classes = (JObject)project["classes"]!;
             var tileSystemBase = (JObject)classes[NeoTileLayerLinkClassId]!;
             var systemBase = (JObject)classes[NeoObjectLayerLinkClassId]!;
@@ -276,8 +271,8 @@ namespace HelloWorld.Assets.Tests
         {
             var configOptions = NeoComposeConfig.LoadDefault()!.ToLocalizationOptions();
 
-            var defaultClient = await LoadSampleClient(CreateSampleProjectSource(), localizationOptions: null);
-            var explicitConfigClient = await LoadSampleClient(CreateSampleProjectSource(), localizationOptions: configOptions);
+            var defaultClient = await LoadSampleClient(SampleProjectFixture.Source, localizationOptions: null);
+            var explicitConfigClient = await LoadSampleClient(SampleProjectFixture.Source, localizationOptions: configOptions);
 
             Assert.AreEqual(explicitConfigClient.Localization.CurrentLocale, defaultClient.Localization.CurrentLocale);
             Assert.AreEqual(explicitConfigClient.Assets.Computed.baseText, defaultClient.Assets.Computed.baseText);
@@ -1171,7 +1166,7 @@ namespace HelloWorld.Assets.Tests
         // delegates. Await initialization so constructor replay can yield.
         private async System.Threading.Tasks.Task<HelloWorldNeo> LoadSampleClient(NeoLocalizationOptions localizationOptions = null)
         {
-            return await LoadSampleClient(CreateSampleProjectSource(), localizationOptions);
+            return await LoadSampleClient(SampleProjectFixture.Source, localizationOptions);
         }
 
         private async System.Threading.Tasks.Task<HelloWorldNeo> LoadSampleClient(
@@ -1191,7 +1186,7 @@ namespace HelloWorld.Assets.Tests
             NeoLocalizationOptions localizationOptions)
         {
             var store = Own(new NeoProjectStore(
-                dataSource: CreateSampleProjectSource(),
+                dataSource: SampleProjectFixture.Source,
                 localStore: new NeoInMemoryLocalSaveStore()));
             store.LoadAsync().GetAwaiter().GetResult();
             return (store, await ReopenSampleClient(store, localizationOptions));

@@ -24,7 +24,7 @@ namespace NeoCompose.Tests
         [Test]
         public void PreparedCallback_KeepsOneBalancedAllocationSession()
         {
-            NeoClient client = LoadClient();
+            using NeoClient client = LoadClient();
             var ctx = new NSGetterEvaluator.Context(client, null, null);
             FunctionWithReturnType callback = OneInstructionCallback();
             var scope = new NeoScriptScope();
@@ -45,6 +45,9 @@ namespace NeoCompose.Tests
         [Test]
         public void PreparedCallbacks_OutperformPerEntryExecutorSetup()
         {
+            // These callbacks only read literals. Share the client, but create fresh
+            // scopes and execution contexts for each measurement.
+            using NeoClient client = LoadClient();
             var profiles = new[]
             {
                 new CallbackProfile("empty", EmptyCallback()),
@@ -56,11 +59,8 @@ namespace NeoCompose.Tests
 
             foreach (CallbackProfile profile in profiles)
             {
-                for (int warmup = 0; warmup < 5; warmup++)
-                {
-                    MeasureBaseline(profile.Callback);
-                    MeasurePrepared(profile.Callback);
-                }
+                MeasureBaseline(client, profile.Callback);
+                MeasurePrepared(client, profile.Callback);
                 var baselineSamples = new Measurement[MeasurementCount];
                 var preparedSamples = new Measurement[MeasurementCount];
                 for (int sample = 0; sample < MeasurementCount; sample++)
@@ -68,16 +68,16 @@ namespace NeoCompose.Tests
                     if (sample % 2 == 0)
                     {
                         baselineSamples[sample] = MeasureBaseline(
-                            profile.Callback);
+                            client, profile.Callback);
                         preparedSamples[sample] = MeasurePrepared(
-                            profile.Callback);
+                            client, profile.Callback);
                     }
                     else
                     {
                         preparedSamples[sample] = MeasurePrepared(
-                            profile.Callback);
+                            client, profile.Callback);
                         baselineSamples[sample] = MeasureBaseline(
-                            profile.Callback);
+                            client, profile.Callback);
                     }
                 }
 
@@ -127,14 +127,13 @@ namespace NeoCompose.Tests
         }
 
         private static Measurement MeasureBaseline(
+            NeoClient client,
             FunctionWithReturnType callback)
         {
-            NeoClient client = LoadClient();
             var ctx = new NSGetterEvaluator.Context(client, null, null);
             var parent = new NeoScriptScope();
             NeoScriptExecutionOptions options =
                 NeoScriptExecutionOptions.ForImmediate(client);
-            GC.Collect();
             long beforeBytes = GC.GetAllocatedBytesForCurrentThread();
             var stopwatch = Stopwatch.StartNew();
             for (int index = 0; index < EntryCount; index++)
@@ -156,15 +155,14 @@ namespace NeoCompose.Tests
         }
 
         private static Measurement MeasurePrepared(
+            NeoClient client,
             FunctionWithReturnType callback)
         {
-            NeoClient client = LoadClient();
             var ctx = new NSGetterEvaluator.Context(client, null, null);
             var parent = new NeoScriptScope();
             NeoScriptScope scope = parent.CreateChild();
             NeoScriptExecutionOptions options =
                 NeoScriptExecutionOptions.ForImmediate(client);
-            GC.Collect();
             long beforeBytes = GC.GetAllocatedBytesForCurrentThread();
             var stopwatch = Stopwatch.StartNew();
             NeoScriptExecutor.EnterCallback(callback, ctx);

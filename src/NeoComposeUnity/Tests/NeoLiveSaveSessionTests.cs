@@ -834,9 +834,7 @@ namespace NeoCompose.Tests
                 canCommit = true,
             };
             var store = new NeoProjectStore(
-                dataSource: new NeoJsonProjectDataSource(
-                    System.IO.File.ReadAllText(
-                        "Packages/com.ryanbliss.neocompose/Tests/synth-example.json")),
+                dataSource: NeoTestSaveStack.SynthExample,
                 localStore: new NeoInMemoryLocalSaveStore(),
                 apiClient: api,
                 targetReleaseChannelId: LiveChannel,

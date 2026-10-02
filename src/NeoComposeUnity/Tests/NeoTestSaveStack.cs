@@ -26,6 +26,11 @@ namespace NeoCompose.Tests
     {
         private const string SaveCustomId = "test-save";
 
+        // Opt in only from fixtures that do not mutate schema declarations.
+        // Every load still creates a fresh store, save, and client.
+        internal static readonly NeoJsonProjectDataSource SynthExample = new(
+            System.IO.File.ReadAllText("Packages/com.ryanbliss.neocompose/Tests/synth-example.json"));
+
         private NeoTestSaveStack(NeoProjectStore store, INeoLocalSaveStore localStore)
         {
             Store = store;
@@ -52,9 +57,17 @@ namespace NeoCompose.Tests
             NeoSaveOptions? options = null,
             INeoLocalSaveStore? localStore = null)
         {
+            return Create(new NeoJsonProjectDataSource(projectJson), options, localStore);
+        }
+
+        public static NeoTestSaveStack Create(
+            IProjectDataSource projectSource,
+            NeoSaveOptions? options = null,
+            INeoLocalSaveStore? localStore = null)
+        {
             localStore ??= new NeoInMemoryLocalSaveStore();
             var store = new NeoProjectStore(
-                dataSource: new NeoJsonProjectDataSource(projectJson),
+                dataSource: projectSource,
                 localStore: localStore,
                 options: options);
             store.LoadAsync().GetAwaiter().GetResult();

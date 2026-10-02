@@ -6,6 +6,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -27,21 +28,13 @@ namespace NeoCompose.Tests
         private const string VersionId = "version-1";
 
         [UnityTest]
-        public IEnumerator FullExport_WaitsForResponseBeyondOrdinaryRequestTimeout()
+        public IEnumerator FullExport_UsesUnityTransport()
         {
-            var portReservation = new TcpListener(IPAddress.Loopback, 0);
-            portReservation.Start();
-            var port = ((IPEndPoint)portReservation.LocalEndpoint).Port;
-            portReservation.Stop();
-            var origin = $"http://127.0.0.1:{port}";
-            using var server = new HttpListener();
-            server.Prefixes.Add(origin + "/");
-            server.Start();
+            using var server = StartLoopbackServer(out var origin);
             var serve = Task.Run(async () =>
             {
                 var context = await server.GetContextAsync();
                 Assert.AreEqual($"/api/projects/{ProjectId}/export", context.Request.RawUrl);
-                await Task.Delay(TimeSpan.FromSeconds(32));
                 var bytes = Encoding.UTF8.GetBytes("{\"projectId\":\"project-1\"}");
                 context.Response.ContentType = "application/json";
                 context.Response.ContentLength64 = bytes.Length;
@@ -50,10 +43,68 @@ namespace NeoCompose.Tests
             });
             var client = NewClient(new FakeProvider("the-token"), new NeoComposeUnityHttpClient());
             var export = client.ExportProjectAsync(origin, ProjectId, VersionId);
-            while (!export.IsCompleted || !serve.IsCompleted)
+            var watch = Stopwatch.StartNew();
+            while ((!export.IsCompleted || !serve.IsCompleted) && watch.Elapsed.TotalSeconds < 10)
+            {
+                if (serve.IsFaulted)
+                    serve.GetAwaiter().GetResult();
                 yield return null;
+            }
+            Assert.That(export.IsCompleted && serve.IsCompleted, Is.True,
+                "The loopback export did not complete.");
             Assert.AreEqual(ProjectId, export.GetAwaiter().GetResult().projectId);
             serve.GetAwaiter().GetResult();
+        }
+
+        // The API policy test below verifies 300s for exports and 30s elsewhere.
+        // Exercise actual transport enforcement with a short budget instead of
+        // waiting past the ordinary 30s timeout on every suite run.
+        [Test]
+        public async Task UnityTransport_EnforcesNativeAndManagedTimeouts()
+        {
+            await Task.WhenAll(CheckTransportTimeout(1), CheckTransportTimeout(0));
+        }
+
+        private static async Task CheckTransportTimeout(int timeoutSeconds)
+        {
+            // Zero disables Unity's native timeout, so only our managed fallback
+            // can complete that request. Both mechanisms must use the given budget.
+            using var server = StartLoopbackServer(out var origin);
+            var accepted = server.GetContextAsync();
+            var request = new NeoComposeUnityHttpClient().SendAsync(
+                origin, "GET", null, null, timeoutSeconds: timeoutSeconds);
+            var watch = Stopwatch.StartNew();
+            while (!request.IsCompleted && watch.Elapsed.TotalSeconds < 10)
+                await Task.Yield();
+
+            Assert.That(accepted.IsCompletedSuccessfully, Is.True,
+                "The loopback server must accept the request before it times out.");
+            using var response = accepted.GetAwaiter().GetResult().Response;
+            Assert.That(request.IsCompleted, Is.True,
+                "The transport ignored the requested timeout.");
+            if (timeoutSeconds == 0)
+            {
+                Assert.That(request.IsFaulted, Is.True);
+                Assert.That(request.Exception!.GetBaseException(), Is.TypeOf<TimeoutException>());
+            }
+            else
+            {
+                Assert.That(request.IsFaulted, Is.False, request.Exception?.ToString());
+                Assert.That(request.GetAwaiter().GetResult().IsConnectionError, Is.True);
+            }
+        }
+
+        private static HttpListener StartLoopbackServer(out string origin)
+        {
+            var portReservation = new TcpListener(IPAddress.Loopback, 0);
+            portReservation.Start();
+            var port = ((IPEndPoint)portReservation.LocalEndpoint).Port;
+            portReservation.Stop();
+            origin = $"http://127.0.0.1:{port}";
+            var server = new HttpListener();
+            server.Prefixes.Add(origin + "/");
+            server.Start();
+            return server;
         }
 
         [Test]

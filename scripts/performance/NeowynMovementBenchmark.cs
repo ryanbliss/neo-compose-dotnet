@@ -1,6 +1,9 @@
 // Copyright (c) Ryan Bliss and contributors. All rights reserved.
 // Licensed under the MIT License.
 
+#if NEO_COMPOSE_NEOWYN_TESTS
+// Opt in with the NEO_COMPOSE_NEOWYN_TESTS scripting define.
+
 // Copy into Assets/Tests/Editor in an isolated copy of Neowyn. Run with
 // unity test <copy> --mode EditMode --filter NeowynMovementBenchmark
 // Uses the bundled export and a temporary local save; never contacts a deployment.
@@ -185,3 +188,5 @@ public class NeowynMovementBenchmark
         Assert.AreEqual(state, flow.State, flow.Message);
     }
 }
+
+#endif

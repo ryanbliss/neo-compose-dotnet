@@ -8,7 +8,9 @@ It belongs outside the SDK test assembly because it depends on Neowyn types.
 
 1. Make an isolated copy of the current Neowyn checkout, including its local
    content edits. Do not run this in a developer's active game checkout.
-2. Copy `NeowynMovementBenchmark.cs` into the copy's `Assets/Tests/Editor`.
+2. Copy `NeowynMovementBenchmark.cs` into the copy's `Assets/Tests/Editor` and
+   add `NEO_COMPOSE_NEOWYN_TESTS` to the active target's Scripting Define Symbols.
+   All Neowyn probes in this directory require this explicit opt-in.
 3. Set `com.ryanbliss.neocompose` in the copy's `Packages/manifest.json` to the
    baseline SDK, then to the revised SDK using an absolute `file:` package path.
    Keep all other content and settings identical.
@@ -370,7 +372,8 @@ before assigning an intermittent hitch to either.
 `NeoInventoryPerformanceTests.cs` runs in the Neowyn Unity project, where the
 generated types and scenes exist. Copy it to `Assets/Tests/Editor/` (replacing
 the local copy, if present), then run its EditMode Unity tests. Each test enters
-Play Mode and loads the real scene. Run timing tests separately, with profiling
+Play Mode and loads the real scene. Enable `NEO_COMPOSE_NEOWYN_TESTS` in the
+copy's Scripting Define Symbols. Run timing tests separately, with profiling
 disabled and no concurrent test/deploy jobs.
 
 - `RealWorldInventoryActions`: fresh Neo save, actual menu/Dev Tools/inventory
