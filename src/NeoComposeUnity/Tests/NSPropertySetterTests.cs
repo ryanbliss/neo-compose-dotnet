@@ -1029,6 +1029,54 @@ namespace NeoCompose.Tests
             CollectionAssert.AreEqual(new[] { 7 }, values);
         }
 
+        [Test]
+        public void ComputedOnChanged_HearsAGetterWhoseReadFailed()
+        {
+            using var client = BuildClient(out NSPropertyMember property);
+            // if (this.Count == 0) throw "No count yet"; return this.Count;
+            property.getter = Function(
+                new IfInstruction
+                {
+                    type = InstructionKind.If,
+                    branches = new[]
+                    {
+                        new ConditionalBranch
+                        {
+                            expression = new BooleanExpression
+                            {
+                                condition = new Condition
+                                {
+                                    type = OperatorKind.EqualTo,
+                                    operand1 = KeyOf(ThisVariable(), "Count"),
+                                    operand2 = NumberLiteral(0),
+                                },
+                            },
+                            instructions = new Instruction[]
+                            {
+                                new ThrowInstruction { type = InstructionKind.Throw, pointer = StringLiteral("No count yet") },
+                            },
+                        },
+                    },
+                },
+                new ReturnInstruction { type = InstructionKind.Return, pointer = KeyOf(ThisVariable(), "Count") });
+            property.getter.typeInfo = IntType();
+            client.SetSaveValue(Number("value-receiver-count", 0));
+            var view = TestReceiverView.Create(client, "value-receiver");
+            int changes = 0;
+            using var watch = view.WatchAnyChange((owner, changed, _) =>
+            {
+                if (owner.BackingNode.TryGetSchemaKeyForChild(changed, out string? key) && key == "Computed")
+                    changes++;
+            });
+            NSGetterResult failed = view.ComputeComputed();
+            Assert.IsFalse(failed.ok);
+            StringAssert.Contains("No count yet", failed.error);
+
+            client.SetSaveValue(Number("value-receiver-count", 4));
+            Assert.AreEqual(1, changes, "A failed read still hears a change to what it read.");
+            Assert.AreEqual(4, Convert.ToInt32(view.ComputeComputed().value));
+        }
+
         // return this.Count;
         private static FunctionWithReturnType ThisCountGetter()
         {

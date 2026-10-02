@@ -491,12 +491,12 @@ namespace NeoCompose.Tests
             // A getter that queried the grid stays memoized until a change
             // reaches a cell or placement it read.
             var key = new NeoClient.GetterMemoKey(NeoValueOwnership.Asset, "shop-1", "grid-getter", NeoValueOwnership.Asset);
-            void MemoizeQuery(Vector2Int offset)
+            void MemoizeQuery(Vector2Int offset, bool empty = true)
             {
                 NeoClient.GetterCaptureFrame enclosing = client.BeginGetterReadCapture();
                 Assert.IsTrue(client.ScriptGridQueries.TryInvoke("system_f5ca386c-990c-54a1-8473-2d49d2cd887d", receiver,
                     new object?[] { new NeoCellPattern(offset) }, ctx, out object? queried));
-                Assert.IsEmpty((object?[])queried!);
+                Assert.AreEqual(empty, ((object?[])queried!).Length == 0);
                 client.MemoizeGetter(key, 0, null, client.EndGetterReadCapture(enclosing));
                 Assert.IsNotNull(client.FindMemoizedGetter(key));
             }
@@ -541,15 +541,278 @@ namespace NeoCompose.Tests
             Assert.AreEqual("new-shop", NSGetterEvaluator.FindRowIdByReference(((object?[])inserted!).Single(), ctx),
                 "A query after the insertion reads the rebuilt layer index.");
 
-            MemoizeQueryAt(new Vector2Int(289, 280));
+            MemoizeQuery(new Vector2Int(289, 280), empty: false);
             NeoGeneratedTypesSupport.SetPlacementVector3(WritableObject(client, "far-shop"), "Position", new NeoReadOnlyVector3(301, 300, 0));
             Assert.IsNull(client.FindMemoizedGetter(key), "A placement move off a queried cell drops it.");
-            void MemoizeQueryAt(Vector2Int offset)
+        }
+
+        [Test]
+        public void NeoScriptGridQuery_DropsItsMemoWhenACarriedLinkStartsOrStopsCoveringTheCell()
+        {
+            var data = BuildClassBackedTileGridProjectData();
+            ((ArrayMemberValue)data.values["shop-1-children"]).value = Array.Empty<string>();
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid",
+                BuildClassBackedReadOnlyFactories(), BuildClassBackedWritableFactories());
+            client.ScriptGridQueries.RegisterContent(new TestTileGridContent(primitive,
+                new[] { primitive.BindReadOnlyTileLayer<TestAuthoredTileLayer>(BackgroundLayerClassId, new[] { TileClassId }) },
+                new[] { primitive.BindReadOnlyObjectLayer<TestAuthoredObjectLayer>(ObjectsLayerClassId, new[] { ObjectClassId }) }));
+            client.ScriptGridQueries.Bind("shop-1", "town-grid", ObjectsLayerClassId, "shop-1");
+            var ctx = client.CreateGetterContext(NeoValueOwnership.Asset);
+            object? receiver = NSGetterEvaluator.UnwrapRow(client.ResolveValueRow("shop-1")!, ctx, NeoValueOwnership.Asset);
+            var key = new NeoClient.GetterMemoKey(NeoValueOwnership.Asset, "shop-1", "grid-getter", NeoValueOwnership.Asset);
+            // The link projects its one tile at (9, 22): shop-1's origin (10, 20) plus (-1, 2).
+            bool MemoizeTileQuery()
             {
                 NeoClient.GetterCaptureFrame enclosing = client.BeginGetterReadCapture();
-                Assert.IsTrue(client.ScriptGridQueries.TryInvoke("system_f5ca386c-990c-54a1-8473-2d49d2cd887d", receiver,
-                    new object?[] { new NeoCellPattern(offset) }, ctx, out _));
+                Assert.IsTrue(client.ScriptGridQueries.TryInvoke("system_593e6208-e2ca-505e-9933-04b17102b6d2", receiver,
+                    new object?[] { new NeoCellPattern(new Vector2Int(-1, 2)) }, ctx, out object? tile));
                 client.MemoizeGetter(key, 0, null, client.EndGetterReadCapture(enclosing));
+                return tile is not null;
+            }
+            Assert.IsFalse(MemoizeTileQuery(), "No link covers the cell yet.");
+            Assert.IsFalse(client.FindMemoizedGetter(key)!.reads!.Any(read => read.content is null && read.id == "shop-1-children"),
+                "The drop below comes from the grid change, not a row the query read.");
+            var published = new List<Vector2Int>();
+            using var subscription = primitive.OnChanged(change =>
+            {
+                foreach (var layer in change.TileLayers)
+                    published.AddRange(layer.ChangedCells);
+            });
+
+            client.SetWritableValue(NeoValueOwnership.Save, new ArrayMemberValue { id = "shop-1-children", value = new[] { "shop-floor-link" } });
+            CollectionAssert.Contains(published, new Vector2Int(9, 22));
+            Assert.IsNull(client.FindMemoizedGetter(key), "A carried link that starts covering a queried cell drops it.");
+            Assert.IsTrue(MemoizeTileQuery(), "A query after the link is added reads its tile.");
+
+            client.SetWritableValue(NeoValueOwnership.Save, new ArrayMemberValue { id = "shop-1-children", value = Array.Empty<string>() });
+            Assert.IsNull(client.FindMemoizedGetter(key), "A carried link that stops covering a queried cell drops it.");
+            Assert.IsFalse(MemoizeTileQuery());
+        }
+
+        [Test]
+        public void NeoScriptGridQuery_AWatchedGetterHearsOnlyTheCellsItQueried()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildGridGetterProjectData());
+            RegisterGridGetterContent(client);
+            var view = TestGridGetterView.Resolve(client, "shop-1");
+            var heard = new List<int>();
+            using var watch = view.OnHereChanged((count, _) => heard.Add(count));
+            void Change(Vector2Int changed) => client.ScriptGridQueries.NotifyChanged(new NeoTileGridChangedArgs("town-grid",
+                objectLayers: new[] { new NeoObjectLayerChangedArgs(ObjectsLayerClassId, Array.Empty<NeoObjectInstanceId>(),
+                    Array.Empty<NeoObjectInstanceId>(), new[] { changed }, NeoTileGridChangeSourceKind.Direct, null) }));
+
+            Change(new Vector2Int(99, 99));
+            CollectionAssert.IsEmpty(heard, "A change to a cell the getter never queried is not heard.");
+            Change(new Vector2Int(10, 20));
+            CollectionAssert.AreEqual(new[] { 1 }, heard, "A change to the queried cell is heard, and the handler reads the result.");
+            Change(new Vector2Int(10, 20));
+            CollectionAssert.AreEqual(new[] { 1, 1 }, heard, "The handler's read arms the watch again.");
+        }
+
+        [Test]
+        public void NeoScriptGridQuery_AGetterReadAgainUnderAHeldScriptBatchSeesItsPendingWrites()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildGridGetterProjectData());
+            // NeoScript mutates only a Save row.
+            client.SetWritableValue(NeoValueOwnership.Save, new ArrayMemberValue { id = "shop-1-children", value = new[] { "shop-floor-link" } });
+            RegisterGridGetterContent(client);
+            var view = TestGridGetterView.Resolve(client, "shop-1");
+            Assert.IsNotNull(view.Floor, "The carried link projects a tile onto the queried cell.");
+            var stringType = new PrimitiveTypeInfo { type = MemberKind.String, required = true };
+            // this.Children.RemoveAt(0), dropping the carried link.
+            var removeLink = new FunctionWithReturnType
+            {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                parameters = Array.Empty<Variable>(),
+                typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null, required = true },
+                instructions = new Instruction[]
+                {
+                    new CollectionCallInstruction
+                    {
+                        type = InstructionKind.CollectionCall,
+                        target = new WriteTarget
+                        {
+                            pointer = new KeyOfPointer
+                            {
+                                type = PointerKind.KeyOf,
+                                keyOf = new KeyOf
+                                {
+                                    pointer = new ReferencePointer { type = PointerKind.Reference, valueId = "shop-1" },
+                                    key = new ValuePointer { type = PointerKind.Value, value = new Value { typeInfo = stringType, value = new JValue("Children") } },
+                                },
+                            },
+                            typeInfo = new CollectionTypeInfo
+                            {
+                                type = MemberKind.List,
+                                required = true,
+                                entryTypeInfo = new ClassTypeInfo { type = MemberKind.Class, classId = TileLayerLinkClassId, required = true },
+                            },
+                            writability = WritabilityKind.Save,
+                        },
+                        mutation = CollectionMutationKind.RemoveAt,
+                        args = new Pointer[]
+                        {
+                            new ValuePointer
+                            {
+                                type = PointerKind.Value,
+                                value = new Value { typeInfo = new PrimitiveTypeInfo { type = MemberKind.Int, required = true }, value = new JValue(0) },
+                            },
+                        },
+                    },
+                },
+            };
+
+            client.EnterScriptWrites();
+            try
+            {
+                NeoScriptExecutor.Execute(client, removeLink, new Dictionary<string, object?>(), client.CreateGetterContext(NeoValueOwnership.Asset));
+                Assert.IsTrue(client.PendingScriptWrites?.HasCollection("shop-1-children"), "The removal is still pending.");
+                Assert.IsNull(view.Floor, "A read through the same property node sees the pending removal.");
+            }
+            finally
+            {
+                client.ExitScriptWrites();
+            }
+            Assert.IsNull(view.Floor);
+        }
+
+        private const string GetObjectsId = "system_f5ca386c-990c-54a1-8473-2d49d2cd887d";
+        private const string GetTileId = "system_593e6208-e2ca-505e-9933-04b17102b6d2";
+
+        /// <summary>
+        /// The class-backed grid with the NeoCellPattern schema and two
+        /// computed members on its objects:
+        /// <c>Here => this.GetObjects(NeoCellPattern.Box(0, 0, None))</c> and
+        /// <c>Floor => this.GetTile(NeoCellPattern.Box(0, 0, None).Translate((-1, 2)))</c>,
+        /// the cell shop-1's carried link projects its tile onto.
+        /// </summary>
+        private static ProjectData BuildGridGetterProjectData()
+        {
+            const string boxId = "system_aaad2df6-e31e-5f5d-95b9-e265211faed5";
+            const string translateId = "system_efc67858-0c95-573f-a8a9-d7e07d0a1d55";
+            var data = BuildClassBackedTileGridProjectData();
+            NeoCellPatternRuntimeTests.AddCellPatternSchema(data);
+            var objects = new CollectionTypeInfo
+            {
+                type = MemberKind.List,
+                required = true,
+                entryTypeInfo = new ClassTypeInfo { type = MemberKind.Class, classId = ObjectClassId, required = true },
+            };
+            var tile = new ClassTypeInfo { type = MemberKind.Class, classId = TileClassId, required = false };
+            data.members[GetObjectsId] = Query(GetObjectsId, "GetObjects", objects);
+            data.members[GetTileId] = Query(GetTileId, "GetTile", tile);
+            data.members["object-here-getter"] = Getter("object-here-getter", "Here", objects, Call("here", GetObjectsId, Box("here-box")));
+            data.members["object-floor-getter"] = Getter("object-floor-getter", "Floor", tile, Call("floor", GetTileId, new CallFunctionPointer
+            {
+                type = PointerKind.CallFunction,
+                callSiteId = "floor-translate",
+                memberId = translateId,
+                receiver = CallReceiver.Instance(Box("floor-box")),
+                args = new Pointer[]
+                {
+                    Literal(new PrimitiveTypeInfo { type = MemberKind.Vector2Int, required = true }, JObject.FromObject(new { x = -1, y = 2 })),
+                },
+            }));
+            data.classes[ObjectClassId].schema["Here"] = "object-here-getter";
+            data.classes[ObjectClassId].schema["Floor"] = "object-floor-getter";
+            return data;
+
+            static FunctionMember Query(string id, string name, TypeInfo returnType) => new()
+            {
+                id = id,
+                projectId = "project-a",
+                name = name,
+                kind = MemberKind.Function,
+                argumentTypes = new[]
+                {
+                    new FunctionArgumentTypeInfo { name = "pattern", type = MemberKind.Class, classId = NeoCellPatternStorage.ClassId, required = true },
+                },
+                returnTypeInfo = returnType,
+            };
+            static ValuePointer Literal(TypeInfo typeInfo, JToken value) => new()
+            {
+                type = PointerKind.Value,
+                value = new Value { typeInfo = typeInfo, value = value },
+            };
+            static Pointer Box(string site) => new CallFunctionPointer
+            {
+                type = PointerKind.CallFunction,
+                callSiteId = site,
+                memberId = boxId,
+                receiver = CallReceiver.Static(boxId),
+                args = new Pointer[]
+                {
+                    Literal(new PrimitiveTypeInfo { type = MemberKind.Int, required = true }, 0),
+                    Literal(new PrimitiveTypeInfo { type = MemberKind.Int, required = true }, 0),
+                    Literal(new EnumTypeInfo { type = MemberKind.Enum, required = true, enumId = NeoCellPatternStorage.ExcludingEnumId },
+                        new JArray(NeoCellPatternStorage.NoneId)),
+                },
+            };
+            static Pointer Call(string site, string queryId, Pointer pattern) => new CallFunctionPointer
+            {
+                type = PointerKind.CallFunction,
+                callSiteId = site,
+                memberId = queryId,
+                receiver = CallReceiver.Instance(new VariablePointer { type = PointerKind.Variable, variableId = "__this__" }),
+                args = new[] { pattern },
+            };
+            static NSPropertyMember Getter(string id, string name, TypeInfo type, Pointer result) => new()
+            {
+                id = id,
+                projectId = "project-a",
+                name = name,
+                kind = MemberKind.NSProperty,
+                returnTypeInfo = type,
+                getter = new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = Array.Empty<Variable>(),
+                    typeInfo = type,
+                    instructions = new Instruction[] { new ReturnInstruction { type = InstructionKind.Return, pointer = result } },
+                },
+            };
+        }
+
+        private static void RegisterGridGetterContent(NeoClient client)
+        {
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid",
+                BuildClassBackedReadOnlyFactories(), BuildClassBackedWritableFactories());
+            client.ScriptGridQueries.RegisterContent(new TestTileGridContent(primitive,
+                new[] { primitive.BindReadOnlyTileLayer<TestAuthoredTileLayer>(BackgroundLayerClassId, new[] { TileClassId }) },
+                new[] { primitive.BindReadOnlyObjectLayer<TestAuthoredObjectLayer>(ObjectsLayerClassId, new[] { ObjectClassId }) }));
+            client.ScriptGridQueries.Bind("shop-1", "town-grid", ObjectsLayerClassId, "shop-1");
+        }
+
+        /// <summary>A generated object view over <see cref="BuildGridGetterProjectData"/>'s computed members.</summary>
+        private sealed class TestGridGetterView : NeoGeneratedClassValue
+        {
+            private static readonly NeoField<int> Here = new("Here");
+
+            private TestGridGetterView(NeoClient client, NeoMemberClass node)
+                : base(client, node, ObjectClassId)
+            {
+            }
+
+            internal static TestGridGetterView Resolve(NeoClient client, string valueId) =>
+                (TestGridGetterView)NeoGeneratedTypesSupport.ResolveClassValue(client, valueId,
+                    new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory>
+                    {
+                        [ObjectClassId] = (factoryClient, node) => new TestGridGetterView(factoryClient, node),
+                    },
+                    new Dictionary<string, NeoGeneratedTypesSupport.WritableClassFactory>())!;
+
+            internal object? Floor => Compute("Floor");
+
+            internal IDisposable OnHereChanged(Action<int, NeoChangeSource> handler) =>
+                WatchField(Here, handler, () => ((object?[])Compute("Here")!).Length);
+
+            private object? Compute(string key)
+            {
+                NSGetterResult result = ComputeProperty(key);
+                if (!result.ok)
+                    throw new InvalidOperationException(result.error);
+                return result.value;
             }
         }
 
@@ -7864,6 +8127,30 @@ namespace NeoCompose.Tests
         }
 
         /// <summary>
+        /// Stands in for a generated <c>NeoSpriteObject</c> whose
+        /// <c>SortingOrder</c> is a computed property.
+        /// </summary>
+        private sealed class TestComputedSpriteChild
+            : NeoGeneratedWorldObjectValue,
+              INeoSpriteObjectValue
+        {
+            public TestComputedSpriteChild(NeoClient client, NeoMemberClass node)
+                : base(client, node, ObjectClassId)
+            {
+            }
+
+            public string Name => "";
+            public NeoReadOnlyVector3 Position { get; } = new(Vector3.zero);
+            public NeoReadOnlyVector3 Size { get; } = new(Vector3.one);
+            public bool Enabled => true;
+            public Sprite Sprite => null!;
+            public bool FlipX => false;
+            public bool FlipY => false;
+            public string MaskInteraction => NeoSpriteMaskInteraction.None.optionId;
+            public int? SortingOrder => Convert.ToInt32(ComputeProperty("SortingOrder").value);
+        }
+
+        /// <summary>
         /// Stands in for a nested generated <c>NeoObject</c> composition part —
         /// the character-rig shape, where a part owns its own sprite layers and
         /// hiding it must hide the whole subtree.
@@ -8076,6 +8363,89 @@ namespace NeoCompose.Tests
                         "SortingOrder", NeoValueWritePayload.FromValue(++notification));
                     Assert.That(drawn.sortingOrder, Is.EqualTo(12 + (offset ?? 0)));
                     Assert.That(go.GetComponentInChildren<SpriteRenderer>(), Is.SameAs(drawn));
+                }
+            }
+            finally { UnityEngine.Object.DestroyImmediate(go); }
+        }
+
+        [Test]
+        public void Render_NestedComputedSpriteStateFollowsItsGetter()
+        {
+            var data = BuildPlacementAnimationProjectData();
+            var intType = new PrimitiveTypeInfo { type = MemberKind.Int, required = true };
+            data.members["object-shade-member"] = new IntMember
+            {
+                id = "object-shade-member",
+                projectId = "project-a",
+                name = "Shade",
+                kind = MemberKind.Int,
+                defaultValue = new NumberMemberValueBase { value = 0 },
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            // SortingOrder => this.Shade;
+            data.members["object-sorting-getter"] = new NSPropertyMember
+            {
+                id = "object-sorting-getter",
+                projectId = "project-a",
+                name = "SortingOrder",
+                kind = MemberKind.NSProperty,
+                code = "return this.Shade;",
+                returnTypeInfo = intType,
+                getter = new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = Array.Empty<Variable>(),
+                    typeInfo = intType,
+                    instructions = new Instruction[]
+                    {
+                        new ReturnInstruction
+                        {
+                            type = InstructionKind.Return,
+                            pointer = new KeyOfPointer
+                            {
+                                type = PointerKind.KeyOf,
+                                keyOf = new KeyOf
+                                {
+                                    pointer = new VariablePointer { type = PointerKind.Variable, variableId = "__this__" },
+                                    key = new ValuePointer
+                                    {
+                                        type = PointerKind.Value,
+                                        value = new Value
+                                        {
+                                            typeInfo = new PrimitiveTypeInfo { type = MemberKind.String, required = true },
+                                            value = JToken.FromObject("Shade"),
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            data.classes[ObjectClassId].schema["Shade"] = "object-shade-member";
+            data.classes[ObjectClassId].schema["SortingOrder"] = "object-sorting-getter";
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var obj = (TestComposedObject)SpawnAnimationTestObject(client).Info;
+            var part = (NeoGeneratedClassValue)SpawnAnimationTestObject(client, new Vector2Int(8, 8)).Info;
+            obj.Children = new INeoWorldObjectValue[] { new TestComputedSpriteChild(client, part.BackingNode) };
+            var go = new GameObject("Nested computed sprite test");
+            try
+            {
+                var renderer = go.AddComponent<NeoTileGridRenderer>();
+                renderer.Render(NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid"),
+                    new List<ReadOnlyNeoTileLayerRuntime>(),
+                    new[] { ObjectLayerWithSingleInstance(obj, "Default", 12) });
+                var drawn = go.GetComponentInChildren<SpriteRenderer>();
+                Assert.That(drawn.sortingOrder, Is.EqualTo(12));
+                foreach (int shade in new[] { 3, -2 })
+                {
+                    NeoGeneratedTypesSupport.SetValue(NeoGeneratedTypesSupport.AsWritable(part.BackingNode),
+                        "Shade", NeoValueWritePayload.FromValue(shade));
+                    Assert.That(drawn.sortingOrder, Is.EqualTo(12 + shade),
+                        "A nested part redraws when a row its computed SortingOrder read changes.");
                 }
             }
             finally { UnityEngine.Object.DestroyImmediate(go); }

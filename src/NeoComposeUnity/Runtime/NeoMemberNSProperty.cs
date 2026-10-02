@@ -235,7 +235,8 @@ namespace NeoCompose.Runtime
 
             NeoClient.GetterCaptureFrame enclosingCapture = memoize ? client.BeginGetterReadCapture() : default;
             NeoClient.GetterCaptureFrame capture = default;
-            object? value;
+            object? value = null;
+            string? error = null;
             try
             {
                 ctx.BindThis(boundThis);
@@ -246,11 +247,11 @@ namespace NeoCompose.Runtime
             }
             catch (NSGetterRuntimeError ex)
             {
-                return NSGetterResult.Error(ex.Message);
+                error = ex.Message;
             }
             catch (System.Exception ex)
             {
-                return NSGetterResult.Error($"Evaluator error: {ex.Message}");
+                error = $"Evaluator error: {ex.Message}";
             }
             finally
             {
@@ -263,6 +264,10 @@ namespace NeoCompose.Runtime
                 memoEntry = null;
                 if (!client.CanMemoizeGetters)
                     client.RecycleGetterCapture(capture);
+                // A failed read keeps only what it read, so a watch hears the
+                // change that lets it succeed.
+                else if (error is not null)
+                    client.MemoizeGetterReads(memoKey, capture);
                 else if (value is null or string or bool or double or int or long or float)
                     memoEntry = client.MemoizeGetter(memoKey, value, null, capture);
                 else if (NSGetterEvaluator.FindRowReference(value, ctx) is { } resultRef
@@ -271,12 +276,12 @@ namespace NeoCompose.Runtime
                 else if (value is object?[] entries
                     && NSGetterEvaluator.MemoizableList(entries, ctx, out Member? entryMember) is { } list)
                     memoEntry = client.MemoizeGetter(memoKey, null, null, capture, list, entryMember);
-                else if (client.WatchesGetters(memoKey.rowId))
-                    client.MemoizeGetterReads(memoKey, capture);
                 else
-                    client.RecycleGetterCapture(capture);
+                    client.MemoizeGetterReads(memoKey, capture);
                 memoRowId = memoKey.rowId;
             }
+            if (error is not null)
+                return NSGetterResult.Error(error);
             client.ReturnDirectFunctionContext(ctx, value);
             return NSGetterResult.Ok(value);
         }
