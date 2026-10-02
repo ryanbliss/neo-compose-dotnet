@@ -22,7 +22,14 @@ namespace NeoCompose.Runtime
         // The memo is also the getters' only dependency tracking: dropping an
         // entry because something it read changed is what tells the views
         // watching its receiver row that the getter changed (WatchGetters).
+        // The same read index holds effects (P97 §3.1): a change queues an
+        // effect where it forgets a getter.
         internal const string StaticGetterRowId = "";
+
+        internal enum DependentKind : byte
+        {
+            Getter, Effect
+        }
 
         internal readonly struct GetterMemoKey : IEquatable<GetterMemoKey>
         {
@@ -30,22 +37,30 @@ namespace NeoCompose.Runtime
             public readonly string rowId;
             public readonly string memberId;
             public readonly NeoValueOwnership readOwnership;
+            public readonly DependentKind kind;
             // Hashed once: every read an entry indexes adds the key to a set.
             private readonly int hash;
 
-            public GetterMemoKey(NeoValueOwnership ownership, string rowId, string memberId, NeoValueOwnership readOwnership)
+            public GetterMemoKey(
+                NeoValueOwnership ownership,
+                string rowId,
+                string memberId,
+                NeoValueOwnership readOwnership,
+                DependentKind kind = DependentKind.Getter)
             {
                 this.ownership = ownership;
                 this.rowId = rowId;
                 this.memberId = memberId;
                 this.readOwnership = readOwnership;
+                this.kind = kind;
                 hash = unchecked(
-                    ((rowId.GetHashCode() * 31 + memberId.GetHashCode()) * 31 + (int)ownership) * 31 + (int)readOwnership);
+                    (((rowId.GetHashCode() * 31 + memberId.GetHashCode()) * 31 + (int)ownership) * 31 + (int)readOwnership) * 2
+                    + (int)kind);
             }
 
             public bool Equals(GetterMemoKey other) =>
                 hash == other.hash && ownership == other.ownership && readOwnership == other.readOwnership
-                && rowId == other.rowId && memberId == other.memberId;
+                && kind == other.kind && rowId == other.rowId && memberId == other.memberId;
             public override bool Equals(object? obj) => obj is GetterMemoKey other && Equals(other);
             public override int GetHashCode() => hash;
         }
@@ -619,18 +634,25 @@ namespace NeoCompose.Runtime
             ForgetMemoizedGetter(key);
             getterMemo[key] = entry;
             IndexMemoDependency(getterMemoKeysByRow, key.rowId, key);
-            if (entry.reads is null)
-                return entry;
+            if (entry.reads is not null)
+                entry.readsGrid = IndexReads(key, entry.reads);
+            return entry;
+        }
+
+        /// <summary>Indexes <paramref name="key"/> under each read; returns whether one read a grid.</summary>
+        private bool IndexReads(GetterMemoKey key, List<GetterRead> reads)
+        {
+            bool readsGrid = false;
             string? indexedGrid = null;
             int gridHash = 0;
-            foreach (GetterRead read in entry.reads)
+            foreach (GetterRead read in reads)
             {
                 if (read.content is null)
                 {
                     IndexMemoDependency(getterMemoKeysByRow, read.id, key);
                     continue;
                 }
-                entry.readsGrid = true;
+                readsGrid = true;
                 string grid = read.content.Primitive.GridValueId;
                 // A query records each cell under one grid.
                 if (!ReferenceEquals(grid, indexedGrid))
@@ -644,7 +666,7 @@ namespace NeoCompose.Runtime
                 else
                     IndexMemoDependency(getterMemoKeysByPlacement, read.id, key);
             }
-            return entry;
+            return readsGrid;
         }
 
         private void IndexMemoDependency<TRead>(Dictionary<TRead, HashSet<GetterMemoKey>> index, TRead read, GetterMemoKey key)
@@ -669,6 +691,15 @@ namespace NeoCompose.Runtime
             List<GetterRead>? reads = entry.reads;
             if (reads is null)
                 return true;
+            // The entry owned the list; nothing replays a forgotten entry.
+            entry.reads = null;
+            UnindexReads(key, reads);
+            return true;
+        }
+
+        /// <summary>Drops <paramref name="key"/> from each read's index and recycles the list.</summary>
+        private void UnindexReads(GetterMemoKey key, List<GetterRead> reads)
+        {
             string? unindexedGrid = null;
             int gridHash = 0;
             foreach (GetterRead read in reads)
@@ -690,11 +721,8 @@ namespace NeoCompose.Runtime
                 else
                     UnindexMemoDependency(getterMemoKeysByPlacement, read.id, key);
             }
-            // The entry owned the list; nothing replays a forgotten entry.
-            entry.reads = null;
             reads.Clear();
             readCapturePool.Push(reads);
-            return true;
         }
 
         private void UnindexMemoDependency<TRead>(Dictionary<TRead, HashSet<GetterMemoKey>> index, TRead read, GetterMemoKey key)
@@ -715,7 +743,7 @@ namespace NeoCompose.Runtime
         /// <summary>Drops every memoized getter that read one of the changed rows.</summary>
         private void InvalidateGetterMemoForRows(HashSet<(NeoValueOwnership ownership, string valueId)> changed)
         {
-            if (getterMemo.Count == 0)
+            if (!HasReadDependents)
                 return;
             foreach (var (_, valueId) in changed)
                 InvalidateGetterMemoForRow(valueId);
@@ -724,7 +752,7 @@ namespace NeoCompose.Runtime
         /// <summary>Drops every memoized getter that read one row.</summary>
         internal void InvalidateGetterMemoForRow(string valueId)
         {
-            if (getterMemo.Count == 0
+            if (!HasReadDependents
                 || !getterMemoKeysByRow.TryGetValue(valueId, out HashSet<GetterMemoKey>? keys))
                 return;
             memoInvalidationScratch.Clear();
@@ -736,7 +764,7 @@ namespace NeoCompose.Runtime
         internal void InvalidateGetterMemoForGridChange(NeoTileGridChangedArgs change)
         {
             string grid = change.GridValueId;
-            if (getterMemo.Count == 0 || !getterMemoKeysByGrid.ContainsKey(grid))
+            if (!HasReadDependents || !getterMemoKeysByGrid.ContainsKey(grid))
                 return;
             memoInvalidationScratch.Clear();
             int gridHash = grid.GetHashCode();
@@ -766,32 +794,62 @@ namespace NeoCompose.Runtime
         /// <summary>Drops every memoized getter that read a grid whose indexes changed without naming what.</summary>
         internal void InvalidateGetterMemoForGrid(string gridValueId)
         {
-            if (getterMemo.Count == 0 || !getterMemoKeysByGrid.TryGetValue(gridValueId, out HashSet<GetterMemoKey>? keys))
+            if (!HasReadDependents || !getterMemoKeysByGrid.TryGetValue(gridValueId, out HashSet<GetterMemoKey>? keys))
                 return;
             memoInvalidationScratch.Clear();
             memoInvalidationScratch.AddRange(keys);
             ForgetChangedGetters();
         }
 
+        private bool HasReadDependents
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return getterMemo.Count != 0 || effectsByKey.Count != 0;
+            }
+        }
+
         /// <summary>
-        /// Forgets the collected keys, a key collected twice once, and tells
-        /// the watchers of their receivers.
+        /// Forgets the collected getters, a key collected twice once, and
+        /// tells the watchers of their receivers; queues the collected effects.
         /// </summary>
         private void ForgetChangedGetters()
         {
-            for (int i = 0; i < memoInvalidationScratch.Count; i++)
+            // Released where nothing else holds them: the effects run, then
+            // the watchers hear the settled getters.
+            HoldGetterChanges();
+            try
             {
-                GetterMemoKey key = memoInvalidationScratch[i];
-                if (ForgetMemoizedGetter(key) && getterWatchersByRow.Count != 0)
-                    QueueGetterChange(key);
+                for (int i = 0; i < memoInvalidationScratch.Count; i++)
+                {
+                    GetterMemoKey key = memoInvalidationScratch[i];
+                    if (key.kind == DependentKind.Effect)
+                        QueueEffect(key);
+                    else if (ForgetMemoizedGetter(key) && getterWatchersByRow.Count != 0)
+                        QueueGetterChange(key);
+                }
+                memoInvalidationScratch.Clear();
             }
-            memoInvalidationScratch.Clear();
-            FlushGetterChanges();
+            finally
+            {
+                ReleaseGetterChanges();
+            }
         }
 
-        /// <summary>Drops every memoized getter, telling the watchers of each.</summary>
+        /// <summary>
+        /// Drops every memoized getter, telling the watchers of each. Effects
+        /// keep their reads: the caller names what changed for them.
+        /// </summary>
         internal void InvalidateGetterMemo()
         {
+            if (effectsByKey.Count != 0)
+            {
+                memoInvalidationScratch.Clear();
+                memoInvalidationScratch.AddRange(getterMemo.Keys);
+                ForgetChangedGetters();
+                return;
+            }
             foreach (var pair in getterMemo)
             {
                 pair.Value.ForgetResult();
@@ -887,10 +945,22 @@ namespace NeoCompose.Runtime
 
         internal void HoldGetterChanges() => getterChangeHolds++;
 
+        /// <summary>
+        /// The outermost release runs the pending effects, still held so
+        /// their own writes join this boundary, then raises the getter changes.
+        /// </summary>
         internal void ReleaseGetterChanges()
         {
-            if (--getterChangeHolds == 0)
-                FlushGetterChanges();
+            try
+            {
+                if (getterChangeHolds == 1 && EffectsPending)
+                    DrainEffects();
+            }
+            finally
+            {
+                if (--getterChangeHolds == 0)
+                    FlushGetterChanges();
+            }
         }
 
         /// <summary>Opens a window in which grid indexes changed ahead of the change that names them.</summary>

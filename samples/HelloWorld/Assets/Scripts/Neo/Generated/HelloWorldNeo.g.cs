@@ -33,6 +33,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             Save = new Save(client, client.save, false, client.save.ownership);
             Session = new Session(client, client.session, false, client.session.ownership);
             Dialogues = new NeoDialogues(this, dialogueOptions);
+            Client.StartEffects();
         }
 
         public static async Awaitable<HelloWorldNeo> Load(INeoSaveLoader synchronizer, NeoDialogueRuntimeOptions? dialogueOptions = null, NeoAssetDatabase? assetDatabase = null, NeoLocalizationOptions? localizationOptions = null, NeoSaveOptions? saveOptions = null, System.Threading.CancellationToken cancellationToken = default)

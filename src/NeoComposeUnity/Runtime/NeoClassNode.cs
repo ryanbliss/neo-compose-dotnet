@@ -49,6 +49,20 @@ namespace NeoCompose.Runtime
             Surface = surface;
             Stored = stored;
             ReadOnly = readOnly;
+            Effects = CollectEffects(surface);
+        }
+
+        // A surface entry is the class's most-derived record of its key, so
+        // its resolved effect is this class's (P97 §1.4).
+        private static MergedSchemaEntry[] CollectEffects(List<MergedSchemaEntry> surface)
+        {
+            List<MergedSchemaEntry>? effects = null;
+            foreach (MergedSchemaEntry entry in surface)
+            {
+                if (entry.member is NSFunctionMember { Effect: NeoEffectKind.Auto })
+                    (effects ??= new List<MergedSchemaEntry>()).Add(entry);
+            }
+            return effects?.ToArray() ?? System.Array.Empty<MergedSchemaEntry>();
         }
 
         internal string Id
@@ -90,6 +104,12 @@ namespace NeoCompose.Runtime
 
         /// <summary>Declaration-backed read-only instance members.</summary>
         internal IList<MergedSchemaEntry> ReadOnly
+        {
+            get;
+        }
+
+        /// <summary>The functions the runtime runs for every live instance (P97).</summary>
+        internal MergedSchemaEntry[] Effects
         {
             get;
         }

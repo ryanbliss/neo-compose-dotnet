@@ -575,18 +575,19 @@ namespace NeoCompose.Runtime
             }
             finally
             {
+                // Released into the execution's change batch, when it has
+                // one. Closed first: an effect the release runs is an
+                // execution of its own, with its own batch.
+                bool endBatch = scriptChangeBatchOpen;
+                scriptChangeBatchOpen = false;
                 try
                 {
-                    // Released into the execution's change batch, when it has one.
                     ReleaseGetterChanges();
                 }
                 finally
                 {
-                    if (scriptChangeBatchOpen)
-                    {
-                        scriptChangeBatchOpen = false;
+                    if (endBatch)
                         EndChangeBatch();
-                    }
                 }
             }
         }

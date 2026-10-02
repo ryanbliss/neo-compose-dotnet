@@ -611,6 +611,122 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void NeoScriptGridQuery_AnEffectRunsAgainWhenOnlyACellItQueriedChanges()
+        {
+            // @effect void Notice() { this.Record(this.Here); } with a native Record.
+            ProjectData data = BuildGridGetterProjectData();
+            var thisPointer = new VariablePointer { type = PointerKind.Variable, variableId = "__this__" };
+            var nullType = new PrimitiveTypeInfo { type = MemberKind.Null, required = true };
+            data.members["object-record"] = new FunctionMember
+            {
+                id = "object-record",
+                projectId = "project-a",
+                name = "Record",
+                kind = MemberKind.Function,
+                argumentTypes = new[]
+                {
+                    new FunctionArgumentTypeInfo
+                    {
+                        name = "here",
+                        type = MemberKind.List,
+                        required = true,
+                        entryTypeInfo = new ClassTypeInfo { type = MemberKind.Class, classId = ObjectClassId, required = true },
+                    },
+                },
+                returnTypeInfo = new VoidTypeInfo { type = MemberKind.Void, required = true },
+                Dispatch = NeoFunctionDispatchKind.Synchronous,
+            };
+            data.members["object-notice"] = new NSFunctionMember
+            {
+                id = "object-notice",
+                projectId = "project-a",
+                name = "Notice",
+                kind = MemberKind.NSFunction,
+                code = "this.Record(this.Here);",
+                returnTypeInfo = new VoidTypeInfo { type = MemberKind.Void, required = true },
+                argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
+                Dispatch = NeoFunctionDispatchKind.Synchronous,
+                Effect = NeoEffectKind.Auto,
+                action = new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = new[]
+                    {
+                        new Variable { id = "__this__", typeInfo = nullType, pointer = thisPointer },
+                        new Variable
+                        {
+                            id = "__root__",
+                            typeInfo = nullType,
+                            pointer = new VariablePointer { type = PointerKind.Variable, variableId = "__root__" },
+                        },
+                    },
+                    typeInfo = nullType,
+                    instructions = new Instruction[]
+                    {
+                        new FunctionCallInstruction
+                        {
+                            type = InstructionKind.FunctionCall,
+                            call = new CallFunctionPointer
+                            {
+                                type = PointerKind.CallFunction,
+                                callSiteId = "record",
+                                memberId = "object-record",
+                                receiver = CallReceiver.Instance(thisPointer),
+                                args = new Pointer[]
+                                {
+                                    new KeyOfPointer
+                                    {
+                                        type = PointerKind.KeyOf,
+                                        keyOf = new KeyOf
+                                        {
+                                            pointer = thisPointer,
+                                            key = new ValuePointer
+                                            {
+                                                type = PointerKind.Value,
+                                                value = new Value
+                                                {
+                                                    typeInfo = new PrimitiveTypeInfo { type = MemberKind.String, required = true },
+                                                    value = new JValue("Here"),
+                                                },
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            };
+            data.classes[ObjectClassId].schema["Notice"] = "object-notice";
+            // Every live object runs it, and only placed ones can query.
+            data.values.Remove("shop-object");
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            RegisterGridGetterContent(client);
+            var heard = new List<int>();
+            client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+            {
+                ["object-record"] = (_, receiver, args) =>
+                {
+                    if (NeoGeneratedTypesSupport.ValueId(receiver) == "shop-1")
+                        heard.Add(((object?[])args[0]!).Length);
+                    return null;
+                },
+            });
+            void Change(Vector2Int changed) => client.ScriptGridQueries.NotifyChanged(new NeoTileGridChangedArgs("town-grid",
+                objectLayers: new[] { new NeoObjectLayerChangedArgs(ObjectsLayerClassId, Array.Empty<NeoObjectInstanceId>(),
+                    Array.Empty<NeoObjectInstanceId>(), new[] { changed }, NeoTileGridChangeSourceKind.Direct, null) }));
+
+            client.StartEffects();
+            CollectionAssert.AreEqual(new[] { 1 }, heard, "Starting runs the placed object's effect once.");
+            Change(new Vector2Int(99, 99));
+            CollectionAssert.AreEqual(new[] { 1 }, heard, "A change to a cell the effect never queried does not run it.");
+            Change(new Vector2Int(10, 20));
+            CollectionAssert.AreEqual(new[] { 1, 1 }, heard, "A change to the queried cell runs it.");
+            Change(new Vector2Int(10, 20));
+            CollectionAssert.AreEqual(new[] { 1, 1, 1 }, heard, "The run reads the cell again.");
+        }
+
+        [Test]
         public void NeoScriptGridQuery_AConstructedGetterSharesEachWatcherRebuild()
         {
             ProjectData data = BuildGridGetterProjectData();

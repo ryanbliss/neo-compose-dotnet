@@ -293,6 +293,8 @@ namespace NeoCompose.Runtime
                     client.MemoizeGetterReads(memoKey, capture);
                 memoRowId = memoKey.rowId;
             }
+            // Effects a replay inside this read queued run once it settles.
+            client.DrainDeferredEffects();
             if (error is not null)
                 return NSGetterResult.Error(error);
             client.ReturnDirectFunctionContext(ctx, value);

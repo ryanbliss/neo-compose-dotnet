@@ -268,6 +268,9 @@ namespace NeoCompose.Runtime
             string? gridClassId = primitive.Client.ResolveValueRow(primitive.GridValueId)?.classId;
             if (gridClassId is null || mapKey != NeoClient.MakeWorldPartitionKey(gridClassId))
                 return;
+            // The getters were all forgotten with the partition; an effect
+            // that queried the grid reads its placements again.
+            primitive.Client.InvalidateGetterMemoForGrid(primitive.GridValueId);
             objectLayerIds = null;
             tileLayerIds = null;
             tileLayers.Clear();

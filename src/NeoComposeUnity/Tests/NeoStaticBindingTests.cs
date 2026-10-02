@@ -186,6 +186,102 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void Effect_RunsAgainWhenAStaticItReadIsRebound()
+        {
+            // class Watcher { @effect void Watch() { this.Record(Rules.Score); } }, with a native Record.
+            var thisPointer = new VariablePointer { type = PointerKind.Variable, variableId = "__this__" };
+            var nullType = new PrimitiveTypeInfo { type = MemberKind.Null, required = true };
+            NeoClient client = BuildClient(data =>
+            {
+                data.members["watcher-record"] = new FunctionMember
+                {
+                    id = "watcher-record",
+                    projectId = "static-project",
+                    name = "Record",
+                    kind = MemberKind.Function,
+                    argumentTypes = new[]
+                    {
+                        new FunctionArgumentTypeInfo { name = "score", type = MemberKind.Int, required = false },
+                    },
+                    returnTypeInfo = new VoidTypeInfo { type = MemberKind.Void, required = true },
+                    Dispatch = NeoFunctionDispatchKind.Synchronous,
+                };
+                data.members["watcher-watch"] = new NSFunctionMember
+                {
+                    id = "watcher-watch",
+                    projectId = "static-project",
+                    name = "Watch",
+                    kind = MemberKind.NSFunction,
+                    code = "this.Record(Rules.Score);",
+                    returnTypeInfo = new VoidTypeInfo { type = MemberKind.Void, required = true },
+                    argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
+                    Dispatch = NeoFunctionDispatchKind.Synchronous,
+                    Effect = NeoEffectKind.Auto,
+                    action = new FunctionWithReturnType
+                    {
+                        compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                        parameters = new[]
+                        {
+                            new Variable { id = "__this__", typeInfo = nullType, pointer = thisPointer },
+                            new Variable
+                            {
+                                id = "__root__",
+                                typeInfo = nullType,
+                                pointer = new VariablePointer { type = PointerKind.Variable, variableId = "__root__" },
+                            },
+                        },
+                        typeInfo = nullType,
+                        instructions = new Instruction[]
+                        {
+                            new FunctionCallInstruction
+                            {
+                                type = InstructionKind.FunctionCall,
+                                call = new CallFunctionPointer
+                                {
+                                    type = PointerKind.CallFunction,
+                                    callSiteId = "record",
+                                    memberId = "watcher-record",
+                                    receiver = CallReceiver.Instance(thisPointer),
+                                    args = new Pointer[]
+                                    {
+                                        new StaticMemberPointer { type = PointerKind.StaticMember, memberId = "static-score" },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                };
+                data.classes["watcher-class"] = new NeoSchemaClass
+                {
+                    id = "watcher-class",
+                    projectId = "static-project",
+                    name = "Watcher",
+                    schema = new Dictionary<string, string> { ["Watch"] = "watcher-watch" },
+                };
+                data.values["watcher"] = ObjectValue("watcher", "watcher-class");
+            });
+            var heard = new List<int?>();
+            client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+            {
+                ["watcher-record"] = (_, _, args) =>
+                {
+                    heard.Add(args[0] is null ? null : Convert.ToInt32(args[0]));
+                    return null;
+                },
+            });
+            client.LoadValuePartition("scores:rules-class");
+            NeoStaticBinding binding = NeoGeneratedTypesSupport.StaticBinding(client, "static-score", NeoValueOwnership.Save);
+            binding.SetValue(NeoGeneratedTypesSupport.Value(12));
+
+            client.StartEffects();
+            CollectionAssert.AreEqual(new int?[] { 12 }, heard);
+            binding.Clear();
+            binding.SetValue(NeoGeneratedTypesSupport.Value(7));
+
+            CollectionAssert.AreEqual(new int?[] { 12, null, 7 }, heard, "Unbinding and binding again each run it.");
+        }
+
+        [Test]
         public void GetterExecution_CanWriteRuntimeStaticMember()
         {
             NeoClient client = BuildClient();
@@ -2770,7 +2866,7 @@ namespace NeoCompose.Tests
             }
         }
 
-        private static NeoClient BuildClient()
+        private static NeoClient BuildClient(Action<ProjectData>? configure = null)
         {
             var rootClass = new NeoSchemaClass
             {
@@ -3188,6 +3284,7 @@ namespace NeoCompose.Tests
                 },
                 enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
             };
+            configure?.Invoke(data);
             return NeoTestSaveStack.ClientFromSchema(data);
         }
 
