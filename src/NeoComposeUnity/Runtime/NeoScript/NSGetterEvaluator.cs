@@ -4905,10 +4905,16 @@ namespace NeoCompose.Runtime.NeoScript
                 client.RecycleGetterCapture(capture);
             else if (result is null or string or bool or double or int or long or float)
                 memoized = client.MemoizeGetter(memoKey, result, null, capture);
-            else if (result is not NeoScriptObject { attachedId: null }
-                && FindRowReference(result, ctx) is { } resultRef
-                && resultRef.ownership != NeoValueOwnership.Session)
+            else if (result is NeoScriptObject { attachedId: null } constructed)
+            {
+                constructed.ShareGetterResult();
+                memoized = client.MemoizeGetter(memoKey, constructed, null, capture);
+            }
+            else if (FindRowReference(result, ctx) is { } resultRef)
+            {
+                client.ShareConstructedGetterRow(resultRef, result, ctx, capture);
                 memoized = client.MemoizeGetter(memoKey, null, resultRef, capture);
+            }
             else if (result is object?[] entries
                 && MemoizableList(entries, ctx, out JsonMember? entryMember) is { } list)
                 memoized = client.MemoizeGetter(memoKey, null, null, capture, list, entryMember);

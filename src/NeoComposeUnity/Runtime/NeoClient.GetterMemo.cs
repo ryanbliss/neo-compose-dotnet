@@ -14,15 +14,10 @@ namespace NeoCompose.Runtime
     {
         // NSProperty getters are pure functions of their receiver row and the
         // rows and grid cells they read, so a result stays valid until one of
-        // those changes. Every memoized evaluation records its reads; a commit
-        // drops the entries that read a changed row, and a grid change drops
-        // the entries that read a cell or placement it names. Only results
-        // that can be re-resolved in any evaluation context are kept: scalars,
-        // pointers to authored or Save rows, and derived lists of those.
-        // Session rows are skipped because a getter that constructs its
-        // result must construct again. The one exception is a static getter
-        // read as a pattern argument's receiver: only a native call reads the
-        // pattern, so its offsets are kept under StaticGetterRowId.
+        // those changes. Constructed results retain their in-memory identity;
+        // scalars, stored row references and derived lists keep their existing
+        // representation. A constructed result becomes Session rows only when
+        // a caller needs rows, never merely because the memo keeps it.
         //
         // The memo is also the getters' only dependency tracking: dropping an
         // entry because something it read changed is what tells the views
@@ -86,6 +81,16 @@ namespace NeoCompose.Runtime
             // read failed, still keeps its reads, so a change reaches its
             // watchers. It never hits.
             public bool valueless;
+
+            internal void ForgetResult()
+            {
+                forgotten = true;
+                scalar = null;
+                row = null;
+                list = null;
+                listEntryMember = null;
+                valueReads = null;
+            }
         }
 
         internal readonly struct GetterRead
@@ -146,6 +151,8 @@ namespace NeoCompose.Runtime
         // published the change that forgets the getters that read them.
         private int gridChangesPending;
         private List<GetterRead>? getterReadCapture;
+        private HashSet<string>? getterConstructedRows;
+        internal bool IsCapturingGetterReads => getterReadCapture is not null;
         // Appended as read, duplicates and all: only an entry that can hit
         // replays them, so only it pays to make them distinct.
         private List<string>? getterValueReadCapture;
@@ -162,11 +169,13 @@ namespace NeoCompose.Runtime
         {
             internal readonly List<GetterRead>? reads;
             internal readonly List<string>? valueReads;
+            internal readonly HashSet<string>? constructedRows;
 
-            internal GetterCaptureFrame(List<GetterRead>? reads, List<string>? valueReads)
+            internal GetterCaptureFrame(List<GetterRead>? reads, List<string>? valueReads, HashSet<string>? constructedRows = null)
             {
                 this.reads = reads;
                 this.valueReads = valueReads;
+                this.constructedRows = constructedRows;
             }
         }
 
@@ -177,7 +186,8 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal GetterCaptureFrame BeginGetterReadCapture(bool readsOnly = false)
         {
-            var previous = new GetterCaptureFrame(getterReadCapture, getterValueReadCapture);
+            var previous = new GetterCaptureFrame(getterReadCapture, getterValueReadCapture, getterConstructedRows);
+            getterConstructedRows = null;
             getterReadCapture = readCapturePool.Count != 0
                 ? readCapturePool.Pop()
                 : new List<GetterRead>();
@@ -199,7 +209,36 @@ namespace NeoCompose.Runtime
             List<string>? valueReads = ReferenceEquals(getterValueReadCapture, previous.valueReads)
                 ? null
                 : getterValueReadCapture;
-            var capture = new GetterCaptureFrame(getterReadCapture, valueReads);
+            var capture = new GetterCaptureFrame(getterReadCapture, valueReads, getterConstructedRows);
+            // Accumulating into a freshly constructed result does not make
+            // that result an input. Compact once, before enclosing captures
+            // inherit the reads, without scanning the Session store.
+            if (getterConstructedRows is { } constructed)
+            {
+                if (capture.reads is { } reads)
+                {
+                    int kept = 0;
+                    for (int i = 0; i < reads.Count; i++)
+                    {
+                        GetterRead read = reads[i];
+                        if (read.content is not null || !constructed.Contains(read.id))
+                            reads[kept++] = read;
+                    }
+                    reads.RemoveRange(kept, reads.Count - kept);
+                }
+                if (capture.valueReads is { } ids)
+                {
+                    int kept = 0;
+                    for (int i = 0; i < ids.Count; i++)
+                    {
+                        string id = ids[i];
+                        if (!constructed.Contains(id))
+                            ids[kept++] = id;
+                    }
+                    ids.RemoveRange(kept, ids.Count - kept);
+                }
+            }
+            getterConstructedRows = previous.constructedRows;
             getterReadCapture = previous.reads;
             getterValueReadCapture = previous.valueReads;
             if (capture.reads is { Count: not 0 })
@@ -207,6 +246,66 @@ namespace NeoCompose.Runtime
             if (capture.valueReads is { Count: not 0 })
                 previous.valueReads?.AddRange(capture.valueReads);
             return capture;
+        }
+
+        // Only eager construction needs row bookkeeping. Detached results
+        // neither allocate this set nor publish rows when they enter the memo.
+        private void NoteGetterConstruction(List<MemberValue> rows)
+        {
+            if (getterReadCapture is null)
+                return;
+            getterConstructedRows ??= new HashSet<string>(StringComparer.Ordinal);
+            foreach (MemberValue row in rows)
+                getterConstructedRows.Add(row.id);
+        }
+
+        internal bool HasSharedGetterAncestor(string valueId)
+        {
+            // Called only for an already-owned source that would otherwise
+            // be rejected. Ordinary parentless imports never walk ancestors.
+            HashSet<string> visited = RentIdSet();
+            try
+            {
+                do
+                {
+                    if (ExistingValueNode(valueId)?.sharedGetterResult == true)
+                        return true;
+                } while (visited.Add(valueId)
+                    && TryFindOwnedParent(NeoValueOwnership.Session, valueId, out valueId));
+                return false;
+            }
+            finally
+            {
+                ReturnIdSet(visited);
+            }
+        }
+
+        internal void ShareConstructedGetterRow(
+            NeoScript.NSGetterEvaluator.RowReference row,
+            object? result,
+            NeoScript.NSGetterEvaluator.Context ctx,
+            GetterCaptureFrame capture)
+        {
+            if (row.ownership != NeoValueOwnership.Session
+                || capture.constructedRows?.Contains(row.valueId) != true)
+                return;
+            ctx.allocationTracker.MarkEscaped(result, ctx);
+            // Protect the returned owned graph, including a returned child,
+            // from adoption by an assignment into a stored member.
+            var pending = new Stack<(string valueId, Member? member)>();
+            TryInferMemberForValueId(row.valueId, out Member? member);
+            pending.Push((row.valueId, member));
+            while (pending.Count != 0)
+            {
+                var next = pending.Pop();
+                NeoValueNode? node = ValueNode(next.valueId);
+                if (node is null || node.sharedGetterResult)
+                    continue;
+                node.sharedGetterResult = true;
+                if (TryGetValue(NeoValueOwnership.Session, next.valueId, out MemberValue? value))
+                    foreach (var child in EnumerateOwnedChildLinks(value!, next.member))
+                        pending.Push(child);
+            }
         }
 
         /// <summary>Returns a capture no memo entry kept to the pools.</summary>
@@ -565,7 +664,7 @@ namespace NeoCompose.Runtime
         {
             if (!getterMemo.Remove(key, out GetterMemoEntry? entry))
                 return false;
-            entry.forgotten = true;
+            entry.ForgetResult();
             UnindexMemoDependency(getterMemoKeysByRow, key.rowId, key);
             List<GetterRead>? reads = entry.reads;
             if (reads is null)
@@ -695,7 +794,7 @@ namespace NeoCompose.Runtime
         {
             foreach (var pair in getterMemo)
             {
-                pair.Value.forgotten = true;
+                pair.Value.ForgetResult();
                 if (getterWatchersByRow.Count != 0)
                     QueueGetterChange(pair.Key);
             }

@@ -2920,6 +2920,7 @@ namespace NeoCompose.Runtime
                 }
                 reference.sourceOwnership = ownership;
                 if (ownership == NeoValueOwnership.Session
+                    && client.ExistingValueNode(reference.sourceValueId)?.sharedGetterResult != true
                     && !(scope.ExistingEvaluationContext is { } evaluationContext
                         && evaluationContext.allocationTracker
                             .IsKnownParentlessAllocatedRoot(
@@ -2928,6 +2929,7 @@ namespace NeoCompose.Runtime
                         ownership,
                         reference.sourceValueId,
                         out string? parentValueId)
+                    && !client.HasSharedGetterAncestor(parentValueId)
                     && !client.IsReferenceOwnedByReplayingVirtualInstance(
                         ownership,
                         reference.sourceValueId))
@@ -2951,6 +2953,7 @@ namespace NeoCompose.Runtime
                     bool isKnownParentlessConstructorRoot =
                         reference.sourceOwnership == NeoValueOwnership.Session
                         && existedInSession
+                        && client.ExistingValueNode(reference.sourceValueId)?.sharedGetterResult != true
                         && scope.ExistingEvaluationContext is { } importContext
                         && importContext.allocationTracker
                             .IsKnownParentlessAllocatedRoot(
@@ -2976,7 +2979,8 @@ namespace NeoCompose.Runtime
                     attachedRoots.Add((importedValueId, reference.member));
                     reference.replaceValueId(importedValueId);
                     if ((reference.sourceOwnership != NeoValueOwnership.Session
-                            || !existedInSession)
+                            || !existedInSession
+                            || importedValueId != reference.sourceValueId)
                         && client.HasWritableValue(
                             NeoValueOwnership.Session,
                             importedValueId))

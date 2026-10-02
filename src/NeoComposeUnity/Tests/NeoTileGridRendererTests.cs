@@ -611,6 +611,80 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void NeoScriptGridQuery_AConstructedGetterSharesEachWatcherRebuild()
+        {
+            ProjectData data = BuildGridGetterProjectData();
+            var resultType = new ClassTypeInfo { type = MemberKind.Class, classId = "query-result", required = true };
+            data.classes["query-result"] = new NeoSchemaClass
+            {
+                id = "query-result",
+                projectId = "project-a",
+                name = "QueryResult",
+                schema = new Dictionary<string, string>(),
+            };
+            var property = (NSPropertyMember)data.members["object-here-getter"];
+            var query = (ReturnInstruction)property.getter.instructions[0];
+            TypeInfo queryType = property.returnTypeInfo!;
+            property.returnTypeInfo = resultType;
+            property.getter.typeInfo = resultType;
+            property.getter.instructions = new Instruction[]
+            {
+                new VariableInstruction
+                {
+                    type = InstructionKind.Variable,
+                    variable = new Variable { id = "queried", pointer = query.pointer, typeInfo = queryType },
+                },
+                new ReturnInstruction
+                {
+                    type = InstructionKind.Return,
+                    pointer = new FunctionPointer
+                    {
+                        type = PointerKind.Function,
+                        function = new ClassConstructorFunction
+                        {
+                            type = FunctionKind.ClassConstructor,
+                            info = new FunctionClassConstructorInfo
+                            {
+                                schemaClassInfo = resultType, fields = Array.Empty<FunctionClassConstructorField>(),
+                            },
+                        },
+                    },
+                },
+            };
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            RegisterGridGetterContent(client);
+            var view = TestGridGetterView.Resolve(client, "shop-1");
+            NeoMemberNSProperty getter = view.BackingNode.Get<NeoMemberNSProperty>("Here");
+            object? Read()
+            {
+                NSGetterResult result = getter.Compute("shop-1");
+                Assert.IsTrue(result.ok, result.error);
+                return result.value;
+            }
+            object? first = Read();
+            Assert.AreSame(first, Read());
+            var heard = new List<object?>();
+            using var watch = view.WatchAnyChange((_, changed, _) =>
+            {
+                if (changed.member.id == property.id)
+                    heard.Add(Read());
+            });
+            void Change(Vector2Int changed) => client.ScriptGridQueries.NotifyChanged(new NeoTileGridChangedArgs("town-grid",
+                objectLayers: new[] { new NeoObjectLayerChangedArgs(ObjectsLayerClassId, Array.Empty<NeoObjectInstanceId>(),
+                    Array.Empty<NeoObjectInstanceId>(), new[] { changed }, NeoTileGridChangeSourceKind.Direct, null) }));
+            Change(new Vector2Int(99, 99));
+            Assert.AreSame(first, Read());
+            Assert.IsEmpty(heard);
+            Change(new Vector2Int(10, 20));
+            Assert.AreEqual(1, heard.Count);
+            Assert.AreNotSame(first, heard[0]);
+            Assert.AreSame(heard[0], Read());
+            Change(new Vector2Int(10, 20));
+            Assert.AreEqual(2, heard.Count);
+            Assert.AreSame(heard[1], Read());
+        }
+
+        [Test]
         public void NeoScriptGridQuery_AGetterReadAgainUnderAHeldScriptBatchSeesItsPendingWrites()
         {
             using var client = NeoTestSaveStack.ClientFromSchema(BuildGridGetterProjectData());

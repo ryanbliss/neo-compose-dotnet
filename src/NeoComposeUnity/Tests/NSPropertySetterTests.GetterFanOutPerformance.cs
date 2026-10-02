@@ -36,6 +36,65 @@ namespace NeoCompose.Tests
             }
         }
 
+        [Test]
+        [Explicit("Constructed getter cache measurement; run serially by name.")]
+        public void GetterFanOutPerformance_ConstructedResults()
+        {
+            foreach (int count in FanOutReceiverCounts)
+            {
+                using var client = BuildClient(out NSPropertyMember property);
+                var resultType = new ClassTypeInfo { type = MemberKind.Class, required = true, classId = "class-receiver" };
+                property.returnTypeInfo = resultType;
+                property.getter = Function(new ReturnInstruction
+                {
+                    type = InstructionKind.Return,
+                    pointer = new FunctionPointer
+                    {
+                        type = PointerKind.Function,
+                        function = new ClassConstructorFunction
+                        {
+                            type = FunctionKind.ClassConstructor,
+                            info = new FunctionClassConstructorInfo
+                            {
+                                schemaClassInfo = resultType,
+                                fields = new[] { new FunctionClassConstructorField
+                                {
+                                    schemaKey = "Count", memberId = "member-count",
+                                    valuePointer = ArithmeticPointer(ArithmeticOpKind.Addition, KeyOf(ThisVariable(), "Count"), RootTargetPointer()),
+                                } },
+                            },
+                        },
+                    },
+                });
+                property.getter.typeInfo = resultType;
+                var rows = new List<MemberValue>(2 * count);
+                var ids = new string[count];
+                var getters = new NeoMemberNSProperty[count];
+                for (int i = 0; i < count; i++)
+                {
+                    ids[i] = $"value-fan-{i}";
+                    rows.Add(Number(ids[i] + "-count", i));
+                    rows.Add(ObjectValue(ids[i], "class-receiver", ("Count", ids[i] + "-count")));
+                }
+                client.SetWritableValues(NeoValueOwnership.Save, rows);
+                for (int i = 0; i < count; i++)
+                {
+                    getters[i] = TestReceiverView.Create(client, ids[i]).BackingNode.Get<NeoMemberNSProperty>("Computed");
+                    Assert.IsTrue(getters[i].Compute(ids[i]).ok);
+                }
+                const int repeats = 100;
+                void ReadAll()
+                {
+                    for (int repeat = 0; repeat < repeats; repeat++)
+                        for (int i = 0; i < count; i++)
+                            getters[i].Compute(ids[i]);
+                }
+                ReadAll();
+                PerformanceSampling.Report("ConstructedGetter", "repeat-read", $"receivers={count}",
+                    PerformanceSampling.Repeat(FanOutSamples, ReadAll), repeats * count);
+            }
+        }
+
         private static void MeasureGetterFanOut(int count, bool watched)
         {
             using var client = BuildClient(out NSPropertyMember property);

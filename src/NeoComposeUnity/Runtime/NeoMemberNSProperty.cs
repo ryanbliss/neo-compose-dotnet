@@ -238,7 +238,7 @@ namespace NeoCompose.Runtime
             if (holdsValuelessReads)
                 memoize = false;
             NeoClient.GetterCaptureFrame enclosingCapture = memoize
-                ? client.BeginGetterReadCapture(readsOnly: keepsOnlyReads)
+                ? client.BeginGetterReadCapture()
                 : default;
             NeoClient.GetterCaptureFrame capture = default;
             object? value = null;
@@ -274,25 +274,18 @@ namespace NeoCompose.Runtime
                 // change that lets it succeed.
                 else if (error is not null)
                     client.MemoizeGetterReads(memoKey, capture);
-                // A temporary the body built would only find a row by writing
-                // one to the store, and that row is Session's anyway.
-                else if (value is NeoScriptObject { attachedId: null })
+                else if (value is NeoScriptObject { attachedId: null } constructed)
                 {
-                    keepsOnlyReads = true;
-                    client.MemoizeGetterReads(memoKey, capture);
-                }
-                // The capture left its value ids to the enclosing one, so a
-                // kept result couldn't replay them. The next read records them.
-                else if (keepsOnlyReads)
-                {
-                    keepsOnlyReads = false;
-                    client.MemoizeGetterReads(memoKey, capture);
+                    constructed.ShareGetterResult();
+                    memoEntry = client.MemoizeGetter(memoKey, constructed, null, capture);
                 }
                 else if (value is null or string or bool or double or int or long or float)
                     memoEntry = client.MemoizeGetter(memoKey, value, null, capture);
-                else if (NSGetterEvaluator.FindRowReference(value, ctx) is { } resultRef
-                    && resultRef.ownership != NeoValueOwnership.Session)
+                else if (NSGetterEvaluator.FindRowReference(value, ctx) is { } resultRef)
+                {
+                    client.ShareConstructedGetterRow(resultRef, value, ctx, capture);
                     memoEntry = client.MemoizeGetter(memoKey, null, resultRef, capture);
+                }
                 else if (value is object?[] entries
                     && NSGetterEvaluator.MemoizableList(entries, ctx, out Member? entryMember) is { } list)
                     memoEntry = client.MemoizeGetter(memoKey, null, null, capture, list, entryMember);
@@ -308,10 +301,6 @@ namespace NeoCompose.Runtime
 
         private NeoClient.GetterMemoEntry? memoEntry;
         private string? memoRowId;
-        // Whether the last result was a temporary, whose entry keeps only
-        // reads: the next read records no value ids of its own.
-        private bool keepsOnlyReads;
-
         private NeoClient.GetterMemoKey MemoKey(MemberValue thisRow) =>
             new(ownership, thisRow.id, member.id, ownership);
 

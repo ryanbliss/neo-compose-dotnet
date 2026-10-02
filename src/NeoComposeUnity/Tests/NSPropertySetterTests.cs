@@ -1029,11 +1029,11 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void ComputedOnChanged_HearsAGetterWhoseResultIsNotMemoized()
+        public void ComputedOnChanged_HearsAGetterReturningAnExistingSessionRow()
         {
             var rootType = new ClassTypeInfo { type = MemberKind.Class, required = true, classId = "class-root" };
             using var client = BuildClient(out NSPropertyMember property, propertyType: rootType);
-            // return root.Session; a Session row result is never memoized.
+            // return root.Session; existing Session rows have stable lifetimes.
             property.getter = Function(new ReturnInstruction
             {
                 type = InstructionKind.Return,
@@ -1048,9 +1048,9 @@ namespace NeoCompose.Tests
                     changes++;
             });
             Assert.IsTrue(view.ComputeComputed().ok);
-            Assert.IsNull(client.FindMemoizedGetter(new NeoClient.GetterMemoKey(
+            Assert.IsNotNull(client.FindMemoizedGetter(new NeoClient.GetterMemoKey(
                 NeoValueOwnership.Save, "value-receiver", property.id, NeoValueOwnership.Save)),
-                "Only the reads are kept; the value is computed again.");
+                "The existing Session row is kept as a row reference.");
 
             client.SetWritableValue(NeoValueOwnership.Session, ObjectValue(
                 "value-session", "class-root", ("Target", "value-session-target")));
@@ -1065,11 +1065,11 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void ComputedOnChanged_RereadingAnUnmemoizedGetterKeepsItsWatchAndReportsItsReads()
+        public void ComputedOnChanged_RereadingASessionGetterKeepsItsWatchAndReportsItsReads()
         {
             var rootType = new ClassTypeInfo { type = MemberKind.Class, required = true, classId = "class-root" };
             using var client = BuildClient(out NSPropertyMember property, propertyType: rootType);
-            // return root.Session; a Session row result is never memoized.
+            // return root.Session; existing Session rows have stable lifetimes.
             property.getter = Function(new ReturnInstruction
             {
                 type = InstructionKind.Return,
@@ -1100,7 +1100,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void GetterCall_ReadingAGetterThatKeepsOnlyItsReadsStillRecordsThem()
+        public void GetterCall_ReadingASessionGetterStillRecordsItsDependencies()
         {
             var rootType = new ClassTypeInfo { type = MemberKind.Class, required = true, classId = "class-root" };
             using var client = BuildClient(out NSPropertyMember property, propertyType: rootType);
@@ -1147,7 +1147,7 @@ namespace NeoCompose.Tests
             client.SetWritableValue(NeoValueOwnership.Session, Number("value-session-target", 5));
             var view = TestReceiverView.Create(client, "value-receiver");
             using var watch = view.WatchAnyChange((_, _, _) => { });
-            // A Session row result keeps only the reads, for the watch.
+            // A hit replays the Session getter's dependencies into the outer getter.
             Assert.IsTrue(view.ComputeComputed().ok);
             var getter = view.BackingNode.Get<NeoMemberNSProperty>("Outer");
             Assert.AreEqual(5, Convert.ToInt32(getter.Compute("value-receiver").value));
