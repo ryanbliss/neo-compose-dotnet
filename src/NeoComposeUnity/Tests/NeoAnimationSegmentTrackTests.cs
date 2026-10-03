@@ -998,6 +998,12 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValueOwnership(frameValueId!, out NeoValueOwnership ownership));
             Assert.AreEqual(NeoValueOwnership.Session, ownership);
             MemberValue frameValue = client.ResolveValueRow(frameValueId!)!;
+            string? frameWidthId = null;
+            if (!nullFrame
+                && !client.TryGetVirtualClassChildValueId(frameValueId!, "Width", out frameWidthId))
+            {
+                frameWidthId = ((ObjectMemberValue)frameValue).value!["Width"];
+            }
             using var target = OpenRig(client);
             using NeoAnimationDefinition definition =
                 NeoAnimationCompiler.Compile(target, "Clip");
@@ -1025,6 +1031,7 @@ namespace NeoCompose.Tests
                 }
                 string widthId = ReadShapeWidthId(client);
                 Assert.AreEqual(5, ((NumberMemberValue)client.ResolveValueRow(widthId)!).value);
+                Assert.AreNotEqual(frameWidthId, widthId, "the leaf holds a copy, not the frame's rows");
                 Assert.IsTrue(client.HasWritableValue(leafOwnership, widthId), "the copy lives in the leaf's store");
             }
         }

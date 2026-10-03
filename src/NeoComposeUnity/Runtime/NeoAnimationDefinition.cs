@@ -3207,12 +3207,13 @@ namespace NeoCompose.Runtime
                             // own their values in Session, where assignment
                             // adopts only unowned rows.
                             client.TryGetValueOwnership(payload.valueId!, out NeoValueOwnership frameOwnership);
+                            client.TryInferMemberForValueId(payload.valueId!, out Member? frameMember);
                             payload = NeoValueWritePayload.FromValueReference(
                                 client.CloneOwnedValueReferenceForNewParent(
                                     writeTarget.LeafOwnership,
                                     frameOwnership,
                                     payload.valueId!,
-                                    sourceMember: null));
+                                    frameMember));
                         }
                         WriteMember(client, writeTarget.Node, writeTarget.Key, payload);
                         writeTarget.WrittenFrame = classFrame ? frameRow : null;
