@@ -369,6 +369,13 @@ namespace NeoCompose.Runtime.Json
         /// </summary>
         [JsonProperty("decimal")]
         public bool? isDecimal;
+        /// <summary>
+        /// TS-side <c>reference?: true</c> — set when the compiler typed the
+        /// operands as a Class, interface, or collection: they are equal only
+        /// when they are the same value (one value id, or one detached
+        /// instance).
+        /// </summary>
+        public bool reference;
         // Evaluator cache for type, parsed once.
         internal ComparisonOp comparison;
     }
@@ -472,9 +479,10 @@ namespace NeoCompose.Runtime.Json
         /// explicit captured <c>delegateClosure</c> values and dynamic generic
         /// <c>Equals</c> fallback dispatch; revision 13 adds the list
         /// <c>indexOf</c> intrinsic and predicate-bearing <c>count</c> shape;
-        /// revision 15 adds the <c>tileConvert</c> pointer.
+        /// revision 15 adds the <c>tileConvert</c> pointer; revision 16 adds
+        /// <c>reference</c> identity equality.
         /// </summary>
-        public const int CurrentCompilerRevision = 15;
+        public const int CurrentCompilerRevision = 16;
 
         /// <summary>
         /// Required on every body this runtime executes: it must equal

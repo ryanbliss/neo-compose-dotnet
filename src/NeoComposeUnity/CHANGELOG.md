@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.52.0] - 2026-10-02
+
+- Class, interface, List, Set and Dictionary values compare by identity when the compiler marks the comparison (`reference`) in `==`, `!=`, `Contains`, `IndexOf` and `Remove`. They are equal when they are the same value id or the same detached instance; a different row with identical fields is no longer equal. Requires compiler revision 16 (CLI 0.64.0).
+- In Neowyn, with 288 plants, re-evaluating `Evaluation` took 97.2 µs instead of 103.1 µs per plant with every memo entry forgotten, 82.8 instead of 87.0 µs after watering, and 114.2 instead of 120.0 µs after a change to each plant's own row. These are means of two alternating 8-round passes each, on the same SDK build, with and without the flags.
+
 ## [0.51.3] - 2026-10-02
 
 - A forgotten getter keeps its grid readers listed, as it already kept its row readers. Evaluating it again over the same cells revives it without indexing them again; a change to a row it read still drops them.

@@ -242,6 +242,55 @@ namespace NeoCompose.Tests
             Assert.That(NSGetterEvaluator.Evaluate(getter, new NSGetterEvaluator.Context(client, left, right)), Is.EqualTo(expected));
         }
 
+        [TestCase(false, false, true)]
+        [TestCase(true, false, false)]
+        [TestCase(true, true, true)]
+        public void ReferenceEqualityComparesIdentityNotFields(bool reference, bool same, bool expected)
+        {
+            using var client = LoadClient();
+            var left = new Dictionary<string, object?> { ["Health"] = 30d };
+            object right = same ? left : new Dictionary<string, object?> { ["Health"] = 30d };
+            var condition = new Condition
+            {
+                type = OperatorKind.EqualTo,
+                operand1 = new VariablePointer { type = PointerKind.Variable, variableId = "__this__" },
+                operand2 = new VariablePointer { type = PointerKind.Variable, variableId = "__root__" },
+                reference = reference,
+            };
+            Pointer pointer = new OperationPointer
+            {
+                type = PointerKind.Operation,
+                operation = new BooleanOperation
+                {
+                    type = OperationKind.Boolean,
+                    expression = new BooleanExpression { condition = condition },
+                },
+            };
+            object? result = NSGetterEvaluator.Evaluate(
+                ReturnFunction(pointer, MemberKind.Bool),
+                new NSGetterEvaluator.Context(client, left, right));
+            Assert.That(result, Is.EqualTo(expected));
+        }
+
+        [TestCase("indexOf", 1)]
+        [TestCase("contains", true)]
+        public void ReferenceContainsComparesEntriesUnresolved(string type, object expected)
+        {
+            Pointer pointer = JsonConvert.DeserializeObject<Pointer>(@"{
+                'type':'function','function':{'type':'__TYPE__','info':{
+                    'collectionPointer':{'type':'variable','variableId':'__this__'},
+                    'valuePointer':{'type':'variable','variableId':'__root__'},
+                    'reference':true}}}".Replace("__TYPE__", type))!;
+            using NeoClient client = LoadClient();
+            var target = new Dictionary<string, object?> { ["Health"] = 30d };
+            // The twin matches by value only; the unknown id is never read.
+            var entries = new object?[] { new Dictionary<string, object?> { ["Health"] = 30d }, target, "missing-id" };
+            object? result = NSGetterEvaluator.Evaluate(
+                ReturnFunction(pointer, expected is bool ? MemberKind.Bool : MemberKind.Int),
+                new NSGetterEvaluator.Context(client, entries, target));
+            Assert.That(result, Is.EqualTo(expected));
+        }
+
         [TestCase(false)]
         [TestCase(true)]
         public void MediaReferencePayloadsUseTheSharedWriteConversion(bool json)
