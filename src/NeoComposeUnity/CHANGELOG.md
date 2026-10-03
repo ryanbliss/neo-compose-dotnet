@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.54.1] - 2026-10-03
+
+- A Class segment frame from a static segment, such as `new NeoAnimationSegmentFrame<NeoCollider?>(value: null)`, no longer throws "already owned by parent value" when it plays. The leaf gets a copy of the frame's value, and a `null` frame clears it. Before, any clip with such a frame failed to start.
+
 ## [0.54.0] - 2026-10-03
 
 - `Collider` is on `NeoObjectBase`, so sprite children and object layer links render a `BoxCollider2D` too. Requires CLI 0.65.0. Tile layer links flatten into their parent's tilemap and have no collider host.

@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using NeoCompose.Runtime.Json;
 
@@ -1266,13 +1267,13 @@ namespace NeoCompose.Runtime
             return contentAuthored[index];
         }
 
-        internal bool TryReadPayload(int index, out NeoValueWritePayload? payload)
+        internal bool TryReadPayload(int index, [NotNullWhen(true)] out NeoValueWritePayload? payload)
         {
             return TryReadPayload(index, out payload, out _);
         }
 
         /// <param name="row">The frame's value row, shared by every index the frame holds.</param>
-        internal bool TryReadPayload(int index, out NeoValueWritePayload? payload, out MemberValue? row)
+        internal bool TryReadPayload(int index, [NotNullWhen(true)] out NeoValueWritePayload? payload, out MemberValue? row)
         {
             if (!TryReadContent(index, out row) || row is null)
             {
@@ -1282,10 +1283,14 @@ namespace NeoCompose.Runtime
             // The source subscribes to all content reads. A changed value row
             // re-resolves the segment and replaces this cache before its next use.
             // A Class frame is a whole value, unlike a keyframe's Class row,
-            // which is a path into the leaf's fields.
-            payload = contentPayloads[index] ??= row is ObjectMemberValue
-                ? NeoValueWritePayload.FromValueReference(row.id)
-                : NeoAnimationCompiler.Payload(row);
+            // which is a path into the leaf's fields. A `value: null` frame
+            // stores a null object row, which clears.
+            payload = contentPayloads[index] ??= row switch
+            {
+                ObjectMemberValue { value: null } => NeoValueWritePayload.FromValue(null),
+                ObjectMemberValue => NeoValueWritePayload.FromValueReference(row.id),
+                _ => NeoAnimationCompiler.Payload(row),
+            };
             return true;
         }
 
@@ -3152,8 +3157,14 @@ namespace NeoCompose.Runtime
                             return;
                         if (!targets.TryGetValue(placedChild, out var writeTarget))
                         {
-                            string key = ResolveSegmentTrackTargetKey(client, track, placedChild, label);
-                            writeTarget = new SegmentWriteTarget(placedChild.AsWritableView(), key);
+                            MergedSchemaEntry entry = ResolveSegmentTrackTarget(client, track, placedChild, label);
+                            NeoMemberClassWritable node = placedChild.AsWritableView();
+                            Member? member = entry.member
+                                ?? (client.TryGetMember(entry.memberId, out Member? found) ? found : null);
+                            writeTarget = new SegmentWriteTarget(
+                                node,
+                                entry.schemaKey,
+                                client.ChildOwnership(member, node.ownership));
                             targets.Add(placedChild, writeTarget);
                         }
                         if (!NeoAnimationPlayback.TryCropWindow(
@@ -3189,11 +3200,22 @@ namespace NeoCompose.Runtime
                         // has nothing to say, which is §3.2's "writes nothing"
                         // reached one more way. An EXPLICIT null value is a
                         // different row and still writes — P42 §6's null leaf.
-                        WriteMember(
-                            client,
-                            writeTarget.Node,
-                            writeTarget.Key,
-                            payload);
+                        if (payload.isValueReference)
+                        {
+                            // The frame keeps its row, so the leaf takes a
+                            // copy in its own store. A static segment's frames
+                            // own their values in Session, where assignment
+                            // adopts only unowned rows.
+                            client.TryGetValueOwnership(payload.valueId!, out NeoValueOwnership frameOwnership);
+                            client.TryInferMemberForValueId(payload.valueId!, out Member? frameMember);
+                            payload = NeoValueWritePayload.FromValueReference(
+                                client.CloneOwnedValueReferenceForNewParent(
+                                    writeTarget.LeafOwnership,
+                                    frameOwnership,
+                                    payload.valueId!,
+                                    frameMember));
+                        }
+                        WriteMember(client, writeTarget.Node, writeTarget.Key, payload);
                         writeTarget.WrittenFrame = classFrame ? frameRow : null;
                         writeTarget.WrittenLeaf = classFrame ? writeTarget.LeafRow(client) : null;
                     });
@@ -3206,10 +3228,11 @@ namespace NeoCompose.Runtime
         /// </summary>
         private sealed class SegmentWriteTarget
         {
-            internal SegmentWriteTarget(NeoMemberClassWritable node, string key)
+            internal SegmentWriteTarget(NeoMemberClassWritable node, string key, NeoValueOwnership leafOwnership)
             {
                 Node = node;
                 Key = key;
+                LeafOwnership = leafOwnership;
             }
 
             internal NeoMemberClassWritable Node
@@ -3217,6 +3240,10 @@ namespace NeoCompose.Runtime
                 get;
             }
             internal string Key
+            {
+                get;
+            }
+            internal NeoValueOwnership LeafOwnership
             {
                 get;
             }
@@ -3239,14 +3266,14 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// The schema key on the played child that this track's class names
+        /// The schema entry on the played child that this track's class names
         /// with <c>@settings(target:)</c>. Resolved through the class's
         /// <c>extendsClassId</c> chain (a project's own subclass inherits the
         /// target rather than restating it) and matched against the child's
         /// merged schema through each entry's <c>extendsMemberId</c> chain, so
         /// a child that overrides the targeted member still resolves.
         /// </summary>
-        private static string ResolveSegmentTrackTargetKey(
+        private static MergedSchemaEntry ResolveSegmentTrackTarget(
             NeoClient client,
             NeoMemberClass track,
             NeoMemberClass placedChild,
@@ -3269,7 +3296,7 @@ namespace NeoCompose.Runtime
             {
                 if (MemberDescendsFrom(client, entry.memberId, targetMemberId))
                 {
-                    return entry.schemaKey;
+                    return entry;
                 }
             }
             throw new InvalidOperationException(

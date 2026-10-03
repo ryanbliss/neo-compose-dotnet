@@ -951,6 +951,92 @@ namespace NeoCompose.Tests
         }
 
         /// <summary>
+        /// A static segment's frames live in Session, the leaf's own store, as
+        /// a static <c>new NeoAnimationSegmentFrame&lt;NeoCollider?&gt;(value: ...)</c>
+        /// does: a replayed value is owned by its frame, and a null argument
+        /// stores a null object row. The leaf takes a copy in its own store, and
+        /// null clears it.
+        /// </summary>
+        [TestCase(false, NeoMemberStorage.Session)]
+        [TestCase(true, NeoMemberStorage.Session)]
+        [TestCase(false, NeoMemberStorage.Save)]
+        public void StaticClassSegmentFrames_WriteCopies(bool nullFrame, NeoMemberStorage leafStorage)
+        {
+            ProjectData data = BuildShapeProjectData();
+            ((ClassMember)data.members["shape-member"]).Storage = leafStorage;
+            ClassMember staticSegment = ClassMemberOf("static-segment-member", "SegA", SegmentClassId, "seg-a");
+            staticSegment.Modifier = NeoMemberModifierKind.Static;
+            data.members[staticSegment.id] = staticSegment;
+            data.classes[ShapeClassId].schema![staticSegment.name] = staticSegment.id;
+            if (nullFrame)
+            {
+                data.values["seg-a-frame-0-value"] = new ObjectMemberValue
+                {
+                    id = "seg-a-frame-0-value",
+                    classId = ShapeClassId,
+                };
+            }
+            else
+            {
+                // The replay places the default under the frame.
+                ((ObjectMemberValue)data.values["seg-a-frame-0"]).value!.Remove("Value");
+                data.values["default-width"] = Number("default-width", 5);
+                ((ClassMember)data.members["segment-value-member"]).defaultValue = new ObjectMemberValueBase
+                {
+                    value = new Dictionary<string, string> { ["Width"] = "default-width" },
+                };
+            }
+
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            string? frameValueId = "seg-a-frame-0-value";
+            if (!nullFrame)
+            {
+                Assert.IsTrue(client.TryGetVirtualClassChildValueId("seg-a-frame-0", "Value", out frameValueId));
+                Assert.IsTrue(client.TryFindOwnedParent(NeoValueOwnership.Session, frameValueId!, out string? owner));
+                Assert.AreEqual("seg-a-frame-0", owner);
+            }
+            Assert.IsTrue(client.TryGetValueOwnership(frameValueId!, out NeoValueOwnership ownership));
+            Assert.AreEqual(NeoValueOwnership.Session, ownership);
+            MemberValue frameValue = client.ResolveValueRow(frameValueId!)!;
+            string? frameWidthId = null;
+            if (!nullFrame
+                && !client.TryGetVirtualClassChildValueId(frameValueId!, "Width", out frameWidthId))
+            {
+                frameWidthId = ((ObjectMemberValue)frameValue).value!["Width"];
+            }
+            using var target = OpenRig(client);
+            using NeoAnimationDefinition definition =
+                NeoAnimationCompiler.Compile(target, "Clip");
+            definition.PreparePlayback();
+
+            NeoValueOwnership leafOwnership = leafStorage == NeoMemberStorage.Save
+                ? NeoValueOwnership.Save
+                : NeoValueOwnership.Session;
+            // Frame 1 is null, so returning to frame 0 writes it again.
+            int previousFrame = -1;
+            MemberValue? previousLeaf = null;
+            foreach (int frame in new[] { 0, 0, 1, 0 })
+            {
+                definition.ApplyFrame(frame, useResolvedState: false);
+                Assert.AreSame(frameValue, client.ResolveValueRow(frameValueId!), "the frame keeps its value");
+                var leaf = (ObjectMemberValue)client.ResolveValueRow("c-shape-value")!;
+                if (frame == previousFrame)
+                    Assert.AreSame(previousLeaf, leaf, "a held frame writes nothing");
+                previousFrame = frame;
+                previousLeaf = leaf;
+                if (frame == 1 || nullFrame)
+                {
+                    Assert.IsNull(leaf.value, $"frame {frame} clears the member");
+                    continue;
+                }
+                string widthId = ReadShapeWidthId(client);
+                Assert.AreEqual(5, ((NumberMemberValue)client.ResolveValueRow(widthId)!).value);
+                Assert.AreNotEqual(frameWidthId, widthId, "the leaf holds a copy, not the frame's rows");
+                Assert.IsTrue(client.HasWritableValue(leafOwnership, widthId), "the copy lives in the leaf's store");
+            }
+        }
+
+        /// <summary>
         /// C# assigns and clears a Session Class leaf on a static record: an
         /// assigned parentless value moves onto the leaf and its reference
         /// follows it, and null tombstones the leaf in Session.
