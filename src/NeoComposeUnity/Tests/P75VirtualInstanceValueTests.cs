@@ -686,7 +686,7 @@ namespace NeoCompose.Tests
             var thing = client.save.Get<NeoMemberClassWritable>("Thing");
             NeoMemberIntWritable count = thing.Get<NeoMemberIntWritable>("Count");
             string id = count.value!.id;
-            Assert.AreEqual(id, thing.ChildValueId(client, "Count"), "an omitted member resolves at its virtual id");
+            Assert.AreEqual(id, thing.ChildValueId("Count"), "an omitted member resolves at its virtual id");
             count.Set(9);
             Assert.AreEqual(9, count.value!.value);
             Assert.AreEqual(1, ((IntMember)data.members["thing-count"]).defaultValue!.value);

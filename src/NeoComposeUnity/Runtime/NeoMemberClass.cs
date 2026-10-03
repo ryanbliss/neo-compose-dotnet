@@ -733,7 +733,7 @@ namespace NeoCompose.Runtime
         /// exactly where a write or tombstone has to land for the web to
         /// read the same value.
         /// </summary>
-        internal string? ChildValueId(NeoClient client, string key)
+        internal string? ChildValueId(string key)
         {
             if (value?.value?.TryGetValue(key, out string? childValueId) == true)
             {
@@ -1006,7 +1006,7 @@ namespace NeoCompose.Runtime
                 return;
             }
 
-            string? existingValueId = ChildValueId(client, key);
+            string? existingValueId = ChildValueId(key);
             // One node answers every read of the entry's row, and the leaf
             // write. The entry's live child already holds it.
             NeoMember? existingChild = existingValueId is null ? null : FindChild(key);
@@ -1362,7 +1362,7 @@ namespace NeoCompose.Runtime
                 }
                 childOwnership = client.ChildOwnership(childMember, ownership);
             }
-            string? childValueId = ChildValueId(client, key);
+            string? childValueId = ChildValueId(key);
             if (childValueId is null)
             {
                 return;
