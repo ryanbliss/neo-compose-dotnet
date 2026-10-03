@@ -690,8 +690,22 @@ namespace NeoCompose.Runtime
             out object? stored)
         {
             stored = null;
+            // Scalars first: they are most of what scripts assign.
             switch (member)
             {
+                case BoolMember when value is bool:
+                case StringMember when value is string:
+                    stored = value;
+                    return true;
+                // A NeoScript number is already the boxed double a row reads back.
+                case FloatMember when value is double:
+                case IntMember when value is double number && NeoScriptValueMarshaller.IsIntegralNumber(number):
+                    stored = value;
+                    return true;
+                case IntMember when NeoScriptValueMarshaller.IsIntegralNumber(value):
+                case FloatMember when value is int or float:
+                    stored = NSGetterEvaluator.Box(Convert.ToDouble(value));
+                    return true;
                 case Vector3Member when value is NeoVector3Value vector3:
                 case Vector3IntMember when value is NeoVector3Value intVector3
                     && NeoVectorValues.IsInt(intVector3.x)
@@ -713,17 +727,6 @@ namespace NeoCompose.Runtime
                     NeoColorValue colorCopy = CloneColor(color)!;
                     colorCopy.detachedOwner = target;
                     stored = colorCopy;
-                    return true;
-                case BoolMember when value is bool:
-                case StringMember when value is string:
-                    stored = value;
-                    return true;
-                case FloatMember when value is double:
-                    stored = value;
-                    return true;
-                case IntMember when NeoScriptValueMarshaller.IsIntegralNumber(value):
-                case FloatMember when value is int or float:
-                    stored = NSGetterEvaluator.Box(Convert.ToDouble(value));
                     return true;
                 case EnumMember when value is object?[] { Length: 1 } options && options[0] is string option:
                     stored = bareId ? option : new object?[] { option };
