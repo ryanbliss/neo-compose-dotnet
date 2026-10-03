@@ -121,14 +121,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        IReadOnlyNeoCollider? IReadOnlyNeoObject.Collider
-        {
-            get
-            {
-                return (IReadOnlyNeoCollider?)(object)((NeoObject)this).Collider!;
-            }
-        }
-
         NeoReadOnlyList<IReadOnlyNeoPlacementTile> IReadOnlyNeoObject.PlacementTiles
         {
             get
@@ -143,6 +135,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             private Fields() {}
 
+            public static readonly NeoField<NeoCollider?> Collider = new("Collider");
+
             public static readonly NeoField<bool> Enabled = new("Enabled");
 
             public static readonly NeoField<string> Name = new("Name");
@@ -155,8 +149,6 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<NeoList<NeoObjectBase>> Children = new("Children");
 
-            public static readonly NeoField<NeoCollider?> Collider = new("Collider");
-
             public static readonly NeoField<NeoList<NeoPlacementTile>> PlacementTiles = new("PlacementTiles");
         }
 
@@ -164,13 +156,13 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<string?>>
             {
+                [Fields.Collider] = () => null,
                 [Fields.Enabled] = () => null,
                 [Fields.Name] = () => null,
                 [Fields.Position] = () => null,
                 [Fields.Size] = () => null,
                 [Fields.Cell] = () => null,
                 [Fields.Children] = () => null,
-                [Fields.Collider] = () => null,
                 [Fields.PlacementTiles] = () => null,
             };
         }
@@ -189,13 +181,13 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
+                [Fields.Collider] = () => Collider,
                 [Fields.Enabled] = () => Enabled,
                 [Fields.Name] = () => Name,
                 [Fields.Position] = () => Position,
                 [Fields.Size] = () => Size,
                 [Fields.Cell] = () => Cell,
                 [Fields.Children] = () => Children,
-                [Fields.Collider] = () => Collider,
                 [Fields.PlacementTiles] = () => PlacementTiles,
             };
         }

@@ -31,11 +31,16 @@ namespace Assets.Scripts.Neo
         {
         }
 
+        internal ContractMiddle(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
         internal new static ContractMiddle Create(NeoClient client, NeoMemberClass node)
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ContractMiddle>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     "class-contract-child" => new ContractChild(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
@@ -49,7 +54,7 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ContractMiddle>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     "class-contract-child" => new ContractChild(factoryClient, factoryNode, false, factoryNode.ownership),
@@ -57,6 +62,16 @@ namespace Assets.Scripts.Neo
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'ContractMiddle' without a concrete client type id."),
                 };
             });
+        }
+
+        internal new static ContractMiddle? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return NeoGeneratedTypesSupport.DetachedClassId(value) switch
+            {
+                "class-contract-child" => new ContractChild(client, value, !saved),
+                "class-contract-deep-child" => new ContractDeepChild(client, value, !saved),
+                _ => null,
+            };
         }
 
         public new ContractMiddle Clone()

@@ -33,11 +33,12 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericPayload<P>>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     "class-generic-float-payload" => (GenericPayload<P>)(object)new GenericFloatPayload(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     "class-generic-string-payload" => (GenericPayload<P>)(object)new GenericStringPayload(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "class-generic-payload" => new GenericPayload<P>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GenericPayload' without a concrete client type id."),
                 };
             });
@@ -47,11 +48,12 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericPayload<P>>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     "class-generic-float-payload" => (GenericPayload<P>)(object)new GenericFloatPayload(factoryClient, factoryNode, false, factoryNode.ownership),
                     "class-generic-string-payload" => (GenericPayload<P>)(object)new GenericStringPayload(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "class-generic-payload" => new GenericPayload<P>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GenericPayload' without a concrete client type id."),
                 };
             });

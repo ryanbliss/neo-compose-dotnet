@@ -35,6 +35,11 @@ namespace Assets.Scripts.Neo
         {
         }
 
+        internal NeoDialogueMemory(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
         public NeoDialogueMemory(int? VisitCount = null, string? LastVisitedAt = null, IDictionary<string, NeoTextNodeMemory>? TextNodeMemories = null)
             : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(VisitCount, LastVisitedAt, TextNodeMemories), false, NeoValueOwnership.Session)
         {
@@ -56,7 +61,7 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoDialogueMemory>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     _ => new NeoDialogueMemory(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
@@ -68,12 +73,17 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoDialogueMemory>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     _ => new NeoDialogueMemory(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
+        }
+
+        internal static NeoDialogueMemory? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return new NeoDialogueMemory(client, value, !saved);
         }
 
         public NeoDialogueMemory Clone()
@@ -100,6 +110,10 @@ namespace Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("VisitCount", out object? detachedValue))
+                {
+                    return Convert.ToInt32(detachedValue);
+                }
                 return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("VisitCount")) ?? throw new InvalidOperationException("Required int 'VisitCount' has no value.");
             }
             set
@@ -113,6 +127,10 @@ namespace Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("LastVisitedAt", out object? detachedValue))
+                {
+                    return (string?)detachedValue;
+                }
                 return node.Get<NeoMemberString>("LastVisitedAt").Text;
             }
             set

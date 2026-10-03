@@ -52,7 +52,7 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericFunctionContract<T>>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     "class-generic-function-hero-contract" => (GenericFunctionContract<T>)(object)new GenericFunctionHeroContract(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
@@ -65,7 +65,7 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericFunctionContract<T>>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     "class-generic-function-hero-contract" => (GenericFunctionContract<T>)(object)new GenericFunctionHeroContract(factoryClient, factoryNode, false, factoryNode.ownership),

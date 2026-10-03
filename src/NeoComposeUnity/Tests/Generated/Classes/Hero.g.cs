@@ -50,6 +50,11 @@ namespace Assets.Scripts.Neo
         {
         }
 
+        internal Hero(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
         public IHeroFunctionHandler? FunctionHandler
         {
             get => FunctionHandlerObject as IHeroFunctionHandler;
@@ -80,7 +85,7 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<Hero>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     _ => new Hero(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
@@ -92,12 +97,17 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<Hero>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     _ => new Hero(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
+        }
+
+        internal static Hero? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return new Hero(client, value, !saved);
         }
 
         public Hero Clone()
@@ -124,6 +134,10 @@ namespace Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("Name", out object? detachedValue))
+                {
+                    return (string?)detachedValue;
+                }
                 return node.Get<NeoMemberString>("Name").Text;
             }
             set
@@ -137,6 +151,10 @@ namespace Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("Health", out object? detachedValue))
+                {
+                    return detachedValue is null ? (int?)null : Convert.ToInt32(detachedValue);
+                }
                 return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("Health"));
             }
             set
@@ -150,6 +168,10 @@ namespace Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("BaseDamage", out object? detachedValue))
+                {
+                    return Convert.ToInt32(detachedValue);
+                }
                 return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("BaseDamage")) ?? throw new InvalidOperationException("Required int 'BaseDamage' has no value.");
             }
         }
@@ -233,7 +255,7 @@ namespace Assets.Scripts.Neo
             {
                 var memberNode = writableNode.Get<NeoMemberDictionaryWritable>("ElementAffinity");
                 if (TryGetStoredView<NeoDictionary<Element, string?>>("ElementAffinity", memberNode, out var cached)) return cached;
-                return CacheStoredView("ElementAffinity", memberNode, new NeoDictionary<Element, string?>(client, memberNode, () => writableNode.GetOrCreateCollection<NeoMemberDictionaryWritable>("ElementAffinity"), (client, child) => ((NeoMemberString)child).Text, item => NeoGeneratedTypesSupport.Value(item), Element.FromOptionId, key => key.optionId, () => ThrowIfReadOnly("Hero.ElementAffinity"), () => IsReadOnly));
+                return CacheStoredView("ElementAffinity", memberNode, new NeoDictionary<Element, string?>(client, memberNode, () => writableNode.GetOrCreateCollection<NeoMemberDictionaryWritable>("ElementAffinity"), (client, child) => ((NeoMemberString)child).Text, item => NeoGeneratedTypesSupport.Value(item), static (factoryOptionId) => Element.FromOptionId(factoryOptionId), key => key.optionId, () => ThrowIfReadOnly("Hero.ElementAffinity"), () => IsReadOnly));
             }
         }
 
@@ -243,7 +265,7 @@ namespace Assets.Scripts.Neo
             {
                 var memberNode = node.Get<NeoMemberDictionary>("ElementAffinity");
                 if (TryGetStoredView<NeoReadOnlyDictionary<Element, string?>>("ElementAffinity", memberNode, out var cached)) return cached;
-                return CacheStoredView("ElementAffinity", memberNode, new NeoReadOnlyDictionary<Element, string?>(client, memberNode, (client, child) => ((NeoMemberString)child).Text, Element.FromOptionId, key => key.optionId));
+                return CacheStoredView("ElementAffinity", memberNode, new NeoReadOnlyDictionary<Element, string?>(client, memberNode, (client, child) => ((NeoMemberString)child).Text, static (factoryOptionId) => Element.FromOptionId(factoryOptionId), key => key.optionId));
             }
         }
 

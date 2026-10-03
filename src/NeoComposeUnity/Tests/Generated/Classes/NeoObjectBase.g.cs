@@ -11,7 +11,7 @@ using UnityEngine;
 
 namespace Assets.Scripts.Neo
 {
-    public interface IReadOnlyNeoObjectBase : INeoValueReference, INeoWorldObjectValue
+    public interface IReadOnlyNeoObjectBase : INeoValueReference, INeoWorldObjectValue, INeoColliderSource
     {
         bool IsReadOnly { get; }
 
@@ -28,9 +28,11 @@ namespace Assets.Scripts.Neo
         new NeoReadOnlyVector3 Size { get; }
 
         new bool Enabled { get; }
+
+        new IReadOnlyNeoCollider? Collider { get; }
     }
 
-    public abstract partial class NeoObjectBase : NeoGeneratedWorldObjectValue, IReadOnlyNeoObjectBase, INeoWorldObjectValue
+    public abstract partial class NeoObjectBase : NeoGeneratedWorldObjectValue, IReadOnlyNeoObjectBase, INeoWorldObjectValue, INeoColliderSource
     {
         internal NeoObjectBase(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, "system_61b30a92-90dc-4bf8-8503-ee4f6414effc", isReadOnly, inheritedStorageOwnership)
@@ -41,7 +43,7 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoObjectBase>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     "class-animated-sprite" => new AnimatedSprite(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
@@ -56,7 +58,7 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoObjectBase>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     "class-animated-sprite" => new AnimatedSprite(factoryClient, factoryNode, false, factoryNode.ownership),
@@ -89,6 +91,7 @@ namespace Assets.Scripts.Neo
 
         NeoReadOnlyVector3 INeoWorldObjectValue.Position => Position;
         NeoReadOnlyVector3 INeoWorldObjectValue.Size => Size;
+        INeoCollider? INeoColliderSource.Collider => Collider;
 
         public virtual string Name
         {
@@ -114,7 +117,7 @@ namespace Assets.Scripts.Neo
             set
             {
                 ThrowIfReadOnly("NeoObjectBase.Position");
-                NeoGeneratedTypesSupport.SetVector3(writableNode, "Position", value);
+                NeoGeneratedTypesSupport.SetPlacementVector3(writableNode, "Position", value);
             }
         }
 
@@ -166,6 +169,42 @@ namespace Assets.Scripts.Neo
             }
         }
 
+        public virtual NeoCollider? Collider
+        {
+            get
+            {
+                if (IsReadOnly)
+                {
+                    var child = node.Get<NeoMemberClass>("Collider");
+                    return child.value?.value is null ? null : global::Assets.Scripts.Neo.NeoCollider.Create(client, child);
+                }
+                else
+                {
+                    var child = writableNode.Get<NeoMemberClassWritable>("Collider");
+                    return child.value?.value is null ? null : global::Assets.Scripts.Neo.NeoCollider.CreateWritable(client, child);
+                }
+            }
+            set
+            {
+                ThrowIfReadOnly("NeoObjectBase.Collider");
+                if (value is null)
+                {
+                    writableNode.Unset("Collider");
+                    return;
+                }
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Collider", NeoGeneratedTypesSupport.ValueReference(value));
+            }
+        }
+
+        IReadOnlyNeoCollider? IReadOnlyNeoObjectBase.Collider
+        {
+            get
+            {
+                var child = node.Get<NeoMemberClass>("Collider");
+                return child.value?.value is null ? null : global::Assets.Scripts.Neo.NeoCollider.Create(client, child);
+            }
+        }
+
         public sealed class Fields
         {
             private Fields() {}
@@ -177,6 +216,8 @@ namespace Assets.Scripts.Neo
             public static readonly NeoField<NeoVector3> Size = new("Size");
 
             public static readonly NeoField<bool> Enabled = new("Enabled");
+
+            public static readonly NeoField<NeoCollider?> Collider = new("Collider");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -187,6 +228,7 @@ namespace Assets.Scripts.Neo
                 [Fields.Position] = () => null,
                 [Fields.Size] = () => null,
                 [Fields.Enabled] = () => null,
+                [Fields.Collider] = () => null,
             };
         }
 
@@ -208,6 +250,7 @@ namespace Assets.Scripts.Neo
                 [Fields.Position] = () => Position,
                 [Fields.Size] = () => Size,
                 [Fields.Enabled] = () => Enabled,
+                [Fields.Collider] = () => Collider,
             };
         }
 

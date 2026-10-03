@@ -31,6 +31,11 @@ namespace Assets.Scripts.Neo
         {
         }
 
+        internal StorageG(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
         public StorageG(int? Value = null)
             : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Value), false, NeoValueOwnership.Session)
         {
@@ -50,7 +55,7 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<StorageG>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     _ => new StorageG(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
@@ -62,12 +67,17 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<StorageG>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     _ => new StorageG(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
+        }
+
+        internal static StorageG? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return new StorageG(client, value, !saved);
         }
 
         public StorageG Clone()
@@ -94,6 +104,10 @@ namespace Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("Value", out object? detachedValue))
+                {
+                    return detachedValue is null ? (int?)null : Convert.ToInt32(detachedValue);
+                }
                 return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("Value"));
             }
         }

@@ -11,7 +11,7 @@ using UnityEngine;
 
 namespace Assets.Scripts.Neo
 {
-    public interface IReadOnlyNeoObject : IReadOnlyNeoObjectBase, INeoObjectCompositionSource, INeoColliderSource
+    public interface IReadOnlyNeoObject : IReadOnlyNeoObjectBase, INeoObjectCompositionSource
     {
         new bool IsReadOnly { get; }
 
@@ -32,11 +32,9 @@ namespace Assets.Scripts.Neo
         NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile> PlacementTiles { get; }
 
         new NeoReadOnlyList<IReadOnlyNeoObjectBase> Children { get; }
-
-        new IReadOnlyNeoCollider? Collider { get; }
     }
 
-    public abstract partial class NeoObject : NeoObjectBase, IReadOnlyNeoObject, INeoObjectCompositionSource, INeoColliderSource, INeoObjectSpawnHooks
+    public abstract partial class NeoObject : NeoObjectBase, IReadOnlyNeoObject, INeoObjectCompositionSource, INeoObjectSpawnHooks
     {
         internal NeoObject(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, isReadOnly, inheritedStorageOwnership)
@@ -47,7 +45,7 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoObject>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoObject' without a concrete client type id."),
@@ -59,7 +57,7 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoObject>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoObject' without a concrete client type id."),
@@ -119,7 +117,6 @@ namespace Assets.Scripts.Neo
         }
 
         IReadOnlyList<INeoWorldObjectValue> INeoObjectCompositionSource.Children => Children;
-        INeoCollider? INeoColliderSource.Collider => Collider;
 
         void INeoObjectSpawnHooks.OnObjectSpawned(NeoObjectBehaviour behaviour) => OnObjectSpawned(behaviour);
 
@@ -184,42 +181,6 @@ namespace Assets.Scripts.Neo
             }
         }
 
-        public virtual NeoCollider? Collider
-        {
-            get
-            {
-                if (IsReadOnly)
-                {
-                    var child = node.Get<NeoMemberClass>("Collider");
-                    return child.value?.value is null ? null : global::Assets.Scripts.Neo.NeoCollider.Create(client, child);
-                }
-                else
-                {
-                    var child = writableNode.Get<NeoMemberClassWritable>("Collider");
-                    return child.value?.value is null ? null : global::Assets.Scripts.Neo.NeoCollider.CreateWritable(client, child);
-                }
-            }
-            set
-            {
-                ThrowIfReadOnly("NeoObject.Collider");
-                if (value is null)
-                {
-                    writableNode.Unset("Collider");
-                    return;
-                }
-                NeoGeneratedTypesSupport.SetValue(writableNode, "Collider", NeoGeneratedTypesSupport.ValueReference(value));
-            }
-        }
-
-        IReadOnlyNeoCollider? IReadOnlyNeoObject.Collider
-        {
-            get
-            {
-                var child = node.Get<NeoMemberClass>("Collider");
-                return child.value?.value is null ? null : global::Assets.Scripts.Neo.NeoCollider.Create(client, child);
-            }
-        }
-
         NeoReadOnlyVector3 IReadOnlyNeoObjectBase.Position
         {
             get
@@ -236,6 +197,14 @@ namespace Assets.Scripts.Neo
             }
         }
 
+        IReadOnlyNeoCollider? IReadOnlyNeoObjectBase.Collider
+        {
+            get
+            {
+                return (IReadOnlyNeoCollider?)(object)((NeoObjectBase)this).Collider!;
+            }
+        }
+
         public new sealed class Fields
         {
             private Fields() {}
@@ -248,11 +217,11 @@ namespace Assets.Scripts.Neo
 
             public static readonly NeoField<bool> Enabled = new("Enabled");
 
+            public static readonly NeoField<NeoCollider?> Collider = new("Collider");
+
             public static readonly NeoField<NeoList<NeoObjectPlacementTile>> PlacementTiles = new("PlacementTiles");
 
             public static readonly NeoField<NeoList<NeoObjectBase>> Children = new("Children");
-
-            public static readonly NeoField<NeoCollider?> Collider = new("Collider");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -263,9 +232,9 @@ namespace Assets.Scripts.Neo
                 [Fields.Position] = () => null,
                 [Fields.Size] = () => null,
                 [Fields.Enabled] = () => null,
+                [Fields.Collider] = () => null,
                 [Fields.PlacementTiles] = () => null,
                 [Fields.Children] = () => null,
-                [Fields.Collider] = () => null,
             };
         }
 
@@ -287,9 +256,9 @@ namespace Assets.Scripts.Neo
                 [Fields.Position] = () => Position,
                 [Fields.Size] = () => Size,
                 [Fields.Enabled] = () => Enabled,
+                [Fields.Collider] = () => Collider,
                 [Fields.PlacementTiles] = () => PlacementTiles,
                 [Fields.Children] = () => Children,
-                [Fields.Collider] = () => Collider,
             };
         }
 

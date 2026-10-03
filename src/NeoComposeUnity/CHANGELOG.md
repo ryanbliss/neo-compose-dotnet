@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.54.0] - 2026-10-03
+
+- `Collider` is on `NeoObjectBase`, so sprite children and object layer links render a `BoxCollider2D` too. Requires CLI 0.65.0. Tile layer links flatten into their parent's tilemap and have no collider host.
+- Collider changes update the existing `BoxCollider2D` in place. A null collider disables it. Before, any collider change rebuilt the object's GameObject.
+- Segment tracks may target a Class member, such as `NeoObjectBase.Collider`. Each frame writes the whole value; a `null` frame clears it. A frame held over several clip frames is written once.
+- Assigning a Class value to a Session or Save leaf of a static record now stores the value at the leaf's own id. Before, it threw "Cannot rebind". The record must author the leaf, even as `null`. Assigning `null` clears the leaf in its own store instead of throwing "Cannot write immutable asset data". NeoScript assignments still throw ([#243](https://github.com/ryanbliss/neo-compose-dotnet/issues/243)).
+
 ## [0.53.0] - 2026-10-02
 
 - A placed object's transform sits at its pivot. With a sorting group, the `SortingGroup` is on the object itself, at the authored sort point, and a `Content` child cancels that offset, so the art does not move. An authored collider keeps its place on the art. Before, the object sat at its placement corner, with a `Sorting Group` child at the sort point. A Rigidbody2D, NavMeshAgent or anything else added to the object now moves its feet.

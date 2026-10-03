@@ -123,33 +123,12 @@ namespace HelloWorld.Assets.Scripts.Neo
                 }
                 return node.Get<NeoMemberBool>("IsTrigger").value?.value;
             }
-            set
-            {
-                ThrowIfReadOnly("NeoCollider.IsTrigger");
-                NeoGeneratedTypesSupport.SetValue(writableNode, "IsTrigger", NeoGeneratedTypesSupport.Value(value));
-            }
         }
 
         /// <summary>
         /// Offset from the object's origin-cell corner, measured in cells, matching Unity's BoxCollider2D model. (0.5, 0.5) centers a 1x1 collider on the origin cell.
         /// </summary>
-        public virtual NeoVector2? Offset
-        {
-            get
-            {
-                var memberNode = writableNode.Get<NeoMemberVector2Writable>("Offset");
-                if (memberNode.value is null) return null;
-                if (TryGetStoredView<NeoVector2>("Offset", memberNode, out var cached)) return cached;
-                return CacheStoredView("Offset", memberNode, new NeoVector2(memberNode, this));
-            }
-            set
-            {
-                ThrowIfReadOnly("NeoCollider.Offset");
-                NeoGeneratedTypesSupport.SetVector2OrClear(writableNode, "Offset", value);
-            }
-        }
-
-        NeoReadOnlyVector2? IReadOnlyNeoCollider.Offset
+        public virtual NeoReadOnlyVector2? Offset
         {
             get
             {
@@ -160,22 +139,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public virtual NeoVector2 Size
-        {
-            get
-            {
-                var memberNode = writableNode.Get<NeoMemberVector2Writable>("Size");
-                if (TryGetStoredView<NeoVector2>("Size", memberNode, out var cached)) return cached;
-                return CacheStoredView("Size", memberNode, new NeoVector2(memberNode, this));
-            }
-            set
-            {
-                ThrowIfReadOnly("NeoCollider.Size");
-                NeoGeneratedTypesSupport.SetVector2(writableNode, "Size", value);
-            }
-        }
-
-        NeoReadOnlyVector2 IReadOnlyNeoCollider.Size
+        public virtual NeoReadOnlyVector2 Size
         {
             get
             {

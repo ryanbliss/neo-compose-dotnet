@@ -49,7 +49,7 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoSpriteAnimationSegment>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     _ => new NeoSpriteAnimationSegment(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
@@ -61,7 +61,7 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoSpriteAnimationSegment>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     _ => new NeoSpriteAnimationSegment(factoryClient, factoryNode, false, factoryNode.ownership),
@@ -93,7 +93,9 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return (NeoReadOnlyList<IReadOnlyNeoAnimationSegmentFrame<Sprite>>)(object)((NeoAnimationSegment<Sprite>)this).Frames!;
+                var memberNode = node.Get<NeoMemberList>("Frames");
+                if (TryGetStoredView<NeoReadOnlyList<IReadOnlyNeoAnimationSegmentFrame<Sprite>>>("Frames", memberNode, out var cached)) return cached;
+                return CacheStoredView("Frames", memberNode, new NeoReadOnlyList<IReadOnlyNeoAnimationSegmentFrame<Sprite>>(client, memberNode, (client, child) => global::Assets.Scripts.Neo.NeoAnimationSegmentFrame<Sprite>.Create(client, (NeoMemberClass)child)));
             }
         }
 

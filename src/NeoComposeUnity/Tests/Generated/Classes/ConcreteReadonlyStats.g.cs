@@ -31,6 +31,11 @@ namespace Assets.Scripts.Neo
         {
         }
 
+        internal ConcreteReadonlyStats(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
         public ConcreteReadonlyStats()
             : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(), false, NeoValueOwnership.Session)
         {
@@ -46,7 +51,7 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ConcreteReadonlyStats>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     _ => new ConcreteReadonlyStats(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
@@ -58,12 +63,17 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ConcreteReadonlyStats>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     _ => new ConcreteReadonlyStats(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
+        }
+
+        internal new static ConcreteReadonlyStats? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return new ConcreteReadonlyStats(client, value, !saved);
         }
 
         public new ConcreteReadonlyStats Clone()
@@ -90,6 +100,10 @@ namespace Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("Damage", out object? detachedValue))
+                {
+                    return Convert.ToInt32(detachedValue);
+                }
                 return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("Damage")) ?? throw new InvalidOperationException("Required int 'Damage' has no value.");
             }
         }

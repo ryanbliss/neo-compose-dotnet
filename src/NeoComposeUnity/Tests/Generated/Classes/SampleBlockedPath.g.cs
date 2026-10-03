@@ -29,6 +29,11 @@ namespace Assets.Scripts.Neo
         {
         }
 
+        internal SampleBlockedPath(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
         public SampleBlockedPath(IEnumerable<SampleTileInstance>? Tiles = null)
             : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Tiles), false, NeoValueOwnership.Session)
         {
@@ -48,7 +53,7 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<SampleBlockedPath>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     _ => new SampleBlockedPath(factoryClient, factoryNode, false, NeoValueOwnership.Save),
@@ -60,12 +65,17 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<SampleBlockedPath>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     _ => new SampleBlockedPath(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
+        }
+
+        internal new static SampleBlockedPath? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return new SampleBlockedPath(client, value, false);
         }
 
         public new SampleBlockedPath Clone()
@@ -92,7 +102,14 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return (NeoReadOnlyList<IReadOnlySampleTileInstance>)(object)((SampleTileLayerLink)this).Tiles!;
+                if (TryReadDetached("Tiles", out _))
+                {
+                    if (TryGetDetachedView<NeoReadOnlyList<IReadOnlySampleTileInstance>>("Tiles", out var detachedView)) return detachedView;
+                    return DetachedReadOnlyList<IReadOnlySampleTileInstance>("Tiles", entry => NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, entry, false, static (factoryClient, factoryNode) => global::Assets.Scripts.Neo.SampleTileInstance.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => global::Assets.Scripts.Neo.SampleTileInstance.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::Assets.Scripts.Neo.SampleTileInstance.CreateDetached(factoryClient, factoryValue, factorySaved)), (client, child) => global::Assets.Scripts.Neo.SampleTileInstance.Create(client, (NeoMemberClass)child));
+                }
+                var memberNode = node.Get<NeoMemberList>("Tiles");
+                if (TryGetStoredView<NeoReadOnlyList<IReadOnlySampleTileInstance>>("Tiles", memberNode, out var cached)) return cached;
+                return CacheStoredView("Tiles", memberNode, new NeoReadOnlyList<IReadOnlySampleTileInstance>(client, memberNode, (client, child) => global::Assets.Scripts.Neo.SampleTileInstance.Create(client, (NeoMemberClass)child)));
             }
         }
 

@@ -37,6 +37,11 @@ namespace Assets.Scripts.Neo
         {
         }
 
+        internal NeoTextNodeMemory(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
         public NeoTextNodeMemory(int? VisitCount = null, string? LastVisitedAt = null, string? MostRecentChoiceId = null, IEnumerable<NeoChoiceLog>? ChoiceHistory = null)
             : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(VisitCount, LastVisitedAt, MostRecentChoiceId, ChoiceHistory), false, NeoValueOwnership.Session)
         {
@@ -59,7 +64,7 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoTextNodeMemory>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     _ => new NeoTextNodeMemory(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
@@ -71,12 +76,17 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoTextNodeMemory>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     _ => new NeoTextNodeMemory(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
+        }
+
+        internal static NeoTextNodeMemory? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return new NeoTextNodeMemory(client, value, !saved);
         }
 
         public NeoTextNodeMemory Clone()
@@ -103,6 +113,10 @@ namespace Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("VisitCount", out object? detachedValue))
+                {
+                    return Convert.ToInt32(detachedValue);
+                }
                 return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("VisitCount")) ?? throw new InvalidOperationException("Required int 'VisitCount' has no value.");
             }
             set
@@ -116,6 +130,10 @@ namespace Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("LastVisitedAt", out object? detachedValue))
+                {
+                    return (string?)detachedValue;
+                }
                 return node.Get<NeoMemberString>("LastVisitedAt").Text;
             }
             set
@@ -129,6 +147,10 @@ namespace Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("MostRecentChoiceId", out object? detachedValue))
+                {
+                    return (string?)detachedValue;
+                }
                 return node.Get<NeoMemberString>("MostRecentChoiceId").value?.value;
             }
             set
@@ -142,6 +164,11 @@ namespace Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("ChoiceHistory", out _))
+                {
+                    if (TryGetDetachedView<NeoList<NeoChoiceLog>>("ChoiceHistory", out var detachedView)) return detachedView;
+                    return DetachedList<NeoChoiceLog>("ChoiceHistory", entry => NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, entry, true, null, static (factoryClient, factoryNode) => global::Assets.Scripts.Neo.NeoChoiceLog.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::Assets.Scripts.Neo.NeoChoiceLog.CreateDetached(factoryClient, factoryValue, factorySaved)), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::Assets.Scripts.Neo.NeoChoiceLog.CreateWritable(client, writableChild) : global::Assets.Scripts.Neo.NeoChoiceLog.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("NeoTextNodeMemory.ChoiceHistory"), () => IsReadOnly);
+                }
                 var memberNode = writableNode.Get<NeoMemberListWritable>("ChoiceHistory");
                 if (TryGetStoredView<NeoList<NeoChoiceLog>>("ChoiceHistory", memberNode, out var cached)) return cached;
                 return CacheStoredView("ChoiceHistory", memberNode, new NeoList<NeoChoiceLog>(client, memberNode, () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("ChoiceHistory"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::Assets.Scripts.Neo.NeoChoiceLog.CreateWritable(client, writableChild) : global::Assets.Scripts.Neo.NeoChoiceLog.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("NeoTextNodeMemory.ChoiceHistory"), () => IsReadOnly));
@@ -152,6 +179,11 @@ namespace Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("ChoiceHistory", out _))
+                {
+                    if (TryGetDetachedView<NeoReadOnlyList<IReadOnlyNeoChoiceLog>>("ChoiceHistory", out var detachedView)) return detachedView;
+                    return DetachedReadOnlyList<IReadOnlyNeoChoiceLog>("ChoiceHistory", entry => NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, entry, false, static (factoryClient, factoryNode) => global::Assets.Scripts.Neo.NeoChoiceLog.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => global::Assets.Scripts.Neo.NeoChoiceLog.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::Assets.Scripts.Neo.NeoChoiceLog.CreateDetached(factoryClient, factoryValue, factorySaved)), (client, child) => global::Assets.Scripts.Neo.NeoChoiceLog.Create(client, (NeoMemberClass)child));
+                }
                 var memberNode = node.Get<NeoMemberList>("ChoiceHistory");
                 if (TryGetStoredView<NeoReadOnlyList<IReadOnlyNeoChoiceLog>>("ChoiceHistory", memberNode, out var cached)) return cached;
                 return CacheStoredView("ChoiceHistory", memberNode, new NeoReadOnlyList<IReadOnlyNeoChoiceLog>(client, memberNode, (client, child) => global::Assets.Scripts.Neo.NeoChoiceLog.Create(client, (NeoMemberClass)child)));

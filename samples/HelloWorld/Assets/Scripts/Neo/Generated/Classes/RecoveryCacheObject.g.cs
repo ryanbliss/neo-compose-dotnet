@@ -23,6 +23,10 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         new NeoReadOnlyList<IReadOnlyNeoObjectBase> Children { get; }
 
+
+        /// <summary>
+        /// The object's box collider, or null for none. Any world object can carry one: placed objects, nested children, and sprites alike.
+        /// </summary>
         new IReadOnlyNeoCollider? Collider { get; }
 
         new string Name { get; }
@@ -138,7 +142,10 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public override NeoCollider? Collider
+        /// <summary>
+        /// The object's box collider, or null for none. Any world object can carry one: placed objects, nested children, and sprites alike.
+        /// </summary>
+        public new virtual IReadOnlyNeoCollider? Collider
         {
             get
             {
@@ -162,15 +169,6 @@ namespace HelloWorld.Assets.Scripts.Neo
                     return;
                 }
                 NeoGeneratedTypesSupport.SetValue(writableNode, "Collider", NeoGeneratedTypesSupport.ValueReference(value));
-            }
-        }
-
-        IReadOnlyNeoCollider? IReadOnlyRecoveryCacheObject.Collider
-        {
-            get
-            {
-                var child = node.Get<NeoMemberClass>("Collider");
-                return child.value?.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.NeoCollider.Create(client, child);
             }
         }
 
@@ -228,14 +226,6 @@ namespace HelloWorld.Assets.Scripts.Neo
                 var memberNode = node.Get<NeoMemberList>("Children");
                 if (TryGetStoredView<NeoReadOnlyList<IReadOnlyNeoObjectBase>>("Children", memberNode, out var cached)) return cached;
                 return CacheStoredView("Children", memberNode, new NeoReadOnlyList<IReadOnlyNeoObjectBase>(client, memberNode, (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.Create(client, (NeoMemberClass)child)));
-            }
-        }
-
-        IReadOnlyNeoCollider? IReadOnlyNeoObject.Collider
-        {
-            get
-            {
-                return (IReadOnlyNeoCollider?)(object)((NeoObject)this).Collider!;
             }
         }
 

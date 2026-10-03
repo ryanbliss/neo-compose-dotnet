@@ -1268,14 +1268,24 @@ namespace NeoCompose.Runtime
 
         internal bool TryReadPayload(int index, out NeoValueWritePayload? payload)
         {
-            if (!TryReadContent(index, out MemberValue? row) || row is null)
+            return TryReadPayload(index, out payload, out _);
+        }
+
+        /// <param name="row">The frame's value row, shared by every index the frame holds.</param>
+        internal bool TryReadPayload(int index, out NeoValueWritePayload? payload, out MemberValue? row)
+        {
+            if (!TryReadContent(index, out row) || row is null)
             {
                 payload = null;
                 return false;
             }
             // The source subscribes to all content reads. A changed value row
             // re-resolves the segment and replaces this cache before its next use.
-            payload = contentPayloads[index] ??= NeoAnimationCompiler.Payload(row);
+            // A Class frame is a whole value, unlike a keyframe's Class row,
+            // which is a path into the leaf's fields.
+            payload = contentPayloads[index] ??= row is ObjectMemberValue
+                ? NeoValueWritePayload.FromValueReference(row.id)
+                : NeoAnimationCompiler.Payload(row);
             return true;
         }
 
@@ -1842,8 +1852,8 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"{label} implements Segment with a value whose class is not an animation segment.");
             }
-            if (targetMember.kind == MemberKind.Class
-                || targetMember.kind == MemberKind.List
+            // A Class target plays whole values; only collections stay containers.
+            if (targetMember.kind == MemberKind.List
                 || targetMember.kind == MemberKind.Dictionary)
             {
                 throw new InvalidOperationException(
@@ -3121,7 +3131,7 @@ namespace NeoCompose.Runtime
                 selector.Resolve();
             }
 
-            var targets = new Dictionary<NeoMemberClass, (NeoMemberClassWritable Node, string Key)>();
+            var targets = new Dictionary<NeoMemberClass, SegmentWriteTarget>();
             disposables.Add(new NeoDisposableAction(() =>
             {
                 foreach (var target in targets)
@@ -3143,8 +3153,7 @@ namespace NeoCompose.Runtime
                         if (!targets.TryGetValue(placedChild, out var writeTarget))
                         {
                             string key = ResolveSegmentTrackTargetKey(client, track, placedChild, label);
-                            NeoMemberClassWritable writable = placedChild.AsWritableView();
-                            writeTarget = (writable, key);
+                            writeTarget = new SegmentWriteTarget(placedChild.AsWritableView(), key);
                             targets.Add(placedChild, writeTarget);
                         }
                         if (!NeoAnimationPlayback.TryCropWindow(
@@ -3164,8 +3173,18 @@ namespace NeoCompose.Runtime
                             window);
                         if (index == NeoAnimationPlayback.WritesNothing)
                             return;
-                        if (!source.TryReadPayload(index, out NeoValueWritePayload? payload))
+                        if (!source.TryReadPayload(index, out NeoValueWritePayload? payload, out MemberValue? frameRow))
                             return;
+                        // A held Class frame already is the leaf's value.
+                        // Writing it again would copy the whole graph.
+                        bool classFrame = frameRow is ObjectMemberValue;
+                        if (classFrame
+                            && ReferenceEquals(frameRow, writeTarget.WrittenFrame)
+                            && writeTarget.WrittenLeaf is not null
+                            && ReferenceEquals(writeTarget.LeafRow(client), writeTarget.WrittenLeaf))
+                        {
+                            return;
+                        }
                         // A frame that authored an Index but bound no Value row
                         // has nothing to say, which is §3.2's "writes nothing"
                         // reached one more way. An EXPLICIT null value is a
@@ -3175,7 +3194,47 @@ namespace NeoCompose.Runtime
                             writeTarget.Node,
                             writeTarget.Key,
                             payload);
+                        writeTarget.WrittenFrame = classFrame ? frameRow : null;
+                        writeTarget.WrittenLeaf = classFrame ? writeTarget.LeafRow(client) : null;
                     });
+            }
+        }
+
+        /// <summary>
+        /// A segment track's write target on one played child, and the Class
+        /// frame it last wrote there.
+        /// </summary>
+        private sealed class SegmentWriteTarget
+        {
+            internal SegmentWriteTarget(NeoMemberClassWritable node, string key)
+            {
+                Node = node;
+                Key = key;
+            }
+
+            internal NeoMemberClassWritable Node
+            {
+                get;
+            }
+            internal string Key
+            {
+                get;
+            }
+            internal MemberValue? WrittenFrame
+            {
+                get; set;
+            }
+            /// <summary>The leaf row that write left, which a later write replaces.</summary>
+            internal MemberValue? WrittenLeaf
+            {
+                get; set;
+            }
+
+            internal MemberValue? LeafRow(NeoClient client)
+            {
+                return Node.ChildValueId(Key) is string leafId
+                    ? client.ResolveValueRow(leafId)
+                    : null;
             }
         }
 

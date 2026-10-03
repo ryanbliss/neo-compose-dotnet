@@ -35,7 +35,7 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoAnimationSegmentTrack<TChild, TValue>>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'NeoAnimationSegmentTrack' without a concrete client type id."),
@@ -47,7 +47,7 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoAnimationSegmentTrack<TChild, TValue>>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'NeoAnimationSegmentTrack' without a concrete client type id."),

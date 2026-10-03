@@ -31,11 +31,16 @@ namespace Assets.Scripts.Neo
         {
         }
 
+        internal NeoAnimationFrameBase(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
         internal static NeoAnimationFrameBase Create(NeoClient client, NeoMemberClass node)
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoAnimationFrameBase>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoAnimationFrameBase' without a concrete client type id."),
@@ -47,12 +52,17 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoAnimationFrameBase>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoAnimationFrameBase' without a concrete client type id."),
                 };
             });
+        }
+
+        internal static NeoAnimationFrameBase? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return null;
         }
 
         public NeoAnimationFrameBase Clone()
@@ -79,6 +89,10 @@ namespace Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("Index", out object? detachedValue))
+                {
+                    return Convert.ToInt32(detachedValue);
+                }
                 return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("Index")) ?? throw new InvalidOperationException("Required int 'Index' has no value.");
             }
         }

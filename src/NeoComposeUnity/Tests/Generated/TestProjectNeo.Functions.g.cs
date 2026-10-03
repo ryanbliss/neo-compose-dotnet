@@ -27,7 +27,12 @@ namespace Assets.Scripts.Neo
                     "member-move-to");
                 var destination = NeoGeneratedTypesSupport.ReadVector3Value(args[0]) ?? throw new InvalidOperationException("Required Vector3 argument 'destination' could not be resolved.");
                 var cell = NeoGeneratedTypesSupport.ReadVector2IntValue(args[1]);
-                return target.MoveTo(destination, cell);
+                if (target.FunctionHandler is null)
+                {
+                    throw new NeoFunctionHandlerMissingException(
+                        "Cannot invoke Function 'MoveTo' because FunctionHandler is not set.");
+                }
+                return target.FunctionHandler.MoveTo(destination, cell);
                 },
                 ["member-contract-run"] = (client, receiver, args) =>
                 {
@@ -39,7 +44,12 @@ namespace Assets.Scripts.Neo
                     "Run",
                     "member-contract-run");
                 var count = Convert.ToInt32(args[0]);
-                return target.Run(count);
+                if (target.FunctionHandler is null)
+                {
+                    throw new NeoFunctionHandlerMissingException(
+                        "Cannot invoke Function 'Run' because FunctionHandler is not set.");
+                }
+                return target.FunctionHandler.Run(count);
                 },
                 ["member-contract-run-sealed"] = (client, receiver, args) =>
                 {
@@ -51,7 +61,12 @@ namespace Assets.Scripts.Neo
                     "Run",
                     "member-contract-run-sealed");
                 var count = Convert.ToInt32(args[0]);
-                return target.Run(count);
+                if (target.FunctionHandler is null)
+                {
+                    throw new NeoFunctionHandlerMissingException(
+                        "Cannot invoke Function 'Run' because FunctionHandler is not set.");
+                }
+                return target.FunctionHandler.Run(count);
                 },
                 ["member-generic-contract-echo"] = (client, receiver, args) =>
                 {
@@ -65,12 +80,22 @@ namespace Assets.Scripts.Neo
                 if (untypedTarget is GenericContract<double> target1)
                 {
                     var value = Convert.ToDouble(args[0]);
-                    return target1.Echo(value);
+                    if (target1.FunctionHandler is null)
+                    {
+                        throw new NeoFunctionHandlerMissingException(
+                            "Cannot invoke Function 'Echo' because FunctionHandler is not set.");
+                    }
+                    return target1.FunctionHandler.Echo(value);
                 }
                 if (untypedTarget is GenericContract<string> target2)
                 {
                     var value = (string)args[0]!;
-                    return target2.Echo(value);
+                    if (target2.FunctionHandler is null)
+                    {
+                        throw new NeoFunctionHandlerMissingException(
+                            "Cannot invoke Function 'Echo' because FunctionHandler is not set.");
+                    }
+                    return target2.FunctionHandler.Echo(value);
                 }
                 throw new NSGetterRuntimeError("Cannot invoke Function 'Echo' (member-generic-contract-echo) because the receiver does not match any closed generic construction.");
                 },
@@ -84,7 +109,12 @@ namespace Assets.Scripts.Neo
                     "Transform",
                     "member-generic-function-transform");
                 var value = NeoGeneratedTypesSupport.ResolveNativeFunctionClassArgument<Hero>(client, args[0], true, TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories, "value");
-                return target.Transform(value);
+                if (target.FunctionHandler is null)
+                {
+                    throw new NeoFunctionHandlerMissingException(
+                        "Cannot invoke Function 'Transform' because FunctionHandler is not set.");
+                }
+                return target.FunctionHandler.Transform(value);
                 },
                 ["member-generic-function-transform-box"] = (client, receiver, args) =>
                 {
@@ -96,7 +126,12 @@ namespace Assets.Scripts.Neo
                     "TransformBox",
                     "member-generic-function-transform-box");
                 var value = NeoGeneratedTypesSupport.ResolveNativeFunctionClassArgument<IReadOnlyGenericFunctionBox<Hero>>(client, args[0], true, TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories, "value");
-                return target.TransformBox(value);
+                if (target.FunctionHandler is null)
+                {
+                    throw new NeoFunctionHandlerMissingException(
+                        "Cannot invoke Function 'TransformBox' because FunctionHandler is not set.");
+                }
+                return target.FunctionHandler.TransformBox(value);
                 },
             };
 
@@ -118,7 +153,7 @@ namespace Assets.Scripts.Neo
                     if (target1.FunctionHandler is null)
                     {
                         throw new NeoFunctionHandlerMissingException(
-                            "Cannot invoke deferred Function 'EchoLater' because FunctionHandler is not set.");
+                            "Cannot invoke Function 'EchoLater' because FunctionHandler is not set.");
                     }
                     var typedDeferred = NeoGeneratedTypesSupport.ResolveDeferredFunction<NeoDeferredFunction<double>>(deferred, "EchoLater");
                     target1.FunctionHandler.EchoLater(value, typedDeferred);
@@ -130,7 +165,7 @@ namespace Assets.Scripts.Neo
                     if (target2.FunctionHandler is null)
                     {
                         throw new NeoFunctionHandlerMissingException(
-                            "Cannot invoke deferred Function 'EchoLater' because FunctionHandler is not set.");
+                            "Cannot invoke Function 'EchoLater' because FunctionHandler is not set.");
                     }
                     var typedDeferred = NeoGeneratedTypesSupport.ResolveDeferredFunction<NeoDeferredFunction<string>>(deferred, "EchoLater");
                     target2.FunctionHandler.EchoLater(value, typedDeferred);
@@ -151,7 +186,7 @@ namespace Assets.Scripts.Neo
                 if (target.FunctionHandler is null)
                 {
                     throw new NeoFunctionHandlerMissingException(
-                        "Cannot invoke deferred Function 'TransformLater' because FunctionHandler is not set.");
+                        "Cannot invoke Function 'TransformLater' because FunctionHandler is not set.");
                 }
                 var typedDeferred = NeoGeneratedTypesSupport.ResolveDeferredFunction<NeoDeferredFunction<Hero>>(deferred, "TransformLater");
                 target.FunctionHandler.TransformLater(value, typedDeferred);

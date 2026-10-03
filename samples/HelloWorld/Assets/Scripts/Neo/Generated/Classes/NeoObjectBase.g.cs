@@ -11,7 +11,7 @@ using UnityEngine;
 
 namespace HelloWorld.Assets.Scripts.Neo
 {
-    public interface IReadOnlyNeoObjectBase : INeoValueReference, INeoWorldObjectValue
+    public interface IReadOnlyNeoObjectBase : INeoValueReference, INeoWorldObjectValue, INeoColliderSource
     {
         bool IsReadOnly { get; }
 
@@ -20,6 +20,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out NeoObjectBase writable);
+
+
+        /// <summary>
+        /// The object's box collider, or null for none. Any world object can carry one: placed objects, nested children, and sprites alike.
+        /// </summary>
+        new IReadOnlyNeoCollider? Collider { get; }
 
 
         /// <summary>
@@ -34,7 +40,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         new NeoReadOnlyVector3 Size { get; }
     }
 
-    public abstract partial class NeoObjectBase : NeoGeneratedWorldObjectValue, IReadOnlyNeoObjectBase, INeoWorldObjectValue
+    public abstract partial class NeoObjectBase : NeoGeneratedWorldObjectValue, IReadOnlyNeoObjectBase, INeoWorldObjectValue, INeoColliderSource
     {
         internal NeoObjectBase(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, "system_61b30a92-90dc-4bf8-8503-ee4f6414effc", isReadOnly, inheritedStorageOwnership)
@@ -109,6 +115,19 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         NeoReadOnlyVector3 INeoWorldObjectValue.Position => Position;
         NeoReadOnlyVector3 INeoWorldObjectValue.Size => Size;
+        INeoCollider? INeoColliderSource.Collider => Collider;
+
+        /// <summary>
+        /// The object's box collider, or null for none. Any world object can carry one: placed objects, nested children, and sprites alike.
+        /// </summary>
+        public virtual IReadOnlyNeoCollider? Collider
+        {
+            get
+            {
+                var child = node.Get<NeoMemberClass>("Collider");
+                return child.value?.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.NeoCollider.Create(client, child);
+            }
+        }
 
         /// <summary>
         /// When false, this object and its children are neither rendered nor collided with. The value stays live: member writes still apply and a running animation clip keeps playing. Disabling an object hides its whole subtree regardless of each child's own value, and re-enabling it restores exactly what was there.
@@ -153,6 +172,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             private Fields() {}
 
+            public static readonly NeoField<NeoCollider?> Collider = new("Collider");
+
             public static readonly NeoField<bool> Enabled = new("Enabled");
 
             public static readonly NeoField<string> Name = new("Name");
@@ -166,6 +187,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<string?>>
             {
+                [Fields.Collider] = () => null,
                 [Fields.Enabled] = () => null,
                 [Fields.Name] = () => null,
                 [Fields.Position] = () => null,
@@ -187,6 +209,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
+                [Fields.Collider] = () => Collider,
                 [Fields.Enabled] = () => Enabled,
                 [Fields.Name] = () => Name,
                 [Fields.Position] = () => Position,

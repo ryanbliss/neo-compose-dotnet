@@ -726,6 +726,25 @@ namespace NeoCompose.Runtime
         public NeoMemberClassWritable(NeoClient client, ClassMember member, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
             : base(client, member, overrideValueId, ownership) { }
 
+        /// <summary>
+        /// The row id bound for <paramref name="key"/>. A P75 sparse root
+        /// omits every member still sitting at its construction value, so a
+        /// key the body lacks resolves at its deterministic virtual id —
+        /// exactly where a write or tombstone has to land for the web to
+        /// read the same value.
+        /// </summary>
+        internal string? ChildValueId(string key)
+        {
+            if (value?.value?.TryGetValue(key, out string? childValueId) == true)
+            {
+                return childValueId;
+            }
+            return valueId is string parentValueId
+                && client.TryGetVirtualClassChildValueId(parentValueId, key, out string? virtualChildValueId)
+                ? virtualChildValueId
+                : null;
+        }
+
         protected override NeoMember CreateChild(
             NeoClient client,
             Member childMember,
@@ -987,20 +1006,7 @@ namespace NeoCompose.Runtime
                 return;
             }
 
-            string? existingValueId = null;
-            if (value?.value is not null)
-            {
-                value.value.TryGetValue(key, out existingValueId);
-            }
-            if (existingValueId is null
-                && valueId is string parentValueId
-                && client.TryGetVirtualClassChildValueId(
-                    parentValueId,
-                    key,
-                    out string? virtualExistingValueId))
-            {
-                existingValueId = virtualExistingValueId;
-            }
+            string? existingValueId = ChildValueId(key);
             // One node answers every read of the entry's row, and the leaf
             // write. The entry's live child already holds it.
             NeoMember? existingChild = existingValueId is null ? null : FindChild(key);
@@ -1012,8 +1018,21 @@ namespace NeoCompose.Runtime
                 {
                     if (!recordWritable)
                     {
-                        throw new System.InvalidOperationException(
-                            $"Cannot rebind '{key}' on static Class '{member.id}': a static record's value map is authored data. Only the stamped leaf's own value may be written.");
+                        plan = new NeoWritePlan(client);
+                        NeoShadowImport shadowed = client.StageShadowImport(
+                            plan,
+                            childOwnership,
+                            setValue.valueId!,
+                            existing,
+                            childMember);
+                        if (shadowed == NeoShadowImport.Moved)
+                            RetargetMovedReferenceAfterCommit(plan, setValue, childMember, existingValueId, childOwnership);
+                        plan.Commit();
+                        if (shadowed == NeoShadowImport.Unchanged)
+                            return;
+                        ReinitializeChildren();
+                        NotifyChildChanged(key);
+                        return;
                     }
                     plan = new NeoWritePlan(client);
                     string importedValueId = client.ImportValueReference(
@@ -1329,6 +1348,9 @@ namespace NeoCompose.Runtime
                 throw new System.Collections.Generic.KeyNotFoundException(
                     $"Merged schema for class {schemaClass.id} (chain depth {inheritanceChain.Count}) does not contain key '{key}'");
             }
+            // The tombstone lands where a write would: a storage-stamped
+            // field on a static record shadows into its own writable store.
+            NeoValueOwnership childOwnership = ownership;
             if (client.TryGetMember(memberId, out Member? childMember))
             {
                 childMember = SubstituteChildMember(childMember);
@@ -1338,33 +1360,20 @@ namespace NeoCompose.Runtime
                     throw new System.InvalidOperationException(
                         $"Cannot unset required field '{key}'.");
                 }
+                childOwnership = client.ChildOwnership(childMember, ownership);
             }
-            string? childValueId = null;
-            if (value?.value is not null)
-            {
-                value.value.TryGetValue(key, out childValueId);
-            }
-            // A P75 sparse root omits every member still sitting at its
-            // construction value, so the body alone reports them absent and
-            // Unset would silently no-op — including the generated
-            // `property = null` setter that compiles to it. The omitted member
-            // is bound at its deterministic virtual id, which is exactly where
-            // the tombstone has to land for the web to read the same unset.
-            if (childValueId is null
-                && valueId is string parentValueId
-                && client.TryGetVirtualClassChildValueId(
-                    parentValueId,
-                    key,
-                    out string? virtualChildValueId))
-            {
-                childValueId = virtualChildValueId;
-            }
+            string? childValueId = ChildValueId(key);
             if (childValueId is null)
             {
                 return;
             }
+            if (childOwnership == NeoValueOwnership.Asset)
+            {
+                throw new System.InvalidOperationException(
+                    $"Cannot unset '{key}' on Class '{member.id}': its effective storage is immutable.");
+            }
             childMembers.TryGetValue(key, out NeoMember? existingChild);
-            client.WriteRemovalTombstone(ownership, childValueId);
+            client.WriteRemovalTombstone(childOwnership, childValueId);
             ReinitializeChildren();
             if (!ChildBubbledOwnChange(key, existingChild))
                 NotifyChildChanged(key);

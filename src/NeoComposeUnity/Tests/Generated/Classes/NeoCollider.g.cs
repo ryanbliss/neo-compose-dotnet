@@ -35,6 +35,11 @@ namespace Assets.Scripts.Neo
         {
         }
 
+        internal NeoCollider(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
         public NeoCollider(NeoVector2? Size = null, NeoVector2? Offset = null, bool? IsTrigger = null)
             : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Size, Offset, IsTrigger), false, NeoValueOwnership.Session)
         {
@@ -56,7 +61,7 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoCollider>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     _ => new NeoCollider(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
@@ -68,12 +73,17 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoCollider>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     _ => new NeoCollider(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
+        }
+
+        internal static NeoCollider? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return new NeoCollider(client, value, !saved);
         }
 
         public NeoCollider Clone()
@@ -155,6 +165,10 @@ namespace Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("IsTrigger", out object? detachedValue))
+                {
+                    return detachedValue is null ? (bool?)null : (bool)detachedValue!;
+                }
                 return node.Get<NeoMemberBool>("IsTrigger").value?.value;
             }
             set

@@ -35,7 +35,7 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoAnimationSegment<T>>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     "system_ffc766b3-f3ac-4c20-91cf-38ff7e8e88f3" => (NeoAnimationSegment<T>)(object)new NeoSpriteAnimationSegment(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
@@ -48,7 +48,7 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoAnimationSegment<T>>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     "system_ffc766b3-f3ac-4c20-91cf-38ff7e8e88f3" => (NeoAnimationSegment<T>)(object)new NeoSpriteAnimationSegment(factoryClient, factoryNode, false, factoryNode.ownership),

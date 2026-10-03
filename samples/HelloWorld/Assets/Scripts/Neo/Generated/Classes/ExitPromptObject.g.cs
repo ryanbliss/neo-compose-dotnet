@@ -218,14 +218,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        IReadOnlyNeoCollider? IReadOnlyNeoObject.Collider
-        {
-            get
-            {
-                return (IReadOnlyNeoCollider?)(object)((NeoObject)this).Collider!;
-            }
-        }
-
         NeoReadOnlyList<IReadOnlyNeoPlacementTile> IReadOnlyNeoObject.PlacementTiles
         {
             get
@@ -252,13 +244,13 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<NeoList<NeoPlacementTile>> PlacementTiles = new("PlacementTiles");
 
+            public static readonly NeoField<NeoCollider?> Collider = new("Collider");
+
             public static readonly NeoField<bool> Enabled = new("Enabled");
 
             public static readonly NeoField<NeoVector3> Position = new("Position");
 
             public static readonly NeoField<Vector2Int> Cell = new("Cell");
-
-            public static readonly NeoField<NeoCollider?> Collider = new("Collider");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -271,10 +263,10 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Children] = () => null,
                 [Fields.Size] = () => null,
                 [Fields.PlacementTiles] = () => null,
+                [Fields.Collider] = () => null,
                 [Fields.Enabled] = () => null,
                 [Fields.Position] = () => null,
                 [Fields.Cell] = () => null,
-                [Fields.Collider] = () => null,
             };
         }
 
@@ -298,10 +290,10 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Children] = () => Children,
                 [Fields.Size] = () => Size,
                 [Fields.PlacementTiles] = () => PlacementTiles,
+                [Fields.Collider] = () => Collider,
                 [Fields.Enabled] = () => Enabled,
                 [Fields.Position] = () => Position,
                 [Fields.Cell] = () => Cell,
-                [Fields.Collider] = () => Collider,
             };
         }
 

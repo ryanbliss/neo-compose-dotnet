@@ -4816,6 +4816,69 @@ namespace NeoCompose.Tests
             }
         }
 
+        [Test]
+        public void Render_ColliderChangesUpdateInPlace()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildClassBackedTileGridProjectData());
+            var factories = new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory>
+            {
+                [ObjectClassId] = (c, node) => new TestComposedObject(c, node),
+            };
+            var obj = (TestComposedObject)NeoGeneratedTypesSupport.ResolveClassValue(client, "shop-object",
+                factories, new Dictionary<string, NeoGeneratedTypesSupport.WritableClassFactory>())!;
+            var sprite = CreateTestSprite("art");
+            var art = new TestSpriteChild { Name = "Art", Sprite = sprite, Size = new NeoReadOnlyVector3(new Vector3(2, 1, 0)) };
+            obj.Children = new INeoWorldObjectValue[] { art };
+            var go = new GameObject("Collider update test");
+            try
+            {
+                var primitive = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid");
+                var renderer = go.AddComponent<NeoTileGridRenderer>();
+                renderer.Render(new TestTileGridContent(primitive, Array.Empty<IReadOnlyNeoTileLayerRuntime>(),
+                    new[] { ObjectLayerWithSingleInstance(obj, "Default", 12) }));
+                Assert.IsTrue(renderer.TryGetObjectRoot("object-1", out var original));
+                Assert.IsNull(original.GetComponentInChildren<BoxCollider2D>(true));
+
+                // An attack frame sets a sprite's collider, measured from its corner.
+                art.Collider = new TestObjectCollider
+                {
+                    Size = new NeoReadOnlyVector2(.5f, .25f),
+                    Offset = new NeoReadOnlyVector2(.25f, .5f),
+                    IsTrigger = true,
+                };
+                Changed();
+                Assert.IsTrue(renderer.TryGetObjectRoot("object-1", out var updated));
+                Assert.AreSame(original, updated);
+                var drawn = original.GetComponentInChildren<SpriteRenderer>();
+                var collider = drawn.GetComponent<BoxCollider2D>();
+                Assert.IsTrue(collider.enabled);
+                Assert.AreEqual(new Vector2(.5f, .25f), collider.size);
+                Assert.AreEqual(new Vector2(-.75f, 0), collider.offset);
+                Assert.IsTrue(collider.isTrigger);
+
+                // Clearing it disables the same component.
+                art.Collider = null;
+                Changed();
+                Assert.IsTrue(renderer.TryGetObjectRoot("object-1", out updated));
+                Assert.AreSame(original, updated);
+                Assert.AreSame(collider, drawn.GetComponent<BoxCollider2D>());
+                Assert.IsFalse(collider.enabled);
+
+                void Changed() =>
+                    primitive.NotifyChanged(new NeoTileGridChangedArgs("town-grid", objectLayers: new[]
+                    {
+                        new NeoObjectLayerChangedArgs("object-layer", Array.Empty<NeoObjectInstanceId>(),
+                            new NeoObjectInstanceId[] { "object-1" }, Array.Empty<Vector2Int>(),
+                            NeoTileGridChangeSourceKind.Direct, null),
+                    }));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+                DestroyTestSprite(sprite);
+            }
+        }
+
         private sealed class PositionObjectLifecycle : NeoTileGridLifecycle
         {
             public override bool ShouldRenderObject(NeoObjectRenderContext context) =>
@@ -8491,8 +8554,12 @@ namespace NeoCompose.Tests
         /// Stands in for a generated <c>NeoSpriteObject</c>: world kind
         /// <c>spriteObject</c>, a leaf that carries the SpriteRenderer state.
         /// </summary>
-        private sealed class TestSpriteChild : INeoSpriteObjectValue
+        private sealed class TestSpriteChild : INeoSpriteObjectValue, INeoColliderSource
         {
+            public INeoCollider? Collider
+            {
+                get; set;
+            }
             public string? valueId => null;
             public string Name { get; set; } = "";
             public NeoReadOnlyVector3 Position { get; set; } = new(Vector3.zero);

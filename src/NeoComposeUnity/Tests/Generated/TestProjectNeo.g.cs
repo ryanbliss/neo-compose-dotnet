@@ -32,6 +32,7 @@ namespace Assets.Scripts.Neo
             Save = new Root(client, client.save, false, client.save.ownership);
             Session = new Root(client, client.session, false, client.session.ownership);
             Dialogues = new NeoDialogues(this, dialogueOptions);
+            Client.StartEffects();
         }
 
         public static async Awaitable<TestProjectNeo> Load(INeoSaveLoader synchronizer, NeoDialogueRuntimeOptions? dialogueOptions = null, NeoAssetDatabase? assetDatabase = null, NeoLocalizationOptions? localizationOptions = null, NeoSaveOptions? saveOptions = null, System.Threading.CancellationToken cancellationToken = default)

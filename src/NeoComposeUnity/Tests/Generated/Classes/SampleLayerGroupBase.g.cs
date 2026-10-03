@@ -29,11 +29,16 @@ namespace Assets.Scripts.Neo
         {
         }
 
+        internal SampleLayerGroupBase(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
         internal static SampleLayerGroupBase Create(NeoClient client, NeoMemberClass node)
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<SampleLayerGroupBase>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     "class-sample-blocked-path" => new SampleBlockedPath(factoryClient, factoryNode, false, NeoValueOwnership.Save),
@@ -46,13 +51,22 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<SampleLayerGroupBase>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     "class-sample-blocked-path" => new SampleBlockedPath(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'SampleLayerGroupBase' without a concrete client type id."),
                 };
             });
+        }
+
+        internal static SampleLayerGroupBase? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return NeoGeneratedTypesSupport.DetachedClassId(value) switch
+            {
+                "class-sample-blocked-path" => new SampleBlockedPath(client, value, false),
+                _ => null,
+            };
         }
 
         public SampleLayerGroupBase Clone()

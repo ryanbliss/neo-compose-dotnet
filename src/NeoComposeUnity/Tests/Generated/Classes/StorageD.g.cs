@@ -31,6 +31,11 @@ namespace Assets.Scripts.Neo
         {
         }
 
+        internal StorageD(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
         public StorageD(StorageE? InheritChild = null)
             : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(InheritChild), false, NeoValueOwnership.Session)
         {
@@ -50,7 +55,7 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<StorageD>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     _ => new StorageD(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
@@ -62,12 +67,17 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<StorageD>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     _ => new StorageD(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
+        }
+
+        internal static StorageD? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return new StorageD(client, value, !saved);
         }
 
         public StorageD Clone()
@@ -94,6 +104,10 @@ namespace Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("InheritChild", out object? detachedValue))
+                {
+                    return NeoGeneratedTypesSupport.ReadNSPropertyClass(client, detachedValue, false, true, null, static (factoryClient, factoryNode) => global::Assets.Scripts.Neo.StorageE.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::Assets.Scripts.Neo.StorageE.CreateDetached(factoryClient, factoryValue, factorySaved));
+                }
                 var child = writableNode.Get<NeoMemberClassWritable>("InheritChild");
                 return child.value?.value is null ? null : global::Assets.Scripts.Neo.StorageE.CreateWritable(client, child);
             }

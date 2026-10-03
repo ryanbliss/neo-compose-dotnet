@@ -41,11 +41,16 @@ namespace Assets.Scripts.Neo
         {
         }
 
+        internal NeoAnimationTrackBase(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
         internal static NeoAnimationTrackBase Create(NeoClient client, NeoMemberClass node)
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoAnimationTrackBase>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoAnimationTrackBase' without a concrete client type id."),
@@ -57,12 +62,17 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoAnimationTrackBase>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoAnimationTrackBase' without a concrete client type id."),
                 };
             });
+        }
+
+        internal static NeoAnimationTrackBase? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return null;
         }
 
         public NeoAnimationTrackBase Clone()
@@ -98,6 +108,10 @@ namespace Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("Refresh", out object? detachedValue))
+                {
+                    return NeoGeneratedTypesSupport.ReadEnumSingle(detachedValue, static (factoryOptionId) => NeoSelectorRefreshKind.FromOptionId(factoryOptionId)) ?? throw new InvalidOperationException("Required enum 'Refresh' has no selected option.");
+                }
                 var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoMemberEnum>("Refresh"));
                 return selected is null ? throw new InvalidOperationException("Required enum 'Refresh' has no selected option.") : NeoSelectorRefreshKind.FromOptionId(selected);
             }
@@ -107,6 +121,10 @@ namespace Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("StartFrame", out object? detachedValue))
+                {
+                    return Convert.ToInt32(detachedValue);
+                }
                 return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("StartFrame")) ?? throw new InvalidOperationException("Required int 'StartFrame' has no value.");
             }
         }
@@ -115,6 +133,10 @@ namespace Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("Direction", out object? detachedValue))
+                {
+                    return NeoGeneratedTypesSupport.ReadEnumSingle(detachedValue, static (factoryOptionId) => NeoPlayDirection.FromOptionId(factoryOptionId)) ?? throw new InvalidOperationException("Required enum 'Direction' has no selected option.");
+                }
                 var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoMemberEnum>("Direction"));
                 return selected is null ? throw new InvalidOperationException("Required enum 'Direction' has no selected option.") : NeoPlayDirection.FromOptionId(selected);
             }
@@ -124,6 +146,10 @@ namespace Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("OffsetStartIndex", out object? detachedValue))
+                {
+                    return detachedValue is null ? (int?)null : Convert.ToInt32(detachedValue);
+                }
                 return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("OffsetStartIndex"));
             }
         }
@@ -132,6 +158,10 @@ namespace Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("OffsetEndIndex", out object? detachedValue))
+                {
+                    return detachedValue is null ? (int?)null : Convert.ToInt32(detachedValue);
+                }
                 return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("OffsetEndIndex"));
             }
         }
