@@ -105,8 +105,10 @@ namespace NeoCompose.Runtime
         private readonly Dictionary<string, IReadOnlyNeoObjectLayerRuntime> objectLayersByLayerId = new();
         private readonly Dictionary<string, GameObject> objectLayerRootsByLayerId = new();
         private readonly Dictionary<NeoObjectInstanceId, GameObject> objectRootsByInstanceId = new();
-        private readonly Dictionary<NeoObjectInstanceId, IDisposable>
-            objectPositionSubscriptionsByInstanceId = new();
+        private readonly Dictionary<NeoObjectInstanceId, PlacedObjectPosition>
+            placedPositionsByInstanceId = new();
+        // LateUpdate's write-backs, collected before any is written.
+        private readonly List<PlacedObjectPosition> movedPlacements = new();
         // Every GameObject an instance's object graph rendered, paired with the
         // value it came from, so a runtime Enabled write can toggle it without
         // re-walking the composition.
@@ -227,42 +229,56 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// The two transforms P92 §2.2 inserts under a grouped object: the
-        /// <c>Sorting Group</c> GameObject sits at the authored sort point and
-        /// the <c>Content</c> beneath it cancels that offset, so moving the
-        /// point re-sorts the group without moving any art.
+        /// A grouped object's pivot. The object's own transform carries the
+        /// Unity <c>SortingGroup</c> and sits at the authored sort point, and the
+        /// <c>Content</c> beneath it cancels that offset, so moving the point
+        /// re-sorts the group without moving any art. The object's authored
+        /// collider is measured from the placement corner, so it cancels the
+        /// offset too. A Rigidbody2D or NavMeshAgent added to the object
+        /// therefore moves its sort point, the feet a hand-built prefab pivots on.
         /// </summary>
         private sealed class SortPointPair
         {
             private readonly NeoTileGridRenderer renderer;
             private readonly INeoSortingGroupSource source;
-            private readonly Transform sortingGroup;
             private INeoSortingGroup? group;
             private NeoMemberClass? groupNode;
-            private Vector3 applied;
+            private BoxCollider2D? collider;
+            private Vector2 colliderOffset;
 
             public SortPointPair(
                 NeoTileGridRenderer renderer,
                 INeoSortingGroupSource source,
                 INeoSortingGroup group,
-                Transform sortingGroup,
                 Transform content)
             {
                 this.renderer = renderer;
                 this.source = source;
                 this.group = group;
-                this.sortingGroup = sortingGroup;
                 Content = content;
                 // The contract exposes no member key, so writes match by node.
                 groupNode = (group as NeoGeneratedClassValue)?.BackingNode;
-                applied = renderer.CellOffsetToLocalPosition(group.SortPoint);
-                sortingGroup.localPosition = applied;
-                content.localPosition = -applied;
+                Point = renderer.CellOffsetToLocalPosition(group.SortPoint);
+                content.localPosition = -Point;
             }
 
             public Transform Content
             {
                 get;
+            }
+
+            /// <summary>The sort point last applied, in the object's local units.</summary>
+            public Vector3 Point
+            {
+                get; private set;
+            }
+
+            /// <summary>Measures the object's authored collider from the placement corner.</summary>
+            public void Anchor(BoxCollider2D authored)
+            {
+                collider = authored;
+                colliderOffset = authored.offset;
+                authored.offset = colliderOffset - (Vector2)Point;
             }
 
             /// <summary>
@@ -277,15 +293,16 @@ namespace NeoCompose.Runtime
                 || ReferenceEquals(changed.parent, groupNode);
 
             /// <summary>
-            /// Two transform writes that touch no child, skipped when the point
-            /// equals the last one applied or the pair is already destroyed.
-            /// The pair re-reads the owner's group when it has none, or when
-            /// its node was disposed (a new group was assigned) or went null;
-            /// with no group it keeps the last point.
+            /// Re-reads the point and cancels it under the object, skipped when
+            /// it equals the last one applied or the object is already
+            /// destroyed. The caller moves the object itself. The pair re-reads
+            /// the owner's group when it has none, or when its node was
+            /// disposed (a new group was assigned) or went null; with no group
+            /// it keeps the last point.
             /// </summary>
             public void Apply()
             {
-                if (sortingGroup == null)
+                if (Content == null)
                     return;
                 if (group is null
                     || groupNode is { isDisposed: true } or { value: null or { value: null } })
@@ -296,11 +313,12 @@ namespace NeoCompose.Runtime
                 if (group is null)
                     return;
                 var point = renderer.CellOffsetToLocalPosition(group.SortPoint);
-                if (point == applied)
+                if (point == Point)
                     return;
-                sortingGroup.localPosition = point;
                 Content.localPosition = -point;
-                applied = point;
+                if (collider != null)
+                    collider.offset = colliderOffset - (Vector2)point;
+                Point = point;
             }
         }
 
@@ -308,8 +326,8 @@ namespace NeoCompose.Runtime
         /// Tracks one nested value, preserving each rendered transform's fixed
         /// sprite-center or tile-cell offset. Animation writes update only this
         /// value's transforms, once per applied frame, before playback returns.
-        /// A nested value that carries a sorting group also keeps that group's
-        /// sort point live.
+        /// A nested value that carries a sorting group sits at its live sort
+        /// point.
         /// </summary>
         private sealed class NestedObjectPositionBinding : IDisposable
         {
@@ -331,7 +349,7 @@ namespace NeoCompose.Runtime
                 this.renderer = renderer;
                 this.value = value;
                 this.sortPoint = sortPoint;
-                applied = renderer.CellOffsetToLocalPosition(value.Position);
+                applied = Pivot();
                 Action refresh = Refresh;
                 subscription = generated.WatchAnyChange((owner, changed, _) =>
                 {
@@ -353,12 +371,15 @@ namespace NeoCompose.Runtime
             public void Register(Transform target) =>
                 targets.Add((target, target.localPosition - applied));
 
+            private Vector3 Pivot() =>
+                renderer.CellOffsetToLocalPosition(value.Position) + (sortPoint?.Point ?? Vector3.zero);
+
             public void Refresh()
             {
                 if (disposed)
                     return;
                 sortPoint?.Apply();
-                var position = renderer.CellOffsetToLocalPosition(value.Position);
+                var position = Pivot();
                 if (position == applied)
                     return;
                 foreach (var target in targets)
@@ -1392,8 +1413,9 @@ namespace NeoCompose.Runtime
             if (!objectShapesByInstanceId.TryGetValue(instanceId, out var shape)
                 || !shape.Matches(new RenderedObjectShape(layer, instance.Object, null)))
                 return false;
-            root.transform.localPosition = CellToLocalPosition(instance.Cell);
             shape.SortPoint?.Apply();
+            if (placedPositionsByInstanceId.TryGetValue(instanceId, out var placed))
+                placed.Place(instance.Cell);
             if (objectVisibilityByInstanceId.TryGetValue(instanceId, out var visibility))
             {
                 foreach (var bucket in visibility.Buckets)
@@ -1435,27 +1457,31 @@ namespace NeoCompose.Runtime
         /// Keeps a rendered object's transform and visibility in sync with its
         /// value model: runtime writes (e.g. a Session-storage Position on the
         /// player spawn, or an Enabled write that equips a hat) move or reveal
-        /// the GameObject, so the Neo data model stays the single source of
+        /// the GameObject, and whatever else moves the GameObject writes its
+        /// Position back, so the Neo data model stays the single source of
         /// truth for placement.
         /// </summary>
         /// <returns>The handler, which nested values pass their getter changes to.</returns>
         private Action<NeoGeneratedClassValue, NeoMember> TrackObjectPosition(
+            GameObject root,
             NeoObjectProjection instance,
             SortPointPair? sortPoint)
         {
             var instanceId = instance.InstanceId;
             var value = instance.Object;
+            var placed = new PlacedObjectPosition(this, root.transform, value, sortPoint);
+            placed.Place(instance.Cell);
             // Coalesce the many leaf writes of a composed animation frame.
             // Flush before ApplyFrame returns, never on a later Unity frame.
             bool positionDirty = false, sortPointDirty = false, visibilityDirty = false, spritesDirty = false;
             void RefreshRendering()
             {
-                if (!objectRootsByInstanceId.TryGetValue(instanceId, out var root) || root == null)
+                if (!objectRootsByInstanceId.TryGetValue(instanceId, out var rendered) || rendered == null)
                     return;
-                if (positionDirty && value is INeoWorldObjectValue worldObject)
-                    root.transform.localPosition = CellOffsetToLocalPosition(worldObject.Position);
                 if (sortPointDirty)
                     sortPoint!.Apply();
+                if (positionDirty || sortPointDirty)
+                    placed.Refresh();
                 if (visibilityDirty)
                     SyncObjectVisibility(instanceId);
                 if (spritesDirty)
@@ -1476,9 +1502,136 @@ namespace NeoCompose.Runtime
                 value.Client.RefreshAnimationRendering(refresh);
             }
             DisposeObjectPositionSubscription(instanceId);
-            objectPositionSubscriptionsByInstanceId[instanceId] = value.WatchAnyChange(
+            placed.Subscription = value.WatchAnyChange(
                 (changedValue, changedMember, _) => Changed(changedValue, changedMember));
+            placedPositionsByInstanceId[instanceId] = placed;
             return Changed;
+        }
+
+        /// <summary>
+        /// A placed object's transform and the Position it renders. The
+        /// object sits at its Position plus its sort point, measured from the
+        /// layer-space origin that Position is relative to. The renderer moves
+        /// it when Position or the sort point changes; anything else that
+        /// moves it, such as a Rigidbody2D, a NavMeshAgent or game code,
+        /// writes Position back in <see cref="LateUpdate"/>. A written Position
+        /// counts as applied, so its own change does not move the object again.
+        /// A move the grid rejects puts the object back.
+        /// </summary>
+        private sealed class PlacedObjectPosition : IDisposable
+        {
+            private readonly NeoTileGridRenderer renderer;
+            private readonly Transform transform;
+            private readonly NeoGeneratedClassValue value;
+            private readonly INeoWorldObjectValue? worldObject;
+            private readonly SortPointPair? sortPoint;
+            private readonly bool writable;
+            private Vector3 origin;
+            private Vector3 applied;
+            private Vector3 appliedPosition;
+            private Vector3 appliedPoint;
+
+            public PlacedObjectPosition(
+                NeoTileGridRenderer renderer,
+                Transform transform,
+                NeoGeneratedClassValue value,
+                SortPointPair? sortPoint)
+            {
+                this.renderer = renderer;
+                this.transform = transform;
+                this.value = value;
+                worldObject = value as INeoWorldObjectValue;
+                this.sortPoint = sortPoint;
+                writable = worldObject is not null && !value.IsReadOnly;
+            }
+
+            public IDisposable? Subscription
+            {
+                get; set;
+            }
+
+            /// <summary>
+            /// Places the object in <paramref name="cell"/>, the cell its
+            /// rounded Position occupies, keeping Position's fractional part.
+            /// </summary>
+            public void Place(Vector2Int cell)
+            {
+                var position = worldObject?.Position.Value ?? Vector3.zero;
+                origin = renderer.CellOffsetToLocalPosition(cell - new Vector2Int(
+                    Mathf.RoundToInt(position.x),
+                    Mathf.RoundToInt(position.y)));
+                Apply(position);
+            }
+
+            /// <summary>Moves the object when its Position or sort point changed.</summary>
+            public void Refresh()
+            {
+                if (worldObject is null)
+                    return;
+                var position = worldObject.Position.Value;
+                if (position == appliedPosition && Point == appliedPoint)
+                    return;
+                Apply(position);
+            }
+
+            /// <summary>
+            /// Whether something other than the renderer moved the object since
+            /// the renderer last placed it or wrote it back.
+            /// </summary>
+            public bool Moved =>
+                writable
+                && transform != null
+                && transform.localPosition != applied;
+
+            /// <summary>Writes the object's moved transform back to Position.</summary>
+            public void WriteBack()
+            {
+                if (!Moved)
+                    return;
+                var position = appliedPosition;
+                applied = transform.localPosition;
+                appliedPoint = Point;
+                appliedPosition = (applied - origin - appliedPoint) / renderer.cellSize;
+                try
+                {
+                    NeoGeneratedTypesSupport.SetPlacementVector3(
+                        value.WritableBackingNode,
+                        "Position",
+                        new NeoReadOnlyVector3(appliedPosition));
+                }
+                catch (NeoPlacementValidationException)
+                {
+                    Apply(position);
+                }
+            }
+
+            public void Dispose() => Subscription?.Dispose();
+
+            private Vector3 Point => sortPoint?.Point ?? Vector3.zero;
+
+            private void Apply(Vector3 position)
+            {
+                appliedPosition = position;
+                appliedPoint = Point;
+                applied = origin + renderer.CellOffsetToLocalPosition(position) + appliedPoint;
+                if (transform != null)
+                    transform.localPosition = applied;
+            }
+        }
+
+        // Physics, NavMeshAgents and game updates have moved their objects by now.
+        private void LateUpdate()
+        {
+            foreach (var placed in placedPositionsByInstanceId.Values)
+            {
+                if (placed.Moved)
+                    movedPlacements.Add(placed);
+            }
+            // A Position write can re-render its object, so none is written
+            // while the placements are enumerated.
+            foreach (var placed in movedPlacements)
+                placed.WriteBack();
+            movedPlacements.Clear();
         }
 
         /// <summary>
@@ -1627,23 +1780,15 @@ namespace NeoCompose.Runtime
 
         private void DisposeObjectPositionSubscription(NeoObjectInstanceId instanceId)
         {
-            if (!objectPositionSubscriptionsByInstanceId.TryGetValue(
-                instanceId, out var subscription))
-            {
-                return;
-            }
-
-            objectPositionSubscriptionsByInstanceId.Remove(instanceId);
-            subscription.Dispose();
+            if (placedPositionsByInstanceId.Remove(instanceId, out var placed))
+                placed.Dispose();
         }
 
         private void DisposeObjectPositionSubscriptions()
         {
-            foreach (var subscription in objectPositionSubscriptionsByInstanceId.Values)
-            {
-                subscription.Dispose();
-            }
-            objectPositionSubscriptionsByInstanceId.Clear();
+            foreach (var placed in placedPositionsByInstanceId.Values)
+                placed.Dispose();
+            placedPositionsByInstanceId.Clear();
         }
 
         private Grid EnsureGrid()
@@ -1973,7 +2118,6 @@ namespace NeoCompose.Runtime
         {
             var go = new GameObject($"Object - {instance.InstanceId.Value}");
             go.transform.SetParent(parent, false);
-            go.transform.localPosition = CellToLocalPosition(instance.Cell);
             // Membership rank and child index add nothing: only authored orders
             // separate objects, so the camera's transparency sort axis decides.
             var sortingOrder = layer.SortingOrder ?? layerFallbackSortingOrder;
@@ -1981,7 +2125,7 @@ namespace NeoCompose.Runtime
             // parented under a group that already exists.
             var sortPoint = AttachSortingGroup(go, layer, instance.Object, sortingOrder);
             var content = sortPoint?.Content ?? go.transform;
-            var changed = TrackObjectPosition(instance, sortPoint);
+            var changed = TrackObjectPosition(go, instance, sortPoint);
 
             var visibility = new ObjectVisibilityIndex(this, changed);
             objectVisibilityByInstanceId[instance.InstanceId] = visibility;
@@ -2010,13 +2154,14 @@ namespace NeoCompose.Runtime
                 && TryResolveObjectColliderSpec(colliderSource, out var colliderSpec))
             {
                 // Authored collider values are grid cells; BoxCollider2D wants
-                // local units. Offset needs no re-anchoring — it shares the
-                // root transform's origin (the placement cell's corner), the
-                // same contract the web editor renders.
-                ApplyBoxCollider(go, new NeoBoxColliderSpec(
+                // local units. Offset is measured from the placement cell's
+                // corner, the same contract the web editor renders, so a
+                // grouped object's pivot cancels it.
+                var collider = ApplyBoxCollider(go, new NeoBoxColliderSpec(
                     colliderSpec.Size * cellSize,
                     colliderSpec.Offset * cellSize,
                     colliderSpec.IsTrigger));
+                sortPoint?.Anchor(collider);
             }
 
             if (renderedChildren == 0 && instance.Object is INeoSpriteObjectValue spriteObject)
@@ -2027,14 +2172,13 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// Adds a Unity SortingGroup when the value authored one, so the
-        /// object and its children sort as a single unit. Sorting layer and
-        /// order come from the object layer group, exactly as they do for a
-        /// SpriteRenderer, so the group ties with the layer's other objects
-        /// and sorts along the transparency axis at the authored sort point
-        /// (P92 §2.2): <c>target / Sorting Group / Content</c>. The target
-        /// keeps its placement, collider, and behaviour; its rendered children
-        /// go under the returned pair's <see cref="SortPointPair.Content"/>.
+        /// Adds a Unity SortingGroup to the object when the value authored one,
+        /// so the object and its children sort as a single unit. Sorting layer
+        /// and order come from the object layer group, exactly as they do for
+        /// a SpriteRenderer, so the group ties with the layer's other objects
+        /// and sorts along the transparency axis at the authored sort point:
+        /// the object sits at that point, with its rendered children under the
+        /// returned pair's <see cref="SortPointPair.Content"/>.
         /// </summary>
         /// <returns>Null, adding nothing, when the value is ungrouped.</returns>
         private SortPointPair? AttachSortingGroup(
@@ -2048,14 +2192,12 @@ namespace NeoCompose.Runtime
             if (source.SortingGroup is not { } group)
                 return null;
 
-            var groupGo = new GameObject("Sorting Group");
-            groupGo.transform.SetParent(target.transform, false);
             var content = new GameObject("Content");
-            content.transform.SetParent(groupGo.transform, false);
-            var sortingGroup = groupGo.AddComponent<UnityEngine.Rendering.SortingGroup>();
+            content.transform.SetParent(target.transform, false);
+            var sortingGroup = target.AddComponent<UnityEngine.Rendering.SortingGroup>();
             sortingGroup.sortAtRoot = group.SortAtRoot;
             ApplySorting(sortingGroup, layer.SortingLayerName, sortingOrder);
-            return new SortPointPair(this, source, group, groupGo.transform, content.transform);
+            return new SortPointPair(this, source, group, content.transform);
         }
 
         private int RenderObjectComposition(
@@ -2129,9 +2271,9 @@ namespace NeoCompose.Runtime
             var childRoot = new GameObject(
                 string.IsNullOrWhiteSpace(child.Name) ? "Object" : child.Name);
             childRoot.transform.SetParent(parent, false);
-            childRoot.transform.localPosition = childOffset;
             // Measured from this child's origin, like its collider.
             var sortPoint = AttachSortingGroup(childRoot, layer, child, sortingOrder);
+            childRoot.transform.localPosition = childOffset + (sortPoint?.Point ?? Vector3.zero);
             // The subtree is built even when the child is disabled, so a
             // runtime write can toggle it back on and so a clip playing through
             // it keeps resolving. Deactivation happens later still, once the
@@ -2147,8 +2289,9 @@ namespace NeoCompose.Runtime
                 sprites);
             if (child is INeoColliderSource colliderSource && TryResolveObjectColliderSpec(colliderSource, out var colliderSpec))
             {
-                ApplyBoxCollider(childRoot, new NeoBoxColliderSpec(colliderSpec.Size * cellSize,
+                var childCollider = ApplyBoxCollider(childRoot, new NeoBoxColliderSpec(colliderSpec.Size * cellSize,
                     colliderSpec.Offset * cellSize, colliderSpec.IsTrigger));
+                sortPoint?.Anchor(childCollider);
                 childRendered++;
             }
             // Kept even when nothing under it draws, so every world object
@@ -2238,9 +2381,6 @@ namespace NeoCompose.Runtime
             sortingGroup.sortingOrder = sortingOrder;
         }
 
-        private Vector3 CellToLocalPosition(Vector2Int cell) =>
-            CellOffsetToLocalPosition(cell);
-
         private Vector3 CellOffsetToLocalPosition(Vector2Int cell) =>
             new(cell.x * cellSize, cell.y * cellSize, 0f);
 
@@ -2252,14 +2392,10 @@ namespace NeoCompose.Runtime
             return new Vector3(cells.x * cellSize, cells.y * cellSize, 0f);
         }
 
-        private Vector3 CellOffsetToLocalPosition(NeoReadOnlyVector3 position)
-        {
-            var cells = position.Value;
-            return new Vector3(
-                cells.x * cellSize,
-                cells.y * cellSize,
-                cells.z * cellSize);
-        }
+        private Vector3 CellOffsetToLocalPosition(NeoReadOnlyVector3 position) =>
+            CellOffsetToLocalPosition(position.Value);
+
+        private Vector3 CellOffsetToLocalPosition(Vector3 cells) => cells * cellSize;
 
         private static Vector3 CellSpanFromSize(NeoReadOnlyVector3 size)
         {
@@ -2448,12 +2584,13 @@ namespace NeoCompose.Runtime
             return true;
         }
 
-        private static void ApplyBoxCollider(GameObject target, NeoBoxColliderSpec spec)
+        private static BoxCollider2D ApplyBoxCollider(GameObject target, NeoBoxColliderSpec spec)
         {
             var collider = target.AddComponent<BoxCollider2D>();
             collider.size = spec.Size;
             collider.offset = spec.Offset;
             collider.isTrigger = spec.IsTrigger;
+            return collider;
         }
 
         private static void DestroyCompositionRoot(GameObject root)

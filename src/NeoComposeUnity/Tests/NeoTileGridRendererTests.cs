@@ -5975,12 +5975,10 @@ namespace NeoCompose.Tests
                     .Find("Object Layer - Objects")
                     ?.Find("Object - object-1");
                 Assert.IsNotNull(objectRoot);
-                // P92 §2.2: the component sits on the sort-point child, never
-                // on the placed root.
-                Assert.IsFalse(objectRoot!.TryGetComponent(
-                    out UnityEngine.Rendering.SortingGroup _));
-                Assert.IsTrue(objectRoot.Find("Sorting Group").TryGetComponent(
+                // The component sits on the object, which sits at its sort point.
+                Assert.IsTrue(objectRoot!.TryGetComponent(
                     out UnityEngine.Rendering.SortingGroup sortingGroup));
+                Assert.IsNotNull(objectRoot.Find("Content"));
                 Assert.IsTrue(sortingGroup.sortAtRoot);
                 Assert.AreEqual("Default", sortingGroup.sortingLayerName);
                 // The layer's order; membership rank never adds to it.
@@ -6013,7 +6011,7 @@ namespace NeoCompose.Tests
                 Assert.IsNotNull(objectRoot);
                 Assert.IsFalse(objectRoot!.TryGetComponent(
                     out UnityEngine.Rendering.SortingGroup _));
-                Assert.IsNull(objectRoot.Find("Sorting Group"));
+                Assert.IsNull(objectRoot.Find("Content"));
             }
             finally
             {
@@ -6022,7 +6020,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void Render_SortingGroupPairSitsAtSortPointAndLeavesArtInPlace()
+        public void Render_GroupedObjectSitsAtSortPointAndLeavesArtInPlace()
         {
             using var client = NeoTestSaveStack.ClientFromSchema(BuildSortPointProjectData());
             var root = (TestComposedObject)SpawnAnimationTestObject(client).Info;
@@ -6050,10 +6048,12 @@ namespace NeoCompose.Tests
             }
             try
             {
-                RenderInto("Ungrouped");
+                var ungroupedRenderer = RenderInto("Ungrouped");
                 var ungrouped = go!.GetComponentsInChildren<SpriteRenderer>(true)
                     .ToDictionary(sprite => sprite.name, sprite => sprite.transform.position);
                 int ungroupedTransforms = go.GetComponentsInChildren<Transform>(true).Length;
+                Assert.IsTrue(ungroupedRenderer.TryGetObjectRoot("object-1", out var ungroupedRoot));
+                var corner = ungroupedRoot.transform.localPosition;
                 Assert.AreEqual(2, ungrouped.Count);
                 Assert.IsEmpty(go.GetComponentsInChildren<UnityEngine.Rendering.SortingGroup>(true));
                 UnityEngine.Object.DestroyImmediate(go);
@@ -6070,29 +6070,24 @@ namespace NeoCompose.Tests
                 CollectionAssert.AreEquivalent(ungrouped.Keys, grouped.Select(sprite => sprite.name));
                 foreach (var sprite in grouped)
                     AssertSamePosition(ungrouped[sprite.name], sprite.transform.position);
-                // Two groups, two GameObjects each; nothing else is added.
-                Assert.AreEqual(ungroupedTransforms + 4, go.GetComponentsInChildren<Transform>(true).Length);
+                // Two groups, one Content each; nothing else is added.
+                Assert.AreEqual(ungroupedTransforms + 2, go.GetComponentsInChildren<Transform>(true).Length);
 
                 Assert.IsTrue(renderer.TryGetObjectRoot("object-1", out var placed));
-                Assert.IsFalse(placed.TryGetComponent(out UnityEngine.Rendering.SortingGroup _));
-                var pair = placed.transform.Find("Sorting Group");
-                var content = pair.Find("Content");
-                AssertSamePosition(new Vector3(2.5f, 0.8f, 0), pair.localPosition);
-                AssertSamePosition(-pair.localPosition, content.localPosition);
-                Assert.IsTrue(pair.TryGetComponent(out UnityEngine.Rendering.SortingGroup sortingGroup));
+                var content = placed.transform.Find("Content");
+                AssertSamePosition(corner + new Vector3(2.5f, 0.8f, 0), placed.transform.localPosition);
+                AssertSamePosition(new Vector3(-2.5f, -0.8f, 0), content.localPosition);
+                Assert.IsTrue(placed.TryGetComponent(out UnityEngine.Rendering.SortingGroup sortingGroup));
                 Assert.AreEqual(12, sortingGroup.sortingOrder);
                 Assert.IsNotNull(content.Find("Base"));
 
-                // The composition child's pair hangs under its own root,
-                // measured from that child's origin.
+                // The composition child sits at its own sort point, measured
+                // from that child's origin.
                 var partRoot = content.Find("Part");
-                AssertSamePosition(new Vector3(2, 4, 0), partRoot.localPosition);
-                Assert.IsFalse(partRoot.TryGetComponent(out UnityEngine.Rendering.SortingGroup _));
-                var nested = partRoot.Find("Sorting Group");
-                AssertSamePosition(new Vector3(1, 1.5f, 0), nested.localPosition);
-                Assert.IsTrue(nested.TryGetComponent(out UnityEngine.Rendering.SortingGroup _));
-                AssertSamePosition(-nested.localPosition, nested.Find("Content").localPosition);
-                Assert.IsNotNull(nested.Find("Content/Art"));
+                AssertSamePosition(new Vector3(3, 5.5f, 0), partRoot.localPosition);
+                Assert.IsTrue(partRoot.TryGetComponent(out UnityEngine.Rendering.SortingGroup _));
+                AssertSamePosition(new Vector3(-1, -1.5f, 0), partRoot.Find("Content").localPosition);
+                Assert.IsNotNull(partRoot.Find("Content/Art"));
             }
             finally
             {
@@ -6103,7 +6098,7 @@ namespace NeoCompose.Tests
 
         [TestCase(false)]
         [TestCase(true)]
-        public void Render_SortPointWriteMovesOnlyThePairInTheSameRefresh(bool composition)
+        public void Render_SortPointWriteMovesTheOwnerAndNotItsArtInTheSameRefresh(bool composition)
         {
             using var client = NeoTestSaveStack.ClientFromSchema(BuildSortPointProjectData());
             // A composition child's Position stays unchanged throughout, so
@@ -6115,24 +6110,23 @@ namespace NeoCompose.Tests
                 var renderer = RenderSortPointOwner(go, client, root);
                 Assert.IsTrue(renderer.TryGetObjectRoot("object-1", out var placed));
                 var owner = composition ? placed.transform.Find("Part") : placed.transform;
-                var pair = owner.Find("Sorting Group");
-                var content = pair.Find("Content");
+                var content = owner.Find("Content");
                 var drawn = go.GetComponentInChildren<SpriteRenderer>();
                 var artWorld = drawn.transform.position;
                 var artLocal = drawn.transform.localPosition;
                 var rootLocal = placed.transform.localPosition;
-                var ownerLocal = owner.localPosition;
-                AssertSamePosition(new Vector3(1, 0, 0), pair.localPosition);
+                AssertSamePosition(new Vector3(-1, 0, 0), content.localPosition);
+                var corner = owner.localPosition + content.localPosition;
 
                 foreach (var point in new[] { new Vector2(1.5f, 0.25f), new Vector2(-0.5f, 2f) })
                 {
                     WriteSortPoint(grouped, point);
-                    AssertSamePosition(new Vector3(point.x * 2, point.y * 2, 0), pair.localPosition);
-                    AssertSamePosition(-pair.localPosition, content.localPosition);
+                    AssertSamePosition(new Vector3(point.x * 2, point.y * 2, 0), -content.localPosition);
+                    AssertSamePosition(corner, owner.localPosition + content.localPosition);
                     AssertSamePosition(artWorld, drawn.transform.position);
                     Assert.AreEqual(artLocal, drawn.transform.localPosition);
-                    Assert.AreEqual(rootLocal, placed.transform.localPosition);
-                    Assert.AreEqual(ownerLocal, owner.localPosition);
+                    if (composition)
+                        Assert.AreEqual(rootLocal, placed.transform.localPosition);
                 }
 
                 // A frame's writes coalesce into its one refresh.
@@ -6140,7 +6134,7 @@ namespace NeoCompose.Tests
                 WriteSortPoint(grouped, new Vector2(3, 3));
                 WriteSortPoint(grouped, new Vector2(0.75f, 0.125f));
                 client.EndAnimationFrame();
-                AssertSamePosition(new Vector3(1.5f, 0.25f, 0), pair.localPosition);
+                AssertSamePosition(new Vector3(1.5f, 0.25f, 0), -content.localPosition);
                 AssertSamePosition(artWorld, drawn.transform.position);
 
                 // Nothing was respawned.
@@ -6158,7 +6152,7 @@ namespace NeoCompose.Tests
 
         [TestCase(false)]
         [TestCase(true)]
-        public void Render_VariantSortPointWriteMovesOnlyThePair(bool composition)
+        public void Render_VariantSortPointWriteMovesTheOwnerAndNotItsArt(bool composition)
         {
             using var client = NeoTestSaveStack.ClientFromSchema(BuildSortPointProjectData());
             var (root, grouped) = BuildSortPointOwner(client, composition);
@@ -6168,12 +6162,11 @@ namespace NeoCompose.Tests
                 var renderer = RenderSortPointOwner(go, client, root);
                 Assert.IsTrue(renderer.TryGetObjectRoot("object-1", out var placed));
                 var owner = composition ? placed.transform.Find("Part") : placed.transform;
-                var pair = owner.Find("Sorting Group");
-                var content = pair.Find("Content");
+                var content = owner.Find("Content");
                 var drawn = go.GetComponentInChildren<SpriteRenderer>();
                 var artWorld = drawn.transform.position;
                 var rootLocal = placed.transform.localPosition;
-                var ownerLocal = owner.localPosition;
+                var corner = owner.localPosition + content.localPosition;
 
                 // An in-place variant swap writes the group's SortPoint row.
                 var group = ((TestNodeSortingGroup)grouped.SortingGroup!).BackingNode;
@@ -6186,11 +6179,11 @@ namespace NeoCompose.Tests
                         value = new NeoVector2Value { x = 1.5f, y = 0.25f },
                     }));
 
-                AssertSamePosition(new Vector3(3, 0.5f, 0), pair.localPosition);
-                AssertSamePosition(-pair.localPosition, content.localPosition);
+                AssertSamePosition(new Vector3(3, 0.5f, 0), -content.localPosition);
+                AssertSamePosition(corner, owner.localPosition + content.localPosition);
                 AssertSamePosition(artWorld, drawn.transform.position);
-                Assert.AreEqual(rootLocal, placed.transform.localPosition);
-                Assert.AreEqual(ownerLocal, owner.localPosition);
+                if (composition)
+                    Assert.AreEqual(rootLocal, placed.transform.localPosition);
                 Assert.IsTrue(renderer.TryGetObjectRoot("object-1", out var after));
                 Assert.AreSame(placed, after);
                 Assert.AreSame(drawn, go.GetComponentInChildren<SpriteRenderer>());
@@ -6200,7 +6193,7 @@ namespace NeoCompose.Tests
 
         [TestCase(false)]
         [TestCase(true)]
-        public void Render_SortingGroupReplacementMovesThePairToTheNewGroup(bool composition)
+        public void Render_SortingGroupReplacementMovesTheOwnerToTheNewGroup(bool composition)
         {
             using var client = NeoTestSaveStack.ClientFromSchema(BuildSortPointProjectData());
             var (root, grouped) = BuildSortPointOwner(client, composition);
@@ -6210,29 +6203,28 @@ namespace NeoCompose.Tests
                 var renderer = RenderSortPointOwner(go, client, root);
                 Assert.IsTrue(renderer.TryGetObjectRoot("object-1", out var placed));
                 var owner = composition ? placed.transform.Find("Part") : placed.transform;
-                var pair = owner.Find("Sorting Group");
-                var content = pair.Find("Content");
+                var content = owner.Find("Content");
                 var drawn = go.GetComponentInChildren<SpriteRenderer>();
                 var artWorld = drawn.transform.position;
+                var corner = owner.localPosition + content.localPosition;
 
-                // Assigning a new group disposes the node the pair read from.
+                // Assigning a new group disposes the node the pivot read from.
                 var previous = ((TestNodeSortingGroup)grouped.SortingGroup!).BackingNode;
                 Assert.DoesNotThrow(() => AssignSortingGroup(client, grouped, new Vector2(1.5f, 0.25f)));
                 Assert.IsTrue(previous.isDisposed);
-                AssertSamePosition(new Vector3(3, 0.5f, 0), pair.localPosition);
-                AssertSamePosition(-pair.localPosition, content.localPosition);
+                AssertSamePosition(new Vector3(3, 0.5f, 0), -content.localPosition);
+                AssertSamePosition(corner, owner.localPosition + content.localPosition);
                 AssertSamePosition(artWorld, drawn.transform.position);
 
-                // The pair follows the new group's own writes.
+                // The pivot follows the new group's own writes.
                 WriteSortPoint(grouped, new Vector2(-0.5f, 2f));
-                AssertSamePosition(new Vector3(-1, 4, 0), pair.localPosition);
+                AssertSamePosition(new Vector3(-1, 4, 0), -content.localPosition);
 
-                // A later Position write moves the owner and keeps the pair.
+                // A later Position write moves the owner and keeps the pivot.
                 var ownerWorld = owner.position;
                 Assert.DoesNotThrow(() => WritePosition(grouped, new Vector3(2, 3, 0)));
                 Assert.AreNotEqual(ownerWorld, owner.position);
-                AssertSamePosition(new Vector3(-1, 4, 0), pair.localPosition);
-                AssertSamePosition(-pair.localPosition, content.localPosition);
+                AssertSamePosition(new Vector3(-1, 4, 0), -content.localPosition);
                 AssertSamePosition(artWorld + (owner.position - ownerWorld), drawn.transform.position);
             }
             finally { UnityEngine.Object.DestroyImmediate(go); }
@@ -6240,7 +6232,7 @@ namespace NeoCompose.Tests
 
         [TestCase(false)]
         [TestCase(true)]
-        public void Render_NullSortingGroupKeepsThePairUntilTheNextGroup(bool composition)
+        public void Render_NullSortingGroupKeepsThePivotUntilTheNextGroup(bool composition)
         {
             using var client = NeoTestSaveStack.ClientFromSchema(BuildSortPointProjectData());
             var (root, grouped) = BuildSortPointOwner(client, composition);
@@ -6250,28 +6242,27 @@ namespace NeoCompose.Tests
                 var renderer = RenderSortPointOwner(go, client, root);
                 Assert.IsTrue(renderer.TryGetObjectRoot("object-1", out var placed));
                 var owner = composition ? placed.transform.Find("Part") : placed.transform;
-                var pair = owner.Find("Sorting Group");
-                var content = pair.Find("Content");
+                var content = owner.Find("Content");
                 AssignSortingGroup(client, grouped, new Vector2(1.5f, 0.25f));
-                AssertSamePosition(new Vector3(3, 0.5f, 0), pair.localPosition);
+                AssertSamePosition(new Vector3(3, 0.5f, 0), -content.localPosition);
 
                 // Null keeps the group node but clears its value, so its
-                // SortPoint is gone; the pair keeps its last point.
+                // SortPoint is gone; the pivot keeps its last point.
                 var node = ((TestNodeSortingGroup)grouped.SortingGroup!).BackingNode;
                 Assert.DoesNotThrow(() => AssignSortingGroup(client, grouped, null));
                 Assert.IsNull(grouped.SortingGroup);
                 Assert.IsFalse(node.isDisposed);
                 Assert.DoesNotThrow(() => WritePosition(grouped, new Vector3(2, 3, 0)));
-                AssertSamePosition(new Vector3(3, 0.5f, 0), pair.localPosition);
-                AssertSamePosition(-pair.localPosition, content.localPosition);
+                AssertSamePosition(new Vector3(3, 0.5f, 0), -content.localPosition);
+                var corner = owner.localPosition + content.localPosition;
 
-                // The next group takes over the pair.
+                // The next group takes over the pivot.
                 Assert.DoesNotThrow(() => AssignSortingGroup(client, grouped, new Vector2(0.75f, 1f)));
-                AssertSamePosition(new Vector3(1.5f, 2, 0), pair.localPosition);
-                AssertSamePosition(-pair.localPosition, content.localPosition);
+                AssertSamePosition(new Vector3(1.5f, 2, 0), -content.localPosition);
+                AssertSamePosition(corner, owner.localPosition + content.localPosition);
                 WriteSortPoint(grouped, new Vector2(-0.5f, 2f));
-                AssertSamePosition(new Vector3(-1, 4, 0), pair.localPosition);
-                AssertSamePosition(-pair.localPosition, content.localPosition);
+                AssertSamePosition(new Vector3(-1, 4, 0), -content.localPosition);
+                AssertSamePosition(corner, owner.localPosition + content.localPosition);
             }
             finally { UnityEngine.Object.DestroyImmediate(go); }
         }
@@ -6401,6 +6392,156 @@ namespace NeoCompose.Tests
             }
             finally { UnityEngine.Object.DestroyImmediate(go); }
         }
+
+        [Test]
+        public void Render_MovedObjectWritesItsPositionBackWithoutMovingAgain()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildSortPointProjectData());
+            var (root, _) = BuildSortPointOwner(client, composition: false);
+            root.PositionFromNode = true;
+            var go = new GameObject("Position write-back test");
+            try
+            {
+                var renderer = RenderSortPointOwner(go, client, root);
+                Assert.IsTrue(renderer.TryGetObjectRoot("object-1", out var placed));
+                var transform = placed.transform;
+                var start = root.Position.Value;
+                var pivot = transform.localPosition;
+                int changes = 0;
+                using var watch = root.WatchAnyChange((_, _, _) => changes++);
+
+                // A body moves the object; the move is written back in cells
+                // and the write does not move the object again.
+                transform.localPosition = pivot + new Vector3(3, -1, 0);
+                LateUpdate(renderer);
+                AssertSamePosition(start + new Vector3(1.5f, -0.5f, 0), root.Position.Value);
+                Assert.AreEqual(pivot + new Vector3(3, -1, 0), transform.localPosition);
+                Assert.Greater(changes, 0);
+
+                // An object nothing moved writes nothing.
+                changes = 0;
+                LateUpdate(renderer);
+                Assert.AreEqual(0, changes);
+
+                // Any other Position write still moves the object, and is not
+                // written back as a move.
+                NeoGeneratedTypesSupport.SetPlacementVector3(
+                    root.WritableBackingNode,
+                    "Position",
+                    new NeoReadOnlyVector3(start + new Vector3(2, 1, 0)));
+                AssertSamePosition(pivot + new Vector3(4, 2, 0), transform.localPosition);
+                changes = 0;
+                LateUpdate(renderer);
+                Assert.AreEqual(0, changes);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+            }
+        }
+
+        [Test]
+        public void Render_MoveTheGridRejectsPutsTheObjectBack()
+        {
+            var data = BuildClassBackedTileGridProjectData();
+            data.values["other-shop"] = new ObjectMemberValue
+            {
+                id = "other-shop",
+                classId = ObjectClassId,
+                containerId = "objects-link-objects",
+                value = new Dictionary<string, string> { ["Position"] = "other-position" }
+            };
+            data.values["other-position"] = new Vector3MemberValue
+            {
+                id = "other-position",
+                value = new NeoVector3Value { x = 12, y = 20 }
+            };
+            SetPlacementTiles(data, "other-shop", Vector2Int.zero);
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var obj = (TestComposedObject)BuildClassBackedWritableFactories()[ObjectClassId](
+                client, WritableObject(client, "shop-1"));
+            obj.PositionFromNode = true;
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid");
+            // Moves are validated against the layer's committed index.
+            primitive.LookupCache.ObjectRecords(ObjectsLayerClassId);
+            NeoGeneratedTypesSupport.SetPlacementVector3(obj.WritableBackingNode, "Position", new NeoReadOnlyVector3(10, 20, 0));
+            var go = new GameObject("Rejected write-back test");
+            try
+            {
+                var renderer = go.AddComponent<NeoTileGridRenderer>();
+                renderer.Render(primitive,
+                    new List<ReadOnlyNeoTileLayerRuntime>(),
+                    new[] { ObjectLayerWithSingleInstance(obj, "Default", 12) });
+                Assert.IsTrue(renderer.TryGetObjectRoot("object-1", out var placed));
+                var start = placed.transform.localPosition;
+
+                // The other shop holds cell (12, 20).
+                placed.transform.localPosition = start + new Vector3(2, 0, 0);
+                LateUpdate(renderer);
+                Assert.AreEqual(new Vector3(10, 20, 0), obj.Position.Value);
+                Assert.AreEqual(start, placed.transform.localPosition);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+            }
+        }
+
+        [Test]
+        public void Render_ObjectSitsAtItsFractionalPositionFromItsLinkOrigin()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildSortPointProjectData());
+            var (root, _) = BuildSortPointOwner(client, composition: false);
+            // The projection's cell (0, 0) holds the rounded Position, so the
+            // link origin is (-2, -1).
+            root.Position = new NeoReadOnlyVector3(2.25f, 1, 0);
+            var go = new GameObject("Fractional position test");
+            try
+            {
+                var renderer = RenderSortPointOwner(go, client, root);
+                Assert.IsTrue(renderer.TryGetObjectRoot("object-1", out var placed));
+                // (Position - origin) * CellSize + sort point.
+                AssertSamePosition(new Vector3(1.5f, 0, 0), placed.transform.localPosition);
+                WritePosition(root, new Vector3(3.5f, 1.75f, 0));
+                AssertSamePosition(new Vector3(4, 1.5f, 0), placed.transform.localPosition);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+            }
+        }
+
+        [Test]
+        public void Render_AuthoredColliderStaysOnTheArtAsTheSortPointMoves()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildSortPointProjectData());
+            var (root, grouped) = BuildSortPointOwner(client, composition: false);
+            root.Collider = new TestObjectCollider
+            {
+                Size = new NeoReadOnlyVector2(1, 1),
+                Offset = new NeoReadOnlyVector2(0.5f, 0.5f),
+            };
+            var go = new GameObject("Sort point collider test");
+            try
+            {
+                var renderer = RenderSortPointOwner(go, client, root);
+                Assert.IsTrue(renderer.TryGetObjectRoot("object-1", out var placed));
+                var collider = placed.GetComponent<BoxCollider2D>();
+                var center = placed.transform.TransformPoint(collider.offset);
+                WriteSortPoint(grouped, new Vector2(1.5f, 0.25f));
+                AssertSamePosition(center, placed.transform.TransformPoint(collider.offset));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+            }
+        }
+
+        // Unity calls it after physics and game updates; EditMode tests do not.
+        private static void LateUpdate(NeoTileGridRenderer renderer) =>
+            typeof(NeoTileGridRenderer)
+                .GetMethod("LateUpdate", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                .Invoke(renderer, null);
 
         private static void AssertSamePosition(Vector3 expected, Vector3 actual) =>
             Assert.Less((expected - actual).sqrMagnitude, 1e-8f, $"Expected {expected:F4}, got {actual:F4}.");
@@ -8285,7 +8426,20 @@ namespace NeoCompose.Tests
                 get; set;
             }
             public string Name { get; set; } = "";
-            public NeoReadOnlyVector3 Position { get; set; } = new(Vector3.zero);
+            private NeoReadOnlyVector3 position = new(Vector3.zero);
+
+            /// <summary>Reads the stored Position, as a generated getter does.</summary>
+            public bool PositionFromNode
+            {
+                get; set;
+            }
+            public NeoReadOnlyVector3 Position
+            {
+                get => PositionFromNode
+                    ? new NeoReadOnlyVector3(BackingNode.Get<NeoMemberVector3>("Position"))
+                    : position;
+                set => position = value;
+            }
             public NeoReadOnlyVector3 Size { get; set; } = new(Vector3.one);
 
             public bool Enabled { get; set; } = true;

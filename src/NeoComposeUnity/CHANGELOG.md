@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.53.0] - 2026-10-02
+
+- A placed object's transform sits at its pivot. With a sorting group, the `SortingGroup` is on the object itself, at the authored sort point, and a `Content` child cancels that offset, so the art does not move. An authored collider keeps its place on the art. Before, the object sat at its placement corner, with a `Sorting Group` child at the sort point. A Rigidbody2D, NavMeshAgent or anything else added to the object now moves its feet.
+- The renderer writes a placed object's moved transform back to `Position` in `LateUpdate`. A Rigidbody2D, a NavMeshAgent or game code can move the object directly. That write does not move the object again. Any other `Position` write, from a script, an animation or a remote client, still moves it. Read-only objects are not written.
+- An object keeps the fractional part of its `Position` and is measured from its link's origin. Before, it sat at the cell it rounds to, and a later `Position` write ignored the origin.
+
 ## [0.52.0] - 2026-10-02
 
 - Class, interface, List, Set and Dictionary values compare by identity when the compiler marks the comparison (`reference`) in `==`, `!=`, `Contains`, `IndexOf` and `Remove`. They are equal when they are the same value id or the same detached instance; a different row with identical fields is no longer equal. Requires compiler revision 16 (CLI 0.64.0).
