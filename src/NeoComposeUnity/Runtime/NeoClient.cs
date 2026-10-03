@@ -3811,21 +3811,16 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// Creates a complete, parentless copy of an owned Class value graph
-        /// in Session storage. Unlike sparse overlay import, every owned row
-        /// receives a fresh id. Lookup selections remain references.
-        /// </summary>
-        /// <summary>
         /// Assigns a Class value to a static record's stamped leaf. The
         /// record's value map is authored data, so the imported graph's root
-        /// replaces the leaf at its own id in the writable store.
+        /// replaces the leaf at its own id in the writable store, keeping
+        /// the leaf's identity fields.
         /// </summary>
-        /// <returns>Whether the source's root moved to the leaf's id.</returns>
-        internal bool StageShadowImport(
+        internal NeoShadowImport StageShadowImport(
             NeoWritePlan plan,
             NeoValueOwnership ownership,
             string sourceValueId,
-            string shadowValueId,
+            MemberValue existing,
             Member member)
         {
             string importedValueId = ImportValueReference(
@@ -3833,21 +3828,33 @@ namespace NeoCompose.Runtime
                 ownership,
                 sourceValueId,
                 out bool sourceMoved,
-                shadowValueId);
-            if (importedValueId == shadowValueId)
-                return false;
+                existing.id);
+            if (importedValueId == existing.id)
+                return NeoShadowImport.Unchanged;
             if (plan.Resolve(ownership, importedValueId) is not { } imported)
             {
                 throw new System.InvalidOperationException(
-                    $"Imported Class value '{importedValueId}' has no {ownership} row to shadow '{shadowValueId}' with.");
+                    $"Imported Class value '{importedValueId}' has no {ownership} row to shadow '{existing.id}' with.");
             }
             MemberValue shadow = CloneValueRow(imported);
-            shadow.id = shadowValueId;
+            shadow.id = existing.id;
+            shadow.sourceValueId = existing.sourceValueId;
+            shadow.mapKey = existing.mapKey;
+            shadow.containerId = existing.containerId;
+            shadow.genericBindings = existing.genericBindings;
+            shadow.createdAt = existing.createdAt;
             plan.Remove(ownership, importedValueId);
             StageInPlaceReplacement(plan, ownership, shadow, member);
-            return sourceMoved || importedValueId == sourceValueId;
+            return sourceMoved || importedValueId == sourceValueId
+                ? NeoShadowImport.Moved
+                : NeoShadowImport.Copied;
         }
 
+        /// <summary>
+        /// Creates a complete, parentless copy of an owned Class value graph
+        /// in Session storage. Unlike sparse overlay import, every owned row
+        /// receives a fresh id. Lookup selections remain references.
+        /// </summary>
         internal string CloneValueReference(
             string sourceValueId,
             NeoValueOwnership? sourceOwnership = null,
@@ -10074,5 +10081,16 @@ namespace NeoCompose.Runtime
             }
             return parsed is not null;
         }
+    }
+
+    /// <summary>What assigning a value to a static record's leaf did.</summary>
+    internal enum NeoShadowImport
+    {
+        /// <summary>The leaf already held the value.</summary>
+        Unchanged,
+        /// <summary>A copy replaced the leaf; the source stays where it was.</summary>
+        Copied,
+        /// <summary>The source's root moved onto the leaf, so its references retarget.</summary>
+        Moved,
     }
 }

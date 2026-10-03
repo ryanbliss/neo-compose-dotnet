@@ -74,6 +74,8 @@ namespace NeoCompose.Runtime
                     var color = ColorPayload(payload, member);
                     return row.value is null ? color is null : color is not null
                         && row.value.r == color.r && row.value.g == color.g && row.value.b == color.b && row.value.a == color.a;
+                case (ClassMember, ObjectMemberValue row):
+                    return row.value is null && payload is null;
                 default:
                     return false;
             }

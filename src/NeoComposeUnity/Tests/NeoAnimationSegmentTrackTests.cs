@@ -919,7 +919,83 @@ namespace NeoCompose.Tests
         [Test]
         public void ClassSegmentFrames_WriteWholeValuesAndNullClears()
         {
-            const string ShapeClassId = "shape-class";
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(BuildShapeProjectData());
+            using var target = OpenRig(client);
+            using NeoAnimationDefinition definition =
+                NeoAnimationCompiler.Compile(target, "Clip");
+            definition.PreparePlayback();
+
+            definition.ApplyFrame(0, useResolvedState: false);
+            string firstWidthId = ReadShapeWidthId(client);
+            Assert.AreEqual(3, ((NumberMemberValue)client.ResolveValueRow(firstWidthId)!).value);
+            MemberValue held = client.ResolveValueRow("c-shape-value")!;
+            definition.ApplyFrame(0, useResolvedState: false);
+            Assert.AreSame(held, client.ResolveValueRow("c-shape-value"), "a held frame writes nothing");
+
+            definition.ApplyFrame(1, useResolvedState: false);
+            Assert.IsNull(
+                ((ObjectMemberValue)client.ResolveValueRow("c-shape-value")!).value,
+                "an explicit null frame clears the member");
+            Assert.IsFalse(
+                client.HasWritableValue(NeoValueOwnership.Session, firstWidthId),
+                "clearing releases the copy's owned rows");
+            Assert.IsFalse(
+                client.HasWritableValue(NeoValueOwnership.Session, "c-value"),
+                "the static record's value map is untouched");
+            held = client.ResolveValueRow("c-shape-value")!;
+            definition.ApplyFrame(1, useResolvedState: false);
+            Assert.AreSame(held, client.ResolveValueRow("c-shape-value"), "a held null frame writes nothing");
+
+            definition.ApplyFrame(0, useResolvedState: false);
+            Assert.AreEqual(3, ((NumberMemberValue)client.ResolveValueRow(ReadShapeWidthId(client))!).value);
+        }
+
+        /// <summary>
+        /// C# assigns and clears a Session Class leaf on a static record: an
+        /// assigned parentless value moves onto the leaf and its reference
+        /// follows it, and null tombstones the leaf in Session.
+        /// </summary>
+        [Test]
+        public void StaticRecordSessionClassLeaf_AssignsAndClears()
+        {
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(BuildShapeProjectData());
+            var child = new NeoMemberClassWritable(client, "child-entry-member", "c-value");
+            string copyId = client.CloneValueReference("seg-a-frame-0-value");
+            var shape = new ShapeValue(
+                client,
+                new NeoMemberClassWritable(client, "shape-member", copyId, NeoValueOwnership.Session));
+
+            NeoGeneratedTypesSupport.SetValue(
+                child,
+                "Shape",
+                NeoValueWritePayload.FromValueReference(copyId, shape));
+            NeoGeneratedTypesSupport.SetValue(
+                shape.WritableBackingNode,
+                "Width",
+                NeoValueWritePayload.FromValue(7));
+            Assert.AreEqual(
+                7,
+                ((NumberMemberValue)client.ResolveValueRow(ReadShapeWidthId(client))!).value,
+                "a write through the assigned value reaches the leaf");
+            Assert.IsFalse(
+                client.HasWritableValue(NeoValueOwnership.Session, "c-value"),
+                "the static record's value map is untouched");
+
+            child.Unset("Shape");
+            Assert.IsTrue(client.TryGetValue(NeoValueOwnership.Session, "c-shape-value", out NullMemberValue? cleared));
+            Assert.IsTrue(cleared!.IsRemoved);
+            child.Dispose();
+        }
+
+        private const string ShapeClassId = "shape-class";
+
+        /// <summary>
+        /// The rig child gains an optional Session <c>Shape</c> it authors as
+        /// null — a static child shadows only authored keys — and the clip's
+        /// segment plays a Width-3 shape then null.
+        /// </summary>
+        private static ProjectData BuildShapeProjectData()
+        {
             ProjectData data = BuildEquipProjectData();
             data.classes[ShapeClassId] = Class(ShapeClassId, "Shape", null, new()
             {
@@ -945,33 +1021,20 @@ namespace NeoCompose.Tests
             data.values["seg-a-width"] = Number("seg-a-width", 3);
             foreach (string nullFrame in new[] { "seg-a-frame-1-value", "seg-b-frame-0-value", "seg-b-frame-1-value" })
                 data.values[nullFrame] = new NullMemberValue { id = nullFrame };
+            return data;
+        }
 
-            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
-            using var target = OpenRig(client);
-            using NeoAnimationDefinition definition =
-                NeoAnimationCompiler.Compile(target, "Clip");
-            definition.PreparePlayback();
+        private static string ReadShapeWidthId(NeoClient client)
+        {
+            var shape = (ObjectMemberValue)client.ResolveValueRow("c-shape-value")!;
+            return shape.value!["Width"];
+        }
 
-            definition.ApplyFrame(0, useResolvedState: false);
-            string firstWidthId = ReadWidthId(client);
-            Assert.AreEqual(3, ((NumberMemberValue)client.ResolveValueRow(firstWidthId)!).value);
-
-            definition.ApplyFrame(1, useResolvedState: false);
-            Assert.That(
-                client.ResolveValueRow("c-shape-value"),
-                Is.InstanceOf<NullMemberValue>().Or.Property(nameof(ObjectMemberValue.value)).Null,
-                "an explicit null frame clears the member");
-            Assert.IsFalse(
-                client.HasWritableValue(NeoValueOwnership.Session, firstWidthId),
-                "clearing releases the copy's owned rows");
-
-            definition.ApplyFrame(0, useResolvedState: false);
-            Assert.AreEqual(3, ((NumberMemberValue)client.ResolveValueRow(ReadWidthId(client))!).value);
-
-            static string ReadWidthId(NeoClient client)
+        private sealed class ShapeValue : NeoGeneratedClassValue
+        {
+            internal ShapeValue(NeoClient client, NeoMemberClass node)
+                : base(client, node, ShapeClassId, isReadOnly: false)
             {
-                var shape = (ObjectMemberValue)client.ResolveValueRow("c-shape-value")!;
-                return shape.value!["Width"];
             }
         }
 

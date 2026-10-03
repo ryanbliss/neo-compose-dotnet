@@ -1013,9 +1013,17 @@ namespace NeoCompose.Runtime
                     if (!recordWritable)
                     {
                         plan = new NeoWritePlan(client);
-                        if (client.StageShadowImport(plan, childOwnership, setValue.valueId!, existingValueId, childMember))
+                        NeoShadowImport shadowed = client.StageShadowImport(
+                            plan,
+                            childOwnership,
+                            setValue.valueId!,
+                            existing,
+                            childMember);
+                        if (shadowed == NeoShadowImport.Moved)
                             RetargetMovedReferenceAfterCommit(plan, setValue, childMember, existingValueId, childOwnership);
                         plan.Commit();
+                        if (shadowed == NeoShadowImport.Unchanged)
+                            return;
                         ReinitializeChildren();
                         NotifyChildChanged(key);
                         return;
@@ -1334,6 +1342,9 @@ namespace NeoCompose.Runtime
                 throw new System.Collections.Generic.KeyNotFoundException(
                     $"Merged schema for class {schemaClass.id} (chain depth {inheritanceChain.Count}) does not contain key '{key}'");
             }
+            // The tombstone lands where a write would: a storage-stamped
+            // field on a static record shadows into its own writable store.
+            NeoValueOwnership childOwnership = ownership;
             if (client.TryGetMember(memberId, out Member? childMember))
             {
                 childMember = SubstituteChildMember(childMember);
@@ -1343,6 +1354,7 @@ namespace NeoCompose.Runtime
                     throw new System.InvalidOperationException(
                         $"Cannot unset required field '{key}'.");
                 }
+                childOwnership = client.ChildOwnership(childMember, ownership);
             }
             string? childValueId = null;
             if (value?.value is not null)
@@ -1368,8 +1380,13 @@ namespace NeoCompose.Runtime
             {
                 return;
             }
+            if (childOwnership == NeoValueOwnership.Asset)
+            {
+                throw new System.InvalidOperationException(
+                    $"Cannot unset '{key}' on Class '{member.id}': its effective storage is immutable.");
+            }
             childMembers.TryGetValue(key, out NeoMember? existingChild);
-            client.WriteRemovalTombstone(ownership, childValueId);
+            client.WriteRemovalTombstone(childOwnership, childValueId);
             ReinitializeChildren();
             if (!ChildBubbledOwnChange(key, existingChild))
                 NotifyChildChanged(key);

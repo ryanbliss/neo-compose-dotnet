@@ -64,8 +64,10 @@ namespace NeoCompose.Runtime
     }
 
     /// <summary>
-    /// Runtime contract implemented by generated composed object values (world
-    /// kind <c>object</c>) that can carry an authored collider.
+    /// Runtime contract implemented by every generated <c>NeoObjectBase</c>
+    /// value — objects, sprite children, and layer links — which can carry a
+    /// collider. The tile grid renderer hosts the colliders of placed objects
+    /// and their children; a tile layer link's collider has no host.
     /// </summary>
     public interface INeoColliderSource
     {
