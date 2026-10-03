@@ -1104,10 +1104,6 @@ namespace NeoCompose.Tests
             CollectionAssert.IsEmpty(client.FindUnlinkedSaveValueIds());
         }
 
-        // ------------------------------------------------------------------
-        // Fixture.
-        // ------------------------------------------------------------------
-
         [Test]
         public void ReferenceRemoveMatchesListEntriesById([Values(false, true)] bool unordered)
         {
@@ -1180,6 +1176,10 @@ namespace NeoCompose.Tests
 
             CollectionAssert.AreEqual(new[] { "item-a" }, ResolveItems(client).ResolveEntryValueIds().ToArray());
         }
+
+        // ------------------------------------------------------------------
+        // Fixture.
+        // ------------------------------------------------------------------
 
         private static NeoMemberListWritable ResolveItems(NeoClient client) =>
             ResolveList(client, "Items");
