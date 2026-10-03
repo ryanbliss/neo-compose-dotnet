@@ -11,7 +11,7 @@ using UnityEngine;
 
 namespace HelloWorld.Assets.Scripts.Neo
 {
-    public interface IReadOnlyNeoObject : IReadOnlyNeoObjectBase, INeoObjectCompositionSource, INeoColliderSource
+    public interface IReadOnlyNeoObject : IReadOnlyNeoObjectBase, INeoObjectCompositionSource
     {
         new bool IsReadOnly { get; }
 
@@ -37,8 +37,6 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         new NeoReadOnlyList<IReadOnlyNeoObjectBase> Children { get; }
 
-        new IReadOnlyNeoCollider? Collider { get; }
-
 
         /// <summary>
         /// Objects at the cells around this placement, in pattern order. Use GetObjects&lt;T&gt;(pattern) to filter by class. A repeated footprint can appear more than once.
@@ -54,7 +52,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         NeoReadOnlyList<IReadOnlyNeoPlacementTile> PlacementTiles { get; }
     }
 
-    public abstract partial class NeoObject : NeoObjectBase, IReadOnlyNeoObject, INeoObjectCompositionSource, INeoColliderSource, INeoObjectSpawnHooks
+    public abstract partial class NeoObject : NeoObjectBase, IReadOnlyNeoObject, INeoObjectCompositionSource, INeoObjectSpawnHooks
     {
         internal NeoObject(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, isReadOnly, inheritedStorageOwnership)
@@ -149,7 +147,6 @@ namespace HelloWorld.Assets.Scripts.Neo
         }
 
         IReadOnlyList<INeoWorldObjectValue> INeoObjectCompositionSource.Children => Children;
-        INeoCollider? INeoColliderSource.Collider => Collider;
 
         void INeoObjectSpawnHooks.OnObjectSpawned(NeoObjectBehaviour behaviour) => OnObjectSpawned(behaviour);
 
@@ -208,42 +205,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public virtual NeoCollider? Collider
-        {
-            get
-            {
-                if (IsReadOnly)
-                {
-                    var child = node.Get<NeoMemberClass>("Collider");
-                    return child.value?.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.NeoCollider.Create(client, child);
-                }
-                else
-                {
-                    var child = writableNode.Get<NeoMemberClassWritable>("Collider");
-                    return child.value?.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.NeoCollider.CreateWritable(client, child);
-                }
-            }
-            set
-            {
-                ThrowIfReadOnly("NeoObject.Collider");
-                if (value is null)
-                {
-                    writableNode.Unset("Collider");
-                    return;
-                }
-                NeoGeneratedTypesSupport.SetValue(writableNode, "Collider", NeoGeneratedTypesSupport.ValueReference(value));
-            }
-        }
-
-        IReadOnlyNeoCollider? IReadOnlyNeoObject.Collider
-        {
-            get
-            {
-                var child = node.Get<NeoMemberClass>("Collider");
-                return child.value?.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.NeoCollider.Create(client, child);
-            }
-        }
-
 
 
 
@@ -296,6 +257,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             private Fields() {}
 
+            public static readonly NeoField<NeoCollider?> Collider = new("Collider");
+
             public static readonly NeoField<bool> Enabled = new("Enabled");
 
             public static readonly NeoField<string> Name = new("Name");
@@ -308,8 +271,6 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<NeoList<NeoObjectBase>> Children = new("Children");
 
-            public static readonly NeoField<NeoCollider?> Collider = new("Collider");
-
             public static readonly NeoField<NeoList<NeoPlacementTile>> PlacementTiles = new("PlacementTiles");
         }
 
@@ -317,13 +278,13 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<string?>>
             {
+                [Fields.Collider] = () => null,
                 [Fields.Enabled] = () => null,
                 [Fields.Name] = () => null,
                 [Fields.Position] = () => null,
                 [Fields.Size] = () => null,
                 [Fields.Cell] = () => null,
                 [Fields.Children] = () => null,
-                [Fields.Collider] = () => null,
                 [Fields.PlacementTiles] = () => null,
             };
         }
@@ -342,13 +303,13 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
+                [Fields.Collider] = () => Collider,
                 [Fields.Enabled] = () => Enabled,
                 [Fields.Name] = () => Name,
                 [Fields.Position] = () => Position,
                 [Fields.Size] = () => Size,
                 [Fields.Cell] = () => Cell,
                 [Fields.Children] = () => Children,
-                [Fields.Collider] = () => Collider,
                 [Fields.PlacementTiles] = () => PlacementTiles,
             };
         }
