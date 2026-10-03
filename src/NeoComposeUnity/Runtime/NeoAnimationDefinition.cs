@@ -1282,10 +1282,14 @@ namespace NeoCompose.Runtime
             // The source subscribes to all content reads. A changed value row
             // re-resolves the segment and replaces this cache before its next use.
             // A Class frame is a whole value, unlike a keyframe's Class row,
-            // which is a path into the leaf's fields.
-            payload = contentPayloads[index] ??= row is ObjectMemberValue
-                ? NeoValueWritePayload.FromValueReference(row.id)
-                : NeoAnimationCompiler.Payload(row);
+            // which is a path into the leaf's fields. A `value: null` frame
+            // stores a null object row, which clears.
+            payload = contentPayloads[index] ??= row switch
+            {
+                ObjectMemberValue { value: null } => NeoValueWritePayload.FromValue(null),
+                ObjectMemberValue => NeoValueWritePayload.FromValueReference(row.id),
+                _ => NeoAnimationCompiler.Payload(row),
+            };
             return true;
         }
 
@@ -3189,11 +3193,16 @@ namespace NeoCompose.Runtime
                         // has nothing to say, which is §3.2's "writes nothing"
                         // reached one more way. An EXPLICIT null value is a
                         // different row and still writes — P42 §6's null leaf.
+                        // The frame keeps its row, so the leaf takes a copy. A
+                        // static segment's frames own their values in Session,
+                        // where assignment adopts only unowned rows.
                         WriteMember(
                             client,
                             writeTarget.Node,
                             writeTarget.Key,
-                            payload);
+                            payload!.isValueReference
+                                ? NeoValueWritePayload.FromValueReference(client.CloneValueReference(payload.valueId!))
+                                : payload);
                         writeTarget.WrittenFrame = classFrame ? frameRow : null;
                         writeTarget.WrittenLeaf = classFrame ? writeTarget.LeafRow(client) : null;
                     });
