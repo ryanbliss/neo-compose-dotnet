@@ -50,7 +50,7 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericStringContract>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     _ => new GenericStringContract(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
@@ -62,7 +62,7 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericStringContract>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     _ => new GenericStringContract(factoryClient, factoryNode, false, factoryNode.ownership),
@@ -150,7 +150,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                var result = writableNode.Get<NeoMemberNSProperty>("Computed").Compute(valueId!);
+                var result = ComputeProperty("Computed");
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
                 return (string)result.value!;
             }
@@ -176,7 +176,9 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return (NeoReadOnlyList<string>)(object)((GenericContract<string>)this).Values!;
+                var memberNode = node.Get<NeoMemberList>("Values");
+                if (TryGetStoredView<NeoReadOnlyList<string>>("Values", memberNode, out var cached)) return cached;
+                return CacheStoredView("Values", memberNode, new NeoReadOnlyList<string>(client, memberNode, (client, child) => NeoGenericBindings.Resolve<string>(client, (NeoMember)child).Read((NeoMember)child)));
             }
         }
 

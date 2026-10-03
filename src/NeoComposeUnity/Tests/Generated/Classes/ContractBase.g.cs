@@ -38,6 +38,11 @@ namespace Assets.Scripts.Neo
         {
         }
 
+        internal ContractBase(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
         public IContractBaseFunctionHandler? FunctionHandler
         {
             get => FunctionHandlerObject as IContractBaseFunctionHandler;
@@ -48,7 +53,7 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ContractBase>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     "class-contract-child" => new ContractChild(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
@@ -65,7 +70,7 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ContractBase>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     "class-contract-child" => new ContractChild(factoryClient, factoryNode, false, factoryNode.ownership),
@@ -76,6 +81,19 @@ namespace Assets.Scripts.Neo
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'ContractBase' without a concrete client type id."),
                 };
             });
+        }
+
+        internal static ContractBase? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return NeoGeneratedTypesSupport.DetachedClassId(value) switch
+            {
+                "class-contract-child" => new ContractChild(client, value, !saved),
+                "class-contract-deep-child" => new ContractDeepChild(client, value, !saved),
+                "class-contract-explicit-child" => new ContractExplicitChild(client, value, !saved),
+                "class-contract-null-child" => new ContractNullChild(client, value, !saved),
+                "class-contract-null-deep-child" => new ContractNullDeepChild(client, value, !saved),
+                _ => null,
+            };
         }
 
         public ContractBase Clone()

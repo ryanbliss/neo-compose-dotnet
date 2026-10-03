@@ -55,7 +55,7 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericContract<T>>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     "class-generic-float-contract" => (GenericContract<T>)(object)new GenericFloatContract(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
@@ -69,7 +69,7 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericContract<T>>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     "class-generic-float-contract" => (GenericContract<T>)(object)new GenericFloatContract(factoryClient, factoryNode, false, factoryNode.ownership),

@@ -1012,8 +1012,13 @@ namespace NeoCompose.Runtime
                 {
                     if (!recordWritable)
                     {
-                        throw new System.InvalidOperationException(
-                            $"Cannot rebind '{key}' on static Class '{member.id}': a static record's value map is authored data. Only the stamped leaf's own value may be written.");
+                        plan = new NeoWritePlan(client);
+                        if (client.StageShadowImport(plan, childOwnership, setValue.valueId!, existingValueId, childMember))
+                            RetargetMovedReferenceAfterCommit(plan, setValue, childMember, existingValueId, childOwnership);
+                        plan.Commit();
+                        ReinitializeChildren();
+                        NotifyChildChanged(key);
+                        return;
                     }
                     plan = new NeoWritePlan(client);
                     string importedValueId = client.ImportValueReference(

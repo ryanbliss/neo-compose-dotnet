@@ -31,6 +31,11 @@ namespace Assets.Scripts.Neo
         {
         }
 
+        internal ContractNullChild(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
         public ContractNullChild(object? Title = null)
             : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Title), false, NeoValueOwnership.Session)
         {
@@ -50,7 +55,7 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ContractNullChild>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     "class-contract-null-deep-child" => new ContractNullDeepChild(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
@@ -63,13 +68,23 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ContractNullChild>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     "class-contract-null-deep-child" => new ContractNullDeepChild(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => new ContractNullChild(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
+        }
+
+        internal new static ContractNullChild? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return NeoGeneratedTypesSupport.DetachedClassId(value) switch
+            {
+                "class-contract-null-deep-child" => new ContractNullDeepChild(client, value, !saved),
+                "class-contract-null-child" => new ContractNullChild(client, value, !saved),
+                _ => null,
+            };
         }
 
         public new ContractNullChild Clone()
@@ -98,6 +113,10 @@ namespace Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("Title", out object? detachedValue))
+                {
+                    return (string?)detachedValue;
+                }
                 return node.Get<NeoMemberString>("Title").Text;
             }
             set

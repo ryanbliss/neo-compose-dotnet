@@ -31,6 +31,11 @@ namespace Assets.Scripts.Neo
         {
         }
 
+        internal Override(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
         public Override(string? Name = null)
             : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Name), false, NeoValueOwnership.Session)
         {
@@ -50,7 +55,7 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<Override>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     _ => new Override(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
@@ -62,12 +67,17 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<Override>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     _ => new Override(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
+        }
+
+        internal new static Override? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return new Override(client, value, !saved);
         }
 
         public new Override Clone()
@@ -94,6 +104,10 @@ namespace Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("Name", out object? detachedValue))
+                {
+                    return (string?)detachedValue;
+                }
                 return node.Get<NeoMemberString>("Name").Text;
             }
             set

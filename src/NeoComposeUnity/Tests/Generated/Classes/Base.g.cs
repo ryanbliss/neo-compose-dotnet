@@ -31,6 +31,11 @@ namespace Assets.Scripts.Neo
         {
         }
 
+        internal Base(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
         public Base(string? Name = null)
             : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Name), false, NeoValueOwnership.Session)
         {
@@ -50,7 +55,7 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<Base>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     "class-derived" => new Derived(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
@@ -64,7 +69,7 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<Base>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     "class-derived" => new Derived(factoryClient, factoryNode, false, factoryNode.ownership),
@@ -72,6 +77,17 @@ namespace Assets.Scripts.Neo
                     _ => new Base(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
+        }
+
+        internal static Base? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return NeoGeneratedTypesSupport.DetachedClassId(value) switch
+            {
+                "class-derived" => new Derived(client, value, !saved),
+                "class-override" => new Override(client, value, !saved),
+                "class-base" => new Base(client, value, !saved),
+                _ => null,
+            };
         }
 
         public Base Clone()
@@ -98,6 +114,10 @@ namespace Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("Name", out object? detachedValue))
+                {
+                    return (string?)detachedValue;
+                }
                 return node.Get<NeoMemberString>("Name").Text;
             }
             set

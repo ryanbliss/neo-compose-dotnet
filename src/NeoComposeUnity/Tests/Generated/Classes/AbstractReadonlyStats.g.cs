@@ -31,11 +31,16 @@ namespace Assets.Scripts.Neo
         {
         }
 
+        internal AbstractReadonlyStats(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
         internal static AbstractReadonlyStats Create(NeoClient client, NeoMemberClass node)
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<AbstractReadonlyStats>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     "class-concrete-readonly-stats" => new ConcreteReadonlyStats(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
@@ -48,13 +53,22 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<AbstractReadonlyStats>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     "class-concrete-readonly-stats" => new ConcreteReadonlyStats(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'AbstractReadonlyStats' without a concrete client type id."),
                 };
             });
+        }
+
+        internal static AbstractReadonlyStats? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return NeoGeneratedTypesSupport.DetachedClassId(value) switch
+            {
+                "class-concrete-readonly-stats" => new ConcreteReadonlyStats(client, value, !saved),
+                _ => null,
+            };
         }
 
         public AbstractReadonlyStats Clone()

@@ -38,6 +38,11 @@ namespace Assets.Scripts.Neo
         {
         }
 
+        internal ContractExplicitChild(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
         public new IContractExplicitChildFunctionHandler? FunctionHandler
         {
             get => FunctionHandlerObject as IContractExplicitChildFunctionHandler;
@@ -63,7 +68,7 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ContractExplicitChild>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     _ => new ContractExplicitChild(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
@@ -75,12 +80,17 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ContractExplicitChild>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     _ => new ContractExplicitChild(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
+        }
+
+        internal new static ContractExplicitChild? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return new ContractExplicitChild(client, value, !saved);
         }
 
         public new ContractExplicitChild Clone()
@@ -107,6 +117,10 @@ namespace Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("Title", out object? detachedValue))
+                {
+                    return (string?)detachedValue;
+                }
                 return node.Get<NeoMemberString>("Title").Text;
             }
             set

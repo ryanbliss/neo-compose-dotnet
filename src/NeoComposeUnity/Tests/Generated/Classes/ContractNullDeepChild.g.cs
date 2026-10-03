@@ -29,6 +29,11 @@ namespace Assets.Scripts.Neo
         {
         }
 
+        internal ContractNullDeepChild(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
         public ContractNullDeepChild(object? Title = null)
             : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Title), false, NeoValueOwnership.Session)
         {
@@ -48,7 +53,7 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ContractNullDeepChild>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     _ => new ContractNullDeepChild(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
@@ -60,12 +65,17 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ContractNullDeepChild>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     _ => new ContractNullDeepChild(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
+        }
+
+        internal new static ContractNullDeepChild? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return new ContractNullDeepChild(client, value, !saved);
         }
 
         public new ContractNullDeepChild Clone()

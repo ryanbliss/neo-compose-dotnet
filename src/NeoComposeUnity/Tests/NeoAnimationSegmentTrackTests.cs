@@ -912,6 +912,70 @@ namespace NeoCompose.Tests
         }
 
         /// <summary>
+        /// A Class-valued segment frame is the member's whole value, not a
+        /// path into its fields, and an explicit null frame clears it — the
+        /// shape of a per-frame attack collider.
+        /// </summary>
+        [Test]
+        public void ClassSegmentFrames_WriteWholeValuesAndNullClears()
+        {
+            const string ShapeClassId = "shape-class";
+            ProjectData data = BuildEquipProjectData();
+            data.classes[ShapeClassId] = Class(ShapeClassId, "Shape", null, new()
+            {
+                ["Width"] = "shape-width-member"
+            });
+            data.members["shape-width-member"] = IntMemberOf("shape-width-member", "Width");
+            ClassMember shape = ClassMemberOf("shape-member", "Shape", ShapeClassId, null);
+            shape.Requirement = NeoMemberRequirementKind.Optional;
+            shape.Storage = NeoMemberStorage.Session;
+            data.members["shape-member"] = shape;
+            data.classes[RigClassId].schema!["Shape"] = "shape-member";
+            // A static child shadows only authored keys, so it authors null.
+            ((ObjectMemberValue)data.values["c-value"]).value!["Shape"] = "c-shape-value";
+            data.values["c-shape-value"] = new NullMemberValue { id = "c-shape-value" };
+            ClassMember frameValue = ClassMemberOf("segment-value-member", "Value", ShapeClassId, null);
+            frameValue.Requirement = NeoMemberRequirementKind.Optional;
+            data.members["segment-value-member"] = frameValue;
+            data.classes[LookupSegmentTrackClassId].targetMemberId = "shape-member";
+            data.values["seg-a-frame-0-value"] = ObjectValue(
+                "seg-a-frame-0-value",
+                ShapeClassId,
+                new Dictionary<string, string> { ["Width"] = "seg-a-width" });
+            data.values["seg-a-width"] = Number("seg-a-width", 3);
+            foreach (string nullFrame in new[] { "seg-a-frame-1-value", "seg-b-frame-0-value", "seg-b-frame-1-value" })
+                data.values[nullFrame] = new NullMemberValue { id = nullFrame };
+
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            using var target = OpenRig(client);
+            using NeoAnimationDefinition definition =
+                NeoAnimationCompiler.Compile(target, "Clip");
+            definition.PreparePlayback();
+
+            definition.ApplyFrame(0, useResolvedState: false);
+            string firstWidthId = ReadWidthId(client);
+            Assert.AreEqual(3, ((NumberMemberValue)client.ResolveValueRow(firstWidthId)!).value);
+
+            definition.ApplyFrame(1, useResolvedState: false);
+            Assert.That(
+                client.ResolveValueRow("c-shape-value"),
+                Is.InstanceOf<NullMemberValue>().Or.Property(nameof(ObjectMemberValue.value)).Null,
+                "an explicit null frame clears the member");
+            Assert.IsFalse(
+                client.HasWritableValue(NeoValueOwnership.Session, firstWidthId),
+                "clearing releases the copy's owned rows");
+
+            definition.ApplyFrame(0, useResolvedState: false);
+            Assert.AreEqual(3, ((NumberMemberValue)client.ResolveValueRow(ReadWidthId(client))!).value);
+
+            static string ReadWidthId(NeoClient client)
+            {
+                var shape = (ObjectMemberValue)client.ResolveValueRow("c-shape-value")!;
+                return shape.value!["Width"];
+            }
+        }
+
+        /// <summary>
         /// P48 §3.2 and P41: a disabled child is a visibility fact, not a
         /// lifecycle one. Resolution and writes proceed, so enabling a layer
         /// mid-clip shows the current frame rather than a stale one.

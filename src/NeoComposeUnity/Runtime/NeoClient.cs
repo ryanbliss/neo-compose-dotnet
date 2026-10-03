@@ -3815,6 +3815,39 @@ namespace NeoCompose.Runtime
         /// in Session storage. Unlike sparse overlay import, every owned row
         /// receives a fresh id. Lookup selections remain references.
         /// </summary>
+        /// <summary>
+        /// Assigns a Class value to a static record's stamped leaf. The
+        /// record's value map is authored data, so the imported graph's root
+        /// replaces the leaf at its own id in the writable store.
+        /// </summary>
+        /// <returns>Whether the source's root moved to the leaf's id.</returns>
+        internal bool StageShadowImport(
+            NeoWritePlan plan,
+            NeoValueOwnership ownership,
+            string sourceValueId,
+            string shadowValueId,
+            Member member)
+        {
+            string importedValueId = ImportValueReference(
+                plan,
+                ownership,
+                sourceValueId,
+                out bool sourceMoved,
+                shadowValueId);
+            if (importedValueId == shadowValueId)
+                return false;
+            if (plan.Resolve(ownership, importedValueId) is not { } imported)
+            {
+                throw new System.InvalidOperationException(
+                    $"Imported Class value '{importedValueId}' has no {ownership} row to shadow '{shadowValueId}' with.");
+            }
+            MemberValue shadow = CloneValueRow(imported);
+            shadow.id = shadowValueId;
+            plan.Remove(ownership, importedValueId);
+            StageInPlaceReplacement(plan, ownership, shadow, member);
+            return sourceMoved || importedValueId == sourceValueId;
+        }
+
         internal string CloneValueReference(
             string sourceValueId,
             NeoValueOwnership? sourceOwnership = null,

@@ -86,6 +86,7 @@ namespace NeoCompose.Runtime
         private const string FlipXMemberKey = "FlipX";
         private const string FlipYMemberKey = "FlipY";
         private const string MaskInteractionMemberKey = "MaskInteraction";
+        private const string ColliderMemberKey = "Collider";
 
         private readonly Dictionary<string, TileBase> tileBasesByClassId = new();
         private readonly Dictionary<TileBase, (NeoClient client, string classId, bool smart)> tileClasses = new();
@@ -120,6 +121,10 @@ namespace NeoCompose.Runtime
         // paired with the value that governs it. See SyncObjectSprites.
         private readonly Dictionary<NeoObjectInstanceId, List<RenderedObjectSprite>>
             objectSpritesByInstanceId = new();
+        // Every BoxCollider2D host an instance rendered, paired with the value
+        // whose Collider it mirrors. See SyncObjectColliders.
+        private readonly Dictionary<NeoObjectInstanceId, List<RenderedObjectCollider>>
+            objectCollidersByInstanceId = new();
         private readonly Dictionary<NeoObjectInstanceId, RenderedObjectShape>
             objectShapesByInstanceId = new();
         private readonly Dictionary<string, int> objectLayerFallbackSortingOrdersByLayerId = new();
@@ -398,7 +403,7 @@ namespace NeoCompose.Runtime
         /// <summary>
         /// Everything an instance's GameObject hierarchy was built from, in
         /// build order. What the renderer already keeps live (positions, sort
-        /// points, sprites, flips, sorting offsets, visibility) is left out, so
+        /// points, sprites, flips, sorting offsets, visibility, colliders) is left out, so
         /// a change that leaves this shape intact updates the existing
         /// GameObject instead of rebuilding it. Value ids are included because
         /// a retarget keeps the wrapper but moves the id TryGetGameObject is
@@ -421,7 +426,6 @@ namespace NeoCompose.Runtime
                 parts.Add(value.valueId);
                 AddSortingGroup(value);
                 int rendered = AddComposition(value, new HashSet<string>(), 0);
-                AddCollider(value);
                 // BuildObjectRoot's sprite fallback.
                 if (rendered == 0 && value is INeoSpriteObjectValue sprite)
                     parts.Add(CellSpanFromSize(sprite.Size));
@@ -496,24 +500,70 @@ namespace NeoCompose.Runtime
                     return 1;
                 }
                 AddSortingGroup(child);
-                var rendered = AddComposition(child, visitedValueIds, depth + 1);
-                if (AddCollider(child))
-                    rendered++;
-                return rendered;
+                return AddComposition(child, visitedValueIds, depth + 1);
             }
 
             private void AddSortingGroup(INeoValueReference value) =>
                 parts.Add(value is INeoSortingGroupSource { SortingGroup: { } group } ? group.SortAtRoot : null);
+        }
 
-            private bool AddCollider(INeoValueReference value)
+        /// <summary>
+        /// One rendered GameObject and the value whose <c>Collider</c> it
+        /// mirrors. The value model is the single source of truth for the
+        /// collider, so an animation that sets it for a few frames and clears
+        /// it again enables and disables one <see cref="BoxCollider2D"/>
+        /// instead of rebuilding the object. The component is added the first
+        /// time the value carries a collider, and disabled while it carries none.
+        /// </summary>
+        private sealed class RenderedObjectCollider
+        {
+            private readonly GameObject host;
+            private readonly INeoColliderSource source;
+            private readonly Vector2 origin;
+            private readonly SortPointPair? sortPoint;
+            private BoxCollider2D? collider;
+            private NeoBoxColliderSpec? applied;
+
+            /// <param name="origin">
+            /// The value's origin corner in the host's local units. Authored
+            /// offsets are measured from it; a sprite's GameObject sits at its
+            /// center instead.
+            /// </param>
+            public RenderedObjectCollider(
+                GameObject host,
+                INeoColliderSource source,
+                Vector2 origin,
+                SortPointPair? sortPoint)
             {
-                if (value is INeoColliderSource source && TryResolveObjectColliderSpec(source, out var spec))
+                this.host = host;
+                this.source = source;
+                this.origin = origin;
+                this.sortPoint = sortPoint;
+            }
+
+            /// <summary>Re-reads the value's collider, skipped when it is unchanged.</summary>
+            public void Sync(float cellSize)
+            {
+                NeoBoxColliderSpec? spec = TryResolveObjectColliderSpec(source, out var resolved)
+                    ? resolved
+                    : null;
+                if (Nullable.Equals(spec, applied) || host == null)
+                    return;
+                applied = spec;
+                if (spec is not { } next)
                 {
-                    parts.Add(spec);
-                    return true;
+                    if (collider != null)
+                        collider.enabled = false;
+                    return;
                 }
-                parts.Add(null);
-                return false;
+                if (collider == null)
+                    collider = host.AddComponent<BoxCollider2D>();
+                collider.size = next.Size * cellSize;
+                collider.offset = next.Offset * cellSize + origin;
+                collider.isTrigger = next.IsTrigger;
+                collider.enabled = true;
+                // Grouped content sits under the sort point, so the point cancels the offset.
+                sortPoint?.Anchor(collider);
             }
         }
 
@@ -1422,6 +1472,7 @@ namespace NeoCompose.Runtime
                     bucket.PositionBinding?.Refresh();
             }
             SyncObjectSprites(instanceId);
+            SyncObjectColliders(instanceId);
             SyncObjectVisibility(instanceId);
             return true;
         }
@@ -1431,6 +1482,7 @@ namespace NeoCompose.Runtime
             DisposeObjectPositionSubscription(instanceId);
             objectShapesByInstanceId.Remove(instanceId);
             objectSpritesByInstanceId.Remove(instanceId);
+            objectCollidersByInstanceId.Remove(instanceId);
             objectVisibilityByInstanceId.Remove(instanceId, out var visibility);
             if (!objectRootsByInstanceId.TryGetValue(instanceId, out var root) ||
                 root == null)
@@ -1473,7 +1525,8 @@ namespace NeoCompose.Runtime
             placed.Place(instance.Cell);
             // Coalesce the many leaf writes of a composed animation frame.
             // Flush before ApplyFrame returns, never on a later Unity frame.
-            bool positionDirty = false, sortPointDirty = false, visibilityDirty = false, spritesDirty = false;
+            bool positionDirty = false, sortPointDirty = false, visibilityDirty = false, spritesDirty = false,
+                collidersDirty = false;
             void RefreshRendering()
             {
                 if (!objectRootsByInstanceId.TryGetValue(instanceId, out var rendered) || rendered == null)
@@ -1486,7 +1539,9 @@ namespace NeoCompose.Runtime
                     SyncObjectVisibility(instanceId);
                 if (spritesDirty)
                     SyncObjectSprites(instanceId);
-                positionDirty = sortPointDirty = visibilityDirty = spritesDirty = false;
+                if (collidersDirty)
+                    SyncObjectColliders(instanceId);
+                positionDirty = sortPointDirty = visibilityDirty = spritesDirty = collidersDirty = false;
             }
             Action refresh = RefreshRendering;
             void Changed(NeoGeneratedClassValue changedValue, NeoMember changedMember)
@@ -1499,6 +1554,7 @@ namespace NeoCompose.Runtime
                         || sortPoint.IsGroupChange(changedMember));
                 visibilityDirty |= ChangeCanCarryEnabled(changedValue, changedMember);
                 spritesDirty |= ChangeCanCarrySpriteState(changedValue, changedMember);
+                collidersDirty |= ChangeCanCarryCollider(changedValue, changedMember);
                 value.Client.RefreshAnimationRendering(refresh);
             }
             DisposeObjectPositionSubscription(instanceId);
@@ -1705,6 +1761,31 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
+        /// The <see cref="ChangeCanCarryEnabled"/> gate, asked about
+        /// <c>Collider</c>: a container write may have bubbled from any
+        /// descendant's collider.
+        /// </summary>
+        private static bool ChangeCanCarryCollider(
+            NeoGeneratedClassValue changedValue,
+            NeoMember changedMember)
+        {
+            if (changedMember is NeoMemberClass or NeoMemberList or NeoMemberDictionary)
+                return true;
+            if (!changedValue.BackingNode.TryGetSchemaKeyForChild(changedMember, out string? schemaKey))
+                return true;
+            return string.Equals(schemaKey, ColliderMemberKey, StringComparison.Ordinal);
+        }
+
+        /// <summary>Re-reads every collider an instance rendered from the value that governs it.</summary>
+        private void SyncObjectColliders(NeoObjectInstanceId instanceId)
+        {
+            if (!objectCollidersByInstanceId.TryGetValue(instanceId, out var colliders))
+                return;
+            foreach (var collider in colliders)
+                collider.Sync(cellSize);
+        }
+
+        /// <summary>
         /// Whether a member write could have touched an <c>Enabled</c> value
         /// anywhere in the placement's subtree, and is therefore worth
         /// reconciling visibility for. This gate is the difference between a
@@ -1830,6 +1911,7 @@ namespace NeoCompose.Runtime
                 visibility.Dispose();
             objectVisibilityByInstanceId.Clear();
             objectSpritesByInstanceId.Clear();
+            objectCollidersByInstanceId.Clear();
             objectShapesByInstanceId.Clear();
             objectLayerFallbackSortingOrdersByLayerId.Clear();
         }
@@ -2097,9 +2179,10 @@ namespace NeoCompose.Runtime
             // e.g. an added Rigidbody2D composes with the BoxCollider2D.
             var behaviour = go.AddComponent<NeoObjectBehaviour>();
             behaviour.Initialize(this, layer, instance);
-            // Spawn hooks can assign a sprite before the root is registered
-            // for change notifications. Reconcile those writes now.
+            // Spawn hooks can assign a sprite or collider before the root is
+            // registered for change notifications. Reconcile those writes now.
             SyncObjectSprites(instance.InstanceId);
+            SyncObjectColliders(instance.InstanceId);
             // Applied only after Initialize, so the spawn hook sees an active,
             // fully-built *subtree* as its contract promises — a disabled
             // composition child is built and left active through composition
@@ -2131,6 +2214,8 @@ namespace NeoCompose.Runtime
             objectVisibilityByInstanceId[instance.InstanceId] = visibility;
             var sprites = new List<RenderedObjectSprite>();
             objectSpritesByInstanceId[instance.InstanceId] = sprites;
+            var colliders = new List<RenderedObjectCollider>();
+            objectCollidersByInstanceId[instance.InstanceId] = colliders;
             // Registered without applying: the whole subtree — placed root and
             // every composition child — stays active until the spawn hook has
             // observed it, so SpawnObject applies the index once Initialize has
@@ -2148,24 +2233,16 @@ namespace NeoCompose.Runtime
                 new HashSet<string>(),
                 0,
                 visibility,
-                sprites);
+                sprites,
+                colliders);
 
-            if (instance.Object is INeoColliderSource colliderSource
-                && TryResolveObjectColliderSpec(colliderSource, out var colliderSpec))
-            {
-                // Authored collider values are grid cells; BoxCollider2D wants
-                // local units. Offset is measured from the placement cell's
-                // corner, the same contract the web editor renders, so a
-                // grouped object's pivot cancels it.
-                var collider = ApplyBoxCollider(go, new NeoBoxColliderSpec(
-                    colliderSpec.Size * cellSize,
-                    colliderSpec.Offset * cellSize,
-                    colliderSpec.IsTrigger));
-                sortPoint?.Anchor(collider);
-            }
+            // Authored collider values are grid cells, measured from the
+            // placement cell's corner, the same contract the web editor renders.
+            if (instance.Object is INeoColliderSource colliderSource)
+                AddColliderBinding(colliders, go, colliderSource, Vector2.zero, sortPoint);
 
             if (renderedChildren == 0 && instance.Object is INeoSpriteObjectValue spriteObject)
-                RenderSpriteChild(content, layer, spriteObject, Vector3.zero, sortingOrder, sprites);
+                RenderSpriteChild(content, layer, spriteObject, Vector3.zero, sortingOrder, sprites, colliders: null);
             objectShapesByInstanceId[instance.InstanceId] =
                 new RenderedObjectShape(layer, instance.Object, sortPoint);
             return go;
@@ -2208,7 +2285,8 @@ namespace NeoCompose.Runtime
             HashSet<string> visitedValueIds,
             int depth,
             ObjectVisibilityIndex visibility,
-            List<RenderedObjectSprite> sprites)
+            List<RenderedObjectSprite> sprites,
+            List<RenderedObjectCollider> colliders)
         {
             if (depth > NeoReadOnlyTileGridPrimitive.MaxCompositionDepth)
                 return 0;
@@ -2235,7 +2313,8 @@ namespace NeoCompose.Runtime
                     visitedValueIds,
                     depth,
                     visibility,
-                    sprites);
+                    sprites,
+                    colliders);
             }
 
             if (hasValueId)
@@ -2253,7 +2332,8 @@ namespace NeoCompose.Runtime
             HashSet<string> visitedValueIds,
             int depth,
             ObjectVisibilityIndex visibility,
-            List<RenderedObjectSprite> sprites)
+            List<RenderedObjectSprite> sprites,
+            List<RenderedObjectCollider> colliders)
         {
             // A tile layer link flattens into its target layer's Tilemap
             // (NeoTileGridPrimitive.BuildTileLayerRecords), not under the object.
@@ -2263,7 +2343,7 @@ namespace NeoCompose.Runtime
 
             if (child is INeoSpriteObjectValue spriteChild)
             {
-                var spriteGo = RenderSpriteChild(parent, layer, spriteChild, childOffset, sortingOrder, sprites);
+                var spriteGo = RenderSpriteChild(parent, layer, spriteChild, childOffset, sortingOrder, sprites, colliders);
                 visibility.Register(child, spriteGo);
                 return 1;
             }
@@ -2286,14 +2366,10 @@ namespace NeoCompose.Runtime
                 visitedValueIds,
                 depth + 1,
                 visibility,
-                sprites);
-            if (child is INeoColliderSource colliderSource && TryResolveObjectColliderSpec(colliderSource, out var colliderSpec))
-            {
-                var childCollider = ApplyBoxCollider(childRoot, new NeoBoxColliderSpec(colliderSpec.Size * cellSize,
-                    colliderSpec.Offset * cellSize, colliderSpec.IsTrigger));
-                sortPoint?.Anchor(childCollider);
-                childRendered++;
-            }
+                sprites,
+                colliders);
+            if (child is INeoColliderSource colliderSource)
+                AddColliderBinding(colliders, childRoot, colliderSource, Vector2.zero, sortPoint);
             // Kept even when nothing under it draws, so every world object
             // answers TryGetGameObject; an empty one still counts as nothing
             // for its parent's sprite fallback.
@@ -2314,7 +2390,8 @@ namespace NeoCompose.Runtime
             INeoSpriteObjectValue spriteObject,
             Vector3 localPosition,
             int sortingOrder,
-            List<RenderedObjectSprite> sprites)
+            List<RenderedObjectSprite> sprites,
+            List<RenderedObjectCollider>? colliders)
         {
             var name = spriteObject.Name;
             var sprite = spriteObject.Sprite;
@@ -2322,7 +2399,8 @@ namespace NeoCompose.Runtime
             var go = new GameObject(
                 string.IsNullOrWhiteSpace(name) ? (sprite != null ? sprite.name : "Sprite") : name);
             go.transform.SetParent(parent, false);
-            go.transform.localPosition = localPosition + CellSpanCenterOffset(cellSpan);
+            var centerOffset = CellSpanCenterOffset(cellSpan);
+            go.transform.localPosition = localPosition + centerOffset;
             var renderer = go.AddComponent<SpriteRenderer>();
             renderer.sprite = sprite != null ? sprite : null;
             ApplySpriteState(renderer, spriteObject);
@@ -2331,6 +2409,9 @@ namespace NeoCompose.Runtime
             // Recorded so a later Sprite / FlipX / FlipY write on the same
             // value reaches this renderer (SyncObjectSprites).
             sprites.Add(new RenderedObjectSprite(spriteObject, renderer, cellSpan, boundsCollider, sortingOrder));
+            // A sprite sits at its center, so its collider is measured back to the corner.
+            if (colliders != null && spriteObject is INeoColliderSource colliderSource)
+                AddColliderBinding(colliders, go, colliderSource, -(Vector2)centerOffset, sortPoint: null);
             // The authored order is an offset on the order derived from the
             // object's layer group, so an object layer's sorting order still
             // moves the sprite with it.
@@ -2584,13 +2665,16 @@ namespace NeoCompose.Runtime
             return true;
         }
 
-        private static BoxCollider2D ApplyBoxCollider(GameObject target, NeoBoxColliderSpec spec)
+        private void AddColliderBinding(
+            List<RenderedObjectCollider> colliders,
+            GameObject host,
+            INeoColliderSource source,
+            Vector2 origin,
+            SortPointPair? sortPoint)
         {
-            var collider = target.AddComponent<BoxCollider2D>();
-            collider.size = spec.Size;
-            collider.offset = spec.Offset;
-            collider.isTrigger = spec.IsTrigger;
-            return collider;
+            var binding = new RenderedObjectCollider(host, source, origin, sortPoint);
+            binding.Sync(cellSize);
+            colliders.Add(binding);
         }
 
         private static void DestroyCompositionRoot(GameObject root)
@@ -2786,7 +2870,7 @@ namespace NeoCompose.Runtime
         }
     }
 
-    internal readonly struct NeoBoxColliderSpec
+    internal readonly struct NeoBoxColliderSpec : IEquatable<NeoBoxColliderSpec>
     {
         public NeoBoxColliderSpec(Vector2 size, Vector2 offset, bool isTrigger)
         {
@@ -2807,5 +2891,12 @@ namespace NeoCompose.Runtime
         {
             get;
         }
+
+        public bool Equals(NeoBoxColliderSpec other) =>
+            Size == other.Size && Offset == other.Offset && IsTrigger == other.IsTrigger;
+
+        public override bool Equals(object? obj) => obj is NeoBoxColliderSpec other && Equals(other);
+
+        public override int GetHashCode() => HashCode.Combine(Size, Offset, IsTrigger);
     }
 }

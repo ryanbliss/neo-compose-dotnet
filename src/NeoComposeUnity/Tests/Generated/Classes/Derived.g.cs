@@ -31,6 +31,11 @@ namespace Assets.Scripts.Neo
         {
         }
 
+        internal Derived(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
         public Derived(string? Name = null, int? Health = null)
             : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Name, Health), false, NeoValueOwnership.Session)
         {
@@ -51,7 +56,7 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<Derived>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     _ => new Derived(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
@@ -63,12 +68,17 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<Derived>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     _ => new Derived(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
+        }
+
+        internal new static Derived? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return new Derived(client, value, !saved);
         }
 
         public new Derived Clone()
@@ -95,6 +105,10 @@ namespace Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("Health", out object? detachedValue))
+                {
+                    return detachedValue is null ? (int?)null : Convert.ToInt32(detachedValue);
+                }
                 return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("Health"));
             }
             set

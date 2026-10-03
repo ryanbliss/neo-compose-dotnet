@@ -50,7 +50,7 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericFloatContract>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     _ => new GenericFloatContract(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
@@ -62,7 +62,7 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericFloatContract>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     _ => new GenericFloatContract(factoryClient, factoryNode, false, factoryNode.ownership),
@@ -150,7 +150,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                var result = writableNode.Get<NeoMemberNSProperty>("Computed").Compute(valueId!);
+                var result = ComputeProperty("Computed");
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
                 return Convert.ToDouble(result.value);
             }
@@ -176,7 +176,9 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return (NeoReadOnlyList<double>)(object)((GenericContract<double>)this).Values!;
+                var memberNode = node.Get<NeoMemberList>("Values");
+                if (TryGetStoredView<NeoReadOnlyList<double>>("Values", memberNode, out var cached)) return cached;
+                return CacheStoredView("Values", memberNode, new NeoReadOnlyList<double>(client, memberNode, (client, child) => NeoGenericBindings.Resolve<double>(client, (NeoMember)child).Read((NeoMember)child)));
             }
         }
 

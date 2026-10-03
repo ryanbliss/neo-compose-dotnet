@@ -33,9 +33,10 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoAnimationSegmentFrame<T>>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
+                    "system_9c4f3bfb-f0d8-4231-a7e7-9115bab8d5ab" => new NeoAnimationSegmentFrame<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'NeoAnimationSegmentFrame' without a concrete client type id."),
                 };
             });
@@ -45,9 +46,10 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoAnimationSegmentFrame<T>>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
+                    "system_9c4f3bfb-f0d8-4231-a7e7-9115bab8d5ab" => new NeoAnimationSegmentFrame<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'NeoAnimationSegmentFrame' without a concrete client type id."),
                 };
             });

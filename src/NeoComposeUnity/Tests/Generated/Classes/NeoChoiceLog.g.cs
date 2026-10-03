@@ -31,6 +31,11 @@ namespace Assets.Scripts.Neo
         {
         }
 
+        internal NeoChoiceLog(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
         public NeoChoiceLog(string ChoiceId)
             : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(ChoiceId), false, NeoValueOwnership.Session)
         {
@@ -50,7 +55,7 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoChoiceLog>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     _ => new NeoChoiceLog(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
@@ -62,12 +67,17 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoChoiceLog>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     _ => new NeoChoiceLog(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
+        }
+
+        internal static NeoChoiceLog? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return new NeoChoiceLog(client, value, !saved);
         }
 
         public NeoChoiceLog Clone()
@@ -94,6 +104,10 @@ namespace Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("ChoiceId", out object? detachedValue))
+                {
+                    return (string)detachedValue!;
+                }
                 return node.Get<NeoMemberString>("ChoiceId").value?.value ?? throw new InvalidOperationException("Required string 'ChoiceId' has no value.");
             }
             set

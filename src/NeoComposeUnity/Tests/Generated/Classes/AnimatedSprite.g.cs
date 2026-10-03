@@ -33,12 +33,12 @@ namespace Assets.Scripts.Neo
         {
         }
 
-        public AnimatedSprite(string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, bool? Enabled = null, Sprite? Sprite = null, bool? FlipX = null, bool? FlipY = null, NeoSpriteMaskInteraction? MaskInteraction = null, int? SortingOrder = null, int? X = null)
-            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Name, Position, Size, Enabled, Sprite, FlipX, FlipY, MaskInteraction, SortingOrder, X), false, NeoValueOwnership.Session)
+        public AnimatedSprite(string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, bool? Enabled = null, NeoCollider? Collider = null, Sprite? Sprite = null, bool? FlipX = null, bool? FlipY = null, NeoSpriteMaskInteraction? MaskInteraction = null, int? SortingOrder = null, int? X = null)
+            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Name, Position, Size, Enabled, Collider, Sprite, FlipX, FlipY, MaskInteraction, SortingOrder, X), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, bool? Enabled = null, Sprite? Sprite = null, bool? FlipX = null, bool? FlipY = null, NeoSpriteMaskInteraction? MaskInteraction = null, int? SortingOrder = null, int? X = null)
+        private static NeoMemberClassWritable CreateFactoryNode(string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, bool? Enabled = null, NeoCollider? Collider = null, Sprite? Sprite = null, bool? FlipX = null, bool? FlipY = null, NeoSpriteMaskInteraction? MaskInteraction = null, int? SortingOrder = null, int? X = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
@@ -48,6 +48,7 @@ namespace Assets.Scripts.Neo
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Position", "system_7fc41bde-418a-4507-8c4b-9b75d7012125", Position),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "system_e1d820d8-56b1-43ac-aa10-0a019f0dc38f", Size),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Enabled", "system_4858148e-1c42-449d-8a03-c1601da529bd", Enabled),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Collider", "system_a0083c92-72f7-405f-8863-ff86f995d36d", Collider),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Sprite", "system_e9288ba9-f5a2-4485-8443-6afb155b31e0", Sprite),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("FlipX", "system_9fcab37a-9743-4e35-8eee-80cb560f1433", FlipX),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("FlipY", "system_ddd09f08-1656-4404-b36b-5570a4c01fcf", FlipY),
@@ -61,7 +62,7 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<AnimatedSprite>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     "class-animated-sprite-child" => new AnimatedSpriteChild(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
@@ -74,7 +75,7 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<AnimatedSprite>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     "class-animated-sprite-child" => new AnimatedSpriteChild(factoryClient, factoryNode, false, factoryNode.ownership),
@@ -147,6 +148,14 @@ namespace Assets.Scripts.Neo
             }
         }
 
+        IReadOnlyNeoCollider? IReadOnlyNeoObjectBase.Collider
+        {
+            get
+            {
+                return (IReadOnlyNeoCollider?)(object)((NeoObjectBase)this).Collider!;
+            }
+        }
+
         public new sealed class Fields
         {
             private Fields() {}
@@ -158,6 +167,8 @@ namespace Assets.Scripts.Neo
             public static readonly NeoField<NeoVector3> Size = new("Size");
 
             public static readonly NeoField<bool> Enabled = new("Enabled");
+
+            public static readonly NeoField<NeoCollider?> Collider = new("Collider");
 
             public static readonly NeoField<NeoSprite> Sprite = new("Sprite");
 
@@ -180,6 +191,7 @@ namespace Assets.Scripts.Neo
                 [Fields.Position] = () => null,
                 [Fields.Size] = () => null,
                 [Fields.Enabled] = () => null,
+                [Fields.Collider] = () => null,
                 [Fields.Sprite] = () => null,
                 [Fields.FlipX] = () => null,
                 [Fields.FlipY] = () => null,
@@ -207,6 +219,7 @@ namespace Assets.Scripts.Neo
                 [Fields.Position] = () => Position,
                 [Fields.Size] = () => Size,
                 [Fields.Enabled] = () => Enabled,
+                [Fields.Collider] = () => Collider,
                 [Fields.Sprite] = () => Sprite,
                 [Fields.FlipX] = () => FlipX,
                 [Fields.FlipY] = () => FlipY,

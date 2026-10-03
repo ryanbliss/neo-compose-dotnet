@@ -33,6 +33,11 @@ namespace Assets.Scripts.Neo
         {
         }
 
+        internal StorageC(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
         public StorageC(int? Value = null, StorageD? SessionChild = null)
             : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Value, SessionChild), false, NeoValueOwnership.Session)
         {
@@ -53,7 +58,7 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<StorageC>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     _ => new StorageC(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
@@ -65,12 +70,17 @@ namespace Assets.Scripts.Neo
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<StorageC>(client, node, static (factoryClient, factoryNode) =>
             {
-                var clientClassId = factoryNode.value?.classId;
+                var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
                     _ => new StorageC(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
+        }
+
+        internal static StorageC? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return new StorageC(client, value, !saved);
         }
 
         public StorageC Clone()
@@ -97,6 +107,10 @@ namespace Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("Value", out object? detachedValue))
+                {
+                    return detachedValue is null ? (int?)null : Convert.ToInt32(detachedValue);
+                }
                 return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("Value"));
             }
             set
@@ -109,6 +123,10 @@ namespace Assets.Scripts.Neo
         {
             get
             {
+                if (TryReadDetached("SessionChild", out object? detachedValue))
+                {
+                    return NeoGeneratedTypesSupport.ReadNSPropertyClass(client, detachedValue, false, true, null, static (factoryClient, factoryNode) => global::Assets.Scripts.Neo.StorageD.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::Assets.Scripts.Neo.StorageD.CreateDetached(factoryClient, factoryValue, factorySaved));
+                }
                 var child = writableNode.Get<NeoMemberClassWritable>("SessionChild");
                 return child.value?.value is null ? null : global::Assets.Scripts.Neo.StorageD.CreateWritable(client, child);
             }

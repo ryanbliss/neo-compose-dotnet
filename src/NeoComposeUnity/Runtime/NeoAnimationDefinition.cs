@@ -1275,7 +1275,11 @@ namespace NeoCompose.Runtime
             }
             // The source subscribes to all content reads. A changed value row
             // re-resolves the segment and replaces this cache before its next use.
-            payload = contentPayloads[index] ??= NeoAnimationCompiler.Payload(row);
+            // A Class frame is a whole value, unlike a keyframe's Class row,
+            // which is a path into the leaf's fields.
+            payload = contentPayloads[index] ??= row is ObjectMemberValue
+                ? NeoValueWritePayload.FromValueReference(row.id)
+                : NeoAnimationCompiler.Payload(row);
             return true;
         }
 
@@ -1842,8 +1846,8 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"{label} implements Segment with a value whose class is not an animation segment.");
             }
-            if (targetMember.kind == MemberKind.Class
-                || targetMember.kind == MemberKind.List
+            // A Class target plays whole values; only collections stay containers.
+            if (targetMember.kind == MemberKind.List
                 || targetMember.kind == MemberKind.Dictionary)
             {
                 throw new InvalidOperationException(
