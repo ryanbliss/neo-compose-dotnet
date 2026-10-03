@@ -1108,6 +1108,79 @@ namespace NeoCompose.Tests
         // Fixture.
         // ------------------------------------------------------------------
 
+        [Test]
+        public void ReferenceRemoveMatchesListEntriesById([Values(false, true)] bool unordered)
+        {
+            ProjectData data = BuildProjectData();
+            ((ListMember)data.members["items-member"]).ListKind = unordered
+                ? NeoListKind.Unordered
+                : NeoListKind.Ordered;
+            data.members["item-entry-member"] = new ListMember
+            {
+                id = "item-entry-member",
+                projectId = "project-a",
+                name = "Item",
+                kind = MemberKind.List,
+                entryMemberId = "word-member",
+                Requirement = NeoMemberRequirementKind.Required,
+            };
+            data.members["word-member"] = new StringMember
+            {
+                id = "word-member",
+                projectId = "project-a",
+                name = "Word",
+                kind = MemberKind.String,
+                Requirement = NeoMemberRequirementKind.Required,
+            };
+            // Twin inner lists: equal by value, distinct by identity.
+            foreach (string id in new[] { "item-a", "item-b" })
+            {
+                data.values["word-" + id] = new StringMemberValue { id = "word-" + id, value = "same" };
+                data.values[id] = new ArrayMemberValue
+                {
+                    id = id,
+                    containerId = unordered ? ItemsListValueId : null,
+                    value = new[] { "word-" + id },
+                };
+            }
+            if (!unordered)
+                ((ArrayMemberValue)data.values[ItemsListValueId]).value = new[] { "item-a", "item-b" };
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            var wordType = new PrimitiveTypeInfo { type = MemberKind.String, required = true };
+            var listType = new CollectionTypeInfo
+            {
+                type = MemberKind.List,
+                required = true,
+                entryTypeInfo = new CollectionTypeInfo { type = MemberKind.List, required = true, entryTypeInfo = wordType },
+            };
+
+            NeoScriptExecutor.Execute(client, new FunctionWithReturnType
+            {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                parameters = System.Array.Empty<Variable>(),
+                typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null, required = true },
+                instructions = new Instruction[]
+                {
+                    new CollectionCallInstruction
+                    {
+                        type = InstructionKind.CollectionCall,
+                        target = new WriteTarget
+                        {
+                            pointer = new ReferencePointer { type = PointerKind.Reference, valueId = ItemsListValueId },
+                            typeInfo = listType,
+                            writability = WritabilityKind.Save,
+                        },
+                        mutation = CollectionMutationKind.Remove,
+                        args = new Pointer[] { new ReferencePointer { type = PointerKind.Reference, valueId = "item-b" } },
+                        reference = true,
+                    },
+                },
+            }, new Dictionary<string, object?>(), ctx);
+
+            CollectionAssert.AreEqual(new[] { "item-a" }, ResolveItems(client).ResolveEntryValueIds().ToArray());
+        }
+
         private static NeoMemberListWritable ResolveItems(NeoClient client) =>
             ResolveList(client, "Items");
 

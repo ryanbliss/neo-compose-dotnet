@@ -689,6 +689,71 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void ReferenceEquality_ComparesTemporariesWithoutRows()
+        {
+            // Twin temporaries are distinct by identity; comparing them, or
+            // looking one up in a list, never attaches either one.
+            NeoClient client = BuildClient();
+            int before = client.sessionValues.Count;
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            var scope = new Dictionary<string, object?>();
+            foreach (string name in new[] { "a", "b" })
+            {
+                scope[name] = NSGetterEvaluator.EvaluatePointer(
+                    Construct(PickType, Field("Choice", "member-pick-choice", Reference("line-a"))),
+                    scope,
+                    ctx);
+            }
+            scope["picks"] = new object?[] { scope["a"] };
+            object? Equal(string left, string right) => NSGetterEvaluator.EvaluatePointer(
+                new OperationPointer
+                {
+                    type = PointerKind.Operation,
+                    operation = new BooleanOperation
+                    {
+                        type = OperationKind.Boolean,
+                        expression = new BooleanExpression
+                        {
+                            condition = new Condition
+                            {
+                                type = OperatorKind.EqualTo,
+                                operand1 = Variable(left),
+                                operand2 = Variable(right),
+                                reference = true,
+                            },
+                        },
+                    },
+                },
+                scope,
+                ctx);
+            object? Contains(string target) => NSGetterEvaluator.EvaluatePointer(
+                new FunctionPointer
+                {
+                    type = PointerKind.Function,
+                    function = new ContainsFunction
+                    {
+                        type = FunctionKind.Contains,
+                        info = new FunctionCollectionContainsInfo
+                        {
+                            collectionPointer = Variable("picks"),
+                            valuePointer = Variable(target),
+                            reference = true,
+                        },
+                    },
+                },
+                scope,
+                ctx);
+
+            Assert.AreEqual(false, Equal("a", "b"));
+            Assert.AreEqual(true, Equal("a", "a"));
+            Assert.AreEqual(false, Contains("b"));
+            Assert.AreEqual(true, Contains("a"));
+            Assert.IsNull(((NeoScriptObject)scope["a"]!).attachedId);
+            Assert.IsNull(((NeoScriptObject)scope["b"]!).attachedId);
+            Assert.AreEqual(before, client.sessionValues.Count, "Nothing needed a row.");
+        }
+
+        [Test]
         public void LookupField_ResolvesFromCSharpWithoutRows()
         {
             // `new Pick { Choice = line }` read from C#: the slot's selected id

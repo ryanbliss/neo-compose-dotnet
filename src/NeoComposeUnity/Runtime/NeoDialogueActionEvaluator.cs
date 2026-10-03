@@ -3822,6 +3822,13 @@ namespace NeoCompose.Runtime
             return NSGetterEvaluator.FindRowIdByReference(value, ctx);
         }
 
+        /// <summary>
+        /// The stored id a reference <c>Remove</c> matches entries against, of
+        /// any entry kind; null for a detached value, which no stored list holds.
+        /// </summary>
+        private static string? ReferenceIdOf(object? value, NSGetterEvaluator.Context ctx) =>
+            value is null ? null : NSGetterEvaluator.ReferenceKeyOf(value, ctx) as string;
+
         private static bool TryGetClassValueReferenceId(
             object? value,
             TypeInfo typeInfo,
@@ -5491,8 +5498,11 @@ namespace NeoCompose.Runtime
                         }, preparedPlan);
                         break;
                     case CollectionMutationKind.Remove:
-                        string? removeId = TryGetClassValueReferenceId(args[0], entryType, ctx, out string? id)
-                            ? id : null;
+                        string? removeId = null;
+                        if (reference)
+                            removeId = ReferenceIdOf(args[0], ctx);
+                        else if (TryGetClassValueReferenceId(args[0], entryType, ctx, out string? id))
+                            removeId = id;
                         foreach (string entryId in list.ResolveEntryValueIds())
                         {
                             if (entryId == removeId || (removeId is null && !reference
@@ -5547,14 +5557,20 @@ namespace NeoCompose.Runtime
                 NSGetterEvaluator.Context ctx)
             {
                 bool inserts = mutation is CollectionMutationKind.Add or CollectionMutationKind.Insert;
-                string? referenceId = (inserts || mutation == CollectionMutationKind.Remove)
+                string? referenceId = null;
+                if (reference && mutation == CollectionMutationKind.Remove)
+                {
+                    referenceId = ReferenceIdOf(args[0], ctx);
+                }
+                else if ((inserts || mutation == CollectionMutationKind.Remove)
                     && TryGetClassValueReferenceId(
                         args[mutation == CollectionMutationKind.Insert ? 1 : 0],
                         entryTypeInfo,
                         ctx,
-                        out string? id)
-                        ? id
-                        : null;
+                        out string? id))
+                {
+                    referenceId = id;
+                }
                 WriteCollection(client, rowId, preparedPlan, batch =>
                 {
                     EnsureWritableRow(client, rowId, ownership);

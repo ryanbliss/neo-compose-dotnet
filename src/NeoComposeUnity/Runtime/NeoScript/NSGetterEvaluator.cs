@@ -6204,6 +6204,14 @@ namespace NeoCompose.Runtime.NeoScript
             else
                 c = EvalPointer(cnf.info.collectionPointer, scope, ctx);
             object? target = EvalPointer(cnf.info.valuePointer, scope, ctx);
+            if (pending is not null && cnf.info.reference)
+            {
+                // Pending entries are value ids, so identity needs none read.
+                ctx.client.NotePendingRead(pending.Row.id);
+                return Box(target is not null
+                    && ReferenceKeyOf(target, ctx) is string referenceId
+                    && ((NeoWriteBatch.PendingList)pending).Contains(referenceId));
+            }
             if (pending is not null)
             {
                 // An entry with the target's id matches without being read;
@@ -7989,12 +7997,25 @@ namespace NeoCompose.Runtime.NeoScript
                 return a is null && b is null;
             if (ReferenceEquals(a, b))
                 return true;
-            string? aId = ReferenceIdOf(a, ctx);
-            return aId is not null && aId == ReferenceIdOf(b, ctx);
+            object? key = ReferenceKeyOf(a, ctx);
+            return key is not null && key.Equals(ReferenceKeyOf(b, ctx));
         }
 
-        private static string? ReferenceIdOf(object value, Context ctx) =>
-            value as string ?? ValueIdOf(value, ctx);
+        /// <summary>
+        /// What identity compares: a value id, or a detached object itself
+        /// until it attaches. Never attaches rows, so comparing a temporary
+        /// leaves it detached.
+        /// </summary>
+        internal static object? ReferenceKeyOf(object value, Context ctx)
+        {
+            if (value is string id)
+                return id;
+            if (value is NeoGeneratedClassValue { PendingValue: NeoScriptObject pending })
+                return pending.attachedId ?? (object)pending;
+            if (value is NeoScriptObject detached)
+                return detached.attachedId ?? (object)detached;
+            return ValueIdOf(value, ctx);
+        }
 
         /// <summary>
         /// The index of the first entry identical to <paramref name="target"/>,
@@ -8002,12 +8023,12 @@ namespace NeoCompose.Runtime.NeoScript
         /// </summary>
         private static int ReferenceIndexOf(object? collection, object? target, Context ctx)
         {
-            string? targetId = target is null ? null : ReferenceIdOf(target, ctx);
+            object? targetKey = target is null ? null : ReferenceKeyOf(target, ctx);
             if (collection is object?[] entries)
             {
                 for (int i = 0; i < entries.Length; i++)
                 {
-                    if (IsSameReference(entries[i], target, targetId, ctx))
+                    if (IsSameReference(entries[i], target, targetKey, ctx))
                         return i;
                 }
                 return -1;
@@ -8015,15 +8036,15 @@ namespace NeoCompose.Runtime.NeoScript
             var cursor = new CollectionCursor(collection, ctx);
             while (cursor.MoveNextUnresolved())
             {
-                if (IsSameReference(cursor.Raw, target, targetId, ctx))
+                if (IsSameReference(cursor.Raw, target, targetKey, ctx))
                     return cursor.Index;
             }
             return -1;
         }
 
-        private static bool IsSameReference(object? entry, object? target, string? targetId, Context ctx) =>
+        private static bool IsSameReference(object? entry, object? target, object? targetKey, Context ctx) =>
             ReferenceEquals(entry, target)
-            || (targetId is not null && entry is not null && ReferenceIdOf(entry, ctx) == targetId);
+            || (targetKey is not null && entry is not null && targetKey.Equals(ReferenceKeyOf(entry, ctx)));
 
         private static bool SameEntry(KeyValuePair<string, object?> entry, IDictionary<string, object?> other) =>
             other.TryGetValue(entry.Key, out var value) && JsEqual(entry.Value, value);
