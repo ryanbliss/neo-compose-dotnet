@@ -954,13 +954,16 @@ namespace NeoCompose.Tests
         /// A static segment's frames live in Session, the leaf's own store, as
         /// a static <c>new NeoAnimationSegmentFrame&lt;NeoCollider?&gt;(value: ...)</c>
         /// does: a replayed value is owned by its frame, and a null argument
-        /// stores a null object row. The leaf takes a copy, and null clears it.
+        /// stores a null object row. The leaf takes a copy in its own store, and
+        /// null clears it.
         /// </summary>
-        [TestCase(false)]
-        [TestCase(true)]
-        public void StaticClassSegmentFrames_WriteCopies(bool nullFrame)
+        [TestCase(false, NeoMemberStorage.Session)]
+        [TestCase(true, NeoMemberStorage.Session)]
+        [TestCase(false, NeoMemberStorage.Save)]
+        public void StaticClassSegmentFrames_WriteCopies(bool nullFrame, NeoMemberStorage leafStorage)
         {
             ProjectData data = BuildShapeProjectData();
+            ((ClassMember)data.members["shape-member"]).Storage = leafStorage;
             ClassMember staticSegment = ClassMemberOf("static-segment-member", "SegA", SegmentClassId, "seg-a");
             staticSegment.Modifier = NeoMemberModifierKind.Static;
             data.members[staticSegment.id] = staticSegment;
@@ -1000,18 +1003,29 @@ namespace NeoCompose.Tests
                 NeoAnimationCompiler.Compile(target, "Clip");
             definition.PreparePlayback();
 
+            NeoValueOwnership leafOwnership = leafStorage == NeoMemberStorage.Save
+                ? NeoValueOwnership.Save
+                : NeoValueOwnership.Session;
             // Frame 1 is null, so returning to frame 0 writes it again.
-            foreach (int frame in new[] { 0, 1, 0 })
+            int previousFrame = -1;
+            MemberValue? previousLeaf = null;
+            foreach (int frame in new[] { 0, 0, 1, 0 })
             {
                 definition.ApplyFrame(frame, useResolvedState: false);
                 Assert.AreSame(frameValue, client.ResolveValueRow(frameValueId!), "the frame keeps its value");
                 var leaf = (ObjectMemberValue)client.ResolveValueRow("c-shape-value")!;
+                if (frame == previousFrame)
+                    Assert.AreSame(previousLeaf, leaf, "a held frame writes nothing");
+                previousFrame = frame;
+                previousLeaf = leaf;
                 if (frame == 1 || nullFrame)
                 {
                     Assert.IsNull(leaf.value, $"frame {frame} clears the member");
                     continue;
                 }
-                Assert.AreEqual(5, ((NumberMemberValue)client.ResolveValueRow(ReadShapeWidthId(client))!).value);
+                string widthId = ReadShapeWidthId(client);
+                Assert.AreEqual(5, ((NumberMemberValue)client.ResolveValueRow(widthId)!).value);
+                Assert.IsTrue(client.HasWritableValue(leafOwnership, widthId), "the copy lives in the leaf's store");
             }
         }
 
