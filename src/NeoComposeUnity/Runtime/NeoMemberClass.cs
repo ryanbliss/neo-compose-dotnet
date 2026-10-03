@@ -726,6 +726,25 @@ namespace NeoCompose.Runtime
         public NeoMemberClassWritable(NeoClient client, ClassMember member, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
             : base(client, member, overrideValueId, ownership) { }
 
+        /// <summary>
+        /// The row id bound for <paramref name="key"/>. A P75 sparse root
+        /// omits every member still sitting at its construction value, so a
+        /// key the body lacks resolves at its deterministic virtual id —
+        /// exactly where a write or tombstone has to land for the web to
+        /// read the same value.
+        /// </summary>
+        internal string? ChildValueId(NeoClient client, string key)
+        {
+            if (value?.value?.TryGetValue(key, out string? childValueId) == true)
+            {
+                return childValueId;
+            }
+            return valueId is string parentValueId
+                && client.TryGetVirtualClassChildValueId(parentValueId, key, out string? virtualChildValueId)
+                ? virtualChildValueId
+                : null;
+        }
+
         protected override NeoMember CreateChild(
             NeoClient client,
             Member childMember,
@@ -987,20 +1006,7 @@ namespace NeoCompose.Runtime
                 return;
             }
 
-            string? existingValueId = null;
-            if (value?.value is not null)
-            {
-                value.value.TryGetValue(key, out existingValueId);
-            }
-            if (existingValueId is null
-                && valueId is string parentValueId
-                && client.TryGetVirtualClassChildValueId(
-                    parentValueId,
-                    key,
-                    out string? virtualExistingValueId))
-            {
-                existingValueId = virtualExistingValueId;
-            }
+            string? existingValueId = ChildValueId(client, key);
             // One node answers every read of the entry's row, and the leaf
             // write. The entry's live child already holds it.
             NeoMember? existingChild = existingValueId is null ? null : FindChild(key);
@@ -1356,26 +1362,7 @@ namespace NeoCompose.Runtime
                 }
                 childOwnership = client.ChildOwnership(childMember, ownership);
             }
-            string? childValueId = null;
-            if (value?.value is not null)
-            {
-                value.value.TryGetValue(key, out childValueId);
-            }
-            // A P75 sparse root omits every member still sitting at its
-            // construction value, so the body alone reports them absent and
-            // Unset would silently no-op — including the generated
-            // `property = null` setter that compiles to it. The omitted member
-            // is bound at its deterministic virtual id, which is exactly where
-            // the tombstone has to land for the web to read the same unset.
-            if (childValueId is null
-                && valueId is string parentValueId
-                && client.TryGetVirtualClassChildValueId(
-                    parentValueId,
-                    key,
-                    out string? virtualChildValueId))
-            {
-                childValueId = virtualChildValueId;
-            }
+            string? childValueId = ChildValueId(client, key);
             if (childValueId is null)
             {
                 return;

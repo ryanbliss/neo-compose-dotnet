@@ -3232,7 +3232,7 @@ namespace NeoCompose.Runtime
 
             internal MemberValue? LeafRow(NeoClient client)
             {
-                return Node.value?.value?.TryGetValue(Key, out string? leafId) == true
+                return Node.ChildValueId(client, Key) is string leafId
                     ? client.ResolveValueRow(leafId)
                     : null;
             }
