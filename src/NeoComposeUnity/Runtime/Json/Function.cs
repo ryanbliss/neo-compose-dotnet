@@ -156,6 +156,8 @@ namespace NeoCompose.Runtime.Json
     {
         public Pointer collectionPointer = null!;
         public Pointer valuePointer = null!;
+        /// <summary>Entries compare by identity (see <see cref="Condition.reference"/>).</summary>
+        public bool reference;
     }
 
     /// <summary>

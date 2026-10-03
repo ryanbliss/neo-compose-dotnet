@@ -2713,7 +2713,7 @@ namespace NeoCompose.Runtime
                                 && NeoGeneratedTypesSupport.TryAddDetachedListEntry(owner, slotIndex, args[0]))
                                 return;
                             ResolveDetachedListTarget(client, owner, slotIndex, instruction.target.typeInfo, ctx)
-                                .Mutate(client, instruction.mutation, args, ctx);
+                                .Mutate(client, instruction.mutation, args, instruction.reference, ctx);
                             return;
                         }
                     case Kind.Local:
@@ -2731,7 +2731,7 @@ namespace NeoCompose.Runtime
                                 return;
                             }
                             scope.Assign(variable, MutateLocalCollection(
-                                subject, instruction.target.typeInfo, instruction.mutation, args, ctx));
+                                subject, instruction.target.typeInfo, instruction.mutation, args, instruction.reference, ctx));
                             return;
                         }
                     case Kind.UnreadList:
@@ -2742,13 +2742,13 @@ namespace NeoCompose.Runtime
                             return;
                         }
                     case Kind.Target:
-                        ((NeoResolvedCollectionTarget)subject!).Mutate(client, instruction.mutation, args, ctx);
+                        ((NeoResolvedCollectionTarget)subject!).Mutate(client, instruction.mutation, args, instruction.reference, ctx);
                         return;
                     default:
                         if (!TryMutateUnboundStatic(client, instruction,
                                 (StaticMemberPointer)instruction.target.pointer, args, scope, ctx))
                             ResolveCollectionTarget(client, instruction.target, scope, ctx)
-                                .Mutate(client, instruction.mutation, args, ctx);
+                                .Mutate(client, instruction.mutation, args, instruction.reference, ctx);
                         return;
                 }
             }
@@ -2929,7 +2929,7 @@ namespace NeoCompose.Runtime
                     ? new Dictionary<string, string>() : Array.Empty<string>();
                 binding.PreparePayload(plan, initialValue);
                 ResolveCollectionTarget(client, instruction.target, scope, ctx, plan)
-                    .Mutate(client, instruction.mutation, args, ctx);
+                    .Mutate(client, instruction.mutation, args, instruction.reference, ctx);
             });
             return true;
         }
@@ -4215,6 +4215,7 @@ namespace NeoCompose.Runtime
             TypeInfo collectionType,
             string mutation,
             object?[] args,
+            bool reference,
             NSGetterEvaluator.Context ctx)
         {
             if (collectionType is LookupTypeInfo lookup && args.Length > 0
@@ -4243,14 +4244,14 @@ namespace NeoCompose.Runtime
                     return added;
                 }
                 var arrayList = new List<object?>(array);
-                MutateLocalList(arrayList, collectionType.type, mutation, args, entryMember, ctx);
+                MutateLocalList(arrayList, collectionType.type, mutation, args, reference, entryMember, ctx);
                 object?[] mutated = arrayList.ToArray();
                 NSGetterEvaluator.KeepEntryMember(mutated, entryMember);
                 return mutated;
             }
             if (local is List<object?> list)
             {
-                MutateLocalList(list, collectionType.type, mutation, args, entryMember, ctx);
+                MutateLocalList(list, collectionType.type, mutation, args, reference, entryMember, ctx);
                 return list;
             }
             if (local is IDictionary<string, object?> dict)
@@ -4266,6 +4267,7 @@ namespace NeoCompose.Runtime
             MemberKind collectionKind,
             string mutation,
             object?[] args,
+            bool reference,
             JsonMember? entryMember,
             NSGetterEvaluator.Context ctx)
         {
@@ -4282,7 +4284,9 @@ namespace NeoCompose.Runtime
                     {
                         foreach (object? entry in list)
                         {
-                            if (JsEqual(entry, args[0]))
+                            if (reference
+                                    ? NSGetterEvaluator.ReferenceEqual(entry, args[0], ctx)
+                                    : JsEqual(entry, args[0]))
                                 return;
                         }
                     }
@@ -4291,11 +4295,19 @@ namespace NeoCompose.Runtime
                 case CollectionMutationKind.Remove:
                     for (int i = 0; i < list.Count; i++)
                     {
-                        object? entry = entryMember is null
-                            ? list[i]
-                            : NSGetterEvaluator.ResolveValueIfId(list[i], ctx, member: entryMember);
-                        if (!JsEqual(entry, args[0]))
-                            continue;
+                        if (reference)
+                        {
+                            if (!NSGetterEvaluator.ReferenceEqual(list[i], args[0], ctx))
+                                continue;
+                        }
+                        else
+                        {
+                            object? entry = entryMember is null
+                                ? list[i]
+                                : NSGetterEvaluator.ResolveValueIfId(list[i], ctx, member: entryMember);
+                            if (!JsEqual(entry, args[0]))
+                                continue;
+                        }
                         list.RemoveAt(i);
                         break;
                     }
@@ -5428,10 +5440,12 @@ namespace NeoCompose.Runtime
 
         private abstract class NeoResolvedCollectionTarget
         {
+            /// <param name="reference">Entries compare by identity (Class and collection values).</param>
             public abstract void Mutate(
                 NeoClient client,
                 string mutation,
                 object?[] args,
+                bool reference,
                 NSGetterEvaluator.Context ctx);
         }
 
@@ -5451,7 +5465,7 @@ namespace NeoCompose.Runtime
             }
 
             public override void Mutate(NeoClient client, string mutation, object?[] args,
-                NSGetterEvaluator.Context ctx)
+                bool reference, NSGetterEvaluator.Context ctx)
             {
                 NeoMemberListWritable list = (NeoMemberListWritable)NeoMember.CreateWritable(client, member, rowId, ownership);
                 TypeInfo entryType = MemberKindInfo(list.EntryMember);
@@ -5481,7 +5495,7 @@ namespace NeoCompose.Runtime
                             ? id : null;
                         foreach (string entryId in list.ResolveEntryValueIds())
                         {
-                            if (entryId == removeId || (removeId is null
+                            if (entryId == removeId || (removeId is null && !reference
                                 && client.TryGetValue(ownership, entryId, out MemberValue? entry)
                                 && JsEqual(ReadEntryValue(entry, list.EntryMember, ctx), args[0])))
                             {
@@ -5529,6 +5543,7 @@ namespace NeoCompose.Runtime
                 NeoClient client,
                 string mutation,
                 object?[] args,
+                bool reference,
                 NSGetterEvaluator.Context ctx)
             {
                 bool inserts = mutation is CollectionMutationKind.Add or CollectionMutationKind.Insert;
@@ -5597,7 +5612,8 @@ namespace NeoCompose.Runtime
                             for (int i = 0; i < list.Count; i++)
                             {
                                 if (list[i] != referenceId
-                                    && (!client.TryGetValue(list[i], out MemberValue? child)
+                                    && (reference
+                                        || !client.TryGetValue(list[i], out MemberValue? child)
                                         || !JsEqual(ReadEntryValue(child, entryMember, ctx), args[0])))
                                     continue;
                                 batch.Release(ownership, list.RemoveAt(i, now), EntryMember(client, list.Row, entryTypeInfo));
@@ -5637,6 +5653,7 @@ namespace NeoCompose.Runtime
                 NeoClient client,
                 string mutation,
                 object?[] args,
+                bool reference,
                 NSGetterEvaluator.Context ctx)
             {
                 WriteCollection(client, rowId, preparedPlan, batch =>
@@ -5697,6 +5714,7 @@ namespace NeoCompose.Runtime
                 NeoClient client,
                 string mutation,
                 object?[] args,
+                bool reference,
                 NSGetterEvaluator.Context ctx)
             {
                 switch (mutation)

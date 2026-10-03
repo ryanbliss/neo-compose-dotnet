@@ -415,7 +415,7 @@
                 "type": 1
             },
             "getter": {
-                "compilerRevision": 15,
+                "compilerRevision": 16,
                 "parameters": [
                     {
                         "id": "__this__",
@@ -813,7 +813,7 @@
                 "type": 3
             },
             "getter": {
-                "compilerRevision": 15,
+                "compilerRevision": 16,
                 "parameters": [
                     {
                         "id": "__this__",
@@ -1035,7 +1035,7 @@
                 "type": 3
             },
             "getter": {
-                "compilerRevision": 15,
+                "compilerRevision": 16,
                 "parameters": [
                     {
                         "id": "__this__",
@@ -2251,7 +2251,7 @@
                 "type": 3
             },
             "getter": {
-                "compilerRevision": 15,
+                "compilerRevision": 16,
                 "parameters": [
                     {
                         "id": "__this__",
@@ -2490,7 +2490,7 @@
                 "type": 3
             },
             "getter": {
-                "compilerRevision": 15,
+                "compilerRevision": 16,
                 "parameters": [
                     {
                         "id": "__this__",
@@ -3081,7 +3081,7 @@
                 "type": 3
             },
             "getter": {
-                "compilerRevision": 15,
+                "compilerRevision": 16,
                 "parameters": [
                     {
                         "id": "__this__",
@@ -3432,7 +3432,7 @@
                 "type": 7
             },
             "getter": {
-                "compilerRevision": 15,
+                "compilerRevision": 16,
                 "parameters": [
                     {
                         "id": "__this__",
@@ -3797,7 +3797,7 @@
                 "type": 7
             },
             "getter": {
-                "compilerRevision": 15,
+                "compilerRevision": 16,
                 "parameters": [
                     {
                         "id": "__this__",
@@ -3883,7 +3883,7 @@
                                         }
                                     },
                                     "function": {
-                                        "compilerRevision": 15,
+                                        "compilerRevision": 16,
                                         "parameters": [
                                             {
                                                 "id": "key",
@@ -4795,7 +4795,7 @@
                 "init": {
                     "code": "overrides",
                     "compiled": {
-                        "compilerRevision": 15,
+                        "compilerRevision": 16,
                         "parameters": [
                             {
                                 "id": "__this__",
@@ -5137,7 +5137,7 @@
                 "init": {
                     "code": "apply",
                     "compiled": {
-                        "compilerRevision": 15,
+                        "compilerRevision": 16,
                         "parameters": [
                             {
                                 "id": "__this__",
@@ -5393,7 +5393,7 @@
                 "init": {
                     "code": "selector",
                     "compiled": {
-                        "compilerRevision": 15,
+                        "compilerRevision": 16,
                         "parameters": [
                             {
                                 "id": "__this__",
@@ -5550,7 +5550,7 @@
                 "init": {
                     "code": "clipKey",
                     "compiled": {
-                        "compilerRevision": 15,
+                        "compilerRevision": 16,
                         "parameters": [
                             {
                                 "id": "__this__",
@@ -5677,7 +5677,7 @@
                 "kind": "dialogueMemorySchema"
             },
             "getter": {
-                "compilerRevision": 15,
+                "compilerRevision": 16,
                 "parameters": [
                     {
                         "id": "__this__",
@@ -5883,7 +5883,7 @@
                 "init": {
                     "code": "apply",
                     "compiled": {
-                        "compilerRevision": 15,
+                        "compilerRevision": 16,
                         "parameters": [
                             {
                                 "id": "__this__",
@@ -6152,7 +6152,7 @@
                 "init": {
                     "code": "childOverrides",
                     "compiled": {
-                        "compilerRevision": 15,
+                        "compilerRevision": 16,
                         "parameters": [
                             {
                                 "id": "__this__",
@@ -6418,7 +6418,7 @@
                 "init": {
                     "code": "selector",
                     "compiled": {
-                        "compilerRevision": 15,
+                        "compilerRevision": 16,
                         "parameters": [
                             {
                                 "id": "__this__",
@@ -6597,7 +6597,7 @@
                 "kind": "worldAuthoring"
             },
             "getter": {
-                "compilerRevision": 15,
+                "compilerRevision": 16,
                 "parameters": [
                     {
                         "id": "__this__",
@@ -6738,7 +6738,7 @@
                 "kind": "worldAuthoring"
             },
             "getter": {
-                "compilerRevision": 15,
+                "compilerRevision": 16,
                 "parameters": [
                     {
                         "id": "__this__",
@@ -6911,7 +6911,7 @@
                 "init": {
                     "code": "overrides",
                     "compiled": {
-                        "compilerRevision": 15,
+                        "compilerRevision": 16,
                         "parameters": [
                             {
                                 "id": "__this__",
@@ -7413,7 +7413,7 @@
                 "init": {
                     "code": "overrides",
                     "compiled": {
-                        "compilerRevision": 15,
+                        "compilerRevision": 16,
                         "parameters": [
                             {
                                 "id": "__this__",
@@ -7811,7 +7811,7 @@
                 "kind": "worldAuthoring"
             },
             "getter": {
-                "compilerRevision": 15,
+                "compilerRevision": 16,
                 "parameters": [
                     {
                         "id": "__this__",
@@ -8009,7 +8009,7 @@
                 "kind": "worldAuthoring"
             },
             "getter": {
-                "compilerRevision": 15,
+                "compilerRevision": 16,
                 "parameters": [
                     {
                         "id": "__this__",
@@ -8156,7 +8156,7 @@
                 "init": {
                     "code": "initialize",
                     "compiled": {
-                        "compilerRevision": 15,
+                        "compilerRevision": 16,
                         "parameters": [
                             {
                                 "id": "__this__",
@@ -8374,7 +8374,7 @@
                 "init": {
                     "code": "childOverrides",
                     "compiled": {
-                        "compilerRevision": 15,
+                        "compilerRevision": 16,
                         "parameters": [
                             {
                                 "id": "__this__",
@@ -8686,7 +8686,7 @@
                 "init": {
                     "code": "selector",
                     "compiled": {
-                        "compilerRevision": 15,
+                        "compilerRevision": 16,
                         "parameters": [
                             {
                                 "id": "__this__",
@@ -8819,7 +8819,7 @@
                 "init": {
                     "code": "value",
                     "compiled": {
-                        "compilerRevision": 15,
+                        "compilerRevision": 16,
                         "parameters": [
                             {
                                 "id": "__this__",
@@ -9016,7 +9016,7 @@
                 "kind": "worldAuthoring"
             },
             "getter": {
-                "compilerRevision": 15,
+                "compilerRevision": 16,
                 "parameters": [
                     {
                         "id": "__this__",
@@ -9181,7 +9181,7 @@
                 "init": {
                     "code": "path",
                     "compiled": {
-                        "compilerRevision": 15,
+                        "compilerRevision": 16,
                         "parameters": [
                             {
                                 "id": "__this__",
@@ -9346,7 +9346,7 @@
                 "init": {
                     "code": "path",
                     "compiled": {
-                        "compilerRevision": 15,
+                        "compilerRevision": 16,
                         "parameters": [
                             {
                                 "id": "__this__",
@@ -9470,7 +9470,7 @@
                 "kind": "worldAuthoring"
             },
             "getter": {
-                "compilerRevision": 15,
+                "compilerRevision": 16,
                 "parameters": [
                     {
                         "id": "__this__",
@@ -9655,7 +9655,7 @@
                 "init": {
                     "code": "initialize",
                     "compiled": {
-                        "compilerRevision": 15,
+                        "compilerRevision": 16,
                         "parameters": [
                             {
                                 "id": "__this__",
@@ -10010,7 +10010,7 @@
                 "kind": "dialogueMemorySchema"
             },
             "getter": {
-                "compilerRevision": 15,
+                "compilerRevision": 16,
                 "parameters": [
                     {
                         "id": "__this__",
@@ -12355,7 +12355,7 @@
             "code": null,
             "createdAt": 1785886085979,
             "action": {
-                "compilerRevision": 15,
+                "compilerRevision": 16,
                 "parameters": [
                     {
                         "id": "__this__",
@@ -12435,7 +12435,7 @@
             },
             "compiledBaseArguments": [
                 {
-                    "compilerRevision": 15,
+                    "compilerRevision": 16,
                     "parameters": [
                         {
                             "id": "__this__",
@@ -12556,7 +12556,7 @@
             "code": null,
             "createdAt": 1785886065353,
             "action": {
-                "compilerRevision": 15,
+                "compilerRevision": 16,
                 "parameters": [
                     {
                         "id": "__this__",
@@ -12728,7 +12728,7 @@
             "code": null,
             "createdAt": 1786689651762,
             "action": {
-                "compilerRevision": 15,
+                "compilerRevision": 16,
                 "parameters": [
                     {
                         "id": "__this__",
@@ -12927,7 +12927,7 @@
             "code": null,
             "createdAt": 1785886065353,
             "action": {
-                "compilerRevision": 15,
+                "compilerRevision": 16,
                 "parameters": [
                     {
                         "id": "__this__",
@@ -13028,7 +13028,7 @@
             "code": null,
             "createdAt": 1785886076352,
             "action": {
-                "compilerRevision": 15,
+                "compilerRevision": 16,
                 "parameters": [
                     {
                         "id": "__this__",
@@ -13123,7 +13123,7 @@
             },
             "compiledBaseArguments": [
                 {
-                    "compilerRevision": 15,
+                    "compilerRevision": 16,
                     "parameters": [
                         {
                             "id": "__this__",
@@ -13251,7 +13251,7 @@
             "code": null,
             "createdAt": 1785886076352,
             "action": {
-                "compilerRevision": 15,
+                "compilerRevision": 16,
                 "parameters": [
                     {
                         "id": "__this__",
@@ -13356,7 +13356,7 @@
             "code": null,
             "createdAt": 1785886085979,
             "action": {
-                "compilerRevision": 15,
+                "compilerRevision": 16,
                 "parameters": [
                     {
                         "id": "__this__",
@@ -13436,7 +13436,7 @@
             },
             "compiledBaseArguments": [
                 {
-                    "compilerRevision": 15,
+                    "compilerRevision": 16,
                     "parameters": [
                         {
                             "id": "__this__",
@@ -13544,7 +13544,7 @@
             "code": null,
             "createdAt": 1786761999783,
             "action": {
-                "compilerRevision": 15,
+                "compilerRevision": 16,
                 "parameters": [
                     {
                         "id": "__this__",
@@ -13624,7 +13624,7 @@
             "code": null,
             "createdAt": 1786689659501,
             "action": {
-                "compilerRevision": 15,
+                "compilerRevision": 16,
                 "parameters": [
                     {
                         "id": "__this__",
@@ -13774,7 +13774,7 @@
             "code": null,
             "createdAt": 1786761990330,
             "action": {
-                "compilerRevision": 15,
+                "compilerRevision": 16,
                 "parameters": [
                     {
                         "id": "__this__",
@@ -14001,7 +14001,7 @@
             "code": "this._offsets = offsets.Select((offset) => { return Vector2Int(offset.x, offset.y); });",
             "createdAt": 1789524576383,
             "action": {
-                "compilerRevision": 15,
+                "compilerRevision": 16,
                 "parameters": [
                     {
                         "id": "__this__",
@@ -14113,7 +14113,7 @@
                                         "variableId": "__arg_0__"
                                     },
                                     "function": {
-                                        "compilerRevision": 15,
+                                        "compilerRevision": 16,
                                         "parameters": [
                                             {
                                                 "id": "offset",
@@ -36886,7 +36886,7 @@
                             "id": "5f5a90dc-2f86-4b5e-b6c4-154e65119c3b",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -37086,7 +37086,7 @@
                             "id": "b8af3b74-e7d3-43c3-a0d1-20f70b8d5b97",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -37336,7 +37336,7 @@
                             "id": "9180d76c-fd46-4778-9dc7-a40cafd7a2e7",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -37524,7 +37524,7 @@
                             "id": "955ed726-bf4e-494f-b3c7-1f72d7eedb55",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -37724,7 +37724,7 @@
                             "id": "10ccafed-a3aa-44c9-8ee1-ed94d0f172f2",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -37961,7 +37961,7 @@
                             "id": "971102a4-7180-450a-b84c-482f5fd74bed",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -38224,7 +38224,7 @@
                                         {
                                             "code": "return root.Save.Inventory.Contains(root.Assets.Items.First((i) => { return i.Id == \"a840747f-9d6b-4d71-af3a-16b294ec436d\"; }));",
                                             "getter": {
-                                                "compilerRevision": 15,
+                                                "compilerRevision": 16,
                                                 "parameters": [
                                                     {
                                                         "id": "__this__",
@@ -38370,7 +38370,7 @@
                                                                                     }
                                                                                 },
                                                                                 "function": {
-                                                                                    "compilerRevision": 15,
+                                                                                    "compilerRevision": 16,
                                                                                     "parameters": [
                                                                                         {
                                                                                             "id": "i",
@@ -38506,7 +38506,7 @@
                     {
                         "code": "return (root.Save.Quest.Stage == QuestStage.threePaths || root.Save.Quest.Stage == QuestStage.followTheWakes) && !root.Save.Quest.EvidenceFaith && this.Save.Reputation >= 0;",
                         "getter": {
-                            "compilerRevision": 15,
+                            "compilerRevision": 16,
                             "parameters": [
                                 {
                                     "id": "__this__",
@@ -39080,7 +39080,7 @@
                             "id": "01e3c472-26db-4f57-b606-b1fdf821044b",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -39384,7 +39384,7 @@
                             "id": "ad04c7d3-cde9-49a2-bb3a-2a6d4ea63b4b",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -39572,7 +39572,7 @@
                     {
                         "code": "return root.Save.Quest.Stage == QuestStage.threePaths && !root.Save.Quest.EvidenceLedger && root.Save.Inventory.Contains(root.Assets.Items.First((i) => { return i.Id == \"0c962c81-359a-4f8b-9263-7b6bb33b42b7\"; }));",
                         "getter": {
-                            "compilerRevision": 15,
+                            "compilerRevision": 16,
                             "parameters": [
                                 {
                                     "id": "__this__",
@@ -39908,7 +39908,7 @@
                                                                                         }
                                                                                     },
                                                                                     "function": {
-                                                                                        "compilerRevision": 15,
+                                                                                        "compilerRevision": 16,
                                                                                         "parameters": [
                                                                                             {
                                                                                                 "id": "i",
@@ -40186,7 +40186,7 @@
                             "id": "74756349-5b68-4eee-b324-f15cd9bbcc91",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -40353,7 +40353,7 @@
                             "id": "40f15f9c-6a11-4afc-ba2d-420aa8e1adf3",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -40855,7 +40855,7 @@
                             "id": "9387357d-21f5-4b29-87fe-9b28d081573d",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -40993,7 +40993,7 @@
                             "id": "c92be1f7-4d45-4a52-80f3-7ac16949ab7b",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -41339,7 +41339,7 @@
                             "id": "c303f726-41d9-4ee8-9c65-0397c902b7a6",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -41506,7 +41506,7 @@
                             "id": "640bc771-6f2c-46b0-9b9f-4d8eababb6b2",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -41856,7 +41856,7 @@
                             "id": "82701398-39e0-4178-9315-ec1ee8f2d129",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -42211,7 +42211,7 @@
                                     "b3f0cc89-3530-4d6b-9eb4-8cc18d229d84": {
                                         "displayPath": "Outpost > Planet",
                                         "getter": {
-                                            "compilerRevision": 15,
+                                            "compilerRevision": 16,
                                             "parameters": [
                                                 {
                                                     "id": "__this__",
@@ -42380,7 +42380,7 @@
                         "c3049b7f-c8a3-46fb-89ae-0be3372d8ee7": {
                             "displayPath": "Outpost > Planet",
                             "getter": {
-                                "compilerRevision": 15,
+                                "compilerRevision": 16,
                                 "parameters": [
                                     {
                                         "id": "__this__",
@@ -42545,7 +42545,7 @@
                             "id": "feaa216b-31aa-4250-be85-4447ee79cde2",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -42811,7 +42811,7 @@
                             "id": "cc2ffd9e-c4e7-4cbe-b2cf-53ed2777510f",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "instructions": [
                                         {
                                             "operator": "++",
@@ -42930,7 +42930,7 @@
                         "3a36f845-8745-458a-8b19-3c9fbd2afee9": {
                             "displayPath": "Assets > Outposts > Mercurial > Planet",
                             "getter": {
-                                "compilerRevision": 15,
+                                "compilerRevision": 16,
                                 "parameters": [
                                     {
                                         "id": "__this__",
@@ -43095,7 +43095,7 @@
                             "id": "bb43d0ca-ef12-4805-b0ea-f42b11adeadc",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -43265,7 +43265,7 @@
                             "id": "acf5e41c-755e-4dd6-9307-fbefd33f019e",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "instructions": [
                                         {
                                             "operator": "=",
@@ -43330,7 +43330,7 @@
                             "id": "0207d58c-639e-4634-932c-45e12dbe790e",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "instructions": [
                                         {
                                             "call": {
@@ -43448,7 +43448,7 @@
                         "e9fe0a2b-e192-4a75-b352-e26527e6b423": {
                             "displayPath": "Outpost > Planet",
                             "getter": {
-                                "compilerRevision": 15,
+                                "compilerRevision": 16,
                                 "parameters": [
                                     {
                                         "id": "__this__",
@@ -43656,7 +43656,7 @@
                         "42b42e00-9b9c-4456-8100-38a8f3cd03f1": {
                             "displayPath": "Outpost > Planet",
                             "getter": {
-                                "compilerRevision": 15,
+                                "compilerRevision": 16,
                                 "parameters": [
                                     {
                                         "id": "__this__",
@@ -43870,7 +43870,7 @@
                         "8c6427b4-9e59-4f38-8670-2090f21c4117": {
                             "displayPath": "Mercurial > Name",
                             "getter": {
-                                "compilerRevision": 15,
+                                "compilerRevision": 16,
                                 "parameters": [
                                     {
                                         "id": "__this__",
@@ -44060,7 +44060,7 @@
                                     "6d620b86-cc1f-4ffc-961a-02bd52c81c76": {
                                         "displayPath": "Assets > Outposts > Mercurial > Name",
                                         "getter": {
-                                            "compilerRevision": 15,
+                                            "compilerRevision": 16,
                                             "parameters": [
                                                 {
                                                     "id": "__this__",
@@ -44220,7 +44220,7 @@
                         "895da7f1-82ed-4eab-842d-f5dd4c25399a": {
                             "displayPath": "Assets > Outposts > Mercurial > Name",
                             "getter": {
-                                "compilerRevision": 15,
+                                "compilerRevision": 16,
                                 "parameters": [
                                     {
                                         "id": "__this__",
@@ -44392,7 +44392,7 @@
                                 {
                                     "code": "\treturn root.Save.Bits >= this.Value;",
                                     "getter": {
-                                        "compilerRevision": 15,
+                                        "compilerRevision": 16,
                                         "parameters": [
                                             {
                                                 "id": "__this__",
@@ -44572,7 +44572,7 @@
                             "id": "eec3e59e-8492-4fcc-aa7f-bc7c5df841a7",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -44799,7 +44799,7 @@
                         "23aec2a1-e952-4c13-86fb-e0cede15f33c": {
                             "displayPath": "Assets > Outposts > Mercurial > Planet",
                             "getter": {
-                                "compilerRevision": 15,
+                                "compilerRevision": 16,
                                 "parameters": [
                                     {
                                         "id": "__this__",
@@ -44989,7 +44989,7 @@
                         "b8fb5589-1ca0-480a-a2eb-fc23e44e3ae9": {
                             "displayPath": "Assets > Items > Helium-3 Flask > Name",
                             "getter": {
-                                "compilerRevision": 15,
+                                "compilerRevision": 16,
                                 "parameters": [
                                     {
                                         "id": "__this__",
@@ -45170,7 +45170,7 @@
                         "d922e051-7714-43df-814f-92f977494e03": {
                             "displayPath": "Mercurial > Name",
                             "getter": {
-                                "compilerRevision": 15,
+                                "compilerRevision": 16,
                                 "parameters": [
                                     {
                                         "id": "__this__",
@@ -45361,7 +45361,7 @@
                                     "3e1d30e6-941b-450a-896d-b0512a29a678": {
                                         "displayPath": "Mercurial > Name",
                                         "getter": {
-                                            "compilerRevision": 15,
+                                            "compilerRevision": 16,
                                             "parameters": [
                                                 {
                                                     "id": "__this__",
@@ -45521,7 +45521,7 @@
                         "49aba70d-30fc-4ae9-8b1c-c5fff5f14e4e": {
                             "displayPath": "Assets > Outposts > Mercurial > Name",
                             "getter": {
-                                "compilerRevision": 15,
+                                "compilerRevision": 16,
                                 "parameters": [
                                     {
                                         "id": "__this__",
@@ -45704,7 +45704,7 @@
                                     "89ea16d4-6d4a-4e55-a3ea-3d973a1ffd02": {
                                         "displayPath": "Earth OG Souvenir Hat > Value",
                                         "getter": {
-                                            "compilerRevision": 15,
+                                            "compilerRevision": 16,
                                             "parameters": [
                                                 {
                                                     "id": "__this__",
@@ -45871,7 +45871,7 @@
                         "1e6fc91e-ad08-446e-afff-812af0476e0d": {
                             "displayPath": "Earth OG Souvenir Hat > Name",
                             "getter": {
-                                "compilerRevision": 15,
+                                "compilerRevision": 16,
                                 "parameters": [
                                     {
                                         "id": "__this__",
@@ -46083,7 +46083,7 @@
                             "id": "ff48b978-e50d-49e7-9b00-a001f63b9464",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -46350,7 +46350,7 @@
                             "id": "240474f0-0df8-4735-ac4d-774fa036b5bb",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -46550,7 +46550,7 @@
                             "id": "6c90b27b-f336-4860-98e5-d2f55d043a6e",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -46796,7 +46796,7 @@
                             "id": "8a69573c-5a18-4ec2-b6ac-cd57f2c53da2",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -47046,7 +47046,7 @@
                             "id": "8055814e-6ac3-40a7-bce2-4894563ebdfd",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -47278,7 +47278,7 @@
                                         {
                                             "code": "return root.Save.Inventory.Contains(root.Assets.Items.First((i) => { return i.Id == \"c8eb381b-9c3f-4120-b8c3-3872cdde5148\"; }));",
                                             "getter": {
-                                                "compilerRevision": 15,
+                                                "compilerRevision": 16,
                                                 "parameters": [
                                                     {
                                                         "id": "__this__",
@@ -47424,7 +47424,7 @@
                                                                                     }
                                                                                 },
                                                                                 "function": {
-                                                                                    "compilerRevision": 15,
+                                                                                    "compilerRevision": 16,
                                                                                     "parameters": [
                                                                                         {
                                                                                             "id": "i",
@@ -47583,7 +47583,7 @@
                     {
                         "code": "return !root.Save.Quest.EvidenceArchive && (root.Save.Quest.Stage == QuestStage.threePaths || root.Save.Quest.Stage == QuestStage.followTheWakes);",
                         "getter": {
-                            "compilerRevision": 15,
+                            "compilerRevision": 16,
                             "parameters": [
                                 {
                                     "id": "__this__",
@@ -48085,7 +48085,7 @@
                             "id": "199efa5f-5349-444f-b5a7-569560c694d1",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -48297,7 +48297,7 @@
                             "id": "9f4f993d-c685-4620-9bc0-c9b57226887d",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -48515,7 +48515,7 @@
                     {
                         "code": "return root.Save.Quest.Stage == QuestStage.threePaths && !root.Save.Quest.EvidenceFaith && root.Save.Bits >= 150;",
                         "getter": {
-                            "compilerRevision": 15,
+                            "compilerRevision": 16,
                             "parameters": [
                                 {
                                     "id": "__this__",
@@ -48975,7 +48975,7 @@
                             "id": "3ef76487-fd19-45ac-9ad3-346482e29dae",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -49175,7 +49175,7 @@
                             "id": "4edc6349-88f4-4c9b-9438-d00b5f078f3c",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -49490,7 +49490,7 @@
                             "id": "6736f285-f610-4b3c-b3dd-279235fa32c5",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -49761,7 +49761,7 @@
                             "id": "711ab375-5c19-4e01-b75c-4f9dc14d92e8",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -50029,7 +50029,7 @@
                             "id": "7eb438ef-4230-4e38-a4bb-109eb7612ea2",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -50229,7 +50229,7 @@
                             "id": "8a4202b1-dae7-4405-8421-1a28e212f7c6",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -50654,7 +50654,7 @@
                             "id": "277e6454-a07b-4855-914b-1960f0911643",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -51033,7 +51033,7 @@
                             "id": "04b429f5-a576-4f75-947e-bf1275dcad6c",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -51291,7 +51291,7 @@
                     {
                         "code": "return root.Save.Quest.FlareClock >= 6 && root.Save.Quest.Stage != QuestStage.ended;",
                         "getter": {
-                            "compilerRevision": 15,
+                            "compilerRevision": 16,
                             "parameters": [
                                 {
                                     "id": "__this__",
@@ -51642,7 +51642,7 @@
                             "id": "6c4c9091-51dd-4587-a14f-858d23a3d0cd",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -51856,7 +51856,7 @@
                             "id": "a77da640-7669-4f9f-b453-95efa9a73fd7",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -52056,7 +52056,7 @@
                             "id": "8298ae34-02cf-4f7b-bbd9-ea33403ae250",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -52306,7 +52306,7 @@
                             "id": "7bc9e7d2-22bd-4ba3-af81-4dc7b665dc88",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -52561,7 +52561,7 @@
                                         {
                                             "code": "return root.Save.Inventory.Contains(root.Assets.Items.First((i) => { return i.Id == \"18b9a621-ea41-4ac7-8a46-9cc443f2b480\"; }));",
                                             "getter": {
-                                                "compilerRevision": 15,
+                                                "compilerRevision": 16,
                                                 "parameters": [
                                                     {
                                                         "id": "__this__",
@@ -52707,7 +52707,7 @@
                                                                                     }
                                                                                 },
                                                                                 "function": {
-                                                                                    "compilerRevision": 15,
+                                                                                    "compilerRevision": 16,
                                                                                     "parameters": [
                                                                                         {
                                                                                             "id": "i",
@@ -52843,7 +52843,7 @@
                     {
                         "code": "return (root.Save.Quest.Stage == QuestStage.threePaths || root.Save.Quest.Stage == QuestStage.followTheWakes) && !root.Save.Quest.EvidenceLedger && this.Save.Reputation >= 1;",
                         "getter": {
-                            "compilerRevision": 15,
+                            "compilerRevision": 16,
                             "parameters": [
                                 {
                                     "id": "__this__",
@@ -53416,7 +53416,7 @@
                     {
                         "code": "return root.Save.Quest.Stage == QuestStage.vaultOpen && !root.Save.Inventory.Contains(root.Assets.Items.First((i) => { return i.Id == \"fec825b2-2449-4ae2-a4bd-b29f8cf73e3c\"; }));",
                         "getter": {
-                            "compilerRevision": 15,
+                            "compilerRevision": 16,
                             "parameters": [
                                 {
                                     "id": "__this__",
@@ -53661,7 +53661,7 @@
                                                                                         }
                                                                                     },
                                                                                     "function": {
-                                                                                        "compilerRevision": 15,
+                                                                                        "compilerRevision": 16,
                                                                                         "parameters": [
                                                                                             {
                                                                                                 "id": "i",
@@ -53959,7 +53959,7 @@
                             "id": "56cebd90-e85a-4740-a3a3-461d02f5753a",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -54126,7 +54126,7 @@
                             "id": "d8e4dfcf-4c19-4973-a020-06358c1bbac4",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -54305,7 +54305,7 @@
                             "id": "66eb4131-942d-4e35-8785-38be13173913",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -54443,7 +54443,7 @@
                             "id": "e47f29bd-a3fe-4163-9ab4-23053479fba1",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -54816,7 +54816,7 @@
                             "id": "19781ef2-66b2-4851-8cb6-3cb1393a9915",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -55159,7 +55159,7 @@
                             "id": "58794a8d-62ca-42a2-a586-8db94642ab0b",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -55329,7 +55329,7 @@
                             "id": "4d969ab7-e70e-4443-a0f3-8a8117c38666",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -55523,7 +55523,7 @@
                             "id": "4b990519-0cc5-4bf0-b953-5f608a9b154c",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -55693,7 +55693,7 @@
                             "id": "53df927f-7605-481e-a00c-82d35ccafa62",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -55887,7 +55887,7 @@
                             "id": "7928414c-eb50-4cd1-a27f-4b8844505da0",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -56057,7 +56057,7 @@
                             "id": "2be30a7a-35d0-472e-86e7-9b2a3e1dddee",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -56251,7 +56251,7 @@
                     {
                         "code": "return root.Save.Quest.Stage == QuestStage.endgame;",
                         "getter": {
-                            "compilerRevision": 15,
+                            "compilerRevision": 16,
                             "parameters": [
                                 {
                                     "id": "__this__",
@@ -56578,7 +56578,7 @@
                             "id": "c9369ac2-54cc-449a-af76-160933d4c375",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -56745,7 +56745,7 @@
                             "id": "efbc6f53-5351-4788-bc16-524e756d4a40",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -57093,7 +57093,7 @@
                             "id": "356bf10f-2709-44c6-b015-b7a58b4e828c",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -57402,7 +57402,7 @@
                     {
                         "code": "return root.Save.Quest.Ending == WorldEnding.secondSun;",
                         "getter": {
-                            "compilerRevision": 15,
+                            "compilerRevision": 16,
                             "parameters": [
                                 {
                                     "id": "__this__",
@@ -57650,7 +57650,7 @@
                             "id": "d2188e44-7be9-44ad-873f-c7dd7c901697",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -57868,7 +57868,7 @@
                             "id": "84c58cc0-446b-4e86-847c-2c486c869e92",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -58114,7 +58114,7 @@
                             "id": "0e6ddbee-d12a-4edf-b391-ba11f2741d49",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -58453,7 +58453,7 @@
                             "id": "282bb874-fa3b-4e07-a9b0-4ae2cd382d33",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -58632,7 +58632,7 @@
                             "id": "c6446a36-18f6-46ef-8f22-39766fac12a0",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -58759,7 +58759,7 @@
                             "id": "7417de5a-516c-4c42-85cc-0407364ee475",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -58988,7 +58988,7 @@
                     {
                         "code": "return root.Save.Quest.Stage == QuestStage.vaultOpen && root.Save.Inventory.Contains(root.Assets.Items.First((i) => { return i.Id == \"fec825b2-2449-4ae2-a4bd-b29f8cf73e3c\"; }));",
                         "getter": {
-                            "compilerRevision": 15,
+                            "compilerRevision": 16,
                             "parameters": [
                                 {
                                     "id": "__this__",
@@ -59233,7 +59233,7 @@
                                                                                         }
                                                                                     },
                                                                                     "function": {
-                                                                                        "compilerRevision": 15,
+                                                                                        "compilerRevision": 16,
                                                                                         "parameters": [
                                                                                             {
                                                                                                 "id": "i",
@@ -59462,7 +59462,7 @@
                             "id": "7ac05c7d-4541-44ae-81ae-1efed5a5bc0e",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -59656,7 +59656,7 @@
                             "id": "b6c76ad2-33d6-48f2-be4d-95332a8a6ed6",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -59914,7 +59914,7 @@
                     {
                         "code": "return root.Save.Quest.Stage == QuestStage.threePaths && ((root.Save.Quest.EvidenceArchive && root.Save.Quest.EvidenceLedger) || (root.Save.Quest.EvidenceArchive && root.Save.Quest.EvidenceFaith) || (root.Save.Quest.EvidenceLedger && root.Save.Quest.EvidenceFaith));",
                         "getter": {
-                            "compilerRevision": 15,
+                            "compilerRevision": 16,
                             "parameters": [
                                 {
                                     "id": "__this__",
@@ -60716,7 +60716,7 @@
                             "id": "afd16a0e-16f3-4317-914b-eb83acdbcd44",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -60895,7 +60895,7 @@
                             "id": "05dbfa2e-e7f1-466f-9541-353970a844b1",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -61212,7 +61212,7 @@
                             "id": "b99b2701-e160-4d3a-b6aa-2e063dfa9594",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -61651,7 +61651,7 @@
                             "id": "dac725ea-a192-4c36-9593-4c5542dc6d3f",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -61854,7 +61854,7 @@
                             "id": "b9664f53-e3a6-4cff-b88b-d0dac313d46f",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -62077,7 +62077,7 @@
                             "id": "c9eb5167-5de6-438a-bd2c-f80f8adf29e1",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -62355,7 +62355,7 @@
                             "id": "f260b8ef-c819-4408-bf87-a716c9c33f45",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -62534,7 +62534,7 @@
                             "id": "1c5b294b-eff6-4baa-89ca-f55aa755c0aa",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -62812,7 +62812,7 @@
                             "id": "2b55ed52-fad7-4e0c-89cf-9cd602e8d6b7",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -63012,7 +63012,7 @@
                     {
                         "code": "return root.Save.Quest.Stage == QuestStage.threePaths && !root.Save.Quest.EvidenceArchive && root.Save.Inventory.Contains(root.Assets.Items.First((i) => { return i.Id == \"0e9655ec-dc98-477c-b0ff-90d8f203040a\"; }));",
                         "getter": {
-                            "compilerRevision": 15,
+                            "compilerRevision": 16,
                             "parameters": [
                                 {
                                     "id": "__this__",
@@ -63348,7 +63348,7 @@
                                                                                         }
                                                                                     },
                                                                                     "function": {
-                                                                                        "compilerRevision": 15,
+                                                                                        "compilerRevision": 16,
                                                                                         "parameters": [
                                                                                             {
                                                                                                 "id": "i",
@@ -63653,7 +63653,7 @@
                             "id": "7fc0dbae-47f9-40f8-9ae9-6424a759a3b8",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -63850,7 +63850,7 @@
                             "id": "553bd936-450b-494e-8119-d51bf53d6c7c",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -64187,7 +64187,7 @@
                             "id": "978e0a94-7e88-4beb-8117-fff4f82068cb",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -64366,7 +64366,7 @@
                             "id": "7b87b565-12ab-4f03-91eb-4d418ef623b1",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -64536,7 +64536,7 @@
                             "id": "575b3f44-d0c9-415f-93b9-ce385ee0b3f7",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -64773,7 +64773,7 @@
                     {
                         "code": "return root.Save.Quest.Stage == QuestStage.endgame && root.Save.Inventory.Contains(root.Assets.Items.First((i) => { return i.Id == \"e812e95c-d4dc-4f5d-8f42-ce57e5501eab\"; })) && root.Save.Quest.EvidenceArchive && root.Save.Quest.EvidenceLedger && root.Save.Quest.EvidenceFaith;",
                         "getter": {
-                            "compilerRevision": 15,
+                            "compilerRevision": 16,
                             "parameters": [
                                 {
                                     "id": "__this__",
@@ -65039,7 +65039,7 @@
                                                                                                                                         }
                                                                                                                                     },
                                                                                                                                     "function": {
-                                                                                                                                        "compilerRevision": 15,
+                                                                                                                                        "compilerRevision": 16,
                                                                                                                                         "parameters": [
                                                                                                                                             {
                                                                                                                                                 "id": "i",
@@ -65570,7 +65570,7 @@
                             "id": "68eb6912-4f33-49d0-948e-3ddcb1702764",
                             "logic": {
                                 "action": {
-                                    "compilerRevision": 15,
+                                    "compilerRevision": 16,
                                     "parameters": [
                                         {
                                             "id": "__this__",
@@ -65910,7 +65910,7 @@
                     {
                         "code": "return root.Save.Quest.Reruns >= 1;",
                         "getter": {
-                            "compilerRevision": 15,
+                            "compilerRevision": 16,
                             "parameters": [
                                 {
                                     "id": "__this__",
@@ -66231,7 +66231,7 @@
             "conditions": [
                 {
                     "getter": {
-                        "compilerRevision": 15,
+                        "compilerRevision": 16,
                         "instructions": [
                             {
                                 "pointer": {
@@ -66312,7 +66312,7 @@
             "conditions": [
                 {
                     "getter": {
-                        "compilerRevision": 15,
+                        "compilerRevision": 16,
                         "instructions": [
                             {
                                 "pointer": {

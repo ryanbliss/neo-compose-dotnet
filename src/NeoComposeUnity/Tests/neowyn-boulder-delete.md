@@ -50,3 +50,7 @@ unity test samples/HelloWorld --mode EditMode --filter NeoCompose.Tests.NeoCompo
 For issue #907, the same 478 fixture bodies were re-stamped from revision 14
 to 15. Their instruction shapes are unchanged; no tile-conversion instruction
 occurs in this capture. This is fixture maintenance, not a fresh project export.
+
+For revision 16 (identity equality), the 478 bodies were re-stamped from 15
+to 16 the same way. Comparisons the new compiler would mark `reference` stay
+unmarked here; the delete test does not evaluate them.
