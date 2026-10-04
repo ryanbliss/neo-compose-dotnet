@@ -320,6 +320,36 @@ namespace NeoCompose.Tests
             AssertRecordUntouched(client);
         }
 
+        // C#: var s = rig.Make(); string id = s.valueId; ... rig.Assign(s); s.Width = 9;
+        // where C# holds the node-backed view of the attached Session root.
+        [Test]
+        public void RegisteredCSharpViewOfTheSourceRowWritesTheLeaf()
+        {
+            using NeoClient client = BuildClient();
+            var box = (NeoScriptObject)Make(client, 7)!;
+            string sourceId = box.valueId!;
+            TestBox view = NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(
+                client, box, true, null, TestBox.CreateWritable, TestBox.CreateDetached);
+            Assert.IsNull(view.PendingValue, "The view reads its own node, not the temporary.");
+            Assert.IsNull(box.view, "Only the source row's registry entry reaches the view.");
+            Assert.AreEqual(sourceId, view.valueId);
+
+            Run(client,
+                ctx => new Dictionary<string, object?>
+                {
+                    ["s"] = NeoScriptValueMarshaller.Normalize(client, NeoValueOwnership.Session, view, BoxTypeInfo, ctx, "s"),
+                },
+                AssignShape(Variable("s")));
+            view.Width = 9;
+
+            Assert.IsFalse(view.IsDisposed);
+            Assert.AreEqual("shape-leaf", view.valueId);
+            Assert.AreEqual(9, view.Width);
+            Assert.AreEqual(9, WidthOf(client, NeoValueOwnership.Session, "shape-leaf"));
+            Assert.AreEqual(1, BoxRows(client, NeoValueOwnership.Session), "No Session box row is left behind.");
+            AssertRecordUntouched(client);
+        }
+
         // ------------------------------------------------------------------
         // Harness
         // ------------------------------------------------------------------
