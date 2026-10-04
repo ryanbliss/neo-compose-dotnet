@@ -364,7 +364,7 @@ namespace NeoCompose.Runtime
                 outgoingVirtualIds.UnionWith(ids);
             InvalidateSharedEvaluationContext();
             virtualValues.Clear();
-            effectRescanPending |= effectsStarted;
+            effectRescanPending |= instancesTracked;
             virtualValueOwnership.Clear();
             ClearVirtualValueNodes();
             virtualClassChildren.Clear();
@@ -1671,6 +1671,7 @@ namespace NeoCompose.Runtime
             string rootId = expansion.Root.id;
             foreach (var pair in expansion.Values)
             {
+                NoteDeparture(pair.Key, RowLayer.Virtual, pair.Value);
                 virtualValues[pair.Key] = pair.Value;
                 NoteEffectRowChange(expansion.Ownership[pair.Key], pair.Key, pair.Value);
                 EvictSharedEvaluationRow(pair.Key);
@@ -2175,6 +2176,7 @@ namespace NeoCompose.Runtime
             {
                 foreach (string valueId in valueIds)
                 {
+                    NoteDeparture(valueId, RowLayer.Virtual, null);
                     virtualValues.Remove(valueId);
                     NoteEffectRowChange(virtualValueOwnership.GetValueOrDefault(valueId), valueId, null);
                     EvictSharedEvaluationRow(valueId);

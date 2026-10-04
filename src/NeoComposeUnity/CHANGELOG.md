@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.55.0] - 2026-10-03
+
+- P98 lifecycle hooks. A class that implements a `@system(kind: .ScriptRuntime)` interface gets that hook called on each instance. Requires schema 34 and CLI 0.66.0. `OnLoad` runs when an instance becomes live and `OnUnload` when it stops, including at client disposal. A rendered object gets Unity's `Awake`, `OnEnable`, `Start`, `FixedUpdate`, `Update`, `LateUpdate`, `OnDisable`, `OnDestroy`, `OnApplicationPause` and `OnApplicationQuit`, plus the 2D trigger and collision messages. Unity hooks run in play mode only.
+- `NeoClient.StartEffects` is now `StartScriptRuntime`. Generated clients call it, so regenerate with CLI 0.66.0.
+- Hooks run in the effect drain: unloads, then loads, then Unity events, then effects. A hook counts toward `EffectRunsPerDrain` per instance, so hooks that keep undoing each other stop with a `NeoEffectCycleException`. A failing hook logs a `NeoLifecycleHookException` and the drain goes on. `Start`, the per-frame hooks and the application hooks run outside the drain, each as its own execution, and never count.
+- An instance that leaves the data still reads its last rows in `OnUnload`, `OnDisable` and `OnDestroy`, and so does any hook in that drain that reads it. A hook that writes those rows fails with an `InvalidOperationException`. A class change replaces the instance: the old class's `OnUnload` runs, then the new class's `OnLoad`.
+- `Update` and `LateUpdate` get Unity's `deltaTime` in seconds, and `FixedUpdate` gets `fixedDeltaTime`. A physics message names the other Neo object through `other`, or null when it is not one. `OnCollisionEnter2D` and `OnCollisionStay2D` also get the contact normal and the relative velocity in cells per second. Renderers add a relay component only to GameObjects whose class has the message's hook, and index colliders only while some class has a physics hook.
+- A renderer registers a spawned object's root before lifecycle hooks run, so a hook's write during spawn reaches it.
+
 ## [0.54.2] - 2026-10-03
 
 - NeoScript can assign a field of a local vector, color, or sprite that no Neo value row backs, such as `Vector2Int progress = new(0, 0); progress.x++;`. Before, it threw "Assignment receiver is not backed by a Neo value row". The local rebinds to a copy, so another local copied from it keeps its value.

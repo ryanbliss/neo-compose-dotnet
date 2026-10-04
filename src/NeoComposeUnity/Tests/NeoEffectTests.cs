@@ -35,7 +35,7 @@ namespace NeoCompose.Tests
     /// <c>Record</c> is native: it counts runs and reads <c>NativeSeen</c>.
     /// <c>Poke</c> is native: it writes <c>plant-0</c>'s Count.
     /// </summary>
-    public class NeoEffectTests
+    public partial class NeoEffectTests
     {
         private const string ProjectId = "project-effects";
         private const string PlantsListId = "value-plants";
@@ -72,8 +72,8 @@ namespace NeoCompose.Tests
             using Fixture fixture = Build(plants: 3);
             Assert.AreEqual(0, fixture.recorded.Count, "Nothing runs before the wrapper starts effects.");
 
-            fixture.client.StartEffects();
-            fixture.client.StartEffects();
+            fixture.client.StartScriptRuntime();
+            fixture.client.StartScriptRuntime();
 
             for (int i = 0; i < 3; i++)
             {
@@ -87,7 +87,7 @@ namespace NeoCompose.Tests
         public void ChangedReadRunsOnlyTheInstanceThatReadIt()
         {
             using Fixture fixture = Build(plants: 3);
-            fixture.client.StartEffects();
+            fixture.client.StartScriptRuntime();
 
             fixture.WriteNumber("plant-1-count", "member-count", 50);
 
@@ -101,7 +101,7 @@ namespace NeoCompose.Tests
         public void ChangesOneBoundaryHoldsRunAnEffectOnce()
         {
             using Fixture fixture = Build(plants: 2);
-            fixture.client.StartEffects();
+            fixture.client.StartScriptRuntime();
             fixture.recorded.Clear();
 
             // Plant 0 reads both rows; each is written twice.
@@ -123,7 +123,7 @@ namespace NeoCompose.Tests
         public void EffectWritesRunTheEffectsThatReadThemInTheSameDrain()
         {
             using Fixture fixture = Build(plants: 2);
-            fixture.client.StartEffects();
+            fixture.client.StartScriptRuntime();
             fixture.recorded.Clear();
 
             // The watcher copies Signal into Target, which every plant reads.
@@ -137,7 +137,7 @@ namespace NeoCompose.Tests
         public void GetterWatchersHearTheSettledState()
         {
             using Fixture fixture = Build(plants: 0);
-            fixture.client.StartEffects();
+            fixture.client.StartScriptRuntime();
             var watcher = new NeoMemberClassWritable(fixture.client, "member-watcher", "value-watcher", NeoValueOwnership.Save);
             // Seen => root.Save.Signal + root.Save.Target, so a Signal write
             // drops it before the effect writes Target.
@@ -155,7 +155,7 @@ namespace NeoCompose.Tests
         public void NativeReadsAreNotDependencies()
         {
             using Fixture fixture = Build(plants: 1);
-            fixture.client.StartEffects();
+            fixture.client.StartScriptRuntime();
 
             fixture.WriteNumber("value-native-only", "member-native-only", 9);
 
@@ -174,7 +174,7 @@ namespace NeoCompose.Tests
                 callbacks++;
                 seen.Compute("value-watcher");
             };
-            fixture.client.StartEffects();
+            fixture.client.StartScriptRuntime();
             fixture.WriteNumber("plant-0-count", "member-count", 3);
             Assert.Greater(callbacks, 0, "The run's Runs write reached the plant's callback.");
 
@@ -187,7 +187,7 @@ namespace NeoCompose.Tests
         public void ACommitRunsEffectsBeforeItsValueCallbacks()
         {
             using Fixture fixture = Build(plants: 1);
-            fixture.client.StartEffects();
+            fixture.client.StartScriptRuntime();
             var plant = new NeoMemberClassWritable(fixture.client, "member-plant-entry", "plant-0", NeoValueOwnership.Save);
             var seen = new List<(string plant, int value)>();
             plant.OnChanged += _ => seen.Add(fixture.recorded[^1]);
@@ -208,7 +208,7 @@ namespace NeoCompose.Tests
                 RootSave("Signal"),
                 Add(RootSave("Target"), Literal(1))));
             LogAssert.Expect(LogType.Exception, new Regex("NeoEffectCycleException"));
-            fixture.client.StartEffects();
+            fixture.client.StartScriptRuntime();
 
             LogAssert.Expect(LogType.Exception, new Regex("NeoEffectCycleException"));
             fixture.WriteNumber("value-target", "member-target", 1_000);
@@ -224,7 +224,7 @@ namespace NeoCompose.Tests
             using Fixture fixture = Build(plants: 2);
             fixture.throwFor = "plant-0";
             LogAssert.Expect(LogType.Exception, new Regex("Record failed for plant-0"));
-            fixture.client.StartEffects();
+            fixture.client.StartScriptRuntime();
 
             Assert.AreEqual(1, fixture.RunsOf("plant-0"), "Writes before the throw commit.");
             Assert.AreEqual(1, fixture.RunsOf("plant-1"));
@@ -240,7 +240,7 @@ namespace NeoCompose.Tests
         public void RemovalStopsAnInstanceAndAttachingOneStartsIt()
         {
             using Fixture fixture = Build(plants: 2);
-            fixture.client.StartEffects();
+            fixture.client.StartScriptRuntime();
 
             var removal = new NeoWritePlan(fixture.client);
             removal.Set(NeoValueOwnership.Save, PlantList("plant-derived", "plant-0"));
@@ -267,7 +267,7 @@ namespace NeoCompose.Tests
         public void ParentWriteAttachesAnOrphanedInstance()
         {
             using Fixture fixture = Build(plants: 0);
-            fixture.client.StartEffects();
+            fixture.client.StartScriptRuntime();
             fixture.client.SetWritableValues(NeoValueOwnership.Save, new MemberValue[]
             {
                 ObjectValue("watcher-2", "class-watcher"),
@@ -289,7 +289,7 @@ namespace NeoCompose.Tests
         public void OverrideKindsApplyToTheSubclassAndBelow()
         {
             using Fixture fixture = Build(plants: 1);
-            fixture.client.StartEffects();
+            fixture.client.StartScriptRuntime();
 
             Assert.AreEqual(1, fixture.RunsOf("plant-0"), "A base instance runs Check but not the plain base Plain.");
             Assert.AreEqual(10, fixture.RunsOf("plant-derived"), "The subclass turns Check off and Plain on.");
@@ -316,7 +316,7 @@ namespace NeoCompose.Tests
         public void AVariantSwapStopsTheOldInstanceAndStartsItsReplacement()
         {
             using Fixture fixture = Build(plants: 1);
-            fixture.client.StartEffects();
+            fixture.client.StartScriptRuntime();
 
             var swap = new NeoWritePlan(fixture.client);
             swap.Set(NeoValueOwnership.Save, Plant("plant-0", "class-derived-plant"));
@@ -350,7 +350,7 @@ namespace NeoCompose.Tests
                 data.values["static-plant-runs"] = Number("static-plant-runs", 0);
                 data.values["static-plant"] = Plant("static-plant", "class-plant", containerId: null);
             });
-            fixture.client.StartEffects();
+            fixture.client.StartScriptRuntime();
             Assert.AreEqual(1, fixture.RecordedCount("static-plant"));
 
             fixture.WriteNumber("static-plant-count", "member-count", 5);
@@ -447,7 +447,7 @@ namespace NeoCompose.Tests
                 };
                 data.values[makerRow.id] = makerRow;
             });
-            fixture.client.StartEffects();
+            fixture.client.StartScriptRuntime();
 
             Assert.AreEqual(1, fixture.RecordedCount("asset-plant"), "An authored instance the assets root holds runs.");
             Assert.AreEqual(1, fixture.RecordedCount("asset-listed"), "A listed instance a constructor argument names runs.");
@@ -468,7 +468,7 @@ namespace NeoCompose.Tests
                     }),
                 };
             });
-            fixture.client.StartEffects();
+            fixture.client.StartScriptRuntime();
             fixture.client.SetWritableValues(NeoValueOwnership.Save, new MemberValue[]
             {
                 Number("bed-plant-count", 3),
@@ -490,7 +490,7 @@ namespace NeoCompose.Tests
         public void AnEffectAGetterReadQueuedRunsWhenTheReadReturns()
         {
             using Fixture fixture = Build(plants: 1);
-            fixture.client.StartEffects();
+            fixture.client.StartScriptRuntime();
             var watcher = new NeoMemberClassWritable(fixture.client, "member-watcher", "value-watcher", NeoValueOwnership.Save);
 
             // Poked calls the native Poke, which writes plant-0's Count while
@@ -505,7 +505,7 @@ namespace NeoCompose.Tests
         public void AnEffectAValueReadCaptureQueuedRunsWhenTheCaptureEnds()
         {
             using Fixture fixture = Build(plants: 1);
-            fixture.client.StartEffects();
+            fixture.client.StartScriptRuntime();
             var watcher = new NeoMemberClassWritable(fixture.client, "member-watcher", "value-watcher", NeoValueOwnership.Save);
 
             // Animation segments resolve inside a value-read capture, which
@@ -529,7 +529,7 @@ namespace NeoCompose.Tests
             using Fixture effects = Build(plants);
             using Fixture direct = Build(plants);
             using Fixture writes = Build(plants);
-            effects.client.StartEffects();
+            effects.client.StartScriptRuntime();
             var function = new NeoMemberNSFunction(direct.client, "member-check", null, NeoValueOwnership.Save);
             Assert.IsTrue(effects.client.TryGetMember("member-count", out JsonMember? count));
             var rows = new NumberMemberValue[2 * plants];
@@ -579,7 +579,7 @@ namespace NeoCompose.Tests
             foreach (int plants in new[] { 100, 1_000 })
             {
                 using Fixture fixture = Build(plants);
-                fixture.client.StartEffects();
+                fixture.client.StartScriptRuntime();
                 var counts = new[] { Number("plant-0-count", 1_000), Number("plant-0-count", 1_001) };
                 var targets = new[] { Number("value-target", 1), Number("value-target", 2) };
                 Assert.IsTrue(fixture.client.TryGetMember("member-count", out JsonMember? count));

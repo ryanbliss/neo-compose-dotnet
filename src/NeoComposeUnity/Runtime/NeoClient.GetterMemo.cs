@@ -527,7 +527,10 @@ namespace NeoCompose.Runtime
                     && candidateReadPlan is null
                     && replayAllocationScope is null
                     && !isReplayingVirtualInstance
-                    && commitsUnderScriptBatch == 0;
+                    && commitsUnderScriptBatch == 0
+                    // P98 §2.4: a departure hook reads its receiver's
+                    // departed rows, which the memo's answers never saw.
+                    && departedReads != DepartedReads.Prefer;
             }
         }
 
@@ -846,6 +849,13 @@ namespace NeoCompose.Runtime
         // Returns the entry for the caller to fill with the result.
         private GetterMemoEntry? Memoize(GetterMemoKey key, GetterCaptureFrame capture, bool valueless)
         {
+            // P98 §2.4: the memo is keyed by row id, so an answer read from
+            // a departed row would outlive it.
+            if (departedNodes.Count != 0)
+            {
+                RecycleGetterCapture(capture);
+                return null;
+            }
             getterMemo.TryGetValue(key, out GetterMemoEntry? entry);
             // The pending change must still find the entry that read the old
             // grid, to forget it and tell its watchers.
@@ -1377,7 +1387,17 @@ namespace NeoCompose.Runtime
         /// The outermost release runs the pending effects, still held so
         /// their own writes join this boundary, then raises the getter changes.
         /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void ReleaseGetterChanges()
+        {
+            // An idle boundary has nothing to drain or raise.
+            if (getterChangeHolds > 1 || (pendingGetterChanges.Count == 0 && !EffectsPending))
+                getterChangeHolds--;
+            else
+                ReleaseOutermostGetterChanges();
+        }
+
+        private void ReleaseOutermostGetterChanges()
         {
             try
             {

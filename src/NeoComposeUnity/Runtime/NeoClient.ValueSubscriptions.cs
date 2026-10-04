@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 namespace NeoCompose.Runtime
 {
@@ -146,10 +147,15 @@ namespace NeoCompose.Runtime
             changeBatchDepth++;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void EndChangeBatch()
         {
-            if (--changeBatchDepth > 0 || pendingChanges.Count == 0)
-                return;
+            if (--changeBatchDepth <= 0 && pendingChanges.Count != 0)
+                RaisePendingChanges();
+        }
+
+        private void RaisePendingChanges()
+        {
             // A listener's own commit queues and raises its own batch.
             var draining = pendingChanges;
             pendingChanges = spareChanges ?? new();

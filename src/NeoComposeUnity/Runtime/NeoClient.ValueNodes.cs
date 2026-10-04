@@ -18,20 +18,28 @@ namespace NeoCompose.Runtime
         internal NeoValueNode? ValueNode(string id)
         {
             if (valueNodes.TryGetValue(id, out NeoValueNode node))
-                return node;
+                return departedReads == DepartedReads.Prefer && !node.live ? departedNodes[id] : node;
+            return departedNodes.Count == 0 ? CreateValueNode(id) : DepartedValueNode(id);
+        }
+
+        private NeoValueNode? CreateValueNode(string id)
+        {
             // Removed and unwritten ids are read often; a miss makes no node.
-            if (!sessionData.values.ContainsKey(id)
-                && !saveData.values.ContainsKey(id)
-                && !virtualValues.ContainsKey(id)
-                && !data.values.ContainsKey(id))
+            if (!HoldsRow(id))
                 return null;
-            node = new NeoValueNode(id);
+            var node = new NeoValueNode(id);
             if (!FillValueNode(node))
                 return null;
             writableValueSubscriptions.TryGetValue(id, out node.subscribers);
             valueNodes.Add(id, node);
             return node;
         }
+
+        private bool HoldsRow(string id) =>
+            sessionData.values.ContainsKey(id)
+            || saveData.values.ContainsKey(id)
+            || virtualValues.ContainsKey(id)
+            || data.values.ContainsKey(id);
 
         /// <summary>The node for <paramref name="id"/> if one was already made.</summary>
         internal NeoValueNode? ExistingValueNode(string id) =>

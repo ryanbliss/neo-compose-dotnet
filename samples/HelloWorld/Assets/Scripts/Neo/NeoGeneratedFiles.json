@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-  "codegenRevision": "22a8e3eb2a0ad56d33563690fa6348f7c3b145868bc2dcb65c8653989934ccff",
+  "codegenRevision": "0bfe1f9016ee54ced751c8c139eee24bbba1fd7d29ed0f75e6769f8fb2feb63a",
   "files": [
     {
       "id": "class:11177bd5-0678-4bff-86b8-46718ff1827b",
@@ -446,12 +446,102 @@
     {
       "id": "project:client",
       "path": "Generated/HelloWorldNeo.g.cs",
-      "hash": "da51723fb91f04fe757e171248a0bc2f412ea508b6423dff8296b38e270f13fb"
+      "hash": "4e737dc3bd0530305733445f1e575642b8783ef23572e6d7b2415252761adc79"
     },
     {
       "id": "interface:27d59731-311d-4d80-833a-916760c7ed30",
       "path": "Generated/Interfaces/IHasName.g.cs",
       "hash": "d850ec71dee6f4303342880b379baba93a4e4c28e81aeeb5571092e03df83371"
+    },
+    {
+      "id": "interface:system_c1b7f48c-5615-4e61-a071-5ff8b2a70c97",
+      "path": "Generated/Interfaces/INeoOnLoad.g.cs",
+      "hash": "5a40e0a04a47774ac9f63cd7de6b71c1cdbc243e4e7d7e905f2b29ae63e8ed51"
+    },
+    {
+      "id": "interface:system_c64e99f9-e8be-4d0a-927f-de20bdf9cdeb",
+      "path": "Generated/Interfaces/INeoOnUnload.g.cs",
+      "hash": "19b7b777a4290ade24ebe6a911d9c1b86e4ea3b54e90fe7065dd87b4458c4f93"
+    },
+    {
+      "id": "interface:system_e080a0a4-bb13-42a8-a1c5-17548dc5ccdb",
+      "path": "Generated/Interfaces/INeoUnityAwake.g.cs",
+      "hash": "522a44e4912f67b2789d7c24526734266fb7d343c13813b9d0b61661cc0141dd"
+    },
+    {
+      "id": "interface:system_23677dec-fa02-4a09-8b0a-f762b10e467e",
+      "path": "Generated/Interfaces/INeoUnityFixedUpdate.g.cs",
+      "hash": "2123fe618abaa5c5b750d1d4df4eff3d574ba67bf32087605a391862cd1057c9"
+    },
+    {
+      "id": "interface:system_f2ecf221-8b14-44b1-b871-24c10c401b4b",
+      "path": "Generated/Interfaces/INeoUnityLateUpdate.g.cs",
+      "hash": "590106d7f0bf7c292debb6c0254685eb1425d1a79c8906f9a912f557b8d2b53c"
+    },
+    {
+      "id": "interface:system_f1ab6738-fb6d-4d74-95cc-b4681f3feb85",
+      "path": "Generated/Interfaces/INeoUnityOnApplicationPause.g.cs",
+      "hash": "c9900adb1e7658b0201c8da164a33dcce8810b95c10ba00645e3c1e3c63a86ca"
+    },
+    {
+      "id": "interface:system_9156948c-a575-462b-9981-9d22bd262079",
+      "path": "Generated/Interfaces/INeoUnityOnApplicationQuit.g.cs",
+      "hash": "e18af9c0d5bd1f48051fbc01989e07db54175206bca84fca4a85d0ee29d35eb2"
+    },
+    {
+      "id": "interface:system_6f4099d5-3d13-4bea-b432-3069cbd8b18d",
+      "path": "Generated/Interfaces/INeoUnityOnCollisionEnter2D.g.cs",
+      "hash": "94a4ae6c717ec1bf38e8a31598c7247c480310d0aa48ed6eef70af7aa2678e92"
+    },
+    {
+      "id": "interface:system_a6157ec0-e5e1-4f77-9ba1-8f5eb022e6a4",
+      "path": "Generated/Interfaces/INeoUnityOnCollisionExit2D.g.cs",
+      "hash": "a17236b7bac882319b65c7c5aca2227dc42565cb28b04e0dbda812c3452f3fdc"
+    },
+    {
+      "id": "interface:system_75350119-0b1e-4560-bf94-0a34590f4cc2",
+      "path": "Generated/Interfaces/INeoUnityOnCollisionStay2D.g.cs",
+      "hash": "05dac579303ba2ab404b36283f6c2743e7ed2190d69065bce817057ccef0b52f"
+    },
+    {
+      "id": "interface:system_fe306522-8df2-4f30-8931-204d8dab4d96",
+      "path": "Generated/Interfaces/INeoUnityOnDestroy.g.cs",
+      "hash": "687e6162b106fac6e2d8784e78431567bce162e0f35031ed3bda7f8635535926"
+    },
+    {
+      "id": "interface:system_81750392-22a9-4881-a117-8d9de3e200cd",
+      "path": "Generated/Interfaces/INeoUnityOnDisable.g.cs",
+      "hash": "b4a7b3b227babadf37d9eab83083d395e1d065d90d245269562d8d2b2110fc8a"
+    },
+    {
+      "id": "interface:system_3c3a67d4-9926-4b11-ac89-bcf30c2b5d90",
+      "path": "Generated/Interfaces/INeoUnityOnEnable.g.cs",
+      "hash": "6982ce557040dfbfe89a60ec7be76d8dccb9c71130bc7fb1016966172cad3deb"
+    },
+    {
+      "id": "interface:system_9faab5e9-701c-4cd8-8723-5f9794b8e8c0",
+      "path": "Generated/Interfaces/INeoUnityOnTriggerEnter2D.g.cs",
+      "hash": "dae914ff7538d4d883c688f5e7880240aa880d75c418c1503237cf71e4e166dc"
+    },
+    {
+      "id": "interface:system_9da00dcd-4035-46cc-8d98-00f5b8d91545",
+      "path": "Generated/Interfaces/INeoUnityOnTriggerExit2D.g.cs",
+      "hash": "b917c76a83a9e695a696b3bdc86d130213abba0ca208e2a84f47dfac040603c8"
+    },
+    {
+      "id": "interface:system_a66ca3a6-3df3-4cb2-a9ba-7f63c494932c",
+      "path": "Generated/Interfaces/INeoUnityOnTriggerStay2D.g.cs",
+      "hash": "c9d06bf5b7a38907005e99df8661d50934a4f146128610fea4732fb8c05dcc86"
+    },
+    {
+      "id": "interface:system_b7e94d04-1c00-4e17-afb2-3de8b40fc5eb",
+      "path": "Generated/Interfaces/INeoUnityStart.g.cs",
+      "hash": "b88d565b2041f52ae956845e250070c0e8130e87f1b3f90035b0ad876cce877e"
+    },
+    {
+      "id": "interface:system_9e3923ce-a569-491f-95d8-dca8411611eb",
+      "path": "Generated/Interfaces/INeoUnityUpdate.g.cs",
+      "hash": "7cd87d0e3dcce62295bb46e6637bb8caae496cbe52a33bf4e1b8ad334f455f8b"
     }
   ]
 }

@@ -10888,6 +10888,542 @@
             "updatedAt": 1788081193552,
             "id": "27d59731-311d-4d80-833a-916760c7ed30",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "system_23677dec-fa02-4a09-8b0a-f762b10e467e": {
+            "createdAt": 1791083184025,
+            "extendsInterfaceIds": [],
+            "memberKeyOrder": [
+                "FixedUpdate"
+            ],
+            "members": {
+                "FixedUpdate": {
+                    "argumentTypes": [
+                        {
+                            "name": "deltaTime",
+                            "required": true,
+                            "type": 4
+                        }
+                    ],
+                    "id": "system_43b19f97-ee83-496b-9f1c-56d0f008c410",
+                    "kind": 1,
+                    "returnTypeInfo": {
+                        "required": true,
+                        "type": "Void"
+                    }
+                }
+            },
+            "name": "INeoUnityFixedUpdate",
+            "system": {
+                "kind": "scriptRuntime"
+            },
+            "id": "system_23677dec-fa02-4a09-8b0a-f762b10e467e",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1791083184025
+        },
+        "system_3c3a67d4-9926-4b11-ac89-bcf30c2b5d90": {
+            "createdAt": 1791083184025,
+            "extendsInterfaceIds": [],
+            "memberKeyOrder": [
+                "OnEnable"
+            ],
+            "members": {
+                "OnEnable": {
+                    "argumentTypes": [],
+                    "id": "system_26cd4ae9-4e81-45ad-a40c-b41e4ad5ddcf",
+                    "kind": 1,
+                    "returnTypeInfo": {
+                        "required": true,
+                        "type": "Void"
+                    }
+                }
+            },
+            "name": "INeoUnityOnEnable",
+            "system": {
+                "kind": "scriptRuntime"
+            },
+            "id": "system_3c3a67d4-9926-4b11-ac89-bcf30c2b5d90",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1791083184025
+        },
+        "system_6f4099d5-3d13-4bea-b432-3069cbd8b18d": {
+            "createdAt": 1791083184620,
+            "extendsInterfaceIds": [],
+            "memberKeyOrder": [
+                "OnCollisionEnter2D"
+            ],
+            "members": {
+                "OnCollisionEnter2D": {
+                    "argumentTypes": [
+                        {
+                            "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc",
+                            "name": "other",
+                            "required": false,
+                            "type": 7
+                        },
+                        {
+                            "name": "normal",
+                            "required": true,
+                            "type": 14
+                        },
+                        {
+                            "name": "relativeVelocity",
+                            "required": true,
+                            "type": 14
+                        }
+                    ],
+                    "id": "system_6f59b3b0-45cc-44a4-96e1-ab642ce10c05",
+                    "kind": 1,
+                    "returnTypeInfo": {
+                        "required": true,
+                        "type": "Void"
+                    }
+                }
+            },
+            "name": "INeoUnityOnCollisionEnter2D",
+            "system": {
+                "kind": "scriptRuntime"
+            },
+            "id": "system_6f4099d5-3d13-4bea-b432-3069cbd8b18d",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1791083184620
+        },
+        "system_75350119-0b1e-4560-bf94-0a34590f4cc2": {
+            "createdAt": 1791083184620,
+            "extendsInterfaceIds": [],
+            "memberKeyOrder": [
+                "OnCollisionStay2D"
+            ],
+            "members": {
+                "OnCollisionStay2D": {
+                    "argumentTypes": [
+                        {
+                            "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc",
+                            "name": "other",
+                            "required": false,
+                            "type": 7
+                        },
+                        {
+                            "name": "normal",
+                            "required": true,
+                            "type": 14
+                        },
+                        {
+                            "name": "relativeVelocity",
+                            "required": true,
+                            "type": 14
+                        }
+                    ],
+                    "id": "system_6cb901df-2c28-4f30-8269-469dead6d4b9",
+                    "kind": 1,
+                    "returnTypeInfo": {
+                        "required": true,
+                        "type": "Void"
+                    }
+                }
+            },
+            "name": "INeoUnityOnCollisionStay2D",
+            "system": {
+                "kind": "scriptRuntime"
+            },
+            "id": "system_75350119-0b1e-4560-bf94-0a34590f4cc2",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1791083184620
+        },
+        "system_81750392-22a9-4881-a117-8d9de3e200cd": {
+            "createdAt": 1791083185214,
+            "extendsInterfaceIds": [],
+            "memberKeyOrder": [
+                "OnDisable"
+            ],
+            "members": {
+                "OnDisable": {
+                    "argumentTypes": [],
+                    "id": "system_fbb3df8c-054a-4665-85d2-e11ad1eb08fb",
+                    "kind": 1,
+                    "returnTypeInfo": {
+                        "required": true,
+                        "type": "Void"
+                    }
+                }
+            },
+            "name": "INeoUnityOnDisable",
+            "system": {
+                "kind": "scriptRuntime"
+            },
+            "id": "system_81750392-22a9-4881-a117-8d9de3e200cd",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1791083185214
+        },
+        "system_9156948c-a575-462b-9981-9d22bd262079": {
+            "createdAt": 1791083184620,
+            "extendsInterfaceIds": [],
+            "memberKeyOrder": [
+                "OnApplicationQuit"
+            ],
+            "members": {
+                "OnApplicationQuit": {
+                    "argumentTypes": [],
+                    "id": "system_8507e67e-f91a-486a-9702-7470e49001b3",
+                    "kind": 1,
+                    "returnTypeInfo": {
+                        "required": true,
+                        "type": "Void"
+                    }
+                }
+            },
+            "name": "INeoUnityOnApplicationQuit",
+            "system": {
+                "kind": "scriptRuntime"
+            },
+            "id": "system_9156948c-a575-462b-9981-9d22bd262079",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1791083184620
+        },
+        "system_9da00dcd-4035-46cc-8d98-00f5b8d91545": {
+            "createdAt": 1791083184620,
+            "extendsInterfaceIds": [],
+            "memberKeyOrder": [
+                "OnTriggerExit2D"
+            ],
+            "members": {
+                "OnTriggerExit2D": {
+                    "argumentTypes": [
+                        {
+                            "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc",
+                            "name": "other",
+                            "required": false,
+                            "type": 7
+                        }
+                    ],
+                    "id": "system_c4a2d22b-1015-478b-b5e7-19722e03bb84",
+                    "kind": 1,
+                    "returnTypeInfo": {
+                        "required": true,
+                        "type": "Void"
+                    }
+                }
+            },
+            "name": "INeoUnityOnTriggerExit2D",
+            "system": {
+                "kind": "scriptRuntime"
+            },
+            "id": "system_9da00dcd-4035-46cc-8d98-00f5b8d91545",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1791083184620
+        },
+        "system_9e3923ce-a569-491f-95d8-dca8411611eb": {
+            "createdAt": 1791083184025,
+            "extendsInterfaceIds": [],
+            "memberKeyOrder": [
+                "Update"
+            ],
+            "members": {
+                "Update": {
+                    "argumentTypes": [
+                        {
+                            "name": "deltaTime",
+                            "required": true,
+                            "type": 4
+                        }
+                    ],
+                    "id": "system_0bec2c4a-95cf-4dbb-83ac-2b6fd6616a47",
+                    "kind": 1,
+                    "returnTypeInfo": {
+                        "required": true,
+                        "type": "Void"
+                    }
+                }
+            },
+            "name": "INeoUnityUpdate",
+            "system": {
+                "kind": "scriptRuntime"
+            },
+            "id": "system_9e3923ce-a569-491f-95d8-dca8411611eb",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1791083184025
+        },
+        "system_9faab5e9-701c-4cd8-8723-5f9794b8e8c0": {
+            "createdAt": 1791083184620,
+            "extendsInterfaceIds": [],
+            "memberKeyOrder": [
+                "OnTriggerEnter2D"
+            ],
+            "members": {
+                "OnTriggerEnter2D": {
+                    "argumentTypes": [
+                        {
+                            "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc",
+                            "name": "other",
+                            "required": false,
+                            "type": 7
+                        }
+                    ],
+                    "id": "system_6d778fe5-83c3-4e7a-8ed6-dd18b9483ef8",
+                    "kind": 1,
+                    "returnTypeInfo": {
+                        "required": true,
+                        "type": "Void"
+                    }
+                }
+            },
+            "name": "INeoUnityOnTriggerEnter2D",
+            "system": {
+                "kind": "scriptRuntime"
+            },
+            "id": "system_9faab5e9-701c-4cd8-8723-5f9794b8e8c0",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1791083184620
+        },
+        "system_a6157ec0-e5e1-4f77-9ba1-8f5eb022e6a4": {
+            "createdAt": 1791083184620,
+            "extendsInterfaceIds": [],
+            "memberKeyOrder": [
+                "OnCollisionExit2D"
+            ],
+            "members": {
+                "OnCollisionExit2D": {
+                    "argumentTypes": [
+                        {
+                            "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc",
+                            "name": "other",
+                            "required": false,
+                            "type": 7
+                        }
+                    ],
+                    "id": "system_a9e5df85-4c69-4cfc-b9ae-a9f40e7dbbb9",
+                    "kind": 1,
+                    "returnTypeInfo": {
+                        "required": true,
+                        "type": "Void"
+                    }
+                }
+            },
+            "name": "INeoUnityOnCollisionExit2D",
+            "system": {
+                "kind": "scriptRuntime"
+            },
+            "id": "system_a6157ec0-e5e1-4f77-9ba1-8f5eb022e6a4",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1791083184620
+        },
+        "system_a66ca3a6-3df3-4cb2-a9ba-7f63c494932c": {
+            "createdAt": 1791083184620,
+            "extendsInterfaceIds": [],
+            "memberKeyOrder": [
+                "OnTriggerStay2D"
+            ],
+            "members": {
+                "OnTriggerStay2D": {
+                    "argumentTypes": [
+                        {
+                            "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc",
+                            "name": "other",
+                            "required": false,
+                            "type": 7
+                        }
+                    ],
+                    "id": "system_2498ef11-707f-4988-85ec-a2f14ed06029",
+                    "kind": 1,
+                    "returnTypeInfo": {
+                        "required": true,
+                        "type": "Void"
+                    }
+                }
+            },
+            "name": "INeoUnityOnTriggerStay2D",
+            "system": {
+                "kind": "scriptRuntime"
+            },
+            "id": "system_a66ca3a6-3df3-4cb2-a9ba-7f63c494932c",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1791083184620
+        },
+        "system_b7e94d04-1c00-4e17-afb2-3de8b40fc5eb": {
+            "createdAt": 1791083184025,
+            "extendsInterfaceIds": [],
+            "memberKeyOrder": [
+                "Start"
+            ],
+            "members": {
+                "Start": {
+                    "argumentTypes": [],
+                    "id": "system_38cd0f25-baa3-4250-acd5-ecd3dcaf47d9",
+                    "kind": 1,
+                    "returnTypeInfo": {
+                        "required": true,
+                        "type": "Void"
+                    }
+                }
+            },
+            "name": "INeoUnityStart",
+            "system": {
+                "kind": "scriptRuntime"
+            },
+            "id": "system_b7e94d04-1c00-4e17-afb2-3de8b40fc5eb",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1791083184025
+        },
+        "system_c1b7f48c-5615-4e61-a071-5ff8b2a70c97": {
+            "createdAt": 1791083184025,
+            "extendsInterfaceIds": [],
+            "memberKeyOrder": [
+                "OnLoad"
+            ],
+            "members": {
+                "OnLoad": {
+                    "argumentTypes": [],
+                    "id": "system_7544963d-1765-464b-bfb2-b311c6fffce4",
+                    "kind": 1,
+                    "returnTypeInfo": {
+                        "required": true,
+                        "type": "Void"
+                    }
+                }
+            },
+            "name": "INeoOnLoad",
+            "system": {
+                "kind": "scriptRuntime"
+            },
+            "id": "system_c1b7f48c-5615-4e61-a071-5ff8b2a70c97",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1791083184025
+        },
+        "system_c64e99f9-e8be-4d0a-927f-de20bdf9cdeb": {
+            "createdAt": 1791083184025,
+            "extendsInterfaceIds": [],
+            "memberKeyOrder": [
+                "OnUnload"
+            ],
+            "members": {
+                "OnUnload": {
+                    "argumentTypes": [],
+                    "id": "system_a8f258cf-62d4-4808-97cf-71b076e983e5",
+                    "kind": 1,
+                    "returnTypeInfo": {
+                        "required": true,
+                        "type": "Void"
+                    }
+                }
+            },
+            "name": "INeoOnUnload",
+            "system": {
+                "kind": "scriptRuntime"
+            },
+            "id": "system_c64e99f9-e8be-4d0a-927f-de20bdf9cdeb",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1791083184025
+        },
+        "system_e080a0a4-bb13-42a8-a1c5-17548dc5ccdb": {
+            "createdAt": 1791083184025,
+            "extendsInterfaceIds": [],
+            "memberKeyOrder": [
+                "Awake"
+            ],
+            "members": {
+                "Awake": {
+                    "argumentTypes": [],
+                    "id": "system_18353c75-5307-42b8-afae-02b7aed32e29",
+                    "kind": 1,
+                    "returnTypeInfo": {
+                        "required": true,
+                        "type": "Void"
+                    }
+                }
+            },
+            "name": "INeoUnityAwake",
+            "system": {
+                "kind": "scriptRuntime"
+            },
+            "id": "system_e080a0a4-bb13-42a8-a1c5-17548dc5ccdb",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1791083184025
+        },
+        "system_f1ab6738-fb6d-4d74-95cc-b4681f3feb85": {
+            "createdAt": 1791083184620,
+            "extendsInterfaceIds": [],
+            "memberKeyOrder": [
+                "OnApplicationPause"
+            ],
+            "members": {
+                "OnApplicationPause": {
+                    "argumentTypes": [
+                        {
+                            "name": "paused",
+                            "required": true,
+                            "type": 1
+                        }
+                    ],
+                    "id": "system_fba35d45-20bc-43be-98cb-a06eb134d9de",
+                    "kind": 1,
+                    "returnTypeInfo": {
+                        "required": true,
+                        "type": "Void"
+                    }
+                }
+            },
+            "name": "INeoUnityOnApplicationPause",
+            "system": {
+                "kind": "scriptRuntime"
+            },
+            "id": "system_f1ab6738-fb6d-4d74-95cc-b4681f3feb85",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1791083184620
+        },
+        "system_f2ecf221-8b14-44b1-b871-24c10c401b4b": {
+            "createdAt": 1791083184025,
+            "extendsInterfaceIds": [],
+            "memberKeyOrder": [
+                "LateUpdate"
+            ],
+            "members": {
+                "LateUpdate": {
+                    "argumentTypes": [
+                        {
+                            "name": "deltaTime",
+                            "required": true,
+                            "type": 4
+                        }
+                    ],
+                    "id": "system_407bee6d-2bf2-4cf9-a34e-cb903608159a",
+                    "kind": 1,
+                    "returnTypeInfo": {
+                        "required": true,
+                        "type": "Void"
+                    }
+                }
+            },
+            "name": "INeoUnityLateUpdate",
+            "system": {
+                "kind": "scriptRuntime"
+            },
+            "id": "system_f2ecf221-8b14-44b1-b871-24c10c401b4b",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1791083184025
+        },
+        "system_fe306522-8df2-4f30-8931-204d8dab4d96": {
+            "createdAt": 1791083185214,
+            "extendsInterfaceIds": [],
+            "memberKeyOrder": [
+                "OnDestroy"
+            ],
+            "members": {
+                "OnDestroy": {
+                    "argumentTypes": [],
+                    "id": "system_87f004df-3e8b-4cc9-9168-6cacb8c736fc",
+                    "kind": 1,
+                    "returnTypeInfo": {
+                        "required": true,
+                        "type": "Void"
+                    }
+                }
+            },
+            "name": "INeoUnityOnDestroy",
+            "system": {
+                "kind": "scriptRuntime"
+            },
+            "id": "system_fe306522-8df2-4f30-8931-204d8dab4d96",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1791083185214
         }
     },
     "classes": {
@@ -67957,8 +68493,8 @@
     },
     "audioClipTemplates": {},
     "metadata": {
-        "schemaVersion": 33,
-        "codegenRevision": "22a8e3eb2a0ad56d33563690fa6348f7c3b145868bc2dcb65c8653989934ccff",
+        "schemaVersion": 34,
+        "codegenRevision": "0bfe1f9016ee54ced751c8c139eee24bbba1fd7d29ed0f75e6769f8fb2feb63a",
         "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
         "versionId": "56fbaae9-6c07-4260-a250-65a1ab0689cf",
         "semver": {
@@ -67977,8 +68513,8 @@
                 "slug": "development"
             }
         ],
-        "projectDocumentContentHash": "dfe4400f3b40016cee7ca3d76ce672f92828134ec4bf4b39be110cd8f6ff54fb",
-        "codegenContractHash": "46e8338d9ca1fc47d16405bbd1026772a8aff67bb9aeab9b60846cdf09a68868",
-        "runtimeDataContractHash": "4a2c802807f95f2cfc5f119439c924f294563bc0344791d129047ee7368823f3"
+        "projectDocumentContentHash": "cbcf12d49567e392ae243678c3fce9d5309637130019d86cb7e5b3893151d55a",
+        "codegenContractHash": "13c0b8fb1e6719bc2fa3a1b4a6289bb4a99485345f68a1972820cda9fa5063be",
+        "runtimeDataContractHash": "d38a6ef569c93a1fe3488aea14eeebe7b8d384b587fc15d23d3aa5371329c770"
     }
 }

@@ -39,6 +39,8 @@ namespace NeoCompose.Runtime
         internal object? subscribers;
         private MemberValue? asset;
         private int assetEpoch = -1;
+        // Rows an id held before it left the data: the asset row never refreshes.
+        private bool departed;
         // The client's authored-ownership entry for this id, as of the map
         // rebuild numbered authoredOwnershipEpoch.
         internal bool hasAuthoredOwnership;
@@ -50,12 +52,35 @@ namespace NeoCompose.Runtime
             this.id = id;
         }
 
+        /// <summary>The rows <paramref name="id"/> held before it left the data, frozen (P98 §2.4).</summary>
+        internal static NeoValueNode Departed(
+            string id,
+            MemberValue? session,
+            MemberValue? save,
+            MemberValue? asset,
+            MemberValue? virtualRow,
+            NeoValueOwnership virtualOwnership)
+        {
+            return new NeoValueNode(id)
+            {
+                session = session,
+                save = save,
+                asset = asset,
+                virtualRow = virtualRow,
+                virtualOwnership = virtualOwnership,
+                live = false,
+                departed = true,
+            };
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal MemberValue? Asset(ProjectData data) =>
             assetEpoch == data.valuesEpoch ? asset : RefreshAsset(data);
 
         private MemberValue? RefreshAsset(ProjectData data)
         {
+            if (departed)
+                return asset;
             data.values.TryGetValue(id, out asset);
             assetEpoch = data.valuesEpoch;
             return asset;

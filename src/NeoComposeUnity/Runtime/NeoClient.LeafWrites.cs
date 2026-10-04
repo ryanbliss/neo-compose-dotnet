@@ -95,6 +95,7 @@ namespace NeoCompose.Runtime
         {
             if (ownership == NeoValueOwnership.Asset || !IsLeafRow(next, member))
                 return false;
+            ThrowIfDepartedWrite(next.id);
             if (candidateReplay is not null || candidateReadPlan is not null
                 || nestedConstructorCapture is not null || replayAllocationScope is not null
                 || isReplayingVirtualInstance)
