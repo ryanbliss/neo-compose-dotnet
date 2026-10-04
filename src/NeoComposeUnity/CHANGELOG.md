@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.56.1] - 2026-10-04
+
+- A stored `List` or `Dictionary`, or a `Where` over one, reaches C# as its entries' values. Before, C# got the entries' row ids when NeoScript passed one to a native function or returned one from a getter, function or `NeoDelegate`. A list of audio clips threw "Required AudioClip argument could not be resolved", and a list of strings read as ids.
+- A getter that returns a stored collection notifies its watchers when an entry changes, not only when the collection does.
+
 ## [0.56.0] - 2026-10-04
 
 - NeoScript `float` is a C# `float`. Generated members, constructor parameters, function parameters and returns, generic bindings, and lifecycle hooks such as `Update(float deltaTime)` use `float` where they used `double`. `INeoSmartTileRule.MinAnimationSpeed` and `MaxAnimationSpeed` are `float`. Requires CLI 0.67.0; regenerate after upgrading.

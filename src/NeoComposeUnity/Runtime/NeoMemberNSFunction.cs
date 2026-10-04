@@ -926,10 +926,15 @@ namespace NeoCompose.Runtime
                     throw new NSGetterRuntimeError(
                         $"NSFunction '{function.Member.name}' ended without returning a value; its compiled IR is stale or corrupt.");
                 }
+                // C# gets a stored collection's entry values, resolved while
+                // a query result still carries its source's entry member.
+                object? returned = boundary
+                    ? NSGetterEvaluator.ResolveHostCollection(execution.ReturnValue, ctx)
+                    : execution.ReturnValue;
                 object? normalized = NeoScriptValueMarshaller.Normalize(
                     client,
                     ctx.valueOwnership,
-                    execution.ReturnValue,
+                    returned,
                     effectiveReturnType,
                     ctx,
                     in function.Subjects[0],
@@ -2265,6 +2270,7 @@ namespace NeoCompose.Runtime
             var normalized = new object?[result.Count];
             result.CopyTo(normalized);
             NeoGeneratedTypesSupport.PreserveConstructorCollectionOrigin(value, normalized);
+            NSGetterEvaluator.KeepEntryMemberOf(value, normalized);
             return normalized;
         }
 

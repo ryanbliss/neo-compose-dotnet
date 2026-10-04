@@ -2466,6 +2466,7 @@ namespace NeoCompose.Runtime.NeoScript
                 if (ctx.client.ScriptGridQueries.TryInvoke(memberId, receiver, args, ctx, out result))
                     return result;
             }
+            args = ResolveHostArguments(args, ctx, ref ownsArguments);
             object? value = function is null
                 ? ctx.client.InvokeNativeFunction(memberId, receiver, args, ownsArguments)
                 : ctx.client.InvokeNativeFunction(function, receiver, args, ownsArguments);
@@ -9973,6 +9974,70 @@ namespace NeoCompose.Runtime.NeoScript
             CollectionEntryMember(FindRowReference(collection, ctx), collection, ctx);
 
         /// <summary>
+        /// <paramref name="value"/> as C# reads it. A stored List or
+        /// Dictionary, or a query over one, holds its entries as row ids only
+        /// the evaluator resolves, so it becomes a copy of its entry values.
+        /// </summary>
+        internal static object? ResolveHostCollection(object? value, Context ctx)
+        {
+            if (value is not (object?[] or Dictionary<string, object?>))
+                return value;
+            RowReference? rowRef = FindRowReference(value, ctx);
+            JsonMember? entryMember;
+            if (rowRef is not null)
+            {
+                if (rowRef.CollectionMember(ctx.client) is not (ListMember or DictionaryMember))
+                    return value;
+                entryMember = rowRef.EntryMember(ctx.client);
+            }
+            // A class record is never a derived collection.
+            else if (value is NeoObjectRecord || !DerivedEntryMembers.TryGetValue(value, out entryMember))
+                return value;
+            bool nested = entryMember is null or ListMember or DictionaryMember;
+            NeoValueOwnership? ownership = rowRef?.ownership;
+            if (value is object?[] rows)
+            {
+                var entries = new object?[rows.Length];
+                for (int i = 0; i < rows.Length; i++)
+                {
+                    object? entry = ResolveListEntry(rows, i, rowRef, ownership, ctx, entryMember);
+                    entries[i] = nested ? ResolveHostCollection(entry, ctx) : entry;
+                }
+                return entries;
+            }
+            var stored = (Dictionary<string, object?>)value;
+            var values = new Dictionary<string, object?>(stored.Count, stored.Comparer);
+            foreach (KeyValuePair<string, object?> pair in stored)
+            {
+                object? entry = ResolveValueIfId(pair.Value, ctx, ownership, entryMember);
+                values.Add(pair.Key, nested ? ResolveHostCollection(entry, ctx) : entry);
+            }
+            return values;
+        }
+
+        /// <summary>
+        /// <paramref name="args"/> with each collection resolved by
+        /// <see cref="ResolveHostCollection"/>: in place when the caller
+        /// <paramref name="owned"/> the array, otherwise in a copy it then owns.
+        /// </summary>
+        internal static object?[] ResolveHostArguments(object?[] args, Context ctx, ref bool owned)
+        {
+            for (int i = 0; i < args.Length; i++)
+            {
+                object? resolved = ResolveHostCollection(args[i], ctx);
+                if (ReferenceEquals(resolved, args[i]))
+                    continue;
+                if (!owned)
+                {
+                    args = (object?[])args.Clone();
+                    owned = true;
+                }
+                args[i] = resolved;
+            }
+            return args;
+        }
+
+        /// <summary>
         /// Gives a collection derived from another's value ids that source's
         /// entry member. An empty array has no entries to resolve and can be
         /// a shared instance (<c>List.ToArray</c> returns one), so it is skipped.
@@ -9982,6 +10047,17 @@ namespace NeoCompose.Runtime.NeoScript
             if (entryMember is null || derived is object?[] { Length: 0 })
                 return;
             DerivedEntryMembers.Add(derived, entryMember);
+        }
+
+        /// <summary>
+        /// Gives <paramref name="copy"/> the entry member
+        /// <paramref name="source"/> derived, so a copy of a Where result
+        /// still resolves its entries.
+        /// </summary>
+        internal static void KeepEntryMemberOf(object source, object copy)
+        {
+            if (DerivedEntryMembers.TryGetValue(source, out JsonMember? entryMember))
+                KeepEntryMember(copy, entryMember);
         }
 
         internal static JsonMember? FindRowMemberByReference(object? value, Context ctx) =>
@@ -10011,11 +10087,12 @@ namespace NeoCompose.Runtime.NeoScript
             int index,
             RowReference? listRef,
             NeoValueOwnership? ownership,
-            Context ctx)
+            Context ctx,
+            JsonMember? member = null)
         {
             object? raw = rows[index];
             NeoValueNode? node = listRef?.EntryNode(index, raw);
-            object? entry = ResolveValueIfId(raw, ctx, ownership, null, ref node);
+            object? entry = ResolveValueIfId(raw, ctx, ownership, member, ref node);
             listRef?.RememberEntryNode(index, rows.Length, raw, node);
             return entry;
         }

@@ -285,7 +285,7 @@ namespace NeoCompose.Runtime.NeoScript
                     return NSGetterResult.Error(
                         "Compiled `getter` not yet available — save the code to compile it.");
                 }
-                result = DispatchNSGetterById(entry.memberId, value, ctx, getter);
+                result = ResolveHostCollection(DispatchNSGetterById(entry.memberId, value, ctx, getter), ctx);
                 return NSGetterResult.Ok(result);
             }
             catch (NSGetterRuntimeError ex)

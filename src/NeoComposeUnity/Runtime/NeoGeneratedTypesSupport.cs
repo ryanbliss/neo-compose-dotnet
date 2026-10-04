@@ -8398,8 +8398,7 @@ namespace NeoCompose.Runtime
                 }
             }
 
-            // Class entries of a stored list come back from NeoScript as their row ids.
-            string? valueId = value as string ?? ValueId(value);
+            string? valueId = ValueId(value);
             if (string.IsNullOrEmpty(valueId))
             {
                 throw new InvalidOperationException(
