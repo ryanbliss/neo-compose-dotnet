@@ -25,6 +25,7 @@ namespace NeoCompose.Tests
         public const string Json = @"{
   ""$comment"": ""P69 §3 cross-runtime Math builtin parity fixture. Hand-authored raw IR, never generated from either runtime: a fixture generated from one runtime cannot catch a divergence in the other's source of truth, and `Math` is the one intrinsic whose two hosts disagree by default (JS `Math.round` is half-up, `System.Math.Round` is half-even). Consumed by src/models/neoscript/math-parity.test.ts (web) and NeoScriptMathParityTests (neo-compose-dotnet, vendored verbatim copy). Decimal expectations were checked against Python's `decimal` module (ROUND_HALF_EVEN) as an independent oracle, like src/models/decimal/decimal-parity-fixture.json."",
   ""$evaluateComment"": ""Each case's `pointer` is the compiled IR both runtimes receive: consumers wrap it in a getter with no parameters and a single `return` instruction whose result type is the case's `typeInfo` (the type the resolver infers per P69 §2.1). Exactly one expectation is present per case. `expected` is compared numerically as a double for int/float cases and as the canonical decimal string for decimal cases; ±0 is one value there, since §3 deliberately does not pin negative zero through the JSON harness (`Math.Min(-0.0, 0.0)` is -0.0 in both hosts and the fixture pins only that it is zero). `expectedNaN` is `true` where the result must be NaN, which JSON has no literal for. `expectedError` must match the thrown evaluator error byte-for-byte. Non-finite arguments are constructed with arithmetic IR rather than written as literals for the same reason, and via overflow rather than division because both runtimes throw `Division by zero` instead of yielding an infinity: `1e200 * 1e200` overflows to +Infinity, `-1e200 * 1e200` to -Infinity, and `(1e200 * 1e200) * 0.0` is NaN — IEEE-exact and identical in both hosts."",
+  ""$arithmeticComment"": ""Typed arithmetic: `numeric` stamps an operation's result type. Float results round to 32 bits after every step and int division truncates toward zero, matching C# float and int math. Expectations were computed independently with Python's struct float32 round trip. Evaluated exactly like evaluateCases."",
   ""evaluateCases"": [
     {
       ""name"": ""Round(0.5) is half-even"",
@@ -2207,7 +2208,7 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expected"": 1.4142135623730951
+      ""expected"": 1.4142135381698608
     },
     {
       ""name"": ""Sqrt widens an int argument"",
@@ -3686,6 +3687,408 @@ namespace NeoCompose.Tests
               }
             ],
             ""decimal"": true
+          }
+        }
+      },
+      ""expected"": 1
+    }
+  ],
+  ""arithmeticCases"": [
+    {
+      ""name"": ""float 0.1 + 0.2 rounds to 32 bits"",
+      ""typeInfo"": {
+        ""type"": 4,
+        ""required"": true
+      },
+      ""pointer"": {
+        ""type"": ""operation"",
+        ""operation"": {
+          ""type"": ""arithmetic"",
+          ""arithmetic"": {
+            ""type"": ""+"",
+            ""pointers"": [
+              {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 4,
+                    ""required"": true
+                  },
+                  ""value"": 0.10000000149011612
+                }
+              },
+              {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 4,
+                    ""required"": true
+                  },
+                  ""value"": 0.20000000298023224
+                }
+              }
+            ],
+            ""numeric"": ""float""
+          }
+        }
+      },
+      ""expected"": 0.30000001192092896
+    },
+    {
+      ""name"": ""float 1 / 3 rounds to 32 bits"",
+      ""typeInfo"": {
+        ""type"": 4,
+        ""required"": true
+      },
+      ""pointer"": {
+        ""type"": ""operation"",
+        ""operation"": {
+          ""type"": ""arithmetic"",
+          ""arithmetic"": {
+            ""type"": ""/"",
+            ""pointers"": [
+              {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 4,
+                    ""required"": true
+                  },
+                  ""value"": 1
+                }
+              },
+              {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 4,
+                    ""required"": true
+                  },
+                  ""value"": 3
+                }
+              }
+            ],
+            ""numeric"": ""float""
+          }
+        }
+      },
+      ""expected"": 0.3333333432674408
+    },
+    {
+      ""name"": ""float 16777216 + 1 has no 32-bit successor"",
+      ""typeInfo"": {
+        ""type"": 4,
+        ""required"": true
+      },
+      ""pointer"": {
+        ""type"": ""operation"",
+        ""operation"": {
+          ""type"": ""arithmetic"",
+          ""arithmetic"": {
+            ""type"": ""+"",
+            ""pointers"": [
+              {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 4,
+                    ""required"": true
+                  },
+                  ""value"": 16777216
+                }
+              },
+              {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 4,
+                    ""required"": true
+                  },
+                  ""value"": 1
+                }
+              }
+            ],
+            ""numeric"": ""float""
+          }
+        }
+      },
+      ""expected"": 16777216
+    },
+    {
+      ""name"": ""float 0.1 * 3 rounds to 32 bits"",
+      ""typeInfo"": {
+        ""type"": 4,
+        ""required"": true
+      },
+      ""pointer"": {
+        ""type"": ""operation"",
+        ""operation"": {
+          ""type"": ""arithmetic"",
+          ""arithmetic"": {
+            ""type"": ""*"",
+            ""pointers"": [
+              {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 4,
+                    ""required"": true
+                  },
+                  ""value"": 0.10000000149011612
+                }
+              },
+              {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 4,
+                    ""required"": true
+                  },
+                  ""value"": 3
+                }
+              }
+            ],
+            ""numeric"": ""float""
+          }
+        }
+      },
+      ""expected"": 0.30000001192092896
+    },
+    {
+      ""name"": ""float 1 - 0.9 rounds to 32 bits"",
+      ""typeInfo"": {
+        ""type"": 4,
+        ""required"": true
+      },
+      ""pointer"": {
+        ""type"": ""operation"",
+        ""operation"": {
+          ""type"": ""arithmetic"",
+          ""arithmetic"": {
+            ""type"": ""-"",
+            ""pointers"": [
+              {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 4,
+                    ""required"": true
+                  },
+                  ""value"": 1
+                }
+              },
+              {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 4,
+                    ""required"": true
+                  },
+                  ""value"": 0.8999999761581421
+                }
+              }
+            ],
+            ""numeric"": ""float""
+          }
+        }
+      },
+      ""expected"": 0.10000002384185791
+    },
+    {
+      ""name"": ""float 5.5 % 2 is exact"",
+      ""typeInfo"": {
+        ""type"": 4,
+        ""required"": true
+      },
+      ""pointer"": {
+        ""type"": ""operation"",
+        ""operation"": {
+          ""type"": ""arithmetic"",
+          ""arithmetic"": {
+            ""type"": ""%"",
+            ""pointers"": [
+              {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 4,
+                    ""required"": true
+                  },
+                  ""value"": 5.5
+                }
+              },
+              {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 4,
+                    ""required"": true
+                  },
+                  ""value"": 2
+                }
+              }
+            ],
+            ""numeric"": ""float""
+          }
+        }
+      },
+      ""expected"": 1.5
+    },
+    {
+      ""name"": ""float 7 / 2 keeps its fraction"",
+      ""typeInfo"": {
+        ""type"": 4,
+        ""required"": true
+      },
+      ""pointer"": {
+        ""type"": ""operation"",
+        ""operation"": {
+          ""type"": ""arithmetic"",
+          ""arithmetic"": {
+            ""type"": ""/"",
+            ""pointers"": [
+              {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 4,
+                    ""required"": true
+                  },
+                  ""value"": 7
+                }
+              },
+              {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 4,
+                    ""required"": true
+                  },
+                  ""value"": 2
+                }
+              }
+            ],
+            ""numeric"": ""float""
+          }
+        }
+      },
+      ""expected"": 3.5
+    },
+    {
+      ""name"": ""int 7 / 2 truncates"",
+      ""typeInfo"": {
+        ""type"": 2,
+        ""required"": true
+      },
+      ""pointer"": {
+        ""type"": ""operation"",
+        ""operation"": {
+          ""type"": ""arithmetic"",
+          ""arithmetic"": {
+            ""type"": ""/"",
+            ""pointers"": [
+              {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 2,
+                    ""required"": true
+                  },
+                  ""value"": 7
+                }
+              },
+              {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 2,
+                    ""required"": true
+                  },
+                  ""value"": 2
+                }
+              }
+            ],
+            ""numeric"": ""int""
+          }
+        }
+      },
+      ""expected"": 3
+    },
+    {
+      ""name"": ""int -7 / 2 truncates toward zero"",
+      ""typeInfo"": {
+        ""type"": 2,
+        ""required"": true
+      },
+      ""pointer"": {
+        ""type"": ""operation"",
+        ""operation"": {
+          ""type"": ""arithmetic"",
+          ""arithmetic"": {
+            ""type"": ""/"",
+            ""pointers"": [
+              {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 2,
+                    ""required"": true
+                  },
+                  ""value"": -7
+                }
+              },
+              {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 2,
+                    ""required"": true
+                  },
+                  ""value"": 2
+                }
+              }
+            ],
+            ""numeric"": ""int""
+          }
+        }
+      },
+      ""expected"": -3
+    },
+    {
+      ""name"": ""int 7 % -2 keeps the dividend's sign"",
+      ""typeInfo"": {
+        ""type"": 2,
+        ""required"": true
+      },
+      ""pointer"": {
+        ""type"": ""operation"",
+        ""operation"": {
+          ""type"": ""arithmetic"",
+          ""arithmetic"": {
+            ""type"": ""%"",
+            ""pointers"": [
+              {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 2,
+                    ""required"": true
+                  },
+                  ""value"": 7
+                }
+              },
+              {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 2,
+                    ""required"": true
+                  },
+                  ""value"": -2
+                }
+              }
+            ],
+            ""numeric"": ""int""
           }
         }
       },

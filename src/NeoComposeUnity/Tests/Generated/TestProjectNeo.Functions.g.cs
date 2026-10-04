@@ -34,6 +34,24 @@ namespace Assets.Scripts.Neo
                 }
                 return target.FunctionHandler.MoveTo(destination, cell);
                 },
+                ["member-total"] = (client, receiver, args) =>
+                {
+                var target = NeoGeneratedTypesSupport.ResolveNativeFunctionReceiver<Hero>(
+                    client,
+                    receiver,
+                    DialogueReadOnlyValueFactories,
+                    DialogueWritableValueFactories,
+                    "Total",
+                    "member-total");
+                var amounts = NeoGeneratedTypesSupport.ReadScriptList<float>(args[0], args0Entry => Convert.ToSingle(args0Entry));
+                var scales = args[1] is null ? null : NeoGeneratedTypesSupport.ReadScriptDictionary<float>(args[1], args1Entry => Convert.ToSingle(args1Entry));
+                if (target.FunctionHandler is null)
+                {
+                    throw new NeoFunctionHandlerMissingException(
+                        "Cannot invoke Function 'Total' because FunctionHandler is not set.");
+                }
+                return target.FunctionHandler.Total(amounts, scales);
+                },
                 ["member-contract-run"] = (client, receiver, args) =>
                 {
                 var target = NeoGeneratedTypesSupport.ResolveNativeFunctionReceiver<ContractBase>(
@@ -77,9 +95,9 @@ namespace Assets.Scripts.Neo
                     DialogueWritableValueFactories,
                     "Echo",
                     "member-generic-contract-echo");
-                if (untypedTarget is GenericContract<double> target1)
+                if (untypedTarget is GenericContract<float> target1)
                 {
-                    var value = Convert.ToDouble(args[0]);
+                    var value = Convert.ToSingle(args[0]);
                     if (target1.FunctionHandler is null)
                     {
                         throw new NeoFunctionHandlerMissingException(
@@ -147,15 +165,15 @@ namespace Assets.Scripts.Neo
                     DialogueWritableValueFactories,
                     "EchoLater",
                     "member-generic-contract-echo-later");
-                if (untypedTarget is GenericContract<double> target1)
+                if (untypedTarget is GenericContract<float> target1)
                 {
-                    var value = Convert.ToDouble(args[0]);
+                    var value = Convert.ToSingle(args[0]);
                     if (target1.FunctionHandler is null)
                     {
                         throw new NeoFunctionHandlerMissingException(
                             "Cannot invoke Function 'EchoLater' because FunctionHandler is not set.");
                     }
-                    var typedDeferred = NeoGeneratedTypesSupport.ResolveDeferredFunction<NeoDeferredFunction<double>>(deferred, "EchoLater");
+                    var typedDeferred = NeoGeneratedTypesSupport.ResolveDeferredFunction<NeoDeferredFunction<float>>(deferred, "EchoLater");
                     target1.FunctionHandler.EchoLater(value, typedDeferred);
                     return;
                 }

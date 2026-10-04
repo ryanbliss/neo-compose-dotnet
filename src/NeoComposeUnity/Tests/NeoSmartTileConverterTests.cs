@@ -336,8 +336,8 @@ namespace NeoCompose.Tests
         {
             var smartTile = SmartTileWithRules(new FakeSmartTileRule
             {
-                MinAnimationSpeed = -2.5d,
-                MaxAnimationSpeed = 1.75d,
+                MinAnimationSpeed = -2.5f,
+                MaxAnimationSpeed = 1.75f,
             });
 
             var tile = Convert(smartTile);
@@ -471,9 +471,9 @@ namespace NeoCompose.Tests
             } =
                 NeoSmartTileOptionIds.TransformFixed;
 
-            public double MinAnimationSpeed { get; set; } = 1d;
+            public float MinAnimationSpeed { get; set; } = 1f;
 
-            public double MaxAnimationSpeed { get; set; } = 1d;
+            public float MaxAnimationSpeed { get; set; } = 1f;
 
             IReadOnlyList<INeoSmartTileNeighbor> INeoSmartTileRule.Neighbors => Neighbors;
 

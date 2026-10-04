@@ -11,7 +11,7 @@ using UnityEngine;
 
 namespace Assets.Scripts.Neo
 {
-    public interface IReadOnlyGenericFloatContract : IReadOnlyGenericContract<double>
+    public interface IReadOnlyGenericFloatContract : IReadOnlyGenericContract<float>
     {
         new bool IsReadOnly { get; }
 
@@ -22,19 +22,19 @@ namespace Assets.Scripts.Neo
         bool TryWritable(out GenericFloatContract writable);
     }
 
-    public partial class GenericFloatContract : GenericContract<double>, IReadOnlyGenericFloatContract
+    public partial class GenericFloatContract : GenericContract<float>, IReadOnlyGenericFloatContract
     {
         internal GenericFloatContract(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, isReadOnly, inheritedStorageOwnership)
         {
         }
 
-        public GenericFloatContract(double Amount, IEnumerable<double>? Values = null, GenericPayload<double>? Payload = null)
+        public GenericFloatContract(float Amount, IEnumerable<float>? Values = null, GenericPayload<float>? Payload = null)
             : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Amount, Values, Payload), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(double Amount, IEnumerable<double>? Values = null, GenericPayload<double>? Payload = null)
+        private static NeoMemberClassWritable CreateFactoryNode(float Amount, IEnumerable<float>? Values = null, GenericPayload<float>? Payload = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
@@ -90,48 +90,48 @@ namespace Assets.Scripts.Neo
             return TryWritable<GenericFloatContract>(out writable);
         }
 
-        private NeoGenericBinding<double>? _amountGenericBinding;
+        private NeoGenericBinding<float>? _amountGenericBinding;
 
-        public override double Amount
+        public override float Amount
         {
             get
             {
                 var child = node.Get<NeoMember>("Amount");
-                _amountGenericBinding ??= NeoGenericBindings.Resolve<double>(client, child);
+                _amountGenericBinding ??= NeoGenericBindings.Resolve<float>(client, child);
                 return _amountGenericBinding.Read(child);
             }
             set
             {
                 ThrowIfReadOnly("GenericFloatContract.Amount");
                 var child = writableNode.Get<NeoMember>("Amount");
-                _amountGenericBinding ??= NeoGenericBindings.Resolve<double>(client, child);
+                _amountGenericBinding ??= NeoGenericBindings.Resolve<float>(client, child);
                 _amountGenericBinding.Write(child, value);
             }
         }
 
-        public override NeoList<double> Values
+        public override NeoList<float> Values
         {
             get
             {
                 var memberNode = writableNode.Get<NeoMemberListWritable>("Values");
-                if (TryGetStoredView<NeoList<double>>("Values", memberNode, out var cached)) return cached;
-                return CacheStoredView("Values", memberNode, new NeoList<double>(client, memberNode, () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("Values"), (client, child) => NeoGenericBindings.Resolve<double>(client, (NeoMember)child).Read((NeoMember)child), item => NeoGenericBindings.Resolve<double>(client, writableNode.Get<NeoMemberListWritable>("Values")).Serialize(item), () => ThrowIfReadOnly("GenericFloatContract.Values"), () => IsReadOnly));
+                if (TryGetStoredView<NeoList<float>>("Values", memberNode, out var cached)) return cached;
+                return CacheStoredView("Values", memberNode, new NeoList<float>(client, memberNode, () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("Values"), (client, child) => NeoGenericBindings.Resolve<float>(client, (NeoMember)child).Read((NeoMember)child), item => NeoGenericBindings.Resolve<float>(client, writableNode.Get<NeoMemberListWritable>("Values")).Serialize(item), () => ThrowIfReadOnly("GenericFloatContract.Values"), () => IsReadOnly));
             }
         }
 
-        public override GenericPayload<double>? Payload
+        public override GenericPayload<float>? Payload
         {
             get
             {
                 if (IsReadOnly)
                 {
                     var child = node.Get<NeoMemberClass>("Payload");
-                    return child.value?.value is null ? null : global::Assets.Scripts.Neo.GenericPayload<double>.Create(client, child);
+                    return child.value?.value is null ? null : global::Assets.Scripts.Neo.GenericPayload<float>.Create(client, child);
                 }
                 else
                 {
                     var child = writableNode.Get<NeoMemberClassWritable>("Payload");
-                    return child.value?.value is null ? null : global::Assets.Scripts.Neo.GenericPayload<double>.CreateWritable(client, child);
+                    return child.value?.value is null ? null : global::Assets.Scripts.Neo.GenericPayload<float>.CreateWritable(client, child);
                 }
             }
             set
@@ -146,17 +146,17 @@ namespace Assets.Scripts.Neo
             }
         }
 
-        public override double Computed
+        public override float Computed
         {
             get
             {
                 var result = ComputeProperty("Computed");
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
-                return Convert.ToDouble(result.value);
+                return Convert.ToSingle(result.value);
             }
         }
 
-        public override double Echo(double value)
+        public override float Echo(float value)
         {
             if (FunctionHandler is null)
             {
@@ -167,26 +167,26 @@ namespace Assets.Scripts.Neo
             return FunctionHandler.Echo(value);
         }
 
-        public override Task<double> EchoLater(double value)
+        public override Task<float> EchoLater(float value)
         {
-            return client.InvokeDeferredNativeFunction<double>("member-generic-contract-echo-later", this, new object?[] { value });
+            return client.InvokeDeferredNativeFunction<float>("member-generic-contract-echo-later", this, new object?[] { value });
         }
 
-        NeoReadOnlyList<double> IReadOnlyGenericContract<double>.Values
+        NeoReadOnlyList<float> IReadOnlyGenericContract<float>.Values
         {
             get
             {
                 var memberNode = node.Get<NeoMemberList>("Values");
-                if (TryGetStoredView<NeoReadOnlyList<double>>("Values", memberNode, out var cached)) return cached;
-                return CacheStoredView("Values", memberNode, new NeoReadOnlyList<double>(client, memberNode, (client, child) => NeoGenericBindings.Resolve<double>(client, (NeoMember)child).Read((NeoMember)child)));
+                if (TryGetStoredView<NeoReadOnlyList<float>>("Values", memberNode, out var cached)) return cached;
+                return CacheStoredView("Values", memberNode, new NeoReadOnlyList<float>(client, memberNode, (client, child) => NeoGenericBindings.Resolve<float>(client, (NeoMember)child).Read((NeoMember)child)));
             }
         }
 
-        IReadOnlyGenericPayload<double>? IReadOnlyGenericContract<double>.Payload
+        IReadOnlyGenericPayload<float>? IReadOnlyGenericContract<float>.Payload
         {
             get
             {
-                return (IReadOnlyGenericPayload<double>?)(object)((GenericContract<double>)this).Payload!;
+                return (IReadOnlyGenericPayload<float>?)(object)((GenericContract<float>)this).Payload!;
             }
         }
 
@@ -194,13 +194,13 @@ namespace Assets.Scripts.Neo
         {
             private Fields() {}
 
-            public static readonly NeoField<double> Amount = new("Amount");
+            public static readonly NeoField<float> Amount = new("Amount");
 
-            public static readonly NeoField<NeoList<double>> Values = new("Values");
+            public static readonly NeoField<NeoList<float>> Values = new("Values");
 
-            public static readonly NeoField<GenericPayload<double>?> Payload = new("Payload");
+            public static readonly NeoField<GenericPayload<float>?> Payload = new("Payload");
 
-            public static readonly NeoField<double> Computed = new("Computed");
+            public static readonly NeoField<float> Computed = new("Computed");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()

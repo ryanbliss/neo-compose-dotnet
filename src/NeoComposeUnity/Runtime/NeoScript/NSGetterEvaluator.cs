@@ -5098,7 +5098,8 @@ namespace NeoCompose.Runtime.NeoScript
                     number = ApplyNumericArithmetic(
                         info.type,
                         ArithmeticValue.NumberOf(left, leftNumber),
-                        ArithmeticValue.NumberOf(right, rightNumber));
+                        ArithmeticValue.NumberOf(right, rightNumber),
+                        info.numeric);
                     return ArithmeticValue.BareNumber;
                 }
                 // The usual non-numeric +: a string joins its two parts
@@ -5113,6 +5114,7 @@ namespace NeoCompose.Runtime.NeoScript
                     info.type,
                     new[] { ArithmeticValue.Box(left, leftNumber), ArithmeticValue.Box(right, rightNumber) },
                     false,
+                    info.numeric,
                     ctx);
             }
             return EvalArithmeticOperands(info, scope, ctx, out number);
@@ -5146,14 +5148,14 @@ namespace NeoCompose.Runtime.NeoScript
                             result += 0d;
                     }
                     for (int i = 1; i < info.pointers.Length; i++)
-                        result = ApplyNumericArithmetic(info.type, result, operands[i].Number);
+                        result = ApplyNumericArithmetic(info.type, result, operands[i].Number, info.numeric);
                     number = result;
                     return ArithmeticValue.BareNumber;
                 }
                 var boxed = new object?[info.pointers.Length];
                 for (int i = 0; i < boxed.Length; i++)
                     boxed[i] = operands[i].Box();
-                return ApplyArithmetic(info.type, boxed, info.isDecimal == true, ctx);
+                return ApplyArithmetic(info.type, boxed, info.isDecimal == true, info.numeric, ctx);
             }
             finally
             {
@@ -5166,6 +5168,7 @@ namespace NeoCompose.Runtime.NeoScript
             string op,
             object?[] operands,
             bool isDecimal,
+            ArithmeticNumeric? numeric,
             Context ctx)
         {
             if (operands.Length == 0)
@@ -5199,7 +5202,7 @@ namespace NeoCompose.Runtime.NeoScript
             }
             for (int i = 1; i < operands.Length; i++)
             {
-                folded = ApplyNumericArithmetic(op, folded, ToArithmeticOperand(operands[i]));
+                folded = ApplyNumericArithmetic(op, folded, ToArithmeticOperand(operands[i]), numeric);
             }
             return folded;
         }
@@ -5221,7 +5224,7 @@ namespace NeoCompose.Runtime.NeoScript
             || op == ArithmeticOpKind.Division
             || op == ArithmeticOpKind.Remainder;
 
-        private static double ApplyNumericArithmetic(string op, double left, double right)
+        private static double ApplyNumericArithmetic(string op, double left, double right, ArithmeticNumeric? numeric)
         {
             // Every ArithmeticOpKind is one character. Switching on it is a
             // jump table; a string switch compares the op to each case in turn.
@@ -5230,22 +5233,31 @@ namespace NeoCompose.Runtime.NeoScript
                 // The TS evaluator folds addition from a 0 seed, which turns a
                 // -0 sum into +0; the trailing 0 keeps that parity.
                 case '+':
-                    return left + right + 0d;
+                    return RoundArithmetic(left + right + 0d, numeric);
                 case '-':
-                    return left - right;
+                    return RoundArithmetic(left - right, numeric);
                 case '*':
-                    return left * right;
+                    return RoundArithmetic(left * right, numeric);
                 case '/':
                     if (right == 0)
                         throw new NSGetterRuntimeError("Division by zero");
-                    return left / right;
+                    if (numeric == ArithmeticNumeric.Int)
+                        return System.Math.Truncate(left / right);
+                    return RoundArithmetic(left / right, numeric);
                 case '%':
                     if (right == 0)
                         throw new NSGetterRuntimeError("Modulo by zero");
-                    return left % right;
+                    return RoundArithmetic(left % right, numeric);
                 default:
                     throw new NSGetterRuntimeError($"Unknown arithmetic op '{op}'");
             }
+        }
+
+        /// <summary>A float step rounds to 32 bits, as Unity's own float math does.</summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static double RoundArithmetic(double value, ArithmeticNumeric? numeric)
+        {
+            return numeric == ArithmeticNumeric.Float ? (float)value : value;
         }
 
         // ---------------------------------------------------------------
@@ -7013,7 +7025,7 @@ namespace NeoCompose.Runtime.NeoScript
                                 EvalDecimalOpDigits(info, scope, ctx));
                         }
                     case DecimalOpKind.ToFloat:
-                        return NeoDecimalMath.ToFloat(
+                        return (double)(float)NeoDecimalMath.ToFloat(
                             CoerceDecimalOperand(receiverRaw, "ToFloat"));
                     case DecimalOpKind.ToDecimal:
                         {
@@ -7308,10 +7320,10 @@ namespace NeoCompose.Runtime.NeoScript
                             return -1d;
                         return 0d;
                     }
-                // Correctly rounded by IEEE 754 in both hosts, and NaN for a
-                // negative argument in both.
+                // Correctly rounded by IEEE 754 in both hosts, then to the
+                // 32-bit float Sqrt returns. NaN for a negative argument.
                 case MathOp.Sqrt:
-                    return System.Math.Sqrt(a);
+                    return (double)(float)System.Math.Sqrt(a);
                 default:
                     throw new NSGetterRuntimeError($"Unknown math op '{wireOp}'.");
             }

@@ -105,8 +105,8 @@ namespace NeoCompose.Tests
             Assert.AreEqual("class-hero", hero.inheritanceChain[0].id);
 
             // Name, Health, BaseDamage, Position, GridCell, Path, MoveTo,
-            // ElementAffinity.
-            Assert.AreEqual(8, hero.mergedSchema.Count);
+            // Total, ElementAffinity.
+            Assert.AreEqual(9, hero.mergedSchema.Count);
             // Owner is the declared class for every entry — no inheritance.
             foreach (var entry in hero.mergedSchema)
             {

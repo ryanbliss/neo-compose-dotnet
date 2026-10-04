@@ -32,7 +32,7 @@ namespace NeoCompose.Tests
             var card = client.save.Get<NeoMemberClassWritable>("Card");
             var node = card.Get<NeoMember>("Speed");
 
-            var codec = NeoGenericBindings.Resolve<double>(client, node);
+            var codec = NeoGenericBindings.Resolve<float>(client, node);
 
             Assert.AreEqual(MemberKind.Float, codec.Kind);
             Assert.Throws<System.InvalidOperationException>(() => codec.Read(node));
@@ -45,13 +45,13 @@ namespace NeoCompose.Tests
             var card = client.save.Get<NeoMemberClassWritable>("Card");
             var node = card.Get<NeoMember>("Speed");
 
-            var codec = NeoGenericBindings.Resolve<double>(client, node);
-            codec.Write(node, 4.25);
+            var codec = NeoGenericBindings.Resolve<float>(client, node);
+            codec.Write(node, 4.25f);
 
             // The write binds a fresh row through the parent; re-fetch the
             // child the way a generated property getter would.
             var reboundNode = card.Get<NeoMember>("Speed");
-            Assert.AreEqual(4.25, codec.Read(reboundNode));
+            Assert.AreEqual(4.25f, codec.Read(reboundNode));
         }
 
         [Test]
@@ -61,12 +61,13 @@ namespace NeoCompose.Tests
             var card = client.save.Get<NeoMemberClassWritable>("Card");
             var node = card.Get<NeoMember>("Speed");
 
-            var codec = NeoGenericBindings.Resolve<double?>(client, node);
+            var codec = NeoGenericBindings.Resolve<float?>(client, node);
             Assert.IsNull(codec.Read(node));
 
-            var payload = codec.Serialize(1.5);
+            // The payload is the evaluator's double, widened exactly.
+            var payload = codec.Serialize(0.1f);
             Assert.IsNotNull(payload);
-            Assert.AreEqual(1.5, payload!.value);
+            Assert.AreEqual((double)0.1f, payload!.value);
         }
 
         [Test]
@@ -107,7 +108,7 @@ namespace NeoCompose.Tests
                 () => NeoGenericBindings.Resolve<string>(client, node))!;
 
             StringAssert.Contains("Speed", error.Message);
-            StringAssert.Contains("double", error.Message);
+            StringAssert.Contains("float", error.Message);
             StringAssert.Contains("System.String", error.Message);
         }
 
@@ -118,14 +119,14 @@ namespace NeoCompose.Tests
             var card = client.save.Get<NeoMemberClassWritable>("Card");
             var listNode = card.GetOrCreateCollection<NeoMemberListWritable>("Values");
 
-            var codec = NeoGenericBindings.Resolve<NeoList<double>>(client, listNode);
+            var codec = NeoGenericBindings.Resolve<NeoList<float>>(client, listNode);
             Assert.AreEqual(MemberKind.List, codec.Kind);
 
             var list = codec.Read(listNode);
-            list.Add(2.5);
+            list.Add(2.5f);
 
             Assert.AreEqual(1, list.Count);
-            Assert.AreEqual(2.5, list[0]);
+            Assert.AreEqual(2.5f, list[0]);
 
             // Whole-collection assignment is not part of the codec surface.
             var error = Assert.Throws<System.InvalidOperationException>(
@@ -143,9 +144,9 @@ namespace NeoCompose.Tests
             var card = client.save.Get<NeoMemberClassWritable>("Card");
             var listNode = card.GetOrCreateCollection<NeoMemberListWritable>("Values");
 
-            var entryCodec = NeoGenericBindings.Resolve<double>(client, listNode);
+            var entryCodec = NeoGenericBindings.Resolve<float>(client, listNode);
             Assert.AreEqual(MemberKind.Float, entryCodec.Kind);
-            var payload = entryCodec.Serialize(2.75);
+            var payload = entryCodec.Serialize(2.75f);
             Assert.IsNotNull(payload);
             Assert.AreEqual(2.75, payload!.value);
         }
@@ -159,7 +160,7 @@ namespace NeoCompose.Tests
 
             var error = Assert.Throws<System.InvalidOperationException>(
                 () => NeoGenericBindings.Resolve<string>(client, listNode))!;
-            StringAssert.Contains("double", error.Message);
+            StringAssert.Contains("float", error.Message);
         }
     }
 }

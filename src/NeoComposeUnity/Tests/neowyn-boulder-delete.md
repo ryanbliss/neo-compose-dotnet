@@ -54,3 +54,7 @@ occurs in this capture. This is fixture maintenance, not a fresh project export.
 For revision 16 (identity equality), the 478 bodies were re-stamped from 15
 to 16 the same way. Comparisons the new compiler would mark `reference` stay
 unmarked here; the delete test does not evaluate them.
+
+For revision 17 (typed float arithmetic), the 478 bodies were re-stamped from
+16 to 17 the same way. Arithmetic stays without the `numeric` stamp, so it
+evaluates as untyped double math; the delete test does not depend on it.

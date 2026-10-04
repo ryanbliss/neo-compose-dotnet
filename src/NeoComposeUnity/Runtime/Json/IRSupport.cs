@@ -4,7 +4,9 @@
 #nullable enable
 
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Serialization;
 
 namespace NeoCompose.Runtime.Json
 {
@@ -94,6 +96,18 @@ namespace NeoCompose.Runtime.Json
         public const string Division = "/";
         public const string Multiplication = "*";
         public const string Remainder = "%";
+    }
+
+    /// <summary>
+    /// The static type of a numeric arithmetic operation. NeoScript
+    /// <c>float</c> is 32-bit, so each float step rounds to it, and
+    /// <c>int</c> division truncates toward zero.
+    /// </summary>
+    [JsonConverter(typeof(StringEnumConverter), typeof(CamelCaseNamingStrategy))]
+    public enum ArithmeticNumeric
+    {
+        Int,
+        Float,
     }
 
     public static class OperatorKind
@@ -349,6 +363,11 @@ namespace NeoCompose.Runtime.Json
         /// </summary>
         [JsonProperty("decimal")]
         public bool? isDecimal;
+        /// <summary>
+        /// TS-side <c>numeric?: "int" | "float"</c>. Absent on string,
+        /// decimal, and untyped operations.
+        /// </summary>
+        public ArithmeticNumeric? numeric;
     }
 
     /// <summary>
@@ -480,9 +499,10 @@ namespace NeoCompose.Runtime.Json
         /// <c>Equals</c> fallback dispatch; revision 13 adds the list
         /// <c>indexOf</c> intrinsic and predicate-bearing <c>count</c> shape;
         /// revision 15 adds the <c>tileConvert</c> pointer; revision 16 adds
-        /// <c>reference</c> identity equality.
+        /// <c>reference</c> identity equality; revision 17 adds typed
+        /// <c>numeric</c> arithmetic with 32-bit float rounding.
         /// </summary>
-        public const int CurrentCompilerRevision = 16;
+        public const int CurrentCompilerRevision = 17;
 
         /// <summary>
         /// Required on every body this runtime executes: it must equal

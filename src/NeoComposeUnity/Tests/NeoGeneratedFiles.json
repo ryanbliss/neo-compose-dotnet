@@ -75,12 +75,12 @@
     {
       "id": "class:class-generic-float-contract",
       "path": "Generated/Classes/GenericFloatContract.g.cs",
-      "hash": "c42201215cc83cea8fb070e526a15d444001a56b0f24f5eba52071f07eceb916"
+      "hash": "6cc2bce18b3c93c0a8f6b50e0aa51a86654558a7839fd73d1d0010fbc52ae2ca"
     },
     {
       "id": "class:class-generic-float-payload",
       "path": "Generated/Classes/GenericFloatPayload.g.cs",
-      "hash": "1b49e0b2f551857138d568cf199d723737b09043bd398085fa0f87f13b2b29ae"
+      "hash": "f3d7c7ae97391b5b185c2083f0d66110165b7780c03b9dd16b014d5cf81d1dfa"
     },
     {
       "id": "class:class-generic-function-box",
@@ -115,7 +115,7 @@
     {
       "id": "class:class-hero",
       "path": "Generated/Classes/Hero.g.cs",
-      "hash": "0686d6bffc3e56929bb9461d9e7f6d2082c810aaadbad0278dc0c17ed5c45570"
+      "hash": "2544cced9a636f1ce5fa63ea218b1768afd84f6259178a1ed37ebbe8c446589e"
     },
     {
       "id": "class:system_6529416a-f68b-49a3-b3d2-2af8fda60cb4",
@@ -325,12 +325,12 @@
     {
       "id": "project:functions",
       "path": "Generated/TestProjectNeo.Functions.g.cs",
-      "hash": "d2b1d774e6d3398a6e362da74d8556cc44da477ba1c5ac0ea2d0ed23e2738e66"
+      "hash": "4991a87d045c6288838a776aef3ef5319b59f9ccb12d7ad07e1217cb35dc6270"
     },
     {
       "id": "project:client",
       "path": "Generated/TestProjectNeo.g.cs",
-      "hash": "2c4368f83cc4602c5be349a8b3f571fcfbbd29ea09f77841e47170577cbb9a2d"
+      "hash": "080196a454ced67c5c8328e4e4d1a402e711b3f8d54df6253b5dbd631bb5f0f0"
     }
   ]
 }

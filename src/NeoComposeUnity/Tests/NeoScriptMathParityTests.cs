@@ -107,6 +107,33 @@ namespace NeoCompose.Tests
         }
 
         /// <summary>
+        /// Typed arithmetic: each <c>float</c> step rounds to 32 bits and
+        /// <c>int</c> division truncates, matching the web evaluator.
+        /// </summary>
+        [Test]
+        public void EveryArithmeticCaseProducesTheSharedResult()
+        {
+            var ctx = new NSGetterEvaluator.Context(BuildClient(), null, null);
+            var failures = new List<string>();
+            foreach (JObject testCase in Cases("arithmeticCases"))
+            {
+                string name = Text(testCase, "name");
+                object? produced = Evaluate(ctx, testCase);
+                double expected = testCase["expected"]!.Value<double>();
+                if (!TryAsDouble(produced, out double actual) || actual != expected)
+                {
+                    failures.Add($"[{name}] expected {expected:R}, got {Describe(produced)}");
+                }
+            }
+            if (failures.Count > 0)
+            {
+                Assert.Fail(
+                    $"{failures.Count} divergence(s) from the shared arithmetic cases:\n" +
+                    string.Join("\n", failures));
+            }
+        }
+
+        /// <summary>
         /// The vendored copy must still be the whole fixture: every case names
         /// itself uniquely and carries exactly one expectation. A re-vendoring
         /// that dropped or doubled a key would otherwise silently shrink the
@@ -266,8 +293,13 @@ namespace NeoCompose.Tests
 
         private static IEnumerable<JObject> EvaluateCases()
         {
+            return Cases("evaluateCases");
+        }
+
+        private static IEnumerable<JObject> Cases(string key)
+        {
             var fixture = JObject.Parse(NeoScriptMathParityFixture.Json);
-            return ((JArray)fixture["evaluateCases"]!).Values<JObject>();
+            return ((JArray)fixture[key]!).Values<JObject>();
         }
 
         private static string Text(JToken token, string key)

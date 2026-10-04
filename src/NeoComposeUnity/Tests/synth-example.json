@@ -267,6 +267,38 @@
         }
       ]
     },
+    "member-total": {
+      "id": "member-total",
+      "name": "Total",
+      "kind": 13,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "returnTypeInfo": {
+        "type": 4,
+        "required": true
+      },
+      "argumentTypes": [
+        {
+          "name": "amounts",
+          "type": 6,
+          "required": true,
+          "entryTypeInfo": {
+            "type": 4,
+            "required": true
+          }
+        },
+        {
+          "name": "scales",
+          "type": 5,
+          "required": false,
+          "entryTypeInfo": {
+            "type": 4,
+            "required": true
+          }
+        }
+      ]
+    },
     "member-native": {
       "id": "member-native",
       "name": "Native",
@@ -450,7 +482,7 @@
         "required": true
       },
       "getter": {
-        "compilerRevision": 16,
+        "compilerRevision": 17,
         "parameters": [
           {
             "id": "__this__",
@@ -673,7 +705,7 @@
                                   ]
                                 },
                                 "function": {
-                                  "compilerRevision": 16,
+                                  "compilerRevision": 17,
                                   "parameters": [
                                     {
                                       "id": "n",
@@ -774,7 +806,7 @@
         "required": true
       },
       "getter": {
-        "compilerRevision": 16,
+        "compilerRevision": 17,
         "parameters": [],
         "typeInfo": {
           "type": 3,
@@ -847,7 +879,7 @@
         "required": true
       },
       "getter": {
-        "compilerRevision": 16,
+        "compilerRevision": 17,
         "parameters": [],
         "typeInfo": {
           "type": 1,
@@ -875,7 +907,7 @@
         ]
       },
       "setter": {
-        "compilerRevision": 16,
+        "compilerRevision": 17,
         "parameters": [],
         "typeInfo": {
           "type": 0,
@@ -957,7 +989,7 @@
       },
       "argumentTypes": [],
       "action": {
-        "compilerRevision": 16,
+        "compilerRevision": 17,
         "parameters": [
           {
             "id": "__this__",
@@ -2211,7 +2243,7 @@
         "init": {
           "code": "value",
           "compiled": {
-            "compilerRevision": 16,
+            "compilerRevision": 17,
             "parameters": [
               {
                 "id": "__this__",
@@ -2368,7 +2400,7 @@
         "init": {
           "code": "selector",
           "compiled": {
-            "compilerRevision": 16,
+            "compilerRevision": 17,
             "parameters": [
               {
                 "id": "__this__",
@@ -2522,7 +2554,7 @@
         "init": {
           "code": "overrides",
           "compiled": {
-            "compilerRevision": 16,
+            "compilerRevision": 17,
             "parameters": [
               {
                 "id": "__this__",
@@ -2649,7 +2681,7 @@
         "init": {
           "code": "selector",
           "compiled": {
-            "compilerRevision": 16,
+            "compilerRevision": 17,
             "parameters": [
               {
                 "id": "__this__",
@@ -2861,7 +2893,7 @@
         "init": {
           "code": "clipKey",
           "compiled": {
-            "compilerRevision": 16,
+            "compilerRevision": 17,
             "parameters": [
               {
                 "id": "__this__",
@@ -2981,7 +3013,7 @@
         "init": {
           "code": "selector",
           "compiled": {
-            "compilerRevision": 16,
+            "compilerRevision": 17,
             "parameters": [
               {
                 "id": "__this__",
@@ -3531,6 +3563,7 @@
         "GridCell": "member-grid-cell",
         "Path": "member-path",
         "MoveTo": "member-move-to",
+        "Total": "member-total",
         "ElementAffinity": "member-elem-affinity"
       },
       "projectId": "test-project",
@@ -4403,7 +4436,7 @@
       "createdAt": 0,
       "updatedAt": 0,
       "action": {
-        "compilerRevision": 16,
+        "compilerRevision": 17,
         "parameters": [
           {
             "id": "__this__",
@@ -4501,7 +4534,7 @@
       "createdAt": 0,
       "updatedAt": 0,
       "action": {
-        "compilerRevision": 16,
+        "compilerRevision": 17,
         "parameters": [
           {
             "id": "__this__",
@@ -4622,7 +4655,7 @@
       "createdAt": 0,
       "updatedAt": 0,
       "action": {
-        "compilerRevision": 16,
+        "compilerRevision": 17,
         "parameters": [
           {
             "id": "__this__",
@@ -4731,7 +4764,7 @@
       "createdAt": 0,
       "updatedAt": 0,
       "action": {
-        "compilerRevision": 16,
+        "compilerRevision": 17,
         "parameters": [
           {
             "id": "__this__",
@@ -4826,7 +4859,7 @@
       },
       "compiledBaseArguments": [
         {
-          "compilerRevision": 16,
+          "compilerRevision": 17,
           "parameters": [
             {
               "id": "__this__",
@@ -4961,7 +4994,7 @@
       "createdAt": 0,
       "updatedAt": 0,
       "action": {
-        "compilerRevision": 16,
+        "compilerRevision": 17,
         "parameters": [
           {
             "id": "__this__",
@@ -5041,7 +5074,7 @@
       },
       "compiledBaseArguments": [
         {
-          "compilerRevision": 16,
+          "compilerRevision": 17,
           "parameters": [
             {
               "id": "__this__",
@@ -5161,7 +5194,7 @@
       "createdAt": 0,
       "updatedAt": 0,
       "action": {
-        "compilerRevision": 16,
+        "compilerRevision": 17,
         "parameters": [
           {
             "id": "__this__",
@@ -5241,7 +5274,7 @@
       },
       "compiledBaseArguments": [
         {
-          "compilerRevision": 16,
+          "compilerRevision": 17,
           "parameters": [
             {
               "id": "__this__",
@@ -5912,7 +5945,7 @@
                 "sourceFunctionName": "SampleDialogueAction",
                 "code": "root.Save.Score += 3;",
                 "action": {
-                  "compilerRevision": 16,
+                  "compilerRevision": 17,
                   "parameters": [
                     {
                       "id": "__this__",
@@ -6132,7 +6165,7 @@
                 "sourceFunctionName": "SampleDialogueAction",
                 "code": "root.Save.Score -= 3;",
                 "action": {
-                  "compilerRevision": 16,
+                  "compilerRevision": 17,
                   "parameters": [
                     {
                       "id": "__this__",
@@ -6352,7 +6385,7 @@
                 "sourceFunctionName": "SampleDialogueAction",
                 "code": "root.Save.Score *= 3;",
                 "action": {
-                  "compilerRevision": 16,
+                  "compilerRevision": 17,
                   "parameters": [
                     {
                       "id": "__this__",
@@ -6572,7 +6605,7 @@
                 "sourceFunctionName": "SampleDialogueAction",
                 "code": "root.Save.Score /= 3;",
                 "action": {
-                  "compilerRevision": 16,
+                  "compilerRevision": 17,
                   "parameters": [
                     {
                       "id": "__this__",
@@ -6792,7 +6825,7 @@
                 "sourceFunctionName": "SampleDialogueAction",
                 "code": "root.Save.Score %= 3;",
                 "action": {
-                  "compilerRevision": 16,
+                  "compilerRevision": 17,
                   "parameters": [
                     {
                       "id": "__this__",
@@ -7012,7 +7045,7 @@
                 "sourceFunctionName": "SampleDialogueAction",
                 "code": "root.Save.Score++;",
                 "action": {
-                  "compilerRevision": 16,
+                  "compilerRevision": 17,
                   "parameters": [
                     {
                       "id": "__this__",
@@ -7232,7 +7265,7 @@
                 "sourceFunctionName": "SampleDialogueAction",
                 "code": "root.Save.Score--;",
                 "action": {
-                  "compilerRevision": 16,
+                  "compilerRevision": 17,
                   "parameters": [
                     {
                       "id": "__this__",

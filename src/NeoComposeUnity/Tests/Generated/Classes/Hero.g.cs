@@ -14,6 +14,7 @@ namespace Assets.Scripts.Neo
     public interface IHeroFunctionHandler
     {
         Vector3 MoveTo(Vector3 destination, Vector2Int? cell);
+        float Total(IReadOnlyList<float> amounts, IReadOnlyDictionary<string, float>? scales);
     }
 
     public interface IReadOnlyHero : INeoValueReference
@@ -39,6 +40,8 @@ namespace Assets.Scripts.Neo
         NeoReadOnlyList<NeoReadOnlyVector3> Path { get; }
 
         Vector3 MoveTo(Vector3 destination, Vector2Int? cell);
+
+        float Total(IReadOnlyList<float> amounts, IReadOnlyDictionary<string, float>? scales);
 
         NeoReadOnlyDictionary<Element, string?> ElementAffinity { get; }
     }
@@ -249,6 +252,7 @@ namespace Assets.Scripts.Neo
         }
 
 
+
         public virtual NeoDictionary<Element, string?> ElementAffinity
         {
             get
@@ -278,6 +282,17 @@ namespace Assets.Scripts.Neo
                     $"Cannot invoke Function 'MoveTo' on {GetType().Name} {valueDescription} because FunctionHandler is not set.");
             }
             return FunctionHandler.MoveTo(destination, cell);
+        }
+
+        public virtual float Total(IReadOnlyList<float> amounts, IReadOnlyDictionary<string, float>? scales)
+        {
+            if (FunctionHandler is null)
+            {
+                var valueDescription = valueId is null ? "without a backing value id" : $"for value '{valueId}'";
+                throw new NeoFunctionHandlerMissingException(
+                    $"Cannot invoke Function 'Total' on {GetType().Name} {valueDescription} because FunctionHandler is not set.");
+            }
+            return FunctionHandler.Total(amounts, scales);
         }
 
         public sealed class Fields
