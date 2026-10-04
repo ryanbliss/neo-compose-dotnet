@@ -9,6 +9,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
@@ -24,6 +25,8 @@ namespace NeoCompose.Tests
     public partial class NeoComposeEditorTests
     {
         private const string TempRoot = "Assets/NeoComposeEditorTestsTemp";
+        // Tile syncs write here, never over the sample's own generated tiles.
+        private const string GeneratedTempRoot = TempRoot + "/Generated";
 
         [TearDown]
         public void TearDown()
@@ -2210,8 +2213,8 @@ namespace NeoCompose.Tests
         public void PostSynchronizeProcessor_GeneratesOneAssetPerRawTileClassAndPreservesItsUnityReference()
         {
             const string classId = "post-sync-raw-tile-test";
-            const string tilePath = "Assets/Neo/Generated/Tiles/" + classId + ".asset";
-            const string legacyPath = "Assets/Neo/Generated/Tiles/post-sync-legacy-value-test.asset";
+            const string tilePath = GeneratedTempRoot + "/Tiles/" + classId + ".asset";
+            const string legacyPath = GeneratedTempRoot + "/Tiles/post-sync-legacy-value-test.asset";
             string databasePath = TempRoot + "/TileAssets.asset";
             var data = JsonConvert.DeserializeObject<ProjectData>(File.ReadAllText(
                 "Packages/com.ryanbliss.neocompose/Tests/synth-example.json"))!;
@@ -2237,7 +2240,7 @@ namespace NeoCompose.Tests
                 if (!AssetDatabase.IsValidFolder(TempRoot))
                     AssetDatabase.CreateFolder("Assets", "NeoComposeEditorTestsTemp");
                 AssetDatabase.CreateAsset(database, databasePath);
-                NeoComposePostSynchronizeProcessor.SynchronizeGeneratedTileAssets(data, databasePath, client, factories);
+                NeoComposePostSynchronizeProcessor.SynchronizeGeneratedTileAssets(data, databasePath, client, factories, GeneratedTempRoot);
                 var original = database.TryGetTileBaseForClass(classId);
                 Assert.IsNotNull(original);
                 Assert.AreEqual(1, database.TileAssets.Count);
@@ -2248,7 +2251,7 @@ namespace NeoCompose.Tests
                 File.SetLastWriteTimeUtc(tilePath, untouchedTime);
                 File.SetLastWriteTimeUtc(databasePath, untouchedTime);
                 var serializedTile = File.ReadAllText(tilePath);
-                NeoComposePostSynchronizeProcessor.SynchronizeGeneratedTileAssets(data, databasePath, client, factories);
+                NeoComposePostSynchronizeProcessor.SynchronizeGeneratedTileAssets(data, databasePath, client, factories, GeneratedTempRoot);
                 Assert.AreEqual(untouchedTime, File.GetLastWriteTimeUtc(tilePath));
                 Assert.AreEqual(untouchedTime, File.GetLastWriteTimeUtc(databasePath));
                 Assert.AreEqual(serializedTile, File.ReadAllText(tilePath));
@@ -2257,7 +2260,7 @@ namespace NeoCompose.Tests
                 var replacementSprite = Sprite.Create(texture, new Rect(0, 0, 1, 1), Vector2.one);
                 var oldSprite = sprite;
                 sprite = replacementSprite;
-                NeoComposePostSynchronizeProcessor.SynchronizeGeneratedTileAssets(data, databasePath, client, factories);
+                NeoComposePostSynchronizeProcessor.SynchronizeGeneratedTileAssets(data, databasePath, client, factories, GeneratedTempRoot);
                 Assert.AreSame(replacementSprite, ((UnityEngine.Tilemaps.Tile)original).sprite);
                 Assert.AreNotEqual(untouchedTime, File.GetLastWriteTimeUtc(tilePath));
                 UnityEngine.Object.DestroyImmediate(oldSprite);
@@ -2267,14 +2270,14 @@ namespace NeoCompose.Tests
                 var legacy = ScriptableObject.CreateInstance<UnityEngine.Tilemaps.Tile>();
                 AssetDatabase.CreateAsset(legacy, legacyPath);
                 database.SetTileClassAsset(classId, legacyPath, "legacy", legacy);
-                NeoComposePostSynchronizeProcessor.SynchronizeGeneratedTileAssets(data, databasePath, client, factories);
+                NeoComposePostSynchronizeProcessor.SynchronizeGeneratedTileAssets(data, databasePath, client, factories, GeneratedTempRoot);
                 Assert.AreEqual(1, database.TileAssets.Count);
                 Assert.AreSame(original, database.TryGetTileBaseForClass(classId));
                 Assert.AreEqual(guid, AssetDatabase.AssetPathToGUID(tilePath));
                 Assert.IsNull(AssetDatabase.LoadAssetAtPath<UnityEngine.Tilemaps.TileBase>(legacyPath));
 
                 hasSprite = false;
-                NeoComposePostSynchronizeProcessor.SynchronizeGeneratedTileAssets(data, databasePath, client, factories);
+                NeoComposePostSynchronizeProcessor.SynchronizeGeneratedTileAssets(data, databasePath, client, factories, GeneratedTempRoot);
                 Assert.AreEqual(0, database.TileAssets.Count);
                 Assert.IsNull(AssetDatabase.LoadAssetAtPath<UnityEngine.Tilemaps.TileBase>(tilePath));
             }
@@ -2284,6 +2287,138 @@ namespace NeoCompose.Tests
                 AssetDatabase.DeleteAsset(legacyPath);
                 UnityEngine.Object.DestroyImmediate(sprite);
                 UnityEngine.Object.DestroyImmediate(texture);
+            }
+        }
+
+        /// <summary>
+        /// A smart tile class persists as a NeoRuleTile asset that names its
+        /// script, loads back as one, and is reused by the next sync. An
+        /// asset an older SDK wrote without a script is replaced, and one no
+        /// tile class maps to is deleted.
+        /// </summary>
+        [Test]
+        public void PostSynchronizeProcessor_PersistsRuleTilesWithTheirScriptAndReusesThem()
+        {
+            const string classId = "post-sync-rule-tile-test";
+            const string ruleTilePath = GeneratedTempRoot + "/RuleTiles/" + classId + ".asset";
+            const string tilePath = GeneratedTempRoot + "/Tiles/" + classId + ".asset";
+            // Left by deleted tile classes; nothing maps to them.
+            const string orphanRuleTilePath = GeneratedTempRoot + "/RuleTiles/deleted-rule-tile-class.asset";
+            const string orphanTilePath = GeneratedTempRoot + "/Tiles/deleted-tile-class.asset";
+            string databasePath = TempRoot + "/RuleTileAssets.asset";
+            var data = JsonConvert.DeserializeObject<ProjectData>(File.ReadAllText(
+                "Packages/com.ryanbliss.neocompose/Tests/synth-example.json"))!;
+            data.classes[classId] = new NeoSchemaClass
+            {
+                id = classId,
+                projectId = data.project.id,
+                name = "PostSyncRuleTile",
+                schema = new Dictionary<string, string>(),
+                system = JObject.FromObject(new { worldKind = "tile" }),
+            };
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var texture = new Texture2D(1, 1);
+            var sprite = Sprite.Create(texture, new Rect(0, 0, 1, 1), Vector2.zero);
+            var rule = new NeoSmartTileConverterTests.FakeSmartTileRule();
+            rule.Sprites.Add(sprite);
+            rule.Neighbors.Add(new NeoSmartTileConverterTests.FakeSmartTileNeighbor
+            {
+                Cell = new Vector2Int(1, 0),
+                Condition = NeoSmartTileOptionIds.ConditionThis,
+            });
+            var smartTile = new NeoSmartTileConverterTests.FakeSmartTile();
+            smartTile.Rules.Add(rule);
+            var database = ScriptableObject.CreateInstance<NeoAssetDatabase>();
+            var factories = new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory>
+            {
+                [classId] = (owner, node) => new PostSyncRuleTile(owner, node, classId, smartTile),
+            };
+            try
+            {
+                if (!AssetDatabase.IsValidFolder(TempRoot))
+                    AssetDatabase.CreateFolder("Assets", "NeoComposeEditorTestsTemp");
+                AssetDatabase.CreateAsset(database, databasePath);
+                NeoComposePostSynchronizeProcessor.SynchronizeGeneratedTileAssets(data, databasePath, client, factories, GeneratedTempRoot);
+                AssertPersistedRuleTile();
+                string guid = AssetDatabase.AssetPathToGUID(ruleTilePath);
+
+                // The next sync finds the asset and leaves it alone.
+                var untouchedTime = new System.DateTime(2001, 1, 1, 0, 0, 0, System.DateTimeKind.Utc);
+                File.SetLastWriteTimeUtc(ruleTilePath, untouchedTime);
+                var persisted = database.TryGetTileBaseForClass(classId);
+                NeoComposePostSynchronizeProcessor.SynchronizeGeneratedTileAssets(data, databasePath, client, factories, GeneratedTempRoot);
+                Assert.AreSame(persisted, database.TryGetTileBaseForClass(classId));
+                Assert.AreEqual(guid, AssetDatabase.AssetPathToGUID(ruleTilePath));
+                Assert.AreEqual(untouchedTime, File.GetLastWriteTimeUtc(ruleTilePath));
+
+                // An older SDK wrote the asset with no script, which loads as
+                // no tile at all. A stray copy under Tiles/ is just as broken.
+                string missingScript = Regex.Replace(
+                    File.ReadAllText(ruleTilePath),
+                    @"m_Script: \{[^}]*\}",
+                    "m_Script: {fileID: 0}");
+                File.WriteAllText(ruleTilePath, missingScript);
+                AssetDatabase.ImportAsset(ruleTilePath, ImportAssetOptions.ForceUpdate);
+                Assert.IsNull(AssetDatabase.LoadAssetAtPath<UnityEngine.Tilemaps.TileBase>(ruleTilePath));
+                if (!AssetDatabase.IsValidFolder(GeneratedTempRoot + "/Tiles"))
+                    AssetDatabase.CreateFolder(GeneratedTempRoot, "Tiles");
+                File.WriteAllText(tilePath, missingScript);
+                AssetDatabase.ImportAsset(tilePath, ImportAssetOptions.ForceUpdate);
+                Assert.IsTrue(AssetDatabase.AssetPathExists(tilePath));
+                // Assets of classes deleted since, scriptless or not, go too.
+                File.WriteAllText(orphanRuleTilePath, missingScript);
+                AssetDatabase.ImportAsset(orphanRuleTilePath, ImportAssetOptions.ForceUpdate);
+                AssetDatabase.CreateAsset(ScriptableObject.CreateInstance<UnityEngine.Tilemaps.Tile>(), orphanTilePath);
+                Assert.IsTrue(AssetDatabase.AssetPathExists(orphanRuleTilePath));
+                NeoComposePostSynchronizeProcessor.SynchronizeGeneratedTileAssets(data, databasePath, client, factories, GeneratedTempRoot);
+                AssertPersistedRuleTile();
+                Assert.IsFalse(AssetDatabase.AssetPathExists(tilePath));
+                Assert.IsFalse(AssetDatabase.AssetPathExists(orphanRuleTilePath));
+                Assert.IsFalse(AssetDatabase.AssetPathExists(orphanTilePath));
+                Assert.IsFalse(File.Exists(orphanRuleTilePath + ".meta"));
+            }
+            finally
+            {
+                AssetDatabase.DeleteAsset(ruleTilePath);
+                AssetDatabase.DeleteAsset(tilePath);
+                UnityEngine.Object.DestroyImmediate(sprite);
+                UnityEngine.Object.DestroyImmediate(texture);
+            }
+
+            void AssertPersistedRuleTile()
+            {
+                StringAssert.DoesNotContain("m_Script: {fileID: 0}", File.ReadAllText(ruleTilePath));
+                AssetDatabase.ImportAsset(ruleTilePath, ImportAssetOptions.ForceUpdate);
+                var loaded = AssetDatabase.LoadAssetAtPath<UnityEngine.Tilemaps.TileBase>(ruleTilePath);
+                Assert.IsInstanceOf<NeoRuleTile>(loaded);
+                Assert.AreSame(loaded, database.TryGetTileBaseForClass(classId));
+                MonoScript script = MonoScript.FromScriptableObject(loaded);
+                Assert.IsNotNull(script);
+                Assert.AreEqual(typeof(NeoRuleTile), script.GetClass());
+
+                // The custom neighbor survives the round trip.
+                var ruleTile = (NeoRuleTile)loaded;
+                var matcher = new NeoSmartTileConverterTests.RecordingNeighborMatcher();
+                ruleTile.Configure(matcher);
+                int neighborId = ruleTile.m_TilingRules[0].m_Neighbors[0];
+                ruleTile.RuleMatch(neighborId, null!);
+                Assert.AreEqual(1, matcher.Observed.Count);
+                Assert.AreEqual(NeoSmartTileNeighborKind.ExactTile, matcher.Observed[0].Kind);
+                Assert.AreEqual(classId, matcher.Observed[0].TileClassId);
+            }
+        }
+
+        private sealed class PostSyncRuleTile : NeoGeneratedClassValue, INeoSmartTileSource
+        {
+            public PostSyncRuleTile(NeoClient client, NeoMemberClass node, string classId, INeoSmartTile smartTile)
+                : base(client, node, classId)
+            {
+                SmartTile = smartTile;
+            }
+
+            public INeoSmartTile? SmartTile
+            {
+                get;
             }
         }
 

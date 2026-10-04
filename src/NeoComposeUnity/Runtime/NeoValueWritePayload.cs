@@ -84,11 +84,22 @@ namespace NeoCompose.Runtime
             string valueId,
             NeoValueOwnership ownership)
         {
-            if (!isValueReference)
-                return;
-            if (valueReference is not NeoGeneratedClassValue generated)
-                return;
-            if (generated.IsReadOnly)
+            if (isValueReference)
+                RetargetMovedView(client, valueReference as NeoGeneratedClassValue, member, valueId, ownership);
+        }
+
+        /// <summary>
+        /// Points <paramref name="generated"/>, a view of a value a write
+        /// moved onto <paramref name="member"/>'s row, at that row.
+        /// </summary>
+        internal static void RetargetMovedView(
+            NeoClient client,
+            NeoGeneratedClassValue? generated,
+            Member member,
+            string valueId,
+            NeoValueOwnership ownership)
+        {
+            if (generated is null || generated.IsReadOnly)
                 return;
             if (member is not ClassMember classMember)
                 return;

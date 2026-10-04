@@ -116,7 +116,11 @@ namespace NeoCompose.Runtime.NeoScript
                 : NeoValueOwnership.Session;
             if (!ctx.client.TryGetValue(ownership, id, out MemberValue? row))
                 throw new NSGetterRuntimeError($"Class value '{id}' is no longer stored.");
-            return UnwrapCached(row!, ctx, ownership, value.plan.runtimePlan.factoryMember);
+            object? record = UnwrapCached(row!, ctx, ownership, value.plan.runtimePlan.factoryMember);
+            // A shadow that moves the row onto a static leaf renames the object through its record.
+            if (record is NeoObjectRecord { attachedObject: null } forwarded)
+                forwarded.attachedObject = value;
+            return record;
         }
 
         /// <summary>A <see cref="KeyOf"/>'s slot index for one object plan and key.</summary>

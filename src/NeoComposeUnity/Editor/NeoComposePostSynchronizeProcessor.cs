@@ -40,8 +40,8 @@ namespace NeoCompose.Unity.Editor
     [InitializeOnLoad]
     internal static class NeoComposePostSynchronizeProcessor
     {
-        private const string GeneratedTileAssetDirectory = "Assets/Neo/Generated/Tiles";
-        private const string GeneratedRuleTileAssetDirectory = "Assets/Neo/Generated/RuleTiles";
+        // The sync owns its Tiles and RuleTiles folders under this one.
+        private const string GeneratedAssetDirectory = "Assets/Neo/Generated";
         private const int MaxAttempts = 20;
 
         private static readonly INeoPostSynchronizeTaskPersistence Persistence =
@@ -314,12 +314,14 @@ namespace NeoCompose.Unity.Editor
             method?.Invoke(classValue, Array.Empty<object>());
         }
 
+        /// <param name="generatedDirectory">The folder whose Tiles and RuleTiles the sync owns.</param>
         internal static void SynchronizeGeneratedTileAssets(
             ProjectData projectData,
             string assetDatabasePath,
             NeoClient client,
             IReadOnlyDictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory>
-                readOnlyFactories)
+                readOnlyFactories,
+            string generatedDirectory = GeneratedAssetDirectory)
         {
             if (string.IsNullOrWhiteSpace(assetDatabasePath))
                 return;
@@ -335,7 +337,7 @@ namespace NeoCompose.Unity.Editor
             foreach (var old in assetDatabase.TileAssets)
             {
                 if (!tileClassIds.Contains(old.TileClassId)
-                    || !IsClassTileAssetPath(old.AssetPath, old.TileClassId))
+                    || !IsClassTileAssetPath(generatedDirectory, old.AssetPath, old.TileClassId))
                     DeleteGeneratedTileAsset(old.AssetPath);
             }
             var tileEntries = new List<NeoAssetDatabaseTileEntry>(tileClassIds.Count);
@@ -350,12 +352,12 @@ namespace NeoCompose.Unity.Editor
                 var generatedTile = NeoTileAssetFactory.CreateTransientTileBase(classValue);
                 if (generatedTile == null)
                 {
-                    DeleteAlternateGeneratedTileAsset(tileClassId, string.Empty);
+                    DeleteAlternateGeneratedTileAsset(generatedDirectory, tileClassId, string.Empty);
                     continue;
                 }
 
-                string assetPath = GeneratedTileAssetPath(tileClassId, generatedTile);
-                DeleteAlternateGeneratedTileAsset(tileClassId, assetPath);
+                string assetPath = GeneratedTileAssetPath(generatedDirectory, tileClassId, generatedTile);
+                DeleteAlternateGeneratedTileAsset(generatedDirectory, tileClassId, assetPath);
 
                 TileBase persistedTile = PersistGeneratedTileAsset(assetPath, generatedTile);
                 tileEntries.Add(new NeoAssetDatabaseTileEntry
@@ -366,6 +368,8 @@ namespace NeoCompose.Unity.Editor
                     TileBase = persistedTile,
                 });
             }
+
+            DeleteOrphanedGeneratedTileAssets(generatedDirectory, tileEntries);
 
             var previous = assetDatabase.TileAssets;
             if (previous.Count != tileEntries.Count || previous.Where((entry, index) =>
@@ -396,32 +400,62 @@ namespace NeoCompose.Unity.Editor
             }
         }
 
-        private static bool IsClassTileAssetPath(string path, string classId)
+        private static string TileAssetDirectory(string generatedDirectory) => $"{generatedDirectory}/Tiles";
+
+        private static string RuleTileAssetDirectory(string generatedDirectory) => $"{generatedDirectory}/RuleTiles";
+
+        private static bool IsClassTileAssetPath(string generatedDirectory, string path, string classId)
         {
             string fileName = $"{SanitizeAssetFileName(classId)}.asset";
-            return path == $"{GeneratedTileAssetDirectory}/{fileName}"
-                || path == $"{GeneratedRuleTileAssetDirectory}/{fileName}";
+            return path == $"{TileAssetDirectory(generatedDirectory)}/{fileName}"
+                || path == $"{RuleTileAssetDirectory(generatedDirectory)}/{fileName}";
         }
 
-        private static string GeneratedTileAssetPath(string assetId, TileBase tileBase)
+        private static string GeneratedTileAssetPath(string generatedDirectory, string assetId, TileBase tileBase)
         {
             string fileName = $"{SanitizeAssetFileName(assetId)}.asset";
             return tileBase is NeoRuleTile
-                ? $"{GeneratedRuleTileAssetDirectory}/{fileName}"
-                : $"{GeneratedTileAssetDirectory}/{fileName}";
+                ? $"{RuleTileAssetDirectory(generatedDirectory)}/{fileName}"
+                : $"{TileAssetDirectory(generatedDirectory)}/{fileName}";
         }
 
-        private static void DeleteAlternateGeneratedTileAsset(string assetId, string keepPath)
+        private static void DeleteAlternateGeneratedTileAsset(string generatedDirectory, string assetId, string keepPath)
         {
             string fileName = $"{SanitizeAssetFileName(assetId)}.asset";
             foreach (var path in new[]
             {
-                $"{GeneratedTileAssetDirectory}/{fileName}",
-                $"{GeneratedRuleTileAssetDirectory}/{fileName}",
+                $"{TileAssetDirectory(generatedDirectory)}/{fileName}",
+                $"{RuleTileAssetDirectory(generatedDirectory)}/{fileName}",
             })
             {
                 if (path != keepPath)
                     DeleteGeneratedTileAsset(path);
+            }
+        }
+
+        /// <summary>
+        /// Deletes every asset in the sync's tile folders that no tile class
+        /// maps to: a deleted class's, or one the database no longer lists.
+        /// </summary>
+        private static void DeleteOrphanedGeneratedTileAssets(
+            string generatedDirectory,
+            List<NeoAssetDatabaseTileEntry> tileEntries)
+        {
+            var kept = new HashSet<string>(tileEntries.Select(entry => entry.AssetPath), StringComparer.Ordinal);
+            foreach (string directory in new[]
+            {
+                TileAssetDirectory(generatedDirectory),
+                RuleTileAssetDirectory(generatedDirectory),
+            })
+            {
+                if (!Directory.Exists(directory))
+                    continue;
+                foreach (string file in Directory.GetFiles(directory, "*.asset", SearchOption.TopDirectoryOnly))
+                {
+                    string path = file.Replace('\\', '/');
+                    if (!kept.Contains(path))
+                        DeleteGeneratedTileAsset(path);
+                }
             }
         }
 
@@ -450,7 +484,9 @@ namespace NeoCompose.Unity.Editor
         {
             if (string.IsNullOrWhiteSpace(assetPath))
                 return;
-            if (AssetDatabase.LoadAssetAtPath<TileBase>(assetPath) != null)
+            // An asset whose script is missing doesn't load as a TileBase,
+            // and it still has to go.
+            if (AssetDatabase.AssetPathExists(assetPath))
             {
                 AssetDatabase.DeleteAsset(assetPath);
             }
