@@ -38,12 +38,7 @@ namespace NeoCompose.Runtime.NeoScript
         internal static string AttachDetached(NeoScriptObject value, Context? ctx)
         {
             if (value.attachedId is string attached)
-            {
-                // Only a root can move onto a leaf; an owned object can't be assigned.
-                return value.owner is null && value.tracker.ShadowedRoot(attached) is string leafId
-                    ? value.attachedId = leafId
-                    : attached;
-            }
+                return attached;
             NeoScriptObject root = value;
             while (root.owner is not null)
                 root = root.owner;
@@ -121,7 +116,11 @@ namespace NeoCompose.Runtime.NeoScript
                 : NeoValueOwnership.Session;
             if (!ctx.client.TryGetValue(ownership, id, out MemberValue? row))
                 throw new NSGetterRuntimeError($"Class value '{id}' is no longer stored.");
-            return UnwrapCached(row!, ctx, ownership, value.plan.runtimePlan.factoryMember);
+            object? record = UnwrapCached(row!, ctx, ownership, value.plan.runtimePlan.factoryMember);
+            // A shadow that moves the row onto a static leaf renames the object through its record.
+            if (record is NeoObjectRecord { attachedObject: null } forwarded)
+                forwarded.attachedObject = value;
+            return record;
         }
 
         /// <summary>A <see cref="KeyOf"/>'s slot index for one object plan and key.</summary>

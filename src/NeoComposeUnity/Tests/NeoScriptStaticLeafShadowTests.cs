@@ -253,27 +253,125 @@ namespace NeoCompose.Tests
             AssertRecordUntouched(client);
         }
 
+        // One execution: ShapeBox Make() => new ShapeBox { Width = 7 };
+        // A later one, from another C# entry: this.Child.Shape = s; s.Width = 9;
+        [Test]
+        public void ObjectBuiltInOneContextWritesTheLeafFromAnother()
+        {
+            using NeoClient client = BuildClient();
+            object? box = Make(client, 7);
+            Assert.IsInstanceOf<NeoScriptObject>(box, "The constructed value stays detached on its way out.");
+
+            Run(client, Locals(("s", box)),
+                AssignShape(Variable("s")),
+                Assign(Key(Variable("s"), "Width", "width-member"), IntType(), Int(9)));
+
+            Assert.AreEqual(9, WidthOf(client, NeoValueOwnership.Session, "shape-leaf"));
+            Assert.AreEqual("shape-leaf", ((NeoScriptObject)box!).attachedId, "The object names the leaf for good.");
+            Assert.AreEqual(1, BoxRows(client, NeoValueOwnership.Session));
+            AssertRecordUntouched(client);
+        }
+
+        // As above, with the object attached before the assignment and an
+        // unrelated execution between the assignment and the write. All
+        // three run in one context, so only the object's own id can carry
+        // the move across executions.
+        [Test]
+        public void ObjectWritesTheLeafAfterAnUnrelatedExecution()
+        {
+            using NeoClient client = BuildClient();
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            object? box = Make(client, 7);
+            Assert.IsNotNull(((NeoScriptObject)box!).valueId, "The object is attached before the assignment.");
+
+            Run(client, ctx, Locals(("s", box)), AssignShape(Variable("s")));
+            Run(client, ctx, null, Local("other", NewBox(3)));
+            Run(client, ctx, Locals(("s", box)), Assign(Key(Variable("s"), "Width", "width-member"), IntType(), Int(9)));
+
+            Assert.AreEqual(9, WidthOf(client, NeoValueOwnership.Session, "shape-leaf"));
+            Assert.AreEqual(1, BoxRows(client, NeoValueOwnership.Session), "No orphaned source row.");
+            AssertRecordUntouched(client);
+        }
+
+        // C#: var s = rig.Make(); rig.Assign(s); s.Width = 9;
+        // where Assign runs this.Child.Shape = s;
+        [Test]
+        public void PendingCSharpViewWritesTheLeafAfterTheAssignment()
+        {
+            using NeoClient client = BuildClient();
+            TestBox view = NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(
+                client, Make(client, 7), true, null, TestBox.CreateWritable, TestBox.CreateDetached);
+            Assert.IsNotNull(view.PendingValue, "The view starts over the detached temporary.");
+
+            // An NSFunction normalizes its argument as the marshaller does.
+            Run(client,
+                ctx => new Dictionary<string, object?>
+                {
+                    ["s"] = NeoScriptValueMarshaller.Normalize(client, NeoValueOwnership.Session, view, BoxTypeInfo, ctx, "s"),
+                },
+                AssignShape(Variable("s")));
+            view.Width = 9;
+
+            Assert.IsFalse(view.IsDisposed);
+            Assert.AreEqual("shape-leaf", view.valueId);
+            Assert.AreEqual(9, view.Width);
+            Assert.AreEqual(9, WidthOf(client, NeoValueOwnership.Session, "shape-leaf"));
+            Assert.AreEqual(1, BoxRows(client, NeoValueOwnership.Session), "No Session box row is left behind.");
+            AssertRecordUntouched(client);
+        }
+
         // ------------------------------------------------------------------
         // Harness
         // ------------------------------------------------------------------
 
-        private static void Run(NeoClient client, params JObject[] instructions)
+        private static readonly ClassTypeInfo BoxTypeInfo = new() { type = MemberKind.Class, required = true, classId = "box" };
+
+        private static void Run(NeoClient client, params JObject[] instructions) =>
+            Run(client, null, null, instructions);
+
+        private static void Run(
+            NeoClient client,
+            Func<NSGetterEvaluator.Context, Dictionary<string, object?>>? locals,
+            params JObject[] instructions) =>
+            Run(client, null, locals, instructions);
+
+        private static void Run(
+            NeoClient client,
+            NSGetterEvaluator.Context? ctx,
+            Func<NSGetterEvaluator.Context, Dictionary<string, object?>>? locals,
+            params JObject[] instructions) =>
+            Execute(client, ctx, locals, new JObject { ["type"] = 0, ["required"] = true }, instructions);
+
+        /// <summary>One execution that returns <c>new ShapeBox { Width = width }</c> to C#.</summary>
+        private static object? Make(NeoClient client, int width) =>
+            Execute(client, null, null, BoxType(required: true), new JObject { ["type"] = "return", ["pointer"] = NewBox(width) });
+
+        private static object? Execute(
+            NeoClient client,
+            NSGetterEvaluator.Context? ctx,
+            Func<NSGetterEvaluator.Context, Dictionary<string, object?>>? locals,
+            JObject returnType,
+            params JObject[] instructions)
         {
             var body = new JObject
             {
                 ["compilerRevision"] = FunctionWithReturnType.CurrentCompilerRevision,
                 ["parameters"] = new JArray(),
                 ["instructions"] = new JArray(instructions.Cast<object>().ToArray()),
-                ["typeInfo"] = new JObject { ["type"] = 0, ["required"] = true },
+                ["typeInfo"] = returnType,
             };
             FunctionWithReturnType function = JsonConvert.DeserializeObject<FunctionWithReturnType>(body.ToString())!;
-            var ctx = new NSGetterEvaluator.Context(client, null, null);
-            var scope = new Dictionary<string, object?>
-            {
-                ["__this__"] = NSGetterEvaluator.UnwrapRow(client.ResolveValueRow("rig")!, ctx, NeoValueOwnership.Asset),
-            };
-            NeoScriptExecutor.Execute(client, function, scope, ctx);
+            ctx ??= new NSGetterEvaluator.Context(client, null, null);
+            var scope = locals?.Invoke(ctx) ?? new Dictionary<string, object?>();
+            scope["__this__"] = NSGetterEvaluator.UnwrapRow(client.ResolveValueRow("rig")!, ctx, NeoValueOwnership.Asset);
+            NeoScriptExecutionResult result = NeoScriptExecutor.Execute(client, function, scope, ctx);
+            if (result.IsFailed)
+                throw result.Failure!;
+            return result.ReturnValue;
         }
+
+        private static Func<NSGetterEvaluator.Context, Dictionary<string, object?>> Locals(params (string id, object? value)[] locals) =>
+            _ => locals.ToDictionary(local => local.id, local => local.value);
 
         private static void AssertRecordUntouched(NeoClient client)
         {
@@ -513,6 +611,44 @@ namespace NeoCompose.Tests
                 enums = new(),
             };
             return NeoTestSaveStack.ClientFromSchema(data);
+        }
+
+        /// <summary>The shape generated C# takes for <c>class ShapeBox</c>.</summary>
+        private sealed class TestBox : NeoGeneratedClassValue
+        {
+            private TestBox(NeoClient client, NeoMemberClass node)
+                : base(client, node, "box", false, node.ownership)
+            {
+            }
+
+            private TestBox(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+                : base(client, value, isReadOnly)
+            {
+            }
+
+            internal static TestBox CreateWritable(NeoClient client, NeoMemberClassWritable node) =>
+                NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue(
+                    client,
+                    node,
+                    static (factoryClient, factoryNode) => new TestBox(factoryClient, factoryNode));
+
+            internal static TestBox CreateDetached(NeoClient client, NeoDetachedValue value, bool saved) =>
+                new(client, value, !saved);
+
+            public int Width
+            {
+                get
+                {
+                    if (TryReadDetached("Width", out object? detachedValue))
+                        return Convert.ToInt32(detachedValue);
+                    return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("Width"))
+                        ?? throw new InvalidOperationException("Int 'Width' has no value.");
+                }
+                set
+                {
+                    NeoGeneratedTypesSupport.SetValue(writableNode, "Width", NeoGeneratedTypesSupport.Value(value));
+                }
+            }
         }
 
         private static ClassMember Root(string id, string valueId, string classId, NeoMemberStorage storage) => new()

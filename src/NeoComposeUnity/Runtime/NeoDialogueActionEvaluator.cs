@@ -4511,14 +4511,28 @@ namespace NeoCompose.Runtime
         /// Assigns a Class value to a static record's stamped leaf exactly as
         /// the generated setter does: the imported graph's root replaces the
         /// leaf at its own id in the leaf's writable store, and the authored
-        /// record is never cloned. A moved source's aliases retarget to the
-        /// leaf, so a local that held it then reads and writes the leaf.
+        /// record is never cloned. A moved source's aliases, the object that
+        /// held it and its C# views retarget to the leaf, so a local or view
+        /// that held the value then reads and writes the leaf.
         /// </summary>
         private static void ShadowClassValueReference(NeoWritePlan plan, NeoClient client,
-            NeoValueOwnership ownership, string sourceValueId, MemberValue existing, JsonMember member,
-            NSGetterEvaluator.Context ctx)
+            NeoValueOwnership ownership, object? value, string sourceValueId, MemberValue existing,
+            JsonMember member, NSGetterEvaluator.Context ctx)
         {
             bool hadSourceOwnership = plan.TryGetOwnership(sourceValueId, out NeoValueOwnership sourceOwnership);
+            // The view registered for the source row; the move removes the row it is keyed by.
+            NeoGeneratedClassValue? sourceView = null;
+            if (hadSourceOwnership
+                && client.TryGetValue(sourceOwnership, sourceValueId, out MemberValue? sourceRow)
+                && sourceRow is ObjectMemberValue sourceObject
+                && NeoGeneratedTypesSupport.ResolveClassValueClassId(client, sourceValueId, sourceObject) is { } classId)
+            {
+                client.TryGetGeneratedClassValue(
+                    NeoGeneratedTypesSupport.UnplacedClassMemberId(classId),
+                    sourceValueId,
+                    sourceOwnership,
+                    out sourceView);
+            }
             NeoShadowImport shadowed;
             HashSet<string>? movedIds;
             try
@@ -4538,8 +4552,19 @@ namespace NeoCompose.Runtime
                 {
                     if (movedIds is not null)
                         NSGetterEvaluator.RetargetCachedRowsAfterMove(ctx, sourceOwnership, ownership, movedIds);
-                    NSGetterEvaluator.RetargetCachedRowAfterShadow(ctx, sourceOwnership, sourceValueId, ownership, leafId);
-                    ctx.allocationTracker.RegisterShadowedRoot(sourceValueId, leafId);
+                    NeoScriptObject? moved = NSGetterEvaluator.RetargetCachedRowAfterShadow(
+                        ctx, value, sourceOwnership, sourceValueId, ownership, leafId);
+                    // Every C# view of the value retargets as the generated setter's does.
+                    NeoGeneratedClassValue? assignedView = value as NeoGeneratedClassValue;
+                    NeoValueWritePayload.RetargetMovedView(client, sourceView, member, leafId, ownership);
+                    if (!ReferenceEquals(assignedView, sourceView))
+                        NeoValueWritePayload.RetargetMovedView(client, assignedView, member, leafId, ownership);
+                    if (moved?.view is { } movedView
+                        && !ReferenceEquals(movedView, sourceView)
+                        && !ReferenceEquals(movedView, assignedView))
+                    {
+                        NeoValueWritePayload.RetargetMovedView(client, movedView, member, leafId, ownership);
+                    }
                 };
                 if (plan.HeldBy is not null)
                     plan.HeldBy.AfterCommit(retarget);
@@ -4991,7 +5016,7 @@ namespace NeoCompose.Runtime
                         {
                             if (parentOwnership == NeoValueOwnership.Asset)
                             {
-                                ShadowClassValueReference(plan, client, ownership, referenceId!, existing!, member, ctx);
+                                ShadowClassValueReference(plan, client, ownership, value, referenceId!, existing!, member, ctx);
                                 return;
                             }
                             string importedId = ImportClassValueReference(
