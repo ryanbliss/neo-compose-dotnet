@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.56.2] - 2026-10-04
+
+- NeoScript can assign a Class value to a Session or Save leaf of a static record, such as `this.Child.Shape = new ShapeBox { Width = 7 };`. Before, it threw "Cannot rebind 'Shape' on an immutable parent". It now does what the generated C# setter does: the value takes the leaf's own id in the leaf's store, and the record is not cloned. A local that held the value then reads and writes the leaf. The record must still author the leaf, even as `null` ([#243](https://github.com/ryanbliss/neo-compose-dotnet/issues/243)).
+- Generated smart tile assets load again. `NeoRuleTile` moved to its own `NeoRuleTile.cs`, so Unity finds its script. Before, each saved tile asset had no script, loaded as null, and every sync deleted and recreated it. The next sync replaces each broken asset once, so its GUID changes; after that, syncs reuse it ([#241](https://github.com/ryanbliss/neo-compose-dotnet/issues/241)).
+
 ## [0.56.1] - 2026-10-04
 
 - A stored `List` or `Dictionary`, or a `Where` over one, reaches C# as its entries' values. Before, C# got the entries' row ids when NeoScript passed one to a native function or returned one from a getter, function or `NeoDelegate`. A list of audio clips threw "Required AudioClip argument could not be resolved", and a list of strings read as ids.

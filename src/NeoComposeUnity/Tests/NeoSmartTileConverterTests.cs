@@ -442,7 +442,7 @@ namespace NeoCompose.Tests
             return sprite;
         }
 
-        private sealed class FakeSmartTile : INeoSmartTile
+        internal sealed class FakeSmartTile : INeoSmartTile
         {
             public string DefaultCollider
             {
@@ -455,7 +455,7 @@ namespace NeoCompose.Tests
             IReadOnlyList<INeoSmartTileRule> INeoSmartTile.Rules => Rules;
         }
 
-        private sealed class FakeSmartTileRule : INeoSmartTileRule
+        internal sealed class FakeSmartTileRule : INeoSmartTileRule
         {
             public List<INeoSmartTileNeighbor> Neighbors { get; } = new();
 
@@ -480,7 +480,7 @@ namespace NeoCompose.Tests
             IReadOnlyList<Sprite> INeoSmartTileRule.Sprites => Sprites;
         }
 
-        private sealed class FakeSmartTileNeighbor : INeoSmartTileNeighbor
+        internal sealed class FakeSmartTileNeighbor : INeoSmartTileNeighbor
         {
             public Vector2Int Cell
             {
@@ -495,7 +495,7 @@ namespace NeoCompose.Tests
             }
         }
 
-        private sealed class RecordingNeighborMatcher : INeoSmartTileNeighborMatcher
+        internal sealed class RecordingNeighborMatcher : INeoSmartTileNeighborMatcher
         {
             public List<NeoRuleTileNeighbor> Observed { get; } = new();
 

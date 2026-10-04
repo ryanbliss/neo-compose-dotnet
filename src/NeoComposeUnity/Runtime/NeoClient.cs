@@ -3815,18 +3815,20 @@ namespace NeoCompose.Runtime
         /// replaces the leaf at its own id in the writable store, keeping
         /// the leaf's identity fields.
         /// </summary>
+        /// <param name="movedValueIds">The rows the import moved to another store rather than copied; null when it didn't.</param>
         internal NeoShadowImport StageShadowImport(
             NeoWritePlan plan,
             NeoValueOwnership ownership,
             string sourceValueId,
             MemberValue existing,
-            Member member)
+            Member member,
+            out HashSet<string>? movedValueIds)
         {
             string importedValueId = ImportValueReference(
                 plan,
                 ownership,
                 sourceValueId,
-                out bool sourceMoved,
+                out movedValueIds,
                 existing.id);
             if (importedValueId == existing.id)
                 return NeoShadowImport.Unchanged;
@@ -3844,7 +3846,7 @@ namespace NeoCompose.Runtime
             shadow.createdAt = existing.createdAt;
             plan.Remove(ownership, importedValueId);
             StageInPlaceReplacement(plan, ownership, shadow, member);
-            return sourceMoved || importedValueId == sourceValueId
+            return movedValueIds is not null || importedValueId == sourceValueId
                 ? NeoShadowImport.Moved
                 : NeoShadowImport.Copied;
         }

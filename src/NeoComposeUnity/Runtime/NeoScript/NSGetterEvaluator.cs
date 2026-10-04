@@ -90,6 +90,9 @@ namespace NeoCompose.Runtime.NeoScript
         private Dictionary<string, string> constructedParentByChildId => _constructedParentByChildId ??= new();
         private HashSet<string>? _parentlessAllocatedRootIds;
         private HashSet<string> parentlessAllocatedRootIds => _parentlessAllocatedRootIds ??= new();
+        // Roots a write moved onto a static record's leaf, by the leaf id
+        // they took.
+        private Dictionary<string, string>? _shadowedRootIds;
         private int activeExecutions;
         private NeoTimestamp? constructionTimestamp;
 
@@ -124,9 +127,23 @@ namespace NeoCompose.Runtime.NeoScript
                 _completedAllocationRootIds?.Clear();
                 _constructedParentByChildId?.Clear();
                 _parentlessAllocatedRootIds?.Clear();
+                _shadowedRootIds?.Clear();
             }
             activeExecutions++;
         }
+
+        /// <summary>
+        /// Records that root <paramref name="rootId"/> now lives at
+        /// <paramref name="leafId"/>: a static record's leaf keeps its own id,
+        /// so an object attached to the root follows it there.
+        /// </summary>
+        internal void RegisterShadowedRoot(string rootId, string leafId) =>
+            (_shadowedRootIds ??= new(StringComparer.Ordinal))[rootId] = leafId;
+
+        /// <summary>The leaf id root <paramref name="rootId"/> moved to, or null when no shadow moved it.</summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal string? ShadowedRoot(string rootId) =>
+            _shadowedRootIds is not null && _shadowedRootIds.TryGetValue(rootId, out string? leafId) ? leafId : null;
 
         internal NeoTimestamp ConstructionTimestamp =>
             constructionTimestamp ??= NeoTimestamp.Now();
@@ -8916,26 +8933,56 @@ namespace NeoCompose.Runtime.NeoScript
                 RetargetCachedRow(
                     ctx,
                     sourceOwnership,
+                    rowId,
                     targetOwnership,
                     rowId);
             }
         }
 
+        /// <summary>
+        /// Retargets the cached CLR aliases of row <paramref name="sourceId"/>,
+        /// whose root a shadow import moved onto the leaf at
+        /// <paramref name="targetId"/>. A local that held the assigned value
+        /// then reads and writes the leaf, as the C# reference does.
+        /// </summary>
+        internal static void RetargetCachedRowAfterShadow(
+            Context ctx,
+            NeoValueOwnership sourceOwnership,
+            string sourceId,
+            NeoValueOwnership targetOwnership,
+            string targetId)
+        {
+            var aliases = new List<object>();
+            ctx.rowAliases.GetInto(sourceOwnership, sourceId, aliases);
+            foreach (object alias in aliases)
+            {
+                if (!ctx.rowReverseIndex.TryGetValue(alias, out RowReference row) || row.ownership != sourceOwnership)
+                    continue;
+                SetRowReference(ctx, alias, new RowReference(targetId, targetOwnership, row.classId, row.member));
+                // A record names its row by id, which a shadow changes.
+                if (alias is NeoObjectRecord record && record.valueId == sourceId)
+                    record.Rebind(targetId, targetOwnership);
+            }
+            RetargetCachedRow(ctx, sourceOwnership, sourceId, targetOwnership, targetId);
+        }
+
         private static void RetargetCachedRow(
             Context ctx,
             NeoValueOwnership sourceOwnership,
+            string sourceId,
             NeoValueOwnership targetOwnership,
-            string rowId)
+            string targetId)
         {
-            RowKey sourceRowKey = RowCacheRowKey(sourceOwnership, rowId);
+            RowKey sourceRowKey = RowCacheRowKey(sourceOwnership, sourceId);
             if (!ctx.rowCacheKeysByRow.TryGetValue(
                     sourceRowKey,
                     out HashSet<RowCacheKey>? sourceKeys))
             {
                 return;
             }
-            UnwrapMemo.Forget(ctx, rowId);
-            RowKey targetRowKey = RowCacheRowKey(targetOwnership, rowId);
+            UnwrapMemo.Forget(ctx, sourceId);
+            UnwrapMemo.Forget(ctx, targetId);
+            RowKey targetRowKey = RowCacheRowKey(targetOwnership, targetId);
             if (!ctx.rowCacheKeysByRow.TryGetValue(
                     targetRowKey,
                     out HashSet<RowCacheKey>? targetKeys))
@@ -8945,7 +8992,7 @@ namespace NeoCompose.Runtime.NeoScript
             }
             foreach (RowCacheKey sourceKey in sourceKeys.ToArray())
             {
-                RowCacheKey targetKey = new RowCacheKey(targetOwnership, sourceKey.rowId, sourceKey.memberId);
+                RowCacheKey targetKey = new RowCacheKey(targetOwnership, targetId, sourceKey.memberId);
                 if (ctx.rowUnwrapCache.TryGetValue(sourceKey, out object? cached))
                 {
                     ctx.rowUnwrapCache.Remove(sourceKey);
@@ -9049,11 +9096,18 @@ namespace NeoCompose.Runtime.NeoScript
         {
             public string? valueId
             {
-                get;
+                get; private set;
             }
             public NeoValueOwnership valueOwnership
             {
-                get;
+                get; private set;
+            }
+
+            /// <summary>Names the leaf a shadow moved this record's row onto.</summary>
+            internal void Rebind(string id, NeoValueOwnership ownership)
+            {
+                valueId = id;
+                valueOwnership = ownership;
             }
 
             /// <summary>

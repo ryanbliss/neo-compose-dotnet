@@ -38,7 +38,12 @@ namespace NeoCompose.Runtime.NeoScript
         internal static string AttachDetached(NeoScriptObject value, Context? ctx)
         {
             if (value.attachedId is string attached)
-                return attached;
+            {
+                // Only a root can move onto a leaf; an owned object can't be assigned.
+                return value.owner is null && value.tracker.ShadowedRoot(attached) is string leafId
+                    ? value.attachedId = leafId
+                    : attached;
+            }
             NeoScriptObject root = value;
             while (root.owner is not null)
                 root = root.owner;

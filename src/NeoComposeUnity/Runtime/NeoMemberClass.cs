@@ -1024,7 +1024,8 @@ namespace NeoCompose.Runtime
                             childOwnership,
                             setValue.valueId!,
                             existing,
-                            childMember);
+                            childMember,
+                            out _);
                         if (shadowed == NeoShadowImport.Moved)
                             RetargetMovedReferenceAfterCommit(plan, setValue, childMember, existingValueId, childOwnership);
                         plan.Commit();

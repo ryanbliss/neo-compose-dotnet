@@ -450,7 +450,9 @@ namespace NeoCompose.Unity.Editor
         {
             if (string.IsNullOrWhiteSpace(assetPath))
                 return;
-            if (AssetDatabase.LoadAssetAtPath<TileBase>(assetPath) != null)
+            // An asset whose script is missing doesn't load as a TileBase,
+            // and it still has to go.
+            if (AssetDatabase.AssetPathExists(assetPath))
             {
                 AssetDatabase.DeleteAsset(assetPath);
             }
