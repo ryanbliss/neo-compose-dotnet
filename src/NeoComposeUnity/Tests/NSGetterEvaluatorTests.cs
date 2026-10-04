@@ -878,23 +878,6 @@ namespace NeoCompose.Tests
             Assert.AreEqual(1, handler.CallCount);
         }
 
-        [Test]
-        public void ReadScriptList_ResolvesClassEntriesReturnedAsRowIds()
-        {
-            var client = LoadNativeFunctionClient(out ClassMember receiverMember);
-            var wrapper = FunctionTestValue.Create(
-                client,
-                (NeoMemberClass)NeoMember.Create(client, receiverMember, "v-native-receiver"));
-
-            IReadOnlyList<FunctionTestValue> entries = NeoGeneratedTypesSupport.ReadScriptList(
-                new List<object?> { "v-native-receiver" },
-                entry => NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass<FunctionTestValue>(
-                    client, entry, false, FunctionTestValue.Create, null));
-
-            Assert.AreEqual(1, entries.Count);
-            Assert.AreEqual("v-native-receiver", entries[0].valueId);
-        }
-
         private static FunctionWithReturnType PingGetter(string receiverValueId)
         {
             return new FunctionWithReturnType
@@ -1294,6 +1277,68 @@ namespace NeoCompose.Tests
                 client,
                 new TestGeneratedValue(client, writableNode));
         }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void Compute_StoredListResultHoldsEntryValues(bool where)
+        {
+            var client = LoadGeneratedValueSurfaceClient(
+                out ClassMember testMember,
+                out ObjectMemberValue readOnlyRow,
+                out _);
+            // A Where result holds its source's row ids too.
+            Pointer list = KeyOf(ThisPointer(), "List");
+            RequireMember<NSPropertyMember>(client, "member-getter").getter =
+                ReturnFunction(where ? KeepAll(list) : list, MemberKind.List);
+            var node = (NeoMemberClass)NeoMember.Create(client, testMember, readOnlyRow.id);
+            var getter = node.Get<NeoMemberNSProperty>("Getter");
+            var key = new NeoClient.GetterMemoKey(
+                NeoValueOwnership.Asset, readOnlyRow.id, "member-getter", NeoValueOwnership.Asset);
+
+            // The second read answers from the getter memo.
+            for (int read = 0; read < 2; read++)
+            {
+                NSGetterResult result = getter.Compute(readOnlyRow.id);
+                Assert.IsTrue(result.ok, result.error);
+                Assert.That(result.value, Is.EqualTo(new object?[] { "first", "second" }));
+            }
+
+            Assert.IsNotNull(client.FindMemoizedGetter(key));
+            client.SetSaveValue(StringValue("v-list-1", "changed"));
+            Assert.IsNull(client.FindMemoizedGetter(key), "A watch hears an entry change.");
+        }
+
+        // `collection.Where(entry => true)`.
+        private static FunctionPointer KeepAll(Pointer collection) => new FunctionPointer
+        {
+            type = PointerKind.Function,
+            function = new WhereFunction
+            {
+                type = FunctionKind.Where,
+                info = new FunctionCollectionBoolInfo
+                {
+                    collectionPointer = collection,
+                    function = new FunctionWithReturnType
+                    {
+                        compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                        parameters = new[]
+                        {
+                            new Variable
+                            {
+                                id = "entry",
+                                typeInfo = new PrimitiveTypeInfo { type = MemberKind.String, required = true },
+                                pointer = new VariablePointer { type = PointerKind.Variable, variableId = "entry" },
+                            },
+                        },
+                        typeInfo = new PrimitiveTypeInfo { type = MemberKind.Bool, required = true },
+                        instructions = new Instruction[]
+                        {
+                            new ReturnInstruction { type = InstructionKind.Return, pointer = BoolPointer(true) },
+                        },
+                    },
+                },
+            },
+        };
 
         [TestCase(NeoMemberSelectionKind.Single, false)]
         [TestCase(NeoMemberSelectionKind.Single, true)]

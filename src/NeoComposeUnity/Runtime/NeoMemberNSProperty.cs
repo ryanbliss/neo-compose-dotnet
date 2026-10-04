@@ -187,7 +187,7 @@ namespace NeoCompose.Runtime
                         if (NSGetterEvaluator.ResolveMemoizedList(hit.list, hit.listEntryMember, listCtx) is { } hitList)
                         {
                             client.ReplayGetterReads(hit);
-                            return NSGetterResult.Ok(hitList);
+                            return NSGetterResult.Ok(NSGetterEvaluator.ResolveHostCollection(hitList, listCtx));
                         }
                     }
                     else if (hit.row is null)
@@ -199,7 +199,8 @@ namespace NeoCompose.Runtime
                     {
                         client.ReplayGetterReads(hit);
                         var hitCtx = client.CreateGetterContext(ownership);
-                        return NSGetterResult.Ok(NSGetterEvaluator.UnwrapMemoizedRow(hitRow, hitCtx, hit.row));
+                        return NSGetterResult.Ok(NSGetterEvaluator.ResolveHostCollection(
+                            NSGetterEvaluator.UnwrapMemoizedRow(hitRow, hitCtx, hit.row), hitCtx));
                     }
                     client.ForgetMemoizedGetter(MemoKey(thisRow!));
                 }
@@ -242,6 +243,7 @@ namespace NeoCompose.Runtime
                 : default;
             NeoClient.GetterCaptureFrame capture = default;
             object? value = null;
+            object? hostValue = null;
             string? error = null;
             try
             {
@@ -250,6 +252,9 @@ namespace NeoCompose.Runtime
                 // its handlers there rather than on a fork, which would also
                 // keep the context out of the pool.
                 value = NSGetterEvaluator.Evaluate(getter, ctx, System.Array.Empty<object?>(), handlerFrame: -1);
+                // Inside the capture, so a watch hears a change to a stored
+                // collection's entries as well as to the collection.
+                hostValue = NSGetterEvaluator.ResolveHostCollection(value, ctx);
             }
             catch (NSGetterRuntimeError ex)
             {
@@ -297,8 +302,8 @@ namespace NeoCompose.Runtime
             client.DrainDeferredEffects();
             if (error is not null)
                 return NSGetterResult.Error(error);
-            client.ReturnDirectFunctionContext(ctx, value);
-            return NSGetterResult.Ok(value);
+            client.ReturnDirectFunctionContext(ctx, hostValue);
+            return NSGetterResult.Ok(hostValue);
         }
 
         private NeoClient.GetterMemoEntry? memoEntry;

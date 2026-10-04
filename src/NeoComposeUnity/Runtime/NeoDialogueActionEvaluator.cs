@@ -3041,6 +3041,9 @@ namespace NeoCompose.Runtime
             string resumeKey)
         {
             var suspension = new DeferredNativeFunctionSuspension(client);
+            // The caller passes its own copy of the arguments.
+            bool owned = true;
+            args = NSGetterEvaluator.ResolveHostArguments(args, ctx, ref owned);
             var deferredHandle = client.StartDeferredNativeFunction(
                 memberId,
                 receiver,

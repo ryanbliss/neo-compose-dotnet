@@ -36,7 +36,7 @@ namespace NeoCompose.Runtime
             var ctx = client.CreateGetterContext(ownership);
             ctx.BindRoot(NeoScriptValueMarshaller.ResolveRoot(client, ctx));
             ctx.BindThis(ResolveLexicalThis(ctx));
-            return InvokeCore(args, ctx).result;
+            return NSGetterEvaluator.ResolveHostCollection(InvokeCore(args, ctx).result, ctx);
         }
 
         public object? Invoke(string thisValueId, params object?[] args)
@@ -49,7 +49,7 @@ namespace NeoCompose.Runtime
             var ctx = client.CreateGetterContext(ownership);
             ctx.BindRoot(NeoScriptValueMarshaller.ResolveRoot(client, ctx));
             ctx.BindThis(NSGetterEvaluator.UnwrapRow(row, ctx, ownership));
-            return InvokeCore(args, ctx).result;
+            return NSGetterEvaluator.ResolveHostCollection(InvokeCore(args, ctx).result, ctx);
         }
 
         /// <summary>

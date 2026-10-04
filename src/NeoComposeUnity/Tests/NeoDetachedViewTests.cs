@@ -67,6 +67,21 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void ReturnedTemporary_GetterReturnsStoredListEntryValues()
+        {
+            NeoClient client = BuildClient();
+            TestLine line = ReadReport(client, EvaluateReport(client), out _).Lines[0];
+            int before = client.sessionValues.Count;
+
+            var choices = (object?[])line.StoredChoices!;
+
+            Assert.AreEqual(before, client.sessionValues.Count, "The read ran on the temporary.");
+            Assert.AreEqual(1, choices.Length);
+            Assert.IsNotInstanceOf<string>(choices[0], "C# gets the entry, not its row id.");
+            Assert.AreEqual("line-a", NeoGeneratedTypesSupport.ValueId(choices[0]));
+        }
+
+        [Test]
         public void GetterReturningATemporary_ReadsWithoutRows()
         {
             NeoClient client = BuildClient();
@@ -452,7 +467,7 @@ namespace NeoCompose.Tests
             Assert.IsNotNull(line.PendingValue, "An id needs the rows, not a node.");
             Assert.AreSame(line, NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(
                 client,
-                id,
+                Evaluate(client, LineType, new ReferencePointer { type = PointerKind.Reference, valueId = id }),
                 true,
                 null,
                 TestLine.CreateWritable,
@@ -1454,6 +1469,31 @@ namespace NeoCompose.Tests
                     },
                 },
             };
+            // `List<Line> StoredChoices => Assets.Choices;` on Line.
+            var choicesType = new CollectionTypeInfo { type = MemberKind.List, required = true, entryTypeInfo = LineType };
+            members["member-line-stored-choices"] = new NSPropertyMember
+            {
+                id = "member-line-stored-choices",
+                projectId = ProjectId,
+                name = "StoredChoices",
+                kind = MemberKind.NSProperty,
+                code = "return Assets.Choices;",
+                getter = new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = Array.Empty<Variable>(),
+                    typeInfo = choicesType,
+                    instructions = new Instruction[]
+                    {
+                        new ReturnInstruction
+                        {
+                            type = InstructionKind.Return,
+                            pointer = new ReferencePointer { type = PointerKind.Reference, valueId = "value-choices" },
+                        },
+                    },
+                },
+                returnTypeInfo = choicesType,
+            };
             // `class Pick { Line Choice; Mode Mode = .A; }`, Choice a lookup into an asset list of lines.
             members["member-choices"] = new ListMember
             {
@@ -1538,6 +1578,7 @@ namespace NeoCompose.Tests
                         ("Score", "member-line-score"),
                         ("Label", "member-line-label"),
                         ("Doubled", "member-line-doubled"),
+                        ("StoredChoices", "member-line-stored-choices"),
                         ("Summary", "member-line-summary"),
                         ("Scaled", "member-line-scaled"),
                         ("Digits", "member-line-digits")),
@@ -1749,6 +1790,8 @@ namespace NeoCompose.Tests
                     return Convert.ToInt32(result.value);
                 }
             }
+
+            public object? StoredChoices => ComputeProperty("StoredChoices").value;
 
             public int Scaled(int factor) => Convert.ToInt32(InvokeFunction("Scaled", (object?)factor));
 

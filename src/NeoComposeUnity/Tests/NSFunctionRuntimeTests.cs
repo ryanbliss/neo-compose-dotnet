@@ -291,6 +291,123 @@ namespace NeoCompose.Tests
             Assert.That(task.GetAwaiter().GetResult(), Is.EqualTo(12));
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void StoredCollectionsReachCSharpAsEntryValues(bool where)
+        {
+            // Stored collections hold child row ids, which only NeoScript resolves.
+            var word = new StringMember { id = "word", kind = MemberKind.String };
+            var words = new ListMember { id = "words", kind = MemberKind.List, entryMemberId = word.id };
+            var scores = new DictionaryMember { id = "scores", kind = MemberKind.Dictionary, entryMemberId = word.id };
+            var listType = new CollectionTypeInfo { type = MemberKind.List, required = true, entryTypeInfo = StringType() };
+            var listArgument = new FunctionArgumentTypeInfo
+            {
+                name = "words",
+                type = MemberKind.List,
+                required = true,
+                entryTypeInfo = StringType(),
+            };
+            var dictionaryArgument = new FunctionArgumentTypeInfo
+            {
+                name = "scores",
+                type = MemberKind.Dictionary,
+                required = true,
+                entryTypeInfo = StringType(),
+            };
+            var collect = NativeFunction("collect", "Collect", false);
+            collect.argumentTypes = new[] { listArgument, dictionaryArgument };
+            var collectLater = NativeFunction("collect-later", "CollectLater", true);
+            collectLater.argumentTypes = new[] { listArgument };
+            CallFunctionPointer collectCall = Call(collect.id, "collect");
+            collectCall.args = new Pointer[] { Key(Variable("__this__"), "Words"), Key(Variable("__this__"), "Scores") };
+            CallFunctionPointer collectLaterCall = Call(collectLater.id, "collect-later");
+            collectLaterCall.args = new Pointer[] { Key(Variable("__this__"), "Words") };
+            // A Where result holds its source's row ids too.
+            Pointer returned = where ? KeepAll(Key(Variable("__this__"), "Words"), StringType()) : Key(Variable("__this__"), "Words");
+            var function = ScriptFunction("words-of", "WordsOf", true, listType, Array.Empty<FunctionArgumentTypeInfo>(),
+                Action(listType, Array.Empty<FunctionArgumentTypeInfo>(),
+                    VariableDeclaration("now", collectCall, IntType()),
+                    VariableDeclaration("later", collectLaterCall, IntType()),
+                    Return(returned)));
+            var words2 = ScriptFunction("words2", "Words2", false, listType, Array.Empty<FunctionArgumentTypeInfo>(),
+                Action(listType, Array.Empty<FunctionArgumentTypeInfo>(), Return(returned)));
+            var wordsDelegate = new DelegateMember
+            {
+                id = "words-delegate",
+                projectId = ProjectId,
+                name = "WordsDelegate",
+                kind = MemberKind.NSDelegate,
+                returnTypeInfo = listType,
+                argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
+                defaultValue = new DelegateMemberValueBase
+                {
+                    value = new NeoDelegateValue { memberId = words2.id, valueId = "receiver-value" },
+                },
+            };
+            var receiver = ObjectValue("receiver-value", "receiver-class");
+            receiver.value!["Words"] = "words-value";
+            receiver.value["Scores"] = "scores-value";
+            using var client = BuildClient(new JsonMember[] { word, words, scores, collect, collectLater, function, words2, wordsDelegate },
+                ReceiverClass(("Words", words.id), ("Scores", scores.id), ("WordsOf", function.id), ("Words2", words2.id)),
+                additionalValues: new MemberValue[]
+                {
+                    receiver,
+                    new ArrayMemberValue { id = "words-value", value = new[] { "word-1", "word-2" } },
+                    new ObjectMemberValue { id = "scores-value", value = new Dictionary<string, string> { ["best"] = "word-2" } },
+                    new StringMemberValue { id = "word-1", value = "first" },
+                    new StringMemberValue { id = "word-2", value = "second" },
+                });
+            var received = new List<object?>();
+            client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+            {
+                [collect.id] = (_, _, args) =>
+                {
+                    received.Add(args[0]);
+                    received.Add(args[1]);
+                    return 0;
+                },
+            });
+            client.RegisterDeferredNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
+            {
+                [collectLater.id] = (_, _, args, handle) =>
+                {
+                    received.Add(args[0]);
+                    NeoGeneratedTypesSupport.ResolveDeferredFunction<NeoDeferredFunction<int>>(handle, collectLater.name).Complete(0);
+                },
+            });
+
+            object? result = new NeoMemberNSFunction(client, function, null)
+                .InvokeAsync(receiver.id, Array.Empty<object?>()).GetAwaiter().GetResult();
+
+            var expected = new object?[] { "first", "second" };
+            Assert.That(received[0], Is.EqualTo(expected));
+            Assert.That(received[1], Is.EqualTo(new Dictionary<string, object?> { ["best"] = "second" }));
+            Assert.That(received[2], Is.EqualTo(expected));
+            Assert.That(result, Is.EqualTo(expected));
+            Assert.That(new NeoMemberDelegate(client, wordsDelegate, null).Invoke(), Is.EqualTo(expected));
+        }
+
+        // `collection.Where(entry => true)`.
+        private static FunctionPointer KeepAll(Pointer collection, TypeInfo entryType) => new()
+        {
+            type = PointerKind.Function,
+            function = new WhereFunction
+            {
+                type = FunctionKind.Where,
+                info = new FunctionCollectionBoolInfo
+                {
+                    collectionPointer = collection,
+                    function = new FunctionWithReturnType
+                    {
+                        compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                        parameters = new[] { Parameter("entry", entryType) },
+                        typeInfo = new PrimitiveTypeInfo { type = MemberKind.Bool, required = true },
+                        instructions = new Instruction[] { Return(Boolean(true)) },
+                    },
+                },
+            },
+        };
+
         [TestCase(0)]
         [TestCase(16)]
         public void AllocationExperiment_NumericLocals(int locals)
