@@ -7912,6 +7912,9 @@ namespace NeoCompose.Runtime
                             color,
                             c => NeoColorValues.FromColor(c));
                     }
+                case MemberKind.Float:
+                    // NeoScript numbers travel as double; a float widens exactly.
+                    return value is float single ? (double)single : value;
                 case MemberKind.Decimal:
                     {
                         // Decimal values travel through the evaluator as canonical

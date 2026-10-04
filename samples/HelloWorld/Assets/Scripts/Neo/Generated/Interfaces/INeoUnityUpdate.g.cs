@@ -19,6 +19,6 @@ namespace HelloWorld.Assets.Scripts.Neo
         /// <summary>
         /// Called every frame with Time.deltaTime in seconds. Prefer effects for reacting to data changes.
         /// </summary>
-        void Update(double deltaTime);
+        void Update(float deltaTime);
     }
 }

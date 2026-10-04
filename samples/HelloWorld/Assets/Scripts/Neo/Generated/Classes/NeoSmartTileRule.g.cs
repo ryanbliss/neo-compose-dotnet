@@ -23,9 +23,9 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         new NeoSmartTileCollider Collider { get; }
 
-        new double MaxAnimationSpeed { get; }
+        new float MaxAnimationSpeed { get; }
 
-        new double MinAnimationSpeed { get; }
+        new float MinAnimationSpeed { get; }
 
         new NeoReadOnlyList<IReadOnlyNeoSmartTileNeighbor> Neighbors { get; }
 
@@ -48,12 +48,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public NeoSmartTileRule(NeoSmartTileCollider? Collider = null, double? MaxAnimationSpeed = null, double? MinAnimationSpeed = null, IEnumerable<NeoSmartTileNeighbor>? Neighbors = null, NeoSmartTileOutput? Output = null, NeoSmartTileTransform? RuleTransform = null, IEnumerable<Sprite>? Sprites = null)
+        public NeoSmartTileRule(NeoSmartTileCollider? Collider = null, float? MaxAnimationSpeed = null, float? MinAnimationSpeed = null, IEnumerable<NeoSmartTileNeighbor>? Neighbors = null, NeoSmartTileOutput? Output = null, NeoSmartTileTransform? RuleTransform = null, IEnumerable<Sprite>? Sprites = null)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Collider, MaxAnimationSpeed, MinAnimationSpeed, Neighbors, Output, RuleTransform, Sprites), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(NeoSmartTileCollider? Collider = null, double? MaxAnimationSpeed = null, double? MinAnimationSpeed = null, IEnumerable<NeoSmartTileNeighbor>? Neighbors = null, NeoSmartTileOutput? Output = null, NeoSmartTileTransform? RuleTransform = null, IEnumerable<Sprite>? Sprites = null)
+        private static NeoMemberClassWritable CreateFactoryNode(NeoSmartTileCollider? Collider = null, float? MaxAnimationSpeed = null, float? MinAnimationSpeed = null, IEnumerable<NeoSmartTileNeighbor>? Neighbors = null, NeoSmartTileOutput? Output = null, NeoSmartTileTransform? RuleTransform = null, IEnumerable<Sprite>? Sprites = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
@@ -123,8 +123,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         string INeoSmartTileRule.Output => Output.optionId;
         string INeoSmartTileRule.Collider => Collider.optionId;
         string INeoSmartTileRule.RuleTransform => RuleTransform.optionId;
-        double INeoSmartTileRule.MinAnimationSpeed => MinAnimationSpeed;
-        double INeoSmartTileRule.MaxAnimationSpeed => MaxAnimationSpeed;
+        float INeoSmartTileRule.MinAnimationSpeed => MinAnimationSpeed;
+        float INeoSmartTileRule.MaxAnimationSpeed => MaxAnimationSpeed;
 
         public virtual NeoSmartTileCollider Collider
         {
@@ -139,27 +139,27 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public virtual double MaxAnimationSpeed
+        public virtual float MaxAnimationSpeed
         {
             get
             {
                 if (TryReadDetached("MaxAnimationSpeed", out object? detachedValue))
                 {
-                    return Convert.ToDouble(detachedValue);
+                    return Convert.ToSingle(detachedValue);
                 }
-                return node.Get<NeoMemberFloat>("MaxAnimationSpeed").value?.value ?? throw new InvalidOperationException("Required float 'MaxAnimationSpeed' has no value.");
+                return (float)(node.Get<NeoMemberFloat>("MaxAnimationSpeed").value?.value ?? throw new InvalidOperationException("Required float 'MaxAnimationSpeed' has no value."));
             }
         }
 
-        public virtual double MinAnimationSpeed
+        public virtual float MinAnimationSpeed
         {
             get
             {
                 if (TryReadDetached("MinAnimationSpeed", out object? detachedValue))
                 {
-                    return Convert.ToDouble(detachedValue);
+                    return Convert.ToSingle(detachedValue);
                 }
-                return node.Get<NeoMemberFloat>("MinAnimationSpeed").value?.value ?? throw new InvalidOperationException("Required float 'MinAnimationSpeed' has no value.");
+                return (float)(node.Get<NeoMemberFloat>("MinAnimationSpeed").value?.value ?? throw new InvalidOperationException("Required float 'MinAnimationSpeed' has no value."));
             }
         }
 
@@ -220,9 +220,9 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<NeoSmartTileCollider> Collider = new("Collider");
 
-            public static readonly NeoField<double> MaxAnimationSpeed = new("MaxAnimationSpeed");
+            public static readonly NeoField<float> MaxAnimationSpeed = new("MaxAnimationSpeed");
 
-            public static readonly NeoField<double> MinAnimationSpeed = new("MinAnimationSpeed");
+            public static readonly NeoField<float> MinAnimationSpeed = new("MinAnimationSpeed");
 
             public static readonly NeoField<NeoList<NeoSmartTileNeighbor>> Neighbors = new("Neighbors");
 

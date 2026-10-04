@@ -19,6 +19,6 @@ namespace HelloWorld.Assets.Scripts.Neo
         /// <summary>
         /// Called every frame after positions are written back, with Time.deltaTime in seconds.
         /// </summary>
-        void LateUpdate(double deltaTime);
+        void LateUpdate(float deltaTime);
     }
 }

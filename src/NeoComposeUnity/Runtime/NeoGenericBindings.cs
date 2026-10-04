@@ -380,26 +380,31 @@ namespace NeoCompose.Runtime
 
         private static NeoGenericBinding<T> FloatCodec<T>(Member member)
         {
-            if (typeof(T) == typeof(double?))
+            // Payloads stay double, the evaluator's number type; a float
+            // widens exactly.
+            if (typeof(T) == typeof(float?))
             {
-                return Adapt<T, double?>(new NeoGenericBinding<double?>(
+                return Adapt<T, float?>(new NeoGenericBinding<float?>(
                     MemberKind.Float,
-                    node => RequireNode<NeoMemberFloat>(node, member).value?.value,
-                    (node, v) => RequireWritable<NeoMemberFloatWritable>(node, member)
-                        .Set(v.HasValue ? (float?)v.Value : null),
-                    v => NeoValueWritePayload.FromValue(v)));
+                    node => ReadFloat(node, member),
+                    (node, v) => RequireWritable<NeoMemberFloatWritable>(node, member).Set(v),
+                    v => NeoValueWritePayload.FromValue(v.HasValue ? (double?)v.Value : null)));
             }
-            if (typeof(T) == typeof(double))
+            if (typeof(T) == typeof(float))
             {
-                return Adapt<T, double>(new NeoGenericBinding<double>(
+                return Adapt<T, float>(new NeoGenericBinding<float>(
                     MemberKind.Float,
-                    node => RequireNode<NeoMemberFloat>(node, member).value?.value
-                        ?? throw MissingValue<T>(member),
-                    (node, v) => RequireWritable<NeoMemberFloatWritable>(node, member)
-                        .Set((float)v),
-                    v => NeoValueWritePayload.FromValue(v)));
+                    node => ReadFloat(node, member) ?? throw MissingValue<T>(member),
+                    (node, v) => RequireWritable<NeoMemberFloatWritable>(node, member).Set(v),
+                    v => NeoValueWritePayload.FromValue((double)v)));
             }
-            throw Mismatch<T>(member, "double' or 'double?");
+            throw Mismatch<T>(member, "float' or 'float?");
+        }
+
+        private static float? ReadFloat(NeoMember node, Member member)
+        {
+            var raw = RequireNode<NeoMemberFloat>(node, member).value?.value;
+            return raw.HasValue ? (float)raw.Value : null;
         }
 
         private static NeoGenericBinding<T> DecimalCodec<T>(Member member)

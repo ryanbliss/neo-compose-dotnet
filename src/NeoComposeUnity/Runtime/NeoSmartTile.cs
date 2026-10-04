@@ -76,12 +76,12 @@ namespace NeoCompose.Runtime
             get;
         }
 
-        double MinAnimationSpeed
+        float MinAnimationSpeed
         {
             get;
         }
 
-        double MaxAnimationSpeed
+        float MaxAnimationSpeed
         {
             get;
         }
@@ -540,9 +540,9 @@ namespace NeoCompose.Runtime
             return fallback;
         }
 
-        private static float ToAnimationSpeed(double value)
+        private static float ToAnimationSpeed(float value)
         {
-            return Mathf.Max(0f, (float)value);
+            return Mathf.Max(0f, value);
         }
 
         private static RuleTile.TilingRuleOutput.OutputSprite ToUnityOutput(

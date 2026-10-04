@@ -8022,9 +8022,9 @@ namespace NeoCompose.Tests
             } =
                 NeoSmartTileOptionIds.TransformFixed;
 
-            public double MinAnimationSpeed { get; set; } = 1d;
+            public float MinAnimationSpeed { get; set; } = 1f;
 
-            public double MaxAnimationSpeed { get; set; } = 1d;
+            public float MaxAnimationSpeed { get; set; } = 1f;
 
             IReadOnlyList<INeoSmartTileNeighbor> INeoSmartTileRule.Neighbors => Neighbors;
 

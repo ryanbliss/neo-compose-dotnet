@@ -25,7 +25,7 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         int Value { get; }
 
-        double? Weight { get; }
+        float? Weight { get; }
     }
 
     public partial class Item : NeoGeneratedClassValue, IReadOnlyItem
@@ -40,12 +40,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public Item(string? Name = null, int? Value = null, double? Weight = null)
+        public Item(string? Name = null, int? Value = null, float? Weight = null)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Value, Weight), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(string? Name = null, int? Value = null, double? Weight = null)
+        private static NeoMemberClassWritable CreateFactoryNode(string? Name = null, int? Value = null, float? Weight = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
@@ -130,15 +130,15 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public virtual double? Weight
+        public virtual float? Weight
         {
             get
             {
                 if (TryReadDetached("Weight", out object? detachedValue))
                 {
-                    return detachedValue is null ? (double?)null : Convert.ToDouble(detachedValue);
+                    return detachedValue is null ? (float?)null : Convert.ToSingle(detachedValue);
                 }
-                return node.Get<NeoMemberFloat>("Weight").value?.value;
+                return (float?)node.Get<NeoMemberFloat>("Weight").value?.value;
             }
         }
 
@@ -150,7 +150,7 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<int> Value = new("Value");
 
-            public static readonly NeoField<double?> Weight = new("Weight");
+            public static readonly NeoField<float?> Weight = new("Weight");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()

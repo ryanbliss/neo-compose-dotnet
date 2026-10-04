@@ -247,6 +247,12 @@ namespace NeoCompose.Tests
                     ? destination + new Vector3(cell.Value.x, cell.Value.y, 0)
                     : destination;
             }
+
+            public float Total(IReadOnlyList<float> amounts, IReadOnlyDictionary<string, float>? scales)
+            {
+                float scale = scales is not null && scales.TryGetValue("all", out float all) ? all : 1f;
+                return amounts.Sum() * scale;
+            }
         }
 
         private sealed class DeferredTransformHandler : IGenericFunctionContractFunctionHandler<Hero>
@@ -766,6 +772,26 @@ namespace NeoCompose.Tests
             var moved = hero.MoveTo(new Vector3(1, 2, 3), new Vector2Int(4, 5));
 
             Assert.AreEqual(new Vector3(5, 7, 3), moved);
+        }
+
+        [Test]
+        public void GeneratedNativeFunction_ReadsScriptCollectionArguments()
+        {
+            var app = LoadGeneratedClient(out _);
+            var hero = (Hero)app.ResolveValue("v-dict")!;
+            hero.FunctionHandler = new VectorFunctionHandler();
+
+            // NeoScript hands natives its own collections, holding doubles.
+            object? total = app.Client.InvokeNativeFunction(
+                "member-total",
+                hero,
+                new object?[]
+                {
+                    new List<object?> { 1.5d, 2.25d },
+                    new Dictionary<string, object?> { ["all"] = 2d },
+                });
+
+            Assert.AreEqual(7.5d, total);
         }
 
         [Test]

@@ -19,6 +19,6 @@ namespace HelloWorld.Assets.Scripts.Neo
         /// <summary>
         /// Called every physics step with Time.fixedDeltaTime in seconds.
         /// </summary>
-        void FixedUpdate(double deltaTime);
+        void FixedUpdate(float deltaTime);
     }
 }

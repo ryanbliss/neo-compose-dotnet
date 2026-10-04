@@ -11,7 +11,7 @@ using UnityEngine;
 
 namespace Assets.Scripts.Neo
 {
-    public interface IReadOnlyGenericFloatPayload : IReadOnlyGenericPayload<double>
+    public interface IReadOnlyGenericFloatPayload : IReadOnlyGenericPayload<float>
     {
         new bool IsReadOnly { get; }
 
@@ -22,19 +22,19 @@ namespace Assets.Scripts.Neo
         bool TryWritable(out GenericFloatPayload writable);
     }
 
-    public partial class GenericFloatPayload : GenericPayload<double>, IReadOnlyGenericFloatPayload
+    public partial class GenericFloatPayload : GenericPayload<float>, IReadOnlyGenericFloatPayload
     {
         internal GenericFloatPayload(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, isReadOnly, inheritedStorageOwnership)
         {
         }
 
-        public GenericFloatPayload(double Value)
+        public GenericFloatPayload(float Value)
             : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Value), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(double Value)
+        private static NeoMemberClassWritable CreateFactoryNode(float Value)
         {
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
@@ -92,7 +92,7 @@ namespace Assets.Scripts.Neo
         {
             private Fields() {}
 
-            public static readonly NeoField<double> Value = new("Value");
+            public static readonly NeoField<float> Value = new("Value");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()

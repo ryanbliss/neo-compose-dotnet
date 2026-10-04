@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.56.0] - 2026-10-04
+
+- NeoScript `float` is a C# `float`. Generated members, constructor parameters, function parameters and returns, generic bindings, and lifecycle hooks such as `Update(float deltaTime)` use `float` where they used `double`. `INeoSmartTileRule.MinAnimationSpeed` and `MaxAnimationSpeed` are `float`. Requires CLI 0.67.0; regenerate after upgrading.
+- Float arithmetic rounds to 32 bits after every step, matching the web evaluator, as do `Math.Sqrt` and `ToFloat`. `int` division truncates toward zero, so `7 / 2` is `3`. Before, it returned `3.5`. Compiler revision 17; re-export from a deployment at revision 17.
+- A native function with a `List` or `Dictionary` parameter receives the collection. Before, generated code cast NeoScript's list straight to `IReadOnlyList<T>` and threw `InvalidCastException`.
+- A native function declared to return `float` hands NeoScript a `double` widened from that float, so its result compares equal to the same NeoScript value.
+
 ## [0.55.0] - 2026-10-03
 
 - P98 lifecycle hooks. A class that implements a `@system(kind: .ScriptRuntime)` interface gets that hook called on each instance. Requires schema 34 and CLI 0.66.0. `OnLoad` runs when an instance becomes live and `OnUnload` when it stops, including at client disposal. A rendered object gets Unity's `Awake`, `OnEnable`, `Start`, `FixedUpdate`, `Update`, `LateUpdate`, `OnDisable`, `OnDestroy`, `OnApplicationPause` and `OnApplicationQuit`, plus the 2D trigger and collision messages. Unity hooks run in play mode only.
