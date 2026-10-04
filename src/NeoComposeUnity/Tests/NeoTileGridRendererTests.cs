@@ -716,7 +716,7 @@ namespace NeoCompose.Tests
                 objectLayers: new[] { new NeoObjectLayerChangedArgs(ObjectsLayerClassId, Array.Empty<NeoObjectInstanceId>(),
                     Array.Empty<NeoObjectInstanceId>(), new[] { changed }, NeoTileGridChangeSourceKind.Direct, null) }));
 
-            client.StartEffects();
+            client.StartScriptRuntime();
             CollectionAssert.AreEqual(new[] { 1 }, heard, "Starting runs the placed object's effect once.");
             Change(new Vector2Int(99, 99));
             CollectionAssert.AreEqual(new[] { 1 }, heard, "A change to a cell the effect never queried does not run it.");

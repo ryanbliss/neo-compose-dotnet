@@ -273,7 +273,7 @@ namespace NeoCompose.Tests
             NeoStaticBinding binding = NeoGeneratedTypesSupport.StaticBinding(client, "static-score", NeoValueOwnership.Save);
             binding.SetValue(NeoGeneratedTypesSupport.Value(12));
 
-            client.StartEffects();
+            client.StartScriptRuntime();
             CollectionAssert.AreEqual(new int?[] { 12 }, heard);
             binding.Clear();
             binding.SetValue(NeoGeneratedTypesSupport.Value(7));

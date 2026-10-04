@@ -49,4 +49,17 @@ namespace NeoCompose.Runtime
         {
         }
     }
+
+    /// <summary>
+    /// Logged, never thrown, when a lifecycle hook fails (P98 §2.5). Names the
+    /// hook's class, member and instance; the run's own exception is the
+    /// inner exception.
+    /// </summary>
+    public sealed class NeoLifecycleHookException : NeoEffectException
+    {
+        public NeoLifecycleHookException(string classId, string memberId, string instanceId, string message, Exception inner)
+            : base(classId, memberId, instanceId, message, inner)
+        {
+        }
+    }
 }

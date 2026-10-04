@@ -51,7 +51,7 @@ namespace NeoCompose.Runtime
     /// collider-shape mapping are layered on top of this primitive renderer.
     /// </summary>
     [DisallowMultipleComponent]
-    public sealed class NeoTileGridRenderer : MonoBehaviour
+    public sealed partial class NeoTileGridRenderer : MonoBehaviour
     {
         [SerializeField]
         private Grid? unityGrid;
@@ -171,6 +171,11 @@ namespace NeoCompose.Runtime
                 get; set;
             }
             public NestedObjectPositionBinding? PositionBinding
+            {
+                get; set;
+            }
+            /// <summary>What NeoScript has seen of the GameObject, when its class has a Unity hook.</summary>
+            public NeoLifecycleEntry? Lifecycle
             {
                 get; set;
             }
@@ -541,6 +546,11 @@ namespace NeoCompose.Runtime
                 this.sortPoint = sortPoint;
             }
 
+            public INeoColliderSource Source => source;
+
+            /// <summary>The component, once the value first carried a collider.</summary>
+            public BoxCollider2D? Collider => collider;
+
             /// <summary>Re-reads the value's collider, skipped when it is unchanged.</summary>
             public void Sync(float cellSize)
             {
@@ -833,12 +843,7 @@ namespace NeoCompose.Runtime
             {
                 bool clientChanged = TileCacheBelongsToAnotherClient(primitive.Client);
                 if (clearBeforeRender || clientChanged)
-                {
-                    NotifyRenderedObjectsDespawned();
-                    DestroyAllTileTargets(NeoTileLayerRenderTargetDestroyReason.Replaced);
-                    ClearChildren(grid.transform);
-                    ClearRenderedIndexes();
-                }
+                    TearDownRendered(grid.transform, NeoTileLayerRenderTargetDestroyReason.Replaced);
                 // Set after the clear, so its despawn hooks resolve links
                 // through the primitive that drew them.
                 renderedPrimitive = primitive;
@@ -897,8 +902,7 @@ namespace NeoCompose.Runtime
                         {
                             if (!ShouldRenderObjectInstance(layer, obj))
                                 continue;
-                            objectRootsByInstanceId[obj.InstanceId] =
-                                SpawnObject(root.transform, layer, obj, layerFallbackSortingOrder);
+                            SpawnObject(root.transform, layer, obj, layerFallbackSortingOrder);
                         }
                     }
                 }
@@ -1030,10 +1034,7 @@ namespace NeoCompose.Runtime
                 {
                     bool needsDestroyFrame = grid.transform.childCount > 0
                         || tileTargetsByLayerId.Count > 0;
-                    NotifyRenderedObjectsDespawned();
-                    DestroyAllTileTargets(NeoTileLayerRenderTargetDestroyReason.Replaced);
-                    ClearChildren(grid.transform);
-                    ClearRenderedIndexes();
+                    TearDownRendered(grid.transform, NeoTileLayerRenderTargetDestroyReason.Replaced);
                     renderedPrimitive = primitive;
                     EnsureTileCacheClient(primitive.Client);
                     if (needsDestroyFrame)
@@ -1128,8 +1129,7 @@ namespace NeoCompose.Runtime
                                 await YieldRenderFrameAsync();
                             if (!ShouldRenderObjectInstance(layer, obj))
                                 continue;
-                            objectRootsByInstanceId[obj.InstanceId] =
-                                SpawnObject(root.transform, layer, obj, layerFallbackSortingOrder);
+                            SpawnObject(root.transform, layer, obj, layerFallbackSortingOrder);
                             objectsThisFrame++;
                         }
                     }
@@ -1151,12 +1151,7 @@ namespace NeoCompose.Runtime
         {
             CancelInFlightRender();
             StopLiveSync();
-            NotifyRenderedObjectsDespawned();
-            currentContent = null;
-            renderedPrimitive = null;
-            DestroyAllTileTargets(NeoTileLayerRenderTargetDestroyReason.RendererCleared);
-            ClearChildren(EnsureGrid().transform);
-            ClearRenderedIndexes();
+            TearDownRendered(EnsureGrid().transform, NeoTileLayerRenderTargetDestroyReason.RendererCleared, forgetContent: true);
             ClearTileBaseCache();
         }
 
@@ -1173,9 +1168,7 @@ namespace NeoCompose.Runtime
         {
             CancelInFlightRender();
             StopLiveSync();
-            NotifyRenderedObjectsDespawned();
-            DestroyAllTileTargets(NeoTileLayerRenderTargetDestroyReason.RendererDestroyed);
-            ClearRenderedIndexes();
+            TearDownRendered(null, NeoTileLayerRenderTargetDestroyReason.RendererDestroyed);
             ClearTileBaseCache();
         }
 
@@ -1292,6 +1285,19 @@ namespace NeoCompose.Runtime
         }
 
         private void HandleGridChanged(NeoTileGridChangedArgs args)
+        {
+            NeoClient? held = HoldLifecycle();
+            try
+            {
+                ApplyGridChange(args);
+            }
+            finally
+            {
+                held?.ReleaseGetterChanges();
+            }
+        }
+
+        private void ApplyGridChange(NeoTileGridChangedArgs args)
         {
             if (currentContent == null)
                 return;
@@ -1440,8 +1446,7 @@ namespace NeoCompose.Runtime
                     continue;
                 }
                 DestroyRenderedObject(instanceId);
-                objectRootsByInstanceId[instanceId] =
-                    SpawnObject(root.transform, layer, resolved, fallbackSortingOrder);
+                SpawnObject(root.transform, layer, resolved, fallbackSortingOrder);
             }
         }
 
@@ -1479,30 +1484,33 @@ namespace NeoCompose.Runtime
 
         private void DestroyRenderedObject(NeoObjectInstanceId instanceId)
         {
-            DisposeObjectPositionSubscription(instanceId);
-            objectShapesByInstanceId.Remove(instanceId);
-            objectSpritesByInstanceId.Remove(instanceId);
-            objectCollidersByInstanceId.Remove(instanceId);
-            objectVisibilityByInstanceId.Remove(instanceId, out var visibility);
-            if (!objectRootsByInstanceId.TryGetValue(instanceId, out var root) ||
-                root == null)
+            NeoClient? held = HoldLifecycle();
+            try
             {
-                objectRootsByInstanceId.Remove(instanceId);
+                DisposeObjectPositionSubscription(instanceId);
+                objectShapesByInstanceId.Remove(instanceId);
+                objectSpritesByInstanceId.Remove(instanceId, out var sprites);
+                objectCollidersByInstanceId.Remove(instanceId, out var colliders);
+                objectVisibilityByInstanceId.Remove(instanceId, out var visibility);
+                DespawnLifecycle(visibility, sprites, colliders);
+                objectRootsByInstanceId.Remove(instanceId, out var root);
+                // Explicit despawn notification while the root is still intact;
+                // NeoObjectBehaviour.OnDestroy is only the fallback for destroy
+                // paths that bypass the renderer. TryGetGameObject still answers
+                // for this object until the hook returns.
+                if (root != null && root.TryGetComponent(out NeoObjectBehaviour behaviour))
+                {
+                    behaviour.NotifyDespawned();
+                }
                 visibility?.Dispose();
-                return;
+                if (root != null)
+                    DestroyCompositionRoot(root);
+                UnindexColliders(sprites, colliders);
             }
-
-            objectRootsByInstanceId.Remove(instanceId);
-            // Explicit despawn notification while the root is still intact;
-            // NeoObjectBehaviour.OnDestroy is only the fallback for destroy
-            // paths that bypass the renderer. TryGetGameObject still answers
-            // for this object until the hook returns.
-            if (root.TryGetComponent(out NeoObjectBehaviour behaviour))
+            finally
             {
-                behaviour.NotifyDespawned();
+                held?.ReleaseGetterChanges();
             }
-            visibility?.Dispose();
-            DestroyCompositionRoot(root);
         }
 
         /// <summary>
@@ -1531,17 +1539,27 @@ namespace NeoCompose.Runtime
             {
                 if (!objectRootsByInstanceId.TryGetValue(instanceId, out var rendered) || rendered == null)
                     return;
-                if (sortPointDirty)
-                    sortPoint!.Apply();
-                if (positionDirty || sortPointDirty)
-                    placed.Refresh();
-                if (visibilityDirty)
-                    SyncObjectVisibility(instanceId);
-                if (spritesDirty)
-                    SyncObjectSprites(instanceId);
-                if (collidersDirty)
-                    SyncObjectColliders(instanceId);
-                positionDirty = sortPointDirty = visibilityDirty = spritesDirty = collidersDirty = false;
+                // SetActive and collider changes raise physics exits, which
+                // queue until the refresh is done.
+                NeoClient? held = HoldLifecycle();
+                try
+                {
+                    if (sortPointDirty)
+                        sortPoint!.Apply();
+                    if (positionDirty || sortPointDirty)
+                        placed.Refresh();
+                    if (visibilityDirty)
+                        SyncObjectVisibility(instanceId);
+                    if (spritesDirty)
+                        SyncObjectSprites(instanceId);
+                    if (collidersDirty)
+                        SyncObjectColliders(instanceId);
+                    positionDirty = sortPointDirty = visibilityDirty = spritesDirty = collidersDirty = false;
+                }
+                finally
+                {
+                    held?.ReleaseGetterChanges();
+                }
             }
             Action refresh = RefreshRendering;
             void Changed(NeoGeneratedClassValue changedValue, NeoMember changedMember)
@@ -1688,6 +1706,8 @@ namespace NeoCompose.Runtime
             foreach (var placed in movedPlacements)
                 placed.WriteBack();
             movedPlacements.Clear();
+            // P98: LateUpdate hooks read the Positions just written back.
+            RunLifecyclePhase(NeoLifecyclePhases.LateUpdate, Time.deltaTime);
         }
 
         /// <summary>
@@ -1781,8 +1801,14 @@ namespace NeoCompose.Runtime
         {
             if (!objectCollidersByInstanceId.TryGetValue(instanceId, out var colliders))
                 return;
+            // A value that first carries a collider now gets its component, which `other` must resolve.
+            NeoClient? physics = tileCacheClient is { PhysicsHooksActive: true } client ? client : null;
             foreach (var collider in colliders)
+            {
                 collider.Sync(cellSize);
+                if (physics is not null)
+                    IndexCollider(physics, collider);
+            }
         }
 
         /// <summary>
@@ -1844,6 +1870,7 @@ namespace NeoCompose.Runtime
                 return;
             }
 
+            bool flipped = false;
             foreach (var bucket in visibility.Buckets)
             {
                 var enabled = bucket.Value.Enabled;
@@ -1856,7 +1883,11 @@ namespace NeoCompose.Runtime
                 if (gameObject == null || gameObject.activeSelf == enabled)
                     continue;
                 gameObject.SetActive(enabled);
+                flipped = true;
             }
+            // A flip changes its descendants' activity too.
+            if (flipped)
+                QueueLifecycleTransitions(visibility);
         }
 
         private void DisposeObjectPositionSubscription(NeoObjectInstanceId instanceId)
@@ -1887,11 +1918,45 @@ namespace NeoCompose.Runtime
             return unityGrid;
         }
 
+        /// <summary>
+        /// Despawns every rendered object and clears what drew them, held
+        /// throughout, so lifecycle hooks drain once the teardown is done.
+        /// </summary>
+        /// <param name="grid">The grid whose children go, or null when the renderer is being destroyed with them.</param>
+        /// <param name="forgetContent">Forget the content after the despawn hooks, before the targets go.</param>
+        private void TearDownRendered(Transform? grid, NeoTileLayerRenderTargetDestroyReason reason, bool forgetContent = false)
+        {
+            NeoClient? held = HoldLifecycle();
+            try
+            {
+                NotifyRenderedObjectsDespawned(held is not null);
+                if (forgetContent)
+                {
+                    currentContent = null;
+                    renderedPrimitive = null;
+                }
+                DestroyAllTileTargets(reason);
+                if (grid != null)
+                    ClearChildren(grid);
+                ClearRenderedIndexes();
+            }
+            finally
+            {
+                held?.ReleaseGetterChanges();
+            }
+        }
+
         // Play-mode destruction is deferred, so teardown runs despawn hooks
         // first, while TryGetGameObject still answers for objects and links,
         // as DestroyRenderedObject does.
-        private void NotifyRenderedObjectsDespawned()
+        private void NotifyRenderedObjectsDespawned(bool hooked)
         {
+            if (hooked)
+                foreach (var pair in objectVisibilityByInstanceId)
+                    DespawnLifecycle(
+                        pair.Value,
+                        objectSpritesByInstanceId.GetValueOrDefault(pair.Key),
+                        objectCollidersByInstanceId.GetValueOrDefault(pair.Key));
             foreach (var root in objectRootsByInstanceId.Values)
                 if (root != null && root.TryGetComponent(out NeoObjectBehaviour behaviour))
                     behaviour.NotifyDespawned();
@@ -1910,6 +1975,8 @@ namespace NeoCompose.Runtime
             foreach (var visibility in objectVisibilityByInstanceId.Values)
                 visibility.Dispose();
             objectVisibilityByInstanceId.Clear();
+            foreach (var pair in objectCollidersByInstanceId)
+                UnindexColliders(objectSpritesByInstanceId.GetValueOrDefault(pair.Key), pair.Value);
             objectSpritesByInstanceId.Clear();
             objectCollidersByInstanceId.Clear();
             objectShapesByInstanceId.Clear();
@@ -2167,30 +2234,41 @@ namespace NeoCompose.Runtime
             return go;
         }
 
-        private GameObject SpawnObject(
+        private void SpawnObject(
             Transform parent,
             IReadOnlyNeoObjectLayerRuntime layer,
             NeoObjectProjection instance,
             int layerFallbackSortingOrder)
         {
-            var go = BuildObjectRoot(parent, layer, instance, layerFallbackSortingOrder);
-            // Attached last so the spawn hook observes a fully-built root
-            // (composition children, authored collider, sprite fallback) —
-            // e.g. an added Rigidbody2D composes with the BoxCollider2D.
-            var behaviour = go.AddComponent<NeoObjectBehaviour>();
-            behaviour.Initialize(this, layer, instance);
-            // Spawn hooks can assign a sprite or collider before the root is
-            // registered for change notifications. Reconcile those writes now.
-            SyncObjectSprites(instance.InstanceId);
-            SyncObjectColliders(instance.InstanceId);
-            // Applied only after Initialize, so the spawn hook sees an active,
-            // fully-built *subtree* as its contract promises — a disabled
-            // composition child is built and left active through composition
-            // and deactivated here, alongside the placed root, so a hook's
-            // GetComponentsInChildren does not silently miss hidden layers.
-            // The root's own collider follows GameObject activity for free.
-            SyncObjectVisibility(instance.InstanceId);
-            return go;
+            NeoClient? held = HoldLifecycle();
+            try
+            {
+                var go = BuildObjectRoot(parent, layer, instance, layerFallbackSortingOrder);
+                // Attached last so the spawn hook observes a fully-built root
+                // (composition children, authored collider, sprite fallback) —
+                // e.g. an added Rigidbody2D composes with the BoxCollider2D.
+                var behaviour = go.AddComponent<NeoObjectBehaviour>();
+                behaviour.Initialize(this, layer, instance);
+                // Spawn hooks can assign a sprite or collider before the root is
+                // registered for change notifications. Reconcile those writes now.
+                SyncObjectSprites(instance.InstanceId);
+                SyncObjectColliders(instance.InstanceId);
+                // Applied only after Initialize, so the spawn hook sees an active,
+                // fully-built *subtree* as its contract promises — a disabled
+                // composition child is built and left active through composition
+                // and deactivated here, alongside the placed root, so a hook's
+                // GetComponentsInChildren does not silently miss hidden layers.
+                // The root's own collider follows GameObject activity for free.
+                SyncObjectVisibility(instance.InstanceId);
+                // Registered before the hold releases, so a lifecycle hook's
+                // write in the drain reaches the root.
+                objectRootsByInstanceId[instance.InstanceId] = go;
+                QueueSpawnedLifecycle(instance.InstanceId);
+            }
+            finally
+            {
+                held?.ReleaseGetterChanges();
+            }
         }
 
         private GameObject BuildObjectRoot(
@@ -2354,6 +2432,11 @@ namespace NeoCompose.Runtime
             // Measured from this child's origin, like its collider.
             var sortPoint = AttachSortingGroup(childRoot, layer, child, sortingOrder);
             childRoot.transform.localPosition = childOffset + (sortPoint?.Point ?? Vector3.zero);
+            // Kept even when nothing under it draws, so every world object
+            // answers TryGetGameObject; an empty one still counts as nothing
+            // for its parent's sprite fallback. Registered before its
+            // children, so lifecycle entries queue parents first.
+            visibility.Register(child, childRoot, sortPoint: sortPoint);
             // The subtree is built even when the child is disabled, so a
             // runtime write can toggle it back on and so a clip playing through
             // it keeps resolving. Deactivation happens later still, once the
@@ -2370,10 +2453,6 @@ namespace NeoCompose.Runtime
                 colliders);
             if (child is INeoColliderSource colliderSource)
                 AddColliderBinding(colliders, childRoot, colliderSource, Vector2.zero, sortPoint);
-            // Kept even when nothing under it draws, so every world object
-            // answers TryGetGameObject; an empty one still counts as nothing
-            // for its parent's sprite fallback.
-            visibility.Register(child, childRoot, sortPoint: sortPoint);
             return childRendered;
         }
 

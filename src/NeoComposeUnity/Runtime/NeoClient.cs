@@ -803,8 +803,8 @@ namespace NeoCompose.Runtime
         {
             if (isDisposed)
                 return;
+            StopScriptRuntime();
             isDisposed = true;
-            StopEffects();
             activeClients.Remove(this);
             NeoScriptExecutor.DropPooledWriteTarget();
             DisposeGridLookupCaches();
@@ -1788,7 +1788,7 @@ namespace NeoCompose.Runtime
             string readKey = StaticReadKey(member.id, ownership);
             NoteValueRead(readKey);
             // A rebind forgets every getter, so only an effect hears this key.
-            if (effectsStarted)
+            if (instancesTracked)
                 NoteRowRead(readKey);
             if (ownership == NeoValueOwnership.Asset)
             {
@@ -2035,14 +2035,12 @@ namespace NeoCompose.Runtime
         {
             if (!classNodes.TryGetValue(classId, out NeoClassNode? node))
             {
-                node = new NeoClassNode(
+                var chain = NeoSchemaClassInheritance.ResolveChain(
                     classId,
-                    NeoSchemaClassInheritance.ResolveChain(
-                        classId,
-                        id => data.classes.TryGetValue(id, out NeoSchemaClass match)
-                            ? match
-                            : null),
-                    data.members);
+                    id => data.classes.TryGetValue(id, out NeoSchemaClass match)
+                        ? match
+                        : null);
+                node = new NeoClassNode(classId, chain, data.members, ClassHooks(chain));
                 classNodes.Add(classId, node);
             }
             return node;
@@ -2119,10 +2117,11 @@ namespace NeoCompose.Runtime
             foreach (NeoClassNode node in classNodes.Values)
                 node.live = false;
             classNodes.Clear();
+            interfaceHooks.Clear();
             NeoGeneratedTypesSupport.InvalidateConstructorSchemaCaches(this);
             settledAggregateParameters.Clear();
             readOnlyDeclarationDefaults.Clear();
-            ApplyEffectSchema();
+            ApplyScriptRuntimeSchema();
         }
 
         private void NormalizeClassSchemas()
@@ -5779,6 +5778,7 @@ namespace NeoCompose.Runtime
                 }
             }
             TryResolveContainerIdForValueId(valueId, out string? memberContainerId);
+            NoteDeparture(ownership, valueId, null);
             if (store.values.Remove(valueId))
             {
                 removed?.Add(valueId);
@@ -5906,6 +5906,7 @@ namespace NeoCompose.Runtime
                 }
             }
             TryResolveContainerIdForValueId(valueId, out string? memberContainerId);
+            NoteDeparture(ownership, valueId, null);
             if (store.values.Remove(valueId))
             {
                 removed.Add(valueId);
@@ -6361,6 +6362,7 @@ namespace NeoCompose.Runtime
                     }
                     authoredContainerByRow.Remove(rowId);
                 }
+                NoteDeparture(rowId, RowLayer.Asset, null);
                 data.values.Remove(rowId);
             }
             data.valuesEpoch++;

@@ -525,7 +525,7 @@ namespace NeoCompose.Tests
         public void ConstructorRecord_AndClassConstructorIdsRoundTrip()
         {
             const string json = @"{
-  ""metadata"": { ""schemaVersion"": 33, ""projectId"": ""project"", ""versionId"": ""v"" },
+  ""metadata"": { ""schemaVersion"": 34, ""projectId"": ""project"", ""versionId"": ""v"" },
   ""project"": { ""id"": ""project"", ""name"": ""P"" },
   ""members"": {},
   ""values"": {},
@@ -592,7 +592,7 @@ namespace NeoCompose.Tests
         public void RequiredConstructorId_AndBaseInitializerFieldsRoundTrip()
         {
             const string json = @"{
-  ""metadata"": { ""schemaVersion"": 33, ""projectId"": ""project"", ""versionId"": ""v"" },
+  ""metadata"": { ""schemaVersion"": 34, ""projectId"": ""project"", ""versionId"": ""v"" },
   ""project"": { ""id"": ""project"", ""name"": ""P"" },
   ""members"": {},
   ""values"": {},
@@ -659,7 +659,7 @@ namespace NeoCompose.Tests
         public void ConstructorCode_IsAbsentWhenNoInitBlockIsDeclared()
         {
             const string json = @"{
-  ""metadata"": { ""schemaVersion"": 33, ""projectId"": ""project"", ""versionId"": ""v"" },
+  ""metadata"": { ""schemaVersion"": 34, ""projectId"": ""project"", ""versionId"": ""v"" },
   ""project"": { ""id"": ""project"", ""name"": ""P"" },
   ""members"": {},
   ""values"": {},
@@ -998,7 +998,7 @@ namespace NeoCompose.Tests
                 JsonConvert.DeserializeObject<Member>(json.ToString()));
 
             StringAssert.Contains(
-                "schema 33 has no replacement for",
+                "schema 34 has no replacement for",
                 exception!.Message);
         }
 

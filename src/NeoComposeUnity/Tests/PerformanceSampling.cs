@@ -52,9 +52,11 @@ namespace NeoCompose.Tests
                 ProfilerRecorderOptions.WrapAroundWhenCapacityReached
                     | ProfilerRecorderOptions.SumAllSamplesInFrame);
             Assert.IsTrue(recorder.Valid, "Unity GC allocation counter is unavailable.");
+            // Allocated outside the window, which it would otherwise count.
+            var stopwatch = new Stopwatch();
             recorder.Start();
             long gcBefore = recorder.CurrentValue;
-            var stopwatch = Stopwatch.StartNew();
+            stopwatch.Start();
             action();
             stopwatch.Stop();
             long gcAfter = recorder.CurrentValue;

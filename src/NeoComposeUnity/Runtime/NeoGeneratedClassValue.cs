@@ -103,6 +103,8 @@ namespace NeoCompose.Runtime
         internal NeoValueOwnership ValueOwnership => node.ownership;
         internal NeoMemberClass BackingNode => node;
         internal NeoMemberClassWritable WritableBackingNode => writableNode;
+        /// <summary>The store this view's calls write through, as <see cref="InvokeFunction(string, object?[])"/> uses.</summary>
+        internal NeoValueOwnership StorageOwnership => InheritedStorageOwnership;
         internal string AnimationInstanceIdentity =>
             valueId ?? $"wrapper:{animationWrapperIdentity ??= System.Guid.NewGuid().ToString("N")}";
 

@@ -3130,7 +3130,7 @@ namespace NeoCompose.Tests
                 },
             });
 
-            client.StartEffects();
+            client.StartScriptRuntime();
 
             NeoMemberClassWritable thing = client.save.Get<NeoMemberClassWritable>("Thing");
             var live = thing.Get<NeoMemberList>("Children")

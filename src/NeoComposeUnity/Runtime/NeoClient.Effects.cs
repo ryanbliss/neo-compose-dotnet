@@ -17,7 +17,8 @@ namespace NeoCompose.Runtime
         // reads sit in the getter memo's dependency index under an Effect
         // key, so a change queues it where it would forget a getter. The
         // queue drains at the outermost getter-change release, before the
-        // watchers hear the settled getters.
+        // watchers hear the settled getters. P98's lifecycle hooks share the
+        // tracker and the drain (NeoClient.LifecycleHooks.cs).
 
         /// <summary>How often one effect may run in a drain before it stops for that drain.</summary>
         public const int EffectRunsPerDrain = 100;
@@ -43,13 +44,17 @@ namespace NeoCompose.Runtime
 
         private sealed class EffectInstance
         {
+            internal readonly string id;
             internal readonly NeoClassNode node;
             internal readonly NeoValueOwnership ownership;
             internal readonly GetterMemoKey[] keys;
             internal string? containerId;
+            // Its OnLoad is queued and has not run.
+            internal bool loadPending;
 
-            internal EffectInstance(NeoClassNode node, NeoValueOwnership ownership, GetterMemoKey[] keys, string? containerId)
+            internal EffectInstance(string id, NeoClassNode node, NeoValueOwnership ownership, GetterMemoKey[] keys, string? containerId)
             {
+                this.id = id;
                 this.node = node;
                 this.ownership = ownership;
                 this.keys = keys;
@@ -57,10 +62,10 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private bool effectsRequested;
-        // Whether a requested schema declares an @effect: without one, every
+        private bool scriptRuntimeRequested;
+        // Whether a requested schema has a tracked class: without one, every
         // hook below stays a field check.
-        private bool effectsStarted;
+        private bool instancesTracked;
         private readonly Dictionary<GetterMemoKey, EffectState> effectsByKey = new();
         private readonly Dictionary<string, EffectInstance> effectInstances = new(StringComparer.Ordinal);
         // A stopped state may stay queued; the drain skips it.
@@ -86,48 +91,59 @@ namespace NeoCompose.Runtime
         private int effectDrain;
 
         /// <summary>
-        /// Starts the project's <c>@effect</c> functions: each runs once for
-        /// every live instance, then again whenever what it read changes.
-        /// The generated client wrapper calls this once its native function
-        /// invokers are registered. Idempotent.
+        /// Starts the project's <c>@effect</c> functions and lifecycle hooks.
+        /// Each effect runs once for every live instance, then again whenever
+        /// what it read changes. <c>OnLoad</c> runs as an instance becomes
+        /// live and <c>OnUnload</c> as it stops, and renderers deliver the
+        /// Unity hooks. The generated client wrapper calls this once its
+        /// native function invokers are registered. Idempotent.
         /// </summary>
-        public void StartEffects()
+        public void StartScriptRuntime()
         {
             EnsureNotDisposed();
-            if (effectsRequested)
+            if (scriptRuntimeRequested)
                 return;
-            effectsRequested = true;
-            ApplyEffectSchema();
+            scriptRuntimeRequested = true;
+            ApplyScriptRuntimeSchema();
         }
 
-        private void ApplyEffectSchema()
+        private void ApplyScriptRuntimeSchema()
         {
-            if (!effectsRequested)
+            if (!scriptRuntimeRequested)
                 return;
             DisposeEffectFunctions();
-            bool hasEffects = false;
+            ApplyLifecycleSchema();
+            bool tracked = (schemaHooks & NeoLifecycleHooks.Data) != 0;
             foreach (Member member in data.members.Values)
             {
-                if (member is NSFunctionMember { DeclaredEffect: NeoEffectKind.Auto })
-                {
-                    hasEffects = true;
+                if (tracked)
                     break;
-                }
+                tracked = member is NSFunctionMember { DeclaredEffect: NeoEffectKind.Auto };
             }
-            if (!hasEffects)
+            scriptRuntimeStarted = tracked || (schemaHooks & NeoLifecycleHooks.Unity) != 0;
+            if (tracked)
             {
-                StopEffects();
-                return;
+                instancesTracked = true;
+                effectRescanPending = true;
             }
-            effectsStarted = true;
-            effectRescanPending = true;
+            else
+                StopEffects();
             HoldGetterChanges();
-            ReleaseGetterChanges();
+            try
+            {
+                foreach (NeoTileGridRenderer renderer in gridRenderers)
+                    if (renderer != null)
+                        renderer.RefreshLifecycleHooks();
+            }
+            finally
+            {
+                ReleaseGetterChanges();
+            }
         }
 
         private void StopEffects()
         {
-            effectsStarted = false;
+            instancesTracked = false;
             // A run these stop while it is under way keeps no reads.
             foreach (EffectState state in effectsByKey.Values)
             {
@@ -144,6 +160,8 @@ namespace NeoCompose.Runtime
             effectOrphansDirty = false;
             effectRescanPending = false;
             effectDrainDeferred = false;
+            pendingUnloads.Clear();
+            pendingLoads.Clear();
             DisposeEffectFunctions();
         }
 
@@ -161,8 +179,12 @@ namespace NeoCompose.Runtime
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                return effectsStarted
-                    && (pendingEffects.Count != 0 || dirtyEffectRows.Count != 0 || effectOrphansDirty || effectRescanPending);
+                return scriptRuntimeStarted
+                    && (pendingEffects.Count != 0
+                        || dirtyEffectRows.Count != 0
+                        || effectOrphansDirty
+                        || effectRescanPending
+                        || LifecycleHooksPending);
             }
         }
 
@@ -185,7 +207,7 @@ namespace NeoCompose.Runtime
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void NoteEffectRowChange(NeoValueOwnership ownership, string id, MemberValue? value)
         {
-            if (effectsStarted)
+            if (instancesTracked)
                 TrackEffectRowChange(ownership, id, value);
         }
 
@@ -212,7 +234,7 @@ namespace NeoCompose.Runtime
             else if (value is null
                 ? effectOrphans.Contains(id)
                 : value is ObjectMemberValue { IsRemoved: false, classId: { } classId }
-                    && ResolveClassNode(classId).Effects.Length != 0)
+                    && ResolveClassNode(classId).Tracked)
                 MarkEffectRow(id);
         }
 
@@ -225,10 +247,10 @@ namespace NeoCompose.Runtime
         /// <summary>A loaded or unloaded authored row: its instance, and the effects that read it or its container.</summary>
         private void NoteEffectPartitionRow(MemberValue row)
         {
-            if (!effectsStarted)
+            if (!instancesTracked)
                 return;
             if (effectInstances.ContainsKey(row.id)
-                || row is ObjectMemberValue { classId: { } classId } && ResolveClassNode(classId).Effects.Length != 0)
+                || row is ObjectMemberValue { classId: { } classId } && ResolveClassNode(classId).Tracked)
                 MarkEffectRow(row.id);
             // Its arguments may make or unmake a definition, and everything it owns.
             if (row is ObjectMemberValue { constructorArgs: { Count: > 0 } })
@@ -244,7 +266,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         private void NoteEffectPartitionChange(bool loaded)
         {
-            if (!effectsStarted)
+            if (!instancesTracked)
                 return;
             if (loaded)
             {
@@ -260,7 +282,7 @@ namespace NeoCompose.Runtime
         /// <summary>A static binding changed, which may attach an orphan.</summary>
         private void NoteEffectBindingChange()
         {
-            if (effectsStarted && effectOrphans.Count != 0)
+            if (instancesTracked && effectOrphans.Count != 0)
                 effectOrphansDirty = true;
         }
 
@@ -289,9 +311,25 @@ namespace NeoCompose.Runtime
             }
             effectDrainDeferred = false;
             effectDrain++;
+            try
+            {
+                RunPendingScripts();
+            }
+            finally
+            {
+                EndLifecycleDrain();
+            }
+        }
+
+        // Each step runs the first pending OnUnload, OnLoad, Unity event or
+        // effect, in that order (P98 §2.3).
+        private void RunPendingScripts()
+        {
             while (true)
             {
                 SyncEffectInstances();
+                if (RunPendingLifecycleHook())
+                    continue;
                 if (pendingEffects.Count == 0)
                     return;
                 EffectState state = pendingEffects.Dequeue();
@@ -356,7 +394,7 @@ namespace NeoCompose.Runtime
             GetterCaptureFrame capture;
             try
             {
-                (state.function ??= EffectFunction(state)).Invoke(key.rowId, Array.Empty<object?>());
+                (state.function ??= EffectFunction(state.entry, key.ownership)).Invoke(key.rowId, Array.Empty<object?>());
             }
             catch (Exception exception)
             {
@@ -383,12 +421,13 @@ namespace NeoCompose.Runtime
             state.dependency = IndexDependent(key, state.dependency, capture);
         }
 
-        private NeoMemberNSFunction EffectFunction(EffectState state)
+        // Shared by effects and data hooks.
+        /// <summary>The cached function an effect or lifecycle hook runs as.</summary>
+        internal NeoMemberNSFunction EffectFunction(MergedSchemaEntry entry, NeoValueOwnership ownership)
         {
-            GetterMemoKey key = state.key;
-            if (!effectFunctions.TryGetValue((key.memberId, key.ownership), out NeoMemberNSFunction? function))
-                effectFunctions[(key.memberId, key.ownership)] = function =
-                    new NeoMemberNSFunction(this, (NSFunctionMember)state.entry.member!, null, key.ownership);
+            if (!effectFunctions.TryGetValue((entry.memberId, ownership), out NeoMemberNSFunction? function))
+                effectFunctions[(entry.memberId, ownership)] = function =
+                    new NeoMemberNSFunction(this, (NSFunctionMember)entry.member!, null, ownership);
             return function;
         }
 
@@ -464,7 +503,7 @@ namespace NeoCompose.Runtime
 
         private bool IsEffectRow(MemberValue row) =>
             row is ObjectMemberValue { IsRemoved: false, classId: { } classId }
-            && ResolveClassNode(classId).Effects.Length != 0;
+            && ResolveClassNode(classId).Tracked;
 
         private void SyncEffectInstance(string id)
         {
@@ -474,13 +513,17 @@ namespace NeoCompose.Runtime
                 && ResolveValueRow(id) is ObjectMemberValue { IsRemoved: false, classId: { } classId } row)
             {
                 NeoClassNode candidate = ResolveClassNode(classId);
-                if (candidate.Effects.Length != 0)
+                if (candidate.Tracked)
                 {
                     node = candidate;
                     containerId = row.containerId;
                 }
             }
             bool live = node is not null && IsEffectInstanceLive(ownership, id);
+            // An instance is its id and class, so a restart that keeps both
+            // runs only an OnLoad it gained. A schema reload, which drops every
+            // class node, is no transition either (P98 §2.2).
+            NeoLifecycleHooks previousHooks = NeoLifecycleHooks.None;
             if (effectInstances.TryGetValue(id, out EffectInstance? tracked))
             {
                 if (live && ReferenceEquals(tracked.node, node) && tracked.ownership == ownership)
@@ -488,12 +531,16 @@ namespace NeoCompose.Runtime
                     tracked.containerId = containerId;
                     return;
                 }
-                StopEffectInstance(id, tracked);
+                bool sameInstance = live && tracked.node.Id == node!.Id;
+                // One whose OnLoad has not run yet still owes it.
+                if (sameInstance && !tracked.loadPending)
+                    previousHooks = tracked.node.Hooks;
+                StopEffectInstance(id, tracked, unload: !sameInstance && tracked.node.live);
             }
             if (live)
             {
                 effectOrphans.Remove(id);
-                StartEffectInstance(id, node!, ownership, containerId);
+                StartEffectInstance(id, node!, ownership, containerId, previousHooks);
             }
             else if (node is not null && ownership != NeoValueOwnership.Asset)
                 effectOrphans.Add(id);
@@ -501,7 +548,12 @@ namespace NeoCompose.Runtime
                 effectOrphans.Remove(id);
         }
 
-        private void StartEffectInstance(string id, NeoClassNode node, NeoValueOwnership ownership, string? containerId)
+        private void StartEffectInstance(
+            string id,
+            NeoClassNode node,
+            NeoValueOwnership ownership,
+            string? containerId,
+            NeoLifecycleHooks previousHooks)
         {
             MergedSchemaEntry[] effects = node.Effects;
             var keys = new GetterMemoKey[effects.Length];
@@ -513,11 +565,22 @@ namespace NeoCompose.Runtime
                 effectsByKey[key] = state;
                 Enqueue(state);
             }
-            effectInstances[id] = new EffectInstance(node, ownership, keys, containerId);
+            var instance = new EffectInstance(id, node, ownership, keys, containerId);
+            effectInstances[id] = instance;
+            if ((node.Hooks & ~previousHooks & NeoLifecycleHooks.OnLoad) != 0)
+            {
+                instance.loadPending = true;
+                pendingLoads.Enqueue(instance);
+            }
         }
 
-        private void StopEffectInstance(string id, EffectInstance instance)
+        private void StopEffectInstance(string id, EffectInstance instance, bool unload)
         {
+            // An instance that never ran its OnLoad was never seen live.
+            if (instance.loadPending)
+                instance.loadPending = false;
+            else if (unload && (instance.node.Hooks & NeoLifecycleHooks.OnUnload) != 0)
+                pendingUnloads.Enqueue(instance);
             foreach (GetterMemoKey key in instance.keys)
             {
                 if (!effectsByKey.Remove(key, out EffectState? state))

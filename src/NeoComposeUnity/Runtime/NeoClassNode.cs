@@ -22,7 +22,8 @@ namespace NeoCompose.Runtime
         internal NeoClassNode(
             string id,
             IList<NeoSchemaClass> chain,
-            IReadOnlyDictionary<string, Member> members)
+            IReadOnlyDictionary<string, Member> members,
+            NeoLifecycleHooks hooks)
         {
             Id = id;
             Chain = chain;
@@ -50,6 +51,28 @@ namespace NeoCompose.Runtime
             Stored = stored;
             ReadOnly = readOnly;
             Effects = CollectEffects(surface);
+            if (hooks != NeoLifecycleHooks.None)
+                hookMembers = CollectHooks(ref hooks);
+            Hooks = hooks;
+            Tracked = Effects.Length != 0 || (hooks & NeoLifecycleHooks.Data) != 0;
+        }
+
+        // The most-derived member of each hook, by bit position. A bit whose
+        // member is not an instance function implements nothing to call.
+        private MergedSchemaEntry?[] CollectHooks(ref NeoLifecycleHooks hooks)
+        {
+            var members = new MergedSchemaEntry?[NeoLifecycleHookTable.Count];
+            for (int i = 0; i < NeoLifecycleHookTable.Count; i++)
+            {
+                var hook = (NeoLifecycleHooks)(1u << i);
+                if ((hooks & hook) == 0)
+                    continue;
+                if (SurfaceMember(NeoLifecycleHookTable.MemberName(i)) is { member: NSFunctionMember } entry)
+                    members[i] = entry;
+                else
+                    hooks &= ~hook;
+            }
+            return members;
         }
 
         // A surface entry is the class's most-derived record of its key, so
@@ -110,6 +133,24 @@ namespace NeoCompose.Runtime
 
         /// <summary>The functions the runtime runs for every live instance (P97).</summary>
         internal MergedSchemaEntry[] Effects
+        {
+            get;
+        }
+
+        /// <summary>The lifecycle hooks the class implements (P98 §4.1).</summary>
+        internal NeoLifecycleHooks Hooks
+        {
+            get;
+        }
+
+        private readonly MergedSchemaEntry?[]? hookMembers;
+
+        /// <summary>The member that implements one of <see cref="Hooks"/>.</summary>
+        internal MergedSchemaEntry HookMember(NeoLifecycleHooks hook) =>
+            hookMembers![NeoLifecycleHookTable.IndexOf(hook)]!;
+
+        /// <summary>Whether the runtime tracks the class's live instances: it has effects, OnLoad or OnUnload.</summary>
+        internal bool Tracked
         {
             get;
         }

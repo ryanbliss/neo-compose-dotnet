@@ -13,6 +13,10 @@ namespace NeoCompose.Runtime.Json
     public static class NeoProjectExportContract
     {
         /// <summary>
+        /// 34 admits the P98 lifecycle hook interfaces. An older SDK would
+        /// load an export whose classes implement them and never call a
+        /// hook, so it must refuse the export instead.
+        ///
         /// 33 admits the P97 function <c>effect</c> setting. An older SDK
         /// would ignore it and never run an effect, so it must refuse the
         /// export instead.
@@ -95,7 +99,7 @@ namespace NeoCompose.Runtime.Json
         /// the wrong configuration rather than an error. It must reject the
         /// export.
         /// </summary>
-        public const int CurrentSchemaVersion = 33;
+        public const int CurrentSchemaVersion = 34;
 
         internal static string? GetSchemaVersionError(ProjectExportMetadata? metadata)
         {

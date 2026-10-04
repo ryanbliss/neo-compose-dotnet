@@ -176,6 +176,7 @@ namespace NeoCompose.Runtime
         {
             if (ownership == NeoValueOwnership.Asset)
                 throw new InvalidOperationException("Cannot write immutable asset data.");
+            Client.ThrowIfDepartedWrite(row.id);
             var key = (ownership, row.id);
             Record(key);
             Restage(key, row);
@@ -210,6 +211,7 @@ namespace NeoCompose.Runtime
         {
             if (ownership == NeoValueOwnership.Asset)
                 throw new InvalidOperationException("Cannot remove immutable asset data.");
+            Client.ThrowIfDepartedWrite(id);
             var key = (ownership, id);
             Record(key);
             Restage(key, null);
@@ -714,6 +716,7 @@ namespace NeoCompose.Runtime
                 // until then.
                 BeginGridChange();
                 gridChange = true;
+                NoteDepartures(plan);
                 foreach (var pair in plan.Rows)
                 {
                     if (pair.Value is null)
