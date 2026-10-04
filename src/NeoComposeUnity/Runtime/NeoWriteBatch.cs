@@ -261,7 +261,7 @@ namespace NeoCompose.Runtime
         internal NeoWritePlan? TakeRows()
         {
             NeoWritePlan plan = Plan;
-            if (plan.Rows.Count == 0 && plan.Bindings.Count == 0)
+            if (plan.Rows.Count == 0 && plan.Bindings.Count == 0 && plan.ListenerEntries?.Count is not > 0)
                 return null;
             Plan = new NeoWritePlan(plan.Client) { HeldBy = this };
             staged = new HashSet<string>(StringComparer.Ordinal);
@@ -330,8 +330,9 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>Releases an entry a collection dropped, once the batch is prepared.</summary>
-        internal void Release(NeoValueOwnership ownership, string id, Member? member)
+        internal void Release(NeoValueOwnership ownership, string id, Member? member, string parentId)
         {
+            Plan.Client.CaptureListenerMove(Plan, ownership, ownership, id, member, parentId);
             (releases ??= new()).Add((ownership, id, member));
             (entries ??= new())[(ownership, id)] = null;
         }
@@ -562,7 +563,11 @@ namespace NeoCompose.Runtime
             // A getter an execution's writes reach is heard once, after it
             // exits, so its watchers read it once and never mid-execution.
             if (scriptWriteDepth++ == 0)
+            {
+                scriptChangeBatchOpen = true;
+                BeginChangeBatch();
                 HoldGetterChanges();
+            }
         }
 
         internal void ExitScriptWrites()
@@ -612,11 +617,6 @@ namespace NeoCompose.Runtime
             if (scriptWriteBatch is null)
             {
                 scriptWriteBatch = new NeoWriteBatch(new NeoWritePlan(this), held: true);
-                if (!scriptChangeBatchOpen)
-                {
-                    scriptChangeBatchOpen = true;
-                    BeginChangeBatch();
-                }
             }
             return scriptWriteBatch;
         }
@@ -637,7 +637,7 @@ namespace NeoCompose.Runtime
             try
             {
                 batch.Prepare();
-                if (batch.Plan.Rows.Count != 0 || batch.Plan.Bindings.Count != 0)
+                if (batch.Plan.Rows.Count != 0 || batch.Plan.Bindings.Count != 0 || batch.Plan.ListenerEntries?.Count > 0)
                     CommitScriptPlan(batch.Plan);
             }
             catch

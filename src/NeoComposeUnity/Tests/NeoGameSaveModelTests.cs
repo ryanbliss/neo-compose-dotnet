@@ -5,6 +5,7 @@
 
 using System.Collections.Generic;
 using NeoCompose.Runtime.Json;
+using NeoCompose.Runtime;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
@@ -31,6 +32,62 @@ namespace NeoCompose.Tests
             "\"platforms\":null,\"systems\":null,\"inputDevices\":null," +
             "\"createdAt\":1,\"updatedAt\":2,\"synchronizedAt\":3,\"archivedAt\":null" +
             "}";
+
+        [TestCase(0)]
+        [TestCase(3)]
+        public void UnsupportedSaveFormatCannotFallBackToAnEmptyLocalOrRemoteSave(int required)
+        {
+            var json = JObject.Parse(RemoteJson);
+            json["requiredSaveFormatRevision"] = required;
+            string content = json.ToString(Formatting.None);
+            Assert.Throws<NeoUnsupportedSaveFormatException>(() => RemoteGameSaveLoader.Load(content));
+            Assert.Throws<NeoUnsupportedSaveFormatException>(() => RemoteGameSaveLoader.TryLoad(content, out _));
+            Assert.Throws<NeoUnsupportedSaveFormatException>(() => LocalGameSaveLoader.Load(content));
+            Assert.Throws<NeoUnsupportedSaveFormatException>(() => LocalGameSaveLoader.TryLoad(content, out _));
+            Assert.Throws<NeoUnsupportedSaveFormatException>(() => LocalGameSaveLoader.FromSnapshot(json));
+        }
+
+        [TestCase(null)]
+        [TestCase(2)]
+        public void SaveFormatRequirementSurvivesLocalCopiesWithoutListenerRecords(int? required)
+        {
+            var json = JObject.Parse(RemoteJson);
+            if (required is not null)
+                json["requiredSaveFormatRevision"] = required;
+            var remote = RemoteGameSaveLoader.Load(json.ToString(Formatting.None));
+            Assert.That(RemoteGameSaveSummary.FromRemote(remote).requiredSaveFormatRevision, Is.EqualTo(required));
+            var local = LocalGameSave.FromRemote(remote).DetachedCopy();
+            Assert.That(local.requiredSaveFormatRevision, Is.EqualTo(required));
+            var reloaded = LocalGameSaveLoader.Load(LocalGameSaveLoader.Serialize(local));
+            Assert.That(reloaded.requiredSaveFormatRevision, Is.EqualTo(required));
+            Assert.That(reloaded.changeListeners, Is.Null);
+        }
+
+        [TestCase("2.5")]
+        [TestCase("\"2\"")]
+        [TestCase("true")]
+        [TestCase("{}")]
+        [TestCase("[]")]
+        [TestCase("2147483648")]
+        public void MalformedSaveFormatNeverUsesCorruptSaveFallback(string marker)
+        {
+            var json = JObject.Parse(RemoteJson);
+            json["requiredSaveFormatRevision"] = JToken.Parse(marker);
+            string content = json.ToString(Formatting.None);
+            Assert.Throws<NeoUnsupportedSaveFormatException>(() => RemoteGameSaveLoader.Load(content));
+            Assert.Throws<NeoUnsupportedSaveFormatException>(() => RemoteGameSaveLoader.TryLoad(content, out _));
+            Assert.Throws<NeoUnsupportedSaveFormatException>(() => LocalGameSaveLoader.Load(content));
+            Assert.Throws<NeoUnsupportedSaveFormatException>(() => LocalGameSaveLoader.TryLoad(content, out _));
+            Assert.Throws<NeoUnsupportedSaveFormatException>(() => LocalGameSaveLoader.FromSnapshot(json));
+        }
+
+        [Test]
+        public void SaveFormatAcceptsIntegralFloat64FromRealtimeWire()
+        {
+            var json = JObject.Parse(RemoteJson);
+            json["requiredSaveFormatRevision"] = 2.0;
+            Assert.That(LocalGameSaveLoader.FromSnapshot(json).requiredSaveFormatRevision, Is.EqualTo(2));
+        }
 
         [Test]
         public void RemoteLoader_LoadsEnvelope_AndKeepsValuesOpaque()

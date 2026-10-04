@@ -1325,7 +1325,7 @@ namespace NeoCompose.Runtime
             return resolved;
         }
 
-        private static TypeInfo TypeInfoFromBindingMember(
+        internal static TypeInfo TypeInfoFromBindingMember(
             NeoClient client,
             JsonMember member,
             IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv,
@@ -1386,27 +1386,30 @@ namespace NeoCompose.Runtime
                             visitingMembers);
                     case LookupMember lookup:
                         {
-                            if (!client.TryGetMember(
-                                    lookup.collectionMemberId,
-                                    out ListMember? collection)
-                                || !client.TryGetMember(
-                                    collection.entryMemberId,
-                                    out JsonMember? entryMember))
+                            client.TryGetMember(lookup.collectionMemberId, out JsonMember? collection);
+                            string? entryId = collection switch
                             {
+                                ListMember list => list.entryMemberId,
+                                DictionaryMember dictionary => dictionary.entryMemberId,
+                                _ => null,
+                            };
+                            if (entryId is null || !client.TryGetMember(entryId, out JsonMember? entryMember))
                                 throw new NSGetterRuntimeError(
                                     $"Generic NSFunction Lookup binding '{lookup.id}' has a missing collection entry type.");
-                            }
+                            TypeInfo entry = lookup.declaredTypeInfo is null
+                                ? TypeInfoFromBindingMember(client, entryMember, genericEnv, visitingMembers)
+                                : ResolveInvocationTypeInfo(client, lookup.declaredTypeInfo, genericEnv, visitingMembers).ShallowClone();
+                            bool multiple = lookup.Selection == NeoMemberSelectionKind.Multi;
+                            entry.required = multiple || lookup.Requirement == NeoMemberRequirementKind.Required;
+                            if (!multiple)
+                                return entry;
                             return new LookupTypeInfo
                             {
                                 type = MemberKind.Lookup,
                                 required = lookup.Requirement == NeoMemberRequirementKind.Required,
                                 collectionMemberId = lookup.collectionMemberId,
                                 collectionValueId = lookup.collectionValueId,
-                                entryTypeInfo = TypeInfoFromBindingMember(
-                                    client,
-                                    entryMember,
-                                    genericEnv,
-                                    visitingMembers),
+                                entryTypeInfo = entry,
                             };
                         }
                     case DelegateMember delegateMember:

@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.6.0] - 2026-10-04
+
+- Carry member-listener records and Save format capabilities through realtime manifests, deltas, and listener patches. Requires NeoCompose 0.57.0.
+
 ## [0.5.0] - 2026-07-19
 
 ### Breaking

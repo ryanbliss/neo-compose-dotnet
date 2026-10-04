@@ -36,6 +36,7 @@ namespace NeoCompose.Runtime.Json
         public const string ObjectInitializer = "objectInitializer";
         /// <summary>Creates a NeoDelegate with explicit by-value captures.</summary>
         public const string DelegateClosure = "delegateClosure";
+        public const string MemberTarget = "memberTarget";
         public const string ToBool = "toBool";
         public const string Stringify = "stringify";
         public const string CallFunction = "callFunction";
@@ -81,6 +82,8 @@ namespace NeoCompose.Runtime.Json
         public const string AddActionListener = "addActionListener";
         /// <summary>P62 §3.2 — <c>action -= listener</c>.</summary>
         public const string RemoveActionListener = "removeActionListener";
+        public const string AddChangeListener = "addChangeListener";
+        public const string RemoveChangeListener = "removeChangeListener";
     }
 
     public static class OperationKind

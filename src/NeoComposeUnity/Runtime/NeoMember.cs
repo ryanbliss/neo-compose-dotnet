@@ -85,7 +85,11 @@ namespace NeoCompose.Runtime
         }
         public MemberValue? value
         {
-            get => boundValue;
+            get
+            {
+                ObserveScriptWrites();
+                return boundValue;
+            }
             protected set
             {
                 client.UpdateNodeValueIndex(this, boundValue?.id, value?.id);

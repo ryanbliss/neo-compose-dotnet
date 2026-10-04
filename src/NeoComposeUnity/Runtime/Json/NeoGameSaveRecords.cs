@@ -13,12 +13,14 @@ namespace NeoCompose.Runtime.Json
     public static class NeoGameSaveRecordKinds
     {
         public const string Value = "value";
+        public const string ChangeListeners = "change-listeners";
         public const string StaticBinding = "static-binding";
     }
 
     public static class NeoGameSaveRecordChangeKinds
     {
         public const string ValuePatch = "value.patch";
+        public const string ChangeListenersPatch = "change-listeners.patch";
         public const string ValueReplace = "value.replace";
         public const string ValueRestoreToAuthored = "value.restore-to-authored";
         public const string StaticBindingSet = "static-binding.set";
@@ -51,6 +53,79 @@ namespace NeoCompose.Runtime.Json
         public string valueId = "";
         public Dictionary<string, JToken> set = new();
         public List<string> unset = new();
+    }
+
+    public sealed class GameSaveChangeListenersPatchChange : GameSaveRecordChange
+    {
+        public override string kind => NeoGameSaveRecordChangeKinds.ChangeListenersPatch;
+        public string rootId = "";
+        public string? baseRecordStateId;
+        public string? baseRecordRevisionToken;
+        public List<GameSaveListenerOwnerEdit> edits = new();
+        public List<GameSaveListenerEndpointLocator> endpoints = new();
+    }
+
+    /// <summary>Transient owning path. The server verifies each edge against its graph.</summary>
+    public sealed class GameSaveListenerEndpointLocator
+    {
+        public string valueId = "";
+        public string rootMemberId = "";
+        public string rootId = "";
+        public List<GameSaveListenerEndpointStep> steps = new();
+    }
+
+    [JsonConverter(typeof(GameSaveListenerEndpointStepConverter))]
+    public abstract class GameSaveListenerEndpointStep
+    {
+        public abstract string kind
+        {
+            get;
+        }
+    }
+
+    public sealed class GameSaveListenerMemberStep : GameSaveListenerEndpointStep
+    {
+        public override string kind => "member";
+        public string memberId = "";
+    }
+
+    public sealed class GameSaveListenerListStep : GameSaveListenerEndpointStep
+    {
+        public override string kind => "list";
+        public int index;
+    }
+
+    public sealed class GameSaveListenerDictionaryStep : GameSaveListenerEndpointStep
+    {
+        public override string kind => "dictionary";
+        public string key = "";
+    }
+
+    public sealed class GameSaveListenerEntryStep : GameSaveListenerEndpointStep
+    {
+        public override string kind => "entry";
+        public string valueId = "";
+    }
+
+    public sealed class GameSaveListenerEndpointStepConverter : DiscriminatedConverter<GameSaveListenerEndpointStep>
+    {
+        protected override string DiscriminatorField => "kind";
+
+        protected override Type? ResolveSubclass(JToken discriminator) => discriminator.Value<string>() switch
+        {
+            "member" => typeof(GameSaveListenerMemberStep),
+            "list" => typeof(GameSaveListenerListStep),
+            "dictionary" => typeof(GameSaveListenerDictionaryStep),
+            "entry" => typeof(GameSaveListenerEntryStep),
+            _ => null,
+        };
+    }
+
+    public sealed class GameSaveListenerOwnerEdit
+    {
+        public string ownerId = "";
+        public Dictionary<string, NeoDelegateValue[]>? expected;
+        public Dictionary<string, NeoDelegateValue[]>? entry;
     }
 
     public sealed class GameSaveValueReplaceChange : GameSaveRecordChange
@@ -94,6 +169,8 @@ namespace NeoCompose.Runtime.Json
         {
             switch (discriminator.Value<string>())
             {
+                case NeoGameSaveRecordChangeKinds.ChangeListenersPatch:
+                    return typeof(GameSaveChangeListenersPatchChange);
                 case NeoGameSaveRecordChangeKinds.ValuePatch:
                     return typeof(GameSaveValuePatchChange);
                 case NeoGameSaveRecordChangeKinds.ValueReplace:
@@ -194,6 +271,9 @@ namespace NeoCompose.Runtime.Json
     /// <summary>The only payload carried by the live save-head subscription.</summary>
     public sealed class GameSaveSnapshotRevisionSignal
     {
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        [JsonConverter(typeof(NeoSaveFormatRevisionConverter))]
+        public int? requiredSaveFormatRevision;
         public string snapshotId = "";
         public long snapshotRevision;
     }
@@ -216,13 +296,20 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public sealed class GameSaveRecordCache
     {
+        // Last format requirement acknowledged by this snapshot's server.
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        [JsonConverter(typeof(NeoSaveFormatRevisionConverter))]
+        public int? requiredSaveFormatRevision;
         public string? snapshotId;
+        // Complete content received through this revision. A patch acknowledgement
+        // can advance the save's head without delivering other writers' content.
         public long snapshotRevision;
         public Dictionary<string, GameSaveRecordDescriptor> descriptors = new();
         public Dictionary<string, GameSaveRecordState> states = new();
 
         public void ResetManifest(string nextSnapshotId)
         {
+            requiredSaveFormatRevision = null;
             snapshotId = nextSnapshotId;
             snapshotRevision = 0;
             descriptors.Clear();
@@ -279,7 +366,8 @@ namespace NeoCompose.Runtime.Json
         public void ApplyDescriptors(
             IEnumerable<GameSaveRecordDescriptor> incoming,
             JObject values,
-            IDictionary<string, string?> staticBindings)
+            IDictionary<string, string?> staticBindings,
+            IDictionary<string, NeoChangeListenerMap>? changeListeners = null)
         {
             foreach (var descriptor in incoming)
             {
@@ -326,6 +414,23 @@ namespace NeoCompose.Runtime.Json
                     {
                         throw new JsonSerializationException(
                             $"Save static-binding record '{descriptor.recordId}' has a non-string valueId.");
+                    }
+                    continue;
+                }
+
+                if (descriptor.recordKind == NeoGameSaveRecordKinds.ChangeListeners)
+                {
+                    if (changeListeners is null)
+                        throw new JsonSerializationException("Listener metadata requires a separate Save map.");
+                    if (descriptor.mapKey is not null)
+                        throw new JsonSerializationException("Listener metadata must be partition-independent.");
+                    if (descriptor.deleted)
+                        changeListeners.Remove(descriptor.recordId);
+                    else
+                    {
+                        var data = ParseDataObject(RequireCachedState(descriptor), descriptor);
+                        changeListeners[descriptor.recordId] = data["changeListeners"]?.ToObject<NeoChangeListenerMap>()
+                            ?? throw new JsonSerializationException("Listener metadata record has no map.");
                     }
                     continue;
                 }

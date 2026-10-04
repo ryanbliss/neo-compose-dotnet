@@ -150,13 +150,17 @@ namespace NeoCompose.Runtime
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void EndChangeBatch()
         {
-            if (--changeBatchDepth <= 0 && pendingChanges.Count != 0)
+            if (--changeBatchDepth <= 0 && (pendingChanges.Count != 0 || !pendingListenerChanges.IsEmpty))
                 RaisePendingChanges();
         }
 
         private void RaisePendingChanges()
         {
-            // A listener's own commit queues and raises its own batch.
+            // Detach before resolving slots as well as invoking callbacks.
+            // Either can fail; no failed batch may leak into the next one.
+            var listeners = pendingListenerChanges;
+            pendingListenerChanges = spareListenerChanges ?? new();
+            spareListenerChanges = null;
             var draining = pendingChanges;
             pendingChanges = spareChanges ?? new();
             spareChanges = null;
@@ -164,15 +168,18 @@ namespace NeoCompose.Runtime
             mergedListIds.Clear();
             try
             {
+                ResolvePendingListenerChanges(listeners);
                 foreach (var (node, changed, listChange) in draining)
-                {
                     if (!node.isDisposed)
                         node.InvokeChanged(changed, listChange);
-                }
+                foreach (var (ownership, ownerId, memberId) in listeners.Changes)
+                    DispatchMemberChange(ownership, ownerId, memberId);
             }
             finally
             {
                 draining.Clear();
+                listeners.Clear();
+                spareListenerChanges = listeners;
                 spareChanges = draining;
             }
         }

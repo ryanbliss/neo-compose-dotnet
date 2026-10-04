@@ -112,7 +112,17 @@ namespace NeoCompose.Tests
             {
                 Assert.That(send.bearer, Is.EqualTo("the-token"), $"Request to {send.url} must carry the bearer.");
                 Assert.That(send.method, Is.EqualTo("POST"));
+                Assert.That(new System.Uri(send.url).Query, Is.EqualTo("?supportedSaveFormatRevision=2"));
             }
+        }
+
+        [Test]
+        public void UnsupportedHeaderFailsBeforeManifestHydration()
+        {
+            var http = new FakeHttpClient { body = RemoteJson.Insert(1, "\"requiredSaveFormatRevision\":3,") };
+            var client = NewClient(new FakeProvider("token"), http);
+            Assert.ThrowsAsync<NeoUnsupportedSaveFormatException>(async () => await client.GetSaveAsync("save-1"));
+            Assert.That(http.sends, Has.Count.EqualTo(1));
         }
 
         [Test]
@@ -174,7 +184,7 @@ namespace NeoCompose.Tests
             Assert.That(summaries[0].snapshotId, Is.EqualTo("snap-1"));
             StringAssert.EndsWith(
                 "/saves/save-1/snapshots/query",
-                http.sends[0].url);
+                new System.Uri(http.sends[0].url).AbsolutePath);
 
             http.body = RemoteJson;
             var detail = await client.GetSaveSnapshotAsync("save-1", "snap-1");
@@ -183,7 +193,7 @@ namespace NeoCompose.Tests
             Assert.That(detail.values, Is.Not.Null);
             StringAssert.EndsWith(
                 "/saves/save-1/snapshots/snap-1/query",
-                http.sends[1].url);
+                new System.Uri(http.sends[1].url).AbsolutePath);
         }
 
         [Test]
@@ -206,6 +216,36 @@ namespace NeoCompose.Tests
             StringAssert.Contains("\"save\":", http.sends[0].body);
             StringAssert.Contains("\"staticBindings\":{\"member-current\":\"v-runtime\"}", http.sends[0].body);
             StringAssert.DoesNotContain("\"tileGridDeltas\"", http.sends[0].body);
+        }
+
+        [Test]
+        public async Task FullCommit_SendsTransientListenerOwningPaths()
+        {
+            var http = new FakeHttpClient
+            {
+                status = 200,
+                body = "{\"kind\":\"committed\",\"save\":" + RemoteJson + "}",
+            };
+            var request = NewCommit();
+            request.changeListeners = new()
+            {
+                ["root"] = new()
+                {
+                    ["owner"] = new()
+                    {
+                        ["Count"] = new[] { new NeoDelegateValue { memberId = "Changed", valueId = null } }
+                    }
+                },
+            };
+            request.listenerEndpoints = new()
+            {
+                new() { valueId = "owner", rootId = "root", rootMemberId = "Save", steps = new() { new GameSaveListenerMemberStep { memberId = "Child" } } },
+            };
+            await NewClient(new FakeProvider("the-token"), http).CommitAsync(request, replaceSnapshot: false);
+            var sent = Newtonsoft.Json.Linq.JObject.Parse(http.sends[0].body);
+            Assert.That((string?)sent["save"]?["listenerEndpoints"]?[0]?["valueId"], Is.EqualTo("owner"));
+            Assert.That((string?)sent["save"]?["listenerEndpoints"]?[0]?["steps"]?[0]?["memberId"], Is.EqualTo("Child"));
+            Assert.That(sent["save"]?["changeListeners"]?["root"]?["owner"]?["Count"], Is.Not.Null);
         }
 
         [Test]
@@ -254,7 +294,7 @@ namespace NeoCompose.Tests
             Assert.That(result.IsTransitioning, Is.True);
             Assert.That(result.TargetSnapshotId, Is.EqualTo("snap-next"));
             StringAssert.EndsWith(
-                "/saves/save-1/snapshots/commit", http.sends[0].url);
+                "/saves/save-1/snapshots/commit", new System.Uri(http.sends[0].url).AbsolutePath);
             StringAssert.Contains("\"snapshot\":", http.sends[0].body);
             StringAssert.Contains("\"baseSnapshotRevision\":1", http.sends[0].body);
             StringAssert.Contains("\"kind\":\"value.replace\"", http.sends[0].body);
@@ -283,7 +323,7 @@ namespace NeoCompose.Tests
 
             Assert.That(result.IsTransitioning, Is.True);
             StringAssert.EndsWith(
-                "/saves/save-1/snapshots/staged/begin", http.sends[0].url);
+                "/saves/save-1/snapshots/staged/begin", new System.Uri(http.sends[0].url).AbsolutePath);
             StringAssert.Contains("\"baseSnapshotRevision\":4", http.sends[0].body);
             StringAssert.Contains("\"uploadFingerprint\":\"sha256:staged-v1\"",
                 http.sends[0].body);
@@ -358,16 +398,16 @@ namespace NeoCompose.Tests
                 target.customId, target.resumeToken);
 
             Assert.That(appended.SnapshotRevision, Is.EqualTo(1));
-            StringAssert.EndsWith("/saves/chunked-create/begin", http.sends[0].url);
+            StringAssert.EndsWith("/saves/chunked-create/begin", new System.Uri(http.sends[0].url).AbsolutePath);
             StringAssert.DoesNotContain("values", http.sends[0].body);
             StringAssert.EndsWith(
-                "/saves/save-1/chunked-create/append", http.sends[1].url);
+                "/saves/save-1/chunked-create/append", new System.Uri(http.sends[1].url).AbsolutePath);
             StringAssert.Contains("\"resumeToken\":\"resume-new\"", http.sends[1].body);
             StringAssert.Contains("\"baseSnapshotRevision\":0", http.sends[1].body);
             StringAssert.DoesNotContain("snapshotId", http.sends[1].body);
             StringAssert.Contains("\"kind\":\"value.replace\"", http.sends[1].body);
             StringAssert.EndsWith(
-                "/saves/save-1/chunked-create/complete", http.sends[2].url);
+                "/saves/save-1/chunked-create/complete", new System.Uri(http.sends[2].url).AbsolutePath);
             StringAssert.Contains("\"resumeToken\":\"resume-new\"", http.sends[2].body);
         }
 
@@ -384,7 +424,7 @@ namespace NeoCompose.Tests
             var copying = await client.GetSaveTransitionStatusAsync("save-2");
             Assert.That(copying.Outcome, Is.EqualTo(NeoSaveTransitionOutcome.Copying));
             StringAssert.EndsWith(
-                "/saves/save-2/status/query", http.sends[0].url);
+                "/saves/save-2/status/query", new System.Uri(http.sends[0].url).AbsolutePath);
 
             http.body = "{\"kind\":\"staging\",\"customId\":\"save-2\"," +
                 "\"targetSnapshotId\":\"snap-2\",\"snapshotRevision\":7," +
@@ -414,7 +454,7 @@ namespace NeoCompose.Tests
             await client.RetrySaveTransitionAsync("save-2");
 
             StringAssert.EndsWith(
-                "/saves/save-2/status/retry", http.sends[0].url);
+                "/saves/save-2/status/retry", new System.Uri(http.sends[0].url).AbsolutePath);
             Assert.That(http.sends[0].body, Is.EqualTo("{}"));
         }
 
@@ -440,13 +480,13 @@ namespace NeoCompose.Tests
             await client.GetSaveRecordStatesAsync(
                 "save-1", "snap-1", new[] { "state-1" });
 
-            StringAssert.EndsWith("/records/manifest/query", http.sends[0].url);
+            StringAssert.EndsWith("/records/manifest/query", new System.Uri(http.sends[0].url).AbsolutePath);
             StringAssert.Contains("\"cursor\":\"cursor-1\"", http.sends[0].body);
             StringAssert.DoesNotContain("mapKey", http.sends[0].body);
-            StringAssert.EndsWith("/records/delta/query", http.sends[1].url);
+            StringAssert.EndsWith("/records/delta/query", new System.Uri(http.sends[1].url).AbsolutePath);
             StringAssert.Contains("\"afterRevision\":4", http.sends[1].body);
             StringAssert.Contains("\"throughRevision\":7", http.sends[1].body);
-            StringAssert.EndsWith("/records/states/query", http.sends[2].url);
+            StringAssert.EndsWith("/records/states/query", new System.Uri(http.sends[2].url).AbsolutePath);
             StringAssert.Contains("\"recordStateIds\":[\"state-1\"]", http.sends[2].body);
         }
 
@@ -580,7 +620,7 @@ namespace NeoCompose.Tests
                         200, false, "{\"states\":[]}", ""));
                 }
                 return Task.FromResult(new NeoComposeWebResponse(
-                    status, false, bodyForUrl?.Invoke(url) ?? body, ""));
+                    status, false, bodyForUrl?.Invoke(new System.Uri(url).AbsolutePath) ?? body, ""));
             }
 
             public Task<byte[]> DownloadAsync(string url) =>

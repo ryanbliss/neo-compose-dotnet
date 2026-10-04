@@ -22,6 +22,10 @@ namespace NeoCompose.Runtime.Json
 
     public sealed class NeoLiveForkRequest
     {
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        [JsonConverter(typeof(NeoSaveFormatRevisionConverter))]
+        public int? requiredSaveFormatRevision;
+
         public string customId = "";
         public string liveSessionId = "";
         public string baseSnapshotId = "";
@@ -36,6 +40,10 @@ namespace NeoCompose.Runtime.Json
 
     public sealed class NeoLivePatchRequest
     {
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        [JsonConverter(typeof(NeoSaveFormatRevisionConverter))]
+        public int? requiredSaveFormatRevision;
+
         public string customId = "";
         public string snapshotId = "";
         public NeoSavePatch patch = new();

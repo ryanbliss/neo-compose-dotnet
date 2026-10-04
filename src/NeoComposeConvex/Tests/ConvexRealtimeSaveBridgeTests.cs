@@ -91,15 +91,17 @@ namespace NeoCompose.Convex.Tests
 
             var (functionName, args) = socket.Observations[0];
             Assert.That(functionName, Is.EqualTo("gameSaveRecordReads:getSnapshotRevision"));
+            Assert.That(args["supportedSaveFormatRevision"], Is.EqualTo(2));
             Assert.That(args["customId"], Is.EqualTo("save-1"));
 
             socket.PushJson(
                 "gameSaveRecordReads:getSnapshotRevision",
-                "{\"snapshotId\":\"snap-1\",\"snapshotRevision\":7}");
+                "{\"snapshotId\":\"snap-1\",\"snapshotRevision\":7,\"requiredSaveFormatRevision\":2}");
             dispatcher.Flush();
 
             Assert.That(received, Has.Count.EqualTo(1));
             Assert.That(received[0].snapshotRevision, Is.EqualTo(7));
+            Assert.That(received[0].requiredSaveFormatRevision, Is.EqualTo(2));
         }
 
         [Test]
@@ -137,6 +139,7 @@ namespace NeoCompose.Convex.Tests
 
             var (functionName, args) = socket.Mutations[0];
             Assert.That(functionName, Is.EqualTo("gameSaves:commit"));
+            Assert.That(args["supportedSaveFormatRevision"], Is.EqualTo(2));
             Assert.That(args["replaceSnapshot"], Is.EqualTo(true));
             var save = (Dictionary<string, object?>)args["save"]!;
             Assert.That(save["customId"], Is.EqualTo("save-1"));
@@ -210,6 +213,7 @@ namespace NeoCompose.Convex.Tests
 
             var request = new NeoLiveForkRequest
             {
+                requiredSaveFormatRevision = 2,
                 customId = "save-1",
                 liveSessionId = "session-1",
                 baseSnapshotId = "snap-0",
@@ -227,12 +231,14 @@ namespace NeoCompose.Convex.Tests
 
             var (functionName, args) = socket.Mutations[0];
             Assert.That(functionName, Is.EqualTo("gameSaves:forkLiveSnapshot"));
+            Assert.That(args["supportedSaveFormatRevision"], Is.EqualTo(2));
             Assert.That(args["projectId"], Is.EqualTo("project-1"));
             var save = (Dictionary<string, object?>)args["save"]!;
             Assert.That(save["liveSessionId"], Is.EqualTo("session-1"));
+            Assert.That(save["requiredSaveFormatRevision"], Is.EqualTo(2d));
             Assert.That(save["baseSnapshotId"], Is.EqualTo("snap-0"));
-            var patch = (Dictionary<string, object?>)save["patch"]!;
-            var changes = (List<object?>)patch["changes"]!;
+            Assert.That(save.ContainsKey("patch"), Is.False);
+            var changes = (List<object?>)save["changes"]!;
             Assert.That(((Dictionary<string, object?>)changes[0]!)["kind"],
                 Is.EqualTo("value.replace"));
         }
@@ -280,6 +286,7 @@ namespace NeoCompose.Convex.Tests
 
             var (functionName, args) = socket.Mutations[0];
             Assert.That(functionName, Is.EqualTo("gameSaves:patchLiveSnapshot"));
+            Assert.That(args["supportedSaveFormatRevision"], Is.EqualTo(2));
             Assert.That(args["customId"], Is.EqualTo("save-1"));
             Assert.That(args["snapshotId"], Is.EqualTo("snap-live"));
             var changes = (List<object?>)args["changes"]!;
@@ -331,8 +338,8 @@ namespace NeoCompose.Convex.Tests
 
             var (_, args) = socket.Mutations[0];
             var save = (Dictionary<string, object?>)args["save"]!;
-            var patch = (Dictionary<string, object?>)save["patch"]!;
-            var changes = (List<object?>)patch["changes"]!;
+            Assert.That(save.ContainsKey("patch"), Is.False);
+            var changes = (List<object?>)save["changes"]!;
             var replace = (Dictionary<string, object?>)changes[0]!;
             Assert.That(replace["value"], Is.EqualTo("2026-06-11T11:50:29.643Z"));
         }

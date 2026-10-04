@@ -71,7 +71,12 @@ namespace NeoCompose.Runtime
         /// When true, overwrites the head snapshot in place instead of appending a new
         /// one (cloud path).
         /// </param>
-        Awaitable CommitAsync(bool replaceSnapshot = false);
+        /// <param name="forceCapture">
+        /// Captures imported JSON even when it matches the client baseline, including
+        /// transient listener owning paths. Does not force a server write or bypass
+        /// conflicts. False preserves the ordinary dirty-state commit behavior.
+        /// </param>
+        Awaitable CommitAsync(bool replaceSnapshot = false, bool forceCapture = false);
 
         /// <summary>
         /// Deletes save-side values that are not reachable from the save tree.

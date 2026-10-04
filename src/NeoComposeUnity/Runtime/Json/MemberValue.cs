@@ -142,6 +142,18 @@ namespace NeoCompose.Runtime.Json
     [JsonConverter(typeof(MemberValueBaseConverter))]
     public abstract class MemberValueBase : IMemberValueBase
     {
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public NeoChangeListenerMap? changeListeners
+        {
+            get; set;
+        }
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public NeoChangeListenerEndpoints? changeListenerEndpoints
+        {
+            get; set;
+        }
+
         public string? classId
         {
             get; set;
@@ -1355,6 +1367,12 @@ namespace NeoCompose.Runtime.Json
     [JsonConverter(typeof(MemberValueConverter))]
     public abstract class MemberValue : MemberValueBase
     {
+        [JsonIgnore]
+        internal NeoChangeListenerMap? copiedChangeListeners;
+
+        [JsonIgnore]
+        internal bool copiedListenersAdopted;
+
         public string id { get; set; } = null!;
         public NeoTimestamp createdAt
         {

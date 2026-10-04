@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.57.0] - 2026-10-04
+
+- Run `OnChanged` subscriptions on logical class members after committed gameplay writes, including virtual defaults, packed values, collections, and remote Save updates. Session listeners remain temporary.
+- Persist listener edits separately from value overrides, with per-owner conflict checks and Save format capability negotiation. Copies preserve authored and durable wiring while remapping internal receivers.
+- Export schema 35 is required. Compiler revision 17 remains supported. Use the matching app and CLI 0.68.0.
+- Import listener-bearing Save JSON through `NeoClient` attached to its loaded `NeoSaveSynchronizer`, then call `CommitAsync(forceCapture: true)` to validate owning paths.
+
 ## [0.56.2] - 2026-10-04
 
 - NeoScript can assign a Class value to a Session or Save leaf of a static record, such as `this.Child.Shape = new ShapeBox { Width = 7 };`. Before, it threw "Cannot rebind 'Shape' on an immutable parent". It now does what the generated C# setter does: the value takes the leaf's own id in the leaf's store, and the record is not cloned. A local, a returned object or a C# view that held the value then reads and writes the leaf, in later executions too. The record must still author the leaf, even as `null` ([#243](https://github.com/ryanbliss/neo-compose-dotnet/issues/243)).

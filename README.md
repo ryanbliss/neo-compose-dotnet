@@ -47,6 +47,27 @@ the partial client and throws `OperationCanceledException`.
 Keep the loading scene visible until world rendering completes, then dispose the client
 when its owning game session ends.
 
+## Importing save JSON with listeners
+
+Load imported JSON through `NeoClient` so the client can resolve each listener's
+owner and receiver against the project's value graph:
+
+```csharp
+var synchronizer = store.Open(saveId);
+await synchronizer.LoadSaveContentAsync();
+using var client = new NeoClient(synchronizer, importedJson);
+await client.CommitAsync(forceCapture: true);
+```
+
+`forceCapture` captures the imported state even when it matches the client's
+loaded baseline. An unchanged server state remains a no-op, and conflict checks
+still apply. Ordinary commits keep their existing behavior.
+
+Listener ownership paths travel with the request and are regenerated from the
+loaded graph; they are not stored in save JSON. Passing JSON directly to
+`CommitSaveContentAsync` cannot supply these paths, so adding listeners through
+that content-only API is rejected. Removing existing listeners needs no path.
+
 ## Tile and object placements
 
 A tile placement is a generated `NeoTile` value. Its `Cell` is writable;

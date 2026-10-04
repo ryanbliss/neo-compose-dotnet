@@ -112,6 +112,9 @@ namespace NeoCompose.Runtime.NeoScript
                 case ActionListenerInstruction listener:
                     return AnyPointer(listener.target.pointer, predicate)
                         || AnyPointer(listener.listener, predicate);
+                case ChangeListenerInstruction listener:
+                    return AnyPointer(listener.target.owner, predicate)
+                        || AnyPointer(listener.listener, predicate);
                 case BreakInstruction:
                 case ContinueInstruction:
                     return false;
@@ -176,6 +179,8 @@ namespace NeoCompose.Runtime.NeoScript
                     return AnyPointer(check.pointer, predicate);
                 case CallGetterPointer getter:
                     return AnyPointer(getter.receiver, predicate);
+                case MemberTargetPointer target:
+                    return AnyPointer(target.receiver, predicate);
                 case CoalescePointer coalesce:
                     return AnyPointer(coalesce.left, predicate)
                         || AnyPointer(coalesce.right, predicate);

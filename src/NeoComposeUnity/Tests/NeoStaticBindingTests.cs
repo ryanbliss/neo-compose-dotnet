@@ -2098,7 +2098,7 @@ namespace NeoCompose.Tests
             InvalidOperationException error = Assert.Throws<InvalidOperationException>(() =>
                 CreateOwnedParent(client, wrong.id))!;
 
-            StringAssert.Contains("expects 'owned-child-class'", error.Message);
+            StringAssert.Contains("incompatible runtime class 'profile-class'", error.Message);
             StringAssert.Contains("runtime class 'profile-class'", error.Message);
             Assert.AreEqual(before, client.sessionValues.Count);
         }

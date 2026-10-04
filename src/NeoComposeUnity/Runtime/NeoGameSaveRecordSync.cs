@@ -31,11 +31,13 @@ namespace NeoCompose.Runtime
                 throw new ArgumentNullException(nameof(api));
             if (save == null)
                 throw new ArgumentNullException(nameof(save));
+            NeoSaveFormat.RequireSupported(save.requiredSaveFormatRevision);
 
             var cache = reusableCache ?? save.recordCache;
             cache.ResetManifest(save.snapshotId);
             var values = new JObject();
             var staticBindings = new Dictionary<string, string?>();
+            var changeListeners = new Dictionary<string, NeoChangeListenerMap>();
             string? cursor = null;
             do
             {
@@ -48,15 +50,17 @@ namespace NeoCompose.Runtime
                         numItems = DefaultPageSize,
                     });
                 await FetchAndApplyPageAsync(
-                    api, customId, save.snapshotId, cache, page.page, values, staticBindings);
+                    api, customId, save.snapshotId, cache, page.page, values, staticBindings, changeListeners);
                 cursor = NextCursor(cursor, page);
             }
             while (cursor != null);
 
+            cache.requiredSaveFormatRevision = save.requiredSaveFormatRevision;
             cache.snapshotRevision = save.snapshotRevision;
             save.recordCache = cache;
             save.values = new NeoSaveValues(values);
             save.staticBindings = staticBindings;
+            save.changeListeners = changeListeners.Count == 0 ? null : changeListeners;
             // The cloud record model has no partition blobs. The merged local
             // artifact still carries mapKey stamps rehydrated on its value rows.
             save.valuePartitions = null;
@@ -72,9 +76,10 @@ namespace NeoCompose.Runtime
                 throw new ArgumentNullException(nameof(api));
             if (save == null)
                 throw new ArgumentNullException(nameof(save));
+            NeoSaveFormat.RequireSupported(save.requiredSaveFormatRevision);
             if (string.IsNullOrEmpty(save.snapshotId))
                 return false;
-            if (throughRevision <= save.snapshotRevision)
+            if (throughRevision <= save.recordCache.snapshotRevision)
                 return false;
 
             // A whole-save copy; stored values are replaced, never edited in
@@ -83,6 +88,7 @@ namespace NeoCompose.Runtime
                 ? await Task.Run(() => (JObject)current.DeepClone())
                 : new JObject();
             var staticBindings = new Dictionary<string, string?>(save.staticBindings);
+            var changeListeners = NeoChangeListenerPatches.Copy(save.changeListeners);
             string? cursor = null;
             do
             {
@@ -91,7 +97,7 @@ namespace NeoCompose.Runtime
                     save.snapshotId!,
                     new GameSaveRecordDeltaPageRequest
                     {
-                        afterRevision = save.snapshotRevision,
+                        afterRevision = save.recordCache.snapshotRevision,
                         throughRevision = throughRevision,
                         cursor = cursor,
                         numItems = DefaultPageSize,
@@ -103,17 +109,18 @@ namespace NeoCompose.Runtime
                     save.recordCache,
                     page.page,
                     values,
-                    staticBindings);
+                    staticBindings, changeListeners);
                 cursor = NextCursor(cursor, page);
             }
             while (cursor != null);
 
             // Advance only after every bounded page and state batch succeeds.
-            save.snapshotRevision = throughRevision;
+            save.snapshotRevision = Math.Max(save.snapshotRevision, throughRevision);
             save.recordCache.snapshotId = save.snapshotId;
             save.recordCache.snapshotRevision = throughRevision;
             save.values = new NeoSaveValues(values);
             save.staticBindings = staticBindings;
+            save.changeListeners = changeListeners.Count == 0 ? null : changeListeners;
             save.valuePartitions = null;
             return true;
         }
@@ -125,7 +132,8 @@ namespace NeoCompose.Runtime
             GameSaveRecordCache cache,
             List<GameSaveRecordDescriptor> descriptors,
             JObject values,
-            IDictionary<string, string?> staticBindings)
+            IDictionary<string, string?> staticBindings,
+            IDictionary<string, NeoChangeListenerMap> changeListeners)
         {
             var missingIds = cache.FindMissingStateIds(descriptors);
             if (missingIds.Count != 0)
@@ -134,7 +142,7 @@ namespace NeoCompose.Runtime
                     customId, snapshotId, missingIds);
                 cache.StoreStates(descriptors, states);
             }
-            cache.ApplyDescriptors(descriptors, values, staticBindings);
+            cache.ApplyDescriptors(descriptors, values, staticBindings, changeListeners);
         }
 
         private static string? NextCursor(string? previous, GameSaveRecordPage page)

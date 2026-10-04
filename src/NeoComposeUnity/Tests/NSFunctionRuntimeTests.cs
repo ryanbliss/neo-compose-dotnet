@@ -1427,7 +1427,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void ScalarFieldWriteStoresTheChildWithoutAWritePlan()
+        public void ScalarFieldWriteCommitsTheExecutionAtomically()
         {
             var count = new IntMember
             {
@@ -1458,7 +1458,7 @@ namespace NeoCompose.Tests
             long revision = client.WriteRevision;
             var node = new NeoMemberNSFunction(client, function, null, NeoValueOwnership.Save);
             Assert.AreEqual(7d, node.Invoke("receiver-value", Array.Empty<object?>()));
-            Assert.AreEqual(0, plans, "A leaf replacement at a stable id needs no write plan.");
+            Assert.AreEqual(1, plans, "NeoScript leaf writes share the execution plan so a later listener admission failure can roll them back.");
             Assert.AreEqual(revision + 1, client.WriteRevision, "A leaf replacement is one revision.");
             Assert.IsTrue(client.TryGetWritableValue(NeoValueOwnership.Save, "count-value", out NumberMemberValue? stored));
             Assert.AreEqual(7d, stored!.value);
@@ -1468,7 +1468,7 @@ namespace NeoCompose.Tests
 
         [TestCase(MemberKind.Sprite)]
         [TestCase(MemberKind.Audio)]
-        public void AssetFieldWriteStoresTheChildWithoutAWritePlan(MemberKind kind)
+        public void AssetFieldWriteCommitsTheExecutionAtomically(MemberKind kind)
         {
             bool sprite = kind == MemberKind.Sprite;
             JsonMember asset = sprite
@@ -1506,7 +1506,7 @@ namespace NeoCompose.Tests
             Assert.AreEqual(revision, client.WriteRevision, "Assigning the value the store already holds writes nothing.");
 
             node.Invoke("receiver-value", new[] { Asset(2) });
-            Assert.AreEqual(0, plans, "A leaf replacement at a stable id needs no write plan.");
+            Assert.AreEqual(1, plans, "NeoScript leaf writes share the execution plan so a later listener admission failure can roll them back.");
             Assert.AreEqual(revision + 1, client.WriteRevision, "A leaf replacement is one revision.");
             Assert.IsTrue(client.TryGetWritableValue(NeoValueOwnership.Save, "asset-value", out MemberValue? written));
             Assert.IsTrue(NeoClient.SameLeafValue(Row(2), written!));
@@ -1552,7 +1552,7 @@ namespace NeoCompose.Tests
 
             node.SetSerializedValue("Count", NeoValueWritePayload.FromValue(7));
             Assert.AreEqual(7d, node.Get<NeoMemberInt>("Count").value!.value);
-            Assert.AreEqual(0, plans, "A leaf replacement at a stable id needs no write plan.");
+            Assert.AreEqual(0, plans);
             Assert.AreEqual(revision + 1, client.WriteRevision);
             CollectionAssert.AreEqual(new[] { "count-value" }, published, "Only the replaced child publishes.");
             Assert.IsTrue(client.TryGetValue(NeoValueOwnership.Save, "receiver-value", out ObjectMemberValue? after));
