@@ -2409,6 +2409,13 @@ namespace NeoCompose.Runtime
                 {
                     receiver = Eval(keyOfPointer.keyOf.pointer, scope, ctx);
                 }
+                if (keyOfPointer.keyOf.pointer is VariablePointer receiverVariable
+                    && NeoStructuredLeafFieldWriteTarget.IsStructuredLeafValue(receiver)
+                    && FindValueId(receiver, ctx) == null)
+                {
+                    AssignLocalLeafField(instruction, keyOfPointer, receiverVariable, receiver!, assigned, scope, ctx);
+                    return default;
+                }
                 if (receiver is NeoScriptObject { attachedId: null } detached
                     && WritesSessionTarget(instruction.target.writability)
                     && Eval(keyOfPointer.keyOf.key, scope, ctx) is string key
@@ -2455,6 +2462,35 @@ namespace NeoCompose.Runtime
                     instruction.target.typeInfo);
             }
             scope.Assign(variablePointer, local, number);
+        }
+
+        /// <summary>
+        /// <c>local.y++</c> on a local that holds a structured leaf no row backs
+        /// (e.g. <c>Vector2Int progress = new(0, 0)</c>). The leaf is a value
+        /// type, so the local rebinds to a copy with the field replaced.
+        /// </summary>
+        private static void AssignLocalLeafField(
+            AssignInstruction instruction,
+            KeyOfPointer keyOfPointer,
+            VariablePointer receiverVariable,
+            object receiver,
+            object? assigned,
+            NeoScriptScope scope,
+            NSGetterEvaluator.Context ctx)
+        {
+            if (IsReadOnly(instruction.target))
+            {
+                throw new NSGetterRuntimeError(
+                    "Cannot assign to a read-only NeoScript binding.");
+            }
+            if (scope.TryGetReadOnlyError(receiverVariable.variableId, out string? readOnlyError))
+            {
+                throw new NSGetterRuntimeError(readOnlyError!);
+            }
+            string field = ToStringKey(Eval(keyOfPointer.keyOf.key, scope, ctx), "Structured leaf field name");
+            scope.Assign(
+                receiverVariable,
+                NeoStructuredLeafFieldWriteTarget.ComposeLocalField(receiver, field, instruction.target.typeInfo, assigned));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -5117,15 +5153,76 @@ namespace NeoCompose.Runtime
                 switch (row)
                 {
                     case SpriteMemberValue sprite:
+                        sprite.value = (SpriteValue)ComposeField(
+                            RequireLeafValue(sprite.value, NeoAnimationLeafKind.Sprite),
+                            value);
+                        return;
+                    case Vector3MemberValue vector3:
+                        vector3.value = (NeoVector3Value)ComposeField(
+                            RequireLeafValue(vector3.value, NeoAnimationLeafKind.Vector3),
+                            value);
+                        return;
+                    case Vector2MemberValue vector2:
+                        vector2.value = (NeoVector2Value)ComposeField(
+                            RequireLeafValue(vector2.value, NeoAnimationLeafKind.Vector2),
+                            value);
+                        return;
+                    case ColorMemberValue color:
+                        color.value = (NeoColorValue)ComposeField(
+                            RequireLeafValue(color.value, NeoAnimationLeafKind.Color),
+                            value);
+                        return;
+                    default:
+                        throw new NSGetterRuntimeError(
+                            "Assignment receiver must be a list, dictionary, or class object.");
+                }
+            }
+
+            /// <summary>
+            /// Whether <paramref name="value"/> is a structured leaf payload a
+            /// field write can compose over.
+            /// </summary>
+            internal static bool IsStructuredLeafValue(object? value)
+            {
+                return value is SpriteValue
+                    || value is NeoVector2Value
+                    || value is NeoColorValue;
+            }
+
+            /// <summary>
+            /// A field write on a NeoScript local that holds a structured leaf.
+            /// The leaf is a value type, so the write composes a fresh payload
+            /// for the local to rebind rather than mutating one that another
+            /// local or a memoized getter result may share.
+            /// </summary>
+            internal static object ComposeLocalField(
+                object current,
+                string field,
+                TypeInfo fieldType,
+                object? value)
+            {
+                return new NeoStructuredLeafFieldWriteTarget(
+                    "local",
+                    field,
+                    fieldType,
+                    NeoValueOwnership.Session).ComposeField(current, value);
+            }
+
+            /// <summary>
+            /// Returns a new payload equal to <paramref name="current"/> with
+            /// this target's field replaced by <paramref name="value"/>.
+            /// </summary>
+            private object ComposeField(object current, object? value)
+            {
+                switch (current)
+                {
+                    case SpriteValue sprite:
                         {
                             RequireLegalKey(NeoAnimationLeafKind.Sprite);
-                            SpriteValue current = RequireLeafValue<SpriteValue>(
-                                sprite.value,
-                                NeoAnimationLeafKind.Sprite);
                             var composed = new SpriteValue
                             {
-                                fileId = current.fileId,
-                                sliceIndex = current.sliceIndex,
+                                fileId = sprite.fileId,
+                                sliceIndex = sprite.sliceIndex,
                             };
                             if (field == NeoAnimationLeafFields.FileIdKey)
                             {
@@ -5156,53 +5253,40 @@ namespace NeoCompose.Runtime
                                 }
                                 composed.sliceIndex = sliceIndex;
                             }
-                            sprite.value = composed;
-                            return;
+                            return composed;
                         }
-                    case Vector3MemberValue vector3:
+                    case NeoVector3Value vector3:
                         {
                             RequireLegalKey(NeoAnimationLeafKind.Vector3);
-                            NeoVector3Value current = RequireLeafValue<NeoVector3Value>(
-                                vector3.value,
-                                NeoAnimationLeafKind.Vector3);
                             float component = RequireComponent(value);
-                            vector3.value = new NeoVector3Value
+                            return new NeoVector3Value
                             {
-                                x = field == "x" ? component : current.x,
-                                y = field == "y" ? component : current.y,
-                                z = field == "z" ? component : current.z,
+                                x = field == "x" ? component : vector3.x,
+                                y = field == "y" ? component : vector3.y,
+                                z = field == "z" ? component : vector3.z,
                             };
-                            return;
                         }
-                    case Vector2MemberValue vector2:
+                    case NeoVector2Value vector2:
                         {
                             RequireLegalKey(NeoAnimationLeafKind.Vector2);
-                            NeoVector2Value current = RequireLeafValue<NeoVector2Value>(
-                                vector2.value,
-                                NeoAnimationLeafKind.Vector2);
                             float component = RequireComponent(value);
-                            vector2.value = new NeoVector2Value
+                            return new NeoVector2Value
                             {
-                                x = field == "x" ? component : current.x,
-                                y = field == "y" ? component : current.y,
+                                x = field == "x" ? component : vector2.x,
+                                y = field == "y" ? component : vector2.y,
                             };
-                            return;
                         }
-                    case ColorMemberValue color:
+                    case NeoColorValue color:
                         {
                             RequireLegalKey(NeoAnimationLeafKind.Color);
-                            NeoColorValue current = RequireLeafValue<NeoColorValue>(
-                                color.value,
-                                NeoAnimationLeafKind.Color);
                             float channel = RequireColorChannel(value);
-                            color.value = new NeoColorValue
+                            return new NeoColorValue
                             {
-                                r = field == "r" ? channel : current.r,
-                                g = field == "g" ? channel : current.g,
-                                b = field == "b" ? channel : current.b,
-                                a = field == "a" ? channel : current.a,
+                                r = field == "r" ? channel : color.r,
+                                g = field == "g" ? channel : color.g,
+                                b = field == "b" ? channel : color.b,
+                                a = field == "a" ? channel : color.a,
                             };
-                            return;
                         }
                     default:
                         throw new NSGetterRuntimeError(

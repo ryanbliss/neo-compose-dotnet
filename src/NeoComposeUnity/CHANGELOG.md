@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.54.2] - 2026-10-03
+
+- NeoScript can assign a field of a local vector, color, or sprite that no Neo value row backs, such as `Vector2Int progress = new(0, 0); progress.x++;`. Before, it threw "Assignment receiver is not backed by a Neo value row". The local rebinds to a copy, so another local copied from it keeps its value.
+
 ## [0.54.1] - 2026-10-03
 
 - A Class segment frame from a static segment, such as `new NeoAnimationSegmentFrame<NeoCollider?>(value: null)`, no longer throws "already owned by parent value" when it plays. The leaf gets a copy of the frame's value, and a `null` frame clears it. Before, any clip with such a frame failed to start.

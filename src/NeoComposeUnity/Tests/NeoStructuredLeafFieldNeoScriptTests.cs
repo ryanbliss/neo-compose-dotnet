@@ -520,6 +520,131 @@ namespace NeoCompose.Tests
         }
 
         // ------------------------------------------------------------------
+        // Locals no row backs.
+        // ------------------------------------------------------------------
+
+        [Test]
+        public void LocalVectorFieldIncrement_RebindsTheLocal()
+        {
+            // `Vector2Int a = new(1, 2); a.y++; a.y++; return a;` — the shape of
+            // a getter that tallies progress. Before the fix this died at
+            // "Assignment receiver is not backed by a Neo value row".
+            NeoVector2Value a = RunLocalVectorProgram(
+                "a",
+                AssignLocalField("a", "y", Add(KeyOf(LocalVariable("a"), "y"), NumberLiteral(1))),
+                AssignLocalField("a", "y", Add(KeyOf(LocalVariable("a"), "y"), NumberLiteral(1))));
+
+            Assert.AreEqual(1f, a.x);
+            Assert.AreEqual(4f, a.y);
+        }
+
+        [Test]
+        public void LocalVectorFieldWrite_DoesNotReachACopy()
+        {
+            // `Vector2Int a = new(1, 2); Vector2Int b = a; b.y = 5;` — vectors
+            // are value types, so `a` keeps its own y.
+            Assert.AreEqual(2f, RunLocalVectorProgram("a", AssignLocalField("b", "y", NumberLiteral(5))).y);
+            Assert.AreEqual(5f, RunLocalVectorProgram("b", AssignLocalField("b", "y", NumberLiteral(5))).y);
+        }
+
+        [Test]
+        public void LocalVectorFieldWrite_OnAReadOnlyTargetIsRejected()
+        {
+            AssignInstruction write = AssignLocalField("a", "y", NumberLiteral(5));
+            write.target.writability = WritabilityKind.ReadOnly;
+
+            var error = Assert.Throws<NSGetterRuntimeError>(() => RunLocalVectorProgram("a", write));
+            StringAssert.Contains("read-only", error!.Message);
+        }
+
+        /// <summary>
+        /// <c>Vector2Int a = new(1, 2); Vector2Int b = a;</c>, then
+        /// <paramref name="writes"/>, then <c>return</c> <paramref name="returned"/>.
+        /// </summary>
+        private static NeoVector2Value RunLocalVectorProgram(string returned, params AssignInstruction[] writes)
+        {
+            NeoClient client = BuildClient();
+            var ctx = ContextWithRoot(client, out Dictionary<string, object?> scope);
+            var vectorType = new PrimitiveTypeInfo { type = MemberKind.Vector2Int, required = true };
+            var instructions = new List<Instruction>
+            {
+                new VariableInstruction
+                {
+                    type = InstructionKind.Variable,
+                    variable = new Variable
+                    {
+                        id = "a",
+                        typeInfo = vectorType,
+                        pointer = new FunctionPointer
+                        {
+                            type = PointerKind.Function,
+                            function = new VectorConstructorFunction
+                            {
+                                type = FunctionKind.VectorConstructor,
+                                info = new FunctionVectorConstructorInfo
+                                {
+                                    vectorType = MemberKind.Vector2Int,
+                                    componentPointers = new Pointer[] { NumberLiteral(1), NumberLiteral(2) },
+                                },
+                            },
+                        },
+                    },
+                },
+                new VariableInstruction
+                {
+                    type = InstructionKind.Variable,
+                    variable = new Variable
+                    {
+                        id = "b",
+                        typeInfo = vectorType,
+                        pointer = LocalVariable("a"),
+                    },
+                },
+            };
+            instructions.AddRange(writes);
+            instructions.Add(new ReturnInstruction { type = InstructionKind.Return, pointer = LocalVariable(returned) });
+            FunctionWithReturnType body = Action(instructions.ToArray());
+            body.typeInfo = vectorType;
+
+            object? result = NeoScriptExecutor.Execute(client, body, scope, ctx).ReturnValue;
+            Assert.IsInstanceOf<NeoVector2Value>(result);
+            return (NeoVector2Value)result!;
+        }
+
+        private static AssignInstruction AssignLocalField(string local, string field, Pointer value) => new()
+        {
+            type = InstructionKind.Assign,
+            operatorValue = "=",
+            pointer = value,
+            target = new WriteTarget
+            {
+                pointer = KeyOf(LocalVariable(local), field),
+                typeInfo = IntType(),
+                writability = WritabilityKind.Runtime,
+            },
+        };
+
+        private static VariablePointer LocalVariable(string id) => new()
+        {
+            type = PointerKind.Variable,
+            variableId = id,
+        };
+
+        private static OperationPointer Add(Pointer left, Pointer right) => new()
+        {
+            type = PointerKind.Operation,
+            operation = new ArithmeticOperation
+            {
+                type = OperationKind.Arithmetic,
+                arithmetic = new ArithmeticOpInfo
+                {
+                    type = ArithmeticOpKind.Addition,
+                    pointers = new[] { left, right },
+                },
+            },
+        };
+
+        // ------------------------------------------------------------------
         // Harness.
         // ------------------------------------------------------------------
 
