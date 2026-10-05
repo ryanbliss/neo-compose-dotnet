@@ -24,7 +24,7 @@ namespace NeoCompose.Runtime
 
         private void StageConstructorDependencies(NeoWritePlan plan, MemberValue value, NeoValueOwnership targetOwnership = NeoValueOwnership.Save)
         {
-            if (value is not ObjectMemberValue { constructorArgs: not null })
+            if (value is not ObjectMemberValue { constructorArgs: { Count: > 0 } })
                 return;
             var sourceOwnership = targetOwnership == NeoValueOwnership.Save ? NeoValueOwnership.Session : NeoValueOwnership.Save;
             var pending = new Queue<(string id, Member? member)>();
@@ -78,9 +78,10 @@ namespace NeoCompose.Runtime
         private IEnumerable<(string id, TypeInfo type)> EnumerateTypedConstructorReferences(
             MemberValue value, NeoValueOwnership ownership)
         {
-            if (value is not ObjectMemberValue { constructorArgs: not null } row
+            if (value is not ObjectMemberValue { constructorArgs: { Count: > 0 } } row
                 || row.instanceConstructorId is not string constructorId
-                || !data.constructors.TryGetValue(constructorId, out var constructor))
+                || !data.constructors.TryGetValue(constructorId, out var constructor)
+                || constructor.argumentTypes.Length == 0)
                 yield break;
 
             // A Class row never carries a genericBindings stamp -- stamping is

@@ -3565,6 +3565,7 @@ namespace NeoCompose.Runtime
                 SyncValueNode(value.id);
                 RecordReplayAllocation(value.id);
                 IndexPlacementParent(NeoValueOwnership.Session, value);
+                IndexLookupBindingRow(NeoValueOwnership.Session, value.id, value);
                 if (!string.IsNullOrEmpty(value.containerId))
                 {
                     AddMembership(
@@ -6073,6 +6074,7 @@ namespace NeoCompose.Runtime
             NoteEffectRowChange(ownership, value.id, value);
             SyncStoredValueNode(ownership, value, node);
             IndexPlacementParent(ownership, value);
+            IndexLookupBindingRow(ownership, value.id, value);
             var (byContainer, byRow) = MembershipMaps(ownership);
             if (byRow.TryGetValue(value.id, out string previousContainerId)
                 && previousContainerId != value.containerId)
@@ -6095,6 +6097,7 @@ namespace NeoCompose.Runtime
             NoteEffectRowChange(ownership, id, null);
             SyncValueNode(id);
             UnindexPlacementParent(ownership, id);
+            IndexLookupBindingRow(ownership, id, null);
             var (byContainer, byRow) = MembershipMaps(ownership);
             if (!byRow.TryGetValue(id, out string containerId))
                 return;
@@ -6803,6 +6806,8 @@ namespace NeoCompose.Runtime
             [NotNullWhen(true)] out string? valueId)
         {
             valueId = null;
+            if (InfersCommittedParents)
+                return TryFindIndexedLookupBinding(memberId, out valueId);
             var schemaKeys = new HashSet<string>();
             foreach (var schemaClass in data.classes.Values)
             {
@@ -10056,6 +10061,8 @@ namespace NeoCompose.Runtime
         [MemberNotNull(nameof(saveData))]
         private bool LoadSaveDataOrDefault(string? content)
         {
+            writableLookupBindingsByField = null;
+            writableLookupBindingRows.Clear();
             ProjectSaveData? parsed = null;
             if (!string.IsNullOrEmpty(content))
             {

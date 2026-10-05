@@ -20,6 +20,19 @@ namespace NeoCompose.Runtime
         private const string VirtualValueNamespace =
             "3e8ca0b3-e3f1-5d5f-bf2f-6ab5ee3896d0";
 
+        private static readonly byte[] VirtualNamespaceBytes = CreateVirtualNamespaceBytes();
+
+        private static byte[] CreateVirtualNamespaceBytes()
+        {
+            byte[] bytes = new Guid(VirtualValueNamespace).ToByteArray();
+            // Guid stores its first three fields in little-endian order. UUIDv5
+            // hashes the namespace in network byte order.
+            Array.Reverse(bytes, 0, 4);
+            Array.Reverse(bytes, 4, 2);
+            Array.Reverse(bytes, 6, 2);
+            return bytes;
+        }
+
         /// <summary>
         /// Convergence bound for the re-entrant replay loop. Each pass is a
         /// full project replay; more than a handful means the graph is not
@@ -370,6 +383,7 @@ namespace NeoCompose.Runtime
             virtualClassChildren.Clear();
             virtualClassChildrenEpoch++;
             virtualClassPlacementByChildId.Clear();
+            virtualLookupBindingsByMember.Clear();
             virtualEntriesByContainer.Clear();
             virtualContainerByRow.Clear();
             virtualValueIdsByRoot.Clear();
@@ -667,7 +681,14 @@ namespace NeoCompose.Runtime
                 root,
                 root.hasInstanceConstructorId ? root.instanceConstructorId : null,
                 root.constructorArgs ?? new Dictionary<string, JToken?>());
-            SetWritableValue(ownership, root, "instanceVariantId");
+            if (!replay && ownership == NeoValueOwnership.Session && !isReplayingVirtualInstance)
+            {
+                var plan = new NeoWritePlan(this) { ConstructedVariantRoot = root.id };
+                plan.Set(ownership, root, "instanceVariantId");
+                plan.Commit();
+            }
+            else
+                SetWritableValue(ownership, root, "instanceVariantId");
             if (replay)
             {
                 if (IsPreparingVariant && !isReplayingVirtualInstance)
@@ -1163,6 +1184,7 @@ namespace NeoCompose.Runtime
                     $"P75 replay for '{instanceRoot.id}' lost temporary root '{temporaryRootId}'.");
             }
 
+            using var replayIdHash = SHA1.Create();
             var claimedVirtualIds = new Dictionary<string, string>(StringComparer.Ordinal);
             VirtualExpansionNode graph;
 #if NEO_COMPOSE_PROFILING
@@ -1175,6 +1197,7 @@ namespace NeoCompose.Runtime
                     constructed.member,
                     replayBoundary?.Path ?? "$",
                     claimedVirtualIds,
+                    replayIdHash,
                     new Dictionary<MemberValue, IReadOnlyDictionary<string, NeoGenericEnvEntry>>());
             }
             if (replayBoundary is not null)
@@ -1476,19 +1499,20 @@ namespace NeoCompose.Runtime
             Member member,
             string path,
             Dictionary<string, string> claimedVirtualIds,
+            SHA1 replayIdHash,
             Dictionary<MemberValue, IReadOnlyDictionary<string, NeoGenericEnvEntry>> environments)
         {
             string sourceIdentity = VirtualSourceIdentity(row, member, path);
             string virtualId = path == "$"
                 ? instanceRoot.id
-                : VirtualValueId(instanceRoot.id, sourceIdentity);
+                : VirtualValueId(instanceRoot.id, sourceIdentity, replayIdHash);
             if (claimedVirtualIds.TryGetValue(
                     virtualId,
                     out string? claimedPath)
                 && claimedPath != path)
             {
                 sourceIdentity = $"{sourceIdentity}:{path}";
-                virtualId = VirtualValueId(instanceRoot.id, sourceIdentity);
+                virtualId = VirtualValueId(instanceRoot.id, sourceIdentity, replayIdHash);
             }
             claimedVirtualIds[virtualId] = path;
             var node = new VirtualExpansionNode
@@ -1537,7 +1561,7 @@ namespace NeoCompose.Runtime
             {
                 var child = IndexVirtualExpansion(instanceRoot,
                     ResolveValueRow(id) ?? throw new InvalidOperationException($"Replay lost child '{id}' at '{childPath}'."),
-                    childMember, childPath, claimedVirtualIds, environments);
+                    childMember, childPath, claimedVirtualIds, replayIdHash, environments);
                 child.parent = node;
                 return child;
             }
@@ -2118,6 +2142,11 @@ namespace NeoCompose.Runtime
             Member member,
             NeoValueOwnership ownership)
         {
+            if (virtualClassPlacementByChildId.TryGetValue(childValueId, out var previousPlacement))
+                RemoveVirtualLookupBinding(previousPlacement.member.id, childValueId);
+            if (!virtualLookupBindingsByMember.TryGetValue(member.id, out var bindings))
+                virtualLookupBindingsByMember[member.id] = bindings = new(StringComparer.Ordinal);
+            bindings.Add(childValueId);
             virtualClassPlacementByChildId[childValueId] =
                 new VirtualClassPlacement
                 {
@@ -2220,6 +2249,7 @@ namespace NeoCompose.Runtime
                         && placement.rootId == rootId)
                     {
                         virtualClassPlacementByChildId.Remove(childId);
+                        RemoveVirtualLookupBinding(placement.member.id, childId);
                     }
                 }
                 virtualClassChildIdsByRoot.Remove(rootId);
@@ -2233,10 +2263,10 @@ namespace NeoCompose.Runtime
             string value,
             bool numericValue = false)
         {
-            string encodedName = Newtonsoft.Json.JsonConvert.SerializeObject(valueName);
+            string encodedName = Newtonsoft.Json.JsonConvert.ToString(valueName);
             string encodedValue = numericValue
                 ? value
-                : Newtonsoft.Json.JsonConvert.SerializeObject(value);
+                : Newtonsoft.Json.JsonConvert.ToString(value);
             return $"{parent}/{{\"kind\":\"{kind}\",{encodedName}:{encodedValue}}}";
         }
 
@@ -2279,35 +2309,33 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal static string VirtualValueId(string instanceRootId, string sourceIdentity)
         {
+            using var sha1 = SHA1.Create();
+            return VirtualValueId(instanceRootId, sourceIdentity, sha1);
+        }
+
+        private static string VirtualValueId(string instanceRootId, string sourceIdentity, SHA1 sha1)
+        {
             const string systemPrefix = "system_";
             bool isSystemRecord = instanceRootId.StartsWith(
                 systemPrefix,
                 StringComparison.Ordinal);
-            string bareRootId = isSystemRecord
-                ? instanceRootId.Substring(systemPrefix.Length)
-                : instanceRootId;
-            string namespaceHex = VirtualValueNamespace.Replace("-", string.Empty);
-            var namespaceBytes = new byte[namespaceHex.Length / 2];
-            for (int index = 0; index < namespaceBytes.Length; index++)
-            {
-                namespaceBytes[index] = Convert.ToByte(
-                    namespaceHex.Substring(index * 2, 2),
-                    16);
-            }
-            byte[] nameBytes = Encoding.UTF8.GetBytes(
-                $"{bareRootId}:{sourceIdentity}");
-            byte[] input = new byte[namespaceBytes.Length + nameBytes.Length];
-            Buffer.BlockCopy(namespaceBytes, 0, input, 0, namespaceBytes.Length);
-            Buffer.BlockCopy(nameBytes, 0, input, namespaceBytes.Length, nameBytes.Length);
-            byte[] hash;
-            using (SHA1 sha1 = SHA1.Create())
-                hash = sha1.ComputeHash(input);
+            int rootStart = isSystemRecord ? systemPrefix.Length : 0;
+            int rootLength = instanceRootId.Length - rootStart;
+            int rootBytes = Encoding.UTF8.GetByteCount(instanceRootId.AsSpan(rootStart));
+            var input = new byte[VirtualNamespaceBytes.Length + rootBytes + 1 + Encoding.UTF8.GetByteCount(sourceIdentity)];
+            Buffer.BlockCopy(VirtualNamespaceBytes, 0, input, 0, VirtualNamespaceBytes.Length);
+            Encoding.UTF8.GetBytes(instanceRootId, rootStart, rootLength, input, VirtualNamespaceBytes.Length);
+            int separator = VirtualNamespaceBytes.Length + rootBytes;
+            input[separator] = (byte)':';
+            Encoding.UTF8.GetBytes(sourceIdentity, 0, sourceIdentity.Length, input, separator + 1);
+            byte[] hash = sha1.ComputeHash(input);
             hash[6] = (byte)((hash[6] & 0x0f) | 0x50);
             hash[8] = (byte)((hash[8] & 0x3f) | 0x80);
-            string hex = BitConverter.ToString(hash, 0, 16)
-                .Replace("-", string.Empty)
-                .ToLowerInvariant();
-            string valueId = $"{hex.Substring(0, 8)}-{hex.Substring(8, 4)}-{hex.Substring(12, 4)}-{hex.Substring(16, 4)}-{hex.Substring(20, 12)}";
+            string valueId = new Guid(
+                (hash[0] << 24) | (hash[1] << 16) | (hash[2] << 8) | hash[3],
+                (short)((hash[4] << 8) | hash[5]),
+                (short)((hash[6] << 8) | hash[7]),
+                hash[8], hash[9], hash[10], hash[11], hash[12], hash[13], hash[14], hash[15]).ToString();
             return isSystemRecord ? systemPrefix + valueId : valueId;
         }
     }

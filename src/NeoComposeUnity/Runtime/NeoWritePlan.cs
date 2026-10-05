@@ -47,6 +47,9 @@ namespace NeoCompose.Runtime
         }
         internal (string gridId, string layerId, string listId, string instanceId)? ObjectInsertion;
         internal string? ValidatedObjectInsertionGrid;
+        // A freshly constructed receiver is only gaining its variant stamp.
+        // Completeness still has to prove that its graph supplies every default.
+        internal string? ConstructedVariantRoot;
         // Collections most writes never fill are allocated on first use.
         internal HashSet<string>? UnchangedValueIds;
         internal List<NeoValidatedTileConversion>? ValidatedTileConversions;
