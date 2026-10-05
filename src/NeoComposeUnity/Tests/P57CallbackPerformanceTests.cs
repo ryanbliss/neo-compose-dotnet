@@ -21,6 +21,40 @@ namespace NeoCompose.Tests
         private const int EntryCount = 10_000;
         private const int MeasurementCount = 20;
 
+        [TestCase(2d)]
+        [TestCase(0d)]
+        [TestCase(-2d)]
+        public void MedianSavings_PreservesPairedHostVariation(double savingsMs)
+        {
+            var baseline = new Measurement[MeasurementCount];
+            var prepared = new Measurement[MeasurementCount];
+            for (int index = 0; index < MeasurementCount; index++)
+            {
+                double durationMs = 20d + index * 10d;
+                baseline[index] = new Measurement(durationMs, 0, 0);
+                prepared[index] = new Measurement(durationMs - savingsMs, 0, 0);
+            }
+
+            Assert.AreEqual(savingsMs, Lower95MedianSavings(baseline, prepared));
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void MedianSavings_DoesNotClaimImprovementFromMeasurementOrder(bool reverseOrder)
+        {
+            var baseline = new Measurement[MeasurementCount];
+            var prepared = new Measurement[MeasurementCount];
+            for (int index = 0; index < MeasurementCount; index++)
+            {
+                // Both timing groups must contribute to the confidence interval.
+                double durationMs = (index % 2 == 0) == reverseOrder ? 20d : 10d;
+                baseline[index] = new Measurement(durationMs, 0, 0);
+                prepared[index] = new Measurement(15d, 0, 0);
+            }
+
+            Assert.LessOrEqual(Lower95MedianSavings(baseline, prepared), 0d);
+        }
+
         [Test]
         public void PreparedCallback_KeepsOneBalancedAllocationSession()
         {
@@ -201,27 +235,22 @@ namespace NeoCompose.Tests
             var savings = new double[BootstrapSamples];
             var beforeResample = new double[MeasurementCount];
             var afterResample = new double[MeasurementCount];
-            uint randomState = 0x57C0FFEEu;
+            var random = new Random(0x57C0FFEE);
             for (int sample = 0; sample < BootstrapSamples; sample++)
             {
                 for (int index = 0; index < MeasurementCount; index++)
                 {
-                    beforeResample[index] = baseline[
-                        NextIndex(ref randomState, baseline.Length)].DurationMs;
-                    afterResample[index] = prepared[
-                        NextIndex(ref randomState, prepared.Length)].DurationMs;
+                    // Adjacent measurements share host variation. Resample the
+                    // pair together, retaining the alternating execution order.
+                    int pairIndex = random.Next(baseline.Length);
+                    beforeResample[index] = baseline[pairIndex].DurationMs;
+                    afterResample[index] = prepared[pairIndex].DurationMs;
                 }
                 savings[sample] = Median(beforeResample)
                     - Median(afterResample);
             }
             Array.Sort(savings);
             return savings[(int)(BootstrapSamples * 0.025d)];
-        }
-
-        private static int NextIndex(ref uint state, int length)
-        {
-            state = unchecked(state * 1_664_525u + 1_013_904_223u);
-            return (int)(state % (uint)length);
         }
 
         private static double Median(double[] values)
