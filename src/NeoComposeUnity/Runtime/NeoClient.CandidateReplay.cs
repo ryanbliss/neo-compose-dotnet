@@ -463,6 +463,12 @@ namespace NeoCompose.Runtime
             {
                 candidate.Add(ExpandVirtualInstanceRootCore(root, prepareOnly: true, replayOwnership: replayOwnership));
             }
+            catch (Exception error) when (!IsVirtualInstanceRoot(root))
+            {
+                // As on load: a row without a recipe reports the defaults it
+                // cannot evaluate, and commits with no virtual values.
+                ReportUnavailableOmittedDefaults(root, error);
+            }
             finally { replayingVirtualRootIds.Remove(rootId); }
         }
 

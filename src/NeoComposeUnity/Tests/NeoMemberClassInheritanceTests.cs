@@ -222,8 +222,9 @@ namespace NeoCompose.Tests
             }
 
             // Absence is not an explicit null. A required Class with an
-            // object default must still walk its schema and surface the
-            // computed child that cannot be literalized.
+            // object default still walks its schema: the computed child it
+            // cannot evaluate is reported against the row that omits it,
+            // and the rest of the client loads.
             saveValue.value.Clear();
             var selectorMember = (ClassMember)data.members[selectorMemberId];
             selectorMember.DeclaredRequirement = NeoMemberRequirementKind.Required;
@@ -232,12 +233,19 @@ namespace NeoCompose.Tests
                 value = new Dictionary<string, string>(),
             };
 
-            System.InvalidOperationException error = Assert.Throws<System.InvalidOperationException>(
-                () =>
-                {
-                    using NeoClient _ = NeoTestSaveStack.ClientFromSchema(data);
-                })!;
-            StringAssert.Contains("CategoryKind", error.Message);
+            UnityEngine.TestTools.LogAssert.Expect(
+                UnityEngine.LogType.Error,
+                new System.Text.RegularExpressions.Regex(
+                    $"Stored row '{saveValue.id}' of class '{saveClassId}'.*CategoryKind"));
+            using (NeoClient client = NeoTestSaveStack.ClientFromSchema(data))
+            {
+                Assert.IsTrue(client.save.TryGet(
+                    "HatColor",
+                    out NeoMemberClassWritable? selector));
+                Assert.IsFalse(selector!.TryGet(
+                    "CategoryKind",
+                    out NeoMemberEnum? _));
+            }
         }
         // -----------------------------------------------------------------
         // Derived class — keys flow base-first (root ancestor's keys

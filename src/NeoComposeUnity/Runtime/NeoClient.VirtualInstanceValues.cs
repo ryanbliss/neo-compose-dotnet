@@ -565,12 +565,25 @@ namespace NeoCompose.Runtime
             catch (Exception error)
             {
                 ClearVirtualInstanceRoot(root.id);
+                // A stamped root's recipe is durable creation data, so a load
+                // fails closed on it. An unstamped row only projects
+                // declaration defaults onto the fields it omits: when they
+                // cannot be evaluated, report the row and keep loading.
+                if (failClosed && !IsVirtualInstanceRoot(root))
+                {
+                    ReportUnavailableOmittedDefaults(root, error);
+                    return;
+                }
                 if (failClosed)
                     throw;
                 Debug.LogWarning(
                     $"[NeoCompose] P75 could not replay instance root '{root.id}' of class '{root.classId}' from the incoming live content; its virtual values are unavailable until the next successful apply. {error}");
             }
         }
+
+        private static void ReportUnavailableOmittedDefaults(ObjectMemberValue root, Exception error) =>
+            Debug.LogError(
+                $"[NeoCompose] Stored row '{root.id}' of class '{root.classId}' could not evaluate the defaults of the fields it omits, so those fields are unavailable. {error.Message}");
 
         private void IndexConstructorArgumentRows(ObjectMemberValue root)
         {

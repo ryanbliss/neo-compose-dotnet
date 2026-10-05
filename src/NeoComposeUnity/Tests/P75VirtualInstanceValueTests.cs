@@ -3259,8 +3259,14 @@ namespace NeoCompose.Tests
                 .Get<NeoMemberIntWritable>("Count").value!.value);
         }
 
+        /// <summary>
+        /// Issue #261. An unstamped stored row that omits a field with a
+        /// computed default gets it the way construction would: the omitted
+        /// field's initializer runs in the row's default projection and the
+        /// result resolves at a deterministic virtual id.
+        /// </summary>
         [Test]
-        public void NonVirtualSparseRowDoesNotDeferAComputedInitializer()
+        public void UnstampedSparseRowEvaluatesItsOmittedComputedDefault()
         {
             ProjectData data = BuildProjectData();
             var plainClass = SchemaClass(
@@ -3278,10 +3284,76 @@ namespace NeoCompose.Tests
                 classId = plainClass.id,
                 Requirement = NeoMemberRequirementKind.Required,
             };
-            var countType = new PrimitiveTypeInfo
+            data.members["plain-count"] = new IntMember
             {
+                id = "plain-count",
+                projectId = "p75-project",
+                name = "Count",
+                kind = MemberKind.Int,
+                Requirement = NeoMemberRequirementKind.Required,
+                defaultValue = ComputedIntInitializer(5),
+            };
+            data.classes["save-root-class"].schema["Plain"] = "plain-member";
+            data.values["plain-value"] = ObjectValue("plain-value", plainClass.id);
+            ((ObjectMemberValue)data.values["value-save"]).value!["Plain"] = "plain-value";
+
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+
+            NeoMemberIntWritable count = client.save.Get<NeoMemberClassWritable>("Plain")
+                .Get<NeoMemberIntWritable>("Count");
+            Assert.AreEqual(5, count.value!.value);
+            Assert.IsTrue(client.TryGetVirtualClassChildValueId("plain-value", "Count", out string? virtualId));
+            Assert.AreEqual(virtualId, count.value.id);
+            Assert.IsFalse(((ObjectMemberValue)data.values["plain-value"]).value!.ContainsKey("Count"),
+                "the stored row stays sparse");
+        }
+
+        /// <summary>
+        /// Issue #261. A row without a recipe has no constructor arguments, so
+        /// an omitted field whose initializer reads one cannot be supplied.
+        /// The load reports that row and continues; the row's stored fields
+        /// still read.
+        /// </summary>
+        [Test]
+        public void UnstampedSparseRowReportsAnOmittedConstructorArgumentInitializer()
+        {
+            ProjectData data = BuildProjectData();
+            var plainClass = SchemaClass(
+                "plain-class",
+                "Plain",
+                NeoMemberStorage.Save);
+            plainClass.schema["Count"] = "plain-count";
+            plainClass.schema["Seed"] = "plain-seed";
+            plainClass.constructorIds = new[] { "plain-ctor" };
+            data.classes[plainClass.id] = plainClass;
+            var seedArgument = new FunctionArgumentTypeInfo
+            {
+                name = "Seed",
                 type = MemberKind.Int,
                 required = true,
+            };
+            data.constructors["plain-ctor"] = new ConstructorRecord
+            {
+                id = "plain-ctor",
+                projectId = "p75-project",
+                classId = plainClass.id,
+                argumentTypes = new[] { seedArgument },
+                action = new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = new[] { ConstructorVariable("__this__", ClassType(plainClass.id)), ConstructorVariable("__root__", ClassType("save-root-class")), ConstructorVariable("__arg_0__", seedArgument) },
+                    typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null, required = true },
+                    instructions = Array.Empty<Instruction>(),
+                },
+            };
+            data.members["plain-member"] = new ClassMember
+            {
+                id = "plain-member",
+                projectId = "p75-project",
+                name = "Plain",
+                kind = MemberKind.Class,
+                classId = plainClass.id,
+                Requirement = NeoMemberRequirementKind.Required,
             };
             data.members["plain-count"] = new IntMember
             {
@@ -3290,30 +3362,31 @@ namespace NeoCompose.Tests
                 name = "Count",
                 kind = MemberKind.Int,
                 Requirement = NeoMemberRequirementKind.Required,
+                defaultValue = ComputedIntInitializer(5),
+            };
+            data.members["plain-seed"] = new IntMember
+            {
+                id = "plain-seed",
+                projectId = "p75-project",
+                name = "Seed",
+                kind = MemberKind.Int,
+                Requirement = NeoMemberRequirementKind.Required,
                 defaultValue = new NumberMemberValueBase
                 {
                     init = new InitializerBody
                     {
-                        code = "5",
+                        code = "Seed",
                         compiled = new FunctionWithReturnType
                         {
                             compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
-                            parameters = Array.Empty<Variable>(),
-                            typeInfo = countType,
+                            parameters = new[] { ConstructorVariable("__this__", ClassType(plainClass.id)), ConstructorVariable("__root__", ClassType("save-root-class")), ConstructorVariable("__arg_0__", seedArgument) },
+                            typeInfo = IntTypeInfo(),
                             instructions = new Instruction[]
                             {
                                 new ReturnInstruction
                                 {
                                     type = InstructionKind.Return,
-                                    pointer = new ValuePointer
-                                    {
-                                        type = PointerKind.Value,
-                                        value = new Value
-                                        {
-                                            typeInfo = countType,
-                                            value = JToken.FromObject(5),
-                                        },
-                                    },
+                                    pointer = new VariablePointer { type = PointerKind.Variable, variableId = "__arg_0__" },
                                 },
                             },
                         },
@@ -3321,14 +3394,20 @@ namespace NeoCompose.Tests
                 },
             };
             data.classes["save-root-class"].schema["Plain"] = "plain-member";
+            data.values["plain-count-value"] = new NumberMemberValue { id = "plain-count-value", value = 7 };
             data.values["plain-value"] = ObjectValue("plain-value", plainClass.id);
+            ((ObjectMemberValue)data.values["plain-value"]).value!["Count"] = "plain-count-value";
             ((ObjectMemberValue)data.values["value-save"]).value!["Plain"] = "plain-value";
 
-            InvalidOperationException error = Assert.Throws<InvalidOperationException>(
-                () => NeoTestSaveStack.ClientFromSchema(data))!;
-            StringAssert.Contains(
-                "has a computed default and cannot be materialized as a literal",
-                error.ToString());
+            UnityEngine.TestTools.LogAssert.Expect(
+                UnityEngine.LogType.Error,
+                new System.Text.RegularExpressions.Regex(
+                    "Stored row 'plain-value' of class 'plain-class'.*Initializer 'Seed' cannot resolve its declaring constructor scope"));
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+
+            NeoMemberClassWritable plain = client.save.Get<NeoMemberClassWritable>("Plain");
+            Assert.AreEqual(7, plain.Get<NeoMemberIntWritable>("Count").value!.value);
+            Assert.IsFalse(plain.TryGet("Seed", out NeoMemberIntWritable? _));
         }
 
         [Test]

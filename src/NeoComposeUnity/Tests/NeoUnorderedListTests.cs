@@ -1014,6 +1014,14 @@ namespace NeoCompose.Tests
                 "nested-c",
                 new()));
 
+            // The clone copies stray-item, the member behind the null
+            // container. It has no recipe, so the Nested initializer has no
+            // constructor argument to read: the write reports that row and
+            // commits it without the field.
+            UnityEngine.TestTools.LogAssert.Expect(
+                UnityEngine.LogType.Error,
+                new System.Text.RegularExpressions.Regex(
+                    "Stored row '[^']+' of class 'item-class'.*Initializer 'Nested' cannot resolve its declaring constructor scope"));
             string clonedBagId = client.CloneValueReference("bag-value", NeoValueOwnership.Save);
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
