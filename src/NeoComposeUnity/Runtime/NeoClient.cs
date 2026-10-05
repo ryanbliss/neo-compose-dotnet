@@ -8697,6 +8697,7 @@ namespace NeoCompose.Runtime
 
         private void ValidateCallableMembers()
         {
+            Dictionary<string, string>? ownerClassIdByMemberId = null;
             foreach (var pair in data.members)
             {
                 if (pair.Value is DelegateMember delegateMember)
@@ -8729,7 +8730,7 @@ namespace NeoCompose.Runtime
                     nsFunction.DeclaredDispatch,
                     "NSFunction",
                     rejectOverrideFields: true);
-                ValidateNSFunctionMember(nsFunction);
+                ValidateNSFunctionMember(nsFunction, ref ownerClassIdByMemberId);
             }
         }
 
@@ -8887,7 +8888,9 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private void ValidateNSFunctionMember(NSFunctionMember member)
+        private void ValidateNSFunctionMember(
+            NSFunctionMember member,
+            ref Dictionary<string, string>? ownerClassIdByMemberId)
         {
             if (member.DeclaredBodyMode.HasValue
                 && !System.Enum.IsDefined(
@@ -8964,11 +8967,30 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException(
                     $"Concrete NSFunction member '{member.id}' is missing its compiled action or inherited signature.");
             }
-            int expectedParameters = signature.argumentTypes.Length + 2;
+            FunctionArgumentTypeInfo[] argumentTypes = signature.argumentTypes;
+            Json.TypeInfo returnTypeInfo = signature.returnTypeInfo;
+            // An override compiles against its own class's bindings, so an
+            // inherited generic signature closes through that class first
+            // (MinIntWatcher : ValueWatcher<int> compiles Apply(T) as Apply(int)).
+            if (!ReferenceEquals(signature, member)
+                && (NeoNSFunctionRuntime.ContainsGeneric(returnTypeInfo)
+                    || System.Array.Exists(argumentTypes, NeoNSFunctionRuntime.ContainsGeneric))
+                && (ownerClassIdByMemberId ??= BuildSchemaOwnerClassIds())
+                    .TryGetValue(member.id, out string ownerClassId))
+            {
+                NeoGenericResolution.SubstituteCallableSignature(
+                    this,
+                    argumentTypes,
+                    returnTypeInfo,
+                    NeoGenericResolution.ResolveEnv(this, ownerClassId),
+                    out argumentTypes,
+                    out returnTypeInfo);
+            }
+            int expectedParameters = argumentTypes.Length + 2;
             if (action.parameters is null || action.parameters.Length != expectedParameters)
             {
                 throw new System.InvalidOperationException(
-                    $"NSFunction member '{member.id}' compiled action has {action.parameters?.Length ?? 0} parameters; expected {expectedParameters} (__this__, __root__, and {signature.argumentTypes.Length} arguments).");
+                    $"NSFunction member '{member.id}' compiled action has {action.parameters?.Length ?? 0} parameters; expected {expectedParameters} (__this__, __root__, and {argumentTypes.Length} arguments).");
             }
             if (action.parameters[0].id != "__this__"
                 || action.parameters[1].id != "__root__")
@@ -8976,7 +8998,7 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException(
                     $"NSFunction member '{member.id}' compiled action must begin with __this__ and __root__ parameters.");
             }
-            for (int i = 0; i < signature.argumentTypes.Length; i++)
+            for (int i = 0; i < argumentTypes.Length; i++)
             {
                 string expectedId = $"__arg_{i}__";
                 if (action.parameters[i + 2].id != expectedId)
@@ -8985,22 +9007,34 @@ namespace NeoCompose.Runtime
                         $"NSFunction member '{member.id}' compiled argument {i} must use parameter id '{expectedId}'.");
                 }
                 if (!TypeInfoMatches(
-                        signature.argumentTypes[i],
+                        argumentTypes[i],
                         action.parameters[i + 2].typeInfo))
                 {
                     throw new System.InvalidOperationException(
                         $"NSFunction member '{member.id}' compiled argument {i} type does not match its declared signature.");
                 }
             }
-            bool validReturn = signature.returnTypeInfo is VoidTypeInfo
+            bool validReturn = returnTypeInfo is VoidTypeInfo
                 ? action.typeInfo?.type == MemberKind.Null
                     && action.typeInfo.required
-                : TypeInfoMatches(signature.returnTypeInfo, action.typeInfo);
+                : TypeInfoMatches(returnTypeInfo, action.typeInfo);
             if (!validReturn)
             {
                 throw new System.InvalidOperationException(
                     $"NSFunction member '{member.id}' compiled action return type does not match its declared return type.");
             }
+        }
+
+        /// <summary>Each member's first placing class, matching the server's first-placement rule.</summary>
+        private Dictionary<string, string> BuildSchemaOwnerClassIds()
+        {
+            var owners = new Dictionary<string, string>();
+            foreach (NeoSchemaClass schemaClass in data.classes.Values)
+            {
+                foreach (string memberId in schemaClass.schema.Values)
+                    owners.TryAdd(memberId, schemaClass.id);
+            }
+            return owners;
         }
 
         private NSFunctionMember? ResolveNSFunctionSignature(string memberId)
