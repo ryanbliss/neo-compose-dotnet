@@ -8054,8 +8054,6 @@ namespace NeoCompose.Runtime
             var entryEnv = source.genericBindings is null
                 ? env
                 : NeoGenericResolution.EnvFromStamp(source.genericBindings);
-            string rowId = Guid.NewGuid().ToString();
-            bool unordered = member.ListKind == NeoListKind.Unordered;
             var value = new List<string>();
             if (source.value is not null)
             {
@@ -8068,7 +8066,7 @@ namespace NeoCompose.Runtime
                 }
                 entryMember = NeoGenericResolution.SubstituteMember(client, entryMember, entryEnv);
                 IEnumerable<string> sourceIds = source.value;
-                if (unordered
+                if (member.ListKind == NeoListKind.Unordered
                     && client.ResolveValueRow(source.id) is not null)
                 {
                     sourceIds = client.GetUnorderedListEntryIds(source.id);
@@ -8100,17 +8098,6 @@ namespace NeoCompose.Runtime
                             throw new InvalidOperationException(
                                 $"List default for '{member.name}' has an entry initializer that produced no value.");
                         }
-                        MemberValue? initialized = rows.Find(
-                            candidate => candidate.id == initEntryId);
-                        if (unordered && initialized is null)
-                        {
-                            throw new InvalidOperationException(
-                                $"Unordered List default for '{member.name}' initializer returned unowned value '{initEntryId}'.");
-                        }
-                        if (unordered)
-                        {
-                            initialized!.containerId = rowId;
-                        }
                         value.Add(initEntryId);
                         continue;
                     }
@@ -8125,19 +8112,22 @@ namespace NeoCompose.Runtime
                         $"{path}[{value.Count}]",
                         clonedIdsBySourceId);
                     rows.Add(cloned);
-                    if (unordered)
-                        cloned.containerId = rowId;
                     value.Add(cloned.id);
                     clonedIdsBySourceId[sourceRow.id] = cloned.id;
                 }
             }
 
+            // Unordered entries stay inline here, as on every runtime
+            // materialization path. A constructed entry is not staged: its
+            // ownership import is deferred, so PrepareConstructedGraph stamps
+            // the list as every entry's container (staged or imported) and
+            // then clears the payload.
             var row = new ArrayMemberValue
             {
-                id = rowId,
+                id = Guid.NewGuid().ToString(),
                 createdAt = nowIso,
                 updatedAt = nowIso,
-                value = unordered ? Array.Empty<string>() : value.ToArray(),
+                value = value.ToArray(),
                 classId = source.classId,
                 genericBindings = source.genericBindings is null
                     ? null

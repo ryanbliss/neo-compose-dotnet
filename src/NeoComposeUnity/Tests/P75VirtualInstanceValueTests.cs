@@ -4608,6 +4608,170 @@ namespace NeoCompose.Tests
             }
         }
 
+        /// <summary>
+        /// #254: a replayed List of a static Class entry beside an
+        /// initializer-constructed one whose constructor computes
+        /// <c>Label</c> from its argument. The constructed entry is attached
+        /// through the deferred ownership import, so an unordered list has to
+        /// receive it as a member there rather than among the staged rows.
+        /// <paramref name="classDefault"/> false: the List member's own
+        /// declaration default lists the entries. True: Neowyn's
+        /// <c>Assets.Quests = new() { Core = [...] }</c> shape, where a Class
+        /// member's default supplies the List as a stored row whose entries
+        /// are its payload ids (ordered) or carry its <c>containerId</c>
+        /// (unordered).
+        /// </summary>
+        [TestCase(NeoListKind.Ordered, false)]
+        [TestCase(NeoListKind.Unordered, false)]
+        [TestCase(NeoListKind.Ordered, true)]
+        [TestCase(NeoListKind.Unordered, true)]
+        public void ListDefaultReplaysStaticAndInitializerConstructedEntries(NeoListKind kind, bool classDefault)
+        {
+            ProjectData data = BuildConstructedUnorderedChildrenProjectData();
+            data.constructors.Remove("thing-ctor");
+            data.classes["thing-class"].constructorIds = null;
+            ((ObjectMemberValue)data.values["thing-instance"]).instanceConstructorId = null;
+            ((StringMember)data.members["entry-label"]).Format = NeoStringFormatKind.Plain;
+            var children = (ListMember)data.members["thing-children"];
+            children.ListKind = kind;
+            children.indexes = new[]
+            {
+                new ListIndexDefinition { schemaKey = "Label", Kind = NeoListIndexKind.Unique },
+            };
+            string[] entryIds = { "static-entry", "computed-entry" };
+            if (classDefault)
+            {
+                NeoSchemaClass holderClass = SchemaClass("holder-class", "Holder", NeoMemberStorage.Save);
+                holderClass.schema["Children"] = children.id;
+                data.classes[holderClass.id] = holderClass;
+                NeoSchemaClass thingClass = data.classes["thing-class"];
+                thingClass.schema.Remove("Children");
+                thingClass.schema["Holder"] = "thing-holder";
+                ClassMember holder = ClassPlacement("thing-holder", "Holder", holderClass.id, NeoMemberStorage.Save);
+                holder.defaultValue = new ObjectMemberValueBase
+                {
+                    value = new Dictionary<string, string> { ["Children"] = "stored-children" },
+                };
+                data.members[holder.id] = holder;
+                data.values["stored-children"] = new ArrayMemberValue
+                {
+                    id = "stored-children",
+                    value = kind == NeoListKind.Unordered ? Array.Empty<string>() : entryIds,
+                };
+            }
+            else
+            {
+                children.defaultValue = new ArrayMemberValueBase { value = entryIds };
+            }
+            data.values["static-entry"] = ObjectValue(
+                "static-entry",
+                "entry-class",
+                new Dictionary<string, string> { ["Label"] = "static-entry-label" });
+            data.values["static-entry-label"] = new StringMemberValue
+            {
+                id = "static-entry-label",
+                value = "static",
+            };
+            data.values["computed-entry"] = new NullMemberValue
+            {
+                id = "computed-entry",
+                init = new InitializerBody
+                {
+                    code = "new Entry(\"computed\")",
+                    compiled = new FunctionWithReturnType
+                    {
+                        compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                        parameters = Array.Empty<Variable>(),
+                        typeInfo = ClassType("entry-class"),
+                        instructions = new Instruction[]
+                        {
+                            new ReturnInstruction
+                            {
+                                type = InstructionKind.Return,
+                                pointer = EntryConstruction("computed"),
+                            },
+                        },
+                    },
+                },
+            };
+
+            if (classDefault && kind == NeoListKind.Unordered)
+            {
+                foreach (string entryId in entryIds)
+                    data.values[entryId].containerId = "stored-children";
+            }
+
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            NeoMemberClassWritable thing = client.save.Get<NeoMemberClassWritable>("Thing");
+            NeoMemberList list = (classDefault ? thing.Get<NeoMemberClassWritable>("Holder") : thing)
+                .Get<NeoMemberList>("Children");
+            string listId = list.value!.id;
+            if (classDefault)
+                Assert.AreNotEqual("stored-children", listId, "the replay clones the stored default list");
+            var entries = list.Cast<NeoMemberClassWritable>().ToArray();
+            CollectionAssert.AreEquivalent(
+                new[] { "static", "computed" },
+                entries.Select(entry => entry.Get<NeoMemberStringWritable>("Label").value!.value));
+            if (kind == NeoListKind.Unordered)
+            {
+                CollectionAssert.AreEquivalent(
+                    entries.Select(entry => entry.value!.id),
+                    client.GetUnorderedListEntryIds(listId));
+                foreach (NeoMemberClassWritable entry in entries)
+                {
+                    Assert.IsTrue(client.TryResolveContainerIdForValueId(
+                        entry.value!.id,
+                        out string? containerId));
+                    Assert.AreEqual(listId, containerId);
+                }
+            }
+
+            var context = new NSGetterEvaluator.Context(
+                client,
+                thisValue: null,
+                rootValue: null,
+                valueOwnership: NeoValueOwnership.Save);
+            object? byLabel = NSGetterEvaluator.Evaluate(
+                new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = Array.Empty<Variable>(),
+                    typeInfo = ClassType("entry-class"),
+                    instructions = new Instruction[]
+                    {
+                        new ReturnInstruction
+                        {
+                            type = InstructionKind.Return,
+                            pointer = new FunctionPointer
+                            {
+                                type = PointerKind.Function,
+                                function = new ListIndexFunction
+                                {
+                                    type = FunctionKind.ListIndex,
+                                    info = new FunctionListIndexInfo
+                                    {
+                                        collectionPointer = new ReferencePointer
+                                        {
+                                            type = PointerKind.Reference,
+                                            valueId = listId,
+                                        },
+                                        listMemberId = children.id,
+                                        schemaKey = "Label",
+                                        unique = true,
+                                        keyKind = ListIndexKeyKind.String,
+                                        keyPointer = StringLiteral("computed"),
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+                context);
+            Assert.AreEqual(
+                entries.Single(entry => entry.Get<NeoMemberStringWritable>("Label").value!.value == "computed").value!.id,
+                NSGetterEvaluator.FindRowIdByReference(byLabel, context));
+        }
+
         [Test]
         public void UnsetTombstonesAnOmittedMemberOnASparseRoot()
         {

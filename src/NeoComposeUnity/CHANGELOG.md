@@ -6,6 +6,7 @@
 - Persist listener edits separately from value overrides, with per-owner conflict checks and Save format capability negotiation. Copies preserve authored and durable wiring while remapping internal receivers.
 - Export schema 35 is required. Compiler revision 17 remains supported. Use the matching app and CLI 0.68.0.
 - Import listener-bearing Save JSON through `NeoClient` attached to its loaded `NeoSaveSynchronizer`, then call `CommitAsync(forceCapture: true)` to validate owning paths.
+- An unordered `List` default can hold a constructed Class entry that needs evaluation, such as `new QuestItemDelivery(...)` reading an index. Before, replaying the class that declares it threw "Unordered List default for '…' initializer returned unowned value", so no save loaded. The entry now joins the list like its static siblings and is found by the list's indexes ([#254](https://github.com/ryanbliss/neo-compose-dotnet/issues/254)).
 
 ## [0.56.2] - 2026-10-04
 
