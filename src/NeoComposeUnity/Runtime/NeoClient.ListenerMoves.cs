@@ -96,7 +96,7 @@ namespace NeoCompose.Runtime
         }
 
         private bool HasListenerMoveWork(NeoWritePlan plan) =>
-            HasListenerSources || plan.ListenerEntries?.Count > 0;
+            hasListenerSources || plan.ListenerEntries?.Count > 0;
 
         private static Dictionary<(NeoValueOwnership? scope, string id), string> ListenerRenames(NeoWritePlan plan) => plan.ListenerRenames();
 

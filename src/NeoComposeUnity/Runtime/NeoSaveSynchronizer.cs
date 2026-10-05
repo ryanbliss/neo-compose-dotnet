@@ -44,6 +44,8 @@ namespace NeoCompose.Runtime
         private (string snapshotId, Dictionary<string, NeoChangeListenerMap> received,
             Dictionary<string, NeoChangeListenerMap> acknowledged)? pendingListenerAdoption;
         private bool localWritesPending;
+        private bool listenerAdoptionRetryScheduled;
+        private const double ListenerAdoptionRetrySeconds = 1;
         private readonly List<AwaitableCompletionSource> revisionApplyWaiters = new();
 
         /// <summary>The active save after a best-effort cloud commit failed:
@@ -1069,6 +1071,7 @@ namespace NeoCompose.Runtime
                 return;
 
             realtimeRevisionApplyRunning = true;
+            bool retryAdoption = false;
             try
             {
                 while ((pendingRealtimeRevision != null || pendingListenerAdoption is not null) && !localWritesPending && !liveFlushOperationRunning)
@@ -1098,7 +1101,9 @@ namespace NeoCompose.Runtime
                                 throw;
                             }
                         }
-                        pendingListenerAdoption = null;
+                        if (pendingListenerAdoption is { } queued
+                            && ReferenceEquals(queued.received, adoption.received))
+                            pendingListenerAdoption = null;
                         continue;
                     }
                     var next = pendingRealtimeRevision;
@@ -1109,12 +1114,15 @@ namespace NeoCompose.Runtime
             catch (Exception exception)
             {
                 Debug.LogWarning(
-                    $"[NeoCompose] Could not adopt save listeners for \"{CustomId}\". " +
+                    $"[NeoCompose] Could not apply realtime save updates for \"{CustomId}\". " +
                     $"{exception.GetType().Name}: {exception.Message}");
+                retryAdoption = pendingListenerAdoption is not null;
             }
             finally
             {
                 realtimeRevisionApplyRunning = false;
+                if (retryAdoption)
+                    RetryListenerAdoption();
                 var waiters = revisionApplyWaiters.ToArray();
                 revisionApplyWaiters.Clear();
                 foreach (var waiter in waiters)
@@ -1122,6 +1130,28 @@ namespace NeoCompose.Runtime
                     waiter.TrySetResult();
                 }
             }
+        }
+
+        private async void RetryListenerAdoption()
+        {
+            if (listenerAdoptionRetryScheduled || liveTornDown)
+                return;
+            listenerAdoptionRetryScheduled = true;
+            try
+            {
+                await LiveDelay(ListenerAdoptionRetrySeconds);
+            }
+            catch (Exception exception)
+            {
+                Debug.LogWarning($"[NeoCompose] Could not schedule listener adoption retry for \"{CustomId}\". {exception.Message}");
+                return;
+            }
+            finally
+            {
+                listenerAdoptionRetryScheduled = false;
+            }
+            if (!liveTornDown)
+                DrainRealtimeRevisions();
         }
 
         /// <summary>

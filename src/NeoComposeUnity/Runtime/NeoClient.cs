@@ -6916,7 +6916,7 @@ namespace NeoCompose.Runtime
 
         private void RaiseContainerChanged(NeoValueOwnership ownership, string containerId, NeoWritePlan? plan = null)
         {
-            if (HasListenerSources)
+            if (hasListenerSources)
             {
                 pendingListenerChanges.Collections.Add((ownership, containerId));
                 pendingListenerChanges.IsEmpty = false;

@@ -63,7 +63,7 @@ namespace NeoCompose.Runtime
 #endif
             // Getter watchers hear the write once the grid it re-flattens is
             // current.
-            bool recordListeners = HasListenerSources;
+            bool recordListeners = hasListenerSources;
             HoldGetterChanges();
             if (recordListeners)
                 BeginChangeBatch();
@@ -85,15 +85,19 @@ namespace NeoCompose.Runtime
             {
                 if (gridLeaf)
                     EndGridChange();
-                try
+                if (recordListeners)
                 {
-                    ReleaseGetterChanges();
-                }
-                finally
-                {
-                    if (recordListeners)
+                    try
+                    {
+                        ReleaseGetterChanges();
+                    }
+                    finally
+                    {
                         EndChangeBatch();
+                    }
                 }
+                else
+                    ReleaseGetterChanges();
             }
             return true;
         }

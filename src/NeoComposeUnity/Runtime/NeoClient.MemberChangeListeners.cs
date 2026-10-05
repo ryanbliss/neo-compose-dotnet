@@ -106,15 +106,15 @@ namespace NeoCompose.Runtime
         private readonly HashSet<(NeoValueOwnership scope, string id)> dirtyListenerOwners = new();
         private readonly Dictionary<string, List<ListenerSlot>> listenerCollectionsById = new(StringComparer.Ordinal);
 
-        private bool HasListenerSources;
+        private bool hasListenerSources;
 
-        private void RefreshListenerSources() => HasListenerSources = sessionChangeListeners.Count != 0
+        private void RefreshListenerSources() => hasListenerSources = sessionChangeListeners.Count != 0
             || saveData.changeListeners?.Count > 0 || defaultChangeListeners.Count != 0
             || copiedListenerRoots.Count != 0 || authoredListenerRoots.Count != 0;
 
         internal void RecordListenerReplacement(NeoValueOwnership scope, string id)
         {
-            if (HasListenerSources)
+            if (hasListenerSources)
             {
                 pendingListenerChanges.Replacements.Add((scope, id));
                 pendingListenerChanges.IsEmpty = false;
