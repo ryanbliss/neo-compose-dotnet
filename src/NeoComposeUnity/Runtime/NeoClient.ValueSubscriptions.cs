@@ -158,9 +158,13 @@ namespace NeoCompose.Runtime
         {
             // Detach before resolving slots as well as invoking callbacks.
             // Either can fail; no failed batch may leak into the next one.
-            var listeners = pendingListenerChanges;
-            pendingListenerChanges = spareListenerChanges ?? new();
-            spareListenerChanges = null;
+            ListenerChangeBatch? listeners = null;
+            if (!pendingListenerChanges.IsEmpty)
+            {
+                listeners = pendingListenerChanges;
+                pendingListenerChanges = spareListenerChanges ?? new();
+                spareListenerChanges = null;
+            }
             var draining = pendingChanges;
             pendingChanges = spareChanges ?? new();
             spareChanges = null;
@@ -168,18 +172,23 @@ namespace NeoCompose.Runtime
             mergedListIds.Clear();
             try
             {
-                ResolvePendingListenerChanges(listeners);
+                if (listeners is not null)
+                    ResolvePendingListenerChanges(listeners);
                 foreach (var (node, changed, listChange) in draining)
                     if (!node.isDisposed)
                         node.InvokeChanged(changed, listChange);
-                foreach (var (ownership, ownerId, memberId) in listeners.Changes)
-                    DispatchMemberChange(ownership, ownerId, memberId);
+                if (listeners is not null)
+                    foreach (var (ownership, ownerId, memberId) in listeners.Changes)
+                        DispatchMemberChange(ownership, ownerId, memberId);
             }
             finally
             {
                 draining.Clear();
-                listeners.Clear();
-                spareListenerChanges = listeners;
+                if (listeners is not null)
+                {
+                    listeners.Clear();
+                    spareListenerChanges = listeners;
+                }
                 spareChanges = draining;
             }
         }

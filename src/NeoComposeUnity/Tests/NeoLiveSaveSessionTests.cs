@@ -26,6 +26,21 @@ namespace NeoCompose.Tests
     /// </summary>
     public class NeoLiveSaveSessionTests
     {
+        private sealed class FailingLocalStore : INeoLocalSaveStore
+        {
+            private readonly NeoInMemoryLocalSaveStore inner = new();
+            public bool FailCommit;
+            public Awaitable<IReadOnlyList<string>> ListSaveIdsAsync() => inner.ListSaveIdsAsync();
+            public Awaitable<string?> LoadSaveAsync(string id) => inner.LoadSaveAsync(id);
+            public Awaitable DeleteSaveAsync(string id) => inner.DeleteSaveAsync(id);
+            public Awaitable CommitSaveAsync(string id, string content)
+            {
+                if (FailCommit)
+                    throw new InvalidOperationException("Local listener write failed");
+                return inner.CommitSaveAsync(id, content);
+            }
+        }
+
         /// <summary>Deterministic clock + delay seams for the flush throttle.</summary>
         private sealed class ManualLiveScheduler
         {
@@ -161,7 +176,7 @@ namespace NeoCompose.Tests
             NeoInMemoryLocalSaveStore local,
             FakeRealtimeProvider realtime,
             ManualLiveScheduler scheduler)> LiveSessionAsync(
-            bool liveSessionsEnabled = true, string? initialLiveSessionId = null)
+            bool liveSessionsEnabled = true, string? initialLiveSessionId = null, INeoLocalSaveStore? localStore = null)
         {
             var api = new FakeApiClient
             {
@@ -175,7 +190,7 @@ namespace NeoCompose.Tests
             };
             var store = new NeoProjectStore(
                 dataSource: new NeoJsonProjectDataSource(NeoSaveTestSupport.ProjectJson),
-                localStore: local,
+                localStore: localStore ?? local,
                 apiClient: api,
                 targetReleaseChannelId: LiveChannel,
                 options: new NeoSaveOptions { LiveSessionsEnabled = liveSessionsEnabled },
@@ -747,11 +762,14 @@ namespace NeoCompose.Tests
             }
         }
 
-        [TestCase(false)]
-        [TestCase(true)]
-        public async Task ListenerForkAdoption_PreservesRemoteOwnersAndNewerLocalEdits(bool newerEdit)
+        [TestCase(false, false)]
+        [TestCase(true, false)]
+        [TestCase(false, true)]
+        [TestCase(true, true)]
+        public async Task ListenerForkAdoption_PreservesRemoteOwnersAndNewerLocalEdits(bool newerEdit, bool failCommit)
         {
-            var (store, sync, _, local, realtime, scheduler) = await LiveSessionAsync();
+            var failingStore = new FailingLocalStore();
+            var (store, sync, _, local, realtime, scheduler) = await LiveSessionAsync(localStore: failCommit ? failingStore : null);
             using (store)
             {
                 var response = new AwaitableCompletionSource<NeoCommitResult>();
@@ -771,13 +789,34 @@ namespace NeoCompose.Tests
                 response.SetResult(NeoCommitResult.Committed(committed));
                 await WaitFor(() => !sync.IsLiveFlushRunning);
                 Assert.That(received, Is.Empty, "game hydration waits for unstaged writes");
+                if (failCommit)
+                {
+                    failingStore.FailCommit = true;
+                    LogAssert.Expect(LogType.Warning, "[NeoCompose] Could not adopt save listeners for \"save-1\". InvalidOperationException: Local listener write failed");
+                }
                 sync.SetLocalWritesPending(false);
+                if (failCommit)
+                {
+                    await sync.WaitForRevisionApplyAsync();
+                    Assert.That(received, Is.Empty);
+                    failingStore.FailCommit = false;
+                    sync.SetLocalWritesPending(true);
+                    await StageListenerValues(sync, ListenerValues(("owner", "third")), "owner");
+                    realtime.livePatchResults.Enqueue(Patched("snap-live", 2));
+                    await scheduler.AdvanceAsync(0.5);
+                    Assert.That(received, Is.Empty);
+                    sync.SetLocalWritesPending(false);
+                }
                 await WaitFor(() => received.Count == 1);
                 var map = JObject.Parse(received.Single())["changeListeners"]!["root"]!;
-                Assert.That((string?)map["owner"]!["Bar"]![0]!["memberId"], Is.EqualTo(newerEdit ? "second" : "first"));
+                string expectedHandler = newerEdit ? "second" : "first";
+                if (failCommit)
+                    expectedHandler = "third";
+                Assert.That((string?)map["owner"]!["Bar"]![0]!["memberId"], Is.EqualTo(expectedHandler));
                 Assert.That((string?)map["other"]!["Bar"]![0]!["memberId"], Is.EqualTo("remote"));
-                Assert.That(await local.LoadSaveAsync("save-1"), Does.Contain("remote"));
-                if (newerEdit)
+                INeoLocalSaveStore persisted = failCommit ? failingStore : local;
+                Assert.That(await persisted.LoadSaveAsync("save-1"), Does.Contain("remote"));
+                if (newerEdit && !failCommit)
                 {
                     realtime.livePatchResults.Enqueue(Patched("snap-live", 2));
                     await scheduler.AdvanceAsync(0.5);

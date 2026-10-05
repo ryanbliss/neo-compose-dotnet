@@ -13,13 +13,19 @@ namespace NeoCompose.Runtime
     {
         internal const int MaxRecordBytes = 1_048_576;
 
-        // Matches Convex getDocumentSize for gameSaveRecordStates, including its
-        // encoded dataJson string, null projections, and system fields. New
-        // state/save/snapshot ids are UUIDs even before a local save is synced.
-        internal static int EncodedRecordSize(ProjectSaveData save, string rootId, NeoChangeListenerMap map)
+        // Convex's current opaque ids use 31-32 ASCII bytes. Reserve 64, matching
+        // the server's capacity guard, so its typical 32-byte estimate cannot
+        // undercount a longer system id. Application ids use their actual size;
+        // not-yet-assigned state/save/snapshot ids are generated UUIDs (36 bytes).
+        internal const int SystemIdByteLimit = 64;
+        private const int ConvexNumberBytes = 9; // Type marker + IEEE-754 Float64.
+        private const int ConvexNullBytes = 1; // Null type marker.
+
+        internal static int EncodedRecordSize(ProjectSaveData save, string rootId, NeoChangeListenerMap map,
+            int rootMemberIdByteLimit)
         {
             const string pendingId = "00000000-0000-0000-0000-000000000000";
-            int bytes = 2 + 38 + 23; // Object header, _id estimate, _creationTime.
+            int bytes = 2 + 6 + SystemIdByteLimit + 14 + ConvexNumberBytes;
             bytes += StringField("id", pendingId);
             bytes += StringField("projectId", save.projectId);
             bytes += StringField("sourceGameSaveId", save.serverId ?? pendingId);
@@ -29,9 +35,13 @@ namespace NeoCompose.Runtime
             bytes += StringField("mutableOwnerSnapshotId", save.snapshotId ?? pendingId);
             bytes += "dataJson".Length + 1 + 2 + EncodedMapSize(map);
             foreach (string name in new[] { "dataSchemaVersion", "createdAt", "updatedAt" })
-                bytes += Encoding.UTF8.GetByteCount(name) + 1 + 9;
-            foreach (string name in new[] { "valueMemberId", "valueRootMemberId", "valueClassId", "valueContainerId", "staticBindingMemberId" })
-                bytes += Encoding.UTF8.GetByteCount(name) + 1 + 1;
+                bytes += Encoding.UTF8.GetByteCount(name) + 1 + ConvexNumberBytes;
+            foreach (string name in new[] { "valueMemberId", "valueClassId", "valueContainerId", "staticBindingMemberId" })
+                bytes += Encoding.UTF8.GetByteCount(name) + 1 + ConvexNullBytes;
+            // The root projection is a declared member id. The caller supplies
+            // the largest UTF-8 member-id length in this schema, including roots
+            // that the pending plan has not published yet. This bounds null too.
+            bytes += "valueRootMemberId".Length + 1 + 2 + rootMemberIdByteLimit;
             return bytes;
         }
 

@@ -1075,7 +1075,6 @@ namespace NeoCompose.Runtime
                 {
                     if (pendingListenerAdoption is { } adoption)
                     {
-                        pendingListenerAdoption = null;
                         if (active is { } current && current.snapshotId == adoption.snapshotId)
                         {
                             var pending = new NeoSavePatch();
@@ -1083,15 +1082,35 @@ namespace NeoCompose.Runtime
                                 NeoChangeListenerPatches.AppendChanges(pending, adoption.acknowledged,
                                     current.changeListeners, current.recordCache, stagedDirty?.listenerOwners,
                                     current.listenerEndpoints);
-                            current.changeListeners = adoption.received;
-                            await ReconcileHydratedSaveAsync(current, pending, listenersOnly: true);
+                            var previousListeners = current.changeListeners;
+                            var previousBaseline = liveListenerBaseline;
+                            try
+                            {
+                                current.changeListeners = NeoChangeListenerPatches.Copy(adoption.received);
+                                await ReconcileHydratedSaveAsync(current, pending, listenersOnly: true);
+                            }
+                            catch
+                            {
+                                // A failed local write must not turn remote owners into local edits on retry.
+                                current.changeListeners = previousListeners;
+                                liveListenerBaseline = previousBaseline;
+                                pendingListenerAdoption ??= adoption;
+                                throw;
+                            }
                         }
+                        pendingListenerAdoption = null;
                         continue;
                     }
                     var next = pendingRealtimeRevision;
                     pendingRealtimeRevision = null;
                     await ApplyRealtimeRevisionSignalAsync(next!);
                 }
+            }
+            catch (Exception exception)
+            {
+                Debug.LogWarning(
+                    $"[NeoCompose] Could not adopt save listeners for \"{CustomId}\". " +
+                    $"{exception.GetType().Name}: {exception.Message}");
             }
             finally
             {
@@ -1688,6 +1707,13 @@ namespace NeoCompose.Runtime
                 // Only record hydration advances recordCache.snapshotRevision.
                 liveBaseline ??= new JObject();
                 ApplyLocalChanges(liveBaseline, liveStaticBindingBaseline, batch, liveListenerBaseline);
+                if (pendingListenerAdoption is { } adoption && adoption.snapshotId == result.SnapshotId)
+                {
+                    // A failed local adoption can outlive another successful flush.
+                    // Its remote map and diff base must include that acknowledgement.
+                    NeoChangeListenerPatches.Apply(adoption.received, batch);
+                    NeoChangeListenerPatches.Apply(adoption.acknowledged, batch);
+                }
                 local.snapshotId = result.SnapshotId;
                 local.snapshotRevision = result.SnapshotRevision;
                 local.synchronizedAt = result.SynchronizedAt.EpochMilliseconds;

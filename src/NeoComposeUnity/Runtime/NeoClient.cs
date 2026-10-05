@@ -6224,6 +6224,7 @@ namespace NeoCompose.Runtime
             }
             RebuildStoreMembership(NeoValueOwnership.Save);
             RebuildStoreMembership(NeoValueOwnership.Session);
+            RefreshListenerSources();
         }
 
         private void RebuildStoreMembership(NeoValueOwnership ownership)
@@ -6491,6 +6492,7 @@ namespace NeoCompose.Runtime
                 if (row.changeListeners is not null)
                 {
                     authoredListenerRoots[row.id] = row;
+                    RefreshListenerSources();
                     listenerSlotsDirty = true;
                 }
                 InvalidateListenerOwner(NeoValueOwnership.Asset, row.id);
@@ -6579,7 +6581,10 @@ namespace NeoCompose.Runtime
                 NoteDeparture(rowId, RowLayer.Asset, null);
                 data.values.Remove(rowId);
                 if (authoredListenerRoots.Remove(rowId))
+                {
+                    RefreshListenerSources();
                     listenerSlotsDirty = true;
+                }
                 InvalidateListenerOwner(NeoValueOwnership.Asset, rowId);
                 InvalidateListenerOwner(NeoValueOwnership.Save, rowId);
                 InvalidateListenerOwner(NeoValueOwnership.Session, rowId);
@@ -6911,7 +6916,11 @@ namespace NeoCompose.Runtime
 
         private void RaiseContainerChanged(NeoValueOwnership ownership, string containerId, NeoWritePlan? plan = null)
         {
-            pendingListenerChanges.Collections.Add((ownership, containerId));
+            if (HasListenerSources)
+            {
+                pendingListenerChanges.Collections.Add((ownership, containerId));
+                pendingListenerChanges.IsEmpty = false;
+            }
             if (containerNotificationSuspensions > 0)
             {
                 int index = pendingContainerNotifications.Count - 1;

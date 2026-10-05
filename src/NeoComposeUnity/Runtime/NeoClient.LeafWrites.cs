@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using NeoCompose.Runtime.Json;
 
 namespace NeoCompose.Runtime
@@ -34,6 +35,7 @@ namespace NeoCompose.Runtime
         /// having changed nothing, when the write needs a full plan.
         /// </summary>
         /// <param name="node">The caller's node for <paramref name="next"/>'s id, if it holds one.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal bool TryWriteLeaf(
             NeoValueOwnership ownership, MemberValue next, Member member, string? changedField, NeoValueNode? node = null) =>
             TryWriteLeaf(ownership, next, member, changedField, out _, node);
@@ -61,14 +63,19 @@ namespace NeoCompose.Runtime
 #endif
             // Getter watchers hear the write once the grid it re-flattens is
             // current.
+            bool recordListeners = HasListenerSources;
             HoldGetterChanges();
-            BeginChangeBatch();
+            if (recordListeners)
+                BeginChangeBatch();
             bool gridLeaf = false;
             try
             {
-                TryGetValue(ownership, next.id, out MemberValue? previous);
+                MemberValue? previous = null;
+                if (recordListeners)
+                    TryGetValue(ownership, next.id, out previous);
                 StoreLeaf(ownership, next, node!);
-                RecordListenerRow(ownership, previous, next);
+                if (recordListeners)
+                    RecordListenerRow(ownership, previous, next);
                 gridLeaf = InvalidateGridLeaf(next.id);
                 NotifyWritableValueChanged(ownership, next.id, changedField, membershipChanged: false, node: node);
                 if (gridLeaf)
@@ -84,7 +91,8 @@ namespace NeoCompose.Runtime
                 }
                 finally
                 {
-                    EndChangeBatch();
+                    if (recordListeners)
+                        EndChangeBatch();
                 }
             }
             return true;

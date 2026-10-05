@@ -611,9 +611,10 @@ namespace NeoCompose.Runtime
             return null;
         }
 
-        internal void NotifyCompleted() => afterNotifications.Run();
+        internal void NotifyCompleted() => afterNotifications.Run(Client);
         internal void AfterCommit(Action callback) => afterCommit.Add(callback);
-        internal void NotifyCommitted() => afterCommit.Run();
+        internal void NotifyCommitted() => afterCommit.Run(Client);
+        internal void RecordReplacement(NeoValueOwnership scope, string id) => afterCommit.AddReplacement(scope, id);
 
         internal void Commit() => Client.CommitWritePlan(this);
 
@@ -623,48 +624,84 @@ namespace NeoCompose.Runtime
         /// </summary>
         private struct Callbacks
         {
-            private object? first;
-            private List<object>? rest;
-
-            internal int Count => first is null ? 0 : 1 + (rest?.Count ?? 0);
-
+            private readonly struct Entry
+            {
+                internal readonly object? Callback;
+                internal readonly NeoValueOwnership Scope;
+                internal readonly string? ReplacementId;
+                internal bool IsEmpty => Callback is null && ReplacementId is null;
+                internal Entry(object callback)
+                {
+                    Callback = callback;
+                    Scope = default;
+                    ReplacementId = null;
+                }
+                internal Entry(NeoValueOwnership scope, string replacementId)
+                {
+                    Callback = null;
+                    Scope = scope;
+                    ReplacementId = replacementId;
+                }
+                internal void Invoke(NeoClient client)
+                {
+                    if (ReplacementId is not null)
+                        client.RecordListenerReplacement(Scope, ReplacementId);
+                    else if (Callback is Action action)
+                        action();
+                    else
+                        ((INeoPlanCallback)Callback!).Run();
+                }
+            }
+            private Entry first;
+            private List<Entry>? rest;
+            internal int Count => first.IsEmpty ? 0 : 1 + (rest?.Count ?? 0);
             internal void Truncate(int count)
             {
                 if (count == 0)
                 {
-                    first = null;
+                    first = default;
                     rest = null;
                 }
                 else
                     rest?.RemoveRange(count - 1, rest.Count - (count - 1));
             }
-
-            internal void Add(object callback)
+            private void Add(Entry entry)
             {
-                if (first is null)
-                    first = callback;
+                if (first.IsEmpty)
+                    first = entry;
                 else
-                    (rest ??= new List<object>()).Add(callback);
+                    (rest ??= new List<Entry>()).Add(entry);
             }
-
-            internal void Run()
+            internal void Add(object callback) => Add(new Entry(callback));
+            internal void AddReplacement(NeoValueOwnership scope, string id) => Add(new Entry(scope, id));
+            internal void Run(NeoClient client)
             {
-                if (first is not null)
-                    Invoke(first);
-                if (rest is null)
-                    return;
-                foreach (object callback in rest)
-                    Invoke(callback);
-            }
-
-            private static void Invoke(object callback)
-            {
-                if (callback is Action action)
-                    action();
-                else
-                    ((INeoPlanCallback)callback).Run();
+                // Constructor/default installation may add the first listeners
+                // after an earlier replacement was staged. Capture replacement
+                // intent only once every ordinary commit callback has published.
+                try
+                {
+                    if (first.Callback is not null)
+                        first.Invoke(client);
+                    if (rest is not null)
+                        foreach (var entry in rest)
+                            if (entry.Callback is not null)
+                                entry.Invoke(client);
+                }
+                finally
+                {
+                    // Rows are committed even if a callback fails. Preserve their
+                    // replacement notifications as EndChangeBatch drains in finally.
+                    if (first.ReplacementId is not null)
+                        first.Invoke(client);
+                    if (rest is not null)
+                        foreach (var entry in rest)
+                            if (entry.ReplacementId is not null)
+                                entry.Invoke(client);
+                }
             }
         }
+
     }
 
     /// <summary>Plan work that carries its own state, so it needs no closure and delegate.</summary>
@@ -853,15 +890,19 @@ namespace NeoCompose.Runtime
                         (renamedOwners ??= new()).Add((move.Value.Target, move.Value.TargetOwnerId));
             try
             {
-                foreach (var pair in plan.Rows)
-                {
-                    if (plan.IsSilent(pair.Key))
-                        continue;
-                    TryGetValue(pair.Key.ownership, pair.Key.id, out MemberValue? previous);
-                    if (CurrentChangeSource != NeoChangeSource.External
-                        || !NeoSemanticJson.MemberRowsEqual(previous, pair.Value, ignoreChangeListeners: true))
-                        listenerRows.Add((pair.Key.ownership, previous, pair.Value));
-                }
+                bool recordListeners = HasListenerMoveWork(plan)
+                    || preparedExpansions?.ListenerDefaults.Count > 0
+                    || preparedExpansions?.ConstructionDefaults.Count > 0;
+                if (recordListeners)
+                    foreach (var pair in plan.Rows)
+                    {
+                        if (plan.IsSilent(pair.Key))
+                            continue;
+                        TryGetValue(pair.Key.ownership, pair.Key.id, out MemberValue? previous);
+                        if (CurrentChangeSource != NeoChangeSource.External
+                            || !NeoSemanticJson.MemberRowsEqual(previous, pair.Value, ignoreChangeListeners: true))
+                            listenerRows.Add((pair.Key.ownership, previous, pair.Value));
+                    }
                 foreach (var pair in plan.Rows)
                 {
                     if (TryResolveContainerIdForValueId(pair.Key.id, out string? containerId))
@@ -1094,7 +1135,7 @@ namespace NeoCompose.Runtime
             MemberValue? previous = plan.HeldBy?.PendingRow(ownership, next.id) ?? plan.Resolve(ownership, next.id);
             plan.HeldBy?.Discard(ownership, next.id);
             plan.Set(ownership, next, changedField);
-            plan.AfterCommit(() => pendingListenerChanges.Replacements.Add((ownership, next.id)));
+            plan.RecordReplacement(ownership, next.id);
             StageVirtualFootprintRemoval(plan, ownership, next.id);
             if (previous is null)
                 return;

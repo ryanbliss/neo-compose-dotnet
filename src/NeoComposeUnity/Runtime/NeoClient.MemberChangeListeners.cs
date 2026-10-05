@@ -27,7 +27,7 @@ namespace NeoCompose.Runtime
             internal readonly HashSet<(NeoValueOwnership scope, string id)> Replacements = new();
             internal readonly List<(NeoValueOwnership scope, string ownerId, string memberId)> Changes = new();
             internal readonly HashSet<(NeoValueOwnership scope, string ownerId, string memberId)> Keys = new();
-            internal bool IsEmpty => Rows.Count == 0 && Collections.Count == 0 && Replacements.Count == 0;
+            internal bool IsEmpty = true;
             internal void Clear()
             {
                 Rows.Clear();
@@ -36,6 +36,7 @@ namespace NeoCompose.Runtime
                 Replacements.Clear();
                 Changes.Clear();
                 Keys.Clear();
+                IsEmpty = true;
             }
         }
 
@@ -54,17 +55,71 @@ namespace NeoCompose.Runtime
             internal string? ClassId;
             internal object? GenericStamp;
             internal bool Active;
+            internal KeyOfPointer Pointer = null!;
+            internal Json.TypeInfo ObservedType = null!;
+            internal readonly Dictionary<(string memberId, string? classId), (object? genericStamp, string? error)> HandlerSignatures = new();
             internal readonly List<(NeoValueOwnership scope, string id)> Values = new();
         }
 
         private readonly Dictionary<(NeoValueOwnership scope, string id), List<ListenerSlot>> listenerSlotsByValue = new();
         private readonly Dictionary<(NeoValueOwnership scope, string id), Dictionary<string, ListenerSlot>> listenerSlotsByOwner = new();
         private readonly Dictionary<string, Dictionary<string, MergedSchemaEntry>> listenerSchemaByClass = new(StringComparer.Ordinal);
+        private object? listenerSchemaByClassResolution;
+        private const int ListenerDiagnosticSlotLimit = 8;
+        private const int ListenerDiagnosticIdLength = 96;
+
+        private Dictionary<string, MergedSchemaEntry> ListenerSchema(string classId)
+        {
+            if (!ReferenceEquals(listenerSchemaByClassResolution, SchemaResolution))
+            {
+                listenerSchemaByClass.Clear();
+                listenerSchemaByClassResolution = SchemaResolution;
+            }
+            if (listenerSchemaByClass.TryGetValue(classId, out var fields))
+                return fields;
+            fields = new Dictionary<string, MergedSchemaEntry>(StringComparer.Ordinal);
+            foreach (MergedSchemaEntry field in ResolveStoredInstanceSchema(classId))
+                if (TryGetMember(field.memberId, out Member? declaration))
+                    fields.TryAdd(CanonicalListenerMemberId(declaration), field);
+            listenerSchemaByClass.Add(classId, fields);
+            return fields;
+        }
+
+        private object? listenerCapacitySchema;
+        private int listenerRootMemberIdByteLimit;
+
+        private int ListenerRootMemberIdByteLimit()
+        {
+            if (!ReferenceEquals(listenerCapacitySchema, SchemaResolution))
+            {
+                listenerRootMemberIdByteLimit = 0;
+                foreach (string id in data.members.Keys)
+                    listenerRootMemberIdByteLimit = Math.Max(listenerRootMemberIdByteLimit, System.Text.Encoding.UTF8.GetByteCount(id));
+                listenerCapacitySchema = SchemaResolution;
+            }
+            return listenerRootMemberIdByteLimit;
+        }
+
         private bool listenerSlotsDirty = true;
         private object? listenerSlotSchema;
         private readonly Dictionary<string, MemberValue> authoredListenerRoots = new(StringComparer.Ordinal);
         private readonly HashSet<(NeoValueOwnership scope, string id)> dirtyListenerOwners = new();
         private readonly Dictionary<string, List<ListenerSlot>> listenerCollectionsById = new(StringComparer.Ordinal);
+
+        private bool HasListenerSources;
+
+        private void RefreshListenerSources() => HasListenerSources = sessionChangeListeners.Count != 0
+            || saveData.changeListeners?.Count > 0 || defaultChangeListeners.Count != 0
+            || copiedListenerRoots.Count != 0 || authoredListenerRoots.Count != 0;
+
+        internal void RecordListenerReplacement(NeoValueOwnership scope, string id)
+        {
+            if (HasListenerSources)
+            {
+                pendingListenerChanges.Replacements.Add((scope, id));
+                pendingListenerChanges.IsEmpty = false;
+            }
+        }
 
         private void RecordListenerRow(NeoValueOwnership scope, MemberValue? before, MemberValue? after,
             bool preservesOwnerFields = false)
@@ -78,10 +133,12 @@ namespace NeoCompose.Runtime
             if (pendingListenerChanges.Rows.TryGetValue(key, out var previous))
                 before = previous.before;
             pendingListenerChanges.Rows[key] = (before, after);
+            pendingListenerChanges.IsEmpty = false;
         }
 
         private void EnsureListenerSlots()
         {
+            RefreshCopiedListenerIndexes();
             if (!listenerSlotsDirty && ReferenceEquals(listenerSlotSchema, SchemaResolution))
             {
                 foreach (var key in dirtyListenerOwners)
@@ -94,8 +151,6 @@ namespace NeoCompose.Runtime
             listenerSlotsByValue.Clear();
             listenerCollectionsById.Clear();
             listenerSlotsByOwner.Clear();
-            if (!ReferenceEquals(listenerSlotSchema, SchemaResolution))
-                listenerSchemaByClass.Clear();
             var seen = new HashSet<(NeoValueOwnership scope, string ownerId, string memberId)>();
             foreach (var root in authoredListenerRoots)
                 if (root.Value.changeListeners is { } authored)
@@ -105,7 +160,6 @@ namespace NeoCompose.Runtime
                     AddListenerSlots(root.Key, root.Value, NeoValueOwnership.Save, seen);
             foreach (var root in sessionChangeListeners)
                 AddListenerSlots(root.Key.rootId, root.Value, root.Key.scope, seen);
-            RefreshCopiedListenerIndexes();
             var copiedBindingRoots = new Dictionary<(NeoValueOwnership scope, string id), string>();
             foreach (var owner in copiedListenerRootByOwner)
                 AddListenerOwner(ListenerBindingRoot(owner.Key.id, owner.Key.scope, copiedBindingRoots), owner.Key.id,
@@ -166,6 +220,8 @@ namespace NeoCompose.Runtime
 
         private void RefreshListenerOwnerRegistration(NeoValueOwnership scope, string rootId, string ownerId)
         {
+            RefreshCopiedListenerIndexes();
+            RefreshListenerSources();
             if (listenerSlotsDirty || !ReferenceEquals(listenerSlotSchema, SchemaResolution))
                 return;
             var key = (ListenerOwnerScope(scope, ownerId), ownerId);
@@ -222,14 +278,7 @@ namespace NeoCompose.Runtime
                 return;
             if (slot.ClassId != owner.classId || !ReferenceEquals(slot.GenericStamp, owner.genericBindings))
             {
-                if (!listenerSchemaByClass.TryGetValue(owner.classId, out var fields))
-                {
-                    fields = new Dictionary<string, MergedSchemaEntry>(StringComparer.Ordinal);
-                    foreach (MergedSchemaEntry field in ResolveStoredInstanceSchema(owner.classId))
-                        if (TryGetMember(field.memberId, out Member? declaration))
-                            fields.TryAdd(CanonicalListenerMemberId(declaration), field);
-                    listenerSchemaByClass.Add(owner.classId, fields);
-                }
+                var fields = ListenerSchema(owner.classId);
                 Member? resolved = null;
                 if (fields.TryGetValue(slot.MemberId, out var placement)
                     && TryGetMember(placement.memberId, out Member? storedMember))
@@ -239,8 +288,17 @@ namespace NeoCompose.Runtime
                 }
                 if (resolved is null)
                     return;
+                var storage = ChildOwnership(resolved, slot.Scope);
+                if (!IsChangeListenerMember(resolved) || storage == NeoValueOwnership.Asset)
+                    return;
+                var observedType = NeoNSFunctionRuntime.TypeInfoFromBindingMember(this, resolved,
+                    ListenerOwnerEnvironment(owner), new HashSet<string>());
                 slot.Member = resolved;
-                slot.Storage = ChildOwnership(resolved, slot.Scope);
+                slot.Storage = storage;
+                slot.ObservedType = observedType;
+                slot.Pointer = ListenerValuePointer(slot);
+                slot.HandlerSignatures.Clear();
+                // Publish the validity stamp only after every fallible resolver.
                 slot.ClassId = owner.classId;
                 slot.GenericStamp = owner.genericBindings;
             }
@@ -367,6 +425,39 @@ namespace NeoCompose.Runtime
             }
         }
 
+        private static KeyOfPointer ListenerValuePointer(ListenerSlot slot)
+        {
+            return new KeyOfPointer
+            {
+                type = PointerKind.KeyOf,
+                memberId = slot.Member.id,
+                keyOf = new KeyOf
+                {
+                    pointer = new VariablePointer { type = PointerKind.Variable, variableId = "listenerOwner" },
+                    key = new ValuePointer
+                    {
+                        type = PointerKind.Value,
+                        value = new Value
+                        {
+                            typeInfo = new PrimitiveTypeInfo { type = MemberKind.String, required = true },
+                            value = new JValue(slot.SchemaKey),
+                        },
+                    },
+                },
+            };
+        }
+
+        private sealed class ListenerDispatchScratch
+        {
+            internal readonly List<(NeoDelegateValue target, bool session)> Snapshot = new();
+            internal readonly HashSet<(NeoValueOwnership? scope, string target)> Identities = new();
+            internal readonly NeoScriptScope Scope = new();
+            internal readonly object?[] Arguments = new object?[1];
+        }
+
+        private ListenerDispatchScratch? listenerDispatchScratch;
+        private bool listenerDispatchScratchInUse;
+
         private void DispatchMemberChange(NeoValueOwnership ownership, string ownerId, string memberId)
         {
             if (!TryGetValue(ownership, ownerId, out MemberValue? row)
@@ -385,41 +476,29 @@ namespace NeoCompose.Runtime
                 ?? InheritedChangeListeners(rootId, ownerId, memberId, NeoValueOwnership.Session, observedLifetime, ownership);
             if (durable.Length + session.Length == 0)
                 return;
-            var snapshot = new List<(NeoDelegateValue target, bool session)>(durable.Length + session.Length);
-            var identities = new HashSet<(NeoValueOwnership? scope, string target)>();
-            foreach (var set in new[] { durable, session })
-                foreach (NeoDelegateValue target in set)
-                    snapshot.Add((target.PersistedCopy(), ReferenceEquals(set, session)));
+            bool pooled = !listenerDispatchScratchInUse;
+            listenerDispatchScratchInUse = true;
+            var scratch = pooled ? listenerDispatchScratch : null;
+            scratch ??= new ListenerDispatchScratch();
+            if (pooled)
+                listenerDispatchScratch = scratch;
+            var snapshot = scratch.Snapshot;
+            var identities = scratch.Identities;
             var context = CreateGetterContext(ownership);
             var enclosingContext = memberChangeContext;
             if (enclosingContext is not null)
                 context.ShareAllocations(enclosingContext);
-            object? receiver = NSGetterEvaluator.UnwrapRow(owner, context, ownership);
-            var pointer = new KeyOfPointer
-            {
-                type = PointerKind.KeyOf,
-                memberId = slot.Member.id,
-                keyOf = new KeyOf
-                {
-                    pointer = new VariablePointer { type = PointerKind.Variable, variableId = "listenerOwner" },
-                    key = new ValuePointer
-                    {
-                        type = PointerKind.Value,
-                        value = new Value
-                        {
-                            typeInfo = new PrimitiveTypeInfo { type = MemberKind.String, required = true },
-                            value = new JValue(slot.SchemaKey),
-                        },
-                    },
-                },
-            };
-            var scope = new NeoScriptScope();
-            scope.SetLocal("listenerOwner", receiver);
-            object? value = NSGetterEvaluator.EvalPointer(pointer, scope, context);
-            memberChangeContext = context;
             try
             {
-                Json.TypeInfo observedType = NeoNSFunctionRuntime.TypeInfoFromBindingMember(this, observed, ListenerOwnerEnvironment(owner), new HashSet<string>());
+                foreach (var target in durable)
+                    snapshot.Add((target.PersistedCopy(), false));
+                foreach (var target in session)
+                    snapshot.Add((target.PersistedCopy(), true));
+                object? receiver = NSGetterEvaluator.UnwrapRow(owner, context, ownership);
+                scratch.Scope.SetLocal("listenerOwner", receiver);
+                object? value = NSGetterEvaluator.EvalPointer(slot.Pointer, scratch.Scope, context);
+                scratch.Arguments[0] = value;
+                memberChangeContext = context;
                 foreach (var registration in snapshot)
                 {
                     NeoDelegateValue target = registration.target;
@@ -429,23 +508,40 @@ namespace NeoCompose.Runtime
                         TryGetValueOwnership(targetId, out var currentScope);
                         receiverScope = registration.session ? currentScope : ListenerOwnerScope(NeoValueOwnership.Save, targetId);
                     }
-                    bool sessionTarget = observedLifetime == NeoValueOwnership.Session || receiverScope == NeoValueOwnership.Session;
-                    if ((!registration.session && sessionTarget) || ChangeListenerHandlerError(target, observedType, owner, out var resolved,
-                            receiverScope: receiverScope) is not null)
+                    bool sessionTarget = IsSessionListenerTarget(target, observedLifetime, receiverScope);
+                    if (!registration.session && sessionTarget)
                         continue;
+                    var resolved = ResolveChangeListenerHandler(target, owner, receiverScope);
                     if (resolved is null)
+                        continue;
+                    var signatureKey = (resolved.Value.member.id, resolved.Value.receiver.classId);
+                    var genericStamp = resolved.Value.receiver.genericBindings;
+                    if (!slot.HandlerSignatures.TryGetValue(signatureKey, out var signature)
+                        || !ReferenceEquals(signature.genericStamp, genericStamp))
+                    {
+                        signature = (genericStamp, ChangeListenerSignatureError(target.memberId!, slot.ObservedType,
+                            resolved.Value.member, resolved.Value.receiver));
+                        slot.HandlerSignatures[signatureKey] = signature;
+                    }
+                    if (signature.error is not null)
                         continue;
                     NeoDelegateValue invocation = target.PersistedCopy();
                     invocation.memberId = CanonicalListenerMemberId(resolved.Value.member);
                     if (!identities.Add((receiverScope, NeoActionValue.ListenerIdentity(invocation))))
                         continue;
                     invocation.memberId = resolved.Value.member.id;
-                    NSGetterEvaluator.InvokeDelegate(invocation, new[] { value }, context, receiver, receiverScope);
+                    NSGetterEvaluator.InvokeDelegate(invocation, scratch.Arguments, context, receiver, receiverScope);
                 }
             }
             finally
             {
                 memberChangeContext = enclosingContext;
+                snapshot.Clear();
+                identities.Clear();
+                scratch.Scope.SetLocal("listenerOwner", null);
+                scratch.Arguments[0] = null;
+                if (pooled)
+                    listenerDispatchScratchInUse = false;
             }
         }
 
@@ -527,15 +623,9 @@ namespace NeoCompose.Runtime
                 throw new NSGetterRuntimeError($"Observed member '{memberId}' does not exist.");
             string canonical = CanonicalListenerMemberId(declaration);
             Member? observed = null;
-            foreach (MergedSchemaEntry slot in ResolveStoredInstanceSchema(instance.classId))
-            {
-                if (TryGetMember(slot.memberId, out Member? member)
-                    && CanonicalListenerMemberId(member) == canonical)
-                {
-                    observed = ResolveOwnedMemberType(instance, null, instance.classId, member);
-                    break;
-                }
-            }
+            if (ListenerSchema(instance.classId).TryGetValue(canonical, out var slot)
+                && TryGetMember(slot.memberId, out Member? member))
+                observed = ResolveOwnedMemberType(instance, null, instance.classId, member);
             if (observed is null)
                 throw new NSGetterRuntimeError($"Observed member '{memberId}' does not belong to owner '{ownerId}'.");
             if (!IsChangeListenerMember(observed))
@@ -760,8 +850,7 @@ namespace NeoCompose.Runtime
             var result = new List<NeoDelegateValue>();
             foreach (var target in targets)
             {
-                bool session = observedLifetime == NeoValueOwnership.Session || (target.valueId is string receiver
-                    && TryGetValueOwnership(receiver, out var residency) && residency == NeoValueOwnership.Session);
+                bool session = IsSessionListenerTarget(target, observedLifetime);
                 if (session == (lifetime == NeoValueOwnership.Session))
                     result.Add(target);
             }
@@ -831,8 +920,12 @@ namespace NeoCompose.Runtime
             resolved = ResolveChangeListenerHandler(target, owner, receiverScope);
             if (resolved is null)
                 return $"Listener method '{target.memberId}' does not belong to a live receiver.";
-            Member member = resolved.Value.member;
-            ObjectMemberValue receiver = resolved.Value.receiver;
+            return ChangeListenerSignatureError(target.memberId!, observedType, resolved.Value.member, resolved.Value.receiver, environments);
+        }
+
+        private string? ChangeListenerSignatureError(string targetMemberId, Json.TypeInfo observedType, Member member,
+            ObjectMemberValue receiver, Dictionary<ObjectMemberValue, IReadOnlyDictionary<string, NeoGenericEnvEntry>>? environments = null)
+        {
             Json.TypeInfo? result;
             FunctionArgumentTypeInfo[]? arguments;
             switch (member)
@@ -861,12 +954,12 @@ namespace NeoCompose.Runtime
                     arguments = action.argumentTypes;
                     break;
                 default:
-                    return $"Listener member '{target.memberId}' is not callable.";
+                    return $"Listener member '{targetMemberId}' is not callable.";
             }
             if (result?.type != MemberKind.Void)
-                return $"Listener method '{target.memberId}' must return void.";
+                return $"Listener method '{targetMemberId}' must return void.";
             if (arguments?.Length != 1)
-                return $"Listener method '{target.memberId}' must take one argument.";
+                return $"Listener method '{targetMemberId}' must take one argument.";
             Json.TypeInfo argument;
             try
             {
@@ -874,65 +967,85 @@ namespace NeoCompose.Runtime
             }
             catch (NSGetterRuntimeError error)
             {
-                return $"Listener method '{target.memberId}' has an unresolved argument type: {error.Message}";
+                return $"Listener method '{targetMemberId}' has an unresolved argument type: {error.Message}";
             }
             if (!TypeInfoMatches(argument, observedType))
-                return $"Listener method '{target.memberId}' has an incompatible argument type.";
+                return $"Listener method '{targetMemberId}' has an incompatible argument type.";
             return null;
         }
 
-        private bool HasUnloadedListenerPartitions()
+        private bool HasUnloadedListenerPartitions() =>
+            (data.valuePartitions?.Count ?? 0) > loadedPartitionRowIds.Count;
+
+        private sealed class ListenerPruningContext
         {
-            if (data.valuePartitions is not null)
-                foreach (string key in data.valuePartitions.Keys)
-                    if (!IsValuePartitionLoaded(key))
-                        return true;
-            return false;
+            private readonly NeoClient client;
+            private readonly bool hasUnloadedPartitions;
+            private readonly Dictionary<(NeoValueOwnership scope, string id), (MemberValue? row, bool authoritative)> endpoints = new();
+            internal readonly Dictionary<ObjectMemberValue, IReadOnlyDictionary<string, NeoGenericEnvEntry>> Environments = new();
+            internal ListenerPruningContext(NeoClient client)
+            {
+                this.client = client;
+                hasUnloadedPartitions = client.HasUnloadedListenerPartitions();
+            }
+            internal (MemberValue? row, bool authoritative) Endpoint(NeoValueOwnership scope, string id)
+            {
+                if (endpoints.TryGetValue((scope, id), out var found))
+                    return found;
+                client.TryGetValue(scope, id, out MemberValue? row);
+                bool authoritative = row is null ? !hasUnloadedPartitions
+                    : row.mapKey is null || !client.HasValuePartition(row.mapKey) || client.IsValuePartitionLoaded(row.mapKey);
+                endpoints[(scope, id)] = found = (row, authoritative);
+                return found;
+            }
+        }
+
+        private bool KeepListenerTarget(NeoDelegateValue target, ObjectMemberValue owner, Json.TypeInfo observedType,
+            NeoValueOwnership observedLifetime, NeoValueOwnership mapTier, ListenerPruningContext context, bool inherited)
+        {
+            NeoValueOwnership? receiverScope = null;
+            if (target.valueId is string receiverId)
+            {
+                TryGetValueOwnership(receiverId, out var currentScope);
+                receiverScope = mapTier == NeoValueOwnership.Session ? currentScope : ListenerOwnerScope(NeoValueOwnership.Save, receiverId);
+                var receiver = context.Endpoint(receiverScope.Value, receiverId);
+                if (!receiver.authoritative)
+                    return true;
+                if (receiver.row is null || receiver.row.IsRemoved)
+                    return false;
+            }
+            bool session = IsSessionListenerTarget(target, observedLifetime, receiverScope);
+            if (inherited && session != (mapTier == NeoValueOwnership.Session))
+                return false;
+            if (mapTier != NeoValueOwnership.Session && session)
+                return false;
+            return ChangeListenerHandlerError(target, observedType, owner, out _, context.Environments, receiverScope) is null;
         }
 
         private void PruneListenerEntries(NeoWritePlan plan,
             Dictionary<(NeoValueOwnership ownership, NeoValueOwnership scope, string rootId), NeoChangeListenerMap> maps)
         {
-            bool hasUnloadedPartitions = HasUnloadedListenerPartitions();
-            var endpoints = new Dictionary<(NeoValueOwnership scope, string id), (MemberValue? row, bool authoritative)>();
-            var schemas = new Dictionary<string, Dictionary<string, Member>>(StringComparer.Ordinal);
-            var environments = new Dictionary<ObjectMemberValue, IReadOnlyDictionary<string, NeoGenericEnvEntry>>();
+            var context = new ListenerPruningContext(this);
             using var candidate = ReadCandidate(plan);
-
-            (MemberValue? row, bool authoritative) Endpoint(NeoValueOwnership scope, string id)
-            {
-                if (endpoints.TryGetValue((scope, id), out var found))
-                    return found;
-                TryGetValue(scope, id, out MemberValue? row);
-                bool authoritative = row is null ? !hasUnloadedPartitions
-                    : row.mapKey is null || !HasValuePartition(row.mapKey) || IsValuePartitionLoaded(row.mapKey);
-                endpoints[(scope, id)] = found = (row, authoritative);
-                return found;
-            }
 
             foreach (var root in maps)
             {
                 foreach (string ownerId in new List<string>(root.Value.Keys))
                 {
                     NeoValueOwnership ownerScope = ListenerOwnerScope(root.Key.scope, ownerId);
-                    var endpoint = Endpoint(ownerScope, ownerId);
+                    var endpoint = context.Endpoint(ownerScope, ownerId);
                     if (!endpoint.authoritative)
                         continue;
                     var previous = root.Value[ownerId];
                     Dictionary<string, NeoDelegateValue[]>? next = null;
                     if (endpoint.row is ObjectMemberValue { classId: not null } owner && !owner.IsRemoved)
                     {
-                        if (!schemas.TryGetValue(owner.classId, out var schema))
-                        {
-                            schemas[owner.classId] = schema = new(StringComparer.Ordinal);
-                            foreach (var slot in ResolveStoredInstanceSchema(owner.classId))
-                                if (TryGetMember(slot.memberId, out Member? member))
-                                    schema[CanonicalListenerMemberId(member)] = member;
-                        }
+                        var schema = ListenerSchema(owner.classId);
                         next = new(StringComparer.Ordinal);
                         foreach (var slot in previous)
                         {
-                            if (!schema.TryGetValue(slot.Key, out var declaration))
+                            if (!schema.TryGetValue(slot.Key, out var field)
+                                || !TryGetMember(field.memberId, out Member? declaration))
                                 continue;
                             NeoValueOwnership observedLifetime;
                             Json.TypeInfo observedType;
@@ -943,53 +1056,22 @@ namespace NeoCompose.Runtime
                                 if (!IsChangeListenerMember(member) || observedLifetime == NeoValueOwnership.Asset)
                                     continue;
                                 observedType = NeoNSFunctionRuntime.TypeInfoFromBindingMember(this, member,
-                                    ListenerOwnerEnvironment(owner, environments), new HashSet<string>());
+                                    ListenerOwnerEnvironment(owner, context.Environments), new HashSet<string>());
                             }
                             catch (NSGetterRuntimeError)
                             {
                                 continue;
                             }
-                            bool Keep(NeoDelegateValue target)
-                            {
-                                bool session = observedLifetime == NeoValueOwnership.Session;
-                                if (target.valueId is string receiverId)
-                                {
-                                    TryGetValueOwnership(receiverId, out var receiverScope);
-                                    if (root.Key.ownership != NeoValueOwnership.Session)
-                                        receiverScope = ListenerOwnerScope(NeoValueOwnership.Save, receiverId);
-                                    var receiver = Endpoint(receiverScope, receiverId);
-                                    if (!receiver.authoritative)
-                                        return true;
-                                    if (receiver.row is null || receiver.row.IsRemoved)
-                                        return false;
-                                    session |= receiverScope == NeoValueOwnership.Session;
-                                }
-                                NeoValueOwnership? boundScope = target.valueId is string boundId && root.Key.ownership != NeoValueOwnership.Session
-                                    ? ListenerOwnerScope(NeoValueOwnership.Save, boundId) : null;
-                                return (root.Key.ownership == NeoValueOwnership.Session || !session)
-                                    && ChangeListenerHandlerError(target, observedType, owner, out _, environments, boundScope) is null;
-                            }
                             var retained = new List<NeoDelegateValue>(slot.Value.Length);
                             foreach (var target in slot.Value)
-                                if (Keep(target))
+                                if (KeepListenerTarget(target, owner, observedType, observedLifetime, root.Key.ownership, context, inherited: false))
                                     retained.Add(target);
                             if (retained.Count == 0)
                             {
                                 bool inherited = false;
                                 foreach (var target in InheritedChangeListenerTargets(root.Key.rootId, ownerId, slot.Key, ownerScope))
                                 {
-                                    bool sessionDefault = observedLifetime == NeoValueOwnership.Session;
-                                    if (target.valueId is string inheritedReceiver)
-                                    {
-                                        TryGetValueOwnership(inheritedReceiver, out var inheritedScope);
-                                        if (!Endpoint(inheritedScope, inheritedReceiver).authoritative)
-                                        {
-                                            inherited = true;
-                                            break;
-                                        }
-                                        sessionDefault |= inheritedScope == NeoValueOwnership.Session;
-                                    }
-                                    if (sessionDefault == (root.Key.ownership == NeoValueOwnership.Session) && Keep(target))
+                                    if (KeepListenerTarget(target, owner, observedType, observedLifetime, root.Key.ownership, context, inherited: true))
                                     {
                                         inherited = true;
                                         break;
@@ -1050,7 +1132,7 @@ namespace NeoCompose.Runtime
                     continue;
                 if (root is null || root.IsRemoved)
                     throw new NSGetterRuntimeError($"Listener binding root '{pair.Key.rootId}' is not live.");
-                int bytes = NeoChangeListenerPatches.EncodedRecordSize(saveData, pair.Key.rootId, pair.Value);
+                int bytes = NeoChangeListenerPatches.EncodedRecordSize(saveData, pair.Key.rootId, pair.Value, ListenerRootMemberIdByteLimit());
                 if (bytes > NeoChangeListenerPatches.MaxRecordBytes)
                 {
                     var slots = new List<string>();
@@ -1072,19 +1154,19 @@ namespace NeoCompose.Runtime
                             if (NeoChangeListenerPatches.TargetsEqual(before, after))
                                 continue;
                             slots.Add($"{ListenerDiagnosticId(edit.Key.ownerId)}.{ListenerDiagnosticId(memberId)}");
-                            if (slots.Count == 8)
+                            if (slots.Count == ListenerDiagnosticSlotLimit)
                                 break;
                         }
-                        if (slots.Count == 8)
+                        if (slots.Count == ListenerDiagnosticSlotLimit)
                             break;
                     }
-                    throw new NSGetterRuntimeError($"Listener binding root '{ListenerDiagnosticId(root.id)}' requires {bytes} bytes and exceeds the 1048576-byte record limit. Affected slots: {string.Join(", ", slots)}.");
+                    throw new NSGetterRuntimeError($"Listener binding root '{ListenerDiagnosticId(root.id)}' requires {bytes} bytes and exceeds the {NeoChangeListenerPatches.MaxRecordBytes}-byte record limit. Affected slots: {string.Join(", ", slots)}.");
                 }
             }
             return maps;
         }
 
-        private static string ListenerDiagnosticId(string id) => id.Length <= 96 ? id : id.Substring(0, 93) + "...";
+        private static string ListenerDiagnosticId(string id) => id.Length <= ListenerDiagnosticIdLength ? id : id.Substring(0, ListenerDiagnosticIdLength - 3) + "...";
 
         private void CommitListenerEntries(NeoWritePlan plan,
             Dictionary<(NeoValueOwnership ownership, NeoValueOwnership scope, string rootId), NeoChangeListenerMap>? prepared)

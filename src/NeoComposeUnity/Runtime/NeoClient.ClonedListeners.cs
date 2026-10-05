@@ -57,22 +57,28 @@ namespace NeoCompose.Runtime
                 copiedListenerRoots[key] = map;
             else
                 copiedListenerRoots.Remove(key);
+            RefreshListenerSources();
             if (previous || map is { Count: > 0 })
             {
                 dirtyCopiedListenerRoots.Add(key);
-                listenerSlotsDirty = true;
             }
         }
 
         private void RefreshCopiedListenerIndexes()
         {
+            if (dirtyCopiedListenerRoots.Count == 0)
+                return;
+            var affected = new HashSet<(NeoValueOwnership scope, string id)>();
             // A commit publishes all rows before indexing their final residency.
             foreach (var root in dirtyCopiedListenerRoots)
             {
                 if (copiedOwnersByRoot.Remove(root, out var previous))
                     foreach (var owner in previous)
+                    {
+                        affected.Add(owner);
                         if (copiedListenerRootByOwner.GetValueOrDefault(owner) == root)
                             copiedListenerRootByOwner.Remove(owner);
+                    }
                 if (!copiedListenerRoots.TryGetValue(root, out var map))
                     continue;
                 var owners = new List<(NeoValueOwnership scope, string id)>(map.Count);
@@ -85,10 +91,16 @@ namespace NeoCompose.Runtime
                     var key = (scope, ownerId);
                     copiedListenerRootByOwner[key] = root;
                     owners.Add(key);
+                    affected.Add(key);
                 }
                 copiedOwnersByRoot[root] = owners;
             }
+            // Registration reads copied baselines. Finish and drain the index
+            // first so that those lookups cannot recursively refresh this work.
             dirtyCopiedListenerRoots.Clear();
+            var bindings = new Dictionary<(NeoValueOwnership scope, string id), string>();
+            foreach (var owner in affected)
+                RefreshListenerOwnerRegistration(owner.scope, ListenerBindingRoot(owner.id, owner.scope, bindings), owner.id);
         }
 
         private void PrepareCopiedListeners(NeoWritePlan plan)
@@ -150,9 +162,17 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private bool IsSessionListenerTarget(NeoDelegateValue target, NeoValueOwnership observedLifetime) =>
-            observedLifetime == NeoValueOwnership.Session || target.valueId is string receiver
-                && TryGetValueOwnership(receiver, out var residency) && residency == NeoValueOwnership.Session;
+        private bool IsSessionListenerTarget(NeoDelegateValue target, NeoValueOwnership observedLifetime,
+            NeoValueOwnership? receiverScope = null)
+        {
+            if (observedLifetime == NeoValueOwnership.Session)
+                return true;
+            if (target.valueId is not string receiver)
+                return false;
+            if (receiverScope is null && TryGetValueOwnership(receiver, out var residency))
+                receiverScope = residency;
+            return receiverScope == NeoValueOwnership.Session;
+        }
 
         // Each repeated source subtree has its own correspondence. Receivers
         // resolve through the nearest occurrence before enclosing copies.

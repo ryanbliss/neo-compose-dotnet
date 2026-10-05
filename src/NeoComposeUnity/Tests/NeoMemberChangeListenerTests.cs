@@ -264,9 +264,9 @@ namespace NeoCompose.Tests
             // Cross-host vectors computed with Convex getDocumentSize and JSON.stringify.
             foreach (var (receiver, expectedBytes) in new[]
             {
-                ("受信者", 555), ("\u0085", 548), ("\u2028\u2029", 552),
-                ("\ud800", 552), ("\udc00", 552), ("😀", 550),
-                ("\"\\\n\t\b\f\r\u0000", 566),
+                ("受信者", 624), ("\u0085", 617), ("\u2028\u2029", 621),
+                ("\ud800", 621), ("\udc00", 621), ("😀", 619),
+                ("\"\\\n\t\b\f\r\u0000", 635),
             })
             {
                 var map = new NeoChangeListenerMap
@@ -276,13 +276,13 @@ namespace NeoCompose.Tests
                         ["field"] = new[] { new NeoDelegateValue { memberId = "handler", valueId = receiver } },
                     },
                 };
-                Assert.That(NeoChangeListenerPatches.EncodedRecordSize(save, "root", map), Is.EqualTo(expectedBytes));
+                Assert.That(NeoChangeListenerPatches.EncodedRecordSize(save, "root", map, 36), Is.EqualTo(expectedBytes));
             }
         }
 
-        [TestCase(667, 122639)]
-        [TestCase(5726, 1048436)]
-        [TestCase(5727, 1048619)]
+        [TestCase(667, 122708)]
+        [TestCase(5726, 1048505)]
+        [TestCase(5727, 1048688)]
         public void ListenerCapacityFixtureMeasuresTheCompleteRecord(int ownerCount, int expectedBytes)
         {
             const string id = "00000000-0000-0000-0000-000000000000";
@@ -293,9 +293,54 @@ namespace NeoCompose.Tests
                 {
                     [id] = new[] { new NeoDelegateValue { memberId = id, valueId = id } },
                 };
-            int bytes = NeoChangeListenerPatches.EncodedRecordSize(save, id, map);
+            int bytes = NeoChangeListenerPatches.EncodedRecordSize(save, id, map, 36);
             Assert.That(bytes, Is.EqualTo(expectedBytes));
             Assert.That(bytes <= NeoChangeListenerPatches.MaxRecordBytes, Is.EqualTo(ownerCount <= 5726));
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void ListenerCandidateCapacityUsesUnicodeRootAndBindingIds(bool overflow)
+        {
+            using var baseline = BuildClient();
+            var envelope = JsonConvert.DeserializeObject<ProjectSaveData>(baseline.SerializeSaveData())!;
+            string bindingId = new string('界', 100);
+            var target = new NeoDelegateValue { memberId = "handler" };
+            var emptyRootMap = new NeoChangeListenerMap
+            {
+                [""] = new Dictionary<string, NeoDelegateValue[]> { ["field"] = new[] { target } },
+            };
+            int fixedBytes = NeoChangeListenerPatches.EncodedRecordSize(envelope, "", emptyRootMap, System.Text.Encoding.UTF8.GetByteCount(bindingId));
+            // The root occurs twice: its record identity and its owner map key.
+            int rootCharacters = (NeoChangeListenerPatches.MaxRecordBytes - fixedBytes) / 6;
+            if (overflow)
+                rootCharacters++;
+            string rootId = new string('根', rootCharacters);
+            using var client = BuildClient(configure: data =>
+            {
+                var binding = (ClassMember)data.members["save-member"];
+                data.members.Remove(binding.id);
+                binding.id = bindingId;
+                binding.valueId = rootId;
+                data.members[bindingId] = binding;
+                data.project.rootSaveFileMemberId = bindingId;
+                var root = data.values["save"];
+                data.values.Remove(root.id);
+                root.id = rootId;
+                data.values[rootId] = root;
+            });
+            string before = client.SerializeSaveData();
+            if (overflow)
+            {
+                Assert.Throws<NeoCompose.Runtime.NeoScript.NSGetterRuntimeError>(() =>
+                    client.EditMemberChangeListener(rootId, NeoValueOwnership.Save, "field", IntType(), target, true));
+                Assert.That(client.SerializeSaveData(), Is.EqualTo(before));
+            }
+            else
+            {
+                client.EditMemberChangeListener(rootId, NeoValueOwnership.Save, "field", IntType(), target, true);
+                Assert.That(JObject.Parse(client.SerializeSaveData())["changeListeners"]![rootId]![rootId]!["field"], Is.Not.Null);
+            }
         }
 
         [TestCase(1, "leaf")]
@@ -1089,6 +1134,84 @@ namespace NeoCompose.Tests
                 client.ExitScriptWrites();
             }
             CollectionAssert.AreEqual(new[] { 0d }, heard);
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void FirstConstructionListenerSeesEarlierReplacement(bool callbackFails)
+        {
+            int calls = 0;
+            using var client = BuildClient(configure: data =>
+            {
+                data.members["field"] = new ClassMember
+                {
+                    id = "field",
+                    projectId = "listeners",
+                    name = "Count",
+                    kind = MemberKind.Class,
+                    classId = "child-class",
+                    Requirement = NeoMemberRequirementKind.Required,
+                };
+                data.members["child-field"] = new IntMember
+                {
+                    id = "child-field",
+                    projectId = "listeners",
+                    name = "Value",
+                    kind = MemberKind.Int,
+                    Requirement = NeoMemberRequirementKind.Required,
+                };
+                data.classes["child-class"] = new NeoSchemaClass
+                {
+                    id = "child-class",
+                    projectId = "listeners",
+                    name = "Child",
+                    schema = new Dictionary<string, string> { ["Value"] = "child-field" },
+                };
+                ((ObjectMemberValue)data.values["save"]).value!.Clear();
+                ((ObjectMemberValue)data.values["session"]).value!["Count"] = "count";
+                data.values["count"] = new ObjectMemberValue
+                {
+                    id = "count",
+                    classId = "child-class",
+                    value = new Dictionary<string, string> { ["Value"] = "child-value" },
+                };
+                data.values["child-value"] = new NumberMemberValue { id = "child-value", value = 1 };
+                ((FunctionMember)data.members["handler"]).argumentTypes = new[]
+                {
+                    new FunctionArgumentTypeInfo { name = "next", type = MemberKind.Class, classId = "child-class", required = true },
+                };
+            });
+            client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+            {
+                ["handler"] = (_, _, _) => { calls++; return null; },
+            });
+            var plan = new NeoWritePlan(client);
+            client.TryGetMember("field", out Member? field);
+            client.StageInPlaceReplacement(plan, NeoValueOwnership.Session, new ObjectMemberValue
+            {
+                id = "count",
+                classId = "child-class",
+                value = new Dictionary<string, string> { ["Value"] = "child-value" },
+            }, field!);
+            plan.AfterCommit(() =>
+            {
+                using (var capture = client.BeginConstructionListeners())
+                {
+                    capture!.Defaults["session"] = new Dictionary<string, NeoDelegateValue[]>
+                    {
+                        ["field"] = new[] { new NeoDelegateValue { memberId = "handler" } },
+                    };
+                    capture.Complete("session");
+                }
+                if (callbackFails)
+                    throw new InvalidOperationException("later callback failed");
+            });
+            if (callbackFails)
+                Assert.Throws<InvalidOperationException>(() => plan.Commit());
+            else
+                plan.Commit();
+            Assert.That(calls, Is.EqualTo(1));
+            Assert.That(JObject.Parse(client.SerializeSaveData())["changeListeners"], Is.Null);
         }
 
         [Test]
@@ -2192,5 +2315,7 @@ namespace NeoCompose.Tests
             });
             return client;
         }
+
+
     }
 }

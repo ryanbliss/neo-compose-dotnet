@@ -50,7 +50,7 @@ namespace NeoCompose.Runtime
     }
 
     /// <summary>Malformed compatibility markers must never enter the corrupt-save fallback.</summary>
-    public sealed class NeoSaveFormatRevisionConverter : JsonConverter<int?>
+    internal sealed class NeoSaveFormatRevisionConverter : JsonConverter<int?>
     {
         public override int? ReadJson(JsonReader reader, Type objectType, int? existingValue,
             bool hasExistingValue, JsonSerializer serializer)
