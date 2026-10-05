@@ -4390,6 +4390,13 @@ namespace NeoCompose.Runtime
                 if (AllParametersDefaulted(candidate))
                     return candidate;
             }
+            // Header construction may use only the base member initializers.
+            // A required base constructor must still receive its arguments.
+            if (owningClass.requiredConstructorId == record.id &&
+                string.IsNullOrEmpty(baseClass.requiredConstructorId))
+            {
+                return null;
+            }
             throw new InvalidOperationException(
                 $"Declared constructor '{record.id}' on class '{owningClass.name}' must call a base constructor: '{baseClass.name}' declares constructors but none parameterless.");
         }
