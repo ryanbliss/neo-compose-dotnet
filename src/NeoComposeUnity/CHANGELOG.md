@@ -3,7 +3,7 @@
 ## [0.57.3] - 2026-10-05
 
 - A stored row that leaves out a field with a computed default now loads with the initializer's value. Before, the client failed to load with "has a computed default and cannot be materialized as a literal". This covered authored lookup and collection entries, Save and Session rows, and rows stamped with a variant. An unset optional class field whose class has computed fields now reads null instead of failing the load.
-- When a row's omitted defaults cannot be evaluated, for example because an initializer reads a missing value, the client logs an error that names the row and its class and keeps loading. Those fields read as unavailable. Rows created by a constructor or variant still fail to load when their replay fails.
+- When a row's omitted defaults cannot be evaluated, the client logs an error that names the row and its class, then keeps loading or finishes the write. This happens when an initializer reads a missing value, or reads a constructor argument that a row without a constructor doesn't have. Those fields read as unavailable. Rows created by a constructor or variant still fail to load when their replay fails.
 
 ## [0.57.2] - 2026-10-05
 

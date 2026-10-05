@@ -575,9 +575,8 @@ namespace NeoCompose.Runtime
             // sparse root's wrapper tree exists before its replay, and the
             // child binds when replay refreshes that tree, including through
             // intermediate Class children. When replay could not supply the
-            // child (the loader reported its row, or the initializer reads
-            // constructor arguments the row has none of), the child stays
-            // unbound instead of failing the whole tree.
+            // child, the loader reported its row; the child stays unbound
+            // instead of failing the whole tree.
             if (childValueId is null
                 && MemberValueFactory.InitializerOf(childMember) is not null
                 && (client.IsAwaitingVirtualInstanceInitializers(value)

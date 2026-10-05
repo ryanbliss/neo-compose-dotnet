@@ -571,8 +571,7 @@ namespace NeoCompose.Runtime
                 // cannot be evaluated, report the row and keep loading.
                 if (failClosed && !IsVirtualInstanceRoot(root))
                 {
-                    Debug.LogError(
-                        $"[NeoCompose] Stored row '{root.id}' of class '{root.classId}' could not evaluate the defaults of the fields it omits, so those fields are unavailable. {error.Message}");
+                    ReportUnavailableOmittedDefaults(root, error);
                     return;
                 }
                 if (failClosed)
@@ -581,6 +580,10 @@ namespace NeoCompose.Runtime
                     $"[NeoCompose] P75 could not replay instance root '{root.id}' of class '{root.classId}' from the incoming live content; its virtual values are unavailable until the next successful apply. {error}");
             }
         }
+
+        private static void ReportUnavailableOmittedDefaults(ObjectMemberValue root, Exception error) =>
+            Debug.LogError(
+                $"[NeoCompose] Stored row '{root.id}' of class '{root.classId}' could not evaluate the defaults of the fields it omits, so those fields are unavailable. {error.Message}");
 
         private void IndexConstructorArgumentRows(ObjectMemberValue root)
         {
