@@ -66,12 +66,13 @@ namespace NeoCompose.Runtime
         private readonly HashSet<(NeoValueOwnership scope, string id)> dirtyListenerOwners = new();
         private readonly Dictionary<string, List<ListenerSlot>> listenerCollectionsById = new(StringComparer.Ordinal);
 
-        private void RecordListenerRow(NeoValueOwnership scope, MemberValue? before, MemberValue? after)
+        private void RecordListenerRow(NeoValueOwnership scope, MemberValue? before, MemberValue? after,
+            bool preservesOwnerFields = false)
         {
             string? id = after?.id ?? before?.id;
             if (id is null)
                 return;
-            if (before is ObjectMemberValue { classId: not null } || after is ObjectMemberValue { classId: not null })
+            if (!preservesOwnerFields && (before is ObjectMemberValue { classId: not null } || after is ObjectMemberValue { classId: not null }))
                 pendingListenerChanges.Owners.Add((scope, before as ObjectMemberValue, after as ObjectMemberValue));
             var key = (scope, id);
             if (pendingListenerChanges.Rows.TryGetValue(key, out var previous))

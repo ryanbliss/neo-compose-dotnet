@@ -3742,8 +3742,7 @@ namespace NeoCompose.Runtime
                     throw new System.InvalidOperationException(
                         $"Class value '{sourceValueId}' is already owned by parent value '{parentValueId}' and cannot be assigned to another parent. Use .Clone() to create an independent Class value before assigning it.");
                 }
-                TryInferMemberForValueId(sourceValueId, out Member? adoptedMember);
-                CaptureListenerMove(plan, sourceOwnership, targetOwnership, sourceValueId, adoptedMember);
+                CaptureListenerMove(plan, sourceOwnership, targetOwnership, sourceValueId, null);
                 return sourceValueId;
             }
             Member? sourceMember = TryInferMemberForValueId(
@@ -3882,6 +3881,7 @@ namespace NeoCompose.Runtime
             shadow.containerId = existing.containerId;
             shadow.genericBindings = existing.genericBindings;
             shadow.createdAt = existing.createdAt;
+            CaptureShadowListenerRename(plan, ownership, importedValueId, shadow);
             plan.Remove(ownership, importedValueId);
             StageInPlaceReplacement(plan, ownership, shadow, member);
             return movedValueIds is not null || importedValueId == sourceValueId

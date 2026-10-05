@@ -89,23 +89,49 @@ namespace NeoCompose.Runtime
             internal readonly NeoValueOwnership Scope;
             internal readonly string Root;
             internal readonly NeoValueOwnership Target;
-            internal ListenerMove(NeoValueOwnership scope, string root, NeoValueOwnership target)
+            internal readonly string OwnerId;
+            internal readonly string TargetOwnerId;
+            internal ListenerMove(NeoValueOwnership scope, string root, NeoValueOwnership target,
+                string ownerId, string? targetOwnerId = null)
             {
                 Scope = scope;
                 Root = root;
                 Target = target;
+                OwnerId = ownerId;
+                TargetOwnerId = targetOwnerId ?? ownerId;
             }
         }
         internal Dictionary<(NeoValueOwnership scope, string id), ListenerMove>? ListenerMoves;
+        // Null scope follows pre-commit global receiver resolution. An explicit
+        // scope identifies an owner, or a durable receiver in the Save store.
+        private Dictionary<(NeoValueOwnership? scope, string id), string>? listenerRenames;
         private List<((NeoValueOwnership scope, string id) key, bool present, ListenerMove previous)>? listenerMoveJournal;
 
         internal void SetListenerMove((NeoValueOwnership scope, string id) key, ListenerMove move)
         {
             ListenerMoves ??= new();
             bool present = ListenerMoves.TryGetValue(key, out var previous);
+            if (!present || previous.TargetOwnerId != move.TargetOwnerId)
+                listenerRenames = null;
             if (openCheckpoints != 0)
                 (listenerMoveJournal ??= new()).Add((key, present, previous));
             ListenerMoves[key] = move;
+        }
+
+        internal Dictionary<(NeoValueOwnership? scope, string id), string> ListenerRenames()
+        {
+            if (listenerRenames is not null)
+                return listenerRenames;
+            listenerRenames = new();
+            if (ListenerMoves is not null)
+                foreach (var pair in ListenerMoves)
+                    if (pair.Key.id != pair.Value.TargetOwnerId)
+                    {
+                        listenerRenames[pair.Key] = pair.Value.TargetOwnerId;
+                        if (!Client.TryGetCommittedOwnership(pair.Key.id, out var scope) || scope == pair.Key.scope)
+                            listenerRenames[(null, pair.Key.id)] = pair.Value.TargetOwnerId;
+                    }
+            return listenerRenames;
         }
         internal bool FindListenerMove(NeoValueOwnership scope, string id,
             out (NeoValueOwnership scope, string id) key, out ListenerMove move)
@@ -158,6 +184,7 @@ namespace NeoCompose.Runtime
         /// <summary>Drops what was staged since <paramref name="checkpoint"/>.</summary>
         internal void Rollback(Checkpoint checkpoint)
         {
+            listenerRenames = null;
             if (listenerMoveJournal is not null)
             {
                 for (int index = listenerMoveJournal.Count - 1; index >= checkpoint.ListenerMoveJournal; index--)
@@ -819,6 +846,11 @@ namespace NeoCompose.Runtime
             bool batched = false;
             bool held = false;
             bool gridChange = false;
+            HashSet<(NeoValueOwnership scope, string id)>? renamedOwners = null;
+            if (plan.ListenerMoves is not null)
+                foreach (var move in plan.ListenerMoves)
+                    if (move.Key.id != move.Value.TargetOwnerId)
+                        (renamedOwners ??= new()).Add((move.Value.Target, move.Value.TargetOwnerId));
             try
             {
                 foreach (var pair in plan.Rows)
@@ -889,7 +921,8 @@ namespace NeoCompose.Runtime
                 BeginChangeBatch();
                 batched = true;
                 foreach (var row in listenerRows)
-                    RecordListenerRow(row.scope, row.before, row.after);
+                    RecordListenerRow(row.scope, row.before, row.after,
+                        row.after is not null && renamedOwners?.Contains((row.scope, row.after.id)) == true);
                 // Effects the commit queues run once it publishes, inside its change batch.
                 HoldGetterChanges();
                 held = true;

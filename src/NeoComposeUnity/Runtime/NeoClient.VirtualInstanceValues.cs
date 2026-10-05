@@ -223,6 +223,7 @@ namespace NeoCompose.Runtime
         private sealed class VirtualClassPlacement
         {
             internal string rootId = null!;
+            internal string path = null!;
             internal string parentValueId = null!;
             internal string? schemaKey;
             internal Member member = null!;
@@ -1751,11 +1752,12 @@ namespace NeoCompose.Runtime
 
             internal PreparedVirtualExpansion(ObjectMemberValue root) => Root = root;
 
-            internal void TrackPlacement(string parentId, string childId, Member member, NeoValueOwnership ownership, NeoValueOwnership parentOwnership, string? schemaKey = null)
+            internal void TrackPlacement(string parentId, string childId, Member member, NeoValueOwnership ownership, NeoValueOwnership parentOwnership, string path, string? schemaKey = null)
             {
                 Placements[childId] = new VirtualClassPlacement
                 {
                     rootId = Root.id,
+                    path = path,
                     parentValueId = parentId,
                     schemaKey = schemaKey,
                     member = member,
@@ -1790,7 +1792,7 @@ namespace NeoCompose.Runtime
             }
             virtualClassChildrenEpoch++;
             foreach (var pair in expansion.Placements)
-                TrackVirtualClassPlacement(rootId, pair.Value.parentValueId, pair.Key, pair.Value.member, pair.Value.ownership, pair.Value.parentOwnership, pair.Value.schemaKey);
+                TrackVirtualClassPlacement(rootId, pair.Value.parentValueId, pair.Key, pair.Value.member, pair.Value.ownership, pair.Value.parentOwnership, pair.Value.path, pair.Value.schemaKey);
             foreach (string id in expansion.Footprint)
                 TrackVirtualFootprint(rootId, id);
             IndexConstructorArgumentRows(expansion.Root);
@@ -1845,7 +1847,7 @@ namespace NeoCompose.Runtime
             }
             node.effectiveId = materialized.id;
             if (node.parent is not null)
-                expansion.TrackPlacement(node.parent.effectiveId, node.effectiveId, node.member, ownership, node.parent.effectiveOwnership, node.schemaKey);
+                expansion.TrackPlacement(node.parent.effectiveId, node.effectiveId, node.member, ownership, node.parent.effectiveOwnership, node.path, node.schemaKey);
             if (materialized.id != instanceRoot.id
                 && materialized is ObjectMemberValue nestedRoot
                 && IsVirtualInstanceRoot(nestedRoot)
@@ -1889,6 +1891,7 @@ namespace NeoCompose.Runtime
                                 pair.Value.member,
                                 childOwnership,
                                 ownership,
+                                pair.Value.path,
                                 pair.Key);
                         }
                     }
@@ -2015,7 +2018,7 @@ namespace NeoCompose.Runtime
             // Collection entries need their closed placement just as class
             // fields do, including when a candidate replay hides the old graph.
             if (node.parent is not null)
-                expansion.TrackPlacement(node.parent.effectiveId, node.virtualId, node.member, ownership, node.parent.effectiveOwnership, node.schemaKey);
+                expansion.TrackPlacement(node.parent.effectiveId, node.virtualId, node.member, ownership, node.parent.effectiveOwnership, node.path, node.schemaKey);
             expansion.Footprint.Add(node.virtualId);
             MemberValue virtualRow = RewriteVirtualRow(node, instanceRoot);
             if (unorderedContainerId is not null)
@@ -2040,6 +2043,7 @@ namespace NeoCompose.Runtime
                         child.member,
                         childOwnership,
                         ownership,
+                        child.path,
                         child.schemaKey);
                 }
                 IndexVirtualChild(expansion, child, instanceRoot, childOwnership);
@@ -2223,6 +2227,7 @@ namespace NeoCompose.Runtime
             Member member,
             NeoValueOwnership ownership,
             NeoValueOwnership parentOwnership,
+            string path,
             string? schemaKey)
         {
             if (virtualClassPlacementByChildId.TryGetValue(childValueId, out var previousPlacement))
@@ -2234,6 +2239,7 @@ namespace NeoCompose.Runtime
                 new VirtualClassPlacement
                 {
                     rootId = rootId,
+                    path = path,
                     parentValueId = parentValueId,
                     schemaKey = schemaKey,
                     member = member,
