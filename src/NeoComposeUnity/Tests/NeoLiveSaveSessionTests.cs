@@ -30,13 +30,17 @@ namespace NeoCompose.Tests
         {
             private readonly NeoInMemoryLocalSaveStore inner = new();
             public bool FailCommit;
+            public int FailedCommits;
             public Awaitable<IReadOnlyList<string>> ListSaveIdsAsync() => inner.ListSaveIdsAsync();
             public Awaitable<string?> LoadSaveAsync(string id) => inner.LoadSaveAsync(id);
             public Awaitable DeleteSaveAsync(string id) => inner.DeleteSaveAsync(id);
             public Awaitable CommitSaveAsync(string id, string content)
             {
                 if (FailCommit)
+                {
+                    FailedCommits++;
                     throw new InvalidOperationException("Local listener write failed");
+                }
                 return inner.CommitSaveAsync(id, content);
             }
         }
@@ -57,6 +61,7 @@ namespace NeoCompose.Tests
             }
 
             public double Now() => NowSeconds;
+            public double? NextDelay => waits.Count == 0 ? null : waits.Min(wait => wait.dueAt) - NowSeconds;
 
             public Awaitable Delay(double seconds)
             {
@@ -808,6 +813,7 @@ namespace NeoCompose.Tests
                         await scheduler.AdvanceAsync(0.5);
                         Assert.That(received, Is.Empty);
                         sync.SetLocalWritesPending(false);
+                        scheduler.Advance(0.5);
                     }
                     else
                         scheduler.Advance(1); // An idle session retries without a signal or another write.
@@ -829,6 +835,103 @@ namespace NeoCompose.Tests
                     Assert.That(patch.edits.Single().ownerId, Is.EqualTo("owner"));
                     Assert.That(patch.edits.Single().expected!["Bar"][0].memberId, Is.EqualTo("first"));
                     Assert.That(((GameSaveListenerMemberStep)patch.endpoints.Single(endpoint => endpoint.valueId == "owner").steps.Single()).memberId, Is.EqualTo("second"));
+                }
+            }
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task ListenerAdoption_BacksOffPersistentFailuresAndResetsAfterRecovery(bool reload)
+        {
+            var local = new FailingLocalStore();
+            var (store, sync, _, _, realtime, scheduler) = await LiveSessionAsync(localStore: local);
+            using (store)
+            {
+                var warnings = new List<string>();
+                void CaptureWarning(string message, string stack, LogType type)
+                {
+                    if (type == LogType.Warning && message.Contains("Could not apply realtime save updates"))
+                        warnings.Add(message);
+                }
+                Application.logMessageReceived += CaptureWarning;
+                try
+                {
+                    var response = new AwaitableCompletionSource<NeoCommitResult>();
+                    realtime.forkHandler = _ => response.Awaitable;
+                    await StageListenerValues(sync, ListenerValues(("owner", "first")), "owner");
+                    scheduler.Advance(0.5);
+                    await WaitFor(() => realtime.forks.Count == 1);
+                    sync.SetLocalWritesPending(true);
+                    var committed = RemoteWithValues("snap-live", "{}", "session-x");
+                    committed.changeListeners = JsonConvert.DeserializeObject<Dictionary<string, NeoChangeListenerMap>>(
+                        ListenerValues(("owner", "remote")));
+                    response.SetResult(NeoCommitResult.Committed(committed));
+                    await WaitFor(() => !sync.IsLiveFlushRunning);
+                    local.FailCommit = true;
+                    const string warning = "[NeoCompose] Could not apply realtime save updates for \"save-1\". InvalidOperationException: Local listener write failed";
+                    LogAssert.Expect(LogType.Warning, warning);
+                    sync.SetLocalWritesPending(false);
+                    await sync.WaitForRevisionApplyAsync();
+                    foreach (double delay in new double[] { 1, 2, 4, 8, 16, 32, 60, 60 })
+                    {
+                        Assert.That(scheduler.NextDelay, Is.EqualTo(delay));
+                        int attempts = local.FailedCommits;
+                        sync.SetLocalWritesPending(false);
+                        sync.SetLocalWritesPending(false);
+                        Assert.That(local.FailedCommits, Is.EqualTo(attempts), "signals must respect the retry delay");
+                        scheduler.Advance(delay - 0.125);
+                        Assert.That(local.FailedCommits, Is.EqualTo(attempts));
+                        scheduler.Advance(0.125);
+                        await sync.WaitForRevisionApplyAsync();
+                        Assert.That(local.FailedCommits, Is.EqualTo(attempts + 1));
+                        Assert.That(warnings, Has.Count.EqualTo(1));
+                    }
+                    local.FailCommit = false;
+                    if (reload)
+                    {
+                        sync.OnConflict += (_, continuation) => continuation.KeepLocal();
+                        await sync.LoadSaveContentAsync();
+                    }
+                    else
+                    {
+                        scheduler.Advance(60);
+                        await sync.WaitForRevisionApplyAsync();
+                        Assert.That(await local.LoadSaveAsync("save-1"), Does.Contain("remote"));
+                        Assert.That(scheduler.NextDelay, Is.Null);
+                    }
+
+                    local.FailCommit = true;
+                    committed.changeListeners = JsonConvert.DeserializeObject<Dictionary<string, NeoChangeListenerMap>>(
+                        ListenerValues(("owner", "newer")));
+                    LogAssert.Expect(LogType.Warning, warning);
+                    var queue = typeof(NeoSaveSynchronizer).GetMethod("QueueListenerAdoption",
+                        System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+                    queue.Invoke(sync, new object[] { sync.ActiveSave!, committed });
+                    sync.SetLocalWritesPending(false);
+                    await sync.WaitForRevisionApplyAsync();
+                    Assert.That(scheduler.NextDelay, Is.EqualTo(1));
+                    Assert.That(warnings, Has.Count.EqualTo(2));
+                    if (reload)
+                    {
+                        // The old 60-second timer must neither attempt adoption nor clear the new retry gate.
+                        scheduler.Advance(1);
+                        await sync.WaitForRevisionApplyAsync();
+                        Assert.That(scheduler.NextDelay, Is.EqualTo(2));
+                        int attempts = local.FailedCommits;
+                        sync.SetLocalWritesPending(false);
+                        Assert.That(local.FailedCommits, Is.EqualTo(attempts));
+                        scheduler.Advance(59);
+                        await sync.WaitForRevisionApplyAsync();
+                        Assert.That(local.FailedCommits, Is.EqualTo(attempts + 1),
+                            "only the new basis retry may run when both timers have elapsed");
+                        Assert.That(scheduler.NextDelay, Is.EqualTo(4));
+                        sync.SetLocalWritesPending(false);
+                        Assert.That(local.FailedCommits, Is.EqualTo(attempts + 1));
+                    }
+                }
+                finally
+                {
+                    Application.logMessageReceived -= CaptureWarning;
                 }
             }
         }

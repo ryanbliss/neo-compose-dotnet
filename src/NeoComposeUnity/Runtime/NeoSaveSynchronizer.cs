@@ -45,7 +45,10 @@ namespace NeoCompose.Runtime
             Dictionary<string, NeoChangeListenerMap> acknowledged)? pendingListenerAdoption;
         private bool localWritesPending;
         private bool listenerAdoptionRetryScheduled;
-        private const double ListenerAdoptionRetrySeconds = 1;
+        private int listenerAdoptionRetryGeneration;
+        private const double InitialListenerAdoptionRetrySeconds = 1;
+        private const double MaxListenerAdoptionRetrySeconds = 60;
+        private double listenerAdoptionRetrySeconds;
         private readonly List<AwaitableCompletionSource> revisionApplyWaiters = new();
 
         /// <summary>The active save after a best-effort cloud commit failed:
@@ -1067,7 +1070,8 @@ namespace NeoCompose.Runtime
 
         private async void DrainRealtimeRevisions()
         {
-            if (realtimeRevisionApplyRunning || localWritesPending || liveFlushOperationRunning)
+            if (realtimeRevisionApplyRunning || localWritesPending || liveFlushOperationRunning
+                || listenerAdoptionRetryScheduled)
                 return;
 
             realtimeRevisionApplyRunning = true;
@@ -1101,6 +1105,7 @@ namespace NeoCompose.Runtime
                                 throw;
                             }
                         }
+                        listenerAdoptionRetrySeconds = 0;
                         if (pendingListenerAdoption is { } queued
                             && ReferenceEquals(queued.received, adoption.received))
                             pendingListenerAdoption = null;
@@ -1113,10 +1118,15 @@ namespace NeoCompose.Runtime
             }
             catch (Exception exception)
             {
-                Debug.LogWarning(
-                    $"[NeoCompose] Could not apply realtime save updates for \"{CustomId}\". " +
-                    $"{exception.GetType().Name}: {exception.Message}");
                 retryAdoption = pendingListenerAdoption is not null;
+                if (!retryAdoption || listenerAdoptionRetrySeconds == 0)
+                    Debug.LogWarning(
+                        $"[NeoCompose] Could not apply realtime save updates for \"{CustomId}\". " +
+                        $"{exception.GetType().Name}: {exception.Message}");
+                if (retryAdoption)
+                    listenerAdoptionRetrySeconds = listenerAdoptionRetrySeconds == 0
+                        ? InitialListenerAdoptionRetrySeconds
+                        : Math.Min(listenerAdoptionRetrySeconds * 2, MaxListenerAdoptionRetrySeconds);
             }
             finally
             {
@@ -1137,9 +1147,10 @@ namespace NeoCompose.Runtime
             if (listenerAdoptionRetryScheduled || liveTornDown)
                 return;
             listenerAdoptionRetryScheduled = true;
+            int generation = listenerAdoptionRetryGeneration;
             try
             {
-                await LiveDelay(ListenerAdoptionRetrySeconds);
+                await LiveDelay(listenerAdoptionRetrySeconds);
             }
             catch (Exception exception)
             {
@@ -1148,9 +1159,10 @@ namespace NeoCompose.Runtime
             }
             finally
             {
-                listenerAdoptionRetryScheduled = false;
+                if (generation == listenerAdoptionRetryGeneration)
+                    listenerAdoptionRetryScheduled = false;
             }
-            if (!liveTornDown)
+            if (!liveTornDown && generation == listenerAdoptionRetryGeneration)
                 DrainRealtimeRevisions();
         }
 
@@ -1314,6 +1326,9 @@ namespace NeoCompose.Runtime
             liveSnapshotId = null;
             stagedLive = null;
             pendingListenerAdoption = null;
+            listenerAdoptionRetryGeneration++;
+            listenerAdoptionRetryScheduled = false;
+            listenerAdoptionRetrySeconds = 0;
             liveFirstDirtyAt = -1;
             liveBaseline = AsValuesObject(loaded.values) is JObject values
                 ? (JObject)values.DeepClone()

@@ -1093,10 +1093,17 @@ namespace NeoCompose.Runtime
                 // A leaf replacement with no payload rows stores in place or
                 // joins a held script plan. Only committed writes notify.
                 NeoWritePlan? pendingLeaf = null;
-                if (setValue?.value is not NeoValuePayload { valueRows: { Count: > 0 } }
-                    && (placement
-                        ? value is not null && client.TryWritePlacement(childOwnership, value, key, next, childMember)
-                        : client.TryWriteLeaf(childOwnership, next, childMember, "value", out pendingLeaf, existingNode)))
+                bool storedLeaf = false;
+                if (setValue?.value is not NeoValuePayload { valueRows: { Count: > 0 } })
+                {
+                    if (placement)
+                        storedLeaf = value is not null && client.TryWritePlacement(childOwnership, value, key, next, childMember);
+                    else if (client.TracksLeafWrites)
+                        storedLeaf = client.TryWriteLeafTracked(childOwnership, next, childMember, "value", out pendingLeaf, existingNode);
+                    else
+                        storedLeaf = client.TryWriteLeaf(childOwnership, next, childMember, "value", existingNode);
+                }
+                if (storedLeaf)
                 {
                     if (pendingLeaf is not null)
                     {

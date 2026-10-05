@@ -670,6 +670,8 @@ namespace NeoCompose.Runtime
                 CommitScriptRows();
         }
 
+        internal bool HasPendingScriptWrites => scriptWriteBatch is not null;
+
         /// <summary>A C# view's read of row <paramref name="id"/>, which must see the held batch's mutations.</summary>
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         internal void ObserveHostRead(string? id)

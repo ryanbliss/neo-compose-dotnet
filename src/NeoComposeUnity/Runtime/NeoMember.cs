@@ -85,9 +85,11 @@ namespace NeoCompose.Runtime
         }
         public MemberValue? value
         {
+            [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
             get
             {
-                ObserveScriptWrites();
+                if (client.HasPendingScriptWrites)
+                    return ReadPendingValue();
                 return boundValue;
             }
             protected set
@@ -96,6 +98,14 @@ namespace NeoCompose.Runtime
                 boundValue = value;
             }
         }
+        // Keep held-write reconciliation out of the ordinary value-read path.
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private MemberValue? ReadPendingValue()
+        {
+            ObserveScriptWrites();
+            return boundValue;
+        }
+
         /// <summary>
         /// The P42 <c>~partial</c> structured-leaf row bound to this node, or
         /// null (the overwhelmingly common case).

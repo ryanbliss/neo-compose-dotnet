@@ -5,7 +5,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 using NeoCompose.Runtime.Json;
 
 namespace NeoCompose.Runtime
@@ -29,18 +28,48 @@ namespace NeoCompose.Runtime
         private static readonly Unity.Profiling.ProfilerMarker LeafWriteMarker = new("NeoCompose.Write.Leaf");
 #endif
 
+        internal bool TracksLeafWrites => hasListenerSources || scriptWriteDepth != 0;
+
         /// <summary>
         /// Stores <paramref name="next"/> in place of the committed row at the
         /// same id when the write is a plain leaf replacement. Returns false,
         /// having changed nothing, when the write needs a full plan.
         /// </summary>
         /// <param name="node">The caller's node for <paramref name="next"/>'s id, if it holds one.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal bool TryWriteLeaf(
-            NeoValueOwnership ownership, MemberValue next, Member member, string? changedField, NeoValueNode? node = null) =>
-            TryWriteLeaf(ownership, next, member, changedField, out _, node);
+            NeoValueOwnership ownership, MemberValue next, Member member, string? changedField, NeoValueNode? node = null)
+        {
+            if (TracksLeafWrites)
+                return TryWriteLeafTracked(ownership, next, member, changedField, out _, node);
+            if (scriptWriteBatch?.Touches(next.id) == true)
+                ObserveScriptWrites(next.id);
+            if (!CanWriteLeaf(ownership, next, member, ref node))
+                return false;
+#if NEO_COMPOSE_PROFILING
+            using var marker = LeafWriteMarker.Auto();
+#endif
+            // Getter watchers hear the write once the grid it re-flattens is
+            // current.
+            HoldGetterChanges();
+            bool gridLeaf = false;
+            try
+            {
+                StoreLeaf(ownership, next, node!);
+                gridLeaf = InvalidateGridLeaf(next.id);
+                NotifyWritableValueChanged(ownership, next.id, changedField, membershipChanged: false, node: node);
+                if (gridLeaf)
+                    PublishGridLeaf(ownership, next.id);
+            }
+            finally
+            {
+                if (gridLeaf)
+                    EndGridChange();
+                ReleaseGetterChanges();
+            }
+            return true;
+        }
 
-        internal bool TryWriteLeaf(
+        internal bool TryWriteLeafTracked(
             NeoValueOwnership ownership, MemberValue next, Member member, string? changedField,
             out NeoWritePlan? pendingPlan, NeoValueNode? node = null)
         {
