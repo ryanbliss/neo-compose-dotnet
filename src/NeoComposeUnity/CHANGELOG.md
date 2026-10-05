@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.57.4] - 2026-10-05
+
+- An empty header base clause can build a base with declared constructors from its member initializers and the base block when none of those constructors accepts zero arguments. Required base constructors still need their arguments, and declared `: base()` calls still require a callable base constructor. Matches CLI 0.68.4 and fixes neo-compose #1186.
+
 ## [0.57.3] - 2026-10-05
 
 - A stored row that leaves out a field with a computed default now loads with the initializer's value. Before, the client failed to load with "has a computed default and cannot be materialized as a literal". This covered authored lookup and collection entries, Save and Session rows, and rows stamped with a variant. An unset optional class field whose class has computed fields now reads null instead of failing the load.

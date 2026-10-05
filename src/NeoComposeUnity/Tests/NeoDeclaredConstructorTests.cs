@@ -1397,6 +1397,63 @@ namespace NeoCompose.Tests
                 error.Message);
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void HeaderBaseWithoutArgumentsUsesInitializersUnlessBaseIsCallable(bool parameterless)
+        {
+            ProjectData data = BuildProjectData();
+            data.classes["gear-class"].requiredConstructorId = null;
+            data.classes["gear-class"].constructorIds = new[] { "ctor-gear" };
+            ConstructorRecord baseConstructor = data.constructors["ctor-gear"];
+            baseConstructor.code = "Label = \"base-constructor\";";
+            baseConstructor.action.instructions = new Instruction[]
+            {
+                LabelAssignment(StringPointer("base-constructor")),
+            };
+            if (parameterless)
+            {
+                baseConstructor.argumentTypes[0].defaultValue =
+                    new ParameterDefaultValue { value = "default" };
+            }
+            ConstructorRecord derived = data.constructors["ctor-cog"];
+            derived.baseArguments = null;
+            derived.compiledBaseArguments = null;
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            NeoMemberClassWritable node = NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(
+                client,
+                "cog-class",
+                derived.id,
+                new[] { new NeoDeclaredConstructorArgument("Seed", "seeded") });
+            Assert.AreEqual(parameterless ? "base-constructor" : "base", ReadString(client, node.value!, "Label"));
+            Assert.AreEqual("from-base-clause", ReadString(client, node.value!, "Tag"));
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void EmptyBaseCallCannotSkipRequiredBaseOrUseDeclaredConstructorFallback(bool requiredBase)
+        {
+            ProjectData data = BuildProjectData();
+            if (!requiredBase)
+            {
+                data.classes["gear-class"].requiredConstructorId = null;
+                data.classes["gear-class"].constructorIds = new[] { "ctor-gear" };
+                data.classes["cog-class"].requiredConstructorId = null;
+                data.classes["cog-class"].constructorIds = new[] { "ctor-cog" };
+            }
+            data.constructors["ctor-cog"].baseArguments = null;
+            data.constructors["ctor-cog"].compiledBaseArguments = null;
+            var error = Assert.Throws<InvalidOperationException>(() =>
+            {
+                using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+                NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(
+                    client,
+                    "cog-class",
+                    "ctor-cog",
+                    new[] { new NeoDeclaredConstructorArgument("Seed", "seeded") });
+            });
+            StringAssert.Contains("must call a base constructor", error!.Message);
+        }
+
         [Test]
         public void RequiredConstructor_BaseClauseSettlesInheritedMembers()
         {
