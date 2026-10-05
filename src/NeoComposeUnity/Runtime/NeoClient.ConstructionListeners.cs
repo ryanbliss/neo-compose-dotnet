@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Security.Cryptography;
 using NeoCompose.Runtime.Json;
 
 namespace NeoCompose.Runtime
@@ -161,8 +162,9 @@ namespace NeoCompose.Runtime
             if (projections is not { Count: > 0 })
                 return;
             VirtualExpansionNode? graph = null;
+            using var replayIdHash = SHA1.Create();
             ResolveConstructedListenerProjections(projections, () => graph ??= IndexVirtualExpansion(root as ObjectMemberValue ?? new ObjectMemberValue { id = root.id }, root, member, "$",
-                new Dictionary<string, string>(StringComparer.Ordinal),
+                new Dictionary<string, string>(StringComparer.Ordinal), replayIdHash,
                 new Dictionary<MemberValue, IReadOnlyDictionary<string, NeoGenericEnvEntry>>()));
         }
 
