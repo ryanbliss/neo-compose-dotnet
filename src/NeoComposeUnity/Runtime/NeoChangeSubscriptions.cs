@@ -126,12 +126,12 @@ namespace NeoCompose.Runtime
 
         public bool Has<T>(NeoField<T> field)
         {
-            return Changes.ContainsKey(field);
+            return TryGetChange(field, out _);
         }
 
         public bool TryGet<T>(NeoField<T> field, out T value)
         {
-            if (Changes.TryGetValue(field, out object? raw))
+            if (TryGetChange(field, out object? raw))
             {
                 if (raw is null)
                 {
@@ -145,6 +145,32 @@ namespace NeoCompose.Runtime
                 }
             }
             value = default!;
+            return false;
+        }
+
+        // Each generated class declares its own Fields tokens, so an
+        // ancestor's token names the same member by its schema key.
+        private bool TryGetChange(INeoField field, out object? value)
+        {
+            if (field is null)
+                throw new ArgumentNullException(nameof(field));
+            if (changes is null)
+            {
+                bool found = field.Key == singleField!.Key;
+                value = found ? singleValue : null;
+                return found;
+            }
+            if (changes.TryGetValue(field, out value))
+                return true;
+            foreach (var change in changes)
+            {
+                if (change.Key.Key == field.Key)
+                {
+                    value = change.Value;
+                    return true;
+                }
+            }
+            value = null;
             return false;
         }
     }

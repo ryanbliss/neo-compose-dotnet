@@ -219,7 +219,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
             {
-                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+                return base.GetLocalizedTextId(field);
             }
             return reader();
         }
@@ -246,7 +246,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
             {
-                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+                return base.OnChanged(field, handler);
             }
             return WatchField(field, handler, reader);
         }

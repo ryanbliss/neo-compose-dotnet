@@ -11,6 +11,6 @@
     },
     "license": "MIT",
     "dependencies": {
-        "com.ryanbliss.neocompose": "0.57.0"
+        "com.ryanbliss.neocompose": "0.57.1"
     }
 }
