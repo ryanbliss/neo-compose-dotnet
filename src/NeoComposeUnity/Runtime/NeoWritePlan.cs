@@ -745,6 +745,14 @@ namespace NeoCompose.Runtime
             return TryGetCommittedOverlaidValue(ownership, id, out MemberValue? row) ? row : null;
         }
 
+        /// <summary>
+        /// The pending write a clone or import joins. A candidate replay's own
+        /// plan is not one: a fresh plan commits through CandidateReplay.Apply,
+        /// which keeps a replay's rows as reclaimable allocations.
+        /// </summary>
+        private NeoWritePlan? EnclosingWritePlan =>
+            candidateReadPlan is { } plan && !ReferenceEquals(plan, candidateReplay?.Plan) ? plan : null;
+
         internal CandidateReadScope ReadCandidate(NeoWritePlan plan)
         {
             NeoWritePlan? previous = candidateReadPlan;

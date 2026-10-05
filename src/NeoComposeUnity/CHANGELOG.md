@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.57.2] - 2026-10-05
+
+- A variant change replays the target variant's `initialize`. If a field initializer in that closure clones a value, the closure can now write to the clone. An example is a plant built with `Data = item.DefaultData.Clone()` that then sets `placed.Data.DaysGrown = 1`. Since 0.57.0, `ToVariant` threw "Cannot mutate value '…' because it is not session-owned", so Neowyn could not sleep a night with plants planted. A write that replays such an instance, for example replacing its `Data`, threw the same error and is fixed too. Clones and imports made during a replay now stay temporary to that replay, as they did before 0.57.0.
+
 ## [0.57.1] - 2026-10-05
 
 - A descendant accepts an ancestor's field token, as in `currency.OnChanged(ValueWatcher<int>.Fields.Value, handler)` on a `MinIntWatcher`. `NeoChangedArgs.Has` and `TryGet` match the token's member by name, and regenerated classes pass the per-field `OnChanged` and `GetLocalizedTextId` up to the class that declares the member. Before, the per-field call threw "Field 'Value' is not defined on this generated type.", and an aggregate handler never saw the change. Use the matching CLI 0.68.1 and regenerate.

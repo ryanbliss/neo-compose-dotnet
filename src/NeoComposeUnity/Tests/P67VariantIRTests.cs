@@ -25,6 +25,7 @@ namespace NeoCompose.Tests
         private const string ProjectId = "p67";
         private const string WidgetClassId = "widget-class";
         private const string VariantClassId = "neo-variant-class";
+        private const string BoxClassId = "box-class";
         private const string LookupFolderId = "lookup-folder";
         private const string LookupCollectionMemberId = "lookup-catalog";
         private const string LookupCollectionValueId = "value-catalog";
@@ -372,6 +373,56 @@ namespace NeoCompose.Tests
             Assert.AreEqual("target", ReadRowLabel(client, targetId));
         }
 
+        /// <summary>
+        /// Neowyn's plant growth stages: `PlacedItem.Data = item.DefaultData.Clone()`
+        /// and a Day1 variant whose Initialize writes `placed.Data.DaysGrown = 1`.
+        /// ToVariant replays that Initialize inside the variant candidate, so the
+        /// field initializer's clone runs while the candidate's replay plan is
+        /// open. The replay plan is not an enclosing write: the clone must commit
+        /// through the replay's Apply as allocations, or its rows are not
+        /// session-owned and the closure's write to the clone is refused.
+        /// </summary>
+        [Test]
+        public void VariantApply_ReplayedInitializeWritesIntoAFieldInitializersClone()
+        {
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(ClonedBoxProjectData());
+            NeoMemberClassWritable node = NeoVariantSupport.InitializeNode(
+                client, WidgetClassId, client.variants["variant-plain"]);
+
+            Assert.DoesNotThrow(() => NeoVariantSupport.ApplyToNode(
+                client, client.variants["variant-up"], node, node.ownership));
+
+            Assert.AreEqual("up", ReadLabel(client, node));
+            int sessionRows = client.sessionValues.Count;
+            NeoVariantSupport.ApplyToNode(client, client.variants["variant-plain"], node, node.ownership);
+            NeoVariantSupport.ApplyToNode(client, client.variants["variant-up"], node, node.ownership);
+            Assert.AreEqual("up", ReadLabel(client, node));
+            Assert.AreEqual(sessionRows, client.sessionValues.Count, "replayed clones must not leak rows");
+        }
+
+        /// <summary>
+        /// Replacing a variant-stamped instance's <c>Data</c> replays its root
+        /// inside the write's own candidate, which reruns the same Initialize.
+        /// Its clone must still commit as a replay allocation rather than join
+        /// the write being validated.
+        /// </summary>
+        [Test]
+        public void WriteToAVariantInstance_ReplaysAnInitializeWritingIntoAFieldInitializersClone()
+        {
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(ClonedBoxProjectData());
+            NeoMemberClassWritable node = NeoVariantSupport.InitializeNode(
+                client, WidgetClassId, client.variants["variant-plain"]);
+            NeoVariantSupport.ApplyToNode(client, client.variants["variant-up"], node, node.ownership);
+
+            Assert.DoesNotThrow(() => node.SetSerializedValue(
+                "Data", NeoValueWritePayload.FromValueReference("value-assets-box")));
+
+            Assert.AreEqual("up", ReadLabel(client, node));
+            int sessionRows = client.sessionValues.Count;
+            node.SetSerializedValue("Data", NeoValueWritePayload.FromValueReference("value-assets-box"));
+            Assert.AreEqual(sessionRows, client.sessionValues.Count, "replayed clones must not leak rows");
+        }
+
         // -------------------------------------------------------------------
         // P68 §4 — the row argument through both evaluator intrinsics.
         // -------------------------------------------------------------------
@@ -573,15 +624,8 @@ namespace NeoCompose.Tests
         // `variant` pointer every other test here builds).
         // -------------------------------------------------------------------
 
-        private static KeyOfPointer MemberRead(string valueId, string schemaKey) => new()
-        {
-            type = PointerKind.KeyOf,
-            keyOf = new KeyOf
-            {
-                pointer = Reference(valueId),
-                key = Literal(schemaKey),
-            },
-        };
+        private static KeyOfPointer MemberRead(string valueId, string schemaKey) =>
+            PointerKeyOf(Reference(valueId), schemaKey);
 
         [Test]
         public void VariantMemberRead_YieldsTheStoredPair()
@@ -1246,6 +1290,142 @@ namespace NeoCompose.Tests
             };
         }
 
+        /// <summary>
+        /// The variant fixture with a cloned <c>Box Data</c> field and a
+        /// variant-up Initialize that writes into the clone.
+        /// </summary>
+        private static ProjectData ClonedBoxProjectData()
+        {
+            ProjectData data = BuildVariantProjectData();
+            AddClonedBoxField(data);
+            // `var placed = new Widget(); placed.Data.Count = 1; return placed;`
+            data.values["value-up-initialize"] = Closure("value-up-initialize",
+                new VariableInstruction
+                {
+                    type = InstructionKind.Variable,
+                    variable = new Variable
+                    {
+                        id = "placed",
+                        typeInfo = ClassType(WidgetClassId),
+                        pointer = ClassConstructorPointer(WidgetClassId),
+                    },
+                },
+                new AssignInstruction
+                {
+                    type = InstructionKind.Assign,
+                    target = new WriteTarget
+                    {
+                        pointer = PointerKeyOf(VariableMemberRead("placed", "Data"), "Count"),
+                        typeInfo = new PrimitiveTypeInfo { type = MemberKind.Int, required = true },
+                    },
+                    pointer = IntLiteral(1),
+                },
+                Return(VariableRef("placed")));
+            return data;
+        }
+
+        /// <summary>
+        /// Adds an Asset-held <c>Box { int Count = 5 }</c> at
+        /// <c>root.Assets.Box</c> and a Widget field
+        /// <c>Box Data = root.Assets.Box.Clone()</c>.
+        /// </summary>
+        private static void AddClonedBoxField(ProjectData data)
+        {
+            data.classes[BoxClassId] = new NeoSchemaClass
+            {
+                id = BoxClassId,
+                projectId = ProjectId,
+                name = "Box",
+                schema = new Dictionary<string, string> { ["Count"] = "box-count" },
+            };
+            data.members["box-count"] = new IntMember
+            {
+                id = "box-count",
+                projectId = ProjectId,
+                name = "Count",
+                kind = MemberKind.Int,
+                Requirement = NeoMemberRequirementKind.Optional,
+                defaultValue = new NumberMemberValueBase { value = 0 },
+                Storage = NeoMemberStorage.Session,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            data.members["assets-box"] = new ClassMember
+            {
+                id = "assets-box",
+                projectId = ProjectId,
+                name = "Box",
+                kind = MemberKind.Class,
+                classId = BoxClassId,
+                Requirement = NeoMemberRequirementKind.Optional,
+                Storage = NeoMemberStorage.Immutable,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            data.classes["root-class"].schema["Box"] = "assets-box";
+            ((ObjectMemberValue)data.values["value-assets"]).value!["Box"] = "value-assets-box";
+            data.values["value-assets-box"] = ObjectValue(
+                "value-assets-box", BoxClassId, ("Count", "value-assets-box-count"));
+            data.values["value-assets-box-count"] = new NumberMemberValue
+            {
+                id = "value-assets-box-count",
+                value = 5,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            data.members["widget-data"] = new ClassMember
+            {
+                id = "widget-data",
+                projectId = ProjectId,
+                name = "Data",
+                kind = MemberKind.Class,
+                classId = BoxClassId,
+                Requirement = NeoMemberRequirementKind.Required,
+                Storage = NeoMemberStorage.Session,
+                defaultValue = new ObjectMemberValueBase
+                {
+                    init = new InitializerBody
+                    {
+                        code = "root.Assets.Box.Clone()",
+                        compiled = new FunctionWithReturnType
+                        {
+                            compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                            parameters = new[]
+                            {
+                                new Variable { id = "__this__", typeInfo = ClassType(WidgetClassId) },
+                                new Variable { id = "__root__", typeInfo = ClassType("root-class") },
+                            },
+                            typeInfo = ClassType(BoxClassId),
+                            instructions = new Instruction[]
+                            {
+                                Return(new FunctionPointer
+                                {
+                                    type = PointerKind.Function,
+                                    function = new ClassCloneFunction
+                                    {
+                                        type = FunctionKind.ClassClone,
+                                        info = new FunctionClassCloneInfo
+                                        {
+                                            receiverPointer = PointerKeyOf(
+                                                VariableMemberRead("__root__", "Assets"),
+                                                "Box"),
+                                            schemaClassInfo = ClassType(BoxClassId),
+                                        },
+                                    },
+                                }),
+                            },
+                        },
+                    },
+                },
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            data.classes[WidgetClassId].schema["Data"] = "widget-data";
+            // The authored widget carries its evaluated field like an export does.
+            ((ObjectMemberValue)data.values["value-target"]).value!["Data"] = "value-target-data";
+            data.values["value-target-data"] = ObjectValue("value-target-data", BoxClassId);
+        }
+
         private static VariantRecord Variant(string id, string name, string valueId) => new()
         {
             id = id,
@@ -1273,6 +1453,32 @@ namespace NeoCompose.Tests
             {
                 typeInfo = new PrimitiveTypeInfo { type = MemberKind.String, required = true },
                 value = JToken.FromObject(value),
+            },
+        };
+
+        private static ValuePointer IntLiteral(int value) => new()
+        {
+            type = PointerKind.Value,
+            value = new Value
+            {
+                typeInfo = new PrimitiveTypeInfo { type = MemberKind.Int, required = true },
+                value = JToken.FromObject(value),
+            },
+        };
+
+        private static VariablePointer VariableRef(string variableId) => new()
+        {
+            type = PointerKind.Variable,
+            variableId = variableId,
+        };
+
+        private static KeyOfPointer PointerKeyOf(Pointer pointer, string schemaKey) => new()
+        {
+            type = PointerKind.KeyOf,
+            keyOf = new KeyOf
+            {
+                pointer = pointer,
+                key = Literal(schemaKey),
             },
         };
 
@@ -1396,21 +1602,8 @@ namespace NeoCompose.Tests
                 pointer = value,
             };
 
-        private static KeyOfPointer VariableMemberRead(
-            string variableId,
-            string schemaKey) => new()
-            {
-                type = PointerKind.KeyOf,
-                keyOf = new KeyOf
-                {
-                    pointer = new VariablePointer
-                    {
-                        type = PointerKind.Variable,
-                        variableId = variableId,
-                    },
-                    key = Literal(schemaKey),
-                },
-            };
+        private static KeyOfPointer VariableMemberRead(string variableId, string schemaKey) =>
+            PointerKeyOf(VariableRef(variableId), schemaKey);
 
         private static ClassTypeInfo ClassType(string classId) => new()
         {
