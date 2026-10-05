@@ -41,7 +41,7 @@
       "depth": 0,
       "source": "local",
       "dependencies": {
-        "com.ryanbliss.neocompose": "0.57.1"
+        "com.ryanbliss.neocompose": "0.57.2"
       }
     },
     "com.unity.2d.animation": {

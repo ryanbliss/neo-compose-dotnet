@@ -3662,7 +3662,7 @@ namespace NeoCompose.Runtime
             ListenerCopyIntent listenerCopyIntent = ListenerCopyIntent.IndependentCopy,
             Dictionary<string, string>? clonedValueIds = null)
         {
-            if (candidateReadPlan is { } candidate)
+            if (EnclosingWritePlan is { } candidate)
             {
                 var checkpoint = candidate.Open();
                 try
@@ -3938,7 +3938,7 @@ namespace NeoCompose.Runtime
             Dictionary<string, string>? clonedValueIds = null)
         {
             EnsureVirtualReplayArgumentReady(sourceValueId);
-            if (candidateReadPlan is { } candidate)
+            if (EnclosingWritePlan is { } candidate)
             {
                 var checkpoint = candidate.Open();
                 try
