@@ -3259,8 +3259,14 @@ namespace NeoCompose.Tests
                 .Get<NeoMemberIntWritable>("Count").value!.value);
         }
 
+        /// <summary>
+        /// Issue #261. An unstamped stored row that omits a field with a
+        /// computed default gets it the way construction would: the omitted
+        /// field's initializer runs in the row's default projection and the
+        /// result resolves at a deterministic virtual id.
+        /// </summary>
         [Test]
-        public void NonVirtualSparseRowDoesNotDeferAComputedInitializer()
+        public void UnstampedSparseRowEvaluatesItsOmittedComputedDefault()
         {
             ProjectData data = BuildProjectData();
             var plainClass = SchemaClass(
@@ -3278,11 +3284,6 @@ namespace NeoCompose.Tests
                 classId = plainClass.id,
                 Requirement = NeoMemberRequirementKind.Required,
             };
-            var countType = new PrimitiveTypeInfo
-            {
-                type = MemberKind.Int,
-                required = true,
-            };
             data.members["plain-count"] = new IntMember
             {
                 id = "plain-count",
@@ -3290,45 +3291,21 @@ namespace NeoCompose.Tests
                 name = "Count",
                 kind = MemberKind.Int,
                 Requirement = NeoMemberRequirementKind.Required,
-                defaultValue = new NumberMemberValueBase
-                {
-                    init = new InitializerBody
-                    {
-                        code = "5",
-                        compiled = new FunctionWithReturnType
-                        {
-                            compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
-                            parameters = Array.Empty<Variable>(),
-                            typeInfo = countType,
-                            instructions = new Instruction[]
-                            {
-                                new ReturnInstruction
-                                {
-                                    type = InstructionKind.Return,
-                                    pointer = new ValuePointer
-                                    {
-                                        type = PointerKind.Value,
-                                        value = new Value
-                                        {
-                                            typeInfo = countType,
-                                            value = JToken.FromObject(5),
-                                        },
-                                    },
-                                },
-                            },
-                        },
-                    },
-                },
+                defaultValue = ComputedIntInitializer(5),
             };
             data.classes["save-root-class"].schema["Plain"] = "plain-member";
             data.values["plain-value"] = ObjectValue("plain-value", plainClass.id);
             ((ObjectMemberValue)data.values["value-save"]).value!["Plain"] = "plain-value";
 
-            InvalidOperationException error = Assert.Throws<InvalidOperationException>(
-                () => NeoTestSaveStack.ClientFromSchema(data))!;
-            StringAssert.Contains(
-                "has a computed default and cannot be materialized as a literal",
-                error.ToString());
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+
+            NeoMemberIntWritable count = client.save.Get<NeoMemberClassWritable>("Plain")
+                .Get<NeoMemberIntWritable>("Count");
+            Assert.AreEqual(5, count.value!.value);
+            Assert.IsTrue(client.TryGetVirtualClassChildValueId("plain-value", "Count", out string? virtualId));
+            Assert.AreEqual(virtualId, count.value.id);
+            Assert.IsFalse(((ObjectMemberValue)data.values["plain-value"]).value!.ContainsKey("Count"),
+                "the stored row stays sparse");
         }
 
         [Test]

@@ -565,6 +565,16 @@ namespace NeoCompose.Runtime
             catch (Exception error)
             {
                 ClearVirtualInstanceRoot(root.id);
+                // A stamped root's recipe is durable creation data, so a load
+                // fails closed on it. An unstamped row only projects
+                // declaration defaults onto the fields it omits: when they
+                // cannot be evaluated, report the row and keep loading.
+                if (failClosed && !IsVirtualInstanceRoot(root))
+                {
+                    Debug.LogError(
+                        $"[NeoCompose] Stored row '{root.id}' of class '{root.classId}' could not evaluate the defaults of the fields it omits, so those fields are unavailable. {error.Message}");
+                    return;
+                }
                 if (failClosed)
                     throw;
                 Debug.LogWarning(

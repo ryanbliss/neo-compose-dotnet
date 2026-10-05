@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.57.3] - 2026-10-05
+
+- A stored row that leaves out a field with a computed default now loads with the initializer's value. Before, the client failed to load with "has a computed default and cannot be materialized as a literal". This covered authored lookup and collection entries, Save and Session rows, and rows stamped with a variant. An unset optional class field whose class has computed fields now reads null instead of failing the load.
+- When a row's omitted defaults cannot be evaluated, for example because an initializer reads a missing value, the client logs an error that names the row and its class and keeps loading. Those fields read as unavailable. Rows created by a constructor or variant still fail to load when their replay fails.
+
 ## [0.57.2] - 2026-10-05
 
 - A variant change replays the target variant's `initialize`. If a field initializer in that closure clones a value, the closure can now write to the clone. An example is a plant built with `Data = item.DefaultData.Clone()` that then sets `placed.Data.DaysGrown = 1`. Since 0.57.0, `ToVariant` threw "Cannot mutate value '…' because it is not session-owned", so Neowyn could not sleep a night with plants planted. A write that replays such an instance, for example replacing its `Data`, threw the same error and is fixed too. Clones and imports made during a replay now stay temporary to that replay, as they did before 0.57.0.

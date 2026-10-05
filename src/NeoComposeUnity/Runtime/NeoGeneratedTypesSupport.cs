@@ -6911,8 +6911,14 @@ namespace NeoCompose.Runtime
                     // that this member has a value, which is exactly the
                     // signal also carried by an explicit literal default.
                     InitializerBody? init = InitializerOf(member);
-                    if (declarationRoot is not null && init is not null)
+                    // A row without a recipe has no constructor arguments, so
+                    // an initializer that reads them is not a declaration
+                    // default it can project.
+                    if (declarationRoot is not null
+                        && init?.compiled?.parameters?.Length > 2)
+                    {
                         continue;
+                    }
                     if (init is not null)
                     {
                         string? initValueId = MaterializeInitializedValue(

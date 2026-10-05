@@ -424,6 +424,117 @@ namespace NeoCompose.Tests
         }
 
         // -------------------------------------------------------------------
+        // Issue #261 — stored rows that omit a field with a computed default.
+        // -------------------------------------------------------------------
+
+        /// <summary>
+        /// The issue's repro: an authored lookup entry without its
+        /// <c>Box Data = root.Assets.Box.Clone()</c> row. Its default
+        /// projection runs the initializer, so the entry reads a clone.
+        /// </summary>
+        [Test]
+        public void SparseLookupEntryEvaluatesItsOmittedFieldInitializer()
+        {
+            ProjectData data = ClonedBoxProjectData();
+            ((ObjectMemberValue)data.values["value-target"]).value!.Remove("Data");
+            data.values.Remove("value-target-data");
+
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+
+            NeoMemberClass entry = CatalogEntry(client);
+            NeoMemberClass box = entry.Get<NeoMemberClass>("Data");
+            Assert.AreEqual("target", ReadLabel(client, entry));
+            Assert.AreEqual(5, box.Get<NeoMemberInt>("Count").value!.value);
+            Assert.AreNotEqual("value-assets-box", box.value!.id, "the field holds a clone");
+        }
+
+        /// <summary>
+        /// A saved Widget row with no <c>Data</c> key, as a save written
+        /// before the field existed has. It loads with the initializer's
+        /// clone at the row's deterministic virtual id.
+        /// </summary>
+        [Test]
+        public void SparseSavedRowEvaluatesItsOmittedFieldInitializer()
+        {
+            ProjectData data = ClonedBoxProjectData();
+            AddHeldWidget(data);
+            string content = SaveContentHolding(data, ObjectValue("saved-held", WidgetClassId));
+
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: content);
+
+            NeoMemberClass held = client.save.Get<NeoMemberClass>("Held");
+            Assert.AreEqual("saved-held", held.value!.id);
+            NeoMemberClass box = held.Get<NeoMemberClass>("Data");
+            Assert.AreEqual(5, box.Get<NeoMemberInt>("Count").value!.value);
+            Assert.IsTrue(client.TryGetVirtualClassChildValueId("saved-held", "Data", out string? virtualId));
+            Assert.AreEqual(virtualId, box.value!.id);
+        }
+
+        /// <summary>
+        /// A saved Widget stamped with variant Up and an empty body. Replay
+        /// runs Up's Initialize, so the omitted <c>Data</c> reads its
+        /// <c>placed.Data.Count = 1</c> over the field initializer's 5.
+        /// </summary>
+        [Test]
+        public void VariantStampedSparseSavedRowReadsItsVariantsInitialize()
+        {
+            ProjectData data = ClonedBoxProjectData();
+            AddHeldWidget(data);
+            ObjectMemberValue saved = ObjectValue("saved-held", WidgetClassId);
+            saved.instanceVariantId = "variant-up";
+            string content = SaveContentHolding(data, saved);
+
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: content);
+
+            NeoMemberClass held = client.save.Get<NeoMemberClass>("Held");
+            Assert.AreEqual("up", ReadLabel(client, held));
+            Assert.AreEqual(1, held.Get<NeoMemberClass>("Data").Get<NeoMemberInt>("Count").value!.value);
+        }
+
+        /// <summary>
+        /// An optional Class field nobody assigned has no row and reads null.
+        /// A null object has no children, so its class's computed fields are
+        /// never materialized.
+        /// </summary>
+        [Test]
+        public void UnsetOptionalFieldOfAClassWithComputedFieldsLoadsAsNull()
+        {
+            ProjectData data = ClonedBoxProjectData();
+            AddHeldWidget(data);
+
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+
+            NeoMemberClass held = client.save.Get<NeoMemberClass>("Held");
+            Assert.IsNull(held.value?.value);
+            Assert.IsFalse(held.TryGet("Label", out NeoMemberString? _));
+            Assert.IsFalse(held.TryGet("Data", out NeoMemberClass? _));
+        }
+
+        /// <summary>
+        /// When an omitted field's initializer cannot run (the asset box it
+        /// clones is unset), the loader names that row and loads the rest.
+        /// </summary>
+        [Test]
+        public void UnevaluableOmittedFieldReportsItsRowWithoutFailingTheLoad()
+        {
+            ProjectData data = ClonedBoxProjectData();
+            ((ObjectMemberValue)data.values["value-assets"]).value!.Remove("Box");
+            data.values.Remove("value-assets-box");
+            data.values.Remove("value-assets-box-count");
+            ((ObjectMemberValue)data.values["value-target"]).value!.Remove("Data");
+            data.values.Remove("value-target-data");
+            LogAssert.Expect(
+                UnityEngine.LogType.Error,
+                new System.Text.RegularExpressions.Regex("Stored row 'value-target' of class 'widget-class'"));
+
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+
+            NeoMemberClass entry = CatalogEntry(client);
+            Assert.AreEqual("target", ReadLabel(client, entry));
+            Assert.IsFalse(entry.TryGet("Data", out NeoMemberClass? _));
+        }
+
+        // -------------------------------------------------------------------
         // P68 §4 — the row argument through both evaluator intrinsics.
         // -------------------------------------------------------------------
 
@@ -1424,6 +1535,47 @@ namespace NeoCompose.Tests
             // The authored widget carries its evaluated field like an export does.
             ((ObjectMemberValue)data.values["value-target"]).value!["Data"] = "value-target-data";
             data.values["value-target-data"] = ObjectValue("value-target-data", BoxClassId);
+        }
+
+        /// <summary>
+        /// Adds an optional Save-held <c>Widget? Held</c> to the root class.
+        /// No root row assigns it.
+        /// </summary>
+        private static void AddHeldWidget(ProjectData data)
+        {
+            data.members["root-held"] = new ClassMember
+            {
+                id = "root-held",
+                projectId = ProjectId,
+                name = "Held",
+                kind = MemberKind.Class,
+                classId = WidgetClassId,
+                Requirement = NeoMemberRequirementKind.Optional,
+                Storage = NeoMemberStorage.Save,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            data.classes["root-class"].schema["Held"] = "root-held";
+        }
+
+        /// <summary>Save content whose Save root holds <paramref name="held"/>.</summary>
+        private static string SaveContentHolding(ProjectData data, ObjectMemberValue held)
+        {
+            string content;
+            using (NeoClient client = NeoTestSaveStack.ClientFromSchema(data))
+                content = client.SerializeSaveData();
+            JObject save = JObject.Parse(content);
+            save["values"]![held.id] = JObject.FromObject(held);
+            save["values"]!["value-save"] = JObject.FromObject(
+                ObjectValue("value-save", "root-class", ("Held", held.id)));
+            return save.ToString();
+        }
+
+        private static NeoMemberClass CatalogEntry(NeoClient client)
+        {
+            foreach (NeoMember entry in client.assets.Get<NeoMemberList>("Catalog"))
+                return (NeoMemberClass)entry;
+            throw new InvalidOperationException("The catalog has no entry.");
         }
 
         private static VariantRecord Variant(string id, string name, string valueId) => new()

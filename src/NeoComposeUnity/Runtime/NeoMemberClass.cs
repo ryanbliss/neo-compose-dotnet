@@ -438,8 +438,10 @@ namespace NeoCompose.Runtime
                 DisposeChildren(previousChildren);
                 return;
             }
+            // An optional Class member without a row, or with a null one,
+            // reads null and has no children to bind.
             if (member.Requirement != NeoMemberRequirementKind.Required
-                && value is { value: null })
+                && value?.value is null)
             {
                 DisposeChildren(previousChildren);
                 return;
@@ -569,12 +571,18 @@ namespace NeoCompose.Runtime
                 previousChildren.Remove(entry.schemaKey);
                 return;
             }
-            // A sparse root's wrapper tree exists before its constructor
-            // replay. Computed children bind when replay refreshes that
-            // tree, including through intermediate Class children.
+            // Only replay evaluates a computed child that a row omits. A
+            // sparse root's wrapper tree exists before its replay, and the
+            // child binds when replay refreshes that tree, including through
+            // intermediate Class children. When replay could not supply the
+            // child (the loader reported its row, or the initializer reads
+            // constructor arguments the row has none of), the child stays
+            // unbound instead of failing the whole tree.
             if (childValueId is null
-                && client.IsAwaitingVirtualInstanceInitializers(value)
-                && MemberValueFactory.InitializerOf(childMember) is not null)
+                && MemberValueFactory.InitializerOf(childMember) is not null
+                && (client.IsAwaitingVirtualInstanceInitializers(value)
+                    || (childMember.valueId is null
+                        && childMember.Mutability != NeoMemberMutabilityKind.ReadOnly)))
             {
                 return;
             }
