@@ -113,6 +113,109 @@ namespace NeoCompose.Tests
             Assert.That(unchanged!.value, Contains.Key("Payload"), "A failed sparse replay must leave the complete clone unchanged.");
         }
 
+        [Test]
+        public void CompleteLocalGraphKeepsAlreadyAbsentLiteralDefaultsWithoutReplay()
+        {
+            ProjectData data = BuildProjectData();
+            data.classes["thing-class"].constructorIds = new[] { "thing-ctor" };
+            var action = new FunctionWithReturnType
+            {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                parameters = new[]
+                {
+                    ConstructorVariable("__this__", ClassType("thing-class")),
+                    ConstructorVariable("__root__", ClassType("__root__")),
+                },
+                typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null, required = true },
+                instructions = Array.Empty<Instruction>(),
+            };
+            data.constructors["thing-ctor"] = new ConstructorRecord
+            {
+                id = "thing-ctor",
+                classId = "thing-class",
+                projectId = "p75-project",
+                argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
+                action = action,
+            };
+            ((ObjectMemberValue)data.values["thing-instance"]).instanceConstructorId = "thing-ctor";
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            const string clone = "constructed-session-root";
+            var defaulted = ObjectValue(clone, "thing-class");
+            defaulted.instanceConstructorId = "thing-ctor";
+            defaulted.constructorArgs = new Dictionary<string, JToken?>();
+            client.PublishConstructedSessionRows(new List<MemberValue> { defaulted });
+            action.instructions = new Instruction[]
+            {
+                new ThrowInstruction { type = InstructionKind.Throw, pointer = IntLiteral(987) },
+            };
+            var attached = (ObjectMemberValue)client.CloneRowForWrite(defaulted);
+            attached.containerId = "runtime-container";
+            var plan = new NeoWritePlan(client);
+            plan.Set(NeoValueOwnership.Session, new ArrayMemberValue { id = "runtime-container", value = Array.Empty<string>() });
+            plan.Set(NeoValueOwnership.Session, attached);
+            Assert.DoesNotThrow(() => plan.Commit(), "An already absent literal field resolves from its declaration.");
+            var node = new NeoMemberClassWritable(client, (ClassMember)data.members["thing-member"], clone, NeoValueOwnership.Session);
+            Assert.That(node.Get<NeoMemberIntWritable>("Count").value!.value, Is.EqualTo(5));
+            var pinned = (ObjectMemberValue)client.CloneRowForWrite(attached);
+            pinned.id = "pinned-session-root";
+            pinned.value!["Count"] = "pinned-count";
+            client.PublishConstructedSessionRows(new List<MemberValue>
+            {
+                pinned, new NumberMemberValue { id = "pinned-count", value = 17 },
+            });
+            var cleared = (ObjectMemberValue)client.CloneRowForWrite(pinned);
+            cleared.value!.Remove("Count");
+            var clear = new NeoWritePlan(client);
+            clear.Set(NeoValueOwnership.Session, cleared);
+            clear.Remove(NeoValueOwnership.Session, "pinned-count");
+            StringAssert.Contains("987", Assert.Throws<InvalidOperationException>(() => clear.Commit())!.Message,
+                "Removing a stored pin must replay, even when its declaration has a literal default.");
+        }
+
+        [Test]
+        public void FreshVariantStampKeepsItsCompleteGraphButSparseWritesReplay()
+        {
+            ProjectData data = BuildConstructedUnorderedChildrenProjectData();
+            AddThingVariant(data);
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            string clone = client.CloneValueReference("thing-instance", NeoValueOwnership.Save);
+            var member = new ClassMember { id = "fresh-thing", name = "Thing", kind = MemberKind.Class, classId = "thing-class" };
+            var node = new NeoMemberClassWritable(client, member, clone, NeoValueOwnership.Session);
+            data.constructors["thing-ctor"].action!.instructions = new Instruction[]
+            {
+                new ThrowInstruction { type = InstructionKind.Throw, pointer = IntLiteral(987) },
+            };
+            Assert.DoesNotThrow(() => client.StampVirtualInstanceVariant(node, NeoValueOwnership.Session,
+                "thing-variant", null, replay: false), "Stamping a complete fresh receiver must not construct it again.");
+            Assert.That(node.value!.instanceVariantId, Is.EqualTo("thing-variant"));
+            var sparse = (ObjectMemberValue)client.CloneRowForWrite(node.value);
+            sparse.value!.Remove("Children");
+            var plan = new NeoWritePlan(client);
+            plan.Set(NeoValueOwnership.Session, sparse);
+            var error = Assert.Throws<InvalidOperationException>(() => plan.Commit());
+            StringAssert.Contains("987", error!.Message, "Removing an owned subtree must retain constructor replay.");
+            Assert.That(node.value!.value, Contains.Key("Children"));
+        }
+
+        [Test]
+        public void VirtualDictionaryPathsKeepEscapingAndUtf8Ids()
+        {
+            var flags = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic;
+            string path = (string)typeof(NeoClient).GetMethod("AppendVirtualPath", flags)!.Invoke(null,
+                new object[] { "$", "dictionary", "key", "Quote\"/\\\n🌱", false })!;
+            Assert.That(path, Is.EqualTo("$/{\"kind\":\"dictionary\",\"key\":\"Quote\\\"/\\\\\\n🌱\"}"));
+            Assert.That(NeoClient.VirtualValueId("thing-instance", "path:<inline>:" + path),
+                Is.EqualTo("0e79ed19-10e0-540d-8219-7a0732d2128d"));
+        }
+
+        [TestCase("unicode:🌱 café 中文", "7ddc982c-bb1a-5add-89f1-94598dbf520d")]
+        [TestCase("", "9948e8b3-192c-55d3-9cc7-9c0d4007033d")]
+        public void VirtualIdsKeepUtf8AndSystemNamespaceParity(string sourceIdentity, string expected)
+        {
+            Assert.That(NeoClient.VirtualValueId("thing-instance", sourceIdentity), Is.EqualTo(expected));
+            Assert.That(NeoClient.VirtualValueId("system_thing-instance", sourceIdentity), Is.EqualTo("system_" + expected));
+        }
+
         [TestCase(0)]
         [TestCase(2000)]
         public void FailedReplayReclaimsTemporaryRowsAndPreservesExistingSessionState(int unrelatedRows)
@@ -202,6 +305,51 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryResolveLookupCollectionValueId("thing-items", null, out string? target));
             Assert.AreEqual(items.value!.id, target);
             Assert.IsFalse(client.saveValues.ContainsKey(target!));
+        }
+
+        [Test]
+        public void LookupBindingTracksStoredReplacementAndVirtualRetirement()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildUnorderedListProjectData());
+            var thing = client.save.Get<NeoMemberClassWritable>("Thing");
+            string original = thing.Get<NeoMemberList>("Items").value!.id;
+            Assert.That(client.TryResolveLookupCollectionValueId("thing-items", null, out var target), Is.True);
+            Assert.That(target, Is.EqualTo(original));
+            var root = (ObjectMemberValue)client.CloneRowForWrite(thing.value!);
+            root.value!["Items"] = "replacement-items";
+            var replace = new NeoWritePlan(client);
+            replace.Set(NeoValueOwnership.Save, new ArrayMemberValue { id = "replacement-items", value = Array.Empty<string>() });
+            replace.Set(NeoValueOwnership.Save, root);
+            replace.Commit();
+            Assert.That(client.TryResolveLookupCollectionValueId("thing-items", null, out target), Is.True);
+            Assert.That(target, Is.EqualTo("replacement-items"));
+            var cleared = (ObjectMemberValue)client.CloneRowForWrite(root);
+            cleared.value!.Remove("Items");
+            var clear = new NeoWritePlan(client);
+            clear.Set(NeoValueOwnership.Save, cleared);
+            clear.Commit();
+            Assert.That(client.TryResolveLookupCollectionValueId("thing-items", null, out target), Is.True);
+            Assert.That(target, Is.EqualTo(original));
+        }
+
+        [Test]
+        public void LookupBindingKeepsAmbiguityAcrossConstructorPublicationAndRemoval()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildUnorderedListProjectData());
+            Assert.That(client.TryResolveLookupCollectionValueId("thing-items", null, out var original), Is.True);
+            client.PublishConstructedSessionRows(new List<MemberValue>
+            {
+                ObjectValue("other-parent", "thing-class", new Dictionary<string, string> { ["Items"] = "other-items" }),
+                new ArrayMemberValue { id = "other-items", value = Array.Empty<string>() },
+            });
+            Assert.That(client.TryResolveLookupCollectionValueId("thing-items", null, out _), Is.False,
+                "Distinct bindings must remain ambiguous rather than selecting the first indexed row.");
+            var remove = new NeoWritePlan(client);
+            remove.Remove(NeoValueOwnership.Session, "other-parent");
+            remove.Remove(NeoValueOwnership.Session, "other-items");
+            remove.Commit();
+            Assert.That(client.TryResolveLookupCollectionValueId("thing-items", null, out var target), Is.True);
+            Assert.That(target, Is.EqualTo(original));
         }
 
         [Test]

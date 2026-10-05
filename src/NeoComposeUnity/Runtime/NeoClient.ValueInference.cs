@@ -143,6 +143,8 @@ namespace NeoCompose.Runtime
 
         private sealed class AuthoredValueInferenceIndex
         {
+            internal readonly Dictionary<string, HashSet<string>> SchemaKeysByMember = new(StringComparer.Ordinal);
+            internal readonly Dictionary<string, List<ObjectMemberValue>> ObjectRowsByField = new(StringComparer.Ordinal);
             internal readonly List<Member> StaticMembers = new();
             internal readonly Dictionary<string, Member> Members = new(StringComparer.Ordinal);
             internal readonly Dictionary<string, List<Member>> MembersByValueId = new(StringComparer.Ordinal);
@@ -151,6 +153,13 @@ namespace NeoCompose.Runtime
 
             internal AuthoredValueInferenceIndex(ProjectData data)
             {
+                foreach (var schemaClass in data.classes.Values)
+                    foreach (var field in schemaClass.schema)
+                    {
+                        if (!SchemaKeysByMember.TryGetValue(field.Value, out var keys))
+                            SchemaKeysByMember[field.Value] = keys = new(StringComparer.Ordinal);
+                        keys.Add(field.Key);
+                    }
                 // Preserve the first declaration and parent iteration order used
                 // by the ordinary inference path, including ambiguous references.
                 foreach (Member member in data.members.Values)
@@ -170,8 +179,13 @@ namespace NeoCompose.Runtime
                     if (pair.Value is ObjectMemberValue obj)
                     {
                         if (obj.value != null)
-                            foreach (string childId in obj.value.Values)
-                                Add(childId, pair);
+                            foreach (var field in obj.value)
+                            {
+                                Add(field.Value, pair);
+                                if (!ObjectRowsByField.TryGetValue(field.Key, out var rows))
+                                    ObjectRowsByField[field.Key] = rows = new();
+                                rows.Add(obj);
+                            }
                         if (obj.constructorArgs != null)
                             foreach (JToken? argument in obj.constructorArgs.Values)
                                 if (argument?.Type == JTokenType.String)

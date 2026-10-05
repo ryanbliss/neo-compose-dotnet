@@ -146,7 +146,8 @@ namespace NeoCompose.Runtime
                 || plan.Resolve(rootId) is not ObjectMemberValue { classId: not null, value: not null } root)
                 return false;
             if (TryGetCommittedValue(rootId, out MemberValue? previous)
-                && !NeoSemanticJson.MemberRowsEqual(previous, root, ignoreObjectFields: true, ignorePlacement: true))
+                && !NeoSemanticJson.MemberRowsEqual(previous, root, ignoreObjectFields: true, ignorePlacement: true)
+                && plan.ConstructedVariantRoot != rootId)
                 return false;
             if (!plan.TryGetOwnership(rootId, out NeoValueOwnership rootOwnership))
                 return false;
@@ -172,6 +173,15 @@ namespace NeoCompose.Runtime
                             && NeoGeneratedTypesSupport.IsStoredConstructorMember(fieldMember)
                             && !obj.value.ContainsKey(field.schemaKey))
                         {
+                            // Literal leaves and explicit null classes resolve
+                            // directly from their member declaration. They own
+                            // no missing subtree that construction must recover.
+                            if (HasDirectMemberDefault(fieldMember)
+                                && PreviousReplayRow(id) is ObjectMemberValue { value: not null } before
+                                && !before.value.ContainsKey(field.schemaKey)
+                                && !(virtualClassChildren.TryGetValue(id, out var defaults)
+                                    && defaults.ContainsKey(field.schemaKey)))
+                                continue;
                             // A previous expansion with no virtual defaults
                             // established this absent field. Changes to actual
                             // constructor inputs bypass this path in AddRoot.
@@ -200,6 +210,21 @@ namespace NeoCompose.Runtime
                 return true;
             }
         }
+
+        private static bool HasDirectMemberDefault(Member member) => member switch
+        {
+            NullMember { defaultValue: { init: null } } => true,
+            BoolMember { defaultValue: { init: null } } => true,
+            IntMember { defaultValue: { init: null } } => true,
+            FloatMember { defaultValue: { init: null } } => true,
+            StringMember { defaultValue: { init: null } } => true,
+            Vector2Member { defaultValue: { init: null } } => true,
+            Vector3Member { defaultValue: { init: null } } => true,
+            ColorMember { defaultValue: { init: null } } => true,
+            SpriteMember { defaultValue: { init: null } } => true,
+            ClassMember { defaultValue: { init: null, value: null } } => true,
+            _ => false,
+        };
 
         private HashSet<string> ChangedReplayPaths(NeoWritePlan plan)
         {
