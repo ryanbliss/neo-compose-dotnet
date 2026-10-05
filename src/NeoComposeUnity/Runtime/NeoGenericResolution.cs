@@ -843,6 +843,31 @@ namespace NeoCompose.Runtime
             return member;
         }
 
+        /// <summary>
+        /// Closes an NSFunction signature through <paramref name="env"/> with
+        /// the callable rules <see cref="SubstituteMember(NeoClient, Member, IReadOnlyDictionary{string, NeoGenericEnvEntry})"/>
+        /// applies to delegates: bound params take their binding's type and
+        /// nullability, unbound forwards stay open.
+        /// </summary>
+        internal static void SubstituteCallableSignature(
+            NeoClient client,
+            FunctionArgumentTypeInfo[] argumentTypes,
+            TypeInfo returnTypeInfo,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> env,
+            out FunctionArgumentTypeInfo[] substitutedArguments,
+            out TypeInfo substitutedReturn)
+        {
+            substitutedArguments = SubstituteFunctionArguments(
+                client,
+                argumentTypes,
+                env,
+                out _);
+            substitutedReturn = SubstituteNestedTypeInfo(
+                client,
+                returnTypeInfo,
+                env);
+        }
+
         private static FunctionArgumentTypeInfo[] SubstituteFunctionArguments(
             NeoClient client,
             FunctionArgumentTypeInfo[] arguments,

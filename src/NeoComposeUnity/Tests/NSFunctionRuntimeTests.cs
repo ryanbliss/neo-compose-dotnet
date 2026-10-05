@@ -3145,8 +3145,12 @@ namespace NeoCompose.Tests
             var baseCall = Call(baseFunction.id, "nullable-base-call");
             baseCall.dispatch = "base";
             baseCall.args = new Pointer[] { Variable("__arg_0__") };
+            // A closed subclass compiles its override against the bound
+            // type; the binding's nullability narrows the use site's.
+            bool boundRequired = useRequired && bindingRequired;
+            FunctionArgumentTypeInfo boundArgument = Argument("value", MemberKind.Int, boundRequired);
             var derivedFunction = ScriptFunction("nullable-derived", "Echo", false, genericType,
-                new[] { argument }, Action(genericType, new[] { argument }, Return(baseCall)));
+                new[] { argument }, Action(IntType(boundRequired), new[] { boundArgument }, Return(baseCall)));
             derivedFunction.extendsMemberId = baseFunction.id;
             derivedFunction.returnTypeInfo = null!;
             derivedFunction.argumentTypes = null!;
@@ -3177,6 +3181,104 @@ namespace NeoCompose.Tests
                 derivedClass, new[] { baseClass });
             Assert.IsNull(new NeoMemberNSFunction(client, baseFunction, null)
                 .Invoke("receiver-value", new object?[] { null }));
+        }
+
+        /// <summary>
+        /// #255: <c>MinIntWatcher : ValueWatcher&lt;int&gt;</c> overrides
+        /// <c>T Apply(T next)</c>, and <c>ClampedIntWatcher : MinIntWatcher</c>
+        /// overrides it again. The compiler emits both override actions with
+        /// the bound <c>int</c>, so validation must close the inherited open
+        /// signature through each override's class before comparing. A
+        /// generic subclass that forwards <c>T</c> still compiles against the
+        /// open parameter.
+        /// </summary>
+        [Test]
+        public void ClosedSubclassOverridesOfAGenericVirtualValidateAndDispatch()
+        {
+            const string watcherClassId = "watcher-class";
+            const string watcherParamId = "watcher-t";
+            var openType = new GenericTypeInfo
+            {
+                type = MemberKind.Generic,
+                required = true,
+                ownerClassId = watcherClassId,
+                genericParamId = watcherParamId,
+            };
+            var openArgument = new FunctionArgumentTypeInfo
+            {
+                name = "next",
+                type = MemberKind.Generic,
+                required = true,
+                ownerClassId = watcherClassId,
+                genericParamId = watcherParamId,
+            };
+            FunctionArgumentTypeInfo intArgument = Argument("next", MemberKind.Int);
+            var baseApply = ScriptFunction("watcher-apply", "Apply", false, openType,
+                new[] { openArgument }, Action(openType, new[] { openArgument }, Return(Variable("__arg_0__"))));
+            var minApply = ScriptFunction("min-apply", "Apply", false, IntType(),
+                new[] { intArgument }, Action(IntType(), new[] { intArgument },
+                    Return(Add(Variable("__arg_0__"), Number(1)))));
+            var minBaseCall = Call(minApply.id, "clamped-base-call");
+            minBaseCall.dispatch = "base";
+            minBaseCall.args = new Pointer[] { Variable("__arg_0__") };
+            var clampedApply = ScriptFunction("clamped-apply", "Apply", false, IntType(),
+                new[] { intArgument }, Action(IntType(), new[] { intArgument },
+                    Return(Add(minBaseCall, Number(10)))));
+            var forwardApply = ScriptFunction("forward-apply", "Apply", false, openType,
+                new[] { openArgument }, Action(openType, new[] { openArgument }, Return(Variable("__arg_0__"))));
+            foreach (NSFunctionMember overrideApply in new[] { minApply, clampedApply, forwardApply })
+            {
+                overrideApply.returnTypeInfo = null!;
+                overrideApply.argumentTypes = null!;
+                overrideApply.DeclaredDispatch = null;
+            }
+            minApply.extendsMemberId = baseApply.id;
+            clampedApply.extendsMemberId = minApply.id;
+            forwardApply.extendsMemberId = baseApply.id;
+            var intBinding = new IntMember
+            {
+                id = "watcher-int-binding",
+                projectId = ProjectId,
+                name = "Int Binding",
+                kind = MemberKind.Int,
+                Requirement = NeoMemberRequirementKind.Required,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            var watcherClass = ReceiverClass(("Apply", baseApply.id));
+            watcherClass.id = watcherClassId;
+            watcherClass.genericParams = new List<GenericParamDeclaration>
+            {
+                new() { id = watcherParamId, name = "T" },
+            };
+            var minClass = ReceiverClass(("Apply", minApply.id));
+            minClass.id = "min-watcher-class";
+            minClass.extendsClassId = watcherClass.id;
+            minClass.extendsGenericBindings = new Dictionary<string, GenericBinding>
+            {
+                [watcherParamId] = new() { kind = NeoGenericBindingKind.Member, memberId = intBinding.id },
+            };
+            var clampedClass = ReceiverClass(("Apply", clampedApply.id));
+            clampedClass.extendsClassId = minClass.id;
+            var forwardClass = ReceiverClass(("Apply", forwardApply.id));
+            forwardClass.id = "forward-watcher-class";
+            forwardClass.genericParams = new List<GenericParamDeclaration>
+            {
+                new() { id = "forward-u", name = "U" },
+            };
+            forwardClass.extendsClassId = watcherClass.id;
+            forwardClass.extendsGenericBindings = new Dictionary<string, GenericBinding>
+            {
+                [watcherParamId] = new() { kind = NeoGenericBindingKind.Generic, genericParamId = "forward-u" },
+            };
+
+            using NeoClient client = BuildClient(
+                new JsonMember[] { baseApply, minApply, clampedApply, forwardApply, intBinding },
+                clampedClass,
+                new[] { watcherClass, minClass, forwardClass });
+
+            Assert.AreEqual(16d, new NeoMemberNSFunction(client, baseApply, null)
+                .Invoke("receiver-value", new object?[] { 5 }));
         }
 
         [Test]
