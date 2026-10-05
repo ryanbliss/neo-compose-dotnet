@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.57.1] - 2026-10-05
+
+- A descendant accepts an ancestor's field token, as in `currency.OnChanged(ValueWatcher<int>.Fields.Value, handler)` on a `MinIntWatcher`. `NeoChangedArgs.Has` and `TryGet` match the token's member by name, and regenerated classes pass the per-field `OnChanged` and `GetLocalizedTextId` up to the class that declares the member. Before, the per-field call threw "Field 'Value' is not defined on this generated type.", and an aggregate handler never saw the change. Use the matching CLI 0.68.1 and regenerate.
+
 ## [0.57.0] - 2026-10-04
 
 - Run `OnChanged` subscriptions on logical class members after committed gameplay writes, including virtual defaults, packed values, collections, and remote Save updates. Session listeners remain temporary.

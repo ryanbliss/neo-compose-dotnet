@@ -519,6 +519,33 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void GeneratedWrapper_AcceptsAncestorFieldTokens()
+        {
+            var app = LoadGeneratedClient(out _);
+            var derivedMember = RequireMember<ClassMember>(app.Client, "member-derived");
+            var derivedNode = (NeoMemberClassWritable)NeoMember.CreateWritable(
+                app.Client,
+                derivedMember,
+                null);
+            var generated = Derived.CreateWritable(app.Client, derivedNode);
+            string? observed = null;
+            NeoChangedArgs<Derived.Fields>? batch = null;
+            using var field = generated.OnChanged(Base.Fields.Name, (value, _) => observed = value);
+            using var batchSubscription = generated.OnChanged(args => batch = args);
+
+            generated.Name = "Inherited Name";
+
+            Assert.AreEqual("Inherited Name", observed);
+            Assert.IsTrue(batch!.Has(Base.Fields.Name));
+            Assert.IsTrue(batch.TryGet(Base.Fields.Name, out string? name));
+            Assert.AreEqual("Inherited Name", name);
+            Assert.IsFalse(batch.Has(Hero.Fields.Health));
+            Assert.IsNull(generated.GetLocalizedTextId(Base.Fields.Name));
+            Assert.Throws<System.ArgumentException>(
+                () => generated.OnChanged(Hero.Fields.Name, (_, _) => { }));
+        }
+
+        [Test]
         public void GeneratedWrapper_BatchOnChanged_ReportsChangedField()
         {
             var app = LoadGeneratedClient(out _);
