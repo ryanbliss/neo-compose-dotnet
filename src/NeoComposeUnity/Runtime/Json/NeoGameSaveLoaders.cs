@@ -56,6 +56,7 @@ namespace NeoCompose.Runtime.Json
                 throw new InvalidOperationException("Remote save JSON could not be deserialized.");
             }
 
+            NeoSaveFormat.RequireSupported(save.requiredSaveFormatRevision);
             save.staticBindings ??= new();
             return save;
         }
@@ -71,6 +72,7 @@ namespace NeoCompose.Runtime.Json
                     json, NeoSaveJson.ContentSettings);
                 if (parsed == null)
                     return false;
+                NeoSaveFormat.RequireSupported(parsed.requiredSaveFormatRevision);
                 parsed.staticBindings ??= new();
                 save = parsed;
                 return true;
@@ -103,6 +105,7 @@ namespace NeoCompose.Runtime.Json
                 throw new InvalidOperationException("Local save JSON could not be deserialized.");
             }
 
+            NeoSaveFormat.RequireSupported(save.requiredSaveFormatRevision);
             save.staticBindings ??= new();
             return save;
         }
@@ -121,6 +124,7 @@ namespace NeoCompose.Runtime.Json
             var save = header.ToObject<LocalGameSave>(
                 JsonSerializer.Create(NeoSaveJson.ContentSettings))
                 ?? throw new InvalidOperationException("Local save snapshot could not be read.");
+            NeoSaveFormat.RequireSupported(save.requiredSaveFormatRevision);
             save.values = new NeoSaveValues(snapshot["values"]);
             save.staticBindings ??= new();
             return save;
@@ -137,6 +141,7 @@ namespace NeoCompose.Runtime.Json
                     json, NeoSaveJson.ContentSettings);
                 if (parsed == null)
                     return false;
+                NeoSaveFormat.RequireSupported(parsed.requiredSaveFormatRevision);
                 parsed.staticBindings ??= new();
                 save = parsed;
                 return true;
@@ -151,6 +156,7 @@ namespace NeoCompose.Runtime.Json
         {
             if (save == null)
                 throw new ArgumentNullException(nameof(save));
+            NeoSaveFormat.RequireSupported(save.requiredSaveFormatRevision);
             return JsonConvert.SerializeObject(save);
         }
     }

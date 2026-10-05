@@ -920,6 +920,19 @@ namespace NeoCompose.Runtime
         /// it into the record's (clone-on-write) value-map under
         /// <paramref name="key"/>.
         /// </summary>
+        private void NotifyPendingLeaf(NeoWritePlan plan, string key, NeoMember? existingChild)
+        {
+            plan.AfterNotifications(() =>
+            {
+                if (isDisposed)
+                    return;
+                if (existingChild is null || existingChild.isDisposed)
+                    ReinitializeChildren();
+                if (!ChildBubbledOwnChange(key, existingChild))
+                    NotifyChildChanged(key);
+            });
+        }
+
         internal void SetSerializedValue(string key, NeoValueWritePayload? setValue) =>
             SetSerializedValue(key, setValue, placement: false);
 
@@ -1077,12 +1090,26 @@ namespace NeoCompose.Runtime
                 next.mapKey = existing.mapKey;
                 next.genericBindings = existing.genericBindings;
                 NeoGenericResolution.StampGenericBindings(client, childMember, next, GenericEnv);
-                // A leaf replacement with no payload rows stores in place.
-                if (setValue?.value is not NeoValuePayload { valueRows: { Count: > 0 } }
-                    && (placement
-                        ? value is not null && client.TryWritePlacement(childOwnership, value, key, next, childMember)
-                        : client.TryWriteLeaf(childOwnership, next, childMember, "value", existingNode)))
+                // A leaf replacement with no payload rows stores in place or
+                // joins a held script plan. Only committed writes notify.
+                NeoWritePlan? pendingLeaf = null;
+                bool storedLeaf = false;
+                if (setValue?.value is not NeoValuePayload { valueRows: { Count: > 0 } })
                 {
+                    if (placement)
+                        storedLeaf = value is not null && client.TryWritePlacement(childOwnership, value, key, next, childMember);
+                    else if (client.TracksLeafWrites)
+                        storedLeaf = client.TryWriteLeafTracked(childOwnership, next, childMember, "value", out pendingLeaf, existingNode);
+                    else
+                        storedLeaf = client.TryWriteLeaf(childOwnership, next, childMember, "value", existingNode);
+                }
+                if (storedLeaf)
+                {
+                    if (pendingLeaf is not null)
+                    {
+                        NotifyPendingLeaf(pendingLeaf, key, existingChild);
+                        return;
+                    }
                     if (existingChild is null || existingChild.isDisposed)
                         ReinitializeChildren();
                     if (!ChildBubbledOwnChange(key, existingChild))

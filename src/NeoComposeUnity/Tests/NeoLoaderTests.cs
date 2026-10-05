@@ -296,7 +296,7 @@ namespace NeoCompose.Tests
             var data = JsonConvert.DeserializeObject<ProjectData>(
                 @"{
   ""metadata"": {
-    ""schemaVersion"": 34,
+    ""schemaVersion"": 35,
     ""projectId"": ""project-1"",
     ""versionId"": ""version-1""
   },
@@ -693,7 +693,7 @@ namespace NeoCompose.Tests
         {
             var projectJson = $@"{{
   ""metadata"": {{
-    ""schemaVersion"": 34,
+    ""schemaVersion"": 35,
     ""projectId"": ""project-1"",
     ""versionId"": ""version-1""
   }},

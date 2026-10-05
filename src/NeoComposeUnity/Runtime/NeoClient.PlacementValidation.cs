@@ -12,9 +12,9 @@ namespace NeoCompose.Runtime
 {
     public partial class NeoClient
     {
-        // A child's writable parents: one parent id, or a HashSet in the rare
+        // A child's parents in one writable scope: one id, or a HashSet in the rare
         // case of several. Owned children almost always have exactly one.
-        private Dictionary<string, object>? writablePlacementParents;
+        private Dictionary<(NeoValueOwnership scope, string id), object>? writablePlacementParents;
         private readonly Dictionary<(NeoValueOwnership ownership, string id), string[]> writablePlacementChildren = new();
         private readonly List<string> placementChildScratch = new();
 
@@ -66,7 +66,7 @@ namespace NeoCompose.Runtime
                 if (next.Count == 0)
                     return;
                 writablePlacementChildren[key] = ids ?? scratch.ToArray();
-                AddPlacementParents(ids, scratch, 0, row.id);
+                AddPlacementParents(ownership, ids, scratch, 0, row.id);
                 return;
             }
             // Relink only past the unchanged leading children, so appending to
@@ -74,22 +74,15 @@ namespace NeoCompose.Runtime
             int prefix = SharedPrefix(previous, ids, scratch);
             if (prefix == previous.Length && prefix == next.Count)
                 return;
-            writablePlacementChildren.TryGetValue(
-                (ownership == NeoValueOwnership.Save ? NeoValueOwnership.Session : NeoValueOwnership.Save, row.id),
-                out string[]? kept);
             HashSet<string>? nextSet = null;
-            HashSet<string>? keptSet = null;
             bool few = previous.Length - prefix <= 4;
             for (int i = prefix; i < previous.Length; i++)
             {
                 string child = previous[i];
-                // The same id in the other store keeps the links it shares.
-                if (HoldsChild(next, child, few, ref nextSet)
-                    || (kept is not null && HoldsChild(kept, child, few, ref keptSet)))
-                    continue;
-                RemovePlacementParent(child, row.id);
+                if (!HoldsChild(next, child, few, ref nextSet))
+                    RemovePlacementParent(ownership, child, row.id);
             }
-            AddPlacementParents(ids, scratch, prefix, row.id);
+            AddPlacementParents(ownership, ids, scratch, prefix, row.id);
             // Committed id arrays are never written in place, so an array
             // row's own ids are already the snapshot the next relink diffs.
             if (next.Count == 0)
@@ -100,16 +93,16 @@ namespace NeoCompose.Runtime
 
         // Indexes an id array directly; Mono calls an array's IReadOnlyList
         // indexer through an interface thunk.
-        private void AddPlacementParents(string[]? ids, List<string> collected, int from, string parentId)
+        private void AddPlacementParents(NeoValueOwnership ownership, string[]? ids, List<string> collected, int from, string parentId)
         {
             if (ids is not null)
             {
                 for (int i = from; i < ids.Length; i++)
-                    AddPlacementParent(ids[i], parentId);
+                    AddPlacementParent(ownership, ids[i], parentId);
                 return;
             }
             for (int i = from; i < collected.Count; i++)
-                AddPlacementParent(collected[i], parentId);
+                AddPlacementParent(ownership, collected[i], parentId);
         }
 
         /// <summary>
@@ -159,27 +152,27 @@ namespace NeoCompose.Runtime
             return (set ??= new HashSet<string>(children, StringComparer.Ordinal)).Contains(child);
         }
 
-        private void AddPlacementParent(string child, string parent)
+        private void AddPlacementParent(NeoValueOwnership ownership, string child, string parent)
         {
-            if (!writablePlacementParents!.TryGetValue(child, out object? parents))
-                writablePlacementParents[child] = parent;
+            if (!writablePlacementParents!.TryGetValue((ownership, child), out object? parents))
+                writablePlacementParents[(ownership, child)] = parent;
             else if (parents is HashSet<string> set)
                 set.Add(parent);
             else if (!string.Equals((string)parents, parent, StringComparison.Ordinal))
-                writablePlacementParents[child] = new HashSet<string>(StringComparer.Ordinal) { (string)parents, parent };
+                writablePlacementParents[(ownership, child)] = new HashSet<string>(StringComparer.Ordinal) { (string)parents, parent };
         }
 
-        private void RemovePlacementParent(string child, string parent)
+        private void RemovePlacementParent(NeoValueOwnership ownership, string child, string parent)
         {
-            if (!writablePlacementParents!.TryGetValue(child, out object? parents))
+            if (!writablePlacementParents!.TryGetValue((ownership, child), out object? parents))
                 return;
             if (parents is HashSet<string> set)
             {
                 if (set.Remove(parent) && set.Count == 0)
-                    writablePlacementParents.Remove(child);
+                    writablePlacementParents.Remove((ownership, child));
             }
             else if (string.Equals((string)parents, parent, StringComparison.Ordinal))
-                writablePlacementParents.Remove(child);
+                writablePlacementParents.Remove((ownership, child));
         }
 
         private void UnindexPlacementParent(NeoValueOwnership ownership, string id)
@@ -187,14 +180,8 @@ namespace NeoCompose.Runtime
             if (writablePlacementParents is null
                 || !writablePlacementChildren.Remove((ownership, id), out string[]? children))
                 return;
-            NeoValueOwnership other = ownership == NeoValueOwnership.Save ? NeoValueOwnership.Session : NeoValueOwnership.Save;
-            // The same id in the other store keeps the links it shares.
-            HashSet<string>? retained = writablePlacementChildren.TryGetValue((other, id), out string[]? kept)
-                ? new HashSet<string>(kept, StringComparer.Ordinal)
-                : null;
             foreach (string child in children)
-                if (retained is null || !retained.Contains(child))
-                    RemovePlacementParent(child, id);
+                RemovePlacementParent(ownership, child, id);
         }
 
         /// <summary>The children the committed placement index links from a stored row, if any.</summary>
@@ -208,23 +195,37 @@ namespace NeoCompose.Runtime
         {
             if (writablePlacementParents is not null)
                 return;
-            writablePlacementParents = new Dictionary<string, object>();
+            writablePlacementParents = new();
             foreach (MemberValue row in saveData.values.Values)
                 IndexPlacementParent(NeoValueOwnership.Save, row);
             foreach (MemberValue row in sessionData.values.Values)
                 IndexPlacementParent(NeoValueOwnership.Session, row);
         }
 
+        private static bool HasPlacementParent(object? parents, string parent) =>
+            parents is HashSet<string> set ? set.Contains(parent) : string.Equals(parents as string, parent, StringComparison.Ordinal);
+
         private IEnumerable<string> PlacementParents(string childId)
         {
             EnsureWritablePlacementParents();
-            if (writablePlacementParents!.TryGetValue(childId, out object? writable))
+            writablePlacementParents!.TryGetValue((NeoValueOwnership.Save, childId), out object? saved);
+            writablePlacementParents.TryGetValue((NeoValueOwnership.Session, childId), out object? session);
+            if (saved is HashSet<string> savedSet)
+                foreach (string parent in savedSet)
+                    yield return parent;
+            else if (saved is string savedParent)
+                yield return savedParent;
+            if (session is HashSet<string> sessionSet)
             {
-                if (writable is HashSet<string> set)
-                    foreach (string parent in set)
+                foreach (string parent in sessionSet)
+                {
+                    if (!HasPlacementParent(saved, parent))
                         yield return parent;
-                else
-                    yield return (string)writable;
+                }
+            }
+            else if (session is string sessionParent && !HasPlacementParent(saved, sessionParent))
+            {
+                yield return sessionParent;
             }
             if (ValueInferenceIndex.Parents.TryGetValue(childId, out var authored))
                 foreach (var parent in authored)
@@ -237,21 +238,63 @@ namespace NeoCompose.Runtime
         private void CollectPlacementParents(string childId, ICollection<string> into)
         {
             EnsureWritablePlacementParents();
-            if (writablePlacementParents!.TryGetValue(childId, out object? writable))
+            writablePlacementParents!.TryGetValue((NeoValueOwnership.Save, childId), out object? saved);
+            writablePlacementParents.TryGetValue((NeoValueOwnership.Session, childId), out object? session);
+            if (saved is HashSet<string> savedSet)
+                foreach (string parent in savedSet)
+                    into.Add(parent);
+            else if (saved is string savedParent)
+                into.Add(savedParent);
+            if (session is HashSet<string> sessionSet)
             {
-                if (writable is HashSet<string> set)
+                foreach (string parent in sessionSet)
                 {
-                    foreach (string parent in set)
+                    if (!HasPlacementParent(saved, parent))
                         into.Add(parent);
                 }
-                else
-                    into.Add((string)writable);
+            }
+            else if (session is string sessionParent && !HasPlacementParent(saved, sessionParent))
+            {
+                into.Add(sessionParent);
             }
             if (ValueInferenceIndex.Parents.TryGetValue(childId, out var authored))
                 foreach (var parent in authored)
                     into.Add(parent.Key);
             if (TryResolveVirtualPlacement(childId, out var placement))
                 into.Add(placement.parentValueId);
+        }
+
+        // Caller has resolved the collection's declaration and entry storage.
+        // The scoped reverse index proves the payload link without rescanning
+        // a long ordered list for every scalar entry write.
+        private bool HasCollectionEntryLink(NeoValueOwnership scope, string parentId, string childId, MemberValue parent)
+        {
+            if (scope != NeoValueOwnership.Asset && GetWritableStore(scope).values.ContainsKey(parentId))
+            {
+                EnsureWritablePlacementParents();
+                if (!writablePlacementParents!.TryGetValue((scope, childId), out var parents)
+                    || !HasPlacementParent(parents, parentId))
+                    return false;
+            }
+            else if (TryResolveVirtualPlacement(childId, out var placement)
+                && placement.parentValueId == parentId && placement.parentOwnership == scope)
+                return true;
+            else
+            {
+                bool found = false;
+                if (ValueInferenceIndex.Parents.TryGetValue(childId, out var authored))
+                    foreach (var candidate in authored)
+                        if (candidate.Key == parentId)
+                        {
+                            found = true;
+                            break;
+                        }
+                if (!found)
+                    return false;
+            }
+            // Constructor argument references are candidates but not entries.
+            return parent is not ObjectMemberValue record || !ConstructorArgsReference(record, childId)
+                || record.value?.ContainsValue(childId) == true;
         }
 
         // Every commit asks this for each row it walks past; the answer only

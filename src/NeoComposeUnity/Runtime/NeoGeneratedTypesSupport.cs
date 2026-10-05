@@ -663,6 +663,14 @@ namespace NeoCompose.Runtime
         /// default is evaluated on, and the reference-ownership map an
         /// initializer's product is attached through.
         /// </summary>
+        internal sealed class InitializedListenerOccurrence
+        {
+            internal Member Member = null!;
+            internal MemberValueBase Source = null!;
+            internal string ValueId = null!;
+            internal Dictionary<string, string> ClonedIds = new(StringComparer.Ordinal);
+        }
+
         internal sealed class NeoConstructionScope
         {
             private NeoClient client;
@@ -670,6 +678,7 @@ namespace NeoCompose.Runtime
             private string? outermostClass;
             private HashSet<string>? innerClasses;
             private Dictionary<string, NeoValueOwnership>? referenceOwnership;
+            internal Dictionary<string, InitializedListenerOccurrence>? listenerInitializers;
             private Func<object?, NeoConstructorValueReference?>? valueReference;
             private static readonly IReadOnlyDictionary<string, NeoValueOwnership> NoReferenceOwnership =
                 new Dictionary<string, NeoValueOwnership>();
@@ -696,6 +705,7 @@ namespace NeoCompose.Runtime
                 outermostClass = null;
                 innerClasses?.Clear();
                 referenceOwnership?.Clear();
+                listenerInitializers?.Clear();
             }
 
             /// <summary>
@@ -2519,6 +2529,7 @@ namespace NeoCompose.Runtime
             RuntimeClassPlan? trustedRootPlan = null,
             (ObjectMemberValue row, bool usesOwnBindings)? declarationRoot = null)
         {
+            using var listenerCapture = client.BeginConstructionListeners(onlyIfNeeded: true);
             if (!trustedRuntimeRows)
             {
                 ValidateConstructibleNeoSchemaClass(client, classId);
@@ -2553,11 +2564,12 @@ namespace NeoCompose.Runtime
                 trustedRuntimeRows,
                 trustedRootPlan);
             client.PublishConstructedSessionRows(rows);
-
             ClassMember factoryMember = trustedRuntimeRows
                 ? (trustedRootPlan ?? ResolveRuntimeClassPlan(client, classId))
                     .factoryMember
                 : UnplacedClassMember(classId, null, parentRow);
+            client.ResolveConstructedListenerDefaults(parentRow, factoryMember);
+            listenerCapture?.Complete(parentRow.id);
             return new RuntimeConstructedClassValue(parentRow, factoryMember);
         }
 
@@ -2958,6 +2970,8 @@ namespace NeoCompose.Runtime
                         && importContext.allocationTracker
                             .IsKnownParentlessAllocatedRoot(
                                 reference.sourceValueId);
+                    InitializedListenerOccurrence? listenerInitializer = null;
+                    scope.listenerInitializers?.TryGetValue(reference.path, out listenerInitializer);
                     string importedValueId = isKnownParentlessConstructorRoot
                         ? reference.sourceValueId
                         : reference.sourceOwnership == NeoValueOwnership.Session
@@ -2968,12 +2982,17 @@ namespace NeoCompose.Runtime
                                     NeoValueOwnership.Session,
                                     reference.sourceValueId)
                                         ? reference.sourceValueId
-                                        : null)
+                                        : null,
+                                NeoClient.ListenerCopyIntent.ConstructionProjection,
+                                listenerInitializer?.ClonedIds)
                             : client.CloneOwnedValueReferenceForNewParent(
                                 NeoValueOwnership.Session,
                                 reference.sourceOwnership,
                                 reference.sourceValueId,
-                                reference.member);
+                                reference.member,
+                                listenerInitializer?.ClonedIds);
+                    if (listenerInitializer is not null)
+                        listenerInitializer.ValueId = importedValueId;
                     parentByChildId.Remove(reference.sourceValueId);
                     parentByChildId[importedValueId] = reference.parentValueId;
                     attachedRoots.Add((importedValueId, reference.member));
@@ -3012,6 +3031,16 @@ namespace NeoCompose.Runtime
                     }
                 }
                 BindConstructedDelegateTargets(client, attachedRoots, stagedById, parentByChildId, scratch.attachedWalk);
+                if (scope.listenerInitializers is { Count: > 0 } initializers)
+                {
+                    foreach (var occurrence in initializers.Values)
+                        client.CaptureAuthoredListenerDefaults(
+                            occurrence.Source.changeListeners, occurrence.Source.changeListenerEndpoints,
+                            occurrence.ClonedIds, occurrence.Member,
+                            new ObjectMemberValue { id = occurrence.ValueId },
+                            (occurrence.Source as MemberValue)?.id, resolveImmediately: false, preserveProductListeners: true);
+                    initializers.Clear();
+                }
                 if (scope.ExistingEvaluationContext is { } evaluationContext)
                 {
                     evaluationContext.allocationTracker
@@ -3262,10 +3291,10 @@ namespace NeoCompose.Runtime
 
             if (!isStaged)
             {
-                if (member is not ClassMember classMember)
+                if (member is not (ClassMember or ListMember or DictionaryMember))
                 {
                     throw new InvalidOperationException(
-                        $"Constructed field '{path}' references unstaged value '{valueId}' for non-Class member '{member.id}'.");
+                        $"Constructed field '{path}' references unstaged value '{valueId}' for non-aggregate member '{member.id}'.");
                 }
                 bool sourceExists = referenceOwnershipByPath is not null
                     && referenceOwnershipByPath.TryGetValue(
@@ -3274,24 +3303,16 @@ namespace NeoCompose.Runtime
                         ? client.TryGetValue(
                             suppliedOwnership,
                             valueId,
-                            out ObjectMemberValue? source)
+                            out MemberValue? source)
                         : client.TryGetValue(
                             valueId,
                             out source);
                 if (!sourceExists)
                 {
                     throw new InvalidOperationException(
-                        $"Constructed Class field '{path}' references missing object value '{valueId}'.");
+                        $"Constructed field '{path}' references missing aggregate value '{valueId}'.");
                 }
-                string actualClassId = source!.classId ?? classMember.classId;
-                if (!IsAssignableNeoSchemaClass(
-                        client,
-                        actualClassId,
-                        classMember.classId))
-                {
-                    throw new InvalidOperationException(
-                        $"Constructed Class field '{path}' expects '{classMember.classId}' but value '{valueId}' has runtime class '{actualClassId}'.");
-                }
+                ValidateConstructedRowShape(client, member, source!, path);
                 if (!MapKeyCanMoveTo(source.mapKey, expectedMapKey))
                 {
                     throw new InvalidOperationException(
@@ -3909,6 +3930,7 @@ namespace NeoCompose.Runtime
             RuntimeConstructorMetadata? validatedMetadata = null,
             bool trustedRuntimeRows = false)
         {
+            using var listenerCapture = client.BeginConstructionListeners(onlyIfNeeded: true);
             RuntimeConstructorMetadata metadata = validatedMetadata
                 ?? ValidateRuntimeClassConstructorMetadataCore(
                     client,
@@ -3950,7 +3972,7 @@ namespace NeoCompose.Runtime
                     value[field.schemaKey] = fieldValueId;
                 }
             }
-            return CreateWritableClassValueDataCore(
+            var constructed = CreateWritableClassValueDataCore(
                 client,
                 classTypeInfo.classId,
                 value,
@@ -3959,6 +3981,8 @@ namespace NeoCompose.Runtime
                 requireCompleteRoot,
                 trustedRuntimeRows,
                 trustedRuntimeRows ? metadata.classPlan : null);
+            listenerCapture?.Complete(constructed.value.id);
+            return constructed;
         }
 
         // -------------------------------------------------------------------
@@ -4567,6 +4591,7 @@ namespace NeoCompose.Runtime
         {
             NeoClient client = resolved.client;
             using var replayCapture = client.BeginNestedConstructorCapture();
+            using var listenerCapture = client.BeginConstructionListeners();
             int frame =
                 EnterConstructionFrame(ctx, resolved.schemaClass.name, ref resolved.metadata.constructionFrames);
             try
@@ -4665,6 +4690,7 @@ namespace NeoCompose.Runtime
                 if (!client.TryGetValue(NeoValueOwnership.Session, root.id, out ObjectMemberValue? current))
                     throw new InvalidOperationException($"Declared constructor lost root '{root.id}'.");
                 replayCapture?.Complete(current, fields);
+                listenerCapture?.Complete(current.id);
                 return new RuntimeConstructedClassValue(current, constructed.member);
             }
             finally
@@ -5377,6 +5403,7 @@ namespace NeoCompose.Runtime
             ObjectMemberValue storedRoot,
             bool declarationOnly = false)
         {
+            using var listenerCapture = client.BeginConstructionListeners(onlyIfNeeded: true);
             if (placementMember.defaultValue?.value is null)
             {
                 throw new InvalidOperationException(
@@ -5398,6 +5425,7 @@ namespace NeoCompose.Runtime
             var scope = new NeoConstructionScope(client, null);
             NeoTimestamp nowIso = NeoTimestamp.Now();
             var rows = new List<MemberValue>();
+            var clonedIds = new Dictionary<string, string>(StringComparer.Ordinal);
             Dictionary<string, string> provided = CloneDefaultClassChildren(
                 client,
                 placementMember.defaultValue.value,
@@ -5406,7 +5434,8 @@ namespace NeoCompose.Runtime
                 nowIso,
                 scope,
                 classId,
-                classArguments);
+                classArguments,
+                clonedIds);
             RuntimeConstructedClassValue constructed =
                 CreateWritableClassValueDataCore(
                     client,
@@ -5423,6 +5452,9 @@ namespace NeoCompose.Runtime
                 : new Dictionary<string, string>(
                     storedRoot.genericBindings,
                     StringComparer.Ordinal);
+            client.CaptureClonedListenerDefaults(clonedIds, placementMember, constructed.value);
+            client.CaptureAuthoredListenerDefaults(placementMember.defaultValue.changeListeners, placementMember.defaultValue.changeListenerEndpoints, clonedIds, placementMember, constructed.value);
+            listenerCapture?.Complete(constructed.value.id);
             return constructed;
         }
 
@@ -6176,14 +6208,14 @@ namespace NeoCompose.Runtime
         private static string? MaterializeInitializedValue(
             NeoClient client,
             Member member,
-            InitializerBody init,
+            MemberValueBase authored,
             List<MemberValue> rows,
             NeoTimestamp nowIso,
             NeoConstructionScope scope,
             IReadOnlyDictionary<string, NeoGenericEnvEntry> env,
             string path)
         {
-            object? produced = scope.EvaluateInitializer(member, init);
+            object? produced = scope.EvaluateInitializer(member, authored.init!);
             if (produced is not null
                 && (member is ListMember || member is DictionaryMember))
             {
@@ -6199,10 +6231,10 @@ namespace NeoCompose.Runtime
                     {
                         scope.RecordReferenceOwnership(path, ownership);
                     }
-                    return reference.valueId;
+                    return Capture(reference.valueId);
                 }
             }
-            return MaterializeRuntimeConstructorValue(
+            return Capture(MaterializeRuntimeConstructorValue(
                 client,
                 member,
                 produced,
@@ -6212,7 +6244,19 @@ namespace NeoCompose.Runtime
                 env,
                 path,
                 scope,
-                preserveOptionalNull: true);
+                preserveOptionalNull: true));
+
+            string? Capture(string? id)
+            {
+                if (produced is not null && id is not null && authored.changeListeners is { Count: > 0 })
+                    (scope.listenerInitializers ??= new())[path] = new InitializedListenerOccurrence
+                    {
+                        Member = member,
+                        Source = authored,
+                        ValueId = id,
+                    };
+                return id;
+            }
         }
 
         private static string? MaterializeRuntimeConstructorValue(
@@ -6874,7 +6918,7 @@ namespace NeoCompose.Runtime
                         string? initValueId = MaterializeInitializedValue(
                             client,
                             member,
-                            init,
+                            MemberValueFactory.DefaultOf(member)!,
                             rows,
                             nowIso,
                             scope,
@@ -7309,6 +7353,7 @@ namespace NeoCompose.Runtime
             // below — the default's effective type may be the DECLARED open
             // type, closed only by the slot (specs/class-generics.md
             // §4.1).
+            var clonedIds = new Dictionary<string, string>(StringComparer.Ordinal);
             var provided = CloneDefaultClassChildren(
                 client,
                 member.defaultValue?.value,
@@ -7317,8 +7362,9 @@ namespace NeoCompose.Runtime
                 nowIso,
                 scope,
                 path,
-                member.classArguments);
-            return CreateWritableClassValueRow(
+                member.classArguments,
+                clonedIds);
+            var row = CreateWritableClassValueRow(
                 client,
                 effectiveClassId,
                 provided,
@@ -7328,6 +7374,9 @@ namespace NeoCompose.Runtime
                 path,
                 member.classArguments,
                 requireCompleteDefault: true);
+            client.CaptureClonedListenerDefaults(clonedIds, member, row);
+            client.CaptureAuthoredListenerDefaults(member.defaultValue.changeListeners, member.defaultValue.changeListenerEndpoints, clonedIds, member, row);
+            return row;
         }
 
         private static Dictionary<string, string> CloneDefaultClassChildren(
@@ -7377,7 +7426,7 @@ namespace NeoCompose.Runtime
                     string? initValueId = MaterializeInitializedValue(
                         client,
                         effectiveMember,
-                        sourceRow.init,
+                        sourceRow,
                         rows,
                         nowIso,
                         scope,
@@ -7386,6 +7435,7 @@ namespace NeoCompose.Runtime
                     if (initValueId is not null)
                     {
                         result[pair.Key] = initValueId;
+                        clonedIdsBySourceId[sourceRow.id] = initValueId;
                     }
                     continue;
                 }
@@ -7450,7 +7500,7 @@ namespace NeoCompose.Runtime
                     string? initValueId = MaterializeInitializedValue(
                         client,
                         effectiveMember,
-                        sourceRow.init,
+                        sourceRow,
                         rows,
                         nowIso,
                         scope,
@@ -7459,6 +7509,7 @@ namespace NeoCompose.Runtime
                     if (initValueId is not null)
                     {
                         result[entry.schemaKey] = initValueId;
+                        clonedIdsBySourceId[sourceRow.id] = initValueId;
                     }
                     continue;
                 }
@@ -7497,7 +7548,8 @@ namespace NeoCompose.Runtime
                 value = member.defaultValue.value,
                 classId = member.defaultValue.classId,
             };
-            return CloneDictionaryValueRow(
+            var clonedIds = new Dictionary<string, string>(StringComparer.Ordinal);
+            var row = CloneDictionaryValueRow(
                 client,
                 member,
                 source,
@@ -7506,7 +7558,12 @@ namespace NeoCompose.Runtime
                 scope,
                 env,
                 path,
-                new Dictionary<string, string>(StringComparer.Ordinal));
+                clonedIds);
+            client.CaptureClonedListenerDefaults(clonedIds, member, row);
+            client.CaptureAuthoredListenerDefaults(
+                member.defaultValue.changeListeners, member.defaultValue.changeListenerEndpoints,
+                clonedIds, member, row);
+            return row;
         }
 
         private static ArrayMemberValue? CreateDefaultListValueRow(
@@ -7526,7 +7583,8 @@ namespace NeoCompose.Runtime
                 value = member.defaultValue.value,
                 classId = member.defaultValue.classId,
             };
-            return CloneListValueRow(
+            var clonedIds = new Dictionary<string, string>(StringComparer.Ordinal);
+            var row = CloneListValueRow(
                 client,
                 member,
                 source,
@@ -7535,10 +7593,35 @@ namespace NeoCompose.Runtime
                 scope,
                 env,
                 path,
-                new Dictionary<string, string>(StringComparer.Ordinal));
+                clonedIds);
+            client.CaptureClonedListenerDefaults(clonedIds, member, row);
+            client.CaptureAuthoredListenerDefaults(
+                member.defaultValue.changeListeners, member.defaultValue.changeListenerEndpoints,
+                clonedIds, member, row);
+            return row;
         }
 
         private static MemberValue CloneStoredValueForMember(
+            NeoClient client,
+            Member member,
+            MemberValue source,
+            List<MemberValue> rows,
+            NeoTimestamp nowIso,
+            NeoConstructionScope scope,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> env,
+            string path,
+            Dictionary<string, string> clonedIdsBySourceId)
+        {
+            MemberValue clone = CloneStoredValueForMemberCore(
+                client, member, source, rows, nowIso, scope, env, path, clonedIdsBySourceId);
+            clonedIdsBySourceId[source.id] = clone.id;
+            client.CaptureAuthoredListenerDefaults(
+                source.changeListeners, source.changeListenerEndpoints,
+                clonedIdsBySourceId, member, clone, source.id);
+            return clone;
+        }
+
+        private static MemberValue CloneStoredValueForMemberCore(
             NeoClient client,
             Member member,
             MemberValue source,
@@ -7911,7 +7994,7 @@ namespace NeoCompose.Runtime
                         string? initEntryId = MaterializeInitializedValue(
                             client,
                             entryMember,
-                            sourceRow.init,
+                            sourceRow,
                             rows,
                             nowIso,
                             scope,
@@ -8006,7 +8089,7 @@ namespace NeoCompose.Runtime
                         string? initEntryId = MaterializeInitializedValue(
                             client,
                             entryMember,
-                            sourceRow.init,
+                            sourceRow,
                             rows,
                             nowIso,
                             scope,

@@ -247,32 +247,34 @@ namespace NeoCompose.Runtime
         /// <c>defaultValue</c> carrier lives on the member subclass, not on the
         /// base.
         /// </summary>
-        internal static InitializerBody? InitializerOf(Member schemaMember)
+        internal static InitializerBody? InitializerOf(Member schemaMember) => DefaultOf(schemaMember)?.init;
+
+        internal static MemberValueBase? DefaultOf(Member schemaMember)
         {
             return schemaMember switch
             {
-                NullMember member => member.defaultValue?.init,
-                BoolMember member => member.defaultValue?.init,
-                IntMember member => member.defaultValue?.init,
-                FloatMember member => member.defaultValue?.init,
-                StringMember member => member.defaultValue?.init,
-                DictionaryMember member => member.defaultValue?.init,
-                ListMember member => member.defaultValue?.init,
-                ClassMember member => member.defaultValue?.init,
-                GenericMember member => member.defaultValue?.init,
-                EnumMember member => member.defaultValue?.init,
-                LookupMember member => member.defaultValue?.init,
-                DialogueLookupMember member => member.defaultValue?.init,
-                SpriteMember member => member.defaultValue?.init,
-                AudioMember member => member.defaultValue?.init,
-                Vector2Member member => member.defaultValue?.init,
-                Vector2IntMember member => member.defaultValue?.init,
-                Vector3Member member => member.defaultValue?.init,
-                Vector3IntMember member => member.defaultValue?.init,
-                ColorMember member => member.defaultValue?.init,
-                DecimalMember member => member.defaultValue?.init,
-                DelegateMember member => member.defaultValue?.init,
-                ActionMember member => member.defaultValue?.init,
+                NullMember member => member.defaultValue,
+                BoolMember member => member.defaultValue,
+                IntMember member => member.defaultValue,
+                FloatMember member => member.defaultValue,
+                StringMember member => member.defaultValue,
+                DictionaryMember member => member.defaultValue,
+                ListMember member => member.defaultValue,
+                ClassMember member => member.defaultValue,
+                GenericMember member => member.defaultValue,
+                EnumMember member => member.defaultValue,
+                LookupMember member => member.defaultValue,
+                DialogueLookupMember member => member.defaultValue,
+                SpriteMember member => member.defaultValue,
+                AudioMember member => member.defaultValue,
+                Vector2Member member => member.defaultValue,
+                Vector2IntMember member => member.defaultValue,
+                Vector3Member member => member.defaultValue,
+                Vector3IntMember member => member.defaultValue,
+                ColorMember member => member.defaultValue,
+                DecimalMember member => member.defaultValue,
+                DelegateMember member => member.defaultValue,
+                ActionMember member => member.defaultValue,
                 _ => null,
             };
         }
@@ -286,6 +288,8 @@ namespace NeoCompose.Runtime
                 ?? throw new System.InvalidOperationException($"No default carrier exists for '{carrierType}'.");
             var result = (MemberValueBase)System.Activator.CreateInstance(concreteType);
             result.init = source.init;
+            result.changeListeners = source.changeListeners?.Copy();
+            result.changeListenerEndpoints = source.changeListenerEndpoints?.Copy();
             return result;
         }
 
@@ -321,6 +325,8 @@ namespace NeoCompose.Runtime
                     updatedAt = updatedAt,
                     value = member.defaultValue.value,
                     classId = member.defaultValue.classId,
+                    changeListeners = member.defaultValue.changeListeners?.Copy(),
+                    changeListenerEndpoints = member.defaultValue.changeListenerEndpoints?.Copy(),
                 },
                 BoolMember member => member.defaultValue is null ? null : new BoolMemberValue
                 {
@@ -329,6 +335,8 @@ namespace NeoCompose.Runtime
                     updatedAt = updatedAt,
                     value = member.defaultValue.value,
                     classId = member.defaultValue.classId,
+                    changeListeners = member.defaultValue.changeListeners?.Copy(),
+                    changeListenerEndpoints = member.defaultValue.changeListenerEndpoints?.Copy(),
                 },
                 IntMember member => member.defaultValue is null ? null : new NumberMemberValue
                 {
@@ -337,6 +345,8 @@ namespace NeoCompose.Runtime
                     updatedAt = updatedAt,
                     value = member.defaultValue.value,
                     classId = member.defaultValue.classId,
+                    changeListeners = member.defaultValue.changeListeners?.Copy(),
+                    changeListenerEndpoints = member.defaultValue.changeListenerEndpoints?.Copy(),
                 },
                 FloatMember member => member.defaultValue is null ? null : new NumberMemberValue
                 {
@@ -345,6 +355,8 @@ namespace NeoCompose.Runtime
                     updatedAt = updatedAt,
                     value = member.defaultValue.value,
                     classId = member.defaultValue.classId,
+                    changeListeners = member.defaultValue.changeListeners?.Copy(),
+                    changeListenerEndpoints = member.defaultValue.changeListenerEndpoints?.Copy(),
                 },
                 StringMember member => member.defaultValue is null ? null : new StringMemberValue
                 {
@@ -354,6 +366,8 @@ namespace NeoCompose.Runtime
                     value = member.defaultValue.value,
                     neoLocalizationMode = (member.defaultValue as StringMemberValueBase)?.neoLocalizationMode,
                     classId = member.defaultValue.classId,
+                    changeListeners = member.defaultValue.changeListeners?.Copy(),
+                    changeListenerEndpoints = member.defaultValue.changeListenerEndpoints?.Copy(),
                 },
                 DictionaryMember member => member.defaultValue is null ? null : new ObjectMemberValue
                 {
@@ -362,6 +376,8 @@ namespace NeoCompose.Runtime
                     updatedAt = updatedAt,
                     value = CloneDictionary(member.defaultValue.value),
                     classId = member.defaultValue.classId,
+                    changeListeners = member.defaultValue.changeListeners?.Copy(),
+                    changeListenerEndpoints = member.defaultValue.changeListenerEndpoints?.Copy(),
                 },
                 ClassMember member => member.defaultValue is null ? null : new ObjectMemberValue
                 {
@@ -370,6 +386,8 @@ namespace NeoCompose.Runtime
                     updatedAt = updatedAt,
                     value = CloneDictionary(member.defaultValue.value),
                     classId = member.defaultValue.classId,
+                    changeListeners = member.defaultValue.changeListeners?.Copy(),
+                    changeListenerEndpoints = member.defaultValue.changeListenerEndpoints?.Copy(),
                 },
                 ListMember member => member.defaultValue is null ? null : new ArrayMemberValue
                 {
@@ -378,6 +396,8 @@ namespace NeoCompose.Runtime
                     updatedAt = updatedAt,
                     value = CloneArray(member.defaultValue.value),
                     classId = member.defaultValue.classId,
+                    changeListeners = member.defaultValue.changeListeners?.Copy(),
+                    changeListenerEndpoints = member.defaultValue.changeListenerEndpoints?.Copy(),
                 },
                 EnumMember member => member.defaultValue is null ? null : new ArrayMemberValue
                 {
@@ -386,6 +406,8 @@ namespace NeoCompose.Runtime
                     updatedAt = updatedAt,
                     value = CloneArray(member.defaultValue.value),
                     classId = member.defaultValue.classId,
+                    changeListeners = member.defaultValue.changeListeners?.Copy(),
+                    changeListenerEndpoints = member.defaultValue.changeListenerEndpoints?.Copy(),
                 },
                 LookupMember member => member.defaultValue is null ? null : new ArrayMemberValue
                 {
@@ -394,6 +416,8 @@ namespace NeoCompose.Runtime
                     updatedAt = updatedAt,
                     value = CloneArray(member.defaultValue.value),
                     classId = member.defaultValue.classId,
+                    changeListeners = member.defaultValue.changeListeners?.Copy(),
+                    changeListenerEndpoints = member.defaultValue.changeListenerEndpoints?.Copy(),
                 },
                 DialogueLookupMember member => member.defaultValue is null ? null : new ArrayMemberValue
                 {
@@ -402,6 +426,8 @@ namespace NeoCompose.Runtime
                     updatedAt = updatedAt,
                     value = CloneArray(member.defaultValue.value),
                     classId = member.defaultValue.classId,
+                    changeListeners = member.defaultValue.changeListeners?.Copy(),
+                    changeListenerEndpoints = member.defaultValue.changeListenerEndpoints?.Copy(),
                 },
                 NSPropertyMember member => member.defaultValue is null ? null : new NullMemberValue
                 {
@@ -410,6 +436,8 @@ namespace NeoCompose.Runtime
                     updatedAt = updatedAt,
                     value = member.defaultValue.value,
                     classId = member.defaultValue.classId,
+                    changeListeners = member.defaultValue.changeListeners?.Copy(),
+                    changeListenerEndpoints = member.defaultValue.changeListenerEndpoints?.Copy(),
                 },
                 FunctionMember member => member.defaultValue is null ? null : new NullMemberValue
                 {
@@ -418,6 +446,8 @@ namespace NeoCompose.Runtime
                     updatedAt = updatedAt,
                     value = member.defaultValue.value,
                     classId = member.defaultValue.classId,
+                    changeListeners = member.defaultValue.changeListeners?.Copy(),
+                    changeListenerEndpoints = member.defaultValue.changeListenerEndpoints?.Copy(),
                 },
                 NSFunctionMember member => member.defaultValue is null ? null : new NullMemberValue
                 {
@@ -426,6 +456,8 @@ namespace NeoCompose.Runtime
                     updatedAt = updatedAt,
                     value = member.defaultValue.value,
                     classId = member.defaultValue.classId,
+                    changeListeners = member.defaultValue.changeListeners?.Copy(),
+                    changeListenerEndpoints = member.defaultValue.changeListenerEndpoints?.Copy(),
                 },
                 FunctionRefMember member => member.defaultValue is null ? null : new ObjectMemberValue
                 {
@@ -434,6 +466,8 @@ namespace NeoCompose.Runtime
                     updatedAt = updatedAt,
                     value = CloneDictionary(member.defaultValue.value),
                     classId = member.defaultValue.classId,
+                    changeListeners = member.defaultValue.changeListeners?.Copy(),
+                    changeListenerEndpoints = member.defaultValue.changeListenerEndpoints?.Copy(),
                 },
                 SpriteMember member => member.defaultValue is null ? null : new SpriteMemberValue
                 {
@@ -442,6 +476,8 @@ namespace NeoCompose.Runtime
                     updatedAt = updatedAt,
                     value = CloneSpriteValue(member.defaultValue.value),
                     classId = member.defaultValue.classId,
+                    changeListeners = member.defaultValue.changeListeners?.Copy(),
+                    changeListenerEndpoints = member.defaultValue.changeListenerEndpoints?.Copy(),
                 },
                 AudioMember member => member.defaultValue is null ? null : new FileMemberValue
                 {
@@ -450,6 +486,8 @@ namespace NeoCompose.Runtime
                     updatedAt = updatedAt,
                     value = CloneFileValue(member.defaultValue.value),
                     classId = member.defaultValue.classId,
+                    changeListeners = member.defaultValue.changeListeners?.Copy(),
+                    changeListenerEndpoints = member.defaultValue.changeListenerEndpoints?.Copy(),
                 },
                 Vector2Member member => member.defaultValue is null ? null : new Vector2MemberValue
                 {
@@ -458,6 +496,8 @@ namespace NeoCompose.Runtime
                     updatedAt = updatedAt,
                     value = CloneVector2Value(member.defaultValue.value),
                     classId = member.defaultValue.classId,
+                    changeListeners = member.defaultValue.changeListeners?.Copy(),
+                    changeListenerEndpoints = member.defaultValue.changeListenerEndpoints?.Copy(),
                 },
                 Vector2IntMember member => member.defaultValue is null ? null : new Vector2MemberValue
                 {
@@ -466,6 +506,8 @@ namespace NeoCompose.Runtime
                     updatedAt = updatedAt,
                     value = CloneVector2Value(member.defaultValue.value),
                     classId = member.defaultValue.classId,
+                    changeListeners = member.defaultValue.changeListeners?.Copy(),
+                    changeListenerEndpoints = member.defaultValue.changeListenerEndpoints?.Copy(),
                 },
                 Vector3Member member => member.defaultValue is null ? null : new Vector3MemberValue
                 {
@@ -474,6 +516,8 @@ namespace NeoCompose.Runtime
                     updatedAt = updatedAt,
                     value = CloneVector3Value(member.defaultValue.value),
                     classId = member.defaultValue.classId,
+                    changeListeners = member.defaultValue.changeListeners?.Copy(),
+                    changeListenerEndpoints = member.defaultValue.changeListenerEndpoints?.Copy(),
                 },
                 Vector3IntMember member => member.defaultValue is null ? null : new Vector3MemberValue
                 {
@@ -482,6 +526,8 @@ namespace NeoCompose.Runtime
                     updatedAt = updatedAt,
                     value = CloneVector3Value(member.defaultValue.value),
                     classId = member.defaultValue.classId,
+                    changeListeners = member.defaultValue.changeListeners?.Copy(),
+                    changeListenerEndpoints = member.defaultValue.changeListenerEndpoints?.Copy(),
                 },
                 ColorMember member => member.defaultValue is null ? null : new ColorMemberValue
                 {
@@ -490,6 +536,8 @@ namespace NeoCompose.Runtime
                     updatedAt = updatedAt,
                     value = CloneColorValue(member.defaultValue.value),
                     classId = member.defaultValue.classId,
+                    changeListeners = member.defaultValue.changeListeners?.Copy(),
+                    changeListenerEndpoints = member.defaultValue.changeListenerEndpoints?.Copy(),
                 },
                 DecimalMember member => member.defaultValue is null ? null : new StringMemberValue
                 {
@@ -498,6 +546,8 @@ namespace NeoCompose.Runtime
                     updatedAt = updatedAt,
                     value = member.defaultValue.value,
                     classId = member.defaultValue.classId,
+                    changeListeners = member.defaultValue.changeListeners?.Copy(),
+                    changeListenerEndpoints = member.defaultValue.changeListenerEndpoints?.Copy(),
                 },
                 DelegateMember member => member.defaultValue is null ? null : new DelegateMemberValue
                 {
@@ -506,6 +556,8 @@ namespace NeoCompose.Runtime
                     updatedAt = updatedAt,
                     value = member.defaultValue.value,
                     classId = member.defaultValue.classId,
+                    changeListeners = member.defaultValue.changeListeners?.Copy(),
+                    changeListenerEndpoints = member.defaultValue.changeListenerEndpoints?.Copy(),
                 },
                 // The listener set is mutable and every subscription writes
                 // it back, so the declaration default is deep-copied: handing
@@ -519,6 +571,8 @@ namespace NeoCompose.Runtime
                     value = member.defaultValue.value?.PersistedCopy()
                         ?? new NeoActionValue(),
                     classId = member.defaultValue.classId,
+                    changeListeners = member.defaultValue.changeListeners?.Copy(),
+                    changeListenerEndpoints = member.defaultValue.changeListenerEndpoints?.Copy(),
                 },
                 // P67 §6. The pair is selected atomically, and it is COPIED
                 // rather than aliased for the same reason the Sprite/Vector/
@@ -544,6 +598,8 @@ namespace NeoCompose.Runtime
                             rowValueId = member.defaultValue.value.rowValueId,
                         },
                     classId = member.defaultValue.classId,
+                    changeListeners = member.defaultValue.changeListeners?.Copy(),
+                    changeListenerEndpoints = member.defaultValue.changeListenerEndpoints?.Copy(),
                 },
                 _ => null,
             };

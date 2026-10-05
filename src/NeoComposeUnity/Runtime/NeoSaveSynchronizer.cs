@@ -41,7 +41,14 @@ namespace NeoCompose.Runtime
         private IDisposable? realtimeHeadSubscription;
         private bool realtimeRevisionApplyRunning;
         private GameSaveSnapshotRevisionSignal? pendingRealtimeRevision;
+        private (string snapshotId, Dictionary<string, NeoChangeListenerMap> received,
+            Dictionary<string, NeoChangeListenerMap> acknowledged)? pendingListenerAdoption;
         private bool localWritesPending;
+        private bool listenerAdoptionRetryScheduled;
+        private int listenerAdoptionRetryGeneration;
+        private const double InitialListenerAdoptionRetrySeconds = 1;
+        private const double MaxListenerAdoptionRetrySeconds = 60;
+        private double listenerAdoptionRetrySeconds;
         private readonly List<AwaitableCompletionSource> revisionApplyWaiters = new();
 
         /// <summary>The active save after a best-effort cloud commit failed:
@@ -61,6 +68,7 @@ namespace NeoCompose.Runtime
         /// for the next flush. Null until a load/flush establishes it.</summary>
         private JObject? liveBaseline;
         private Dictionary<string, string?> liveStaticBindingBaseline = new();
+        private Dictionary<string, NeoChangeListenerMap> liveListenerBaseline = new();
 
         /// <summary>Records generated writes touched since the last capture.</summary>
         private DirtyRecords uncapturedDirty = new();
@@ -116,7 +124,15 @@ namespace NeoCompose.Runtime
             internal readonly HashSet<string> staticBindings =
                 new(StringComparer.Ordinal);
 
-            internal bool IsEmpty => valueFields.Count == 0 && staticBindings.Count == 0;
+            internal readonly Dictionary<string, HashSet<string>> listenerOwners = new(StringComparer.Ordinal);
+            internal bool IsEmpty => valueFields.Count == 0 && staticBindings.Count == 0 && listenerOwners.Count == 0;
+
+            internal void MarkListener(string rootId, string ownerId)
+            {
+                if (!listenerOwners.TryGetValue(rootId, out var owners))
+                    listenerOwners[rootId] = owners = new HashSet<string>(StringComparer.Ordinal);
+                owners.Add(ownerId);
+            }
 
             internal void MarkValue(string valueId, string? field)
             {
@@ -150,6 +166,9 @@ namespace NeoCompose.Runtime
                     }
                 }
                 staticBindings.UnionWith(other.staticBindings);
+                foreach (var root in other.listenerOwners)
+                    foreach (var owner in root.Value)
+                        MarkListener(root.Key, owner);
             }
         }
 
@@ -161,6 +180,9 @@ namespace NeoCompose.Runtime
                 field = null;
             uncapturedDirty.MarkValue(valueId, field);
         }
+
+        internal void MarkDirtyListener(string rootId, string ownerId) =>
+            uncapturedDirty.MarkListener(rootId, ownerId);
 
         internal void MarkDirtyStaticBinding(string memberId)
         {
@@ -181,6 +203,27 @@ namespace NeoCompose.Runtime
         /// the next capture carries them again.</summary>
         internal void RestoreDirtyRecords(DirtyRecords dirty) =>
             uncapturedDirty.MergeFrom(dirty);
+
+        internal IReadOnlyDictionary<string, HashSet<string>>? ListenerOwnersForCapture(DirtyRecords? dirty)
+        {
+            if (dirty is null || dirty.IsEmpty)
+                return null;
+            if (!LiveModeEnabled || liveFirstDirtyAt < 0)
+                return dirty.listenerOwners;
+            if (stagedDirty is null)
+                return null;
+            var result = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+            foreach (var root in stagedDirty.listenerOwners)
+                result[root.Key] = new HashSet<string>(root.Value, StringComparer.Ordinal);
+            foreach (var root in dirty.listenerOwners)
+            {
+                if (result.TryGetValue(root.Key, out var owners))
+                    owners.UnionWith(root.Value);
+                else
+                    result[root.Key] = new HashSet<string>(root.Value, StringComparer.Ordinal);
+            }
+            return result;
+        }
 
         private void SettleStagedDirty() => stagedDirty = new DirtyRecords();
 
@@ -344,12 +387,22 @@ namespace NeoCompose.Runtime
         /// holds the records writes touched up to the capture, or null to
         /// diff the whole save.
         /// </summary>
+        internal void PrepareSaveIdentity(ProjectSaveData save)
+        {
+            if (string.IsNullOrEmpty(save.customId))
+                save.customId = CustomId;
+            if (string.IsNullOrEmpty(save.releaseChannelId))
+                save.releaseChannelId = core.TargetReleaseChannelId;
+            save.name = ResolveSaveName(save.name);
+        }
+
         internal async Awaitable CommitSaveContentAsync(
             string content,
             LocalGameSave local,
             bool replaceSnapshot,
             bool flushLiveImmediately,
-            DirtyRecords? dirty)
+            DirtyRecords? dirty,
+            bool skipUnchangedSnapshot = false)
         {
             if (string.IsNullOrEmpty(local.customId))
                 local.customId = CustomId;
@@ -381,7 +434,8 @@ namespace NeoCompose.Runtime
                         committedRemote = await CommitToCloudAsync(
                             local,
                             replaceSnapshot,
-                            dirty: dirty);
+                            dirty: dirty,
+                            skipUnchangedSnapshot: skipUnchangedSnapshot);
                     }
                     catch
                     {
@@ -524,14 +578,17 @@ namespace NeoCompose.Runtime
             LocalGameSave local,
             bool replaceSnapshot,
             string? createAsLiveSessionId = null,
-            DirtyRecords? dirty = null)
+            DirtyRecords? dirty = null,
+            bool skipUnchangedSnapshot = false)
         {
             NeoCommitResult result;
             try
             {
                 var request = BuildCommitRequest(
                     local, active?.snapshotId, createAsLiveSessionId);
-                var initialChanges = BuildInitialRecordChanges(local);
+                var initialChanges = local.IsLocalOnly && request.baseSnapshotId == null
+                    ? BuildInitialRecordChanges(local)
+                    : null;
                 if (local.IsLocalOnly
                     && request.baseSnapshotId == null
                     && initialChanges != null
@@ -545,7 +602,7 @@ namespace NeoCompose.Runtime
                 {
                     var baseline = await ResolveSparseCommitBaselineAsync(local);
                     result = await CommitExistingSnapshotAsync(
-                        local, baseline, replaceSnapshot, dirty);
+                        local, baseline, replaceSnapshot, dirty, skipUnchangedSnapshot);
                 }
                 else
                 {
@@ -639,7 +696,8 @@ namespace NeoCompose.Runtime
             LocalGameSave local,
             SparseCommitBaseline baseline,
             bool replaceSnapshot,
-            DirtyRecords? dirty)
+            DirtyRecords? dirty,
+            bool skipUnchangedSnapshot = false)
         {
             var staged = AsValuesObject(local.values)
                 ?? throw new InvalidOperationException(
@@ -650,8 +708,11 @@ namespace NeoCompose.Runtime
                     baseline.recordCache,
                     baseline.staticBindings,
                     local.staticBindings,
-                    dirty)
+                    dirty, baseline.changeListeners, local.changeListeners, local.listenerEndpoints)
                 .changes;
+
+            if (skipUnchangedSnapshot && !replaceSnapshot && changes.Count == 0 && baseline.HasSameHeader(local))
+                return NeoCommitResult.Committed(baseline.ReuseSnapshot());
 
             if (replaceSnapshot)
             {
@@ -670,6 +731,7 @@ namespace NeoCompose.Runtime
                 CustomId,
                 new NeoSparseSnapshotCommitRequest
                 {
+                    requiredSaveFormatRevision = local.requiredSaveFormatRevision,
                     baseSnapshotId = baseline.snapshotId,
                     baseSnapshotRevision = baseline.snapshotRevision,
                     version = local.version,
@@ -689,6 +751,7 @@ namespace NeoCompose.Runtime
             SparseCommitBaseline baseline,
             string? liveSessionId = null) => new()
             {
+                requiredSaveFormatRevision = local.requiredSaveFormatRevision,
                 baseSnapshotId = baseline.snapshotId,
                 baseSnapshotRevision = baseline.snapshotRevision,
                 version = local.version,
@@ -718,7 +781,7 @@ namespace NeoCompose.Runtime
                     "replaceSnapshot requires a connected realtime provider.");
             }
 
-            for (var index = 0; index < changes.Count; index += 64)
+            for (var index = 0; index < Math.Max(1, changes.Count); index += 64)
             {
                 var count = Math.Min(64, changes.Count - index);
                 var patch = new NeoSavePatch
@@ -728,6 +791,7 @@ namespace NeoCompose.Runtime
                 };
                 var patched = await realtime.PatchLiveAsync(new NeoLivePatchRequest
                 {
+                    requiredSaveFormatRevision = local.requiredSaveFormatRevision,
                     customId = CustomId,
                     snapshotId = baseline.snapshotId,
                     patch = patch,
@@ -746,10 +810,57 @@ namespace NeoCompose.Runtime
 
         private sealed class SparseCommitBaseline
         {
+            private NeoGameSaveBase source = null!;
+            private string? snapshotName;
+
+            public bool HasSameHeader(LocalGameSave save) =>
+                (save.snapshotName is null || (snapshotName ?? "") == save.snapshotName)
+                && source.requiredSaveFormatRevision == save.requiredSaveFormatRevision
+                && SameHeaderField(source.version, save.version)
+                && SameHeaderField(source.platforms, save.platforms)
+                && SameHeaderField(source.systems, save.systems)
+                && SameHeaderField(source.inputDevices, save.inputDevices);
+
+            private static bool SameHeaderField(object? left, object? right) =>
+                JToken.DeepEquals(left is null ? JValue.CreateNull() : JToken.FromObject(left),
+                    right is null ? JValue.CreateNull() : JToken.FromObject(right));
+
+            public RemoteGameSave ReuseSnapshot()
+            {
+                if (source is RemoteGameSave remote)
+                    return remote;
+                var local = (LocalGameSave)source;
+                return new RemoteGameSave
+                {
+                    id = local.customId,
+                    serverId = local.serverId!,
+                    snapshotId = snapshotId,
+                    snapshotRevision = snapshotRevision,
+                    snapshotName = snapshotName ?? "",
+                    releaseChannelId = local.releaseChannelId,
+                    synchronizedAt = local.synchronizedAt ?? 0,
+                    liveSessionId = liveSessionId,
+                    recordCache = recordCache,
+                    requiredSaveFormatRevision = source.requiredSaveFormatRevision,
+                    name = source.name,
+                    projectId = source.projectId,
+                    version = source.version,
+                    values = source.values,
+                    valuePartitions = source.valuePartitions,
+                    staticBindings = source.staticBindings,
+                    changeListeners = source.changeListeners,
+                    platforms = source.platforms,
+                    systems = source.systems,
+                    inputDevices = source.inputDevices,
+                    createdAt = source.createdAt,
+                    updatedAt = source.updatedAt,
+                };
+            }
             public string snapshotId = "";
             public long snapshotRevision;
             public JObject values = new();
             public Dictionary<string, string?> staticBindings = new();
+            public Dictionary<string, NeoChangeListenerMap> changeListeners = new();
             public GameSaveRecordCache recordCache = new();
             public string? liveSessionId;
 
@@ -757,20 +868,26 @@ namespace NeoCompose.Runtime
             // copy cost ~15 ms of main thread per commit at 2,260 rows.
             public static SparseCommitBaseline FromLocal(LocalGameSave save) => new()
             {
+                source = save,
+                snapshotName = save.snapshotName,
                 snapshotId = save.snapshotId!,
                 snapshotRevision = save.snapshotRevision,
                 values = AsValuesObject(save.values) ?? new JObject(),
                 staticBindings = new Dictionary<string, string?>(save.staticBindings),
+                changeListeners = NeoChangeListenerPatches.Copy(save.changeListeners),
                 recordCache = save.recordCache,
                 liveSessionId = save.liveSessionId,
             };
 
             public static SparseCommitBaseline FromRemote(RemoteGameSave save) => new()
             {
+                source = save,
+                snapshotName = save.snapshotName,
                 snapshotId = save.snapshotId,
                 snapshotRevision = save.snapshotRevision,
                 values = AsValuesObject(save.values) ?? new JObject(),
                 staticBindings = new Dictionary<string, string?>(save.staticBindings),
+                changeListeners = NeoChangeListenerPatches.Copy(save.changeListeners),
                 recordCache = save.recordCache,
                 liveSessionId = save.liveSessionId,
             };
@@ -895,7 +1012,7 @@ namespace NeoCompose.Runtime
                 CustomId,
                 save.values,
                 save.staticBindings,
-                core.Schema);
+                core.Schema, save.changeListeners);
             var continuation = new NeoSaveMigrationContinuation();
             OnMigrationRequired.Invoke(migration, continuation);
             return await continuation.Completion;
@@ -953,22 +1070,69 @@ namespace NeoCompose.Runtime
 
         private async void DrainRealtimeRevisions()
         {
-            if (realtimeRevisionApplyRunning || localWritesPending)
+            if (realtimeRevisionApplyRunning || localWritesPending || liveFlushOperationRunning
+                || listenerAdoptionRetryScheduled)
                 return;
 
             realtimeRevisionApplyRunning = true;
+            bool retryAdoption = false;
             try
             {
-                while (pendingRealtimeRevision != null && !localWritesPending)
+                while ((pendingRealtimeRevision != null || pendingListenerAdoption is not null) && !localWritesPending && !liveFlushOperationRunning)
                 {
+                    if (pendingListenerAdoption is { } adoption)
+                    {
+                        if (active is { } current && current.snapshotId == adoption.snapshotId)
+                        {
+                            var pending = new NeoSavePatch();
+                            if (liveFirstDirtyAt >= 0)
+                                NeoChangeListenerPatches.AppendChanges(pending, adoption.acknowledged,
+                                    current.changeListeners, current.recordCache, stagedDirty?.listenerOwners,
+                                    current.listenerEndpoints);
+                            var previousListeners = current.changeListeners;
+                            var previousBaseline = liveListenerBaseline;
+                            try
+                            {
+                                current.changeListeners = NeoChangeListenerPatches.Copy(adoption.received);
+                                await ReconcileHydratedSaveAsync(current, pending, listenersOnly: true);
+                            }
+                            catch
+                            {
+                                // A failed local write must not turn remote owners into local edits on retry.
+                                current.changeListeners = previousListeners;
+                                liveListenerBaseline = previousBaseline;
+                                pendingListenerAdoption ??= adoption;
+                                throw;
+                            }
+                        }
+                        listenerAdoptionRetrySeconds = 0;
+                        if (pendingListenerAdoption is { } queued
+                            && ReferenceEquals(queued.received, adoption.received))
+                            pendingListenerAdoption = null;
+                        continue;
+                    }
                     var next = pendingRealtimeRevision;
                     pendingRealtimeRevision = null;
-                    await ApplyRealtimeRevisionSignalAsync(next);
+                    await ApplyRealtimeRevisionSignalAsync(next!);
                 }
+            }
+            catch (Exception exception)
+            {
+                retryAdoption = pendingListenerAdoption is not null;
+                if (!retryAdoption || listenerAdoptionRetrySeconds == 0)
+                    Debug.LogWarning(
+                        $"[NeoCompose] Could not apply realtime save updates for \"{CustomId}\". " +
+                        $"{exception.GetType().Name}: {exception.Message}");
+                if (retryAdoption)
+                    listenerAdoptionRetrySeconds = listenerAdoptionRetrySeconds == 0
+                        ? InitialListenerAdoptionRetrySeconds
+                        : Math.Min(listenerAdoptionRetrySeconds * 2, MaxListenerAdoptionRetrySeconds);
             }
             finally
             {
                 realtimeRevisionApplyRunning = false;
+                if (retryAdoption)
+                    RetryListenerAdoption();
                 var waiters = revisionApplyWaiters.ToArray();
                 revisionApplyWaiters.Clear();
                 foreach (var waiter in waiters)
@@ -976,6 +1140,30 @@ namespace NeoCompose.Runtime
                     waiter.TrySetResult();
                 }
             }
+        }
+
+        private async void RetryListenerAdoption()
+        {
+            if (listenerAdoptionRetryScheduled || liveTornDown)
+                return;
+            listenerAdoptionRetryScheduled = true;
+            int generation = listenerAdoptionRetryGeneration;
+            try
+            {
+                await LiveDelay(listenerAdoptionRetrySeconds);
+            }
+            catch (Exception exception)
+            {
+                Debug.LogWarning($"[NeoCompose] Could not schedule listener adoption retry for \"{CustomId}\". {exception.Message}");
+                return;
+            }
+            finally
+            {
+                if (generation == listenerAdoptionRetryGeneration)
+                    listenerAdoptionRetryScheduled = false;
+            }
+            if (!liveTornDown && generation == listenerAdoptionRetryGeneration)
+                DrainRealtimeRevisions();
         }
 
         /// <summary>
@@ -999,14 +1187,15 @@ namespace NeoCompose.Runtime
             var current = active;
             if (current == null)
                 return;
-            if (signal.snapshotId == current.snapshotId
-                && signal.snapshotRevision <= current.snapshotRevision)
-            {
-                return;
-            }
-
             try
             {
+                NeoSaveFormat.RequireSupported(signal.requiredSaveFormatRevision);
+                if (signal.snapshotId == current.snapshotId
+                    && signal.snapshotRevision <= current.recordCache.snapshotRevision)
+                {
+                    return;
+                }
+
                 if (signal.snapshotId != current.snapshotId || core.ApiClient == null)
                 {
                     // GetSaveAsync reads payload-free metadata, then explicitly
@@ -1039,38 +1228,20 @@ namespace NeoCompose.Runtime
                             current.recordCache,
                             liveStaticBindingBaseline,
                             stagedLive!.staticBindings,
-                            stagedDirty);
+                            stagedDirty, liveListenerBaseline, stagedLive.changeListeners, stagedLive.listenerEndpoints);
                     }
                 }
 
+                current.requiredSaveFormatRevision = NeoSaveFormat.Combine(
+                    current.requiredSaveFormatRevision, signal.requiredSaveFormatRevision);
                 var changed = await NeoGameSaveRecordSync.ApplyDeltaAsync(
-                    core.ApiClient, CustomId, current, signal.snapshotRevision);
+                    core.ApiClient, CustomId, current,
+                    Math.Max(signal.snapshotRevision, current.snapshotRevision));
                 if (!changed)
                     return;
+                current.recordCache.requiredSaveFormatRevision = NeoSaveFormat.Combine(current.recordCache.requiredSaveFormatRevision, signal.requiredSaveFormatRevision);
 
-                var serverValues = AsValuesObject(current.values);
-                liveStaticBindingBaseline =
-                    new Dictionary<string, string?>(current.staticBindings);
-                if (serverValues != null)
-                {
-                    liveBaseline = await CloneOnWorkerAsync(serverValues);
-                    if (localDirty != null)
-                    {
-                        ApplyLocalChanges(
-                            serverValues, current.staticBindings, localDirty);
-                        current.values = new NeoSaveValues(serverValues);
-                    }
-                }
-                current.liveFlushed = liveFirstDirtyAt < 0;
-                stagedLive = current;
-                RecordKnownLiveIdentity(
-                    current.serverId,
-                    current.snapshotId,
-                    current.snapshotRevision,
-                    current.synchronizedAt);
-                string content = await SerializeOnWorkerAsync(current);
-                await core.LocalStore.CommitSaveAsync(CustomId, content);
-                OnLiveContentChanged?.Invoke(content);
+                await ReconcileHydratedSaveAsync(current, localDirty);
             }
             catch (Exception exception)
             {
@@ -1078,6 +1249,51 @@ namespace NeoCompose.Runtime
                     $"[NeoCompose] Could not apply save record delta for \"{CustomId}\". " +
                     $"{exception.GetType().Name}: {exception.Message}");
             }
+        }
+
+        private async Awaitable ReconcileHydratedSaveAsync(LocalGameSave current, NeoSavePatch? localDirty, bool listenersOnly = false)
+        {
+            var serverValues = AsValuesObject(current.values);
+            if (!listenersOnly)
+            {
+                liveStaticBindingBaseline = new Dictionary<string, string?>(current.staticBindings);
+                if (serverValues is not null)
+                    liveBaseline = await CloneOnWorkerAsync(serverValues);
+            }
+            liveListenerBaseline = NeoChangeListenerPatches.Copy(current.changeListeners);
+            if (localDirty is not null && serverValues is not null)
+            {
+                NeoChangeListenerPatches.Apply(liveListenerBaseline, localDirty, expected: true);
+                ApplyLocalChanges(serverValues, current.staticBindings, localDirty, current.changeListeners ??= new());
+                current.values = new NeoSaveValues(serverValues);
+            }
+            if (current.changeListeners?.Count == 0)
+                current.changeListeners = null;
+            current.liveFlushed = liveFirstDirtyAt < 0;
+            stagedLive = current;
+            RecordKnownLiveIdentity(current.serverId, current.snapshotId, current.snapshotRevision, current.synchronizedAt);
+            string content = await SerializeOnWorkerAsync(current);
+            await core.LocalStore.CommitSaveAsync(CustomId, content);
+            OnLiveContentChanged?.Invoke(content);
+        }
+
+        private void QueueListenerAdoption(LocalGameSave local, RemoteGameSave committed)
+        {
+            var acknowledged = NeoChangeListenerPatches.Copy(local.changeListeners);
+            var received = NeoChangeListenerPatches.Copy(committed.changeListeners);
+            bool changed = acknowledged.Count != received.Count;
+            foreach (var root in acknowledged)
+            {
+                if (!received.TryGetValue(root.Key, out var other) || !NeoChangeListenerMap.Same(root.Value, other))
+                {
+                    changed = true;
+                    break;
+                }
+            }
+            if (changed)
+                pendingListenerAdoption = (committed.snapshotId, received, acknowledged);
+            liveListenerBaseline = changed ? acknowledged : received;
+            local.changeListeners = received.Count == 0 ? null : received;
         }
 
         // ---------------------------------------------------------------------
@@ -1109,12 +1325,17 @@ namespace NeoCompose.Runtime
         {
             liveSnapshotId = null;
             stagedLive = null;
+            pendingListenerAdoption = null;
+            listenerAdoptionRetryGeneration++;
+            listenerAdoptionRetryScheduled = false;
+            listenerAdoptionRetrySeconds = 0;
             liveFirstDirtyAt = -1;
             liveBaseline = AsValuesObject(loaded.values) is JObject values
                 ? (JObject)values.DeepClone()
                 : null;
             liveStaticBindingBaseline =
                 new Dictionary<string, string?>(loaded.staticBindings);
+            liveListenerBaseline = NeoChangeListenerPatches.Copy(loaded.changeListeners);
             RecordKnownLiveIdentity(
                 loaded.serverId,
                 loaded.snapshotId,
@@ -1346,8 +1567,16 @@ namespace NeoCompose.Runtime
 
         private async Awaitable FlushLiveOnceSerializedAsync(INeoRealtimeProvider realtime)
         {
-            while (liveFlushOperationRunning)
+            // Hydration and acknowledgement both advance the baseline. Hold one
+            // while the other is running so an older capture cannot replace a
+            // newer remote owner entry.
+            while (liveFlushOperationRunning || realtimeRevisionApplyRunning)
             {
+                if (realtimeRevisionApplyRunning)
+                {
+                    await WaitForRevisionApplyAsync();
+                    continue;
+                }
                 var waiter = new AwaitableCompletionSource();
                 liveFlushWaiters.Add(waiter);
                 await waiter.Awaitable;
@@ -1361,6 +1590,7 @@ namespace NeoCompose.Runtime
             finally
             {
                 liveFlushOperationRunning = false;
+                DrainRealtimeRevisions();
                 var waiters = liveFlushWaiters.ToArray();
                 liveFlushWaiters.Clear();
                 foreach (var waiter in waiters)
@@ -1414,8 +1644,8 @@ namespace NeoCompose.Runtime
                 local.recordCache,
                 liveStaticBindingBaseline,
                 local.staticBindings,
-                stagedDirty);
-            if (patch.IsEmpty)
+                stagedDirty, liveListenerBaseline, local.changeListeners, local.listenerEndpoints);
+            if (patch.IsEmpty && (local.requiredSaveFormatRevision ?? NeoSaveFormat.LegacyRevision) <= (local.recordCache.requiredSaveFormatRevision ?? NeoSaveFormat.LegacyRevision))
             {
                 if (ReferenceEquals(stagedLive, local))
                 {
@@ -1457,6 +1687,7 @@ namespace NeoCompose.Runtime
                 {
                     result = await realtime.PatchLiveAsync(new NeoLivePatchRequest
                     {
+                        requiredSaveFormatRevision = local.requiredSaveFormatRevision,
                         customId = CustomId,
                         snapshotId = liveSnapshotId!,
                         patch = batch,
@@ -1480,7 +1711,7 @@ namespace NeoCompose.Runtime
                         local.recordCache,
                         liveStaticBindingBaseline,
                         local.staticBindings,
-                        stagedDirty);
+                        stagedDirty, liveListenerBaseline, local.changeListeners, local.listenerEndpoints);
                     await ForkLiveSessionAsync(
                         realtime,
                         local,
@@ -1493,6 +1724,16 @@ namespace NeoCompose.Runtime
 
                 if (result.IsConflict)
                 {
+                    var conflictId = result.Conflict!.recordId;
+                    if (result.Conflict.recordKind == NeoGameSaveRecordKinds.ChangeListeners
+                        && batch.changes.Any(change => change is GameSaveChangeListenersPatchChange listeners && listeners.rootId == conflictId))
+                    {
+                        var error = new NeoSaveConflictUnresolvedException(
+                            $"Save '{CustomId}' record or listener baseline on '{conflictId}' changed remotely. " +
+                            "Reload and reconcile the staged listeners before retrying.");
+                        OnCommitError?.Invoke(error);
+                        throw error;
+                    }
                     // The next normalized patch uses this record's new OCC base.
                     var descriptor = result.Conflict!.currentDescriptor;
                     local.recordCache.descriptors[descriptor.LogicalKey] = descriptor;
@@ -1505,10 +1746,19 @@ namespace NeoCompose.Runtime
                 {
                     local.recordCache.descriptors[descriptor.LogicalKey] = descriptor;
                 }
+                local.recordCache.requiredSaveFormatRevision = NeoSaveFormat.Combine(local.recordCache.requiredSaveFormatRevision, local.requiredSaveFormatRevision);
                 local.recordCache.snapshotId = result.SnapshotId;
-                local.recordCache.snapshotRevision = result.SnapshotRevision;
+                // Acknowledgement descriptors omit untouched remote content.
+                // Only record hydration advances recordCache.snapshotRevision.
                 liveBaseline ??= new JObject();
-                ApplyLocalChanges(liveBaseline, liveStaticBindingBaseline, batch);
+                ApplyLocalChanges(liveBaseline, liveStaticBindingBaseline, batch, liveListenerBaseline);
+                if (pendingListenerAdoption is { } adoption && adoption.snapshotId == result.SnapshotId)
+                {
+                    // A failed local adoption can outlive another successful flush.
+                    // Its remote map and diff base must include that acknowledgement.
+                    NeoChangeListenerPatches.Apply(adoption.received, batch);
+                    NeoChangeListenerPatches.Apply(adoption.acknowledged, batch);
+                }
                 local.snapshotId = result.SnapshotId;
                 local.snapshotRevision = result.SnapshotRevision;
                 local.synchronizedAt = result.SynchronizedAt.EpochMilliseconds;
@@ -1522,6 +1772,7 @@ namespace NeoCompose.Runtime
             liveBaseline = await nextBaseline;
             liveStaticBindingBaseline =
                 new Dictionary<string, string?>(local.staticBindings);
+            liveListenerBaseline = NeoChangeListenerPatches.Copy(local.changeListeners);
             await PersistFlushedLocalAsync(local);
             return true;
         }
@@ -1661,6 +1912,7 @@ namespace NeoCompose.Runtime
                 liveBaseline = adoptedBaseline;
                 liveStaticBindingBaseline =
                     new Dictionary<string, string?>(serverHead.staticBindings);
+                liveListenerBaseline = NeoChangeListenerPatches.Copy(serverHead.changeListeners);
                 liveFirstDirtyAt = -1;
                 OnLiveContentChanged?.Invoke(adoptedContent);
                 return;
@@ -1754,10 +2006,13 @@ namespace NeoCompose.Runtime
             liveBaseline = baseline;
             liveStaticBindingBaseline =
                 new Dictionary<string, string?>(committed.staticBindings);
+            QueueListenerAdoption(local, committed);
             local.serverId = committed.serverId;
             local.snapshotId = committed.snapshotId;
             local.snapshotRevision = committed.snapshotRevision;
+            local.requiredSaveFormatRevision = NeoSaveFormat.Combine(local.requiredSaveFormatRevision, committed.requiredSaveFormatRevision);
             local.recordCache = committed.recordCache;
+            local.recordCache.requiredSaveFormatRevision = committed.requiredSaveFormatRevision;
             local.snapshotName = committed.snapshotName;
             local.synchronizedAt = committed.synchronizedAt.EpochMilliseconds;
             RecordKnownLiveIdentity(
@@ -1794,10 +2049,13 @@ namespace NeoCompose.Runtime
             liveBaseline = baseline;
             liveStaticBindingBaseline =
                 new Dictionary<string, string?>(committed.staticBindings);
+            QueueListenerAdoption(local, committed);
             local.serverId = committed.serverId;
             local.snapshotId = committed.snapshotId;
             local.snapshotRevision = committed.snapshotRevision;
+            local.requiredSaveFormatRevision = NeoSaveFormat.Combine(local.requiredSaveFormatRevision, committed.requiredSaveFormatRevision);
             local.recordCache = committed.recordCache;
+            local.recordCache.requiredSaveFormatRevision = committed.requiredSaveFormatRevision;
             local.snapshotName = committed.snapshotName;
             local.synchronizedAt = committed.synchronizedAt.EpochMilliseconds;
             RecordKnownLiveIdentity(
@@ -1909,6 +2167,7 @@ namespace NeoCompose.Runtime
         {
             return new NeoLiveForkRequest
             {
+                requiredSaveFormatRevision = local.requiredSaveFormatRevision,
                 customId = string.IsNullOrEmpty(local.customId) ? CustomId : local.customId,
                 liveSessionId = liveSessionId,
                 baseSnapshotId = baseSnapshotId,
@@ -1942,7 +2201,10 @@ namespace NeoCompose.Runtime
             GameSaveRecordCache? cache,
             IReadOnlyDictionary<string, string?> baselineStaticBindings,
             IReadOnlyDictionary<string, string?> stagedStaticBindings,
-            DirtyRecords? dirtyRecords)
+            DirtyRecords? dirtyRecords,
+            IReadOnlyDictionary<string, NeoChangeListenerMap>? baselineListeners = null,
+            IReadOnlyDictionary<string, NeoChangeListenerMap>? stagedListeners = null,
+            IReadOnlyDictionary<string, GameSaveListenerEndpointLocator>? listenerEndpoints = null)
         {
             if (dirtyRecords == null || dirtyRecords.IsEmpty)
             {
@@ -1954,7 +2216,7 @@ namespace NeoCompose.Runtime
                     staged,
                     cache,
                     baselineStaticBindings,
-                    stagedStaticBindings);
+                    stagedStaticBindings, baselineListeners, stagedListeners, listenerEndpoints);
             }
 
             var patch = new NeoSavePatch();
@@ -1997,12 +2259,12 @@ namespace NeoCompose.Runtime
                     && OnlySafeRecordFieldsDiffer(oldObject, newObject))
                 {
                     var fieldPatch = BuildValueFieldPatch(
-                        dirty.Key, oldObject, newObject, descriptor);
+                        dirty.Key, oldObject, newObject, descriptor, dirty.Value);
                     if (fieldPatch.set.Count != 0 || fieldPatch.unset.Count != 0)
                     {
                         patch.changes.Add(fieldPatch);
-                        continue;
                     }
+                    continue;
                 }
                 patch.changes.Add(new GameSaveValueReplaceChange
                 {
@@ -2057,6 +2319,7 @@ namespace NeoCompose.Runtime
                     });
                 }
             }
+            NeoChangeListenerPatches.AppendChanges(patch, baselineListeners, stagedListeners, cache, dirtyRecords.listenerOwners, listenerEndpoints);
             return patch;
         }
 
@@ -2065,7 +2328,10 @@ namespace NeoCompose.Runtime
             JObject staged,
             GameSaveRecordCache? cache = null,
             IReadOnlyDictionary<string, string?>? baselineStaticBindings = null,
-            IReadOnlyDictionary<string, string?>? stagedStaticBindings = null)
+            IReadOnlyDictionary<string, string?>? stagedStaticBindings = null,
+            IReadOnlyDictionary<string, NeoChangeListenerMap>? baselineListeners = null,
+            IReadOnlyDictionary<string, NeoChangeListenerMap>? stagedListeners = null,
+            IReadOnlyDictionary<string, GameSaveListenerEndpointLocator>? listenerEndpoints = null)
         {
             var patch = new NeoSavePatch();
             foreach (var property in staged.Properties())
@@ -2175,6 +2441,7 @@ namespace NeoCompose.Runtime
                 }
             }
 
+            NeoChangeListenerPatches.AppendChanges(patch, baselineListeners, stagedListeners, cache, endpoints: listenerEndpoints);
             return patch;
         }
 
@@ -2201,7 +2468,8 @@ namespace NeoCompose.Runtime
             string valueId,
             JObject baseline,
             JObject staged,
-            GameSaveRecordDescriptor descriptor)
+            GameSaveRecordDescriptor descriptor,
+            IReadOnlyCollection<string>? dirtyFields = null)
         {
             var change = new GameSaveValuePatchChange
             {
@@ -2266,8 +2534,11 @@ namespace NeoCompose.Runtime
         private static void ApplyLocalChanges(
             JObject values,
             IDictionary<string, string?> staticBindings,
-            NeoSavePatch patch)
+            NeoSavePatch patch,
+            IDictionary<string, NeoChangeListenerMap>? changeListeners = null)
         {
+            if (changeListeners is not null)
+                NeoChangeListenerPatches.Apply(changeListeners, patch);
             foreach (var change in patch.changes)
             {
                 switch (change)
@@ -2283,9 +2554,7 @@ namespace NeoCompose.Runtime
                             if (values[fieldPatch.valueId] is not JObject row)
                                 break;
                             foreach (var pair in fieldPatch.set)
-                            {
                                 row[pair.Key] = pair.Value.DeepClone();
-                            }
                             foreach (var field in fieldPatch.unset)
                                 row.Remove(field);
                             break;
@@ -2310,6 +2579,8 @@ namespace NeoCompose.Runtime
                     changes = patch.changes.Skip(index).Take(64).ToList(),
                 });
             }
+            if (batches.Count == 0)
+                batches.Add(new NeoSavePatch());
             return batches;
         }
 
@@ -2477,6 +2748,9 @@ namespace NeoCompose.Runtime
                 targetReleaseChannelId = core.TargetReleaseChannelId,
                 values = mainValues,
                 staticBindings = local.staticBindings,
+                changeListeners = local.changeListeners,
+                listenerEndpoints = local.listenerEndpoints is null ? null : new List<GameSaveListenerEndpointLocator>(local.listenerEndpoints.Values),
+                requiredSaveFormatRevision = local.requiredSaveFormatRevision,
                 valuePartitions = partitions,
                 platforms = local.platforms,
                 systems = local.systems,
@@ -2501,7 +2775,8 @@ namespace NeoCompose.Runtime
                     cache: null,
                     baselineStaticBindings:
                         new Dictionary<string, string?>(),
-                    stagedStaticBindings: local.staticBindings)
+                    stagedStaticBindings: local.staticBindings,
+                    stagedListeners: local.changeListeners, listenerEndpoints: local.listenerEndpoints)
                 .changes;
         }
 
@@ -2509,6 +2784,7 @@ namespace NeoCompose.Runtime
             NeoSaveCommitRequest request) =>
             new NeoChunkedCreateRequest
             {
+                requiredSaveFormatRevision = request.requiredSaveFormatRevision,
                 customId = request.customId,
                 name = request.name,
                 version = request.version,

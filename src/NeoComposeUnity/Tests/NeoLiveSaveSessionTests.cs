@@ -26,6 +26,25 @@ namespace NeoCompose.Tests
     /// </summary>
     public class NeoLiveSaveSessionTests
     {
+        private sealed class FailingLocalStore : INeoLocalSaveStore
+        {
+            private readonly NeoInMemoryLocalSaveStore inner = new();
+            public bool FailCommit;
+            public int FailedCommits;
+            public Awaitable<IReadOnlyList<string>> ListSaveIdsAsync() => inner.ListSaveIdsAsync();
+            public Awaitable<string?> LoadSaveAsync(string id) => inner.LoadSaveAsync(id);
+            public Awaitable DeleteSaveAsync(string id) => inner.DeleteSaveAsync(id);
+            public Awaitable CommitSaveAsync(string id, string content)
+            {
+                if (FailCommit)
+                {
+                    FailedCommits++;
+                    throw new InvalidOperationException("Local listener write failed");
+                }
+                return inner.CommitSaveAsync(id, content);
+            }
+        }
+
         /// <summary>Deterministic clock + delay seams for the flush throttle.</summary>
         private sealed class ManualLiveScheduler
         {
@@ -42,6 +61,7 @@ namespace NeoCompose.Tests
             }
 
             public double Now() => NowSeconds;
+            public double? NextDelay => waits.Count == 0 ? null : waits.Min(wait => wait.dueAt) - NowSeconds;
 
             public Awaitable Delay(double seconds)
             {
@@ -161,11 +181,11 @@ namespace NeoCompose.Tests
             NeoInMemoryLocalSaveStore local,
             FakeRealtimeProvider realtime,
             ManualLiveScheduler scheduler)> LiveSessionAsync(
-            bool liveSessionsEnabled = true)
+            bool liveSessionsEnabled = true, string? initialLiveSessionId = null, INeoLocalSaveStore? localStore = null)
         {
             var api = new FakeApiClient
             {
-                getResult = RemoteWithValues("snap-1", "{}"),
+                getResult = RemoteWithValues("snap-1", "{}", initialLiveSessionId),
             };
             var local = new NeoInMemoryLocalSaveStore();
             var realtime = new FakeRealtimeProvider
@@ -175,7 +195,7 @@ namespace NeoCompose.Tests
             };
             var store = new NeoProjectStore(
                 dataSource: new NeoJsonProjectDataSource(NeoSaveTestSupport.ProjectJson),
-                localStore: local,
+                localStore: localStore ?? local,
                 apiClient: api,
                 targetReleaseChannelId: LiveChannel,
                 options: new NeoSaveOptions { LiveSessionsEnabled = liveSessionsEnabled },
@@ -571,6 +591,466 @@ namespace NeoCompose.Tests
             Assert.That(
                 ChangedValueIds(realtime.livePatches[0].patch),
                 Is.EquivalentTo(new[] { "a" }));
+        }
+
+        private static string ListenerContent(string listeners)
+        {
+            var content = JObject.Parse(LiveSaveContent("{}", "snap-live"));
+            content["changeListeners"] = JObject.Parse(listeners);
+            return content.ToString(Formatting.None);
+        }
+
+        private static async Task ForkListenersAsync(NeoSaveSynchronizer sync,
+            FakeRealtimeProvider realtime, ManualLiveScheduler scheduler, string listeners)
+        {
+            var remote = RemoteWithValues("snap-live", "{}", "session-x");
+            remote.changeListeners = JsonConvert.DeserializeObject<Dictionary<string, NeoChangeListenerMap>>(listeners);
+            realtime.forkResults.Enqueue(NeoCommitResult.Committed(remote));
+            await StageListenerValues(sync, listeners, remote.changeListeners!["root"].Keys.ToArray());
+            await scheduler.AdvanceAsync(0.5);
+            Assert.That(realtime.forks, Has.Count.EqualTo(1));
+        }
+
+        private static string ListenerValues(params (string owner, string handler)[] entries)
+        {
+            var map = new JObject();
+            foreach (var (owner, handler) in entries)
+            {
+                map[owner] = new JObject
+                {
+                    ["Bar"] = new JArray(new JObject { ["memberId"] = handler, ["valueId"] = "receiver" }),
+                };
+            }
+            return new JObject
+            {
+                ["root"] = map,
+            }.ToString(Formatting.None);
+        }
+
+        private static async Task StageListenerValues(
+            NeoSaveSynchronizer sync, string values, params string[] owners)
+        {
+            var content = ListenerContent(values);
+            var dirty = new NeoSaveSynchronizer.DirtyRecords();
+            foreach (var owner in owners)
+                dirty.MarkListener("root", owner);
+            var captured = LocalGameSaveLoader.Load(content);
+            var endpoints = new Dictionary<string, GameSaveListenerEndpointLocator>();
+            foreach (var root in captured.changeListeners!)
+                foreach (var owner in root.Value)
+                    endpoints[owner.Key] = new GameSaveListenerEndpointLocator
+                    {
+                        valueId = owner.Key,
+                        rootId = root.Key,
+                        rootMemberId = "binding",
+                        // Distinguish each staged capture in transport assertions.
+                        steps = new() { new GameSaveListenerMemberStep { memberId = owner.Value["Bar"][0].memberId! } },
+                    };
+            endpoints["receiver"] = new GameSaveListenerEndpointLocator { valueId = "receiver", rootId = "receiver", rootMemberId = "receiver-binding" };
+            captured.listenerEndpoints = endpoints;
+            await sync.CommitSaveContentAsync(
+                content, captured, replaceSnapshot: false,
+                flushLiveImmediately: false, dirty: dirty);
+        }
+
+        [Test]
+        public async Task ExplicitSnapshotReplacement_CarriesListenerPathsAndAllowsRemovalWithoutThem()
+        {
+            var (store, sync, api, _, realtime, _) = await LiveSessionAsync(false, "session-x");
+            using (store)
+            {
+                var imported = JObject.Parse(ListenerContent(ListenerValues(("owner", "handler"))));
+                imported["snapshotId"] = "snap-1";
+                var content = imported.ToString(Formatting.None);
+                var capture = LocalGameSaveLoader.Load(content);
+                capture.listenerEndpoints = new Dictionary<string, GameSaveListenerEndpointLocator>
+                {
+                    ["owner"] = new() { valueId = "owner", rootId = "root", rootMemberId = "binding", steps = new() { new GameSaveListenerMemberStep { memberId = "child" } } },
+                    ["receiver"] = new() { valueId = "receiver", rootId = "receiver", rootMemberId = "receiver-binding" },
+                };
+                realtime.livePatchHandler = _ =>
+                {
+                    api.getResult = RemoteWithValues("snap-1", "{}", "session-x", 2);
+                    api.getResult.changeListeners = capture.changeListeners;
+                    return NeoAwaitable.FromResult(Patched("snap-1", 2));
+                };
+                await sync.CommitSaveContentAsync(content, capture, replaceSnapshot: true, flushLiveImmediately: false, dirty: null);
+                var added = realtime.livePatches.Single().patch.changes.OfType<GameSaveChangeListenersPatchChange>().Single();
+                Assert.That(added.endpoints.Select(endpoint => endpoint.valueId), Is.EquivalentTo(new[] { "owner", "receiver" }));
+                Assert.That(added.edits.Single().expected, Is.Null);
+
+                var removed = LocalGameSaveLoader.Load(JsonConvert.SerializeObject(sync.ActiveSave!));
+                removed.changeListeners = null;
+                realtime.livePatchHandler = _ =>
+                {
+                    api.getResult = RemoteWithValues("snap-1", "{}", "session-x", 3);
+                    return NeoAwaitable.FromResult(Patched("snap-1", 3));
+                };
+                await sync.CommitSaveContentAsync(JsonConvert.SerializeObject(removed), removed, replaceSnapshot: true, flushLiveImmediately: false, dirty: null);
+                var removal = realtime.livePatches.Last().patch.changes.OfType<GameSaveChangeListenersPatchChange>().Single();
+                Assert.That(removal.edits.Single().entry, Is.Null);
+                Assert.That(removal.endpoints, Is.Empty);
+            }
+        }
+
+        [Test]
+        public async Task ListenerCaptureIncludesUnflushedOwnersWithoutUnrelatedMaps()
+        {
+            var (store, sync, _, _, realtime, scheduler) = await LiveSessionAsync();
+            using (store)
+            {
+                await ForkListenersAsync(sync, realtime, scheduler, ListenerValues(("unrelated", "old")));
+                await StageListenerValues(sync, ListenerValues(("unrelated", "old"), ("pending", "first")), "pending");
+                var next = new NeoSaveSynchronizer.DirtyRecords();
+                next.MarkListener("another-root", "new-owner");
+                var selected = sync.ListenerOwnersForCapture(next)!;
+                Assert.That(selected["root"], Is.EquivalentTo(new[] { "pending" }));
+                Assert.That(selected["another-root"], Is.EquivalentTo(new[] { "new-owner" }));
+                Assert.That(next.listenerOwners.ContainsKey("root"), Is.False);
+            }
+        }
+
+        [Test]
+        public async Task EmptyLivePatchPromotesOnlyUntilAcknowledged()
+        {
+            var (store, sync, _, _, realtime, scheduler) = await LiveSessionAsync();
+            using (store)
+            {
+                await ForkEstablishedAsync(sync, realtime, scheduler);
+                var content = JObject.Parse(LiveSaveContent("{\"a\":1}", "snap-live"));
+                content["requiredSaveFormatRevision"] = 2;
+                realtime.livePatchResults.Enqueue(Patched("snap-live", 2));
+                await sync.CommitSaveContentAsync(content.ToString(Formatting.None), replaceSnapshot: false);
+                await scheduler.AdvanceAsync(0.5);
+                Assert.That(realtime.livePatches.Single().requiredSaveFormatRevision, Is.EqualTo(2));
+                Assert.That(realtime.livePatches.Single().patch.changes, Is.Empty);
+                await sync.CommitSaveContentAsync(content.ToString(Formatting.None), replaceSnapshot: false);
+                await scheduler.AdvanceAsync(0.5);
+                Assert.That(realtime.livePatches, Has.Count.EqualTo(1));
+            }
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task MarkerOnlyPromotionSurvivesAnEmptyListenerDelta(bool live)
+        {
+            var (store, sync, api, _, realtime, scheduler) = await LiveSessionAsync(liveSessionsEnabled: live);
+            using (store)
+            {
+                var committed = RemoteWithValues("snap-live", "{}", live ? "session-x" : null);
+                committed.requiredSaveFormatRevision = 2;
+                if (live)
+                    realtime.forkResults.Enqueue(NeoCommitResult.Committed(committed));
+                else
+                    api.sparseCommitResults.Enqueue(NeoCommitResult.Committed(committed));
+                var content = JObject.Parse(LiveSaveContent("{}"));
+                content["requiredSaveFormatRevision"] = 2;
+                await sync.CommitSaveContentAsync(content.ToString(Formatting.None), replaceSnapshot: false);
+                if (live)
+                {
+                    await scheduler.AdvanceAsync(0.5);
+                    Assert.That(realtime.forks, Has.Count.EqualTo(1));
+                    Assert.That(realtime.forks[0].requiredSaveFormatRevision, Is.EqualTo(2));
+                    Assert.That(realtime.forks[0].patch.changes, Is.Empty);
+
+                    content["snapshotId"] = "snap-live";
+                    await sync.CommitSaveContentAsync(content.ToString(Formatting.None), replaceSnapshot: false);
+                    await scheduler.AdvanceAsync(0.5);
+                    Assert.That(realtime.livePatches, Is.Empty, "acknowledged format must not cause an empty request");
+                }
+                else
+                {
+                    Assert.That(api.sparseCommits.Single().request.requiredSaveFormatRevision, Is.EqualTo(2));
+                    Assert.That(api.sparseCommits.Single().request.changes, Is.Empty);
+                }
+                Assert.That(sync.ActiveSave!.requiredSaveFormatRevision, Is.EqualTo(2));
+            }
+        }
+
+        [TestCase(false, false)]
+        [TestCase(true, false)]
+        [TestCase(false, true)]
+        [TestCase(true, true)]
+        public async Task ListenerForkAdoption_PreservesRemoteOwnersAndNewerLocalEdits(bool newerEdit, bool failCommit)
+        {
+            var failingStore = new FailingLocalStore();
+            var (store, sync, _, local, realtime, scheduler) = await LiveSessionAsync(localStore: failCommit ? failingStore : null);
+            using (store)
+            {
+                var response = new AwaitableCompletionSource<NeoCommitResult>();
+                realtime.forkHandler = _ => response.Awaitable;
+                await StageListenerValues(sync, ListenerValues(("owner", "first")), "owner");
+                scheduler.Advance(0.5);
+                await WaitFor(() => realtime.forks.Count == 1);
+                var received = new List<string>();
+                sync.OnLiveContentChanged += received.Add;
+                sync.SetLocalWritesPending(true);
+                if (newerEdit)
+                    await StageListenerValues(sync, ListenerValues(("owner", "second")), "owner");
+                var committed = RemoteWithValues("snap-live", "{}", "session-x");
+                committed.changeListeners = JsonConvert.DeserializeObject<Dictionary<string, NeoChangeListenerMap>>(
+                    ListenerValues(("owner", "first"), ("other", "remote")));
+                realtime.forkHandler = null;
+                response.SetResult(NeoCommitResult.Committed(committed));
+                await WaitFor(() => !sync.IsLiveFlushRunning);
+                Assert.That(received, Is.Empty, "game hydration waits for unstaged writes");
+                if (failCommit)
+                {
+                    failingStore.FailCommit = true;
+                    LogAssert.Expect(LogType.Warning, "[NeoCompose] Could not apply realtime save updates for \"save-1\". InvalidOperationException: Local listener write failed");
+                }
+                sync.SetLocalWritesPending(false);
+                if (failCommit)
+                {
+                    await sync.WaitForRevisionApplyAsync();
+                    Assert.That(received, Is.Empty);
+                    failingStore.FailCommit = false;
+                    if (newerEdit)
+                    {
+                        sync.SetLocalWritesPending(true);
+                        await StageListenerValues(sync, ListenerValues(("owner", "third")), "owner");
+                        realtime.livePatchResults.Enqueue(Patched("snap-live", 2));
+                        await scheduler.AdvanceAsync(0.5);
+                        Assert.That(received, Is.Empty);
+                        sync.SetLocalWritesPending(false);
+                        scheduler.Advance(0.5);
+                    }
+                    else
+                        scheduler.Advance(1); // An idle session retries without a signal or another write.
+                }
+                await WaitFor(() => received.Count == 1);
+                var map = JObject.Parse(received.Single())["changeListeners"]!["root"]!;
+                string expectedHandler = newerEdit ? "second" : "first";
+                if (failCommit && newerEdit)
+                    expectedHandler = "third";
+                Assert.That((string?)map["owner"]!["Bar"]![0]!["memberId"], Is.EqualTo(expectedHandler));
+                Assert.That((string?)map["other"]!["Bar"]![0]!["memberId"], Is.EqualTo("remote"));
+                INeoLocalSaveStore persisted = failCommit ? failingStore : local;
+                Assert.That(await persisted.LoadSaveAsync("save-1"), Does.Contain("remote"));
+                if (newerEdit && !failCommit)
+                {
+                    realtime.livePatchResults.Enqueue(Patched("snap-live", 2));
+                    await scheduler.AdvanceAsync(0.5);
+                    var patch = (GameSaveChangeListenersPatchChange)realtime.livePatches.Single().patch.changes.Single();
+                    Assert.That(patch.edits.Single().ownerId, Is.EqualTo("owner"));
+                    Assert.That(patch.edits.Single().expected!["Bar"][0].memberId, Is.EqualTo("first"));
+                    Assert.That(((GameSaveListenerMemberStep)patch.endpoints.Single(endpoint => endpoint.valueId == "owner").steps.Single()).memberId, Is.EqualTo("second"));
+                }
+            }
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task ListenerAdoption_BacksOffPersistentFailuresAndResetsAfterRecovery(bool reload)
+        {
+            var local = new FailingLocalStore();
+            var (store, sync, _, _, realtime, scheduler) = await LiveSessionAsync(localStore: local);
+            using (store)
+            {
+                var warnings = new List<string>();
+                void CaptureWarning(string message, string stack, LogType type)
+                {
+                    if (type == LogType.Warning && message.Contains("Could not apply realtime save updates"))
+                        warnings.Add(message);
+                }
+                Application.logMessageReceived += CaptureWarning;
+                try
+                {
+                    var response = new AwaitableCompletionSource<NeoCommitResult>();
+                    realtime.forkHandler = _ => response.Awaitable;
+                    await StageListenerValues(sync, ListenerValues(("owner", "first")), "owner");
+                    scheduler.Advance(0.5);
+                    await WaitFor(() => realtime.forks.Count == 1);
+                    sync.SetLocalWritesPending(true);
+                    var committed = RemoteWithValues("snap-live", "{}", "session-x");
+                    committed.changeListeners = JsonConvert.DeserializeObject<Dictionary<string, NeoChangeListenerMap>>(
+                        ListenerValues(("owner", "remote")));
+                    response.SetResult(NeoCommitResult.Committed(committed));
+                    await WaitFor(() => !sync.IsLiveFlushRunning);
+                    local.FailCommit = true;
+                    const string warning = "[NeoCompose] Could not apply realtime save updates for \"save-1\". InvalidOperationException: Local listener write failed";
+                    LogAssert.Expect(LogType.Warning, warning);
+                    sync.SetLocalWritesPending(false);
+                    await sync.WaitForRevisionApplyAsync();
+                    foreach (double delay in new double[] { 1, 2, 4, 8, 16, 32, 60, 60 })
+                    {
+                        Assert.That(scheduler.NextDelay, Is.EqualTo(delay));
+                        int attempts = local.FailedCommits;
+                        sync.SetLocalWritesPending(false);
+                        sync.SetLocalWritesPending(false);
+                        Assert.That(local.FailedCommits, Is.EqualTo(attempts), "signals must respect the retry delay");
+                        scheduler.Advance(delay - 0.125);
+                        Assert.That(local.FailedCommits, Is.EqualTo(attempts));
+                        scheduler.Advance(0.125);
+                        await sync.WaitForRevisionApplyAsync();
+                        Assert.That(local.FailedCommits, Is.EqualTo(attempts + 1));
+                        Assert.That(warnings, Has.Count.EqualTo(1));
+                    }
+                    local.FailCommit = false;
+                    if (reload)
+                    {
+                        sync.OnConflict += (_, continuation) => continuation.KeepLocal();
+                        await sync.LoadSaveContentAsync();
+                    }
+                    else
+                    {
+                        scheduler.Advance(60);
+                        await sync.WaitForRevisionApplyAsync();
+                        Assert.That(await local.LoadSaveAsync("save-1"), Does.Contain("remote"));
+                        Assert.That(scheduler.NextDelay, Is.Null);
+                    }
+
+                    local.FailCommit = true;
+                    committed.changeListeners = JsonConvert.DeserializeObject<Dictionary<string, NeoChangeListenerMap>>(
+                        ListenerValues(("owner", "newer")));
+                    LogAssert.Expect(LogType.Warning, warning);
+                    var queue = typeof(NeoSaveSynchronizer).GetMethod("QueueListenerAdoption",
+                        System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+                    queue.Invoke(sync, new object[] { sync.ActiveSave!, committed });
+                    sync.SetLocalWritesPending(false);
+                    await sync.WaitForRevisionApplyAsync();
+                    Assert.That(scheduler.NextDelay, Is.EqualTo(1));
+                    Assert.That(warnings, Has.Count.EqualTo(2));
+                    if (reload)
+                    {
+                        // The old 60-second timer must neither attempt adoption nor clear the new retry gate.
+                        scheduler.Advance(1);
+                        await sync.WaitForRevisionApplyAsync();
+                        Assert.That(scheduler.NextDelay, Is.EqualTo(2));
+                        int attempts = local.FailedCommits;
+                        sync.SetLocalWritesPending(false);
+                        Assert.That(local.FailedCommits, Is.EqualTo(attempts));
+                        scheduler.Advance(59);
+                        await sync.WaitForRevisionApplyAsync();
+                        Assert.That(local.FailedCommits, Is.EqualTo(attempts + 1),
+                            "only the new basis retry may run when both timers have elapsed");
+                        Assert.That(scheduler.NextDelay, Is.EqualTo(4));
+                        sync.SetLocalWritesPending(false);
+                        Assert.That(local.FailedCommits, Is.EqualTo(attempts + 1));
+                    }
+                }
+                finally
+                {
+                    Application.logMessageReceived -= CaptureWarning;
+                }
+            }
+        }
+
+        [Test]
+        public async Task ListenerAdoption_PreservesNewerAdoptionQueuedDuringHydration()
+        {
+            var (store, sync, _, local, realtime, scheduler) = await LiveSessionAsync();
+            using (store)
+            {
+                var response = new AwaitableCompletionSource<NeoCommitResult>();
+                realtime.forkHandler = _ => response.Awaitable;
+                await StageListenerValues(sync, ListenerValues(("owner", "first")), "owner");
+                scheduler.Advance(0.5);
+                await WaitFor(() => realtime.forks.Count == 1);
+                var received = new List<string>();
+                sync.OnLiveContentChanged += content =>
+                {
+                    received.Add(content);
+                    if (received.Count != 1)
+                        return;
+                    var newer = RemoteWithValues("snap-live", "{}", "session-x");
+                    newer.changeListeners = JsonConvert.DeserializeObject<Dictionary<string, NeoChangeListenerMap>>(
+                        ListenerValues(("owner", "newest")));
+                    // Queue at the hydration completion seam, before the drain retires its current adoption.
+                    var queue = typeof(NeoSaveSynchronizer).GetMethod("QueueListenerAdoption",
+                        System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+                    queue.Invoke(sync, new object[] { sync.ActiveSave!, newer });
+                };
+                var committed = RemoteWithValues("snap-live", "{}", "session-x");
+                committed.changeListeners = JsonConvert.DeserializeObject<Dictionary<string, NeoChangeListenerMap>>(
+                    ListenerValues(("owner", "remote")));
+                response.SetResult(NeoCommitResult.Committed(committed));
+                await WaitFor(() => received.Count == 2);
+                await sync.WaitForRevisionApplyAsync();
+                Assert.That(received[1], Does.Contain("newest"));
+                Assert.That(await local.LoadSaveAsync("save-1"), Does.Contain("newest"));
+            }
+        }
+
+        [Test]
+        public async Task ListenerHydration_PreservesUntouchedOwnersAndOriginalPendingBase()
+        {
+            var (store, sync, api, _, realtime, scheduler) = await LiveSessionAsync();
+            using (store)
+            {
+                await ForkListenersAsync(sync, realtime, scheduler, ListenerValues(("owner", "old")));
+                await StageListenerValues(sync, ListenerValues(("owner", "local")), "owner");
+                var received = new List<string>();
+                sync.OnLiveContentChanged += received.Add;
+                api.SetListenerDelta("snap-live", 2, ListenerValues(("owner", "remote"), ("other", "other-handler")));
+                realtime.PushHead(RemoteWithValues("snap-live", "{}", "session-x", snapshotRevision: 2));
+                await WaitFor(() => received.Count == 1);
+
+                var map = JObject.Parse(received[0])["changeListeners"]!["root"]!;
+                Assert.That((string?)map["owner"]!["Bar"]![0]!["memberId"], Is.EqualTo("local"));
+                Assert.That((string?)map["other"]!["Bar"]![0]!["memberId"], Is.EqualTo("other-handler"));
+                realtime.livePatchResults.Enqueue(Patched("snap-live", 3));
+                await scheduler.AdvanceAsync(0.5);
+                var change = (GameSaveChangeListenersPatchChange)realtime.livePatches.Single().patch.changes.Single();
+                Assert.That(change.edits.Select(edit => edit.ownerId), Is.EqualTo(new[] { "owner" }));
+                Assert.That(change.edits.Single().expected!["Bar"][0].memberId, Is.EqualTo("old"),
+                    "receiving a conflicting edit must not silently refresh the expected owner entry");
+            }
+        }
+
+        [TestCase(3, 2)]
+        [TestCase(2, 3)]
+        [TestCase(3, 3)]
+        public async Task ListenerAcknowledgement_PreservesNewerLocalEditAndQueuedRemoteOwner(
+            long remoteRevision, long acknowledgedRevision)
+        {
+            var (store, sync, api, _, realtime, scheduler) = await LiveSessionAsync();
+            using (store)
+            {
+                await ForkListenersAsync(sync, realtime, scheduler, ListenerValues(("owner", "old")));
+                var acknowledgement = new AwaitableCompletionSource<NeoLivePatchResult>();
+                realtime.livePatchHandler = _ => acknowledgement.Awaitable;
+                await StageListenerValues(sync, ListenerValues(("owner", "first")), "owner");
+                scheduler.Advance(0.5);
+                await WaitFor(() => realtime.livePatches.Count == 1);
+                await StageListenerValues(sync, ListenerValues(("owner", "second")), "owner");
+                var received = new List<string>();
+                sync.OnLiveContentChanged += received.Add;
+                api.SetListenerDelta("snap-live", 3, ListenerValues(("owner", "first"), ("other", "remote")));
+                realtime.PushHead(RemoteWithValues("snap-live", "{}", "session-x", snapshotRevision: remoteRevision));
+                Assert.That(received, Is.Empty, "hydration waits for the acknowledgement baseline");
+                realtime.livePatchHandler = null;
+                acknowledgement.SetResult(Patched("snap-live", acknowledgedRevision));
+                await WaitFor(() => received.Count == 1);
+                var map = JObject.Parse(received[0])["changeListeners"]!["root"]!;
+                Assert.That((string?)map["owner"]!["Bar"]![0]!["memberId"], Is.EqualTo("second"));
+                Assert.That((string?)map["other"]!["Bar"]![0]!["memberId"], Is.EqualTo("remote"));
+
+                realtime.livePatchResults.Enqueue(Patched("snap-live", 4));
+                await scheduler.AdvanceAsync(0.5);
+                var change = (GameSaveChangeListenersPatchChange)realtime.livePatches[1].patch.changes.Single();
+                Assert.That(change.edits.Select(edit => edit.ownerId), Is.EqualTo(new[] { "owner" }));
+                Assert.That(change.edits.Single().entry!["Bar"][0].memberId, Is.EqualTo("second"));
+                Assert.That(((GameSaveListenerMemberStep)change.endpoints.Single(endpoint => endpoint.valueId == "owner").steps.Single()).memberId, Is.EqualTo("second"));
+                var first = (GameSaveChangeListenersPatchChange)realtime.livePatches[0].patch.changes.Single();
+                Assert.That(((GameSaveListenerMemberStep)first.endpoints.Single(endpoint => endpoint.valueId == "owner").steps.Single()).memberId, Is.EqualTo("first"));
+                Assert.That(change.edits.Single().expected!["Bar"][0].memberId, Is.EqualTo("first"));
+            }
+        }
+
+        [Test]
+        public async Task ListenerTargetedNoOp_DoesNotReplaceRootForAnUntouchedOwnerDifference()
+        {
+            var (store, sync, _, _, realtime, scheduler) = await LiveSessionAsync();
+            using (store)
+            {
+                await ForkListenersAsync(sync, realtime, scheduler,
+                    ListenerValues(("owner", "same"), ("other", "remote")));
+                await StageListenerValues(sync, ListenerValues(("owner", "same")), "owner");
+                await scheduler.AdvanceAsync(0.5);
+                Assert.That(realtime.livePatches, Is.Empty,
+                    "an empty targeted diff must not fall back to whole-root replacement");
+            }
         }
 
         [Test]

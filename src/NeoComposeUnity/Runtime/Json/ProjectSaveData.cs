@@ -43,6 +43,7 @@ namespace NeoCompose.Runtime.Json
         public string source = null!;
         public string kind = null!;
         public string name = null!;
+
         public string displayName = null!;
         public string layout = null!;
         public string manufacturer = null!;
@@ -83,6 +84,11 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public class ProjectSaveData
     {
+        /// <summary>Absent means legacy. Promotion is monotonic even after all listener overrides are removed.</summary>
+        [Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        [Newtonsoft.Json.JsonConverter(typeof(NeoSaveFormatRevisionConverter))]
+        public int? requiredSaveFormatRevision;
+
         /// <summary>
         /// Human-readable save name. New save files get a generated name by
         /// default, and hosts can override generation through
@@ -110,6 +116,12 @@ namespace NeoCompose.Runtime.Json
         /// than a silent overwrite. Null for a local-only or session graph.
         /// </summary>
         public string? snapshotId;
+
+        /// <summary>Revision of the snapshot used as the next commit's conflict base.</summary>
+        public long snapshotRevision;
+
+        /// <summary>Display name of the staged snapshot, when explicitly supplied.</summary>
+        public string? snapshotName;
 
         /// <summary>
         /// Last successful cloud sync time as epoch milliseconds; null when never
@@ -174,6 +186,10 @@ namespace NeoCompose.Runtime.Json
         /// </summary>
         public Dictionary<string, string?> staticBindings = new();
 
+        /// <summary>Durable listener overrides keyed by binding root. Never creates a value override.</summary>
+        [Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public Dictionary<string, NeoChangeListenerMap>? changeListeners;
+
         /// <summary>
         /// A copy whose row and binding maps no longer follow this save's.
         /// Writes replace rows rather than mutate them, so the copy stays a
@@ -184,6 +200,7 @@ namespace NeoCompose.Runtime.Json
             var copy = (ProjectSaveData)MemberwiseClone();
             copy.values = new Dictionary<string, MemberValue>(values);
             copy.staticBindings = new Dictionary<string, string?>(staticBindings);
+            copy.changeListeners = changeListeners is null ? null : new Dictionary<string, NeoChangeListenerMap>(changeListeners);
             return copy;
         }
     }

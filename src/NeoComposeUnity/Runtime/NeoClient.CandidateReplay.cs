@@ -557,7 +557,8 @@ namespace NeoCompose.Runtime
             return true;
         }
 
-        private CandidateReplay? ValidatePreparedWrite(NeoWritePlan plan)
+        private CandidateReplay? ValidatePreparedWrite(NeoWritePlan plan,
+            out Dictionary<(NeoValueOwnership ownership, NeoValueOwnership scope, string rootId), NeoChangeListenerMap>? preparedListeners)
         {
 #if NEO_COMPOSE_PROFILING
             using var marker = PrepareReplayMarker.Auto();
@@ -571,7 +572,13 @@ namespace NeoCompose.Runtime
             }
             if (candidate is null)
             {
-                ValidateWritePlan(plan);
+                using (ReadCandidate(plan))
+                {
+                    ValidateWritePlan(plan);
+                    PrepareListenerMoves(plan);
+                    PrepareCopiedListeners(plan);
+                    preparedListeners = PrepareListenerEntries(plan);
+                }
                 return null;
             }
             candidateReplay = candidate;
@@ -587,6 +594,9 @@ namespace NeoCompose.Runtime
                             PrepareCandidateRoot(id);
                     }
                     ValidateWritePlan(plan);
+                    PrepareListenerMoves(plan);
+                    PrepareCopiedListeners(plan);
+                    preparedListeners = PrepareListenerEntries(plan);
                 }
                 return candidate;
             }
@@ -729,12 +739,14 @@ namespace NeoCompose.Runtime
             internal bool PreparingVariant;
             internal PreparedVariant? PreparedVariant;
             internal readonly Dictionary<string, MemberValue> Allocations = new();
+            internal readonly Dictionary<string, (string rootId, Dictionary<string, NeoDelegateValue[]> members)> ConstructionDefaults = new();
             internal readonly Dictionary<NeoNodeKey, NeoMember> Nodes = new();
             internal readonly Dictionary<NeoNodeKey, NeoGeneratedClassValue> GeneratedValues = new();
             internal readonly Dictionary<string, HashSet<string>> ContainerMembers = new();
             internal readonly Dictionary<string, HashSet<string>> Parents = new();
             internal readonly Dictionary<string, HashSet<string>> VirtualContainerMembers = new();
             internal readonly Dictionary<string, PreparedVirtualExpansion> Expansions = new();
+            internal readonly Dictionary<(NeoValueOwnership scope, string ownerId), Dictionary<string, NeoDelegateValue[]>> ListenerDefaults = new();
             internal readonly Dictionary<string, MemberValue> Values = new();
             internal readonly Dictionary<string, NeoValueOwnership> Ownership = new();
             internal readonly Dictionary<string, Dictionary<string, string>> ClassChildren = new();
@@ -786,6 +798,8 @@ namespace NeoCompose.Runtime
             {
                 Remove(expansion.Root.id);
                 Expansions[expansion.Root.id] = expansion;
+                foreach (var pair in expansion.ListenerDefaults)
+                    ListenerDefaults[pair.Key] = pair.Value;
                 foreach (var pair in expansion.Values)
                 {
                     Values[pair.Key] = pair.Value;
@@ -811,6 +825,8 @@ namespace NeoCompose.Runtime
             {
                 if (!Expansions.Remove(rootId, out var previous))
                     return;
+                foreach (var key in previous.ListenerDefaults.Keys)
+                    ListenerDefaults.Remove(key);
                 foreach (string id in previous.Values.Keys)
                 {
                     Values.Remove(id);
@@ -846,6 +862,9 @@ namespace NeoCompose.Runtime
                         if (Allocations.ContainsKey(pair.Key.id))
                             SetAllocation(pair.Key.id, null);
                     }
+                    if (plan.ListenerEntries is not null)
+                        foreach (var entry in plan.ListenerEntries)
+                            Plan.SetListenerEntry(entry.Key.ownership, entry.Key.rootId, entry.Key.ownerId, entry.Value, entry.Key.scope);
                     foreach (var binding in plan.Bindings)
                         Plan.Bind(binding.Key.ownership, binding.Key.memberId, binding.Value.present, binding.Value.valueId);
                     foreach (var binding in plan.NodeBindings)

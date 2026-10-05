@@ -318,7 +318,14 @@ namespace NeoCompose.Runtime
                 if (expansion.Footprint.Remove(id))
                     nested.Footprint.Add(id);
                 if (expansion.ClassChildren.Remove(id, out var children))
+                {
                     nested.ClassChildren[id] = children;
+                    nested.ClassParentOwnership[id] = expansion.ClassParentOwnership[id];
+                    expansion.ClassParentOwnership.Remove(id);
+                }
+                var listenerKey = (node.effectiveOwnership, id);
+                if (expansion.ListenerDefaults.Remove(listenerKey, out var listeners))
+                    nested.ListenerDefaults[listenerKey] = listeners;
                 // The root's placement belongs to its enclosing collection.
                 if (!isRoot && expansion.Placements.Remove(id, out var placement))
                 {

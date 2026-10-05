@@ -36,6 +36,26 @@ deployment from the Unity editor).
   game writes.
 - Retention: automatic archiving of old live-session snapshots beyond a cap.
 
+## Member listener transport
+
+P70 listener edits use a separate `change-listeners` record for each binding root.
+Each patch compares and replaces individual owner entries. Value rows and their
+placement metadata remain independent. A save containing this metadata requires
+save-format revision 2; deleting the last listener does not lower that revision.
+
+New listener owners and explicit receivers require transient owning-path hints.
+The server resolves them against the prospective save before acknowledging the
+write. Full create, snapshot replacement, sparse commits, and chunked commits
+carry those hints, but local JSON and durable records do not retain them.
+Acknowledgment advances the local baseline; it does not overwrite edits queued
+while a request was in flight.
+
+For JSON import, load the exact imported content through `NeoClient` and call
+`CommitAsync(forceCapture: true)`. This regenerates paths and compares the full
+capture to the synchronizer's baseline. Identical captures remain no-ops.
+Content-only `CommitSaveContentAsync` rejects additions that require unresolved
+paths; removal-only edits can still be committed without them.
+
 ## Non-goals
 
 - **No change for non-realtime players.** Without a connected realtime

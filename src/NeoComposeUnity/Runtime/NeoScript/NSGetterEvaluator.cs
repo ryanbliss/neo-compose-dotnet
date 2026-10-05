@@ -1133,6 +1133,8 @@ namespace NeoCompose.Runtime.NeoScript
                 collectionRows = family.collectionRows ??= new CollectionRowCache();
             }
 
+            internal void ShareAllocations(Context family) => allocationTracker = family.allocationTracker;
+
             /// <summary>
             /// Runs a synchronous function frame on this context instead of a
             /// fork: nothing retains a frame that completes before its caller
@@ -1919,7 +1921,7 @@ namespace NeoCompose.Runtime.NeoScript
         // Pointers — 14 kinds
         // ---------------------------------------------------------------
 
-        private static object? EvalPointer(
+        internal static object? EvalPointer(
             Pointer pointer,
             NeoScriptScope scope,
             Context ctx)
@@ -1966,6 +1968,17 @@ namespace NeoCompose.Runtime.NeoScript
                     }
                 case CallGetterPointer cgp:
                     return EvalCallGetter(cgp, scope, ctx);
+                case MemberTargetPointer target:
+                    {
+                        string? valueId = null;
+                        if (!target.receiver.IsStatic)
+                        {
+                            object? receiver = EvalCallReceiver(target.receiver, scope, ctx);
+                            valueId = FindRowIdByReference(receiver, ctx)
+                                ?? throw new NSGetterRuntimeError("A listener receiver must have a logical value identity.");
+                        }
+                        return new NeoDelegateValue { memberId = target.memberId, valueId = valueId };
+                    }
                 case CoalescePointer cp:
                     {
                         var left = EvalPointer(cp.left, scope, ctx);
@@ -2711,7 +2724,9 @@ namespace NeoCompose.Runtime.NeoScript
         public static object? InvokeDelegate(
             object value,
             object?[] args,
-            Context ctx)
+            Context ctx,
+            object? ownerReceiver = null,
+            NeoValueOwnership? receiverOwnership = null)
         {
             NeoDelegateValue delegateValue = value switch
             {
@@ -2730,7 +2745,7 @@ namespace NeoCompose.Runtime.NeoScript
                 throw new NSGetterRuntimeError(
                     "NeoDelegate value is neither a closure nor a bound member target.");
             }
-            return InvokeDelegateMemberTarget(delegateValue, args, ctx);
+            return InvokeDelegateMemberTarget(delegateValue, args, ctx, ownerReceiver, receiverOwnership);
         }
 
         /// <summary>
@@ -2989,7 +3004,8 @@ namespace NeoCompose.Runtime.NeoScript
             NeoDelegateValue target,
             object?[] args,
             Context ctx,
-            object? ownerReceiver = null)
+            object? ownerReceiver = null,
+            NeoValueOwnership? receiverOwnership = null)
         {
             string memberId = target.memberId!;
             NeoResolvedNSFunction? function = null;
@@ -3039,7 +3055,7 @@ namespace NeoCompose.Runtime.NeoScript
             if (target.valueId is not null)
             {
                 NeoValueNode? node = null;
-                NeoValueOwnership ownership = ResolveOwnershipForValueId(
+                NeoValueOwnership ownership = receiverOwnership ?? ResolveOwnershipForValueId(
                     ctx,
                     target.valueId,
                     ref node);

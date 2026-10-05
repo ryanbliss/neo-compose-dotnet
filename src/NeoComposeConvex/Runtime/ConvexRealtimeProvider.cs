@@ -265,6 +265,7 @@ namespace NeoCompose.Convex
                 new Dictionary<string, object?>
                 {
                     ["projectId"] = projectId,
+                    ["supportedSaveFormatRevision"] = (double)NeoSaveFormat.SupportedRevision,
                     ["customId"] = customId,
                 },
                 ParseSnapshotRevisionSignal,
@@ -290,6 +291,7 @@ namespace NeoCompose.Convex
             var args = new Dictionary<string, object?>
             {
                 ["projectId"] = projectId,
+                ["supportedSaveFormatRevision"] = (double)NeoSaveFormat.SupportedRevision,
                 ["save"] = ToWireArgs(request),
                 ["replaceSnapshot"] = replaceSnapshot,
             };
@@ -312,10 +314,26 @@ namespace NeoCompose.Convex
                     "Realtime live fork requires a connected provider; check CanCommit first.");
             }
 
+            var saveArgs = new Dictionary<string, object?>
+            {
+                ["customId"] = request.customId,
+                ["liveSessionId"] = request.liveSessionId,
+                ["baseSnapshotId"] = request.baseSnapshotId,
+                ["baseSnapshotRevision"] = (double)request.baseSnapshotRevision,
+                ["version"] = ToWireArgs(request.version),
+                ["changes"] = ToWireArgs(request.patch.changes),
+                ["platforms"] = ToWireArgs(request.platforms),
+                ["systems"] = ToWireArgs(request.systems),
+                ["inputDevices"] = ToWireArgs(request.inputDevices),
+                ["updatedAt"] = ToWireArgs(request.updatedAt),
+            };
+            if (request.requiredSaveFormatRevision is { } requiredRevision)
+                saveArgs["requiredSaveFormatRevision"] = (double)requiredRevision;
             var args = new Dictionary<string, object?>
             {
                 ["projectId"] = projectId,
-                ["save"] = ToWireArgs(request),
+                ["supportedSaveFormatRevision"] = (double)NeoSaveFormat.SupportedRevision,
+                ["save"] = saveArgs,
             };
             var json = await current.MutateAsync(
                 "gameSaves:forkLiveSnapshot", args, CancellationToken.None);
@@ -340,11 +358,14 @@ namespace NeoCompose.Convex
             var args = new Dictionary<string, object?>
             {
                 ["projectId"] = projectId,
+                ["supportedSaveFormatRevision"] = (double)NeoSaveFormat.SupportedRevision,
                 ["customId"] = request.customId,
                 ["snapshotId"] = request.snapshotId,
                 ["changes"] = ToWireArgs(request.patch.changes),
                 ["updatedAt"] = ToWireArgs(request.updatedAt),
             };
+            if (request.requiredSaveFormatRevision is { } requiredRevision)
+                args["requiredSaveFormatRevision"] = (double)requiredRevision;
             var json = await current.MutateAsync(
                 "gameSaves:patchLiveSnapshot", args, CancellationToken.None);
             return ParseLivePatchResult(json);
@@ -526,6 +547,7 @@ namespace NeoCompose.Convex
                     "Realtime save head payload deserialized to null.");
             }
 
+            NeoSaveFormat.RequireSupported(save.requiredSaveFormatRevision);
             return save;
         }
 
@@ -538,6 +560,7 @@ namespace NeoCompose.Convex
                 throw new InvalidOperationException(
                     "Realtime save revision signal deserialized to null.");
             }
+            NeoSaveFormat.RequireSupported(signal.requiredSaveFormatRevision);
             return signal;
         }
 
@@ -552,7 +575,7 @@ namespace NeoCompose.Convex
         /// </summary>
         internal static object? ToWireArgs(object value)
         {
-            return ToPlainGraph(JToken.FromObject(value));
+            return value is null ? null : ToPlainGraph(JToken.FromObject(value));
         }
 
         private static object? ToPlainGraph(JToken token)

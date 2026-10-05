@@ -66,7 +66,8 @@ namespace NeoCompose.Runtime
 
         public string SerializeSaveData() => Client.SerializeSaveData();
 
-        public Awaitable CommitAsync(bool replaceSnapshot = false) => Client.CommitAsync(replaceSnapshot);
+        /// <inheritdoc cref="INeoClient.CommitAsync"/>
+        public Awaitable CommitAsync(bool replaceSnapshot = false, bool forceCapture = false) => Client.CommitAsync(replaceSnapshot, forceCapture);
 
         public int RunGarbageCollector() => Client.RunGarbageCollector();
 

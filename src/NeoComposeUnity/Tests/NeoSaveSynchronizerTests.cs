@@ -153,6 +153,45 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public async Task ListenerConflict_KeepLocalRevalidatesRetainedTargetsAgainstTheRemoteBaseline()
+        {
+            var remote = MaterializedRemote("snap-1", 1, "{}");
+            remote.changeListeners = JsonConvert.DeserializeObject<Dictionary<string, NeoChangeListenerMap>>(
+                "{\"root\":{\"owner\":{\"Bar\":[{\"memberId\":\"handler\",\"valueId\":\"retained\"}]}}}");
+            var (store, sync, api) = await LoadedExistingSaveAsync(remote);
+            using (store)
+            {
+                var capture = LocalGameSaveLoader.Load(JsonConvert.SerializeObject(LocalGameSave.FromRemote(remote)));
+                capture.changeListeners!["root"]["owner"]["Bar"] = new[]
+                {
+                    new NeoDelegateValue { memberId = "handler", valueId = "retained" },
+                    new NeoDelegateValue { memberId = "handler", valueId = "added" },
+                };
+                var endpoints = new Dictionary<string, GameSaveListenerEndpointLocator>();
+                foreach (var id in new[] { "owner", "retained", "added" })
+                    endpoints[id] = new GameSaveListenerEndpointLocator { valueId = id, rootId = "root", rootMemberId = "binding", steps = new() { new GameSaveListenerMemberStep { memberId = id + "-member" } } };
+                capture.listenerEndpoints = endpoints;
+                var newer = MaterializedRemote("remote-head", 2, "{}");
+                newer.changeListeners = JsonConvert.DeserializeObject<Dictionary<string, NeoChangeListenerMap>>("{\"root\":{\"owner\":{\"Bar\":[]}}}");
+                api.sparseCommitResults.Enqueue(NeoCommitResult.Conflict(newer));
+                var committed = MaterializedRemote("new-head", 1, "{}");
+                committed.changeListeners = capture.changeListeners;
+                api.sparseCommitResults.Enqueue(NeoCommitResult.Committed(committed));
+                sync.OnConflict += (_, continuation) => continuation.KeepLocal();
+                var dirty = new NeoSaveSynchronizer.DirtyRecords();
+                dirty.MarkListener("root", "owner");
+                await sync.CommitSaveContentAsync(JsonConvert.SerializeObject(capture), capture, replaceSnapshot: false, flushLiveImmediately: false, dirty: dirty);
+                Assert.That(api.sparseCommits, Has.Count.EqualTo(2));
+                var first = api.sparseCommits[0].request.changes.OfType<GameSaveChangeListenersPatchChange>().Single();
+                var rebased = api.sparseCommits[1].request.changes.OfType<GameSaveChangeListenersPatchChange>().Single();
+                Assert.That(first.endpoints.Select(endpoint => endpoint.valueId), Is.EquivalentTo(new[] { "owner", "added" }));
+                Assert.That(rebased.endpoints.Select(endpoint => endpoint.valueId), Is.EquivalentTo(new[] { "owner", "retained", "added" }));
+                Assert.That(rebased.edits.Single().expected!["Bar"], Is.Empty);
+                Assert.That(rebased.edits.Single().entry!["Bar"], Has.Length.EqualTo(2));
+            }
+        }
+
+        [Test]
         public async Task Commit_CloudConflict_KeepRemote_AdoptsServerHead()
         {
             var (store, api, local) = await ReadyStoreWithCloudAsync();
@@ -476,6 +515,7 @@ namespace NeoCompose.Tests
             api.chunkedCompleteResult = MaterializedRemote(
                 "snap-staged", 2, changedValues.ToString(Formatting.None));
             var local = LocalGameSave.FromRemote(baseline);
+            local.requiredSaveFormatRevision = 2;
             local.values = new NeoSaveValues(changedValues);
 
             await sync.CommitSaveContentAsync(
@@ -483,6 +523,7 @@ namespace NeoCompose.Tests
 
             Assert.That(api.sparseCommits, Is.Empty);
             Assert.That(api.stagedBegins, Has.Count.EqualTo(1));
+            Assert.That(api.stagedBegins[0].request.requiredSaveFormatRevision, Is.EqualTo(2));
             Assert.That(
                 api.stagedBegins[0].request.uploadFingerprint,
                 Does.StartWith("sha256:"));
@@ -573,6 +614,55 @@ namespace NeoCompose.Tests
             Assert.That(commitErrors, Is.EqualTo(1));
             Assert.That(await local.LoadSaveAsync("save-1"), Is.Not.Null);
             Assert.That(store.Saves[0].isLocalOnly, Is.True);
+        }
+
+        [Test]
+        public async Task LargeInitialCreate_PersistsListenerRecordsAfterTheirValueDependencies()
+        {
+            var (store, api, _) = await ReadyStoreWithCloudAsync();
+            using (store)
+            {
+                string values = LargeValuesJson(65);
+                api.chunkedCreateTarget = new NeoChunkedCreateTarget
+                {
+                    customId = "save-1",
+                    snapshotId = "snap-large",
+                    resumeToken = "resume-large",
+                };
+                api.chunkedCompleteResult = CompletedLargeSave(values);
+                var content = JObject.Parse(NeoSaveTestSupport.SaveContent("Large", values));
+                content["changeListeners"] = JObject.Parse("{\"root\":{\"owner\":{\"Bar\":[{\"memberId\":\"handler\",\"valueId\":\"receiver\"}]}}}");
+                api.chunkedCompleteResult.changeListeners = content["changeListeners"]!.ToObject<Dictionary<string, NeoChangeListenerMap>>();
+                var sync = store.CreateNew("save-1");
+                string json = content.ToString(Formatting.None);
+                var capture = LocalGameSaveLoader.Load(json);
+                capture.listenerEndpoints = new Dictionary<string, GameSaveListenerEndpointLocator>
+                {
+                    ["owner"] = new GameSaveListenerEndpointLocator
+                    {
+                        valueId = "owner",
+                        rootId = "root",
+                        rootMemberId = "root-member",
+                        steps = new() { new GameSaveListenerMemberStep { memberId = "owner-member" } },
+                    },
+                    ["receiver"] = new GameSaveListenerEndpointLocator
+                    {
+                        valueId = "receiver",
+                        rootId = "assets",
+                        rootMemberId = "assets-member",
+                        steps = new() { new GameSaveListenerMemberStep { memberId = "receiver-member" } },
+                    },
+                };
+                await sync.CommitSaveContentAsync(json, capture, replaceSnapshot: false, flushLiveImmediately: false, dirty: null);
+                Assert.That(api.chunkedAppends.Select(batch => batch.Count).ToArray(), Is.EqualTo(new[] { 64, 2 }), string.Join(",", api.chunkedAppends.Select(batch => batch.Count)));
+                var listeners = api.chunkedAppends.Last().Last() as GameSaveChangeListenersPatchChange;
+                Assert.That(listeners, Is.Not.Null);
+                Assert.That(listeners!.rootId, Is.EqualTo("root"));
+                Assert.That(listeners.edits.Single().ownerId, Is.EqualTo("owner"));
+                Assert.That(listeners.edits.Single().expected, Is.Null);
+                Assert.That(listeners.endpoints.Select(endpoint => endpoint.valueId), Is.EquivalentTo(new[] { "owner", "receiver" }));
+                Assert.That(listeners.endpoints.Single(endpoint => endpoint.valueId == "receiver").steps.Single(), Is.TypeOf<GameSaveListenerMemberStep>());
+            }
         }
 
         [Test]

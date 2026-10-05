@@ -18,6 +18,933 @@ namespace NeoCompose.Tests
 {
     public class P75VirtualInstanceValueTests
     {
+        [Test]
+        public void InlineDefaultListenersRemapTheirOwnerAndInternalReceiverWithoutSaveMetadata()
+        {
+            ProjectData data = BuildProjectData();
+            AddCountListenerHandler(data);
+            string template = NeoClient.DerivedMemberValueId("thing-member");
+            ((ClassMember)data.members["thing-member"]).defaultValue = new ObjectMemberValueBase
+            {
+                classId = "thing-class",
+                value = new Dictionary<string, string>(),
+                changeListeners = new NeoChangeListenerMap
+                {
+                    [template] = new Dictionary<string, NeoDelegateValue[]>
+                    {
+                        ["thing-count"] = new[] { new NeoDelegateValue { memberId = "count-handler", valueId = template } },
+                    },
+                },
+            };
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var heard = new List<double>();
+            client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+            {
+                ["count-handler"] = (_, _, args) => { heard.Add(Convert.ToDouble(args[0])); return null; },
+            });
+            Assert.That(client.SerializeSaveData(), Does.Not.Contain("changeListeners"));
+            client.save.Get<NeoMemberClassWritable>("Thing").Get<NeoMemberIntWritable>("Count").Set(12);
+            CollectionAssert.AreEqual(new[] { 12d }, heard);
+            Assert.That(client.SerializeSaveData(), Does.Not.Contain("changeListeners"));
+        }
+
+        [Test]
+        public void PendingReplacementReleasesVirtualParentButOmissionStillInherits()
+        {
+            ProjectData data = BuildProjectData();
+            ((ClassMember)data.members["thing-member"]).Storage = NeoMemberStorage.Inherit;
+            data.classes["child-class"] = SchemaClass("child-class", "Child", NeoMemberStorage.Save);
+            data.classes["thing-class"].schema["Child"] = "thing-child";
+            data.members["thing-child"] = new ClassMember
+            {
+                id = "thing-child",
+                projectId = "p75-project",
+                name = "Renamed display label",
+                kind = MemberKind.Class,
+                classId = "child-class",
+                Requirement = NeoMemberRequirementKind.Required,
+                defaultValue = new ObjectMemberValueBase { value = new Dictionary<string, string>() },
+            };
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var owner = client.save.Get<NeoMemberClassWritable>("Thing");
+            var child = owner.Get<NeoMemberClassWritable>("Child");
+            string oldId = child.value!.id;
+            string parentId = owner.value!.id;
+            var plan = new NeoWritePlan(client);
+            var checkpoint = plan.Open();
+            var parent = (ObjectMemberValue)client.CloneRowForWrite(owner.value!);
+            parent.value ??= new Dictionary<string, string>();
+            parent.value["Child"] = "replacement-child";
+            plan.Set(NeoValueOwnership.Save, parent);
+            plan.Set(NeoValueOwnership.Save, new ObjectMemberValue
+            {
+                id = "replacement-child",
+                classId = "child-class",
+                value = new Dictionary<string, string>(),
+            });
+            using (client.ReadCandidate(plan))
+            {
+                Assert.That(client.TryFindOwnedParent(NeoValueOwnership.Save, "replacement-child", out string? replacementParent), Is.True);
+                Assert.That(replacementParent, Is.EqualTo(parentId));
+                Assert.That(client.TryFindOwnedParent(NeoValueOwnership.Save, oldId, out _), Is.False);
+            }
+            plan.Rollback(checkpoint);
+            Assert.That(client.TryFindOwnedParent(NeoValueOwnership.Save, oldId, out string? restored), Is.True);
+            Assert.That(restored, Is.EqualTo(parentId));
+            parent = (ObjectMemberValue)client.CloneRowForWrite(owner.value!);
+            parent.value!.Remove("Child");
+            plan.Set(NeoValueOwnership.Save, parent);
+            using (client.ReadCandidate(plan))
+            {
+                Assert.That(client.TryFindOwnedParent(NeoValueOwnership.Save, oldId, out string? inherited), Is.True);
+                Assert.That(inherited, Is.EqualTo(parentId));
+            }
+            plan.Remove(NeoValueOwnership.Save, parentId);
+            using (client.ReadCandidate(plan))
+            {
+                Assert.That(client.TryFindOwnedParent(NeoValueOwnership.Save, oldId, out string? resetParent), Is.True);
+                Assert.That(resetParent, Is.EqualTo(parentId), "Removing an overlay restores its authored default.");
+            }
+            // A raw unprepared recipe cannot prove that the retained alias is
+            // free to adopt. The real variant API supplies candidate replay.
+            parent.constructorArgs = new Dictionary<string, JToken?> { ["pending-argument"] = "pending-value" };
+            plan.Set(NeoValueOwnership.Save, parent);
+            using (client.ReadCandidate(plan))
+                Assert.That(client.TryFindOwnedParent(NeoValueOwnership.Save, oldId, out _), Is.True);
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void NestedInlineDefaultsMergeListenerMembersAndResolveImplicitOwners(bool memberWise)
+        {
+            ProjectData data = BuildProjectData();
+            AddCountListenerHandler(data);
+            ((ClassMember)data.members["thing-member"]).Storage = NeoMemberStorage.Inherit;
+            data.classes["child-class"] = SchemaClass("child-class", "Child", NeoMemberStorage.Save);
+            data.classes["child-class"].schema["Count"] = "thing-count";
+            data.classes["child-class"].schema["Other"] = "child-other";
+            data.classes["child-class"].schema["Changed"] = "count-handler";
+            data.members["child-other"] = new IntMember
+            {
+                id = "child-other",
+                projectId = "p75-project",
+                name = "Other",
+                kind = MemberKind.Int,
+                Requirement = NeoMemberRequirementKind.Required,
+                defaultValue = new NumberMemberValueBase { value = 0 },
+            };
+            string childTemplate = NeoClient.DerivedMemberValueId("thing-child");
+            data.classes["thing-class"].schema["Child"] = "thing-child";
+            data.members["thing-child"] = new ClassMember
+            {
+                id = "thing-child",
+                projectId = "p75-project",
+                name = "Child",
+                kind = MemberKind.Class,
+                classId = "child-class",
+                Requirement = NeoMemberRequirementKind.Required,
+                defaultValue = new ObjectMemberValueBase
+                {
+                    value = new Dictionary<string, string>(),
+                    changeListeners = ListenerMap(childTemplate, "thing-count"),
+                },
+            };
+            string template = NeoClient.DerivedMemberValueId("thing-member");
+            string implicitChild = NeoClient.VirtualValueId(template, "path:thing-child:$/{\"kind\":\"class\",\"schemaKey\":\"Child\"}");
+            ((ClassMember)data.members["thing-member"]).defaultValue = new ObjectMemberValueBase
+            {
+                value = new Dictionary<string, string>(),
+                changeListeners = ListenerMap(implicitChild, "child-other"),
+                changeListenerEndpoints = new NeoChangeListenerEndpoints
+                {
+                    [implicitChild] = new NeoChangeListenerEndpoint { memberId = "thing-child", pathKey = "$/{\"kind\":\"class\",\"schemaKey\":\"Child\"}" },
+                },
+            };
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var heard = new List<double>();
+            client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+            {
+                ["count-handler"] = (_, _, args) => { heard.Add(Convert.ToDouble(args[0])); return null; },
+            });
+            NeoMemberClassWritable owner = memberWise
+                ? NeoGeneratedTypesSupport.CreateWritableClassValue(client, "save-root-class")
+                    .Get<NeoMemberClassWritable>("Thing")
+                : client.save.Get<NeoMemberClassWritable>("Thing");
+            var child = owner.Get<NeoMemberClassWritable>("Child");
+            if (memberWise)
+            {
+                Assert.That(child.ownership, Is.EqualTo(NeoValueOwnership.Session));
+                Assert.That(client.TryGetValue(NeoValueOwnership.Session, owner.value!.value!["Child"], out MemberValue? actualChild), Is.True);
+                Assert.That(child.value!.id, Is.EqualTo(actualChild!.id));
+            }
+            child.Get<NeoMemberIntWritable>("Count").Set(12);
+            child.Get<NeoMemberIntWritable>("Other").Set(19);
+            CollectionAssert.AreEqual(new[] { 12d, 19d }, heard);
+            Assert.That(client.SerializeSaveData(), Does.Not.Contain("changeListeners"));
+        }
+
+        [TestCase(8)]
+        [TestCase(16)]
+        [TestCase(32)]
+        public void SerializedNestedEndpointDescriptorsResolveEveryOccurrence(int depth)
+        {
+            ProjectData data = BuildProjectData();
+            AddCountListenerHandler(data);
+            string? nextMember = null;
+            const string path = "$/{\"kind\":\"class\",\"schemaKey\":\"Next\"}";
+            for (int level = 0; level < depth; level++)
+            {
+                string classId = $"nested-class-{level}";
+                string memberId = $"nested-member-{level}";
+                var schema = SchemaClass(classId, $"Nested{level}", NeoMemberStorage.Save);
+                schema.schema["Count"] = "thing-count";
+                schema.schema["Changed"] = "count-handler";
+                var defaults = new ObjectMemberValueBase { value = new Dictionary<string, string>() };
+                if (nextMember is not null)
+                {
+                    schema.schema["Next"] = nextMember;
+                    Wire(defaults, memberId, nextMember);
+                }
+                data.classes[classId] = schema;
+                data.members[memberId] = new ClassMember
+                {
+                    id = memberId,
+                    projectId = "p75-project",
+                    name = "Next",
+                    kind = MemberKind.Class,
+                    classId = classId,
+                    Requirement = NeoMemberRequirementKind.Required,
+                    defaultValue = defaults,
+                };
+                nextMember = memberId;
+            }
+            data.classes["thing-class"].schema["Next"] = nextMember!;
+            var rootDefault = new ObjectMemberValueBase { value = new Dictionary<string, string>() };
+            Wire(rootDefault, "thing-member", nextMember!);
+            ((ClassMember)data.members["thing-member"]).defaultValue = rootDefault;
+            data.members = JObject.FromObject(data.members).ToObject<Dictionary<string, JsonMember>>()!;
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var heard = new List<double>();
+            client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+            {
+                ["count-handler"] = (_, _, args) => { heard.Add(Convert.ToDouble(args[0])); return null; },
+            });
+            var owner = client.save.Get<NeoMemberClassWritable>("Thing");
+            _ = owner.value;
+            for (int level = 0; level < depth; level++)
+            {
+                owner = owner.Get<NeoMemberClassWritable>("Next");
+                owner.Get<NeoMemberIntWritable>("Count").Set(100 + level);
+            }
+            CollectionAssert.AreEqual(Enumerable.Range(100, depth).Select(value => (double)value), heard);
+            Assert.That(client.SerializeSaveData(), Does.Not.Contain("changeListeners"));
+            Assert.That(client.SerializeSaveData(), Does.Not.Contain("changeListenerEndpoints"));
+
+            void Wire(ObjectMemberValueBase defaults, string rootMember, string childMember)
+            {
+                string id = NeoClient.VirtualValueId(NeoClient.DerivedMemberValueId(rootMember), $"path:{childMember}:{path}");
+                defaults.changeListeners = ListenerMap(id, "thing-count");
+                defaults.changeListenerEndpoints = new NeoChangeListenerEndpoints
+                {
+                    [id] = new NeoChangeListenerEndpoint { pathKey = path, memberId = childMember },
+                };
+            }
+        }
+
+        [TestCase("list", false, false)]
+        [TestCase("unordered", false, false)]
+        [TestCase("dictionary", false, false)]
+        [TestCase("list", true, false)]
+        [TestCase("unordered", true, false)]
+        [TestCase("dictionary", true, false)]
+        [TestCase("list", false, true)]
+        [TestCase("unordered", false, true)]
+        [TestCase("dictionary", false, true)]
+        [TestCase("list", true, true)]
+        [TestCase("unordered", true, true)]
+        [TestCase("dictionary", true, true)]
+        [TestCase("list", false, false, true, false)]
+        [TestCase("list", false, true, true, false)]
+        [TestCase("list", false, false, true, true)]
+        [TestCase("list", false, true, true, true)]
+        public void CollectionDefaultsProjectListenersOnEveryConstructionPath(string kind, bool storedRoot, bool memberWise, bool nested = false, bool warm = false)
+        {
+            ProjectData data = BuildProjectData();
+            AddCountListenerHandler(data);
+            ((ClassMember)data.members["thing-member"]).Storage = NeoMemberStorage.Inherit;
+            data.classes["item-class"] = SchemaClass("item-class", "Item", NeoMemberStorage.Save);
+            data.classes["item-class"].schema["Count"] = "thing-count";
+            data.classes["item-class"].schema["Changed"] = "count-handler";
+            data.members["item-member"] = new ClassMember
+            {
+                id = "item-member",
+                projectId = "p75-project",
+                name = "Item",
+                kind = MemberKind.Class,
+                classId = "item-class",
+                Requirement = NeoMemberRequirementKind.Required,
+            };
+            data.values["authored-item"] = ObjectValue("authored-item", "item-class");
+            NeoChangeListenerMap wiring = ListenerMap("authored-item", "thing-count");
+            MemberValue source;
+            JsonMember collection;
+            if (kind == "dictionary")
+            {
+                var payload = new Dictionary<string, string> { ["a"] = "authored-item" };
+                collection = new DictionaryMember
+                {
+                    id = "collection-member",
+                    projectId = "p75-project",
+                    name = "Items",
+                    kind = MemberKind.Dictionary,
+                    entryMemberId = "item-member",
+                    Requirement = NeoMemberRequirementKind.Required,
+                    defaultValue = new ObjectMemberValueBase { value = payload, changeListeners = storedRoot ? null : wiring },
+                };
+                source = new ObjectMemberValue { id = "authored-collection", value = payload };
+            }
+            else
+            {
+                string[] payload = { "authored-item" };
+                collection = new ListMember
+                {
+                    id = "collection-member",
+                    projectId = "p75-project",
+                    name = "Items",
+                    kind = MemberKind.List,
+                    entryMemberId = "item-member",
+                    Requirement = NeoMemberRequirementKind.Required,
+                    ListKind = kind == "unordered" ? NeoListKind.Unordered : NeoListKind.Ordered,
+                    defaultValue = new ArrayMemberValueBase { value = payload, changeListeners = storedRoot ? null : wiring },
+                };
+                source = new ArrayMemberValue { id = "authored-collection", value = payload };
+                if (kind == "unordered" && storedRoot)
+                    data.values["authored-item"].containerId = source.id;
+            }
+            data.members[collection.id] = collection;
+            data.classes["thing-class"].schema["Items"] = collection.id;
+            if (storedRoot)
+            {
+                source.changeListeners = wiring;
+                JsonMember other = JObject.FromObject(collection).ToObject<JsonMember>()!;
+                other.id = "other-collection-member";
+                other.name = "Other";
+                data.members[other.id] = other;
+                data.classes["thing-class"].schema["Other"] = other.id;
+                data.values[source.id] = source;
+                ((ClassMember)data.members["thing-member"]).defaultValue = new ObjectMemberValueBase
+                {
+                    value = new Dictionary<string, string> { ["Items"] = source.id, ["Other"] = source.id },
+                };
+            }
+            else
+            {
+                ((ClassMember)data.members["thing-member"]).defaultValue = new ObjectMemberValueBase
+                {
+                    value = new Dictionary<string, string>(),
+                };
+            }
+            if (nested)
+            {
+                data.classes["group-class"] = SchemaClass("group-class", "Group", NeoMemberStorage.Inherit);
+                data.classes["group-class"].schema["Items"] = collection.id;
+                data.members["group-entry"] = new ClassMember
+                {
+                    id = "group-entry",
+                    projectId = "p75-project",
+                    name = "Group",
+                    kind = MemberKind.Class,
+                    classId = "group-class",
+                    Requirement = NeoMemberRequirementKind.Required,
+                };
+                foreach (string id in new[] { "group-a", "group-b" })
+                {
+                    var group = ObjectValue(id, "group-class");
+                    group.instanceConstructorId = null;
+                    group.constructorArgs = new Dictionary<string, JToken?>();
+                    data.values[id] = group;
+                    if (warm)
+                    {
+                        string memberId = "warm-" + id;
+                        data.members[memberId] = new ClassMember
+                        {
+                            id = memberId,
+                            projectId = "p75-project",
+                            name = memberId,
+                            kind = MemberKind.Class,
+                            classId = "group-class",
+                            Requirement = NeoMemberRequirementKind.Optional,
+                        };
+                        data.classes["save-root-class"].schema[memberId] = memberId;
+                        ((ObjectMemberValue)data.values["value-save"]).value![memberId] = id;
+                    }
+                }
+                data.members["groups"] = new ListMember
+                {
+                    id = "groups",
+                    projectId = "p75-project",
+                    name = "Groups",
+                    kind = MemberKind.List,
+                    entryMemberId = "group-entry",
+                    Requirement = NeoMemberRequirementKind.Required,
+                    ListKind = NeoListKind.Ordered,
+                    defaultValue = new ArrayMemberValueBase { value = new[] { "group-a", "group-b" } },
+                };
+                data.classes["thing-class"].schema.Remove("Items");
+                data.classes["thing-class"].schema["Groups"] = "groups";
+            }
+            data.values = JObject.FromObject(data.values).ToObject<Dictionary<string, MemberValue>>()!;
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            if (warm)
+                foreach (string id in new[] { "group-a", "group-b" })
+                    Assert.That(client.save.Get<NeoMemberClassWritable>("warm-" + id).Get<NeoMemberListWritable>("Items").Count, Is.EqualTo(1));
+            var heard = new List<double>();
+            client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+            {
+                ["count-handler"] = (_, _, args) => { heard.Add(Convert.ToDouble(args[0])); return null; },
+            });
+            var owner = memberWise
+                ? NeoGeneratedTypesSupport.CreateWritableClassValue(client, "save-root-class").Get<NeoMemberClassWritable>("Thing")
+                : client.save.Get<NeoMemberClassWritable>("Thing");
+            if (nested)
+            {
+                var groups = owner.Get<NeoMemberListWritable>("Groups");
+                var destinationIds = new HashSet<string>();
+                for (int i = 0; i < 2; i++)
+                {
+                    var group = (NeoMemberClassWritable)groups[i];
+                    var sample = (NeoMemberClassWritable)group.Get<NeoMemberListWritable>("Items")[0];
+                    Assert.That(destinationIds.Add(sample.value!.id), Is.True);
+                    sample.Get<NeoMemberIntWritable>("Count").Set(27 + i);
+                }
+                CollectionAssert.AreEqual(new[] { 27d, 28d }, heard);
+                Assert.That(client.SerializeSaveData(), Does.Not.Contain("changeListeners"));
+                return;
+            }
+            var item = kind == "dictionary"
+                ? (NeoMemberClassWritable)owner.Get<NeoMemberDictionaryWritable>("Items")["a"]
+                : (NeoMemberClassWritable)owner.Get<NeoMemberListWritable>("Items")[0];
+            item.Get<NeoMemberIntWritable>("Count").Set(27);
+            if (storedRoot)
+            {
+                var second = kind == "dictionary"
+                    ? (NeoMemberClassWritable)owner.Get<NeoMemberDictionaryWritable>("Other")["a"]
+                    : (NeoMemberClassWritable)owner.Get<NeoMemberListWritable>("Other")[0];
+                Assert.That(second.value!.id, Is.Not.EqualTo(item.value!.id));
+                second.Get<NeoMemberIntWritable>("Count").Set(28);
+            }
+            CollectionAssert.AreEqual(storedRoot ? new[] { 27d, 28d } : new[] { 27d }, heard);
+            Assert.That(client.SerializeSaveData(), Does.Not.Contain("changeListeners"));
+        }
+
+        [TestCase("class", false, false, false, null)]
+        [TestCase("list", false, false, false, null)]
+        [TestCase("dictionary", false, false, false, null)]
+        [TestCase("class", true, false, false, null)]
+        [TestCase("list", true, false, false, null)]
+        [TestCase("dictionary", true, false, false, null)]
+        [TestCase("class", false, true, false, null)]
+        [TestCase("list", false, true, false, null)]
+        [TestCase("dictionary", false, true, false, null)]
+        [TestCase("class", true, true, false, null)]
+        [TestCase("list", true, true, false, null)]
+        [TestCase("dictionary", true, true, false, null)]
+        [TestCase("class", false, false, true, null)]
+        [TestCase("list", false, false, true, null)]
+        [TestCase("dictionary", false, false, true, null)]
+        [TestCase("class", true, true, true, null)]
+        [TestCase("list", true, true, true, null)]
+        [TestCase("dictionary", true, true, true, null)]
+        [TestCase("class", false, false, false, "replace")]
+        [TestCase("class", false, true, false, "replace")]
+        [TestCase("class", false, false, false, "suppress")]
+        [TestCase("class", false, true, false, "suppress")]
+        [TestCase("class", false, false, false, "null")]
+        [TestCase("class", false, true, false, "null")]
+        [TestCase("list", false, false, false, "null")]
+        [TestCase("list", false, true, false, "null")]
+        [TestCase("dictionary", false, false, false, "null")]
+        [TestCase("dictionary", false, true, false, "null")]
+        [TestCase("class", false, false, false, "outer-remove")]
+        public void InitializerProductsProjectTheirOwnAuthoredListenerMetadata(string kind, bool stored, bool memberWise, bool existing, string? productEdit)
+        {
+            ProjectData data = BuildProjectData();
+            AddCountListenerHandler(data);
+            ((ClassMember)data.members["thing-member"]).Storage = NeoMemberStorage.Inherit;
+            data.classes["item-class"] = SchemaClass("item-class", "Item", NeoMemberStorage.Save);
+            data.classes["item-class"].schema["Count"] = "thing-count";
+            data.classes["item-class"].schema["Changed"] = "count-handler";
+            data.members["item-entry"] = new ClassMember
+            {
+                id = "item-entry",
+                name = "Item",
+                projectId = "p75-project",
+                kind = MemberKind.Class,
+                classId = "item-class",
+                Requirement = NeoMemberRequirementKind.Required,
+            };
+            Pointer item = new FunctionPointer
+            {
+                type = PointerKind.Function,
+                function = new ClassConstructorFunction
+                {
+                    type = FunctionKind.ClassConstructor,
+                    info = new FunctionClassConstructorInfo
+                    {
+                        schemaClassInfo = ClassType("item-class"),
+                        fields = Array.Empty<FunctionClassConstructorField>(),
+                    },
+                },
+            };
+            if (productEdit == "replace" || productEdit == "suppress")
+            {
+                var handler = JObject.FromObject(data.members["count-handler"]).ToObject<FunctionMember>()!;
+                handler.id = "product-handler";
+                handler.name = "ProductChanged";
+                data.members[handler.id] = handler;
+                data.classes["item-class"].schema["ProductChanged"] = handler.id;
+                var add = (AddChangeListenerInstruction)CountSubscription();
+                ((MemberTargetPointer)add.listener).memberId = handler.id;
+                var instructions = new List<Instruction> { add };
+                if (productEdit == "suppress")
+                    instructions.Add(new RemoveChangeListenerInstruction
+                    {
+                        type = InstructionKind.RemoveChangeListener,
+                        target = add.target,
+                        listener = add.listener,
+                    });
+                data.classes["item-class"].constructorIds = new[] { "product-ctor" };
+                data.constructors["product-ctor"] = new ConstructorRecord
+                {
+                    id = "product-ctor",
+                    classId = "item-class",
+                    projectId = "p75-project",
+                    argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
+                    action = new FunctionWithReturnType
+                    {
+                        compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                        parameters = new[] { ConstructorVariable("__this__", ClassType("item-class")), ConstructorVariable("__root__", ClassType("__root__")) },
+                        typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null, required = true },
+                        instructions = instructions.ToArray(),
+                    },
+                };
+                item = new FunctionPointer
+                {
+                    type = PointerKind.Function,
+                    function = new DeclaredConstructorFunction
+                    {
+                        type = FunctionKind.DeclaredConstructor,
+                        info = new DeclaredConstructorInfo { constructorId = "product-ctor", schemaClassInfo = ClassType("item-class"), args = Array.Empty<DeclaredConstructorArgument>(), fields = Array.Empty<FunctionClassConstructorField>() },
+                    },
+                };
+            }
+            TypeInfo type = kind == "class" ? ClassType("item-class") : new CollectionTypeInfo
+            {
+                type = kind == "list" ? MemberKind.List : MemberKind.Dictionary,
+                required = true,
+                entryTypeInfo = ClassType("item-class"),
+            };
+            Pointer product = kind == "class" ? item : kind == "list"
+                ? new ListLiteralPointer { type = PointerKind.ListLiteral, typeInfo = (CollectionTypeInfo)type, entries = new[] { item } }
+                : new DictLiteralPointer
+                {
+                    type = PointerKind.DictLiteral,
+                    typeInfo = (CollectionTypeInfo)type,
+                    entries = new[] { new DictLiteralPair { key = StringLiteral("a"), value = item } }
+                };
+            if (existing)
+            {
+                data.classes["item-class"].allowedStorage = NeoMemberStorage.Inherit;
+                JsonMember sourceMember = kind == "class"
+                    ? new ClassMember { kind = MemberKind.Class, classId = "item-class" }
+                    : kind == "list"
+                        ? new ListMember { kind = MemberKind.List, entryMemberId = "item-entry", ListKind = NeoListKind.Ordered }
+                        : new DictionaryMember { kind = MemberKind.Dictionary, entryMemberId = "item-entry" };
+                sourceMember.id = "source-member";
+                sourceMember.name = "Source";
+                sourceMember.projectId = "p75-project";
+                sourceMember.Requirement = NeoMemberRequirementKind.Required;
+                sourceMember.Storage = NeoMemberStorage.Immutable;
+                data.members[sourceMember.id] = sourceMember;
+                data.classes["assets-root-class"].schema["Source"] = sourceMember.id;
+                var sourceItem = ObjectValue("source-item", "item-class", new Dictionary<string, string> { ["Count"] = "source-count" });
+                data.values[sourceItem.id] = sourceItem;
+                data.values["source-count"] = new NumberMemberValue { id = "source-count", value = 5 };
+                MemberValue sourceRoot = kind == "class" ? sourceItem : kind == "list"
+                    ? new ArrayMemberValue { id = "source-list", value = new[] { sourceItem.id } }
+                    : new ObjectMemberValue { id = "source-dictionary", value = new Dictionary<string, string> { ["a"] = sourceItem.id } };
+                data.values[sourceRoot.id] = sourceRoot;
+                ((ObjectMemberValue)data.values["value-assets"]).value!["Source"] = sourceRoot.id;
+                product = PointerKeyOf(PointerKeyOf(RootPointer(), "Assets"), "Source");
+            }
+            if (productEdit == "null")
+            {
+                type.required = false;
+                product = new ValuePointer
+                {
+                    type = PointerKind.Value,
+                    value = new Value { typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null, required = false }, value = null }
+                };
+            }
+            var init = new InitializerBody
+            {
+                code = "fixture",
+                compiled = new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = new[] { ConstructorVariable("__root__", ClassType("__root__")) },
+                    typeInfo = type,
+                    instructions = new Instruction[] { new ReturnInstruction { type = InstructionKind.Return, pointer = product } },
+                },
+            };
+            string template = stored ? "stored-init" : NeoClient.DerivedMemberValueId("computed");
+            string path = kind == "list" ? "$/{\"kind\":\"list\",\"index\":0}" : "$/{\"kind\":\"dictionary\",\"key\":\"a\"}";
+            string owner = kind == "class" ? template : NeoClient.VirtualValueId(template, $"path:item-entry:{path}");
+            MemberValueBase defaults = kind == "list" ? new ArrayMemberValueBase() : new ObjectMemberValueBase();
+            defaults.init = init;
+            defaults.changeListeners = ListenerMap(existing ? "source-item" : owner, "thing-count");
+            if (!existing && kind != "class")
+                defaults.changeListenerEndpoints = new NeoChangeListenerEndpoints
+                {
+                    [owner] = new NeoChangeListenerEndpoint { memberId = "item-entry", pathKey = path },
+                };
+            JsonMember placement = kind == "class"
+                ? new ClassMember { kind = MemberKind.Class, classId = "item-class", defaultValue = (ObjectMemberValueBase)defaults }
+                : kind == "list"
+                    ? new ListMember { kind = MemberKind.List, entryMemberId = "item-entry", ListKind = NeoListKind.Ordered, defaultValue = (ArrayMemberValueBase)defaults }
+                    : new DictionaryMember { kind = MemberKind.Dictionary, entryMemberId = "item-entry", defaultValue = (ObjectMemberValueBase)defaults };
+            placement.id = "computed";
+            placement.name = "Computed";
+            placement.projectId = "p75-project";
+            placement.Requirement = productEdit == "null" ? NeoMemberRequirementKind.Optional : NeoMemberRequirementKind.Required;
+            data.members[placement.id] = placement;
+            data.classes["thing-class"].schema["Computed"] = placement.id;
+            var thingDefault = new ObjectMemberValueBase { value = new Dictionary<string, string>() };
+            ((ClassMember)data.members["thing-member"]).defaultValue = thingDefault;
+            if (stored)
+            {
+                MemberValue source = kind == "list" ? new ArrayMemberValue() : new ObjectMemberValue();
+                source.id = template;
+                source.init = init;
+                source.changeListeners = defaults.changeListeners;
+                source.changeListenerEndpoints = defaults.changeListenerEndpoints;
+                // The stored initializer has wiring even though its declaration doesn't.
+                defaults.changeListeners = null;
+                defaults.changeListenerEndpoints = null;
+                data.values[source.id] = source;
+                thingDefault.value!["Computed"] = source.id;
+            }
+            if (productEdit == "outer-remove")
+            {
+                Pointer child = PointerKeyOf(new VariablePointer { type = PointerKind.Variable, variableId = "__this__" }, "Computed");
+                var remove = new RemoveChangeListenerInstruction
+                {
+                    type = InstructionKind.RemoveChangeListener,
+                    target = new ChangeListenerTarget { owner = child, memberId = "thing-count", typeInfo = IntTypeInfo(), writability = "save" },
+                    listener = new MemberTargetPointer
+                    {
+                        type = PointerKind.MemberTarget,
+                        memberId = "count-handler",
+                        receiver = new CallReceiver { kind = CallReceiverKind.Instance, pointer = child }
+                    },
+                };
+                data.classes["thing-class"].constructorIds = new[] { "outer-ctor" };
+                data.constructors["outer-ctor"] = new ConstructorRecord
+                {
+                    id = "outer-ctor",
+                    classId = "thing-class",
+                    projectId = "p75-project",
+                    argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
+                    action = new FunctionWithReturnType
+                    {
+                        compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                        parameters = new[] { ConstructorVariable("__this__", ClassType("thing-class")), ConstructorVariable("__root__", ClassType("__root__")) },
+                        typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null, required = true },
+                        instructions = new Instruction[] { remove },
+                    },
+                };
+                data.values["thing-instance"].instanceConstructorId = "outer-ctor";
+            }
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var heard = new List<double>();
+            client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+            {
+                ["count-handler"] = (_, _, args) => { heard.Add(Convert.ToDouble(args[0])); return null; },
+                ["product-handler"] = (_, _, args) => { heard.Add(2 * Convert.ToDouble(args[0])); return null; },
+            });
+            var root = memberWise
+                ? NeoGeneratedTypesSupport.CreateWritableClassValue(client, "save-root-class").Get<NeoMemberClassWritable>("Thing")
+                : client.save.Get<NeoMemberClassWritable>("Thing");
+            if (productEdit == "null")
+            {
+                object? value = kind == "class" ? root.Get<NeoMemberClassWritable>("Computed").value?.value
+                    : kind == "list" ? root.Get<NeoMemberListWritable>("Computed").value?.value
+                    : root.Get<NeoMemberDictionaryWritable>("Computed").value?.value;
+                Assert.That(value, Is.Null);
+                Assert.That(heard, Is.Empty);
+                Assert.That(client.SerializeSaveData(), Does.Not.Contain("changeListeners"));
+                return;
+            }
+            var observed = kind == "class" ? root.Get<NeoMemberClassWritable>("Computed")
+                : kind == "list" ? (NeoMemberClassWritable)root.Get<NeoMemberListWritable>("Computed")[0]
+                : (NeoMemberClassWritable)root.Get<NeoMemberDictionaryWritable>("Computed")["a"];
+            observed.Get<NeoMemberIntWritable>("Count").Set(43);
+            double[] expected = productEdit is "suppress" or "outer-remove" ? Array.Empty<double>()
+                : productEdit == "replace" ? new[] { 86d } : new[] { 43d };
+            CollectionAssert.AreEqual(expected, heard);
+            Assert.That(client.SerializeSaveData(), Does.Not.Contain("changeListeners"));
+            if (existing)
+            {
+                Assert.That(observed.value!.id, Is.Not.EqualTo("source-item"));
+                Assert.That(((NumberMemberValue)data.values["source-count"]).value, Is.EqualTo(5));
+            }
+        }
+
+        private static NeoChangeListenerMap ListenerMap(string owner, string member) => new()
+        {
+            [owner] = new Dictionary<string, NeoDelegateValue[]>
+            {
+                [member] = new[] { new NeoDelegateValue { memberId = "count-handler", valueId = owner } },
+            },
+        };
+
+        [Test]
+        public void ConstructorListenersBecomeReplayDefaultsAndFailedReplayCannotPublishThem()
+        {
+            ProjectData data = BuildGenericConstructorProjectData();
+            data.classes["thing-class"].schema["Count"] = "thing-count";
+            data.members["thing-count"] = new IntMember
+            {
+                id = "thing-count",
+                projectId = "p75-project",
+                name = "Count",
+                kind = MemberKind.Int,
+                Requirement = NeoMemberRequirementKind.Required,
+                defaultValue = new NumberMemberValueBase { value = 0 },
+            };
+            AddCountListenerHandler(data);
+            var action = data.constructors["thing-ctor"].action!;
+            Instruction subscribe = CountSubscription();
+            action.instructions = new[] { subscribe };
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var heard = new List<double>();
+            client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+            {
+                ["count-handler"] = (_, _, args) => { heard.Add(Convert.ToDouble(args[0])); return null; },
+            });
+            var count = client.save.Get<NeoMemberClassWritable>("Thing").Get<NeoMemberIntWritable>("Count");
+            Assert.That(client.SerializeSaveData(), Does.Not.Contain("changeListeners"));
+            count.Set(12);
+            CollectionAssert.AreEqual(new[] { 12d }, heard);
+            action.instructions = new Instruction[]
+            {
+                subscribe,
+                new ThrowInstruction { type = InstructionKind.Throw, pointer = IntLiteral(123) },
+            };
+            var replay = typeof(NeoClient).GetMethod("ExpandVirtualInstanceRoot",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+            Assert.Throws<System.Reflection.TargetInvocationException>(() =>
+                replay.Invoke(client, new object[] { data.values["thing-instance"] }));
+            action.instructions = new[] { subscribe };
+            count.Set(13);
+            CollectionAssert.AreEqual(new[] { 12d, 13d }, heard);
+            Assert.That(client.SerializeSaveData(), Does.Not.Contain("changeListeners"));
+        }
+
+        [TestCase(false, false)]
+        [TestCase(true, false)]
+        [TestCase(false, true)]
+        [TestCase(true, true)]
+        public void ListenerPruningUsesTheSameBatchConstructorBaseline(bool initiallySubscribed, bool failReplay)
+        {
+            var data = BuildProjectData();
+            AddCountListenerHandler(data);
+            var argument = new FunctionArgumentTypeInfo { name = "Subscribe", type = MemberKind.Int, required = true };
+            var action = new FunctionWithReturnType
+            {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                parameters = new[]
+                {
+                    ConstructorVariable("__this__", ClassType("thing-class")),
+                    ConstructorVariable("__root__", ClassType("save-root-class")),
+                    ConstructorVariable("__arg_0__", argument),
+                },
+                typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null, required = true },
+                instructions = new Instruction[] { new IfInstruction
+                {
+                    type = InstructionKind.If,
+                    branches = new[] { new ConditionalBranch
+                    {
+                        expression = new BooleanExpression { condition = new Condition
+                        {
+                            type = OperatorKind.EqualTo,
+                            operand1 = new VariablePointer { type = PointerKind.Variable, variableId = "__arg_0__" },
+                            operand2 = IntLiteral(1),
+                        } },
+                        instructions = new[] { CountSubscription() },
+                    } },
+                } },
+            };
+            data.classes["thing-class"].constructorIds = new[] { "thing-ctor" };
+            data.constructors["thing-ctor"] = new ConstructorRecord
+            {
+                id = "thing-ctor",
+                projectId = "p75-project",
+                classId = "thing-class",
+                argumentTypes = new[] { argument },
+                action = action,
+            };
+            var root = (ObjectMemberValue)data.values["thing-instance"];
+            root.instanceConstructorId = "thing-ctor";
+            root.constructorArgs = new()
+            {
+                ["__arg_0__"] = initiallySubscribed ? 1 : 0
+            };
+            using var original = NeoTestSaveStack.ClientFromSchema(data);
+            var saved = JObject.Parse(original.SerializeSaveData());
+            saved["changeListeners"] = JObject.FromObject(new Dictionary<string, NeoChangeListenerMap>
+            {
+                ["value-save"] = new()
+                {
+                    ["thing-instance"] = new Dictionary<string, NeoDelegateValue[]>
+                    {
+                        ["thing-count"] = Array.Empty<NeoDelegateValue>()
+                    }
+                },
+            });
+            using var client = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: saved.ToString());
+            var before = client.SerializeSaveData();
+            var plan = new NeoWritePlan(client);
+            var changed = JObject.FromObject(root).ToObject<ObjectMemberValue>()!;
+            changed.constructorArgs!["__arg_0__"] = initiallySubscribed ? 0 : 1;
+            plan.Set(NeoValueOwnership.Save, changed);
+            plan.SetListenerEntry(NeoValueOwnership.Save, "value-save", "obsolete-owner",
+                new Dictionary<string, NeoDelegateValue[]> { ["thing-count"] = Array.Empty<NeoDelegateValue>() });
+            if (failReplay)
+            {
+                action.instructions = action.instructions.Concat(new Instruction[]
+                {
+                    new ThrowInstruction { type = InstructionKind.Throw, pointer = IntLiteral(123) },
+                }).ToArray();
+                Assert.Catch(() => plan.Commit());
+                Assert.That(client.SerializeSaveData(), Is.EqualTo(before));
+                return;
+            }
+            plan.Commit();
+            var after = JObject.Parse(client.SerializeSaveData());
+            Assert.That(after["changeListeners"]?["value-save"]?["thing-instance"]?["thing-count"] is not null,
+                Is.EqualTo(!initiallySubscribed));
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void OrdinaryConstructorListenersSurviveSaveAdoptionWithoutBecomingOverrides(bool failFirst)
+        {
+            ProjectData data = BuildProjectData();
+            AddCountListenerHandler(data);
+            data.classes["thing-class"].constructorIds = new[] { "count-ctor" };
+            data.constructors["count-ctor"] = new ConstructorRecord
+            {
+                id = "count-ctor",
+                projectId = "p75-project",
+                classId = "thing-class",
+                argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
+                action = new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = new[]
+                    {
+                        ConstructorVariable("__this__", ClassType("thing-class")),
+                        ConstructorVariable("__root__", ClassType("__root__")),
+                    },
+                    typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null, required = true },
+                    instructions = new[] { CountSubscription() },
+                },
+            };
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var heard = new List<double>();
+            client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+            {
+                ["count-handler"] = (_, _, args) => { heard.Add(Convert.ToDouble(args[0])); return null; },
+            });
+            if (failFirst)
+            {
+                int before = client.sessionValues.Count;
+                var action = data.constructors["count-ctor"].action!;
+                action.instructions = new Instruction[]
+                {
+                    CountSubscription(),
+                    new ThrowInstruction { type = InstructionKind.Throw, pointer = IntLiteral(321) },
+                };
+                Assert.Catch(() => NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(client, "thing-class", "count-ctor",
+                    Array.Empty<NeoDeclaredConstructorArgument>()));
+                Assert.That(client.sessionValues.Count, Is.EqualTo(before));
+                Assert.That(heard, Is.Empty);
+                action.instructions = new[] { CountSubscription() };
+                var defaultsField = typeof(NeoClient).GetField("defaultChangeListeners",
+                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+                int defaultCount = ((System.Collections.IDictionary)defaultsField.GetValue(client)!).Count;
+                var rejected = Assert.Throws<InvalidOperationException>(() => client.PrepareVariantApply(client.save.Get<NeoMemberClassWritable>("Thing"), _ =>
+                {
+                    using var pending = NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(client, "thing-class", "count-ctor",
+                        Array.Empty<NeoDeclaredConstructorArgument>());
+                    pending.Get<NeoMemberIntWritable>("Count").Set(7);
+                    Assert.That(((System.Collections.IDictionary)defaultsField.GetValue(client)!).Count, Is.EqualTo(defaultCount),
+                        "A completed nested constructor must remain private to the uncommitted variant.");
+                    throw new InvalidOperationException("Reject the candidate after construction completed.");
+                }));
+                Assert.That(rejected!.Message, Does.Contain("Reject the candidate after construction completed."));
+                Assert.That(((System.Collections.IDictionary)defaultsField.GetValue(client)!).Count, Is.EqualTo(defaultCount));
+                Assert.That(client.sessionValues.Count, Is.EqualTo(before));
+            }
+            using var constructed = NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(client, "thing-class", "count-ctor",
+                Array.Empty<NeoDeclaredConstructorArgument>());
+            constructed.Get<NeoMemberIntWritable>("Count").Set(6);
+            CollectionAssert.AreEqual(new[] { 6d }, heard);
+            string id = constructed.value!.id;
+            client.save.SetSerializedValue("Thing", NeoValueWritePayload.FromValueReference(id));
+            heard.Clear();
+            client.save.Get<NeoMemberClassWritable>("Thing").Get<NeoMemberIntWritable>("Count").Set(9);
+            CollectionAssert.AreEqual(new[] { 9d }, heard);
+            Assert.That(client.SerializeSaveData(), Does.Not.Contain("changeListeners"));
+        }
+
+        private static Instruction CountSubscription() => new AddChangeListenerInstruction
+        {
+            type = InstructionKind.AddChangeListener,
+            target = new ChangeListenerTarget
+            {
+                owner = new VariablePointer { type = PointerKind.Variable, variableId = "__this__" },
+                memberId = "thing-count",
+                typeInfo = IntTypeInfo(),
+                writability = "save",
+            },
+            listener = new MemberTargetPointer
+            {
+                type = PointerKind.MemberTarget,
+                memberId = "count-handler",
+                receiver = new CallReceiver
+                {
+                    kind = CallReceiverKind.Instance,
+                    pointer = new VariablePointer { type = PointerKind.Variable, variableId = "__this__" },
+                },
+            },
+        };
+
+        private static void AddCountListenerHandler(ProjectData data)
+        {
+            data.classes["thing-class"].schema["Changed"] = "count-handler";
+            data.members["count-handler"] = new FunctionMember
+            {
+                id = "count-handler",
+                projectId = "p75-project",
+                name = "Changed",
+                kind = MemberKind.Function,
+                returnTypeInfo = new VoidTypeInfo { type = MemberKind.Void, required = true },
+                argumentTypes = new[] { new FunctionArgumentTypeInfo { name = "next", type = MemberKind.Int, required = true } },
+            };
+        }
+
         private sealed class ResolvedThing : NeoGeneratedClassValue
         {
             internal ResolvedThing(NeoClient client, NeoMemberClass node, bool readOnly)
@@ -1829,7 +2756,7 @@ namespace NeoCompose.Tests
                     {
                         baseline, JObject.Parse(saved)["values"], null,
                         new Dictionary<string, string?>(), new Dictionary<string, string?>(),
-                        stack.Synchronizer.TakeDirtyRecords(),
+                        stack.Synchronizer.TakeDirtyRecords(), null, null, null,
                     })!;
                     Assert.IsTrue(patch.changes.OfType<GameSaveValueReplaceChange>().Any(change => change.valueId == configId),
                         "Tracked live patches must include retained constructor inputs.");

@@ -618,7 +618,7 @@ namespace NeoCompose.Runtime
         private string ArchiveScope => $"project:{projectId}:save:archive";
 
         private string SavesUrl(string suffix) =>
-            $"{apiBaseUrl}/api/projects/{UnityWebRequest.EscapeURL(projectId)}/saves{suffix}";
+            $"{apiBaseUrl}/api/projects/{UnityWebRequest.EscapeURL(projectId)}/saves{suffix}?supportedSaveFormatRevision={NeoSaveFormat.SupportedRevision}";
 
         private string SnapshotRecordsUrl(
             string customId,

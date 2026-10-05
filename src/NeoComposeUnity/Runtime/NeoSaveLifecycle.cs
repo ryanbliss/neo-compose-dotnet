@@ -120,11 +120,17 @@ namespace NeoCompose.Runtime
             string customId,
             NeoSaveValues opaqueValues,
             IReadOnlyDictionary<string, string?> staticBindings,
-            ProjectData schema)
+            ProjectData schema,
+            IReadOnlyDictionary<string, NeoChangeListenerMap>? changeListeners = null)
         {
             CustomId = customId;
             OpaqueValues = opaqueValues;
             StaticBindings = staticBindings;
+            var listeners = new Dictionary<string, NeoChangeListenerMap>();
+            if (changeListeners is not null)
+                foreach (var root in changeListeners)
+                    listeners[root.Key] = root.Value.Copy();
+            ChangeListeners = listeners;
             Schema = schema;
         }
 
@@ -136,6 +142,11 @@ namespace NeoCompose.Runtime
         {
             get;
         }
+        public IReadOnlyDictionary<string, NeoChangeListenerMap> ChangeListeners
+        {
+            get;
+        }
+
         public IReadOnlyDictionary<string, string?> StaticBindings
         {
             get;

@@ -41,6 +41,7 @@ namespace NeoCompose.Runtime
     internal sealed class NeoWritePlan
     {
         internal readonly NeoClient Client;
+        internal readonly int? RequiredSaveFormatRevision;
         internal long BaseRevision
         {
             get; private set;
@@ -77,15 +78,81 @@ namespace NeoCompose.Runtime
         // A child's staged parent, or a set when more than one row links it,
         // rented from the client until the commit ends.
         private Dictionary<string, object>? parentCandidates;
+        private Dictionary<string, HashSet<(NeoValueOwnership scope, string id)>>? copiedListenerCarriers;
         // Each staged row's prior state while a checkpoint is open.
         private List<RowEntry>? journal;
         private int openCheckpoints;
+        internal Dictionary<(NeoValueOwnership ownership, NeoValueOwnership scope, string rootId, string ownerId), Dictionary<string, NeoDelegateValue[]>?>? ListenerEntries;
+        private List<((NeoValueOwnership ownership, NeoValueOwnership scope, string rootId, string ownerId) key, bool present, Dictionary<string, NeoDelegateValue[]>? entry)>? listenerJournal;
+        internal readonly struct ListenerMove
+        {
+            internal readonly NeoValueOwnership Scope;
+            internal readonly string Root;
+            internal readonly NeoValueOwnership Target;
+            internal readonly string OwnerId;
+            internal readonly string TargetOwnerId;
+            internal ListenerMove(NeoValueOwnership scope, string root, NeoValueOwnership target,
+                string ownerId, string? targetOwnerId = null)
+            {
+                Scope = scope;
+                Root = root;
+                Target = target;
+                OwnerId = ownerId;
+                TargetOwnerId = targetOwnerId ?? ownerId;
+            }
+        }
+        internal Dictionary<(NeoValueOwnership scope, string id), ListenerMove>? ListenerMoves;
+        // Null scope follows pre-commit global receiver resolution. An explicit
+        // scope identifies an owner, or a durable receiver in the Save store.
+        private Dictionary<(NeoValueOwnership? scope, string id), string>? listenerRenames;
+        private List<((NeoValueOwnership scope, string id) key, bool present, ListenerMove previous)>? listenerMoveJournal;
+
+        internal void SetListenerMove((NeoValueOwnership scope, string id) key, ListenerMove move)
+        {
+            ListenerMoves ??= new();
+            bool present = ListenerMoves.TryGetValue(key, out var previous);
+            if (!present || previous.TargetOwnerId != move.TargetOwnerId)
+                listenerRenames = null;
+            if (openCheckpoints != 0)
+                (listenerMoveJournal ??= new()).Add((key, present, previous));
+            ListenerMoves[key] = move;
+        }
+
+        internal Dictionary<(NeoValueOwnership? scope, string id), string> ListenerRenames()
+        {
+            if (listenerRenames is not null)
+                return listenerRenames;
+            listenerRenames = new();
+            if (ListenerMoves is not null)
+                foreach (var pair in ListenerMoves)
+                    if (pair.Key.id != pair.Value.TargetOwnerId)
+                    {
+                        listenerRenames[pair.Key] = pair.Value.TargetOwnerId;
+                        if (!Client.TryGetCommittedOwnership(pair.Key.id, out var scope) || scope == pair.Key.scope)
+                            listenerRenames[(null, pair.Key.id)] = pair.Value.TargetOwnerId;
+                    }
+            return listenerRenames;
+        }
+        internal bool FindListenerMove(NeoValueOwnership scope, string id,
+            out (NeoValueOwnership scope, string id) key, out ListenerMove move)
+        {
+            key = (scope, id);
+            move = default;
+            if (ListenerMoves is null)
+                return false;
+            if (ListenerMoves.TryGetValue(key, out move))
+                return true;
+            key = (NeoValueOwnership.Session, id);
+            return scope == NeoValueOwnership.Save && ListenerMoves.TryGetValue(key, out move) && move.Target == scope;
+        }
+
         /// <summary>The held script batch this plan stages for, which every row it stages touches.</summary>
         internal NeoWriteBatch? HeldBy;
 
-        internal NeoWritePlan(NeoClient client)
+        internal NeoWritePlan(NeoClient client, int? requiredSaveFormatRevision = null)
         {
             Client = client;
+            RequiredSaveFormatRevision = requiredSaveFormatRevision;
             BaseRevision = client.WriteRevision;
         }
 
@@ -100,19 +167,49 @@ namespace NeoCompose.Runtime
         internal Checkpoint Open()
         {
             openCheckpoints++;
-            return new Checkpoint((journal ??= new List<RowEntry>()).Count, afterCommit.Count);
+            return new Checkpoint((journal ??= new List<RowEntry>()).Count, afterCommit.Count, listenerJournal?.Count ?? 0, listenerMoveJournal?.Count ?? 0);
         }
 
         /// <summary>Keeps what was staged since the last open checkpoint.</summary>
         internal void Close()
         {
             if (--openCheckpoints == 0)
+            {
                 journal!.Clear();
+                listenerJournal?.Clear();
+                listenerMoveJournal?.Clear();
+            }
         }
 
         /// <summary>Drops what was staged since <paramref name="checkpoint"/>.</summary>
         internal void Rollback(Checkpoint checkpoint)
         {
+            listenerRenames = null;
+            if (listenerMoveJournal is not null)
+            {
+                for (int index = listenerMoveJournal.Count - 1; index >= checkpoint.ListenerMoveJournal; index--)
+                {
+                    var entry = listenerMoveJournal[index];
+                    if (entry.present)
+                        ListenerMoves![entry.key] = entry.previous;
+                    else
+                        ListenerMoves!.Remove(entry.key);
+                }
+                listenerMoveJournal.RemoveRange(checkpoint.ListenerMoveJournal, listenerMoveJournal.Count - checkpoint.ListenerMoveJournal);
+            }
+            if (listenerJournal is not null)
+            {
+                for (int index = listenerJournal.Count - 1; index >= checkpoint.ListenerJournal; index--)
+                {
+                    var entry = listenerJournal[index];
+                    if (entry.present)
+                        ListenerEntries![entry.key] = entry.entry;
+                    else
+                        ListenerEntries!.Remove(entry.key);
+                    Version++;
+                }
+                listenerJournal.RemoveRange(checkpoint.ListenerJournal, listenerJournal.Count - checkpoint.ListenerJournal);
+            }
             for (int index = journal!.Count - 1; index >= checkpoint.Journal; index--)
             {
                 RowEntry entry = journal[index];
@@ -133,6 +230,7 @@ namespace NeoCompose.Runtime
             journal.RemoveRange(checkpoint.Journal, journal.Count - checkpoint.Journal);
             afterCommit.Truncate(checkpoint.AfterCommit);
             containerCandidates = null;
+            copiedListenerCarriers = null;
             ReleaseParentCandidates();
             Close();
         }
@@ -149,11 +247,15 @@ namespace NeoCompose.Runtime
         {
             internal readonly int Journal;
             internal readonly int AfterCommit;
+            internal readonly int ListenerJournal;
+            internal readonly int ListenerMoveJournal;
 
-            internal Checkpoint(int journal, int afterCommit)
+            internal Checkpoint(int journal, int afterCommit, int listenerJournal, int listenerMoveJournal)
             {
                 Journal = journal;
                 AfterCommit = afterCommit;
+                ListenerJournal = listenerJournal;
+                ListenerMoveJournal = listenerMoveJournal;
             }
         }
 
@@ -192,6 +294,22 @@ namespace NeoCompose.Runtime
                 (silentRows ??= new()).Add(key);
             else
                 silentRows?.Remove(key);
+        }
+
+        internal void SetListenerEntry(NeoValueOwnership ownership, string rootId, string ownerId,
+            Dictionary<string, NeoDelegateValue[]>? entry, NeoValueOwnership? scope = null)
+        {
+            if (ownership == NeoValueOwnership.Asset)
+                throw new InvalidOperationException("Cannot write runtime listeners to immutable asset data.");
+            var key = (ownership, scope: scope ?? ownership, rootId, ownerId);
+            ListenerEntries ??= new();
+            if (openCheckpoints != 0)
+            {
+                bool present = ListenerEntries.TryGetValue(key, out var previous);
+                (listenerJournal ??= new()).Add((key, present, previous));
+            }
+            ListenerEntries[key] = entry;
+            Version++;
         }
 
         internal string? ChangedField((NeoValueOwnership ownership, string id) key) =>
@@ -287,6 +405,41 @@ namespace NeoCompose.Runtime
             return Client.TryGetCommittedOwnership(id, out ownership);
         }
 
+        internal IEnumerable<(NeoValueOwnership scope, string id)> CopiedListenerCarriers(string ownerId)
+        {
+            if (copiedListenerCarriers is null)
+            {
+                copiedListenerCarriers = new(StringComparer.Ordinal);
+                foreach (var row in Rows)
+                    IndexCopiedListenerCarrier(row.Key, row.Value, add: true);
+            }
+            return copiedListenerCarriers.TryGetValue(ownerId, out var roots)
+                ? roots : Array.Empty<(NeoValueOwnership, string)>();
+        }
+
+        private void IndexCopiedListenerCarrier((NeoValueOwnership scope, string id) key, MemberValue? row, bool add)
+        {
+            if (copiedListenerCarriers is null || row?.copiedChangeListeners is not { } map)
+                return;
+            foreach (string ownerId in map.Keys)
+            {
+                if (!copiedListenerCarriers.TryGetValue(ownerId, out var roots))
+                {
+                    if (!add)
+                        continue;
+                    copiedListenerCarriers[ownerId] = roots = new();
+                }
+                if (add)
+                    roots.Add(key);
+                else
+                {
+                    roots.Remove(key);
+                    if (roots.Count == 0)
+                        copiedListenerCarriers.Remove(ownerId);
+                }
+            }
+        }
+
         /// <summary>Stages <paramref name="row"/> at <paramref name="key"/>, keeping a built parent index current.</summary>
         private void Restage((NeoValueOwnership ownership, string id) key, MemberValue? row)
         {
@@ -296,7 +449,10 @@ namespace NeoCompose.Runtime
                 Client.ObserveScriptWrites(key.id);
             if (parentCandidates is not null && Rows.TryGetValue(key, out MemberValue? previous))
                 IndexParentCandidates(key.ownership, previous, add: false);
+            if (Rows.TryGetValue(key, out var previousCarrier))
+                IndexCopiedListenerCarrier(key, previousCarrier, add: false);
             Rows[key] = row;
+            IndexCopiedListenerCarrier(key, row, add: true);
             Version++;
             if (parentCandidates is not null)
                 IndexParentCandidates(key.ownership, row, add: true);
@@ -455,9 +611,10 @@ namespace NeoCompose.Runtime
             return null;
         }
 
-        internal void NotifyCompleted() => afterNotifications.Run();
+        internal void NotifyCompleted() => afterNotifications.Run(Client);
         internal void AfterCommit(Action callback) => afterCommit.Add(callback);
-        internal void NotifyCommitted() => afterCommit.Run();
+        internal void NotifyCommitted() => afterCommit.Run(Client);
+        internal void RecordReplacement(NeoValueOwnership scope, string id) => afterCommit.AddReplacement(scope, id);
 
         internal void Commit() => Client.CommitWritePlan(this);
 
@@ -467,48 +624,84 @@ namespace NeoCompose.Runtime
         /// </summary>
         private struct Callbacks
         {
-            private object? first;
-            private List<object>? rest;
-
-            internal int Count => first is null ? 0 : 1 + (rest?.Count ?? 0);
-
+            private readonly struct Entry
+            {
+                internal readonly object? Callback;
+                internal readonly NeoValueOwnership Scope;
+                internal readonly string? ReplacementId;
+                internal bool IsEmpty => Callback is null && ReplacementId is null;
+                internal Entry(object callback)
+                {
+                    Callback = callback;
+                    Scope = default;
+                    ReplacementId = null;
+                }
+                internal Entry(NeoValueOwnership scope, string replacementId)
+                {
+                    Callback = null;
+                    Scope = scope;
+                    ReplacementId = replacementId;
+                }
+                internal void Invoke(NeoClient client)
+                {
+                    if (ReplacementId is not null)
+                        client.RecordListenerReplacement(Scope, ReplacementId);
+                    else if (Callback is Action action)
+                        action();
+                    else
+                        ((INeoPlanCallback)Callback!).Run();
+                }
+            }
+            private Entry first;
+            private List<Entry>? rest;
+            internal int Count => first.IsEmpty ? 0 : 1 + (rest?.Count ?? 0);
             internal void Truncate(int count)
             {
                 if (count == 0)
                 {
-                    first = null;
+                    first = default;
                     rest = null;
                 }
                 else
                     rest?.RemoveRange(count - 1, rest.Count - (count - 1));
             }
-
-            internal void Add(object callback)
+            private void Add(Entry entry)
             {
-                if (first is null)
-                    first = callback;
+                if (first.IsEmpty)
+                    first = entry;
                 else
-                    (rest ??= new List<object>()).Add(callback);
+                    (rest ??= new List<Entry>()).Add(entry);
             }
-
-            internal void Run()
+            internal void Add(object callback) => Add(new Entry(callback));
+            internal void AddReplacement(NeoValueOwnership scope, string id) => Add(new Entry(scope, id));
+            internal void Run(NeoClient client)
             {
-                if (first is not null)
-                    Invoke(first);
-                if (rest is null)
-                    return;
-                foreach (object callback in rest)
-                    Invoke(callback);
-            }
-
-            private static void Invoke(object callback)
-            {
-                if (callback is Action action)
-                    action();
-                else
-                    ((INeoPlanCallback)callback).Run();
+                // Constructor/default installation may add the first listeners
+                // after an earlier replacement was staged. Capture replacement
+                // intent only once every ordinary commit callback has published.
+                try
+                {
+                    if (first.Callback is not null)
+                        first.Invoke(client);
+                    if (rest is not null)
+                        foreach (var entry in rest)
+                            if (entry.Callback is not null)
+                                entry.Invoke(client);
+                }
+                finally
+                {
+                    // Rows are committed even if a callback fails. Preserve their
+                    // replacement notifications as EndChangeBatch drains in finally.
+                    if (first.ReplacementId is not null)
+                        first.Invoke(client);
+                    if (rest is not null)
+                        foreach (var entry in rest)
+                            if (entry.ReplacementId is not null)
+                                entry.Invoke(client);
+                }
             }
         }
+
     }
 
     /// <summary>Plan work that carries its own state, so it needs no closure and delegate.</summary>
@@ -585,6 +778,7 @@ namespace NeoCompose.Runtime
             return false;
         }
 
+        private readonly List<(NeoValueOwnership scope, MemberValue? before, MemberValue? after)> commitListenerRowsScratch = new();
         private bool commitScratchInUse;
         private readonly HashSet<(NeoValueOwnership ownership, string valueId)> commitChangedScratch = new();
         private readonly Dictionary<(NeoValueOwnership ownership, string id), string> commitOldContainersScratch = new();
@@ -666,7 +860,8 @@ namespace NeoCompose.Runtime
 
             if (plan.BaseRevision < foreignWriteRevision)
                 throw new InvalidOperationException("The data graph changed while this write was being prepared.");
-            CandidateReplay? preparedExpansions = ValidatePreparedWrite(plan);
+            int? requiredSaveFormatRevision = NeoSaveFormat.Combine(saveData.requiredSaveFormatRevision, plan.RequiredSaveFormatRevision);
+            CandidateReplay? preparedExpansions = ValidatePreparedWrite(plan, out var preparedListeners);
             if (plan.BaseRevision < foreignWriteRevision)
                 throw new InvalidOperationException("The data graph changed during candidate validation.");
             foreach (var row in plan.Rows)
@@ -678,6 +873,7 @@ namespace NeoCompose.Runtime
             // the scratch sets serve only the outermost commit.
             bool pooledScratch = !commitScratchInUse;
             commitScratchInUse = true;
+            var listenerRows = pooledScratch ? commitListenerRowsScratch : new List<(NeoValueOwnership scope, MemberValue? before, MemberValue? after)>();
             HashSet<(NeoValueOwnership ownership, string valueId)> changed = pooledScratch ? commitChangedScratch : new();
             Dictionary<(NeoValueOwnership ownership, string id), string> oldContainers = pooledScratch ? commitOldContainersScratch : new();
             // Rows that stay live in the same container. Their list wrappers
@@ -687,8 +883,26 @@ namespace NeoCompose.Runtime
             bool batched = false;
             bool held = false;
             bool gridChange = false;
+            HashSet<(NeoValueOwnership scope, string id)>? renamedOwners = null;
+            if (plan.ListenerMoves is not null)
+                foreach (var move in plan.ListenerMoves)
+                    if (move.Key.id != move.Value.TargetOwnerId)
+                        (renamedOwners ??= new()).Add((move.Value.Target, move.Value.TargetOwnerId));
             try
             {
+                bool recordListeners = HasListenerMoveWork(plan)
+                    || preparedExpansions?.ListenerDefaults.Count > 0
+                    || preparedExpansions?.ConstructionDefaults.Count > 0;
+                if (recordListeners)
+                    foreach (var pair in plan.Rows)
+                    {
+                        if (plan.IsSilent(pair.Key))
+                            continue;
+                        TryGetValue(pair.Key.ownership, pair.Key.id, out MemberValue? previous);
+                        if (CurrentChangeSource != NeoChangeSource.External
+                            || !NeoSemanticJson.MemberRowsEqual(previous, pair.Value, ignoreChangeListeners: true))
+                            listenerRows.Add((pair.Key.ownership, previous, pair.Value));
+                    }
                 foreach (var pair in plan.Rows)
                 {
                     if (TryResolveContainerIdForValueId(pair.Key.id, out string? containerId))
@@ -740,11 +954,16 @@ namespace NeoCompose.Runtime
                         bindings.Remove(pair.Key.memberId);
                     TouchWritableStoreUpdatedAt(pair.Key.ownership);
                 }
+                CommitListenerEntries(plan, preparedListeners);
+                saveData.requiredSaveFormatRevision = NeoSaveFormat.Combine(saveData.requiredSaveFormatRevision, requiredSaveFormatRevision);
                 WriteRevision++;
                 if (plan.HeldBy is null)
                     foreignWriteRevision = WriteRevision;
                 BeginChangeBatch();
                 batched = true;
+                foreach (var row in listenerRows)
+                    RecordListenerRow(row.scope, row.before, row.after,
+                        row.after is not null && renamedOwners?.Contains((row.scope, row.after.id)) == true);
                 // Effects the commit queues run once it publishes, inside its change batch.
                 HoldGetterChanges();
                 held = true;
@@ -764,6 +983,10 @@ namespace NeoCompose.Runtime
                 OnWritableValuesPublished?.Invoke(changed, plan);
                 plan.NotifyCommitted();
                 OnWritableValuesChanged?.Invoke(changed);
+                if (plan.ListenerEntries is not null)
+                    foreach (var change in plan.ListenerEntries)
+                        if (change.Key.ownership == NeoValueOwnership.Save)
+                            RaiseSaveListenerChanged(change.Key.rootId, change.Key.ownerId);
                 EndGridChange();
                 gridChange = false;
                 using (SuspendContainerNotifications())
@@ -806,6 +1029,7 @@ namespace NeoCompose.Runtime
                 if (pooledScratch)
                 {
                     changed.Clear();
+                    listenerRows.Clear();
                     oldContainers.Clear();
                     sameMembership.Clear();
                     commitScratchInUse = false;
@@ -911,6 +1135,7 @@ namespace NeoCompose.Runtime
             MemberValue? previous = plan.HeldBy?.PendingRow(ownership, next.id) ?? plan.Resolve(ownership, next.id);
             plan.HeldBy?.Discard(ownership, next.id);
             plan.Set(ownership, next, changedField);
+            plan.RecordReplacement(ownership, next.id);
             StageVirtualFootprintRemoval(plan, ownership, next.id);
             if (previous is null)
                 return;

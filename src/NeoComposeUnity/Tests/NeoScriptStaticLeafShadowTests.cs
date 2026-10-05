@@ -354,7 +354,412 @@ namespace NeoCompose.Tests
         // Harness
         // ------------------------------------------------------------------
 
+        [TestCase(NeoValueOwnership.Session, false)]
+        [TestCase(NeoValueOwnership.Save, false)]
+        [TestCase(NeoValueOwnership.Session, true)]
+        [TestCase(NeoValueOwnership.Save, true)]
+        public void ShadowImportRemapsRootAndDescendantListenerReceivers(NeoValueOwnership destination, bool runtimeOverride)
+        {
+            using NeoClient client = BuildClient(data =>
+            {
+                data.classes["box"].schema["Nested"] = "nested-box-member";
+                data.members["nested-box-member"] = ClassOf("nested-box-member", "Nested", "nested-box", NeoMemberRequirementKind.Optional, null);
+                data.classes["nested-box"] = new NeoSchemaClass
+                {
+                    id = "nested-box",
+                    name = "NestedBox",
+                    schema = new() { ["Width"] = "width-member" },
+                };
+                data.members["width-member"].Requirement = NeoMemberRequirementKind.Required;
+                foreach (string handler in new[] { "copied-handler", "runtime-handler" })
+                {
+                    data.classes["box"].schema[handler] = handler;
+                    data.classes["nested-box"].schema[handler] = handler;
+                    data.members[handler] = new FunctionMember
+                    {
+                        id = handler,
+                        name = handler,
+                        kind = MemberKind.Function,
+                        returnTypeInfo = new VoidTypeInfo { type = MemberKind.Void, required = true },
+                        argumentTypes = new[] { new FunctionArgumentTypeInfo { name = "next", type = MemberKind.Int, required = true } },
+                    };
+                }
+            });
+            var heard = new List<(string handler, string receiverWidth, double value)>();
+            client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+            {
+                ["copied-handler"] = (_, receiver, args) => Hear("copied-handler", receiver, args),
+                ["runtime-handler"] = (_, receiver, args) => Hear("runtime-handler", receiver, args),
+            });
+
+            object? Hear(string handler, object? receiver, IReadOnlyList<object?> args)
+            {
+                heard.Add((handler, (string)((IDictionary<string, object?>)receiver!)["Width"]!, Convert.ToDouble(args[0])));
+                return null;
+            }
+
+            var defaults = new NeoChangeListenerMap();
+            foreach (string owner in new[] { "source-box", "source-nested" })
+                defaults[owner] = new Dictionary<string, NeoDelegateValue[]>
+                {
+                    ["width-member"] = new[] { new NeoDelegateValue { memberId = "copied-handler", valueId = "source-box" } },
+                };
+            var seed = new NeoWritePlan(client);
+            seed.Set(NeoValueOwnership.Session, new ObjectMemberValue
+            {
+                id = "source-box",
+                classId = "box",
+                value = new() { ["Width"] = "source-width", ["Nested"] = "source-nested" },
+                copiedChangeListeners = defaults,
+            });
+            seed.Set(NeoValueOwnership.Session, new ObjectMemberValue
+            {
+                id = "source-nested",
+                classId = "nested-box",
+                value = new() { ["Width"] = "nested-width" },
+            });
+            seed.Set(NeoValueOwnership.Session, new NumberMemberValue { id = "source-width", value = 1 });
+            seed.Set(NeoValueOwnership.Session, new NumberMemberValue { id = "nested-width", value = 2 });
+            seed.Commit();
+            if (runtimeOverride)
+                foreach (string owner in new[] { "source-box", "source-nested" })
+                    client.EditMemberChangeListener(owner, NeoValueOwnership.Session, "width-member",
+                        new PrimitiveTypeInfo { type = MemberKind.Int, required = true },
+                        new NeoDelegateValue { memberId = "runtime-handler", valueId = "source-box" }, true);
+
+            string leafId = destination == NeoValueOwnership.Save ? "kept-leaf" : "shape-leaf";
+            string leafMemberId = destination == NeoValueOwnership.Save ? "kept-member" : "shape-member";
+            heard.Clear();
+            var import = new NeoWritePlan(client);
+            Assert.That(client.TryGetMember(leafMemberId, out Member? leafMember), Is.True);
+            client.StageShadowImport(import, destination, "source-box", client.ResolveValueRow(leafId)!, leafMember!, out _);
+            import.Commit();
+
+            ObjectMemberValue root = Writable<ObjectMemberValue>(client, destination, leafId);
+            string nestedId = root.value!["Nested"];
+            Assert.That(root.copiedChangeListeners!.Keys, Is.EquivalentTo(new[] { leafId, nestedId }));
+            foreach (var entry in root.copiedChangeListeners.Values)
+                Assert.That(entry["width-member"][0].valueId, Is.EqualTo(leafId), "Both self and descendant receivers follow the renamed root.");
+            Assert.That(client.HasWritableValue(NeoValueOwnership.Session, "source-box"), Is.False, "The old parentless owner is released.");
+            Assert.That(client.HasWritableValue(NeoValueOwnership.Save, "source-box"), Is.False);
+            Assert.That(heard, Is.Empty, "Importing metadata is initialization, not a gameplay write.");
+
+            using var rootView = new NeoMemberClassWritable(client, leafMemberId, leafId, destination);
+            using var nestedView = new NeoMemberClassWritable(client, "nested-box-member", nestedId, destination);
+            rootView.Get<NeoMemberIntWritable>("Width").Set(7);
+            nestedView.Get<NeoMemberIntWritable>("Width").Set(8);
+            Assert.That(heard.Count, Is.EqualTo(runtimeOverride ? 4 : 2));
+            Assert.That(heard.Select(item => item.receiverWidth), Is.All.EqualTo(root.value["Width"]));
+            Assert.That(heard.Where(item => item.handler == "copied-handler").Select(item => item.value), Is.EqualTo(new[] { 7d, 8d }));
+            string saved = client.SerializeSaveData();
+            Assert.That(saved, Does.Not.Contain("source-box"), "No old owner or receiver id survives persistence.");
+            Assert.That(saved, Does.Not.Contain("runtime-handler"), "Session overrides stay transient even when adopted by a Save leaf.");
+
+            if (runtimeOverride)
+            {
+                foreach (string owner in new[] { leafId, nestedId })
+                    client.EditMemberChangeListener(owner, destination, "width-member",
+                        new PrimitiveTypeInfo { type = MemberKind.Int, required = true },
+                        new NeoDelegateValue { memberId = "runtime-handler", valueId = leafId }, false);
+                heard.Clear();
+                rootView.Get<NeoMemberIntWritable>("Width").Set(9);
+                nestedView.Get<NeoMemberIntWritable>("Width").Set(10);
+                Assert.That(heard.Select(item => item.handler), Is.EqualTo(new[] { "copied-handler", "copied-handler" }), "Runtime entries can be removed by their new identities.");
+            }
+            AssertRecordUntouched(client);
+        }
+
         private static readonly ClassTypeInfo BoxTypeInfo = new() { type = MemberKind.Class, required = true, classId = "box" };
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void ShadowImportKeepsRepeatedVirtualChildOccurrencesSeparate(bool materializedParents)
+        {
+            using NeoClient client = BuildClient(data =>
+            {
+                data.members["width-member"].Requirement = NeoMemberRequirementKind.Required;
+                ((IntMember)data.members["width-member"]).defaultValue = new NumberMemberValueBase { value = 0 };
+                data.classes["shadow-frame"] = new NeoSchemaClass { id = "shadow-frame", name = "ShadowFrame", schema = new() { ["Child"] = "frame-child" } };
+                data.classes["frame-child-class"] = new NeoSchemaClass { id = "frame-child-class", name = "FrameChild", schema = new() { ["Width"] = "width-member" } };
+                var child = ClassOf("frame-child", "Child", "frame-child-class", NeoMemberRequirementKind.Required, null);
+                child.defaultValue = new ObjectMemberValueBase { classId = "frame-child-class", value = new() };
+                data.members[child.id] = child;
+                data.values["shared-frame-child-source"] = new ObjectMemberValue
+                {
+                    id = "shared-frame-child-source",
+                    classId = "frame-child-class",
+                    value = new(),
+                    instanceConstructorId = null,
+                    constructorArgs = new(),
+                };
+                foreach (string name in new[] { "NestedA", "NestedB" })
+                {
+                    var frame = ClassOf("frame-" + name, name, "shadow-frame", NeoMemberRequirementKind.Required, null);
+                    frame.defaultValue = new ObjectMemberValueBase
+                    {
+                        classId = "shadow-frame",
+                        value = new() { ["Child"] = "shared-frame-child-source" },
+                    };
+                    data.members[frame.id] = frame;
+                    data.classes["box"].schema[name] = frame.id;
+                    string handler = "handler-" + name;
+                    data.classes["frame-child-class"].schema[handler] = handler;
+                    data.members[handler] = new FunctionMember
+                    {
+                        id = handler,
+                        name = handler,
+                        kind = MemberKind.Function,
+                        returnTypeInfo = new VoidTypeInfo { type = MemberKind.Void, required = true },
+                        argumentTypes = new[] { new FunctionArgumentTypeInfo { name = "next", type = MemberKind.Int, required = true } },
+                    };
+                }
+            });
+            var heard = new List<(string frame, double value)>();
+            client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+            {
+                ["handler-NestedA"] = (_, _, args) => { heard.Add(("A", Convert.ToDouble(args[0]))); return null; },
+                ["handler-NestedB"] = (_, _, args) => { heard.Add(("B", Convert.ToDouble(args[0]))); return null; },
+            });
+            const string sourceId = "nested-frame-source";
+            var seed = new NeoWritePlan(client);
+            seed.Set(NeoValueOwnership.Session, new ObjectMemberValue
+            {
+                id = sourceId,
+                classId = "box",
+                value = new() { ["Width"] = "nested-frame-root-width" },
+                instanceConstructorId = null,
+                constructorArgs = new(),
+            });
+            if (materializedParents)
+            {
+                var root = (ObjectMemberValue)seed.Resolve(NeoValueOwnership.Session, sourceId)!;
+                foreach (string name in new[] { "NestedA", "NestedB" })
+                {
+                    string frameId = "physical-" + name;
+                    root.value![name] = frameId;
+                    seed.Set(NeoValueOwnership.Session, new ObjectMemberValue
+                    {
+                        id = frameId,
+                        classId = "shadow-frame",
+                        value = new(),
+                        instanceConstructorId = null,
+                        constructorArgs = new(),
+                    });
+                }
+            }
+            seed.Set(NeoValueOwnership.Session, new NumberMemberValue { id = "nested-frame-root-width", value = 1 });
+            seed.Commit();
+            using var source = new NeoMemberClassWritable(client, "shape-member", sourceId, NeoValueOwnership.Session);
+            string[] names = { "NestedA", "NestedB" };
+            var oldFrames = names.Select(name => source.Get<NeoMemberClassWritable>(name)).ToArray();
+            var oldChildren = oldFrames.Select(frame => frame.Get<NeoMemberClassWritable>("Child")).ToArray();
+            for (int index = 0; index < names.Length; index++)
+            {
+                Assert.That((materializedParents ? oldFrames[index] : oldChildren[index]).value!.hasInstanceConstructorId, Is.True, "Each construction root retains its provenance.");
+                Assert.That(client.HasWritableValue(NeoValueOwnership.Session, oldFrames[index].value!.id), Is.EqualTo(materializedParents));
+                Assert.That(client.HasWritableValue(NeoValueOwnership.Session, oldChildren[index].value!.id), Is.False);
+                client.EditMemberChangeListener(oldChildren[index].value!.id, NeoValueOwnership.Session, "width-member",
+                    new PrimitiveTypeInfo { type = MemberKind.Int, required = true },
+                    new NeoDelegateValue { memberId = "handler-" + names[index], valueId = null }, true);
+            }
+            string[] oldFrameIds = oldFrames.Select(frame => frame.value!.id).ToArray();
+            string[] oldChildIds = oldChildren.Select(child => child.value!.id).ToArray();
+            var import = new NeoWritePlan(client);
+            Assert.That(client.TryGetMember("kept-member", out Member? member), Is.True);
+            client.StageShadowImport(import, NeoValueOwnership.Save, sourceId, client.ResolveValueRow("kept-leaf")!, member!, out _);
+            import.Commit();
+            using var target = new NeoMemberClassWritable(client, "kept-member", "kept-leaf", NeoValueOwnership.Save);
+            var newFrames = names.Select(name => target.Get<NeoMemberClassWritable>(name)).ToArray();
+            var newChildren = newFrames.Select(frame => frame.Get<NeoMemberClassWritable>("Child")).ToArray();
+            for (int index = 0; index < names.Length; index++)
+            {
+                Assert.That(newFrames[index].value!.id == oldFrameIds[index], Is.EqualTo(materializedParents));
+                Assert.That(newChildren[index].value!.id == oldChildIds[index], Is.EqualTo(materializedParents));
+                Assert.That(client.HasWritableValue(NeoValueOwnership.Save, newFrames[index].value!.id), Is.EqualTo(materializedParents), "Moving wiring preserves parent materialization.");
+                Assert.That(client.HasWritableValue(NeoValueOwnership.Save, newChildren[index].value!.id), Is.False);
+            }
+            Assert.That(heard, Is.Empty, "Constructor replay and listener transfer do not dispatch callbacks.");
+            newChildren[0].Get<NeoMemberIntWritable>("Width").Set(7);
+            newChildren[1].Get<NeoMemberIntWritable>("Width").Set(8);
+            CollectionAssert.AreEqual(new[] { ("A", 7d), ("B", 8d) }, heard, "Repeated source children retain distinct occurrence wiring.");
+            Assert.That(client.SerializeSaveData(), Does.Not.Contain("handler-Nested"), "The transferred registrations keep their Session lifetime.");
+        }
+
+        [TestCase(NeoValueOwnership.Session, false)]
+        [TestCase(NeoValueOwnership.Save, false)]
+        [TestCase(NeoValueOwnership.Session, true)]
+        [TestCase(NeoValueOwnership.Save, true)]
+        public void ShadowImportReprojectsVirtualDescendantWiring(NeoValueOwnership destination, bool runtimeOverride)
+        {
+            using NeoClient client = BuildClient(data =>
+            {
+                data.classes["box"].schema["Nested"] = "nested-box-member";
+                data.classes["nested-box"] = new NeoSchemaClass
+                {
+                    id = "nested-box",
+                    name = "NestedBox",
+                    schema = new() { ["Width"] = "width-member", ["Changed"] = "copied-handler", ["RuntimeChanged"] = "runtime-handler" },
+                };
+                data.members["width-member"].Requirement = NeoMemberRequirementKind.Required;
+                ((IntMember)data.members["width-member"]).defaultValue = new NumberMemberValueBase { value = 0 };
+                var nested = ClassOf("nested-box-member", "Nested", "nested-box", NeoMemberRequirementKind.Required, null);
+                nested.defaultValue = new ObjectMemberValueBase
+                {
+                    classId = "nested-box",
+                    value = new() { ["Width"] = "virtual-width-source" },
+                    changeListeners = new NeoChangeListenerMap
+                    {
+                        [NeoClient.DerivedMemberValueId("nested-box-member")] = new Dictionary<string, NeoDelegateValue[]>
+                        {
+                            ["width-member"] = new[] { new NeoDelegateValue { memberId = "copied-handler", valueId = null } },
+                        },
+                    },
+                };
+                data.members["nested-box-member"] = nested;
+                data.values["virtual-width-source"] = new NumberMemberValue { id = "virtual-width-source", value = 2 };
+                foreach (string handler in new[] { "copied-handler", "runtime-handler" })
+                    data.members[handler] = new FunctionMember
+                    {
+                        id = handler,
+                        name = handler,
+                        kind = MemberKind.Function,
+                        returnTypeInfo = new VoidTypeInfo { type = MemberKind.Void, required = true },
+                        argumentTypes = new[] { new FunctionArgumentTypeInfo { name = "next", type = MemberKind.Int, required = true } },
+                    };
+            });
+            var heard = new List<(string handler, double value)>();
+            client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+            {
+                ["copied-handler"] = (_, _, args) => { heard.Add(("copied", Convert.ToDouble(args[0]))); return null; },
+                ["runtime-handler"] = (_, _, args) => { heard.Add(("runtime", Convert.ToDouble(args[0]))); return null; },
+            });
+            const string sourceId = "virtual-source-box";
+            var seed = new NeoWritePlan(client);
+            seed.Set(NeoValueOwnership.Session, new ObjectMemberValue
+            {
+                id = sourceId,
+                classId = "box",
+                value = new() { ["Width"] = "virtual-root-width" },
+                instanceConstructorId = null,
+                constructorArgs = new(),
+            });
+            seed.Set(NeoValueOwnership.Session, new NumberMemberValue { id = "virtual-root-width", value = 1 });
+            seed.Commit();
+            using var source = new NeoMemberClassWritable(client, "shape-member", sourceId, NeoValueOwnership.Session);
+            NeoMemberClassWritable oldNested = source.Get<NeoMemberClassWritable>("Nested");
+            string oldNestedId = oldNested.value!.id;
+            Assert.That(oldNestedId, Does.Not.StartWith("__neo_default:"), "The fixture uses a P75 occurrence, not the declaration template wrapper.");
+            Assert.That(client.HasWritableValue(NeoValueOwnership.Session, oldNestedId), Is.False, "The source descendant is a virtual default.");
+            if (runtimeOverride)
+                client.EditMemberChangeListener(oldNestedId, NeoValueOwnership.Session, "width-member",
+                    new PrimitiveTypeInfo { type = MemberKind.Int, required = true },
+                    new NeoDelegateValue { memberId = "runtime-handler", valueId = null }, true);
+            string leafId = destination == NeoValueOwnership.Save ? "kept-leaf" : "shape-leaf";
+            string memberId = destination == NeoValueOwnership.Save ? "kept-member" : "shape-member";
+            var import = new NeoWritePlan(client);
+            Assert.That(client.TryGetMember(memberId, out Member? member), Is.True);
+            client.StageShadowImport(import, destination, sourceId, client.ResolveValueRow(leafId)!, member!, out _);
+            import.Commit();
+            using var target = new NeoMemberClassWritable(client, memberId, leafId, destination);
+            NeoMemberClassWritable newNested = target.Get<NeoMemberClassWritable>("Nested");
+            Assert.That(newNested.value!.id, Is.Not.EqualTo(oldNestedId), "A virtual descendant follows the replacement root's namespace.");
+            Assert.That(heard, Is.Empty, "Replaying virtual defaults and importing their graph are initialization.");
+            newNested.Get<NeoMemberIntWritable>("Width").Set(7);
+            CollectionAssert.AreEqual(runtimeOverride ? new[] { ("copied", 7d), ("runtime", 7d) } : new[] { ("copied", 7d) }, heard,
+                $"Wiring follows virtual descendant {oldNestedId} to {newNested.value!.id} beneath {leafId}.");
+            Assert.That(client.SerializeSaveData(), Does.Not.Contain("runtime-handler"), "A virtual Session registration remains temporary after Save adoption.");
+            Assert.That(client.HasWritableValue(NeoValueOwnership.Session, sourceId), Is.False);
+            AssertRecordUntouched(client);
+        }
+
+        [Test]
+        public void ShadowImportRemapsExternalSessionObserverWithoutRenamingSameIdSaveReceiver()
+        {
+            using NeoClient client = BuildClient(data =>
+            {
+                data.members["width-member"].Requirement = NeoMemberRequirementKind.Required;
+                foreach (string handler in new[] { "saved-observer-handler", "session-observer-handler", "inherited-observer-handler", "saved-self-handler" })
+                {
+                    data.classes["box"].schema[handler] = handler;
+                    data.members[handler] = new FunctionMember
+                    {
+                        id = handler,
+                        name = handler,
+                        kind = MemberKind.Function,
+                        returnTypeInfo = new VoidTypeInfo { type = MemberKind.Void, required = true },
+                        argumentTypes = new[] { new FunctionArgumentTypeInfo { name = "next", type = MemberKind.Int, required = true } },
+                    };
+                }
+            });
+            var heard = new List<(string handler, string receiverWidth, double value)>();
+            client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+            {
+                ["saved-observer-handler"] = (_, receiver, args) => Hear("save", receiver, args),
+                ["session-observer-handler"] = (_, receiver, args) => Hear("session", receiver, args),
+                ["inherited-observer-handler"] = (_, receiver, args) => Hear("inherited", receiver, args),
+                ["saved-self-handler"] = (_, receiver, args) => Hear("saved-self", receiver, args),
+            });
+            object? Hear(string handler, object? receiver, object?[] args)
+            {
+                heard.Add((handler, (string)((IDictionary<string, object?>)receiver!)["Width"]!, Convert.ToDouble(args[0])));
+                return null;
+            }
+
+            void AddBox(NeoWritePlan plan, NeoValueOwnership scope, string id, string widthId, NeoChangeListenerMap? defaults = null)
+            {
+                plan.Set(scope, new ObjectMemberValue { id = id, classId = "box", value = new() { ["Width"] = widthId }, copiedChangeListeners = defaults });
+                plan.Set(scope, new NumberMemberValue { id = widthId, value = 1 });
+            }
+            var savedSeed = new NeoWritePlan(client);
+            AddBox(savedSeed, NeoValueOwnership.Save, "source-box", "saved-source-width", new NeoChangeListenerMap
+            {
+                ["source-box"] = new Dictionary<string, NeoDelegateValue[]>
+                {
+                    ["width-member"] = new[] { new NeoDelegateValue { memberId = "saved-self-handler", valueId = null } },
+                },
+            });
+            AddBox(savedSeed, NeoValueOwnership.Save, "saved-observer", "saved-observer-width");
+            savedSeed.Commit();
+            var observed = new PrimitiveTypeInfo { type = MemberKind.Int, required = true };
+            client.EditMemberChangeListener("saved-observer", NeoValueOwnership.Save, "width-member", observed,
+                new NeoDelegateValue { memberId = "saved-observer-handler", valueId = "source-box" }, true);
+
+            var sessionSeed = new NeoWritePlan(client);
+            AddBox(sessionSeed, NeoValueOwnership.Session, "source-box", "session-source-width");
+            AddBox(sessionSeed, NeoValueOwnership.Session, "session-observer", "session-observer-width", new NeoChangeListenerMap
+            {
+                ["session-observer"] = new Dictionary<string, NeoDelegateValue[]>
+                {
+                    ["width-member"] = new[] { new NeoDelegateValue { memberId = "inherited-observer-handler", valueId = "source-box" } },
+                },
+            });
+            sessionSeed.Commit();
+            client.EditMemberChangeListener("session-observer", NeoValueOwnership.Session, "width-member", observed,
+                new NeoDelegateValue { memberId = "session-observer-handler", valueId = "source-box" }, true);
+            var import = new NeoWritePlan(client);
+            Assert.That(client.TryGetMember("shape-member", out Member? leafMember), Is.True);
+            client.StageShadowImport(import, NeoValueOwnership.Session, "source-box", client.ResolveValueRow("shape-leaf")!, leafMember!, out _);
+            import.Commit();
+
+            var savedMap = JObject.Parse(client.SerializeSaveData())["changeListeners"]!;
+            Assert.That(savedMap["saved-observer"]!["saved-observer"]!["width-member"]![0]!["valueId"]!.Value<string>(), Is.EqualTo("source-box"),
+                "A durable receiver in the opposite store has a distinct logical identity despite the equal id.");
+            Assert.That(savedMap.ToString(), Does.Not.Contain("shape-leaf"));
+            Assert.That(client.HasWritableValue(NeoValueOwnership.Session, "source-box"), Is.False);
+            Assert.That(client.HasWritableValue(NeoValueOwnership.Save, "source-box"), Is.True);
+            Assert.That(Writable<ObjectMemberValue>(client, NeoValueOwnership.Save, "source-box").copiedChangeListeners!.Keys,
+                Is.EquivalentTo(new[] { "source-box" }), "A copied baseline owner key is scoped to its carrier, not the renamed Session root.");
+
+            heard.Clear();
+            using var savedObserver = new NeoMemberClassWritable(client, "kept-member", "saved-observer", NeoValueOwnership.Save);
+            using var sessionObserver = new NeoMemberClassWritable(client, "shape-member", "session-observer", NeoValueOwnership.Session);
+            savedObserver.Get<NeoMemberIntWritable>("Width").Set(3);
+            sessionObserver.Get<NeoMemberIntWritable>("Width").Set(4);
+            using var savedSource = new NeoMemberClassWritable(client, "kept-member", "source-box", NeoValueOwnership.Save);
+            savedSource.Get<NeoMemberIntWritable>("Width").Set(5);
+            CollectionAssert.AreEqual(new[] { ("save", "saved-source-width", 3d), ("inherited", "session-source-width", 4d), ("session", "session-source-width", 4d), ("saved-self", "saved-source-width", 5d) }, heard,
+                "Only the external observer whose receiver moved follows the new leaf.");
+        }
 
         private static void Run(NeoClient client, params JObject[] instructions) =>
             Run(client, null, null, instructions);
@@ -541,7 +946,7 @@ namespace NeoCompose.Tests
         /// Session <c>Shape</c>, a Save <c>Kept</c>, and Session collections.
         /// <c>Missing</c> is declared but not authored.
         /// </summary>
-        private static NeoClient BuildClient()
+        private static NeoClient BuildClient(Action<ProjectData>? configure = null)
         {
             var data = new ProjectData
             {
@@ -640,6 +1045,7 @@ namespace NeoCompose.Tests
                 },
                 enums = new(),
             };
+            configure?.Invoke(data);
             return NeoTestSaveStack.ClientFromSchema(data);
         }
 

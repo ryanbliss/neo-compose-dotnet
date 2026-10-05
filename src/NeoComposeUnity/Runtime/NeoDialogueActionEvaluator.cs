@@ -613,6 +613,19 @@ namespace NeoCompose.Runtime
                                 }
                                 break;
                             }
+                        case InstructionCode.ChangeListener:
+                            {
+                                var subscription = (ChangeListenerInstruction)instruction;
+                                object? owner = Eval(subscription.target.owner, scope, actionCtx);
+                                string ownerId = NSGetterEvaluator.FindRowIdByReference(owner, actionCtx)
+                                    ?? throw new NSGetterRuntimeError("A listener owner must have a logical value identity.");
+                                NeoValueOwnership ownership = NSGetterEvaluator.FindRowOwnershipByReference(owner, actionCtx)
+                                    ?? throw new NSGetterRuntimeError($"Listener owner '{ownerId}' has no runtime residency.");
+                                NeoDelegateValue listener = ResolveListenerTarget(Eval(subscription.listener, scope, actionCtx), "OnChanged");
+                                client.EditMemberChangeListener(ownerId, ownership, subscription.target.memberId,
+                                    subscription.target.typeInfo, listener, instruction is AddChangeListenerInstruction);
+                                break;
+                            }
                         case InstructionCode.ActionListener:
                             ExecuteActionListener(
                                 client,
@@ -5600,7 +5613,7 @@ namespace NeoCompose.Runtime
                     batch.AfterCommit(() => ctx.allocationTracker.RegisterConstructedParent(
                         importedId,
                         parentRowId));
-                    batch.Release(ownership, list.Set(index, importedId, NeoTimestamp.Now()), released);
+                    batch.Release(ownership, list.Set(index, importedId, NeoTimestamp.Now()), released, parentRowId);
                 });
             }
         }
@@ -5781,7 +5794,7 @@ namespace NeoCompose.Runtime
                                 int index = ToInt(args[0], "RemoveAt index");
                                 if (index < 0 || index >= list.Count)
                                     throw new NSGetterRuntimeError($"List index out of bounds: {index}");
-                                batch.Release(ownership, list.RemoveAt(index, now), EntryMember(client, list.Row, entryTypeInfo));
+                                batch.Release(ownership, list.RemoveAt(index, now), EntryMember(client, list.Row, entryTypeInfo), rowId);
                                 return;
                             }
                         case CollectionMutationKind.Remove:
@@ -5792,7 +5805,7 @@ namespace NeoCompose.Runtime
                                         || !client.TryGetValue(list[i], out MemberValue? child)
                                         || !JsEqual(ReadEntryValue(child, entryMember, ctx), args[0])))
                                     continue;
-                                batch.Release(ownership, list.RemoveAt(i, now), EntryMember(client, list.Row, entryTypeInfo));
+                                batch.Release(ownership, list.RemoveAt(i, now), EntryMember(client, list.Row, entryTypeInfo), rowId);
                                 return;
                             }
                             return;
@@ -5800,7 +5813,7 @@ namespace NeoCompose.Runtime
                             {
                                 JsonMember releaseMember = EntryMember(client, list.Row, entryTypeInfo);
                                 foreach (string clearedId in list.Clear(now))
-                                    batch.Release(ownership, clearedId, releaseMember);
+                                    batch.Release(ownership, clearedId, releaseMember, rowId);
                                 return;
                             }
                         default:
@@ -5964,7 +5977,7 @@ namespace NeoCompose.Runtime
                         batch.AfterCommit(() => ctx.allocationTracker.RegisterConstructedParent(
                             replacementId,
                             rowId));
-                        batch.Release(ownership, existingId, EntryMember(client, current, entryTypeInfo));
+                        batch.Release(ownership, existingId, EntryMember(client, current, entryTypeInfo), rowId);
                         batch.Gain(ownership, replacementId, rowId);
                         // The pending row changes in place, which a failed
                         // mutation can't undo, so it changes last.
@@ -6020,7 +6033,7 @@ namespace NeoCompose.Runtime
                     var row = (ObjectMemberValue)dictionary.Row;
                     if (!row.value!.TryGetValue(key, out string removedId))
                         return;
-                    batch.Release(ownership, removedId, EntryMember(client, row, entryTypeInfo));
+                    batch.Release(ownership, removedId, EntryMember(client, row, entryTypeInfo), rowId);
                     row.value.Remove(key);
                     dictionary.Changes(NeoTimestamp.Now());
                 });
@@ -6037,7 +6050,7 @@ namespace NeoCompose.Runtime
                     var row = (ObjectMemberValue)dictionary.Row;
                     JsonMember releaseMember = EntryMember(client, row, entryTypeInfo);
                     foreach (string removedId in row.value!.Values)
-                        batch.Release(ownership, removedId, releaseMember);
+                        batch.Release(ownership, removedId, releaseMember, rowId);
                     row.value.Clear();
                     dictionary.Changes(NeoTimestamp.Now());
                 });

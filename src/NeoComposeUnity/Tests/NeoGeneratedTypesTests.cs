@@ -1836,8 +1836,10 @@ namespace NeoCompose.Tests
             Assert.IsTrue(app.Client.TryFindOwnedParent(
                 NeoValueOwnership.Save,
                 childValueId,
-                out string? detectedParent));
+                out string? detectedParent,
+                out NeoValueOwnership detectedOwnership));
             Assert.AreEqual(parentValueId, detectedParent);
+            Assert.AreEqual(NeoValueOwnership.Save, detectedOwnership);
 
             string clonedSaveParentId = app.Client.CloneValueReference(
                 parentValueId,

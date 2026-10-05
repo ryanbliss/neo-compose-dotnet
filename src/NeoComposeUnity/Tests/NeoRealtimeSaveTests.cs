@@ -122,6 +122,11 @@ namespace NeoCompose.Tests
                 "save-1", "snap-2", snapshotRevision: 2);
             api.getResult = moved;
             realtime.PushHead(moved);
+            // This persisted fixture has no content watermark. Its first signal
+            // hydrates before the queued snapshot move can be delivered.
+            var timeout = Task.Delay(TimeSpan.FromSeconds(5));
+            while (divergences.Count == 0 && !timeout.IsCompleted)
+                await Task.Yield();
             Assert.That(divergences, Has.Count.EqualTo(1));
             Assert.That(divergences[0].snapshotId, Is.EqualTo("snap-2"));
             Assert.That(sync.ActiveSave!.snapshotRevision, Is.EqualTo(1), "no auto-apply");
@@ -336,9 +341,11 @@ namespace NeoCompose.Tests
         public readonly Queue<NeoCommitResult> forkResults = new();
         public readonly List<NeoLiveForkRequest> forks = new();
         public Exception? forkThrows;
+        public Func<NeoLiveForkRequest, Awaitable<NeoCommitResult>>? forkHandler;
         public readonly Queue<NeoLivePatchResult> livePatchResults = new();
         public readonly List<NeoLivePatchRequest> livePatches = new();
         public Exception? livePatchThrows;
+        public Func<NeoLivePatchRequest, Awaitable<NeoLivePatchResult>>? livePatchHandler;
         public bool canCommit;
         public int ConnectCalls;
         public int DisconnectCalls;
@@ -410,7 +417,7 @@ namespace NeoCompose.Tests
             forks.Add(request);
             if (forkThrows != null)
                 throw forkThrows;
-            return NeoAwaitable.FromResult(forkResults.Dequeue());
+            return forkHandler is null ? NeoAwaitable.FromResult(forkResults.Dequeue()) : forkHandler(request);
         }
 
         public Awaitable<NeoLivePatchResult> PatchLiveAsync(NeoLivePatchRequest request)
@@ -418,7 +425,9 @@ namespace NeoCompose.Tests
             livePatches.Add(request);
             if (livePatchThrows != null)
                 throw livePatchThrows;
-            return NeoAwaitable.FromResult(livePatchResults.Dequeue());
+            return livePatchHandler != null
+                ? livePatchHandler(request)
+                : NeoAwaitable.FromResult(livePatchResults.Dequeue());
         }
 
         public void SetState(NeoRealtimeConnectionState state)

@@ -499,6 +499,7 @@ namespace NeoCompose.Runtime
                 StringComparer.Ordinal);
             var bindings = new Dictionary<string, GameSaveStaticBindingSetChange>(
                 StringComparer.Ordinal);
+            var listeners = new SortedDictionary<string, GameSaveChangeListenersPatchChange>(StringComparer.Ordinal);
             foreach (var change in changes)
             {
                 switch (change)
@@ -521,10 +522,16 @@ namespace NeoCompose.Runtime
                                 $"Chunked create repeats static binding \"{binding.memberId}\".");
                         }
                         break;
+                    case GameSaveChangeListenersPatchChange listener
+                        when listener.baseRecordStateId is null && listener.baseRecordRevisionToken is null
+                            && listener.edits.All(edit => edit.expected is null && edit.entry is not null):
+                        if (!listeners.TryAdd(listener.rootId, listener))
+                            throw new InvalidOperationException($"Chunked create repeats listener root '{listener.rootId}'.");
+                        break;
                     default:
                         throw new InvalidOperationException(
                             "Chunked create accepts only base-free value.replace and " +
-                            "static-binding.set changes.");
+                            "static-binding.set or initial change-listeners.patch changes.");
                 }
             }
 
@@ -555,6 +562,7 @@ namespace NeoCompose.Runtime
             }
             ordered.AddRange(bindings.OrderBy(pair => pair.Key, StringComparer.Ordinal)
                 .Select(pair => pair.Value));
+            ordered.AddRange(listeners.Values);
 
             var batches = new List<List<GameSaveRecordChange>>();
             for (var index = 0; index < ordered.Count; index += 64)

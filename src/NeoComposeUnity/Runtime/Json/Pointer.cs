@@ -251,6 +251,13 @@ namespace NeoCompose.Runtime.Json
         }
     }
 
+    /// <summary>A persisted method identity bound to an evaluated receiver.</summary>
+    public sealed class MemberTargetPointer : Pointer
+    {
+        public string memberId = null!;
+        public CallReceiver receiver = null!;
+    }
+
     /// <summary>Mirror of <c>INSPointerCallGetter</c>.</summary>
     public sealed class CallGetterPointer : Pointer, ISchemaResolutionSite
     {
@@ -454,6 +461,8 @@ namespace NeoCompose.Runtime.Json
                     return typeof(IsCheckPointer);
                 case PointerKind.CallGetter:
                     return typeof(CallGetterPointer);
+                case PointerKind.MemberTarget:
+                    return typeof(MemberTargetPointer);
                 case PointerKind.Coalesce:
                     return typeof(CoalescePointer);
                 case PointerKind.Conditional:
@@ -487,6 +496,19 @@ namespace NeoCompose.Runtime.Json
 
         protected override void ValidateObject(JObject obj, Type concrete)
         {
+            if (concrete == typeof(MemberTargetPointer))
+            {
+                if (string.IsNullOrWhiteSpace(obj["memberId"]?.Value<string>()))
+                    throw new JsonSerializationException("MemberTargetPointer requires a member id.");
+                if (obj["receiver"] is not JObject receiver)
+                    throw new JsonSerializationException("MemberTargetPointer requires a receiver.");
+                string? kind = receiver["kind"]?.Value<string>();
+                if (kind != CallReceiverKind.Static && kind != CallReceiverKind.Instance)
+                    throw new JsonSerializationException("MemberTargetPointer has an invalid receiver kind.");
+                if (kind == CallReceiverKind.Instance && receiver["pointer"] is not JObject)
+                    throw new JsonSerializationException("MemberTargetPointer requires an instance receiver pointer.");
+                return;
+            }
             if (concrete == typeof(TileConvertPointer))
             {
                 bool hasClass = obj["targetClassId"]?.Type == JTokenType.String

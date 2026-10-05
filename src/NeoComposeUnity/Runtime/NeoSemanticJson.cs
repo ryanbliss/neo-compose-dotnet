@@ -30,11 +30,14 @@ namespace NeoCompose.Runtime
         // Runtime replay compares thousands of already typed rows. Keep the
         // JSON fallback for uncommon payloads while avoiding serialization of
         // ordinary class maps, collections and scalar leaves.
-        internal static bool MemberRowsEqual(MemberValue? left, MemberValue? right, bool ignoreObjectFields = false, bool ignorePlacement = false)
+        internal static bool MemberRowsEqual(MemberValue? left, MemberValue? right, bool ignoreObjectFields = false, bool ignorePlacement = false, bool ignoreChangeListeners = false)
         {
             if (ReferenceEquals(left, right))
                 return true;
             if (left is null || right is null)
+                return false;
+            if (!ignoreChangeListeners && (!NeoChangeListenerMap.Same(left.changeListeners, right.changeListeners)
+                || !NeoChangeListenerEndpoints.Same(left.changeListenerEndpoints, right.changeListenerEndpoints)))
                 return false;
             if (left.GetType() != right.GetType() || left.init is not null || right.init is not null)
                 return ProjectRecordsEqual(JObject.FromObject(left), JObject.FromObject(right));

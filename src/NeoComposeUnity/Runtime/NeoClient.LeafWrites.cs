@@ -4,6 +4,7 @@
 #nullable enable
 
 using System;
+using System.Collections.Generic;
 using NeoCompose.Runtime.Json;
 
 namespace NeoCompose.Runtime
@@ -27,6 +28,8 @@ namespace NeoCompose.Runtime
         private static readonly Unity.Profiling.ProfilerMarker LeafWriteMarker = new("NeoCompose.Write.Leaf");
 #endif
 
+        internal bool TracksLeafWrites => hasListenerSources || scriptWriteDepth != 0;
+
         /// <summary>
         /// Stores <paramref name="next"/> in place of the committed row at the
         /// same id when the write is a plain leaf replacement. Returns false,
@@ -36,6 +39,8 @@ namespace NeoCompose.Runtime
         internal bool TryWriteLeaf(
             NeoValueOwnership ownership, MemberValue next, Member member, string? changedField, NeoValueNode? node = null)
         {
+            if (TracksLeafWrites)
+                return TryWriteLeafTracked(ownership, next, member, changedField, out _, node);
             if (scriptWriteBatch?.Touches(next.id) == true)
                 ObserveScriptWrites(next.id);
             if (!CanWriteLeaf(ownership, next, member, ref node))
@@ -60,6 +65,68 @@ namespace NeoCompose.Runtime
                 if (gridLeaf)
                     EndGridChange();
                 ReleaseGetterChanges();
+            }
+            return true;
+        }
+
+        internal bool TryWriteLeafTracked(
+            NeoValueOwnership ownership, MemberValue next, Member member, string? changedField,
+            out NeoWritePlan? pendingPlan, NeoValueNode? node = null)
+        {
+            pendingPlan = null;
+            // A held execution must prepare its leaf and wiring writes together.
+            // Keep the direct leaf fast path for writes outside that batch.
+            if (scriptWriteDepth != 0 && CanWriteLeaf(ownership, next, member, ref node)
+                && ScriptWriteBatch(next.id) is { } pending)
+            {
+                pending.Plan.Set(ownership, next, changedField);
+                pendingPlan = pending.Plan;
+                return true;
+            }
+            if (scriptWriteBatch?.Touches(next.id) == true)
+                ObserveScriptWrites(next.id);
+            if (!CanWriteLeaf(ownership, next, member, ref node))
+                return false;
+#if NEO_COMPOSE_PROFILING
+            using var marker = LeafWriteMarker.Auto();
+#endif
+            // Getter watchers hear the write once the grid it re-flattens is
+            // current.
+            bool recordListeners = hasListenerSources;
+            HoldGetterChanges();
+            if (recordListeners)
+                BeginChangeBatch();
+            bool gridLeaf = false;
+            try
+            {
+                MemberValue? previous = null;
+                if (recordListeners)
+                    TryGetValue(ownership, next.id, out previous);
+                StoreLeaf(ownership, next, node!);
+                if (recordListeners)
+                    RecordListenerRow(ownership, previous, next);
+                gridLeaf = InvalidateGridLeaf(next.id);
+                NotifyWritableValueChanged(ownership, next.id, changedField, membershipChanged: false, node: node);
+                if (gridLeaf)
+                    PublishGridLeaf(ownership, next.id);
+            }
+            finally
+            {
+                if (gridLeaf)
+                    EndGridChange();
+                if (recordListeners)
+                {
+                    try
+                    {
+                        ReleaseGetterChanges();
+                    }
+                    finally
+                    {
+                        EndChangeBatch();
+                    }
+                }
+                else
+                    ReleaseGetterChanges();
             }
             return true;
         }

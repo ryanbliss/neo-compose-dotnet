@@ -18,7 +18,7 @@ namespace NeoCompose.Tests
         public const string TargetChannel = "channel-dev";
 
         public const string ProjectJson =
-            "{\"metadata\":{\"schemaVersion\":34,\"projectId\":\"project-1\"," +
+            "{\"metadata\":{\"schemaVersion\":35,\"projectId\":\"project-1\"," +
             "\"versionId\":\"v1\",\"semver\":{\"label\":\"1.0\"}}," +
             "\"variantFolders\":{}}";
 
@@ -162,6 +162,29 @@ namespace NeoCompose.Tests
                     dataJson = data.ToString(Newtonsoft.Json.Formatting.None),
                 };
             }
+        }
+
+        public void SetListenerDelta(string snapshotId, long revision, string listeners)
+        {
+            var stateId = $"{snapshotId}:listeners:{revision}";
+            recordStates[stateId] = new GameSaveRecordState
+            {
+                id = stateId,
+                recordKind = NeoGameSaveRecordKinds.ChangeListeners,
+                recordId = "root",
+                dataSchemaVersion = 1,
+                dataJson = new JObject { ["changeListeners"] = JObject.Parse(listeners)["root"] }.ToString(Newtonsoft.Json.Formatting.None),
+            };
+            deltaPage = new GameSaveRecordPage
+            {
+                isDone = true,
+                page = new() { new()
+                {
+                    recordKind = NeoGameSaveRecordKinds.ChangeListeners, recordId = "root",
+                    recordStateId = stateId, recordRevisionToken = $"token:{revision}",
+                    contentHash = $"hash:{revision}", lastChangedRevision = revision,
+                } },
+            };
         }
 
         public void SetValueDelta(string snapshotId, long revision, string valuesJson)
@@ -345,6 +368,10 @@ namespace NeoCompose.Tests
                     case GameSaveStaticBindingRestoreToAuthoredChange binding:
                         recordKind = NeoGameSaveRecordKinds.StaticBinding;
                         recordId = binding.memberId;
+                        break;
+                    case GameSaveChangeListenersPatchChange listeners:
+                        recordKind = NeoGameSaveRecordKinds.ChangeListeners;
+                        recordId = listeners.rootId;
                         break;
                     default:
                         throw new InvalidOperationException(

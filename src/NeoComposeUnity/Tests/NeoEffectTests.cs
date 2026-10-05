@@ -134,6 +134,40 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void ScalarScriptWritesNotifyOnceAfterTheOutermostExecution()
+        {
+            using Fixture fixture = Build(plants: 1);
+            using var plant = new NeoMemberClassWritable(fixture.client, "member-plant-entry", "plant-0", NeoValueOwnership.Save);
+            var heard = new List<double>();
+            plant.Get<NeoMemberInt>("Count").OnChanged += _ => heard.Add(fixture.ReadNumber("plant-0-count"));
+
+            fixture.client.EnterScriptWrites();
+            try
+            {
+                fixture.WriteNumber("plant-0-count", "member-count", 1);
+                fixture.client.EnterScriptWrites();
+                try
+                {
+                    fixture.WriteNumber("plant-0-count", "member-count", 2);
+                }
+                finally
+                {
+                    fixture.client.ExitScriptWrites();
+                }
+                Assert.IsEmpty(heard);
+                Assert.AreEqual(2, fixture.ReadNumber("plant-0-count"));
+            }
+            finally
+            {
+                fixture.client.ExitScriptWrites();
+            }
+
+            CollectionAssert.AreEqual(new[] { 2d }, heard);
+            fixture.WriteNumber("plant-0-count", "member-count", 3);
+            CollectionAssert.AreEqual(new[] { 2d, 3d }, heard);
+        }
+
+        [Test]
         public void GetterWatchersHearTheSettledState()
         {
             using Fixture fixture = Build(plants: 0);

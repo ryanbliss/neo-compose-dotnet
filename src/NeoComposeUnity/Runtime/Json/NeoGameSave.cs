@@ -19,6 +19,9 @@ namespace NeoCompose.Runtime.Json
         public string id = "";
         public string snapshotId = "";
         public long snapshotRevision;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        [Newtonsoft.Json.JsonConverter(typeof(NeoSaveFormatRevisionConverter))]
+        public int? requiredSaveFormatRevision;
 
         public string projectId = "";
         public string releaseChannelId = "";
@@ -40,6 +43,7 @@ namespace NeoCompose.Runtime.Json
             id = save.id,
             snapshotId = save.snapshotId,
             snapshotRevision = save.snapshotRevision,
+            requiredSaveFormatRevision = save.requiredSaveFormatRevision,
             projectId = save.projectId,
             releaseChannelId = save.releaseChannelId,
             version = save.version,
@@ -75,6 +79,9 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public abstract class NeoGameSaveBase
     {
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        [Newtonsoft.Json.JsonConverter(typeof(NeoSaveFormatRevisionConverter))]
+        public int? requiredSaveFormatRevision;
         /// <summary>Human-readable save name.</summary>
         public string name = "";
 
@@ -96,6 +103,8 @@ namespace NeoCompose.Runtime.Json
         /// explicit tombstones. The target rows stay in <see cref="values"/>.
         /// </summary>
         public Dictionary<string, string?> staticBindings = new();
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public Dictionary<string, NeoChangeListenerMap>? changeListeners;
 
         /// <summary>
         /// Storage-partition presentation of the overlay
@@ -198,6 +207,10 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public sealed class LocalGameSave : NeoGameSaveBase
     {
+        // Validation hints belong to this captured stage, never to the saved file.
+        [JsonIgnore]
+        internal IReadOnlyDictionary<string, GameSaveListenerEndpointLocator>? listenerEndpoints;
+
         /// <summary>Stable client-generated save id; the primary local key.</summary>
         public string customId = "";
 
@@ -251,6 +264,7 @@ namespace NeoCompose.Runtime.Json
         /// </summary>
         public static LocalGameSave FromRemote(RemoteGameSave remote)
         {
+            NeoSaveFormat.RequireSupported(remote.requiredSaveFormatRevision);
             return new LocalGameSave
             {
                 customId = remote.id,
@@ -260,6 +274,8 @@ namespace NeoCompose.Runtime.Json
                 version = remote.version,
                 values = remote.values,
                 staticBindings = remote.staticBindings,
+                changeListeners = remote.changeListeners,
+                requiredSaveFormatRevision = remote.requiredSaveFormatRevision,
                 valuePartitions = remote.valuePartitions,
                 platforms = remote.platforms,
                 systems = remote.systems,
@@ -285,8 +301,10 @@ namespace NeoCompose.Runtime.Json
         {
             var copy = (LocalGameSave)MemberwiseClone();
             copy.staticBindings = new Dictionary<string, string?>(staticBindings);
+            copy.changeListeners = changeListeners is null ? null : new Dictionary<string, NeoChangeListenerMap>(changeListeners);
             copy.recordCache = new GameSaveRecordCache
             {
+                requiredSaveFormatRevision = recordCache.requiredSaveFormatRevision,
                 snapshotId = recordCache.snapshotId,
                 snapshotRevision = recordCache.snapshotRevision,
                 descriptors = new Dictionary<string, GameSaveRecordDescriptor>(recordCache.descriptors),

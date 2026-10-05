@@ -74,6 +74,7 @@ namespace NeoCompose.Runtime.Json
         Switch,
         Try,
         ActionListener,
+        ChangeListener,
     }
 
     /// <summary>
@@ -368,6 +369,32 @@ namespace NeoCompose.Runtime.Json
     {
     }
 
+    public sealed class ChangeListenerTarget
+    {
+        public Pointer owner = null!;
+        public string memberId = null!;
+        public TypeInfo typeInfo = null!;
+        public string writability = null!;
+    }
+
+    public abstract class ChangeListenerInstruction : Instruction
+    {
+        private protected ChangeListenerInstruction() : base(InstructionCode.ChangeListener)
+        {
+        }
+
+        public ChangeListenerTarget target = null!;
+        public Pointer listener = null!;
+    }
+
+    public sealed class AddChangeListenerInstruction : ChangeListenerInstruction
+    {
+    }
+
+    public sealed class RemoveChangeListenerInstruction : ChangeListenerInstruction
+    {
+    }
+
     public class InstructionConverter : DiscriminatedConverter<Instruction>
     {
         protected override Type? ResolveSubclass(JToken discriminator)
@@ -408,6 +435,10 @@ namespace NeoCompose.Runtime.Json
                     return typeof(AddActionListenerInstruction);
                 case InstructionKind.RemoveActionListener:
                     return typeof(RemoveActionListenerInstruction);
+                case InstructionKind.AddChangeListener:
+                    return typeof(AddChangeListenerInstruction);
+                case InstructionKind.RemoveChangeListener:
+                    return typeof(RemoveChangeListenerInstruction);
                 default:
                     return null;
             }
@@ -415,6 +446,19 @@ namespace NeoCompose.Runtime.Json
 
         protected override void ValidateObject(JObject obj, Type concrete)
         {
+            if (typeof(ChangeListenerInstruction).IsAssignableFrom(concrete))
+            {
+                if (obj["target"] is not JObject target)
+                    throw new JsonSerializationException("Change listener instruction requires a target.");
+                if (target["owner"] is not JObject)
+                    throw new JsonSerializationException("Change listener target requires an owner pointer.");
+                if (string.IsNullOrWhiteSpace(target["memberId"]?.Value<string>()))
+                    throw new JsonSerializationException("Change listener target requires a member id.");
+                if (target["typeInfo"] is not JObject)
+                    throw new JsonSerializationException("Change listener target requires type information.");
+                if (obj["listener"] is not JObject)
+                    throw new JsonSerializationException("Change listener instruction requires a listener pointer.");
+            }
             if (concrete == typeof(FunctionCallInstruction)
                 && obj["call"]?.Type != JTokenType.Object)
             {

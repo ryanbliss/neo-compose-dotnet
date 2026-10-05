@@ -16,6 +16,9 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public sealed class NeoSaveCommitRequest
     {
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        [Newtonsoft.Json.JsonConverter(typeof(NeoSaveFormatRevisionConverter))]
+        public int? requiredSaveFormatRevision;
         public string customId = "";
         public string name = "";
         public VersionData version = new VersionData();
@@ -27,6 +30,12 @@ namespace NeoCompose.Runtime.Json
         /// Values are target value ids or null tombstones.
         /// </summary>
         public Dictionary<string, string?> staticBindings = new();
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public Dictionary<string, NeoChangeListenerMap>? changeListeners;
+
+        /// <summary>Transient owning paths for server validation, never stored in the save.</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public List<GameSaveListenerEndpointLocator>? listenerEndpoints;
 
         /// <summary>
         /// Storage-partition split of the commit
@@ -74,6 +83,9 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public sealed class NeoChunkedCreateRequest
     {
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        [Newtonsoft.Json.JsonConverter(typeof(NeoSaveFormatRevisionConverter))]
+        public int? requiredSaveFormatRevision;
         public string customId = "";
         public string name = "";
         public VersionData version = new();
@@ -103,6 +115,10 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public sealed class NeoSparseSnapshotCommitRequest
     {
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        [JsonConverter(typeof(NeoSaveFormatRevisionConverter))]
+        public int? requiredSaveFormatRevision;
+
         public string baseSnapshotId = "";
         public long baseSnapshotRevision;
         public VersionData version = new();
@@ -120,6 +136,10 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public sealed class NeoStagedSnapshotBeginRequest
     {
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        [JsonConverter(typeof(NeoSaveFormatRevisionConverter))]
+        public int? requiredSaveFormatRevision;
+
         public string baseSnapshotId = "";
         public long baseSnapshotRevision;
         public VersionData version = new();
