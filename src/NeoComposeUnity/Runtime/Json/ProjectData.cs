@@ -154,6 +154,12 @@ namespace NeoCompose.Runtime.Json
         public string projectId = null!;
         public string versionId = null!;
         public ProjectExportMetadataSemver? semver;
+
+        /// <summary>
+        /// The export includes edits not yet pushed (P101 §4): player builds
+        /// fail and saves stay local.
+        /// </summary>
+        public bool localExport;
     }
 
     /// <summary>

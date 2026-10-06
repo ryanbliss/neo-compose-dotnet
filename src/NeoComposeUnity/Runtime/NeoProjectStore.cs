@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using NeoCompose.Runtime.Json;
 using Newtonsoft.Json;
 using UnityEngine;
@@ -27,13 +28,16 @@ namespace NeoCompose.Runtime
     public sealed class NeoProjectStore : IDisposable
     {
         private readonly IProjectDataSource dataSource;
-        private readonly INeoLocalSaveStore localStore;
-        private readonly INeoApiClient? apiClient;
+        private readonly bool localStorePassed;
         private readonly string targetReleaseChannelId;
         private readonly NeoSaveOptions options;
         private readonly bool requireCloudCommit;
-        private readonly NeoAuthentication? authentication;
-        private readonly INeoRealtimeProvider? realtimeProvider;
+        // A local export (P101 §4) replaces these for the rest of the store's life.
+        private INeoLocalSaveStore localStore;
+        private INeoApiClient? apiClient;
+        private NeoAuthentication? authentication;
+        private INeoRealtimeProvider? realtimeProvider;
+        private bool localExport;
 
         private InternalProjectStore? core;
         private bool disposed;
@@ -94,6 +98,7 @@ namespace NeoCompose.Runtime
             }
 
             this.dataSource = dataSource;
+            this.localStorePassed = localStore != null;
             this.localStore = localStore ?? new NeoFileLocalSaveStore();
             this.options = options ?? new NeoSaveOptions();
             this.requireCloudCommit = requireCloudCommit;
@@ -273,6 +278,10 @@ namespace NeoCompose.Runtime
 
                 ThrowIfDisposed();
                 NeoProjectDataValidator.Validate(schema);
+                if (schema.metadata?.localExport == true && !localExport)
+                {
+                    EnterLocalExport();
+                }
                 core = new InternalProjectStore(
                     schema,
                     localStore,
@@ -285,7 +294,10 @@ namespace NeoCompose.Runtime
                     realtimeProvider);
                 core.ListChanged += () => OnListChanged?.Invoke();
                 await core.RefreshListAsync();
-                await BringUpRealtimeAsync();
+                if (!localExport)
+                {
+                    await BringUpRealtimeAsync();
+                }
                 State = NeoProjectStoreState.Ready;
             }
             catch (Exception)
@@ -293,6 +305,46 @@ namespace NeoCompose.Runtime
                 State = NeoProjectStoreState.Errored;
                 throw;
             }
+        }
+
+        /// <summary>
+        /// A local export's schema can declare records the server lacks, so its
+        /// saves stay on disk, in their own folder so cloud sync never uploads
+        /// them later, and nothing reaches the server (P101 §4).
+        /// </summary>
+        private void EnterLocalExport()
+        {
+            localExport = true;
+            var ignored = new List<string>();
+            if (localStorePassed)
+                ignored.Add("the local save store");
+            if (apiClient != null)
+                ignored.Add("cloud saves");
+            if (authentication != null)
+            {
+                ignored.Add("sign-in");
+                authentication.OnStateChanged -= OnAuthenticationStateChanged;
+            }
+            if (realtimeProvider != null)
+            {
+                ignored.Add("realtime");
+                realtimeProvider.OnConnectionStateChanged -= OnRealtimeConnectionStateChanged;
+                core?.DetachRealtimeSubscriptions();
+                realtimeProvider.Dispose();
+            }
+
+            string directory = Path.Combine(
+                Application.persistentDataPath, "NeoCompose", "LocalExport");
+            localStore = new NeoFileLocalSaveStore(directory);
+            apiClient = null;
+            authentication = null;
+            realtimeProvider = null;
+            string ignoring = ignored.Count == 0
+                ? ""
+                : $" Ignoring {string.Join(", ", ignored)}.";
+            Debug.LogWarning(
+                $"[NeoCompose] This project.json is a local export, so saves stay in {directory}." +
+                $"{ignoring} Run `neo push` or a clean `neo export` to use the server again.");
         }
 
         /// <summary>Re-reads the save list from local + cloud.</summary>

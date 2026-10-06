@@ -4,11 +4,14 @@
 #nullable enable
 
 using System.IO;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
+using UnityEngine;
+using UnityEngine.TestTools;
 
 namespace NeoCompose.Tests
 {
@@ -264,6 +267,59 @@ namespace NeoCompose.Tests
                 "A signed-out delete must not call the authenticated cloud archive.");
             Assert.That(await local.LoadSaveAsync("save-1"), Is.Null);
             Assert.That(store.Saves[0].IsArchived, Is.True);
+        }
+
+        [Test]
+        public async Task LoadAsync_OfALocalExport_KeepsSavesInTheirOwnFolderAndNeverReachesTheServer()
+        {
+            var api = new FakeApiClient();
+            var passed = new NeoInMemoryLocalSaveStore();
+            var realtime = new FakeRealtimeProvider();
+            var authentication = new NeoAuthentication(
+                new NeoAuthenticationOptions(
+                    "https://example.test",
+                    "project-1",
+                    "runtime-client",
+                    "project:project-1:save:write"),
+                new EmptyTokenStore());
+            var store = new NeoProjectStore(
+                dataSource: NeoTestExport.Source(NeoSaveTestSupport.ProjectJson.Replace(
+                    "\"schemaVersion\"",
+                    "\"localExport\":true,\"schemaVersion\"")),
+                localStore: passed,
+                apiClient: api,
+                authentication: authentication,
+                targetReleaseChannelId: NeoSaveTestSupport.TargetChannel,
+                realtimeProvider: realtime);
+            LogAssert.Expect(
+                LogType.Warning,
+                new Regex("local export.*Ignoring the local save store, cloud saves, sign-in, realtime\\."));
+
+            await store.LoadAsync();
+
+            Assert.That(store.Schema!.metadata!.localExport, Is.True);
+            Assert.That(store.Authentication, Is.Null);
+            Assert.That(store.RealtimeProvider, Is.Null);
+            Assert.That(realtime.DisposeCalls, Is.EqualTo(1));
+            Assert.That(realtime.ConnectCalls, Is.EqualTo(0));
+            Assert.That(api.listCalls, Is.EqualTo(0));
+
+            string customId = "local-export-" + System.Guid.NewGuid().ToString("N");
+            var folder = new NeoFileLocalSaveStore(
+                Path.Combine(Application.persistentDataPath, "NeoCompose", "LocalExport"));
+            try
+            {
+                await store.CreateNew(customId, "Local")
+                    .CommitSaveContentAsync(NeoSaveTestSupport.SaveContent("Local"), replaceSnapshot: false);
+
+                Assert.That(await folder.LoadSaveAsync(customId), Is.Not.Null);
+                Assert.That(await passed.ListSaveIdsAsync(), Is.Empty);
+                Assert.That(api.commits, Is.Empty);
+            }
+            finally
+            {
+                await folder.DeleteSaveAsync(customId);
+            }
         }
 
         [Test]

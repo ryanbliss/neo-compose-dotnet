@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.59.0] - 2026-10-06
+
+P101: `neo export` exports local edits before they're pushed. Requires CLI 0.70.0 for local exports.
+
+- `ProjectExportMetadata.localExport` is true when `project.json` includes edits that aren't pushed.
+- A player build of a local export fails with "project.json is a local export with edits that aren't pushed. Run `neo push`, or revert the edits and run `neo export`, then build again."
+- `NeoProjectStore.LoadAsync` on a local export keeps saves in `persistentDataPath/NeoCompose/LocalExport`, even when a `localStore` is passed, and never reaches the server. It drops the API client and authentication, disposes the realtime provider, and `Authentication` and `RealtimeProvider` return null from then on. It warns once, naming what it ignored. A save made in local mode stays in that folder, so cloud sync never uploads it later.
+- The Project card in the Neo Compose window shows "Local export" while the stamp is there. Its tooltip names the workspace the export came from and how to leave local mode.
+
 ## [0.58.1] - 2026-10-06
 
 - The Neo Compose window fits Unity's default 320 px window width again. In 0.58.0 it needed 502 px and showed a horizontal scrollbar that hid the Account and Project buttons: the account and project names each reserved 205 px, and the Project row gained an "Edit in web" button. The names now clip when space runs short, and the window needs about 300 px.
