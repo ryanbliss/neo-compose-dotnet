@@ -19,8 +19,7 @@ namespace NeoCompose.Tests
     /// wrappers + the <c>keyKind</c>/<c>keyEnumId</c> JSON read layer. The
     /// wrappers delegate to the same string-keyed storage as the
     /// single-arity pair; <see cref="ItemSlot"/> mirrors the generated enum
-    /// wrapper shape (static per-option instances, interned
-    /// <see cref="ItemSlot.FromOptionId"/>, implicit string conversions).
+    /// shape (a C# enum converted by <see cref="ItemSlotOptions"/>).
     /// </summary>
     public class NeoEnumKeyedDictionaryTests
     {
@@ -28,42 +27,36 @@ namespace NeoCompose.Tests
         private const string InventoryValueId = "inventory-value";
 
         /// <summary>
-        /// Hand-written stand-in for a codegen-emitted enum wrapper: sealed,
-        /// interned per-option instances, <c>FromOptionId</c> factory that
-        /// mints ad-hoc instances for unknown ids, implicit string
-        /// conversions both ways, value equality on <c>optionId</c>.
+        /// Hand-written stand-in for a codegen-emitted enum: a real C# enum
+        /// plus an options class converting to and from option ids.
         /// </summary>
-        private sealed class ItemSlot : IEquatable<ItemSlot>
+        private enum ItemSlot
         {
-            private static readonly Dictionary<string, ItemSlot> values = new();
-            public string optionId
-            {
-                get;
-            }
+            Sword = 1,
+            Shield = 2,
+        }
 
-            private ItemSlot(string optionId)
-            {
-                this.optionId = optionId;
-            }
-
-            public static readonly ItemSlot Sword = FromOptionId("sword");
-            public static readonly ItemSlot Shield = FromOptionId("shield");
-
+        private static class ItemSlotOptions
+        {
             public static ItemSlot FromOptionId(string optionId)
             {
-                if (values.TryGetValue(optionId, out var known))
-                    return known;
-                var created = new ItemSlot(optionId);
-                values[optionId] = created;
-                return created;
+                return optionId switch
+                {
+                    "sword" => ItemSlot.Sword,
+                    "shield" => ItemSlot.Shield,
+                    _ => NeoUndeclaredEnumOptions<ItemSlot>.FromOptionId(optionId),
+                };
             }
 
-            public static implicit operator string(ItemSlot value) => value.optionId;
-            public static implicit operator ItemSlot(string optionId) => FromOptionId(optionId);
-            public override string ToString() => optionId;
-            public bool Equals(ItemSlot? other) => other is not null && optionId == other.optionId;
-            public override bool Equals(object? obj) => Equals(obj as ItemSlot);
-            public override int GetHashCode() => optionId.GetHashCode();
+            public static string OptionId(ItemSlot value)
+            {
+                return value switch
+                {
+                    ItemSlot.Sword => "sword",
+                    ItemSlot.Shield => "shield",
+                    _ => NeoUndeclaredEnumOptions<ItemSlot>.OptionId(value),
+                };
+            }
         }
 
         // ------------------------------------------------------------------
@@ -200,8 +193,8 @@ namespace NeoCompose.Tests
                 node,
                 (_, member) => ((NeoMemberString)member).value?.value ?? "",
                 NeoGeneratedTypesSupport.Value,
-                ItemSlot.FromOptionId,
-                slot => slot.optionId);
+                ItemSlotOptions.FromOptionId,
+                ItemSlotOptions.OptionId);
         }
 
         [Test]
@@ -213,11 +206,11 @@ namespace NeoCompose.Tests
             inventory.Add(ItemSlot.Sword, "Excalibur");
 
             // Wire key is the option id; the typed key materializes back to
-            // the interned wrapper instance.
+            // the enum member.
             Assert.IsTrue(node.ContainsKey("sword"));
             var keys = new List<ItemSlot>(inventory.Keys);
             Assert.AreEqual(1, keys.Count);
-            Assert.AreSame(ItemSlot.Sword, keys[0]);
+            Assert.AreEqual(ItemSlot.Sword, keys[0]);
         }
 
         [Test]
@@ -234,8 +227,8 @@ namespace NeoCompose.Tests
                 () => saveRoot.GetOrCreateCollection<NeoMemberDictionaryWritable>("Inventory"),
                 (_, member) => ((NeoMemberString)member).value?.value ?? "",
                 item => NeoGeneratedTypesSupport.Value(item),
-                ItemSlot.FromOptionId,
-                key => key.optionId,
+                ItemSlotOptions.FromOptionId,
+                ItemSlotOptions.OptionId,
                 () => { },
                 () => false);
 
@@ -290,14 +283,14 @@ namespace NeoCompose.Tests
 
             var pairs = new List<KeyValuePair<ItemSlot, string>>(inventory);
             Assert.AreEqual(2, pairs.Count);
-            Assert.AreSame(ItemSlot.Sword, pairs[0].Key);
+            Assert.AreEqual(ItemSlot.Sword, pairs[0].Key);
             Assert.AreEqual("Excalibur", pairs[0].Value);
-            Assert.AreSame(ItemSlot.Shield, pairs[1].Key);
+            Assert.AreEqual(ItemSlot.Shield, pairs[1].Key);
             Assert.AreEqual("Aegis", pairs[1].Value);
         }
 
         [Test]
-        public void TwoArity_StaleKey_DegradesToAdHocWrapperInstance()
+        public void TwoArity_StaleKey_RoundTripsAsUndeclaredOption()
         {
             var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
             var inventory = CreateWritableInventory(client, out var node);
@@ -315,26 +308,27 @@ namespace NeoCompose.Tests
 
             var keys = new List<ItemSlot>(inventory.Keys);
             Assert.AreEqual(2, keys.Count);
-            CollectionAssert.Contains(keys, ItemSlot.FromOptionId("dagger"));
+            CollectionAssert.Contains(keys, ItemSlotOptions.FromOptionId("dagger"));
             CollectionAssert.Contains(keys, ItemSlot.Sword);
 
-            // The stale key is a first-class ad-hoc instance: interned,
+            // The stale key is an undeclared value: negative, stable,
             // round-trips, and reads its entry like any live option.
-            var stale = ItemSlot.FromOptionId("dagger");
-            Assert.AreSame(stale, ItemSlot.FromOptionId("dagger"));
+            var stale = ItemSlotOptions.FromOptionId("dagger");
+            Assert.Less((int)stale, 0);
+            Assert.AreEqual(stale, ItemSlotOptions.FromOptionId("dagger"));
+            Assert.AreEqual("dagger", ItemSlotOptions.OptionId(stale));
             Assert.AreEqual("Carnwennan", inventory[stale]);
             Assert.IsTrue(inventory.Remove(stale));
             Assert.IsFalse(inventory.ContainsKey(stale));
         }
 
         [Test]
-        public void TwoArity_NullKey_ThrowsBeforeReachingCodec()
+        public void TwoArity_DefaultKey_Throws()
         {
             var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
             var inventory = CreateWritableInventory(client, out _);
 
-            Assert.Throws<ArgumentNullException>(() => inventory.Add(null!, "x"));
-            Assert.Throws<ArgumentNullException>(() => inventory.ContainsKey(null!));
+            Assert.Throws<ArgumentOutOfRangeException>(() => inventory.Add(default, "x"));
         }
 
         // ------------------------------------------------------------------

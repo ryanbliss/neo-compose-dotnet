@@ -11,42 +11,55 @@ using UnityEngine;
 
 namespace HelloWorld.Assets.Scripts.Neo
 {
-    public sealed class JupiterMoon : IEquatable<JupiterMoon>, global::NeoCompose.Runtime.INeoEnumOption
+    [NeoEnum(typeof(JupiterMoonOptions))]
+    public enum JupiterMoon
     {
-        private static readonly Dictionary<string, JupiterMoon> values = new Dictionary<string, JupiterMoon>();
-        public string optionId { get; }
-        public string Text => TextForOptionId(optionId);
-        public string TextId => TextIdForOptionId(optionId);
+        io = 268485905,
+        europa = 693741950,
+        ganymede = 1525978064,
+        callisto = 1587922741,
+    }
 
-        private JupiterMoon(string optionId)
-        {
-            this.optionId = optionId;
-        }
-
-        public static readonly JupiterMoon io = FromOptionId("5cdeb824-3b72-511b-b248-584bbe2002f4");
-        public static readonly JupiterMoon europa = FromOptionId("017b6de2-cab7-5dcc-949e-127e81452071");
-        public static readonly JupiterMoon ganymede = FromOptionId("5503d837-8ff6-5ac1-9293-ca496c608890");
-        public static readonly JupiterMoon callisto = FromOptionId("5bf07e46-2cd8-5277-8910-e66fd3ddef3c");
-
+    /// <summary>
+    /// Converts <see cref="JupiterMoon"/> to and from the option ids Neo stores.
+    /// </summary>
+    public static class JupiterMoonOptions
+    {
         public static JupiterMoon FromOptionId(string optionId)
         {
-            if (values.TryGetValue(optionId, out var known)) return known;
-            var created = new JupiterMoon(optionId);
-            values[optionId] = created;
-            return created;
+            return optionId switch
+            {
+                "5cdeb824-3b72-511b-b248-584bbe2002f4" => JupiterMoon.io,
+                "017b6de2-cab7-5dcc-949e-127e81452071" => JupiterMoon.europa,
+                "5503d837-8ff6-5ac1-9293-ca496c608890" => JupiterMoon.ganymede,
+                "5bf07e46-2cd8-5277-8910-e66fd3ddef3c" => JupiterMoon.callisto,
+                _ => NeoUndeclaredEnumOptions<JupiterMoon>.FromOptionId(optionId),
+            };
+        }
+
+        public static string OptionId(this JupiterMoon value)
+        {
+            return value switch
+            {
+                JupiterMoon.io => "5cdeb824-3b72-511b-b248-584bbe2002f4",
+                JupiterMoon.europa => "017b6de2-cab7-5dcc-949e-127e81452071",
+                JupiterMoon.ganymede => "5503d837-8ff6-5ac1-9293-ca496c608890",
+                JupiterMoon.callisto => "5bf07e46-2cd8-5277-8910-e66fd3ddef3c",
+                _ => NeoUndeclaredEnumOptions<JupiterMoon>.OptionId(value),
+            };
         }
 
         public static string[] ToOptionIds(IEnumerable<JupiterMoon>? options)
         {
             if (options is null) return Array.Empty<string>();
             var ids = new List<string>();
-            foreach (var option in options) ids.Add(option.optionId);
+            foreach (var option in options) ids.Add(option.OptionId());
             return ids.ToArray();
         }
 
-        public static bool IsKnown(string id)
+        public static bool IsKnown(string optionId)
         {
-            return id switch
+            return optionId switch
             {
                 "5cdeb824-3b72-511b-b248-584bbe2002f4" => true,
                 "017b6de2-cab7-5dcc-949e-127e81452071" => true,
@@ -56,30 +69,21 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public static string TextIdForOptionId(string optionId)
+        public static string TextId(this JupiterMoon value)
         {
-            return optionId switch
+            return value switch
             {
-                "5cdeb824-3b72-511b-b248-584bbe2002f4" => "io",
-                "017b6de2-cab7-5dcc-949e-127e81452071" => "Europa",
-                "5503d837-8ff6-5ac1-9293-ca496c608890" => "Ganymede",
-                "5bf07e46-2cd8-5277-8910-e66fd3ddef3c" => "Callisto",
-                _ => optionId,
+                JupiterMoon.io => "io",
+                JupiterMoon.europa => "Europa",
+                JupiterMoon.ganymede => "Ganymede",
+                JupiterMoon.callisto => "Callisto",
+                _ => value.OptionId(),
             };
         }
 
-        public static string TextForOptionId(string optionId, NeoClient? client = null)
+        public static string Text(this JupiterMoon value, NeoClient? client = null)
         {
-            return (client ?? HelloWorldNeo.RequireInstance().Client).Localization.ResolveText(TextIdForOptionId(optionId));
+            return (client ?? HelloWorldNeo.RequireInstance().Client).Localization.ResolveText(value.TextId());
         }
-
-        public static implicit operator string(JupiterMoon value) => value.optionId;
-        public static implicit operator JupiterMoon(string optionId) => FromOptionId(optionId);
-        public override string ToString() => optionId;
-        public bool Equals(JupiterMoon? other) => other is not null && optionId == other.optionId;
-        public override bool Equals(object? obj) => Equals(obj as JupiterMoon);
-        public override int GetHashCode() => optionId.GetHashCode();
-        public static bool operator ==(JupiterMoon? left, JupiterMoon? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
-        public static bool operator !=(JupiterMoon? left, JupiterMoon? right) => !(left == right);
     }
 }

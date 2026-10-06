@@ -2509,7 +2509,8 @@ namespace NeoCompose.Runtime
             renderer.flipX = spriteObject.FlipX;
             renderer.flipY = spriteObject.FlipY;
             renderer.maskInteraction =
-                NeoSpriteMaskInteractions.ToUnity(spriteObject.MaskInteraction);
+                NeoSpriteMaskInteractions.ToUnity(
+                    NeoSpriteMaskInteractionOptions.FromOptionId(spriteObject.MaskInteraction));
         }
 
         private static void ApplySorting(

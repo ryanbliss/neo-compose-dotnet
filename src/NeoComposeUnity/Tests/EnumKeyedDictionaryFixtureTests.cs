@@ -3,6 +3,7 @@
 
 #nullable enable
 
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -78,13 +79,13 @@ namespace NeoCompose.Tests
 
             // The persisted save keys the entry by the raw option id.
             string persisted = stack.PersistedContent()!;
-            StringAssert.Contains($"\"{Element.ice.optionId}\"", persisted);
+            StringAssert.Contains($"\"{Element.ice.OptionId()}\"", persisted);
 
             var reloaded = await TestProjectNeo.Load(stack.Reopen());
             Assert.AreEqual(5, reloaded.Save.ElementStats[Element.ice]);
             // Authored entry and the dangling `storm` key both survive.
             Assert.AreEqual(12, reloaded.Save.ElementStats[Element.fire]);
-            Assert.AreEqual(99, reloaded.Save.ElementStats[Element.FromOptionId("storm")]);
+            Assert.AreEqual(99, reloaded.Save.ElementStats[ElementOptions.FromOptionId("storm")]);
         }
 
         // ------------------------------------------------------------------
@@ -157,18 +158,19 @@ namespace NeoCompose.Tests
         // ------------------------------------------------------------------
 
         [Test]
-        public void StaleKey_EnumerationDegradesToAdHocWrapperInstances()
+        public void StaleKey_EnumeratesAsUndeclaredEnumValue()
         {
             var app = LoadGeneratedClient(out _);
 
             var keys = app.Save.ElementStats.Keys.ToList();
             Assert.AreEqual(2, keys.Count);
-            // Live option materializes as the interned generated instance…
-            Assert.IsTrue(keys.Any(key => ReferenceEquals(key, Element.fire)));
-            // …and the dangling `storm` key degrades to a first-class ad-hoc
-            // instance minted by FromOptionId, readable like any live option.
-            var stale = keys.Single(key => key.optionId == "storm");
-            Assert.AreSame(Element.FromOptionId("storm"), stale);
+            // Live option materializes as its enum member…
+            CollectionAssert.Contains(keys, Element.fire);
+            // …and the dangling `storm` key becomes an undeclared value that
+            // round-trips its option id and reads like any live option.
+            var stale = keys.Single(key => key.OptionId() == "storm");
+            Assert.IsFalse(System.Enum.IsDefined(typeof(Element), stale));
+            Assert.AreEqual(ElementOptions.FromOptionId("storm"), stale);
             Assert.AreEqual(99, app.Save.ElementStats[stale]);
         }
 

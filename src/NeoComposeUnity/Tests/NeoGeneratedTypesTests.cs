@@ -283,9 +283,10 @@ namespace NeoCompose.Tests
             // The option id is whatever the fixture's enum declares, so read
             // it off the generated member rather than restating it — what
             // matters is that the generated lookup round-trips it.
-            Assert.IsNotEmpty(Element.fire.optionId);
-            Assert.IsTrue(Element.IsKnown(Element.fire.optionId));
-            Assert.IsFalse(Element.IsKnown("modded-element"));
+            Assert.IsNotEmpty(Element.fire.OptionId());
+            Assert.AreEqual(Element.fire, ElementOptions.FromOptionId(Element.fire.OptionId()));
+            Assert.IsTrue(ElementOptions.IsKnown(Element.fire.OptionId()));
+            Assert.IsFalse(ElementOptions.IsKnown("modded-element"));
         }
 
         [Test]
@@ -329,12 +330,13 @@ namespace NeoCompose.Tests
                 },
             });
 
-            Assert.AreEqual("Fire", Element.fire.TextId);
-            Assert.AreEqual("Localized Fire", Element.fire.Text);
+            Assert.AreEqual("Fire", Element.fire.TextId());
+            Assert.AreEqual("Localized Fire", Element.fire.Text());
+            Assert.AreEqual("Localized Fire", Element.fire.Text(app.Client));
+            // An undeclared option id has no authored text, so its id stands in.
             Assert.AreEqual(
-                "Localized Fire",
-                Element.TextForOptionId(Element.fire.optionId, app.Client));
-            Assert.AreEqual("modded-element", Element.TextIdForOptionId("modded-element"));
+                "modded-element",
+                ElementOptions.FromOptionId("modded-element").TextId());
         }
 
         [Test]

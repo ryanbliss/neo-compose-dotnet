@@ -2881,7 +2881,7 @@ namespace NeoCompose.Tests
             data.values["track-direction-reverse"] = new ArrayMemberValue
             {
                 id = "track-direction-reverse",
-                value = new[] { NeoPlayDirection.Reverse.optionId },
+                value = new[] { NeoPlayDirection.Reverse.OptionId() },
             };
 
             using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
@@ -6683,7 +6683,7 @@ namespace NeoCompose.Tests
                     FlipX = true,
                     FlipY = true,
                     MaskInteraction =
-                        NeoSpriteMaskInteraction.VisibleInsideMask.optionId,
+                        NeoSpriteMaskInteraction.VisibleInsideMask.OptionId(),
                 },
             };
             var go = new GameObject("NeoTileGridRenderer sprite state test");
@@ -8579,7 +8579,7 @@ namespace NeoCompose.Tests
             {
                 get; set;
             } =
-                NeoSpriteMaskInteraction.None.optionId;
+                NeoSpriteMaskInteraction.None.OptionId();
             public int? SortingOrder
             {
                 get; set;
@@ -8617,7 +8617,7 @@ namespace NeoCompose.Tests
             {
                 get; set;
             } =
-                NeoSpriteMaskInteraction.None.optionId;
+                NeoSpriteMaskInteraction.None.OptionId();
             public int? SortingOrder
             {
                 get; set;
@@ -8644,7 +8644,7 @@ namespace NeoCompose.Tests
             public Sprite Sprite => null!;
             public bool FlipX => false;
             public bool FlipY => false;
-            public string MaskInteraction => NeoSpriteMaskInteraction.None.optionId;
+            public string MaskInteraction => NeoSpriteMaskInteraction.None.OptionId();
             public int? SortingOrder => Convert.ToInt32(ComputeProperty("SortingOrder").value);
         }
 
@@ -8712,7 +8712,7 @@ namespace NeoCompose.Tests
             {
                 get; set;
             } =
-                NeoSpriteMaskInteraction.None.optionId;
+                NeoSpriteMaskInteraction.None.OptionId();
             public int? SortingOrder
             {
                 get; set;
@@ -9365,13 +9365,13 @@ namespace NeoCompose.Tests
                 name = "NeoPlayDirection",
                 options = new Dictionary<string, EnumOption>
                 {
-                    [NeoPlayDirection.Forward.optionId] = new EnumOption { text = "Forward" },
-                    [NeoPlayDirection.Reverse.optionId] = new EnumOption { text = "Reverse" },
+                    [NeoPlayDirection.Forward.OptionId()] = new EnumOption { text = "Forward" },
+                    [NeoPlayDirection.Reverse.OptionId()] = new EnumOption { text = "Reverse" },
                 },
                 optionKeyOrder = new List<string>
                 {
-                    NeoPlayDirection.Forward.optionId,
-                    NeoPlayDirection.Reverse.optionId,
+                    NeoPlayDirection.Forward.OptionId(),
+                    NeoPlayDirection.Reverse.OptionId(),
                 },
                 createdAt = "x",
                 updatedAt = "x",

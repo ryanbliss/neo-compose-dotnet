@@ -11,42 +11,55 @@ using UnityEngine;
 
 namespace HelloWorld.Assets.Scripts.Neo
 {
-    public sealed class NeoSmartTileCondition : IEquatable<NeoSmartTileCondition>, global::NeoCompose.Runtime.INeoEnumOption
+    [NeoEnum(typeof(NeoSmartTileConditionOptions))]
+    public enum NeoSmartTileCondition
     {
-        private static readonly Dictionary<string, NeoSmartTileCondition> values = new Dictionary<string, NeoSmartTileCondition>();
-        public string optionId { get; }
-        public string Text => TextForOptionId(optionId);
-        public string TextId => TextIdForOptionId(optionId);
+        This = 2760026,
+        NotThis = 1386909328,
+        InheritsFromClass = 1807736213,
+        NotInheritsFromClass = 1244387747,
+    }
 
-        private NeoSmartTileCondition(string optionId)
-        {
-            this.optionId = optionId;
-        }
-
-        public static readonly NeoSmartTileCondition This = FromOptionId("system_fe185d9d-63c5-5f71-be71-408db18a84ee");
-        public static readonly NeoSmartTileCondition NotThis = FromOptionId("system_53438afa-206b-5bec-a202-c9b60d1ad8b6");
-        public static readonly NeoSmartTileCondition InheritsFromClass = FromOptionId("system_04d1dedf-8b84-5638-8db1-158c4243ef3f");
-        public static readonly NeoSmartTileCondition NotInheritsFromClass = FromOptionId("system_bc62a20a-a386-5224-b54b-12c00e7c576b");
-
+    /// <summary>
+    /// Converts <see cref="NeoSmartTileCondition"/> to and from the option ids Neo stores.
+    /// </summary>
+    public static class NeoSmartTileConditionOptions
+    {
         public static NeoSmartTileCondition FromOptionId(string optionId)
         {
-            if (values.TryGetValue(optionId, out var known)) return known;
-            var created = new NeoSmartTileCondition(optionId);
-            values[optionId] = created;
-            return created;
+            return optionId switch
+            {
+                "system_fe185d9d-63c5-5f71-be71-408db18a84ee" => NeoSmartTileCondition.This,
+                "system_53438afa-206b-5bec-a202-c9b60d1ad8b6" => NeoSmartTileCondition.NotThis,
+                "system_04d1dedf-8b84-5638-8db1-158c4243ef3f" => NeoSmartTileCondition.InheritsFromClass,
+                "system_bc62a20a-a386-5224-b54b-12c00e7c576b" => NeoSmartTileCondition.NotInheritsFromClass,
+                _ => NeoUndeclaredEnumOptions<NeoSmartTileCondition>.FromOptionId(optionId),
+            };
+        }
+
+        public static string OptionId(this NeoSmartTileCondition value)
+        {
+            return value switch
+            {
+                NeoSmartTileCondition.This => "system_fe185d9d-63c5-5f71-be71-408db18a84ee",
+                NeoSmartTileCondition.NotThis => "system_53438afa-206b-5bec-a202-c9b60d1ad8b6",
+                NeoSmartTileCondition.InheritsFromClass => "system_04d1dedf-8b84-5638-8db1-158c4243ef3f",
+                NeoSmartTileCondition.NotInheritsFromClass => "system_bc62a20a-a386-5224-b54b-12c00e7c576b",
+                _ => NeoUndeclaredEnumOptions<NeoSmartTileCondition>.OptionId(value),
+            };
         }
 
         public static string[] ToOptionIds(IEnumerable<NeoSmartTileCondition>? options)
         {
             if (options is null) return Array.Empty<string>();
             var ids = new List<string>();
-            foreach (var option in options) ids.Add(option.optionId);
+            foreach (var option in options) ids.Add(option.OptionId());
             return ids.ToArray();
         }
 
-        public static bool IsKnown(string id)
+        public static bool IsKnown(string optionId)
         {
-            return id switch
+            return optionId switch
             {
                 "system_fe185d9d-63c5-5f71-be71-408db18a84ee" => true,
                 "system_53438afa-206b-5bec-a202-c9b60d1ad8b6" => true,
@@ -56,30 +69,21 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public static string TextIdForOptionId(string optionId)
+        public static string TextId(this NeoSmartTileCondition value)
         {
-            return optionId switch
+            return value switch
             {
-                "system_fe185d9d-63c5-5f71-be71-408db18a84ee" => "This",
-                "system_53438afa-206b-5bec-a202-c9b60d1ad8b6" => "Not this",
-                "system_04d1dedf-8b84-5638-8db1-158c4243ef3f" => "Inherits from class",
-                "system_bc62a20a-a386-5224-b54b-12c00e7c576b" => "Does not inherit from class",
-                _ => optionId,
+                NeoSmartTileCondition.This => "This",
+                NeoSmartTileCondition.NotThis => "Not this",
+                NeoSmartTileCondition.InheritsFromClass => "Inherits from class",
+                NeoSmartTileCondition.NotInheritsFromClass => "Does not inherit from class",
+                _ => value.OptionId(),
             };
         }
 
-        public static string TextForOptionId(string optionId, NeoClient? client = null)
+        public static string Text(this NeoSmartTileCondition value, NeoClient? client = null)
         {
-            return (client ?? HelloWorldNeo.RequireInstance().Client).Localization.ResolveText(TextIdForOptionId(optionId));
+            return (client ?? HelloWorldNeo.RequireInstance().Client).Localization.ResolveText(value.TextId());
         }
-
-        public static implicit operator string(NeoSmartTileCondition value) => value.optionId;
-        public static implicit operator NeoSmartTileCondition(string optionId) => FromOptionId(optionId);
-        public override string ToString() => optionId;
-        public bool Equals(NeoSmartTileCondition? other) => other is not null && optionId == other.optionId;
-        public override bool Equals(object? obj) => Equals(obj as NeoSmartTileCondition);
-        public override int GetHashCode() => optionId.GetHashCode();
-        public static bool operator ==(NeoSmartTileCondition? left, NeoSmartTileCondition? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
-        public static bool operator !=(NeoSmartTileCondition? left, NeoSmartTileCondition? right) => !(left == right);
     }
 }

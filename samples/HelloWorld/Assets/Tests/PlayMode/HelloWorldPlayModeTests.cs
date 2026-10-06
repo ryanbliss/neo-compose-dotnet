@@ -139,7 +139,7 @@ namespace HelloWorld.Assets.Tests.PlayMode
                 yield return null;
             using var client = loading.GetResult();
 
-            Assert.AreSame(Planet.earth, client.Save.World);
+            Assert.AreEqual(Planet.earth, client.Save.World);
             Assert.AreEqual("Hello Earth!", client.Assets.Computed.fullText);
 
             var startingBits = client.Save.Bits;
@@ -160,7 +160,7 @@ namespace HelloWorld.Assets.Tests.PlayMode
             Assert.AreEqual(startingBits + 7, client.Save.Bits);
             Assert.AreEqual(startingBits + 7, observedBits);
             Assert.AreEqual(NeoChangeSource.Local, observedSource);
-            Assert.AreSame(Planet.mars, client.Save.World);
+            Assert.AreEqual(Planet.mars, client.Save.World);
             CollectionAssert.IsEmpty(client.FindUnlinkedSaveValueIds(), client.SerializeSaveData());
         }
 
@@ -201,11 +201,11 @@ namespace HelloWorld.Assets.Tests.PlayMode
                     var outposts = gameplay.Outposts
                         .Where(outpost => outpost.Planet == planet)
                         .ToArray();
-                    Assert.IsNotEmpty(outposts, $"The sample is missing its {planet.Text} outpost.");
+                    Assert.IsNotEmpty(outposts, $"The sample is missing its {planet.Text()} outpost.");
 
                     var marker = outposts.Length == 1
                         ? FindRect($"Planet {outposts[0].FullDisplayText}")
-                        : FindRect($"World {planet.optionId}");
+                        : FindRect($"World {planet}");
                     var anchor = marker.anchorMin;
                     Assert.AreEqual(anchor.x, marker.anchorMax.x, 0.0001f);
                     Assert.AreEqual(anchor.y, marker.anchorMax.y, 0.0001f);
@@ -222,14 +222,14 @@ namespace HelloWorld.Assets.Tests.PlayMode
                         1f,
                         normalizedOrbitDistance,
                         0.015f,
-                        $"{planet.Text} must start on orbit ring {ring}, not at the sun.");
+                        $"{planet.Text()} must start on orbit ring {ring}, not at the sun.");
 
                     var actualScreenPosition = ScreenPosition(marker, canvas);
                     var expectedScreenPosition = ScreenPositionForAnchor(map, canvas, anchor);
                     Assert.Less(
                         Vector2.Distance(actualScreenPosition, expectedScreenPosition),
                         1.5f,
-                        $"{planet.Text} must resolve to its expected screen coordinate.");
+                        $"{planet.Text()} must resolve to its expected screen coordinate.");
                     orbitScreenPositions[planet] = actualScreenPosition;
                 }
 

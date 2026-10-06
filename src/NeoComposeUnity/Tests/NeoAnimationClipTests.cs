@@ -17,20 +17,6 @@ namespace NeoCompose.Tests
 {
     public sealed class NeoAnimationClipTests
     {
-        /// <summary>
-        /// NUnit test-case metadata only accepts literal values, and
-        /// NeoPlayDirection is the SDK-shipped option-id wrapper class — so
-        /// cases carry the member name and resolve it here.
-        /// </summary>
-        private static NeoPlayDirection DirectionByName(string name)
-        {
-            if (name == "Forward")
-                return NeoPlayDirection.Forward;
-            if (name == "Reverse")
-                return NeoPlayDirection.Reverse;
-            throw new ArgumentException($"Unknown direction name '{name}'.", nameof(name));
-        }
-
         [Test]
         public void EightFpsSingleFrameLoopOnlyReentersOnItsClockBoundary()
         {
@@ -48,13 +34,12 @@ namespace NeoCompose.Tests
             Assert.That(entries, Is.EqualTo(2), "A new loop still runs dynamic frame functions and events.");
         }
 
-        [TestCase("Forward", new[] { 0, 1, 2, 3 })]
-        [TestCase("Reverse", new[] { 3, 2, 1, 0 })]
+        [TestCase(NeoPlayDirection.Forward, new[] { 0, 1, 2, 3 })]
+        [TestCase(NeoPlayDirection.Reverse, new[] { 3, 2, 1, 0 })]
         public void PlayOnce_TraversesInRequestedDirection(
-            string directionName,
+            NeoPlayDirection direction,
             int[] expected)
         {
-            NeoPlayDirection direction = DirectionByName(directionName);
             using NeoClient client = CreateClient();
             TestTarget target = new(client);
             var entered = new List<int>();
@@ -67,13 +52,12 @@ namespace NeoCompose.Tests
             Assert.IsFalse(clip.IsPlaying);
         }
 
-        [TestCase("Forward", new[] { 0, 1, 2, 3, 0, 1 })]
-        [TestCase("Reverse", new[] { 3, 2, 1, 0, 3, 2 })]
+        [TestCase(NeoPlayDirection.Forward, new[] { 0, 1, 2, 3, 0, 1 })]
+        [TestCase(NeoPlayDirection.Reverse, new[] { 3, 2, 1, 0, 3, 2 })]
         public void PlayLoop_RepeatWrapsWithoutStopping(
-            string directionName,
+            NeoPlayDirection direction,
             int[] expected)
         {
-            NeoPlayDirection direction = DirectionByName(directionName);
             using NeoClient client = CreateClient();
             TestTarget target = new(client);
             var entered = new List<int>();
@@ -86,13 +70,12 @@ namespace NeoCompose.Tests
             Assert.IsTrue(clip.IsPlaying);
         }
 
-        [TestCase("Forward", new[] { 0, 1, 2, 3, 2, 1, 0, 1 })]
-        [TestCase("Reverse", new[] { 3, 2, 1, 0, 1, 2, 3, 2 })]
+        [TestCase(NeoPlayDirection.Forward, new[] { 0, 1, 2, 3, 2, 1, 0, 1 })]
+        [TestCase(NeoPlayDirection.Reverse, new[] { 3, 2, 1, 0, 1, 2, 3, 2 })]
         public void PlayLoop_BoomerangReversesWithoutDuplicatingEnds(
-            string directionName,
+            NeoPlayDirection direction,
             int[] expected)
         {
-            NeoPlayDirection direction = DirectionByName(directionName);
             using NeoClient client = CreateClient();
             TestTarget target = new(client);
             var entered = new List<int>();

@@ -11,43 +11,58 @@ using UnityEngine;
 
 namespace HelloWorld.Assets.Scripts.Neo
 {
-    public sealed class WorldEnding : IEquatable<WorldEnding>, global::NeoCompose.Runtime.INeoEnumOption
+    [NeoEnum(typeof(WorldEndingOptions))]
+    public enum WorldEnding
     {
-        private static readonly Dictionary<string, WorldEnding> values = new Dictionary<string, WorldEnding>();
-        public string optionId { get; }
-        public string Text => TextForOptionId(optionId);
-        public string TextId => TextIdForOptionId(optionId);
+        commentOut = 510868118,
+        goodbyeWorld = 869938258,
+        helloWorld = 429309112,
+        none = 776777508,
+        secondSun = 1473127232,
+    }
 
-        private WorldEnding(string optionId)
-        {
-            this.optionId = optionId;
-        }
-
-        public static readonly WorldEnding commentOut = FromOptionId("498b8b7f-6470-5de3-a20d-d7ec9307933f");
-        public static readonly WorldEnding goodbyeWorld = FromOptionId("03d93640-bd3d-59cd-b973-19083e0496bf");
-        public static readonly WorldEnding helloWorld = FromOptionId("d3e24170-8855-56e2-bee8-773d01636c6b");
-        public static readonly WorldEnding none = FromOptionId("43694573-50a6-53eb-9a27-bd913ee6f884");
-        public static readonly WorldEnding secondSun = FromOptionId("7359d943-87e9-576f-8857-7dc583fa1760");
-
+    /// <summary>
+    /// Converts <see cref="WorldEnding"/> to and from the option ids Neo stores.
+    /// </summary>
+    public static class WorldEndingOptions
+    {
         public static WorldEnding FromOptionId(string optionId)
         {
-            if (values.TryGetValue(optionId, out var known)) return known;
-            var created = new WorldEnding(optionId);
-            values[optionId] = created;
-            return created;
+            return optionId switch
+            {
+                "498b8b7f-6470-5de3-a20d-d7ec9307933f" => WorldEnding.commentOut,
+                "03d93640-bd3d-59cd-b973-19083e0496bf" => WorldEnding.goodbyeWorld,
+                "d3e24170-8855-56e2-bee8-773d01636c6b" => WorldEnding.helloWorld,
+                "43694573-50a6-53eb-9a27-bd913ee6f884" => WorldEnding.none,
+                "7359d943-87e9-576f-8857-7dc583fa1760" => WorldEnding.secondSun,
+                _ => NeoUndeclaredEnumOptions<WorldEnding>.FromOptionId(optionId),
+            };
+        }
+
+        public static string OptionId(this WorldEnding value)
+        {
+            return value switch
+            {
+                WorldEnding.commentOut => "498b8b7f-6470-5de3-a20d-d7ec9307933f",
+                WorldEnding.goodbyeWorld => "03d93640-bd3d-59cd-b973-19083e0496bf",
+                WorldEnding.helloWorld => "d3e24170-8855-56e2-bee8-773d01636c6b",
+                WorldEnding.none => "43694573-50a6-53eb-9a27-bd913ee6f884",
+                WorldEnding.secondSun => "7359d943-87e9-576f-8857-7dc583fa1760",
+                _ => NeoUndeclaredEnumOptions<WorldEnding>.OptionId(value),
+            };
         }
 
         public static string[] ToOptionIds(IEnumerable<WorldEnding>? options)
         {
             if (options is null) return Array.Empty<string>();
             var ids = new List<string>();
-            foreach (var option in options) ids.Add(option.optionId);
+            foreach (var option in options) ids.Add(option.OptionId());
             return ids.ToArray();
         }
 
-        public static bool IsKnown(string id)
+        public static bool IsKnown(string optionId)
         {
-            return id switch
+            return optionId switch
             {
                 "498b8b7f-6470-5de3-a20d-d7ec9307933f" => true,
                 "03d93640-bd3d-59cd-b973-19083e0496bf" => true,
@@ -58,31 +73,22 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public static string TextIdForOptionId(string optionId)
+        public static string TextId(this WorldEnding value)
         {
-            return optionId switch
+            return value switch
             {
-                "498b8b7f-6470-5de3-a20d-d7ec9307933f" => "commentOut",
-                "03d93640-bd3d-59cd-b973-19083e0496bf" => "goodbyeWorld",
-                "d3e24170-8855-56e2-bee8-773d01636c6b" => "helloWorld",
-                "43694573-50a6-53eb-9a27-bd913ee6f884" => "none",
-                "7359d943-87e9-576f-8857-7dc583fa1760" => "secondSun",
-                _ => optionId,
+                WorldEnding.commentOut => "commentOut",
+                WorldEnding.goodbyeWorld => "goodbyeWorld",
+                WorldEnding.helloWorld => "helloWorld",
+                WorldEnding.none => "none",
+                WorldEnding.secondSun => "secondSun",
+                _ => value.OptionId(),
             };
         }
 
-        public static string TextForOptionId(string optionId, NeoClient? client = null)
+        public static string Text(this WorldEnding value, NeoClient? client = null)
         {
-            return (client ?? HelloWorldNeo.RequireInstance().Client).Localization.ResolveText(TextIdForOptionId(optionId));
+            return (client ?? HelloWorldNeo.RequireInstance().Client).Localization.ResolveText(value.TextId());
         }
-
-        public static implicit operator string(WorldEnding value) => value.optionId;
-        public static implicit operator WorldEnding(string optionId) => FromOptionId(optionId);
-        public override string ToString() => optionId;
-        public bool Equals(WorldEnding? other) => other is not null && optionId == other.optionId;
-        public override bool Equals(object? obj) => Equals(obj as WorldEnding);
-        public override int GetHashCode() => optionId.GetHashCode();
-        public static bool operator ==(WorldEnding? left, WorldEnding? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
-        public static bool operator !=(WorldEnding? left, WorldEnding? right) => !(left == right);
     }
 }

@@ -3329,12 +3329,12 @@ namespace NeoCompose.Runtime
             if (selected.Length == 0)
                 return NeoSelectorRefreshKind.OnLoad;
             if (selected.Length != 1
-                || !NeoSelectorRefreshKind.IsKnown(selected[0]))
+                || !NeoSelectorRefreshKindOptions.IsKnown(selected[0]))
             {
                 throw new InvalidOperationException(
                     $"{label} Refresh must be exactly one NeoSelectorRefreshKind option.");
             }
-            return NeoSelectorRefreshKind.FromOptionId(selected[0]);
+            return NeoSelectorRefreshKindOptions.FromOptionId(selected[0]);
         }
 
         private static string ReadRequiredString(
@@ -3749,12 +3749,12 @@ namespace NeoCompose.Runtime
             string[] selected = direction.Selected();
             if (selected.Length == 0)
                 return NeoPlayDirection.Forward;
-            if (selected.Length != 1 || !NeoPlayDirection.IsKnown(selected[0]))
+            if (selected.Length != 1 || !NeoPlayDirectionOptions.IsKnown(selected[0]))
             {
                 throw new InvalidOperationException(
                     $"{label} Direction must be exactly one NeoPlayDirection option.");
             }
-            return NeoPlayDirection.FromOptionId(selected[0]);
+            return NeoPlayDirectionOptions.FromOptionId(selected[0]);
         }
 
         /// <summary>

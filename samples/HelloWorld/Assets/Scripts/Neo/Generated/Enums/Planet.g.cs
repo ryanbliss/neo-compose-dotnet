@@ -11,47 +11,70 @@ using UnityEngine;
 
 namespace HelloWorld.Assets.Scripts.Neo
 {
-    public sealed class Planet : IEquatable<Planet>, global::NeoCompose.Runtime.INeoEnumOption
+    [NeoEnum(typeof(PlanetOptions))]
+    public enum Planet
     {
-        private static readonly Dictionary<string, Planet> values = new Dictionary<string, Planet>();
-        public string optionId { get; }
-        public string Text => TextForOptionId(optionId);
-        public string TextId => TextIdForOptionId(optionId);
+        mercury = 1042523001,
+        venus = 2142830215,
+        earth = 270077890,
+        mars = 486754951,
+        jupiter = 1748620360,
+        saturn = 489352994,
+        uranus = 1153270554,
+        neptune = 186740340,
+        pluto = 550910398,
+    }
 
-        private Planet(string optionId)
-        {
-            this.optionId = optionId;
-        }
-
-        public static readonly Planet mercury = FromOptionId("423134f9-3331-5b33-944b-5e4d7160e060");
-        public static readonly Planet venus = FromOptionId("f492d879-e4a7-5419-9a8c-6f890d4657c7");
-        public static readonly Planet earth = FromOptionId("901a21ff-6ad4-5791-8ae3-2f9df559b9ff");
-        public static readonly Planet mars = FromOptionId("4f9bc257-1579-59b5-90c3-417c3518e407");
-        public static readonly Planet jupiter = FromOptionId("78eea93e-734b-5c5a-8b2f-3410f0701cef");
-        public static readonly Planet saturn = FromOptionId("dd859a21-d18e-5ad4-962d-af6b939b7f29");
-        public static readonly Planet uranus = FromOptionId("0e7998db-d1c8-5036-955e-923dbc5fb78a");
-        public static readonly Planet neptune = FromOptionId("7eda9aa1-0212-5433-b292-349d4b63039e");
-        public static readonly Planet pluto = FromOptionId("987a97e1-02c7-52f1-a638-117d76726337");
-
+    /// <summary>
+    /// Converts <see cref="Planet"/> to and from the option ids Neo stores.
+    /// </summary>
+    public static class PlanetOptions
+    {
         public static Planet FromOptionId(string optionId)
         {
-            if (values.TryGetValue(optionId, out var known)) return known;
-            var created = new Planet(optionId);
-            values[optionId] = created;
-            return created;
+            return optionId switch
+            {
+                "423134f9-3331-5b33-944b-5e4d7160e060" => Planet.mercury,
+                "f492d879-e4a7-5419-9a8c-6f890d4657c7" => Planet.venus,
+                "901a21ff-6ad4-5791-8ae3-2f9df559b9ff" => Planet.earth,
+                "4f9bc257-1579-59b5-90c3-417c3518e407" => Planet.mars,
+                "78eea93e-734b-5c5a-8b2f-3410f0701cef" => Planet.jupiter,
+                "dd859a21-d18e-5ad4-962d-af6b939b7f29" => Planet.saturn,
+                "0e7998db-d1c8-5036-955e-923dbc5fb78a" => Planet.uranus,
+                "7eda9aa1-0212-5433-b292-349d4b63039e" => Planet.neptune,
+                "987a97e1-02c7-52f1-a638-117d76726337" => Planet.pluto,
+                _ => NeoUndeclaredEnumOptions<Planet>.FromOptionId(optionId),
+            };
+        }
+
+        public static string OptionId(this Planet value)
+        {
+            return value switch
+            {
+                Planet.mercury => "423134f9-3331-5b33-944b-5e4d7160e060",
+                Planet.venus => "f492d879-e4a7-5419-9a8c-6f890d4657c7",
+                Planet.earth => "901a21ff-6ad4-5791-8ae3-2f9df559b9ff",
+                Planet.mars => "4f9bc257-1579-59b5-90c3-417c3518e407",
+                Planet.jupiter => "78eea93e-734b-5c5a-8b2f-3410f0701cef",
+                Planet.saturn => "dd859a21-d18e-5ad4-962d-af6b939b7f29",
+                Planet.uranus => "0e7998db-d1c8-5036-955e-923dbc5fb78a",
+                Planet.neptune => "7eda9aa1-0212-5433-b292-349d4b63039e",
+                Planet.pluto => "987a97e1-02c7-52f1-a638-117d76726337",
+                _ => NeoUndeclaredEnumOptions<Planet>.OptionId(value),
+            };
         }
 
         public static string[] ToOptionIds(IEnumerable<Planet>? options)
         {
             if (options is null) return Array.Empty<string>();
             var ids = new List<string>();
-            foreach (var option in options) ids.Add(option.optionId);
+            foreach (var option in options) ids.Add(option.OptionId());
             return ids.ToArray();
         }
 
-        public static bool IsKnown(string id)
+        public static bool IsKnown(string optionId)
         {
-            return id switch
+            return optionId switch
             {
                 "423134f9-3331-5b33-944b-5e4d7160e060" => true,
                 "f492d879-e4a7-5419-9a8c-6f890d4657c7" => true,
@@ -66,35 +89,26 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public static string TextIdForOptionId(string optionId)
+        public static string TextId(this Planet value)
         {
-            return optionId switch
+            return value switch
             {
-                "423134f9-3331-5b33-944b-5e4d7160e060" => "Mercury",
-                "f492d879-e4a7-5419-9a8c-6f890d4657c7" => "Venus",
-                "901a21ff-6ad4-5791-8ae3-2f9df559b9ff" => "Earth",
-                "4f9bc257-1579-59b5-90c3-417c3518e407" => "Mars",
-                "78eea93e-734b-5c5a-8b2f-3410f0701cef" => "Jupiter",
-                "dd859a21-d18e-5ad4-962d-af6b939b7f29" => "Saturn",
-                "0e7998db-d1c8-5036-955e-923dbc5fb78a" => "Uranus",
-                "7eda9aa1-0212-5433-b292-349d4b63039e" => "Neptune",
-                "987a97e1-02c7-52f1-a638-117d76726337" => "Pluto",
-                _ => optionId,
+                Planet.mercury => "Mercury",
+                Planet.venus => "Venus",
+                Planet.earth => "Earth",
+                Planet.mars => "Mars",
+                Planet.jupiter => "Jupiter",
+                Planet.saturn => "Saturn",
+                Planet.uranus => "Uranus",
+                Planet.neptune => "Neptune",
+                Planet.pluto => "Pluto",
+                _ => value.OptionId(),
             };
         }
 
-        public static string TextForOptionId(string optionId, NeoClient? client = null)
+        public static string Text(this Planet value, NeoClient? client = null)
         {
-            return (client ?? HelloWorldNeo.RequireInstance().Client).Localization.ResolveText(TextIdForOptionId(optionId));
+            return (client ?? HelloWorldNeo.RequireInstance().Client).Localization.ResolveText(value.TextId());
         }
-
-        public static implicit operator string(Planet value) => value.optionId;
-        public static implicit operator Planet(string optionId) => FromOptionId(optionId);
-        public override string ToString() => optionId;
-        public bool Equals(Planet? other) => other is not null && optionId == other.optionId;
-        public override bool Equals(object? obj) => Equals(obj as Planet);
-        public override int GetHashCode() => optionId.GetHashCode();
-        public static bool operator ==(Planet? left, Planet? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
-        public static bool operator !=(Planet? left, Planet? right) => !(left == right);
     }
 }

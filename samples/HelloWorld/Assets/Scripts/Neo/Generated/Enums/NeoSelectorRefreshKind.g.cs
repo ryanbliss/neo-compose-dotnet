@@ -11,40 +11,49 @@ using UnityEngine;
 
 namespace HelloWorld.Assets.Scripts.Neo
 {
-    public sealed class NeoSelectorRefreshKind : IEquatable<NeoSelectorRefreshKind>, global::NeoCompose.Runtime.INeoEnumOption
+    [NeoEnum(typeof(NeoSelectorRefreshKindOptions))]
+    public enum NeoSelectorRefreshKind
     {
-        private static readonly Dictionary<string, NeoSelectorRefreshKind> values = new Dictionary<string, NeoSelectorRefreshKind>();
-        public string optionId { get; }
-        public string Text => TextForOptionId(optionId);
-        public string TextId => TextIdForOptionId(optionId);
+        OnLoad = 575086551,
+        PerFrame = 1485813219,
+    }
 
-        private NeoSelectorRefreshKind(string optionId)
-        {
-            this.optionId = optionId;
-        }
-
-        public static readonly NeoSelectorRefreshKind OnLoad = FromOptionId("system_88c5d17a-b73e-47a1-a96e-4ebe16e6d200");
-        public static readonly NeoSelectorRefreshKind PerFrame = FromOptionId("system_dc350ac4-de4b-4d1c-9b46-097dc5b4180f");
-
+    /// <summary>
+    /// Converts <see cref="NeoSelectorRefreshKind"/> to and from the option ids Neo stores.
+    /// </summary>
+    public static class NeoSelectorRefreshKindOptions
+    {
         public static NeoSelectorRefreshKind FromOptionId(string optionId)
         {
-            if (values.TryGetValue(optionId, out var known)) return known;
-            var created = new NeoSelectorRefreshKind(optionId);
-            values[optionId] = created;
-            return created;
+            return optionId switch
+            {
+                "system_88c5d17a-b73e-47a1-a96e-4ebe16e6d200" => NeoSelectorRefreshKind.OnLoad,
+                "system_dc350ac4-de4b-4d1c-9b46-097dc5b4180f" => NeoSelectorRefreshKind.PerFrame,
+                _ => NeoUndeclaredEnumOptions<NeoSelectorRefreshKind>.FromOptionId(optionId),
+            };
+        }
+
+        public static string OptionId(this NeoSelectorRefreshKind value)
+        {
+            return value switch
+            {
+                NeoSelectorRefreshKind.OnLoad => "system_88c5d17a-b73e-47a1-a96e-4ebe16e6d200",
+                NeoSelectorRefreshKind.PerFrame => "system_dc350ac4-de4b-4d1c-9b46-097dc5b4180f",
+                _ => NeoUndeclaredEnumOptions<NeoSelectorRefreshKind>.OptionId(value),
+            };
         }
 
         public static string[] ToOptionIds(IEnumerable<NeoSelectorRefreshKind>? options)
         {
             if (options is null) return Array.Empty<string>();
             var ids = new List<string>();
-            foreach (var option in options) ids.Add(option.optionId);
+            foreach (var option in options) ids.Add(option.OptionId());
             return ids.ToArray();
         }
 
-        public static bool IsKnown(string id)
+        public static bool IsKnown(string optionId)
         {
-            return id switch
+            return optionId switch
             {
                 "system_88c5d17a-b73e-47a1-a96e-4ebe16e6d200" => true,
                 "system_dc350ac4-de4b-4d1c-9b46-097dc5b4180f" => true,
@@ -52,28 +61,19 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public static string TextIdForOptionId(string optionId)
+        public static string TextId(this NeoSelectorRefreshKind value)
         {
-            return optionId switch
+            return value switch
             {
-                "system_88c5d17a-b73e-47a1-a96e-4ebe16e6d200" => "OnLoad",
-                "system_dc350ac4-de4b-4d1c-9b46-097dc5b4180f" => "PerFrame",
-                _ => optionId,
+                NeoSelectorRefreshKind.OnLoad => "OnLoad",
+                NeoSelectorRefreshKind.PerFrame => "PerFrame",
+                _ => value.OptionId(),
             };
         }
 
-        public static string TextForOptionId(string optionId, NeoClient? client = null)
+        public static string Text(this NeoSelectorRefreshKind value, NeoClient? client = null)
         {
-            return (client ?? HelloWorldNeo.RequireInstance().Client).Localization.ResolveText(TextIdForOptionId(optionId));
+            return (client ?? HelloWorldNeo.RequireInstance().Client).Localization.ResolveText(value.TextId());
         }
-
-        public static implicit operator string(NeoSelectorRefreshKind value) => value.optionId;
-        public static implicit operator NeoSelectorRefreshKind(string optionId) => FromOptionId(optionId);
-        public override string ToString() => optionId;
-        public bool Equals(NeoSelectorRefreshKind? other) => other is not null && optionId == other.optionId;
-        public override bool Equals(object? obj) => Equals(obj as NeoSelectorRefreshKind);
-        public override int GetHashCode() => optionId.GetHashCode();
-        public static bool operator ==(NeoSelectorRefreshKind? left, NeoSelectorRefreshKind? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
-        public static bool operator !=(NeoSelectorRefreshKind? left, NeoSelectorRefreshKind? right) => !(left == right);
     }
 }

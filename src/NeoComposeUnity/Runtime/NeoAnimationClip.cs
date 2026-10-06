@@ -21,38 +21,44 @@ namespace NeoCompose.Runtime
     /// altitudes: the root call site (<c>PlayOnce</c>, <c>PlayLoop</c>, and
     /// their async / fixed-loop siblings) and an authored track row's
     /// <c>Direction</c> member. The P48 §2.1 system enum has contract ids, so
-    /// its generated wrapper would be byte-identical in every project; the SDK
+    /// its generated enum would be byte-identical in every project; the SDK
     /// ships that exact shape once instead, and codegen skips emitting it.
     /// The body below must stay identical to what the generator would emit —
     /// the web repo's sdk-runtime-enums binding pins the ids and member names.
     /// (<c>Backward</c> was renamed <c>Reverse</c> so the authored vocabulary
     /// and the C# vocabulary are the same word.)
     /// </summary>
-    public sealed class NeoPlayDirection : IEquatable<NeoPlayDirection>, INeoEnumOption
+    [NeoEnum(typeof(NeoPlayDirectionOptions))]
+    public enum NeoPlayDirection
     {
-        private static readonly Dictionary<string, NeoPlayDirection> values = new Dictionary<string, NeoPlayDirection>();
-        public string optionId
-        {
-            get;
-        }
-        public string Text => TextForOptionId(optionId);
-        public string TextId => TextIdForOptionId(optionId);
+        Forward = 1428466493,
+        Reverse = 1985462563,
+    }
 
-        private NeoPlayDirection(string optionId)
-        {
-            this.optionId = optionId;
-        }
-
-        public static readonly NeoPlayDirection Forward = FromOptionId("system_2e4ca40e-f305-49c6-a91b-b99d56239ba0");
-        public static readonly NeoPlayDirection Reverse = FromOptionId("system_6478d195-3905-48db-befe-d276eb5478f0");
-
+    /// <summary>
+    /// Converts <see cref="NeoPlayDirection"/> to and from the option ids Neo
+    /// stores.
+    /// </summary>
+    public static class NeoPlayDirectionOptions
+    {
         public static NeoPlayDirection FromOptionId(string optionId)
         {
-            if (values.TryGetValue(optionId, out var known))
-                return known;
-            var created = new NeoPlayDirection(optionId);
-            values[optionId] = created;
-            return created;
+            return optionId switch
+            {
+                "system_2e4ca40e-f305-49c6-a91b-b99d56239ba0" => NeoPlayDirection.Forward,
+                "system_6478d195-3905-48db-befe-d276eb5478f0" => NeoPlayDirection.Reverse,
+                _ => NeoUndeclaredEnumOptions<NeoPlayDirection>.FromOptionId(optionId),
+            };
+        }
+
+        public static string OptionId(this NeoPlayDirection value)
+        {
+            return value switch
+            {
+                NeoPlayDirection.Forward => "system_2e4ca40e-f305-49c6-a91b-b99d56239ba0",
+                NeoPlayDirection.Reverse => "system_6478d195-3905-48db-befe-d276eb5478f0",
+                _ => NeoUndeclaredEnumOptions<NeoPlayDirection>.OptionId(value),
+            };
         }
 
         public static string[] ToOptionIds(IEnumerable<NeoPlayDirection>? options)
@@ -61,13 +67,13 @@ namespace NeoCompose.Runtime
                 return Array.Empty<string>();
             var ids = new List<string>();
             foreach (var option in options)
-                ids.Add(option.optionId);
+                ids.Add(option.OptionId());
             return ids.ToArray();
         }
 
-        public static bool IsKnown(string id)
+        public static bool IsKnown(string optionId)
         {
-            return id switch
+            return optionId switch
             {
                 "system_2e4ca40e-f305-49c6-a91b-b99d56239ba0" => true,
                 "system_6478d195-3905-48db-befe-d276eb5478f0" => true,
@@ -75,29 +81,20 @@ namespace NeoCompose.Runtime
             };
         }
 
-        public static string TextIdForOptionId(string optionId)
+        public static string TextId(this NeoPlayDirection value)
         {
-            return optionId switch
+            return value switch
             {
-                "system_2e4ca40e-f305-49c6-a91b-b99d56239ba0" => "Forward",
-                "system_6478d195-3905-48db-befe-d276eb5478f0" => "Reverse",
-                _ => optionId,
+                NeoPlayDirection.Forward => "Forward",
+                NeoPlayDirection.Reverse => "Reverse",
+                _ => value.OptionId(),
             };
         }
 
-        public static string TextForOptionId(string optionId, NeoClient? client = null)
+        public static string Text(this NeoPlayDirection value, NeoClient? client = null)
         {
-            return client is null ? TextIdForOptionId(optionId) : client.Localization.ResolveText(TextIdForOptionId(optionId));
+            return client is null ? value.TextId() : client.Localization.ResolveText(value.TextId());
         }
-
-        public static implicit operator string(NeoPlayDirection value) => value.optionId;
-        public static implicit operator NeoPlayDirection(string optionId) => FromOptionId(optionId);
-        public override string ToString() => optionId;
-        public bool Equals(NeoPlayDirection? other) => other is not null && optionId == other.optionId;
-        public override bool Equals(object? obj) => Equals(obj as NeoPlayDirection);
-        public override int GetHashCode() => optionId.GetHashCode();
-        public static bool operator ==(NeoPlayDirection? left, NeoPlayDirection? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
-        public static bool operator !=(NeoPlayDirection? left, NeoPlayDirection? right) => !(left == right);
     }
 
     /// <summary>
@@ -105,97 +102,73 @@ namespace NeoCompose.Runtime
     /// contract ids mirror the authored system enum so generated projects use
     /// this SDK-owned type consistently.
     /// </summary>
-    public sealed class NeoSelectorRefreshKind
-        : IEquatable<NeoSelectorRefreshKind>, INeoEnumOption
+    [NeoEnum(typeof(NeoSelectorRefreshKindOptions))]
+    public enum NeoSelectorRefreshKind
     {
-        private static readonly Dictionary<string, NeoSelectorRefreshKind> values =
-            new Dictionary<string, NeoSelectorRefreshKind>();
+        OnLoad = 575086551,
+        PerFrame = 1485813219,
+    }
 
-        public string optionId
-        {
-            get;
-        }
-        public string Text => TextForOptionId(optionId);
-        public string TextId => TextIdForOptionId(optionId);
-
-        private NeoSelectorRefreshKind(string optionId)
-        {
-            this.optionId = optionId;
-        }
-
-        public static readonly NeoSelectorRefreshKind OnLoad = FromOptionId(
-            "system_88c5d17a-b73e-47a1-a96e-4ebe16e6d200");
-        public static readonly NeoSelectorRefreshKind PerFrame = FromOptionId(
-            "system_dc350ac4-de4b-4d1c-9b46-097dc5b4180f");
-
+    /// <summary>
+    /// Converts <see cref="NeoSelectorRefreshKind"/> to and from the option
+    /// ids Neo stores.
+    /// </summary>
+    public static class NeoSelectorRefreshKindOptions
+    {
         public static NeoSelectorRefreshKind FromOptionId(string optionId)
         {
-            if (values.TryGetValue(optionId, out NeoSelectorRefreshKind known))
+            return optionId switch
             {
-                return known;
-            }
-            var created = new NeoSelectorRefreshKind(optionId);
-            values[optionId] = created;
-            return created;
+                "system_88c5d17a-b73e-47a1-a96e-4ebe16e6d200" => NeoSelectorRefreshKind.OnLoad,
+                "system_dc350ac4-de4b-4d1c-9b46-097dc5b4180f" => NeoSelectorRefreshKind.PerFrame,
+                _ => NeoUndeclaredEnumOptions<NeoSelectorRefreshKind>.FromOptionId(optionId),
+            };
         }
 
-        public static string[] ToOptionIds(
-            IEnumerable<NeoSelectorRefreshKind>? options)
+        public static string OptionId(this NeoSelectorRefreshKind value)
+        {
+            return value switch
+            {
+                NeoSelectorRefreshKind.OnLoad => "system_88c5d17a-b73e-47a1-a96e-4ebe16e6d200",
+                NeoSelectorRefreshKind.PerFrame => "system_dc350ac4-de4b-4d1c-9b46-097dc5b4180f",
+                _ => NeoUndeclaredEnumOptions<NeoSelectorRefreshKind>.OptionId(value),
+            };
+        }
+
+        public static string[] ToOptionIds(IEnumerable<NeoSelectorRefreshKind>? options)
         {
             if (options is null)
                 return Array.Empty<string>();
             var ids = new List<string>();
-            foreach (NeoSelectorRefreshKind option in options)
-            {
-                ids.Add(option.optionId);
-            }
+            foreach (var option in options)
+                ids.Add(option.OptionId());
             return ids.ToArray();
         }
 
-        public static bool IsKnown(string id) =>
-            string.Equals(id, OnLoad.optionId, StringComparison.Ordinal)
-            || string.Equals(id, PerFrame.optionId, StringComparison.Ordinal);
-
-        public static string TextIdForOptionId(string optionId)
+        public static bool IsKnown(string optionId)
         {
-            if (string.Equals(optionId, OnLoad.optionId, StringComparison.Ordinal))
+            return optionId switch
             {
-                return "OnLoad";
-            }
-            if (string.Equals(optionId, PerFrame.optionId, StringComparison.Ordinal))
-            {
-                return "PerFrame";
-            }
-            return optionId;
+                "system_88c5d17a-b73e-47a1-a96e-4ebe16e6d200" => true,
+                "system_dc350ac4-de4b-4d1c-9b46-097dc5b4180f" => true,
+                _ => false,
+            };
         }
 
-        public static string TextForOptionId(
-            string optionId,
-            NeoClient? client = null)
+        public static string TextId(this NeoSelectorRefreshKind value)
         {
-            return client is null
-                ? TextIdForOptionId(optionId)
-                : client.Localization.ResolveText(TextIdForOptionId(optionId));
+            return value switch
+            {
+                NeoSelectorRefreshKind.OnLoad => "OnLoad",
+                NeoSelectorRefreshKind.PerFrame => "PerFrame",
+                _ => value.OptionId(),
+            };
         }
 
-        public static implicit operator string(NeoSelectorRefreshKind value) =>
-            value.optionId;
-        public static implicit operator NeoSelectorRefreshKind(string optionId) =>
-            FromOptionId(optionId);
-        public override string ToString() => optionId;
-        public bool Equals(NeoSelectorRefreshKind? other) =>
-            other is not null && optionId == other.optionId;
-        public override bool Equals(object? obj) =>
-            Equals(obj as NeoSelectorRefreshKind);
-        public override int GetHashCode() => optionId.GetHashCode();
-        public static bool operator ==(
-            NeoSelectorRefreshKind? left,
-            NeoSelectorRefreshKind? right) =>
-            ReferenceEquals(left, right)
-            || (left is not null && left.Equals(right));
-        public static bool operator !=(
-            NeoSelectorRefreshKind? left,
-            NeoSelectorRefreshKind? right) => !(left == right);
+        public static string Text(this NeoSelectorRefreshKind value, NeoClient? client = null)
+        {
+            return client is null ? value.TextId() : client.Localization.ResolveText(value.TextId());
+        }
     }
 
     internal interface INeoAnimationPlayer
@@ -336,24 +309,24 @@ namespace NeoCompose.Runtime
 
         public void PlayLoop(
             NeoPlayMode mode = NeoPlayMode.Repeat,
-            NeoPlayDirection? direction = null)
+            NeoPlayDirection direction = NeoPlayDirection.Forward)
         {
-            Start(mode, direction ?? NeoPlayDirection.Forward, loops: -1, once: false, pendingCompletion: null);
+            Start(mode, direction, loops: -1, once: false, pendingCompletion: null);
         }
 
         public void PlayOnce(
-            NeoPlayDirection? direction = null)
+            NeoPlayDirection direction = NeoPlayDirection.Forward)
         {
             Start(
                 NeoPlayMode.Repeat,
-                direction ?? NeoPlayDirection.Forward,
+                direction,
                 loops: 1,
                 once: true,
                 pendingCompletion: null);
         }
 
         public Task PlayOnceAsync(
-            NeoPlayDirection? direction = null,
+            NeoPlayDirection direction = NeoPlayDirection.Forward,
             CancellationToken cancellationToken = default)
         {
             if (cancellationToken.IsCancellationRequested)
@@ -362,7 +335,7 @@ namespace NeoCompose.Runtime
             }
             return StartAsync(
                 NeoPlayMode.Repeat,
-                direction ?? NeoPlayDirection.Forward,
+                direction,
                 loops: 1,
                 once: true,
                 cancellationToken);
@@ -371,16 +344,16 @@ namespace NeoCompose.Runtime
         public void PlayFixedLoop(
             int loopCount,
             NeoPlayMode mode = NeoPlayMode.Repeat,
-            NeoPlayDirection? direction = null)
+            NeoPlayDirection direction = NeoPlayDirection.Forward)
         {
             ValidateLoopCount(loopCount);
-            Start(mode, direction ?? NeoPlayDirection.Forward, loopCount, once: false, pendingCompletion: null);
+            Start(mode, direction, loopCount, once: false, pendingCompletion: null);
         }
 
         public Task PlayFixedLoopAsync(
             int loopCount,
             NeoPlayMode mode = NeoPlayMode.Repeat,
-            NeoPlayDirection? direction = null,
+            NeoPlayDirection direction = NeoPlayDirection.Forward,
             CancellationToken cancellationToken = default)
         {
             ValidateLoopCount(loopCount);
@@ -390,7 +363,7 @@ namespace NeoCompose.Runtime
             }
             return StartAsync(
                 mode,
-                direction ?? NeoPlayDirection.Forward,
+                direction,
                 loopCount,
                 once: false,
                 cancellationToken);
@@ -526,11 +499,11 @@ namespace NeoCompose.Runtime
             bool once,
             TaskCompletionSource<object?>? pendingCompletion)
         {
-            if (!Enum.IsDefined(typeof(NeoPlayMode), mode))
+            if (!System.Enum.IsDefined(typeof(NeoPlayMode), mode))
             {
                 throw new ArgumentOutOfRangeException(nameof(mode));
             }
-            if (!NeoPlayDirection.IsKnown(direction))
+            if (direction is not (NeoPlayDirection.Forward or NeoPlayDirection.Reverse))
             {
                 throw new ArgumentOutOfRangeException(nameof(direction));
             }

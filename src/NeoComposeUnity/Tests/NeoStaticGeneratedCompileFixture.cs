@@ -59,7 +59,7 @@ namespace NeoCompose.StaticCompileFixture
                 {
                 var amount = Convert.ToInt32(args[0]);
                 var rate = NeoDecimalValues.Parse((string)args[1]!);
-                var dir = SmokeDirection.FromOptionId(NeoGeneratedTypesSupport.ToStringArray(args[2])[0]);
+                var dir = NeoGeneratedTypesSupport.ReadEnumSingle(args[2], static (factoryOptionId) => SmokeDirectionOptions.FromOptionId(factoryOptionId)) ?? throw new InvalidOperationException("Required enum argument 'dir' could not be resolved.");
                 return global::NeoCompose.StaticCompileFixture.SmokeRules.Reset(amount, rate, dir);
                 },
                 ["static-smoke-greet"] = (client, receiver, args) =>
@@ -136,40 +136,49 @@ namespace NeoCompose.StaticCompileFixture
         }
     }
 
-    public sealed class SmokeDirection : IEquatable<SmokeDirection>, global::NeoCompose.Runtime.INeoEnumOption
+    [NeoEnum(typeof(SmokeDirectionOptions))]
+    public enum SmokeDirection
     {
-        private static readonly Dictionary<string, SmokeDirection> values = new Dictionary<string, SmokeDirection>();
-        public string optionId { get; }
-        public string Text => TextForOptionId(optionId);
-        public string TextId => TextIdForOptionId(optionId);
+        North = 1,
+        South = 2,
+    }
 
-        private SmokeDirection(string optionId)
-        {
-            this.optionId = optionId;
-        }
-
-        public static readonly SmokeDirection North = FromOptionId("static-smoke-direction-north");
-        public static readonly SmokeDirection South = FromOptionId("static-smoke-direction-south");
-
+    /// <summary>
+    /// Converts <see cref="SmokeDirection"/> to and from the option ids Neo stores.
+    /// </summary>
+    public static class SmokeDirectionOptions
+    {
         public static SmokeDirection FromOptionId(string optionId)
         {
-            if (values.TryGetValue(optionId, out var known)) return known;
-            var created = new SmokeDirection(optionId);
-            values[optionId] = created;
-            return created;
+            return optionId switch
+            {
+                "static-smoke-direction-north" => SmokeDirection.North,
+                "static-smoke-direction-south" => SmokeDirection.South,
+                _ => NeoUndeclaredEnumOptions<SmokeDirection>.FromOptionId(optionId),
+            };
+        }
+
+        public static string OptionId(this SmokeDirection value)
+        {
+            return value switch
+            {
+                SmokeDirection.North => "static-smoke-direction-north",
+                SmokeDirection.South => "static-smoke-direction-south",
+                _ => NeoUndeclaredEnumOptions<SmokeDirection>.OptionId(value),
+            };
         }
 
         public static string[] ToOptionIds(IEnumerable<SmokeDirection>? options)
         {
             if (options is null) return Array.Empty<string>();
             var ids = new List<string>();
-            foreach (var option in options) ids.Add(option.optionId);
+            foreach (var option in options) ids.Add(option.OptionId());
             return ids.ToArray();
         }
 
-        public static bool IsKnown(string id)
+        public static bool IsKnown(string optionId)
         {
-            return id switch
+            return optionId switch
             {
                 "static-smoke-direction-north" => true,
                 "static-smoke-direction-south" => true,
@@ -177,29 +186,20 @@ namespace NeoCompose.StaticCompileFixture
             };
         }
 
-        public static string TextIdForOptionId(string optionId)
+        public static string TextId(this SmokeDirection value)
         {
-            return optionId switch
+            return value switch
             {
-                "static-smoke-direction-north" => "North",
-                "static-smoke-direction-south" => "South",
-                _ => optionId,
+                SmokeDirection.North => "North",
+                SmokeDirection.South => "South",
+                _ => value.OptionId(),
             };
         }
 
-        public static string TextForOptionId(string optionId, NeoClient? client = null)
+        public static string Text(this SmokeDirection value, NeoClient? client = null)
         {
-            return (client ?? StaticCompileSmokeNeo.RequireInstance().Client).Localization.ResolveText(TextIdForOptionId(optionId));
+            return (client ?? StaticCompileSmokeNeo.RequireInstance().Client).Localization.ResolveText(value.TextId());
         }
-
-        public static implicit operator string(SmokeDirection value) => value.optionId;
-        public static implicit operator SmokeDirection(string optionId) => FromOptionId(optionId);
-        public override string ToString() => optionId;
-        public bool Equals(SmokeDirection? other) => other is not null && optionId == other.optionId;
-        public override bool Equals(object? obj) => Equals(obj as SmokeDirection);
-        public override int GetHashCode() => optionId.GetHashCode();
-        public static bool operator ==(SmokeDirection? left, SmokeDirection? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
-        public static bool operator !=(SmokeDirection? left, SmokeDirection? right) => !(left == right);
     }
 
     public interface ISmokeGreeter
@@ -342,8 +342,8 @@ namespace NeoCompose.StaticCompileFixture
         {
         }
 
-        public SmokeItem(string label, string motto = "GO\n\"far\"", SmokeDirection? dir = null, string? nick = null)
-            : this(StaticCompileSmokeNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(StaticCompileSmokeNeo.RequireInstance().Client, "static-smoke-item-class", "static-smoke-item-ctor", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("label", label), new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("motto", motto), new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("dir", dir ?? SmokeDirection.North), new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("nick", nick) }), false, NeoValueOwnership.Session)
+        public SmokeItem(string label, string motto = "GO\n\"far\"", SmokeDirection dir = SmokeDirection.North, string? nick = null)
+            : this(StaticCompileSmokeNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(StaticCompileSmokeNeo.RequireInstance().Client, "static-smoke-item-class", "static-smoke-item-ctor", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("label", label), new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("motto", motto), new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("dir", dir), new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("nick", nick) }), false, NeoValueOwnership.Session)
         {
         }
 
@@ -522,14 +522,13 @@ namespace NeoCompose.StaticCompileFixture
             }
         }
 
-        public static int Reset(int amount, decimal rate = 2.75m, SmokeDirection? dir = null)
+        public static int Reset(int amount, decimal rate = 2.75m, SmokeDirection dir = SmokeDirection.South)
         {
-            var dirValue = dir ?? SmokeDirection.South;
             if (SmokeRules.StaticFunctionHandler is null)
             {
                 throw new NeoFunctionHandlerMissingException("Cannot invoke static Function 'Reset' because SmokeRules.StaticFunctionHandler is not set.");
             }
-            return SmokeRules.StaticFunctionHandler.Reset(amount, rate, dirValue);
+            return SmokeRules.StaticFunctionHandler.Reset(amount, rate, dir);
         }
 
         public static Task Wait()

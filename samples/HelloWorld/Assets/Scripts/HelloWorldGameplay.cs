@@ -229,7 +229,7 @@ namespace HelloWorld.Assets.Scripts
         {
             if (dialogue.Primary is Outpost outpost)
             {
-                dialogueUI.Show(outpost.FullDisplayText, outpost.Image, $"Traveling to {outpost.Planet.Text}...");
+                dialogueUI.Show(outpost.FullDisplayText, outpost.Image, $"Traveling to {outpost.Planet.Text()}...");
             }
 
             dialogue.OnShow += OnDialogueShow;
@@ -421,13 +421,14 @@ namespace HelloWorld.Assets.Scripts
         /// Map art for worlds whose outposts are moons. Authored sprites from
         /// the schema (Assets.Art) — null for worlds that ARE the outpost.
         /// </summary>
-        private Sprite ParentPlanetSprite(string planetOptionId)
+        private Sprite ParentPlanetSprite(Planet planet)
         {
-            if (planetOptionId == Planet.jupiter.optionId)
-                return neo.Assets.Art.JupiterSprite;
-            if (planetOptionId == Planet.saturn.optionId)
-                return neo.Assets.Art.SaturnSprite;
-            return null;
+            return planet switch
+            {
+                Planet.jupiter => neo.Assets.Art.JupiterSprite,
+                Planet.saturn => neo.Assets.Art.SaturnSprite,
+                _ => null,
+            };
         }
 
         /// <summary>

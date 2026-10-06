@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.60.0] - 2026-10-06
+
+P103: generated Neo enums are real C# enums, so game code can `switch` on them. Run `neo export` after upgrading so generated code matches; a project generated before this release does not compile against it.
+
+```csharp
+// Before
+if (planetOptionId == Planet.jupiter.optionId)
+    return art.JupiterSprite;
+
+// After
+return planet switch
+{
+    Planet.jupiter => art.JupiterSprite,
+    Planet.saturn => art.SaturnSprite,
+    _ => null,
+};
+```
+
+- Each enum emits `[NeoEnum(typeof(PlanetOptions))] public enum Planet` and a static `PlanetOptions` class: `FromOptionId(string)`, `OptionId(this Planet)`, `ToOptionIds(IEnumerable<Planet>?)`, `IsKnown(string)`, `TextId(this Planet)`, and `Text(this Planet, NeoClient? client = null)`. Each member's number is a hash of its option id, so reordering, adding, or deleting options never remaps a Unity `[SerializeField]` enum field. Saves and NeoScript keep option ids.
+- Migrate `value.optionId` to `value.OptionId()`, `value.Text` to `value.Text()`, `Planet.FromOptionId(id)` to `PlanetOptions.FromOptionId(id)`, `Planet.IsKnown(id)` to `PlanetOptions.IsKnown(id)`, and `Planet.TextForOptionId(id)` to `PlanetOptions.FromOptionId(id).Text()`. The implicit `string` conversions are gone. Optional enum values are `Planet?` value types.
+- An option id the enum doesn't declare, such as an option deleted with "keep orphaned", becomes a negative value through the new `NeoUndeclaredEnumOptions<TEnum>`. It round-trips its id and lands in a `switch`'s `default` arm.
+- Enum parameter defaults are constants: `Pick(Direction mode = Direction.North)` replaces `Pick(Direction? mode = null)`, so passing `null` no longer means the default.
+- `NeoPlayDirection`, `NeoSelectorRefreshKind`, and `NeoSpriteMaskInteraction` are C# enums with `NeoPlayDirectionOptions`, `NeoSelectorRefreshKindOptions`, and `NeoSpriteMaskInteractionOptions`. `NeoAnimationClip.PlayLoop`, `PlayOnce`, `PlayOnceAsync`, `PlayFixedLoop`, and `PlayFixedLoopAsync` take `NeoPlayDirection direction = NeoPlayDirection.Forward` instead of `NeoPlayDirection? direction = null`, so an explicit `null` no longer compiles. `NeoSpriteMaskInteractions.ToUnity` takes the enum; convert `INeoSpriteObjectValue.MaskInteraction` with `NeoSpriteMaskInteractionOptions.FromOptionId` first.
+- `NeoDictionary<TKey, TValue>` and `NeoReadOnlyDictionary<TKey, TValue>` constrain `TKey` to `struct, System.Enum`. `INeoEnumOption` is removed.
+
 ## [0.59.0] - 2026-10-06
 
 P101: `neo export` exports local edits before they're pushed. Requires CLI 0.70.0 for local exports.

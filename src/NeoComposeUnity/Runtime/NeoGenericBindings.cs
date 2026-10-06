@@ -120,11 +120,11 @@ namespace NeoCompose.Runtime
     ///   <item><description>Sprite → <c>Sprite</c>; Audio →
     ///   <c>AudioClip</c></description></item>
     ///   <item><description>Enum (single-select) → the generated enum
-    ///   wrapper class (matched by its implicit string conversions — the
-    ///   cross-repo wrapper contract) or raw <c>string</c> option
+    ///   (converted through its <c>[NeoEnum]</c> options class; nullable
+    ///   when the member is optional) or raw <c>string</c> option
     ///   id</description></item>
     ///   <item><description>Enum (multiSelect) →
-    ///   <c>IReadOnlyList&lt;Wrapper&gt;</c> or raw
+    ///   <c>IReadOnlyList&lt;Enum&gt;</c> or raw
     ///   <c>string[]</c></description></item>
     ///   <item><description>Class → the generated class; dispatched through
     ///   the class's generated <c>Create</c>/<c>CreateWritable</c> factory
@@ -258,8 +258,8 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// IL2CPP AOT seed — statically references the collection- and
-        /// enum-list-codec instantiations for <typeparamref name="TEntry"/>
+        /// IL2CPP AOT seed — statically references the collection-codec
+        /// instantiations for <typeparamref name="TEntry"/>
         /// without executing them. Generated code emits one call per closed
         /// generic collection construction (e.g.
         /// <c>NeoGenericBindings.AotSeedCollectionCodecs&lt;double&gt;()</c>
@@ -277,7 +277,6 @@ namespace NeoCompose.Runtime
             CreateListCodec<TEntry>(null!, null!);
             CreateReadOnlyDictionaryCodec<TEntry>(null!, null!);
             CreateDictionaryCodec<TEntry>(null!, null!);
-            CreateEnumListCodec<TEntry>(null!);
         }
 
         private static volatile bool aotSeedTrap;
@@ -804,37 +803,9 @@ namespace NeoCompose.Runtime
         }
 
         // ------------------------------------------------------------------
-        // Enum codec — the generated wrapper contract is the pair of
-        // implicit string conversions every emitted enum wrapper carries.
+        // Enum codec — a generated enum carries [NeoEnum], whose options
+        // class converts it to and from option ids.
         // ------------------------------------------------------------------
-
-        private static class EnumWrapperOps<T>
-        {
-            public static readonly Func<string, T>? FromOptionId;
-            public static readonly Func<T, string>? ToOptionId;
-
-            static EnumWrapperOps()
-            {
-                foreach (var method in typeof(T).GetMethods(BindingFlags.Public | BindingFlags.Static))
-                {
-                    if (method.Name != "op_Implicit")
-                        continue;
-                    var parameters = method.GetParameters();
-                    if (parameters.Length != 1)
-                        continue;
-                    if (method.ReturnType == typeof(T)
-                        && parameters[0].ParameterType == typeof(string))
-                    {
-                        FromOptionId = (Func<string, T>)method.CreateDelegate(typeof(Func<string, T>));
-                    }
-                    if (method.ReturnType == typeof(string)
-                        && parameters[0].ParameterType == typeof(T))
-                    {
-                        ToOptionId = (Func<T, string>)method.CreateDelegate(typeof(Func<T, string>));
-                    }
-                }
-            }
-        }
 
         private static NeoGenericBinding<T> EnumCodec<T>(Member member)
         {
@@ -872,7 +843,8 @@ namespace NeoCompose.Runtime
                         v => NeoValueWritePayload.FromValue(v)));
                 }
                 if (typeof(T).IsGenericType
-                    && typeof(T).GetGenericTypeDefinition() == typeof(IReadOnlyList<>))
+                    && typeof(T).GetGenericTypeDefinition() == typeof(IReadOnlyList<>)
+                    && typeof(T).GetGenericArguments()[0].IsEnum)
                 {
                     return InvokeGenericCore<T>(
                         member,
@@ -882,7 +854,7 @@ namespace NeoCompose.Runtime
                 }
                 throw Mismatch<T>(
                     member,
-                    "IReadOnlyList<Wrapper>' (generated enum wrappers) or 'string[]' (option ids)");
+                    "IReadOnlyList<Enum>' (generated enums) or 'string[]' (option ids)");
             }
             if (typeof(T) == typeof(string))
             {
@@ -894,60 +866,86 @@ namespace NeoCompose.Runtime
                         .Set(v is null ? null : new[] { v }),
                     v => NeoValueWritePayload.FromValue(v is null ? null : new[] { v })));
             }
-            var fromOptionId = EnumWrapperOps<T>.FromOptionId;
+            Type? optional = Nullable.GetUnderlyingType(typeof(T));
+            if (!(optional ?? typeof(T)).IsEnum)
+            {
+                throw Mismatch<T>(member, "a generated enum, or 'string");
+            }
+            return InvokeGenericCore<T>(
+                member,
+                optional is null ? nameof(CreateEnumCodec) : nameof(CreateOptionalEnumCodec),
+                optional ?? typeof(T),
+                new object?[] { member });
+        }
+
+        private static (Func<string, TEnum> FromOptionId, Func<TEnum, string> ToOptionId)
+            RequireEnumOptions<TEnum, TCodec>(Member member)
+            where TEnum : struct, System.Enum
+        {
+            var fromOptionId = NeoEnumOptions<TEnum>.FromOptionId;
+            var toOptionId = NeoEnumOptions<TEnum>.ToOptionId;
             if (fromOptionId is null)
             {
-                throw Mismatch<T>(
+                throw Mismatch<TCodec>(
                     member,
-                    "a generated enum wrapper with an implicit string→wrapper conversion, or 'string");
+                    "an enum whose [NeoEnum] options class declares FromOptionId(string)");
             }
-            var toOptionId = EnumWrapperOps<T>.ToOptionId;
             if (toOptionId is null)
             {
-                throw Mismatch<T>(
+                throw Mismatch<TCodec>(
                     member,
-                    "a generated enum wrapper with an implicit wrapper→string conversion, or 'string");
+                    "an enum whose [NeoEnum] options class declares OptionId(this Enum)");
             }
-            return new NeoGenericBinding<T>(
+            return (fromOptionId, toOptionId);
+        }
+
+        private static NeoGenericBinding<TEnum> CreateEnumCodec<TEnum>(Member member)
+            where TEnum : struct, System.Enum
+        {
+            var (fromOptionId, toOptionId) = RequireEnumOptions<TEnum, TEnum>(member);
+            return new NeoGenericBinding<TEnum>(
                 MemberKind.Enum,
                 node =>
                 {
                     string? selected = NeoGeneratedTypesSupport.ReadSingleSelected(
                         RequireNode<NeoMemberEnum>(node, member));
-                    return selected is null ? default! : fromOptionId(selected);
+                    return selected is null
+                        ? throw new InvalidOperationException(
+                            $"Required enum '{member.name}' ({member.id}) has no selected option.")
+                        : fromOptionId(selected);
                 },
                 (node, v) => RequireWritable<NeoMemberEnumWritable>(node, member)
-                    .Set(v is null ? null : new[] { toOptionId(v) }),
-                v => NeoValueWritePayload.FromValue(v is null ? null : new[] { toOptionId(v) }));
+                    .Set(new[] { toOptionId(v) }),
+                v => NeoValueWritePayload.FromValue(new[] { toOptionId(v) }));
         }
 
-        private static NeoGenericBinding<IReadOnlyList<TWrapper>> CreateEnumListCodec<TWrapper>(
-            Member member)
+        private static NeoGenericBinding<TEnum?> CreateOptionalEnumCodec<TEnum>(Member member)
+            where TEnum : struct, System.Enum
         {
-            var fromOptionId = EnumWrapperOps<TWrapper>.FromOptionId;
-            if (fromOptionId is null)
+            var (fromOptionId, toOptionId) = RequireEnumOptions<TEnum, TEnum?>(member);
+            return new NeoGenericBinding<TEnum?>(
+                MemberKind.Enum,
+                node => NeoGeneratedTypesSupport.ReadEnumSingle(
+                    RequireNode<NeoMemberEnum>(node, member).Selected(),
+                    fromOptionId),
+                (node, v) => RequireWritable<NeoMemberEnumWritable>(node, member)
+                    .Set(v is null ? null : new[] { toOptionId(v.Value) }),
+                v => NeoValueWritePayload.FromValue(v is null ? null : new[] { toOptionId(v.Value) }));
+        }
+
+        private static NeoGenericBinding<IReadOnlyList<TEnum>> CreateEnumListCodec<TEnum>(
+            Member member)
+            where TEnum : struct, System.Enum
+        {
+            var (fromOptionId, toOptionId) = RequireEnumOptions<TEnum, IReadOnlyList<TEnum>>(member);
+            string[] ToOptionIds(IReadOnlyList<TEnum> values)
             {
-                throw Mismatch<IReadOnlyList<TWrapper>>(
-                    member,
-                    "IReadOnlyList<Wrapper>' where Wrapper carries an implicit string→wrapper conversion");
-            }
-            var toOptionId = EnumWrapperOps<TWrapper>.ToOptionId;
-            if (toOptionId is null)
-            {
-                throw Mismatch<IReadOnlyList<TWrapper>>(
-                    member,
-                    "IReadOnlyList<Wrapper>' where Wrapper carries an implicit wrapper→string conversion");
-            }
-            string[] ToOptionIds(IReadOnlyList<TWrapper>? wrappers)
-            {
-                if (wrappers is null)
-                    return Array.Empty<string>();
-                var ids = new string[wrappers.Count];
-                for (int i = 0; i < wrappers.Count; i++)
-                    ids[i] = toOptionId(wrappers[i]);
+                var ids = new string[values.Count];
+                for (int i = 0; i < values.Count; i++)
+                    ids[i] = toOptionId(values[i]);
                 return ids;
             }
-            return new NeoGenericBinding<IReadOnlyList<TWrapper>>(
+            return new NeoGenericBinding<IReadOnlyList<TEnum>>(
                 MemberKind.Enum,
                 node => NeoGeneratedTypesSupport.ReadEnumList(
                     RequireNode<NeoMemberEnum>(node, member).Selected(),

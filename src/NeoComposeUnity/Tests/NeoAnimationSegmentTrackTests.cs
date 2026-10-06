@@ -1565,7 +1565,7 @@ namespace NeoCompose.Tests
         private static ArrayMemberValue RefreshValue(string id) => new()
         {
             id = id,
-            value = new[] { NeoSelectorRefreshKind.PerFrame.optionId },
+            value = new[] { NeoSelectorRefreshKind.PerFrame.OptionId() },
         };
 
         private static void EnablePerFrameRefreshSchema(ProjectData data)
@@ -1589,15 +1589,15 @@ namespace NeoCompose.Tests
                 name = "NeoSelectorRefreshKind",
                 options = new Dictionary<string, EnumOption>
                 {
-                    [NeoSelectorRefreshKind.OnLoad.optionId] =
+                    [NeoSelectorRefreshKind.OnLoad.OptionId()] =
                         new EnumOption { text = "OnLoad" },
-                    [NeoSelectorRefreshKind.PerFrame.optionId] =
+                    [NeoSelectorRefreshKind.PerFrame.OptionId()] =
                         new EnumOption { text = "PerFrame" },
                 },
                 optionKeyOrder = new List<string>
                 {
-                    NeoSelectorRefreshKind.OnLoad.optionId,
-                    NeoSelectorRefreshKind.PerFrame.optionId,
+                    NeoSelectorRefreshKind.OnLoad.OptionId(),
+                    NeoSelectorRefreshKind.PerFrame.OptionId(),
                 },
                 createdAt = "x",
                 updatedAt = "x",
@@ -1995,13 +1995,13 @@ namespace NeoCompose.Tests
                         name = "NeoPlayDirection",
                         options = new Dictionary<string, EnumOption>
                         {
-                            [NeoPlayDirection.Forward.optionId] = new EnumOption { text = "Forward" },
-                            [NeoPlayDirection.Reverse.optionId] = new EnumOption { text = "Reverse" },
+                            [NeoPlayDirection.Forward.OptionId()] = new EnumOption { text = "Forward" },
+                            [NeoPlayDirection.Reverse.OptionId()] = new EnumOption { text = "Reverse" },
                         },
                         optionKeyOrder = new List<string>
                         {
-                            NeoPlayDirection.Forward.optionId,
-                            NeoPlayDirection.Reverse.optionId,
+                            NeoPlayDirection.Forward.OptionId(),
+                            NeoPlayDirection.Reverse.OptionId(),
                         },
                         createdAt = "x",
                         updatedAt = "x",
@@ -2252,8 +2252,8 @@ namespace NeoCompose.Tests
                 value = new[]
                 {
                     direction == "reverse"
-                        ? NeoPlayDirection.Reverse.optionId
-                        : NeoPlayDirection.Forward.optionId,
+                        ? NeoPlayDirection.Reverse.OptionId()
+                        : NeoPlayDirection.Forward.OptionId(),
                 },
             };
         }

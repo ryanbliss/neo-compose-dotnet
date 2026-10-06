@@ -349,7 +349,7 @@ namespace Assets.Scripts.Neo
             {
                 var memberNode = writableNode.Get<NeoMemberDictionaryWritable>("ElementStats");
                 if (TryGetStoredView<NeoDictionary<Element, int?>>("ElementStats", memberNode, out var cached)) return cached;
-                return CacheStoredView("ElementStats", memberNode, new NeoDictionary<Element, int?>(client, memberNode, () => writableNode.GetOrCreateCollection<NeoMemberDictionaryWritable>("ElementStats"), (client, child) => NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child), item => NeoGeneratedTypesSupport.Value(item), static (factoryOptionId) => Element.FromOptionId(factoryOptionId), key => key.optionId, () => ThrowIfReadOnly("Root.ElementStats"), () => IsReadOnly));
+                return CacheStoredView("ElementStats", memberNode, new NeoDictionary<Element, int?>(client, memberNode, () => writableNode.GetOrCreateCollection<NeoMemberDictionaryWritable>("ElementStats"), (client, child) => NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child), item => NeoGeneratedTypesSupport.Value(item), static (factoryOptionId) => ElementOptions.FromOptionId(factoryOptionId), key => key.OptionId(), () => ThrowIfReadOnly("Root.ElementStats"), () => IsReadOnly));
             }
         }
 
@@ -359,7 +359,7 @@ namespace Assets.Scripts.Neo
             {
                 var memberNode = node.Get<NeoMemberDictionary>("ElementStats");
                 if (TryGetStoredView<NeoReadOnlyDictionary<Element, int?>>("ElementStats", memberNode, out var cached)) return cached;
-                return CacheStoredView("ElementStats", memberNode, new NeoReadOnlyDictionary<Element, int?>(client, memberNode, (client, child) => NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child), static (factoryOptionId) => Element.FromOptionId(factoryOptionId), key => key.optionId));
+                return CacheStoredView("ElementStats", memberNode, new NeoReadOnlyDictionary<Element, int?>(client, memberNode, (client, child) => NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child), static (factoryOptionId) => ElementOptions.FromOptionId(factoryOptionId), key => key.OptionId()));
             }
         }
 
@@ -369,7 +369,7 @@ namespace Assets.Scripts.Neo
             {
                 var memberNode = node.Get<NeoMemberDictionary>("ElementMultipliers");
                 if (TryGetStoredView<NeoReadOnlyDictionary<Element, int?>>("ElementMultipliers", memberNode, out var cached)) return cached;
-                return CacheStoredView("ElementMultipliers", memberNode, new NeoReadOnlyDictionary<Element, int?>(client, memberNode, (client, child) => NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child), static (factoryOptionId) => Element.FromOptionId(factoryOptionId), key => key.optionId));
+                return CacheStoredView("ElementMultipliers", memberNode, new NeoReadOnlyDictionary<Element, int?>(client, memberNode, (client, child) => NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child), static (factoryOptionId) => ElementOptions.FromOptionId(factoryOptionId), key => key.OptionId()));
             }
         }
 
@@ -379,7 +379,7 @@ namespace Assets.Scripts.Neo
             {
                 var memberNode = writableNode.Get<NeoMemberDictionaryWritable>("ElementChampions");
                 if (TryGetStoredView<NeoDictionary<Element, Hero>>("ElementChampions", memberNode, out var cached)) return cached;
-                return CacheStoredView("ElementChampions", memberNode, new NeoDictionary<Element, Hero>(client, memberNode, () => writableNode.GetOrCreateCollection<NeoMemberDictionaryWritable>("ElementChampions"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::Assets.Scripts.Neo.Hero.CreateWritable(client, writableChild) : global::Assets.Scripts.Neo.Hero.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), static (factoryOptionId) => Element.FromOptionId(factoryOptionId), key => key.optionId, () => ThrowIfReadOnly("Root.ElementChampions"), () => IsReadOnly));
+                return CacheStoredView("ElementChampions", memberNode, new NeoDictionary<Element, Hero>(client, memberNode, () => writableNode.GetOrCreateCollection<NeoMemberDictionaryWritable>("ElementChampions"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::Assets.Scripts.Neo.Hero.CreateWritable(client, writableChild) : global::Assets.Scripts.Neo.Hero.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), static (factoryOptionId) => ElementOptions.FromOptionId(factoryOptionId), key => key.OptionId(), () => ThrowIfReadOnly("Root.ElementChampions"), () => IsReadOnly));
             }
         }
 
@@ -389,7 +389,7 @@ namespace Assets.Scripts.Neo
             {
                 var memberNode = node.Get<NeoMemberDictionary>("ElementChampions");
                 if (TryGetStoredView<NeoReadOnlyDictionary<Element, IReadOnlyHero>>("ElementChampions", memberNode, out var cached)) return cached;
-                return CacheStoredView("ElementChampions", memberNode, new NeoReadOnlyDictionary<Element, IReadOnlyHero>(client, memberNode, (client, child) => global::Assets.Scripts.Neo.Hero.Create(client, (NeoMemberClass)child), static (factoryOptionId) => Element.FromOptionId(factoryOptionId), key => key.optionId));
+                return CacheStoredView("ElementChampions", memberNode, new NeoReadOnlyDictionary<Element, IReadOnlyHero>(client, memberNode, (client, child) => global::Assets.Scripts.Neo.Hero.Create(client, (NeoMemberClass)child), static (factoryOptionId) => ElementOptions.FromOptionId(factoryOptionId), key => key.OptionId()));
             }
         }
 

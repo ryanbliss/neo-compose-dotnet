@@ -34,7 +34,7 @@ namespace HelloWorld.Assets.Scripts
         private readonly Dictionary<string, Button> planetButtons = new();
         private readonly Dictionary<string, Image> planetImages = new();
         private readonly Dictionary<string, GameObject> planetBadges = new();
-        private readonly Dictionary<string, RectTransform> parentMarkers = new();
+        private readonly Dictionary<Planet, RectTransform> parentMarkers = new();
         private string shipAtValueId;
 
         public void Build(Transform parent)
@@ -83,7 +83,7 @@ namespace HelloWorld.Assets.Scripts
             IReadOnlyAnimationInfo flareAnimation,
             Sprite sunSprite,
             AudioClip thrustSfx,
-            Func<string, Sprite> parentPlanetSprite,
+            Func<Planet, Sprite> parentPlanetSprite,
             Func<IReadOnlyOutpost, bool> hasNewContent,
             Action<IReadOnlyOutpost> onVisitOutpost)
         {
@@ -98,7 +98,7 @@ namespace HelloWorld.Assets.Scripts
             }
 
             var orbits = BuildOrbits(outposts, out var parentOrbits);
-            SyncParentMarkers(outposts, parentOrbits, parentPlanetSprite);
+            SyncParentMarkers(parentOrbits, parentPlanetSprite);
             foreach (var outpost in outposts)
             {
                 var captured = outpost;
@@ -199,10 +199,10 @@ namespace HelloWorld.Assets.Scripts
         /// </summary>
         private static Dictionary<string, OrbitSpec> BuildOrbits(
             IReadOnlyList<IReadOnlyOutpost> outposts,
-            out Dictionary<string, OrbitSpec> parentOrbits)
+            out Dictionary<Planet, OrbitSpec> parentOrbits)
         {
             var orbits = new Dictionary<string, OrbitSpec>();
-            parentOrbits = new Dictionary<string, OrbitSpec>();
+            parentOrbits = new Dictionary<Planet, OrbitSpec>();
             var byPlanet = outposts
                 .GroupBy(outpost => outpost.Planet)
                 .ToDictionary(group => group.Key, group => group.ToList());
@@ -228,7 +228,7 @@ namespace HelloWorld.Assets.Scripts
                 if (locals.Count > 1)
                 {
                     // The world itself rides the ring; its outposts are moons.
-                    parentOrbits[present[ring].optionId] = spec;
+                    parentOrbits[present[ring]] = spec;
                 }
                 for (var i = 0; i < locals.Count; i++)
                 {
@@ -245,24 +245,22 @@ namespace HelloWorld.Assets.Scripts
         /// (Assets.Art.JupiterSprite / SaturnSprite).
         /// </summary>
         private void SyncParentMarkers(
-            IReadOnlyList<IReadOnlyOutpost> outposts,
-            Dictionary<string, OrbitSpec> parentOrbits,
-            Func<string, Sprite> parentPlanetSprite)
+            Dictionary<Planet, OrbitSpec> parentOrbits,
+            Func<Planet, Sprite> parentPlanetSprite)
         {
-            foreach (var planetId in parentOrbits.Keys)
+            foreach (var planet in parentOrbits.Keys)
             {
-                if (parentMarkers.ContainsKey(planetId))
+                if (parentMarkers.ContainsKey(planet))
                     continue;
-                var sample = outposts.First(o => o.Planet.optionId == planetId);
-                var rect = SampleUI.CreateRect(map, $"World {planetId}");
+                var rect = SampleUI.CreateRect(map, $"World {planet}");
                 rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
                 rect.sizeDelta = new Vector2(56f, 56f);
                 var icon = rect.gameObject.AddComponent<Image>();
-                icon.sprite = parentPlanetSprite(planetId);
+                icon.sprite = parentPlanetSprite(planet);
                 icon.preserveAspect = true;
                 icon.raycastTarget = false;
                 icon.enabled = icon.sprite != null;
-                var label = SampleUI.CreateText(rect, sample.Planet.Text, 11, new Color(0.55f, 0.62f, 0.74f), FontStyle.Italic);
+                var label = SampleUI.CreateText(rect, planet.Text(), 11, new Color(0.55f, 0.62f, 0.74f), FontStyle.Italic);
                 label.raycastTarget = false;
                 var labelRect = (RectTransform)label.transform;
                 labelRect.anchorMin = new Vector2(0.5f, 0f);
@@ -273,7 +271,7 @@ namespace HelloWorld.Assets.Scripts
                 label.alignment = TextAnchor.UpperCenter;
                 // Behind the outpost buttons so moons stay clickable.
                 rect.SetAsFirstSibling();
-                parentMarkers[planetId] = rect;
+                parentMarkers[planet] = rect;
             }
         }
 
@@ -311,8 +309,8 @@ namespace HelloWorld.Assets.Scripts
             private IReadOnlyAnimationInfo flareAnimation;
             private Dictionary<string, OrbitSpec> orbits;
             private Dictionary<string, Button> markers;
-            private Dictionary<string, OrbitSpec> parentOrbits;
-            private Dictionary<string, RectTransform> parentRects;
+            private Dictionary<Planet, OrbitSpec> parentOrbits;
+            private Dictionary<Planet, RectTransform> parentRects;
             private RectTransform ride;
             private RectTransform target;
             private Vector2 from;
@@ -348,8 +346,8 @@ namespace HelloWorld.Assets.Scripts
             public void SetOrbits(
                 Dictionary<string, OrbitSpec> orbitSpecs,
                 Dictionary<string, Button> planetMarkers,
-                Dictionary<string, OrbitSpec> parentOrbitSpecs,
-                Dictionary<string, RectTransform> parentMarkerRects)
+                Dictionary<Planet, OrbitSpec> parentOrbitSpecs,
+                Dictionary<Planet, RectTransform> parentMarkerRects)
             {
                 orbits = orbitSpecs;
                 markers = planetMarkers;

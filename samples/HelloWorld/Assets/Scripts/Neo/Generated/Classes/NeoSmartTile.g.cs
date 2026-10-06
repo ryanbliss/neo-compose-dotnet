@@ -103,7 +103,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<NeoSmartTile>(out writable);
         }
 
-        string INeoSmartTile.DefaultCollider => DefaultCollider.optionId;
+        string INeoSmartTile.DefaultCollider => DefaultCollider.OptionId();
         IReadOnlyList<INeoSmartTileRule> INeoSmartTile.Rules => Rules;
 
         public virtual NeoSmartTileCollider DefaultCollider
@@ -112,10 +112,10 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 if (TryReadDetached("DefaultCollider", out object? detachedValue))
                 {
-                    return NeoGeneratedTypesSupport.ReadEnumSingle(detachedValue, static (factoryOptionId) => NeoSmartTileCollider.FromOptionId(factoryOptionId)) ?? throw new InvalidOperationException("Required enum 'DefaultCollider' has no selected option.");
+                    return NeoGeneratedTypesSupport.ReadEnumSingle(detachedValue, static (factoryOptionId) => NeoSmartTileColliderOptions.FromOptionId(factoryOptionId)) ?? throw new InvalidOperationException("Required enum 'DefaultCollider' has no selected option.");
                 }
                 var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoMemberEnum>("DefaultCollider"));
-                return selected is null ? throw new InvalidOperationException("Required enum 'DefaultCollider' has no selected option.") : NeoSmartTileCollider.FromOptionId(selected);
+                return selected is null ? throw new InvalidOperationException("Required enum 'DefaultCollider' has no selected option.") : NeoSmartTileColliderOptions.FromOptionId(selected);
             }
         }
 

@@ -133,15 +133,15 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 if (TryReadDetached("Direction", out object? detachedValue))
                 {
-                    return NeoGeneratedTypesSupport.ReadEnumSingle(detachedValue, static (factoryOptionId) => NeoPlayDirection.FromOptionId(factoryOptionId)) ?? throw new InvalidOperationException("Required enum 'Direction' has no selected option.");
+                    return NeoGeneratedTypesSupport.ReadEnumSingle(detachedValue, static (factoryOptionId) => NeoPlayDirectionOptions.FromOptionId(factoryOptionId)) ?? throw new InvalidOperationException("Required enum 'Direction' has no selected option.");
                 }
                 var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoMemberEnum>("Direction"));
-                return selected is null ? throw new InvalidOperationException("Required enum 'Direction' has no selected option.") : NeoPlayDirection.FromOptionId(selected);
+                return selected is null ? throw new InvalidOperationException("Required enum 'Direction' has no selected option.") : NeoPlayDirectionOptions.FromOptionId(selected);
             }
             set
             {
                 ThrowIfReadOnly("NeoAnimationTrackBase.Direction");
-                NeoGeneratedTypesSupport.SetValue(writableNode, "Direction", NeoGeneratedTypesSupport.Value(new[] { value.optionId }));
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Direction", NeoGeneratedTypesSupport.Value(new[] { value.OptionId() }));
             }
         }
 
@@ -191,15 +191,15 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 if (TryReadDetached("Refresh", out object? detachedValue))
                 {
-                    return NeoGeneratedTypesSupport.ReadEnumSingle(detachedValue, static (factoryOptionId) => NeoSelectorRefreshKind.FromOptionId(factoryOptionId)) ?? throw new InvalidOperationException("Required enum 'Refresh' has no selected option.");
+                    return NeoGeneratedTypesSupport.ReadEnumSingle(detachedValue, static (factoryOptionId) => NeoSelectorRefreshKindOptions.FromOptionId(factoryOptionId)) ?? throw new InvalidOperationException("Required enum 'Refresh' has no selected option.");
                 }
                 var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoMemberEnum>("Refresh"));
-                return selected is null ? throw new InvalidOperationException("Required enum 'Refresh' has no selected option.") : NeoSelectorRefreshKind.FromOptionId(selected);
+                return selected is null ? throw new InvalidOperationException("Required enum 'Refresh' has no selected option.") : NeoSelectorRefreshKindOptions.FromOptionId(selected);
             }
             set
             {
                 ThrowIfReadOnly("NeoAnimationTrackBase.Refresh");
-                NeoGeneratedTypesSupport.SetValue(writableNode, "Refresh", NeoGeneratedTypesSupport.Value(new[] { value.optionId }));
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Refresh", NeoGeneratedTypesSupport.Value(new[] { value.OptionId() }));
             }
         }
 

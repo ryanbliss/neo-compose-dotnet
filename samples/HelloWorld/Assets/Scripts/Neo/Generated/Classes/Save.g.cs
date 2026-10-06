@@ -255,14 +255,14 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 if (TryReadDetached("World", out object? detachedValue))
                 {
-                    return NeoGeneratedTypesSupport.ReadEnumSingle(detachedValue, static (factoryOptionId) => Planet.FromOptionId(factoryOptionId)) ?? throw new InvalidOperationException("Required enum 'World' has no selected option.");
+                    return NeoGeneratedTypesSupport.ReadEnumSingle(detachedValue, static (factoryOptionId) => PlanetOptions.FromOptionId(factoryOptionId)) ?? throw new InvalidOperationException("Required enum 'World' has no selected option.");
                 }
                 var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoMemberEnum>("World"));
-                return selected is null ? throw new InvalidOperationException("Required enum 'World' has no selected option.") : Planet.FromOptionId(selected);
+                return selected is null ? throw new InvalidOperationException("Required enum 'World' has no selected option.") : PlanetOptions.FromOptionId(selected);
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(writableNode, "World", NeoGeneratedTypesSupport.Value(new[] { value.optionId }));
+                NeoGeneratedTypesSupport.SetValue(writableNode, "World", NeoGeneratedTypesSupport.Value(new[] { value.OptionId() }));
             }
         }
 
