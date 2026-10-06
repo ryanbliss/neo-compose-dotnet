@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.57.5] - 2026-10-05
+
+- NeoScript and the generated C# setter can assign a Class value to a Save-allowed field of an Asset record when the field defaults to `null`, such as `this.History = new QuestHistory();` on a quest in `Assets.Quests`. Before, NeoScript threw "Cannot bind missing member 'History' on an immutable parent" and the C# setter threw "the stamped leaf has no authored value to shadow". The value now lands in the Save store at the field's stable id, as a scalar Save write does, and the Asset record is not cloned. Generated getters and NeoScript reads such as `this.History != null` see it, method calls on it write to Save, and it survives a save and reload. Fields that do not allow Save storage still reject the write.
+- Save writes under an Asset record stay reachable after a later write re-expands the record. Before, the garbage collector could treat those Save rows as unlinked once they were materialized.
+
 ## [0.57.4] - 2026-10-05
 
 - An empty header base clause can build a base with declared constructors from its member initializers and the base block when none of those constructors accepts zero arguments. Required base constructors still need their arguments, and declared `: base()` calls still require a callable base constructor. Matches CLI 0.68.4 and fixes neo-compose #1186.

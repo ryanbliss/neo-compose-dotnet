@@ -1752,6 +1752,321 @@ namespace NeoCompose.Tests
                 Assert.IsNull(value);
         }
 
+        // this.History = new History(); then this.History.Bump(); where Thing
+        // is a sparse Asset record and History is a Save-allowed nullable
+        // Class member whose default is null.
+        [TestCase(false)]
+        [TestCase(true)]
+        public void ScriptAssignsClassIntoNullSaveSlotOfSparseAssetRecord(bool listEntry)
+        {
+            ProjectData data = BuildAssetSaveSlotProjectData(listEntry);
+            Pointer history = PointerKeyOf(AssetThingPointer(listEntry), "History");
+            string saved;
+            using (NeoClient client = NeoTestSaveStack.ClientFromSchema(data))
+            {
+                Assert.IsNull(AssetHistoryCount(client, listEntry), "The slot starts null.");
+                Assert.IsNull(EvaluateAssetThingMember(client, listEntry, "History"), "NeoScript reads the indexed null slot.");
+                Assert.IsNull(EvaluateAssetThingMember(client, listEntry, "Locked"), "NeoScript reads an inheriting slot's null default.");
+
+                ExecuteSaveInstruction(client, AssignClass(history, NewHistory(), "history-class", WritabilityKind.Save));
+
+                Assert.AreEqual(1, AssetHistoryCount(client, listEntry), "The write lands in the Save overlay.");
+                Assert.AreEqual(1d, EvaluateHistoryCount(client, listEntry));
+
+                ExecuteSaveInstruction(client, CallBump(history));
+
+                Assert.AreEqual(2, AssetHistoryCount(client, listEntry), "A method on the new value writes through it.");
+                Assert.AreEqual(2d, EvaluateHistoryCount(client, listEntry));
+                Assert.IsFalse(client.HasWritableValue(NeoValueOwnership.Save, "thing-instance"), "The Asset record is never cloned into Save.");
+                CollectionAssert.IsEmpty(client.FindUnlinkedSaveValueIds());
+                saved = client.SerializeSaveData();
+            }
+            using NeoClient reloaded = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: saved);
+            Assert.AreEqual(2, AssetHistoryCount(reloaded, listEntry), "The Save value survives a reload.");
+            Assert.AreEqual(2d, EvaluateHistoryCount(reloaded, listEntry));
+        }
+
+        // this.Level = 4; then this.History = new History(); where both are
+        // Save-allowed members of the sparse Asset record. The second write
+        // re-expands the record, which materializes the first at its id.
+        [Test]
+        public void SaveWritesUnderSparseAssetRecordStayLinkedOnceMaterialized()
+        {
+            ProjectData data = BuildAssetSaveSlotProjectData(listEntry: false);
+            Pointer level = PointerKeyOf(AssetThingPointer(listEntry: false), "Level");
+            string saved;
+            using (NeoClient client = NeoTestSaveStack.ClientFromSchema(data))
+            {
+                ExecuteSaveInstruction(client, new AssignInstruction
+                {
+                    type = InstructionKind.Assign,
+                    operatorValue = "=",
+                    target = new WriteTarget { pointer = level, typeInfo = IntTypeInfo(), writability = WritabilityKind.Save },
+                    pointer = IntLiteral(4),
+                });
+                ExecuteSaveInstruction(client, AssignClass(
+                    PointerKeyOf(AssetThingPointer(listEntry: false), "History"), NewHistory(), "history-class", WritabilityKind.Save));
+
+                CollectionAssert.IsEmpty(client.FindUnlinkedSaveValueIds(), "Materialized Save slots of an Asset record are storage roots.");
+                saved = client.SerializeSaveData();
+            }
+            using NeoClient reloaded = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: saved);
+            Assert.AreEqual(0, reloaded.RunGarbageCollector(), "The collector keeps the reloaded Save writes.");
+            Assert.AreEqual(4, Convert.ToInt32(reloaded.assets.Get<NeoMemberClass>("Thing").Get<NeoMemberInt>("Level").value!.value));
+            Assert.AreEqual(1, AssetHistoryCount(reloaded, listEntry: false));
+        }
+
+        [Test]
+        public void GeneratedSetterAssignsClassIntoNullSaveSlotOfSparseAssetRecord()
+        {
+            ProjectData data = BuildAssetSaveSlotProjectData(listEntry: false);
+            string saved;
+            using (NeoClient client = NeoTestSaveStack.ClientFromSchema(data))
+            {
+                NeoMemberClassWritable thing = NeoGeneratedTypesSupport.AsWritable(client.assets.Get<NeoMemberClass>("Thing"));
+
+                thing.SetSerializedValue("History", MakeHistory(client));
+
+                Assert.AreEqual(1, AssetHistoryCount(client, listEntry: false));
+                Assert.AreEqual(1d, EvaluateHistoryCount(client, listEntry: false));
+                thing.Get<NeoMemberClassWritable>("History").Get<NeoMemberIntWritable>("Count").Set(3);
+                Assert.AreEqual(3, AssetHistoryCount(client, listEntry: false));
+                Assert.IsFalse(client.HasWritableValue(NeoValueOwnership.Save, "thing-instance"));
+                CollectionAssert.IsEmpty(client.FindUnlinkedSaveValueIds());
+                saved = client.SerializeSaveData();
+            }
+            using NeoClient reloaded = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: saved);
+            Assert.AreEqual(3, AssetHistoryCount(reloaded, listEntry: false));
+        }
+
+        // A nullable Class member that is not Save-allowed stays immutable on
+        // the Asset record, from NeoScript and from the generated setter.
+        [Test]
+        public void NullClassSlotOfSparseAssetRecordWithoutSaveStorageRejectsWrites()
+        {
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(BuildAssetSaveSlotProjectData(listEntry: false));
+            Pointer locked = PointerKeyOf(AssetThingPointer(listEntry: false), "Locked");
+            NeoMemberClassWritable thing = NeoGeneratedTypesSupport.AsWritable(client.assets.Get<NeoMemberClass>("Thing"));
+            Assert.IsNotNull(thing.ChildValueId("History"), "A Save-allowed null slot has the id its overlay row lands under.");
+            Assert.IsNull(thing.ChildValueId("Locked"), "An inheriting null slot shares its parent's store and needs no id.");
+            Assert.IsNull(EvaluateAssetThingMember(client, listEntry: false, "Locked"));
+
+            var error = Assert.Throws<NSGetterRuntimeError>(() =>
+                ExecuteSaveInstruction(client, AssignClass(locked, NewHistory(), "history-class", WritabilityKind.Save)));
+            StringAssert.Contains("'Locked' is not Save-owned", error!.Message);
+
+            Assert.Throws<InvalidOperationException>(() => thing.SetSerializedValue("Locked", MakeHistory(client)));
+            Assert.IsNull(thing.Get<NeoMemberClassWritable>("Locked").value?.value);
+            Assert.IsNull(EvaluateAssetThingMember(client, listEntry: false, "Locked"));
+            CollectionAssert.IsEmpty(client.FindUnlinkedSaveValueIds());
+        }
+
+        /// <summary>
+        /// <see cref="BuildProjectData"/> with Thing moved onto the Asset
+        /// root (or into an Asset list) and given two nullable Class members
+        /// whose default is null: a Save-allowed <c>History</c> and an
+        /// inherit-storage <c>Locked</c>, plus a Save-allowed <c>Level</c>
+        /// int. Thing stays a sparse construction, so none of them has a
+        /// stored row.
+        /// </summary>
+        private static ProjectData BuildAssetSaveSlotProjectData(bool listEntry)
+        {
+            ProjectData data = BuildProjectData();
+            data.classes["save-root-class"].schema.Remove("Thing");
+            ((ObjectMemberValue)data.values["value-save"]).value!.Remove("Thing");
+            data.classes["thing-class"].allowedStorage = NeoMemberStorage.Inherit;
+            var thing = (ClassMember)data.members["thing-member"];
+            thing.Storage = NeoMemberStorage.Inherit;
+            var assets = (ObjectMemberValue)data.values["value-assets"];
+            if (listEntry)
+            {
+                data.classes["assets-root-class"].schema["Things"] = "assets-things";
+                data.members["assets-things"] = new ListMember
+                {
+                    id = "assets-things",
+                    projectId = "p75-project",
+                    name = "Things",
+                    kind = MemberKind.List,
+                    entryMemberId = thing.id,
+                    Requirement = NeoMemberRequirementKind.Required,
+                };
+                assets.value!["Things"] = "assets-things-list";
+                data.values["assets-things-list"] = new ArrayMemberValue { id = "assets-things-list", value = new[] { "thing-instance" } };
+            }
+            else
+            {
+                data.classes["assets-root-class"].schema["Thing"] = thing.id;
+                assets.value!["Thing"] = "thing-instance";
+            }
+            data.classes["thing-class"].schema["Level"] = "thing-level";
+            data.members["thing-level"] = new IntMember
+            {
+                id = "thing-level",
+                projectId = "p75-project",
+                name = "Level",
+                kind = MemberKind.Int,
+                Requirement = NeoMemberRequirementKind.Required,
+                Storage = NeoMemberStorage.Save,
+                defaultValue = new NumberMemberValueBase { value = 0 },
+            };
+            data.classes["thing-class"].schema["History"] = "thing-history";
+            data.classes["thing-class"].schema["Locked"] = "thing-locked";
+            foreach ((string id, string name, NeoMemberStorage storage) in new[]
+            {
+                ("thing-history", "History", NeoMemberStorage.Save),
+                ("thing-locked", "Locked", NeoMemberStorage.Inherit),
+            })
+            {
+                data.members[id] = new ClassMember
+                {
+                    id = id,
+                    projectId = "p75-project",
+                    name = name,
+                    kind = MemberKind.Class,
+                    classId = "history-class",
+                    Requirement = NeoMemberRequirementKind.Optional,
+                    Storage = storage,
+                    defaultValue = new ObjectMemberValueBase { value = null },
+                };
+            }
+            var history = SchemaClass("history-class", "History", NeoMemberStorage.Inherit);
+            history.schema["Count"] = "history-count";
+            history.schema["Bump"] = "history-bump";
+            data.classes[history.id] = history;
+            data.members["history-count"] = new IntMember
+            {
+                id = "history-count",
+                projectId = "p75-project",
+                name = "Count",
+                kind = MemberKind.Int,
+                Requirement = NeoMemberRequirementKind.Required,
+                defaultValue = new NumberMemberValueBase { value = 1 },
+            };
+            // void Bump() { this.Count = 2; }
+            NSFunctionMember bump = VoidNSFunction("p75-project", "history-bump", "Bump");
+            bump.action!.parameters[0].typeInfo = ClassType("history-class");
+            bump.action.instructions = new Instruction[]
+            {
+                new AssignInstruction
+                {
+                    type = InstructionKind.Assign,
+                    operatorValue = "=",
+                    target = new WriteTarget
+                    {
+                        pointer = PointerKeyOf(new VariablePointer { type = PointerKind.Variable, variableId = "__this__" }, "Count"),
+                        typeInfo = IntTypeInfo(),
+                        writability = WritabilityKind.Save,
+                    },
+                    pointer = IntLiteral(2),
+                },
+            };
+            data.members[bump.id] = bump;
+            return data;
+        }
+
+        private static Pointer AssetThingPointer(bool listEntry)
+        {
+            Pointer assets = PointerKeyOf(RootPointer(), "Assets");
+            if (!listEntry)
+                return PointerKeyOf(assets, "Thing");
+            return new KeyOfPointer
+            {
+                type = PointerKind.KeyOf,
+                keyOf = new KeyOf { pointer = PointerKeyOf(assets, "Things"), key = IntLiteral(0) },
+            };
+        }
+
+        private static FunctionPointer NewHistory() => new()
+        {
+            type = PointerKind.Function,
+            function = new ClassConstructorFunction
+            {
+                type = FunctionKind.ClassConstructor,
+                info = new FunctionClassConstructorInfo
+                {
+                    schemaClassInfo = ClassType("history-class"),
+                    fields = Array.Empty<FunctionClassConstructorField>(),
+                },
+            },
+        };
+
+        private static FunctionCallInstruction CallBump(Pointer history) => new()
+        {
+            type = InstructionKind.FunctionCall,
+            call = new CallFunctionPointer
+            {
+                type = PointerKind.CallFunction,
+                memberId = "history-bump",
+                receiver = CallReceiver.Instance(history),
+                args = Array.Empty<Pointer>(),
+                callSiteId = "history-bump-call",
+            },
+        };
+
+        /// <summary>A Session <c>new History()</c>, as generated C# hands it to a setter.</summary>
+        private static NeoValueWritePayload MakeHistory(NeoClient client)
+        {
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            NeoScriptExecutionResult result = NeoScriptExecutor.Execute(client, new FunctionWithReturnType
+            {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                parameters = Array.Empty<Variable>(),
+                typeInfo = ClassType("history-class"),
+                instructions = new Instruction[] { new ReturnInstruction { type = InstructionKind.Return, pointer = NewHistory() } },
+            }, new Dictionary<string, object?>(), ctx);
+            if (result.IsFailed)
+                throw result.Failure!;
+            return NeoValueWritePayload.FromValueReference(NeoGeneratedTypesSupport.ValueId(result.ReturnValue)!);
+        }
+
+        /// <summary>The generated <c>History</c> getter's read, then its <c>Count</c>.</summary>
+        private static int? AssetHistoryCount(NeoClient client, bool listEntry)
+        {
+            NeoMemberClass thing = listEntry
+                ? (NeoMemberClass)client.assets.Get<NeoMemberList>("Things")[0]
+                : client.assets.Get<NeoMemberClass>("Thing");
+            var history = NeoGeneratedTypesSupport.AsWritable(thing).Get<NeoMemberClassWritable>("History");
+            return history.value?.value is null
+                ? null
+                : Convert.ToInt32(history.Get<NeoMemberInt>("Count").value!.value);
+        }
+
+        private static object? EvaluateAssetThingMember(NeoClient client, bool listEntry, string key)
+        {
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            ctx = ctx.WithRoot(NeoScriptRuntimeRoot(client, ctx));
+            var type = ClassType("history-class");
+            type.required = false;
+            return NSGetterEvaluator.Evaluate(new FunctionWithReturnType
+            {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                parameters = Array.Empty<Variable>(),
+                typeInfo = type,
+                instructions = new Instruction[] { new ReturnInstruction
+                {
+                    type = InstructionKind.Return,
+                    pointer = PointerKeyOf(AssetThingPointer(listEntry), key),
+                } },
+            }, ctx);
+        }
+
+        private static object? EvaluateHistoryCount(NeoClient client, bool listEntry)
+        {
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            ctx = ctx.WithRoot(NeoScriptRuntimeRoot(client, ctx));
+            return NSGetterEvaluator.Evaluate(new FunctionWithReturnType
+            {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                parameters = Array.Empty<Variable>(),
+                typeInfo = IntTypeInfo(),
+                instructions = new Instruction[] { new ReturnInstruction
+                {
+                    type = InstructionKind.Return,
+                    pointer = PointerKeyOf(PointerKeyOf(AssetThingPointer(listEntry), "History"), "Count"),
+                } },
+            }, ctx);
+        }
+
         [Test]
         public void UnstampedDefaultsKeepWritesIsolatedAndSurviveSaveReload()
         {
