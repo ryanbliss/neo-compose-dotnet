@@ -1765,6 +1765,8 @@ namespace NeoCompose.Tests
             using (NeoClient client = NeoTestSaveStack.ClientFromSchema(data))
             {
                 Assert.IsNull(AssetHistoryCount(client, listEntry), "The slot starts null.");
+                Assert.IsNull(EvaluateAssetThingMember(client, listEntry, "History"), "NeoScript reads the indexed null slot.");
+                Assert.IsNull(EvaluateAssetThingMember(client, listEntry, "Locked"), "NeoScript reads an inheriting slot's null default.");
 
                 ExecuteSaveInstruction(client, AssignClass(history, NewHistory(), "history-class", WritabilityKind.Save));
 
@@ -1844,14 +1846,18 @@ namespace NeoCompose.Tests
         {
             using NeoClient client = NeoTestSaveStack.ClientFromSchema(BuildAssetSaveSlotProjectData(listEntry: false));
             Pointer locked = PointerKeyOf(AssetThingPointer(listEntry: false), "Locked");
+            NeoMemberClassWritable thing = NeoGeneratedTypesSupport.AsWritable(client.assets.Get<NeoMemberClass>("Thing"));
+            Assert.IsNotNull(thing.ChildValueId("History"), "A Save-allowed null slot has the id its overlay row lands under.");
+            Assert.IsNull(thing.ChildValueId("Locked"), "An inheriting null slot shares its parent's store and needs no id.");
+            Assert.IsNull(EvaluateAssetThingMember(client, listEntry: false, "Locked"));
 
             var error = Assert.Throws<NSGetterRuntimeError>(() =>
                 ExecuteSaveInstruction(client, AssignClass(locked, NewHistory(), "history-class", WritabilityKind.Save)));
             StringAssert.Contains("'Locked' is not Save-owned", error!.Message);
 
-            NeoMemberClassWritable thing = NeoGeneratedTypesSupport.AsWritable(client.assets.Get<NeoMemberClass>("Thing"));
             Assert.Throws<InvalidOperationException>(() => thing.SetSerializedValue("Locked", MakeHistory(client)));
             Assert.IsNull(thing.Get<NeoMemberClassWritable>("Locked").value?.value);
+            Assert.IsNull(EvaluateAssetThingMember(client, listEntry: false, "Locked"));
             CollectionAssert.IsEmpty(client.FindUnlinkedSaveValueIds());
         }
 
@@ -2023,6 +2029,25 @@ namespace NeoCompose.Tests
             return history.value?.value is null
                 ? null
                 : Convert.ToInt32(history.Get<NeoMemberInt>("Count").value!.value);
+        }
+
+        private static object? EvaluateAssetThingMember(NeoClient client, bool listEntry, string key)
+        {
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            ctx = ctx.WithRoot(NeoScriptRuntimeRoot(client, ctx));
+            var type = ClassType("history-class");
+            type.required = false;
+            return NSGetterEvaluator.Evaluate(new FunctionWithReturnType
+            {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                parameters = Array.Empty<Variable>(),
+                typeInfo = type,
+                instructions = new Instruction[] { new ReturnInstruction
+                {
+                    type = InstructionKind.Return,
+                    pointer = PointerKeyOf(AssetThingPointer(listEntry), key),
+                } },
+            }, ctx);
         }
 
         private static object? EvaluateHistoryCount(NeoClient client, bool listEntry)

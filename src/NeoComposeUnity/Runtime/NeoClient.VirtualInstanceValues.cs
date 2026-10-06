@@ -1585,31 +1585,30 @@ namespace NeoCompose.Runtime
             // Replay rows live in temporary Session storage, including immutable
             // members. Read the constructed graph directly: read-only wrappers
             // select Asset storage and can omit those temporary children.
-            if (member is ClassMember classMember && row is ObjectMemberValue classRow)
+            if (member is ClassMember classMember && row is ObjectMemberValue { value: not null } classRow)
             {
                 string classId = classRow.classId ?? classMember.classId;
                 foreach (var entry in ResolveStoredInstanceSchema(classId))
                 {
-                    if (classRow.value is null)
-                        break;
                     bool constructed = classRow.value.TryGetValue(entry.schemaKey, out string childId);
                     if (!constructed && classMember.Payload == NeoMemberPayloadKind.Partial)
                         continue;
                     if (!TryGetMember(entry.memberId, out Member? declaration)
                         || TryResolveOwnedChildMember(classRow, classMember, entry.schemaKey, environments, declaration) is not Member childMember)
                         continue;
-                    string childPath = AppendVirtualPath(path, "class", "schemaKey", entry.schemaKey);
                     if (constructed)
-                        node.classChildren[entry.schemaKey] = Child(childId, childMember, childPath);
+                        node.classChildren[entry.schemaKey] = Child(childId, childMember,
+                            AppendVirtualPath(path, "class", "schemaKey", entry.schemaKey));
                     // A null Class default is the one declared default a
-                    // construction stores no row for. Index its null value
-                    // like every other omitted member, so the slot has the
-                    // deterministic id a write materializes under: on an
-                    // Asset record that id is the only place a Save-allowed
-                    // member's overlay row can live.
-                    else if (childMember.Mutability != NeoMemberMutabilityKind.ReadOnly
-                        && MemberValueFactory.IsLiteralNullClassDefault(childMember))
-                        node.classChildren[entry.schemaKey] = NullClassChild(childMember, childPath);
+                    // construction stores no row for. A slot that can hold
+                    // another store's value needs the deterministic id a write
+                    // materializes under: under an Asset record that id is the
+                    // only place a Save or Session overlay row can live. An
+                    // inheriting slot shares its parent's store, so the parent
+                    // links its writes, and an immutable one rejects them.
+                    else if (CanHoldOverlayClassValue(childMember))
+                        node.classChildren[entry.schemaKey] = NullClassChild(childMember,
+                            AppendVirtualPath(path, "class", "schemaKey", entry.schemaKey));
                     else
                         continue;
                     node.classChildren[entry.schemaKey].schemaKey = entry.schemaKey;
@@ -1654,6 +1653,13 @@ namespace NeoCompose.Runtime
                 return child;
             }
             return node;
+        }
+
+        private static bool CanHoldOverlayClassValue(Member member)
+        {
+            return member.Storage is not (NeoMemberStorage.Inherit or NeoMemberStorage.Immutable)
+                && member.Mutability != NeoMemberMutabilityKind.ReadOnly
+                && MemberValueFactory.IsLiteralNullClassDefault(member);
         }
 
         private void RemapVirtualDelegateReceivers(VirtualExpansionNode root, PreparedVirtualExpansion expansion,
@@ -2238,15 +2244,19 @@ namespace NeoCompose.Runtime
         private IEnumerable<(string valueId, Member member)> VirtualStorageBoundaries(
             NeoValueOwnership ownership)
         {
-            foreach (string id in virtualClassPlacementByChildId.Keys)
-                if (IsVirtualStorageBoundary(id, ownership, out VirtualClassPlacement placement))
-                    yield return (id, placement.member);
+            // A candidate replay can re-place a committed slot, so only its
+            // own placement settles the ownership filter.
+            foreach (var pair in virtualClassPlacementByChildId)
+                if ((candidateReplay is not null || pair.Value.ownership == ownership)
+                    && IsVirtualStorageBoundary(pair.Key, ownership, out VirtualClassPlacement placement))
+                    yield return (pair.Key, placement.member);
             if (candidateReplay is null)
                 yield break;
-            foreach (string id in candidateReplay.Placements.Keys)
-                if (!virtualClassPlacementByChildId.ContainsKey(id)
-                    && IsVirtualStorageBoundary(id, ownership, out VirtualClassPlacement placement))
-                    yield return (id, placement.member);
+            foreach (var pair in candidateReplay.Placements)
+                if (pair.Value.ownership == ownership
+                    && !virtualClassPlacementByChildId.ContainsKey(pair.Key)
+                    && IsVirtualStorageBoundary(pair.Key, ownership, out VirtualClassPlacement placement))
+                    yield return (pair.Key, placement.member);
         }
 
         private bool IsVirtualStorageBoundary(
