@@ -48,10 +48,12 @@ editor itself and logs `end: success` or `end: failed`:
   authorization against the rig origin, logging the verification URL and user
   code under `[NeoComposeBatchLogin]` for external approval.
 - `-executeMethod NeoCompose.Unity.Editor.NeoComposeBatchSync.Run` — headless
-  synchronize, logging `[NeoComposeBatchSync]`.
-- `scripts/agent-unity-smoke.sh` runs both serially against the rig app (start
-  it with `npm run agent:dev` in the rig's neo-compose worktree) and fails when
-  synchronizing dirtied tracked sample output.
+  ingest of a `neo export`, logging `[NeoComposeBatchSync]`. Fails when there
+  is no export to ingest.
+- `scripts/agent-unity-smoke.sh` runs the rig's `agent:cli -- pull`, then
+  `agent:cli -- export --unity-project samples/HelloWorld`, then the batch
+  ingest, against the rig app (start it with `npm run agent:dev` in the rig's
+  neo-compose worktree), and fails when the sync dirtied tracked sample output.
 
 Adhere to rules & guidelines in the `agent-workspace-rigs` skill as needed.
 

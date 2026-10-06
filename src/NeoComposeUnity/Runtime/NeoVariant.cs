@@ -325,7 +325,7 @@ namespace NeoCompose.Runtime
             if (!client.TryGetVariant(variantId, out VariantRecord? record))
             {
                 throw new InvalidOperationException(
-                    $"Variant '{variantId}' is not in this project export. Re-export the project, or regenerate the C# types if the variant was deleted.");
+                    $"Variant '{variantId}' is not in this project export. Run `neo pull` and `neo export`.");
             }
             // The record's own classId is the authority on the target class
             // (§9); the pointer's is corroboration written at compile time.
@@ -333,7 +333,7 @@ namespace NeoCompose.Runtime
                 && !string.Equals(record.classId, classId, StringComparison.Ordinal))
             {
                 throw new InvalidOperationException(
-                    $"Variant '{DescribeVariant(record)}' belongs to class '{record.classId}', but the reference names '{classId}'. Re-export the project.");
+                    $"Variant '{DescribeVariant(record)}' belongs to class '{record.classId}', but the reference names '{classId}'. Run `neo pull` and `neo export`.");
             }
             return record;
         }
@@ -538,14 +538,14 @@ namespace NeoCompose.Runtime
                 || collectionMember is not ListMember)
             {
                 throw new InvalidOperationException(
-                    $"Lookup variant '{DescribeVariant(record)}' binds missing List member '{binding.collectionMemberId}'. Re-export the project.");
+                    $"Lookup variant '{DescribeVariant(record)}' binds missing List member '{binding.collectionMemberId}'. Run `neo pull` and `neo export`.");
             }
             if (!client.TryGetValue(
                     binding.collectionValueId,
                     out MemberValue? collectionValue))
             {
                 throw new InvalidOperationException(
-                    $"Lookup variant '{DescribeVariant(record)}' binds missing collection value '{binding.collectionValueId}'. Re-export the project.");
+                    $"Lookup variant '{DescribeVariant(record)}' binds missing collection value '{binding.collectionValueId}'. Run `neo pull` and `neo export`.");
             }
             bool ordered = collectionValue is ArrayMemberValue array
                 && array.value is not null

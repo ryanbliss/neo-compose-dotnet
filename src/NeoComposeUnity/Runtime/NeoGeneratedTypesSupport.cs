@@ -824,7 +824,7 @@ namespace NeoCompose.Runtime
             if (init.compiled is null)
             {
                 throw new InvalidOperationException(
-                    $"Initializer for '{member.name}' has no compiled body. Re-export the project from the current web app.");
+                    $"Initializer for '{member.name}' has no compiled body. Run `neo pull` and `neo export`.");
             }
             // An initializer has no instance to read, so its frame binds none.
             int frame =
@@ -1000,9 +1000,9 @@ namespace NeoCompose.Runtime
                 // the wrong sheet, which is precisely what this guard exists
                 // to catch.
                 throw new InvalidOperationException(
-                    $"Sprite file '{fileId}' is not synchronized into this Unity project, so it cannot be " +
+                    $"Sprite file '{fileId}' is not in this Unity project's asset database, so it cannot be " +
                     $"validated against the Unity template required by '{subject}'. " +
-                    $"Expected template id '{expectedTemplateId}'. Run Neo Compose editor sync and try again.");
+                    $"Expected template id '{expectedTemplateId}'. Run `neo pull` and `neo export`, then try again.");
             }
 
             if (entry.TemplateId == expectedTemplateId)
@@ -4139,7 +4139,7 @@ namespace NeoCompose.Runtime
             if (!client.TryGetConstructor(constructorId, out ConstructorRecord? record))
             {
                 throw new InvalidOperationException(
-                    $"Declared constructor '{constructorId}' on class '{className}' is missing from the export. Re-export the project from the current web app.");
+                    $"Declared constructor '{constructorId}' on class '{className}' is missing from the export. Run `neo pull` and `neo export`.");
             }
             if (record!.classId != classId)
             {
@@ -4300,11 +4300,11 @@ namespace NeoCompose.Runtime
             FunctionWithReturnType[] compiled =
                 record.compiledBaseArguments
                 ?? throw new InvalidOperationException(
-                    $"Declared constructor '{record.id}' has base arguments with no compiled getters. Re-export the project from the current web app.");
+                    $"Declared constructor '{record.id}' has base arguments with no compiled getters. Run `neo pull` and `neo export`.");
             if (compiled.Length != baseArguments.Length)
             {
                 throw new InvalidOperationException(
-                    $"Declared constructor '{record.id}' has {baseArguments.Length} base arguments but {compiled.Length} compiled base getters. Re-export the project from the current web app.");
+                    $"Declared constructor '{record.id}' has {baseArguments.Length} base arguments but {compiled.Length} compiled base getters. Run `neo pull` and `neo export`.");
             }
 
             var names = new List<string>(baseArguments.Length);
@@ -4356,7 +4356,7 @@ namespace NeoCompose.Runtime
             if (compiled.Length != baseInitializerFields.Length)
             {
                 throw new InvalidOperationException(
-                    $"Declared constructor '{record.id}' has {baseInitializerFields.Length} base initializer fields but {compiled.Length} compiled getters. Re-export the project from the current web app.");
+                    $"Declared constructor '{record.id}' has {baseInitializerFields.Length} base initializer fields but {compiled.Length} compiled getters. Run `neo pull` and `neo export`.");
             }
         }
 

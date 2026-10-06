@@ -140,27 +140,6 @@ namespace NeoCompose.Runtime
                 request.GetResponseHeaders());
         }
 
-        /// <summary>
-        /// Downloads raw bytes from a pre-signed storage URL. No bearer token is
-        /// attached; these URLs carry their own signed authorization.
-        /// </summary>
-        public static async Task<byte[]> DownloadBytesAsync(
-            string url,
-            int timeoutSeconds = 120,
-            CancellationToken cancellationToken = default)
-        {
-            using var request = UnityWebRequest.Get(url);
-            request.timeout = timeoutSeconds;
-            await SendOperationAsync(request, timeoutSeconds, cancellationToken);
-            if (request.result != UnityWebRequest.Result.Success)
-            {
-                throw new InvalidOperationException(
-                    $"Neo Compose file download failed ({request.responseCode}) {url}: {request.error}");
-            }
-
-            return request.downloadHandler.data;
-        }
-
         private static async Task SendOperationAsync(
             UnityWebRequest request,
             int timeoutSeconds,

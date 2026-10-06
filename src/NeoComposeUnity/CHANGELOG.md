@@ -1,5 +1,46 @@
 # Changelog
 
+## [0.58.0] - 2026-10-05
+
+P100: the `neo` CLI exports Unity projects, and Unity ingests what it wrote. Every Unity project must run `neo pull`, then `neo export` (or `neo export --unity-project <dir>`), after upgrading. Requires export schema 36 and CLI 0.69.0. A schema 35 export fails to load with "Project export schema version 35 is unsupported … Run `neo pull` and `neo export`."
+
+- Export schema 36 splits value rows out of `project.json`. Main's rows live in `Partitions/main.json`, and each named partition in its own file under `Partitions/`. `project.json` lists them in a `partitions` index. A client reads `project.json` and the main partition when it loads, and reads a named partition's file the first time `LoadValuePartition` asks for it. That file is parsed and validated once per loaded project, however many clients share it.
+- `IProjectDataSource` reads partition files, and `NeoJsonProjectDataSource` takes them with `project.json`. `FromFile` reads both from disk, for editor tools:
+
+  ```csharp
+  // Before
+  public interface IProjectDataSource
+  {
+      Awaitable<string> ReadProjectJsonAsync();
+  }
+  new NeoJsonProjectDataSource(File.ReadAllText(projectJsonPath));
+
+  // After
+  public interface IProjectDataSource
+  {
+      Awaitable<string> ReadProjectJsonAsync();
+      string ReadPartitionJson(string file); // relative to project.json; main thread only
+  }
+  new NeoJsonProjectDataSource(projectJson, partitionJsonByFile);
+  NeoJsonProjectDataSource.FromFile(projectJsonPath);
+  ```
+
+- A Lookup default whose target sits in a named partition no longer fails construction. It is checked when that partition loads, and the client throws when the last partition loads without it.
+- Unity ingests `neo export` instead of downloading. The CLI writes generated code, `project.json`, partition and localization files, and `Library/NeoCompose/export.json`. Unity then applies that file's config, imports what changed, copies project files from the workspace, and runs post-synchronize. An open editor ingests within about a second, with or without the Neo Compose window open. Headless, `NeoComposeBatchSync.Run` ingests and exits `1` when there is no export. A rig overlay is applied to ingest and never saved to the committed config asset. An export for another project or version stops with an error naming the ids that differ.
+- The Neo Compose window selects the project and release channel, shows the version, and edits the Unity export settings. It no longer synchronizes, downloads, or holds a realtime subscription. It never changes `versionId`: `neo branch switch` does, and `neo pull` and `neo export` bring the data in.
+- Removed with the download path: `NeoComposeSynchronizer`, `NeoComposeSyncResult`, the editor export cache, hot reload, `NeoComposeEditorRealtime`, the editor sync preferences, `NeoComposeGeneratedFiles`, and `NeoComposeBatchSync.RunWithoutExit`, `SynchronizeAsync` and `ResolveConfig`. `INeoComposeEditorApiClient` keeps its project, release channel, version and export-settings calls, and loses the export, delta, snapshot and file-download calls with their response models. `INeoComposeHttpClient.DownloadAsync` and `NeoComposeWebRequests.DownloadBytesAsync` are gone. `INeoComposeConfirmationService` keeps only `Confirm`.
+
+  ```csharp
+  // Before
+  NeoComposeBatchSync.Run();             // signed in, downloaded, synchronized
+  await NeoComposeBatchSync.SynchronizeAsync();
+
+  // After: `neo pull`, `neo export --unity-project <project>`, then
+  NeoComposeBatchSync.Run();             // ingests Library/NeoCompose/export.json
+  ```
+
+- Messages that told you to synchronize or re-export now say "Run `neo pull` and `neo export`."
+
 ## [0.57.5] - 2026-10-05
 
 - NeoScript and the generated C# setter can assign a Class value to a Save-allowed field of an Asset record when the field defaults to `null`, such as `this.History = new QuestHistory();` on a quest in `Assets.Quests`. Before, NeoScript threw "Cannot bind missing member 'History' on an immutable parent" and the C# setter threw "the stamped leaf has no authored value to shadow". The value now lands in the Save store at the field's stable id, as a scalar Save write does, and the Asset record is not cloned. Generated getters and NeoScript reads such as `this.History != null` see it, method calls on it write to Save, and it survives a save and reload. Fields that do not allow Save storage still reject the write.

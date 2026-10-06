@@ -152,7 +152,7 @@ namespace NeoCompose.Runtime
             {
                 Debug.LogWarning(
                     "[NeoCompose] The realtime provider needs configuration but the config has " +
-                    "no Convex URL; realtime stays off. Synchronize the project in the editor " +
+                    "no Convex URL; realtime stays off. Run `neo pull` and `neo export` " +
                     "to receive it (NeoComposeConfig.convexUrl).");
                 provider.Dispose();
                 return null;
@@ -214,7 +214,7 @@ namespace NeoCompose.Runtime
                 Debug.LogWarning(
                     "Neo Compose cloud save sync is enabled but the runtime OAuth client " +
                     "configuration is incomplete; falling back to local-only saves. " +
-                    "Synchronize the project to pre-fill it, or disable cloud save sync.");
+                    "Run `neo pull` and `neo export` to fill it in, or disable cloud save sync.");
             }
 
             resolvedApiClient = null;
@@ -265,12 +265,10 @@ namespace NeoCompose.Runtime
                 else
                 {
                     var json = await dataSource.ReadProjectJsonAsync();
-                    schema = NeoInterningJsonReader.Deserialize<ProjectData>(json);
-                    if (schema == null)
-                    {
-                        throw new InvalidOperationException(
-                            "Neo Compose project JSON could not be deserialized.");
-                    }
+                    schema = ProjectDataConverter.Read(
+                        json,
+                        dataSource.ReadPartitionJson(NeoProjectExportContract.MainPartitionFile),
+                        dataSource.ReadPartitionJson);
                 }
 
                 ThrowIfDisposed();

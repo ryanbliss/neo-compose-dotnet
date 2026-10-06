@@ -1,9 +1,9 @@
 # NeoCompose Convex Realtime
 
 Optional realtime sync for NeoCompose, on a Convex websocket: live save lists
-and cloud-head pushes for the runtime, live version lists and synchronization
-hot-reload for the Unity editor. Everything degrades — without this package
-(or while disconnected) the SDK behaves exactly as the REST/local build does.
+and cloud-head pushes for the runtime. Everything degrades — without this
+package (or while disconnected) the SDK behaves exactly as the REST/local build
+does.
 
 See `specs/convex-realtime-sync.md` for the full design.
 
@@ -96,18 +96,6 @@ written).
 - Each session leaves one frozen snapshot behind; the backend archives
   live-session snapshots beyond a configurable cap (default 10) and never
   touches manually created ones.
-
-## Editor: live lists + hot reload
-
-Zero setup. With this package installed, the Neo Compose window connects
-automatically once you are signed in and the project has been synchronized
-(the export carries the Convex deployment URL into
-`NeoComposeConfig.convexUrl`). Release-channel/version lists stay current, and
-when someone commits changes to the selected version you get the same
-confirmation as pressing Synchronize — or enable "Auto-sync on remote
-changes" in the window to skip the prompt. A "Live sync" status row next to
-the Synchronize button shows the connection state with Connect/Disconnect
-controls.
 
 ## Platform notes
 

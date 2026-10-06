@@ -168,6 +168,12 @@ namespace NeoCompose.Runtime
         internal bool RetainsReadOnlyValidationProjection =>
             readOnlyAuthoredRows.Count != 0 || readOnlyAuthoredClassIds.Count != 0;
         private readonly List<(string valueId, Member member)> recoveredReadOnlySaveValues = new();
+        // Read-only Lookup defaults whose target isn't in main, checked when
+        // a partition loads.
+        private readonly List<(Member member, string subject)> deferredReadOnlyLookupDefaults = new();
+        // Save rows whose class no loaded authored row reveals yet, so their
+        // read-only keys are recovered when a partition loads.
+        private readonly HashSet<string> unclassifiedReadOnlySaveRowIds = new();
         private bool isDisposed;
 
         internal bool TryGetResolvedNSFunction(
@@ -254,7 +260,7 @@ namespace NeoCompose.Runtime
             if (!TryGetVariant(variantId, out VariantRecord? record))
             {
                 throw new InvalidOperationException(
-                    $"Variant '{variantId}' is not in this project export. Re-export the project, or regenerate the C# types if the variant was deleted.");
+                    $"Variant '{variantId}' is not in this project export. Run `neo pull` and `neo export`.");
             }
             return GetOrCreateVariantHandle<T>(
                 $"variant\u001f{variantId}",
@@ -289,7 +295,7 @@ namespace NeoCompose.Runtime
             if (!TryGetVariant(variantId, out VariantRecord? record))
             {
                 throw new InvalidOperationException(
-                    $"Variant '{variantId}' is not in this project export. Re-export the project.");
+                    $"Variant '{variantId}' is not in this project export. Run `neo pull` and `neo export`.");
             }
             string key = $"lookup\u001f{variantId}\u001f{typeof(T).FullName}\u001f{typeof(TValue).FullName}";
             if (variantHandles.TryGetValue(key, out object existing))
@@ -1912,7 +1918,7 @@ namespace NeoCompose.Runtime
             if (data.internalRecordRelations is null)
             {
                 throw new System.InvalidOperationException(
-                    $"Project export schema version {NeoProjectExportContract.CurrentSchemaVersion} is missing the required 'internalRecordRelations' collection. Re-export the project from the current web app.");
+                    $"Project export schema version {NeoProjectExportContract.CurrentSchemaVersion} is missing the required 'internalRecordRelations' collection. Run `neo pull` and `neo export`.");
             }
 
             var knownKinds = new HashSet<string>(System.StringComparer.Ordinal)
@@ -2008,17 +2014,17 @@ namespace NeoCompose.Runtime
             if (data.classes is null)
             {
                 throw new System.InvalidOperationException(
-                    $"Project export is missing the required 'classes' collection. Re-export the project with the schema-{NeoProjectExportContract.CurrentSchemaVersion} Class/Member contract.");
+                    $"Project export is missing the required 'classes' collection. Run `neo pull` and `neo export`.");
             }
             if (data.members is null)
             {
                 throw new System.InvalidOperationException(
-                    $"Project export is missing the required 'members' collection. Re-export the project with the schema-{NeoProjectExportContract.CurrentSchemaVersion} Class/Member contract.");
+                    $"Project export is missing the required 'members' collection. Run `neo pull` and `neo export`.");
             }
             if (data.values is null)
             {
                 throw new System.InvalidOperationException(
-                    $"Project export is missing the required 'values' collection. Re-export the project with the schema-{NeoProjectExportContract.CurrentSchemaVersion} Class/Member contract.");
+                    $"Project export is missing the required 'values' collection. Run `neo pull` and `neo export`.");
             }
             foreach (var pair in data.members)
             {
@@ -2149,8 +2155,22 @@ namespace NeoCompose.Runtime
                 return;
             }
 
-            BuildReadOnlyAuthoredValueContext();
+            // Construction sees main rows (and partitions a sibling client
+            // merged). Lookup defaults that resolve into a named partition
+            // are checked when that partition loads.
+            BuildReadOnlyAuthoredValueContext(data.values);
+            try
+            {
+                ValidateReadOnlyDeclarations();
+            }
+            finally
+            {
+                ReleaseReadOnlyAuthoredValueContext();
+            }
+        }
 
+        private void ValidateReadOnlyDeclarations()
+        {
             var placements = new Dictionary<string, List<(NeoSchemaClass owner, string key)>>();
             foreach (NeoSchemaClass schemaClass in data.classes.Values)
             {
@@ -2319,7 +2339,14 @@ namespace NeoCompose.Runtime
                             $"{subject} at Class '{placement.owner.name}' key '{placement.key}' requires an effective defaultValue.");
                     }
                     ValidateReadOnlyOwnedSchema(resolved, subject, new HashSet<string>());
-                    ValidateReadOnlyLookupDefault(resolved, subject);
+                    string? unresolved = ValidateReadOnlyLookupDefault(resolved, subject);
+                    if (unresolved is not null)
+                    {
+                        // Its target may be in a named partition, checked when one loads.
+                        if (data.valuePartitions.Count == 0)
+                            throw new InvalidOperationException(unresolved);
+                        deferredReadOnlyLookupDefaults.Add((resolved, subject));
+                    }
                 }
             }
 
@@ -2554,10 +2581,16 @@ namespace NeoCompose.Runtime
             return row;
         }
 
-        private void ValidateReadOnlyLookupDefault(Member member, string subject)
+        /// <summary>
+        /// Validates a read-only Lookup default against the authored rows in
+        /// the current read-only context. Returns why it can't resolve yet —
+        /// its collection value or a selected row isn't among those rows —
+        /// or null once it validated.
+        /// </summary>
+        private string? ValidateReadOnlyLookupDefault(Member member, string subject)
         {
             if (member is not LookupMember lookup)
-                return;
+                return null;
             ArrayMemberValue? defaultValue = CreateDeclarationDefaultValue(
                 lookup,
                 $"__neo_readonly_default_validation:{lookup.RuntimeDeclarationIdentity}")
@@ -2576,7 +2609,7 @@ namespace NeoCompose.Runtime
                     $"{subject} defaultValue references runtime-only synthetic Lookup collection value '{lookup.CollectionValueId}'. Persisted project data must target an authored collection value.");
             }
             if (selections.Length == 0)
-                return;
+                return null;
 
             if (!data.members.TryGetValue(lookup.collectionMemberId, out Member? collectionMember))
             {
@@ -2603,8 +2636,7 @@ namespace NeoCompose.Runtime
                     collectionValueId!,
                     out MemberValue? collectionValue))
             {
-                throw new InvalidOperationException(
-                    $"{subject} defaultValue cannot resolve Lookup collection value '{collectionValueId ?? "<unbound>"}'.");
+                return $"{subject} defaultValue cannot resolve Lookup collection value '{collectionValueId ?? "<unbound>"}'.";
             }
 
             foreach (string selection in selections)
@@ -2631,10 +2663,10 @@ namespace NeoCompose.Runtime
                 }
                 if (!readOnlyAuthoredRows.ContainsKey(selection))
                 {
-                    throw new InvalidOperationException(
-                        $"{subject} defaultValue selects Lookup value '{selection}', but no persisted authored value row exists for that selection.");
+                    return $"{subject} defaultValue selects Lookup value '{selection}', but no persisted authored value row exists for that selection.";
                 }
             }
+            return null;
         }
 
         private string? ResolveAuthoredLookupCollectionValueId(Member collectionMember)
@@ -2766,28 +2798,8 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private void BuildReadOnlyAuthoredValueContext()
+        private void BuildReadOnlyAuthoredValueContext(IReadOnlyDictionary<string, MemberValue> rows)
         {
-            var rows = new Dictionary<string, MemberValue>(data.values);
-            if (data.valuePartitions is not null)
-            {
-                foreach (var partition in data.valuePartitions)
-                {
-                    if (partition.Value is not JObject partitionObject)
-                        continue;
-                    Dictionary<string, MemberValue>? partitionRows =
-                        partitionObject.ToObject<Dictionary<string, MemberValue>>();
-                    if (partitionRows is null)
-                        continue;
-                    foreach (var pair in partitionRows)
-                    {
-                        // LoadValuePartition owns the precise collision
-                        // diagnostic. Validation needs one deterministic graph.
-                        if (!rows.ContainsKey(pair.Key))
-                            rows[pair.Key] = pair.Value;
-                    }
-                }
-            }
             readOnlyAuthoredRows = rows;
             readOnlyAuthoredClassIds = BuildTrustedClassIds(rows);
         }
@@ -2970,12 +2982,19 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private void RecoverReadOnlySaveInstanceKeys()
+        /// <summary>
+        /// Removes read-only declaration keys from the given save rows, whose
+        /// classes are inferred through the authored rows loaded now (main
+        /// plus loaded partitions). A row whose class can't be inferred yet is
+        /// kept in <see cref="unclassifiedReadOnlySaveRowIds"/> and retried
+        /// when a partition loads.
+        /// </summary>
+        private void RecoverReadOnlySaveInstanceKeys(IEnumerable<string> saveRowIds)
         {
             if (saveData.values.Count == 0
                 || !data.members.Values.Any(member => member.Mutability == NeoMemberMutabilityKind.ReadOnly))
                 return;
-            var overlaidRows = new Dictionary<string, MemberValue>(readOnlyAuthoredRows);
+            var overlaidRows = new Dictionary<string, MemberValue>(data.values);
             foreach (var pair in saveData.values)
                 overlaidRows[pair.Key] = pair.Value;
             IReadOnlyDictionary<string, string> effectiveClassIds =
@@ -2983,21 +3002,27 @@ namespace NeoCompose.Runtime
                     overlaidRows,
                     saveData.staticBindings,
                     skipIncompatiblePlacements: true);
-            foreach (var pair in saveData.values)
+            foreach (string saveRowId in saveRowIds.ToArray())
             {
-                if (pair.Value is not ObjectMemberValue row
+                unclassifiedReadOnlySaveRowIds.Remove(saveRowId);
+                if (!saveData.values.TryGetValue(saveRowId, out MemberValue? saved)
+                    || saved is not ObjectMemberValue row
                     || row.value is null)
                 {
                     continue;
                 }
                 string? effectiveClassId = row.classId;
                 if (string.IsNullOrEmpty(effectiveClassId)
-                    && effectiveClassIds.TryGetValue(pair.Key, out string? inferred))
+                    && effectiveClassIds.TryGetValue(saveRowId, out string? inferred))
                 {
                     effectiveClassId = inferred;
                 }
-                if (string.IsNullOrEmpty(effectiveClassId)
-                    || !data.classes.ContainsKey(effectiveClassId!))
+                if (string.IsNullOrEmpty(effectiveClassId))
+                {
+                    unclassifiedReadOnlySaveRowIds.Add(saveRowId);
+                    continue;
+                }
+                if (!data.classes.ContainsKey(effectiveClassId!))
                 {
                     continue;
                 }
@@ -3013,7 +3038,7 @@ namespace NeoCompose.Runtime
                         recoveredReadOnlySaveValues.Add((staleValueId, member));
                     }
                     Debug.LogWarning(
-                        $"Removed stale read-only declaration member key '{entry.schemaKey}' ({entry.memberId}) from save Class value '{pair.Key}'. The declaration default is now authoritative.");
+                        $"Removed stale read-only declaration member key '{entry.schemaKey}' ({entry.memberId}) from save Class value '{saveRowId}'. The declaration default is now authoritative.");
                 }
             }
         }
@@ -3032,56 +3057,38 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// Guard + adoption for partition-stamped rows found in the main
-        /// values map at construction (spec §6). Guard choice: a stamp whose
-        /// partition the export does NOT ship is REJECTED LOUDLY (a
-        /// hand-edited or miswritten export — main-partition rows are never
-        /// stamped). A stamp whose partition DOES ship is adopted as
-        /// already-loaded: <see cref="ProjectData"/> is shared across clients
-        /// (one <c>NeoProjectStore</c> schema, many saves), so a sibling
-        /// client's <see cref="LoadValuePartition"/> legitimately leaves the
-        /// partition's rows merged in — re-rejecting or re-loading them would
-        /// double-load. The stamp stays on the row either way.
+        /// values map at construction (spec §6). <see cref="ProjectData"/> is
+        /// shared across clients (one <c>NeoProjectStore</c> schema, many
+        /// saves), so a sibling client's <see cref="LoadValuePartition"/>
+        /// legitimately leaves a partition's stamped rows merged in. Those are
+        /// adopted as already loaded — re-loading them would double-load. A
+        /// stamped row that no loaded partition holds is rejected loudly: main
+        /// rows are never stamped.
         /// </summary>
         private void AdoptStampedMainValueRows()
         {
-            // A freshly parsed export's `values` map carries no `mapKey` stamps
-            // (partition rows ship under `valuePartitions`). But this ctor also
-            // runs against a ProjectData whose partitions were already merged
-            // into `values` by an earlier client's LoadValuePartition (the same
-            // schema object reused across reconstructions) — those rows ARE
-            // stamped and ARE legitimately loaded. Distinguish the two:
-            //   - stamped AND present in valuePartitions[mapKey] => already
-            //     loaded, adopt it into the loaded-partition tracking.
-            //   - stamped but NOT backed by its partition => corrupt export,
-            //     reject loudly (a main row must not claim a partition it does
-            //     not belong to).
             foreach (var pair in data.values)
             {
                 string? mapKey = pair.Value?.mapKey;
                 if (string.IsNullOrEmpty(mapKey))
                     continue;
-                if (!PartitionShipsRow(mapKey!, pair.Key))
+                if (!PartitionShipsRow(mapKey!, pair.Key, out NeoLoadedValuePartition? partition))
                 {
                     throw new System.InvalidOperationException(
-                        $"Value '{pair.Key}' in the main 'values' map is stamped with partition '{mapKey}', but no such row ships under 'valuePartitions[\"{mapKey}\"]'. Partition rows must ship in their partition; re-export the project from the current web app.");
+                        $"Value '{pair.Key}' in the main partition is stamped with partition '{mapKey}', but no loaded partition '{mapKey}' holds it. Partition rows must ship in their partition; run `neo pull` and `neo export`.");
                 }
-                if (!loadedPartitionRowIds.TryGetValue(mapKey!, out var rowIds))
-                {
-                    rowIds = new HashSet<string>();
-                    loadedPartitionRowIds[mapKey!] = rowIds;
-                }
-                rowIds.Add(pair.Key);
+                loadedPartitionRowIds[mapKey!] = partition.RowIds;
             }
         }
 
-        private bool PartitionShipsRow(string mapKey, string rowId)
+        /// <summary>Reads only the partition cache, never a partition file.</summary>
+        private bool PartitionShipsRow(
+            string mapKey,
+            string rowId,
+            [NotNullWhen(true)] out NeoLoadedValuePartition? partition)
         {
-            if (data.valuePartitions is null)
-                return false;
-            if (!data.valuePartitions.TryGetValue(mapKey, out var token))
-                return false;
-            return token is Newtonsoft.Json.Linq.JObject partition
-                && partition[rowId] is not null;
+            return data.valuePartitions.TryGetLoaded(mapKey, out partition)
+                && partition.RowIds.Contains(rowId);
         }
 
         internal bool TryGetValueOwnership(string id, out NeoValueOwnership ownership)
@@ -6313,8 +6320,8 @@ namespace NeoCompose.Runtime
         // -----------------------------------------------------------------
         // Storage partitions (specs/list-member-and-tilegrid-scaling.md
         // §6). A partition is a named subset of the authored values map that
-        // ships under `project.json`'s `valuePartitions[mapKey]` and stays
-        // raw JSON until loaded. Loading materializes the partition's rows
+        // ships in its own file, named by `project.json`'s partition index,
+        // and isn't read until loaded. Loading merges the partition's rows
         // into the ONE authored dictionary (in-memory stays a single map per
         // ownership); unloading removes exactly those rows again.
         //
@@ -6368,8 +6375,7 @@ namespace NeoCompose.Runtime
             loadedPartitionRowIds.ContainsKey(mapKey);
 
         /// <summary>True when the export ships a partition under <paramref name="mapKey"/>.</summary>
-        internal bool HasValuePartition(string mapKey) =>
-            data.valuePartitions is not null && data.valuePartitions.ContainsKey(mapKey);
+        internal bool HasValuePartition(string mapKey) => data.valuePartitions.Contains(mapKey);
 
         /// <summary>
         /// Auto-load hook for the tile grid resolution path: loads the grid's
@@ -6385,7 +6391,7 @@ namespace NeoCompose.Runtime
         internal void EnsureWorldPartitionLoaded(string gridValueId)
         {
             // Every node construction asks; with no partition left to load, no row needs resolving.
-            if (data.valuePartitions is null || loadedPartitionRowIds.Count >= data.valuePartitions.Count)
+            if (loadedPartitionRowIds.Count >= data.valuePartitions.Count)
                 return;
             string? gridClassId = ResolveValueRow(gridValueId)?.classId;
             if (string.IsNullOrEmpty(gridClassId))
@@ -6411,11 +6417,12 @@ namespace NeoCompose.Runtime
         public static string MakeWorldPartitionKey(string gridClassId) => $"world:{gridClassId}";
 
         /// <summary>
-        /// Materializes the partition's raw rows into typed
-        /// <see cref="MemberValue"/>s and merges them into the authored
-        /// values map, updating the membership index incrementally and
-        /// invalidating derived indexes. Idempotent — loading a loaded
-        /// partition is a no-op. Throws when the export has no such
+        /// Merges the partition's typed rows into the authored values map,
+        /// updating the membership index incrementally and invalidating
+        /// derived indexes. The partition's file is read, typed and validated
+        /// once per <see cref="ProjectData"/>; later loads, by this client or
+        /// another over the same schema, reuse its rows. Idempotent — loading a
+        /// loaded partition is a no-op. Throws when the export has no such
         /// partition (listing the available keys).
         /// </summary>
         public void LoadValuePartition(string mapKey)
@@ -6443,51 +6450,30 @@ namespace NeoCompose.Runtime
             }
             if (loadedPartitionRowIds.ContainsKey(mapKey))
                 return;
-            if (data.valuePartitions is null
-                || !data.valuePartitions.TryGetValue(mapKey, out Newtonsoft.Json.Linq.JToken token))
+            if (!data.valuePartitions.Contains(mapKey))
             {
                 throw new System.ArgumentOutOfRangeException(
                     nameof(mapKey),
                     $"Project export has no value partition '{mapKey}'. Available partitions: [{string.Join(", ", AvailableValuePartitionKeys())}].");
             }
-            if (token is not Newtonsoft.Json.Linq.JObject partitionObject)
-            {
-                throw new System.InvalidOperationException(
-                    $"Value partition '{mapKey}' is not a JSON object of value rows (got {token.Type}).");
-            }
 
-            var rows = partitionObject.ToObject<Dictionary<string, MemberValue>>();
-            if (rows is null)
+            NeoLoadedValuePartition partition = data.valuePartitions.Load(mapKey);
+            IReadOnlyDictionary<string, MemberValue> rows = partition.Rows;
+            foreach (string rowId in rows.Keys)
             {
-                throw new System.InvalidOperationException(
-                    $"Value partition '{mapKey}' could not be deserialized into value rows.");
+                if (data.values.ContainsKey(rowId))
+                {
+                    throw new System.InvalidOperationException(
+                        $"Value partition '{mapKey}' row '{rowId}' collides with a value id already loaded in another partition or the main partition.");
+                }
             }
+            ValidateValuePartition(mapKey, partition);
 
             authoredValueInferenceIndex = null;
             authoredClassOwnedRoots = null;
             InvalidateGetterMemo();
-            var rowIds = new HashSet<string>();
-            foreach (var pair in rows)
+            foreach (MemberValue row in rows.Values)
             {
-                MemberValue row = pair.Value;
-                if (row.id != pair.Key)
-                {
-                    throw new System.InvalidOperationException(
-                        $"Value partition '{mapKey}' row keyed '{pair.Key}' carries mismatched id '{row.id}'.");
-                }
-                if (data.values.ContainsKey(row.id))
-                {
-                    throw new System.InvalidOperationException(
-                        $"Value partition '{mapKey}' row '{row.id}' collides with a value id already loaded in another partition or the main values map.");
-                }
-                if (!string.IsNullOrEmpty(row.mapKey) && row.mapKey != mapKey)
-                {
-                    throw new System.InvalidOperationException(
-                        $"Value partition '{mapKey}' row '{row.id}' is stamped with a different partition '{row.mapKey}'.");
-                }
-                // Partition residency is the stamp's source of truth —
-                // self-heal a missing per-row stamp.
-                row.mapKey = mapKey;
                 data.values[row.id] = row;
                 if (row.changeListeners is not null)
                 {
@@ -6498,15 +6484,16 @@ namespace NeoCompose.Runtime
                 InvalidateListenerOwner(NeoValueOwnership.Asset, row.id);
                 InvalidateListenerOwner(NeoValueOwnership.Save, row.id);
                 InvalidateListenerOwner(NeoValueOwnership.Session, row.id);
-                rowIds.Add(row.id);
                 if (!string.IsNullOrEmpty(row.containerId))
                 {
                     AddMembership(
                         authoredEntriesByContainer, authoredContainerByRow, row.id, row.containerId!);
                 }
             }
-            loadedPartitionRowIds[mapKey] = rowIds;
+            loadedPartitionRowIds[mapKey] = partition.RowIds;
             data.valuesEpoch++;
+            if (unclassifiedReadOnlySaveRowIds.Count > 0)
+                RecoverReadOnlySaveInstanceKeys(unclassifiedReadOnlySaveRowIds);
             foreach (MemberValue row in rows.Values)
                 NoteEffectPartitionRow(row);
             NoteEffectPartitionChange(loaded: true);
@@ -6526,9 +6513,57 @@ namespace NeoCompose.Runtime
             if (virtualInstanceReplayReady)
             {
                 InitializeVirtualInstanceValuesForLoadedRows(rows.Values);
+                RemoveRecoveredReadOnlySaveValues();
             }
             InvalidateSharedEvaluationContext();
             RaiseValuePartitionChanged(mapKey);
+        }
+
+        /// <summary>
+        /// Read-only validation for a partition's rows, against main plus every
+        /// loaded partition: its rows' instance keys, and the Lookup defaults
+        /// construction deferred because their target isn't in main. A
+        /// deferred default that still doesn't resolve stays deferred until
+        /// the last partition loads. Throws before the rows merge. Instance
+        /// keys are checked once per <see cref="ProjectData"/>; this client's
+        /// deferred defaults on every load it makes.
+        /// </summary>
+        private void ValidateValuePartition(string mapKey, NeoLoadedValuePartition partition)
+        {
+            bool validateRows = !partition.Validated
+                && data.members.Values.Any(member => member.Mutability == NeoMemberMutabilityKind.ReadOnly);
+            if (validateRows || deferredReadOnlyLookupDefaults.Count > 0)
+            {
+                var rows = new Dictionary<string, MemberValue>(data.values);
+                foreach (var pair in partition.Rows)
+                    rows.Add(pair.Key, pair.Value);
+                BuildReadOnlyAuthoredValueContext(rows);
+                try
+                {
+                    deferredReadOnlyLookupDefaults.RemoveAll(deferred =>
+                        ValidateReadOnlyLookupDefault(deferred.member, deferred.subject) is null);
+                    // Loading the last partition leaves nowhere for a target to be.
+                    if (deferredReadOnlyLookupDefaults.Count > 0
+                        && loadedPartitionRowIds.Count + 1 == data.valuePartitions.Count)
+                    {
+                        (Member member, string subject) = deferredReadOnlyLookupDefaults[0];
+                        throw new InvalidOperationException(
+                            $"{ValidateReadOnlyLookupDefault(member, subject)} Checked against the main partition and every value partition.");
+                    }
+                    if (validateRows)
+                    {
+                        ValidateReadOnlyInstanceKeys(
+                            partition.Rows,
+                            readOnlyAuthoredClassIds,
+                            $"value partition '{mapKey}'");
+                    }
+                }
+                finally
+                {
+                    ReleaseReadOnlyAuthoredValueContext();
+                }
+            }
+            partition.Validated = true;
         }
 
         /// <summary>
@@ -6601,13 +6636,7 @@ namespace NeoCompose.Runtime
             RaiseValuePartitionChanged(mapKey);
         }
 
-        private IEnumerable<string> AvailableValuePartitionKeys()
-        {
-            if (data.valuePartitions is null)
-                yield break;
-            foreach (var key in data.valuePartitions.Keys)
-                yield return key;
-        }
+        private IEnumerable<string> AvailableValuePartitionKeys() => data.valuePartitions.Keys;
 
         private void ThrowIfOverlayShadowsPartition(
             NeoValueOwnership ownership,
@@ -8286,7 +8315,7 @@ namespace NeoCompose.Runtime
                     if (!TryGetConstructor(constructorId, out ConstructorRecord? record))
                     {
                         throw new InvalidOperationException(
-                            $"Class '{schemaClass.name}' lists constructor '{constructorId}', which is missing from the export. Re-export the project from the current web app.");
+                            $"Class '{schemaClass.name}' lists constructor '{constructorId}', which is missing from the export. Run `neo pull` and `neo export`.");
                     }
                     if (record!.classId != pair.Key)
                     {
@@ -8367,7 +8396,7 @@ namespace NeoCompose.Runtime
             if (!TryGetConstructor(requiredConstructorId, out ConstructorRecord? record))
             {
                 throw new InvalidOperationException(
-                    $"Class '{schemaClass.name}' names required constructor '{requiredConstructorId}', which is missing from the export. Re-export the project from the current web app.");
+                    $"Class '{schemaClass.name}' names required constructor '{requiredConstructorId}', which is missing from the export. Run `neo pull` and `neo export`.");
             }
             if (record!.classId != classId)
             {
@@ -8392,7 +8421,7 @@ namespace NeoCompose.Runtime
             if (record.action is null)
             {
                 throw new InvalidOperationException(
-                    $"Constructor '{record.id}' on class '{owningClass.name}' is missing its compiled action. Re-export the project from the current web app.");
+                    $"Constructor '{record.id}' on class '{owningClass.name}' is missing its compiled action. Run `neo pull` and `neo export`.");
             }
             if (record.argumentTypes is null)
             {
@@ -8490,7 +8519,7 @@ namespace NeoCompose.Runtime
                     || record.compiledBaseArguments.Length != baseArguments.Length)
                 {
                     throw new InvalidOperationException(
-                        $"Constructor '{record.id}' has {baseArguments.Length} base arguments but {record.compiledBaseArguments?.Length ?? 0} compiled base getters. Re-export the project from the current web app.");
+                        $"Constructor '{record.id}' has {baseArguments.Length} base arguments but {record.compiledBaseArguments?.Length ?? 0} compiled base getters. Run `neo pull` and `neo export`.");
                 }
                 AssertBaseClauseNamesAreUnique(
                     record.id,
@@ -8504,7 +8533,7 @@ namespace NeoCompose.Runtime
                         != baseInitializerFields.Length)
                 {
                     throw new InvalidOperationException(
-                        $"Constructor '{record.id}' has {baseInitializerFields.Length} base initializer fields but {record.compiledBaseInitializerFields?.Length ?? 0} compiled base initializer getters. Re-export the project from the current web app.");
+                        $"Constructor '{record.id}' has {baseInitializerFields.Length} base initializer fields but {record.compiledBaseInitializerFields?.Length ?? 0} compiled base initializer getters. Run `neo pull` and `neo export`.");
                 }
                 AssertBaseClauseNamesAreUnique(
                     record.id,
@@ -10397,17 +10426,7 @@ namespace NeoCompose.Runtime
             InvalidateSharedEvaluationContext();
             saveData.values ??= new();
             saveData.staticBindings ??= new();
-            try
-            {
-                RecoverReadOnlySaveInstanceKeys();
-            }
-            finally
-            {
-                // Partition rows are materialized solely for constructor-time
-                // readonly validation/recovery. Do not retain that merged
-                // projection for the client's lifetime.
-                ReleaseReadOnlyAuthoredValueContext();
-            }
+            RecoverReadOnlySaveInstanceKeys(saveData.values.Keys);
             return parsed is not null;
         }
     }

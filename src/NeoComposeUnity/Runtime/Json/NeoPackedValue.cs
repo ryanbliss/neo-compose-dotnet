@@ -646,8 +646,8 @@ namespace NeoCompose.Runtime.Json
                 throw new JsonSerializationException(
                     $"{subject} holds a '{NeoPackedValue.EnvelopeKey}' envelope as its "
                     + "whole value. A packed child occupies a position INSIDE its "
-                    + "parent's content, never the content itself; re-export the "
-                    + "project from the current web app.");
+                    + "parent's content, never the content itself; run "
+                    + "`neo pull` and `neo export`.");
             }
             if (!NeoPackedValue.RowCarriesPackedContent(carrier))
                 return;

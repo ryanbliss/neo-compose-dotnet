@@ -3,9 +3,11 @@
 
 #nullable enable
 
+using System.IO;
 using System.Threading.Tasks;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
+using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 
 namespace NeoCompose.Tests
@@ -39,6 +41,27 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public async Task LoadAsync_ReadsOnlyProjectJsonAndTheMainPartition()
+        {
+            var corpus = JObject.Parse(File.ReadAllText("Packages/com.ryanbliss.neocompose/Tests/synth-example.json"));
+            corpus["valuePartitions"] = new JObject { ["world:grid"] = new JObject() };
+            var source = new ControllableProjectDataSource();
+            using var store = new NeoProjectStore(
+                dataSource: source,
+                localStore: new NeoInMemoryLocalSaveStore());
+            var loading = store.LoadAsync();
+            source.Complete(corpus.ToString());
+            await loading;
+
+            CollectionAssert.AreEqual(new[] { NeoProjectExportContract.MainPartitionFile }, source.partitionReads);
+
+            using NeoClient client = NeoTestSaveStack.LoadSynchronously(store.Open("save-1"));
+            Assert.AreEqual(1, source.partitionReads.Count, "Opening a save reads no named partition.");
+            client.LoadValuePartition("world:grid");
+            Assert.AreEqual(2, source.partitionReads.Count);
+        }
+
+        [Test]
         public async Task LoadAsync_GoesLoadingThenReady_AndGatesOpenUntilReady()
         {
             var source = new ControllableProjectDataSource();
@@ -69,7 +92,7 @@ namespace NeoCompose.Tests
         {
             var local = new NeoInMemoryLocalSaveStore();
             var store = new NeoProjectStore(
-                dataSource: new NeoJsonProjectDataSource(NeoSaveTestSupport.ProjectJson),
+                dataSource: NeoTestExport.Source(NeoSaveTestSupport.ProjectJson),
                 localStore: local,
                 targetReleaseChannelId: NeoSaveTestSupport.TargetChannel);
             await store.LoadAsync();
@@ -98,7 +121,7 @@ namespace NeoCompose.Tests
         [Test]
         public async Task ReusedJsonDataSource_ReusesParsedProjectSchemaAcrossStores()
         {
-            var source = new NeoJsonProjectDataSource(NeoSaveTestSupport.ProjectJson);
+            var source = NeoTestExport.Source(NeoSaveTestSupport.ProjectJson);
             var first = new NeoProjectStore(
                 dataSource: source,
                 localStore: new NeoInMemoryLocalSaveStore());
@@ -129,7 +152,7 @@ namespace NeoCompose.Tests
             var local = new NeoInMemoryLocalSaveStore();
             await local.CommitSaveAsync("save-1", NeoSaveTestSupport.SaveContent("Original"));
             var store = new NeoProjectStore(
-                dataSource: new NeoJsonProjectDataSource(NeoSaveTestSupport.ProjectJson),
+                dataSource: NeoTestExport.Source(NeoSaveTestSupport.ProjectJson),
                 localStore: local,
                 targetReleaseChannelId: NeoSaveTestSupport.TargetChannel);
             await store.LoadAsync();
@@ -152,7 +175,7 @@ namespace NeoCompose.Tests
             // A previously-synced local save (serverId set) whose cloud copy is gone.
             await local.CommitSaveAsync("save-1", NeoSaveTestSupport.SyncedSaveContent("Orphan"));
             var store = new NeoProjectStore(
-                dataSource: new NeoJsonProjectDataSource(NeoSaveTestSupport.ProjectJson),
+                dataSource: NeoTestExport.Source(NeoSaveTestSupport.ProjectJson),
                 localStore: local,
                 apiClient: api,
                 targetReleaseChannelId: NeoSaveTestSupport.TargetChannel);
@@ -187,7 +210,7 @@ namespace NeoCompose.Tests
             var local = new NeoInMemoryLocalSaveStore();
             await local.CommitSaveAsync("save-1", NeoSaveTestSupport.SyncedSaveContent("Racing"));
             var store = new NeoProjectStore(
-                dataSource: new NeoJsonProjectDataSource(NeoSaveTestSupport.ProjectJson),
+                dataSource: NeoTestExport.Source(NeoSaveTestSupport.ProjectJson),
                 localStore: local,
                 apiClient: api,
                 targetReleaseChannelId: NeoSaveTestSupport.TargetChannel);
@@ -223,7 +246,7 @@ namespace NeoCompose.Tests
                     "project:project-1:save:write"),
                 new EmptyTokenStore());
             var store = new NeoProjectStore(
-                dataSource: new NeoJsonProjectDataSource(NeoSaveTestSupport.ProjectJson),
+                dataSource: NeoTestExport.Source(NeoSaveTestSupport.ProjectJson),
                 localStore: local,
                 apiClient: api,
                 authentication: authentication,
@@ -247,7 +270,7 @@ namespace NeoCompose.Tests
         public void Open_BeforeLoad_Throws()
         {
             var store = new NeoProjectStore(
-                dataSource: new NeoJsonProjectDataSource(NeoSaveTestSupport.ProjectJson),
+                dataSource: NeoTestExport.Source(NeoSaveTestSupport.ProjectJson),
                 localStore: new NeoInMemoryLocalSaveStore());
 
             Assert.Throws<System.InvalidOperationException>(() => store.Open("save-1"));

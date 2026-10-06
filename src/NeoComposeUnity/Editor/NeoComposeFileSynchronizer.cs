@@ -9,7 +9,6 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using Newtonsoft.Json;
@@ -20,16 +19,19 @@ namespace NeoCompose.Unity.Editor
     {
         private const string ImportSettingsVersion = "2026-05-13.2";
 
-        public static async Task<string[]> SynchronizeAsync(
-            INeoComposeEditorApiClient apiClient,
+        /// <summary>
+        /// Brings each uploaded project file's asset up to date from the bytes
+        /// <paramref name="sidecar"/> names in the workspace. Returns one error
+        /// per file that failed; the rest still sync.
+        /// </summary>
+        internal static string[] Synchronize(
             INeoComposeConfirmationService confirmations,
             INeoComposeEditorAssetService assets,
             NeoComposeConfig config,
             ProjectData projectData,
-            Action<string>? onProgress = null)
+            NeoComposeExportSidecar sidecar)
         {
             var errors = new List<string>();
-            onProgress?.Invoke("Reading synchronized asset database...");
             var assetDatabasePath = NeoComposePathUtility.CombineAssetPath(
                 config.projectJsonDirectory,
                 NeoComposeEditorDefaults.AssetDatabaseFileName);
@@ -53,59 +55,11 @@ namespace NeoCompose.Unity.Editor
                 }
             }
 
-            onProgress?.Invoke($"Checking {files.Length} file asset(s)...");
-            var changedFiles = files
-                .Where(file => NeedsSync(config, assets, assetDatabase, projectData, file))
-                .ToArray();
-            if (changedFiles.Length == 0)
+            foreach (var file in files.Where(file => NeedsSync(config, assets, assetDatabase, projectData, file)))
             {
-                onProgress?.Invoke("File assets are current.");
-                assets.SaveAsset(assetDatabase);
-                return errors.ToArray();
-            }
-
-            var replacePaths = changedFiles
-                .Select(file => BuildAssetPath(config, file))
-                .Where(assets.FileExists)
-                .ToArray();
-            if (replacePaths.Length > 0 &&
-                !confirmations.ConfirmReplaceFiles(
-                    "Replace Neo Compose assets?",
-                    $"{replacePaths.Length} synchronized asset file(s) will be replaced.",
-                    "Replace",
-                    "Skip"))
-            {
-                assets.SaveAsset(assetDatabase);
-                return errors.ToArray();
-            }
-
-            NeoComposeUnityExportFileDownloadResponse downloads;
-            try
-            {
-                onProgress?.Invoke($"Requesting download URLs for {changedFiles.Length} file asset(s)...");
-                downloads = await apiClient.ExportProjectFileDownloadsAsync(
-                    config.apiBaseUrl,
-                    config.projectId,
-                    config.versionId,
-                    changedFiles.Select(file => file.id).ToArray());
-            }
-            catch (Exception exception)
-            {
-                return new[] { "Could not request file download URLs: " + exception.Message };
-            }
-
-            for (var index = 0; index < changedFiles.Length; index++)
-            {
-                var file = changedFiles[index];
                 try
                 {
-                    if (!downloads.files.TryGetValue(file.id, out var download) ||
-                        string.IsNullOrWhiteSpace(download.downloadUrl))
-                    {
-                        errors.Add($"{file.name}: no download URL was returned.");
-                        continue;
-                    }
-
+                    var bytes = ReadExportedBytes(sidecar, file);
                     var assetPath = BuildAssetPath(config, file);
                     var existing = assetDatabase.TryGetEntry(file.id);
                     if (existing != null &&
@@ -116,11 +70,7 @@ namespace NeoCompose.Unity.Editor
                     }
 
                     assets.EnsureDirectory(GetAssetDirectory(assetPath));
-                    onProgress?.Invoke($"Downloading file {index + 1}/{changedFiles.Length}: {file.name}");
-                    var bytes = await apiClient.DownloadFileAsync(download.downloadUrl);
-                    onProgress?.Invoke($"Writing file {index + 1}/{changedFiles.Length}: {file.name}");
                     assets.WriteAllBytes(assetPath, bytes);
-                    onProgress?.Invoke($"Applying import settings {index + 1}/{changedFiles.Length}: {file.name}");
                     assets.ApplyUnityImportSettings(assetPath, file, projectData);
                     var sprites = string.Equals(file.fileType, "image", StringComparison.OrdinalIgnoreCase)
                         ? assets.LoadSprites(assetPath)
@@ -150,9 +100,30 @@ namespace NeoCompose.Unity.Editor
                 }
             }
 
-            onProgress?.Invoke("Saving synchronized asset database...");
             assets.SaveAsset(assetDatabase);
             return errors.ToArray();
+        }
+
+        /// <summary>
+        /// The file's bytes from the workspace, which must still hash to what
+        /// the export recorded: <c>neo export</c> doesn't copy them, so a
+        /// workspace edit after the export would otherwise slip in unexported.
+        /// </summary>
+        private static byte[] ReadExportedBytes(NeoComposeExportSidecar sidecar, ProjectFile file)
+        {
+            if (!sidecar.files.TryGetValue(file.id, out var exported))
+            {
+                throw new InvalidOperationException(
+                    $"the export lists no workspace bytes for file '{file.id}', run `neo export` again.");
+            }
+
+            var path = Path.Combine(sidecar.workspaceRoot, exported.path);
+            if (!File.Exists(path))
+                throw new InvalidOperationException($"{path} was removed since export, run `neo export` again.");
+            var bytes = File.ReadAllBytes(path);
+            if (!string.Equals(Sha256Hex(bytes), exported.sha256, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException($"{path} changed since export, run `neo export` again.");
+            return bytes;
         }
 
         internal static bool NeedsSync(
@@ -189,7 +160,7 @@ namespace NeoCompose.Unity.Editor
         /// Deterministic content hash of an exported record. The export ships
         /// the file/template record head snapshot's data verbatim, so hashing
         /// the deserialized record identifies the snapshot the bytes were
-        /// downloaded against: an unchanged record hashes identically across
+        /// copied against: an unchanged record hashes identically across
         /// synchronizations, while any record change (replacement upload,
         /// import-settings edit, rename) also bumps `updatedAt` and therefore
         /// the hash. Null records (e.g. "file uses no template") hash to "".
@@ -208,8 +179,13 @@ namespace NeoCompose.Unity.Editor
                 serializer.Serialize(writer, record);
             }
 
+            return Sha256Hex(Encoding.UTF8.GetBytes(buffer.ToString()));
+        }
+
+        private static string Sha256Hex(byte[] content)
+        {
             using var sha256 = SHA256.Create();
-            var hash = sha256.ComputeHash(Encoding.UTF8.GetBytes(buffer.ToString()));
+            var hash = sha256.ComputeHash(content);
             var builder = new StringBuilder(hash.Length * 2);
             foreach (var b in hash)
             {

@@ -63,7 +63,7 @@ namespace NeoCompose.Tests
             var api = new FakeApiClient { getResult = remote };
             var localStore = new NeoInMemoryLocalSaveStore();
             using var store = new NeoProjectStore(
-                dataSource: new NeoJsonProjectDataSource(JsonConvert.SerializeObject(source.ProjectDataForRuntime)),
+                dataSource: NeoTestExport.Source(JsonConvert.SerializeObject(source.ProjectDataForRuntime)),
                 localStore: localStore,
                 apiClient: api,
                 targetReleaseChannelId: NeoSaveTestSupport.TargetChannel);
@@ -236,10 +236,10 @@ namespace NeoCompose.Tests
                 {
                     ["save"] = new Dictionary<string, NeoDelegateValue[]> { ["field"] = new[] { target } },
                 };
-                data.valuePartitions = new Dictionary<string, JToken>
+                data.valuePartitions = NeoTestExport.Partitions(new Dictionary<string, JToken>
                 {
                     ["anchor"] = new JObject { ["save"] = JObject.FromObject(root) },
-                };
+                });
                 data.values.Remove("save");
             });
             Assert.That(client.IsValuePartitionLoaded("anchor"), Is.False);
@@ -1415,7 +1415,7 @@ namespace NeoCompose.Tests
                     defaultValue = new NumberMemberValueBase { value = 0 },
                 };
                 if (dormant)
-                    data.valuePartitions = new Dictionary<string, JToken> { ["world:inactive"] = new JObject() };
+                    data.valuePartitions = NeoTestExport.Partitions(new Dictionary<string, JToken> { ["world:inactive"] = new JObject() });
             }, loadedSaveContent: saved.ToString(Formatting.None));
             WriteCount(client, 1);
             Assert.That(JToken.DeepEquals(JObject.Parse(client.SerializeSaveData())["changeListeners"], saved["changeListeners"]), Is.True);
@@ -1431,7 +1431,7 @@ namespace NeoCompose.Tests
         {
             using var client = BuildClient(configure: data =>
             {
-                data.valuePartitions = new Dictionary<string, JToken> { ["world:inactive"] = new JObject() };
+                data.valuePartitions = NeoTestExport.Partitions(new Dictionary<string, JToken> { ["world:inactive"] = new JObject() });
                 data.values["save"].changeListeners = new NeoChangeListenerMap
                 {
                     ["save"] = new Dictionary<string, NeoDelegateValue[]>
@@ -1460,7 +1460,7 @@ namespace NeoCompose.Tests
             var heard = new List<double>();
             using var client = BuildClient(heard.Add, data =>
             {
-                data.valuePartitions = new Dictionary<string, JToken> { ["world:inactive"] = new JObject() };
+                data.valuePartitions = NeoTestExport.Partitions(new Dictionary<string, JToken> { ["world:inactive"] = new JObject() });
                 data.values["save"].changeListeners = new NeoChangeListenerMap
                 {
                     ["save"] = new Dictionary<string, NeoDelegateValue[]>

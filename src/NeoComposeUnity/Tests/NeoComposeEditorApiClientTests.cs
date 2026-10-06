@@ -12,8 +12,6 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 using NeoCompose.Unity.Editor;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using UnityEngine.TestTools;
 
@@ -28,37 +26,37 @@ namespace NeoCompose.Tests
         private const string VersionId = "version-1";
 
         [UnityTest]
-        public IEnumerator FullExport_UsesUnityTransport()
+        public IEnumerator ApiRequest_UsesUnityTransport()
         {
             using var server = StartLoopbackServer(out var origin);
             var serve = Task.Run(async () =>
             {
                 var context = await server.GetContextAsync();
-                Assert.AreEqual($"/api/projects/{ProjectId}/export", context.Request.RawUrl);
-                var bytes = Encoding.UTF8.GetBytes("{\"projectId\":\"project-1\"}");
+                Assert.AreEqual($"/api/projects/{ProjectId}/versions", context.Request.RawUrl);
+                var bytes = Encoding.UTF8.GetBytes("{}");
                 context.Response.ContentType = "application/json";
                 context.Response.ContentLength64 = bytes.Length;
                 await context.Response.OutputStream.WriteAsync(bytes, 0, bytes.Length);
                 context.Response.Close();
             });
             var client = NewClient(new FakeProvider("the-token"), new NeoComposeUnityHttpClient());
-            var export = client.ExportProjectAsync(origin, ProjectId, VersionId);
+            var versions = client.ListVersionsAsync(origin, ProjectId);
             var watch = Stopwatch.StartNew();
-            while ((!export.IsCompleted || !serve.IsCompleted) && watch.Elapsed.TotalSeconds < 10)
+            while ((!versions.IsCompleted || !serve.IsCompleted) && watch.Elapsed.TotalSeconds < 10)
             {
                 if (serve.IsFaulted)
                     serve.GetAwaiter().GetResult();
                 yield return null;
             }
-            Assert.That(export.IsCompleted && serve.IsCompleted, Is.True,
-                "The loopback export did not complete.");
-            Assert.AreEqual(ProjectId, export.GetAwaiter().GetResult().projectId);
+            Assert.That(versions.IsCompleted && serve.IsCompleted, Is.True,
+                "The loopback request did not complete.");
+            Assert.IsNotNull(versions.GetAwaiter().GetResult());
             serve.GetAwaiter().GetResult();
         }
 
-        // The API policy test below verifies 300s for exports and 30s elsewhere.
-        // Exercise actual transport enforcement with a short budget instead of
-        // waiting past the ordinary 30s timeout on every suite run.
+        // The API policy test below verifies the 30s request timeout. Exercise
+        // actual transport enforcement with a short budget instead of waiting
+        // past it on every suite run.
         [Test]
         public async Task UnityTransport_EnforcesNativeAndManagedTimeouts()
         {
@@ -107,95 +105,6 @@ namespace NeoCompose.Tests
             return server;
         }
 
-        [Test]
-        public async Task SnapshotRequest_CarriesTheVersionAndReadPairEvenWhenEmpty()
-        {
-            var http = new FakeHttpClient();
-            var client = NewClient(new FakeProvider("the-token"), http);
-            await client.ExportProjectSnapshotsAsync(ApiBaseUrl, ProjectId, VersionId,
-                Array.Empty<string>(), new NeoComposeProjectReadBase
-                {
-                    headGenerationId = "generation-1",
-                    logicalRevisionId = null,
-                });
-            var body = JObject.Parse(http.sends[0].body);
-            Assert.AreEqual(VersionId, body["versionId"]?.Value<string>());
-            Assert.AreEqual("generation-1", body["readBase"]?["headGenerationId"]?.Value<string>());
-            Assert.AreEqual(JTokenType.Null, body["readBase"]?["logicalRevisionId"]?.Type);
-            Assert.AreEqual(0, ((JArray)body["snapshotIds"]!).Count);
-        }
-
-        [Test]
-        public async Task DeltaRequest_CursorCarriesOnlyTheTransactionPosition()
-        {
-            var http = new FakeHttpClient();
-            var client = NewClient(new FakeProvider("the-token"), http);
-            await client.ExportProjectDeltaAsync(ApiBaseUrl, ProjectId, VersionId,
-                new NeoComposeUnityExportCursor
-                {
-                    createdAt = 100,
-                    transactionIds = new List<string> { "tx-1" },
-                });
-            var cursor = (JObject)JObject.Parse(http.sends[0].body)["cursor"]!;
-            CollectionAssert.AreEquivalent(
-                new[] { "createdAt", "transactionIds" },
-                new List<string>(((IDictionary<string, JToken?>)cursor).Keys));
-        }
-
-        [Test]
-        public void ExportSyncState_ReadsCursorsSavedWithAVersionsStamp()
-        {
-            var state = JsonConvert.DeserializeObject<NeoComposeUnityExportSyncState>(
-                "{\"schemaVersion\":1,\"cursor\":{\"createdAt\":100,\"transactionIds\":[\"tx-1\"],\"versionsStamp\":\"1:100\"}}")!;
-            Assert.AreEqual(100, state.cursor.createdAt);
-            CollectionAssert.AreEqual(new[] { "tx-1" }, state.cursor.transactionIds);
-        }
-
-        [TestCase("project-read-restart", true)]
-        [TestCase("another-conflict", false)]
-        public void Conflict_OnlyPublishedReadRestartHasTheRetryableType(string error, bool restart)
-        {
-            var http = new FakeHttpClient { status = 409, body = JsonConvert.SerializeObject(new { error }) };
-            var client = NewClient(new FakeProvider("the-token"), http);
-            var exception = Assert.CatchAsync<InvalidOperationException>(
-                async () => await client.ExportProjectAsync(ApiBaseUrl, ProjectId, VersionId));
-            Assert.AreEqual(restart, exception is NeoComposeProjectReadRestartException);
-            Assert.AreEqual(1, http.sends.Count);
-        }
-
-        [Test]
-        public void PublishedReadPair_RequiresAnExplicitLogicalRevisionIncludingNull()
-        {
-            Assert.Throws<JsonSerializationException>(() =>
-                JsonConvert.DeserializeObject<NeoComposeUnityExportResponse>(
-                    "{\"readBase\":{\"headGenerationId\":\"generation-1\"}}"));
-            var response = JsonConvert.DeserializeObject<NeoComposeUnityExportResponse>(
-                "{\"readBase\":{\"headGenerationId\":\"generation-1\",\"logicalRevisionId\":null}}");
-            Assert.IsNull(response!.readBase!.logicalRevisionId);
-        }
-
-        [Test]
-        public async Task FullExport_SendsGeneratedFileHashesAndReadsOmittedContents()
-        {
-            var http = new FakeHttpClient { body = "{\"generatedFiles\":[{\"id\":\"one\",\"path\":\"Generated/One.g.cs\",\"content\":null,\"contentHash\":\"hash\"}]}" };
-            var client = NewClient(new FakeProvider("token"), http);
-            var response = await client.ExportProjectAsync(ApiBaseUrl, ProjectId, VersionId,
-                new Dictionary<string, string> { ["one"] = "hash" });
-            Assert.AreEqual("hash", JObject.Parse(http.sends[0].body!)["generatedFileHashes"]?["one"]?.Value<string>());
-            Assert.IsNull(response.generatedFiles[0].content);
-            Assert.AreEqual("hash", response.generatedFiles[0].contentHash);
-        }
-
-        [Test]
-        public async Task DeltaExport_SendsCachedGeneratorRevision()
-        {
-            var http = new FakeHttpClient();
-            var client = NewClient(new FakeProvider("token"), http);
-            await client.ExportProjectDeltaAsync(ApiBaseUrl, ProjectId, VersionId,
-                new NeoComposeUnityExportCursor(), "cached-generator");
-            Assert.AreEqual("cached-generator", JObject.Parse(http.sends[0].body!)["codegenRevision"]?.Value<string>());
-        }
-
         // UAUTH-030
         [Test]
         public async Task EveryAuthorizedRequest_AttachesBearerToken()
@@ -209,29 +118,11 @@ namespace NeoCompose.Tests
             await client.ListVersionStatusesAsync(ApiBaseUrl, ProjectId);
             await client.GetVersionMetadataAsync(ApiBaseUrl, ProjectId, VersionId);
             await client.UpdateProjectExportSettingsAsync(ApiBaseUrl, ProjectId, VersionId, "Ns", true);
-            await client.ExportProjectAsync(ApiBaseUrl, ProjectId, VersionId);
-            await client.ExportProjectDeltaAsync(
-                ApiBaseUrl,
-                ProjectId,
-                VersionId,
-                new NeoComposeUnityExportCursor
-                {
-                    createdAt = 100,
-                    transactionIds = new List<string> { "tx-1" },
-                });
-            await client.ExportProjectSnapshotsAsync(
-                ApiBaseUrl,
-                ProjectId,
-                VersionId,
-                new[] { "snapshot-1" },
-                new NeoComposeProjectReadBase { headGenerationId = "generation-1", logicalRevisionId = null });
-            await client.ExportProjectFileDownloadsAsync(ApiBaseUrl, ProjectId, VersionId, new[] { "file-1" });
 
-            Assert.AreEqual(10, http.sends.Count);
+            Assert.AreEqual(6, http.sends.Count);
             CollectionAssert.AreEqual(
-                new[] { 30, 30, 30, 30, 30, 30, 300, 30, 30, 30 },
-                http.sends.ConvertAll(send => send.timeoutSeconds),
-                "Only the full export should use the longer request timeout.");
+                new[] { 30, 30, 30, 30, 30, 30 },
+                http.sends.ConvertAll(send => send.timeoutSeconds));
             foreach (var send in http.sends)
             {
                 Assert.AreEqual("the-token", send.bearer, $"Request to {send.url} must carry the bearer token.");
@@ -245,7 +136,7 @@ namespace NeoCompose.Tests
             var refresher = new RecordingRefresher();
             var client = NewClient(new FakeProvider("the-token"), http, refresher);
 
-            await client.ExportProjectAsync(ApiBaseUrl, ProjectId, VersionId);
+            await client.ListVersionsAsync(ApiBaseUrl, ProjectId);
 
             Assert.AreEqual(1, refresher.refreshCalls);
             Assert.AreEqual(ApiBaseUrl, refresher.lastApiBaseUrl);
@@ -260,22 +151,8 @@ namespace NeoCompose.Tests
             var client = NewClient(new FakeProvider(null), http);
 
             Assert.ThrowsAsync<NeoComposeNotSignedInException>(
-                async () => await client.ExportProjectAsync(ApiBaseUrl, ProjectId, VersionId));
+                async () => await client.ListVersionsAsync(ApiBaseUrl, ProjectId));
             Assert.AreEqual(0, http.sends.Count, "No request may be issued when signed out.");
-        }
-
-        // UAUTH-032
-        [Test]
-        public async Task DownloadFile_DoesNotAttachBearerAndUsesDownloadPath()
-        {
-            var http = new FakeHttpClient();
-            var client = NewClient(new FakeProvider("the-token"), http);
-
-            var bytes = await client.DownloadFileAsync("https://files.example.test/signed");
-
-            Assert.AreEqual(0, http.sends.Count, "File downloads must not go through the bearer-authorized path.");
-            CollectionAssert.AreEqual(new[] { "https://files.example.test/signed" }, http.downloads);
-            CollectionAssert.AreEqual(new byte[] { 1, 2, 3 }, bytes);
         }
 
         // UAUTH-037 / UAUTH-042
@@ -290,7 +167,7 @@ namespace NeoCompose.Tests
             var client = NewClient(new FakeProvider("the-token"), http);
 
             Assert.ThrowsAsync<NeoComposeNotSignedInException>(
-                async () => await client.ExportProjectAsync(ApiBaseUrl, ProjectId, VersionId));
+                async () => await client.ListVersionsAsync(ApiBaseUrl, ProjectId));
             Assert.AreEqual(1, http.sends.Count, "401 must not be retried.");
         }
 
@@ -316,16 +193,16 @@ namespace NeoCompose.Tests
 
         // UAUTH-040 / UAUTH-043
         [Test]
-        public void Forbidden403OnExport_KeepsUserSignedInWithExportMessage()
+        public void Forbidden403OnRead_KeepsUserSignedInWithOperationMessage()
         {
             var http = new FakeHttpClient { status = 403, body = "{}" };
             var provider = new FakeProvider("the-token");
             var client = NewClient(provider, http);
 
             var ex = Assert.ThrowsAsync<NeoComposeApiAuthorizationException>(
-                async () => await client.ExportProjectAsync(ApiBaseUrl, ProjectId, VersionId));
+                async () => await client.ListVersionsAsync(ApiBaseUrl, ProjectId));
 
-            StringAssert.Contains("export this project", ex!.Message);
+            StringAssert.Contains("read this project's versions", ex!.Message);
             // A 403 is not an auth failure: the provider is never asked to drop
             // the token, and the request is not retried.
             Assert.IsTrue(provider.TryGetAccessToken(ApiBaseUrl, out _), "User must remain signed in after a 403.");
@@ -445,7 +322,6 @@ namespace NeoCompose.Tests
         private sealed class FakeHttpClient : INeoComposeHttpClient
         {
             public readonly List<(string url, string method, string? body, string? bearer, int timeoutSeconds)> sends = new();
-            public readonly List<string> downloads = new();
             public long status = 200;
             public string body = "{}";
 
@@ -458,12 +334,6 @@ namespace NeoCompose.Tests
             {
                 sends.Add((url, method, jsonBody, bearerToken, timeoutSeconds));
                 return Task.FromResult(new NeoComposeWebResponse(status, false, body, ""));
-            }
-
-            public Task<byte[]> DownloadAsync(string url)
-            {
-                downloads.Add(url);
-                return Task.FromResult(new byte[] { 1, 2, 3 });
             }
         }
     }

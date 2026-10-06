@@ -120,6 +120,41 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void PartitionFile_IsReadAndValidatedOncePerProjectData()
+        {
+            var reads = new List<string>();
+            ProjectData data = BuildPartitionedProjectData(reads: reads);
+            using var first = NeoTestSaveStack.ClientFromSchema(data);
+            CollectionAssert.IsEmpty(reads, "Construction reads no named partition.");
+
+            first.LoadValuePartition(WorldPartitionKey);
+            first.UnloadValuePartition(WorldPartitionKey);
+            using var second = NeoTestSaveStack.ClientFromSchema(data);
+            second.LoadValuePartition(WorldPartitionKey);
+
+            CollectionAssert.AreEqual(new[] { WorldPartitionKey }, reads);
+            Assert.IsTrue(data.valuePartitions.TryGetLoaded(WorldPartitionKey, out var partition));
+            Assert.IsTrue(partition!.Validated);
+            Assert.IsTrue(second.values.ContainsKey("floor-1"));
+        }
+
+        [Test]
+        public void EnsureWorldPartitionLoaded_StopsOnceEveryPartitionIsLoaded()
+        {
+            ProjectData data = BuildPartitionedProjectData();
+            using var first = NeoTestSaveStack.ClientFromSchema(data);
+            first.EnsureWorldPartitionLoaded("town-grid");
+            Assert.IsTrue(first.IsValuePartitionLoaded(WorldPartitionKey));
+
+            // A client over the same schema adopts the rows its sibling
+            // merged, so it has nothing left to load; loading again would
+            // collide with those rows.
+            using var second = NeoTestSaveStack.ClientFromSchema(data);
+            Assert.IsTrue(second.IsValuePartitionLoaded(WorldPartitionKey));
+            Assert.DoesNotThrow(() => second.EnsureWorldPartitionLoaded("town-grid"));
+        }
+
+        [Test]
         public void LoadValuePartition_UnknownKeyThrowsWithAvailableKeys()
         {
             var client = NeoTestSaveStack.ClientFromSchema(BuildPartitionedProjectData());
@@ -179,8 +214,7 @@ namespace NeoCompose.Tests
         [TestCase(true)]
         public void GridSubscription_SurvivesPartitionChangesWithoutAnotherQuery(bool reloadOwnPartition)
         {
-            ProjectData data = BuildPartitionedProjectData();
-            data.valuePartitions!["world:unrelated"] = new JObject();
+            ProjectData data = BuildPartitionedProjectData(withUnrelatedPartition: true);
             using var client = NeoTestSaveStack.ClientFromSchema(data);
             var primitive = ResolvePrimitive(client);
             var changes = new List<NeoTileGridChangedArgs>();
@@ -466,7 +500,7 @@ namespace NeoCompose.Tests
             var api = new FakeApiClient();
             var local = new NeoInMemoryLocalSaveStore();
             var store = new NeoProjectStore(
-                dataSource: new NeoJsonProjectDataSource(NeoSaveTestSupport.ProjectJson),
+                dataSource: NeoTestExport.Source(NeoSaveTestSupport.ProjectJson),
                 localStore: local,
                 apiClient: api,
                 targetReleaseChannelId: NeoSaveTestSupport.TargetChannel);
@@ -581,7 +615,9 @@ namespace NeoCompose.Tests
         /// partition key — is resolvable before the placement subtree loads.
         /// A class-default tile sample also stays in the main partition.
         /// </summary>
-        private static ProjectData BuildPartitionedProjectData()
+        private static ProjectData BuildPartitionedProjectData(
+            bool withUnrelatedPartition = false,
+            List<string>? reads = null)
         {
             var rootClass = new NeoSchemaClass
             {
@@ -675,6 +711,9 @@ namespace NeoCompose.Tests
                 ["floor-1-cell"] = PartitionRow(
                     "floor-1-cell", null, new JObject { ["x"] = 3, ["y"] = 4 }),
             };
+            var partitions = new Dictionary<string, JToken> { [WorldPartitionKey] = partition };
+            if (withUnrelatedPartition)
+                partitions["world:unrelated"] = new JObject();
 
             return new ProjectData
             {
@@ -768,10 +807,7 @@ namespace NeoCompose.Tests
                     },
                     ["floor-tile"] = ObjectValue("floor-tile", TileClassId),
                 },
-                valuePartitions = new Dictionary<string, JToken>
-                {
-                    [WorldPartitionKey] = partition,
-                },
+                valuePartitions = NeoTestExport.Partitions(partitions, reads),
                 classes = new Dictionary<string, NeoSchemaClass>
                 {
                     [rootClass.id] = rootClass,

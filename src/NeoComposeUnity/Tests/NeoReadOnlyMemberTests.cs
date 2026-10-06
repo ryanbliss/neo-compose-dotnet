@@ -893,20 +893,155 @@ namespace NeoCompose.Tests
                 });
             nested.classId = null;
             nested.mapKey = "test:readonly";
-            data.valuePartitions = new Dictionary<string, JToken>
+            data.valuePartitions = NeoTestExport.Partitions(new Dictionary<string, JToken>
             {
                 ["test:readonly"] = JObject.FromObject(
                     new Dictionary<string, MemberValue>
                     {
                         [nested.id] = nested,
                     }),
-            };
+            });
 
+            using NeoClient client = LoadClient(data);
             var error = Assert.Throws<System.InvalidOperationException>(() =>
-                LoadClient(data));
+                client.LoadValuePartition("test:readonly"));
 
             StringAssert.Contains("value-nested-partition", error!.Message);
             StringAssert.Contains("read-only declaration member key 'Secret'", error.Message);
+            Assert.IsFalse(client.IsValuePartitionLoaded("test:readonly"));
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        public void LookupDefault_TargetInAWorldPartitionIsValidatedWhenThatWorldLoads(bool targetExists)
+        {
+            ProjectData data = BuildProjectData();
+            AddReadOnlyCollectionMembers(data);
+            const string world = "world:targets";
+            var rows = new Dictionary<string, MemberValue>();
+            foreach (string id in new[] { "value-target-list", "value-target-details", "value-target-name" })
+            {
+                rows[id] = data.values[id];
+                rows[id].mapKey = world;
+                data.values.Remove(id);
+            }
+            if (!targetExists)
+                ((LookupMember)data.members["member-readonly-favorite"]).collectionValueId = "value-missing-list";
+            data.valuePartitions = NeoTestExport.Partitions(new Dictionary<string, JToken>
+            {
+                ["world:other"] = new JObject(),
+                [world] = JObject.FromObject(rows),
+            });
+
+            using NeoClient client = LoadClient(data);
+            // Another world loading first leaves the default deferred.
+            client.LoadValuePartition("world:other");
+
+            if (targetExists)
+            {
+                Assert.DoesNotThrow(() => client.LoadValuePartition(world));
+                return;
+            }
+            var error = Assert.Throws<System.InvalidOperationException>(() =>
+                client.LoadValuePartition(world));
+            StringAssert.Contains("cannot resolve Lookup collection value 'value-missing-list'", error!.Message);
+            StringAssert.Contains("Checked against the main partition and every value partition.", error.Message);
+        }
+
+        [Test]
+        public void LookupDefault_UnresolvedIsRejectedWhenTheLastWorldWasValidatedByASiblingClient()
+        {
+            ProjectData data = BuildProjectData();
+            AddReadOnlyCollectionMembers(data);
+            ((LookupMember)data.members["member-readonly-favorite"]).collectionValueId = "value-missing-list";
+            data.valuePartitions = NeoTestExport.Partitions(new Dictionary<string, JToken>
+            {
+                ["world:a"] = new JObject(),
+                ["world:b"] = new JObject(),
+            });
+            using (NeoClient sibling = LoadClient(data))
+            {
+                sibling.LoadValuePartition("world:b");
+                sibling.UnloadValuePartition("world:b");
+            }
+
+            using NeoClient client = LoadClient(data);
+            client.LoadValuePartition("world:a");
+            var error = Assert.Throws<System.InvalidOperationException>(() =>
+                client.LoadValuePartition("world:b"));
+            StringAssert.Contains("cannot resolve Lookup collection value 'value-missing-list'", error!.Message);
+        }
+
+        [Test]
+        public void ExistingSave_RecoversReadonlyKeyThroughAWorldRowWhenThatWorldLoads()
+        {
+            ProjectData data = BuildProjectData();
+            AddNestedReadOnlyClass(data);
+            const string world = "world:armory";
+            var weapon = RecordValue(
+                "value-weapon-world",
+                "class-weapon",
+                new Dictionary<string, string>
+                {
+                    ["Nested"] = "value-nested-world",
+                });
+            weapon.mapKey = world;
+            var nested = RecordValue("value-nested-world", "class-nested-readonly", new Dictionary<string, string>());
+            nested.classId = null;
+            nested.mapKey = world;
+            data.valuePartitions = NeoTestExport.Partitions(new Dictionary<string, JToken>
+            {
+                [world] = JObject.FromObject(new Dictionary<string, MemberValue>
+                {
+                    [weapon.id] = weapon,
+                    [nested.id] = nested,
+                }),
+            });
+            var staleSave = new ProjectSaveData
+            {
+                name = "world-nested",
+                projectId = ProjectId,
+                version = new VersionData
+                {
+                    id = "unit-test-version",
+                    label = "unit-test-version",
+                },
+                createdAt = "x",
+                updatedAt = "x",
+                values = new Dictionary<string, MemberValue>
+                {
+                    ["value-nested-world"] = new ObjectMemberValue
+                    {
+                        id = "value-nested-world",
+                        mapKey = world,
+                        createdAt = "x",
+                        updatedAt = "x",
+                        value = new Dictionary<string, string>
+                        {
+                            ["Secret"] = "value-stale-world-secret",
+                        },
+                    },
+                    ["value-stale-world-secret"] = new NumberMemberValue
+                    {
+                        id = "value-stale-world-secret",
+                        createdAt = "x",
+                        updatedAt = "x",
+                        value = 91,
+                    },
+                },
+            };
+
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(
+                data,
+                loadedSaveContent: JsonConvert.SerializeObject(staleSave));
+            // Only the world row reveals the shadow's class.
+            StringAssert.Contains("value-stale-world-secret", client.SerializeSaveData());
+
+            client.LoadValuePartition(world);
+
+            string serialized = client.SerializeSaveData();
+            StringAssert.DoesNotContain("\"Secret\"", serialized);
+            StringAssert.DoesNotContain("value-stale-world-secret", serialized);
         }
 
         [Test]
@@ -1631,10 +1766,10 @@ namespace NeoCompose.Tests
                 }
                 if (partitioned)
                 {
-                    data.valuePartitions = new Dictionary<string, JToken>
+                    data.valuePartitions = NeoTestExport.Partitions(new Dictionary<string, JToken>
                     {
                         ["test:benchmark"] = JObject.FromObject(rows),
-                    };
+                    });
                 }
                 else
                 {
@@ -1664,7 +1799,7 @@ namespace NeoCompose.Tests
         public void Constructor_ReleasesPartitionValidationProjection()
         {
             ProjectData data = BuildProjectData();
-            data.valuePartitions = new Dictionary<string, JToken>
+            data.valuePartitions = NeoTestExport.Partitions(new Dictionary<string, JToken>
             {
                 ["test:retained"] = JObject.FromObject(
                     new Dictionary<string, MemberValue>
@@ -1674,10 +1809,12 @@ namespace NeoCompose.Tests
                             "class-details",
                             new Dictionary<string, string>()),
                     }),
-            };
+            });
 
-            NeoClient client = LoadClient(data);
+            using NeoClient client = LoadClient(data);
+            Assert.IsFalse(client.RetainsReadOnlyValidationProjection);
 
+            client.LoadValuePartition("test:retained");
             Assert.IsFalse(client.RetainsReadOnlyValidationProjection);
         }
 

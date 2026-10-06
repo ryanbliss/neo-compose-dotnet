@@ -33,9 +33,8 @@ namespace NeoCompose.Runtime
         /// authenticate a player for cloud save sync.
         /// </summary>
         /// <remarks>
-        /// <b>Synced.</b> Overwritten on each project synchronization from the web
-        /// portal's introduction-gated export bundle, so a developer rarely edits it
-        /// by hand. Feeds <see cref="NeoAuthenticationOptions.clientId"/>. Empty when
+        /// <b>Synced.</b> Overwritten each time Unity ingests a <c>neo export</c>,
+        /// so a developer rarely edits it by hand. Feeds <see cref="NeoAuthenticationOptions.clientId"/>. Empty when
         /// the selected version predates the project's runtime-OAuth introduction or
         /// no runtime OAuth client is enabled.
         /// </remarks>
@@ -56,9 +55,8 @@ namespace NeoCompose.Runtime
         /// the optional realtime sync plugin connects to.
         /// </summary>
         /// <remarks>
-        /// Hand-edited for now; a later phase syncs it from the export bundle the
-        /// same way <see cref="runtimeOAuthClientId"/> is (see
-        /// <c>specs/convex-realtime-sync.md</c>). Empty means realtime sync stays
+        /// <b>Synced</b> from each <c>neo export</c> the same way
+        /// <see cref="runtimeOAuthClientId"/> is. Empty means realtime sync stays
         /// off regardless of plugin registration.
         /// </remarks>
         public string convexUrl = "";
@@ -67,7 +65,7 @@ namespace NeoCompose.Runtime
         /// Master switch for cloud save sync. <b>Developer-owned, not synced.</b>
         /// </summary>
         /// <remarks>
-        /// Sync may seed it <c>true</c> the first time a runtime OAuth client becomes
+        /// Export ingest may seed it <c>true</c> the first time a runtime OAuth client becomes
         /// available, but it is never force-overwritten thereafter, so a developer can
         /// flip it off (or on) per build. When <c>false</c> the runtime never touches
         /// the network for saves — fully local-only — even if every other field is
@@ -79,9 +77,9 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// True once a developer has hand-edited <see cref="runtimeOAuthClientId"/> or
-        /// <see cref="runtimeOAuthScopes"/> in the editor. While set, project
-        /// synchronization leaves those fields alone instead of overwriting them from
-        /// the export bundle, so a manual override sticks. Cleared by "Reset override".
+        /// <see cref="runtimeOAuthScopes"/> in the editor. While set, export ingest
+        /// leaves those fields alone instead of overwriting them from the export,
+        /// so a manual override sticks. Cleared by "Reset override".
         /// </summary>
         public bool runtimeOAuthOverridden;
 
@@ -172,7 +170,7 @@ namespace NeoCompose.Runtime
             {
                 warning =
                     "Cloud save sync is enabled but no runtime OAuth client id is configured. " +
-                    "Enable runtime OAuth for the project and synchronize, or disable cloud save sync.";
+                    "Enable runtime OAuth for the project, then run `neo pull` and `neo export`, or disable cloud save sync.";
                 return true;
             }
             if (requiresApiKey && string.IsNullOrWhiteSpace(runtimeApiKey))

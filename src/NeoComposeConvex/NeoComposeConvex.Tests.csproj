@@ -21,7 +21,6 @@
 
   <ItemGroup>
     <ProjectReference Include="NeoComposeConvex.csproj" />
-    <ProjectReference Include="NeoComposeConvexEditor.csproj" />
     <ProjectReference Include="../NeoComposeUnity/NeoComposeUnity.csproj" />
     <ProjectReference Include="../NeoComposeUnity/NeoComposeUnityEditor.csproj" />
   </ItemGroup>

@@ -3,10 +3,7 @@
 
 #nullable enable
 
-using System;
 using System.Collections.Generic;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace NeoCompose.Unity.Editor
 {
@@ -109,126 +106,9 @@ namespace NeoCompose.Unity.Editor
         public bool? singleton;
     }
 
-    public sealed class NeoComposeCodegenDiagnostic
-    {
-        public string severity = "";
-        public string message = "";
-        public string? path;
-    }
-
-    public sealed class NeoComposeProjectReadBase
-    {
-        [JsonProperty(Required = Required.Always)]
-        public string headGenerationId = "";
-        [JsonProperty(Required = Required.AllowNull)]
-        public string? logicalRevisionId;
-
-        internal void Validate()
-        {
-            if (string.IsNullOrWhiteSpace(headGenerationId)
-                || logicalRevisionId != null && string.IsNullOrWhiteSpace(logicalRevisionId))
-                throw new InvalidOperationException("The export did not identify a published project revision.");
-        }
-
-        internal bool Matches(NeoComposeProjectReadBase? other) =>
-            other != null && headGenerationId == other.headGenerationId
-                && logicalRevisionId == other.logicalRevisionId;
-    }
-
-    public sealed class NeoComposeProjectReadRestartException : InvalidOperationException
-    {
-        public NeoComposeProjectReadRestartException()
-            : base("The published project changed during export. Synchronize again.") { }
-    }
-
-    public sealed class NeoComposeGeneratedFile
-    {
-        public string id = "";
-        public string path = "";
-        public string? content = "";
-        public string? contentHash;
-    }
-
-    public sealed class NeoComposeUnityExportResponse
-    {
-        public string mode = "full";
-        public string? codegenRevision;
-        public NeoComposeProjectReadBase? readBase;
-        public string projectId = "";
-        public string projectName = "";
-        public string projectJson = "";
-        public List<NeoComposeGeneratedFile> generatedFiles = new();
-        public List<NeoComposeUnityLocalizationFile> localizationFiles = new();
-        public List<NeoComposeCodegenDiagnostic> diagnostics = new();
-        public NeoComposeProjectVersion? version;
-        public NeoComposeProjectVersionStatus? versionStatus;
-        public List<NeoComposeProjectReleaseChannel> releaseChannels = new();
-        public string? projectDocumentContentHash;
-        public string? codegenContractHash;
-        public string? runtimeDataContractHash;
-        public NeoComposeUnityRuntimeOAuthConfig? runtimeOAuth;
-        public NeoComposeUnityExportSyncState? syncState;
-
-        /// <summary>
-        /// Convex deployment URL for realtime sync; null when the server has
-        /// none configured (the editor then leaves the config field alone).
-        /// </summary>
-        public string? convexUrl;
-    }
-
-    public sealed class NeoComposeUnityExportCursor
-    {
-        public double createdAt;
-        public List<string> transactionIds = new();
-    }
-
-    public sealed class NeoComposeUnityExportHeadDescriptor
-    {
-        public string recordKind = "";
-        public string recordId = "";
-        public string? snapshotId;
-        public string? contentHash;
-        public bool deleted;
-    }
-
-    public sealed class NeoComposeUnityExportCachedSnapshot
-    {
-        public string id = "";
-        public string recordKind = "";
-        public string recordId = "";
-        public string contentHash = "";
-        public JToken data = JValue.CreateNull();
-    }
-
-    public sealed class NeoComposeUnityExportSyncState
-    {
-        public int schemaVersion = 1;
-        public NeoComposeUnityExportCursor cursor = new();
-        public List<NeoComposeUnityExportHeadDescriptor> heads = new();
-        public List<NeoComposeUnityExportCachedSnapshot> snapshots = new();
-    }
-
-    public sealed class NeoComposeUnityExportDeltaManifestResponse
-    {
-        public string mode = "incremental";
-        public string? codegenRevision;
-        public NeoComposeProjectReadBase? readBase;
-        public bool fullResync;
-        public bool codegenAffected;
-        public bool runtimeContractAffected;
-        public NeoComposeUnityExportCursor? cursor;
-        public List<NeoComposeUnityExportHeadDescriptor> records = new();
-    }
-
-    public sealed class NeoComposeUnityExportSnapshotResponse
-    {
-        public NeoComposeProjectReadBase? readBase;
-        public List<NeoComposeUnityExportCachedSnapshot> snapshots = new();
-    }
-
     /// <summary>
-    /// Per-project runtime OAuth config carried in the export bundle so the editor
-    /// can pre-fill <see cref="NeoCompose.Runtime.NeoComposeConfig"/>.
+    /// Per-project runtime OAuth config carried in the <c>neo export</c> sidecar so
+    /// ingest can pre-fill <see cref="NeoCompose.Runtime.NeoComposeConfig"/>.
     /// Introduction-gated server-side: <see cref="configuredForVersion"/> is false
     /// (and <see cref="runtimeOAuthClientId"/> null) for versions predating the
     /// client's introduction, disabled clients, and projects with no runtime client.
@@ -238,30 +118,5 @@ namespace NeoCompose.Unity.Editor
         public bool configuredForVersion;
         public string? runtimeOAuthClientId;
         public string[] scopes = System.Array.Empty<string>();
-    }
-
-    public sealed class NeoComposeUnityLocalizationFile
-    {
-        public string locale = "";
-        public string fileName = "";
-        public string content = "";
-    }
-
-    public sealed class NeoComposeUnityExportFileDownloadRequest
-    {
-        public string versionId = "";
-        public string[] fileIds = System.Array.Empty<string>();
-    }
-
-    public sealed class NeoComposeUnityExportFileDownload
-    {
-        public string fileId = "";
-        public string downloadUrl = "";
-        public string expiresAt = "";
-    }
-
-    public sealed class NeoComposeUnityExportFileDownloadResponse
-    {
-        public Dictionary<string, NeoComposeUnityExportFileDownload> files = new();
     }
 }

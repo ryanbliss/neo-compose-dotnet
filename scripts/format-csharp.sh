@@ -9,10 +9,8 @@ directories=(
     "src/NeoComposeUnity/Editor"
     "src/NeoComposeUnity/Tests"
     "src/NeoComposeConvex/Runtime"
-    "src/NeoComposeConvex/Editor"
     "src/NeoComposeConvex/Tests"
     "samples/HelloWorld/Assets/Scripts"
-    "samples/HelloWorld/Assets/Editor"
     "samples/HelloWorld/Assets/Tests"
     "scripts/performance"
 )

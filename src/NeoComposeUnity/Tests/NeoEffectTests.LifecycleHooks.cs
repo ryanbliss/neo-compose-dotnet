@@ -154,7 +154,7 @@ namespace NeoCompose.Tests
             {
                 // An authored plant has no Save row for Check to count in.
                 data.members["member-check"] = ScriptFunction("member-check", "Check", NeoEffectKind.Auto, null);
-                data.valuePartitions = new Dictionary<string, JToken>
+                data.valuePartitions = NeoTestExport.Partitions(new Dictionary<string, JToken>
                 {
                     ["garden"] = JObject.FromObject(new Dictionary<string, MemberValue>
                     {
@@ -163,7 +163,7 @@ namespace NeoCompose.Tests
                         ["bed-plant-runs"] = Number("bed-plant-runs", 0),
                         ["bed-plant"] = Plant("bed-plant", "class-plant", containerId: "value-bed"),
                     }),
-                };
+                });
             });
             fixture.client.StartScriptRuntime();
             fixture.client.LoadValuePartition("garden");
@@ -185,7 +185,7 @@ namespace NeoCompose.Tests
                 {
                     AddSessionAction(data);
                     data.members["member-check"] = ScriptFunction("member-check", "Check", NeoEffectKind.Auto, null);
-                    data.valuePartitions = new Dictionary<string, JToken>
+                    data.valuePartitions = NeoTestExport.Partitions(new Dictionary<string, JToken>
                     {
                         ["garden"] = JObject.FromObject(new Dictionary<string, MemberValue>
                         {
@@ -194,7 +194,7 @@ namespace NeoCompose.Tests
                             ["bed-plant-runs"] = Number("bed-plant-runs", 0),
                             ["bed-plant"] = Plant("bed-plant", "class-plant", containerId: "value-bed"),
                         }),
-                    };
+                    });
                 });
             fixture.client.StartScriptRuntime();
             fixture.client.LoadValuePartition("garden");

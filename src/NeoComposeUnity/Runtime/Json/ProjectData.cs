@@ -13,6 +13,11 @@ namespace NeoCompose.Runtime.Json
     public static class NeoProjectExportContract
     {
         /// <summary>
+        /// 36 splits value rows out of <c>project.json</c> (P100 §4): its
+        /// <c>partitions</c> index names one file per partition, main
+        /// included, and <c>values</c> and <c>valuePartitions</c> are gone.
+        /// An older SDK would load the export with no value rows at all.
+        ///
         /// 35 adds P70 member change listeners. Older SDKs must reject the
         /// export rather than silently omit subscriptions.
         ///
@@ -102,13 +107,22 @@ namespace NeoCompose.Runtime.Json
         /// the wrong configuration rather than an error. It must reject the
         /// export.
         /// </summary>
-        public const int CurrentSchemaVersion = 35;
+        public const int CurrentSchemaVersion = 36;
+
+        /// <summary>
+        /// The main partition's file, relative to <c>project.json</c>'s
+        /// directory. Read before <c>project.json</c> is parsed, so startup
+        /// reads both files on the main thread and parses both off it.
+        /// </summary>
+        public const string MainPartitionFile = "Partitions/main.json";
+
+        internal const string RegenerateAction = "Run `neo pull` and `neo export`.";
 
         internal static string? GetSchemaVersionError(ProjectExportMetadata? metadata)
         {
             if (metadata is null)
             {
-                return $"Project export metadata is missing (this SDK requires schema version {CurrentSchemaVersion}). Re-export the project from the current web app.";
+                return $"Project export metadata is missing (this SDK requires schema version {CurrentSchemaVersion}). {RegenerateAction}";
             }
 
             return GetSchemaVersionError(metadata.schemaVersion);
@@ -120,7 +134,7 @@ namespace NeoCompose.Runtime.Json
                 return null;
 
             string action = schemaVersion < CurrentSchemaVersion
-                ? "Re-export the project from the current web app."
+                ? RegenerateAction
                 : "Update the NeoCompose SDK.";
             return $"Project export schema version {schemaVersion} is unsupported; this SDK accepts only schema version {CurrentSchemaVersion}. Older releases must be upgraded through the supported release-data migration boundary before loading. {action}";
         }
@@ -372,7 +386,7 @@ namespace NeoCompose.Runtime.Json
     /// the project record nested under <see cref="project"/>, plus its
     /// keyed-by-id payloads as <see cref="Dictionary{TKey, TValue}"/>.
     ///
-    /// JSON shape:
+    /// JSON shape of <c>project.json</c>:
     ///
     /// <code>
     /// {
@@ -381,9 +395,13 @@ namespace NeoCompose.Runtime.Json
     ///   "enums":      { "&lt;id&gt;": { ... } },
     ///   "classes":      { "&lt;id&gt;": { ... } },
     ///   "interfaces": { "&lt;id&gt;": { ... } },
-    ///   "values":     { "&lt;id&gt;": { ... } }
+    ///   "partitions": [ { "key": null, "file": "Partitions/main.json" }, ... ]
     /// }
     /// </code>
+    ///
+    /// Each partition file is <c>{ "&lt;valueId&gt;": { ... } }</c>. The main
+    /// partition's rows become <see cref="values"/>; named partitions load on
+    /// demand through <c>NeoClient.LoadValuePartition</c>.
     ///
     /// Tile grid content is NOT a separate payload: painted tiles and placed
     /// objects live in <see cref="values"/> as ordinary member values
@@ -406,17 +424,14 @@ namespace NeoCompose.Runtime.Json
         internal int valuesEpoch;
 
         /// <summary>
-        /// Storage partitions (specs/list-member-and-tilegrid-scaling.md
-        /// §6): every non-main partition of the export, keyed by partition
-        /// key (<c>mapKey</c>, e.g. <c>world:&lt;gridClassId&gt;</c>) with the
-        /// partition's value rows keyed by value id. Kept as raw
-        /// <see cref="JToken"/>s so parsing project.json does NOT materialize
-        /// partition rows — a partition's rows are deserialized into typed
-        /// <see cref="MemberValue"/>s only when
-        /// <c>NeoClient.LoadValuePartition</c> loads it. Null means the export
-        /// has no non-main partitions.
+        /// The export's named storage partitions
+        /// (specs/list-member-and-tilegrid-scaling.md §6), keyed by
+        /// <c>mapKey</c> (e.g. <c>world:&lt;gridClassId&gt;</c>): the
+        /// partition index plus a reader for the files it names. A partition's
+        /// file is read and typed only when <c>NeoClient.LoadValuePartition</c>
+        /// first loads it.
         /// </summary>
-        public Dictionary<string, JToken>? valuePartitions;
+        internal NeoValuePartitions valuePartitions = NeoValuePartitions.Empty;
         public Dictionary<string, NeoSchemaClass> classes = null!;
 
         /// <summary>
@@ -457,26 +472,19 @@ namespace NeoCompose.Runtime.Json
 
         public override bool CanWrite => false;
 
+        /// <summary>
+        /// A <c>project.json</c> alone carries no value rows, so plain Json.NET
+        /// deserialization can't produce a <see cref="ProjectData"/>.
+        /// </summary>
         public override object? ReadJson(
             JsonReader reader,
             Type objectType,
             object? existingValue,
             JsonSerializer serializer)
         {
-            if (reader.TokenType == JsonToken.Null)
-                return null;
-
-            var obj = JObject.Load(reader);
-            ValidateSchemaVersion(obj);
-            RecordShapeContractGuard.ValidateProjectData(obj);
-            ExpandPackedValueRows(obj);
-
-            var projectData = new ProjectData();
-            using (var subReader = obj.CreateReader())
-            {
-                serializer.Populate(subReader, projectData);
-            }
-            return projectData;
+            throw new JsonSerializationException(
+                "A Neo Compose project.json carries no value rows; read it through an IProjectDataSource "
+                + "(such as NeoJsonProjectDataSource.FromFile), which supplies its partition files.");
         }
 
         public override void WriteJson(
@@ -489,48 +497,47 @@ namespace NeoCompose.Runtime.Json
         }
 
         /// <summary>
-        /// P76 §5 — turn the export's PHYSICAL row set into the logical one,
-        /// once, before anything typed is built from it.
+        /// Reads <c>project.json</c> and its main partition into a
+        /// <see cref="ProjectData"/>. Named partitions aren't read here:
+        /// <paramref name="readPartitionJson"/> reads each one when a client
+        /// first loads it. <paramref name="mainPartitionJson"/> is null when
+        /// the file is absent, which the schema gate explains for an older
+        /// export.
         ///
-        /// <para>Schema 31 ships a packed child inside its owning parent's
-        /// stored content instead of as its own entry in <c>values</c>. This is
-        /// the SDK's single expansion boundary, so every downstream reader —
-        /// <c>NeoClient.TryGetValue</c>, member nodes, list and dictionary
-        /// entries, ownership walks, the evaluator — sees exactly the rows a
-        /// <c>.Sparse</c> corpus would have produced and none of them needs to
-        /// know packing exists.</para>
-        ///
-        /// <para>Storage partitions expand here too rather than at load time:
-        /// they stay raw <see cref="JToken"/>s so parsing does not materialize
-        /// them, and expanding the token in place means both
-        /// <c>LoadValuePartition</c> and the read-only authored-value context
-        /// read one already-logical partition without either of them
-        /// re-deriving it.</para>
+        /// <para>P76 §5: the main partition expands here, the SDK's single
+        /// expansion boundary for main rows, so every downstream reader sees
+        /// exactly the rows a <c>.Sparse</c> corpus would have produced.</para>
         /// </summary>
-        private static void ExpandPackedValueRows(JObject root)
+        internal static ProjectData Read(
+            string projectJson,
+            string? mainPartitionJson,
+            Func<string, string> readPartitionJson)
         {
-            if (root["values"] is JObject values)
+            JObject root = NeoInterningJsonReader.Deserialize<JObject>(projectJson)
+                ?? throw new JsonSerializationException(
+                    $"Project export project.json is empty. {NeoProjectExportContract.RegenerateAction}");
+            ValidateSchemaVersion(root);
+            RecordShapeContractGuard.ValidateProjectData(root);
+            var projectData = new ProjectData
             {
-                JObject expanded = NeoPackedValue.Expand(
-                    values,
-                    "the export's values");
-                // Expansion returns its argument when nothing is packed, and
-                // reassigning a token to itself is not a no-op in Newtonsoft.
-                if (!ReferenceEquals(expanded, values))
-                    root["values"] = expanded;
-            }
-            if (root["valuePartitions"] is not JObject partitions)
-                return;
-            foreach (JProperty partition in partitions.Properties())
+                valuePartitions = NeoValuePartitions.FromIndex(root["partitions"], readPartitionJson),
+            };
+            root.Remove("partitions");
+            if (mainPartitionJson is null)
             {
-                if (partition.Value is not JObject rows)
-                    continue;
-                JObject expanded = NeoPackedValue.Expand(
-                    rows,
-                    $"value partition '{partition.Name}'");
-                if (!ReferenceEquals(expanded, rows))
-                    partition.Value = expanded;
+                throw new JsonSerializationException(
+                    $"Project export's main partition file '{NeoProjectExportContract.MainPartitionFile}' is missing beside project.json. {NeoProjectExportContract.RegenerateAction}");
             }
+            JObject main = NeoInterningJsonReader.Deserialize<JObject>(mainPartitionJson)
+                ?? throw new JsonSerializationException(
+                    $"Project export's main partition file '{NeoProjectExportContract.MainPartitionFile}' is empty. {NeoProjectExportContract.RegenerateAction}");
+            root["values"] = NeoPackedValue.Expand(main, "the main partition");
+
+            using (JsonReader subReader = root.CreateReader())
+            {
+                JsonSerializer.CreateDefault().Populate(subReader, projectData);
+            }
+            return projectData;
         }
 
         private static void ValidateSchemaVersion(JObject root)
@@ -545,7 +552,7 @@ namespace NeoCompose.Runtime.Json
             if (schemaVersionToken?.Type != JTokenType.Integer)
             {
                 throw new JsonSerializationException(
-                    $"Project export metadata has no valid integer 'schemaVersion' (this SDK requires schema version {NeoProjectExportContract.CurrentSchemaVersion}). Re-export the project from the current web app.");
+                    $"Project export metadata has no valid integer 'schemaVersion' (this SDK requires schema version {NeoProjectExportContract.CurrentSchemaVersion}). {NeoProjectExportContract.RegenerateAction}");
             }
 
             int schemaVersion;
@@ -556,7 +563,7 @@ namespace NeoCompose.Runtime.Json
             catch (OverflowException)
             {
                 throw new JsonSerializationException(
-                    $"Project export metadata has no valid integer 'schemaVersion' (this SDK requires schema version {NeoProjectExportContract.CurrentSchemaVersion}). Re-export the project from the current web app.");
+                    $"Project export metadata has no valid integer 'schemaVersion' (this SDK requires schema version {NeoProjectExportContract.CurrentSchemaVersion}). {NeoProjectExportContract.RegenerateAction}");
             }
 
             string? error = NeoProjectExportContract.GetSchemaVersionError(schemaVersion);

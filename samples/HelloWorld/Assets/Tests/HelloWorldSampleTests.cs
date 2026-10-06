@@ -87,11 +87,6 @@ namespace HelloWorld.Assets.Tests
                     "SEAL RELEASED",
             };
 
-        private static string LoadFixture(string fileName)
-        {
-            return File.ReadAllText(Path.Combine(FixturesRoot, fileName));
-        }
-
         [Test]
         public void Menu_CanBeInstantiated()
         {
@@ -141,7 +136,8 @@ namespace HelloWorld.Assets.Tests
             // save stack (project store → synchronizer) over the sample's own
             // fixture copy, then reads the loaded schema back off the public
             // surface. NeoLoader's own behavior lives in the package's tests.
-            var client = await LoadRawClient(LoadFixture("synth-example.json"));
+            var client = await LoadRawClient(
+                NeoJsonProjectDataSource.FromFile(Path.Combine(FixturesRoot, "SynthExample/project.json")));
 
             Assert.AreEqual(10d, client.AssetsRoot.Get<NeoMemberInt>("Score").value!.value);
         }
@@ -228,22 +224,22 @@ namespace HelloWorld.Assets.Tests
             Assert.IsFalse(relations.Any(candidate =>
                 candidate["sourceRecordId"]!.Value<string>() == NeoObjectLayerLinkClassId));
 
-            var allValues = ((JObject)project["values"]!).Properties()
-                .Select(property => property.Value)
-                .Concat(((JObject)project["valuePartitions"]!).Properties()
-                    .SelectMany(partition => ((JObject)partition.Value).Properties())
-                    .Select(property => property.Value));
+            var partitions = SampleProjectFixture.Partitions().ToList();
+            var allValues = partitions
+                .SelectMany(partition => partition.rows.Properties())
+                .Select(property => property.Value);
             Assert.IsFalse(allValues.Any(value =>
                 value["classId"]?.Value<string>() == NeoTileLayerLinkClassId));
             Assert.IsFalse(allValues.Any(value =>
                 value["classId"]?.Value<string>() == NeoObjectLayerLinkClassId));
 
-            var linkValue = project["valuePartitions"]![OldConsoleWorldPartitionKey]![ObjectLayerLinkRootValueId]!;
+            var worldRows = partitions.Single(partition => partition.key == OldConsoleWorldPartitionKey).rows;
+            var linkValue = worldRows[ObjectLayerLinkRootValueId]!;
             Assert.AreEqual(ObjectLayerLinkClassId, linkValue["classId"]!.Value<string>());
             Assert.AreEqual(
                 ObjectLayerLinkObjectsValueId,
                 linkValue["value"]!["Objects"]!.Value<string>());
-            var objectsValue = project["valuePartitions"]![OldConsoleWorldPartitionKey]![ObjectLayerLinkObjectsValueId];
+            var objectsValue = worldRows[ObjectLayerLinkObjectsValueId];
             Assert.IsNotNull(objectsValue);
             Assert.AreEqual(ObjectLayerLinkObjectsValueId, objectsValue!["id"]!.Value<string>());
             Assert.AreEqual(JTokenType.Array, objectsValue["value"]!.Type);
@@ -1210,10 +1206,10 @@ namespace HelloWorld.Assets.Tests
 
         // Builds a raw NeoClient (not the generated HelloWorld facade) over the save
         // stack — for smoke-testing the loader against an arbitrary project schema.
-        private async System.Threading.Tasks.Task<NeoClient> LoadRawClient(string projectJson)
+        private async System.Threading.Tasks.Task<NeoClient> LoadRawClient(IProjectDataSource dataSource)
         {
             var store = Own(new NeoProjectStore(
-                dataSource: new NeoJsonProjectDataSource(projectJson),
+                dataSource: dataSource,
                 localStore: new NeoInMemoryLocalSaveStore()));
             store.LoadAsync().GetAwaiter().GetResult();
             return Own(await new NeoLoader().Load(store.Open("save")));

@@ -56,9 +56,6 @@ namespace NeoCompose.Convex.Tests
 
             return Task.FromResult(Responses.Dequeue());
         }
-
-        public Task<byte[]> DownloadAsync(string url) =>
-            throw new NotSupportedException("Downloads are not part of the JWT mint path.");
     }
 
     internal sealed class ManualDispatcher

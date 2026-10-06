@@ -157,8 +157,8 @@ namespace NeoCompose.Runtime
                 if (generatedProjectType == null)
                 {
                     throw new InvalidOperationException(
-                        "Could not find the generated Neo project type. Synchronize " +
-                        "Neo Compose first so generated C# wrappers are available.");
+                        "Could not find the generated Neo project type. Run `neo pull` " +
+                        "and `neo export` first so generated C# wrappers are available.");
                 }
 
                 nextProject = NeoProjectClient.Construct(generatedProjectType, nextClient);

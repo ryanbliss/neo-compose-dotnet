@@ -137,7 +137,7 @@ namespace NeoCompose.Tests
             config.runtimeOAuthClientId = "stale-client";
             config.runtimeOAuthScopes = new[] { "project:project-1:save:read" };
 
-            NeoComposeSynchronizer.ApplyRuntimeOAuthConfig(
+            NeoComposeExportIngest.ApplyRuntimeOAuthConfig(
                 config,
                 new NeoComposeUnityRuntimeOAuthConfig { configuredForVersion = false });
 
@@ -151,7 +151,7 @@ namespace NeoCompose.Tests
             var config = MakeConfig();
             Assert.IsFalse(config.enableOAuthCloudSync);
 
-            NeoComposeSynchronizer.ApplyRuntimeOAuthConfig(
+            NeoComposeExportIngest.ApplyRuntimeOAuthConfig(
                 config,
                 new NeoComposeUnityRuntimeOAuthConfig
                 {
@@ -173,7 +173,7 @@ namespace NeoCompose.Tests
             config.runtimeOAuthClientId = "client-1";
             config.enableOAuthCloudSync = false;
 
-            NeoComposeSynchronizer.ApplyRuntimeOAuthConfig(
+            NeoComposeExportIngest.ApplyRuntimeOAuthConfig(
                 config,
                 new NeoComposeUnityRuntimeOAuthConfig
                 {
@@ -193,7 +193,7 @@ namespace NeoCompose.Tests
             config.runtimeOAuthScopes = new[] { "project:project-1:save:read" };
             config.runtimeOAuthOverridden = true;
 
-            NeoComposeSynchronizer.ApplyRuntimeOAuthConfig(
+            NeoComposeExportIngest.ApplyRuntimeOAuthConfig(
                 config,
                 new NeoComposeUnityRuntimeOAuthConfig
                 {
@@ -213,7 +213,7 @@ namespace NeoCompose.Tests
             config.runtimeOAuthClientId = "manual-client";
             config.runtimeOAuthOverridden = true;
 
-            NeoComposeSynchronizer.ApplyRuntimeOAuthConfig(
+            NeoComposeExportIngest.ApplyRuntimeOAuthConfig(
                 config,
                 new NeoComposeUnityRuntimeOAuthConfig { configuredForVersion = false });
 
@@ -227,7 +227,7 @@ namespace NeoCompose.Tests
             config.runtimeOAuthClientId = "client-1";
             config.enableOAuthCloudSync = true;
 
-            NeoComposeSynchronizer.ApplyRuntimeOAuthConfig(
+            NeoComposeExportIngest.ApplyRuntimeOAuthConfig(
                 config,
                 new NeoComposeUnityRuntimeOAuthConfig
                 {
@@ -238,6 +238,31 @@ namespace NeoCompose.Tests
 
             Assert.IsTrue(config.enableOAuthCloudSync);
             Assert.AreEqual(new[] { "project:project-1:save:write" }, config.runtimeOAuthScopes);
+        }
+    }
+
+    public class NeoComposeConvexUrlSyncTests
+    {
+        [Test]
+        public void NullLeavesAHandEnteredUrlAlone()
+        {
+            var config = UnityEngine.ScriptableObject.CreateInstance<NeoComposeConfig>();
+            config.convexUrl = "https://hand-entered.convex.cloud";
+
+            NeoComposeExportIngest.ApplyConvexUrl(config, null);
+
+            Assert.That(config.convexUrl, Is.EqualTo("https://hand-entered.convex.cloud"));
+        }
+
+        [Test]
+        public void APresentUrlOverwrites()
+        {
+            var config = UnityEngine.ScriptableObject.CreateInstance<NeoComposeConfig>();
+            config.convexUrl = "https://old.convex.cloud";
+
+            NeoComposeExportIngest.ApplyConvexUrl(config, " https://new.convex.cloud ");
+
+            Assert.That(config.convexUrl, Is.EqualTo("https://new.convex.cloud"));
         }
     }
 }

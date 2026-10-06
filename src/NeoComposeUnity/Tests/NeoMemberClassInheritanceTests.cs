@@ -117,7 +117,7 @@ namespace NeoCompose.Tests
         [Test]
         public void NullableClassValue_DoesNotMaterializeComputedDefaultChildren()
         {
-            ProjectData data = JsonConvert.DeserializeObject<ProjectData>(
+            ProjectData data = NeoTestExport.Read(
                 LoadFixture("synth-example.json"))!;
             const string saveClassId = "class-nullable-save";
             const string selectorClassId = "class-color-category-selector";

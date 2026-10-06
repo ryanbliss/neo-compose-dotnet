@@ -438,11 +438,14 @@ namespace HelloWorld.Assets.Tests.PlayMode
 
         private static NeoProjectStore CreateLoadedStore()
         {
-            var export = Resources.Load<TextAsset>(ProjectResourcePath);
-            Assert.IsNotNull(export, $"Missing Resources/{ProjectResourcePath}.json.");
-
+            // The Resources source parses off the main thread, so blocking on its
+            // load here would deadlock. Read the same Resources files up front.
+            var resources = new NeoResourcesProjectDataSource(ProjectResourcePath);
+            string projectJson = resources.ReadProjectJsonAsync().GetAwaiter().GetResult();
             var store = new NeoProjectStore(
-                dataSource: new NeoJsonProjectDataSource(export!.text),
+                dataSource: new NeoJsonProjectDataSource(
+                    projectJson,
+                    NeoValuePartitions.ReadIndexFiles(projectJson).ToDictionary(file => file, resources.ReadPartitionJson)),
                 localStore: new NeoInMemoryLocalSaveStore());
             try
             {

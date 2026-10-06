@@ -28,7 +28,7 @@ namespace NeoCompose.Tests
 
         // Opt in only from fixtures that do not mutate schema declarations.
         // Every load still creates a fresh store, save, and client.
-        internal static readonly NeoJsonProjectDataSource SynthExample = new(
+        internal static readonly NeoJsonProjectDataSource SynthExample = NeoTestExport.Source(
             System.IO.File.ReadAllText("Packages/com.ryanbliss.neocompose/Tests/synth-example.json"));
 
         private NeoTestSaveStack(NeoProjectStore store, INeoLocalSaveStore localStore)
@@ -51,13 +51,13 @@ namespace NeoCompose.Tests
             get;
         }
 
-        /// <summary>Builds a fresh stack (Ready) over the given project schema JSON.</summary>
+        /// <summary>Builds a fresh stack (Ready) over a one-document test corpus (see <see cref="NeoTestExport"/>).</summary>
         public static NeoTestSaveStack Create(
             string projectJson,
             NeoSaveOptions? options = null,
             INeoLocalSaveStore? localStore = null)
         {
-            return Create(new NeoJsonProjectDataSource(projectJson), options, localStore);
+            return Create(NeoTestExport.Source(projectJson), options, localStore);
         }
 
         public static NeoTestSaveStack Create(

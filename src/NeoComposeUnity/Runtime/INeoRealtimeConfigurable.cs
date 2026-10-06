@@ -24,8 +24,8 @@ namespace NeoCompose.Runtime
             if (string.IsNullOrWhiteSpace(convexUrl))
             {
                 throw new ArgumentException(
-                    "Convex deployment URL cannot be empty. Synchronize the project in the " +
-                    "editor to receive it (NeoComposeConfig.convexUrl).",
+                    "Convex deployment URL cannot be empty. Run `neo pull` and `neo export` " +
+                    "to receive it (NeoComposeConfig.convexUrl).",
                     nameof(convexUrl));
             }
             if (string.IsNullOrWhiteSpace(apiBaseUrl))

@@ -4,7 +4,6 @@
 #nullable enable
 
 using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using UnityEngine.Networking;
@@ -29,35 +28,10 @@ namespace NeoCompose.Unity.Editor
             string versionId,
             string namespaceForGeneratedTypes,
             bool singleton);
-
-        Task<NeoComposeUnityExportResponse> ExportProjectAsync(string apiBaseUrl, string projectId, string versionId,
-            IReadOnlyDictionary<string, string>? generatedFileHashes = null);
-        Task<NeoComposeUnityExportDeltaManifestResponse> ExportProjectDeltaAsync(
-            string apiBaseUrl,
-            string projectId,
-            string versionId,
-            NeoComposeUnityExportCursor cursor,
-            string? codegenRevision = null);
-        Task<NeoComposeUnityExportSnapshotResponse> ExportProjectSnapshotsAsync(
-            string apiBaseUrl,
-            string projectId,
-            string versionId,
-            string[] snapshotIds,
-            NeoComposeProjectReadBase readBase);
-        Task<NeoComposeUnityExportFileDownloadResponse> ExportProjectFileDownloadsAsync(
-            string apiBaseUrl,
-            string projectId,
-            string versionId,
-            string[] fileIds);
-
-        Task<byte[]> DownloadFileAsync(string downloadUrl);
     }
 
     public sealed class NeoComposeEditorApiClient : INeoComposeEditorApiClient
     {
-        // Full exports assemble paginated snapshots and generate C# before responding.
-        private const int FullExportTimeoutSeconds = 300;
-
         private readonly INeoComposeAccessTokenProvider tokenProvider;
         private readonly INeoComposeHttpClient httpClient;
         private readonly INeoComposeSessionRefresher sessionRefresher;
@@ -175,120 +149,17 @@ namespace NeoCompose.Unity.Editor
             return Deserialize<NeoComposeProjectEditResponse>(json, "project edit");
         }
 
-        public async Task<NeoComposeUnityExportResponse> ExportProjectAsync(
-            string apiBaseUrl,
-            string projectId,
-            string versionId,
-            IReadOnlyDictionary<string, string>? generatedFileHashes = null)
-        {
-            RequireProjectId(projectId);
-            RequireVersionId(versionId);
-            var url = BuildUrl(apiBaseUrl, $"/api/projects/{UnityWebRequest.EscapeURL(projectId)}/export");
-            var operation = new NeoComposeApiOperation("export this project", projectId, "unity:export");
-            var json = await PostAuthorizedAsync(
-                apiBaseUrl, url, operation, JsonConvert.SerializeObject(new
-                {
-                    versionId,
-                    generatedFileHashes = generatedFileHashes ?? new Dictionary<string, string>(),
-                }),
-                timeoutSeconds: FullExportTimeoutSeconds);
-            return Deserialize<NeoComposeUnityExportResponse>(json, "project export");
-        }
-
-        public async Task<NeoComposeUnityExportDeltaManifestResponse> ExportProjectDeltaAsync(
-            string apiBaseUrl,
-            string projectId,
-            string versionId,
-            NeoComposeUnityExportCursor cursor,
-            string? codegenRevision = null)
-        {
-            RequireProjectId(projectId);
-            RequireVersionId(versionId);
-            if (cursor == null)
-                throw new ArgumentNullException(nameof(cursor));
-            var url = BuildUrl(apiBaseUrl, $"/api/projects/{UnityWebRequest.EscapeURL(projectId)}/export");
-            var operation = new NeoComposeApiOperation("incrementally export this project", projectId, "unity:export");
-            var json = await PostAuthorizedAsync(
-                apiBaseUrl,
-                url,
-                operation,
-                JsonConvert.SerializeObject(new
-                {
-                    versionId,
-                    cursor,
-                    codegenRevision = codegenRevision ?? "",
-                }));
-            return Deserialize<NeoComposeUnityExportDeltaManifestResponse>(json, "project export delta");
-        }
-
-        public async Task<NeoComposeUnityExportSnapshotResponse> ExportProjectSnapshotsAsync(
-            string apiBaseUrl,
-            string projectId,
-            string versionId,
-            string[] snapshotIds,
-            NeoComposeProjectReadBase readBase)
-        {
-            RequireProjectId(projectId);
-            RequireVersionId(versionId);
-            if (snapshotIds == null)
-                throw new ArgumentNullException(nameof(snapshotIds));
-            if (readBase == null)
-                throw new ArgumentNullException(nameof(readBase));
-            readBase.Validate();
-            var url = BuildUrl(
-                apiBaseUrl,
-                $"/api/projects/{UnityWebRequest.EscapeURL(projectId)}/export/snapshots");
-            var operation = new NeoComposeApiOperation("read changed project export snapshots", projectId, "unity:export");
-            var json = await PostAuthorizedAsync(
-                apiBaseUrl,
-                url,
-                operation,
-                JsonConvert.SerializeObject(new
-                {
-                    versionId,
-                    snapshotIds,
-                    readBase
-                }));
-            return Deserialize<NeoComposeUnityExportSnapshotResponse>(json, "project export snapshots");
-        }
-
-        public async Task<NeoComposeUnityExportFileDownloadResponse> ExportProjectFileDownloadsAsync(
-            string apiBaseUrl,
-            string projectId,
-            string versionId,
-            string[] fileIds)
-        {
-            RequireProjectId(projectId);
-            RequireVersionId(versionId);
-            var url = BuildUrl(apiBaseUrl, $"/api/projects/{UnityWebRequest.EscapeURL(projectId)}/export/files");
-            var request = new NeoComposeUnityExportFileDownloadRequest
-            {
-                versionId = versionId,
-                fileIds = fileIds,
-            };
-            var operation = new NeoComposeApiOperation("download this project's files", projectId, "unity:export");
-            var json = await PostAuthorizedAsync(apiBaseUrl, url, operation, JsonConvert.SerializeObject(request));
-            return Deserialize<NeoComposeUnityExportFileDownloadResponse>(json, "file export");
-        }
-
-        public Task<byte[]> DownloadFileAsync(string downloadUrl)
-        {
-            // Pre-signed storage URL: no bearer token, the URL is self-authorizing.
-            return httpClient.DownloadAsync(downloadUrl);
-        }
-
         private async Task<string> PostAuthorizedAsync(
             string apiBaseUrl,
             string url,
             NeoComposeApiOperation operation,
-            string body = "",
-            int timeoutSeconds = NeoComposeWebRequests.DefaultTimeoutSeconds)
+            string body = "")
         {
             // Fail fast before issuing the request when the user is signed out or
             // the token has expired.
             await sessionRefresher.RefreshIfDueAsync(apiBaseUrl);
             var token = tokenProvider.GetAccessToken(apiBaseUrl);
-            var response = await httpClient.SendAsync(url, "POST", body, token, timeoutSeconds);
+            var response = await httpClient.SendAsync(url, "POST", body, token);
             return ReadResponse(url, operation, response);
         }
 
@@ -302,8 +173,6 @@ namespace NeoCompose.Unity.Editor
 
             if (response.IsSuccessStatus)
                 return response.Text;
-            if (response.StatusCode == 409 && TryReadServerError(response.Text) == "project-read-restart")
-                throw new NeoComposeProjectReadRestartException();
 
             // 401: authentication failure. The session is gone or invalid; the
             // caller routes to re-sign-in. The device flow has no refresh token,

@@ -4,9 +4,10 @@
 #nullable enable
 
 using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
 using NeoCompose.Runtime.Json;
-using Newtonsoft.Json;
 using UnityEngine;
 
 namespace NeoCompose.Runtime
@@ -21,6 +22,14 @@ namespace NeoCompose.Runtime
     public interface IProjectDataSource
     {
         Awaitable<string> ReadProjectJsonAsync();
+
+        /// <summary>
+        /// Reads one partition file named by project.json's partition index,
+        /// relative to project.json's directory. Main thread only:
+        /// <c>Resources.Load</c> requires it, and
+        /// <see cref="NeoClient.LoadValuePartition"/> runs inside gameplay code.
+        /// </summary>
+        string ReadPartitionJson(string file);
     }
 
     /// <summary>
@@ -34,17 +43,22 @@ namespace NeoCompose.Runtime
     }
 
     /// <summary>
-    /// A project data source backed by an in-hand JSON string. Useful for tests,
-    /// custom pipelines, and callers that already hold the export. Reusing one
-    /// instance across project stores also reuses its parsed, project-scoped schema.
+    /// A project data source backed by in-hand JSON: project.json plus the
+    /// partition files its index names, keyed by their index path. Useful for
+    /// tests, editor tools, and callers that already hold the export. Reusing
+    /// one instance across project stores also reuses its parsed,
+    /// project-scoped schema.
     /// </summary>
     public sealed class NeoJsonProjectDataSource : IProjectDataSource, IParsedProjectDataSource
     {
         private readonly string projectJson;
+        private readonly IReadOnlyDictionary<string, string> partitionJsonByFile;
         private readonly object parseLock = new object();
         private ProjectData? parsedProjectData;
 
-        public NeoJsonProjectDataSource(string projectJson)
+        public NeoJsonProjectDataSource(
+            string projectJson,
+            IReadOnlyDictionary<string, string> partitionJsonByFile)
         {
             if (string.IsNullOrWhiteSpace(projectJson))
             {
@@ -52,9 +66,38 @@ namespace NeoCompose.Runtime
             }
 
             this.projectJson = projectJson;
+            this.partitionJsonByFile = partitionJsonByFile
+                ?? throw new ArgumentNullException(nameof(partitionJsonByFile));
+        }
+
+        /// <summary>
+        /// Reads project.json at the path and every partition file its index
+        /// names, from disk. For editor tools.
+        /// </summary>
+        public static NeoJsonProjectDataSource FromFile(string projectJsonPath)
+        {
+            string projectJson = File.ReadAllText(projectJsonPath);
+            string directory = Path.GetDirectoryName(Path.GetFullPath(projectJsonPath))!;
+            var partitionJsonByFile = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (string file in NeoValuePartitions.ReadIndexFiles(projectJson))
+            {
+                partitionJsonByFile[file] = File.ReadAllText(Path.Combine(directory, file));
+            }
+            return new NeoJsonProjectDataSource(projectJson, partitionJsonByFile);
         }
 
         public Awaitable<string> ReadProjectJsonAsync() => NeoAwaitable.FromResult(projectJson);
+
+        public string ReadPartitionJson(string file)
+        {
+            if (!partitionJsonByFile.TryGetValue(file, out string? json))
+            {
+                throw new FileNotFoundException(
+                    $"Neo Compose partition file '{file}' was not supplied with the project JSON. {NeoProjectExportContract.RegenerateAction}",
+                    file);
+            }
+            return json;
+        }
 
         Awaitable<ProjectData> IParsedProjectDataSource.ReadProjectDataAsync() =>
             NeoAwaitable.FromResult(ReadProjectData());
@@ -63,9 +106,12 @@ namespace NeoCompose.Runtime
         {
             lock (parseLock)
             {
-                parsedProjectData ??= NeoInterningJsonReader.Deserialize<ProjectData>(projectJson)
-                    ?? throw new InvalidOperationException(
-                        "Neo Compose project JSON could not be deserialized.");
+                parsedProjectData ??= ProjectDataConverter.Read(
+                    projectJson,
+                    partitionJsonByFile.TryGetValue(NeoProjectExportContract.MainPartitionFile, out string? main)
+                        ? main
+                        : null,
+                    ReadPartitionJson);
                 return parsedProjectData;
             }
         }
@@ -91,14 +137,18 @@ namespace NeoCompose.Runtime
                 // Resource access stays on Unity's main thread. Only the managed
                 // JSON conversion runs in the pool; awaiting Task returns to the
                 // caller's Unity context before the store touches runtime state.
-                string json = await ReadProjectJsonAsync();
-                var source = new NeoJsonProjectDataSource(json);
+                string projectJson = await ReadProjectJsonAsync();
+                string? mainPartitionJson = LoadPartition(NeoProjectExportContract.MainPartitionFile)?.text;
+                ProjectData Parse() => ProjectDataConverter.Read(
+                    projectJson,
+                    mainPartitionJson,
+                    ReadPartitionJson);
 #if !UNITY_WEBGL || UNITY_EDITOR
                 if (Application.isPlaying)
-                    parsedProjectDataTask = Task.Run(source.ReadProjectData);
+                    parsedProjectDataTask = Task.Run(Parse);
                 else
 #endif
-                    parsedProjectDataTask = Task.FromResult(source.ReadProjectData());
+                    parsedProjectDataTask = Task.FromResult(Parse());
             }
             return await parsedProjectDataTask;
         }
@@ -153,11 +203,30 @@ namespace NeoCompose.Runtime
             {
                 throw new InvalidOperationException(
                     $"Neo Compose project JSON was not found in Resources at \"{resourcePath}\". " +
-                    "Synchronize the project so its export is bundled, or pass an explicit " +
-                    "IProjectDataSource / project JSON.");
+                    "Run `neo pull` and `neo export` so its export is bundled, or pass an explicit " +
+                    "IProjectDataSource.");
             }
 
             return NeoAwaitable.FromResult(asset.text);
+        }
+
+        public string ReadPartitionJson(string file)
+        {
+            TextAsset? asset = LoadPartition(file);
+            if (asset == null)
+            {
+                throw new InvalidOperationException(
+                    $"Neo Compose partition file '{file}' was not found in Resources beside \"{resourcePath}\". {NeoProjectExportContract.RegenerateAction}");
+            }
+            return asset.text;
+        }
+
+        /// <summary>Loads a partition file beside project.json; Resources paths drop <c>.json</c>.</summary>
+        private TextAsset? LoadPartition(string file)
+        {
+            int slash = resourcePath.LastIndexOf('/');
+            string directory = slash < 0 ? "" : resourcePath.Substring(0, slash + 1);
+            return Resources.Load<TextAsset>(directory + Path.ChangeExtension(file, null));
         }
     }
 }

@@ -816,7 +816,7 @@ namespace NeoCompose.Tests
                     new NSGetterEvaluator.Context(client, null, null)))!;
 
             StringAssert.Contains("ctor-does-not-exist", error.Message);
-            StringAssert.Contains("Re-export", error.Message);
+            StringAssert.Contains("Run `neo pull` and `neo export`.", error.Message);
         }
 
         [Test]
@@ -1717,7 +1717,7 @@ namespace NeoCompose.Tests
             StringAssert.Contains(
                 "compiled base initializer getters",
                 error.Message);
-            StringAssert.Contains("Re-export", error.Message);
+            StringAssert.Contains("Run `neo pull` and `neo export`.", error.Message);
         }
 
         [Test]
@@ -1942,7 +1942,7 @@ namespace NeoCompose.Tests
                     new NSGetterEvaluator.Context(client, null, null)))!;
 
             StringAssert.Contains("no compiled body", error.Message);
-            StringAssert.Contains("Re-export", error.Message);
+            StringAssert.Contains("Run `neo pull` and `neo export`.", error.Message);
         }
 
         // -------------------------------------------------------------------

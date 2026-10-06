@@ -22,8 +22,9 @@ namespace NeoCompose.Unity.Editor
     {
         /// <summary>
         /// Ensures the secret asset exists (next to the config) and that a sibling
-        /// <c>.gitignore</c> excludes it. Called by the synchronize flow so a freshly
-        /// linked project is git-safe without any manual setup.
+        /// <c>.gitignore</c> excludes it. Called on the first key edit and by the
+        /// build processor, so the secret is never created without its
+        /// <c>.gitignore</c>.
         /// </summary>
         public static NeoComposeRuntimeSecret EnsureAssetAndGitignore()
         {

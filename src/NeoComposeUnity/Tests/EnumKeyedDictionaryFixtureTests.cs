@@ -108,7 +108,7 @@ namespace NeoCompose.Tests
         [Test]
         public void ReadOnlyClassField_UsesDeclarationDefaultWithoutInstanceEdge()
         {
-            ProjectData export = JsonConvert.DeserializeObject<ProjectData>(
+            ProjectData export = NeoTestExport.Read(
                 LoadFixture("synth-example.json"))!;
             var heroRow = (ObjectMemberValue)export.values["v-dict"];
             Assert.IsFalse(heroRow.value!.ContainsKey("BaseDamage"));

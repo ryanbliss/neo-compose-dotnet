@@ -494,13 +494,13 @@ namespace NeoCompose.Tests
         {
             using Fixture fixture = Build(plants: 1, configure: data =>
             {
-                data.valuePartitions = new Dictionary<string, JToken>
+                data.valuePartitions = NeoTestExport.Partitions(new Dictionary<string, JToken>
                 {
                     ["garden"] = JObject.FromObject(new Dictionary<string, MemberValue>
                     {
                         ["value-bed"] = new ArrayMemberValue { id = "value-bed", value = Array.Empty<string>() },
                     }),
-                };
+                });
             });
             fixture.client.StartScriptRuntime();
             fixture.client.SetWritableValues(NeoValueOwnership.Save, new MemberValue[]

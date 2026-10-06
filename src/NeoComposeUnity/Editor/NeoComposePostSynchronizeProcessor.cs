@@ -11,32 +11,12 @@ using System.Reflection;
 using System.Threading;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
 namespace NeoCompose.Unity.Editor
 {
-    internal static class NeoComposePostSynchronizeAssetImporter
-    {
-        internal static void ImportChangedOutputs(
-            IReadOnlyList<string> changedPaths,
-            Action<string> importAsset)
-        {
-            if (importAsset == null)
-                throw new ArgumentNullException(nameof(importAsset));
-
-            // These are the only raw-written outputs that still need to enter
-            // Unity's asset pipeline. Importing them directly also starts script
-            // compilation when generated C# changed, without scanning every asset
-            // in the project through AssetDatabase.Refresh.
-            foreach (var path in changedPaths)
-                importAsset(path);
-        }
-    }
-
     [InitializeOnLoad]
     internal static class NeoComposePostSynchronizeProcessor
     {
@@ -73,7 +53,7 @@ namespace NeoCompose.Unity.Editor
             };
         }
 
-        public static void Schedule(NeoComposeConfig config, string projectJsonPath, IReadOnlyList<string> changedPaths)
+        public static void Schedule(NeoComposeConfig config, string projectJsonPath)
         {
             string assetDatabasePath = NeoComposePathUtility.CombineAssetPath(
                 config.projectJsonDirectory,
@@ -91,13 +71,6 @@ namespace NeoCompose.Unity.Editor
                 Status = NeoPostSynchronizeGenerationStatus.Pending,
             };
             Persistence.Save(generation);
-
-            AssetDatabase.StartAssetEditing();
-            try
-            {
-                NeoComposePostSynchronizeAssetImporter.ImportChangedOutputs(changedPaths, AssetDatabase.ImportAsset);
-            }
-            finally { AssetDatabase.StopAssetEditing(); }
             EditorApplication.delayCall += TryRunPending;
         }
 
@@ -131,9 +104,8 @@ namespace NeoCompose.Unity.Editor
                         generation.ProjectJsonPath);
                 }
 
-                string projectJson = File.ReadAllText(generation.ProjectJsonPath);
-                ProjectData projectData = JsonConvert.DeserializeObject<ProjectData>(projectJson)
-                    ?? throw new InvalidOperationException("Neo Compose project JSON could not be deserialized after synchronization.");
+                NeoJsonProjectDataSource dataSource = NeoJsonProjectDataSource.FromFile(generation.ProjectJsonPath);
+                ProjectData projectData = dataSource.ReadProjectData();
                 Type? generatedProjectType = FindGeneratedProjectType(
                     generation.GeneratedNamespace);
                 if (generatedProjectType == null)
@@ -153,7 +125,7 @@ namespace NeoCompose.Unity.Editor
                 using (TaskCoordinator.BeginCollection(generation))
                 {
                     await RunAsync(
-                        projectJson,
+                        dataSource,
                         projectData,
                         generation.AssetDatabasePath,
                         generatedProjectType,
@@ -236,7 +208,7 @@ namespace NeoCompose.Unity.Editor
         /// window so the message replaces the last mid-sync progress line (which a
         /// domain reload can otherwise leave stuck).
         /// </summary>
-        private static void SetStatus(string message, MessageType severity)
+        internal static void SetStatus(string message, MessageType severity)
         {
             SessionState.SetString(NeoComposeEditorWindow.StatusSessionKey, message);
             SessionState.SetInt(
@@ -249,7 +221,7 @@ namespace NeoCompose.Unity.Editor
         }
 
         private static async Awaitable RunAsync(
-            string projectJson,
+            NeoJsonProjectDataSource dataSource,
             ProjectData projectData,
             string assetDatabasePath,
             Type generatedProjectType,
@@ -260,7 +232,7 @@ namespace NeoCompose.Unity.Editor
             // the synchronized project data.
             NeoClient.InvalidateAllAnimationClips();
             using var store = new NeoProjectStore(
-                dataSource: new NeoJsonProjectDataSource(projectJson),
+                dataSource: dataSource,
                 localStore: new NeoInMemoryLocalSaveStore());
             using var project = await LoadGeneratedProjectAsync(
                 generatedProjectType,

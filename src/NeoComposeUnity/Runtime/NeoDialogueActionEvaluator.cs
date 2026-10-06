@@ -310,13 +310,13 @@ namespace NeoCompose.Runtime
             if (body.compilerRevision is null)
             {
                 throw new NeoScriptPreExecutionValidationError(
-                    $"NeoScript body carries no compiler revision stamp; this SDK executes only revision {FunctionWithReturnType.CurrentCompilerRevision}. Re-export the project from a Neo Compose deployment at revision {FunctionWithReturnType.CurrentCompilerRevision}.");
+                    $"NeoScript body carries no compiler revision stamp; this SDK executes only revision {FunctionWithReturnType.CurrentCompilerRevision}. Run `neo pull` and `neo export` against a Neo Compose deployment at revision {FunctionWithReturnType.CurrentCompilerRevision}.");
             }
             if (body.compilerRevision.Value
                 != FunctionWithReturnType.CurrentCompilerRevision)
             {
                 throw new NeoScriptPreExecutionValidationError(
-                    $"NeoScript body is stamped compiler revision {body.compilerRevision.Value}; this SDK executes only revision {FunctionWithReturnType.CurrentCompilerRevision}. Re-export the project from a deployment at revision {FunctionWithReturnType.CurrentCompilerRevision}, or install the SDK release that matches the export.");
+                    $"NeoScript body is stamped compiler revision {body.compilerRevision.Value}; this SDK executes only revision {FunctionWithReturnType.CurrentCompilerRevision}. Run `neo pull` and `neo export` against a deployment at revision {FunctionWithReturnType.CurrentCompilerRevision}, or install the SDK release that matches the export.");
             }
             if (body.validatedForExecution)
                 return;

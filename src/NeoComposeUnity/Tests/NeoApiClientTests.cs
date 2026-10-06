@@ -622,9 +622,6 @@ namespace NeoCompose.Tests
                 return Task.FromResult(new NeoComposeWebResponse(
                     status, false, bodyForUrl?.Invoke(new System.Uri(url).AbsolutePath) ?? body, ""));
             }
-
-            public Task<byte[]> DownloadAsync(string url) =>
-                Task.FromResult(System.Array.Empty<byte>());
         }
     }
 }
