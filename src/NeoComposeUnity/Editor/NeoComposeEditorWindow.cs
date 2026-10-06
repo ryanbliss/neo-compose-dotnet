@@ -89,6 +89,12 @@ namespace NeoCompose.Unity.Editor
         private const float BrowseButtonWidth = 72f;
         private const float RemoveButtonWidth = 76f;
 
+        // A non-wrapping EditorGUILayout.LabelField reserves labelWidth +
+        // fieldWidth + 5 (205 px) as its minimum width. Beside a header row's
+        // fixed-width buttons that minimum set the whole window's width and
+        // forced a horizontal scrollbar. The name clips instead.
+        private static readonly GUILayoutOption ShrinkableHeaderLabel = GUILayout.MinWidth(0);
+
         [MenuItem("Tools/Neo Compose")]
         [MenuItem("Window/Neo Compose")]
         public static void Open()
@@ -181,9 +187,7 @@ namespace NeoCompose.Unity.Editor
             EditorGUILayout.BeginVertical();
 
             EditorGUILayout.LabelField("Neo Compose", TitleStyle());
-            EditorGUILayout.LabelField(
-                "Links this Unity project to a Neo Compose project. Run `neo export` to bring its files in.",
-                MutedStyle());
+            EditorGUILayout.LabelField("Links this Unity project to a Neo Compose project.", MutedStyle());
             RenderRigStatus();
             EditorGUILayout.Space(2);
             RenderAccountSection(config);
@@ -314,7 +318,8 @@ namespace NeoCompose.Unity.Editor
             EditorGUILayout.BeginVertical();
             EditorGUILayout.LabelField(
                 auth.DisplayName.Length > 0 ? auth.DisplayName : "Signed in",
-                ProjectNameStyle());
+                ProjectNameStyle(),
+                ShrinkableHeaderLabel);
             if (auth.DisplayEmail.Length > 0)
             {
                 EditorGUILayout.LabelField(auth.DisplayEmail, MutedStyle());
@@ -518,7 +523,7 @@ namespace NeoCompose.Unity.Editor
         {
             BeginSection("Project");
             EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.LabelField(config.projectName, ProjectNameStyle());
+            EditorGUILayout.LabelField(config.projectName, ProjectNameStyle(), ShrinkableHeaderLabel);
             GUILayout.FlexibleSpace();
             // The raw id is developer plumbing — keep it off the card and one
             // click away (full value in the tooltip for a quick eyeball).
