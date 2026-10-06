@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.58.1] - 2026-10-06
+
+- The Neo Compose window fits Unity's default 320 px window width again. In 0.58.0 it needed 502 px and showed a horizontal scrollbar that hid the Account and Project buttons: the account and project names each reserved 205 px, and the Project row gained an "Edit in web" button. The names now clip when space runs short, and the window needs about 300 px.
+- The window's subtitle reads "Links this Unity project to a Neo Compose project." without the `neo export` sentence.
+
 ## [0.58.0] - 2026-10-05
 
 P100: the `neo` CLI exports Unity projects, and Unity ingests what it wrote. Every Unity project must run `neo pull`, then `neo export` (or `neo export --unity-project <dir>`), after upgrading. Requires export schema 36 and CLI 0.69.0. A schema 35 export fails to load with "Project export schema version 35 is unsupported … Run `neo pull` and `neo export`."
