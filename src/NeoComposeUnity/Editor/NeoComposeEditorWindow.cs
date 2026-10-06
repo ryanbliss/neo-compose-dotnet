@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using NeoCompose.Runtime;
@@ -551,6 +552,18 @@ namespace NeoCompose.Unity.Editor
             }
 
             EditorGUILayout.EndHorizontal();
+            if (NeoComposeLocalExport.TryGetLocalWorkspace(
+                    Directory.GetCurrentDirectory(),
+                    config,
+                    out string workspaceRoot))
+            {
+                EditorGUILayout.LabelField(new GUIContent(
+                    "Local export",
+                    EditorGUIUtility.IconContent("console.warnicon.sml").image,
+                    $"Exported from {workspaceRoot} with edits that aren't pushed. Player builds fail and saves stay local. " +
+                    "Run `neo push`, or revert the edits and run `neo export`."));
+            }
+
             EditorGUILayout.Space(4);
             RenderVersionSelectionContent(config);
             EndSection();

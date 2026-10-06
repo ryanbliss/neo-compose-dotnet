@@ -246,8 +246,13 @@ namespace NeoCompose.Tests
             };
         }
 
-        public Awaitable<NeoSaveFileList> ListSavesAsync(string? targetReleaseChannelId) =>
-            NeoAwaitable.FromResult(list);
+        public int listCalls;
+
+        public Awaitable<NeoSaveFileList> ListSavesAsync(string? targetReleaseChannelId)
+        {
+            listCalls++;
+            return NeoAwaitable.FromResult(list);
+        }
 
         public Awaitable<RemoteGameSave> GetSaveAsync(string customId)
         {
