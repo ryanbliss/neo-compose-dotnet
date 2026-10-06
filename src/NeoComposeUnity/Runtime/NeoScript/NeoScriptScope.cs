@@ -160,6 +160,7 @@ namespace NeoCompose.Runtime.NeoScript
             ListIndexFunction index => index.info.collectionPointer,
             WhereFunction where => where.info.collectionPointer,
             SelectFunction select => select.info.collectionPointer,
+            CollectionQueryFunction query => query.info.collectionPointer,
             _ => null,
         };
 

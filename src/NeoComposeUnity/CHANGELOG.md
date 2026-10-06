@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.61.0] - 2026-10-06
+
+- Add eager collection queries including Any, All, SelectMany, stable OrderBy, Last, Single, Skip/Take, Reverse, and Concat.
+- Support `is not` with pattern bindings and flow narrowing.
+- Add Debug.Log, LogWarning, LogError, and Assert with authored NeoScript locations and injectable diagnostic sinks.
+- Export schema 38 requires Neo Compose SDK 0.60.0; inline runtime data uses schema 37. Existing valid compiler-revision-17 bodies remain supported.
+
 ## [0.60.0] - 2026-10-06
 
 P103: generated Neo enums are real C# enums, so game code can `switch` on them. Run `neo export` after upgrading so generated code matches; a project generated before this release does not compile against it.

@@ -86,6 +86,7 @@ namespace NeoCompose.Runtime
             ctx.allocationTracker.EnterExecution();
             client.EnterScriptWrites();
             bool exited = false;
+            ctx.trace.Push(body);
             try
             {
                 NeoScriptExecutionResult result = ExecuteInstructions(
@@ -102,19 +103,21 @@ namespace NeoCompose.Runtime
                     // Only a suspended body needs continuation state; the
                     // synchronous path completes without capturing anything.
                     return new SuspendedExecution(client, body, ctx, normalizeTerminal)
-                        .Continue(result);
+                        .Continue(result).WithTrace(ctx.trace);
                 }
                 return CompleteExecution(
                     client, body, ctx, normalizeTerminal, result, ref exited);
             }
-            catch
+            catch (Exception error)
             {
+                ctx.trace.Attach(error);
                 if (!exited)
                     ctx.allocationTracker.ExitExecution(client, ctx, default);
                 throw;
             }
             finally
             {
+                ctx.trace.Pop();
                 client.ExitScriptWrites();
             }
         }
@@ -528,6 +531,7 @@ namespace NeoCompose.Runtime
                 for (; i < instructions.Length; i++)
                 {
                     var instruction = instructions[i];
+                    ctx.trace.Position(instruction.source);
                     if (pendingFrame && instruction.MayCall)
                     {
                         pendingFrame = false;
@@ -541,6 +545,27 @@ namespace NeoCompose.Runtime
                     expressionState.BeginInstructionAttempt();
                     switch (instruction.code)
                     {
+                        case InstructionCode.Debug:
+                            {
+                                var debug = (DebugInstruction)instruction;
+                                object? condition = debug.condition is null ? false : NSGetterEvaluator.EvaluatePointer(debug.condition, scope, actionCtx);
+                                object? message = NSGetterEvaluator.EvaluatePointer(debug.message, scope, actionCtx);
+                                if (debug.severity == "assert" && condition is not bool)
+                                    throw new NSGetterRuntimeError("Debug.Assert requires a bool condition.");
+                                if (condition is not true && ctx.DebugSink is { } sink)
+                                {
+                                    var debugEvent = new NeoScriptDebugEvent(debug.severity, NSGetterEvaluator.FormatDebugValue(message, debug.messageType, ctx), ctx.trace.Snapshot());
+                                    try
+                                    {
+                                        sink(debugEvent);
+                                    }
+                                    catch
+                                    {
+                                        // Logging cannot change script execution.
+                                    }
+                                }
+                                break;
+                            }
                         case InstructionCode.Variable:
                             {
                                 var variable = (VariableInstruction)instruction;
@@ -6576,6 +6601,7 @@ namespace NeoCompose.Runtime
         internal NeoScriptExecutionResult Execution
         {
             get;
+            set;
         }
     }
 
@@ -7036,6 +7062,41 @@ namespace NeoCompose.Runtime
                     fail(observerException);
                 }
             });
+        }
+
+        /// <summary>Restore this invocation's authored stack only while its continuation runs.</summary>
+        internal NeoScriptExecutionResult WithTrace(NeoScriptTraceState trace)
+        {
+            if (state is not PausedState paused || paused.resume is null)
+                return this;
+            var captured = trace.Capture();
+            return new NeoScriptExecutionResult(new PausedState(
+                paused.suspendedMemberId, paused.deferred, paused.suspension,
+                value => trace.RestoreDuring(captured, () => paused.resume(value).WithTrace(trace)),
+                error => trace.RestoreDuring(captured, () =>
+                {
+                    try
+                    {
+                        paused.failureObserver?.Invoke(error);
+                        return true;
+                    }
+                    finally
+                    {
+                        trace.Attach(error);
+                    }
+                }),
+                paused.abandonmentObserver,
+                paused.failureRecovery is null ? null : error => trace.RestoreDuring(captured, () =>
+                {
+                    try
+                    {
+                        return paused.failureRecovery(error)?.WithTrace(trace);
+                    }
+                    finally
+                    {
+                        trace.Attach(error);
+                    }
+                })));
         }
 
         internal NeoScriptExecutionResult Then(

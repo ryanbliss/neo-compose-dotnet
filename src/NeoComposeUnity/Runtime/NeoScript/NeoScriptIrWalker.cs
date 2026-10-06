@@ -51,6 +51,8 @@ namespace NeoCompose.Runtime.NeoScript
         {
             switch (instruction)
             {
+                case DebugInstruction debug:
+                    return AnyPointer(debug.message, predicate) || (debug.condition is not null && AnyPointer(debug.condition, predicate));
                 case VariableInstruction variable:
                     return AnyPointer(variable.variable.pointer, predicate);
                 case IfInstruction conditional:
@@ -264,6 +266,11 @@ namespace NeoCompose.Runtime.NeoScript
                 case SelectFunction select:
                     return AnyPointer(select.info.collectionPointer, predicate)
                         || AnyPointer(select.info.function.instructions, predicate);
+                case CollectionQueryFunction query:
+                    return AnyPointer(query.info.collectionPointer, predicate)
+                        || (query.info.countPointer is not null && AnyPointer(query.info.countPointer, predicate))
+                        || (query.info.otherPointer is not null && AnyPointer(query.info.otherPointer, predicate))
+                        || (query.info.function is not null && AnyPointer(query.info.function.instructions, predicate));
                 case WhereFunction where:
                     return AnyPointer(where.info.collectionPointer, predicate)
                         || AnyPointer(where.info.function.instructions, predicate);

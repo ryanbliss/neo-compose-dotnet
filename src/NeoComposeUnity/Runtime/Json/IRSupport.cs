@@ -63,6 +63,7 @@ namespace NeoCompose.Runtime.Json
 
     public static class InstructionKind
     {
+        public const string Debug = "debug";
         public const string Variable = "variable";
         public const string If = "if";
         public const string Return = "return";
@@ -143,6 +144,7 @@ namespace NeoCompose.Runtime.Json
         public const string Select = "select";
         public const string First = "first";
         public const string FirstOrDefault = "firstOrDefault";
+        public const string CollectionQuery = "collectionQuery";
         public const string Where = "where";
         public const string Contains = "contains";
         public const string Count = "count";
@@ -471,6 +473,7 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public class FunctionWithReturnType
     {
+        public NeoScriptSourceInfo? source;
         /// <summary>Set once the runtime has validated this body's instruction metadata; instructions are immutable after load. The compiler revision stamp is still checked on every execution.</summary>
         [Newtonsoft.Json.JsonIgnore]
         internal bool validatedForExecution;

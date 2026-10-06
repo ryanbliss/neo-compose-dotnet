@@ -21,6 +21,7 @@ namespace NeoCompose.Runtime.Json
     {
         /// <summary>One of <see cref="PointerKind"/>.</summary>
         public string type = null!;
+        public NeoScriptSourcePosition? source;
 
         /// <summary>
         /// Stable source location for call pointers. Kept on the base shape so
@@ -180,6 +181,7 @@ namespace NeoCompose.Runtime.Json
     {
         public Pointer pointer = null!;
         public TypeInfo checkType = null!;
+        public string? bindingId;
     }
 
     public static class CallReceiverKind

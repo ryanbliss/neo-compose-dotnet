@@ -23,6 +23,7 @@ namespace NeoCompose.Runtime.Json
     {
         /// <summary>One of <see cref="InstructionKind"/>.</summary>
         public string type = null!;
+        public NeoScriptSourcePosition? source;
 
         /// <summary>
         /// The interpreter's dispatch key: a jump table, where a switch on
@@ -59,6 +60,7 @@ namespace NeoCompose.Runtime.Json
 
     internal enum InstructionCode : byte
     {
+        Debug,
         Variable,
         If,
         Return,
@@ -81,6 +83,15 @@ namespace NeoCompose.Runtime.Json
     /// Local variable declaration. Mirrors TS-side
     /// <c>INSInstructionVariable</c>.
     /// </summary>
+    public sealed class DebugInstruction : Instruction
+    {
+        public DebugInstruction() : base(InstructionCode.Debug) { }
+        public string severity = null!;
+        public Pointer message = null!;
+        public TypeInfo messageType = null!;
+        public Pointer? condition;
+    }
+
     public sealed class VariableInstruction : Instruction
     {
         public VariableInstruction()
@@ -401,6 +412,8 @@ namespace NeoCompose.Runtime.Json
         {
             switch (discriminator.Value<string>())
             {
+                case InstructionKind.Debug:
+                    return typeof(DebugInstruction);
                 case InstructionKind.Variable:
                     return typeof(VariableInstruction);
                 case InstructionKind.If:
@@ -446,6 +459,12 @@ namespace NeoCompose.Runtime.Json
 
         protected override void ValidateObject(JObject obj, Type concrete)
         {
+            if (concrete == typeof(DebugInstruction))
+            {
+                string? severity = obj["severity"]?.Value<string>();
+                if (severity is not ("log" or "warning" or "error" or "assert") || !IsPointerObject(obj["message"]) || obj["messageType"] is not JObject || (severity == "assert" ? !IsPointerObject(obj["condition"]) : obj["condition"] is not null))
+                    throw new JsonSerializationException("Debug instruction requires severity, message, type information, and an Assert condition only.");
+            }
             if (typeof(ChangeListenerInstruction).IsAssignableFrom(concrete))
             {
                 if (obj["target"] is not JObject target)

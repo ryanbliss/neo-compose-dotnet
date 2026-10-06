@@ -27,9 +27,16 @@ namespace NeoCompose.Runtime.NeoScript
     /// </summary>
     public class NSGetterRuntimeError : System.Exception
     {
+        public System.Collections.Generic.IReadOnlyList<NeoScriptStackFrame>? NeoScriptFrames => Data["neoScriptFrames"] as System.Collections.Generic.IReadOnlyList<NeoScriptStackFrame>;
+        public override string ToString() => base.ToString() + (NeoScriptFrames is { } frames ? "\nNeoScript:\n" + NeoScriptDebug.FormatFrames(frames) : "");
+
         public NSGetterRuntimeError(string message) : base(message) { }
 
-        public NSGetterRuntimeError(string message, System.Exception innerException) : base(message, innerException) { }
+        public NSGetterRuntimeError(string message, System.Exception innerException) : base(message, innerException)
+        {
+            if (innerException.Data.Contains("neoScriptFrames"))
+                Data["neoScriptFrames"] = innerException.Data["neoScriptFrames"];
+        }
     }
 
     /// <summary>
