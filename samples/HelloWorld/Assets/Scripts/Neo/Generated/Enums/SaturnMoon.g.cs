@@ -11,40 +11,49 @@ using UnityEngine;
 
 namespace HelloWorld.Assets.Scripts.Neo
 {
-    public sealed class SaturnMoon : IEquatable<SaturnMoon>, global::NeoCompose.Runtime.INeoEnumOption
+    [NeoEnum(typeof(SaturnMoonOptions))]
+    public enum SaturnMoon
     {
-        private static readonly Dictionary<string, SaturnMoon> values = new Dictionary<string, SaturnMoon>();
-        public string optionId { get; }
-        public string Text => TextForOptionId(optionId);
-        public string TextId => TextIdForOptionId(optionId);
+        titan = 1382943264,
+        enceladus = 919004852,
+    }
 
-        private SaturnMoon(string optionId)
-        {
-            this.optionId = optionId;
-        }
-
-        public static readonly SaturnMoon titan = FromOptionId("71a4807b-b9d9-5ed7-b4b1-39cce6b49457");
-        public static readonly SaturnMoon enceladus = FromOptionId("8875803f-5d33-582a-bb56-1389f7746d34");
-
+    /// <summary>
+    /// Converts <see cref="SaturnMoon"/> to and from the option ids Neo stores.
+    /// </summary>
+    public static class SaturnMoonOptions
+    {
         public static SaturnMoon FromOptionId(string optionId)
         {
-            if (values.TryGetValue(optionId, out var known)) return known;
-            var created = new SaturnMoon(optionId);
-            values[optionId] = created;
-            return created;
+            return optionId switch
+            {
+                "71a4807b-b9d9-5ed7-b4b1-39cce6b49457" => SaturnMoon.titan,
+                "8875803f-5d33-582a-bb56-1389f7746d34" => SaturnMoon.enceladus,
+                _ => NeoUndeclaredEnumOptions<SaturnMoon>.FromOptionId(optionId),
+            };
+        }
+
+        public static string OptionId(this SaturnMoon value)
+        {
+            return value switch
+            {
+                SaturnMoon.titan => "71a4807b-b9d9-5ed7-b4b1-39cce6b49457",
+                SaturnMoon.enceladus => "8875803f-5d33-582a-bb56-1389f7746d34",
+                _ => NeoUndeclaredEnumOptions<SaturnMoon>.OptionId(value),
+            };
         }
 
         public static string[] ToOptionIds(IEnumerable<SaturnMoon>? options)
         {
             if (options is null) return Array.Empty<string>();
             var ids = new List<string>();
-            foreach (var option in options) ids.Add(option.optionId);
+            foreach (var option in options) ids.Add(option.OptionId());
             return ids.ToArray();
         }
 
-        public static bool IsKnown(string id)
+        public static bool IsKnown(string optionId)
         {
-            return id switch
+            return optionId switch
             {
                 "71a4807b-b9d9-5ed7-b4b1-39cce6b49457" => true,
                 "8875803f-5d33-582a-bb56-1389f7746d34" => true,
@@ -52,28 +61,19 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public static string TextIdForOptionId(string optionId)
+        public static string TextId(this SaturnMoon value)
         {
-            return optionId switch
+            return value switch
             {
-                "71a4807b-b9d9-5ed7-b4b1-39cce6b49457" => "Titan",
-                "8875803f-5d33-582a-bb56-1389f7746d34" => "Enceladus",
-                _ => optionId,
+                SaturnMoon.titan => "Titan",
+                SaturnMoon.enceladus => "Enceladus",
+                _ => value.OptionId(),
             };
         }
 
-        public static string TextForOptionId(string optionId, NeoClient? client = null)
+        public static string Text(this SaturnMoon value, NeoClient? client = null)
         {
-            return (client ?? HelloWorldNeo.RequireInstance().Client).Localization.ResolveText(TextIdForOptionId(optionId));
+            return (client ?? HelloWorldNeo.RequireInstance().Client).Localization.ResolveText(value.TextId());
         }
-
-        public static implicit operator string(SaturnMoon value) => value.optionId;
-        public static implicit operator SaturnMoon(string optionId) => FromOptionId(optionId);
-        public override string ToString() => optionId;
-        public bool Equals(SaturnMoon? other) => other is not null && optionId == other.optionId;
-        public override bool Equals(object? obj) => Equals(obj as SaturnMoon);
-        public override int GetHashCode() => optionId.GetHashCode();
-        public static bool operator ==(SaturnMoon? left, SaturnMoon? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
-        public static bool operator !=(SaturnMoon? left, SaturnMoon? right) => !(left == right);
     }
 }

@@ -104,7 +104,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         }
 
         Vector2Int INeoSmartTileNeighbor.Cell => Cell.Value;
-        string INeoSmartTileNeighbor.Condition => Condition.optionId;
+        string INeoSmartTileNeighbor.Condition => Condition.OptionId();
         string? INeoSmartTileNeighbor.TileClassId => ResolveExactInternalRecordRelationTarget(InternalRecordRelationKinds.WorldSmartTileNeighborTile, "value", "class");
 
         public virtual NeoReadOnlyVector2Int Cell
@@ -123,10 +123,10 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 if (TryReadDetached("Condition", out object? detachedValue))
                 {
-                    return NeoGeneratedTypesSupport.ReadEnumSingle(detachedValue, static (factoryOptionId) => NeoSmartTileCondition.FromOptionId(factoryOptionId)) ?? throw new InvalidOperationException("Required enum 'Condition' has no selected option.");
+                    return NeoGeneratedTypesSupport.ReadEnumSingle(detachedValue, static (factoryOptionId) => NeoSmartTileConditionOptions.FromOptionId(factoryOptionId)) ?? throw new InvalidOperationException("Required enum 'Condition' has no selected option.");
                 }
                 var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoMemberEnum>("Condition"));
-                return selected is null ? throw new InvalidOperationException("Required enum 'Condition' has no selected option.") : NeoSmartTileCondition.FromOptionId(selected);
+                return selected is null ? throw new InvalidOperationException("Required enum 'Condition' has no selected option.") : NeoSmartTileConditionOptions.FromOptionId(selected);
             }
         }
 

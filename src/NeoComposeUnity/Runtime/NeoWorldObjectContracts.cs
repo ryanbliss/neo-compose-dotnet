@@ -180,6 +180,7 @@ namespace NeoCompose.Runtime
         /// than <see cref="NeoSpriteMaskInteraction"/>: this contract is the
         /// renderer's data view of a value, and generated code satisfies it
         /// with an explicit bridge off its own typed member. Convert with
+        /// <see cref="NeoSpriteMaskInteractionOptions.FromOptionId"/> and
         /// <see cref="NeoSpriteMaskInteractions.ToUnity"/>.
         /// </summary>
         string MaskInteraction
@@ -200,38 +201,46 @@ namespace NeoCompose.Runtime
     /// <summary>
     /// How a sprite reads against a mask — the one mask-interaction type game
     /// code sees, shared with the renderer's own contract. Its option ids are
-    /// contract ids, so its generated wrapper would be byte-identical in every
+    /// contract ids, so its generated enum would be byte-identical in every
     /// project; the SDK ships that exact shape once and codegen skips emitting
     /// it, the same arrangement <see cref="NeoPlayDirection"/> uses.
     /// The body below must stay identical to what the generator would emit —
     /// the web repo's sdk-runtime-enums binding pins the ids and member names.
     /// </summary>
-    public sealed class NeoSpriteMaskInteraction : IEquatable<NeoSpriteMaskInteraction>, INeoEnumOption
+    [NeoEnum(typeof(NeoSpriteMaskInteractionOptions))]
+    public enum NeoSpriteMaskInteraction
     {
-        private static readonly Dictionary<string, NeoSpriteMaskInteraction> values = new Dictionary<string, NeoSpriteMaskInteraction>();
-        public string optionId
-        {
-            get;
-        }
-        public string Text => TextForOptionId(optionId);
-        public string TextId => TextIdForOptionId(optionId);
+        None = 218713620,
+        VisibleInsideMask = 452037583,
+        VisibleOutsideMask = 743191512,
+    }
 
-        private NeoSpriteMaskInteraction(string optionId)
-        {
-            this.optionId = optionId;
-        }
-
-        public static readonly NeoSpriteMaskInteraction None = FromOptionId("system_9d607a4f-60c3-4347-94fc-f24b538bf468");
-        public static readonly NeoSpriteMaskInteraction VisibleInsideMask = FromOptionId("system_4c670ac9-78a4-44e9-9833-94e1c69dca97");
-        public static readonly NeoSpriteMaskInteraction VisibleOutsideMask = FromOptionId("system_a0aeb200-7216-49e2-aad2-e151ff35c336");
-
+    /// <summary>
+    /// Converts <see cref="NeoSpriteMaskInteraction"/> to and from the option
+    /// ids Neo stores.
+    /// </summary>
+    public static class NeoSpriteMaskInteractionOptions
+    {
         public static NeoSpriteMaskInteraction FromOptionId(string optionId)
         {
-            if (values.TryGetValue(optionId, out var known))
-                return known;
-            var created = new NeoSpriteMaskInteraction(optionId);
-            values[optionId] = created;
-            return created;
+            return optionId switch
+            {
+                "system_9d607a4f-60c3-4347-94fc-f24b538bf468" => NeoSpriteMaskInteraction.None,
+                "system_4c670ac9-78a4-44e9-9833-94e1c69dca97" => NeoSpriteMaskInteraction.VisibleInsideMask,
+                "system_a0aeb200-7216-49e2-aad2-e151ff35c336" => NeoSpriteMaskInteraction.VisibleOutsideMask,
+                _ => NeoUndeclaredEnumOptions<NeoSpriteMaskInteraction>.FromOptionId(optionId),
+            };
+        }
+
+        public static string OptionId(this NeoSpriteMaskInteraction value)
+        {
+            return value switch
+            {
+                NeoSpriteMaskInteraction.None => "system_9d607a4f-60c3-4347-94fc-f24b538bf468",
+                NeoSpriteMaskInteraction.VisibleInsideMask => "system_4c670ac9-78a4-44e9-9833-94e1c69dca97",
+                NeoSpriteMaskInteraction.VisibleOutsideMask => "system_a0aeb200-7216-49e2-aad2-e151ff35c336",
+                _ => NeoUndeclaredEnumOptions<NeoSpriteMaskInteraction>.OptionId(value),
+            };
         }
 
         public static string[] ToOptionIds(IEnumerable<NeoSpriteMaskInteraction>? options)
@@ -240,13 +249,13 @@ namespace NeoCompose.Runtime
                 return Array.Empty<string>();
             var ids = new List<string>();
             foreach (var option in options)
-                ids.Add(option.optionId);
+                ids.Add(option.OptionId());
             return ids.ToArray();
         }
 
-        public static bool IsKnown(string id)
+        public static bool IsKnown(string optionId)
         {
-            return id switch
+            return optionId switch
             {
                 "system_9d607a4f-60c3-4347-94fc-f24b538bf468" => true,
                 "system_4c670ac9-78a4-44e9-9833-94e1c69dca97" => true,
@@ -255,36 +264,27 @@ namespace NeoCompose.Runtime
             };
         }
 
-        public static string TextIdForOptionId(string optionId)
+        public static string TextId(this NeoSpriteMaskInteraction value)
         {
-            return optionId switch
+            return value switch
             {
-                "system_9d607a4f-60c3-4347-94fc-f24b538bf468" => "None",
-                "system_4c670ac9-78a4-44e9-9833-94e1c69dca97" => "Visible inside mask",
-                "system_a0aeb200-7216-49e2-aad2-e151ff35c336" => "Visible outside mask",
-                _ => optionId,
+                NeoSpriteMaskInteraction.None => "None",
+                NeoSpriteMaskInteraction.VisibleInsideMask => "Visible inside mask",
+                NeoSpriteMaskInteraction.VisibleOutsideMask => "Visible outside mask",
+                _ => value.OptionId(),
             };
         }
 
-        public static string TextForOptionId(string optionId, NeoClient? client = null)
+        public static string Text(this NeoSpriteMaskInteraction value, NeoClient? client = null)
         {
-            return client is null ? TextIdForOptionId(optionId) : client.Localization.ResolveText(TextIdForOptionId(optionId));
+            return client is null ? value.TextId() : client.Localization.ResolveText(value.TextId());
         }
-
-        public static implicit operator string(NeoSpriteMaskInteraction value) => value.optionId;
-        public static implicit operator NeoSpriteMaskInteraction(string optionId) => FromOptionId(optionId);
-        public override string ToString() => optionId;
-        public bool Equals(NeoSpriteMaskInteraction? other) => other is not null && optionId == other.optionId;
-        public override bool Equals(object? obj) => Equals(obj as NeoSpriteMaskInteraction);
-        public override int GetHashCode() => optionId.GetHashCode();
-        public static bool operator ==(NeoSpriteMaskInteraction? left, NeoSpriteMaskInteraction? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
-        public static bool operator !=(NeoSpriteMaskInteraction? left, NeoSpriteMaskInteraction? right) => !(left == right);
     }
 
     /// <summary>
     /// Unity interop for <see cref="NeoSpriteMaskInteraction"/>.
     ///
-    /// It lives beside the type rather than on it because the wrapper's body
+    /// It lives beside the options class rather than in it because that body
     /// has to stay byte-identical to what codegen would emit — an SDK-only
     /// member there would be a body the generator never writes, and the next
     /// person to compare the two would have no way to tell which differences
@@ -293,29 +293,20 @@ namespace NeoCompose.Runtime
     public static class NeoSpriteMaskInteractions
     {
         /// <summary>
-        /// The Unity enum an authored option maps onto. Accepts an option id
-        /// directly — the implicit conversion interns it — so a renderer can
-        /// pass <see cref="INeoSpriteObjectValue.MaskInteraction"/> straight
-        /// through.
+        /// The Unity enum an authored option maps onto. A renderer holding
+        /// <see cref="INeoSpriteObjectValue.MaskInteraction"/>'s option id
+        /// converts it with
+        /// <see cref="NeoSpriteMaskInteractionOptions.FromOptionId"/> first.
         /// </summary>
         public static SpriteMaskInteraction ToUnity(NeoSpriteMaskInteraction value)
         {
-            if (value == NeoSpriteMaskInteraction.None)
+            return value switch
             {
-                return SpriteMaskInteraction.None;
-            }
-            if (value == NeoSpriteMaskInteraction.VisibleInsideMask)
-            {
-                return SpriteMaskInteraction.VisibleInsideMask;
-            }
-            if (value == NeoSpriteMaskInteraction.VisibleOutsideMask)
-            {
-                return SpriteMaskInteraction.VisibleOutsideMask;
-            }
-            throw new ArgumentException(
-                "Unrecognized sprite MaskInteraction option id "
-                    + $"'{value.optionId}'.",
-                nameof(value));
+                NeoSpriteMaskInteraction.None => SpriteMaskInteraction.None,
+                NeoSpriteMaskInteraction.VisibleInsideMask => SpriteMaskInteraction.VisibleInsideMask,
+                NeoSpriteMaskInteraction.VisibleOutsideMask => SpriteMaskInteraction.VisibleOutsideMask,
+                _ => throw new ArgumentException($"Unrecognized sprite MaskInteraction option id '{value.OptionId()}'.", nameof(value)),
+            };
         }
     }
 

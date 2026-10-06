@@ -882,7 +882,7 @@ namespace HelloWorld.Assets.Tests
         private static string HelloText(Planet planet)
         {
             var greeting = HelloWorldNeo.Instance.Assets.Computed.baseText;
-            return $"{greeting} {planet.Text}!";
+            return $"{greeting} {planet.Text()}!";
         }
     }
 }

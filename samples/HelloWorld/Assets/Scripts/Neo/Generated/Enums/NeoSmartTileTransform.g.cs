@@ -11,44 +11,61 @@ using UnityEngine;
 
 namespace HelloWorld.Assets.Scripts.Neo
 {
-    public sealed class NeoSmartTileTransform : IEquatable<NeoSmartTileTransform>, global::NeoCompose.Runtime.INeoEnumOption
+    [NeoEnum(typeof(NeoSmartTileTransformOptions))]
+    public enum NeoSmartTileTransform
     {
-        private static readonly Dictionary<string, NeoSmartTileTransform> values = new Dictionary<string, NeoSmartTileTransform>();
-        public string optionId { get; }
-        public string Text => TextForOptionId(optionId);
-        public string TextId => TextIdForOptionId(optionId);
+        Fixed = 1566557690,
+        Rotated = 1537911835,
+        MirrorX = 327122220,
+        MirrorY = 2025283841,
+        MirrorXY = 2130027825,
+        RotatedMirror = 1525170712,
+    }
 
-        private NeoSmartTileTransform(string optionId)
-        {
-            this.optionId = optionId;
-        }
-
-        public static readonly NeoSmartTileTransform Fixed = FromOptionId("system_3f16d1d6-ec8b-532b-ad8b-23af9ea01172");
-        public static readonly NeoSmartTileTransform Rotated = FromOptionId("system_d6e0f63f-910c-5e51-ac77-250c7f606664");
-        public static readonly NeoSmartTileTransform MirrorX = FromOptionId("system_00edc26a-6ef4-57db-a290-f1f8300146e9");
-        public static readonly NeoSmartTileTransform MirrorY = FromOptionId("system_c1c2577b-870f-5305-b206-3c70dfeb775b");
-        public static readonly NeoSmartTileTransform MirrorXY = FromOptionId("system_35b53059-1836-5fac-bcde-291274dcebc7");
-        public static readonly NeoSmartTileTransform RotatedMirror = FromOptionId("system_9da42749-b317-5558-8f76-0a9fcb69229d");
-
+    /// <summary>
+    /// Converts <see cref="NeoSmartTileTransform"/> to and from the option ids Neo stores.
+    /// </summary>
+    public static class NeoSmartTileTransformOptions
+    {
         public static NeoSmartTileTransform FromOptionId(string optionId)
         {
-            if (values.TryGetValue(optionId, out var known)) return known;
-            var created = new NeoSmartTileTransform(optionId);
-            values[optionId] = created;
-            return created;
+            return optionId switch
+            {
+                "system_3f16d1d6-ec8b-532b-ad8b-23af9ea01172" => NeoSmartTileTransform.Fixed,
+                "system_d6e0f63f-910c-5e51-ac77-250c7f606664" => NeoSmartTileTransform.Rotated,
+                "system_00edc26a-6ef4-57db-a290-f1f8300146e9" => NeoSmartTileTransform.MirrorX,
+                "system_c1c2577b-870f-5305-b206-3c70dfeb775b" => NeoSmartTileTransform.MirrorY,
+                "system_35b53059-1836-5fac-bcde-291274dcebc7" => NeoSmartTileTransform.MirrorXY,
+                "system_9da42749-b317-5558-8f76-0a9fcb69229d" => NeoSmartTileTransform.RotatedMirror,
+                _ => NeoUndeclaredEnumOptions<NeoSmartTileTransform>.FromOptionId(optionId),
+            };
+        }
+
+        public static string OptionId(this NeoSmartTileTransform value)
+        {
+            return value switch
+            {
+                NeoSmartTileTransform.Fixed => "system_3f16d1d6-ec8b-532b-ad8b-23af9ea01172",
+                NeoSmartTileTransform.Rotated => "system_d6e0f63f-910c-5e51-ac77-250c7f606664",
+                NeoSmartTileTransform.MirrorX => "system_00edc26a-6ef4-57db-a290-f1f8300146e9",
+                NeoSmartTileTransform.MirrorY => "system_c1c2577b-870f-5305-b206-3c70dfeb775b",
+                NeoSmartTileTransform.MirrorXY => "system_35b53059-1836-5fac-bcde-291274dcebc7",
+                NeoSmartTileTransform.RotatedMirror => "system_9da42749-b317-5558-8f76-0a9fcb69229d",
+                _ => NeoUndeclaredEnumOptions<NeoSmartTileTransform>.OptionId(value),
+            };
         }
 
         public static string[] ToOptionIds(IEnumerable<NeoSmartTileTransform>? options)
         {
             if (options is null) return Array.Empty<string>();
             var ids = new List<string>();
-            foreach (var option in options) ids.Add(option.optionId);
+            foreach (var option in options) ids.Add(option.OptionId());
             return ids.ToArray();
         }
 
-        public static bool IsKnown(string id)
+        public static bool IsKnown(string optionId)
         {
-            return id switch
+            return optionId switch
             {
                 "system_3f16d1d6-ec8b-532b-ad8b-23af9ea01172" => true,
                 "system_d6e0f63f-910c-5e51-ac77-250c7f606664" => true,
@@ -60,32 +77,23 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public static string TextIdForOptionId(string optionId)
+        public static string TextId(this NeoSmartTileTransform value)
         {
-            return optionId switch
+            return value switch
             {
-                "system_3f16d1d6-ec8b-532b-ad8b-23af9ea01172" => "Fixed",
-                "system_d6e0f63f-910c-5e51-ac77-250c7f606664" => "Rotated",
-                "system_00edc26a-6ef4-57db-a290-f1f8300146e9" => "Mirror X",
-                "system_c1c2577b-870f-5305-b206-3c70dfeb775b" => "Mirror Y",
-                "system_35b53059-1836-5fac-bcde-291274dcebc7" => "Mirror XY",
-                "system_9da42749-b317-5558-8f76-0a9fcb69229d" => "Rotated mirror",
-                _ => optionId,
+                NeoSmartTileTransform.Fixed => "Fixed",
+                NeoSmartTileTransform.Rotated => "Rotated",
+                NeoSmartTileTransform.MirrorX => "Mirror X",
+                NeoSmartTileTransform.MirrorY => "Mirror Y",
+                NeoSmartTileTransform.MirrorXY => "Mirror XY",
+                NeoSmartTileTransform.RotatedMirror => "Rotated mirror",
+                _ => value.OptionId(),
             };
         }
 
-        public static string TextForOptionId(string optionId, NeoClient? client = null)
+        public static string Text(this NeoSmartTileTransform value, NeoClient? client = null)
         {
-            return (client ?? HelloWorldNeo.RequireInstance().Client).Localization.ResolveText(TextIdForOptionId(optionId));
+            return (client ?? HelloWorldNeo.RequireInstance().Client).Localization.ResolveText(value.TextId());
         }
-
-        public static implicit operator string(NeoSmartTileTransform value) => value.optionId;
-        public static implicit operator NeoSmartTileTransform(string optionId) => FromOptionId(optionId);
-        public override string ToString() => optionId;
-        public bool Equals(NeoSmartTileTransform? other) => other is not null && optionId == other.optionId;
-        public override bool Equals(object? obj) => Equals(obj as NeoSmartTileTransform);
-        public override int GetHashCode() => optionId.GetHashCode();
-        public static bool operator ==(NeoSmartTileTransform? left, NeoSmartTileTransform? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
-        public static bool operator !=(NeoSmartTileTransform? left, NeoSmartTileTransform? right) => !(left == right);
     }
 }

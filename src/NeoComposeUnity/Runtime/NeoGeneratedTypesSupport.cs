@@ -129,15 +129,108 @@ namespace NeoCompose.Runtime
     }
 
     /// <summary>
-    /// Common option-id surface implemented by generated enum option classes.
-    /// It lets the shared constructor materializer handle enum values without
-    /// reflection or project-specific generated helpers.
+    /// Marks a C# enum as a Neo enum. <see cref="Options"/> is the static class
+    /// that converts it to and from option ids, through a
+    /// <c>FromOptionId(string)</c> method and an <c>OptionId(this TEnum)</c>
+    /// extension. Generated enums and the SDK's own carry it, so the runtime
+    /// can convert a value it only knows by type.
     /// </summary>
-    public interface INeoEnumOption
+    [AttributeUsage(AttributeTargets.Enum)]
+    public sealed class NeoEnumAttribute : Attribute
     {
-        string optionId
+        public NeoEnumAttribute(Type options)
+        {
+            Options = options ?? throw new ArgumentNullException(nameof(options));
+        }
+
+        public Type Options
         {
             get;
+        }
+    }
+
+    /// <summary>
+    /// The option-id conversions of a <see cref="NeoEnumAttribute"/> enum,
+    /// reflected once per type. Both are <c>null</c> for any other enum.
+    /// </summary>
+    /// <remarks>
+    /// Option ids are the only thing Neo stores or hands to NeoScript.
+    /// Declared members are numbered from their option ids; the ids no member
+    /// declares take negative numbers in memory through
+    /// <see cref="NeoUndeclaredEnumOptions{TEnum}"/>.
+    /// </remarks>
+    public static class NeoEnumOptions<TEnum>
+        where TEnum : struct, System.Enum
+    {
+        public static readonly Func<string, TEnum>? FromOptionId;
+        public static readonly Func<TEnum, string>? ToOptionId;
+
+        static NeoEnumOptions()
+        {
+            Type? options = ((NeoEnumAttribute?)Attribute.GetCustomAttribute(
+                typeof(TEnum),
+                typeof(NeoEnumAttribute)))?.Options;
+            if (options is null)
+                return;
+            FromOptionId = (Func<string, TEnum>?)options
+                .GetMethod("FromOptionId", new[] { typeof(string) })
+                ?.CreateDelegate(typeof(Func<string, TEnum>));
+            ToOptionId = (Func<TEnum, string>?)options
+                .GetMethod("OptionId", new[] { typeof(TEnum) })
+                ?.CreateDelegate(typeof(Func<TEnum, string>));
+        }
+
+        internal static string? BoxedOptionId(object value)
+        {
+            return ToOptionId?.Invoke((TEnum)value);
+        }
+    }
+
+    /// <summary>
+    /// Option ids a Neo enum's members do not declare, such as an option
+    /// deleted with "keep orphaned" while data still selects it. Each id gets
+    /// the next negative number on first sight, so it round-trips through
+    /// <c>FromOptionId</c> and <c>OptionId</c> and lands in a <c>switch</c>'s
+    /// <c>default</c> arm. The numbers are per process and never persisted.
+    /// </summary>
+    /// <remarks>
+    /// Modded options would take this same path: a mod's ids are unknown until
+    /// runtime, and a C# enum holds any number. A mod-aware version would also
+    /// carry each id's text so <c>TextId</c> could resolve it.
+    /// </remarks>
+    public static class NeoUndeclaredEnumOptions<TEnum>
+        where TEnum : struct, System.Enum
+    {
+        private static readonly object gate = new object();
+        private static readonly Dictionary<string, TEnum> values = new Dictionary<string, TEnum>();
+        private static readonly Dictionary<TEnum, string> optionIds = new Dictionary<TEnum, string>();
+
+        public static TEnum FromOptionId(string optionId)
+        {
+            if (optionId is null)
+                throw new ArgumentNullException(nameof(optionId));
+            lock (gate)
+            {
+                if (values.TryGetValue(optionId, out var known))
+                    return known;
+                var value = (TEnum)System.Enum.ToObject(typeof(TEnum), -(values.Count + 1));
+                values.Add(optionId, value);
+                optionIds.Add(value, optionId);
+                return value;
+            }
+        }
+
+        public static string OptionId(TEnum value)
+        {
+            lock (gate)
+            {
+                if (optionIds.TryGetValue(value, out var optionId))
+                    return optionId;
+            }
+            throw new ArgumentOutOfRangeException(
+                nameof(value),
+                value,
+                $"{typeof(TEnum).Name} declares no option for this value, and no option id was read for it.");
         }
     }
 
@@ -6470,16 +6563,13 @@ namespace NeoCompose.Runtime
                 foreach (NeoGeneratedConstructorDictionaryEntry pair in
                          dictionaryEntries)
                 {
-                    string key = pair.Key switch
-                    {
-                        INeoEnumOption option => option.optionId,
-                        string text => text,
-                        null => throw new InvalidOperationException(
-                            $"Dictionary constructor field '{member.name}' contains a null key."),
-                        _ => pair.Key.ToString()
+                    string key = pair.Key is null
+                        ? throw new InvalidOperationException(
+                            $"Dictionary constructor field '{member.name}' contains a null key.")
+                        : NeoScriptValueMarshaller.EnumOptionId(pair.Key)
+                            ?? pair.Key.ToString()
                             ?? throw new InvalidOperationException(
-                                $"Dictionary constructor field '{member.name}' contains an invalid key."),
-                    };
+                                $"Dictionary constructor field '{member.name}' contains an invalid key.");
                     string? id = MaterializeRuntimeConstructorValue(
                         client,
                         entryMember,
@@ -6543,13 +6633,9 @@ namespace NeoCompose.Runtime
         {
             if (member.enumId == NeoCellPatternStorage.ExcludingEnumId && runtimeValue is NeoCellPatternExcluding excluding)
                 return NeoCellPatternStorage.ExcludingIds(excluding);
-            if (runtimeValue is string optionId)
+            if (NeoScriptValueMarshaller.EnumOptionId(runtimeValue) is string optionId)
             {
                 return new[] { optionId };
-            }
-            if (runtimeValue is INeoEnumOption option)
-            {
-                return new[] { option.optionId };
             }
             if (runtimeValue is not System.Collections.IEnumerable values)
             {
@@ -6561,10 +6647,8 @@ namespace NeoCompose.Runtime
             {
                 string? id = value switch
                 {
-                    string text => text,
-                    INeoEnumOption enumOption => enumOption.optionId,
                     NeoCellPatternExcluding excludingValue when member.enumId == NeoCellPatternStorage.ExcludingEnumId => NeoCellPatternStorage.ExcludingIds(excludingValue)[0],
-                    _ => null,
+                    _ => NeoScriptValueMarshaller.EnumOptionId(value),
                 };
                 if (string.IsNullOrEmpty(id))
                 {
@@ -8294,8 +8378,9 @@ namespace NeoCompose.Runtime
         public static TEnum? ReadEnumSingle<TEnum>(
             string[] optionIds,
             Func<string, TEnum> create)
+            where TEnum : struct
         {
-            return optionIds.Length == 0 ? default : create(optionIds[0]);
+            return optionIds.Length == 0 ? null : create(optionIds[0]);
         }
 
         /// <summary>
@@ -8326,9 +8411,10 @@ namespace NeoCompose.Runtime
         public static TEnum? ReadEnumSingle<TEnum>(
             object? value,
             Func<string, TEnum> create)
+            where TEnum : struct
         {
             string? optionId = ReadSelectedId(value);
-            return optionId is null ? default : create(optionId);
+            return optionId is null ? null : create(optionId);
         }
 
         // Computed collections carry evaluator values, not generated wrappers. Apply

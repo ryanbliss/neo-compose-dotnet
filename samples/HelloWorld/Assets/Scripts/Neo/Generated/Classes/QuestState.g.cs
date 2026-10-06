@@ -126,14 +126,14 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 if (TryReadDetached("Ending", out object? detachedValue))
                 {
-                    return NeoGeneratedTypesSupport.ReadEnumSingle(detachedValue, static (factoryOptionId) => WorldEnding.FromOptionId(factoryOptionId)) ?? throw new InvalidOperationException("Required enum 'Ending' has no selected option.");
+                    return NeoGeneratedTypesSupport.ReadEnumSingle(detachedValue, static (factoryOptionId) => WorldEndingOptions.FromOptionId(factoryOptionId)) ?? throw new InvalidOperationException("Required enum 'Ending' has no selected option.");
                 }
                 var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoMemberEnum>("Ending"));
-                return selected is null ? throw new InvalidOperationException("Required enum 'Ending' has no selected option.") : WorldEnding.FromOptionId(selected);
+                return selected is null ? throw new InvalidOperationException("Required enum 'Ending' has no selected option.") : WorldEndingOptions.FromOptionId(selected);
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(writableNode, "Ending", NeoGeneratedTypesSupport.Value(new[] { value.optionId }));
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Ending", NeoGeneratedTypesSupport.Value(new[] { value.OptionId() }));
             }
         }
 
@@ -233,14 +233,14 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 if (TryReadDetached("Stage", out object? detachedValue))
                 {
-                    return NeoGeneratedTypesSupport.ReadEnumSingle(detachedValue, static (factoryOptionId) => QuestStage.FromOptionId(factoryOptionId)) ?? throw new InvalidOperationException("Required enum 'Stage' has no selected option.");
+                    return NeoGeneratedTypesSupport.ReadEnumSingle(detachedValue, static (factoryOptionId) => QuestStageOptions.FromOptionId(factoryOptionId)) ?? throw new InvalidOperationException("Required enum 'Stage' has no selected option.");
                 }
                 var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoMemberEnum>("Stage"));
-                return selected is null ? throw new InvalidOperationException("Required enum 'Stage' has no selected option.") : QuestStage.FromOptionId(selected);
+                return selected is null ? throw new InvalidOperationException("Required enum 'Stage' has no selected option.") : QuestStageOptions.FromOptionId(selected);
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(writableNode, "Stage", NeoGeneratedTypesSupport.Value(new[] { value.optionId }));
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Stage", NeoGeneratedTypesSupport.Value(new[] { value.OptionId() }));
             }
         }
 

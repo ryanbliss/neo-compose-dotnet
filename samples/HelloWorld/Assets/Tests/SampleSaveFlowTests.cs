@@ -77,7 +77,7 @@ namespace HelloWorld.Assets.Tests
             var neo = await HelloWorldNeo.Load(synchronizer);
             var destination = neo.Assets.Outposts.First(o => o.valueId != neo.Save.Location.valueId);
             neo.Save.World = destination.Planet;
-            var worldId = neo.Save.World.optionId;
+            var worldId = neo.Save.World.OptionId();
             await neo.CommitAsync();
             neo.Dispose();
 
@@ -88,7 +88,7 @@ namespace HelloWorld.Assets.Tests
 
             // Reopening it restores the played state.
             var reloaded = await HelloWorldNeo.Load(store.Open(synchronizer.CustomId));
-            Assert.AreEqual(worldId, reloaded.Save.World.optionId);
+            Assert.AreEqual(worldId, reloaded.Save.World.OptionId());
             reloaded.Dispose();
         }
 
@@ -128,7 +128,7 @@ namespace HelloWorld.Assets.Tests
             var neoA = await HelloWorldNeo.Load(synchronizer);
             var destination = neoA.Assets.Outposts.First(o => o.valueId != neoA.Save.Location.valueId);
             neoA.Save.World = destination.Planet;
-            var worldId = neoA.Save.World.optionId;
+            var worldId = neoA.Save.World.OptionId();
             await neoA.CommitAsync();
             var customId = synchronizer.CustomId;
             neoA.Dispose();
@@ -147,7 +147,7 @@ namespace HelloWorld.Assets.Tests
                 "The cloud save appears on a second device.");
 
             var neoB = await HelloWorldNeo.Load(storeB.Open(customId));
-            Assert.AreEqual(worldId, neoB.Save.World.optionId, "The played state round-trips through the cloud.");
+            Assert.AreEqual(worldId, neoB.Save.World.OptionId(), "The played state round-trips through the cloud.");
             neoB.Dispose();
         }
 

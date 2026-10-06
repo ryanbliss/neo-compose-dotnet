@@ -1127,8 +1127,8 @@ namespace NeoCompose.Tests
         {
             NeoClient client = BuildClient();
 
-            // Generated enum wrappers arrive as INeoEnumOption, not as the
-            // option-id array the row stores.
+            // Generated enums arrive as enum values, not as the option-id
+            // array the row stores.
             NeoMemberClassWritable node =
                 NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(
                     client,
@@ -1143,7 +1143,7 @@ namespace NeoCompose.Tests
                         new NeoGeneratedConstructorValue(
                             "Mode",
                             "gear-mode",
-                            new TestEnumOption("option-fast")),
+                            NeoTestEnumOptions.FromOptionId("option-fast")),
                     });
 
             ObjectMemberValue root = node.value!;
@@ -2017,24 +2017,6 @@ namespace NeoCompose.Tests
                 out StringMemberValue? row),
                 $"No string row '{valueId}'.");
             return row!.value;
-        }
-
-        /// <summary>
-        /// Stands in for a generated enum option wrapper: the seam only ever
-        /// sees <see cref="INeoEnumOption"/>, never the option-id array the
-        /// value row stores.
-        /// </summary>
-        private sealed class TestEnumOption : INeoEnumOption
-        {
-            internal TestEnumOption(string optionId)
-            {
-                this.optionId = optionId;
-            }
-
-            public string optionId
-            {
-                get;
-            }
         }
 
         /// <summary>

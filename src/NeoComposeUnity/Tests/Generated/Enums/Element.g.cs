@@ -11,40 +11,49 @@ using UnityEngine;
 
 namespace Assets.Scripts.Neo
 {
-    public sealed class Element : IEquatable<Element>, global::NeoCompose.Runtime.INeoEnumOption
+    [NeoEnum(typeof(ElementOptions))]
+    public enum Element
     {
-        private static readonly Dictionary<string, Element> values = new Dictionary<string, Element>();
-        public string optionId { get; }
-        public string Text => TextForOptionId(optionId);
-        public string TextId => TextIdForOptionId(optionId);
+        fire = 640925061,
+        ice = 1068029243,
+    }
 
-        private Element(string optionId)
-        {
-            this.optionId = optionId;
-        }
-
-        public static readonly Element fire = FromOptionId("4df3e94b-977f-43bc-b99a-5b4076431480");
-        public static readonly Element ice = FromOptionId("b2ee3d04-e768-42a2-9889-28e24f7780cf");
-
+    /// <summary>
+    /// Converts <see cref="Element"/> to and from the option ids Neo stores.
+    /// </summary>
+    public static class ElementOptions
+    {
         public static Element FromOptionId(string optionId)
         {
-            if (values.TryGetValue(optionId, out var known)) return known;
-            var created = new Element(optionId);
-            values[optionId] = created;
-            return created;
+            return optionId switch
+            {
+                "4df3e94b-977f-43bc-b99a-5b4076431480" => Element.fire,
+                "b2ee3d04-e768-42a2-9889-28e24f7780cf" => Element.ice,
+                _ => NeoUndeclaredEnumOptions<Element>.FromOptionId(optionId),
+            };
+        }
+
+        public static string OptionId(this Element value)
+        {
+            return value switch
+            {
+                Element.fire => "4df3e94b-977f-43bc-b99a-5b4076431480",
+                Element.ice => "b2ee3d04-e768-42a2-9889-28e24f7780cf",
+                _ => NeoUndeclaredEnumOptions<Element>.OptionId(value),
+            };
         }
 
         public static string[] ToOptionIds(IEnumerable<Element>? options)
         {
             if (options is null) return Array.Empty<string>();
             var ids = new List<string>();
-            foreach (var option in options) ids.Add(option.optionId);
+            foreach (var option in options) ids.Add(option.OptionId());
             return ids.ToArray();
         }
 
-        public static bool IsKnown(string id)
+        public static bool IsKnown(string optionId)
         {
-            return id switch
+            return optionId switch
             {
                 "4df3e94b-977f-43bc-b99a-5b4076431480" => true,
                 "b2ee3d04-e768-42a2-9889-28e24f7780cf" => true,
@@ -52,28 +61,19 @@ namespace Assets.Scripts.Neo
             };
         }
 
-        public static string TextIdForOptionId(string optionId)
+        public static string TextId(this Element value)
         {
-            return optionId switch
+            return value switch
             {
-                "4df3e94b-977f-43bc-b99a-5b4076431480" => "Fire",
-                "b2ee3d04-e768-42a2-9889-28e24f7780cf" => "Ice",
-                _ => optionId,
+                Element.fire => "Fire",
+                Element.ice => "Ice",
+                _ => value.OptionId(),
             };
         }
 
-        public static string TextForOptionId(string optionId, NeoClient? client = null)
+        public static string Text(this Element value, NeoClient? client = null)
         {
-            return (client ?? TestProjectNeo.RequireInstance().Client).Localization.ResolveText(TextIdForOptionId(optionId));
+            return (client ?? TestProjectNeo.RequireInstance().Client).Localization.ResolveText(value.TextId());
         }
-
-        public static implicit operator string(Element value) => value.optionId;
-        public static implicit operator Element(string optionId) => FromOptionId(optionId);
-        public override string ToString() => optionId;
-        public bool Equals(Element? other) => other is not null && optionId == other.optionId;
-        public override bool Equals(object? obj) => Equals(obj as Element);
-        public override int GetHashCode() => optionId.GetHashCode();
-        public static bool operator ==(Element? left, Element? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
-        public static bool operator !=(Element? left, Element? right) => !(left == right);
     }
 }

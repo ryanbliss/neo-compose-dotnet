@@ -2456,26 +2456,22 @@ namespace NeoCompose.Runtime
         {
             if (value is string text)
                 return text;
-            if (value is INeoEnumOption option)
-                return option.optionId;
-            if (value is null)
+            if (value is not System.Enum)
                 return null;
-            // Duck-typed option wrappers expose a public string optionId.
-            // Type lookups dominate, so each type reflects once.
-            var property = OptionIdProperties.GetOrAdd(
+            // Each enum type reflects its conversion once.
+            return BoxedOptionIds.GetOrAdd(
                 value.GetType(),
-                type => type.GetProperty(
-                    "optionId",
-                    System.Reflection.BindingFlags.Instance
-                        | System.Reflection.BindingFlags.Public) is { } found
-                    && found.PropertyType == typeof(string)
-                        ? found
-                        : null);
-            return property?.GetValue(value) as string;
+                type => (Func<object, string?>)typeof(NeoEnumOptions<>)
+                    .MakeGenericType(type)
+                    .GetMethod(
+                        nameof(NeoEnumOptions<NeoCellPatternExcluding>.BoxedOptionId),
+                        System.Reflection.BindingFlags.Static
+                            | System.Reflection.BindingFlags.NonPublic)!
+                    .CreateDelegate(typeof(Func<object, string?>)))(value);
         }
 
-        private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, System.Reflection.PropertyInfo?>
-            OptionIdProperties = new();
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, Func<object, string?>>
+            BoxedOptionIds = new();
 
         // A loop rather than Array.TrueForAll: every enum argument and
         // return passes here, and the predicate costs a delegate call per id.

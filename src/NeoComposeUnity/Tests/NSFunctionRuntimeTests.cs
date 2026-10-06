@@ -1215,10 +1215,10 @@ namespace NeoCompose.Tests
 
             Assert.AreEqual(
                 "system_88c5d17a-b73e-47a1-a96e-4ebe16e6d200",
-                NeoSelectorRefreshKind.OnLoad.optionId);
+                NeoSelectorRefreshKind.OnLoad.OptionId());
             Assert.AreEqual(
                 "system_dc350ac4-de4b-4d1c-9b46-097dc5b4180f",
-                NeoSelectorRefreshKind.PerFrame.optionId);
+                NeoSelectorRefreshKind.PerFrame.OptionId());
         }
 
         private abstract class SelectorBase
@@ -2734,7 +2734,7 @@ namespace NeoCompose.Tests
 
             object? result = node.Invoke(
                 "receiver-value",
-                new object?[] { new TestEnumOption("level-3") });
+                new object?[] { NeoTestEnumOptions.FromOptionId("level-3") });
 
             Assert.IsInstanceOf<object?[]>(result);
             CollectionAssert.AreEqual(new[] { "level-3" }, (object?[])result!);
@@ -2907,8 +2907,8 @@ namespace NeoCompose.Tests
                 var selections = new object[ids.Length];
                 for (int i = 0; i < ids.Length; i++)
                     selections[i] = dialogue
-                        ? new NeoDialogueReference(ids[i])
-                        : new TestEnumOption(ids[i]);
+                        ? (object)new NeoDialogueReference(ids[i])
+                        : NeoTestEnumOptions.FromOptionId(ids[i]);
                 input = selections;
             }
 
@@ -3005,8 +3005,8 @@ namespace NeoCompose.Tests
             using NeoClient client = BuildClient(
                 new JsonMember[] { function }, ReceiverClass((function.name, function.id)));
             object selection = dialogue
-                ? new NeoDialogueReference("selected-id")
-                : new TestEnumOption("selected-id");
+                ? (object)new NeoDialogueReference("selected-id")
+                : NeoTestEnumOptions.FromOptionId("selected-id");
 
             object? result = new NeoMemberNSFunction(client, function, null).Invoke(
                 "receiver-value", new object?[] { new[] { "keep-id" }, selection });
@@ -3475,7 +3475,7 @@ namespace NeoCompose.Tests
 
             object? result = node.Invoke(
                 "receiver-value",
-                new object?[] { new TestEnumOption("generic-level-2") });
+                new object?[] { NeoTestEnumOptions.FromOptionId("generic-level-2") });
 
             Assert.IsInstanceOf<object?[]>(result);
             CollectionAssert.AreEqual(
@@ -8690,18 +8690,5 @@ namespace NeoCompose.Tests
                 createdAt = "x",
                 updatedAt = "x",
             };
-
-        private sealed class TestEnumOption
-        {
-            internal TestEnumOption(string optionId)
-            {
-                this.optionId = optionId;
-            }
-
-            public string optionId
-            {
-                get;
-            }
-        }
     }
 }

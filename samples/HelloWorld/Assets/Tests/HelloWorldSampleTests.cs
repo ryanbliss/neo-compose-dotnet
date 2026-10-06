@@ -257,8 +257,8 @@ namespace HelloWorld.Assets.Tests
             Assert.AreEqual("Hola", client.Assets.Computed.baseText);
             // P39 de-localized enum option display text; only authored
             // localizable-text records flow through the locale bundle.
-            Assert.AreEqual("Earth", Planet.earth.Text);
-            Assert.AreEqual("Earth", client.Save.Visited[0].World.Text);
+            Assert.AreEqual("Earth", Planet.earth.Text());
+            Assert.AreEqual("Earth", client.Save.Visited[0].World.Text());
             Assert.AreEqual("Hola Earth!", client.Assets.Computed.fullText);
         }
 
@@ -276,14 +276,12 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public async System.Threading.Tasks.Task GeneratedEnumValues_CompareStaticObjectsToGeneratedProperties()
+        public async System.Threading.Tasks.Task GeneratedEnumValues_RoundTripOptionIds()
         {
             var client = await LoadSampleClient(EnglishLocalizationOptions());
 
             var savedWorld = client.Save.World;
-            Assert.AreSame(Planet.earth, savedWorld);
-            Assert.IsTrue(savedWorld == Planet.earth);
-            Assert.IsTrue(savedWorld.Equals(Planet.earth));
+            Assert.AreEqual(Planet.earth, savedWorld);
 
             var earthOutpost = client.Assets.Outposts.FirstOrDefault(outpost =>
                 outpost.Planet == Planet.earth);
@@ -291,14 +289,13 @@ namespace HelloWorld.Assets.Tests
             if (earthOutpost == null)
                 return;
 
-            Assert.AreSame(Planet.earth, earthOutpost.Planet);
-            Assert.IsTrue(earthOutpost.Planet == Planet.earth);
-            Assert.IsTrue(earthOutpost.Planet.Equals(Planet.earth));
+            Assert.AreEqual(Planet.earth, earthOutpost.Planet);
+            Assert.AreEqual(Planet.earth, PlanetOptions.FromOptionId(Planet.earth.OptionId()));
 
-            var customPlanet = Planet.FromOptionId("modded-planet");
-            Assert.AreSame(customPlanet, Planet.FromOptionId("modded-planet"));
-            Assert.IsTrue(customPlanet == Planet.FromOptionId("modded-planet"));
-            Assert.IsFalse(Planet.IsKnown("modded-planet"));
+            var customPlanet = PlanetOptions.FromOptionId("modded-planet");
+            Assert.AreEqual(customPlanet, PlanetOptions.FromOptionId("modded-planet"));
+            Assert.AreEqual("modded-planet", customPlanet.OptionId());
+            Assert.IsFalse(PlanetOptions.IsKnown("modded-planet"));
         }
 
         [Test]

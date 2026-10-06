@@ -1,6 +1,7 @@
 {
   "schemaVersion": 1,
   "projectId": "test-project",
+  "codegenRevision": "30d96d89e3d179ccf291e522834281f90dbd44b464cf51eea76aae87eed97e7e",
   "files": [
     {
       "id": "class:class-abstract-readonly-stats",
@@ -115,7 +116,7 @@
     {
       "id": "class:class-hero",
       "path": "Generated/Classes/Hero.g.cs",
-      "hash": "2544cced9a636f1ce5fa63ea218b1768afd84f6259178a1ed37ebbe8c446589e"
+      "hash": "983722818ddc041eecede7ba65b200d5429e80a10180dcd82648c136b076f050"
     },
     {
       "id": "class:system_6529416a-f68b-49a3-b3d2-2af8fda60cb4",
@@ -140,7 +141,7 @@
     {
       "id": "class:system_45755778-ecfe-4a6c-b65f-a08017a7fb56",
       "path": "Generated/Classes/NeoAnimationTrackBase.g.cs",
-      "hash": "1bfed02696bd1fc03585c1ccce39a9a106a7bab20d730f1f33a9649b93f190a5"
+      "hash": "868f3fd1115624ec666adb2e75a7814c667cdd17350b701106429bdbd929025b"
     },
     {
       "id": "class:class-choice-log",
@@ -190,7 +191,7 @@
     {
       "id": "class:system_d48b66ab-4d59-47e7-a25a-591fe97062de",
       "path": "Generated/Classes/NeoSpriteObject.g.cs",
-      "hash": "bc380e4885f28a85655b5a7c61b8165894d7a15da669c6fd14c9be4f74c6482b"
+      "hash": "a87a72dbb67d3f15f0aa80b76d118d21ae3817c2d92abf16d7ec124a93312dcd"
     },
     {
       "id": "class:class-text-node-memory",
@@ -205,7 +206,7 @@
     {
       "id": "class:class-root",
       "path": "Generated/Classes/Root.g.cs",
-      "hash": "e861d1f48f47749bdb4e2326e1ca181ce3e502cdcf2f0137f4e4df074e5af929"
+      "hash": "2fdfb6accd96220e1d7ac06396b13fb27df0796ee123fbed99ebbfaa5b736d10"
     },
     {
       "id": "class:class-sample-blocked-path",
@@ -280,32 +281,32 @@
     {
       "id": "enum:enum-element",
       "path": "Generated/Enums/Element.g.cs",
-      "hash": "6aa4989db756f10246f99b60db3cbf351b7497f1414ec29cf1b4ccb8ac71aa51"
+      "hash": "f1f8839ecb2679038ca06f6a19ee125c9cfbb211bf679467fb443c1ef48c4fc0"
     },
     {
       "id": "enum:system_fb8a4243-fa52-4142-8097-765d9e86ff25",
       "path": "Generated/Enums/NeoSelectorRefreshKind.g.cs",
-      "hash": "f1d8d0c847e4618fed4bcdced241c0b66387ed2984a03568e749d2857717bd60"
+      "hash": "2f988db8d8ae021dafa41f82990608d48eba3bf2fc7d3d250463f17eb17a21a3"
     },
     {
       "id": "enum:system_6ff1b376-1b30-449d-8439-d822be95cec1",
       "path": "Generated/Enums/NeoSmartTileCollider.g.cs",
-      "hash": "f78f99ca3207f64c50191dd20baea26ca9b04aba8390a3cf27f2e77f1dbc2ec4"
+      "hash": "32297ba467c334dcde5bc668d56be420232b1657bb51219586c2b94355cc6c4e"
     },
     {
       "id": "enum:system_ba63d042-51c1-4bce-be70-d9848e6bb240",
       "path": "Generated/Enums/NeoSmartTileCondition.g.cs",
-      "hash": "e40720f9c58774e37961d66ea01edc7935205d172e4989e83cd38000d128bf00"
+      "hash": "dfaaaa1d83fdce7227c97b28eb583146d640a6f094ba67b308c1f14178c7bed8"
     },
     {
       "id": "enum:system_551025ad-e441-4d43-90b0-2821c6235786",
       "path": "Generated/Enums/NeoSmartTileOutput.g.cs",
-      "hash": "f2a9b36a0715e6d8d20e5c0387bbb01c98fb4a69f0c443229e37d614e2949c99"
+      "hash": "39f82f834d1842b83f3170494e5839dfe2bf4351c7a355e2b994f38320287a37"
     },
     {
       "id": "enum:system_d97f73bc-656f-489f-86de-6cb874ca8181",
       "path": "Generated/Enums/NeoSmartTileTransform.g.cs",
-      "hash": "607a62cbb6e228d170a87d837ddc9da056a7b138465d3f0477a9bc073ade69e0"
+      "hash": "0a34bb8798286979c70efeb8266a7c189a6446d133cc1fb739969d70f607dafb"
     },
     {
       "id": "interface:interface-contract",

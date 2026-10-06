@@ -11,44 +11,61 @@ using UnityEngine;
 
 namespace HelloWorld.Assets.Scripts.Neo
 {
-    public sealed class QuestStage : IEquatable<QuestStage>, global::NeoCompose.Runtime.INeoEnumOption
+    [NeoEnum(typeof(QuestStageOptions))]
+    public enum QuestStage
     {
-        private static readonly Dictionary<string, QuestStage> values = new Dictionary<string, QuestStage>();
-        public string optionId { get; }
-        public string Text => TextForOptionId(optionId);
-        public string TextId => TextIdForOptionId(optionId);
+        arrival = 1290230797,
+        ended = 1361699153,
+        endgame = 1477915377,
+        followTheWakes = 473813621,
+        threePaths = 1446675597,
+        vaultOpen = 758348077,
+    }
 
-        private QuestStage(string optionId)
-        {
-            this.optionId = optionId;
-        }
-
-        public static readonly QuestStage arrival = FromOptionId("718721e3-e457-5204-8d05-c1c3e03a3294");
-        public static readonly QuestStage ended = FromOptionId("154ded59-2f9b-529b-835a-45e33fb095a0");
-        public static readonly QuestStage endgame = FromOptionId("462b9987-f994-5321-9e15-772514147483");
-        public static readonly QuestStage followTheWakes = FromOptionId("2a9f4a83-7dc5-501f-ab72-f76ad1f48f28");
-        public static readonly QuestStage threePaths = FromOptionId("9e32a0e7-fc6e-591a-b34d-afc37366ca63");
-        public static readonly QuestStage vaultOpen = FromOptionId("b296b05a-1e9a-5b10-85c1-140e4fce6d4e");
-
+    /// <summary>
+    /// Converts <see cref="QuestStage"/> to and from the option ids Neo stores.
+    /// </summary>
+    public static class QuestStageOptions
+    {
         public static QuestStage FromOptionId(string optionId)
         {
-            if (values.TryGetValue(optionId, out var known)) return known;
-            var created = new QuestStage(optionId);
-            values[optionId] = created;
-            return created;
+            return optionId switch
+            {
+                "718721e3-e457-5204-8d05-c1c3e03a3294" => QuestStage.arrival,
+                "154ded59-2f9b-529b-835a-45e33fb095a0" => QuestStage.ended,
+                "462b9987-f994-5321-9e15-772514147483" => QuestStage.endgame,
+                "2a9f4a83-7dc5-501f-ab72-f76ad1f48f28" => QuestStage.followTheWakes,
+                "9e32a0e7-fc6e-591a-b34d-afc37366ca63" => QuestStage.threePaths,
+                "b296b05a-1e9a-5b10-85c1-140e4fce6d4e" => QuestStage.vaultOpen,
+                _ => NeoUndeclaredEnumOptions<QuestStage>.FromOptionId(optionId),
+            };
+        }
+
+        public static string OptionId(this QuestStage value)
+        {
+            return value switch
+            {
+                QuestStage.arrival => "718721e3-e457-5204-8d05-c1c3e03a3294",
+                QuestStage.ended => "154ded59-2f9b-529b-835a-45e33fb095a0",
+                QuestStage.endgame => "462b9987-f994-5321-9e15-772514147483",
+                QuestStage.followTheWakes => "2a9f4a83-7dc5-501f-ab72-f76ad1f48f28",
+                QuestStage.threePaths => "9e32a0e7-fc6e-591a-b34d-afc37366ca63",
+                QuestStage.vaultOpen => "b296b05a-1e9a-5b10-85c1-140e4fce6d4e",
+                _ => NeoUndeclaredEnumOptions<QuestStage>.OptionId(value),
+            };
         }
 
         public static string[] ToOptionIds(IEnumerable<QuestStage>? options)
         {
             if (options is null) return Array.Empty<string>();
             var ids = new List<string>();
-            foreach (var option in options) ids.Add(option.optionId);
+            foreach (var option in options) ids.Add(option.OptionId());
             return ids.ToArray();
         }
 
-        public static bool IsKnown(string id)
+        public static bool IsKnown(string optionId)
         {
-            return id switch
+            return optionId switch
             {
                 "718721e3-e457-5204-8d05-c1c3e03a3294" => true,
                 "154ded59-2f9b-529b-835a-45e33fb095a0" => true,
@@ -60,32 +77,23 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public static string TextIdForOptionId(string optionId)
+        public static string TextId(this QuestStage value)
         {
-            return optionId switch
+            return value switch
             {
-                "718721e3-e457-5204-8d05-c1c3e03a3294" => "arrival",
-                "154ded59-2f9b-529b-835a-45e33fb095a0" => "ended",
-                "462b9987-f994-5321-9e15-772514147483" => "endgame",
-                "2a9f4a83-7dc5-501f-ab72-f76ad1f48f28" => "followTheWakes",
-                "9e32a0e7-fc6e-591a-b34d-afc37366ca63" => "threePaths",
-                "b296b05a-1e9a-5b10-85c1-140e4fce6d4e" => "vaultOpen",
-                _ => optionId,
+                QuestStage.arrival => "arrival",
+                QuestStage.ended => "ended",
+                QuestStage.endgame => "endgame",
+                QuestStage.followTheWakes => "followTheWakes",
+                QuestStage.threePaths => "threePaths",
+                QuestStage.vaultOpen => "vaultOpen",
+                _ => value.OptionId(),
             };
         }
 
-        public static string TextForOptionId(string optionId, NeoClient? client = null)
+        public static string Text(this QuestStage value, NeoClient? client = null)
         {
-            return (client ?? HelloWorldNeo.RequireInstance().Client).Localization.ResolveText(TextIdForOptionId(optionId));
+            return (client ?? HelloWorldNeo.RequireInstance().Client).Localization.ResolveText(value.TextId());
         }
-
-        public static implicit operator string(QuestStage value) => value.optionId;
-        public static implicit operator QuestStage(string optionId) => FromOptionId(optionId);
-        public override string ToString() => optionId;
-        public bool Equals(QuestStage? other) => other is not null && optionId == other.optionId;
-        public override bool Equals(object? obj) => Equals(obj as QuestStage);
-        public override int GetHashCode() => optionId.GetHashCode();
-        public static bool operator ==(QuestStage? left, QuestStage? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
-        public static bool operator !=(QuestStage? left, QuestStage? right) => !(left == right);
     }
 }

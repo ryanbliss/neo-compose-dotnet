@@ -11,41 +11,52 @@ using UnityEngine;
 
 namespace Assets.Scripts.Neo
 {
-    public sealed class NeoSmartTileOutput : IEquatable<NeoSmartTileOutput>, global::NeoCompose.Runtime.INeoEnumOption
+    [NeoEnum(typeof(NeoSmartTileOutputOptions))]
+    public enum NeoSmartTileOutput
     {
-        private static readonly Dictionary<string, NeoSmartTileOutput> values = new Dictionary<string, NeoSmartTileOutput>();
-        public string optionId { get; }
-        public string Text => TextForOptionId(optionId);
-        public string TextId => TextIdForOptionId(optionId);
+        Single = 1118587374,
+        Random = 1179893951,
+        Animation = 1375921733,
+    }
 
-        private NeoSmartTileOutput(string optionId)
-        {
-            this.optionId = optionId;
-        }
-
-        public static readonly NeoSmartTileOutput Single = FromOptionId("system_b76ada21-68e0-5b52-bdfe-3b1f95a8c896");
-        public static readonly NeoSmartTileOutput Random = FromOptionId("system_717e141c-a3af-535e-9f30-da2a9241803d");
-        public static readonly NeoSmartTileOutput Animation = FromOptionId("system_649f99d0-c726-5f20-aeea-786a0776f53f");
-
+    /// <summary>
+    /// Converts <see cref="NeoSmartTileOutput"/> to and from the option ids Neo stores.
+    /// </summary>
+    public static class NeoSmartTileOutputOptions
+    {
         public static NeoSmartTileOutput FromOptionId(string optionId)
         {
-            if (values.TryGetValue(optionId, out var known)) return known;
-            var created = new NeoSmartTileOutput(optionId);
-            values[optionId] = created;
-            return created;
+            return optionId switch
+            {
+                "system_b76ada21-68e0-5b52-bdfe-3b1f95a8c896" => NeoSmartTileOutput.Single,
+                "system_717e141c-a3af-535e-9f30-da2a9241803d" => NeoSmartTileOutput.Random,
+                "system_649f99d0-c726-5f20-aeea-786a0776f53f" => NeoSmartTileOutput.Animation,
+                _ => NeoUndeclaredEnumOptions<NeoSmartTileOutput>.FromOptionId(optionId),
+            };
+        }
+
+        public static string OptionId(this NeoSmartTileOutput value)
+        {
+            return value switch
+            {
+                NeoSmartTileOutput.Single => "system_b76ada21-68e0-5b52-bdfe-3b1f95a8c896",
+                NeoSmartTileOutput.Random => "system_717e141c-a3af-535e-9f30-da2a9241803d",
+                NeoSmartTileOutput.Animation => "system_649f99d0-c726-5f20-aeea-786a0776f53f",
+                _ => NeoUndeclaredEnumOptions<NeoSmartTileOutput>.OptionId(value),
+            };
         }
 
         public static string[] ToOptionIds(IEnumerable<NeoSmartTileOutput>? options)
         {
             if (options is null) return Array.Empty<string>();
             var ids = new List<string>();
-            foreach (var option in options) ids.Add(option.optionId);
+            foreach (var option in options) ids.Add(option.OptionId());
             return ids.ToArray();
         }
 
-        public static bool IsKnown(string id)
+        public static bool IsKnown(string optionId)
         {
-            return id switch
+            return optionId switch
             {
                 "system_b76ada21-68e0-5b52-bdfe-3b1f95a8c896" => true,
                 "system_717e141c-a3af-535e-9f30-da2a9241803d" => true,
@@ -54,29 +65,20 @@ namespace Assets.Scripts.Neo
             };
         }
 
-        public static string TextIdForOptionId(string optionId)
+        public static string TextId(this NeoSmartTileOutput value)
         {
-            return optionId switch
+            return value switch
             {
-                "system_b76ada21-68e0-5b52-bdfe-3b1f95a8c896" => "Single",
-                "system_717e141c-a3af-535e-9f30-da2a9241803d" => "Random",
-                "system_649f99d0-c726-5f20-aeea-786a0776f53f" => "Animation",
-                _ => optionId,
+                NeoSmartTileOutput.Single => "Single",
+                NeoSmartTileOutput.Random => "Random",
+                NeoSmartTileOutput.Animation => "Animation",
+                _ => value.OptionId(),
             };
         }
 
-        public static string TextForOptionId(string optionId, NeoClient? client = null)
+        public static string Text(this NeoSmartTileOutput value, NeoClient? client = null)
         {
-            return (client ?? TestProjectNeo.RequireInstance().Client).Localization.ResolveText(TextIdForOptionId(optionId));
+            return (client ?? TestProjectNeo.RequireInstance().Client).Localization.ResolveText(value.TextId());
         }
-
-        public static implicit operator string(NeoSmartTileOutput value) => value.optionId;
-        public static implicit operator NeoSmartTileOutput(string optionId) => FromOptionId(optionId);
-        public override string ToString() => optionId;
-        public bool Equals(NeoSmartTileOutput? other) => other is not null && optionId == other.optionId;
-        public override bool Equals(object? obj) => Equals(obj as NeoSmartTileOutput);
-        public override int GetHashCode() => optionId.GetHashCode();
-        public static bool operator ==(NeoSmartTileOutput? left, NeoSmartTileOutput? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
-        public static bool operator !=(NeoSmartTileOutput? left, NeoSmartTileOutput? right) => !(left == right);
     }
 }

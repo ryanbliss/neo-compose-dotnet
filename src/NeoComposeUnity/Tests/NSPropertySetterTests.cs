@@ -222,7 +222,7 @@ namespace NeoCompose.Tests
                     required = true,
                     enumId = "enum-test",
                 },
-                new TestEnumOption("option-a"),
+                NeoTestEnumOptions.FromOptionId("option-a"),
                 captured => CollectionAssert.AreEqual(
                     new[] { "option-a" },
                     (string[])captured!));
@@ -2025,19 +2025,6 @@ namespace NeoCompose.Tests
 
             internal IDisposable OnComputedChanged(Action<int, NeoChangeSource> handler) =>
                 WatchField(Computed, handler, () => ComputedValue);
-        }
-
-        private sealed class TestEnumOption
-        {
-            public TestEnumOption(string optionId)
-            {
-                this.optionId = optionId;
-            }
-
-            public string optionId
-            {
-                get;
-            }
         }
 
         private sealed class TestValueReference : INeoValueReference

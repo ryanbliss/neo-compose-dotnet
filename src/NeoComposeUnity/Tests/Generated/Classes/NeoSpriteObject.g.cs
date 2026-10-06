@@ -114,7 +114,7 @@ namespace Assets.Scripts.Neo
         }
 
         Sprite INeoSpriteObjectValue.Sprite => Sprite;
-        string INeoSpriteObjectValue.MaskInteraction => MaskInteraction.optionId;
+        string INeoSpriteObjectValue.MaskInteraction => MaskInteraction.OptionId();
 
         public override string Name
         {
@@ -185,12 +185,12 @@ namespace Assets.Scripts.Neo
             get
             {
                 var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoMemberEnum>("MaskInteraction"));
-                return selected is null ? throw new InvalidOperationException("Required enum 'MaskInteraction' has no selected option.") : NeoSpriteMaskInteraction.FromOptionId(selected);
+                return selected is null ? throw new InvalidOperationException("Required enum 'MaskInteraction' has no selected option.") : NeoSpriteMaskInteractionOptions.FromOptionId(selected);
             }
             set
             {
                 ThrowIfReadOnly("NeoSpriteObject.MaskInteraction");
-                NeoGeneratedTypesSupport.SetValue(writableNode, "MaskInteraction", NeoGeneratedTypesSupport.Value(new[] { value.optionId }));
+                NeoGeneratedTypesSupport.SetValue(writableNode, "MaskInteraction", NeoGeneratedTypesSupport.Value(new[] { value.OptionId() }));
             }
         }
 

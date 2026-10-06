@@ -661,19 +661,20 @@ namespace NeoCompose.Runtime
     /// (specs/dictionary-key-classes.md §9). Same-name two-arity sibling of
     /// <see cref="NeoReadOnlyDictionary{T}"/> (the
     /// <c>System.Collections.Generic</c> arity precedent):
-    /// <typeparamref name="TKey"/> is a generated enum wrapper class and
-    /// every key crosses the boundary through the codec supplied at
-    /// construction (<c>fromOptionId</c> / <c>toOptionId</c>). Storage is
-    /// NOT forked — all reads delegate to a single-arity
-    /// <see cref="NeoReadOnlyDictionary{T}"/> over the same node, whose
-    /// keys are the option-id strings on the wire. <see cref="Keys"/> and
-    /// enumeration materialize keys via <c>fromOptionId</c>, so stale
-    /// option ids (option deleted with "keep orphaned") degrade to ad-hoc
-    /// wrapper instances exactly like dangling Enum values do.
+    /// <typeparamref name="TKey"/> is a generated enum and every key crosses
+    /// the boundary through the codec supplied at construction
+    /// (<c>fromOptionId</c> / <c>toOptionId</c>). Storage is NOT forked — all
+    /// reads delegate to a single-arity <see cref="NeoReadOnlyDictionary{T}"/>
+    /// over the same node, whose keys are the option-id strings on the wire.
+    /// <see cref="Keys"/> and enumeration materialize keys via
+    /// <c>fromOptionId</c>, so stale option ids (option deleted with "keep
+    /// orphaned") become undeclared enum values exactly like dangling Enum
+    /// values do.
     /// Enumeration order is the underlying record order (the web UI's
     /// enum-option-order sort is display-only).
     /// </summary>
     public class NeoReadOnlyDictionary<TKey, TValue> : IReadOnlyDictionary<TKey, TValue>
+        where TKey : struct, System.Enum
     {
         protected readonly NeoReadOnlyDictionary<TValue> entries;
         protected readonly Func<string, TKey> fromOptionId;
@@ -714,7 +715,7 @@ namespace NeoCompose.Runtime
             return entries.WatchNode(this, handler);
         }
 
-        public TValue this[TKey key] => entries[KeyOptionId(key)];
+        public TValue this[TKey key] => entries[toOptionId(key)];
 
         public IEnumerable<TKey> Keys
         {
@@ -731,10 +732,10 @@ namespace NeoCompose.Runtime
 
         public int Count => entries.Count;
 
-        public bool ContainsKey(TKey key) => entries.ContainsKey(KeyOptionId(key));
+        public bool ContainsKey(TKey key) => entries.ContainsKey(toOptionId(key));
 
         public bool TryGetValue(TKey key, out TValue value) =>
-            entries.TryGetValue(KeyOptionId(key), out value);
+            entries.TryGetValue(toOptionId(key), out value);
 
         public Enumerator GetEnumerator() => new(entries.GetEnumerator(), fromOptionId);
 
@@ -781,21 +782,6 @@ namespace NeoCompose.Runtime
             {
             }
         }
-
-        /// <summary>
-        /// Converts a typed key to its wire option-id string via the codec,
-        /// rejecting null before the codec can dereference it.
-        /// </summary>
-        protected string KeyOptionId(TKey key)
-        {
-            if (key is null)
-            {
-                throw new ArgumentNullException(
-                    nameof(key),
-                    "Enum-keyed dictionary key must not be null.");
-            }
-            return toOptionId(key);
-        }
     }
 
     /// <summary>
@@ -807,6 +793,7 @@ namespace NeoCompose.Runtime
     /// </summary>
     public class NeoDictionary<TKey, TValue>
         : NeoReadOnlyDictionary<TKey, TValue>, IDictionary<TKey, TValue>
+        where TKey : struct, System.Enum
     {
         private readonly NeoDictionary<TValue> writableEntries;
 
@@ -860,7 +847,7 @@ namespace NeoCompose.Runtime
         public new TValue this[TKey key]
         {
             get => base[key];
-            set => writableEntries[KeyOptionId(key)] = value;
+            set => writableEntries[toOptionId(key)] = value;
         }
 
         public new ICollection<TKey> Keys
@@ -879,7 +866,7 @@ namespace NeoCompose.Runtime
         public bool IsReadOnly => writableEntries.IsReadOnly;
 
         public void Add(TKey key, TValue value) =>
-            writableEntries.Add(KeyOptionId(key), value);
+            writableEntries.Add(toOptionId(key), value);
 
         public void Add(KeyValuePair<TKey, TValue> item) => Add(item.Key, item.Value);
 
@@ -887,7 +874,7 @@ namespace NeoCompose.Runtime
 
         public bool Contains(KeyValuePair<TKey, TValue> item) =>
             writableEntries.Contains(
-                new KeyValuePair<string, TValue>(KeyOptionId(item.Key), item.Value));
+                new KeyValuePair<string, TValue>(toOptionId(item.Key), item.Value));
 
         public void CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex)
         {
@@ -899,7 +886,7 @@ namespace NeoCompose.Runtime
             }
         }
 
-        public bool Remove(TKey key) => writableEntries.Remove(KeyOptionId(key));
+        public bool Remove(TKey key) => writableEntries.Remove(toOptionId(key));
 
         public bool Remove(KeyValuePair<TKey, TValue> item)
         {

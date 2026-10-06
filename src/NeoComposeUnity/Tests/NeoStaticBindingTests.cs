@@ -925,7 +925,7 @@ namespace NeoCompose.Tests
                         new object?[]
                         {
                             null,
-                            new TestEnumOption("ready"),
+                            NeoTestEnumOptions.FromOptionId("ready"),
                         }));
 
             string tagsId = profile.value!.value!["Tags"];
@@ -3782,19 +3782,6 @@ namespace NeoCompose.Tests
                     $"{pair.Key}:{pair.Value.GetType().Name}:{pair.Value.classId}:{payload}:parent={parent}");
             }
             return string.Join(", ", descriptions);
-        }
-
-        private sealed class TestEnumOption : INeoEnumOption
-        {
-            internal TestEnumOption(string optionId)
-            {
-                this.optionId = optionId;
-            }
-
-            public string optionId
-            {
-                get;
-            }
         }
 
         private sealed class TestValueReference : INeoValueReference

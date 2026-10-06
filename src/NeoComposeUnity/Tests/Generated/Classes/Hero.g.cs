@@ -259,7 +259,7 @@ namespace Assets.Scripts.Neo
             {
                 var memberNode = writableNode.Get<NeoMemberDictionaryWritable>("ElementAffinity");
                 if (TryGetStoredView<NeoDictionary<Element, string?>>("ElementAffinity", memberNode, out var cached)) return cached;
-                return CacheStoredView("ElementAffinity", memberNode, new NeoDictionary<Element, string?>(client, memberNode, () => writableNode.GetOrCreateCollection<NeoMemberDictionaryWritable>("ElementAffinity"), (client, child) => ((NeoMemberString)child).Text, item => NeoGeneratedTypesSupport.Value(item), static (factoryOptionId) => Element.FromOptionId(factoryOptionId), key => key.optionId, () => ThrowIfReadOnly("Hero.ElementAffinity"), () => IsReadOnly));
+                return CacheStoredView("ElementAffinity", memberNode, new NeoDictionary<Element, string?>(client, memberNode, () => writableNode.GetOrCreateCollection<NeoMemberDictionaryWritable>("ElementAffinity"), (client, child) => ((NeoMemberString)child).Text, item => NeoGeneratedTypesSupport.Value(item), static (factoryOptionId) => ElementOptions.FromOptionId(factoryOptionId), key => key.OptionId(), () => ThrowIfReadOnly("Hero.ElementAffinity"), () => IsReadOnly));
             }
         }
 
@@ -269,7 +269,7 @@ namespace Assets.Scripts.Neo
             {
                 var memberNode = node.Get<NeoMemberDictionary>("ElementAffinity");
                 if (TryGetStoredView<NeoReadOnlyDictionary<Element, string?>>("ElementAffinity", memberNode, out var cached)) return cached;
-                return CacheStoredView("ElementAffinity", memberNode, new NeoReadOnlyDictionary<Element, string?>(client, memberNode, (client, child) => ((NeoMemberString)child).Text, static (factoryOptionId) => Element.FromOptionId(factoryOptionId), key => key.optionId));
+                return CacheStoredView("ElementAffinity", memberNode, new NeoReadOnlyDictionary<Element, string?>(client, memberNode, (client, child) => ((NeoMemberString)child).Text, static (factoryOptionId) => ElementOptions.FromOptionId(factoryOptionId), key => key.OptionId()));
             }
         }
 

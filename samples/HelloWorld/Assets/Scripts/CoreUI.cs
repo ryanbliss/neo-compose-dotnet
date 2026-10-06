@@ -47,7 +47,7 @@ namespace HelloWorld.Assets.Scripts
             IReadOnlyAnimationInfo flareAnimation,
             Sprite sunSprite,
             AudioClip thrustSfx,
-            Func<string, Sprite> parentPlanetSprite,
+            Func<Planet, Sprite> parentPlanetSprite,
             IReadOnlyOutpost currentOutpost,
             IReadOnlyList<IReadOnlyOutpost> outposts,
             int bits,
