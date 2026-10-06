@@ -198,19 +198,19 @@ namespace NeoCompose.Runtime.Json
             {
                 throw new JsonSerializationException(
                     $"{subject} carries both 'value' and 'init'. A computed default stores its "
-                    + "initializer and no baked value; re-export the project from the current web app.");
+                    + "initializer and no baked value; run `neo pull` and `neo export`.");
             }
             if (IsPresent(carrier["classId"]))
             {
                 throw new JsonSerializationException(
                     $"{subject} carries both 'classId' and 'init'. The concrete class of a computed "
-                    + "default comes from evaluating it; re-export the project from the current web app.");
+                    + "default comes from evaluating it; run `neo pull` and `neo export`.");
             }
             if (IsPresent(carrier["constructorArgs"]))
             {
                 throw new JsonSerializationException(
                     $"{subject} carries both 'constructorArgs' and 'init'. Constructor arguments "
-                    + "belong only to a materialized instance; re-export the project from the current web app.");
+                    + "belong only to a materialized instance; run `neo pull` and `neo export`.");
             }
         }
 
@@ -239,21 +239,21 @@ namespace NeoCompose.Runtime.Json
             if (carriesVariantRow && !carriesVariant)
             {
                 throw new JsonSerializationException(
-                    $"{subject} carries 'instanceVariantRowValueId' without 'instanceVariantId'. Re-export the project from the current web app.");
+                    $"{subject} carries 'instanceVariantRowValueId' without 'instanceVariantId'. Run `neo pull` and `neo export`.");
             }
             if (property is null || property.Value.Type == JTokenType.Null)
             {
                 if (constructorProperty?.Value.Type == JTokenType.String)
                 {
                     throw new JsonSerializationException(
-                        $"{subject} names a constructor without a 'constructorArgs' object. Re-export the project from the current web app.");
+                        $"{subject} names a constructor without a 'constructorArgs' object. Run `neo pull` and `neo export`.");
                 }
                 return;
             }
             if (constructorProperty is null && !carriesVariant)
             {
                 throw new JsonSerializationException(
-                    $"{subject} carries 'constructorArgs' without a constructor or variant discriminator. Re-export the project from the current web app.");
+                    $"{subject} carries 'constructorArgs' without a constructor or variant discriminator. Run `neo pull` and `neo export`.");
             }
             if (property.Value is not JObject args)
             {
@@ -263,27 +263,27 @@ namespace NeoCompose.Runtime.Json
             if (carrier["value"] is not JObject)
             {
                 throw new JsonSerializationException(
-                    $"{subject} carries 'constructorArgs' without a materialized class 'value' object. Re-export the project from the current web app.");
+                    $"{subject} carries 'constructorArgs' without a materialized class 'value' object. Run `neo pull` and `neo export`.");
             }
             if (carrier["classId"]?.Type != JTokenType.String
                 || string.IsNullOrWhiteSpace(carrier.Value<string>("classId")))
             {
                 throw new JsonSerializationException(
-                    $"{subject} carries 'constructorArgs' without a concrete 'classId'. Re-export the project from the current web app.");
+                    $"{subject} carries 'constructorArgs' without a concrete 'classId'. Run `neo pull` and `neo export`.");
             }
             foreach (JProperty argument in args.Properties())
             {
                 if (string.IsNullOrWhiteSpace(argument.Name))
                 {
                     throw new JsonSerializationException(
-                        $"{subject} has an empty constructor parameter id in 'constructorArgs'. Re-export the project from the current web app.");
+                        $"{subject} has an empty constructor parameter id in 'constructorArgs'. Run `neo pull` and `neo export`.");
                 }
             }
             if (constructorProperty?.Value.Type == JTokenType.Null
                 && args.HasValues)
             {
                 throw new JsonSerializationException(
-                    $"{subject} carries arguments for the implicit parameterless constructor. Re-export the project from the current web app.");
+                    $"{subject} carries arguments for the implicit parameterless constructor. Run `neo pull` and `neo export`.");
             }
         }
     }

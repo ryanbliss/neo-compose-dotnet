@@ -18,7 +18,7 @@ namespace NeoCompose.Tests
         public const string TargetChannel = "channel-dev";
 
         public const string ProjectJson =
-            "{\"metadata\":{\"schemaVersion\":35,\"projectId\":\"project-1\"," +
+            "{\"metadata\":{\"schemaVersion\":36,\"projectId\":\"project-1\"," +
             "\"versionId\":\"v1\",\"semver\":{\"label\":\"1.0\"}}," +
             "\"variantFolders\":{}}";
 
@@ -78,10 +78,24 @@ namespace NeoCompose.Tests
     {
         private readonly AwaitableCompletionSource<string> completion =
             new AwaitableCompletionSource<string>();
+        private Dictionary<string, string> partitionJsonByFile = new();
+        public readonly List<string> partitionReads = new();
 
         public Awaitable<string> ReadProjectJsonAsync() => completion.Awaitable;
 
-        public void Complete(string json) => completion.TrySetResult(json);
+        public string ReadPartitionJson(string file)
+        {
+            partitionReads.Add(file);
+            return partitionJsonByFile[file];
+        }
+
+        /// <summary>Completes the read with a one-document corpus (see <see cref="NeoTestExport"/>).</summary>
+        public void Complete(string corpusJson)
+        {
+            var (projectJson, partitions) = NeoTestExport.Split(corpusJson);
+            partitionJsonByFile = partitions;
+            completion.TrySetResult(projectJson);
+        }
     }
 
     internal sealed class FakeApiClient : INeoApiClient

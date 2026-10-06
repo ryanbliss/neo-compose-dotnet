@@ -2651,7 +2651,7 @@ namespace NeoCompose.Runtime
                 return;
             }
             throw new InvalidOperationException(
-                $"Animation clip '{clipKey}' frame {frameIndex} path '{string.Join(".", path)}' still references shared authored row '{authoredChild.id}' on placement '{target.value.id}'. Re-export with a placement-owned clone carrying sourceValueId before playback.");
+                $"Animation clip '{clipKey}' frame {frameIndex} path '{string.Join(".", path)}' still references shared authored row '{authoredChild.id}' on placement '{target.value.id}'. Run `neo pull` and `neo export` so the placement owns a clone carrying sourceValueId before playback.");
         }
 
         /// <summary>

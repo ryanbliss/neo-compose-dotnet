@@ -3268,10 +3268,10 @@ namespace NeoCompose.Tests
                         value = 4,
                     },
                 },
-                valuePartitions = new Dictionary<string, JToken>
+                valuePartitions = NeoTestExport.Partitions(new Dictionary<string, JToken>
                 {
                     ["scores:rules-class"] = new JObject(),
-                },
+                }),
                 classes = new Dictionary<string, NeoSchemaClass>
                 {
                     [rootClass.id] = rootClass,

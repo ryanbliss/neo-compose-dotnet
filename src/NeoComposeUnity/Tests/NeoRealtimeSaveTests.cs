@@ -29,7 +29,7 @@ namespace NeoCompose.Tests
             var local = new NeoInMemoryLocalSaveStore();
             var realtime = new FakeRealtimeProvider { State = initialState };
             var store = new NeoProjectStore(
-                dataSource: new NeoJsonProjectDataSource(NeoSaveTestSupport.ProjectJson),
+                dataSource: NeoTestExport.Source(NeoSaveTestSupport.ProjectJson),
                 localStore: local,
                 apiClient: api,
                 targetReleaseChannelId: NeoSaveTestSupport.TargetChannel,
@@ -189,7 +189,7 @@ namespace NeoCompose.Tests
         {
             var realtime = new FakeRealtimeProvider();
             var store = new NeoProjectStore(
-                dataSource: new NeoJsonProjectDataSource(NeoSaveTestSupport.ProjectJson),
+                dataSource: NeoTestExport.Source(NeoSaveTestSupport.ProjectJson),
                 localStore: new NeoInMemoryLocalSaveStore(),
                 targetReleaseChannelId: NeoSaveTestSupport.TargetChannel,
                 realtimeProvider: realtime);
@@ -210,7 +210,7 @@ namespace NeoCompose.Tests
 
             var store = new NeoProjectStore(
                 config: config,
-                dataSource: new NeoJsonProjectDataSource(NeoSaveTestSupport.ProjectJson),
+                dataSource: NeoTestExport.Source(NeoSaveTestSupport.ProjectJson),
                 localStore: new NeoInMemoryLocalSaveStore(),
                 apiClient: new FakeApiClient(),
                 authentication: auth,
@@ -241,7 +241,7 @@ namespace NeoCompose.Tests
 
             var store = new NeoProjectStore(
                 config: config,
-                dataSource: new NeoJsonProjectDataSource(NeoSaveTestSupport.ProjectJson),
+                dataSource: NeoTestExport.Source(NeoSaveTestSupport.ProjectJson),
                 localStore: new NeoInMemoryLocalSaveStore(),
                 apiClient: new FakeApiClient(),
                 authentication: auth,
@@ -260,7 +260,7 @@ namespace NeoCompose.Tests
             var auth = CreateSignedOutAuthentication(tokenStore);
             var realtime = new FakeRealtimeProvider();
             var store = new NeoProjectStore(
-                dataSource: new NeoJsonProjectDataSource(NeoSaveTestSupport.ProjectJson),
+                dataSource: NeoTestExport.Source(NeoSaveTestSupport.ProjectJson),
                 localStore: new NeoInMemoryLocalSaveStore(),
                 apiClient: new FakeApiClient(),
                 authentication: auth,

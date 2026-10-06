@@ -21,12 +21,6 @@ namespace NeoCompose.Runtime
             string? jsonBody,
             string? bearerToken,
             int timeoutSeconds = NeoComposeWebRequests.DefaultTimeoutSeconds);
-
-        /// <summary>
-        /// Downloads raw bytes from a pre-signed storage URL. Never carries a
-        /// bearer token.
-        /// </summary>
-        Task<byte[]> DownloadAsync(string url);
     }
 
     public sealed class NeoComposeUnityHttpClient : INeoComposeHttpClient
@@ -38,7 +32,5 @@ namespace NeoCompose.Runtime
             string? bearerToken,
             int timeoutSeconds = NeoComposeWebRequests.DefaultTimeoutSeconds) =>
             NeoComposeWebRequests.SendAsync(url, method, jsonBody, bearerToken, timeoutSeconds);
-
-        public Task<byte[]> DownloadAsync(string url) => NeoComposeWebRequests.DownloadBytesAsync(url);
     }
 }

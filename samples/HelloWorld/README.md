@@ -64,17 +64,16 @@ duplicated in `neo.json`. `neo.json` also sets `apiBaseUrl`, `convexUrl`,
    `prePushHook` runs `neo test` first. `neo push --dry-run` rehearses the full
    local emission and the server's preparation phase without pushing; note that
    the pre-push hook is a real-push hook and does not run for a dry run.
-3. In Unity, run the synchronize pipeline from **Tools → Neo Compose** (also
-   available under **Window → Neo Compose**). The sample additionally exposes
-   **Neo Compose → Headless Sync** (`Assets/Editor/NeoHeadlessSync.cs`), a menu
-   command that runs the same pipeline without opening the editor window. It is
-   not batchmode-safe: it can raise confirmation dialogs and never exits the
-   editor, so it is not a CI entry point.
+3. `neo export` from the same directory (after a `neo pull` when others have
+   pushed) writes the export into this Unity project. An open editor ingests it
+   within a second or so, with or without the Neo Compose window open; headless,
+   run `-executeMethod NeoCompose.Unity.Editor.NeoComposeBatchSync.Run`.
 4. Commit the regenerated outputs.
 
-Synchronization writes committed artifacts into the Unity project:
+The export writes committed artifacts into the Unity project:
 
-- `Assets/Resources/Neo/project.json` — the runtime project export.
+- `Assets/Resources/Neo/project.json` — the runtime project export, and
+  `Assets/Resources/Neo/Partitions/` — its value rows, one file per partition.
 - `Assets/Scripts/Neo/Generated/` — the generated C# API, named after their generated types. Do not edit
   by hand; extend it with hand-authored partials in
   `Assets/Scripts/Neo/NeoClassesExtended.cs`.

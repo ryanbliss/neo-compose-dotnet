@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.7.0] - 2026-10-05
+
+### Breaking
+
+- Requires `com.ryanbliss.neocompose` 0.58.0. The editor assembly `NeoCompose.Unity.Convex.Editor` and `ConvexEditorRealtimeProvider` are removed, since the Neo Compose window no longer holds a realtime subscription. `ConvexRealtimeProvider.SubscribeRaw` went with them.
+
 ## [0.6.0] - 2026-10-04
 
 - Carry member-listener records and Save format capabilities through realtime manifests, deltas, and listener patches. Requires NeoCompose 0.57.0.

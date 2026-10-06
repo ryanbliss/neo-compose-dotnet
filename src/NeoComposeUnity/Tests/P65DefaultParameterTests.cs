@@ -482,13 +482,13 @@ namespace NeoCompose.Tests
             StringAssert.Contains(
                 $"accepts only schema version {NeoProjectExportContract.CurrentSchemaVersion}",
                 error.Message);
-            StringAssert.Contains("Re-export", error.Message);
+            StringAssert.Contains("Run `neo pull` and `neo export`.", error.Message);
         }
 
         [Test]
-        public void ExportSchemaVersion_CurrentContractIsThirtyFive()
+        public void ExportSchemaVersion_CurrentContractIsThirtySix()
         {
-            Assert.AreEqual(35, NeoProjectExportContract.CurrentSchemaVersion);
+            Assert.AreEqual(36, NeoProjectExportContract.CurrentSchemaVersion);
         }
 
         // -------------------------------------------------------------------

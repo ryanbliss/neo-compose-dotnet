@@ -14,10 +14,9 @@ namespace NeoCompose.Convex
     /// signed-in session the JWT derives from.
     /// </summary>
     /// <remarks>
-    /// The session token source comes from the host's authentication —
-    /// <c>NeoAuthentication.AccessTokenProvider</c> at runtime,
-    /// <c>NeoComposeEditorAuthController.CreateAccessTokenProvider()</c> in the
-    /// editor. The transport and clock are injectable for deterministic tests.
+    /// The session token source comes from the host's authentication,
+    /// <c>NeoAuthentication.AccessTokenProvider</c>. The transport and clock are
+    /// injectable for deterministic tests.
     /// </remarks>
     public sealed class ConvexRealtimeOptions
     {

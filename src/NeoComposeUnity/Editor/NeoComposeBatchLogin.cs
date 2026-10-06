@@ -22,11 +22,10 @@ namespace NeoCompose.Unity.Editor
     ///   -executeMethod NeoCompose.Unity.Editor.NeoComposeBatchLogin.Run
     /// </code>
     /// <para>
-    /// Do <b>not</b> pass <c>-quit</c>, for the same reason
-    /// <see cref="NeoComposeBatchSync"/> does not: the device flow is
-    /// asynchronous and the editor's update loop is the pump its web requests
-    /// need, so <see cref="Run"/> returns immediately and exits the editor
-    /// itself — <c>0</c> once a credential is stored, <c>1</c> otherwise.
+    /// Do <b>not</b> pass <c>-quit</c>: the device flow is asynchronous and the
+    /// editor's update loop is the pump its web requests need, so
+    /// <see cref="Run"/> returns immediately and exits the editor itself —
+    /// <c>0</c> once a credential is stored, <c>1</c> otherwise.
     /// </para>
     /// <para>
     /// Sign-in always targets the <em>rig</em> origin: this entry point resolves
@@ -36,7 +35,7 @@ namespace NeoCompose.Unity.Editor
     /// browser, so the verification URL and user code are logged under
     /// <see cref="LogPrefix"/> for the caller to approve, and the credential
     /// lands in the same per-origin <see cref="NeoComposeTokenStore"/> the editor
-    /// window and <see cref="NeoComposeBatchSync"/> read.
+    /// window reads.
     /// </para>
     /// </remarks>
     public static class NeoComposeBatchLogin
@@ -59,7 +58,7 @@ namespace NeoCompose.Unity.Editor
 
         /// <summary>
         /// A stored credential is only reused when it still has this much life
-        /// left — a token that expires mid-synchronize is no better than none.
+        /// left — a token that expires mid-run is no better than none.
         /// </summary>
         internal static readonly TimeSpan ReuseMargin = TimeSpan.FromMinutes(5);
 

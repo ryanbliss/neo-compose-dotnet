@@ -66,7 +66,7 @@ namespace NeoCompose.Tests
                 ["versionId"] = "unit-test-version",
             };
             root["variantFolders"] ??= new JObject();
-            return JsonConvert.DeserializeObject<ProjectData>(root.ToString());
+            return NeoTestExport.Read(root.ToString());
         }
 
         /// <summary>
@@ -525,7 +525,7 @@ namespace NeoCompose.Tests
         public void ConstructorRecord_AndClassConstructorIdsRoundTrip()
         {
             const string json = @"{
-  ""metadata"": { ""schemaVersion"": 35, ""projectId"": ""project"", ""versionId"": ""v"" },
+  ""metadata"": { ""schemaVersion"": 36, ""projectId"": ""project"", ""versionId"": ""v"" },
   ""project"": { ""id"": ""project"", ""name"": ""P"" },
   ""members"": {},
   ""values"": {},
@@ -592,7 +592,7 @@ namespace NeoCompose.Tests
         public void RequiredConstructorId_AndBaseInitializerFieldsRoundTrip()
         {
             const string json = @"{
-  ""metadata"": { ""schemaVersion"": 35, ""projectId"": ""project"", ""versionId"": ""v"" },
+  ""metadata"": { ""schemaVersion"": 36, ""projectId"": ""project"", ""versionId"": ""v"" },
   ""project"": { ""id"": ""project"", ""name"": ""P"" },
   ""members"": {},
   ""values"": {},
@@ -659,7 +659,7 @@ namespace NeoCompose.Tests
         public void ConstructorCode_IsAbsentWhenNoInitBlockIsDeclared()
         {
             const string json = @"{
-  ""metadata"": { ""schemaVersion"": 35, ""projectId"": ""project"", ""versionId"": ""v"" },
+  ""metadata"": { ""schemaVersion"": 36, ""projectId"": ""project"", ""versionId"": ""v"" },
   ""project"": { ""id"": ""project"", ""name"": ""P"" },
   ""members"": {},
   ""values"": {},
@@ -826,7 +826,7 @@ namespace NeoCompose.Tests
             };
 
             var error = Assert.Throws<JsonSerializationException>(() =>
-                JsonConvert.DeserializeObject<ProjectData>(root.ToString()));
+                NeoTestExport.Read(root.ToString()));
 
             Assert.That(
                 error!.Message,
@@ -836,8 +836,36 @@ namespace NeoCompose.Tests
                 error.Message,
                 Does.Contain(
                     $"schema version {NeoProjectExportContract.CurrentSchemaVersion}"));
-            Assert.That(error.Message, Does.Contain("Re-export"));
+            Assert.That(error.Message, Does.Contain("Run `neo pull` and `neo export`."));
             Assert.That(error.Message, Does.Not.Contain("discriminator field 'kind'"));
+        }
+
+        [Test]
+        public void ProjectData_Schema35ExportFailsTheGateAskingForPullAndExport()
+        {
+            // Schema 35 inlines its rows and has no partition index or files.
+            string directory = Path.Combine(Path.GetTempPath(), "neo-schema35-" + System.Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(directory);
+            try
+            {
+                string path = Path.Combine(directory, "project.json");
+                File.WriteAllText(path, @"{
+  ""metadata"": { ""schemaVersion"": 35, ""projectId"": ""project"", ""versionId"": ""version"" },
+  ""variantFolders"": {},
+  ""values"": { ""v"": { ""id"": ""v"", ""value"": 1 } },
+  ""valuePartitions"": { ""world:grid"": {} }
+}");
+
+                var error = Assert.Throws<JsonSerializationException>(() =>
+                    NeoJsonProjectDataSource.FromFile(path).ReadProjectData());
+
+                Assert.That(error!.Message, Does.Contain("Project export schema version 35 is unsupported"));
+                Assert.That(error.Message, Does.EndWith("Run `neo pull` and `neo export`."));
+            }
+            finally
+            {
+                Directory.Delete(directory, true);
+            }
         }
 
         [Test]
@@ -854,7 +882,7 @@ namespace NeoCompose.Tests
             };
 
             var error = Assert.Throws<JsonSerializationException>(() =>
-                JsonConvert.DeserializeObject<ProjectData>(root.ToString()));
+                NeoTestExport.Read(root.ToString()));
 
             Assert.That(
                 error!.Message,
@@ -867,7 +895,7 @@ namespace NeoCompose.Tests
         public void ProjectData_MissingMetadataIsRejectedAtTheBoundary()
         {
             var error = Assert.Throws<JsonSerializationException>(() =>
-                JsonConvert.DeserializeObject<ProjectData>("{}"));
+                NeoTestExport.Read("{}"));
 
             Assert.That(error!.Message, Does.Contain("metadata is missing"));
             Assert.That(
@@ -888,7 +916,7 @@ namespace NeoCompose.Tests
 }";
 
             var error = Assert.Throws<JsonSerializationException>(() =>
-                JsonConvert.DeserializeObject<ProjectData>(json));
+                NeoTestExport.Read(json));
 
             Assert.That(error!.Message, Does.Contain("valid integer 'schemaVersion'"));
             Assert.That(
@@ -935,7 +963,7 @@ namespace NeoCompose.Tests
             };
 
             var error = Assert.Throws<JsonSerializationException>(() =>
-                JsonConvert.DeserializeObject<ProjectData>(root.ToString()));
+                NeoTestExport.Read(root.ToString()));
 
             Assert.That(error!.Message, Does.Contain("discriminator field 'kind'"));
         }
@@ -954,7 +982,7 @@ namespace NeoCompose.Tests
             };
 
             var error = Assert.Throws<JsonSerializationException>(() =>
-                JsonConvert.DeserializeObject<ProjectData>(root.ToString()));
+                NeoTestExport.Read(root.ToString()));
 
             Assert.That(error!.Message, Does.Contain("variantFolders"));
         }
@@ -998,7 +1026,7 @@ namespace NeoCompose.Tests
                 JsonConvert.DeserializeObject<Member>(json.ToString()));
 
             StringAssert.Contains(
-                "schema 35 has no replacement for",
+                $"schema {NeoProjectExportContract.CurrentSchemaVersion} has no replacement for",
                 exception!.Message);
         }
 
@@ -2072,7 +2100,7 @@ namespace NeoCompose.Tests
             };
 
             var json = JsonConvert.SerializeObject(source);
-            var roundTripped = JsonConvert.DeserializeObject<ProjectData>(json)!;
+            var roundTripped = NeoTestExport.Read(json)!;
 
             var declaration = roundTripped.interfaces["interface-damageable"];
             CollectionAssert.AreEqual(

@@ -23,7 +23,7 @@ namespace NeoCompose.Tests
             var api = new FakeApiClient();
             var local = new NeoInMemoryLocalSaveStore();
             var store = new NeoProjectStore(
-                dataSource: new NeoJsonProjectDataSource(NeoSaveTestSupport.ProjectJson),
+                dataSource: NeoTestExport.Source(NeoSaveTestSupport.ProjectJson),
                 localStore: local,
                 apiClient: api,
                 targetReleaseChannelId: NeoSaveTestSupport.TargetChannel);
@@ -87,7 +87,7 @@ namespace NeoCompose.Tests
             var api = new FakeApiClient { getResult = remote };
             api.list.saves.Add(RemoteGameSaveSummary.FromRemote(remote));
             var store = new NeoProjectStore(
-                dataSource: new NeoJsonProjectDataSource(NeoSaveTestSupport.ProjectJson),
+                dataSource: NeoTestExport.Source(NeoSaveTestSupport.ProjectJson),
                 localStore: new NeoInMemoryLocalSaveStore(),
                 apiClient: api,
                 targetReleaseChannelId: NeoSaveTestSupport.TargetChannel);
@@ -222,7 +222,7 @@ namespace NeoCompose.Tests
                 canCommit = true,
             };
             var store = new NeoProjectStore(
-                dataSource: new NeoJsonProjectDataSource(NeoSaveTestSupport.ProjectJson),
+                dataSource: NeoTestExport.Source(NeoSaveTestSupport.ProjectJson),
                 localStore: local,
                 apiClient: api,
                 targetReleaseChannelId: NeoSaveTestSupport.TargetChannel,
@@ -258,7 +258,7 @@ namespace NeoCompose.Tests
                 canCommit = true,
             };
             var store = new NeoProjectStore(
-                dataSource: new NeoJsonProjectDataSource(NeoSaveTestSupport.ProjectJson),
+                dataSource: NeoTestExport.Source(NeoSaveTestSupport.ProjectJson),
                 localStore: local,
                 apiClient: api,
                 targetReleaseChannelId: NeoSaveTestSupport.TargetChannel,
@@ -821,7 +821,7 @@ namespace NeoCompose.Tests
             // values as an array can't deserialize into typed rows → migration.
             await local.CommitSaveAsync("save-1", NeoSaveTestSupport.SaveContent("Old", values: "[1,2,3]"));
             var store = new NeoProjectStore(
-                dataSource: new NeoJsonProjectDataSource(NeoSaveTestSupport.ProjectJson),
+                dataSource: NeoTestExport.Source(NeoSaveTestSupport.ProjectJson),
                 localStore: local,
                 targetReleaseChannelId: NeoSaveTestSupport.TargetChannel);
             await store.LoadAsync();

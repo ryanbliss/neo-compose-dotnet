@@ -372,22 +372,6 @@ namespace NeoCompose.Convex
         }
 
         /// <summary>
-        /// Raw-JSON subscription for sibling assemblies (the editor facade)
-        /// building non-save subscriptions on the same connection machinery.
-        /// Same gating and dispatcher semantics as the typed subscriptions.
-        /// </summary>
-        internal IDisposable SubscribeRaw(
-            string functionName, Dictionary<string, object?> args, Action<string> onJson)
-        {
-            if (onJson == null)
-            {
-                throw new ArgumentNullException(nameof(onJson));
-            }
-
-            return SubscribeCore(functionName, args, json => json, onJson);
-        }
-
-        /// <summary>
         /// Shared subscription plumbing: skip (inert) while not connected, parse
         /// pushed JSON into the core DTO, and deliver on the dispatcher. Parse
         /// and subscription errors are logged, never thrown into the socket.

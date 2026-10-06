@@ -5,7 +5,6 @@
 
 using System.Collections.Generic;
 using System.IO;
-using System.IO.Compression;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using NeoCompose.Runtime.NeoScript;
@@ -40,7 +39,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void MissingStamp_IsRejectedWithAReExportInstruction()
+        public void MissingStamp_IsRejectedWithAPullAndExportInstruction()
         {
             NeoScriptPreExecutionValidationError error =
                 Assert.Throws<NeoScriptPreExecutionValidationError>(
@@ -50,8 +49,8 @@ namespace NeoCompose.Tests
                 "NeoScript body carries no compiler revision stamp; this SDK "
                     + "executes only revision "
                     + FunctionWithReturnType.CurrentCompilerRevision
-                    + ". Re-export the project from a Neo Compose deployment "
-                    + "at revision "
+                    + ". Run `neo pull` and `neo export` against a Neo Compose "
+                    + "deployment at revision "
                     + FunctionWithReturnType.CurrentCompilerRevision
                     + ".",
                 error.Message);
@@ -82,7 +81,7 @@ namespace NeoCompose.Tests
                     + stamp
                     + "; this SDK executes only revision "
                     + FunctionWithReturnType.CurrentCompilerRevision
-                    + ". Re-export the project from a deployment at revision "
+                    + ". Run `neo pull` and `neo export` against a deployment at revision "
                     + FunctionWithReturnType.CurrentCompilerRevision
                     + ", or install the SDK release that matches the export.",
                 error.Message);
@@ -101,8 +100,6 @@ namespace NeoCompose.Tests
             var swept = new List<string>();
 
             string[] fixtureFiles = Directory.GetFiles(PackageRoot, "*.json");
-            string[] compressedFixtureFiles =
-                Directory.GetFiles(PackageRoot, "*.json.gz");
             Assert.IsNotEmpty(
                 fixtureFiles,
                 $"No JSON fixtures were enumerable under '{PackageRoot}'.");
@@ -111,14 +108,6 @@ namespace NeoCompose.Tests
                 CollectStale(
                     Path.GetFileName(path),
                     File.ReadAllText(path),
-                    swept,
-                    stale);
-            }
-            foreach (string path in compressedFixtureFiles)
-            {
-                CollectStale(
-                    Path.GetFileName(path),
-                    ReadCompressed(path),
                     swept,
                     stale);
             }
@@ -134,11 +123,20 @@ namespace NeoCompose.Tests
                 swept,
                 stale);
 
+            string helloWorldProjectJson = File.ReadAllText("Assets/Resources/Neo/project.json");
             CollectStale(
                 "HelloWorld offline project.json",
-                File.ReadAllText("Assets/Resources/Neo/project.json"),
+                helloWorldProjectJson,
                 swept,
                 stale);
+            foreach (string file in NeoValuePartitions.ReadIndexFiles(helloWorldProjectJson))
+            {
+                CollectStale(
+                    $"HelloWorld offline {file}",
+                    File.ReadAllText(Path.Combine("Assets/Resources/Neo", file)),
+                    swept,
+                    stale);
+            }
 
             CollectionAssert.IsEmpty(
                 stale,
@@ -146,16 +144,6 @@ namespace NeoCompose.Tests
                     + FunctionWithReturnType.CurrentCompilerRevision
                     + "; the runtime executes nothing else. Swept: "
                     + string.Join(", ", swept));
-        }
-
-        private static string ReadCompressed(string path)
-        {
-            using FileStream file = File.OpenRead(path);
-            using var decompressed = new GZipStream(
-                file,
-                CompressionMode.Decompress);
-            using var reader = new StreamReader(decompressed);
-            return reader.ReadToEnd();
         }
 
         private static void CollectStale(

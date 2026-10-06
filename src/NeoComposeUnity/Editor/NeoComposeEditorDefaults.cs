@@ -25,7 +25,6 @@ namespace NeoCompose.Unity.Editor
         public const string LocalizationStreamingAssetsDirectory = global::NeoCompose.Runtime.NeoComposeDefaults.LocalizationStreamingAssetsDirectory;
         public const string SpriteDirectory = global::NeoCompose.Runtime.NeoComposeDefaults.SpriteDirectory;
         public const string AudioClipDirectory = global::NeoCompose.Runtime.NeoComposeDefaults.AudioClipDirectory;
-        public const string GeneratedTypesFileName = "NeoGeneratedTypes.cs";
         public const string ProjectJsonFileName = "project.json";
         public const string AssetDatabaseFileName = "NeoAssetDatabase.asset";
 
@@ -40,7 +39,7 @@ namespace NeoCompose.Unity.Editor
         /// flow. Mirrors the web registration for <see cref="OAuthClientId"/>.
         /// </summary>
         public const string OAuthScopes =
-            "openid profile:read project:list project:read project:version:read project:version:status:read project:release-channel:read unity:export unity:settings:write";
+            "openid profile:read project:list project:read project:version:read project:version:status:read project:release-channel:read unity:settings:write";
 
         /// <summary>
         /// Better Auth handler base path, relative to the configured origin.

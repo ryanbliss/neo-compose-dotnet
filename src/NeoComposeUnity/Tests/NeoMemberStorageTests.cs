@@ -257,7 +257,7 @@ namespace NeoCompose.Tests
                 $"accepts only schema version {NeoProjectExportContract.CurrentSchemaVersion}",
                 error.Message);
             StringAssert.Contains("release-data migration boundary", error.Message);
-            StringAssert.Contains("Re-export", error.Message);
+            StringAssert.Contains("Run `neo pull` and `neo export`.", error.Message);
         }
 
         [Test]
@@ -346,7 +346,7 @@ namespace NeoCompose.Tests
             StringAssert.Contains(
                 $"requires schema version {NeoProjectExportContract.CurrentSchemaVersion}",
                 error.Message);
-            StringAssert.Contains("Re-export", error.Message);
+            StringAssert.Contains("Run `neo pull` and `neo export`.", error.Message);
         }
 
         [Test]
@@ -359,9 +359,7 @@ namespace NeoCompose.Tests
                 NeoTestSaveStack.ClientFromSchema(invalid));
 
             StringAssert.Contains("required 'classes' collection", error!.Message);
-            StringAssert.Contains(
-                $"schema-{NeoProjectExportContract.CurrentSchemaVersion} Class/Member contract",
-                error.Message);
+            StringAssert.Contains("Run `neo pull` and `neo export`.", error.Message);
         }
 
         [Test]
@@ -374,9 +372,7 @@ namespace NeoCompose.Tests
                 NeoTestSaveStack.ClientFromSchema(invalid));
 
             StringAssert.Contains("required 'members' collection", error!.Message);
-            StringAssert.Contains(
-                $"schema-{NeoProjectExportContract.CurrentSchemaVersion} Class/Member contract",
-                error.Message);
+            StringAssert.Contains("Run `neo pull` and `neo export`.", error.Message);
         }
 
         private static NeoClient LoadStorageClient()

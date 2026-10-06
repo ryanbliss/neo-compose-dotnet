@@ -227,7 +227,7 @@ namespace NeoCompose.Tests
         [Test]
         public async Task Commit_DoesNotStampOrCallLoaderWithoutASemanticChange()
         {
-            var schema = JsonConvert.DeserializeObject<ProjectData>(
+            var schema = NeoTestExport.Read(
                 File.ReadAllText(ProjectFixture))!;
             const string loaded = @"{
   'name': 'Loaded',

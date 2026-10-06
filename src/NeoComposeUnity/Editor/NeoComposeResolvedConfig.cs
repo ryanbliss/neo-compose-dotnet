@@ -93,7 +93,7 @@ namespace NeoCompose.Unity.Editor
         /// leaves the committed project/version/channel in force so the sample
         /// still points at whatever the developer selected. The runtime OAuth
         /// fields honour the committed asset's <c>runtimeOAuthOverridden</c> latch
-        /// exactly like project synchronization does: a hand-edited client id and
+        /// exactly like export ingest does: a hand-edited client id and
         /// scope set is developer-owned and is never overwritten.
         /// </remarks>
         public static NeoComposeConfig Apply(NeoComposeConfig committed, NeoComposeRigManifest manifest)
@@ -139,7 +139,7 @@ namespace NeoCompose.Unity.Editor
         /// <summary>
         /// Logs, once per overlay instance, why a save was dropped. Called by
         /// <see cref="NeoComposeConfigProvider.Save"/> so every save path — editor
-        /// window fields, synchronization, headless sync — reports the same reason.
+        /// window fields, export ingest, headless ingest — reports the same reason.
         /// </summary>
         internal static void ReportSaveRefused(NeoComposeConfig overlay)
         {

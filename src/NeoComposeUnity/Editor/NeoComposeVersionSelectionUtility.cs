@@ -12,18 +12,15 @@ namespace NeoCompose.Unity.Editor
     public static class NeoComposeVersionSelectionUtility
     {
         /// <summary>
-        /// Branches display by name (their semver is a fork-time placeholder
-        /// that collides with real releases — Unity popups merge duplicate
-        /// labels). '/' would nest a submenu, so it is swapped for '∕'.
+        /// Branches display by name: their semver is a fork-time placeholder
+        /// that collides with real releases.
         /// </summary>
         public static string DisplayLabel(NeoComposeProjectVersion version)
         {
             var label = version.kind == "branch" && !string.IsNullOrWhiteSpace(version.name)
                 ? version.name!
                 : version.semver.label;
-            if (string.IsNullOrWhiteSpace(label))
-                label = version.id;
-            return label.Replace('/', '∕');
+            return string.IsNullOrWhiteSpace(label) ? version.id : label;
         }
 
         public static string SelectDefaultReleaseChannelId(
@@ -35,41 +32,6 @@ namespace NeoCompose.Unity.Editor
                 string.Equals(channel.slug, "development", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(channel.name, "Development", StringComparison.OrdinalIgnoreCase));
             return (development ?? ordered.FirstOrDefault())?.id ?? "";
-        }
-
-        public static NeoComposeProjectVersion? SelectLatestVersionForChannel(
-            IEnumerable<NeoComposeProjectVersion> versions,
-            IEnumerable<NeoComposeProjectVersionStatus> statuses,
-            string channelId)
-        {
-            return VersionsForChannel(versions, statuses, channelId)
-                .Where(version => !IsArchived(version))
-                .OrderByDescending(version => version, SemverComparer.Instance)
-                .FirstOrDefault();
-        }
-
-        public static NeoComposeProjectVersion[] BuildVersionDropdownOptions(
-            IEnumerable<NeoComposeProjectVersion> versions,
-            IEnumerable<NeoComposeProjectVersionStatus> statuses,
-            string channelId,
-            string currentVersionId)
-        {
-            var options = VersionsForChannel(versions, statuses, channelId)
-                .Where(version => !IsArchived(version))
-                .OrderByDescending(version => version, SemverComparer.Instance)
-                .ToList();
-
-            if (!string.IsNullOrWhiteSpace(currentVersionId) &&
-                options.All(version => version.id != currentVersionId))
-            {
-                var current = versions.FirstOrDefault(version => version.id == currentVersionId);
-                if (current != null)
-                {
-                    options.Insert(0, current);
-                }
-            }
-
-            return options.ToArray();
         }
 
         public static bool IsVersionInChannel(
@@ -137,45 +99,6 @@ namespace NeoCompose.Unity.Editor
             return channels
                 .OrderBy(channel => channel.sortOrder)
                 .ThenBy(channel => channel.name, StringComparer.OrdinalIgnoreCase);
-        }
-
-        public static int CompareSemver(
-            NeoComposeProjectVersion? lhs,
-            NeoComposeProjectVersion? rhs)
-        {
-            if (ReferenceEquals(lhs, rhs))
-                return 0;
-            if (lhs == null)
-                return -1;
-            if (rhs == null)
-                return 1;
-            var major = lhs.semver.major.CompareTo(rhs.semver.major);
-            if (major != 0)
-                return major;
-            var minor = lhs.semver.minor.CompareTo(rhs.semver.minor);
-            if (minor != 0)
-                return minor;
-            return lhs.semver.patch.CompareTo(rhs.semver.patch);
-        }
-
-        private static IEnumerable<NeoComposeProjectVersion> VersionsForChannel(
-            IEnumerable<NeoComposeProjectVersion> versions,
-            IEnumerable<NeoComposeProjectVersionStatus> statuses,
-            string channelId)
-        {
-            if (string.IsNullOrWhiteSpace(channelId))
-                return Array.Empty<NeoComposeProjectVersion>();
-            return versions.Where(version => IsVersionInChannel(version, statuses, channelId));
-        }
-
-        private sealed class SemverComparer : IComparer<NeoComposeProjectVersion>
-        {
-            public static readonly SemverComparer Instance = new();
-
-            public int Compare(NeoComposeProjectVersion? x, NeoComposeProjectVersion? y)
-            {
-                return CompareSemver(x, y);
-            }
         }
     }
 }

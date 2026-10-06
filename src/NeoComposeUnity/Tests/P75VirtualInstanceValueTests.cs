@@ -2301,10 +2301,10 @@ namespace NeoCompose.Tests
             ObjectMemberValue thing = UnstampThing(data);
             data.values.Remove(thing.id);
             const string partition = "world:thing-class";
-            data.valuePartitions = new Dictionary<string, JToken>
+            data.valuePartitions = NeoTestExport.Partitions(new Dictionary<string, JToken>
             {
                 [partition] = new JObject { [thing.id] = JObject.FromObject(thing) },
-            };
+            });
             using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
             client.LoadValuePartition(partition);
             Assert.IsTrue(client.TryGetVirtualClassChildValueId(thing.id, "Count", out string? childId));

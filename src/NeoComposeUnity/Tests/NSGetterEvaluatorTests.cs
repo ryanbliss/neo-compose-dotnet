@@ -92,7 +92,7 @@ namespace NeoCompose.Tests
         [Test]
         public void MemberDispatchIndexesAreSharedAcrossCallsAndClearedWithSchemaChanges()
         {
-            var data = JsonConvert.DeserializeObject<ProjectData>(LoadFixture("synth-example.json"))!;
+            var data = NeoTestExport.Read(LoadFixture("synth-example.json"))!;
             data.classes["wide"] = new NeoSchemaClass { id = "wide", name = "Wide", schema = new Dictionary<string, string>() };
             for (int i = 0; i < 2000; i++)
             {

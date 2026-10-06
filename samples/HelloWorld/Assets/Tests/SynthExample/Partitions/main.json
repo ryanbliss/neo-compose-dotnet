@@ -1,0 +1,425 @@
+{
+  "v-num": {
+    "id": "v-num",
+    "projectId": "p-1",
+    "value": 42,
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  "v-str": {
+    "id": "v-str",
+    "projectId": "p-1",
+    "value": "hello",
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  "v-flag": {
+    "id": "v-flag",
+    "projectId": "p-1",
+    "value": true,
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  "v-float": {
+    "id": "v-float",
+    "projectId": "p-1",
+    "value": 3.14,
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  "v-score": {
+    "id": "v-score",
+    "projectId": "p-1",
+    "value": 10,
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  "v-position": {
+    "id": "v-position",
+    "projectId": "p-1",
+    "value": {
+      "x": 1,
+      "y": 2,
+      "z": 3
+    },
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  "v-grid-cell": {
+    "id": "v-grid-cell",
+    "projectId": "p-1",
+    "value": {
+      "x": 4,
+      "y": 5,
+      "z": 6
+    },
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  "v-path": {
+    "id": "v-path",
+    "projectId": "p-1",
+    "value": [
+      "v-position"
+    ],
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  "v-list": {
+    "id": "v-list",
+    "projectId": "p-1",
+    "value": [
+      "wood",
+      "stone"
+    ],
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  "v-dict": {
+    "id": "v-dict",
+    "projectId": "p-1",
+    "value": {
+      "Name": "v-name",
+      "Health": "v-level",
+      "Position": "v-position",
+      "GridCell": "v-grid-cell",
+      "Path": "v-path"
+    },
+    "createdAt": 0,
+    "updatedAt": 0,
+    "classId": "class-hero"
+  },
+  "v-null": {
+    "id": "v-null",
+    "projectId": "p-1",
+    "value": null,
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  "v-root-save": {
+    "id": "v-root-save",
+    "projectId": "p-1",
+    "value": {
+      "Score": "v-score",
+      "ElementStats": "v-elem-stats",
+      "ElementChampions": "v-elem-champions"
+    },
+    "createdAt": 0,
+    "updatedAt": 0,
+    "classId": "class-root"
+  },
+  "v-root-session": {
+    "id": "v-root-session",
+    "projectId": "p-1",
+    "value": {
+      "Flag": "v-flag"
+    },
+    "createdAt": 0,
+    "updatedAt": 0,
+    "classId": "class-root"
+  },
+  "v-elem-stats": {
+    "id": "v-elem-stats",
+    "projectId": "p-1",
+    "value": {
+      "4df3e94b-977f-43bc-b99a-5b4076431480": "v-elem-stats-fire",
+      "storm": "v-elem-stats-storm"
+    },
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  "v-elem-stats-fire": {
+    "id": "v-elem-stats-fire",
+    "projectId": "p-1",
+    "value": 12,
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  "v-elem-stats-storm": {
+    "id": "v-elem-stats-storm",
+    "projectId": "p-1",
+    "value": 99,
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  "v-elem-multipliers": {
+    "id": "v-elem-multipliers",
+    "projectId": "p-1",
+    "value": {
+      "b2ee3d04-e768-42a2-9889-28e24f7780cf": "v-elem-mult-ice"
+    },
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  "v-elem-mult-ice": {
+    "id": "v-elem-mult-ice",
+    "projectId": "p-1",
+    "value": 3,
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  "v-elem-champions": {
+    "id": "v-elem-champions",
+    "projectId": "p-1",
+    "value": {
+      "4df3e94b-977f-43bc-b99a-5b4076431480": "v-elem-champion-fire"
+    },
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  "v-elem-champion-fire": {
+    "id": "v-elem-champion-fire",
+    "projectId": "p-1",
+    "value": {
+      "Name": "v-elem-champion-name",
+      "ElementAffinity": "v-elem-affinity-map"
+    },
+    "createdAt": 0,
+    "updatedAt": 0,
+    "classId": "class-hero"
+  },
+  "v-elem-champion-name": {
+    "id": "v-elem-champion-name",
+    "projectId": "p-1",
+    "value": "Ignis",
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  "v-elem-affinity-map": {
+    "id": "v-elem-affinity-map",
+    "projectId": "p-1",
+    "value": {
+      "4df3e94b-977f-43bc-b99a-5b4076431480": "v-elem-affinity-fire"
+    },
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  "v-elem-affinity-fire": {
+    "id": "v-elem-affinity-fire",
+    "projectId": "p-1",
+    "value": "scorch",
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  "v-sample-tile-value": {
+    "id": "v-sample-tile-value",
+    "projectId": "p-1",
+    "value": 7,
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  "v-sample-tile-instance": {
+    "id": "v-sample-tile-instance",
+    "projectId": "p-1",
+    "value": {
+      "Value": "v-sample-tile-value"
+    },
+    "createdAt": 0,
+    "updatedAt": 0,
+    "classId": "class-sample-tile-instance"
+  },
+  "v-sample-tiles": {
+    "id": "v-sample-tiles",
+    "projectId": "p-1",
+    "value": [
+      "v-sample-tile-instance"
+    ],
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  "v-sample-blocked-path": {
+    "id": "v-sample-blocked-path",
+    "projectId": "p-1",
+    "value": {
+      "Tiles": "v-sample-tiles"
+    },
+    "createdAt": 0,
+    "updatedAt": 0,
+    "classId": "class-sample-blocked-path"
+  },
+  "v-storage-a-value": {
+    "id": "v-storage-a-value",
+    "projectId": "p-1",
+    "value": 10,
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  "v-storage-c-value": {
+    "id": "v-storage-c-value",
+    "projectId": "p-1",
+    "value": 30,
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  "v-storage-e-value": {
+    "id": "v-storage-e-value",
+    "projectId": "p-1",
+    "value": 50,
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  "v-storage-g-value": {
+    "id": "v-storage-g-value",
+    "projectId": "p-1",
+    "value": 70,
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  "v-storage-a": {
+    "id": "v-storage-a",
+    "projectId": "p-1",
+    "value": {
+      "Value": "v-storage-a-value",
+      "SaveChild": "v-storage-b"
+    },
+    "createdAt": 0,
+    "updatedAt": 0,
+    "classId": "class-storage-a"
+  },
+  "v-storage-b": {
+    "id": "v-storage-b",
+    "projectId": "p-1",
+    "value": {
+      "InheritChild": "v-storage-c"
+    },
+    "createdAt": 0,
+    "updatedAt": 0,
+    "classId": "class-storage-b"
+  },
+  "v-storage-c": {
+    "id": "v-storage-c",
+    "projectId": "p-1",
+    "value": {
+      "Value": "v-storage-c-value",
+      "SessionChild": "v-storage-d"
+    },
+    "createdAt": 0,
+    "updatedAt": 0,
+    "classId": "class-storage-c"
+  },
+  "v-storage-d": {
+    "id": "v-storage-d",
+    "projectId": "p-1",
+    "value": {
+      "InheritChild": "v-storage-e"
+    },
+    "createdAt": 0,
+    "updatedAt": 0,
+    "classId": "class-storage-d"
+  },
+  "v-storage-e": {
+    "id": "v-storage-e",
+    "projectId": "p-1",
+    "value": {
+      "Value": "v-storage-e-value",
+      "StaticChild": "v-storage-f"
+    },
+    "createdAt": 0,
+    "updatedAt": 0,
+    "classId": "class-storage-e"
+  },
+  "v-storage-f": {
+    "id": "v-storage-f",
+    "projectId": "p-1",
+    "value": {
+      "InheritChild": "v-storage-g"
+    },
+    "createdAt": 0,
+    "updatedAt": 0,
+    "classId": "class-storage-f"
+  },
+  "v-storage-g": {
+    "id": "v-storage-g",
+    "projectId": "p-1",
+    "value": {
+      "Value": "v-storage-g-value"
+    },
+    "createdAt": 0,
+    "updatedAt": 0,
+    "classId": "class-storage-g"
+  },
+  "value-animation-fps": {
+    "id": "value-animation-fps",
+    "projectId": "test-project",
+    "value": 8,
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  "value-animation-duration": {
+    "id": "value-animation-duration",
+    "projectId": "test-project",
+    "value": 2,
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  "value-animation-frames": {
+    "id": "value-animation-frames",
+    "projectId": "test-project",
+    "value": [
+      "value-animation-frame-0"
+    ],
+    "createdAt": 0,
+    "updatedAt": 0,
+    "genericBindings": {
+      "system_268e9d23-347b-4eb6-8bec-cf0edf326aa2": "member-animation-target-binding"
+    }
+  },
+  "value-animation-tracks": {
+    "id": "value-animation-tracks",
+    "projectId": "test-project",
+    "value": [],
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  "value-animation-frame-0": {
+    "id": "value-animation-frame-0",
+    "projectId": "test-project",
+    "value": {
+      "Index": "value-animation-frame-index",
+      "Overrides": "value-animation-overrides",
+      "ChildOverrides": "value-animation-child-overrides",
+      "Actions": "value-animation-actions"
+    },
+    "createdAt": 0,
+    "updatedAt": 0,
+    "classId": "system_ba921c72-e4b2-47f9-861f-f30ac1156965"
+  },
+  "value-animation-frame-index": {
+    "id": "value-animation-frame-index",
+    "projectId": "test-project",
+    "value": 0,
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  "value-animation-overrides": {
+    "id": "value-animation-overrides",
+    "projectId": "test-project",
+    "value": {
+      "X": "value-animation-override-x"
+    },
+    "createdAt": 0,
+    "updatedAt": 0,
+    "classId": "class-animated-sprite"
+  },
+  "value-animation-override-x": {
+    "id": "value-animation-override-x",
+    "projectId": "test-project",
+    "value": 4,
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  "value-animation-child-overrides": {
+    "id": "value-animation-child-overrides",
+    "projectId": "test-project",
+    "value": [],
+    "createdAt": 0,
+    "updatedAt": 0
+  },
+  "value-animation-actions": {
+    "id": "value-animation-actions",
+    "projectId": "test-project",
+    "value": [],
+    "createdAt": 0,
+    "updatedAt": 0
+  }
+}

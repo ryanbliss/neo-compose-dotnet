@@ -16,11 +16,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Editor-only files live in NeoComposeConvexEditor.csproj; Tests have
-         their own Unity Test Framework asmdef and shim. Exclude obj to avoid
-         the default `**/*.cs` glob sweeping sibling AssemblyInfo files (see
-         Directory.Build.props). -->
-    <Compile Remove="Editor\**" />
+    <!-- Tests have their own Unity Test Framework asmdef and shim. Exclude
+         obj to avoid the default `**/*.cs` glob sweeping sibling AssemblyInfo
+         files (see Directory.Build.props). -->
     <Compile Remove="Tests\**" />
     <Compile Remove="obj\**" />
   </ItemGroup>

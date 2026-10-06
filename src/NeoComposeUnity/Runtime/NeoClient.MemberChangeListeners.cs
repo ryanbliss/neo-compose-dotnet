@@ -975,7 +975,7 @@ namespace NeoCompose.Runtime
         }
 
         private bool HasUnloadedListenerPartitions() =>
-            (data.valuePartitions?.Count ?? 0) > loadedPartitionRowIds.Count;
+            data.valuePartitions.Count > loadedPartitionRowIds.Count;
 
         private sealed class ListenerPruningContext
         {

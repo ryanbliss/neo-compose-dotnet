@@ -1,9 +1,8 @@
 // Copyright (c) Ryan Bliss and contributors. All rights reserved.
 // Licensed under the MIT License.
 
-using System;
+using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Threading.Tasks;
 using HelloWorld.Assets.Scripts.Neo;
 using NeoCompose.Runtime;
@@ -20,48 +19,47 @@ namespace HelloWorld.Assets.Tests
     public class StartupPerformanceTests
     {
         [Test]
-        public void LargeProjectJson_Profile()
+        public async Task LargeProjectJson_Profile()
         {
-            var export = JObject.Parse(File.ReadAllText("Assets/Resources/Neo/project.json"));
-            var values = (JObject)export["values"];
-            int originalCount = values.Count;
+            Dictionary<string, string> files = SampleProjectFixture.PartitionFiles();
+            var main = JObject.Parse(files[NeoProjectExportContract.MainPartitionFile]);
+            string projectId = (string)JObject.Parse(SampleProjectFixture.Json)["project"]["id"];
+            int originalCount = main.Count;
             int added = 0;
             foreach (int rowCount in new[] { 1_000, 10_000 })
             {
                 for (; added < rowCount; added++)
                 {
                     string id = "startup-profile-" + added;
-                    values.Add(id, new JObject
+                    main.Add(id, new JObject
                     {
                         ["id"] = id,
-                        ["projectId"] = (string)export["project"]["id"],
+                        ["projectId"] = projectId,
                         ["value"] = added,
                     });
                 }
-                string json = export.ToString(Formatting.None);
+                files[NeoProjectExportContract.MainPartitionFile] = main.ToString(Formatting.None);
+                using var store = new NeoProjectStore(
+                    dataSource: new NeoJsonProjectDataSource(SampleProjectFixture.Json, files),
+                    localStore: new NeoInMemoryLocalSaveStore());
                 var timer = Stopwatch.StartNew();
-                var schema = JsonConvert.DeserializeObject<ProjectData>(json);
-                double parseMs = timer.Elapsed.TotalMilliseconds;
-                Assert.That(schema.values.Count, Is.EqualTo(originalCount + rowCount));
-                TestContext.WriteLine($"LARGE_JSON_PROFILE addedRows={rowCount} jsonChars={json.Length} parseMs={parseMs:F3}");
+                await store.LoadAsync();
+                double loadMs = timer.Elapsed.TotalMilliseconds;
+                Assert.That(store.Schema.values.Count, Is.EqualTo(originalCount + rowCount));
+                TestContext.WriteLine($"LARGE_JSON_PROFILE addedRows={rowCount} mainPartitionChars={files[NeoProjectExportContract.MainPartitionFile].Length} loadMs={loadMs:F3}");
             }
         }
 
         [Test]
         public async Task HelloWorldStartup_Profile()
         {
-            string json = File.ReadAllText("Assets/Resources/Neo/project.json");
             // Retain cold and warm initialization, each with its own save/client.
             for (int sample = 0; sample < 2; sample++)
             {
-                var timer = Stopwatch.StartNew();
-                var schema = JsonConvert.DeserializeObject<ProjectData>(json);
-                double parseMs = timer.Elapsed.TotalMilliseconds;
                 using var store = new NeoProjectStore(
-                    dataSource: new NeoJsonProjectDataSource(json),
+                    dataSource: NeoJsonProjectDataSource.FromFile(SampleProjectFixture.ProjectJsonPath),
                     localStore: new NeoInMemoryLocalSaveStore());
-                GC.KeepAlive(schema);
-                timer.Restart();
+                var timer = Stopwatch.StartNew();
                 await store.LoadAsync();
                 double storeMs = timer.Elapsed.TotalMilliseconds;
                 timer.Restart();
@@ -84,7 +82,7 @@ namespace HelloWorld.Assets.Tests
                     double renderMs = timer.Elapsed.TotalMilliseconds;
                     Assert.That(root.GetComponentsInChildren<Tilemap>().Length, Is.EqualTo(2));
                     Assert.That(tiles, Is.GreaterThan(0));
-                    TestContext.WriteLine($"STARTUP_PROFILE sample={sample} jsonChars={json.Length} parseMs={parseMs:F3} storeMs={storeMs:F3} clientMs={clientMs:F3} gridMs={gridMs:F3} renderMs={renderMs:F3} tiles={tiles}");
+                    TestContext.WriteLine($"STARTUP_PROFILE sample={sample} storeMs={storeMs:F3} clientMs={clientMs:F3} gridMs={gridMs:F3} renderMs={renderMs:F3} tiles={tiles}");
                 }
                 finally { Object.DestroyImmediate(root); }
             }

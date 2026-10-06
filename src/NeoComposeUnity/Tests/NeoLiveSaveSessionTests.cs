@@ -194,7 +194,7 @@ namespace NeoCompose.Tests
                 canCommit = true,
             };
             var store = new NeoProjectStore(
-                dataSource: new NeoJsonProjectDataSource(NeoSaveTestSupport.ProjectJson),
+                dataSource: NeoTestExport.Source(NeoSaveTestSupport.ProjectJson),
                 localStore: localStore ?? local,
                 apiClient: api,
                 targetReleaseChannelId: LiveChannel,
@@ -1566,7 +1566,7 @@ namespace NeoCompose.Tests
                 canCommit = true,
             };
             var store = new NeoProjectStore(
-                dataSource: new NeoJsonProjectDataSource(NeoSaveTestSupport.ProjectJson),
+                dataSource: NeoTestExport.Source(NeoSaveTestSupport.ProjectJson),
                 localStore: local,
                 apiClient: api,
                 targetReleaseChannelId: LiveChannel,
@@ -1651,7 +1651,7 @@ namespace NeoCompose.Tests
                 LiveSaveContent("{}", "snap-live")
                     .Replace("\"serverId\"", "\"liveFlushed\":true,\"serverId\""));
             var store = new NeoProjectStore(
-                dataSource: new NeoJsonProjectDataSource(NeoSaveTestSupport.ProjectJson),
+                dataSource: NeoTestExport.Source(NeoSaveTestSupport.ProjectJson),
                 localStore: local,
                 apiClient: api,
                 targetReleaseChannelId: LiveChannel,
@@ -1684,7 +1684,7 @@ namespace NeoCompose.Tests
             await local.CommitSaveAsync(
                 "save-1", LiveSaveContent("{}", "snap-live"));
             var store = new NeoProjectStore(
-                dataSource: new NeoJsonProjectDataSource(NeoSaveTestSupport.ProjectJson),
+                dataSource: NeoTestExport.Source(NeoSaveTestSupport.ProjectJson),
                 localStore: local,
                 apiClient: api,
                 targetReleaseChannelId: LiveChannel,

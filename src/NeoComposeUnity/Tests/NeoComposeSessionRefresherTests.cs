@@ -153,8 +153,6 @@ namespace NeoCompose.Tests
                 sends.Add((url, method, jsonBody, bearerToken));
                 return Task.FromResult(new NeoComposeWebResponse(status, false, body, "", headers));
             }
-
-            public Task<byte[]> DownloadAsync(string url) => Task.FromResult(Array.Empty<byte>());
         }
     }
 }

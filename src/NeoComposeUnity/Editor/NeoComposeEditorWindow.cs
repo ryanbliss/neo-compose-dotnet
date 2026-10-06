@@ -18,22 +18,13 @@ namespace NeoCompose.Unity.Editor
         private NeoComposeConfig? config;
         // The runtime API key lives in a gitignored secret asset, not the committed
         // config. Cached here so the password field doesn't hit the AssetDatabase
-        // every repaint; created on first edit (or by Synchronize).
+        // every repaint; created on first edit.
         private NeoComposeRuntimeSecret? runtimeSecret;
         private string runtimeApiKey = "";
         private INeoComposeEditorApiClient apiClient = new NeoComposeEditorApiClient();
         private readonly NeoComposeEditorAuthController auth = new();
         private NeoComposeDeviceCodeResponse? pendingDeviceCode;
-        private NeoComposeSynchronizer? synchronizer;
         private NeoComposeProjectSettingsUpdater? projectSettingsUpdater;
-        private INeoComposeEditorRealtimeProvider? realtime;
-        private IDisposable? realtimeMetadataSubscription;
-        private IDisposable? realtimeSignalSubscription;
-        private string? realtimeSignalVersionId;
-        private bool realtimeBringUpInProgress;
-
-        /// <summary>EditorPrefs key for the hot-reload auto-sync opt-in.</summary>
-        internal const string AutoSyncPrefKey = "NeoCompose.EditorWindow.AutoSyncOnRemoteChanges";
         private readonly List<NeoComposeProjectSummary> projects = new();
         private readonly List<NeoComposeProjectReleaseChannel> releaseChannels = new();
         private readonly List<NeoComposeProjectVersion> versions = new();
@@ -44,10 +35,10 @@ namespace NeoCompose.Unity.Editor
 
         /// <summary>
         /// SessionState key for the status line. Backing the status with SessionState
-        /// keeps the last message across the domain reload a synchronize triggers (the
-        /// generated C# recompiles), so it never gets stuck on a mid-flight progress
-        /// message — see <see cref="NeoComposePostSynchronizeProcessor"/>, which writes
-        /// the success message here after the reload settles.
+        /// keeps the last message across the domain reload an export ingest triggers
+        /// (the generated C# recompiles) — see
+        /// <see cref="NeoComposePostSynchronizeProcessor"/>, which writes the success
+        /// message here after the reload settles.
         /// </summary>
         internal const string StatusSessionKey = "NeoCompose.EditorWindow.Status";
 
@@ -55,7 +46,7 @@ namespace NeoCompose.Unity.Editor
         /// SessionState key for the status line's severity (a
         /// <see cref="MessageType"/> int), persisted alongside
         /// <see cref="StatusSessionKey"/> so the help box keeps its colour
-        /// across the domain reload a synchronize triggers.
+        /// across the domain reload an export ingest triggers.
         /// </summary>
         internal const string StatusSeveritySessionKey = "NeoCompose.EditorWindow.StatusSeverity";
 
@@ -88,9 +79,6 @@ namespace NeoCompose.Unity.Editor
         // Wide enough for the longest form label ("Stream Non-Main Locales")
         // so nothing ellipsizes mid-word.
         private const float LabelWidth = 170f;
-        // Shared height for label + button status rows so glyphs, text, and
-        // buttons sit on one vertical centre line.
-        private const float RowControlHeight = 20f;
 
         // EditorPrefs keys persisting each configuration foldout's open state.
         private const string ExportSettingsFoldoutKey = "NeoCompose.EditorWindow.Foldout.ExportSettings";
@@ -113,10 +101,6 @@ namespace NeoCompose.Unity.Editor
             config = LoadResolvedConfig();
             runtimeSecret = NeoComposeRuntimeSecretProvider.Find();
             runtimeApiKey = runtimeSecret?.RuntimeApiKey ?? "";
-            synchronizer = new NeoComposeSynchronizer(
-                apiClient,
-                new NeoComposeEditorDialogConfirmationService(),
-                new NeoComposeEditorAssetService());
             projectSettingsUpdater = new NeoComposeProjectSettingsUpdater(
                 apiClient,
                 new NeoComposeEditorAssetService());
@@ -127,8 +111,6 @@ namespace NeoCompose.Unity.Editor
             {
                 _ = RefreshVersionMetadataAsync(false);
             }
-
-            _ = BringUpRealtimeAsync();
         }
 
         private void OnFocus()
@@ -140,7 +122,6 @@ namespace NeoCompose.Unity.Editor
         {
             // Do not let device-flow polling outlive the window.
             auth.CancelSignIn();
-            TearDownRealtime();
         }
 
         private async Task RefreshSessionForVisiblePanelAsync()
@@ -164,9 +145,6 @@ namespace NeoCompose.Unity.Editor
                     status = "Neo Compose session refreshed.";
                 }
 
-                // Signed-in and refreshed: the moment realtime can come up
-                // (covers a sign-in that completed since the last focus).
-                _ = BringUpRealtimeAsync();
                 Repaint();
             }
             catch (Exception exception)
@@ -192,8 +170,6 @@ namespace NeoCompose.Unity.Editor
                 return;
             }
 
-            // Follows version-dropdown changes; a no-op string compare per frame.
-            EnsureRealtimeSignalSubscription();
             ClearKeyboardFocusIfRequested();
 
             // The whole window scrolls: the section stack is taller than most
@@ -206,7 +182,7 @@ namespace NeoCompose.Unity.Editor
 
             EditorGUILayout.LabelField("Neo Compose", TitleStyle());
             EditorGUILayout.LabelField(
-                "Synchronize generated Unity files from the Neo Compose web app.",
+                "Links this Unity project to a Neo Compose project. Run `neo export` to bring its files in.",
                 MutedStyle());
             RenderRigStatus();
             EditorGUILayout.Space(2);
@@ -281,7 +257,7 @@ namespace NeoCompose.Unity.Editor
                     break;
                 default:
                     EditorGUILayout.LabelField(
-                        "Sign in to Neo Compose to load projects, synchronize files, and edit settings.",
+                        "Sign in to Neo Compose to load projects and edit settings.",
                         MutedStyle());
                     RenderSignInControls(config);
                     break;
@@ -521,16 +497,14 @@ namespace NeoCompose.Unity.Editor
         }
 
         /// <summary>
-        /// The everyday surface reads top-to-bottom as "what am I synced to → do
-        /// it": one Project card (identity + version), then the Synchronize card
-        /// with its options. The set-once configuration (export settings, output
-        /// folders, localization, cloud saves) collapses into foldout cards below
-        /// so the window stays scannable in a docked layout.
+        /// One Project card (identity + version) on top. The set-once
+        /// configuration (export settings, output folders, localization, cloud
+        /// saves) collapses into foldout cards below so the window stays
+        /// scannable in a docked layout.
         /// </summary>
         private void RenderSelectedProject(NeoComposeConfig config)
         {
             RenderProjectSection(config);
-            RenderSynchronizeSection(config);
 
             EditorGUILayout.Space(6);
             EditorGUILayout.LabelField("Configuration", SectionTitleStyle());
@@ -556,6 +530,11 @@ namespace NeoCompose.Unity.Editor
                 status = "Project ID copied to the clipboard.";
             }
 
+            if (GUILayout.Button("Edit in web", GUILayout.Width(96)))
+            {
+                Application.OpenURL(BuildProjectSchemaUrl(config.apiBaseUrl, config.projectId, config.versionId));
+            }
+
             if (GUILayout.Button("Remove", GUILayout.Width(RemoveButtonWidth)))
             {
                 config.ClearProject();
@@ -563,59 +542,12 @@ namespace NeoCompose.Unity.Editor
                 versions.Clear();
                 versionStatuses.Clear();
                 NeoComposeConfigProvider.Save(config);
-                status = "Project unlinked. Synchronized files were left untouched.";
+                status = "Project unlinked. Exported files were left untouched.";
             }
 
             EditorGUILayout.EndHorizontal();
             EditorGUILayout.Space(4);
             RenderVersionSelectionContent(config);
-            EndSection();
-        }
-
-        /// <summary>
-        /// State first (live-sync glyph row), behaviour second (the toggles),
-        /// action last — the Synchronize button row closes the card so the eye
-        /// lands on it after reading what the sync will do.
-        /// </summary>
-        private void RenderSynchronizeSection(NeoComposeConfig config)
-        {
-            BeginSection("Synchronize");
-            EditorGUILayout.LabelField(
-                "Writes generated files and assets to the configured folders.",
-                MutedStyle());
-            EditorGUILayout.Space(2);
-            DrawRealtimeStatusRow();
-
-            var askBeforeOverwriting = NeoComposeEditorSyncPreferences.AskBeforeOverwritingFiles;
-            var nextAskBeforeOverwriting = EditorGUILayout.ToggleLeft(
-                new GUIContent(
-                    "Ask me before overwriting files",
-                    "When on, Synchronize asks before replacing existing generated files and " +
-                    "synchronized assets. When off, they are replaced without prompting — " +
-                    "both for manual Synchronize and auto-sync."),
-                askBeforeOverwriting);
-            if (nextAskBeforeOverwriting != askBeforeOverwriting)
-            {
-                NeoComposeEditorSyncPreferences.AskBeforeOverwritingFiles = nextAskBeforeOverwriting;
-            }
-
-            EditorGUILayout.Space(6);
-            EditorGUILayout.BeginHorizontal();
-            using (new EditorGUI.DisabledScope(loading || !CanSynchronize(config)))
-            {
-                if (GUILayout.Button(loading ? "Synchronizing..." : "Synchronize", GUILayout.Width(160), GUILayout.Height(26)))
-                {
-                    _ = SynchronizeAsync();
-                }
-            }
-
-            if (GUILayout.Button("Edit in web", GUILayout.Width(120), GUILayout.Height(26)))
-            {
-                Application.OpenURL(BuildProjectSchemaUrl(config.apiBaseUrl, config.projectId, config.versionId));
-            }
-
-            GUILayout.FlexibleSpace();
-            EditorGUILayout.EndHorizontal();
             EndSection();
         }
 
@@ -701,271 +633,6 @@ namespace NeoCompose.Unity.Editor
             EndSection();
         }
 
-        /// <summary>
-        /// Live-sync status + controls. Hidden entirely when no realtime plugin
-        /// is installed (the registration point is null), so the stock editor
-        /// experience is unchanged.
-        /// </summary>
-        private void DrawRealtimeStatusRow()
-        {
-            if (NeoComposeEditorRealtime.ProviderFactory == null)
-                return;
-            if (config == null || !config.HasProject)
-                return;
-
-            var hasConvexUrl = !string.IsNullOrWhiteSpace(config.convexUrl);
-            var state = realtime?.State ?? NeoRealtimeConnectionState.Disconnected;
-            // The same status-glyph language as the Account section's session
-            // checkmark, so connection health reads consistently across the
-            // window; the words live in the hover tooltip.
-            string glyph;
-            Color glyphColor;
-            string stateLabel;
-            switch (state)
-            {
-                case NeoRealtimeConnectionState.Connected:
-                    glyph = "✓";
-                    glyphColor = new Color(0.40f, 0.80f, 0.52f);
-                    stateLabel = "connected";
-                    break;
-                case NeoRealtimeConnectionState.Connecting:
-                    glyph = "↻";
-                    glyphColor = new Color(0.85f, 0.80f, 0.45f);
-                    stateLabel = "connecting…";
-                    break;
-                case NeoRealtimeConnectionState.Denied:
-                    glyph = "✕";
-                    glyphColor = new Color(0.90f, 0.45f, 0.45f);
-                    stateLabel = "denied";
-                    break;
-                default:
-                    glyph = "○";
-                    glyphColor = new Color(0.55f, 0.55f, 0.55f);
-                    stateLabel = "off";
-                    break;
-            }
-
-            var liveSyncTooltip = hasConvexUrl
-                ? $"Live sync is {stateLabel}. Live updates for versions and remote edits " +
-                  "over the project's Convex deployment."
-                : "Synchronize once to receive the project's Convex URL; live sync " +
-                  "becomes available after that.";
-
-            EditorGUILayout.BeginHorizontal(GUILayout.Height(RowControlHeight));
-            var previousColor = GUI.color;
-            GUI.color = glyphColor;
-            GUILayout.Label(
-                new GUIContent(glyph, liveSyncTooltip),
-                SessionStatusIconStyle(),
-                GUILayout.Width(20),
-                GUILayout.Height(RowControlHeight));
-            GUI.color = previousColor;
-            GUILayout.Label(
-                new GUIContent("Live sync", liveSyncTooltip),
-                RowLabelStyle(),
-                GUILayout.Height(RowControlHeight));
-            GUILayout.FlexibleSpace();
-            if (state == NeoRealtimeConnectionState.Connected)
-            {
-                if (GUILayout.Button("Disconnect", GUILayout.Width(90), GUILayout.Height(RowControlHeight)))
-                {
-                    _ = DisconnectRealtimeAsync();
-                }
-            }
-            else if (state != NeoRealtimeConnectionState.Connecting && hasConvexUrl)
-            {
-                using (new EditorGUI.DisabledScope(!auth.AreAuthSensitiveControlsEnabled))
-                {
-                    if (GUILayout.Button("Connect", GUILayout.Width(90), GUILayout.Height(RowControlHeight)))
-                    {
-                        _ = ConnectRealtimeAsync();
-                    }
-                }
-            }
-
-            EditorGUILayout.EndHorizontal();
-
-            if (state == NeoRealtimeConnectionState.Denied)
-            {
-                EditorGUILayout.HelpBox(
-                    "Live sync was denied. Sign in again, then reconnect.",
-                    MessageType.Warning);
-            }
-
-            using (new EditorGUI.DisabledScope(!hasConvexUrl))
-            {
-                var autoSync = EditorPrefs.GetBool(AutoSyncPrefKey, false);
-                var tooltip = hasConvexUrl
-                    ? "Skip the confirmation prompt and synchronize whenever remote changes " +
-                      "land on the selected version."
-                    : "Synchronize once to receive the project's Convex URL; auto-sync " +
-                      "becomes available after that.";
-                var newAutoSync = EditorGUILayout.ToggleLeft(
-                    new GUIContent("Auto-sync on remote changes", tooltip), autoSync);
-                if (newAutoSync != autoSync)
-                {
-                    EditorPrefs.SetBool(AutoSyncPrefKey, newAutoSync);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Auto bring-up: connects when a realtime plugin is installed, the
-        /// synced config has a Convex URL, and the editor is signed in — the
-        /// zero-setup path. No-op otherwise; never throws into the caller.
-        /// </summary>
-        private async Task BringUpRealtimeAsync()
-        {
-            if (realtimeBringUpInProgress)
-                return;
-            if (realtime != null && realtime.State != NeoRealtimeConnectionState.Disconnected)
-                return;
-            if (config == null || !config.HasProject)
-                return;
-            if (string.IsNullOrWhiteSpace(config.convexUrl))
-                return;
-            if (NeoComposeEditorRealtime.ProviderFactory == null)
-                return;
-            if (!auth.AreAuthSensitiveControlsEnabled)
-                return;
-
-            await ConnectRealtimeAsync();
-        }
-
-        /// <summary>Explicit connect (also the Connect button): builds the
-        /// provider on first use, then connects. Failures warn and leave the
-        /// editor REST-only.</summary>
-        private async Task ConnectRealtimeAsync()
-        {
-            if (config == null || realtimeBringUpInProgress)
-                return;
-            var factory = NeoComposeEditorRealtime.ProviderFactory;
-            if (factory == null)
-                return;
-
-            realtimeBringUpInProgress = true;
-            try
-            {
-                if (realtime == null)
-                {
-                    realtime = factory(new NeoComposeEditorRealtimeContext(
-                        config.apiBaseUrl,
-                        config.convexUrl,
-                        config.projectId,
-                        auth.CreateAccessTokenProvider()));
-                    realtime.OnConnectionStateChanged += OnRealtimeConnectionStateChanged;
-                }
-
-                await realtime.ConnectAsync();
-            }
-            catch (Exception exception)
-            {
-                Debug.LogWarning(
-                    $"[NeoCompose] Editor live sync could not connect; staying REST-only " +
-                    $"(use the Connect button to retry). " +
-                    $"{exception.GetType().Name}: {exception.Message}");
-            }
-            finally
-            {
-                realtimeBringUpInProgress = false;
-                Repaint();
-            }
-        }
-
-        private void OnRealtimeConnectionStateChanged(NeoRealtimeConnectionState state)
-        {
-            if (state == NeoRealtimeConnectionState.Connected)
-            {
-                AttachRealtimeSubscriptions();
-            }
-
-            Repaint();
-        }
-
-        private void AttachRealtimeSubscriptions()
-        {
-            if (realtime == null || config == null)
-                return;
-            realtimeMetadataSubscription?.Dispose();
-            realtimeMetadataSubscription = realtime.SubscribeVersionMetadata(
-                config.projectId,
-                () => _ = RefreshVersionMetadataAsync(false));
-            realtimeSignalVersionId = null;
-            EnsureRealtimeSignalSubscription();
-        }
-
-        /// <summary>
-        /// Keeps the hot-reload signal subscription pointed at the selected
-        /// version; called whenever the selection may have changed. Cheap and
-        /// idempotent (string compare) so callers don't need to dedupe.
-        /// </summary>
-        private void EnsureRealtimeSignalSubscription()
-        {
-            if (realtime == null || config == null)
-                return;
-            if (realtime.State != NeoRealtimeConnectionState.Connected)
-                return;
-
-            var versionId = config.versionId;
-            if (string.IsNullOrWhiteSpace(versionId))
-            {
-                realtimeSignalSubscription?.Dispose();
-                realtimeSignalSubscription = null;
-                realtimeSignalVersionId = null;
-                return;
-            }
-
-            if (versionId == realtimeSignalVersionId)
-                return;
-
-            realtimeSignalSubscription?.Dispose();
-            var hotReload = new NeoComposeEditorHotReloadController(
-                new NeoComposeEditorDialogConfirmationService(),
-                SynchronizeAsync,
-                () => EditorPrefs.GetBool(AutoSyncPrefKey, false));
-            realtimeSignalSubscription = realtime.SubscribeExportSignal(
-                config.projectId, versionId, hotReload.HandleSignal);
-            realtimeSignalVersionId = versionId;
-        }
-
-        private async Task DisconnectRealtimeAsync()
-        {
-            realtimeMetadataSubscription?.Dispose();
-            realtimeMetadataSubscription = null;
-            realtimeSignalSubscription?.Dispose();
-            realtimeSignalSubscription = null;
-            realtimeSignalVersionId = null;
-            if (realtime == null)
-                return;
-
-            try
-            {
-                await realtime.DisconnectAsync();
-            }
-            catch (Exception exception)
-            {
-                Debug.LogWarning(
-                    $"[NeoCompose] Editor live sync disconnect failed (the socket is dropped " +
-                    $"regardless). {exception.GetType().Name}: {exception.Message}");
-            }
-
-            Repaint();
-        }
-
-        private void TearDownRealtime()
-        {
-            realtimeMetadataSubscription?.Dispose();
-            realtimeMetadataSubscription = null;
-            realtimeSignalSubscription?.Dispose();
-            realtimeSignalSubscription = null;
-            realtimeSignalVersionId = null;
-            if (realtime == null)
-                return;
-            realtime.OnConnectionStateChanged -= OnRealtimeConnectionStateChanged;
-            realtime.Dispose();
-            realtime = null;
-        }
-
         private void RenderRuntimeSyncSection(NeoComposeConfig config)
         {
             // The warning renders even while collapsed: a configuration gap must
@@ -986,7 +653,7 @@ namespace NeoCompose.Unity.Editor
             {
                 EditorGUI.BeginChangeCheck();
 
-                // Developer-owned master switch. Synchronize seeds it on the first
+                // Developer-owned master switch. Export ingest seeds it on the first
                 // available client, but never overwrites a deliberate choice.
                 config.enableOAuthCloudSync = EditorGUILayout.Toggle(
                     new GUIContent(
@@ -994,19 +661,19 @@ namespace NeoCompose.Unity.Editor
                         "When on, runtime saves sync to the cloud using the runtime OAuth client below. When off, saves stay local-only."),
                     config.enableOAuthCloudSync);
 
-                // Pre-filled from the web portal on Synchronize, but developer-editable.
-                // Editing marks the config overridden so a later Synchronize won't
-                // clobber the manual values.
+                // Pre-filled by `neo export`, but developer-editable. Editing marks
+                // the config overridden so a later export won't clobber the manual
+                // values.
                 var previousClientId = config.runtimeOAuthClientId;
                 config.runtimeOAuthClientId = EditorGUILayout.TextField(
-                    new GUIContent("Runtime OAuth Client", "Pre-filled on Synchronize; edit to override the runtime OAuth client id."),
+                    new GUIContent("Runtime OAuth Client", "Pre-filled by `neo export`; edit to override the runtime OAuth client id."),
                     config.runtimeOAuthClientId);
 
                 var currentScopes = config.runtimeOAuthScopes != null
                     ? string.Join(" ", config.runtimeOAuthScopes)
                     : "";
                 var editedScopes = EditorGUILayout.TextField(
-                    new GUIContent("Runtime OAuth Scopes", "Space-delimited. Pre-filled on Synchronize; edit to override."),
+                    new GUIContent("Runtime OAuth Scopes", "Space-delimited. Pre-filled by `neo export`; edit to override."),
                     currentScopes);
                 bool scopesEdited = editedScopes != currentScopes;
                 if (scopesEdited)
@@ -1029,7 +696,7 @@ namespace NeoCompose.Unity.Editor
                 // Project-scoped runtime API key — masked, and stored in the
                 // gitignored secret asset (never the committed config), so it ships
                 // in builds but isn't checked in. Created (with its .gitignore) on
-                // first edit if Synchronize hasn't already done so.
+                // first edit.
                 var editedKey = EditorGUILayout.PasswordField(
                     new GUIContent("Runtime API Key", "Project-scoped key for runtime-data sync and secure release channels. Stored in a gitignored asset, not committed to source control."),
                     runtimeApiKey);
@@ -1042,7 +709,7 @@ namespace NeoCompose.Unity.Editor
                 }
 
                 if (config.runtimeOAuthOverridden && GUILayout.Button(
-                        new GUIContent("Reset override", "Resume filling the client id and scopes from Synchronize."),
+                        new GUIContent("Reset override", "Resume filling the client id and scopes from `neo export`."),
                         GUILayout.Width(120)))
                 {
                     config.runtimeOAuthOverridden = false;
@@ -1097,71 +764,36 @@ namespace NeoCompose.Unity.Editor
                     SelectReleaseChannel(config, orderedChannels[nextChannelIndex].id);
                 }
 
-                var options = NeoComposeVersionSelectionUtility.BuildVersionDropdownOptions(
-                    versions,
-                    versionStatuses,
-                    config.targetReleaseChannelId,
-                    config.versionId);
-                if (options.Length == 0)
-                {
-                    EditorGUILayout.LabelField("Version", "No versions available");
-                }
-                else
-                {
-                    var versionIndex = Math.Max(0, Array.FindIndex(options, version => version.id == config.versionId));
-                    if (versionIndex >= options.Length)
-                        versionIndex = 0;
-                    EditorGUILayout.BeginHorizontal();
-                    EditorGUI.BeginChangeCheck();
-                    var nextVersionIndex = EditorGUILayout.Popup(
-                        "Version",
-                        versionIndex,
-                        options.Select(FormatVersionOption).ToArray());
-                    if (EditorGUI.EndChangeCheck() && nextVersionIndex >= 0 && nextVersionIndex < options.Length)
-                    {
-                        config.versionId = options[nextVersionIndex].id;
-                        NeoComposeConfigProvider.Save(config);
-                    }
+                // The workspace owns the version: `neo branch switch` writes it.
+                const string versionTooltip = "Switch with `neo branch switch`.";
+                var current = versions.FirstOrDefault(version => version.id == config.versionId);
+                EditorGUILayout.BeginHorizontal();
+                EditorGUILayout.LabelField(
+                    new GUIContent("Version", versionTooltip),
+                    new GUIContent(current == null ? config.versionId : FormatVersionOption(current), versionTooltip));
 
-                    // The refresh action rides the row it refreshes instead of
-                    // claiming a row of its own.
-                    using (new EditorGUI.DisabledScope(loading))
+                // The refresh action rides the row it refreshes instead of
+                // claiming a row of its own.
+                using (new EditorGUI.DisabledScope(loading))
+                {
+                    if (GUILayout.Button(
+                            new GUIContent("↻", "Refresh release channels and versions"),
+                            GUILayout.Width(24)))
                     {
-                        if (GUILayout.Button(
-                                new GUIContent("↻", "Refresh release channels and versions"),
-                                GUILayout.Width(24)))
-                        {
-                            _ = RefreshVersionMetadataAsync(true);
-                        }
+                        _ = RefreshVersionMetadataAsync(true);
                     }
-
-                    EditorGUILayout.EndHorizontal();
                 }
+
+                EditorGUILayout.EndHorizontal();
             }
 
             RenderVersionWarnings(config);
-            RenderUpdateAvailable(config);
         }
 
-        private void SelectReleaseChannel(NeoComposeConfig config, string channelId)
+        /// <summary>Picks where saves go. It never changes the version.</summary>
+        private static void SelectReleaseChannel(NeoComposeConfig config, string channelId)
         {
             config.targetReleaseChannelId = channelId;
-            if (!string.IsNullOrWhiteSpace(config.versionId))
-            {
-                var current = versions.FirstOrDefault(version => version.id == config.versionId);
-                if (current != null &&
-                    NeoComposeVersionSelectionUtility.IsVersionInChannel(current, versionStatuses, channelId))
-                {
-                    NeoComposeConfigProvider.Save(config);
-                    return;
-                }
-            }
-
-            var latest = NeoComposeVersionSelectionUtility.SelectLatestVersionForChannel(
-                versions,
-                versionStatuses,
-                channelId);
-            config.versionId = latest?.id ?? "";
             NeoComposeConfigProvider.Save(config);
         }
 
@@ -1214,47 +846,11 @@ namespace NeoCompose.Unity.Editor
             }
         }
 
-        private void RenderUpdateAvailable(NeoComposeConfig config)
-        {
-            var current = versions.FirstOrDefault(version => version.id == config.versionId);
-            var latest = NeoComposeVersionSelectionUtility.SelectLatestVersionForChannel(
-                versions,
-                versionStatuses,
-                config.targetReleaseChannelId);
-            if (current == null || latest == null)
-                return;
-            if (NeoComposeVersionSelectionUtility.CompareSemver(latest, current) <= 0)
-                return;
-
-            EditorGUILayout.HelpBox("A newer update is available.", MessageType.Info);
-            using (new EditorGUI.DisabledScope(loading))
-            {
-                if (GUILayout.Button("Update to latest version", GUILayout.Width(180)))
-                {
-                    config.versionId = latest.id;
-                    NeoComposeConfigProvider.Save(config);
-                    if (EditorUtility.DisplayDialog(
-                            "Synchronize latest version?",
-                            $"Version {NeoComposeVersionSelectionUtility.DisplayLabel(latest)} is now selected. Synchronize generated files now?",
-                            "Synchronize",
-                            "Not Now"))
-                    {
-                        _ = SynchronizeAsync();
-                    }
-                }
-            }
-        }
-
-        private bool CanSynchronize(NeoComposeConfig config)
+        private bool CanSaveUnityExportSettings(NeoComposeConfig config)
         {
             return config.HasProject &&
                 !string.IsNullOrWhiteSpace(config.targetReleaseChannelId) &&
-                !string.IsNullOrWhiteSpace(config.versionId);
-        }
-
-        private bool CanSaveUnityExportSettings(NeoComposeConfig config)
-        {
-            return CanSynchronize(config) &&
+                !string.IsNullOrWhiteSpace(config.versionId) &&
                 NeoComposeVersionSelectionUtility.IsCurrentVersionWritable(
                     config.versionId,
                     versions,
@@ -1375,15 +971,6 @@ namespace NeoCompose.Unity.Editor
             {
                 fontSize = 15,
                 alignment = TextAnchor.MiddleCenter,
-            };
-        }
-
-        /// <summary>Label that centres vertically inside a fixed-height row.</summary>
-        private static GUIStyle RowLabelStyle()
-        {
-            return new GUIStyle(EditorStyles.label)
-            {
-                alignment = TextAnchor.MiddleLeft,
             };
         }
 
@@ -1524,28 +1111,10 @@ namespace NeoCompose.Unity.Editor
                     changed = !string.IsNullOrWhiteSpace(config.targetReleaseChannelId);
                 }
 
-                if (string.IsNullOrWhiteSpace(config.versionId) &&
-                    !string.IsNullOrWhiteSpace(config.targetReleaseChannelId))
-                {
-                    var latest = NeoComposeVersionSelectionUtility.SelectLatestVersionForChannel(
-                        versions,
-                        versionStatuses,
-                        config.targetReleaseChannelId);
-                    if (latest != null)
-                    {
-                        config.versionId = latest.id;
-                        changed = true;
-                    }
-                }
-
                 if (changed)
                 {
                     NeoComposeConfigProvider.Save(config);
                 }
-
-                // The selection may have just been auto-filled; keep the
-                // hot-reload signal pointed at it.
-                EnsureRealtimeSignalSubscription();
 
                 if (showStatus)
                 {
@@ -1562,43 +1131,6 @@ namespace NeoCompose.Unity.Editor
             finally
             {
                 loading = false;
-                Repaint();
-            }
-        }
-
-        private async Task SynchronizeAsync()
-        {
-            if (config == null || synchronizer == null)
-                return;
-            loading = true;
-            status = "Synchronizing...";
-            Repaint();
-
-            try
-            {
-                var result = await synchronizer.SynchronizeAsync(config, UpdateProgressStatus);
-                RefreshConfigForDisplay();
-                // Bootstrap the gitignored runtime-secret asset + its .gitignore so a
-                // freshly linked project is git-safe before any key is pasted.
-                runtimeSecret = NeoComposeRuntimeSecretProvider.EnsureAssetAndGitignore();
-                runtimeApiKey = runtimeSecret.RuntimeApiKey;
-                if (config != null && config.HasProject)
-                {
-                    await RefreshVersionMetadataAsync(false);
-                }
-                SetStatus(result.message, result.success ? MessageType.Info : MessageType.Error);
-            }
-            catch (Exception exception)
-            {
-                Debug.LogError(exception);
-                if (config != null)
-                    auth.HandleApiException(config.apiBaseUrl, exception);
-                SetStatus(exception.Message, MessageType.Error);
-            }
-            finally
-            {
-                loading = false;
-                clearKeyboardFocusNextGui = true;
                 Repaint();
             }
         }
@@ -1681,15 +1213,6 @@ namespace NeoCompose.Unity.Editor
 
             EditorGUILayout.Space(2);
             EditorGUILayout.HelpBox(rigStatus, MessageType.Info);
-        }
-
-        private void UpdateProgressStatus(string message)
-        {
-            status = message;
-            // A full synchronize can report several progress messages per file.
-            // Persist every message, but do not force a Metal-backed editor render
-            // for each one. The operation boundaries already repaint the window,
-            // and Unity will also show the latest message on any natural repaint.
         }
 
         private void ClearKeyboardFocusIfRequested()

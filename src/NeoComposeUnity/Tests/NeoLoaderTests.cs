@@ -101,7 +101,7 @@ namespace NeoCompose.Tests
         public async Task NeoLoader_QueuedCommitsSettleInCallOrder(bool firstFails)
         {
             var loader = new GatedSaveLoader(
-                JsonConvert.DeserializeObject<ProjectData>(LoadFixture("synth-example.json"))!);
+                NeoTestExport.Read(LoadFixture("synth-example.json"))!);
             var app = await global::Assets.Scripts.Neo.TestProjectNeo.Load(loader);
 
             app.Save.Score = 1;
@@ -293,10 +293,10 @@ namespace NeoCompose.Tests
         [Test]
         public void ProjectData_DeserializesLocalizationMetadata()
         {
-            var data = JsonConvert.DeserializeObject<ProjectData>(
+            var data = NeoTestExport.Read(
                 @"{
   ""metadata"": {
-    ""schemaVersion"": 35,
+    ""schemaVersion"": 36,
     ""projectId"": ""project-1"",
     ""versionId"": ""version-1""
   },
@@ -693,7 +693,7 @@ namespace NeoCompose.Tests
         {
             var projectJson = $@"{{
   ""metadata"": {{
-    ""schemaVersion"": 35,
+    ""schemaVersion"": 36,
     ""projectId"": ""project-1"",
     ""versionId"": ""version-1""
   }},

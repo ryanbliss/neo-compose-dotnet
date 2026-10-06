@@ -1,53 +1,41 @@
 #!/usr/bin/env bash
 #
-# Rig Unity smoke (P53 §6, §10).
+# Rig Unity smoke (P53 §6, §10; P100 §7).
 #
 # Proves the whole SDK half of a rig against the rig's own deployment:
 #
-#   1. headless sign-in for the rig origin (a no-op when a usable credential is
-#      already stored),
-#   2. headless project synchronization of the HelloWorld sample,
-#   3. the acceptance criterion binding a rig has to satisfy — synchronizing a
-#      bound rig changes NO tracked Unity config or generated output, because
-#      the rig overlay is ephemeral and the canonical sample IDs never move.
+#   1. `neo pull` of the rig's sample, through the rig's own CLI,
+#   2. `neo export` of it into the HelloWorld sample,
+#   3. headless ingest of that export (NeoComposeBatchSync),
+#   4. the acceptance criterion binding a rig has to satisfy — syncing a bound
+#      rig changes NO tracked Unity config or generated output, because the rig
+#      overlay is ephemeral and the canonical sample IDs never move.
 #
-# Approval is external: batchmode has no browser, so step 1 logs a verification
-# URL and user code and waits. Approve it in the rig's browser session.
+# The CLI must be signed in to the rig (`npm run agent:login` in the rig's
+# neo-compose worktree), and the rig app has to be serving — start it with
+# `npm run agent:dev` there. Unity itself never signs in.
 #
-# The rig app has to be serving first — this script drives Unity, not the app;
-# start it with `npm run agent:dev` in the rig's neo-compose worktree.
+# Do not run this while the sample is open in the Editor: only one Unity may
+# hold a project directory at a time.
 #
-# Only one batchmode Unity may hold a project directory at a time, so the two
-# editor runs below are strictly serial. Do not run this while the sample is
-# open in the Editor.
-#
-#   scripts/agent-unity-smoke.sh [--force-login] [--skip-login]
+#   scripts/agent-unity-smoke.sh
 
 set -euo pipefail
 
 repository_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 project_path="$repository_root/samples/HelloWorld"
-force_login=0
-skip_login=0
 
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    --force-login) force_login=1 ;;
-    --skip-login) skip_login=1 ;;
-    *)
-      echo "Unknown argument: $1 (expected --force-login or --skip-login)" >&2
-      exit 2
-      ;;
-  esac
-  shift
-done
+if [[ $# -gt 0 ]]; then
+  echo "Unknown argument: $1 (this script takes none)" >&2
+  exit 2
+fi
 
 fail() {
   echo "$1" >&2
   exit 1
 }
 
-for tool in node curl git; do
+for tool in node npm curl git; do
   command -v "$tool" >/dev/null 2>&1 || fail "$tool was not found on PATH; the rig smoke needs it."
 done
 
@@ -70,7 +58,7 @@ process.stdout.write(pointer.manifestPath);
 fi
 [[ -f "$manifest_path" ]] || fail "Rig manifest $manifest_path does not exist. Rerun scripts/agent-setup."
 
-read -r rig_id web_origin deployment_name seed_id < <(node -e '
+read -r rig_id web_origin deployment_name seed_id coordinator_path < <(node -e '
 const { readFileSync } = require("node:fs");
 const manifest = JSON.parse(readFileSync(process.argv[1], "utf8"));
 if (manifest.formatVersion !== 2) {
@@ -78,7 +66,7 @@ if (manifest.formatVersion !== 2) {
   process.exit(1);
 }
 process.stdout.write(
-  `${manifest.rigId} ${manifest.web.origin} ${manifest.deployment.name} ${manifest.seed?.id ?? "(unseeded)"}\n`,
+  `${manifest.rigId} ${manifest.web.origin} ${manifest.deployment.name} ${manifest.seed?.id ?? "(unseeded)"} ${manifest.repositories.neoCompose.path}\n`,
 );
 ' "$manifest_path")
 
@@ -219,8 +207,7 @@ log_dir="${TMPDIR:-/tmp}"
 log_dir="${log_dir%/}"
 
 # Runs one batchmode entry point to completion and reports the marker line.
-# -quit is deliberately absent: both entry points exit the editor themselves
-# once their asynchronous work settles.
+# -quit is deliberately absent: the entry point exits the editor itself.
 run_batch_method() {
   local label="$1" method="$2" marker="$3" log_file="$4"
   echo
@@ -251,42 +238,26 @@ run_batch_method() {
   grep -F "$marker" "$log_file"
 }
 
-# --- 1. headless sign-in ---------------------------------------------------
-if [[ $skip_login -eq 1 ]]; then
-  echo "Skipping headless sign-in (--skip-login); the stored credential must already cover $web_origin."
-else
-  if [[ $force_login -eq 1 ]]; then
-    export NEO_COMPOSE_BATCH_LOGIN_FORCE=1
-  fi
+# --- 1-2. pull and export ------------------------------------------------
+# The rig's own `neo`, in the rig's CLI workspace: a working copy of the seeded
+# sample under the rig's credential namespace.
+run_rig_cli() {
   echo
-  echo "Approve the device authorization this run logs as \"[NeoComposeBatchLogin] verification url:\"."
-  run_batch_method \
-    "Headless sign-in" \
-    "NeoCompose.Unity.Editor.NeoComposeBatchLogin.Run" \
-    "[NeoComposeBatchLogin]" \
-    "$log_dir/neo-compose-rig-login.$rig_id.log"
-fi
+  echo "== neo $* =="
+  (cd "$coordinator_path" && npm run --silent agent:cli -- "$@") || fail "neo $* failed."
+}
 
-# --- 2. headless synchronize ----------------------------------------------
-# Drop the editor's export cache first. It remembers the last snapshot this
-# project synchronized and short-circuits with "already synchronized", which
-# would make step 3 below assert cleanliness over files nothing rewrote — a
-# green that proves nothing. The cache lives under Library, is gitignored, and
-# is rebuilt by the synchronize that follows.
-export_cache="$project_path/Library/NeoCompose/ExportCache"
-if [[ -d "$export_cache" ]]; then
-  rm -rf "$export_cache"
-  echo
-  echo "Dropped $export_cache so the synchronize below really writes."
-fi
+run_rig_cli pull
+run_rig_cli export --unity-project "$project_path"
 
+# --- 3. headless ingest ----------------------------------------------------
 run_batch_method \
-  "Headless synchronize" \
+  "Headless ingest" \
   "NeoCompose.Unity.Editor.NeoComposeBatchSync.Run" \
   "[NeoComposeBatchSync]" \
   "$log_dir/neo-compose-rig-sync.$rig_id.log"
 
-# --- 3. binding changes no tracked output ----------------------------------
+# --- 4. binding changes no tracked output ----------------------------------
 # The claim under test is that nothing COMMITTED moved: not the config asset,
 # not generated C#, not project.json, not the imported file assets, not the
 # project settings. Untracked files are excluded on purpose — Unity's own
@@ -305,7 +276,7 @@ config_paths=(
 )
 dirty="$(git -C "$repository_root" status --porcelain --untracked-files=no -- "${config_paths[@]}")"
 if [[ -n "$dirty" ]]; then
-  echo "Synchronizing the rig changed tracked sample output, which binding a rig must not do:" >&2
+  echo "Syncing the rig changed tracked sample output, which binding a rig must not do:" >&2
   echo "$dirty" >&2
   echo >&2
   git -C "$repository_root" --no-pager diff --stat -- "${config_paths[@]}" >&2
@@ -317,7 +288,7 @@ if [[ -n "$dirty" ]]; then
   echo "reconciled. Diff before deciding which." >&2
   exit 1
 fi
-echo "Clean: synchronizing rig $rig_id changed no tracked config or generated output."
+echo "Clean: syncing rig $rig_id changed no tracked config or generated output."
 
 other="$(git -C "$repository_root" status --porcelain --untracked-files=no -- samples/HelloWorld ':(exclude)samples/HelloWorld/Assets' ':(exclude)samples/HelloWorld/ProjectSettings' ':(exclude)samples/HelloWorld/Packages')"
 if [[ -n "$other" ]]; then

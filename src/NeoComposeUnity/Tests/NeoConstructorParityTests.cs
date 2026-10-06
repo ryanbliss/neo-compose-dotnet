@@ -332,7 +332,7 @@ namespace NeoCompose.Tests
                 ["internalRecordRelations"] = new JObject(),
                 ["enums"] = new JObject(),
             };
-            return JsonConvert.DeserializeObject<ProjectData>(schema.ToString())
+            return NeoTestExport.Read(schema.ToString())
                 ?? throw new InvalidOperationException(
                     "The shared constructor parity fixture's document did not deserialize.");
         }
