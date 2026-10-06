@@ -249,6 +249,14 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal static InitializerBody? InitializerOf(Member schemaMember) => DefaultOf(schemaMember)?.init;
 
+        /// <summary>
+        /// An optional Class member whose literal default is null. It is the
+        /// one declared default a construction stores no row for, so a sparse
+        /// row omits it and readers resolve it to null.
+        /// </summary>
+        internal static bool IsLiteralNullClassDefault(Member schemaMember) =>
+            schemaMember is ClassMember { Requirement: NeoMemberRequirementKind.Optional, defaultValue: { value: null, init: null } };
+
         internal static MemberValueBase? DefaultOf(Member schemaMember)
         {
             return schemaMember switch

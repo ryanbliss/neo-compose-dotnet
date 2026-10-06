@@ -1590,12 +1590,28 @@ namespace NeoCompose.Runtime
                 string classId = classRow.classId ?? classMember.classId;
                 foreach (var entry in ResolveStoredInstanceSchema(classId))
                 {
-                    if (classRow.value is null || !classRow.value.TryGetValue(entry.schemaKey, out string childId)
-                        || !TryGetMember(entry.memberId, out Member? declaration)
+                    if (classRow.value is null)
+                        break;
+                    bool constructed = classRow.value.TryGetValue(entry.schemaKey, out string childId);
+                    if (!constructed && classMember.Payload == NeoMemberPayloadKind.Partial)
+                        continue;
+                    if (!TryGetMember(entry.memberId, out Member? declaration)
                         || TryResolveOwnedChildMember(classRow, classMember, entry.schemaKey, environments, declaration) is not Member childMember)
                         continue;
-                    node.classChildren[entry.schemaKey] = Child(childId, childMember,
-                        AppendVirtualPath(path, "class", "schemaKey", entry.schemaKey));
+                    string childPath = AppendVirtualPath(path, "class", "schemaKey", entry.schemaKey);
+                    if (constructed)
+                        node.classChildren[entry.schemaKey] = Child(childId, childMember, childPath);
+                    // A null Class default is the one declared default a
+                    // construction stores no row for. Index its null value
+                    // like every other omitted member, so the slot has the
+                    // deterministic id a write materializes under: on an
+                    // Asset record that id is the only place a Save-allowed
+                    // member's overlay row can live.
+                    else if (childMember.Mutability != NeoMemberMutabilityKind.ReadOnly
+                        && MemberValueFactory.IsLiteralNullClassDefault(childMember))
+                        node.classChildren[entry.schemaKey] = NullClassChild(childMember, childPath);
+                    else
+                        continue;
                     node.classChildren[entry.schemaKey].schemaKey = entry.schemaKey;
                 }
             }
@@ -1622,6 +1638,18 @@ namespace NeoCompose.Runtime
                 var child = IndexVirtualExpansion(instanceRoot,
                     ResolveValueRow(id) ?? throw new InvalidOperationException($"Replay lost child '{id}' at '{childPath}'."),
                     childMember, childPath, claimedVirtualIds, replayIdHash, environments, identitySources);
+                child.parent = node;
+                return child;
+            }
+            VirtualExpansionNode NullClassChild(Member childMember, string childPath)
+            {
+                // The null row has no replay identity of its own, so its id is
+                // positional, and it takes that id once indexing derives it.
+                MemberValue nullRow = MemberValueFactory.CreateFromDefault(
+                    childMember, string.Empty, instanceRoot.createdAt, instanceRoot.updatedAt)!;
+                var child = IndexVirtualExpansion(instanceRoot, nullRow, childMember, childPath,
+                    claimedVirtualIds, replayIdHash, environments, identitySources);
+                nullRow.id = child.virtualId;
                 child.parent = node;
                 return child;
             }
@@ -2200,20 +2228,36 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// Virtual storage boundaries are independent writable roots. Ordinary
-        /// descendants remain reachable only through their owning graph.
+        /// Virtual storage boundaries are independent writable roots: a slot
+        /// a sparse expansion places under a parent another store owns. The
+        /// slot is a root whether it is still virtual or a write materialized
+        /// it at its deterministic id, since no stored body links either.
+        /// Ordinary descendants remain reachable only through their owning
+        /// graph.
         /// </summary>
-        private IEnumerable<string> VirtualValueIdsByOwnership(
+        private IEnumerable<(string valueId, Member member)> VirtualStorageBoundaries(
             NeoValueOwnership ownership)
         {
-            foreach (var pair in virtualValueOwnership)
-            {
-                if (pair.Value == ownership
-                    && TryResolveVirtualPlacement(pair.Key, out VirtualClassPlacement? placement)
-                    && TryGetValueOwnership(placement.parentValueId, out NeoValueOwnership parentOwnership)
-                    && parentOwnership != ownership)
-                    yield return pair.Key;
-            }
+            foreach (string id in virtualClassPlacementByChildId.Keys)
+                if (IsVirtualStorageBoundary(id, ownership, out VirtualClassPlacement placement))
+                    yield return (id, placement.member);
+            if (candidateReplay is null)
+                yield break;
+            foreach (string id in candidateReplay.Placements.Keys)
+                if (!virtualClassPlacementByChildId.ContainsKey(id)
+                    && IsVirtualStorageBoundary(id, ownership, out VirtualClassPlacement placement))
+                    yield return (id, placement.member);
+        }
+
+        private bool IsVirtualStorageBoundary(
+            string id,
+            NeoValueOwnership ownership,
+            out VirtualClassPlacement placement)
+        {
+            return TryResolveVirtualPlacement(id, out placement)
+                && placement.ownership == ownership
+                && TryGetValueOwnership(placement.parentValueId, out NeoValueOwnership parentOwnership)
+                && parentOwnership != ownership;
         }
 
         private void TrackVirtualValue(string rootId, string valueId)

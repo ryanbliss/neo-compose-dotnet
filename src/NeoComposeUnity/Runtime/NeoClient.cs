@@ -9821,10 +9821,7 @@ namespace NeoCompose.Runtime
                 if (store.values.TryGetValue(id, out var stored)
                     && !string.IsNullOrEmpty(stored.mapKey) && !loadedPartitionRowIds.ContainsKey(stored.mapKey!))
                     return false;
-                if (virtualValueOwnership.TryGetValue(id, out var virtualOwnership) && virtualOwnership == ownership
-                    && TryResolveVirtualPlacement(id, out var boundary)
-                    && TryGetValueOwnership(boundary.parentValueId, out var parentOwnership)
-                    && parentOwnership != ownership)
+                if (IsVirtualStorageBoundary(id, ownership, out _))
                     return false;
 
                 if ((TryGetWritableValue(ownership, id, out MemberValue? row)
@@ -10001,9 +9998,9 @@ namespace NeoCompose.Runtime
             // reachable exactly because their root is live; without this seed
             // the sweep reported every pin written under such a slot as
             // unlinked and the collector would delete the player's writes.
-            foreach (var pair in VirtualValueIdsByOwnership(ownership))
+            foreach (var boundary in VirtualStorageBoundaries(ownership))
             {
-                MarkReachableValue(ownership, pair, reachable);
+                MarkReachableValue(ownership, boundary.valueId, reachable, boundary.member);
             }
             foreach (string rowId in AuthoredClassOwnedRoots(ownership))
             {

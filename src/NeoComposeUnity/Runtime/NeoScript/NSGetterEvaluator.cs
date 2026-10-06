@@ -4643,13 +4643,11 @@ namespace NeoCompose.Runtime.NeoScript
                     return child;
                 }
             }
-            // Null class defaults have no child row in a sparse construction.
-            // Match the generated accessor's default without hiding missing
-            // required fields or evaluating an initializer out of context.
-            if (member is ClassMember optionalClass
-                && member.Requirement == NeoMemberRequirementKind.Optional
-                && optionalClass.defaultValue is { value: null }
-                && MemberValueFactory.InitializerOf(member) is null)
+            // A row the sparse index does not cover can omit a null class
+            // default. Match the generated accessor's default without hiding
+            // missing required fields or evaluating an initializer out of
+            // context.
+            if (MemberValueFactory.IsLiteralNullClassDefault(member))
             {
                 return null;
             }
