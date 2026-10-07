@@ -100,6 +100,8 @@ namespace NeoCompose.Tests
                 targetReleaseChannelId: NeoSaveTestSupport.TargetChannel);
             await store.LoadAsync();
 
+            Assert.That(store.LocalStore, Is.SameAs(local));
+
             var listChanges = 0;
             store.OnListChanged += () => listChanges++;
 
@@ -315,6 +317,84 @@ namespace NeoCompose.Tests
                 Assert.That(await folder.LoadSaveAsync(customId), Is.Not.Null);
                 Assert.That(await passed.ListSaveIdsAsync(), Is.Empty);
                 Assert.That(api.commits, Is.Empty);
+            }
+            finally
+            {
+                await folder.DeleteSaveAsync(customId);
+            }
+        }
+
+        [Test]
+        public async Task LocalExport_RecreatedStoresReadTheSameSaveAndPreserveRejectedBytes()
+        {
+            string customId = "local-export-" + System.Guid.NewGuid().ToString("N");
+            string projectJson = NeoSaveTestSupport.ProjectJson.Replace(
+                "\"schemaVersion\"", "\"localExport\":true,\"schemaVersion\"");
+            var folder = new NeoFileLocalSaveStore(
+                Path.Combine(Application.persistentDataPath, "NeoCompose", "LocalExport"));
+            try
+            {
+                string? persisted = null;
+                for (int session = 0; session < 3; session++)
+                {
+                    // Reparse identical export bytes with a new source and byte store.
+                    var passed = new NeoInMemoryLocalSaveStore();
+                    using var store = new NeoProjectStore(
+                        dataSource: NeoTestExport.Source(projectJson), localStore: passed,
+                        targetReleaseChannelId: NeoSaveTestSupport.TargetChannel);
+                    LogAssert.Expect(LogType.Warning, new Regex("local export.*Ignoring the local save store\\."));
+                    Assert.Throws<System.InvalidOperationException>(() => _ = store.LocalStore);
+                    await store.LoadAsync();
+                    Assert.That(((NeoFileLocalSaveStore)store.LocalStore).DirectoryPath,
+                        Is.EqualTo(folder.DirectoryPath));
+                    if (session == 0)
+                    {
+                        var content = JObject.Parse(NeoSaveTestSupport.SaveContent("Across sessions"));
+                        content["customId"] = customId;
+                        await store.CreateNew(customId, "Across sessions").CommitSaveContentAsync(
+                            content.ToString(), replaceSnapshot: false);
+                        persisted = await folder.LoadSaveAsync(customId);
+                    }
+                    Assert.That(await passed.LoadSaveAsync(customId), Is.Null,
+                        "The constructor store is not the local-export store.");
+                    Assert.That(await store.LocalStore.LoadSaveAsync(customId), Is.EqualTo(persisted));
+                    Assert.That(store.Saves, Has.Some.Matches<NeoSaveListEntry>(save => save.customId == customId));
+                    var sync = store.Open(customId);
+                    var loaded = LocalGameSaveLoader.Load((await sync.LoadSaveContentAsync())!);
+                    Assert.That(loaded.customId, Is.EqualTo(customId));
+                    Assert.That(loaded.name, Is.EqualTo("Across sessions"));
+                    Assert.That(sync.State, Is.EqualTo(NeoSaveSynchronizerState.Ready));
+                    Assert.That(await folder.LoadSaveAsync(customId), Is.EqualTo(persisted));
+                }
+
+                using var reopened = new NeoProjectStore(dataSource: NeoTestExport.Source(projectJson));
+                LogAssert.Expect(LogType.Warning, new Regex("local export"));
+                await reopened.LoadAsync();
+                var incompatible = JObject.Parse(persisted!);
+                incompatible["requiredSaveFormatRevision"] = NeoSaveFormat.SupportedRevision + 1;
+                string rejected = incompatible.ToString();
+                await folder.CommitSaveAsync(customId, rejected);
+                var rejectedSync = reopened.Open(customId);
+                var error = Assert.ThrowsAsync<NeoUnsupportedSaveFormatException>(
+                    async () => await rejectedSync.LoadSaveContentAsync());
+                Assert.That(error!.Message, Does.Contain("requires format revision"));
+                Assert.That(await folder.LoadSaveAsync(customId), Is.EqualTo(rejected));
+
+                incompatible.Remove("requiredSaveFormatRevision");
+                incompatible["values"] = new JArray(1, 2, 3);
+                rejected = incompatible.ToString();
+                await folder.CommitSaveAsync(customId, rejected);
+                var migrationSync = reopened.Open(customId);
+                bool migrationRequested = false;
+                migrationSync.OnMigrationRequired += (_, continuation) =>
+                {
+                    migrationRequested = true;
+                    continuation.Skip();
+                };
+                Assert.That(await migrationSync.LoadSaveContentAsync(), Is.Null);
+                Assert.That(migrationRequested, Is.True);
+                Assert.That(migrationSync.State, Is.EqualTo(NeoSaveSynchronizerState.Idle));
+                Assert.That(await folder.LoadSaveAsync(customId), Is.EqualTo(rejected));
             }
             finally
             {
