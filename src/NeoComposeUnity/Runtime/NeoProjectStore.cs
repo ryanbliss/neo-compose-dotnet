@@ -362,6 +362,12 @@ namespace NeoCompose.Runtime
             {
                 throw new InvalidOperationException("Neo Compose project store is already loading.");
             }
+            // Its user client and attached saves hold the schema this load would replace.
+            if (userClient != null)
+            {
+                throw new InvalidOperationException(
+                    "This store already loaded its user file. Dispose it and load a new `NeoProjectStore`.");
+            }
 
             State = NeoProjectStoreState.Loading;
             if (loadUserFile && (Current == null || Current == this))

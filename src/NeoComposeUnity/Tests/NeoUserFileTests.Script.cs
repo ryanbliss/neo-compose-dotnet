@@ -403,6 +403,18 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public async Task ReloadingAStoreWithAUserClient_Throws()
+        {
+            var store = await LoadStoreAsync(new NeoInMemoryLocalSaveStore(), corpus: Corpus);
+
+            var error = Assert.ThrowsAsync<InvalidOperationException>(async () => await store.LoadAsync());
+
+            Assert.That(error!.Message, Is.EqualTo(
+                "This store already loaded its user file. Dispose it and load a new `NeoProjectStore`."));
+            Assert.That(store.State, Is.EqualTo(NeoProjectStoreState.Ready));
+        }
+
+        [Test]
         public async Task StoreDisposedWhileASaveWaits_ThrowsDisposed()
         {
             var local = new GatedLocalStore(new NeoInMemoryLocalSaveStore());
