@@ -42,9 +42,7 @@ sealed class GyreCollectiveIntro : Dialogue {
     """
   
     @id("e7cea4c0-32c8-4098-89df-300b56d076c0")
-    Option Accuse = new(
-      name: "Accuse",
-    ) {
+    Option Accuse = new() {
       """
       You're draining the sun. The inner worlds will burn, then freeze.
       """
@@ -53,9 +51,7 @@ sealed class GyreCollectiveIntro : Dialogue {
     }
   
     @id("53315ca2-d6c7-4165-818c-6af941ba66da")
-    Option Curious = new(
-      name: "Curious",
-    ) {
+    Option Curious = new() {
       """
       What could possibly be worth a star?
       """
@@ -90,9 +86,7 @@ sealed class GyreCollectiveIntro : Dialogue {
     """
   
     @id("eb9fdb95-384d-4e51-884d-f20835c1b246")
-    Option Sympathize = new(
-      name: "Sympathize",
-    ) {
+    Option Sympathize = new() {
       """
       You deserve daylight. But not like this.
       """
@@ -101,9 +95,7 @@ sealed class GyreCollectiveIntro : Dialogue {
     }
   
     @id("da9a3f3d-b56c-4d4c-a008-80dbc4f8a33f")
-    Option Condemn = new(
-      name: "Condemn",
-    ) {
+    Option Condemn = new() {
       """
       You'll destabilize both suns and freeze everyone.
       """

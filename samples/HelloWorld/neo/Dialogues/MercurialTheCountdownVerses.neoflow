@@ -83,9 +83,7 @@ sealed class MercurialTheCountdownVerses : Dialogue {
     """
   
     @id("ba08b005-a440-42ba-b74f-09574da3ec01")
-    Option Truth = new(
-      name: "Truth",
-    ) {
+    Option Truth = new() {
       """
       Your scripture is the world's README. You've guarded the truth all along.
       """
@@ -94,9 +92,7 @@ sealed class MercurialTheCountdownVerses : Dialogue {
     }
   
     @id("02a56aa5-7bc1-439c-8b6b-4b5abc7e9f9d")
-    Option Pity = new(
-      name: "Pity",
-    ) {
+    Option Pity = new() {
       """
       You worshipped an instruction manual.
       """
@@ -158,9 +154,7 @@ sealed class MercurialTheCountdownVerses : Dialogue {
     """
   
     @id("c49bdd5c-7478-4980-8c80-89becbd87935")
-    Option Sit = new(
-      name: "Sit",
-    ) {
+    Option Sit = new() {
       """
       I'm listening.
       """
@@ -182,7 +176,6 @@ sealed class MercurialTheCountdownVerses : Dialogue {
   
     @id("2c938d29-8bea-49b5-bb46-31eb4401801d")
     Option Anoint = new(
-      name: "Anoint",
       selectableWhen: [
       @id("7a17c8c5-e9d4-581f-b450-3756199f1e82")
       Condition2,
@@ -196,9 +189,7 @@ sealed class MercurialTheCountdownVerses : Dialogue {
     }
   
     @id("2c6c6535-500d-4661-b3d4-c71b3c74ac52")
-    Option Leave = new(
-      name: "Leave",
-    ) {
+    Option Leave = new() {
       """
       Take the verses and go
       """

@@ -62,9 +62,7 @@ sealed class CapitolTheRegentsWhisper : Dialogue {
     """
   
     @id("119fe8ac-9f39-42a4-827a-747684ac1931")
-    Option Execute = new(
-      name: "Execute",
-    ) {
+    Option Execute = new() {
       """
       Give me the key. // — let it end for everyone, forever.
       """
@@ -73,9 +71,7 @@ sealed class CapitolTheRegentsWhisper : Dialogue {
     }
   
     @id("0d10ebec-b023-48e5-8746-f34b161b8aaf")
-    Option Refuse = new(
-      name: "Refuse",
-    ) {
+    Option Refuse = new() {
       """
       (Burn the signet) Pluto deserved better. So does everyone else down here.
       """

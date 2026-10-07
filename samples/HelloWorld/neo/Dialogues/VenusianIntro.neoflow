@@ -37,9 +37,7 @@ sealed class VenusianIntro : Dialogue {
     """
   
     @id("d8532b08-18c2-46eb-9fce-ca4127e68386")
-    Option Flattered = new(
-      name: "Flattered",
-    ) {
+    Option Flattered = new() {
       """
       Why thank you. I'm here about the solar flares.
       """
@@ -48,9 +46,7 @@ sealed class VenusianIntro : Dialogue {
     }
   
     @id("79449d2c-3aac-4ba3-8415-b0ee11f8a819")
-    Option Blunt = new(
-      name: "Blunt",
-    ) {
+    Option Blunt = new() {
       """
       Skip the spa pitch. Who's burning up the sun?
       """

@@ -39,9 +39,7 @@ sealed class CapitolRerun : Dialogue {
     """
   
     @id("2f1c2f19-0962-4e2d-91bb-3c52ebda99fa")
-    Option Steady = new(
-      name: "Steady",
-    ) {
+    Option Steady = new() {
       """
       You're all right. I've got you. Breathe.
       """

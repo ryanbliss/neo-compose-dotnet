@@ -65,9 +65,7 @@ sealed class CapitolTheLastOutput : Dialogue {
     """
   
     @id("3841e330-6617-4aee-bee8-202a152c1246")
-    Option Goodbye = new(
-      name: "Goodbye",
-    ) {
+    Option Goodbye = new() {
       """
       GOODBYE, WORLD — let the run end honestly, awake and unafraid.
       """
@@ -76,9 +74,7 @@ sealed class CapitolTheLastOutput : Dialogue {
     }
   
     @id("32787f81-8cbf-41f1-a7cd-3169eaa4833e")
-    Option Fork = new(
-      name: "Fork",
-    ) {
+    Option Fork = new() {
       """
       HELLO, OTHER WORLD — give the greeting to the Gyre. Ignite the Second Sun.
       """
@@ -87,9 +83,7 @@ sealed class CapitolTheLastOutput : Dialogue {
     }
   
     @id("cd7006bd-aef8-4004-b442-fbac34dffd9f")
-    Option Loop = new(
-      name: "Loop",
-    ) {
+    Option Loop = new() {
       """
       HELLO, WORLD — wipe the only thing that persists. Me. Give them back their innocence.
       """

@@ -45,9 +45,7 @@ sealed class VenusianTheOldestPattern : Dialogue {
     """
   
     @id("79cf5eb4-7d70-449d-8e1c-d23b195ac610")
-    Option Buy = new(
-      name: "Buy",
-    ) {
+    Option Buy = new() {
       """
       Sold. Show me.
       """
@@ -56,9 +54,7 @@ sealed class VenusianTheOldestPattern : Dialogue {
     }
   
     @id("dd54e322-db50-43ad-b6ab-0bce89442edf")
-    Option Haggle = new(
-      name: "Haggle",
-    ) {
+    Option Haggle = new() {
       """
       For a piece of cloth?
       """

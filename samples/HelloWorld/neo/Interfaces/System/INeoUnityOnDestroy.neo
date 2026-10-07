@@ -1,0 +1,8 @@
+/// Runs when the renderer destroys this object's GameObject.
+@id("system_fe306522-8df2-4f30-8931-204d8dab4d96")
+@system(kind: .ScriptRuntime)
+interface INeoUnityOnDestroy {
+  /// Called once when the rendered GameObject is destroyed.
+  @id("system_87f004df-3e8b-4cc9-9168-6cacb8c736fc")
+  void OnDestroy();
+}

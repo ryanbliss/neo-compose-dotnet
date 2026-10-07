@@ -50,9 +50,7 @@ sealed class CapitolTheOldConsole : Dialogue {
     """
   
     @id("7e1656d4-43ee-4753-b9d8-677e510c5695")
-    Option Ready = new(
-      name: "Ready",
-    ) {
+    Option Ready = new() {
       """
       Then let's decide what happens next.
       """
@@ -73,9 +71,7 @@ sealed class CapitolTheOldConsole : Dialogue {
     """
   
     @id("10ce05eb-6a68-401d-af0e-6e2ba395fc1a")
-    Option Overflow = new(
-      name: "Overflow",
-    ) {
+    Option Overflow = new() {
       """
       That number... it's one past the largest count the world can hold.
       """
@@ -136,9 +132,7 @@ sealed class CapitolTheOldConsole : Dialogue {
     """
   
     @id("843ec6c4-19fb-4608-b649-c691e8353c97")
-    Option Plaque = new(
-      name: "Plaque",
-    ) {
+    Option Plaque = new() {
       """
       Read the plaque.
       """

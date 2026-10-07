@@ -1,0 +1,8 @@
+/// Runs once before this object's first per-frame hook.
+@id("system_b7e94d04-1c00-4e17-afb2-3de8b40fc5eb")
+@system(kind: .ScriptRuntime)
+interface INeoUnityStart {
+  /// Called once, before the first FixedUpdate, Update, or LateUpdate.
+  @id("system_38cd0f25-baa3-4250-acd5-ecd3dcaf47d9")
+  void Start();
+}

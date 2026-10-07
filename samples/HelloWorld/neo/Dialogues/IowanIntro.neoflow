@@ -93,9 +93,7 @@ sealed class IowanIntro : Dialogue {
     }
   
     @id("49789b78-ff3a-4a98-9846-3c89286180df")
-    Option Business = new(
-      name: "Business",
-    ) {
+    Option Business = new() {
       """
       I'm tracking the freighters that ride the flare wakes.
       """

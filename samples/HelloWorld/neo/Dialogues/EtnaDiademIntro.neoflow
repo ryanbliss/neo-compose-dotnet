@@ -32,9 +32,7 @@ sealed class EtnaDiademIntro : Dialogue {
     """
   
     @id("fd7b37ed-4fe8-4659-bda7-e16abcb9bc04")
-    Option Listen = new(
-      name: "Listen",
-    ) {
+    Option Listen = new() {
       """
       ...What do they sing?
       """
@@ -43,9 +41,7 @@ sealed class EtnaDiademIntro : Dialogue {
     }
   
     @id("8f0c166d-55c6-4877-a1a3-d07f0a90b2f4")
-    Option Hurry = new(
-      name: "Hurry",
-    ) {
+    Option Hurry = new() {
       """
       No time to sit. The sun is dying.
       """

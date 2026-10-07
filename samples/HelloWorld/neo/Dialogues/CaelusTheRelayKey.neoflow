@@ -70,9 +70,7 @@ sealed class CaelusTheRelayKey : Dialogue {
     """
   
     @id("722168b1-7d76-4ebf-9819-2cd7914522f2")
-    Option Keep = new(
-      name: "Keep",
-    ) {
+    Option Keep = new() {
       """
       I'm keeping this.
       """
@@ -81,9 +79,7 @@ sealed class CaelusTheRelayKey : Dialogue {
     }
   
     @id("fe5b992d-bd57-4d90-b5e3-45cffd17a9ae")
-    Option Shaken = new(
-      name: "Shaken",
-    ) {
+    Option Shaken = new() {
       """
       What kind of world keeps a changelog?
       """
@@ -104,9 +100,7 @@ sealed class CaelusTheRelayKey : Dialogue {
     """
   
     @id("bdd9c5a1-3638-4c55-bea1-460370e42812")
-    Option Feed = new(
-      name: "Feed",
-    ) {
+    Option Feed = new() {
       """
       Feed the Manifest to the relay
       """

@@ -1,0 +1,8 @@
+/// Runs when this instance stops being live: the commit that removes it, partition unload, or client disposal.
+@id("system_c64e99f9-e8be-4d0a-927f-de20bdf9cdeb")
+@system(kind: .ScriptRuntime)
+interface INeoOnUnload {
+  /// Called by the runtime when this instance stops being live. Reads see the instance as it left; writes to it throw.
+  @id("system_a8f258cf-62d4-4808-97cf-71b076e983e5")
+  void OnUnload();
+}

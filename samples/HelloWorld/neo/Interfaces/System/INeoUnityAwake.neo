@@ -1,0 +1,8 @@
+/// Runs once when the renderer builds this object's GameObject, after OnLoad.
+@id("system_e080a0a4-bb13-42a8-a1c5-17548dc5ccdb")
+@system(kind: .ScriptRuntime)
+interface INeoUnityAwake {
+  /// Called once per rendered GameObject, before OnEnable.
+  @id("system_18353c75-5307-42b8-afae-02b7aed32e29")
+  void Awake();
+}

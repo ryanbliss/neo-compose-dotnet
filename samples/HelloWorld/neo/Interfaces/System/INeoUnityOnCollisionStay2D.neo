@@ -1,0 +1,8 @@
+/// Runs every physics step while another collider keeps touching this object's collider.
+@id("system_75350119-0b1e-4560-bf94-0a34590f4cc2")
+@system(kind: .ScriptRuntime)
+interface INeoUnityOnCollisionStay2D {
+  /// Called with the other Neo object or null, the first contact's normal, and the relative velocity in cells per second.
+  @id("system_6cb901df-2c28-4f30-8269-469dead6d4b9")
+  void OnCollisionStay2D(NeoObjectBase? other, Vector2 normal, Vector2 relativeVelocity);
+}

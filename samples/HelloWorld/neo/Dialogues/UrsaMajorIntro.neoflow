@@ -32,9 +32,7 @@ sealed class UrsaMajorIntro : Dialogue {
     """
   
     @id("14c6dadd-3fd4-43e4-bcd5-f8eec3d0e8df")
-    Option Data = new(
-      name: "Data",
-    ) {
+    Option Data = new() {
       """
       Show me the numbers.
       """
@@ -43,9 +41,7 @@ sealed class UrsaMajorIntro : Dialogue {
     }
   
     @id("9ac2305f-83d3-4645-b3b5-c3b86765fecb")
-    Option Hunch = new(
-      name: "Hunch",
-    ) {
+    Option Hunch = new() {
       """
       Just tell me your gut.
       """

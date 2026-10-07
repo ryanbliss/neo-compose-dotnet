@@ -1,0 +1,8 @@
+/// Runs when another collider enters this object's trigger collider.
+@id("system_9faab5e9-701c-4cd8-8723-5f9794b8e8c0")
+@system(kind: .ScriptRuntime)
+interface INeoUnityOnTriggerEnter2D {
+  /// Called with the Neo object that hosts the other collider, or null when none does.
+  @id("system_6d778fe5-83c3-4e7a-8ed6-dd18b9483ef8")
+  void OnTriggerEnter2D(NeoObjectBase? other);
+}

@@ -45,9 +45,7 @@ sealed class CapitolTheGreeterBreaksScript : Dialogue {
     """
   
     @id("ddbd609f-003d-4d18-a3bd-707d3933b3b3")
-    Option Show = new(
-      name: "Show",
-    ) {
+    Option Show = new() {
       """
       I know what this world is. I have proof.
       """
@@ -56,9 +54,7 @@ sealed class CapitolTheGreeterBreaksScript : Dialogue {
     }
   
     @id("68def236-80e5-4cb6-94c6-5354981aefcb")
-    Option Kind = new(
-      name: "Kind",
-    ) {
+    Option Kind = new() {
       """
       Take your time. Say it however you need to.
       """
@@ -92,9 +88,7 @@ sealed class CapitolTheGreeterBreaksScript : Dialogue {
     """
   
     @id("f368c980-41bd-47d4-b448-c9f38acac1ff")
-    Option Open = new(
-      name: "Open",
-    ) {
+    Option Open = new() {
       """
       Open it.
       """

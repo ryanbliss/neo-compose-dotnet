@@ -1,0 +1,8 @@
+/// Runs when the application pauses or resumes while this object is enabled.
+@id("system_f1ab6738-fb6d-4d74-95cc-b4681f3feb85")
+@system(kind: .ScriptRuntime)
+interface INeoUnityOnApplicationPause {
+  /// Called with true when the application pauses and false when it resumes.
+  @id("system_fba35d45-20bc-43be-98cb-a06eb134d9de")
+  void OnApplicationPause(bool paused);
+}

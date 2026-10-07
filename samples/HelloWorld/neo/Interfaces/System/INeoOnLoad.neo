@@ -1,0 +1,8 @@
+/// Runs when this instance becomes live: client start, partition load, or the commit that attaches it.
+@id("system_c1b7f48c-5615-4e61-a071-5ff8b2a70c97")
+@system(kind: .ScriptRuntime)
+interface INeoOnLoad {
+  /// Called by the runtime when this instance becomes live. Subscribe to Session actions here.
+  @id("system_7544963d-1765-464b-bfb2-b311c6fffce4")
+  void OnLoad();
+}

@@ -37,9 +37,7 @@ sealed class PourLordsIntro : Dialogue {
     """
   
     @id("de638d27-5f42-4767-ba5c-a2ed8cf1e997")
-    Option Direct = new(
-      name: "Direct",
-    ) {
+    Option Direct = new() {
       """
       Who's buying enough fuel to drain a star?
       """
@@ -48,9 +46,7 @@ sealed class PourLordsIntro : Dialogue {
     }
   
     @id("1d2cf6c1-f288-4a04-a89e-35b2f1fb7074")
-    Option Flatter = new(
-      name: "Flatter",
-    ) {
+    Option Flatter = new() {
       """
       Impressive operation. The whole system runs on you.
       """

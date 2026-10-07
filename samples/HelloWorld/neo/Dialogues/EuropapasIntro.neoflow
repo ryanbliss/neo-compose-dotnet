@@ -32,9 +32,7 @@ sealed class EuropapasIntro : Dialogue {
     """
   
     @id("822bb183-5ed9-42bb-bf8b-2331ab95295c")
-    Option Ask = new(
-      name: "Ask",
-    ) {
+    Option Ask = new() {
       """
       Have you seen anything strange under the ice?
       """
@@ -43,9 +41,7 @@ sealed class EuropapasIntro : Dialogue {
     }
   
     @id("e31da4f4-ff05-4b12-9cf2-4efe01bc95e3")
-    Option Wait = new(
-      name: "Wait",
-    ) {
+    Option Wait = new() {
       """
       ...(wait silently with the fishers)
       """

@@ -57,9 +57,7 @@ sealed class MercurialIntro : Dialogue {
   }
 
   @id("70d647e0-09f6-4537-9576-b876550c13d2")
-  Text Hello = new(
-    name: "Hello",
-  ) {
+  Text Hello = new() {
     @primary
     Outpost mercurial = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
   
@@ -68,9 +66,7 @@ sealed class MercurialIntro : Dialogue {
     """
   
     @id("c21e9a69-facc-4ccc-b108-362f84011aba")
-    Option Surprise = new(
-      name: "Surprise",
-    ) {
+    Option Surprise = new() {
       """
       You've been <i>expecting </i>me?
       """
@@ -79,9 +75,7 @@ sealed class MercurialIntro : Dialogue {
     }
   
     @id("577544d5-d515-470f-9bdb-17d998d7e7d0")
-    Option Doubt = new(
-      name: "Doubt",
-    ) {
+    Option Doubt = new() {
       """
       I bet you say that to everyone
       """
@@ -91,9 +85,7 @@ sealed class MercurialIntro : Dialogue {
   }
 
   @id("ce3058ab-c8a3-4460-abb8-56428fcd87fe")
-  Text Asketh = new(
-    name: "Asketh",
-  ) {
+  Text Asketh = new() {
     @primary
     Outpost mercurial = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
   
@@ -102,9 +94,7 @@ sealed class MercurialIntro : Dialogue {
     """
   
     @id("7a2031fb-f402-4f66-bc2d-998d2ee48ab6")
-    Option Cosmic = new(
-      name: "Cosmic",
-    ) {
+    Option Cosmic = new() {
       """
       There are reports of cosmic disturbances
       """
@@ -113,9 +103,7 @@ sealed class MercurialIntro : Dialogue {
     }
   
     @id("fe7da25d-d51c-4435-82de-3cf16520dcdf")
-    Option Accuse = new(
-      name: "Accuse",
-    ) {
+    Option Accuse = new() {
       """
       I know you have been causing the solar flares <i>(Lie)</i>
       """
@@ -162,9 +150,7 @@ sealed class MercurialIntro : Dialogue {
     """
   
     @id("83a11bd5-e0df-4675-940d-e411bc92d0a5")
-    Option Who = new(
-      name: "Who",
-    ) {
+    Option Who = new() {
       """
       Who spendeth the Sun before its Time?
       """
@@ -173,9 +159,7 @@ sealed class MercurialIntro : Dialogue {
     }
   
     @id("d6e9a342-351d-4ca3-bc67-fec19a979221")
-    Option Prophecy = new(
-      name: "Prophecy",
-    ) {
+    Option Prophecy = new() {
       """
       What is the Red Nova?
       """
@@ -196,9 +180,7 @@ sealed class MercurialIntro : Dialogue {
     """
   
     @id("ec77f515-6f67-4c6e-8071-c67e3941193c")
-    Option Fair = new(
-      name: "Fair",
-    ) {
+    Option Fair = new() {
       """
       Fair enough. Well, I am looking for some information.
       """
@@ -207,9 +189,7 @@ sealed class MercurialIntro : Dialogue {
     }
   
     @id("4180d4be-1858-4e98-992e-acf54b7f8fac")
-    Option Rude = new(
-      name: "Rude",
-    ) {
+    Option Rude = new() {
       """
       Aren't you blind? Sounds pretty dark to me...
       """
@@ -230,9 +210,7 @@ sealed class MercurialIntro : Dialogue {
     """
   
     @id("448f16cd-7284-448b-90c4-f4fed1934c22")
-    Option Seeketh = new(
-      name: "Seeketh",
-    ) {
+    Option Seeketh = new() {
       """
       Well, I indeed was sent here to seeketh knowledge.
       """
@@ -241,9 +219,7 @@ sealed class MercurialIntro : Dialogue {
     }
   
     @id("0bc6c92e-beaa-45b4-a5c2-7b12bc34b129")
-    Option Mock = new(
-      name: "Mock",
-    ) {
+    Option Mock = new() {
       """
       Does the sun shineth for those that seeketh to be blind?
       """
@@ -277,9 +253,7 @@ sealed class MercurialIntro : Dialogue {
     """
   
     @id("9f77e6c6-24d1-41e1-91cb-f968f943f4f8")
-    Option Okay = new(
-      name: "Okay",
-    ) {
+    Option Okay = new() {
       """
       Uh, okay...
       """

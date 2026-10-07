@@ -1,0 +1,6 @@
+@id("eafb8ff2-2adb-5c58-a188-c94a6a2c0aec")
+@visibility(.Hidden)
+@storage(allowed: .User)
+class User {
+
+}

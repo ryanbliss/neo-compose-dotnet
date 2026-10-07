@@ -10,10 +10,6 @@ abstract class NeoObject : NeoObjectBase {
   @system(kind: .WorldAuthoring)
   public virtual List<NeoObjectBase> Children = [];
 
-  @id("system_a0083c92-72f7-405f-8863-ff86f995d36d")
-  @system(kind: .WorldAuthoring)
-  public virtual NeoCollider? Collider = null;
-
   @id("system_df1c2d06-eeec-5340-addc-740f3668c9e4")
   @system(kind: .WorldAuthoring)
   native private Vector2Int GetCell();

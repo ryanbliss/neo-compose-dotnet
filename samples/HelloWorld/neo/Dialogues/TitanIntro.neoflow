@@ -42,9 +42,7 @@ sealed class TitanIntro : Dialogue {
     """
   
     @id("7e971881-1703-4f72-b358-ef64039db72f")
-    Option Pay = new(
-      name: "Pay",
-    ) {
+    Option Pay = new() {
       """
       Here's 200 bits. The solar condensate manifests — who signs them?
       """
@@ -53,9 +51,7 @@ sealed class TitanIntro : Dialogue {
     }
   
     @id("381efc72-1cfe-407c-bb2f-7f3f0da48418")
-    Option Lean = new(
-      name: "Lean",
-    ) {
+    Option Lean = new() {
       """
       The Pour Lords sent me. They're unhappy with the rate.
       """

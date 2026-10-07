@@ -1,0 +1,8 @@
+/// Runs when the application quits while this object is enabled.
+@id("system_9156948c-a575-462b-9981-9d22bd262079")
+@system(kind: .ScriptRuntime)
+interface INeoUnityOnApplicationQuit {
+  /// Called once before the application quits.
+  @id("system_8507e67e-f91a-486a-9702-7470e49001b3")
+  void OnApplicationQuit();
+}

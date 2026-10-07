@@ -39,9 +39,7 @@ sealed class CapitolOGEpilogue : Dialogue {
     """
   
     @id("e19859df-e15f-413c-9003-443a00961d8c")
-    Option True = new(
-      name: "True",
-    ) {
+    Option True = new() {
       """
       It's true. The question is who it rises for.
       """
@@ -50,9 +48,7 @@ sealed class CapitolOGEpilogue : Dialogue {
     }
   
     @id("0173a459-2668-4b55-ab73-525751226d38")
-    Option Quiet = new(
-      name: "Quiet",
-    ) {
+    Option Quiet = new() {
       """
       You'll know when the sky tells you.
       """

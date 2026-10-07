@@ -35,9 +35,7 @@ sealed class CapitolColdBoot : Dialogue {
     """
   
     @id("53428352-c7b6-4422-afc8-975a9bd8bc18")
-    Option Explain = new(
-      name: "Explain",
-    ) {
+    Option Explain = new() {
       """
       The sky tore. Everything went dark. Then I was here again.
       """
@@ -58,9 +56,7 @@ sealed class CapitolColdBoot : Dialogue {
     """
   
     @id("5889ee9e-cb71-44e8-b739-fecc51f76e58")
-    Option Press = new(
-      name: "Press",
-    ) {
+    Option Press = new() {
       """
       What does that make me?
       """

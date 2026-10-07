@@ -37,9 +37,7 @@ sealed class CaelusAnchorpointIntro : Dialogue {
     """
   
     @id("4ccd8ff7-62ee-4663-97a8-3ac6696afd57")
-    Option Logs = new(
-      name: "Logs",
-    ) {
+    Option Logs = new() {
       """
       I need your relay logs — command bursts headed to Neptune.
       """
@@ -48,9 +46,7 @@ sealed class CaelusAnchorpointIntro : Dialogue {
     }
   
     @id("c55728aa-be40-4efc-93f9-41839d1a5f82")
-    Option Joke = new(
-      name: "Joke",
-    ) {
+    Option Joke = new() {
       """
       How do you even pour coffee sideways?
       """
