@@ -309,6 +309,62 @@ namespace NeoCompose.Tests
                 captured => Assert.IsNull(captured));
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void SetterTraceRecordsTheAssignmentCaller(bool throws)
+        {
+            var log = new DebugInstruction
+            {
+                type = InstructionKind.Debug,
+                severity = NeoScriptDebugSeverity.Log,
+                message = StringLiteral("setter"),
+                messageType = new PrimitiveTypeInfo { type = MemberKind.String, required = true },
+                source = new NeoScriptSourcePosition { line = 8, column = 3 },
+            };
+            var setter = throws
+                ? Function(new ThrowInstruction { type = InstructionKind.Throw, pointer = StringLiteral("setter failed"), source = log.source })
+                : Function(log);
+            setter.source = new NeoScriptSourceInfo { name = "Computed.setter", coordinateSpace = NeoScriptCoordinateSpace.Body };
+            using var client = BuildClient(out NSPropertyMember property, baseSetter: setter);
+            Assert.IsTrue(client.TryGetValue(NeoValueOwnership.Asset, "value-receiver", out ObjectMemberValue? receiverRow));
+            var events = new List<NeoScriptDebugEvent>();
+            var ctx = new NSGetterEvaluator.Context(client, null, null) { DebugSink = throws ? null : events.Add };
+            var root = RuntimeRoot(client, ctx);
+            ctx = ctx.WithRoot(root);
+            object? receiver = NSGetterEvaluator.UnwrapRow(receiverRow!, ctx, NeoValueOwnership.Asset);
+            var action = Function(
+                new DebugInstruction { type = InstructionKind.Debug, severity = NeoScriptDebugSeverity.Log, message = StringLiteral("before"), messageType = log.messageType, source = new NeoScriptSourcePosition { line = 1, column = 1 } },
+                new AssignInstruction
+                {
+                    type = InstructionKind.Assign,
+                    source = new NeoScriptSourcePosition { line = 2, column = 1 },
+                    target = new WriteTarget
+                    {
+                        pointer = new CallGetterPointer { type = PointerKind.CallGetter, memberId = property.id, receiver = CallReceiver.Instance(ThisVariable()) },
+                        typeInfo = IntType(),
+                        writability = WritabilityKind.Setter,
+                    },
+                    operatorValue = "=",
+                    pointer = NumberLiteral(64),
+                });
+            action.source = new NeoScriptSourceInfo { name = "Caller", coordinateSpace = NeoScriptCoordinateSpace.Body };
+            var scope = new Dictionary<string, object?> { ["__this__"] = receiver, ["__root__"] = root };
+            IReadOnlyList<NeoScriptStackFrame> frames;
+            if (throws)
+            {
+                var error = Assert.Catch(() => NeoScriptExecutor.Execute(client, action, scope, ctx.WithThis(receiver)))!;
+                frames = (IReadOnlyList<NeoScriptStackFrame>)error.Data["neoScriptFrames"]!;
+            }
+            else
+            {
+                NeoScriptExecutor.Execute(client, action, scope, ctx.WithThis(receiver));
+                frames = events[1].Frames;
+            }
+            Assert.AreEqual("Caller", frames[1].Name);
+            Assert.AreEqual(2, frames[1].Line);
+            Assert.AreEqual(1, frames[1].Column);
+        }
+
         [Test]
         public void ActionAssignment_InvokesPropertySetter()
         {

@@ -2410,6 +2410,7 @@ namespace NeoCompose.Runtime
 
             if (instruction.target.writability == WritabilityKind.Setter)
             {
+                ctx.trace.Position(instruction.source);
                 return ExecuteSetterAssignment(
                     client,
                     instruction,
