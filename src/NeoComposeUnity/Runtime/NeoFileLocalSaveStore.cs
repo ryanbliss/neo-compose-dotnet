@@ -31,6 +31,9 @@ namespace NeoCompose.Runtime
         private readonly string directory;
         private readonly object writeGate = new();
 
+        /// <summary>The directory containing this store's save files.</summary>
+        public string DirectoryPath => directory;
+
         // Content committed but not yet on disk, by customId. Reads see it
         // immediately, and a background write lands only while its content is
         // still the newest, so writes and deletes keep their call order.

@@ -242,6 +242,13 @@ namespace NeoCompose.Runtime
         public IReadOnlyList<NeoSaveListEntry> Saves =>
             core?.Saves ?? (IReadOnlyList<NeoSaveListEntry>)Array.Empty<NeoSaveListEntry>();
 
+        /// <summary>
+        /// The local byte store selected by <see cref="LoadAsync"/>. Local exports
+        /// replace the constructor's store with an isolated file store. Use this
+        /// after loading when inspecting save files so reads match <see cref="Open"/>.
+        /// </summary>
+        public INeoLocalSaveStore LocalStore => RequireReady().LocalStore;
+
         public event Action? OnListChanged;
         public event Action<string>? OnSaveArchived;
         public event Action<string>? OnSnapshotArchived;
