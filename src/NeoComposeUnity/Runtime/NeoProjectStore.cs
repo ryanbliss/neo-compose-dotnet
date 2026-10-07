@@ -271,6 +271,9 @@ namespace NeoCompose.Runtime
             return (T)userClientView;
         }
 
+        /// <summary>Whether <see cref="Dispose"/> has run.</summary>
+        internal bool IsDisposed => disposed;
+
         /// <summary>Whether <paramref name="synchronizer"/> was opened by this store.</summary>
         internal bool Opened(NeoSaveSynchronizer synchronizer) =>
             core != null && ReferenceEquals(synchronizer.Core, core);
@@ -423,7 +426,13 @@ namespace NeoCompose.Runtime
                         userSynchronizer.Bind(core);
                         string? content = await userSynchronizer.LoadUserContentAsync(userQuery);
                         ThrowIfDisposed();
-                        userClient = await BuildUserClientAsync(schema, content);
+                        NeoClient built = await BuildUserClientAsync(schema, content);
+                        if (disposed)
+                        {
+                            built.Dispose();
+                            throw new ObjectDisposedException(nameof(NeoProjectStore));
+                        }
+                        userClient = built;
                         userSynchronizer.BindUserClient(userClient);
                     }
                     finally

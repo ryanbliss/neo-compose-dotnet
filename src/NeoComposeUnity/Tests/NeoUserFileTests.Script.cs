@@ -389,6 +389,46 @@ namespace NeoCompose.Tests
             Assert.That(Volume(save), Is.EqualTo(7));
         }
 
+        [Test]
+        public async Task CustomLoaderOverAnotherSchema_Throws()
+        {
+            var store = await LoadStoreAsync(new NeoInMemoryLocalSaveStore(), corpus: Corpus);
+
+            var error = Assert.ThrowsAsync<InvalidOperationException>(
+                () => LoadCustomAsync(new SaveLoader(NeoTestExport.Read(Corpus))));
+
+            Assert.That(error!.Message, Is.EqualTo(
+                "A custom save loader's `Schema` must be `NeoProjectStore.Current.Schema`."));
+            Assert.That(store.LoadedUserClient, Is.Not.Null);
+        }
+
+        [Test]
+        public async Task StoreDisposedWhileASaveWaits_ThrowsDisposed()
+        {
+            var local = new GatedLocalStore(new NeoInMemoryLocalSaveStore());
+            var release = new TaskCompletionSource<bool>();
+            var reading = new TaskCompletionSource<bool>();
+            local.userReadGate = release.Task;
+            local.onUserRead = () => reading.TrySetResult(true);
+            var store = new NeoProjectStore(
+                dataSource: NeoTestExport.Source(Corpus),
+                localStore: local,
+                targetReleaseChannelId: Channel,
+                options: new NeoSaveOptions { LiveSessionsEnabled = false });
+            stores.Add(store);
+            var loading = store.LoadAsync();
+            await reading.Task;
+
+            var saving = LoadCustomAsync(new SaveLoader(store.Schema!));
+            store.Dispose();
+            release.SetResult(true);
+
+            Assert.ThrowsAsync<ObjectDisposedException>(async () => await loading);
+            var error = Assert.ThrowsAsync<InvalidOperationException>(async () => await saving);
+            Assert.That(error!.Message, Is.EqualTo(
+                "`NeoProjectStore.Current` was disposed while this save waited for its user file."));
+        }
+
         private static async Task<NeoClient> LoadCustomAsync(INeoSaveLoader loader) =>
             await new NeoLoader().Load(loader);
 

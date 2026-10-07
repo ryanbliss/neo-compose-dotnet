@@ -74,14 +74,23 @@ namespace NeoCompose.Runtime
             }
             NeoClient? userClient = await store.LoadedUserClientAsync(cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
-            if (userClient != null)
-                return userClient;
-            if (store.State == NeoProjectStoreState.Errored)
+            if (store.IsDisposed)
+            {
+                throw new InvalidOperationException(
+                    "`NeoProjectStore.Current` was disposed while this save waited for its user file.");
+            }
+            if (userClient == null && store.State == NeoProjectStoreState.Errored)
             {
                 throw new InvalidOperationException(
                     "`NeoProjectStore.Current` failed to load, so it has no user file. Retry its `LoadAsync` first.");
             }
-            throw new InvalidOperationException("`NeoProjectStore.Current`'s project has no User root.");
+            if (!ReferenceEquals(data, store.Schema))
+            {
+                throw new InvalidOperationException(
+                    "A custom save loader's `Schema` must be `NeoProjectStore.Current.Schema`.");
+            }
+            return userClient
+                ?? throw new InvalidOperationException("`NeoProjectStore.Current`'s project has no User root.");
         }
     }
 
