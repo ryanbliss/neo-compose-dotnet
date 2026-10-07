@@ -531,7 +531,6 @@ namespace NeoCompose.Runtime
                 for (; i < instructions.Length; i++)
                 {
                     var instruction = instructions[i];
-                    ctx.trace.Position(instruction.source);
                     if (pendingFrame && instruction.MayCall)
                     {
                         pendingFrame = false;
@@ -550,10 +549,11 @@ namespace NeoCompose.Runtime
                                 var debug = (DebugInstruction)instruction;
                                 object? condition = debug.condition is null ? false : NSGetterEvaluator.EvaluatePointer(debug.condition, scope, actionCtx);
                                 object? message = NSGetterEvaluator.EvaluatePointer(debug.message, scope, actionCtx);
-                                if (debug.severity == "assert" && condition is not bool)
+                                if (debug.severity == NeoScriptDebugSeverity.Assert && condition is not bool)
                                     throw new NSGetterRuntimeError("Debug.Assert requires a bool condition.");
                                 if (condition is not true && ctx.DebugSink is { } sink)
                                 {
+                                    ctx.trace.Position(instruction.source);
                                     var debugEvent = new NeoScriptDebugEvent(debug.severity, NSGetterEvaluator.FormatDebugValue(message, debug.messageType, ctx), ctx.trace.Snapshot());
                                     try
                                     {
@@ -758,6 +758,10 @@ namespace NeoCompose.Runtime
             catch (NeoFunctionCallSuspended suspended) when (PausesAtInstruction(instructions[i]))
             {
                 return PauseAtInstruction(client, instructions, returnTypeInfo, scope, ctx, i, expressionState, suspended, options);
+            }
+            catch (Exception error) when (ctx.trace.Attach(error, instructions[i].source))
+            {
+                throw;
             }
             return NeoScriptExecutionResult.Completed(returned: false, returnValue: null);
         }

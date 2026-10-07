@@ -1012,7 +1012,6 @@ namespace NeoCompose.Runtime.NeoScript
                     thisValueField = receiver;
             }
 
-
             /// <summary>
             /// The immediate-mode expression context built from THIS frame, so
             /// nested statement blocks (if/else branches, loop bodies) reuse it
@@ -1928,24 +1927,24 @@ namespace NeoCompose.Runtime.NeoScript
         // Pointers — 14 kinds
         // ---------------------------------------------------------------
 
-        internal static object? EvalPointer(Pointer pointer, NeoScriptScope scope, Context ctx)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static object? EvalPointer(Pointer pointer, NeoScriptScope scope, Context ctx) =>
+            pointer.source is null
+                ? EvalPointerCore(pointer, scope, ctx)
+                : EvalPointerAtSource(pointer, scope, ctx);
+
+        private static object? EvalPointerAtSource(Pointer pointer, NeoScriptScope scope, Context ctx)
         {
-            if (pointer.source is null)
-                return EvalPointerCore(pointer, scope, ctx);
+            if (pointer is FunctionPointer { function: VectorConstructorFunction vector })
+                return EvalVectorAtSource(pointer, vector.info, scope, ctx);
             NeoScriptSourcePosition? previous = ctx.trace.CurrentPosition;
             ctx.trace.Position(pointer.source);
             try
             {
                 return EvalPointerCore(pointer, scope, ctx);
             }
-            catch (NeoFunctionCallSuspended suspended)
+            catch (Exception error) when (ctx.trace.Attach(error))
             {
-                suspended.Execution = suspended.Execution.WithTrace(ctx.trace);
-                throw;
-            }
-            catch (Exception error)
-            {
-                ctx.trace.Attach(error);
                 throw;
             }
             finally
@@ -6250,6 +6249,7 @@ namespace NeoCompose.Runtime.NeoScript
                 callback.CompleteOperator(boxedCount);
                 return boxedCount;
             }
+            catch (Exception error) when (ctx.trace.Attach(error)) { throw; }
             finally
             {
                 callback.Dispose();
@@ -6427,6 +6427,7 @@ namespace NeoCompose.Runtime.NeoScript
                 callback.CompleteOperator(result);
                 return result;
             }
+            catch (Exception error) when (ctx.trace.Attach(error)) { throw; }
             finally
             {
                 callback.Dispose();
@@ -6492,6 +6493,7 @@ namespace NeoCompose.Runtime.NeoScript
                         }
                     }
                 }
+                catch (Exception error) when (ctx.trace.Attach(error)) { throw; }
                 finally
                 {
                     callback.Dispose();
@@ -6536,6 +6538,7 @@ namespace NeoCompose.Runtime.NeoScript
                 callback.CompleteOperator(result);
                 return result;
             }
+            catch (Exception error) when (ctx.trace.Attach(error)) { throw; }
             finally
             {
                 callback.Dispose();
@@ -6579,6 +6582,9 @@ namespace NeoCompose.Runtime.NeoScript
             private readonly BooleanExpression? condition;
             private readonly bool enclosingConstructorBody;
             private NeoScriptExecutionResult ownerTerminal;
+            // An exceptional callback leaves its frame for the operator filter to
+            // capture before unwind. Dispose restores depth in the operator's finally.
+            private readonly int traceDepth;
 
             internal PreparedCollectionCallback(
                 FunctionWithReturnType callback,
@@ -6625,6 +6631,7 @@ namespace NeoCompose.Runtime.NeoScript
                 // Validates the body, so a rejected callback has rented nothing.
                 NeoScriptExecutor.EnterCallback(callback, ctx);
                 this.ctx = ctx;
+                traceDepth = ctx.trace.Depth;
                 body = callback;
                 parameterCount = parameters.Length;
                 if (ctx.collectionCallbackPreparationMetrics is not null)
@@ -6680,89 +6687,67 @@ namespace NeoCompose.Runtime.NeoScript
             internal object? Project(in CollectionCursor cursor, object? entry)
             {
                 ctx.trace.Push(body);
-                try
+                if (entryTypeCheck is not null)
+                    return ctx.trace.Complete(Box(RuntimeTypeCheck(entry, entryTypeCheck, ctx)));
+                BindEntry(in cursor, entry);
+                TypeInfo returnType = body.typeInfo!;
+                object? value;
+                if (expression is null)
                 {
-                    if (entryTypeCheck is not null)
-                        return Box(RuntimeTypeCheck(entry, entryTypeCheck, ctx));
-                    BindEntry(in cursor, entry);
-                    TypeInfo returnType = body.typeInfo!;
-                    object? value;
-                    if (expression is null)
+                    NeoScriptExecutionResult result = Run();
+                    if (!result.Returned)
+                        return ctx.trace.Complete(NoProjection);
+                    value = result.ReturnValue;
+                }
+                else
+                {
+                    value = EvaluateValue(expression, scope, expressionContext, out double number);
+                    if (ReferenceEquals(value, ArithmeticValue.BareNumber))
                     {
-                        NeoScriptExecutionResult result = Run();
-                        if (!result.Returned)
-                            return NoProjection;
-                        value = result.ReturnValue;
-                    }
-                    else
-                    {
-                        value = EvaluateValue(expression, scope, expressionContext, out double number);
-                        if (ReferenceEquals(value, ArithmeticValue.BareNumber))
+                        value = Box(number);
+                        // Every number is a Float, including non-finite ordering keys.
+                        if (returnType.type == MemberKind.Float
+                            || returnType.type == MemberKind.Int && NeoScriptValueMarshaller.IsIntegralNumber(number))
                         {
-                            value = Box(number);
-                            // Every number is a Float, including non-finite ordering keys.
-                            if (returnType.type == MemberKind.Float
-                                || returnType.type == MemberKind.Int && NeoScriptValueMarshaller.IsIntegralNumber(number))
-                            {
-                                return value;
-                            }
+                            return ctx.trace.Complete(value);
                         }
-                        value = NeoScriptExecutor.CoerceReturnValue(value, returnType);
                     }
-                    if (returnsConstructedVector)
-                        return value;
-                    if (returnType.type == MemberKind.Float && TryAsDouble(value, out double floatValue))
-                        return Box(floatValue);
-                    return NeoScriptValueMarshaller.NormalizeResolved(
-                        ctx.client,
-                        ctx.valueOwnership,
-                        value,
-                        returnType,
-                        ctx,
-                        ProjectionSubject);
+                    value = NeoScriptExecutor.CoerceReturnValue(value, returnType);
                 }
-                catch (Exception error)
-                {
-                    ctx.trace.Attach(error);
-                    throw;
-                }
-                finally { ctx.trace.Pop(); }
+                if (returnsConstructedVector)
+                    return ctx.trace.Complete(value);
+                if (returnType.type == MemberKind.Float && TryAsDouble(value, out double floatValue))
+                    return ctx.trace.Complete(Box(floatValue));
+                return ctx.trace.Complete(NeoScriptValueMarshaller.NormalizeResolved(
+                    ctx.client,
+                    ctx.valueOwnership,
+                    value,
+                    returnType,
+                    ctx,
+                    ProjectionSubject));
             }
-
-
 
             /// <summary>Runs a predicate callback for one entry.</summary>
             internal bool Test(in CollectionCursor cursor, object? entry)
             {
                 ctx.trace.Push(body);
-                try
+                if (entryTypeCheck is not null)
+                    return ctx.trace.Complete(RuntimeTypeCheck(entry, entryTypeCheck, ctx));
+                BindEntry(in cursor, entry);
+                if (condition is not null)
+                    return ctx.trace.Complete(EvalBooleanExpression(condition, scope, expressionContext));
+                object? returned = expression is null
+                    ? Run().ReturnValue
+                    : NeoScriptExecutor.CoerceReturnValue(
+                        EvaluatePointer(expression, scope, expressionContext),
+                        body.typeInfo!);
+                if (returned is not bool passed)
                 {
-                    if (entryTypeCheck is not null)
-                        return RuntimeTypeCheck(entry, entryTypeCheck, ctx);
-                    BindEntry(in cursor, entry);
-                    if (condition is not null)
-                        return EvalBooleanExpression(condition, scope, expressionContext);
-                    object? returned = expression is null
-                        ? Run().ReturnValue
-                        : NeoScriptExecutor.CoerceReturnValue(
-                            EvaluatePointer(expression, scope, expressionContext),
-                            body.typeInfo!);
-                    if (returned is not bool passed)
-                    {
-                        throw new NSGetterRuntimeError(
-                            "Collection predicate callback returned a value that does not match its required Bool contract.");
-                    }
-                    return passed;
+                    throw new NSGetterRuntimeError(
+                        "Collection predicate callback returned a value that does not match its required Bool contract.");
                 }
-                catch (Exception error)
-                {
-                    ctx.trace.Attach(error);
-                    throw;
-                }
-                finally { ctx.trace.Pop(); }
+                return ctx.trace.Complete(passed);
             }
-
-
 
             // Runs a statement body, which cannot suspend.
             private NeoScriptExecutionResult Run()
@@ -6795,6 +6780,7 @@ namespace NeoCompose.Runtime.NeoScript
 
             public void Dispose()
             {
+                ctx.trace.RestoreDepth(traceDepth);
                 ctx.allocationTracker.ExitExecution(ctx.client, ctx, in ownerTerminal);
                 if (entryTypeCheck is not null)
                     return;
@@ -6959,6 +6945,17 @@ namespace NeoCompose.Runtime.NeoScript
             if (collection is IDictionary<string, object?> dictionary)
                 return dictionary.Count;
             return 0;
+        }
+
+        // Native vector construction has no script frame. Its argument calls
+        // carry their own locations; only a native failure needs this position.
+        private static object EvalVectorAtSource(Pointer pointer, FunctionVectorConstructorInfo info, NeoScriptScope scope, Context ctx)
+        {
+            try
+            {
+                return EvalVectorConstructor(info, scope, ctx);
+            }
+            catch (Exception error) when (ctx.trace.Attach(error, pointer.source)) { throw; }
         }
 
         private static object EvalVectorConstructor(
@@ -7266,25 +7263,13 @@ namespace NeoCompose.Runtime.NeoScript
         /// </summary>
         private static object? EvalMathAtSource(Pointer pointer, FunctionMathOpInfo info, NeoScriptScope scope, Context ctx, out double number)
         {
-            var previous = ctx.trace.CurrentPosition;
-            ctx.trace.Position(pointer.source);
             try
             {
                 return EvalMathOp(info, scope, ctx, out number);
             }
-            catch (NeoFunctionCallSuspended suspended)
+            catch (Exception error) when (ctx.trace.Attach(error, pointer.source))
             {
-                suspended.Execution = suspended.Execution.WithTrace(ctx.trace);
                 throw;
-            }
-            catch (Exception error)
-            {
-                ctx.trace.Attach(error);
-                throw;
-            }
-            finally
-            {
-                ctx.trace.Position(previous);
             }
         }
 

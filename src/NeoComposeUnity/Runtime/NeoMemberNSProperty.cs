@@ -258,11 +258,11 @@ namespace NeoCompose.Runtime
             }
             catch (NSGetterRuntimeError ex)
             {
-                error = ex.Message;
+                error = NeoScriptDebug.FormatError(ex);
             }
             catch (System.Exception ex)
             {
-                error = $"Evaluator error: {ex.Message}";
+                error = $"Evaluator error: {NeoScriptDebug.FormatError(ex)}";
             }
             finally
             {
@@ -471,7 +471,7 @@ namespace NeoCompose.Runtime
                     return;
                 Debug.LogError(
                     $"NeoScript property setter '{property.name}' ({property.id}) failed: " +
-                    exception.Message);
+                    NeoScriptDebug.FormatError(exception));
             }
         }
     }

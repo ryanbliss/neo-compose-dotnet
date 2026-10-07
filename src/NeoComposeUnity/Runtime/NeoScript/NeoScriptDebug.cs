@@ -51,7 +51,7 @@ namespace NeoCompose.Runtime.NeoScript
         {
             Name = source?.name ?? "<body>";
             Uri = source?.uri;
-            CoordinateSpace = source?.coordinateSpace == "file" ? NeoScriptCoordinateSpace.File : NeoScriptCoordinateSpace.Body;
+            CoordinateSpace = source?.coordinateSpace ?? NeoScriptCoordinateSpace.Body;
             Line = position?.line;
             Column = position?.column;
         }
@@ -70,27 +70,27 @@ namespace NeoCompose.Runtime.NeoScript
         {
             get;
         }
-        internal NeoScriptDebugEvent(string severity, string message, IReadOnlyList<NeoScriptStackFrame> frames)
+        internal NeoScriptDebugEvent(NeoScriptDebugSeverity severity, string message, IReadOnlyList<NeoScriptStackFrame> frames)
         {
-            Severity = severity switch
-            {
-                "log" => NeoScriptDebugSeverity.Log,
-                "warning" => NeoScriptDebugSeverity.Warning,
-                "error" => NeoScriptDebugSeverity.Error,
-                "assert" => NeoScriptDebugSeverity.Assert,
-                _ => throw new ArgumentOutOfRangeException(nameof(severity)),
-            };
+            Severity = severity;
             Message = message;
             Frames = frames;
         }
     }
     public static class NeoScriptDebug
     {
+        public static string FormatError(Exception error)
+        {
+            string trace = error.Data["neoScriptFrames"] is IReadOnlyList<NeoScriptStackFrame> frames ? FormatFrames(frames) : "";
+            return trace.Length == 0 ? error.Message : error.Message + "\n" + trace;
+        }
         public static string FormatFrames(IReadOnlyList<NeoScriptStackFrame> frames)
         {
             var text = new StringBuilder();
             foreach (NeoScriptStackFrame frame in frames)
             {
+                if (frame.Name == "<body>" && frame.Uri is null && frame.Line is null && frame.Column is null)
+                    continue;
                 if (text.Length != 0)
                     text.Append('\n');
                 text.Append("  NeoScript ").Append(frame.Name).Append(" (").Append(frame.Uri ?? (frame.CoordinateSpace == NeoScriptCoordinateSpace.File ? "file" : "body"));
@@ -179,16 +179,28 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 return action();
             }
-            catch (Exception error) { Attach(error); throw; }
+            catch (Exception error) when (Attach(error)) { throw; }
             finally { frames = previous; depth = previousDepth; }
         }
         internal void Push(FunctionWithReturnType body)
         {
             if (depth == frames.Length)
                 Array.Resize(ref frames, depth * 2);
-            frames[depth++] = (body.source, body.instructions.Length == 0 ? null : body.instructions[0].source);
+            ref var frame = ref frames[depth++];
+            var position = body.instructions.Length == 0 ? null : body.instructions[0].source;
+            if (!ReferenceEquals(frame.source, body.source))
+                frame.source = body.source;
+            if (!ReferenceEquals(frame.position, position))
+                frame.position = position;
         }
         internal void Pop() => depth--;
+        internal int Depth => depth;
+        internal void RestoreDepth(int savedDepth) => depth = savedDepth;
+        internal T Complete<T>(T value)
+        {
+            depth--;
+            return value;
+        }
         internal NeoScriptSourcePosition? CurrentPosition => depth == 0 ? null : frames[depth - 1].position;
         internal void Position(NeoScriptSourcePosition? position)
         {
@@ -207,10 +219,20 @@ namespace NeoCompose.Runtime.NeoScript
                 result[63] = new NeoScriptStackFrame(new NeoScriptSourceInfo { name = "[trace truncated]" }, null);
             return Array.AsReadOnly(result);
         }
-        internal void Attach(Exception error)
+        // Returning false observes an exception without catch/rethrow on Mono's hot paths.
+        internal bool Attach(Exception error)
+        {
+            if (error is NeoFunctionCallSuspended suspended)
+                suspended.Execution = suspended.Execution.WithTrace(this);
+            else if (!error.Data.Contains("neoScriptFrames"))
+                error.Data["neoScriptFrames"] = Snapshot();
+            return false;
+        }
+        internal bool Attach(Exception error, NeoScriptSourcePosition? position)
         {
             if (!error.Data.Contains("neoScriptFrames"))
-                error.Data["neoScriptFrames"] = Snapshot();
+                Position(position);
+            return Attach(error);
         }
     }
 }

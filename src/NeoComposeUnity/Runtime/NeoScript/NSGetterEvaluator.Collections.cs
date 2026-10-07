@@ -167,6 +167,7 @@ namespace NeoCompose.Runtime.NeoScript
                 }
                 return result;
             }
+            catch (Exception error) when (ctx.trace.Attach(error)) { throw; }
             finally
             {
                 if (hasCallback)

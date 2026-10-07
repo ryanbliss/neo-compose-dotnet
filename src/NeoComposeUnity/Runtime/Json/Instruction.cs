@@ -4,6 +4,7 @@
 #nullable enable
 
 using System;
+using NeoCompose.Runtime.NeoScript;
 using System.Runtime.CompilerServices;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -86,7 +87,7 @@ namespace NeoCompose.Runtime.Json
     public sealed class DebugInstruction : Instruction
     {
         public DebugInstruction() : base(InstructionCode.Debug) { }
-        public string severity = null!;
+        public NeoScriptDebugSeverity severity;
         public Pointer message = null!;
         public TypeInfo messageType = null!;
         public Pointer? condition;
@@ -462,8 +463,16 @@ namespace NeoCompose.Runtime.Json
             if (concrete == typeof(DebugInstruction))
             {
                 string? severity = obj["severity"]?.Value<string>();
-                if (severity is not ("log" or "warning" or "error" or "assert") || !IsPointerObject(obj["message"]) || obj["messageType"] is not JObject || (severity == "assert" ? !IsPointerObject(obj["condition"]) : obj["condition"] is not null))
-                    throw new JsonSerializationException("Debug instruction requires severity, message, type information, and an Assert condition only.");
+                if (severity is not ("log" or "warning" or "error" or "assert"))
+                    throw new JsonSerializationException("Debug instruction severity must be log, warning, error, or assert.");
+                if (!IsPointerObject(obj["message"]))
+                    throw new JsonSerializationException("Debug instruction requires a message pointer.");
+                if (obj["messageType"] is not JObject)
+                    throw new JsonSerializationException("Debug instruction requires message type information.");
+                if (severity == "assert" && !IsPointerObject(obj["condition"]))
+                    throw new JsonSerializationException("Debug.Assert instruction requires a condition pointer.");
+                if (severity != "assert" && obj["condition"] is not null)
+                    throw new JsonSerializationException("Only Debug.Assert instructions accept a condition pointer.");
             }
             if (typeof(ChangeListenerInstruction).IsAssignableFrom(concrete))
             {

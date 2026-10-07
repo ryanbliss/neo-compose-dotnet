@@ -139,6 +139,10 @@ namespace NeoCompose.Tests
                     }
                   }
                 }
+              },
+              ""source"": {
+                ""line"": 8,
+                ""column"": 3
               }
             },
             ""source"": {
@@ -307,6 +311,10 @@ namespace NeoCompose.Tests
                     }
                   }
                 }
+              },
+              ""source"": {
+                ""line"": 8,
+                ""column"": 3
               }
             },
             ""source"": {
@@ -378,6 +386,10 @@ namespace NeoCompose.Tests
                     ""entries"": []
                   }
                 }
+              },
+              ""source"": {
+                ""line"": 8,
+                ""column"": 3
               }
             },
             ""source"": {
@@ -476,6 +488,10 @@ namespace NeoCompose.Tests
                     }
                   }
                 }
+              },
+              ""source"": {
+                ""line"": 8,
+                ""column"": 3
               }
             },
             ""source"": {
@@ -535,6 +551,10 @@ namespace NeoCompose.Tests
                     ]
                   }
                 }
+              },
+              ""source"": {
+                ""line"": 8,
+                ""column"": 3
               }
             },
             ""source"": {
@@ -583,6 +603,10 @@ namespace NeoCompose.Tests
                     ""entries"": []
                   }
                 }
+              },
+              ""source"": {
+                ""line"": 8,
+                ""column"": 3
               }
             },
             ""source"": {
@@ -642,6 +666,10 @@ namespace NeoCompose.Tests
                     ]
                   }
                 }
+              },
+              ""source"": {
+                ""line"": 8,
+                ""column"": 3
               }
             },
             ""source"": {
@@ -690,6 +718,10 @@ namespace NeoCompose.Tests
                     ""entries"": []
                   }
                 }
+              },
+              ""source"": {
+                ""line"": 8,
+                ""column"": 3
               }
             },
             ""source"": {
@@ -749,6 +781,10 @@ namespace NeoCompose.Tests
                     ]
                   }
                 }
+              },
+              ""source"": {
+                ""line"": 8,
+                ""column"": 3
               }
             },
             ""source"": {
@@ -797,6 +833,10 @@ namespace NeoCompose.Tests
                     ""entries"": []
                   }
                 }
+              },
+              ""source"": {
+                ""line"": 8,
+                ""column"": 3
               }
             },
             ""source"": {
@@ -856,6 +896,10 @@ namespace NeoCompose.Tests
                     ]
                   }
                 }
+              },
+              ""source"": {
+                ""line"": 8,
+                ""column"": 3
               }
             },
             ""source"": {
@@ -904,6 +948,10 @@ namespace NeoCompose.Tests
                     ""entries"": []
                   }
                 }
+              },
+              ""source"": {
+                ""line"": 8,
+                ""column"": 3
               }
             },
             ""source"": {
@@ -1049,6 +1097,10 @@ namespace NeoCompose.Tests
                     }
                   }
                 }
+              },
+              ""source"": {
+                ""line"": 8,
+                ""column"": 3
               }
             },
             ""source"": {
@@ -1237,6 +1289,10 @@ namespace NeoCompose.Tests
                     }
                   }
                 }
+              },
+              ""source"": {
+                ""line"": 8,
+                ""column"": 3
               }
             },
             ""source"": {
@@ -1416,6 +1472,10 @@ namespace NeoCompose.Tests
                     }
                   }
                 }
+              },
+              ""source"": {
+                ""line"": 8,
+                ""column"": 3
               }
             },
             ""source"": {
@@ -1561,6 +1621,10 @@ namespace NeoCompose.Tests
                   },
                   ""keyType"": ""int""
                 }
+              },
+              ""source"": {
+                ""line"": 8,
+                ""column"": 3
               }
             },
             ""source"": {
@@ -1759,6 +1823,10 @@ namespace NeoCompose.Tests
                   },
                   ""keyType"": ""int""
                 }
+              },
+              ""source"": {
+                ""line"": 8,
+                ""column"": 3
               }
             },
             ""source"": {
@@ -1853,6 +1921,10 @@ namespace NeoCompose.Tests
                     }
                   }
                 }
+              },
+              ""source"": {
+                ""line"": 8,
+                ""column"": 3
               }
             },
             ""source"": {
@@ -1947,6 +2019,10 @@ namespace NeoCompose.Tests
                     }
                   }
                 }
+              },
+              ""source"": {
+                ""line"": 8,
+                ""column"": 3
               }
             },
             ""source"": {
@@ -2041,6 +2117,10 @@ namespace NeoCompose.Tests
                     }
                   }
                 }
+              },
+              ""source"": {
+                ""line"": 8,
+                ""column"": 3
               }
             },
             ""source"": {
@@ -2135,6 +2215,10 @@ namespace NeoCompose.Tests
                     }
                   }
                 }
+              },
+              ""source"": {
+                ""line"": 8,
+                ""column"": 3
               }
             },
             ""source"": {
@@ -2285,6 +2369,10 @@ namespace NeoCompose.Tests
                     }
                   }
                 }
+              },
+              ""source"": {
+                ""line"": 8,
+                ""column"": 3
               }
             },
             ""source"": {
@@ -2458,6 +2546,10 @@ namespace NeoCompose.Tests
                     }
                   }
                 }
+              },
+              ""source"": {
+                ""line"": 8,
+                ""column"": 3
               }
             },
             ""source"": {
@@ -2565,6 +2657,10 @@ namespace NeoCompose.Tests
                     ]
                   }
                 }
+              },
+              ""source"": {
+                ""line"": 8,
+                ""column"": 3
               }
             },
             ""source"": {
@@ -2673,6 +2769,10 @@ namespace NeoCompose.Tests
                     ]
                   }
                 }
+              },
+              ""source"": {
+                ""line"": 8,
+                ""column"": 3
               }
             },
             ""source"": {
@@ -2802,6 +2902,10 @@ namespace NeoCompose.Tests
                   },
                   ""keyType"": ""string""
                 }
+              },
+              ""source"": {
+                ""line"": 8,
+                ""column"": 3
               }
             },
             ""source"": {
@@ -2931,6 +3035,10 @@ namespace NeoCompose.Tests
                   },
                   ""keyType"": ""decimal""
                 }
+              },
+              ""source"": {
+                ""line"": 8,
+                ""column"": 3
               }
             },
             ""source"": {
@@ -4098,6 +4206,10 @@ namespace NeoCompose.Tests
                     }
                   }
                 }
+              },
+              ""source"": {
+                ""line"": 8,
+                ""column"": 3
               }
             },
             ""source"": {
@@ -4227,6 +4339,10 @@ namespace NeoCompose.Tests
                     }
                   }
                 }
+              },
+              ""source"": {
+                ""line"": 8,
+                ""column"": 3
               }
             },
             ""source"": {
@@ -4366,6 +4482,10 @@ namespace NeoCompose.Tests
                     }
                   }
                 }
+              },
+              ""source"": {
+                ""line"": 8,
+                ""column"": 3
               }
             },
             ""source"": {
@@ -4505,6 +4625,10 @@ namespace NeoCompose.Tests
                     }
                   }
                 }
+              },
+              ""source"": {
+                ""line"": 8,
+                ""column"": 3
               }
             },
             ""source"": {
@@ -4731,6 +4855,10 @@ namespace NeoCompose.Tests
                                     }
                                   ]
                                 }
+                              },
+                              ""source"": {
+                                ""line"": 8,
+                                ""column"": 3
                               }
                             },
                             ""whenFalse"": {
@@ -4929,6 +5057,10 @@ namespace NeoCompose.Tests
                                           }
                                         ]
                                       }
+                                    },
+                                    ""source"": {
+                                      ""line"": 8,
+                                      ""column"": 3
                                     }
                                   }
                                 }
@@ -4948,6 +5080,10 @@ namespace NeoCompose.Tests
                     }
                   }
                 }
+              },
+              ""source"": {
+                ""line"": 8,
+                ""column"": 3
               }
             },
             ""source"": {
@@ -5174,6 +5310,10 @@ namespace NeoCompose.Tests
                                     }
                                   ]
                                 }
+                              },
+                              ""source"": {
+                                ""line"": 8,
+                                ""column"": 3
                               }
                             },
                             ""whenFalse"": {
@@ -5372,6 +5512,10 @@ namespace NeoCompose.Tests
                                           }
                                         ]
                                       }
+                                    },
+                                    ""source"": {
+                                      ""line"": 8,
+                                      ""column"": 3
                                     }
                                   }
                                 }
@@ -5391,6 +5535,10 @@ namespace NeoCompose.Tests
                     }
                   }
                 }
+              },
+              ""source"": {
+                ""line"": 8,
+                ""column"": 3
               }
             },
             ""source"": {
@@ -5558,6 +5706,10 @@ namespace NeoCompose.Tests
                     }
                   }
                 }
+              },
+              ""source"": {
+                ""line"": 8,
+                ""column"": 3
               }
             },
             ""source"": {
@@ -5739,6 +5891,10 @@ namespace NeoCompose.Tests
                     }
                   }
                 }
+              },
+              ""source"": {
+                ""line"": 8,
+                ""column"": 3
               }
             },
             ""source"": {
@@ -5940,6 +6096,10 @@ namespace NeoCompose.Tests
                     }
                   }
                 }
+              },
+              ""source"": {
+                ""line"": 8,
+                ""column"": 3
               }
             },
             ""source"": {
@@ -6141,6 +6301,10 @@ namespace NeoCompose.Tests
                                 }
                               }
                             }
+                          },
+                          ""source"": {
+                            ""line"": 8,
+                            ""column"": 3
                           }
                         },
                         ""source"": {
@@ -6155,6 +6319,10 @@ namespace NeoCompose.Tests
                     }
                   }
                 }
+              },
+              ""source"": {
+                ""line"": 8,
+                ""column"": 3
               }
             },
             ""source"": {
@@ -6271,6 +6439,10 @@ namespace NeoCompose.Tests
                             },
                             ""fields"": []
                           }
+                        },
+                        ""source"": {
+                          ""line"": 8,
+                          ""column"": 3
                         }
                       }
                     ]
@@ -6327,6 +6499,10 @@ namespace NeoCompose.Tests
                     }
                   }
                 }
+              },
+              ""source"": {
+                ""line"": 8,
+                ""column"": 3
               }
             },
             ""source"": {
@@ -6512,6 +6688,77 @@ namespace NeoCompose.Tests
           ]
         }
       ]
+    },
+    {
+      ""name"": ""same-line non-ASCII uses UTF-16 columns"",
+      ""sourceText"": ""string note = \""🌿\""; Debug.Log(note); return 1;"",
+      ""getter"": {
+        ""compilerRevision"": 17,
+        ""parameters"": [],
+        ""source"": {
+          ""name"": ""Cases.Unicode"",
+          ""uri"": ""Unicode.neo"",
+          ""coordinateSpace"": ""file""
+        },
+        ""instructions"": [
+          {
+            ""type"": ""debug"",
+            ""severity"": ""log"",
+            ""message"": {
+              ""type"": ""value"",
+              ""value"": {
+                ""typeInfo"": {
+                  ""type"": 1,
+                  ""required"": true
+                },
+                ""value"": ""🌿""
+              }
+            },
+            ""messageType"": {
+              ""type"": 1,
+              ""required"": true
+            },
+            ""source"": {
+              ""line"": 1,
+              ""column"": 21
+            }
+          },
+          {
+            ""type"": ""return"",
+            ""pointer"": {
+              ""type"": ""value"",
+              ""value"": {
+                ""typeInfo"": {
+                  ""type"": 2,
+                  ""required"": true
+                },
+                ""value"": 1
+              }
+            }
+          }
+        ],
+        ""typeInfo"": {
+          ""type"": 2,
+          ""required"": true
+        }
+      },
+      ""expected"": 1,
+      ""logs"": [""🌿""],
+      ""events"": [
+        {
+          ""severity"": ""log"",
+          ""message"": ""🌿"",
+          ""frames"": [
+            {
+              ""name"": ""Cases.Unicode"",
+              ""uri"": ""Unicode.neo"",
+              ""coordinateSpace"": ""file"",
+              ""line"": 1,
+              ""column"": 21
+            }
+          ]
+        }
+      ]
     }
   ],
   ""classes"": [
@@ -6533,7 +6780,6 @@ namespace NeoCompose.Tests
       ""updatedAt"": 0
     }
   ]
-}
-";
+}";
     }
 }

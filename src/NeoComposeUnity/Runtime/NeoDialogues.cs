@@ -303,7 +303,7 @@ namespace NeoCompose.Runtime
                     catch (Exception ex)
                     {
                         candidateWarnings.Add(new NeoDialogueTriggerWarning(
-                            ex.Message,
+                            NeoCompose.Runtime.NeoScript.NeoScriptDebug.FormatError(ex),
                             dialogueId: dialogue.id,
                             groupId: groupId));
                         return false;

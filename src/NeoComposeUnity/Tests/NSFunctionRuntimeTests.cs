@@ -273,14 +273,14 @@ namespace NeoCompose.Tests
             wait.source = new NeoScriptSourcePosition { line = 12, column = 9 };
             var innerBody = Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(),
                 VariableDeclaration("answer", wait, IntType()),
-                new DebugInstruction { severity = "warning", message = Variable("answer"), messageType = IntType(), source = new NeoScriptSourcePosition { line = 13, column = 3 } },
+                new DebugInstruction { severity = NeoScriptDebugSeverity.Warning, message = Variable("answer"), messageType = IntType(), source = new NeoScriptSourcePosition { line = 13, column = 3 } },
                 Return(Variable("answer")));
-            innerBody.source = new NeoScriptSourceInfo { name = "Trace.Inner", uri = "Trace.neo", coordinateSpace = "file" };
+            innerBody.source = new NeoScriptSourceInfo { name = "Trace.Inner", uri = "Trace.neo", coordinateSpace = NeoScriptCoordinateSpace.File };
             var inner = ScriptFunction("trace-inner", "Inner", true, IntType(), Array.Empty<FunctionArgumentTypeInfo>(), innerBody);
             var call = Call(inner.id, "trace-inner-call");
             call.source = new NeoScriptSourcePosition { line = 4, column = 7 };
             var outerBody = Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(), Return(call));
-            outerBody.source = new NeoScriptSourceInfo { name = "Trace.Outer", uri = "Trace.neo", coordinateSpace = "file" };
+            outerBody.source = new NeoScriptSourceInfo { name = "Trace.Outer", uri = "Trace.neo", coordinateSpace = NeoScriptCoordinateSpace.File };
             var outer = ScriptFunction("trace-outer", "Outer", true, IntType(), Array.Empty<FunctionArgumentTypeInfo>(), outerBody);
             using var client = BuildClient(new JsonMember[] { native, inner, outer }, ReceiverClass(("Fetch", native.id), ("Inner", inner.id), ("Outer", outer.id)));
             var pending = new List<NeoDeferredFunction<int>>();
@@ -315,6 +315,8 @@ namespace NeoCompose.Tests
             Assert.AreEqual(12, error.NeoScriptFrames[0].Line);
             Assert.AreEqual(9, error.NeoScriptFrames[0].Column);
             Assert.AreEqual("Trace.Outer", error.NeoScriptFrames[1].Name);
+            StringAssert.Contains("NeoScript Trace.Inner", NeoScriptDebug.FormatError(error));
+            StringAssert.DoesNotContain("NeoScript Trace.Inner", error.Message);
             StringAssert.Contains("Trace.neo:12:9", error.ToString());
 
         }
