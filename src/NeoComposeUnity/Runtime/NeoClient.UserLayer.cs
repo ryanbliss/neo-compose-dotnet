@@ -38,6 +38,13 @@ namespace NeoCompose.Runtime
         internal NeoClient? AttachedUserClient => ReferenceEquals(userSource, this) ? null : userSource;
 
         /// <summary>
+        /// Whether this save client reads the current store's user file. False
+        /// for a save from a <c>loadUserFile: false</c> store, which reads
+        /// authored User defaults.
+        /// </summary>
+        public bool ReadsUserFile => AttachedUserClient != null;
+
+        /// <summary>
         /// Reads <paramref name="userClient"/>'s User layer from now on and
         /// hears its writes (P104 §4.3). O(1): nothing is copied.
         /// </summary>

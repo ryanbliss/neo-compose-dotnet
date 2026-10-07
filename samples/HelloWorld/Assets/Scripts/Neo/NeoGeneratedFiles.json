@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-  "codegenRevision": "8db62793915e2d1ebd8fbda778579dfb330271cd3e55ef9736eef4b40b1b99de",
+  "codegenRevision": "45a0847addd4616acfc29f142556dcb2e0a27daae14d6aa456430228e66dbc07",
   "files": [
     {
       "id": "class:11177bd5-0678-4bff-86b8-46718ff1827b",
@@ -451,7 +451,7 @@
     {
       "id": "project:client",
       "path": "Generated/HelloWorldNeo.g.cs",
-      "hash": "624599c570821ebd4a884ca32acb135788ac8cdd0949f930fce998c5912b29fc"
+      "hash": "e9add3426ad43199469164a098507a28815e3846ec8801b8efc52410e6069973"
     },
     {
       "id": "project:user-client",

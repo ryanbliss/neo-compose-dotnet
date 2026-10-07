@@ -52,13 +52,15 @@ namespace HelloWorld.Assets.Tests
         private NeoProjectStore Store(
             INeoLocalSaveStore localStore,
             INeoApiClient apiClient = null,
-            string targetReleaseChannelId = "")
+            string targetReleaseChannelId = "",
+            bool loadUserFile = true)
         {
             var store = new NeoProjectStore(
                 dataSource: SampleProjectFixture.Source,
                 localStore: localStore,
                 apiClient: apiClient,
-                targetReleaseChannelId: targetReleaseChannelId);
+                targetReleaseChannelId: targetReleaseChannelId,
+                loadUserFile: loadUserFile);
             stores.Add(store);
             return store;
         }
@@ -90,6 +92,17 @@ namespace HelloWorld.Assets.Tests
             var reloaded = await HelloWorldNeo.Load(store.Open(synchronizer.CustomId));
             Assert.AreEqual(worldId, reloaded.Save.World.OptionId());
             reloaded.Dispose();
+        }
+
+        [Test]
+        public async System.Threading.Tasks.Task ToolingStoreSave_LoadsWithoutTheUserFile()
+        {
+            var store = Store(new NeoInMemoryLocalSaveStore(), loadUserFile: false);
+            await store.LoadAsync();
+
+            using var neo = await HelloWorldNeo.Load(store.CreateNew("Tooling"));
+
+            Assert.IsFalse(neo.Client.ReadsUserFile);
         }
 
         [Test]

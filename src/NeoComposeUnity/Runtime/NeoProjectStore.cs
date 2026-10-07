@@ -422,8 +422,7 @@ namespace NeoCompose.Runtime
                     realtimeProvider);
                 core.LoadsUserFile = loadUserFile;
                 core.ListChanged += () => OnListChanged?.Invoke();
-                if (ownsUserFile && userClient == null
-                    && !string.IsNullOrEmpty(schema.project?.rootUserMemberId))
+                if (ownsUserFile && !string.IsNullOrEmpty(schema.project?.rootUserMemberId))
                 {
                     // The user client builds while the list request is in flight.
                     var listRefresh = core.RefreshListAsync();
