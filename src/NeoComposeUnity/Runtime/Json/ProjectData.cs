@@ -13,7 +13,7 @@ namespace NeoCompose.Runtime.Json
     public static class NeoProjectExportContract
     {
         /// <summary>
-        /// 38 adds P102 collection queries, debug output, and authored traces.
+        /// 37 adds P102 collection queries, debug output, and authored traces.
         /// 36 splits value rows out of <c>project.json</c> (P100 §4): its
         /// <c>partitions</c> index names one file per partition, main
         /// included, and <c>values</c> and <c>valuePartitions</c> are gone.
