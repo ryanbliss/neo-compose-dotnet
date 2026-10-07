@@ -9,7 +9,7 @@
       shims cannot drift apart during Unity upgrades. Any property can still
       be overridden from the environment or command line for another install.
     -->
-    <UnityEditorVersion Condition="'$(UnityEditorVersion)' == ''">6000.5.4f1</UnityEditorVersion>
+    <UnityEditorVersion Condition="'$(UnityEditorVersion)' == ''">6000.6.4f1</UnityEditorVersion>
     <UnityEditorContentsDir Condition="'$(UnityEditorContentsDir)' == ''">/Applications/Unity/Hub/Editor/$(UnityEditorVersion)/Unity.app/Contents</UnityEditorContentsDir>
     <UnityManagedDir Condition="'$(UnityManagedDir)' == ''">$(UnityEditorContentsDir)/Resources/Scripting/Managed/UnityEngine</UnityManagedDir>
 

@@ -206,7 +206,7 @@ namespace HelloWorld.Assets.Tests
             NeoTileGridRenderer renderer = null;
             for (int frame = 0; frame < 120; frame += 1)
             {
-                renderer = Object.FindFirstObjectByType<NeoTileGridRenderer>();
+                renderer = Object.FindAnyObjectByType<NeoTileGridRenderer>();
                 if (renderer != null
                     && renderer.TryGetObjectRoot<PlayerSpawnObject>(out _, out _))
                 {

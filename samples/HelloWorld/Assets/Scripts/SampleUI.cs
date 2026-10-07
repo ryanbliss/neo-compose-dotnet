@@ -103,7 +103,7 @@ namespace HelloWorld.Assets.Scripts
 
         public static void EnsureEventSystem()
         {
-            if (UnityEngine.Object.FindFirstObjectByType<EventSystem>() != null)
+            if (UnityEngine.Object.FindAnyObjectByType<EventSystem>() != null)
                 return;
             _ = new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
         }

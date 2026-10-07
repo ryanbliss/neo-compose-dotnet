@@ -6,13 +6,13 @@ and as the reference downstream consumer of a Neo Compose format-4 project.
 
 ## Prerequisites
 
-- Unity 6000.5.4f1.
+- Unity 6000.6.4f1.
 - The `neo` CLI — `npm i -g @neocompose/cli`, or `node cli/bin/neo.mjs` from a
   `neo-compose` repository checkout.
 
 ## Running the sample
 
-1. Open `samples/HelloWorld/` in Unity 6000.5.4f1. The package is referenced at
+1. Open `samples/HelloWorld/` in Unity 6000.6.4f1. The package is referenced at
    `file:../../../src/NeoComposeUnity` in `Packages/manifest.json`, so edits to
    the package source are picked up on the next domain reload.
 2. Open `Assets/Scenes/MainScene.unity` and enter Play mode. `HelloWorldMenu`
