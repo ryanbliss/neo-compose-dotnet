@@ -11,7 +11,7 @@ if [[ -z "$unity_editor" ]]; then
 fi
 
 if [[ -z "$unity_editor" ]]; then
-  echo "Unity was not found. Set UNITY_EDITOR to the Unity 6000.5.4f1 executable." >&2
+  echo "Unity was not found. Set UNITY_EDITOR to the Unity 6000.6.4f1 executable." >&2
   exit 2
 fi
 

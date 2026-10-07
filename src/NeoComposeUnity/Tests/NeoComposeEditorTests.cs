@@ -569,12 +569,17 @@ namespace NeoCompose.Tests
                 Assert.AreEqual(serializedTile, File.ReadAllText(tilePath));
 
                 // Effective dependencies change without touching the class timestamp.
-                var replacementSprite = Sprite.Create(texture, new Rect(0, 0, 1, 1), Vector2.one);
+                // The replacement is persisted so the tile's serialized reference changes.
+                string replacementPath = TempRoot + "/ReplacementSprite.asset";
+                var replacementTexture = new Texture2D(1, 1);
+                AssetDatabase.CreateAsset(replacementTexture, replacementPath);
+                var replacementSprite = Sprite.Create(replacementTexture, new Rect(0, 0, 1, 1), Vector2.one);
+                AssetDatabase.AddObjectToAsset(replacementSprite, replacementPath);
                 var oldSprite = sprite;
                 sprite = replacementSprite;
                 NeoComposePostSynchronizeProcessor.SynchronizeGeneratedTileAssets(data, databasePath, client, factories, GeneratedTempRoot);
                 Assert.AreSame(replacementSprite, ((UnityEngine.Tilemaps.Tile)original).sprite);
-                Assert.AreNotEqual(untouchedTime, File.GetLastWriteTimeUtc(tilePath));
+                Assert.AreNotEqual(serializedTile, File.ReadAllText(tilePath));
                 UnityEngine.Object.DestroyImmediate(oldSprite);
 
                 // A prior per-value entry can share the same class ID. Sync must
@@ -597,7 +602,8 @@ namespace NeoCompose.Tests
             {
                 AssetDatabase.DeleteAsset(tilePath);
                 AssetDatabase.DeleteAsset(legacyPath);
-                UnityEngine.Object.DestroyImmediate(sprite);
+                if (!AssetDatabase.Contains(sprite))
+                    UnityEngine.Object.DestroyImmediate(sprite);
                 UnityEngine.Object.DestroyImmediate(texture);
             }
         }
