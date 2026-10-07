@@ -71,20 +71,23 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException($"The user file can't be {verb}.");
         }
 
+        /// <summary>A save needs <see cref="OnConflict"/> to resolve a conflict; a user file doesn't.</summary>
+        private void ThrowIfConflictUnresolvable(string message)
+        {
+            if (OnConflict == null && Kind == NeoSaveFileKind.Save)
+                throw new NeoSaveConflictUnresolvedException(message);
+        }
+
         /// <summary>
-        /// Asks <see cref="OnConflict"/>. Without a handler a save throws
-        /// <paramref name="unresolvedMessage"/>, and a user file keeps the
-        /// newer head.
+        /// Asks <see cref="OnConflict"/>. Without a handler, which only a user
+        /// file reaches, the newer head wins.
         /// </summary>
         private async Awaitable<NeoSaveConflictResolution> ResolveConflictAsync(
             LocalGameSave local,
-            RemoteGameSave remote,
-            string unresolvedMessage)
+            RemoteGameSave remote)
         {
             if (OnConflict == null)
             {
-                if (Kind == NeoSaveFileKind.Save)
-                    throw new NeoSaveConflictUnresolvedException(unresolvedMessage);
                 return local.updatedAt.EpochMilliseconds > remote.updatedAt.EpochMilliseconds
                     ? NeoSaveConflictResolution.KeepLocal
                     : NeoSaveConflictResolution.KeepRemote;
@@ -173,7 +176,7 @@ namespace NeoCompose.Runtime
                 && (local.snapshotRevision == remote.snapshotRevision
                     || (local.liveFlushed && !string.IsNullOrEmpty(remote.liveSessionId))))
                 return UserFileChoice.InSync;
-            var resolution = await ResolveConflictAsync(local, remote, "");
+            var resolution = await ResolveConflictAsync(local, remote);
             return resolution == NeoSaveConflictResolution.KeepRemote
                 ? UserFileChoice.Remote
                 : UserFileChoice.Local;
@@ -209,12 +212,13 @@ namespace NeoCompose.Runtime
 
                 if (loaded == null)
                 {
+                    var defaults = DefaultUserFile();
                     if (local != null && !local.IsLocalOnly)
                     {
                         // The server deleted the file: drop the copy and its server id.
-                        await CommitLocalAsync(JsonConvert.SerializeObject(DefaultUserFile()));
+                        await CommitLocalAsync(JsonConvert.SerializeObject(defaults));
                     }
-                    CustomId = Guid.NewGuid().ToString();
+                    CustomId = defaults.customId;
                     active = null;
                     uncapturedDirty = new DirtyRecords();
                     SettleStagedDirty();

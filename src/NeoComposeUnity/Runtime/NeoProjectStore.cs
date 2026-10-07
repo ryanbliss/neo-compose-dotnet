@@ -271,27 +271,46 @@ namespace NeoCompose.Runtime
             return (T)userClientView;
         }
 
+        /// <summary>Whether <paramref name="synchronizer"/> was opened by this store.</summary>
+        internal bool Opened(NeoSaveSynchronizer synchronizer) =>
+            core != null && ReferenceEquals(synchronizer.Core, core);
+
+        /// <summary>
+        /// The user client once this store's load in flight finishes: null
+        /// when the load failed or the project has no User root.
+        /// </summary>
+        internal async Awaitable<NeoClient?> LoadedUserClientAsync(CancellationToken cancellationToken)
+        {
+            while (userClient == null && State == NeoProjectStoreState.Loading)
+                await NextLoadFinishedAsync(cancellationToken);
+            return userClient;
+        }
+
         /// <summary>Completes once a current store has loaded the user file.</summary>
         internal static async Awaitable WhenUserClientLoadedAsync(CancellationToken cancellationToken)
         {
             while (Current?.userClient == null)
+                await NextLoadFinishedAsync(cancellationToken);
+        }
+
+        /// <summary>Completes when any store's load next finishes, loaded or failed.</summary>
+        private static async Awaitable NextLoadFinishedAsync(CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var waiter = new AwaitableCompletionSource();
+            userClientWaiters.Add(waiter);
+            try
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                var waiter = new AwaitableCompletionSource();
-                userClientWaiters.Add(waiter);
-                try
-                {
-                    using (cancellationToken.Register(() => waiter.TrySetCanceled()))
-                        await waiter.Awaitable;
-                }
-                finally
-                {
-                    userClientWaiters.Remove(waiter);
-                }
+                using (cancellationToken.Register(() => waiter.TrySetCanceled()))
+                    await waiter.Awaitable;
+            }
+            finally
+            {
+                userClientWaiters.Remove(waiter);
             }
         }
 
-        private static void SignalUserClientWaiters()
+        private static void SignalLoadFinished()
         {
             foreach (var waiter in userClientWaiters.ToArray())
                 waiter.TrySetResult();
@@ -423,13 +442,15 @@ namespace NeoCompose.Runtime
                     await BringUpRealtimeAsync();
                 }
                 State = NeoProjectStoreState.Ready;
-                if (userClient != null)
-                    SignalUserClientWaiters();
             }
             catch (Exception)
             {
                 State = NeoProjectStoreState.Errored;
                 throw;
+            }
+            finally
+            {
+                SignalLoadFinished();
             }
         }
 

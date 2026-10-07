@@ -115,13 +115,8 @@ namespace NeoCompose.Runtime
             if (!TryGetMember(value.memberId!, out Member? member))
                 return false;
             // A null receiver binds the row that owns the action.
-            if (member.Modifier != NeoMemberModifierKind.Static)
-                return true;
-            foreach (NeoSchemaClass schemaClass in data.classes.Values)
-                if (schemaClass.schema?.ContainsValue(member.id) == true)
-                    return TryResolveSchemaClassAllowedOwnership(schemaClass.id, out NeoValueOwnership declared)
-                        && declared == NeoValueOwnership.User;
-            return false;
+            return member.Modifier != NeoMemberModifierKind.Static
+                || ResolveStaticOwnership(member) == NeoValueOwnership.User;
         }
 
         /// <summary>

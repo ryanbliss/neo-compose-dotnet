@@ -662,7 +662,8 @@ namespace NeoCompose.Runtime
         {
             Project project = data.project;
             return IsMemberEdge(edge, project.rootSaveFileMemberId)
-                || IsMemberEdge(edge, project.rootSessionMemberId);
+                || IsMemberEdge(edge, project.rootSessionMemberId)
+                || IsMemberEdge(edge, project.rootUserMemberId);
         }
 
         // An unrebound writable static holds its default through its member edge.

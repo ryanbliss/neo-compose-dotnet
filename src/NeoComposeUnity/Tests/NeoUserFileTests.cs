@@ -20,7 +20,7 @@ namespace NeoCompose.Tests
     /// P104 §4: the current store loads the player's user file, its user
     /// client owns the User layer, and save clients read that layer in place.
     /// </summary>
-    public class NeoUserFileTests
+    public partial class NeoUserFileTests
     {
         private const string Channel = NeoSaveTestSupport.TargetChannel;
         private const string VolumeId = "v-volume";
@@ -260,6 +260,7 @@ namespace NeoCompose.Tests
             Assert.That(Volume(droppedStore.LoadedUserClient!), Is.EqualTo(5));
             var dropped = JObject.Parse((await synced.LoadUserAsync(NeoSaveSynchronizer.UserKey))!);
             Assert.That(dropped.Value<string>("serverId"), Is.Null.Or.Empty);
+            Assert.That(dropped.Value<string>("customId"), Is.EqualTo(droppedStore.User.CustomId));
 
             droppedStore.Dispose();
             NeoProjectStore.ResetCurrent();
@@ -428,6 +429,7 @@ namespace NeoCompose.Tests
             Assert.That(store.User.CustomId, Is.Not.EqualTo("user-cloud"));
             var written = JObject.Parse((await local.LoadUserAsync(NeoSaveSynchronizer.UserKey))!);
             Assert.That(written.Value<string>("serverId"), Is.Null.Or.Empty);
+            Assert.That(written.Value<string>("customId"), Is.EqualTo(store.User.CustomId));
         }
 
         [Test]
@@ -500,14 +502,17 @@ namespace NeoCompose.Tests
             INeoLocalSaveStore local,
             FakeApiClient? api = null,
             bool loadUserFile = true,
-            bool failOnConflict = false)
+            bool failOnConflict = false,
+            string? corpus = null,
+            NeoAuthentication? authentication = null)
         {
             var store = new NeoProjectStore(
-                dataSource: NeoTestExport.Source(Corpus),
+                dataSource: NeoTestExport.Source(corpus ?? Corpus),
                 localStore: local,
                 apiClient: api,
                 targetReleaseChannelId: Channel,
                 options: new NeoSaveOptions { LiveSessionsEnabled = false },
+                authentication: authentication,
                 loadUserFile: loadUserFile);
             stores.Add(store);
             if (failOnConflict && loadUserFile)

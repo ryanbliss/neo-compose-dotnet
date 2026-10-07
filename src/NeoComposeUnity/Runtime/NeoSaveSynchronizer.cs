@@ -640,11 +640,10 @@ namespace NeoCompose.Runtime
                 return result.CommittedSave;
 
             var serverHead = result.ServerHead!;
-            var resolution = await ResolveConflictAsync(
-                local,
-                serverHead,
+            ThrowIfConflictUnresolvable(
                 $"Save \"{CustomId}\" conflicts with a newer cloud head and no OnConflict " +
                 "resolver is attached. Cloud sync requires a conflict resolver.");
+            var resolution = await ResolveConflictAsync(local, serverHead);
             State = NeoSaveSynchronizerState.Committing;
 
             if (resolution == NeoSaveConflictResolution.KeepRemote)
@@ -968,11 +967,10 @@ namespace NeoCompose.Runtime
             }
 
             // Divergent heads.
-            var resolution = await ResolveConflictAsync(
-                local,
-                remote,
+            ThrowIfConflictUnresolvable(
                 $"Local and cloud heads for \"{CustomId}\" diverge and no OnConflict resolver " +
                 "is attached. Cloud sync requires a conflict resolver.");
+            var resolution = await ResolveConflictAsync(local, remote);
 
             return resolution == NeoSaveConflictResolution.KeepRemote
                 ? JsonConvert.SerializeObject(remote)

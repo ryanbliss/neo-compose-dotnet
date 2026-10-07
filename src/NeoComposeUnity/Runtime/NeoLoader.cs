@@ -37,7 +37,7 @@ namespace NeoCompose.Runtime
             ProjectData data = loader.Schema
                 ?? throw new InvalidOperationException("Neo Compose save loader has no project schema.");
             NeoProjectDataValidator.Validate(data);
-            NeoClient? userClient = ResolveUserClient(loader, data);
+            NeoClient? userClient = await ResolveUserClientAsync(loader, data, cancellationToken);
             localizationOptions ??= NeoComposeConfig.LoadDefault()?.ToLocalizationOptions();
             var localization = NeoLocalization.LoadMain(
                 data.localization,
@@ -52,10 +52,14 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// The user client a save of <paramref name="data"/> reads User data
-        /// through (P104 §4.3), or null when the project has no User root or
-        /// the save's store is a tooling store.
+        /// through (P104 §4.3), once the current store's load finishes, or
+        /// null when the project has no User root or the save's store is a
+        /// tooling store.
         /// </summary>
-        private static NeoClient? ResolveUserClient(INeoSaveLoader loader, ProjectData data)
+        private static async Awaitable<NeoClient?> ResolveUserClientAsync(
+            INeoSaveLoader loader,
+            ProjectData data,
+            System.Threading.CancellationToken cancellationToken)
         {
             if (string.IsNullOrEmpty(data.project?.rootUserMemberId)
                 || loader is NeoSaveSynchronizer { Core: { LoadsUserFile: false } })
@@ -63,16 +67,21 @@ namespace NeoCompose.Runtime
             var store = NeoProjectStore.Current
                 ?? throw new InvalidOperationException(
                     "Load a `NeoProjectStore` before loading a save. User data needs its user file.");
-            var userClient = store.LoadedUserClient;
-            bool sameStore = loader is NeoSaveSynchronizer synchronizer
-                ? userClient != null && ReferenceEquals(synchronizer.Core, store.User.Core)
-                : ReferenceEquals(data, store.Schema);
-            if (!sameStore || userClient == null)
+            if (loader is NeoSaveSynchronizer synchronizer && !store.Opened(synchronizer))
             {
                 throw new InvalidOperationException(
                     "This save's store isn't `NeoProjectStore.Current`, so it has no user file.");
             }
-            return userClient;
+            NeoClient? userClient = await store.LoadedUserClientAsync(cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (userClient != null)
+                return userClient;
+            if (store.State == NeoProjectStoreState.Errored)
+            {
+                throw new InvalidOperationException(
+                    "`NeoProjectStore.Current` failed to load, so it has no user file. Retry its `LoadAsync` first.");
+            }
+            throw new InvalidOperationException("`NeoProjectStore.Current`'s project has no User root.");
         }
     }
 
