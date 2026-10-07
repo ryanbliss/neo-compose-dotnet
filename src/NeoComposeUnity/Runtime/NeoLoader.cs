@@ -37,6 +37,7 @@ namespace NeoCompose.Runtime
             ProjectData data = loader.Schema
                 ?? throw new InvalidOperationException("Neo Compose save loader has no project schema.");
             NeoProjectDataValidator.Validate(data);
+            NeoClient? userClient = await ResolveUserClientAsync(loader, data, cancellationToken);
             localizationOptions ??= NeoComposeConfig.LoadDefault()?.ToLocalizationOptions();
             var localization = NeoLocalization.LoadMain(
                 data.localization,
@@ -46,7 +47,50 @@ namespace NeoCompose.Runtime
             cancellationToken.ThrowIfCancellationRequested();
             assetDatabase ??= NeoAssetDatabase.LoadDefault();
             return await NeoClient.CreateAsync(loader, content, assetDatabase, localization,
-                saveOptions, cancellationToken);
+                saveOptions, cancellationToken, userClient: userClient);
+        }
+
+        /// <summary>
+        /// The user client a save of <paramref name="data"/> reads User data
+        /// through (P104 §4.3), once the current store's load finishes, or
+        /// null when the project has no User root or the save's store is a
+        /// tooling store.
+        /// </summary>
+        private static async Awaitable<NeoClient?> ResolveUserClientAsync(
+            INeoSaveLoader loader,
+            ProjectData data,
+            System.Threading.CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrEmpty(data.project?.rootUserMemberId)
+                || loader is NeoSaveSynchronizer { Core: { LoadsUserFile: false } })
+                return null;
+            var store = NeoProjectStore.Current
+                ?? throw new InvalidOperationException(
+                    "Load a `NeoProjectStore` before loading a save. User data needs its user file.");
+            if (loader is NeoSaveSynchronizer synchronizer && !store.Opened(synchronizer))
+            {
+                throw new InvalidOperationException(
+                    "This save's store isn't `NeoProjectStore.Current`, so it has no user file.");
+            }
+            NeoClient? userClient = await store.LoadedUserClientAsync(cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (store.IsDisposed)
+            {
+                throw new InvalidOperationException(
+                    "`NeoProjectStore.Current` was disposed while this save waited for its user file.");
+            }
+            if (userClient == null && store.State == NeoProjectStoreState.Errored)
+            {
+                throw new InvalidOperationException(
+                    "`NeoProjectStore.Current` failed to load, so it has no user file. Retry its `LoadAsync` first.");
+            }
+            if (!ReferenceEquals(data, store.Schema))
+            {
+                throw new InvalidOperationException(
+                    "A custom save loader's `Schema` must be `NeoProjectStore.Current.Schema`.");
+            }
+            return userClient
+                ?? throw new InvalidOperationException("`NeoProjectStore.Current`'s project has no User root.");
         }
     }
 

@@ -187,8 +187,20 @@ namespace NeoCompose.Runtime
         /// <summary>The children the committed placement index links from a stored row, if any.</summary>
         internal string[]? IndexedPlacementChildren(NeoValueOwnership ownership, string id)
         {
-            EnsureWritablePlacementParents();
-            return writablePlacementChildren.TryGetValue((ownership, id), out string[]? children) ? children : null;
+            NeoClient index = PlacementIndexOwner(ownership);
+            index.EnsureWritablePlacementParents();
+            return index.writablePlacementChildren.TryGetValue((ownership, id), out string[]? children) ? children : null;
+        }
+
+        // The user client keeps the User layer's placement index (P104 §4.3).
+        private NeoClient PlacementIndexOwner(NeoValueOwnership ownership) =>
+            ownership == NeoValueOwnership.User ? userSource : this;
+
+        private object? IndexedPlacementParents(NeoValueOwnership ownership, string childId)
+        {
+            NeoClient index = PlacementIndexOwner(ownership);
+            index.EnsureWritablePlacementParents();
+            return index.writablePlacementParents!.TryGetValue((ownership, childId), out object? parents) ? parents : null;
         }
 
         private void EnsureWritablePlacementParents()
@@ -200,6 +212,9 @@ namespace NeoCompose.Runtime
                 IndexPlacementParent(NeoValueOwnership.Save, row);
             foreach (MemberValue row in sessionData.values.Values)
                 IndexPlacementParent(NeoValueOwnership.Session, row);
+            if (ReferenceEquals(userSource, this))
+                foreach (MemberValue row in userData.values.Values)
+                    IndexPlacementParent(NeoValueOwnership.User, row);
         }
 
         private static bool HasPlacementParent(object? parents, string parent) =>
@@ -227,6 +242,12 @@ namespace NeoCompose.Runtime
             {
                 yield return sessionParent;
             }
+            object? user = IndexedPlacementParents(NeoValueOwnership.User, childId);
+            if (user is HashSet<string> userSet)
+                foreach (string parent in userSet)
+                    yield return parent;
+            else if (user is string userParent)
+                yield return userParent;
             if (ValueInferenceIndex.Parents.TryGetValue(childId, out var authored))
                 foreach (var parent in authored)
                     yield return parent.Key;
@@ -257,6 +278,12 @@ namespace NeoCompose.Runtime
             {
                 into.Add(sessionParent);
             }
+            object? user = IndexedPlacementParents(NeoValueOwnership.User, childId);
+            if (user is HashSet<string> userSet)
+                foreach (string parent in userSet)
+                    into.Add(parent);
+            else if (user is string userParent)
+                into.Add(userParent);
             if (ValueInferenceIndex.Parents.TryGetValue(childId, out var authored))
                 foreach (var parent in authored)
                     into.Add(parent.Key);
@@ -271,8 +298,7 @@ namespace NeoCompose.Runtime
         {
             if (scope != NeoValueOwnership.Asset && GetWritableStore(scope).values.ContainsKey(parentId))
             {
-                EnsureWritablePlacementParents();
-                if (!writablePlacementParents!.TryGetValue((scope, childId), out var parents)
+                if (IndexedPlacementParents(scope, childId) is not { } parents
                     || !HasPlacementParent(parents, parentId))
                     return false;
             }

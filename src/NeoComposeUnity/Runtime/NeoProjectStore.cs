@@ -6,6 +6,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using NeoCompose.Runtime.Json;
 using Newtonsoft.Json;
 using UnityEngine;
@@ -42,6 +43,15 @@ namespace NeoCompose.Runtime
         private InternalProjectStore? core;
         private bool disposed;
 
+        // P104 §4.1: the current store owns the process's user file.
+        private readonly NeoComposeConfig? config;
+        private readonly bool loadUserFile;
+        private readonly NeoSaveSynchronizer userSynchronizer = new(NeoSaveFileKind.User);
+        private NeoClient? userClient;
+        private NeoUserClient? userClientView;
+        private bool signedInDuringLoad;
+        private static readonly List<AwaitableCompletionSource> userClientWaiters = new();
+
         /// <summary>
         /// Builds a project store. With no arguments everything is inferred from the
         /// project's <see cref="NeoComposeConfig"/> in Resources: the schema (from the
@@ -72,6 +82,11 @@ namespace NeoCompose.Runtime
         /// Requires cloud sync — with no API client the registration is dropped
         /// with a warning (and disposed).
         /// </param>
+        /// <param name="loadUserFile">
+        /// Whether this store may own the player's user file (P104 §4.1). The
+        /// first such store to start <see cref="LoadAsync"/> becomes
+        /// <see cref="Current"/>. Editor and tooling stores pass false.
+        /// </param>
         public NeoProjectStore(
             NeoComposeConfig? config = null,
             IProjectDataSource? dataSource = null,
@@ -81,7 +96,8 @@ namespace NeoCompose.Runtime
             string? targetReleaseChannelId = null,
             NeoSaveOptions? options = null,
             bool requireCloudCommit = false,
-            INeoRealtimeProvider? realtimeProvider = null)
+            INeoRealtimeProvider? realtimeProvider = null,
+            bool loadUserFile = true)
         {
             // Only fall back to the Resources config when a config-derived default is
             // actually needed — so tests that inject their own data source stay isolated.
@@ -98,6 +114,8 @@ namespace NeoCompose.Runtime
             }
 
             this.dataSource = dataSource;
+            this.config = config;
+            this.loadUserFile = loadUserFile;
             this.localStorePassed = localStore != null;
             this.localStore = localStore ?? new NeoFileLocalSaveStore();
             this.options = options ?? new NeoSaveOptions();
@@ -229,6 +247,85 @@ namespace NeoCompose.Runtime
         /// <summary>The runtime authentication backing cloud sync, or null when local-only.</summary>
         public NeoAuthentication? Authentication => authentication;
 
+        /// <summary>The store that owns the process's user file, or null.</summary>
+        public static NeoProjectStore? Current
+        {
+            get; private set;
+        }
+
+        /// <summary>
+        /// The user file's synchronizer, for conflict and migration handlers.
+        /// Attach them before <see cref="LoadAsync"/>, which loads the file.
+        /// </summary>
+        public NeoSaveSynchronizer User => loadUserFile
+            ? userSynchronizer
+            : throw new InvalidOperationException("This store was built with loadUserFile: false, so it has no user file.");
+
+        /// <summary>The loaded user client, or null until this store has loaded the user file.</summary>
+        internal NeoClient? LoadedUserClient => userClient;
+
+        /// <summary>The generated user client over <see cref="LoadedUserClient"/>, built once per store.</summary>
+        internal T UserClientView<T>(Func<NeoClient, T> create) where T : NeoUserClient
+        {
+            userClientView ??= create(userClient!);
+            return (T)userClientView;
+        }
+
+        /// <summary>Whether <see cref="Dispose"/> has run.</summary>
+        internal bool IsDisposed => disposed;
+
+        /// <summary>Whether <paramref name="synchronizer"/> was opened by this store.</summary>
+        internal bool Opened(NeoSaveSynchronizer synchronizer) =>
+            core != null && ReferenceEquals(synchronizer.Core, core);
+
+        /// <summary>
+        /// The user client once this store's load in flight finishes: null
+        /// when the load failed or the project has no User root.
+        /// </summary>
+        internal async Awaitable<NeoClient?> LoadedUserClientAsync(CancellationToken cancellationToken)
+        {
+            while (userClient == null && State == NeoProjectStoreState.Loading)
+                await NextLoadFinishedAsync(cancellationToken);
+            return userClient;
+        }
+
+        /// <summary>Completes once a current store has loaded the user file.</summary>
+        internal static async Awaitable WhenUserClientLoadedAsync(CancellationToken cancellationToken)
+        {
+            while (Current?.userClient == null)
+                await NextLoadFinishedAsync(cancellationToken);
+        }
+
+        /// <summary>Completes when any store's load next finishes, loaded or failed.</summary>
+        private static async Awaitable NextLoadFinishedAsync(CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var waiter = new AwaitableCompletionSource();
+            userClientWaiters.Add(waiter);
+            try
+            {
+                using (cancellationToken.Register(() => waiter.TrySetCanceled()))
+                    await waiter.Awaitable;
+            }
+            finally
+            {
+                userClientWaiters.Remove(waiter);
+            }
+        }
+
+        private static void SignalLoadFinished()
+        {
+            foreach (var waiter in userClientWaiters.ToArray())
+                waiter.TrySetResult();
+        }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        internal static void ResetCurrent()
+        {
+            Current = null;
+            userClientWaiters.Clear();
+        }
+
         /// <summary>The registered realtime transport, or null (including when it
         /// was dropped because cloud sync is off).</summary>
         public INeoRealtimeProvider? RealtimeProvider => realtimeProvider;
@@ -265,8 +362,30 @@ namespace NeoCompose.Runtime
             {
                 throw new InvalidOperationException("Neo Compose project store is already loading.");
             }
+            // Its user client and attached saves hold the schema this load would replace.
+            if (userClient != null)
+            {
+                throw new InvalidOperationException(
+                    "This store already loaded its user file. Dispose it and load a new `NeoProjectStore`.");
+            }
 
             State = NeoProjectStoreState.Loading;
+            if (loadUserFile && (Current == null || Current == this))
+                Current = this;
+            bool ownsUserFile = Current == this;
+            Awaitable<NeoSaveSynchronizer.UserFileQuery>? userQuery = null;
+            if (ownsUserFile)
+            {
+                // Subscribe first, so a sign-in mid-load reruns the cloud step.
+                if (authentication != null)
+                {
+                    authentication.OnStateChanged -= OnUserAuthenticationStateChanged;
+                    authentication.OnStateChanged += OnUserAuthenticationStateChanged;
+                }
+                // Overlaps the schema read; never throws.
+                userQuery = NeoSaveSynchronizer.QueryUserFileAsync(
+                    apiClient, authentication, targetReleaseChannelId);
+            }
             try
             {
                 ProjectData schema;
@@ -289,6 +408,8 @@ namespace NeoCompose.Runtime
                 {
                     EnterLocalExport();
                 }
+                if (localExport)
+                    userQuery = null;
                 core = new InternalProjectStore(
                     schema,
                     localStore,
@@ -299,8 +420,37 @@ namespace NeoCompose.Runtime
                     authentication,
                     now: null,
                     realtimeProvider);
+                core.LoadsUserFile = loadUserFile;
                 core.ListChanged += () => OnListChanged?.Invoke();
-                await core.RefreshListAsync();
+                if (ownsUserFile && !string.IsNullOrEmpty(schema.project?.rootUserMemberId))
+                {
+                    // The user client builds while the list request is in flight.
+                    var listRefresh = core.RefreshListAsync();
+                    try
+                    {
+                        userSynchronizer.Bind(core);
+                        string? content = await userSynchronizer.LoadUserContentAsync(userQuery);
+                        ThrowIfDisposed();
+                        NeoClient built = await BuildUserClientAsync(schema, content);
+                        if (disposed)
+                        {
+                            built.Dispose();
+                            throw new ObjectDisposedException(nameof(NeoProjectStore));
+                        }
+                        userClient = built;
+                        userSynchronizer.BindUserClient(userClient);
+                    }
+                    finally
+                    {
+                        await listRefresh;
+                    }
+                    if (signedInDuringLoad)
+                        OnUserAuthenticationStateChanged(NeoAuthenticationState.SignedIn);
+                }
+                else
+                {
+                    await core.RefreshListAsync();
+                }
                 if (!localExport)
                 {
                     await BringUpRealtimeAsync();
@@ -312,6 +462,58 @@ namespace NeoCompose.Runtime
                 State = NeoProjectStoreState.Errored;
                 throw;
             }
+            finally
+            {
+                SignalLoadFinished();
+            }
+        }
+
+        private async Awaitable<NeoClient> BuildUserClientAsync(ProjectData schema, string? content)
+        {
+            var localization = NeoLocalization.LoadMain(
+                schema.localization,
+                new NeoResourcesLocalizationLocaleFileSource(),
+                (config ?? NeoComposeConfig.LoadDefault())?.ToLocalizationOptions());
+            return await NeoClient.CreateAsync(
+                userSynchronizer,
+                content,
+                NeoAssetDatabase.LoadDefault(),
+                localization,
+                options,
+                CancellationToken.None,
+                NeoValueOwnership.User);
+        }
+
+        /// <summary>
+        /// A sign-in reruns the user file's cloud step for that account
+        /// (P104 §4.4). Signing out changes nothing locally.
+        /// </summary>
+        private async void OnUserAuthenticationStateChanged(NeoAuthenticationState state)
+        {
+            if (disposed || state != NeoAuthenticationState.SignedIn)
+                return;
+            if (userClient == null)
+            {
+                signedInDuringLoad = true;
+                return;
+            }
+            signedInDuringLoad = false;
+            try
+            {
+                await userSynchronizer.ReconcileSignInAsync();
+            }
+            catch (Exception exception)
+            {
+                Debug.LogWarning(
+                    "[NeoCompose] Could not load the signed-in account's user file; keeping the " +
+                    $"current one. {exception.GetType().Name}: {exception.Message}");
+            }
+        }
+
+        private void ThrowIfUserFile(string customId, string verb)
+        {
+            if (userClient != null && customId == userSynchronizer.CustomId)
+                throw new InvalidOperationException($"The user file can't be {verb}.");
         }
 
         /// <summary>
@@ -331,6 +533,7 @@ namespace NeoCompose.Runtime
             {
                 ignored.Add("sign-in");
                 authentication.OnStateChanged -= OnAuthenticationStateChanged;
+                authentication.OnStateChanged -= OnUserAuthenticationStateChanged;
             }
             if (realtimeProvider != null)
             {
@@ -498,7 +701,16 @@ namespace NeoCompose.Runtime
             if (authentication != null)
             {
                 authentication.OnStateChanged -= OnAuthenticationStateChanged;
+                authentication.OnStateChanged -= OnUserAuthenticationStateChanged;
             }
+            // Attached save clients keep running, detached (P104 §4.1).
+            userClient?.Dispose();
+            userClient = null;
+            userClientView = null;
+            if (userSynchronizer.IsBound)
+                userSynchronizer.Dispose();
+            if (Current == this)
+                Current = null;
             if (realtimeProvider != null)
             {
                 realtimeProvider.OnConnectionStateChanged -= OnRealtimeConnectionStateChanged;
@@ -551,6 +763,7 @@ namespace NeoCompose.Runtime
             string? snapshotId = null)
         {
             var core = RequireReady();
+            ThrowIfUserFile(customId, "cloned");
             if (core.ApiClient == null)
             {
                 return await CloneLocalAsync(core, customId, newName);
@@ -623,6 +836,7 @@ namespace NeoCompose.Runtime
         public async Awaitable ArchiveAsync(string customId)
         {
             var core = RequireReady();
+            ThrowIfUserFile(customId, "archived");
             bool existsRemotely = core.TryGetEntry(customId, out var entry) && entry.existsRemotely;
             bool canArchiveRemotely = core.ApiClient != null
                 && existsRemotely

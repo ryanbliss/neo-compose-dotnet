@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.62.0] - 2026-10-07
+
+P104: a project's `root.User` data lives in one user file per player and release channel, apart from saves. Requires export schema 38 and CLI 0.72.0; run `neo pull`, then `neo export`, after upgrading. A schema 37 export fails to load with the upgrade message.
+
+```csharp
+// The first store to start loading owns the user file. Loading it loads User data.
+var store = new NeoProjectStore();
+await store.LoadAsync();
+float volume = MyGameUserNeo.Instance.User.Settings.Volume;
+MyGameUserNeo.Instance.User.Settings.Volume = 0.5f;
+await MyGameUserNeo.Instance.CommitAsync();
+
+// Before any store loads, wait for one instead.
+var user = await MyGameUserNeo.WhenLoadedAsync(cancellationToken);
+```
+
+- Codegen emits `MyGameUserNeo : NeoUserClient` beside `MyGameNeo`. `Instance` throws "The user file hasn't loaded. Load a `NeoProjectStore`, or await `MyGameUserNeo.WhenLoadedAsync()`." until the current store loads. `NeoUserClient` has `Client`, `CommitAsync`, and `RunTransaction`.
+- Save clients read User data from the user client, without copying it. User effects and lifecycle hooks run only in the user client. Save clients' `root.User` writes throw "Only User code can change User data. C# changes it through the generated user client." The user client's writes reach every loaded save as external changes. Save data can't hold a delegate or reference to User data.
+- `NeoProjectStore.Current` is the first store to start `LoadAsync`, and `NeoProjectStore.User` is its user file's `NeoSaveSynchronizer` (`Kind` is `NeoSaveFileKind.User`). Attach its `OnConflict` and `OnMigrationRequired` before `LoadAsync`. Editor and tooling stores pass the new `loadUserFile: false` constructor parameter; their saves read authored User defaults, and `NeoClient.ReadsUserFile` is false for them. `NeoLoader.Load` throws "Load a `NeoProjectStore` before loading a save. User data needs its user file." with no current store, and "This save's store isn't `NeoProjectStore.Current`, so it has no user file." for a save from another store. A custom `INeoSaveLoader`'s `Schema` must be `NeoProjectStore.Current.Schema`. A store that loaded its user file can't load again: dispose it and load a new store.
+- `LoadAsync` builds the user client, so for a project with a User root it completes a frame later, like `MyGameNeo.Load`. Await it; don't block on it with `GetAwaiter().GetResult()`.
+- The user file never blocks a load. Offline, the local copy loads. Without an `OnConflict` handler, the newer head wins. A file the server deleted, or another account's, loads defaults. Unreadable content moves to `user.unreadable` before defaults load. Signing in applies the account's file to the running user client. The user file can't be archived or cloned.
+- Custom `INeoLocalSaveStore` implementations must add `LoadUserAsync(string key)` and `CommitUserAsync(string key, string content)`. `NeoFileLocalSaveStore` writes `user.json` and `user.unreadable.json` beside the saves, and `ListSaveIdsAsync` lists neither. Custom `INeoApiClient` implementations must add `GetUserFileAsync(string releaseChannelId)`. A create that finds the channel's user file throws `NeoUserFileExistsException`, whose `Existing` file the synchronizer adopts.
+
 ## [0.61.0] - 2026-10-06
 
 - Add eager collection queries including Any, All, SelectMany, stable OrderBy, Last, Single, Skip/Take, Reverse, and Concat.

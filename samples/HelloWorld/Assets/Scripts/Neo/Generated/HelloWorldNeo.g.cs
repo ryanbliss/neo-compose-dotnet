@@ -41,6 +41,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             var client = await new NeoLoader().Load(synchronizer, assetDatabase, localizationOptions, null, saveOptions, cancellationToken);
             try
             {
+                if (client.ReadsUserFile) HelloWorldUserNeo.RequireInstance();
                 return new HelloWorldNeo(client, dialogueOptions);
             }
             catch

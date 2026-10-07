@@ -85,7 +85,7 @@ namespace NeoCompose.Runtime
             NeoClient client,
             NSGetterEvaluator.Context ctx)
         {
-            var root = new Dictionary<string, object?>(3)
+            var root = new Dictionary<string, object?>(4)
             {
                 ["Assets"] = client.assets.value is ObjectMemberValue assets
                     ? NSGetterEvaluator.UnwrapRow(assets, ctx, NeoValueOwnership.Asset)
@@ -97,6 +97,8 @@ namespace NeoCompose.Runtime
                     ? NSGetterEvaluator.UnwrapRow(session, ctx, NeoValueOwnership.Session)
                     : null,
             };
+            if (client.user?.value is ObjectMemberValue user)
+                root["User"] = NSGetterEvaluator.UnwrapRow(user, ctx, NeoValueOwnership.User);
             return root;
         }
 

@@ -13,7 +13,7 @@ namespace HelloWorld.Assets.Scripts.Neo
 {
     public sealed partial class HelloWorldNeo
     {
-        private static readonly IReadOnlyDictionary<string, NeoClient.NeoNativeFunctionInvoker> NativeFunctionInvokers =
+        internal static readonly IReadOnlyDictionary<string, NeoClient.NeoNativeFunctionInvoker> NativeFunctionInvokers =
             new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
             {
                 ["0fa12fa0-9e74-4e85-9ce3-df0efe78d2dd"] = (client, receiver, args) =>
@@ -67,7 +67,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 },
             };
 
-        private static readonly IReadOnlyDictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker> DeferredNativeFunctionInvokers =
+        internal static readonly IReadOnlyDictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker> DeferredNativeFunctionInvokers =
             new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
             {
                 ["cab850e3-cf8c-42b3-a70b-f0066089e6fb"] = (client, receiver, args, deferred) =>

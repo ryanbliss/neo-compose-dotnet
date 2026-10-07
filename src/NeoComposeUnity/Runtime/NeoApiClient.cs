@@ -26,6 +26,13 @@ namespace NeoCompose.Runtime
     {
         Awaitable<NeoSaveFileList> ListSavesAsync(string? targetReleaseChannelId);
         Awaitable<RemoteGameSave> GetSaveAsync(string customId);
+
+        /// <summary>
+        /// The caller's user file on <paramref name="releaseChannelId"/>
+        /// (P104 §5.2). Throws <see cref="NeoComposeNotFoundException"/>
+        /// when the caller has none.
+        /// </summary>
+        Awaitable<RemoteGameSave> GetUserFileAsync(string releaseChannelId);
         Awaitable<IReadOnlyList<RemoteGameSaveSummary>> GetSaveSnapshotsAsync(string customId);
         Awaitable<RemoteGameSave> GetSaveSnapshotAsync(string customId, string snapshotId);
         Awaitable<GameSaveRecordPage> GetSaveRecordManifestPageAsync(
@@ -121,6 +128,27 @@ namespace NeoCompose.Runtime
             var save = Deserialize<RemoteGameSave>(json, "save file");
             await NeoGameSaveRecordSync.LoadManifestAsync(this, customId, save);
             return save;
+        }
+
+        public async Awaitable<RemoteGameSave> GetUserFileAsync(string releaseChannelId)
+        {
+            if (string.IsNullOrWhiteSpace(releaseChannelId))
+            {
+                throw new ArgumentException(
+                    "Release channel id cannot be empty.", nameof(releaseChannelId));
+            }
+            var url = $"{apiBaseUrl}/api/projects/{UnityWebRequest.EscapeURL(projectId)}/user-files/query" +
+                $"?supportedSaveFormatRevision={NeoSaveFormat.SupportedRevision}";
+            var operation = new NeoComposeApiOperation(
+                "read your user file", projectId, ReadScope);
+            var json = await PostAuthorizedAsync(
+                url, operation, JsonConvert.SerializeObject(new
+                {
+                    releaseChannelId
+                }));
+            var file = Deserialize<RemoteGameSave>(json, "user file");
+            await NeoGameSaveRecordSync.LoadManifestAsync(this, file.id, file);
+            return file;
         }
 
         public async Awaitable<IReadOnlyList<RemoteGameSaveSummary>> GetSaveSnapshotsAsync(
@@ -235,6 +263,8 @@ namespace NeoCompose.Runtime
             if (response.StatusCode == 409)
             {
                 var conflict = Deserialize<CommitResponseWire>(response.Text, "save commit conflict");
+                if (conflict.kind == UserFileExistsKind && conflict.save != null)
+                    throw new NeoUserFileExistsException(conflict.save);
                 if (conflict.serverHead == null)
                 {
                     throw new InvalidOperationException(
@@ -675,6 +705,12 @@ namespace NeoCompose.Runtime
                     operation.RequiredScope);
             }
 
+            if (response.StatusCode == 409
+                && TryReadUserFileExists(response.Text) is { } existing)
+            {
+                throw new NeoUserFileExistsException(existing);
+            }
+
             if (response.StatusCode == 404)
             {
                 throw new NeoComposeNotFoundException(
@@ -699,6 +735,23 @@ namespace NeoCompose.Runtime
             if (serverDetail != null)
                 message += $" {serverDetail}";
             return message;
+        }
+
+        // A user file create that hit the singleton (P104 §5.2).
+        private const string UserFileExistsKind = "userFileExists";
+
+        private static RemoteGameSave? TryReadUserFileExists(string body)
+        {
+            try
+            {
+                var response = JsonConvert.DeserializeObject<CommitResponseWire>(
+                    body, NeoSaveJson.ContentSettings);
+                return response?.kind == UserFileExistsKind ? response.save : null;
+            }
+            catch (JsonException)
+            {
+                return null;
+            }
         }
 
         private static string? TryReadServerError(string body)

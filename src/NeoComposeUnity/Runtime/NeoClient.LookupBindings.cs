@@ -48,12 +48,8 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private bool TryFindIndexedLookupBinding(string memberId, [NotNullWhen(true)] out string? valueId)
+        private Dictionary<string, Dictionary<(NeoValueOwnership, string), ObjectMemberValue>> WritableLookupBindings()
         {
-            valueId = null;
-            var index = ValueInferenceIndex;
-            if (!index.SchemaKeysByMember.TryGetValue(memberId, out var schemaKeys))
-                return false;
             if (writableLookupBindingsByField is null)
             {
                 writableLookupBindingsByField = new(StringComparer.Ordinal);
@@ -61,20 +57,39 @@ namespace NeoCompose.Runtime
                     IndexLookupBindingRow(NeoValueOwnership.Session, row.id, row);
                 foreach (var row in saveData.values.Values)
                     IndexLookupBindingRow(NeoValueOwnership.Save, row.id, row);
+                foreach (var row in userData.values.Values)
+                    IndexLookupBindingRow(NeoValueOwnership.User, row.id, row);
             }
+            return writableLookupBindingsByField;
+        }
+
+        private bool TryFindIndexedLookupBinding(string memberId, [NotNullWhen(true)] out string? valueId)
+        {
+            valueId = null;
+            var index = ValueInferenceIndex;
+            if (!index.SchemaKeysByMember.TryGetValue(memberId, out var schemaKeys))
+                return false;
+            var writableBindings = WritableLookupBindings();
+            // A save client reads the User layer's bindings from its user client (P104 §4.3).
+            var userBindings = AttachedUserClient?.WritableLookupBindings();
             string? found = null;
             foreach (string key in schemaKeys)
             {
-                if (writableLookupBindingsByField.TryGetValue(key, out var writableRows))
+                if (writableBindings.TryGetValue(key, out var writableRows))
                     foreach (var row in writableRows.Values)
                         if (!Accept(row.value![key]))
+                            return false;
+                if (userBindings?.TryGetValue(key, out var userRows) == true)
+                    foreach (var row in userRows)
+                        if (row.Key.Item1 == NeoValueOwnership.User && !Accept(row.Value.value![key]))
                             return false;
                 if (index.ObjectRowsByField.TryGetValue(key, out var authoredRows))
                     foreach (var row in authoredRows)
                         if (!Accept(row.value![key]))
                             return false;
             }
-            if (virtualLookupBindingsByMember.TryGetValue(memberId, out var virtualIds))
+            if (virtualLookupBindingsByMember.TryGetValue(memberId, out var virtualIds)
+                || AttachedUserClient?.virtualLookupBindingsByMember.TryGetValue(memberId, out virtualIds) == true)
                 foreach (string id in virtualIds)
                     if (TryResolveVirtualPlacement(id, out var placement)
                         && ResolveValueRow(placement.parentValueId) is ObjectMemberValue parent && !parent.IsRemoved)

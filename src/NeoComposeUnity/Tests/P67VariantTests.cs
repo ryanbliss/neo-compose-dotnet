@@ -111,9 +111,9 @@ namespace NeoCompose.Tests
         // -------------------------------------------------------------------
 
         [Test]
-        public void ExportSchemaVersion_CurrentContractIsThirtySeven()
+        public void ExportSchemaVersion_CurrentContractIsThirtyEight()
         {
-            Assert.AreEqual(37, NeoProjectExportContract.CurrentSchemaVersion);
+            Assert.AreEqual(38, NeoProjectExportContract.CurrentSchemaVersion);
         }
 
         [Test]

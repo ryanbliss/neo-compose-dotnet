@@ -108,7 +108,7 @@ namespace NeoCompose.Runtime
             // Snapshot changed carriers because marking an adoption stages its row.
             var carriers = new List<(NeoValueOwnership scope, MemberValue row)>();
             foreach (var row in plan.Rows)
-                if (row.Key.ownership == NeoValueOwnership.Save && row.Value is
+                if (row.Key.ownership == PersistedOwnership && row.Value is
                     {
                         IsRemoved: false,
                         copiedChangeListeners: not null, copiedListenersAdopted: false
@@ -122,7 +122,7 @@ namespace NeoCompose.Runtime
                     if (plan.Resolve(carrier.scope, entry.Key) is not ObjectMemberValue { classId: not null } owner)
                         continue;
                     string rootId = ListenerBindingRoot(owner.id, carrier.scope, roots);
-                    var key = (NeoValueOwnership.Save, carrier.scope, rootId, owner.id);
+                    var key = (PersistedOwnership, carrier.scope, rootId, owner.id);
                     Dictionary<string, NeoDelegateValue[]>? pending = null;
                     bool edited = plan.ListenerEntries?.TryGetValue(key, out pending) == true;
                     var durable = pending is null ? new Dictionary<string, NeoDelegateValue[]>(StringComparer.Ordinal)
@@ -136,7 +136,7 @@ namespace NeoCompose.Runtime
                             continue;
                         Member member = ResolveOwnedMemberType(owner, null, owner.classId, declaration);
                         var observedLifetime = ChildOwnership(member, carrier.scope);
-                        if (observedLifetime != NeoValueOwnership.Save)
+                        if (observedLifetime != PersistedOwnership)
                             continue;
                         var targets = new List<NeoDelegateValue>();
                         foreach (var target in slot.Value)
@@ -153,7 +153,7 @@ namespace NeoCompose.Runtime
                             durable[slot.Key] = targets.ToArray();
                     }
                     if (durable.Count > 0 || edited)
-                        plan.SetListenerEntry(NeoValueOwnership.Save, rootId, owner.id, durable.Count == 0 ? null : durable, carrier.scope);
+                        plan.SetListenerEntry(PersistedOwnership, rootId, owner.id, durable.Count == 0 ? null : durable, carrier.scope);
                 }
                 var adopted = CloneValueRow(carrier.row);
                 adopted.copiedListenersAdopted = true;
@@ -165,14 +165,22 @@ namespace NeoCompose.Runtime
         private bool IsSessionListenerTarget(NeoDelegateValue target, NeoValueOwnership observedLifetime,
             NeoValueOwnership? receiverScope = null)
         {
-            if (observedLifetime == NeoValueOwnership.Session)
+            if (IsTransientListenerTier(observedLifetime))
                 return true;
             if (target.valueId is not string receiver)
                 return false;
             if (receiverScope is null && TryGetValueOwnership(receiver, out var residency))
                 receiverScope = residency;
-            return receiverScope == NeoValueOwnership.Session;
+            return IsTransientListenerTier(receiverScope);
         }
+
+        /// <summary>
+        /// Wiring is durable only when both endpoints live in this client's
+        /// file (P104 §3.5): Session endpoints, and User endpoints in a save
+        /// client, keep it Session-resident.
+        /// </summary>
+        private bool IsTransientListenerTier(NeoValueOwnership? scope) =>
+            scope == NeoValueOwnership.Session || scope == NeoValueOwnership.User && !IsUserClient;
 
         // Each repeated source subtree has its own correspondence. Receivers
         // resolve through the nearest occurrence before enclosing copies.
@@ -215,8 +223,8 @@ namespace NeoCompose.Runtime
                     string sourceRoot = ListenerBindingRoot(owner.id, copy.Key.scope, sourceRoots);
                     Dictionary<string, NeoDelegateValue[]>? durable = null;
                     if (copy.Key.scope != NeoValueOwnership.Session
-                        && plan.ListenerEntries?.TryGetValue((NeoValueOwnership.Save, copy.Key.scope, sourceRoot, owner.id), out durable) != true)
-                        durable = saveData.changeListeners?.GetValueOrDefault(sourceRoot)?.GetValueOrDefault(owner.id);
+                        && plan.ListenerEntries?.TryGetValue((PersistedOwnership, copy.Key.scope, sourceRoot, owner.id), out durable) != true)
+                        durable = PersistedData.changeListeners?.GetValueOrDefault(sourceRoot)?.GetValueOrDefault(owner.id);
                     var construction = CopiedListenerBaseline(copy.Key.scope, owner.id, out bool adopted)
                         ?? (copy.Key.scope == NeoValueOwnership.Session ? PendingConstructionListeners(owner.id) : null);
                     var entry = new Dictionary<string, NeoDelegateValue[]>(StringComparer.Ordinal);
@@ -238,9 +246,7 @@ namespace NeoCompose.Runtime
                             targets.AddRange(durableTargets!);
                         foreach (var target in baseline)
                         {
-                            bool session = observedLifetime == NeoValueOwnership.Session
-                                || target.valueId is string receiver && TryGetValueOwnership(receiver, out var scope) && scope == NeoValueOwnership.Session;
-                            if (!hasDurable || session)
+                            if (!hasDurable || IsSessionListenerTarget(target, observedLifetime))
                                 targets.Add(target);
                         }
                         bool authoredSlot = data.values.GetValueOrDefault(sourceRoot)?.changeListeners?.GetValueOrDefault(owner.id)?.ContainsKey(canonical) == true;

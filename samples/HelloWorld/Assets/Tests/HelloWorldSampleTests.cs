@@ -267,8 +267,8 @@ namespace HelloWorld.Assets.Tests
         {
             var configOptions = NeoComposeConfig.LoadDefault()!.ToLocalizationOptions();
 
-            var defaultClient = await LoadSampleClient(SampleProjectFixture.Source, localizationOptions: null);
-            var explicitConfigClient = await LoadSampleClient(SampleProjectFixture.Source, localizationOptions: configOptions);
+            var (store, defaultClient) = await LoadSampleStack(localizationOptions: null);
+            var explicitConfigClient = await ReopenSampleClient(store, configOptions);
 
             Assert.AreEqual(explicitConfigClient.Localization.CurrentLocale, defaultClient.Localization.CurrentLocale);
             Assert.AreEqual(explicitConfigClient.Assets.Computed.baseText, defaultClient.Assets.Computed.baseText);
@@ -1169,7 +1169,7 @@ namespace HelloWorld.Assets.Tests
             var store = Own(new NeoProjectStore(
                 dataSource: projectSource,
                 localStore: new NeoInMemoryLocalSaveStore()));
-            store.LoadAsync().GetAwaiter().GetResult();
+            await store.LoadAsync();
             return Own(await HelloWorldNeo.Load(
                     store.Open("save"),
                     localizationOptions: localizationOptions));
@@ -1181,7 +1181,7 @@ namespace HelloWorld.Assets.Tests
             var store = Own(new NeoProjectStore(
                 dataSource: SampleProjectFixture.Source,
                 localStore: new NeoInMemoryLocalSaveStore()));
-            store.LoadAsync().GetAwaiter().GetResult();
+            await store.LoadAsync();
             return (store, await ReopenSampleClient(store, localizationOptions));
         }
 
@@ -1208,7 +1208,7 @@ namespace HelloWorld.Assets.Tests
             var store = Own(new NeoProjectStore(
                 dataSource: dataSource,
                 localStore: new NeoInMemoryLocalSaveStore()));
-            store.LoadAsync().GetAwaiter().GetResult();
+            await store.LoadAsync();
             return Own(await new NeoLoader().Load(store.Open("save")));
         }
 

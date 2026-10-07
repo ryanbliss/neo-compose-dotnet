@@ -21,10 +21,13 @@ namespace NeoCompose.Runtime
         /// <summary>Writable; in-memory only, resets each session.</summary>
         Session = 3,
         /// <summary>
-        /// Always writable; Save under a Save parent and Session otherwise
-        /// (P93 §1.2). Declared-only: never a resolved ownership.
+        /// Always writable; the parent's storage under a Save or User parent
+        /// and Session otherwise (P93 §1.2). Declared-only: never a resolved
+        /// ownership.
         /// </summary>
         Writable = 4,
+        /// <summary>Writable; persisted in the player's user file (P104).</summary>
+        User = 5,
     }
 
     public static class NeoMemberStorageResolution
@@ -42,6 +45,7 @@ namespace NeoCompose.Runtime
                 case NeoMemberStorage.Save:
                 case NeoMemberStorage.Session:
                 case NeoMemberStorage.Writable:
+                case NeoMemberStorage.User:
                     return value;
                 default:
                     throw new System.InvalidOperationException(
@@ -68,6 +72,8 @@ namespace NeoCompose.Runtime
                     return NeoValueOwnership.Save;
                 case NeoMemberStorage.Session:
                     return NeoValueOwnership.Session;
+                case NeoMemberStorage.User:
+                    return NeoValueOwnership.User;
                 default:
                     throw new System.InvalidOperationException(
                         $"Unknown member storage '{storage}'.");
@@ -87,8 +93,8 @@ namespace NeoCompose.Runtime
                 case NeoMemberStorage.Inherit:
                     return parent;
                 case NeoMemberStorage.Writable:
-                    return parent == NeoValueOwnership.Save
-                        ? NeoValueOwnership.Save
+                    return parent is NeoValueOwnership.Save or NeoValueOwnership.User
+                        ? parent
                         : NeoValueOwnership.Session;
                 default:
                     return ToOwnership(declared)!.Value;

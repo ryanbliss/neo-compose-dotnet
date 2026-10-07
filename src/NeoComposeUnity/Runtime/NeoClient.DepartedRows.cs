@@ -31,6 +31,7 @@ namespace NeoCompose.Runtime
         {
             Session,
             Save,
+            User,
             Virtual,
             Asset,
         }
@@ -68,8 +69,7 @@ namespace NeoCompose.Runtime
             {
                 if (pair.Value is null or { IsRemoved: true } or ObjectMemberValue)
                 {
-                    RowLayer layer = pair.Key.ownership == NeoValueOwnership.Session ? RowLayer.Session : RowLayer.Save;
-                    CaptureDeparture(pair.Key.id, layer, pair.Value, plan.Rows);
+                    CaptureDeparture(pair.Key.id, Layer(pair.Key.ownership), pair.Value, plan.Rows);
                 }
             }
         }
@@ -83,12 +83,13 @@ namespace NeoCompose.Runtime
         {
             if (departedNodes.ContainsKey(id))
                 return;
-            MemberValue? session, save, asset, virtualRow;
+            MemberValue? session, save, user, asset, virtualRow;
             NeoValueOwnership virtualOwnership = default;
             if (valueNodes.TryGetValue(id, out NeoValueNode? node))
             {
                 session = node.session;
                 save = node.save;
+                user = node.user;
                 asset = node.Asset(data);
                 virtualRow = node.virtualRow;
                 virtualOwnership = node.virtualOwnership;
@@ -97,31 +98,35 @@ namespace NeoCompose.Runtime
             {
                 sessionData.values.TryGetValue(id, out session);
                 saveData.values.TryGetValue(id, out save);
+                userSource.userData.values.TryGetValue(id, out user);
                 data.values.TryGetValue(id, out asset);
-                if (virtualValues.TryGetValue(id, out virtualRow))
-                    virtualValueOwnership.TryGetValue(id, out virtualOwnership);
+                TryGetVirtualRow(id, out virtualRow, out virtualOwnership);
             }
-            MemberValue? previous = session ?? save ?? asset ?? virtualRow;
+            MemberValue? previous = session ?? save ?? user ?? asset ?? virtualRow;
             if (previous is null or { IsRemoved: true })
                 return;
             MemberValue? afterSession = layer == RowLayer.Session ? next : session;
             MemberValue? afterSave = layer == RowLayer.Save ? next : save;
+            MemberValue? afterUser = layer == RowLayer.User ? next : user;
             if (planRows is not null)
             {
                 if (planRows.TryGetValue((NeoValueOwnership.Session, id), out MemberValue? planned))
                     afterSession = planned;
                 if (planRows.TryGetValue((NeoValueOwnership.Save, id), out planned))
                     afterSave = planned;
+                if (planRows.TryGetValue((NeoValueOwnership.User, id), out planned))
+                    afterUser = planned;
             }
             MemberValue? after = afterSession
                 ?? afterSave
+                ?? afterUser
                 ?? (layer == RowLayer.Asset ? next : asset)
                 ?? (layer == RowLayer.Virtual ? next : virtualRow);
             if (after is { IsRemoved: false }
                 && (previous is not ObjectMemberValue old
                     || after is ObjectMemberValue { classId: var classId } && classId == old.classId))
                 return;
-            departedNodes.Add(id, NeoValueNode.Departed(id, session, save, asset, virtualRow, virtualOwnership));
+            departedNodes.Add(id, NeoValueNode.Departed(id, session, save, user, asset, virtualRow, virtualOwnership));
             // Holders resolve the id again, and meet the departed rows or the
             // replacement.
             if (node is not null)
@@ -130,7 +135,14 @@ namespace NeoCompose.Runtime
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void NoteDeparture(NeoValueOwnership ownership, string id, MemberValue? next) =>
-            NoteDeparture(id, ownership == NeoValueOwnership.Session ? RowLayer.Session : RowLayer.Save, next);
+            NoteDeparture(id, Layer(ownership), next);
+
+        private static RowLayer Layer(NeoValueOwnership ownership) => ownership switch
+        {
+            NeoValueOwnership.Session => RowLayer.Session,
+            NeoValueOwnership.User => RowLayer.User,
+            _ => RowLayer.Save,
+        };
 
         /// <summary>ValueNode's miss path while departed rows are kept.</summary>
         private NeoValueNode? DepartedValueNode(string id)

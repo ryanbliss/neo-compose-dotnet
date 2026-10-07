@@ -102,7 +102,7 @@ namespace NeoCompose.Runtime
 
         private static Dictionary<string, NeoDelegateValue[]> RemapListenerEntry(
             Dictionary<string, NeoDelegateValue[]> entry, Dictionary<(NeoValueOwnership? scope, string id), string> renames,
-            bool durable = false)
+            NeoValueOwnership? durable = null)
         {
             if (renames.Count == 0)
                 return entry;
@@ -111,7 +111,7 @@ namespace NeoCompose.Runtime
             {
                 NeoDelegateValue[]? targets = null;
                 for (int i = 0; i < slot.Value.Length; i++)
-                    if (slot.Value[i].valueId is string receiver && renames.TryGetValue((durable ? NeoValueOwnership.Save : null, receiver), out string? next))
+                    if (slot.Value[i].valueId is string receiver && renames.TryGetValue((durable, receiver), out string? next))
                     {
                         targets ??= (NeoDelegateValue[])slot.Value.Clone();
                         targets[i] = targets[i].PersistedCopy();
@@ -211,7 +211,7 @@ namespace NeoCompose.Runtime
             // their old rows from the prospective graph.
             if (copiedListenerRootByOwner.TryGetValue((carrier.scope, ownerId), out var root) && root == carrier)
                 return carrier.scope;
-            var other = carrier.scope == NeoValueOwnership.Session ? NeoValueOwnership.Save : NeoValueOwnership.Session;
+            var other = carrier.scope == NeoValueOwnership.Session ? PersistedOwnership : NeoValueOwnership.Session;
             if (copiedListenerRootByOwner.TryGetValue((other, ownerId), out root) && root == carrier)
                 return other;
             if (TryGetCommittedValue(carrier.scope, ownerId, out _))
@@ -222,10 +222,10 @@ namespace NeoCompose.Runtime
         private void RemapInboundListenerEntries(NeoWritePlan plan, Dictionary<(NeoValueOwnership? scope, string id), string> renames)
         {
             var entries = new Dictionary<(NeoValueOwnership lifetime, NeoValueOwnership scope, string root, string owner), Dictionary<string, NeoDelegateValue[]>?>();
-            if (saveData.changeListeners is not null)
-                foreach (var root in saveData.changeListeners)
+            if (PersistedData.changeListeners is not null)
+                foreach (var root in PersistedData.changeListeners)
                     foreach (var owner in root.Value)
-                        entries[(NeoValueOwnership.Save, NeoValueOwnership.Save, root.Key, owner.Key)] = owner.Value;
+                        entries[(PersistedOwnership, PersistedOwnership, root.Key, owner.Key)] = owner.Value;
             foreach (var root in sessionChangeListeners)
                 foreach (var owner in root.Value)
                     entries[(NeoValueOwnership.Session, root.Key.scope, root.Key.rootId, owner.Key)] = owner.Value;
@@ -236,7 +236,7 @@ namespace NeoCompose.Runtime
             {
                 if (entry.Value is null)
                     continue;
-                var remapped = RemapListenerEntry(entry.Value, renames, entry.Key.lifetime == NeoValueOwnership.Save);
+                var remapped = RemapListenerEntry(entry.Value, renames, DurableRenameScope(entry.Key.lifetime));
                 if (!ReferenceEquals(remapped, entry.Value))
                     plan.SetListenerEntry(entry.Key.lifetime, entry.Key.root, entry.Key.owner, remapped, entry.Key.scope);
             }
@@ -312,16 +312,16 @@ namespace NeoCompose.Runtime
             string root = ListenerBindingRoot(move.TargetOwnerId, move.Target, roots);
             if (move.Scope == move.Target && move.Root == root && move.OwnerId == move.TargetOwnerId)
                 return;
-            foreach (NeoValueOwnership lifetime in new[] { NeoValueOwnership.Save, NeoValueOwnership.Session })
+            foreach (NeoValueOwnership lifetime in new[] { PersistedOwnership, NeoValueOwnership.Session })
             {
                 // A Session entry remains Session even if its owner is adopted
-                // into Save. Persisting it here would extend its lifetime.
+                // into the persisted layer. Persisting it here would extend its lifetime.
                 var before = Entry(lifetime, move.Scope, move.Root);
                 if (before is null)
                     continue;
                 if (Entry(lifetime, move.Target, root, move.TargetOwnerId) is { Count: > 0 })
                     throw new NSGetterRuntimeError($"Listener owner '{ownerId}' already has wiring at destination '{root}'.");
-                plan.SetListenerEntry(lifetime, root, move.TargetOwnerId, RemapListenerEntry(before, renames ?? ListenerRenames(plan), lifetime == NeoValueOwnership.Save), move.Target);
+                plan.SetListenerEntry(lifetime, root, move.TargetOwnerId, RemapListenerEntry(before, renames ?? ListenerRenames(plan), DurableRenameScope(lifetime)), move.Target);
                 plan.SetListenerEntry(lifetime, move.Root, move.OwnerId, null, move.Scope);
             }
             plan.SetListenerMove(key, new(move.Target, root, move.Target, move.TargetOwnerId));
@@ -333,8 +333,11 @@ namespace NeoCompose.Runtime
                     return staged;
                 return (lifetime == NeoValueOwnership.Session
                     ? sessionChangeListeners.GetValueOrDefault((scope, binding))
-                    : scope == NeoValueOwnership.Save ? saveData.changeListeners?.GetValueOrDefault(binding) : null)?.GetValueOrDefault(entryId);
+                    : scope == PersistedOwnership ? PersistedData.changeListeners?.GetValueOrDefault(binding) : null)?.GetValueOrDefault(entryId);
             }
         }
+
+        private NeoValueOwnership? DurableRenameScope(NeoValueOwnership lifetime) =>
+            lifetime == PersistedOwnership ? PersistedOwnership : null;
     }
 }

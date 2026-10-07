@@ -67,6 +67,10 @@ namespace NeoCompose.Runtime.Json
         /// only on the create branch; commits to an existing save stay classic.
         /// </summary>
         public string? liveSessionId;
+
+        /// <summary>The file kind: <c>"user"</c> for the user file (P104 §5.2), omitted for a save.</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string? kind;
     }
 
     /// <summary>Optional inputs to a clone: rename, source snapshot, destination channel.</summary>
@@ -98,6 +102,10 @@ namespace NeoCompose.Runtime.Json
         public NeoTimestamp createdAt;
         public NeoTimestamp updatedAt;
         public string uploadFingerprint = "";
+
+        /// <inheritdoc cref="NeoSaveCommitRequest.kind"/>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string? kind;
     }
 
     /// <summary>Hidden destination accepted for a chunked save creation.</summary>

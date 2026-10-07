@@ -38,7 +38,8 @@ namespace NeoCompose.Runtime
         private bool HoldsRow(string id) =>
             sessionData.values.ContainsKey(id)
             || saveData.values.ContainsKey(id)
-            || virtualValues.ContainsKey(id)
+            || userSource.userData.values.ContainsKey(id)
+            || TryGetVirtualRow(id, out _, out _)
             || data.values.ContainsKey(id);
 
         /// <summary>The node for <paramref name="id"/> if one was already made.</summary>
@@ -61,20 +62,59 @@ namespace NeoCompose.Runtime
         {
             if (node is null && !valueNodes.TryGetValue(value.id, out node))
                 return;
-            if (ownership == NeoValueOwnership.Session)
-                node.session = value;
-            else
-                node.save = value;
+            switch (ownership)
+            {
+                case NeoValueOwnership.Session:
+                    node.session = value;
+                    break;
+                case NeoValueOwnership.Save:
+                    node.save = value;
+                    break;
+                default:
+                    node.user = value;
+                    break;
+            }
+        }
+
+        /// <summary>The row a node holds for a writable store, or null for Asset.</summary>
+        private static MemberValue? StoredRow(NeoValueNode? node, NeoValueOwnership ownership) => ownership switch
+        {
+            NeoValueOwnership.Session => node?.session,
+            NeoValueOwnership.Save => node?.save,
+            NeoValueOwnership.User => node?.user,
+            NeoValueOwnership.Asset => null,
+            _ => throw new System.InvalidOperationException($"Unknown value ownership '{ownership}'."),
+        };
+
+        /// <summary>
+        /// A virtual row and its ownership. A save client's User virtual rows
+        /// live in its user client, which replays them (P104 §4.3).
+        /// </summary>
+        private bool TryGetVirtualRow(string id, out MemberValue? row, out NeoValueOwnership ownership)
+        {
+            if (virtualValues.TryGetValue(id, out row))
+            {
+                virtualValueOwnership.TryGetValue(id, out ownership);
+                return true;
+            }
+            if (!ReferenceEquals(userSource, this) && userSource.virtualValues.TryGetValue(id, out row))
+            {
+                ownership = NeoValueOwnership.User;
+                return true;
+            }
+            ownership = default;
+            return false;
         }
 
         private bool FillValueNode(NeoValueNode node)
         {
             sessionData.values.TryGetValue(node.id, out node.session);
             saveData.values.TryGetValue(node.id, out node.save);
-            if (virtualValues.TryGetValue(node.id, out node.virtualRow))
-                virtualValueOwnership.TryGetValue(node.id, out node.virtualOwnership);
+            userSource.userData.values.TryGetValue(node.id, out node.user);
+            TryGetVirtualRow(node.id, out node.virtualRow, out node.virtualOwnership);
             return node.session is not null
                 || node.save is not null
+                || node.user is not null
                 || node.virtualRow is not null
                 || node.Asset(data) is not null;
         }
@@ -87,7 +127,7 @@ namespace NeoCompose.Runtime
                 if (node.virtualRow is null)
                     continue;
                 node.virtualRow = null;
-                if (node.session is null && node.save is null && node.Asset(data) is null)
+                if (node.session is null && node.save is null && node.user is null && node.Asset(data) is null)
                     (empty ??= new List<NeoValueNode>()).Add(node);
             }
             if (empty is not null)

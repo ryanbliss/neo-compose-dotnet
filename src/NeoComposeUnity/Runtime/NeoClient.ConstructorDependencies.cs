@@ -22,11 +22,12 @@ namespace NeoCompose.Runtime
                 plan.Commit();
         }
 
-        private void StageConstructorDependencies(NeoWritePlan plan, MemberValue value, NeoValueOwnership targetOwnership = NeoValueOwnership.Save)
+        private void StageConstructorDependencies(NeoWritePlan plan, MemberValue value, NeoValueOwnership? target = null)
         {
             if (value is not ObjectMemberValue { constructorArgs: { Count: > 0 } })
                 return;
-            var sourceOwnership = targetOwnership == NeoValueOwnership.Save ? NeoValueOwnership.Session : NeoValueOwnership.Save;
+            NeoValueOwnership targetOwnership = target ?? PersistedOwnership;
+            var sourceOwnership = targetOwnership == PersistedOwnership ? NeoValueOwnership.Session : PersistedOwnership;
             var pending = new Queue<(string id, Member? member)>();
             foreach (var link in EnumerateConstructorDependencyLinks(value, targetOwnership))
                 pending.Enqueue(link);

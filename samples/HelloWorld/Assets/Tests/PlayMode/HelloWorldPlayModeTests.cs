@@ -29,7 +29,8 @@ namespace HelloWorld.Assets.Tests.PlayMode
         [UnityTest]
         public IEnumerator YieldingInitialization_PublishesCompleteClientAndPreservesSave()
         {
-            using var store = CreateLoadedStore();
+            using var store = CreateStore();
+            yield return LoadStore(store);
             using var synchronizer = store.CreateNew("playmode-yielding-load");
             var pending = HelloWorldNeo.Load(synchronizer,
                 localizationOptions: EnglishLocalizationOptions());
@@ -66,7 +67,8 @@ namespace HelloWorld.Assets.Tests.PlayMode
         [UnityTest]
         public IEnumerator YieldingInitialization_CanCancelBeforePublishingClient()
         {
-            using var store = CreateLoadedStore();
+            using var store = CreateStore();
+            yield return LoadStore(store);
             using var synchronizer = store.CreateNew("playmode-cancelled-load");
             using var cancellation = new System.Threading.CancellationTokenSource();
             var pending = HelloWorldNeo.Load(synchronizer,
@@ -92,7 +94,8 @@ namespace HelloWorld.Assets.Tests.PlayMode
             Assert.IsTrue(Application.isPlaying, "This gate must run through the PlayMode test runner.");
             yield return null;
 
-            using var store = CreateLoadedStore();
+            using var store = CreateStore();
+            yield return LoadStore(store);
             using var synchronizer = store.CreateNew("playmode-current-schema");
             var schema = synchronizer.Schema;
 
@@ -130,7 +133,8 @@ namespace HelloWorld.Assets.Tests.PlayMode
         {
             Assert.IsTrue(Application.isPlaying, "This gate must run through the PlayMode test runner.");
 
-            using var store = CreateLoadedStore();
+            using var store = CreateStore();
+            yield return LoadStore(store);
             using var synchronizer = store.CreateNew("playmode-generated-api");
             var loading = HelloWorldNeo.Load(
                     synchronizer,
@@ -169,7 +173,8 @@ namespace HelloWorld.Assets.Tests.PlayMode
         {
             Assert.IsTrue(Application.isPlaying, "This gate must run through the PlayMode test runner.");
 
-            using var store = CreateLoadedStore();
+            using var store = CreateStore();
+            yield return LoadStore(store);
             var gameplayObject = new GameObject("HelloWorld Orbit Regression Test");
             var gameplay = gameplayObject.AddComponent<HelloWorldGameplay>();
 
@@ -340,7 +345,8 @@ namespace HelloWorld.Assets.Tests.PlayMode
         {
             Assert.IsTrue(Application.isPlaying, "This gate must run through the PlayMode test runner.");
 
-            using var store = CreateLoadedStore();
+            using var store = CreateStore();
+            yield return LoadStore(store);
             using var synchronizer = store.CreateNew("playmode-render-target-replacement");
             var loading = HelloWorldNeo.Load(
                     synchronizer,
@@ -436,27 +442,26 @@ namespace HelloWorld.Assets.Tests.PlayMode
             }
         }
 
-        private static NeoProjectStore CreateLoadedStore()
+        private static NeoProjectStore CreateStore()
         {
             // The Resources source parses off the main thread, so blocking on its
-            // load here would deadlock. Read the same Resources files up front.
+            // read here would deadlock. Read the same Resources files up front.
             var resources = new NeoResourcesProjectDataSource(ProjectResourcePath);
             string projectJson = resources.ReadProjectJsonAsync().GetAwaiter().GetResult();
-            var store = new NeoProjectStore(
+            return new NeoProjectStore(
                 dataSource: new NeoJsonProjectDataSource(
                     projectJson,
                     NeoValuePartitions.ReadIndexFiles(projectJson).ToDictionary(file => file, resources.ReadPartitionJson)),
                 localStore: new NeoInMemoryLocalSaveStore());
-            try
-            {
-                store.LoadAsync().GetAwaiter().GetResult();
-                return store;
-            }
-            catch
-            {
-                store.Dispose();
-                throw;
-            }
+        }
+
+        /// <summary>Loads the store across frames; the user client replays like a save.</summary>
+        private static IEnumerator LoadStore(NeoProjectStore store)
+        {
+            var loading = store.LoadAsync().GetAwaiter();
+            while (!loading.IsCompleted)
+                yield return null;
+            loading.GetResult();
         }
 
         private static NeoLocalizationOptions EnglishLocalizationOptions()

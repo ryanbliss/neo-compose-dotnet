@@ -32,9 +32,10 @@ namespace NeoCompose.Runtime
     /// cloud commit is required vs. best-effort per
     /// <see cref="InternalProjectStore.RequireCloudCommit"/> (default best-effort).
     /// </remarks>
-    public sealed class NeoSaveSynchronizer : INeoSaveLoader, INeoLiveContentSource, IDisposable
+    public sealed partial class NeoSaveSynchronizer : INeoSaveLoader, INeoLiveContentSource, IDisposable
     {
-        private readonly InternalProjectStore core;
+        // A user synchronizer binds to its store's core once the schema loads.
+        private InternalProjectStore core;
         private readonly bool isNewDraft;
         private readonly string? draftName;
         private LocalGameSave? active;
@@ -196,7 +197,8 @@ namespace NeoCompose.Runtime
         {
             var taken = uncapturedDirty;
             uncapturedDirty = new DirtyRecords();
-            return taken;
+            // An empty set diffs the whole file.
+            return fullDiffPending ? new DirtyRecords() : taken;
         }
 
         /// <summary>Returns marks whose content did not reach the cloud, so
@@ -243,6 +245,12 @@ namespace NeoCompose.Runtime
             this.isNewDraft = isNewDraft;
             this.draftName = draftName;
             State = isNewDraft ? NeoSaveSynchronizerState.Ready : NeoSaveSynchronizerState.Idle;
+        }
+
+        /// <summary>The kind of file this synchronizes: a save, or the user file (P104 §4.4).</summary>
+        public NeoSaveFileKind Kind
+        {
+            get;
         }
 
         public string CustomId
@@ -298,6 +306,8 @@ namespace NeoCompose.Runtime
 
         public async Awaitable<string?> LoadSaveContentAsync()
         {
+            if (Kind == NeoSaveFileKind.User)
+                return await LoadUserContentAsync(QueryUserFileAsync(core.ApiClient, core.Authentication, core.TargetReleaseChannelId));
             // A from-scratch draft has nothing to load; the client builds defaults.
             if (isNewDraft && active == null)
             {
@@ -308,7 +318,7 @@ namespace NeoCompose.Runtime
             State = NeoSaveSynchronizerState.Loading;
             try
             {
-                var localContent = await core.LocalStore.LoadSaveAsync(CustomId);
+                var localContent = await LoadLocalAsync();
                 var remote = await ResolveRemoteForLoadAsync();
 
                 LocalGameSaveLoader.TryLoad(localContent, out var local);
@@ -425,7 +435,7 @@ namespace NeoCompose.Runtime
             {
                 // The local write never depends on the network, so the cloud
                 // commit runs alongside it rather than after it.
-                var localWrite = core.LocalStore.CommitSaveAsync(CustomId, content);
+                var localWrite = CommitLocalAsync(content);
                 RemoteGameSave? committedRemote = null;
                 if (core.CloudEnabled)
                 {
@@ -452,7 +462,10 @@ namespace NeoCompose.Runtime
                     ? LocalGameSave.FromRemote(committedRemote)
                     : local;
                 unsyncedActive = core.CloudEnabled && committedRemote == null ? active : null;
-                core.RecordSavedFile(active, committedRemote);
+                if (committedRemote != null || !core.CloudEnabled)
+                    fullDiffPending = false;
+                if (Kind == NeoSaveFileKind.Save)
+                    core.RecordSavedFile(active, committedRemote);
                 await localWrite;
 
                 if (committedRemote != null)
@@ -462,7 +475,7 @@ namespace NeoCompose.Runtime
                     var restamped = active;
                     string restampedContent = await SerializeOnWorkerAsync(restamped);
                     if (ReferenceEquals(active, restamped))
-                        await core.LocalStore.CommitSaveAsync(CustomId, restampedContent);
+                        await CommitLocalAsync(restampedContent);
                     // A brand-new save skipped the load path (and with it
                     // AttachRealtimeHead); attach now that the save exists so
                     // OnRemoteHeadChanged works for created saves too.
@@ -582,32 +595,22 @@ namespace NeoCompose.Runtime
             bool skipUnchangedSnapshot = false)
         {
             NeoCommitResult result;
+            bool adopted = false;
             try
             {
-                var request = BuildCommitRequest(
-                    local, active?.snapshotId, createAsLiveSessionId);
-                var initialChanges = local.IsLocalOnly && request.baseSnapshotId == null
-                    ? BuildInitialRecordChanges(local)
-                    : null;
-                if (local.IsLocalOnly
-                    && request.baseSnapshotId == null
-                    && initialChanges != null
-                    && initialChanges.Count > 64)
+                try
                 {
-                    var committed = await core.CreateSaveInChunksAsync(
-                        BuildChunkedCreateRequest(request), initialChanges);
-                    result = NeoCommitResult.Committed(committed);
+                    result = await CommitHeadAsync(
+                        local, replaceSnapshot, createAsLiveSessionId, dirty, skipUnchangedSnapshot);
                 }
-                else if (!local.IsLocalOnly && local.snapshotId != null)
+                catch (NeoUserFileExistsException exists) when (Kind == NeoSaveFileKind.User)
                 {
-                    var baseline = await ResolveSparseCommitBaselineAsync(local);
-                    result = await CommitExistingSnapshotAsync(
-                        local, baseline, replaceSnapshot, dirty, skipUnchangedSnapshot);
-                }
-                else
-                {
-                    result = await CommitTransportAsync(
-                        request, replaceSnapshot, local.recordCache);
+                    // Another device created this channel's user file first.
+                    // Adopt it and meet its head as a conflict (P104 §5.2).
+                    CustomId = exists.Existing.id;
+                    local.customId = CustomId;
+                    result = NeoCommitResult.Conflict(await core.ApiClient!.GetSaveAsync(CustomId));
+                    adopted = true;
                 }
             }
             catch (Exception ex)
@@ -617,6 +620,8 @@ namespace NeoCompose.Runtime
                     throw;
                 }
 
+                if (Kind == NeoSaveFileKind.User && ex is NeoComposeNotFoundException)
+                    DropUserFileIfGone();
                 OnCommitError?.Invoke(ex);
                 if (core.RequireCloudCommit)
                     throw;
@@ -635,35 +640,30 @@ namespace NeoCompose.Runtime
                 return result.CommittedSave;
 
             var serverHead = result.ServerHead!;
-            if (OnConflict == null)
-            {
-                throw new NeoSaveConflictUnresolvedException(
-                    $"Save \"{CustomId}\" conflicts with a newer cloud head and no OnConflict " +
-                    "resolver is attached. Cloud sync requires a conflict resolver.");
-            }
-
-            State = NeoSaveSynchronizerState.Resolving;
-            var continuation = new NeoSaveConflictContinuation();
-            OnConflict.Invoke(new NeoSaveConflict(local, serverHead), continuation);
-            var resolution = await continuation.Completion;
+            ThrowIfConflictUnresolvable(
+                $"Save \"{CustomId}\" conflicts with a newer cloud head and no OnConflict " +
+                "resolver is attached. Cloud sync requires a conflict resolver.");
+            var resolution = await ResolveConflictAsync(local, serverHead);
             State = NeoSaveSynchronizerState.Committing;
 
             if (resolution == NeoSaveConflictResolution.KeepRemote)
             {
                 // Adopt the server head locally; the local edit is discarded by the
                 // developer's explicit choice (no silent data loss).
-                await core.LocalStore.CommitSaveAsync(
-                    CustomId, JsonConvert.SerializeObject(serverHead));
+                await CommitLocalAsync(JsonConvert.SerializeObject(serverHead));
+                if (Kind == NeoSaveFileKind.User)
+                    ReplaceUserContentLater(LocalGameSave.FromRemote(serverHead));
                 return serverHead;
             }
 
             // Keep local: write a NEW head on top of the server head — never a
-            // destructive overwrite, so neither side's data is lost.
+            // destructive overwrite, so neither side's data is lost. An adopted
+            // file shares no history with the local copy, so all of it diffs.
             var rebased = await CommitExistingSnapshotAsync(
                 local,
                 SparseCommitBaseline.FromRemote(serverHead),
                 replaceSnapshot: false,
-                dirty: dirty);
+                dirty: adopted ? null : dirty);
             if (rebased.IsConflict)
             {
                 throw new NeoSaveConflictUnresolvedException(
@@ -671,6 +671,38 @@ namespace NeoCompose.Runtime
             }
 
             return rebased.CommittedSave;
+        }
+
+        /// <summary>Sends <paramref name="local"/> as a create or a new head, without resolving a conflict.</summary>
+        private async Awaitable<NeoCommitResult> CommitHeadAsync(
+            LocalGameSave local,
+            bool replaceSnapshot,
+            string? createAsLiveSessionId,
+            DirtyRecords? dirty,
+            bool skipUnchangedSnapshot)
+        {
+            var request = BuildCommitRequest(
+                local, active?.snapshotId, createAsLiveSessionId);
+            var initialChanges = local.IsLocalOnly && request.baseSnapshotId == null
+                ? BuildInitialRecordChanges(local)
+                : null;
+            if (local.IsLocalOnly
+                && request.baseSnapshotId == null
+                && initialChanges != null
+                && initialChanges.Count > 64)
+            {
+                var committed = await core.CreateSaveInChunksAsync(
+                    BuildChunkedCreateRequest(request), initialChanges);
+                return NeoCommitResult.Committed(committed);
+            }
+            if (!local.IsLocalOnly && local.snapshotId != null)
+            {
+                var baseline = await ResolveSparseCommitBaselineAsync(local);
+                return await CommitExistingSnapshotAsync(
+                    local, baseline, replaceSnapshot, dirty, skipUnchangedSnapshot);
+            }
+            return await CommitTransportAsync(
+                request, replaceSnapshot, local.recordCache);
         }
 
         private async Awaitable<SparseCommitBaseline> ResolveSparseCommitBaselineAsync(
@@ -935,17 +967,10 @@ namespace NeoCompose.Runtime
             }
 
             // Divergent heads.
-            if (OnConflict == null)
-            {
-                throw new NeoSaveConflictUnresolvedException(
-                    $"Local and cloud heads for \"{CustomId}\" diverge and no OnConflict resolver " +
-                    "is attached. Cloud sync requires a conflict resolver.");
-            }
-
-            State = NeoSaveSynchronizerState.Resolving;
-            var continuation = new NeoSaveConflictContinuation();
-            OnConflict.Invoke(new NeoSaveConflict(local, remote), continuation);
-            var resolution = await continuation.Completion;
+            ThrowIfConflictUnresolvable(
+                $"Local and cloud heads for \"{CustomId}\" diverge and no OnConflict resolver " +
+                "is attached. Cloud sync requires a conflict resolver.");
+            var resolution = await ResolveConflictAsync(local, remote);
 
             return resolution == NeoSaveConflictResolution.KeepRemote
                 ? JsonConvert.SerializeObject(remote)
@@ -954,6 +979,7 @@ namespace NeoCompose.Runtime
 
         private async Awaitable<string?> ResolveCloneAsync(RemoteGameSave remote)
         {
+            ThrowIfUserFile("cloned");
             if (OnSelectedSaveRequiringClone == null)
             {
                 throw new InvalidOperationException(
@@ -1187,6 +1213,13 @@ namespace NeoCompose.Runtime
             var current = active;
             if (current == null)
                 return;
+            // The feed sends no snapshot once the file is gone.
+            if (string.IsNullOrEmpty(signal.snapshotId))
+            {
+                if (Kind == NeoSaveFileKind.User)
+                    DropUserFileIfGone();
+                return;
+            }
             try
             {
                 NeoSaveFormat.RequireSupported(signal.requiredSaveFormatRevision);
@@ -1204,7 +1237,8 @@ namespace NeoCompose.Runtime
                     var remote = await SafeGetRemoteAsync(CustomId);
                     if (remote == null)
                         return;
-                    core.RecordRealtimeRemoteHead(remote);
+                    if (Kind == NeoSaveFileKind.Save)
+                        core.RecordRealtimeRemoteHead(remote);
                     if (liveSnapshotId != null && remote.snapshotId != liveSnapshotId)
                     {
                         liveSnapshotId = null;
@@ -1273,7 +1307,7 @@ namespace NeoCompose.Runtime
             stagedLive = current;
             RecordKnownLiveIdentity(current.serverId, current.snapshotId, current.snapshotRevision, current.synchronizedAt);
             string content = await SerializeOnWorkerAsync(current);
-            await core.LocalStore.CommitSaveAsync(CustomId, content);
+            await CommitLocalAsync(content);
             OnLiveContentChanged?.Invoke(content);
         }
 
@@ -1390,10 +1424,11 @@ namespace NeoCompose.Runtime
             // Settle before the write: a stage landing across it marks itself
             // dirty again, and must not be cleared afterwards.
             SettleStagedDirty();
+            fullDiffPending = false;
             liveFirstDirtyAt = -1;
             string content = await SerializeOnWorkerAsync(local);
             if (ReferenceEquals(stagedLive, local))
-                await core.LocalStore.CommitSaveAsync(CustomId, content);
+                await CommitLocalAsync(content);
         }
 
         /// <summary>
@@ -1460,7 +1495,7 @@ namespace NeoCompose.Runtime
 
                 // The file store orders this write before the flush's own
                 // persist, so the two can run together.
-                var localWrite = core.LocalStore.CommitSaveAsync(CustomId, content);
+                var localWrite = CommitLocalAsync(content);
                 if (flushImmediately)
                 {
                     try
@@ -1475,7 +1510,8 @@ namespace NeoCompose.Runtime
                 }
                 await localWrite;
 
-                core.RecordSavedFile(local, null);
+                if (Kind == NeoSaveFileKind.Save)
+                    core.RecordSavedFile(local, null);
                 State = NeoSaveSynchronizerState.Ready;
                 OnCommitSuccess?.Invoke(local);
                 if (!flushImmediately)
@@ -1901,7 +1937,7 @@ namespace NeoCompose.Runtime
                     serverHead.snapshotRevision,
                     adopted.synchronizedAt);
                 string adoptedContent = await SerializeOnWorkerAsync(adopted);
-                await core.LocalStore.CommitSaveAsync(CustomId, adoptedContent);
+                await CommitLocalAsync(adoptedContent);
                 var adoptedBaseline = AsValuesObject(serverHead.values) is JObject values
                     ? await CloneOnWorkerAsync(values)
                     : null;
@@ -2663,6 +2699,7 @@ namespace NeoCompose.Runtime
         /// <summary>Archives the active save (cloud + list); raises <see cref="OnSaveArchived"/>.</summary>
         public async Awaitable ArchiveAsync()
         {
+            ThrowIfUserFile("archived");
             if (core.ApiClient != null)
             {
                 await core.ApiClient.ArchiveSaveAsync(CustomId);
@@ -2720,6 +2757,8 @@ namespace NeoCompose.Runtime
 
         private string ResolveSaveName(string? existing)
         {
+            if (Kind == NeoSaveFileKind.User)
+                return UserFileName;
             if (!string.IsNullOrWhiteSpace(existing))
                 return existing!;
             if (!string.IsNullOrWhiteSpace(draftName))
@@ -2760,6 +2799,7 @@ namespace NeoCompose.Runtime
                 baseSnapshotId = baseSnapshotId,
                 snapshotName = local.snapshotName,
                 liveSessionId = createAsLiveSessionId,
+                kind = Kind == NeoSaveFileKind.User ? UserFileKind : null,
             };
         }
 
@@ -2796,6 +2836,7 @@ namespace NeoCompose.Runtime
                 inputDevices = request.inputDevices,
                 createdAt = request.createdAt,
                 updatedAt = request.updatedAt,
+                kind = request.kind,
             };
     }
 }

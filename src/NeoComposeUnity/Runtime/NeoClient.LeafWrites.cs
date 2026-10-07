@@ -162,6 +162,8 @@ namespace NeoCompose.Runtime
         {
             if (ownership == NeoValueOwnership.Asset || !IsLeafRow(next, member))
                 return false;
+            ThrowIfUserWrite(ownership);
+            CheckDelegateRow(ownership, next);
             ThrowIfDepartedWrite(next.id);
             if (candidateReplay is not null || candidateReadPlan is not null
                 || nestedConstructorCapture is not null || replayAllocationScope is not null
@@ -183,7 +185,7 @@ namespace NeoCompose.Runtime
             if (node is null)
                 return false;
             MemberValue? authored = node.Asset(data);
-            MemberValue? previous = (ownership == NeoValueOwnership.Session ? node.session : node.save) ?? authored;
+            MemberValue? previous = StoredRow(node, ownership) ?? authored;
             if (previous is null)
                 return false;
             if (string.IsNullOrEmpty(next.mapKey))
@@ -206,20 +208,23 @@ namespace NeoCompose.Runtime
             // so the store's indexes already hold it. A first write over an
             // authored row joins them, and an enum or lookup array re-links
             // the rows it names.
-            if ((ownership == NeoValueOwnership.Session ? node.session : node.save) is null
+            if (StoredRow(node, ownership) is null
                 || next is ArrayMemberValue)
             {
                 StoreWritableValue(ownership, next, node);
             }
             else
             {
+                ThrowIfUserWrite(ownership);
                 GetWritableStore(ownership).values[next.id] = next;
                 SyncStoredValueNode(ownership, next, node);
+                if (ownership == NeoValueOwnership.User)
+                    NoteUserRowChanged(next.id, next);
             }
             // Every leaf writer stamps the row with the write's clock read,
             // so the save shares it rather than reading the clock again.
-            if (ownership == NeoValueOwnership.Save)
-                saveData.updatedAt = next.updatedAt;
+            if (ownership == PersistedOwnership)
+                PersistedData.updatedAt = next.updatedAt;
             WriteRevision++;
             foreignWriteRevision = WriteRevision;
             InvalidateGetterMemoForRow(next.id);

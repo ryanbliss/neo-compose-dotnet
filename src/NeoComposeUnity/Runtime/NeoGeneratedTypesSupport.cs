@@ -1929,7 +1929,7 @@ namespace NeoCompose.Runtime
                 && cached.classId == classId)
                 return cached;
 
-            if ((ownership == NeoValueOwnership.Save || ownership == NeoValueOwnership.Session)
+            if (ownership is NeoValueOwnership.Save or NeoValueOwnership.Session or NeoValueOwnership.User
                 && savedFactories.TryGetValue(classId, out var savedFactory))
             {
                 return savedFactory(
@@ -8614,7 +8614,7 @@ namespace NeoCompose.Runtime
                 // its own row at its stable id on first mutation, so there is
                 // no path to pre-materialize here.
                 if (!client.TryGetValueOwnership(valueId, out NeoValueOwnership ownership)
-                    || (ownership != NeoValueOwnership.Save && ownership != NeoValueOwnership.Session))
+                    || ownership is not (NeoValueOwnership.Save or NeoValueOwnership.Session or NeoValueOwnership.User))
                 {
                     throw new InvalidOperationException(
                         "NSProperty getter returned an asset-owned class value where a saved value was expected.");

@@ -108,7 +108,7 @@ namespace NeoCompose.Runtime
         }
 
         private static NeoMember ResolveSelection(NeoClient client, Member entry, string id, NeoValueOwnership targetOwnership) =>
-            targetOwnership == NeoValueOwnership.Save || targetOwnership == NeoValueOwnership.Session
+            targetOwnership is NeoValueOwnership.Save or NeoValueOwnership.Session or NeoValueOwnership.User
                 ? CreateWritable(client, entry, id, targetOwnership)
                 : Create(client, entry, id);
 

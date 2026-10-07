@@ -539,11 +539,9 @@ namespace NeoCompose.Convex
         {
             var signal = JsonConvert.DeserializeObject<GameSaveSnapshotRevisionSignal>(
                 json, NeoSaveJson.ContentSettings);
+            // The query answers null once the file is gone.
             if (signal == null)
-            {
-                throw new InvalidOperationException(
-                    "Realtime save revision signal deserialized to null.");
-            }
+                return new GameSaveSnapshotRevisionSignal { snapshotId = "" };
             NeoSaveFormat.RequireSupported(signal.requiredSaveFormatRevision);
             return signal;
         }

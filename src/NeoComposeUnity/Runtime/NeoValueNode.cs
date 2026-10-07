@@ -20,6 +20,8 @@ namespace NeoCompose.Runtime
         internal readonly string id;
         internal MemberValue? session;
         internal MemberValue? save;
+        /// <summary>The User layer's row, which a save client reads from its user client (P104 §4.3).</summary>
+        internal MemberValue? user;
         internal MemberValue? virtualRow;
         internal NeoValueOwnership virtualOwnership;
         /// <summary>False once the client dropped the node; a holder resolves the id again.</summary>
@@ -57,6 +59,7 @@ namespace NeoCompose.Runtime
             string id,
             MemberValue? session,
             MemberValue? save,
+            MemberValue? user,
             MemberValue? asset,
             MemberValue? virtualRow,
             NeoValueOwnership virtualOwnership)
@@ -65,6 +68,7 @@ namespace NeoCompose.Runtime
             {
                 session = session,
                 save = save,
+                user = user,
                 asset = asset,
                 virtualRow = virtualRow,
                 virtualOwnership = virtualOwnership,

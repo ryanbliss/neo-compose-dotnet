@@ -10,5 +10,7 @@ namespace NeoCompose.Runtime
         Asset,
         Save,
         Session,
+        /// <summary>The player's user file, shared across saves (P104).</summary>
+        User,
     }
 }

@@ -102,14 +102,14 @@ namespace NeoCompose.Runtime
 
         private bool listenerSlotsDirty = true;
         private object? listenerSlotSchema;
-        private readonly Dictionary<string, MemberValue> authoredListenerRoots = new(StringComparer.Ordinal);
+        private Dictionary<string, MemberValue> authoredListenerRoots => authoredIndexes.listenerRoots;
         private readonly HashSet<(NeoValueOwnership scope, string id)> dirtyListenerOwners = new();
         private readonly Dictionary<string, List<ListenerSlot>> listenerCollectionsById = new(StringComparer.Ordinal);
 
         private bool hasListenerSources;
 
         private void RefreshListenerSources() => hasListenerSources = sessionChangeListeners.Count != 0
-            || saveData.changeListeners?.Count > 0 || defaultChangeListeners.Count != 0
+            || PersistedData.changeListeners?.Count > 0 || defaultChangeListeners.Count != 0
             || copiedListenerRoots.Count != 0 || authoredListenerRoots.Count != 0;
 
         internal void RecordListenerReplacement(NeoValueOwnership scope, string id)
@@ -153,11 +153,12 @@ namespace NeoCompose.Runtime
             listenerSlotsByOwner.Clear();
             var seen = new HashSet<(NeoValueOwnership scope, string ownerId, string memberId)>();
             foreach (var root in authoredListenerRoots)
-                if (root.Value.changeListeners is { } authored)
-                    AddListenerSlots(root.Key, authored, ResolveAuthoredOwnership(root.Key, root.Value), seen);
-            if (saveData.changeListeners is { } saved)
+                if (root.Value.changeListeners is { } authored
+                    && ListensToAuthoredRoot(ResolveAuthoredOwnership(root.Key, root.Value)) is { } authoredScope)
+                    AddListenerSlots(root.Key, authored, authoredScope, seen);
+            if (PersistedData.changeListeners is { } saved)
                 foreach (var root in saved)
-                    AddListenerSlots(root.Key, root.Value, NeoValueOwnership.Save, seen);
+                    AddListenerSlots(root.Key, root.Value, PersistedOwnership, seen);
             foreach (var root in sessionChangeListeners)
                 AddListenerSlots(root.Key.rootId, root.Value, root.Key.scope, seen);
             var copiedBindingRoots = new Dictionary<(NeoValueOwnership scope, string id), string>();
@@ -236,14 +237,27 @@ namespace NeoCompose.Runtime
                 AddListenerOwner(rootId, ownerId, copied, scope, seen);
             if (defaultChangeListeners.TryGetValue(key, out var defaults))
                 AddListenerOwner(rootId, ownerId, defaults.members, scope, seen);
-            if (authoredListenerRoots.GetValueOrDefault(rootId)?.changeListeners?.TryGetValue(ownerId, out var authored) == true)
+            if (AuthoredListenerRoot(rootId)?.changeListeners?.TryGetValue(ownerId, out var authored) == true)
                 AddListenerOwner(rootId, ownerId, authored, scope, seen);
-            if (scope != NeoValueOwnership.Session
-                && saveData.changeListeners?.GetValueOrDefault(rootId)?.TryGetValue(ownerId, out var saved) == true)
+            if (!IsTransientListenerTier(scope)
+                && PersistedData.changeListeners?.GetValueOrDefault(rootId)?.TryGetValue(ownerId, out var saved) == true)
                 AddListenerOwner(rootId, ownerId, saved, scope, seen);
             if (sessionChangeListeners.GetValueOrDefault((scope, rootId))?.TryGetValue(ownerId, out var session) == true)
                 AddListenerOwner(rootId, ownerId, session, scope, seen);
         }
+
+        /// <summary>
+        /// The scope an authored listener root dispatches under here, or null
+        /// when its wiring is the other client's behaviour.
+        /// </summary>
+        private NeoValueOwnership? ListensToAuthoredRoot(NeoValueOwnership ownership) =>
+            RunsBehaviourFor(ownership) ? ownership : null;
+
+        private MemberValue? AuthoredListenerRoot(string rootId) =>
+            authoredListenerRoots.GetValueOrDefault(rootId) is { } root
+                && ListensToAuthoredRoot(ResolveAuthoredOwnership(rootId, root)) is not null
+                ? root
+                : null;
 
         private void InvalidateListenerOwner(NeoValueOwnership scope, string id)
         {
@@ -469,9 +483,9 @@ namespace NeoCompose.Runtime
             Member observed = slot.Member;
             string rootId = slot.RootId;
             NeoValueOwnership observedLifetime = ChildOwnership(observed, ownership);
-            NeoDelegateValue[] durable = ownership == NeoValueOwnership.Session ? Array.Empty<NeoDelegateValue>()
-                : saveData.changeListeners?.GetValueOrDefault(rootId)?.Find(ownerId, memberId)
-                    ?? InheritedChangeListeners(rootId, ownerId, memberId, NeoValueOwnership.Save, observedLifetime, ownership);
+            NeoDelegateValue[] durable = IsTransientListenerTier(ownership) ? Array.Empty<NeoDelegateValue>()
+                : PersistedData.changeListeners?.GetValueOrDefault(rootId)?.Find(ownerId, memberId)
+                    ?? InheritedChangeListeners(rootId, ownerId, memberId, PersistedOwnership, observedLifetime, ownership);
             NeoDelegateValue[] session = sessionChangeListeners.GetValueOrDefault((ownership, rootId))?.Find(ownerId, memberId)
                 ?? InheritedChangeListeners(rootId, ownerId, memberId, NeoValueOwnership.Session, observedLifetime, ownership);
             if (durable.Length + session.Length == 0)
@@ -506,7 +520,7 @@ namespace NeoCompose.Runtime
                     if (target.valueId is string targetId)
                     {
                         TryGetValueOwnership(targetId, out var currentScope);
-                        receiverScope = registration.session ? currentScope : ListenerOwnerScope(NeoValueOwnership.Save, targetId);
+                        receiverScope = registration.session ? currentScope : ListenerOwnerScope(PersistedOwnership, targetId);
                     }
                     bool sessionTarget = IsSessionListenerTarget(target, observedLifetime, receiverScope);
                     if (!registration.session && sessionTarget)
@@ -646,9 +660,13 @@ namespace NeoCompose.Runtime
             {
                 if (!TryGetValueOwnership(receiverId, out NeoValueOwnership receiverOwnership))
                     throw new NSGetterRuntimeError($"Listener receiver '{receiverId}' is not live.");
-                if (receiverOwnership == NeoValueOwnership.Session)
+                if (IsTransientListenerTier(receiverOwnership))
                     lifetime = NeoValueOwnership.Session;
             }
+            // A save client's wiring on User data is its own, never the
+            // user file's (P104 §3.5).
+            if (IsTransientListenerTier(lifetime))
+                lifetime = NeoValueOwnership.Session;
 
             if (isReplayingVirtualInstance && replayAllocationScope is not null)
             {
@@ -692,7 +710,7 @@ namespace NeoCompose.Runtime
                 PrepareListenerMove(pendingPlan, ownership, ownerId);
             // Promotion retains existing temporary registrations. Repeating +=
             // must not turn one into persisted wiring, and -= must still find it.
-            if (lifetime == NeoValueOwnership.Save)
+            if (lifetime == PersistedOwnership)
             {
                 Dictionary<string, NeoDelegateValue[]>? temporary;
                 if (pendingPlan?.ListenerEntries?.TryGetValue((NeoValueOwnership.Session, ownership, rootId, ownerId), out temporary) != true)
@@ -707,7 +725,7 @@ namespace NeoCompose.Runtime
             }
             NeoChangeListenerMap? explicitMap = lifetime == NeoValueOwnership.Session
                 ? sessionChangeListeners.GetValueOrDefault((ownership, rootId))
-                : saveData.changeListeners?.GetValueOrDefault(rootId);
+                : PersistedData.changeListeners?.GetValueOrDefault(rootId);
             Dictionary<string, NeoDelegateValue[]>? previousEntry = null;
             if (pendingPlan?.ListenerEntries?.TryGetValue((lifetime, ownership, rootId, ownerId), out previousEntry) != true)
                 explicitMap?.TryGetValue(ownerId, out previousEntry);
@@ -829,7 +847,10 @@ namespace NeoCompose.Runtime
                     return combined.ToArray();
                 }
             }
-            NeoDelegateValue[]? targets = data.values.GetValueOrDefault(rootId)?.changeListeners?.Find(ownerId, memberId);
+            NeoDelegateValue[]? targets = data.values.GetValueOrDefault(rootId) is { changeListeners: { } authored } authoredRoot
+                && ListensToAuthoredRoot(ResolveAuthoredOwnership(rootId, authoredRoot)) is not null
+                ? authored.Find(ownerId, memberId)
+                : null;
             if (targets is not null)
                 return targets;
             if (candidateReplay?.ConstructionDefaults.TryGetValue(ownerId, out var pending) == true)
@@ -1007,7 +1028,7 @@ namespace NeoCompose.Runtime
             if (target.valueId is string receiverId)
             {
                 TryGetValueOwnership(receiverId, out var currentScope);
-                receiverScope = mapTier == NeoValueOwnership.Session ? currentScope : ListenerOwnerScope(NeoValueOwnership.Save, receiverId);
+                receiverScope = mapTier == NeoValueOwnership.Session ? currentScope : ListenerOwnerScope(PersistedOwnership, receiverId);
                 var receiver = context.Endpoint(receiverScope.Value, receiverId);
                 if (!receiver.authoritative)
                     return true;
@@ -1116,7 +1137,7 @@ namespace NeoCompose.Runtime
                 {
                     NeoChangeListenerMap? previous = key.ownership == NeoValueOwnership.Session
                         ? sessionChangeListeners.GetValueOrDefault((key.scope, key.rootId))
-                        : saveData.changeListeners?.GetValueOrDefault(key.rootId);
+                        : PersistedData.changeListeners?.GetValueOrDefault(key.rootId);
                     maps[key] = map = previous?.Copy() ?? new NeoChangeListenerMap();
                 }
                 if (change.Value is null)
@@ -1132,13 +1153,13 @@ namespace NeoCompose.Runtime
                     continue;
                 if (root is null || root.IsRemoved)
                     throw new NSGetterRuntimeError($"Listener binding root '{pair.Key.rootId}' is not live.");
-                int bytes = NeoChangeListenerPatches.EncodedRecordSize(saveData, pair.Key.rootId, pair.Value, ListenerRootMemberIdByteLimit());
+                int bytes = NeoChangeListenerPatches.EncodedRecordSize(PersistedData, pair.Key.rootId, pair.Value, ListenerRootMemberIdByteLimit());
                 if (bytes > NeoChangeListenerPatches.MaxRecordBytes)
                 {
                     var slots = new List<string>();
                     var previousMap = pair.Key.ownership == NeoValueOwnership.Session
                         ? sessionChangeListeners.GetValueOrDefault((pair.Key.scope, pair.Key.rootId))
-                        : saveData.changeListeners?.GetValueOrDefault(pair.Key.rootId);
+                        : PersistedData.changeListeners?.GetValueOrDefault(pair.Key.rootId);
                     foreach (var edit in plan.ListenerEntries)
                     {
                         if (edit.Key.rootId != pair.Key.rootId || edit.Key.scope != pair.Key.scope || edit.Key.ownership != pair.Key.ownership)
@@ -1185,15 +1206,15 @@ namespace NeoCompose.Runtime
                 }
                 if (pair.Value.Count == 0)
                 {
-                    saveData.changeListeners?.Remove(pair.Key.rootId);
-                    if (saveData.changeListeners?.Count == 0)
-                        saveData.changeListeners = null;
+                    PersistedData.changeListeners?.Remove(pair.Key.rootId);
+                    if (PersistedData.changeListeners?.Count == 0)
+                        PersistedData.changeListeners = null;
                 }
                 else
                 {
-                    saveData.changeListeners ??= new Dictionary<string, NeoChangeListenerMap>(StringComparer.Ordinal);
-                    saveData.changeListeners[pair.Key.rootId] = pair.Value;
-                    saveData.requiredSaveFormatRevision = NeoSaveFormat.Combine(saveData.requiredSaveFormatRevision, NeoSaveFormat.ListenerRevision);
+                    PersistedData.changeListeners ??= new Dictionary<string, NeoChangeListenerMap>(StringComparer.Ordinal);
+                    PersistedData.changeListeners[pair.Key.rootId] = pair.Value;
+                    PersistedData.requiredSaveFormatRevision = NeoSaveFormat.Combine(PersistedData.requiredSaveFormatRevision, NeoSaveFormat.ListenerRevision);
                 }
                 TouchWritableStoreUpdatedAt(pair.Key.ownership);
             }

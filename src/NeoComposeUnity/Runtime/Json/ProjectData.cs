@@ -13,6 +13,10 @@ namespace NeoCompose.Runtime.Json
     public static class NeoProjectExportContract
     {
         /// <summary>
+        /// 38 adds the P104 User root (<c>project.rootUserMemberId</c>) and
+        /// the User storage ordinal (5). An older SDK would fail the load
+        /// with "Unknown member storage ordinal '5'" instead of this gate's
+        /// upgrade message.
         /// 37 adds P102 collection queries, debug output, and authored traces.
         /// 36 splits value rows out of <c>project.json</c> (P100 §4): its
         /// <c>partitions</c> index names one file per partition, main
@@ -108,7 +112,7 @@ namespace NeoCompose.Runtime.Json
         /// the wrong configuration rather than an error. It must reject the
         /// export.
         /// </summary>
-        public const int CurrentSchemaVersion = 37;
+        public const int CurrentSchemaVersion = 38;
 
         /// <summary>
         /// The main partition's file, relative to <c>project.json</c>'s
@@ -429,6 +433,18 @@ namespace NeoCompose.Runtime.Json
         /// export cache authored rows against it.
         /// </summary>
         internal int valuesEpoch;
+
+        /// <summary>
+        /// Set once a client ran the idempotent schema passes over this
+        /// instance, so clients that share it skip them (P104 §4.2).
+        /// </summary>
+        internal bool clientPassesValidated;
+
+        /// <summary>
+        /// Indexes derived only from authored rows, built by the first
+        /// client and shared by every client of this instance (P104 §4.2).
+        /// </summary>
+        internal NeoCompose.Runtime.NeoAuthoredIndexes? authoredIndexes;
 
         /// <summary>
         /// The export's named storage partitions

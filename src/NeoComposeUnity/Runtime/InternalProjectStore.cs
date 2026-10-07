@@ -120,6 +120,12 @@ namespace NeoCompose.Runtime
         public bool CloudEnabled => ApiClient != null;
 
         /// <summary>
+        /// False for an editor or tooling store: its saves load detached, with
+        /// authored User defaults (P104 §4.3).
+        /// </summary>
+        internal bool LoadsUserFile { get; set; } = true;
+
+        /// <summary>
         /// The optional realtime transport (see
         /// <c>specs/convex-realtime-sync.md</c>); null in REST/local-only builds.
         /// </summary>

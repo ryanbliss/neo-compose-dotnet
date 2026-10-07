@@ -52,13 +52,15 @@ namespace HelloWorld.Assets.Tests
         private NeoProjectStore Store(
             INeoLocalSaveStore localStore,
             INeoApiClient apiClient = null,
-            string targetReleaseChannelId = "")
+            string targetReleaseChannelId = "",
+            bool loadUserFile = true)
         {
             var store = new NeoProjectStore(
                 dataSource: SampleProjectFixture.Source,
                 localStore: localStore,
                 apiClient: apiClient,
-                targetReleaseChannelId: targetReleaseChannelId);
+                targetReleaseChannelId: targetReleaseChannelId,
+                loadUserFile: loadUserFile);
             stores.Add(store);
             return store;
         }
@@ -67,7 +69,7 @@ namespace HelloWorld.Assets.Tests
         public async System.Threading.Tasks.Task CreateNew_IsLocalOnlyUntilCommit_ThenListedOnReturn()
         {
             var store = Store(new NeoFileLocalSaveStore(TempDir()));
-            store.LoadAsync().GetAwaiter().GetResult();
+            await store.LoadAsync();
             Assert.IsEmpty(store.Saves);
 
             var synchronizer = store.CreateNew("My Game");
@@ -93,10 +95,21 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
+        public async System.Threading.Tasks.Task ToolingStoreSave_LoadsWithoutTheUserFile()
+        {
+            var store = Store(new NeoInMemoryLocalSaveStore(), loadUserFile: false);
+            await store.LoadAsync();
+
+            using var neo = await HelloWorldNeo.Load(store.CreateNew("Tooling"));
+
+            Assert.IsFalse(neo.Client.ReadsUserFile);
+        }
+
+        [Test]
         public async System.Threading.Tasks.Task Archive_MarksSaveArchivedAndHidesItFromTheActiveList()
         {
             var store = Store(new NeoFileLocalSaveStore(TempDir()));
-            store.LoadAsync().GetAwaiter().GetResult();
+            await store.LoadAsync();
 
             var synchronizer = store.CreateNew("Doomed");
             var neo = await HelloWorldNeo.Load(synchronizer);
@@ -122,7 +135,7 @@ namespace HelloWorld.Assets.Tests
                 new NeoFileLocalSaveStore(TempDir()),
                 cloud,
                 Channel);
-            storeA.LoadAsync().GetAwaiter().GetResult();
+            await storeA.LoadAsync();
 
             var synchronizer = storeA.CreateNew("Cloud Game");
             var neoA = await HelloWorldNeo.Load(synchronizer);
@@ -134,13 +147,15 @@ namespace HelloWorld.Assets.Tests
             neoA.Dispose();
 
             Assert.IsTrue(cloud.saves.ContainsKey(customId), "Commit synced the save to the cloud.");
+            // One store per process owns the user file; device B is a new process.
+            storeA.Dispose();
 
             // Device B: a fresh local store sharing the same cloud sees + loads the save.
             var storeB = Store(
                 new NeoFileLocalSaveStore(TempDir()),
                 cloud,
                 Channel);
-            storeB.LoadAsync().GetAwaiter().GetResult();
+            await storeB.LoadAsync();
 
             Assert.IsTrue(
                 storeB.Saves.Any(s => s.customId == customId),
@@ -166,6 +181,9 @@ namespace HelloWorld.Assets.Tests
                 list.saves.AddRange(saves.Values.Select(RemoteGameSaveSummary.FromRemote));
                 return NeoAwaitable.FromResult(list);
             }
+
+            public Awaitable<RemoteGameSave> GetUserFileAsync(string releaseChannelId) =>
+                throw new NeoComposeNotFoundException("No cloud user file.");
 
             public Awaitable<RemoteGameSave> GetSaveAsync(string customId) =>
                 saves.TryGetValue(customId, out var save)

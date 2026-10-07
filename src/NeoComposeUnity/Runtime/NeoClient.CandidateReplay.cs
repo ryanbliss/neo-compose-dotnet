@@ -252,8 +252,7 @@ namespace NeoCompose.Runtime
         {
             unchanged = false;
             if (CurrentChangeSource == NeoChangeSource.External
-                || !(plan.Rows.ContainsKey((NeoValueOwnership.Save, id))
-                    || plan.Rows.ContainsKey((NeoValueOwnership.Session, id)))
+                || !plan.WritesRow(id)
                 || plan.Resolve(id) is not MemberValue next
                 || !TryGetCommittedValue(id, out MemberValue? previous)
                 || !TryGetCommittedOwnership(id, out NeoValueOwnership oldOwnership)
@@ -400,8 +399,7 @@ namespace NeoCompose.Runtime
                     && candidate.ClassChildren.ContainsKey(rootId))
                     return;
             }
-            bool rootWritten = candidate.Plan.Rows.ContainsKey((NeoValueOwnership.Save, rootId))
-                || candidate.Plan.Rows.ContainsKey((NeoValueOwnership.Session, rootId));
+            bool rootWritten = candidate.Plan.WritesRow(rootId);
             ObjectMemberValue? root = rootWritten ? candidate.Plan.Resolve(rootId) as ObjectMemberValue
                 : boundary?.Root ?? ResolveValueRow(rootId) as ObjectMemberValue;
             // Null is local to its writable store. Rebuild the immutable
@@ -479,7 +477,8 @@ namespace NeoCompose.Runtime
         /// </summary>
         private bool ReselectsVariant(NeoWritePlan plan, string id)
             => (plan.Rows.TryGetValue((NeoValueOwnership.Session, id), out MemberValue? next)
-                    || plan.Rows.TryGetValue((NeoValueOwnership.Save, id), out next))
+                    || plan.Rows.TryGetValue((NeoValueOwnership.Save, id), out next)
+                    || plan.Rows.TryGetValue((NeoValueOwnership.User, id), out next))
                 && next is ObjectMemberValue
                 && PreviousReplayRow(id) is ObjectMemberValue previous
                 && !SameVariantSelection(previous, next);
@@ -519,8 +518,7 @@ namespace NeoCompose.Runtime
                                 return false;
                         continue;
                     }
-                    bool written = candidate.Plan.Rows.ContainsKey((NeoValueOwnership.Save, id))
-                        || candidate.Plan.Rows.ContainsKey((NeoValueOwnership.Session, id));
+                    bool written = candidate.Plan.WritesRow(id);
                     if (!written && footprint.Contains(id))
                         continue;
                     if (!written && !candidate.HiddenVirtualIds.Contains(id))
@@ -687,7 +685,8 @@ namespace NeoCompose.Runtime
                     return false;
                 }
             }
-            return virtualValues.TryGetValue(id, out value);
+            return virtualValues.TryGetValue(id, out value)
+                || AttachedUserClient?.virtualValues.TryGetValue(id, out value) == true;
         }
 
         private bool TryResolveVirtualOwnership(string id, out NeoValueOwnership ownership)
@@ -702,7 +701,8 @@ namespace NeoCompose.Runtime
                     return false;
                 }
             }
-            return virtualValueOwnership.TryGetValue(id, out ownership);
+            return virtualValueOwnership.TryGetValue(id, out ownership)
+                || AttachedUserClient?.virtualValueOwnership.TryGetValue(id, out ownership) == true;
         }
 
         private bool TryResolveVirtualPlacement(string id, out VirtualClassPlacement placement)
@@ -718,7 +718,8 @@ namespace NeoCompose.Runtime
                     return false;
                 }
             }
-            return virtualClassPlacementByChildId.TryGetValue(id, out placement);
+            return virtualClassPlacementByChildId.TryGetValue(id, out placement)
+                || AttachedUserClient?.virtualClassPlacementByChildId.TryGetValue(id, out placement) == true;
         }
 
         private bool TryResolveVirtualClassChildren(string parentId, out Dictionary<string, string> children)
@@ -734,7 +735,8 @@ namespace NeoCompose.Runtime
                     return false;
                 }
             }
-            return virtualClassChildren.TryGetValue(parentId, out children);
+            return virtualClassChildren.TryGetValue(parentId, out children)
+                || AttachedUserClient?.virtualClassChildren.TryGetValue(parentId, out children) == true;
         }
 
         // Constructor allocations and wrappers belong to the proposed graph.

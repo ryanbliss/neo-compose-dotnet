@@ -470,19 +470,29 @@ namespace NeoCompose.Runtime
         {
             List<string>? virtualSave = null;
             List<string>? virtualSession = null;
-            MarkEffectRows(data.values);
+            // A user client holds only User behaviour (P104 §4.2).
+            if (IsUserClient)
+            {
+                foreach (MemberValue row in AuthoredUserRows())
+                    if (IsEffectRow(row))
+                        MarkEffectRow(row.id);
+            }
+            else
+            {
+                MarkEffectRows(data.values);
+            }
             foreach (var pair in virtualValues)
             {
                 if (!IsEffectRow(pair.Value) || !virtualValueOwnership.TryGetValue(pair.Key, out NeoValueOwnership ownership))
                     continue;
                 if (ownership == NeoValueOwnership.Asset)
                     MarkEffectRow(pair.Key);
-                else if (ownership == NeoValueOwnership.Save)
+                else if (ownership == PersistedOwnership)
                     (virtualSave ??= new List<string>()).Add(pair.Key);
                 else
                     (virtualSession ??= new List<string>()).Add(pair.Key);
             }
-            MarkEffectRows(saveValues);
+            MarkEffectRows(persistedValues);
             if (virtualSave is not null)
                 foreach (string id in virtualSave)
                     MarkEffectRow(id);
@@ -510,6 +520,7 @@ namespace NeoCompose.Runtime
             NeoClassNode? node = null;
             string? containerId = null;
             if (TryGetCommittedOwnership(id, out NeoValueOwnership ownership)
+                && RunsBehaviourFor(ownership)
                 && ResolveValueRow(id) is ObjectMemberValue { IsRemoved: false, classId: { } classId } row)
             {
                 NeoClassNode candidate = ResolveClassNode(classId);
@@ -651,7 +662,8 @@ namespace NeoCompose.Runtime
         {
             Project project = data.project;
             return IsMemberEdge(edge, project.rootSaveFileMemberId)
-                || IsMemberEdge(edge, project.rootSessionMemberId);
+                || IsMemberEdge(edge, project.rootSessionMemberId)
+                || IsMemberEdge(edge, project.rootUserMemberId);
         }
 
         // An unrebound writable static holds its default through its member edge.

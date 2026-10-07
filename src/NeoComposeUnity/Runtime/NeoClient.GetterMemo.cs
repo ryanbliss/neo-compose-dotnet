@@ -1391,7 +1391,7 @@ namespace NeoCompose.Runtime
         internal void ReleaseGetterChanges()
         {
             // An idle boundary has nothing to drain or raise.
-            if (getterChangeHolds > 1 || (pendingGetterChanges.Count == 0 && !EffectsPending))
+            if (getterChangeHolds > 1 || (pendingGetterChanges.Count == 0 && !EffectsPending && !userChangesPending))
                 getterChangeHolds--;
             else
                 ReleaseOutermostGetterChanges();
@@ -1407,7 +1407,16 @@ namespace NeoCompose.Runtime
             finally
             {
                 if (--getterChangeHolds == 0)
-                    FlushGetterChanges();
+                {
+                    try
+                    {
+                        FlushGetterChanges();
+                    }
+                    finally
+                    {
+                        FlushUserChanges();
+                    }
+                }
             }
         }
 
