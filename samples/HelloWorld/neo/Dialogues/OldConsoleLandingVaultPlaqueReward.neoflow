@@ -17,7 +17,7 @@ sealed class OldConsoleLandingVaultPlaqueReward : Dialogue {
   ) {
     @primary
     BlockedPath blockedPath = Reference<BlockedPath>(id: "432f5226-99d8-4d59-8cf0-4d86ca64462f");
-  
+
     """
     The plaque has already re-etched itself: SEAL RELEASED — RUNNER, FIRST OF THE NEW TRAFFIC. "The recovery cache sits in the vault ahead," the console says. "Whatever's in it is yours, receipt and all."
     """

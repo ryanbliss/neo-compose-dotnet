@@ -36,26 +36,26 @@ sealed class PlutocracyIntro : Dialogue {
   ) {
     @primary
     Outpost plutocracy = Reference<Outpost>(id: "18154c7e-8f9a-4767-b44c-a25b0e1ca234");
-  
+
     """
     Ah. The famous investigator, here at the edge of everything. Do you know what they took from us, before you were even born? A WORD. 'Planet.' One word, and the whole system stopped writing.
     """
-  
+
     @id("2b9e18bd-a3b3-4326-828b-9ccd864856a3")
     Option Listen = new() {
       """
       Go on.
       """
-    
+
       return Pl2;
     }
-  
+
     @id("54c3d2dd-a25c-4af6-a81e-0c1c884e5388")
     Option Cut = new() {
       """
       The Second Sun. It's yours, isn't it?
       """
-    
+
       return Pl2;
     }
   }
@@ -66,11 +66,11 @@ sealed class PlutocracyIntro : Dialogue {
   ) {
     @primary
     Outpost plutocracy = Reference<Outpost>(id: "18154c7e-8f9a-4767-b44c-a25b0e1ca234");
-  
+
     """
     The Gyre builds it, yes — but it will orbit US. A sun of Pluto's own. And when it lights, no astronomer alive will dare write 'dwarf' next to our name again.
     """
-  
+
     return Pl3;
   }
 
@@ -80,35 +80,35 @@ sealed class PlutocracyIntro : Dialogue {
   ) {
     @primary
     Outpost plutocracy = Reference<Outpost>(id: "18154c7e-8f9a-4767-b44c-a25b0e1ca234");
-  
+
     """
     So. The ledgers are open, the manifest is in your coat, and the question, investigator, is what you do with your evening.
     """
-  
+
     @id("9539da55-ed13-4228-85a1-a85efb22c90d")
     Option Side = new() {
       """
       A sun for Pluto. Honestly? Earned.
       """
-    
+
       return Ple1;
     }
-  
+
     @id("3c47d0d4-f986-421a-afb0-7bcdd05621ea")
     Option Expose = new() {
       """
       The whole system will know by morning. All of it.
       """
-    
+
       return Ple2;
     }
-  
+
     @id("24844262-fff0-4b23-8378-d461d4b884c5")
     Option Broker = new() {
       """
       There's a third way: share the Second Sun. Every outpost, one sky.
       """
-    
+
       return Ple3;
     }
   }
@@ -119,11 +119,11 @@ sealed class PlutocracyIntro : Dialogue {
   ) {
     @primary
     Outpost plutocracy = Reference<Outpost>(id: "18154c7e-8f9a-4767-b44c-a25b0e1ca234");
-  
+
     """
     We knew you were reasonable. Wear this signet — when the new dawn comes, it will mark you a Friend of Pluto.
     """
-  
+
     return Pla1;
   }
 
@@ -133,10 +133,10 @@ sealed class PlutocracyIntro : Dialogue {
   ) {
     @primary
     Outpost plutocracy = Reference<Outpost>(id: "18154c7e-8f9a-4767-b44c-a25b0e1ca234");
-  
+
     @id("7eb438ef-4230-4e38-a4bb-109eb7612ea2")
     Action2();
-  
+
     return GrantPlutonianSignet;
   }
 
@@ -146,7 +146,7 @@ sealed class PlutocracyIntro : Dialogue {
   ) {
     @primary
     Outpost plutocracy = Reference<Outpost>(id: "18154c7e-8f9a-4767-b44c-a25b0e1ca234");
-  
+
     """
     The sun sets on Earth. Somewhere past Neptune, a second dawn is loading.
     """
@@ -158,11 +158,11 @@ sealed class PlutocracyIntro : Dialogue {
   ) {
     @primary
     Outpost plutocracy = Reference<Outpost>(id: "18154c7e-8f9a-4767-b44c-a25b0e1ca234");
-  
+
     """
     Then run fast, little herald. Light takes five hours to reach Earth from here — your warning will be racing it the whole way.
     """
-  
+
     return Pla2;
   }
 
@@ -172,10 +172,10 @@ sealed class PlutocracyIntro : Dialogue {
   ) {
     @primary
     Outpost plutocracy = Reference<Outpost>(id: "18154c7e-8f9a-4767-b44c-a25b0e1ca234");
-  
+
     @id("8a4202b1-dae7-4405-8421-1a28e212f7c6")
     Action3();
-  
+
     return Pe2;
   }
 
@@ -185,7 +185,7 @@ sealed class PlutocracyIntro : Dialogue {
   ) {
     @primary
     Outpost plutocracy = Reference<Outpost>(id: "18154c7e-8f9a-4767-b44c-a25b0e1ca234");
-  
+
     """
     Behind you, the Plutocracy begins erasing its ledgers. The race to sunrise has started.
     """
@@ -197,12 +197,12 @@ sealed class PlutocracyIntro : Dialogue {
   ) {
     @primary
     Item plutonianSignet = Reference<Item>(id: "e812e95c-d4dc-4f5d-8f42-ce57e5501eab");
-  
+
     Outpost plutocracy = Reference<Outpost>(id: "18154c7e-8f9a-4767-b44c-a25b0e1ca234");
-  
+
     @id("711ab375-5c19-4e01-b75c-4f9dc14d92e8")
     Action1();
-  
+
     return Pe1;
   }
 
@@ -212,11 +212,11 @@ sealed class PlutocracyIntro : Dialogue {
   ) {
     @primary
     Outpost plutocracy = Reference<Outpost>(id: "18154c7e-8f9a-4767-b44c-a25b0e1ca234");
-  
+
     """
     ...A shared dawn. The Mercurials prophesied a Red Nova; perhaps prophecy is only a plan that no one has priced yet. Bring us the system's signatures, investigator. Pluto will sign last — but Pluto will sign.
     """
-  
+
     return Pe3;
   }
 
@@ -226,7 +226,7 @@ sealed class PlutocracyIntro : Dialogue {
   ) {
     @primary
     Outpost plutocracy = Reference<Outpost>(id: "18154c7e-8f9a-4767-b44c-a25b0e1ca234");
-  
+
     """
     One sky. Thirteen outposts. A sun that belongs to everyone. The Accord begins with you.
     """

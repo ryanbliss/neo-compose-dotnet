@@ -17,7 +17,7 @@ sealed class OldConsoleLandingExitPromptQuiet : Dialogue {
   ) {
     @primary
     BlockedPath blockedPath = Reference<BlockedPath>(id: "432f5226-99d8-4d59-8cf0-4d86ca64462f");
-  
+
     """
     Your ship's launch console idles through its pre-flight loop, patient as ever. "Nothing to relay," it reports. "The deck still has business with you — or you with it. We fly when you're done."
     """

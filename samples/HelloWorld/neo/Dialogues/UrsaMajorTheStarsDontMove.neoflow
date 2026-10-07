@@ -59,11 +59,11 @@ sealed class UrsaMajorTheStarsDontMove : Dialogue {
   ) {
     @primary
     Outpost outpost = Reference<Outpost>(id: "b81df7d3-be41-4685-9111-3cdc1821e693");
-  
+
     """
     The monks on Enceladus — their geyser hymns. I always took them for noise, but the cadence... it's structured. Line lengths, repeated headers. Take the survey data to them. Tell them the sky held still.
     """
-  
+
     return U5;
   }
 
@@ -73,11 +73,11 @@ sealed class UrsaMajorTheStarsDontMove : Dialogue {
   ) {
     @primary
     Outpost outpost = Reference<Outpost>(id: "b81df7d3-be41-4685-9111-3cdc1821e693");
-  
+
     """
     Right. Right. Parallax: when you move, near stars should shift against far ones. It is geometry. It is the LAW.
     """
-  
+
     return U2;
   }
 
@@ -87,7 +87,7 @@ sealed class UrsaMajorTheStarsDontMove : Dialogue {
   ) {
     @primary
     Outpost outpost = Reference<Outpost>(id: "b81df7d3-be41-4685-9111-3cdc1821e693");
-  
+
     """
     Whatever they sing back to you — that's the half of the proof we couldn't read. Go. And traveler... thank you for looking up with us.
     """
@@ -99,26 +99,26 @@ sealed class UrsaMajorTheStarsDontMove : Dialogue {
   ) {
     @primary
     Outpost outpost = Reference<Outpost>(id: "b81df7d3-be41-4685-9111-3cdc1821e693");
-  
+
     """
     Nothing moved. Not one star. Not by a hair. We crossed half the system and the sky did not notice. The stars are not far away, traveler — they are PAINTED. A... a backdrop. A skybox.
     """
-  
+
     @id("9bd8be89-e216-4717-a56e-2571a79b10f2")
     Option Calm = new() {
       """
       Then we're the first people to ever really look. That's not nothing.
       """
-    
+
       return U3warm;
     }
-  
+
     @id("03e51da9-a543-4415-98f8-6b127cb99cd9")
     Option Blunt = new() {
       """
       So the sky is fake. What's behind it?
       """
-    
+
       return U3cold;
     }
   }
@@ -129,11 +129,11 @@ sealed class UrsaMajorTheStarsDontMove : Dialogue {
   ) {
     @primary
     Outpost outpost = Reference<Outpost>(id: "b81df7d3-be41-4685-9111-3cdc1821e693");
-  
+
     """
     You came back. Good. Close the door. ...We finished the parallax survey last night. Twelve years of baselines, every outpost, both solstices.
     """
-  
+
     @id("9f52af2d-842c-4874-b604-de42236790f2")
     Option And = new(
       name: "And?",
@@ -141,16 +141,16 @@ sealed class UrsaMajorTheStarsDontMove : Dialogue {
       """
       And? What did you find?
       """
-    
+
       return U2;
     }
-  
+
     @id("3a268786-6c52-45dc-862d-24ad06887f87")
     Option Steady = new() {
       """
       Breathe. Start from the beginning.
       """
-    
+
       return U1b;
     }
   }
@@ -161,11 +161,11 @@ sealed class UrsaMajorTheStarsDontMove : Dialogue {
   ) {
     @primary
     Outpost outpost = Reference<Outpost>(id: "b81df7d3-be41-4685-9111-3cdc1821e693");
-  
+
     """
     Behind it? BEHIND it? Forty years staring up and you ask what's behind the— ...I don't know. Nobody knows. That's the worst part.
     """
-  
+
     return U4;
   }
 
@@ -175,10 +175,10 @@ sealed class UrsaMajorTheStarsDontMove : Dialogue {
   ) {
     @primary
     Outpost outpost = Reference<Outpost>(id: "b81df7d3-be41-4685-9111-3cdc1821e693");
-  
+
     @id("ff48b978-e50d-49e7-9b00-a001f63b9464")
     Action1();
-  
+
     return U4;
   }
 
@@ -188,13 +188,13 @@ sealed class UrsaMajorTheStarsDontMove : Dialogue {
   ) {
     @primary
     Outpost outpost = Reference<Outpost>(id: "b81df7d3-be41-4685-9111-3cdc1821e693");
-  
+
     @id("8a69573c-5a18-4ec2-b6ac-cd57f2c53da2")
     Action4();
-  
+
     @id("8055814e-6ac3-40a7-bce2-4894563ebdfd")
     Action5();
-  
+
     return U5ask;
   }
 
@@ -204,11 +204,11 @@ sealed class UrsaMajorTheStarsDontMove : Dialogue {
   ) {
     @primary
     Outpost outpost = Reference<Outpost>(id: "b81df7d3-be41-4685-9111-3cdc1821e693");
-  
+
     """
     The Curator eyes the rigging bag on your shoulder. 'The high scope hasn't been climbed since the sky froze. Old knees,' he admits.
     """
-  
+
     @id("b305fc58-9b44-44c9-a744-858a57d9057d")
     Option Rig = new(
       selectableWhen: [
@@ -219,16 +219,16 @@ sealed class UrsaMajorTheStarsDontMove : Dialogue {
       """
       Leave your Low-G Pitons rigged on the high scope
       """
-    
+
       return GivePitons;
     }
-  
+
     @id("3ee81a7e-09b8-4ca9-947f-d7e16952a346")
     Option Keep = new() {
       """
       You'll be needing them yourself
       """
-    
+
       return U6;
     }
   }
@@ -239,10 +239,10 @@ sealed class UrsaMajorTheStarsDontMove : Dialogue {
   ) {
     @primary
     Outpost outpost = Reference<Outpost>(id: "b81df7d3-be41-4685-9111-3cdc1821e693");
-  
+
     @id("240474f0-0df8-4735-ac4d-774fa036b5bb")
     Action2();
-  
+
     return U6;
   }
 
@@ -251,13 +251,13 @@ sealed class UrsaMajorTheStarsDontMove : Dialogue {
     name: "give pitons",
   ) {
     Outpost outpost = Reference<Outpost>(id: "b81df7d3-be41-4685-9111-3cdc1821e693");
-  
+
     @primary
     Item lowGPitons = Reference<Item>(id: "c8eb381b-9c3f-4120-b8c3-3872cdde5148");
-  
+
     @id("6c90b27b-f336-4860-98e5-d2f55d043a6e")
     Action3();
-  
+
     return GivePitons2;
   }
 }

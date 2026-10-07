@@ -17,7 +17,7 @@ sealed class OldConsoleLandingVaultPlaqueLocked : Dialogue {
   ) {
     @primary
     BlockedPath blockedPath = Reference<BlockedPath>(id: "432f5226-99d8-4d59-8cf0-4d86ca64462f");
-  
+
     """
     A brass plaque stands at the mouth of the corridor, etched in patient capitals: RECOVERY CACHE AHEAD — RESERVED FOR WHOEVER WAKES THE DECK. Behind it, the quarantine field hums on, unimpressed by your reading comprehension.
     """

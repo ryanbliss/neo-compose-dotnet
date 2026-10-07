@@ -17,11 +17,11 @@ sealed class OldConsoleLandingBarrierLocked : Dialogue {
   ) {
     @primary
     BlockedPath blockedPath = Reference<BlockedPath>(id: "432f5226-99d8-4d59-8cf0-4d86ca64462f");
-  
+
     """
     A wall of teal light hums across the corridor, bright enough to throw your shadow back into the landing bay. The console recites, flat as a form letter: "Quarantine seal active. Boot trace required."
     """
-  
+
     return Hint;
   }
 
@@ -31,7 +31,7 @@ sealed class OldConsoleLandingBarrierLocked : Dialogue {
   ) {
     @primary
     BlockedPath blockedPath = Reference<BlockedPath>(id: "432f5226-99d8-4d59-8cf0-4d86ca64462f");
-  
+
     """
     "The old boot glyph still glows in the chamber south of the landing bay. Walk it, and this seal will know your name."
     """

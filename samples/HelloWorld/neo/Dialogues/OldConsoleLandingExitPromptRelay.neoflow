@@ -22,11 +22,11 @@ sealed class OldConsoleLandingExitPromptRelay : Dialogue {
   ) {
     @primary
     BlockedPath blockedPath = Reference<BlockedPath>(id: "432f5226-99d8-4d59-8cf0-4d86ca64462f");
-  
+
     """
     The launch console perks up the moment you step aboard. "That's a live boot trace you're carrying. I still hold maintenance authority on this deck — no need to walk it back to the seal. Relaying now."
     """
-  
+
     return Clear;
   }
 
@@ -36,10 +36,10 @@ sealed class OldConsoleLandingExitPromptRelay : Dialogue {
   ) {
     @primary
     BlockedPath blockedPath = Reference<BlockedPath>(id: "432f5226-99d8-4d59-8cf0-4d86ca64462f");
-  
+
     @id("7fc0dbae-47f9-40f8-9ae9-6424a759a3b8")
     Action1();
-  
+
     return Done;
   }
 
@@ -49,7 +49,7 @@ sealed class OldConsoleLandingExitPromptRelay : Dialogue {
   ) {
     @primary
     BlockedPath blockedPath = Reference<BlockedPath>(id: "432f5226-99d8-4d59-8cf0-4d86ca64462f");
-  
+
     """
     Across the bay, the teal field sighs out of existence and the vault corridor stands open. "The recovery cache is inside," the console adds, filing the whole exchange with what can only be described as pride in its paperwork.
     """

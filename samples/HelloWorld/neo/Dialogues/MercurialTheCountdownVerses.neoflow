@@ -64,10 +64,10 @@ sealed class MercurialTheCountdownVerses : Dialogue {
   ) {
     @primary
     Outpost mercurial = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
-  
+
     @id("971102a4-7180-450a-b84c-482f5fd74bed")
     Action6();
-  
+
     return M4;
   }
 
@@ -77,26 +77,26 @@ sealed class MercurialTheCountdownVerses : Dialogue {
   ) {
     @primary
     Outpost mercurial = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
-  
+
     """
     'Ten the gates of warmth. Nine the wells sealed. Eight the breath withdrawn...' Thou hearest it too. The holy verses COUNT, seeker. Downward. And between the seventh and sixth verse, words our tongues were never shaped for: 'TODO — handle exit gracefully.'
     """
-  
+
     @id("ba08b005-a440-42ba-b74f-09574da3ec01")
     Option Truth = new() {
       """
       Your scripture is the world's README. You've guarded the truth all along.
       """
-    
+
       return M3w;
     }
-  
+
     @id("02a56aa5-7bc1-439c-8b6b-4b5abc7e9f9d")
     Option Pity = new() {
       """
       You worshipped an instruction manual.
       """
-    
+
       return M3c;
     }
   }
@@ -107,13 +107,13 @@ sealed class MercurialTheCountdownVerses : Dialogue {
   ) {
     @primary
     Outpost mercurial = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
-  
+
     @id("b8af3b74-e7d3-43c3-a0d1-20f70b8d5b97")
     Action2();
-  
+
     @id("9180d76c-fd46-4778-9dc7-a40cafd7a2e7")
     Action3();
-  
+
     return M4ask;
   }
 
@@ -123,10 +123,10 @@ sealed class MercurialTheCountdownVerses : Dialogue {
   ) {
     @primary
     Outpost mercurial = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
-  
+
     @id("5f5a90dc-2f86-4b5e-b6c4-154e65119c3b")
     Action1();
-  
+
     return M4;
   }
 
@@ -136,7 +136,7 @@ sealed class MercurialTheCountdownVerses : Dialogue {
   ) {
     @primary
     Outpost mercurial = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
-  
+
     """
     The Light does not mind being understood, seeker. When the counting ends, remember: the verses were never a prophecy. They were a shutdown sequence.
     """
@@ -148,17 +148,17 @@ sealed class MercurialTheCountdownVerses : Dialogue {
   ) {
     @primary
     Outpost mercurial = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
-  
+
     """
     Seeker. The Patriarch will read thee the Red Nova verses in canonical order. Few outsiders hear them ordered. Sit in the Light.
     """
-  
+
     @id("c49bdd5c-7478-4980-8c80-89becbd87935")
     Option Sit = new() {
       """
       I'm listening.
       """
-    
+
       return M2;
     }
   }
@@ -169,11 +169,11 @@ sealed class MercurialTheCountdownVerses : Dialogue {
   ) {
     @primary
     Outpost mercurial = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
-  
+
     """
     The Patriarch folds the verses into your hands. Up close, his sun-burns glisten — decades of staring into the Light.
     """
-  
+
     @id("2c938d29-8bea-49b5-bb46-31eb4401801d")
     Option Anoint = new(
       selectableWhen: [
@@ -184,16 +184,16 @@ sealed class MercurialTheCountdownVerses : Dialogue {
       """
       Anoint his burns with the Cryo Salve
       """
-    
+
       return GiveSalve;
     }
-  
+
     @id("2c6c6535-500d-4661-b3d4-c71b3c74ac52")
     Option Leave = new() {
       """
       Take the verses and go
       """
-    
+
       return M5;
     }
   }
@@ -204,10 +204,10 @@ sealed class MercurialTheCountdownVerses : Dialogue {
   ) {
     @primary
     Outpost mercurial = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
-  
+
     @id("955ed726-bf4e-494f-b3c7-1f72d7eedb55")
     Action4();
-  
+
     return M5;
   }
 
@@ -216,13 +216,13 @@ sealed class MercurialTheCountdownVerses : Dialogue {
     name: "give salve",
   ) {
     Outpost mercurial = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
-  
+
     @primary
     Item cryoSalve = Reference<Item>(id: "a840747f-9d6b-4d71-af3a-16b294ec436d");
-  
+
     @id("10ccafed-a3aa-44c9-8ee1-ed94d0f172f2")
     Action5();
-  
+
     return GiveSalve2;
   }
 }

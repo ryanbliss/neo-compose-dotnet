@@ -36,26 +36,26 @@ sealed class GyreCollectiveIntro : Dialogue {
   ) {
     @primary
     Outpost gyreCollective = Reference<Outpost>(id: "763b50d2-c0b2-4346-b8fb-a092e7337af3");
-  
+
     """
     State your business or be recycled. ...Ah. The investigator. The Collective has expected this conversation for some time.
     """
-  
+
     @id("e7cea4c0-32c8-4098-89df-300b56d076c0")
     Option Accuse = new() {
       """
       You're draining the sun. The inner worlds will burn, then freeze.
       """
-    
+
       return G2;
     }
-  
+
     @id("53315ca2-d6c7-4165-818c-6af941ba66da")
     Option Curious = new() {
       """
       What could possibly be worth a star?
       """
-    
+
       return G3;
     }
   }
@@ -66,11 +66,11 @@ sealed class GyreCollectiveIntro : Dialogue {
   ) {
     @primary
     Outpost gyreCollective = Reference<Outpost>(id: "763b50d2-c0b2-4346-b8fb-a092e7337af3");
-  
+
     """
     Incorrect. Millions freeze NOW — out here, where your precious sun is a cold coin in a black sky. We merely... redistribute the estate.
     """
-  
+
     return G3;
   }
 
@@ -80,26 +80,26 @@ sealed class GyreCollectiveIntro : Dialogue {
   ) {
     @primary
     Outpost gyreCollective = Reference<Outpost>(id: "763b50d2-c0b2-4346-b8fb-a092e7337af3");
-  
+
     """
     We are kindling the Second Sun: a star for the outer worlds, ignited from the corona of the first. The mathematics are sound. The funding is... Plutonian.
     """
-  
+
     @id("eb9fdb95-384d-4e51-884d-f20835c1b246")
     Option Sympathize = new() {
       """
       You deserve daylight. But not like this.
       """
-    
+
       return G4s;
     }
-  
+
     @id("da9a3f3d-b56c-4d4c-a008-80dbc4f8a33f")
     Option Condemn = new() {
       """
       You'll destabilize both suns and freeze everyone.
       """
-    
+
       return G4c;
     }
   }
@@ -110,11 +110,11 @@ sealed class GyreCollectiveIntro : Dialogue {
   ) {
     @primary
     Outpost gyreCollective = Reference<Outpost>(id: "763b50d2-c0b2-4346-b8fb-a092e7337af3");
-  
+
     """
     Then bring us a better way, and the Collective will listen — we are engineers, not zealots. The Plutocracy, however... they want more than daylight. Ask them what their new sun ORBITS.
     """
-  
+
     return Gr1;
   }
 
@@ -124,11 +124,11 @@ sealed class GyreCollectiveIntro : Dialogue {
   ) {
     @primary
     Outpost gyreCollective = Reference<Outpost>(id: "763b50d2-c0b2-4346-b8fb-a092e7337af3");
-  
+
     """
     Spoken like someone who has never wintered on Triton. Take your outrage to the ones who pay us — and ask them what their new sun orbits.
     """
-  
+
     return Gr2;
   }
 
@@ -138,10 +138,10 @@ sealed class GyreCollectiveIntro : Dialogue {
   ) {
     @primary
     Outpost gyreCollective = Reference<Outpost>(id: "763b50d2-c0b2-4346-b8fb-a092e7337af3");
-  
+
     @id("4edc6349-88f4-4c9b-9438-d00b5f078f3c")
     Action2();
-  
+
     return G5;
   }
 
@@ -151,10 +151,10 @@ sealed class GyreCollectiveIntro : Dialogue {
   ) {
     @primary
     Outpost gyreCollective = Reference<Outpost>(id: "763b50d2-c0b2-4346-b8fb-a092e7337af3");
-  
+
     @id("3ef76487-fd19-45ac-9ad3-346482e29dae")
     Action1();
-  
+
     return G5;
   }
 
@@ -164,12 +164,12 @@ sealed class GyreCollectiveIntro : Dialogue {
   ) {
     @primary
     Outpost plutocracy = Reference<Outpost>(id: "18154c7e-8f9a-4767-b44c-a25b0e1ca234");
-  
+
     Outpost gyreCollective = Reference<Outpost>(id: "763b50d2-c0b2-4346-b8fb-a092e7337af3");
-  
+
     @id("6736f285-f610-4b3c-b3dd-279235fa32c5")
     Action3();
-  
+
     return G6;
   }
 
@@ -179,7 +179,7 @@ sealed class GyreCollectiveIntro : Dialogue {
   ) {
     @primary
     Outpost gyreCollective = Reference<Outpost>(id: "763b50d2-c0b2-4346-b8fb-a092e7337af3");
-  
+
     """
     Go to Pluto, investigator. The Plutocracy signs our invoices and writes our orbit. When their dawn comes... ask who it rises FOR.
     """
