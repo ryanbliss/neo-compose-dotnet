@@ -15,7 +15,7 @@ namespace NeoCompose.Tests
     public class P102QueriesDebugTests
     {
         private const string Root = "Packages/com.ryanbliss.neocompose/Tests/";
-        private static JArray Cases() => (JArray)JObject.Parse(File.ReadAllText(Root + "neoscript-queries-debug-parity-fixture.json"))["evaluateCases"]!;
+        private static JArray Cases() => (JArray)JObject.Parse(NeoScriptQueriesDebugParityFixture.Json)["evaluateCases"]!;
         public static IEnumerable<string> CaseNames()
         {
             foreach (JToken test in Cases())
@@ -29,7 +29,10 @@ namespace NeoCompose.Tests
                 if (candidate["name"]!.Value<string>() == name)
                     test = candidate;
             var getter = JsonConvert.DeserializeObject<FunctionWithReturnType>(test["getter"]!.ToString())!;
-            NeoClient client = NeoTestSaveStack.LoadClient(File.ReadAllText(Root + "synth-example.json"));
+            var document = JObject.Parse(File.ReadAllText(Root + "synth-example.json"));
+            foreach (JObject schemaClass in (JArray)JObject.Parse(NeoScriptQueriesDebugParityFixture.Json)["classes"]!)
+                document["classes"]![schemaClass["id"]!.Value<string>()!] = schemaClass;
+            NeoClient client = NeoTestSaveStack.LoadClient(document.ToString());
             var logs = new List<string>();
             var events = new List<NeoScriptDebugEvent>();
             var ctx = new NSGetterEvaluator.Context(client, null, null) { DebugSink = value => { logs.Add(value.Message); events.Add(value); } };
@@ -48,7 +51,7 @@ namespace NeoCompose.Tests
                 CollectionAssert.AreEqual(expectedLogs.ToObject<string[]>(), logs);
             if (test["events"] is JArray expectedEvents)
             {
-                var serializer = JsonSerializer.Create(new JsonSerializerSettings { ContractResolver = new Newtonsoft.Json.Serialization.CamelCasePropertyNamesContractResolver() });
+                var serializer = JsonSerializer.Create(new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, ContractResolver = new Newtonsoft.Json.Serialization.CamelCasePropertyNamesContractResolver() });
                 Assert.IsTrue(JToken.DeepEquals(expectedEvents, JArray.FromObject(events, serializer)), JArray.FromObject(events, serializer).ToString());
             }
         }
@@ -72,7 +75,10 @@ namespace NeoCompose.Tests
         {
             JObject test = (JObject)Cases()[0];
             var getter = JsonConvert.DeserializeObject<FunctionWithReturnType>(test["getter"]!.ToString())!;
-            NeoClient client = NeoTestSaveStack.LoadClient(File.ReadAllText(Root + "synth-example.json"));
+            var document = JObject.Parse(File.ReadAllText(Root + "synth-example.json"));
+            foreach (JObject schemaClass in (JArray)JObject.Parse(NeoScriptQueriesDebugParityFixture.Json)["classes"]!)
+                document["classes"]![schemaClass["id"]!.Value<string>()!] = schemaClass;
+            NeoClient client = NeoTestSaveStack.LoadClient(document.ToString());
             var ctx = new NSGetterEvaluator.Context(client, null, null) { DebugSink = _ => throw new InvalidOperationException("sink") };
             Assert.AreEqual(true, NSGetterEvaluator.Evaluate(getter, ctx));
             ctx.DebugSink = null;

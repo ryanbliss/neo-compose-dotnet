@@ -5,23 +5,26 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
+using System.Runtime.Serialization;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using NeoCompose.Runtime.Json;
-namespace NeoCompose.Runtime.Json
-{
-    public sealed class NeoScriptSourceInfo
-    {
-        public string name = "<body>";
-        public string? uri;
-        public string coordinateSpace = "body";
-    }
-    public sealed class NeoScriptSourcePosition
-    {
-        public int line;
-        public int column;
-    }
-}
 namespace NeoCompose.Runtime.NeoScript
 {
+    [JsonConverter(typeof(StringEnumConverter))]
+    public enum NeoScriptDebugSeverity
+    {
+        [EnumMember(Value = "log")] Log,
+        [EnumMember(Value = "warning")] Warning,
+        [EnumMember(Value = "error")] Error,
+        [EnumMember(Value = "assert")] Assert,
+    }
+    [JsonConverter(typeof(StringEnumConverter))]
+    public enum NeoScriptCoordinateSpace
+    {
+        [EnumMember(Value = "body")] Body,
+        [EnumMember(Value = "file")] File,
+    }
     public readonly struct NeoScriptStackFrame
     {
         public string Name
@@ -32,7 +35,7 @@ namespace NeoCompose.Runtime.NeoScript
         {
             get;
         }
-        public string CoordinateSpace
+        public NeoScriptCoordinateSpace CoordinateSpace
         {
             get;
         }
@@ -48,14 +51,14 @@ namespace NeoCompose.Runtime.NeoScript
         {
             Name = source?.name ?? "<body>";
             Uri = source?.uri;
-            CoordinateSpace = source?.coordinateSpace ?? "body";
+            CoordinateSpace = source?.coordinateSpace == "file" ? NeoScriptCoordinateSpace.File : NeoScriptCoordinateSpace.Body;
             Line = position?.line;
             Column = position?.column;
         }
     }
     public sealed class NeoScriptDebugEvent
     {
-        public string Severity
+        public NeoScriptDebugSeverity Severity
         {
             get;
         }
@@ -69,7 +72,14 @@ namespace NeoCompose.Runtime.NeoScript
         }
         internal NeoScriptDebugEvent(string severity, string message, IReadOnlyList<NeoScriptStackFrame> frames)
         {
-            Severity = severity;
+            Severity = severity switch
+            {
+                "log" => NeoScriptDebugSeverity.Log,
+                "warning" => NeoScriptDebugSeverity.Warning,
+                "error" => NeoScriptDebugSeverity.Error,
+                "assert" => NeoScriptDebugSeverity.Assert,
+                _ => throw new ArgumentOutOfRangeException(nameof(severity)),
+            };
             Message = message;
             Frames = frames;
         }
@@ -83,9 +93,11 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 if (text.Length != 0)
                     text.Append('\n');
-                text.Append("  at ").Append(frame.Name).Append(" (").Append(frame.Uri ?? frame.CoordinateSpace);
+                text.Append("  NeoScript ").Append(frame.Name).Append(" (").Append(frame.Uri ?? (frame.CoordinateSpace == NeoScriptCoordinateSpace.File ? "file" : "body"));
                 if (frame.Line is int line)
-                    text.Append(':').Append(line).Append(':').Append(frame.Column ?? 1);
+                    text.Append(':').Append(line);
+                if (frame.Column is int column)
+                    text.Append(':').Append(column);
                 text.Append(')');
             }
             return text.ToString();
@@ -93,9 +105,9 @@ namespace NeoCompose.Runtime.NeoScript
         public static void UnitySink(NeoScriptDebugEvent value)
         {
             string text = "[NeoScript] " + value.Message + "\n" + FormatFrames(value.Frames);
-            if (value.Severity == "error" || value.Severity == "assert")
+            if (value.Severity == NeoScriptDebugSeverity.Error || value.Severity == NeoScriptDebugSeverity.Assert)
                 UnityEngine.Debug.LogError(text);
-            else if (value.Severity == "warning")
+            else if (value.Severity == NeoScriptDebugSeverity.Warning)
                 UnityEngine.Debug.LogWarning(text);
             else
                 UnityEngine.Debug.Log(text);
@@ -148,36 +160,50 @@ namespace NeoCompose.Runtime.NeoScript
     }
     internal sealed class NeoScriptTraceState
     {
-        private List<(NeoScriptSourceInfo? source, NeoScriptSourcePosition? position)> frames = new();
-        internal (NeoScriptSourceInfo? source, NeoScriptSourcePosition? position)[] Capture() => frames.ToArray();
+        private (NeoScriptSourceInfo? source, NeoScriptSourcePosition? position)[] frames = new (NeoScriptSourceInfo?, NeoScriptSourcePosition?)[8];
+        private int depth;
+        internal (NeoScriptSourceInfo? source, NeoScriptSourcePosition? position)[] Capture()
+        {
+            var captured = new (NeoScriptSourceInfo?, NeoScriptSourcePosition?)[depth];
+            Array.Copy(frames, captured, depth);
+            return captured;
+        }
         internal T RestoreDuring<T>((NeoScriptSourceInfo? source, NeoScriptSourcePosition? position)[] captured, Func<T> action)
         {
             var previous = frames;
-            frames = new List<(NeoScriptSourceInfo? source, NeoScriptSourcePosition? position)>(captured);
+            int previousDepth = depth;
+            frames = new (NeoScriptSourceInfo?, NeoScriptSourcePosition?)[Math.Max(8, captured.Length)];
+            Array.Copy(captured, frames, captured.Length);
+            depth = captured.Length;
             try
             {
                 return action();
             }
             catch (Exception error) { Attach(error); throw; }
-            finally { frames = previous; }
+            finally { frames = previous; depth = previousDepth; }
         }
-        internal void Push(FunctionWithReturnType body) => frames.Add((body.source, body.instructions.Length == 0 ? null : body.instructions[0].source));
-        internal void Pop() => frames.RemoveAt(frames.Count - 1);
-        internal NeoScriptSourcePosition? CurrentPosition => frames.Count == 0 ? null : frames[frames.Count - 1].position;
+        internal void Push(FunctionWithReturnType body)
+        {
+            if (depth == frames.Length)
+                Array.Resize(ref frames, depth * 2);
+            frames[depth++] = (body.source, body.instructions.Length == 0 ? null : body.instructions[0].source);
+        }
+        internal void Pop() => depth--;
+        internal NeoScriptSourcePosition? CurrentPosition => depth == 0 ? null : frames[depth - 1].position;
         internal void Position(NeoScriptSourcePosition? position)
         {
-            if (frames.Count != 0)
-                frames[frames.Count - 1] = (frames[frames.Count - 1].source, position);
+            if (depth != 0)
+                frames[depth - 1].position = position;
         }
         internal IReadOnlyList<NeoScriptStackFrame> Snapshot()
         {
-            var result = new NeoScriptStackFrame[Math.Min(64, frames.Count)];
+            var result = new NeoScriptStackFrame[Math.Min(64, depth)];
             for (int i = 0; i < result.Length; i++)
             {
-                var frame = frames[frames.Count - 1 - i];
+                var frame = frames[depth - 1 - i];
                 result[i] = new NeoScriptStackFrame(frame.source, frame.position);
             }
-            if (frames.Count > 64)
+            if (depth > 64)
                 result[63] = new NeoScriptStackFrame(new NeoScriptSourceInfo { name = "[trace truncated]" }, null);
             return Array.AsReadOnly(result);
         }
@@ -186,13 +212,5 @@ namespace NeoCompose.Runtime.NeoScript
             if (!error.Data.Contains("neoScriptFrames"))
                 error.Data["neoScriptFrames"] = Snapshot();
         }
-    }
-}
-namespace NeoCompose.Runtime
-{
-    public partial class NeoClient
-    {
-        /// <summary>Default sink for new script executions. Null disables output.</summary>
-        public Action<NeoScript.NeoScriptDebugEvent>? ScriptDebugSink { get; set; } = NeoScript.NeoScriptDebug.UnitySink;
     }
 }

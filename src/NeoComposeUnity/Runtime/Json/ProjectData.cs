@@ -108,7 +108,7 @@ namespace NeoCompose.Runtime.Json
         /// the wrong configuration rather than an error. It must reject the
         /// export.
         /// </summary>
-        public const int CurrentSchemaVersion = 38;
+        public const int CurrentSchemaVersion = 37;
 
         /// <summary>
         /// The main partition's file, relative to <c>project.json</c>'s

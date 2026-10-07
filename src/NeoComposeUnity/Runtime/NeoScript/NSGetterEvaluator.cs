@@ -6682,7 +6682,44 @@ namespace NeoCompose.Runtime.NeoScript
                 ctx.trace.Push(body);
                 try
                 {
-                    return ProjectCore(in cursor, entry);
+                    if (entryTypeCheck is not null)
+                        return Box(RuntimeTypeCheck(entry, entryTypeCheck, ctx));
+                    BindEntry(in cursor, entry);
+                    TypeInfo returnType = body.typeInfo!;
+                    object? value;
+                    if (expression is null)
+                    {
+                        NeoScriptExecutionResult result = Run();
+                        if (!result.Returned)
+                            return NoProjection;
+                        value = result.ReturnValue;
+                    }
+                    else
+                    {
+                        value = EvaluateValue(expression, scope, expressionContext, out double number);
+                        if (ReferenceEquals(value, ArithmeticValue.BareNumber))
+                        {
+                            value = Box(number);
+                            // Every number is a Float, including non-finite ordering keys.
+                            if (returnType.type == MemberKind.Float
+                                || returnType.type == MemberKind.Int && NeoScriptValueMarshaller.IsIntegralNumber(number))
+                            {
+                                return value;
+                            }
+                        }
+                        value = NeoScriptExecutor.CoerceReturnValue(value, returnType);
+                    }
+                    if (returnsConstructedVector)
+                        return value;
+                    if (returnType.type == MemberKind.Float && TryAsDouble(value, out double floatValue))
+                        return Box(floatValue);
+                    return NeoScriptValueMarshaller.NormalizeResolved(
+                        ctx.client,
+                        ctx.valueOwnership,
+                        value,
+                        returnType,
+                        ctx,
+                        ProjectionSubject);
                 }
                 catch (Exception error)
                 {
@@ -6692,45 +6729,7 @@ namespace NeoCompose.Runtime.NeoScript
                 finally { ctx.trace.Pop(); }
             }
 
-            private object? ProjectCore(in CollectionCursor cursor, object? entry)
-            {
-                if (entryTypeCheck is not null)
-                    return Box(RuntimeTypeCheck(entry, entryTypeCheck, ctx));
-                BindEntry(in cursor, entry);
-                TypeInfo returnType = body.typeInfo!;
-                object? value;
-                if (expression is null)
-                {
-                    NeoScriptExecutionResult result = Run();
-                    if (!result.Returned)
-                        return NoProjection;
-                    value = result.ReturnValue;
-                }
-                else
-                {
-                    value = EvaluateValue(expression, scope, expressionContext, out double number);
-                    if (ReferenceEquals(value, ArithmeticValue.BareNumber))
-                    {
-                        value = Box(number);
-                        // A finite number is already a Float, and a whole one an Int.
-                        if (returnType.type == MemberKind.Float && double.IsFinite(number)
-                            || returnType.type == MemberKind.Int && NeoScriptValueMarshaller.IsIntegralNumber(number))
-                        {
-                            return value;
-                        }
-                    }
-                    value = NeoScriptExecutor.CoerceReturnValue(value, returnType);
-                }
-                if (returnsConstructedVector)
-                    return value;
-                return NeoScriptValueMarshaller.NormalizeResolved(
-                    ctx.client,
-                    ctx.valueOwnership,
-                    value,
-                    returnType,
-                    ctx,
-                    ProjectionSubject);
-            }
+
 
             /// <summary>Runs a predicate callback for one entry.</summary>
             internal bool Test(in CollectionCursor cursor, object? entry)
@@ -6738,7 +6737,22 @@ namespace NeoCompose.Runtime.NeoScript
                 ctx.trace.Push(body);
                 try
                 {
-                    return TestCore(in cursor, entry);
+                    if (entryTypeCheck is not null)
+                        return RuntimeTypeCheck(entry, entryTypeCheck, ctx);
+                    BindEntry(in cursor, entry);
+                    if (condition is not null)
+                        return EvalBooleanExpression(condition, scope, expressionContext);
+                    object? returned = expression is null
+                        ? Run().ReturnValue
+                        : NeoScriptExecutor.CoerceReturnValue(
+                            EvaluatePointer(expression, scope, expressionContext),
+                            body.typeInfo!);
+                    if (returned is not bool passed)
+                    {
+                        throw new NSGetterRuntimeError(
+                            "Collection predicate callback returned a value that does not match its required Bool contract.");
+                    }
+                    return passed;
                 }
                 catch (Exception error)
                 {
@@ -6748,25 +6762,7 @@ namespace NeoCompose.Runtime.NeoScript
                 finally { ctx.trace.Pop(); }
             }
 
-            private bool TestCore(in CollectionCursor cursor, object? entry)
-            {
-                if (entryTypeCheck is not null)
-                    return RuntimeTypeCheck(entry, entryTypeCheck, ctx);
-                BindEntry(in cursor, entry);
-                if (condition is not null)
-                    return EvalBooleanExpression(condition, scope, expressionContext);
-                object? returned = expression is null
-                    ? Run().ReturnValue
-                    : NeoScriptExecutor.CoerceReturnValue(
-                        EvaluatePointer(expression, scope, expressionContext),
-                        body.typeInfo!);
-                if (returned is not bool passed)
-                {
-                    throw new NSGetterRuntimeError(
-                        "Collection predicate callback returned a value that does not match its required Bool contract.");
-                }
-                return passed;
-            }
+
 
             // Runs a statement body, which cannot suspend.
             private NeoScriptExecutionResult Run()
@@ -9983,6 +9979,8 @@ namespace NeoCompose.Runtime.NeoScript
 
         internal static string FormatDebugValue(object? value, TypeInfo type, Context ctx)
         {
+            if (value is not null && type is InterfaceTypeInfo interfaceType)
+                return NeoScriptDebug.FormatValue($"(Interface<{interfaceType.interfaceId}>, Value<{FindRowIdByReference(value, ctx) ?? "<unknown>"}>)", MemberKind.String);
             if (type is LookupTypeInfo { entryTypeInfo: EnumTypeInfo enumType })
                 type = enumType;
             if (value is not null && type.type is MemberKind.Class or MemberKind.List or MemberKind.Dictionary or MemberKind.Lookup)
