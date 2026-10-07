@@ -113,6 +113,10 @@ namespace NeoCompose.Tests
         public RemoteGameSave? getResult;
         public int getCalls;
         public Exception? getThrows;
+        // The caller's user file; null answers 404.
+        public RemoteGameSave? userFile;
+        public int userFileCalls;
+        public Exception? userFileThrows;
         public NeoCloneResult? cloneResult;
         public readonly Queue<NeoSaveTransitionStatus> transitionStatuses = new();
         public readonly List<string> cloneRequests = new();
@@ -252,6 +256,16 @@ namespace NeoCompose.Tests
         {
             listCalls++;
             return NeoAwaitable.FromResult(list);
+        }
+
+        public Awaitable<RemoteGameSave> GetUserFileAsync(string releaseChannelId)
+        {
+            userFileCalls++;
+            if (userFileThrows != null)
+                throw userFileThrows;
+            if (userFile == null)
+                throw new NeoComposeNotFoundException("No user file.");
+            return NeoAwaitable.FromResult(userFile);
         }
 
         public Awaitable<RemoteGameSave> GetSaveAsync(string customId)

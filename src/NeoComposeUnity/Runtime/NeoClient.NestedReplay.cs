@@ -128,6 +128,7 @@ namespace NeoCompose.Runtime
 
         private MemberValue? PreviousReplayRow(string id) => sessionData.values.TryGetValue(id, out var session) ? session
             : saveData.values.TryGetValue(id, out var save) ? save
+            : userSource.userData.values.TryGetValue(id, out var user) ? user
             : data.values.TryGetValue(id, out var asset) ? asset
             : virtualValues.TryGetValue(id, out var cached) ? cached : null;
 

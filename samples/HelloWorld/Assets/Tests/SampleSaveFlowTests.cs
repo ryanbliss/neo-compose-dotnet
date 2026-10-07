@@ -167,6 +167,9 @@ namespace HelloWorld.Assets.Tests
                 return NeoAwaitable.FromResult(list);
             }
 
+            public Awaitable<RemoteGameSave> GetUserFileAsync(string releaseChannelId) =>
+                throw new NeoComposeNotFoundException("No cloud user file.");
+
             public Awaitable<RemoteGameSave> GetSaveAsync(string customId) =>
                 saves.TryGetValue(customId, out var save)
                     ? NeoAwaitable.FromResult(save)

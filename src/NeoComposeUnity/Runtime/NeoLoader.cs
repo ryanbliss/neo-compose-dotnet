@@ -37,6 +37,7 @@ namespace NeoCompose.Runtime
             ProjectData data = loader.Schema
                 ?? throw new InvalidOperationException("Neo Compose save loader has no project schema.");
             NeoProjectDataValidator.Validate(data);
+            NeoClient? userClient = ResolveUserClient(loader, data);
             localizationOptions ??= NeoComposeConfig.LoadDefault()?.ToLocalizationOptions();
             var localization = NeoLocalization.LoadMain(
                 data.localization,
@@ -46,7 +47,32 @@ namespace NeoCompose.Runtime
             cancellationToken.ThrowIfCancellationRequested();
             assetDatabase ??= NeoAssetDatabase.LoadDefault();
             return await NeoClient.CreateAsync(loader, content, assetDatabase, localization,
-                saveOptions, cancellationToken);
+                saveOptions, cancellationToken, userClient: userClient);
+        }
+
+        /// <summary>
+        /// The user client a save of <paramref name="data"/> reads User data
+        /// through (P104 §4.3), or null when the project has no User root or
+        /// the save's store is a tooling store.
+        /// </summary>
+        private static NeoClient? ResolveUserClient(INeoSaveLoader loader, ProjectData data)
+        {
+            if (string.IsNullOrEmpty(data.project.rootUserMemberId)
+                || loader is NeoSaveSynchronizer { Core.LoadsUserFile: false })
+                return null;
+            var store = NeoProjectStore.Current
+                ?? throw new InvalidOperationException(
+                    "Load a `NeoProjectStore` before loading a save. User data needs its user file.");
+            var userClient = store.LoadedUserClient;
+            bool sameStore = loader is NeoSaveSynchronizer synchronizer
+                ? userClient != null && ReferenceEquals(synchronizer.Core, store.User.Core)
+                : ReferenceEquals(data, store.Schema);
+            if (!sameStore || userClient == null)
+            {
+                throw new InvalidOperationException(
+                    "This save's store isn't `NeoProjectStore.Current`, so it has no user file.");
+            }
+            return userClient;
         }
     }
 

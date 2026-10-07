@@ -435,8 +435,10 @@ namespace NeoCompose.Runtime
             replayFieldsByValueId.Clear();
             replayIdentityIds.Clear();
             constructorArgumentValueIdsByRoot.Clear();
-            MemberValue[] allRows = data.values.Values
-                .Concat(saveData.values.Values)
+            // A user client replays only User roots and reads only User rows;
+            // a save client leaves User roots to its user client (P104 §4.3).
+            MemberValue[] allRows = (IsUserClient ? AuthoredUserRows() : data.values.Values)
+                .Concat(PersistedData.values.Values)
                 .Concat(sessionData.values.Values)
                 .GroupBy(row => row.id, StringComparer.Ordinal)
                 .Select(group => group.Last())
@@ -448,6 +450,7 @@ namespace NeoCompose.Runtime
                 .OfType<ObjectMemberValue>()
                 .Where(row => row.classId is not null)
                 .Where(IsStoredClassDefaultRoot)
+                .Where(ReplaysVirtualRootHere)
                 // A containing replay may index the nested root using its
                 // outer-root virtual scope. Replaying shallow-to-deep lets the
                 // nested root's own durable recipe overwrite that provisional
@@ -503,7 +506,7 @@ namespace NeoCompose.Runtime
             foreach (ObjectMemberValue root in pendingRoots.Values)
             {
                 yield return 0;
-                if (saveData.values.TryGetValue(root.id, out MemberValue? saved)
+                if (PersistedData.values.TryGetValue(root.id, out MemberValue? saved)
                     && saved is ObjectMemberValue currentRoot
                     && IsVirtualInstanceRoot(currentRoot))
                 {
@@ -517,6 +520,24 @@ namespace NeoCompose.Runtime
             // variant code could resolve Assets/Save/Session. Rebind their
             // wrapper trees once the virtual child index is complete.
             RefreshAllVirtualWrapperTrees();
+        }
+
+        /// <summary>The authored rows of the User subtree, as the authored-ownership walk classified them.</summary>
+        private IEnumerable<MemberValue> AuthoredUserRows()
+        {
+            foreach (var pair in authoredOwnership)
+                if (pair.Value == NeoValueOwnership.User && data.values.TryGetValue(pair.Key, out MemberValue row))
+                    yield return row;
+        }
+
+        /// <summary>Whether this client replays <paramref name="root"/>: User roots replay only in a user client.</summary>
+        private bool ReplaysVirtualRootHere(ObjectMemberValue root)
+        {
+            if (data.project.rootUserMemberId is null)
+                return true;
+            bool user = userData.values.ContainsKey(root.id)
+                || authoredOwnership.TryGetValue(root.id, out NeoValueOwnership ownership) && ownership == NeoValueOwnership.User;
+            return user == IsUserClient;
         }
 
         private bool CanReplayVirtualInstanceRoot(ObjectMemberValue root)
@@ -957,7 +978,7 @@ namespace NeoCompose.Runtime
             // scope must lose to it.
             Dictionary<string, string> parentByValueId = BuildParentByValueId(
                 data.values.Values
-                    .Concat(saveData.values.Values)
+                    .Concat(PersistedData.values.Values)
                     .Concat(sessionData.values.Values));
 
             foreach (ObjectMemberValue root in rows
@@ -1041,7 +1062,7 @@ namespace NeoCompose.Runtime
                     PrepareCandidateRoot(valueId);
                 return;
             }
-            if ((data.values.ContainsKey(valueId) || saveData.values.ContainsKey(valueId))
+            if ((data.values.ContainsKey(valueId) || PersistedData.values.ContainsKey(valueId))
                 && ResolveValueRow(valueId) is ObjectMemberValue root
                 && IsStoredClassDefaultRoot(root)
                 && !virtualValueIdsByRoot.ContainsKey(root.id)
@@ -1254,6 +1275,7 @@ namespace NeoCompose.Runtime
                     || (candidateReplay?.Allocations.ContainsKey(dependency) == true && !allocations.Ids.Contains(dependency))
                     || sessionData.values.ContainsKey(dependency)
                     || data.values.ContainsKey(dependency) || saveData.values.ContainsKey(dependency)
+                    || userSource.userData.values.ContainsKey(dependency)
                     || virtualValues.ContainsKey(dependency)
                     || candidateReplay?.Values.ContainsKey(dependency) == true)
                     expansion.Dependencies.Add(dependency);
@@ -2182,6 +2204,7 @@ namespace NeoCompose.Runtime
                 string? parentClassId = null;
                 if ((data.values.TryGetValue(valueId, out MemberValue? parent)
                         || saveData.values.TryGetValue(valueId, out parent)
+                        || userSource.userData.values.TryGetValue(valueId, out parent)
                         || sessionData.values.TryGetValue(valueId, out parent)
                         || TryResolveVirtualValue(valueId, out parent))
                     && parent is ObjectMemberValue parentObject)

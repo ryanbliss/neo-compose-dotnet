@@ -233,7 +233,8 @@ namespace NeoCompose.Unity.Editor
             NeoClient.InvalidateAllAnimationClips();
             using var store = new NeoProjectStore(
                 dataSource: dataSource,
-                localStore: new NeoInMemoryLocalSaveStore());
+                localStore: new NeoInMemoryLocalSaveStore(),
+                loadUserFile: false);
             using var project = await LoadGeneratedProjectAsync(
                 generatedProjectType,
                 store,

@@ -14,8 +14,22 @@ namespace NeoCompose.Runtime
     public class NeoMemberDelegate
         : NeoMember<DelegateMember, DelegateMemberValue>
     {
-        private static readonly ConditionalWeakTable<Delegate, NeoDelegateValue>
+        // Each binding records the client it was read from, so User data
+        // takes only delegates its own client read (P104 §3.3).
+        private static readonly ConditionalWeakTable<Delegate, PersistedBinding>
             PersistedBindings = new();
+
+        private sealed class PersistedBinding
+        {
+            internal readonly NeoDelegateValue value;
+            internal readonly NeoClient client;
+
+            internal PersistedBinding(NeoDelegateValue value, NeoClient client)
+            {
+                this.value = value;
+                this.client = client;
+            }
+        }
 
         public NeoMemberDelegate(
             NeoClient client,
@@ -119,21 +133,26 @@ namespace NeoCompose.Runtime
         private TDelegate TrackBinding<TDelegate>(TDelegate bound)
             where TDelegate : Delegate
         {
-            PersistedBindings.Add(bound, ResolveDelegateValue().PersistedCopy());
+            PersistedBindings.Add(bound, new PersistedBinding(ResolveDelegateValue().PersistedCopy(), client));
             return bound;
         }
 
-        internal static NeoDelegateValue? PersistedBindingOf(Delegate? value)
+        internal static NeoDelegateValue? PersistedBindingOf(Delegate? value) =>
+            PersistedBindingOf(value, out _);
+
+        internal static NeoDelegateValue? PersistedBindingOf(Delegate? value, out NeoClient? source)
         {
+            source = null;
             if (value is null)
                 return null;
-            if (!PersistedBindings.TryGetValue(value, out NeoDelegateValue binding))
+            if (!PersistedBindings.TryGetValue(value, out PersistedBinding binding))
             {
                 throw new ArgumentException(
                     "This delegate was not loaded from a NeoDelegate member and cannot be serialized. Assign a delegate obtained from generated Neo data, or author the binding in Neo Compose.",
                     nameof(value));
             }
-            return binding.PersistedCopy();
+            source = binding.client;
+            return binding.value.PersistedCopy();
         }
 
         private object? ResolveLexicalThis(NSGetterEvaluator.Context ctx)
@@ -201,8 +220,17 @@ namespace NeoCompose.Runtime
             NeoValueOwnership ownership = NeoValueOwnership.Asset)
             : base(client, member, overrideValueId, ownership) { }
 
-        public void Set(Delegate? newValue) =>
-            Set(NeoMemberDelegate.PersistedBindingOf(newValue));
+        public void Set(Delegate? newValue)
+        {
+            NeoDelegateValue? binding = NeoMemberDelegate.PersistedBindingOf(newValue, out NeoClient? source);
+            // User data takes only a delegate read from the user client, and
+            // Save data none that names User data (§3.3).
+            if (ownership != NeoValueOwnership.User)
+                client.CheckDelegateReferences(ownership, binding);
+            else if (binding is not null && !ReferenceEquals(source, client))
+                throw new InvalidOperationException(NeoClient.UserDelegateProvenanceError);
+            Set(binding);
+        }
 
         internal void Set(NeoDelegateValue? newValue)
         {

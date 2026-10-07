@@ -4,6 +4,7 @@
 #nullable enable
 
 using System;
+using NeoCompose.Runtime.Json;
 
 namespace NeoCompose.Runtime
 {
@@ -79,6 +80,25 @@ namespace NeoCompose.Runtime
         public NeoComposeNotFoundException(string message)
             : base(message)
         {
+        }
+    }
+
+    /// <summary>
+    /// Thrown when creating a user file finds the caller's user file for the
+    /// channel already exists (HTTP 409, P104 §5.2). The user synchronizer
+    /// adopts <see cref="Existing"/>.
+    /// </summary>
+    public sealed class NeoUserFileExistsException : Exception
+    {
+        public NeoUserFileExistsException(RemoteGameSave existing)
+            : base($"A user file already exists on release channel \"{existing.releaseChannelId}\".")
+        {
+            Existing = existing;
+        }
+
+        public RemoteGameSave Existing
+        {
+            get;
         }
     }
 }

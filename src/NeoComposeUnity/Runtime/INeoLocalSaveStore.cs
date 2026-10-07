@@ -37,6 +37,16 @@ namespace NeoCompose.Runtime
 
         /// <summary>Removes the locally-persisted save, if present.</summary>
         Awaitable DeleteSaveAsync(string customId);
+
+        /// <summary>
+        /// The content stored under the SDK-chosen <paramref name="key"/>, or
+        /// null when absent. The user file (P104) lives here, apart from the
+        /// saves <see cref="ListSaveIdsAsync"/> lists.
+        /// </summary>
+        Awaitable<string?> LoadUserAsync(string key);
+
+        /// <summary>Writes (creating or overwriting) the content under <paramref name="key"/>.</summary>
+        Awaitable CommitUserAsync(string key, string content);
     }
 
     /// <summary>
@@ -48,6 +58,7 @@ namespace NeoCompose.Runtime
     public sealed class NeoInMemoryLocalSaveStore : INeoLocalSaveStore
     {
         private readonly Dictionary<string, string> saves = new();
+        private readonly Dictionary<string, string> users = new();
 
         public Awaitable<IReadOnlyList<string>> ListSaveIdsAsync()
         {
@@ -70,6 +81,18 @@ namespace NeoCompose.Runtime
         public Awaitable DeleteSaveAsync(string customId)
         {
             saves.Remove(customId);
+            return NeoAwaitable.Completed();
+        }
+
+        public Awaitable<string?> LoadUserAsync(string key)
+        {
+            users.TryGetValue(key, out var content);
+            return NeoAwaitable.FromResult(content);
+        }
+
+        public Awaitable CommitUserAsync(string key, string content)
+        {
+            users[key] = content;
             return NeoAwaitable.Completed();
         }
     }

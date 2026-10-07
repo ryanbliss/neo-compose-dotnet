@@ -29,6 +29,12 @@ namespace NeoCompose.Runtime.Json
         public string rootAssetsMemberId = null!;
         public string rootSaveFileMemberId = null!;
         public string rootSessionMemberId = null!;
+
+        /// <summary>
+        /// The User root (P104 §1.2). Null for a project the User root
+        /// migration hasn't reached, which export refuses.
+        /// </summary>
+        public string? rootUserMemberId;
         public string? defaultPriorityGroupId;
         public NeoTimestamp createdAt;
         public NeoTimestamp updatedAt;

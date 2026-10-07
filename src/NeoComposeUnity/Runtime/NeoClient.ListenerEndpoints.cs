@@ -14,12 +14,12 @@ namespace NeoCompose.Runtime
             IReadOnlyDictionary<string, HashSet<string>>? dirtyOwners = null)
         {
             var result = new Dictionary<string, GameSaveListenerEndpointLocator>(StringComparer.Ordinal);
-            if (saveData.changeListeners is null)
+            if (PersistedData.changeListeners is null)
                 return result;
             var ids = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var rootId in dirtyOwners?.Keys ?? saveData.changeListeners.Keys)
+            foreach (var rootId in dirtyOwners?.Keys ?? PersistedData.changeListeners.Keys)
             {
-                if (!saveData.changeListeners.TryGetValue(rootId, out var map))
+                if (!PersistedData.changeListeners.TryGetValue(rootId, out var map))
                     continue;
                 IEnumerable<string> owners = dirtyOwners is null ? map.Keys : dirtyOwners[rootId];
                 foreach (string ownerId in owners)
@@ -37,7 +37,7 @@ namespace NeoCompose.Runtime
             foreach (string id in ids)
             {
                 // Previously saved stale targets may be removed without resolving them.
-                var scope = ListenerOwnerScope(NeoValueOwnership.Save, id);
+                var scope = ListenerOwnerScope(PersistedOwnership, id);
                 if (!TryGetValue(scope, id, out MemberValue? row) || row.IsRemoved)
                     continue;
                 var locator = new GameSaveListenerEndpointLocator { valueId = id };

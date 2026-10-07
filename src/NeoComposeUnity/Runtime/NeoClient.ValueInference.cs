@@ -38,15 +38,19 @@ namespace NeoCompose.Runtime
                     yield return pair;
                 foreach (var pair in IndexedWritableParents(childId, NeoValueOwnership.Save, saveData.values, candidates))
                     yield return pair;
+                foreach (var pair in IndexedWritableParents(childId, NeoValueOwnership.User, userSource.userData.values, candidates))
+                    yield return pair;
                 if (ValueInferenceIndex.Parents.TryGetValue(childId, out var parents))
                     foreach (var pair in parents)
                         yield return pair;
                 if (candidateReadPlan is not null)
                     foreach (string id in candidates)
                         if (!sessionData.values.ContainsKey(id) && !saveData.values.ContainsKey(id)
+                            && !userSource.userData.values.ContainsKey(id)
                             && !data.values.ContainsKey(id)
                             && !TryGetWritableValue(NeoValueOwnership.Session, id, out MemberValue? _)
                             && !TryGetWritableValue(NeoValueOwnership.Save, id, out MemberValue? _)
+                            && !TryGetWritableValue(NeoValueOwnership.User, id, out MemberValue? _)
                             && ResolveValueRow(id) is MemberValue row && MightReferenceChildValueId(row, childId))
                             yield return new KeyValuePair<string, MemberValue>(id, row);
             }

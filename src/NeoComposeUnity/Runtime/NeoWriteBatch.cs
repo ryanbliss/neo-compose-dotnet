@@ -132,10 +132,12 @@ namespace NeoCompose.Runtime
         private static ulong Bit(string id) =>
             id.Length == 0 ? 1UL : 1UL << ((id.Length + id[id.Length - 1] * 7 + id[id.Length >> 1] * 31) & 63);
 
-        /// <summary>Whether either store holds a pending collection at <paramref name="id"/>.</summary>
+        /// <summary>Whether a writable store holds a pending collection at <paramref name="id"/>.</summary>
         internal bool HasCollection(string id) =>
             (collectionBits & Bit(id)) != 0
-            && (collections.ContainsKey((NeoValueOwnership.Save, id)) || collections.ContainsKey((NeoValueOwnership.Session, id)));
+            && (collections.ContainsKey((NeoValueOwnership.Save, id))
+                || collections.ContainsKey((NeoValueOwnership.Session, id))
+                || collections.ContainsKey((NeoValueOwnership.User, id)));
 
         /// <summary>
         /// The pending collection that owns entry <paramref name="id"/>, or
@@ -360,7 +362,7 @@ namespace NeoCompose.Runtime
             }
             if (releases is null)
                 return;
-            foreach (NeoValueOwnership ownership in new[] { NeoValueOwnership.Session, NeoValueOwnership.Save })
+            foreach (NeoValueOwnership ownership in new[] { NeoValueOwnership.Session, NeoValueOwnership.Save, NeoValueOwnership.User })
             {
                 List<(string id, Member? member)>? roots = null;
                 foreach (var release in releases)

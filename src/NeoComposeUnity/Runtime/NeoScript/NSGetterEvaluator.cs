@@ -2826,6 +2826,13 @@ namespace NeoCompose.Runtime.NeoScript
             NeoActionValue? actionValue = CoerceActionValue(value);
             if (actionValue is null)
                 return;
+            // A User action's listeners are User behaviour, which runs only
+            // in the user client (P104 §3.1).
+            if (ownerReceiver is not null
+                && ctx.client.user is not null
+                && !ctx.client.IsUserClient
+                && FindRowOwnershipByReference(ownerReceiver, ctx) == NeoValueOwnership.User)
+                throw new NSGetterRuntimeError(NeoClient.UserDataWriteError);
             args ??= Array.Empty<object?>();
             for (int index = 0; index < actionValue.listeners.Count; index++)
             {

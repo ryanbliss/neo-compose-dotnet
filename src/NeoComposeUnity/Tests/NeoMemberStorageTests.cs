@@ -29,12 +29,13 @@ namespace NeoCompose.Tests
             Assert.AreEqual(NeoMemberStorage.Save, NeoMemberStorageResolution.Validate(NeoMemberStorage.Save));
             Assert.AreEqual(NeoMemberStorage.Session, NeoMemberStorageResolution.Validate(NeoMemberStorage.Session));
             Assert.AreEqual(NeoMemberStorage.Writable, NeoMemberStorageResolution.Validate(NeoMemberStorage.Writable));
+            Assert.AreEqual(NeoMemberStorage.User, NeoMemberStorageResolution.Validate(NeoMemberStorage.User));
             Assert.Throws<System.InvalidOperationException>(
-                () => NeoMemberStorageResolution.Validate((NeoMemberStorage)5));
+                () => NeoMemberStorageResolution.Validate((NeoMemberStorage)6));
         }
 
         /// <summary>
-        /// P93 §1.2 — hand-mirrors the TS <c>childEffectiveStorage</c> vectors
+        /// P93 §1.2 and P104 §1.1 — hand-mirrors the TS <c>childEffectiveStorage</c> vectors
         /// in <c>src/models/members/effective-storage.test.ts</c>, over
         /// ownership (Asset is Immutable).
         /// </summary>
@@ -44,14 +45,16 @@ namespace NeoCompose.Tests
             const NeoValueOwnership Asset = NeoValueOwnership.Asset;
             const NeoValueOwnership Save = NeoValueOwnership.Save;
             const NeoValueOwnership Session = NeoValueOwnership.Session;
-            var parents = new[] { Asset, Save, Session };
+            const NeoValueOwnership User = NeoValueOwnership.User;
+            var parents = new[] { Asset, Save, Session, User };
             var cells = new (NeoMemberStorage declared, NeoValueOwnership[] expected)[]
             {
-                (NeoMemberStorage.Inherit, new[] { Asset, Save, Session }),
-                (NeoMemberStorage.Writable, new[] { Session, Save, Session }),
-                (NeoMemberStorage.Immutable, new[] { Asset, Asset, Asset }),
-                (NeoMemberStorage.Save, new[] { Save, Save, Save }),
-                (NeoMemberStorage.Session, new[] { Session, Session, Session }),
+                (NeoMemberStorage.Inherit, new[] { Asset, Save, Session, User }),
+                (NeoMemberStorage.Writable, new[] { Session, Save, Session, User }),
+                (NeoMemberStorage.Immutable, new[] { Asset, Asset, Asset, Asset }),
+                (NeoMemberStorage.Save, new[] { Save, Save, Save, Save }),
+                (NeoMemberStorage.Session, new[] { Session, Session, Session, Session }),
+                (NeoMemberStorage.User, new[] { User, User, User, User }),
             };
             foreach (var (declared, expected) in cells)
             {
@@ -78,6 +81,7 @@ namespace NeoCompose.Tests
                 (NeoMemberStorage.Immutable, NeoValueOwnership.Asset),
                 (NeoMemberStorage.Save, NeoValueOwnership.Save),
                 (NeoMemberStorage.Session, NeoValueOwnership.Session),
+                (NeoMemberStorage.User, NeoValueOwnership.User),
             })
             {
                 member.Storage = storage;

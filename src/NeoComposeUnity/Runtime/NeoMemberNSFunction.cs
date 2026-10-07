@@ -1641,14 +1641,15 @@ namespace NeoCompose.Runtime
             return new RuntimeRoot(client, ctx);
         }
 
-        // Binding the three root names is not a read of their values. Resolve
+        // Binding the root names is not a read of their values. Resolve
         // only the root the script accesses, so constructor dependency capture
-        // does not subscribe every constructor to all three global graphs.
+        // does not subscribe every constructor to every global graph. A root
+        // the client lacks (a user client has only User, §4.2) is absent.
         private sealed class RuntimeRoot : IDictionary<string, object?>
         {
             private readonly NeoClient client;
             private readonly NSGetterEvaluator.Context context;
-            private static readonly string[] names = { "Assets", "Save", "Session" };
+            private static readonly string[] names = { "Assets", "Save", "Session", "User" };
             internal RuntimeRoot(NeoClient client, NSGetterEvaluator.Context context)
             {
                 this.client = client;
@@ -1659,6 +1660,7 @@ namespace NeoCompose.Runtime
             private NeoValueNode? assetsNode;
             private NeoValueNode? saveNode;
             private NeoValueNode? sessionNode;
+            private NeoValueNode? userNode;
 
             public bool TryGetValue(string key, out object? value)
             {
@@ -1670,6 +1672,8 @@ namespace NeoCompose.Runtime
                         return TryRead(client.save, NeoValueOwnership.Save, ref saveNode, out value);
                     case "Session":
                         return TryRead(client.session, NeoValueOwnership.Session, ref sessionNode, out value);
+                    case "User":
+                        return TryRead(client.user, NeoValueOwnership.User, ref userNode, out value);
                     default:
                         value = null;
                         return false;
@@ -1703,17 +1707,26 @@ namespace NeoCompose.Runtime
                 get => TryGetValue(key, out var value) ? value : throw new KeyNotFoundException(key);
                 set => throw new NotSupportedException();
             }
-            public ICollection<string> Keys => Array.AsReadOnly(names);
-            public ICollection<object?> Values => new[] { this["Assets"], this["Save"], this["Session"] };
-            public int Count => 3;
+            public ICollection<string> Keys => Array.FindAll(names, ContainsKey);
+            public ICollection<object?> Values => Array.ConvertAll(Array.FindAll(names, ContainsKey), name => this[name]);
+            public int Count => Array.FindAll(names, ContainsKey).Length;
             public bool IsReadOnly => true;
-            public bool ContainsKey(string key) => key is "Assets" or "Save" or "Session";
+            public bool ContainsKey(string key) => TryGetRoot(key) is not null;
+            private NeoMemberClass? TryGetRoot(string key) => key switch
+            {
+                "Assets" => client.assets,
+                "Save" => client.save,
+                "Session" => client.session,
+                "User" => client.user,
+                _ => null,
+            };
             public bool Contains(KeyValuePair<string, object?> item) =>
                 TryGetValue(item.Key, out var value) && Equals(value, item.Value);
             public IEnumerator<KeyValuePair<string, object?>> GetEnumerator()
             {
                 foreach (string key in names)
-                    yield return new KeyValuePair<string, object?>(key, this[key]);
+                    if (ContainsKey(key))
+                        yield return new KeyValuePair<string, object?>(key, this[key]);
             }
             System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
             public void CopyTo(KeyValuePair<string, object?>[] array, int index)

@@ -145,7 +145,8 @@ namespace NeoCompose.Runtime
                         "TileGrid authoring preview needs a NeoComposeConfig in Resources.");
                 nextStore = new NeoProjectStore(
                     dataSource: NeoResourcesProjectDataSource.FromConfig(config),
-                    localStore: new NeoInMemoryLocalSaveStore());
+                    localStore: new NeoInMemoryLocalSaveStore(),
+                    loadUserFile: false);
                 await nextStore.LoadAsync();
                 ThrowIfRefreshIsStale(generation, refreshCancellation);
 

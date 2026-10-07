@@ -84,6 +84,8 @@ namespace NeoCompose.Runtime
         /// </summary>
         public void Invoke(params object?[] args)
         {
+            // A User action's listeners run only in the user client (P104 §3.1).
+            client.ThrowIfUserWrite(ownership);
             NeoActionValue? listeners = value?.value ?? member.defaultValue?.value;
             if (listeners is null || listeners.listeners.Count == 0)
                 return;
@@ -223,6 +225,7 @@ namespace NeoCompose.Runtime
         public void AddListener(NeoDelegateValue listener)
         {
             string identity = RequireMemberTarget(listener, "add");
+            client.CheckHostDelegate(ownership, listener);
             NeoActionValue next = CopyOfStoredValue();
             foreach (NeoDelegateValue existing in next.listeners)
             {
@@ -269,6 +272,7 @@ namespace NeoCompose.Runtime
             for (int index = 0; index < listeners.Count; index++)
             {
                 string identity = RequireMemberTarget(listeners[index], "store");
+                client.CheckHostDelegate(ownership, listeners[index]);
                 if (!identities.Add(identity))
                 {
                     throw new NeoActionListenerException(

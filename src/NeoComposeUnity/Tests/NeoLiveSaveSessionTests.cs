@@ -34,6 +34,8 @@ namespace NeoCompose.Tests
             public Awaitable<IReadOnlyList<string>> ListSaveIdsAsync() => inner.ListSaveIdsAsync();
             public Awaitable<string?> LoadSaveAsync(string id) => inner.LoadSaveAsync(id);
             public Awaitable DeleteSaveAsync(string id) => inner.DeleteSaveAsync(id);
+            public Awaitable<string?> LoadUserAsync(string key) => inner.LoadUserAsync(key);
+            public Awaitable CommitUserAsync(string key, string content) => inner.CommitUserAsync(key, content);
             public Awaitable CommitSaveAsync(string id, string content)
             {
                 if (FailCommit)
