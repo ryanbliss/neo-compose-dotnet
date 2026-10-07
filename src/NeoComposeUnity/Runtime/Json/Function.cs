@@ -384,6 +384,22 @@ namespace NeoCompose.Runtime.Json
         public FunctionCollectionSelectInfo info = null!;
     }
 
+    public sealed class CollectionQueryFunction : Function
+    {
+        public FunctionCollectionQueryInfo info = null!;
+    }
+
+    public sealed class FunctionCollectionQueryInfo
+    {
+        public bool? enumEntries;
+        public string op = "";
+        public Pointer collectionPointer = null!;
+        public FunctionWithReturnType? function;
+        public Pointer? countPointer;
+        public Pointer? otherPointer;
+        public string? keyType;
+    }
+
     public sealed class FirstFunction : Function
     {
         public FunctionCollectionOptionalBoolInfo info = null!;
@@ -473,6 +489,8 @@ namespace NeoCompose.Runtime.Json
                     return typeof(DeclaredConstructorFunction);
                 case FunctionKind.Select:
                     return typeof(SelectFunction);
+                case FunctionKind.CollectionQuery:
+                    return typeof(CollectionQueryFunction);
                 case FunctionKind.First:
                     return typeof(FirstFunction);
                 case FunctionKind.FirstOrDefault:

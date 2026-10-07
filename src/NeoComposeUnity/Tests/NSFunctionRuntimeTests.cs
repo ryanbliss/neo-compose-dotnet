@@ -266,6 +266,62 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void DebugTraceSurvivesNestedDeferredCallsAndOverlappingInvocations()
+        {
+            var native = NativeFunction("trace-fetch", "Fetch", true);
+            var wait = Call(native.id, "trace-wait");
+            wait.source = new NeoScriptSourcePosition { line = 12, column = 9 };
+            var innerBody = Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(),
+                VariableDeclaration("answer", wait, IntType()),
+                new DebugInstruction { severity = NeoScriptDebugSeverity.Warning, message = Variable("answer"), messageType = IntType(), source = new NeoScriptSourcePosition { line = 13, column = 3 } },
+                Return(Variable("answer")));
+            innerBody.source = new NeoScriptSourceInfo { name = "Trace.Inner", uri = "Trace.neo", coordinateSpace = NeoScriptCoordinateSpace.File };
+            var inner = ScriptFunction("trace-inner", "Inner", true, IntType(), Array.Empty<FunctionArgumentTypeInfo>(), innerBody);
+            var call = Call(inner.id, "trace-inner-call");
+            call.source = new NeoScriptSourcePosition { line = 4, column = 7 };
+            var outerBody = Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(), Return(call));
+            outerBody.source = new NeoScriptSourceInfo { name = "Trace.Outer", uri = "Trace.neo", coordinateSpace = NeoScriptCoordinateSpace.File };
+            var outer = ScriptFunction("trace-outer", "Outer", true, IntType(), Array.Empty<FunctionArgumentTypeInfo>(), outerBody);
+            using var client = BuildClient(new JsonMember[] { native, inner, outer }, ReceiverClass(("Fetch", native.id), ("Inner", inner.id), ("Outer", outer.id)));
+            var pending = new List<NeoDeferredFunction<int>>();
+            var events = new List<NeoScriptDebugEvent>();
+            client.ScriptDebugSink = events.Add;
+            client.RegisterDeferredNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
+            {
+                [native.id] = (_, _, _, handle) => pending.Add(NeoGeneratedTypesSupport.ResolveDeferredFunction<NeoDeferredFunction<int>>(handle, native.name)),
+            });
+            var node = new NeoMemberNSFunction(client, outer, null);
+            var first = node.InvokeAsync("receiver-value", Array.Empty<object?>());
+            var second = node.InvokeAsync("receiver-value", Array.Empty<object?>());
+            pending[1].Complete(2);
+            pending[0].Complete(1);
+            Assert.AreEqual(1, first.GetAwaiter().GetResult());
+            Assert.AreEqual(2, second.GetAwaiter().GetResult());
+            CollectionAssert.AreEqual(new[] { "2", "1" }, events.ConvertAll(value => value.Message));
+            foreach (var value in events)
+            {
+                Assert.AreEqual(2, value.Frames.Count);
+                Assert.AreEqual("Trace.Inner", value.Frames[0].Name);
+                Assert.AreEqual(13, value.Frames[0].Line);
+                Assert.AreEqual("Trace.Outer", value.Frames[1].Name);
+                Assert.AreEqual(4, value.Frames[1].Line);
+                Assert.AreEqual(7, value.Frames[1].Column);
+            }
+            var failed = node.InvokeAsync("receiver-value", Array.Empty<object?>());
+            pending[2].Fail(new NSGetterRuntimeError("deferred failure"));
+            var error = Assert.Throws<NSGetterRuntimeError>(() => failed.GetAwaiter().GetResult())!;
+            Assert.AreEqual(2, error.NeoScriptFrames!.Count);
+            Assert.AreEqual("Trace.Inner", error.NeoScriptFrames[0].Name);
+            Assert.AreEqual(12, error.NeoScriptFrames[0].Line);
+            Assert.AreEqual(9, error.NeoScriptFrames[0].Column);
+            Assert.AreEqual("Trace.Outer", error.NeoScriptFrames[1].Name);
+            StringAssert.Contains("NeoScript Trace.Inner", NeoScriptDebug.FormatError(error));
+            StringAssert.DoesNotContain("NeoScript Trace.Inner", error.Message);
+            StringAssert.Contains("Trace.neo:12:9", error.ToString());
+
+        }
+
+        [Test]
         public void NumericLocalsSurviveDeferredCallsAndOtherInvocations()
         {
             var native = NativeFunction("numeric-fetch", "Fetch", true);
