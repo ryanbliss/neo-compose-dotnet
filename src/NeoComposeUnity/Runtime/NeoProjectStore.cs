@@ -298,7 +298,7 @@ namespace NeoCompose.Runtime
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetCurrent()
+        internal static void ResetCurrent()
         {
             Current = null;
             userClientWaiters.Clear();
@@ -395,7 +395,7 @@ namespace NeoCompose.Runtime
                 core.LoadsUserFile = loadUserFile;
                 core.ListChanged += () => OnListChanged?.Invoke();
                 if (ownsUserFile && userClient == null
-                    && !string.IsNullOrEmpty(schema.project.rootUserMemberId))
+                    && !string.IsNullOrEmpty(schema.project?.rootUserMemberId))
                 {
                     // The user client builds while the list request is in flight.
                     var listRefresh = core.RefreshListAsync();

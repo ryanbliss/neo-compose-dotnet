@@ -189,27 +189,7 @@ namespace NeoCompose.Runtime
             State = NeoSaveSynchronizerState.Loading;
             try
             {
-                LocalGameSave? local = null;
-                string? localContent = await LoadLocalAsync();
-                if (!string.IsNullOrWhiteSpace(localContent))
-                {
-                    if (LocalGameSaveLoader.TryLoad(localContent, out var parsed))
-                    {
-                        local = parsed;
-                    }
-                    else
-                    {
-                        await core.LocalStore.CommitUserAsync(UnreadableUserKey, localContent!);
-                        Debug.LogWarning(
-                            $"[NeoCompose] The local user file could not be parsed; moved it to \"{UnreadableUserKey}\".");
-                    }
-                }
-                // Another channel's copy counts as absent for this load.
-                if (local != null
-                    && !string.IsNullOrEmpty(local.releaseChannelId)
-                    && local.releaseChannelId != core.TargetReleaseChannelId)
-                    local = null;
-
+                LocalGameSave? local = await ReadLocalUserFileAsync();
                 var answer = query == null ? UserFileQuery.Failed : await query;
                 var choice = await ChooseUserFileAsync(local, answer);
                 LocalGameSave? baseline = choice switch
@@ -287,6 +267,27 @@ namespace NeoCompose.Runtime
                 State = NeoSaveSynchronizerState.Error;
                 throw;
             }
+        }
+
+        /// <summary>
+        /// The local copy, or null when there is none, it is another
+        /// channel's, or it can't be parsed (it moves to <see cref="UnreadableUserKey"/>).
+        /// </summary>
+        private async Awaitable<LocalGameSave?> ReadLocalUserFileAsync()
+        {
+            string? content = await LoadLocalAsync();
+            if (string.IsNullOrWhiteSpace(content))
+                return null;
+            if (!LocalGameSaveLoader.TryLoad(content, out var local))
+            {
+                await core.LocalStore.CommitUserAsync(UnreadableUserKey, content!);
+                Debug.LogWarning(
+                    $"[NeoCompose] The local user file could not be parsed; moved it to \"{UnreadableUserKey}\".");
+                return null;
+            }
+            return string.IsNullOrEmpty(local.releaseChannelId) || local.releaseChannelId == core.TargetReleaseChannelId
+                ? local
+                : null;
         }
 
         /// <summary><paramref name="local"/>'s content under <paramref name="remote"/>'s identity.</summary>
@@ -406,9 +407,11 @@ namespace NeoCompose.Runtime
                     core.ApiClient, core.Authentication, core.TargetReleaseChannelId);
                 if (answer.IsFailed)
                     return;
-                var choice = await ChooseUserFileAsync(active, answer);
+                // The local copy holds every commit, so it decides as it does at load.
+                var local = await ReadLocalUserFileAsync();
+                var choice = await ChooseUserFileAsync(local, answer);
                 State = NeoSaveSynchronizerState.Ready;
-                if (choice == UserFileChoice.Defaults && active != null)
+                if (choice == UserFileChoice.Defaults && (local != null || active != null))
                 {
                     await ApplyUserReplacementAsync(client, DefaultUserFile());
                 }

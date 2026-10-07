@@ -18,7 +18,7 @@ namespace NeoCompose.Tests
         public const string TargetChannel = "channel-dev";
 
         public const string ProjectJson =
-            "{\"metadata\":{\"schemaVersion\":37,\"projectId\":\"project-1\"," +
+            "{\"metadata\":{\"schemaVersion\":38,\"projectId\":\"project-1\"," +
             "\"versionId\":\"v1\",\"semver\":{\"label\":\"1.0\"}}," +
             "\"variantFolders\":{}}";
 
@@ -117,6 +117,8 @@ namespace NeoCompose.Tests
         public RemoteGameSave? userFile;
         public int userFileCalls;
         public Exception? userFileThrows;
+        // Thrown, in order, by the next commits instead of a result.
+        public readonly Queue<Exception> commitThrows = new();
         public NeoCloneResult? cloneResult;
         public readonly Queue<NeoSaveTransitionStatus> transitionStatuses = new();
         public readonly List<string> cloneRequests = new();
@@ -322,6 +324,8 @@ namespace NeoCompose.Tests
         public Awaitable<NeoCommitResult> CommitAsync(NeoSaveCommitRequest request, bool replaceSnapshot)
         {
             commits.Add((request, replaceSnapshot));
+            if (commitThrows.Count != 0)
+                throw commitThrows.Dequeue();
             return NeoAwaitable.FromResult(commitResults.Dequeue());
         }
 
@@ -330,6 +334,8 @@ namespace NeoCompose.Tests
             NeoSparseSnapshotCommitRequest request)
         {
             sparseCommits.Add((customId, request));
+            if (commitThrows.Count != 0)
+                throw commitThrows.Dequeue();
             return NeoAwaitable.FromResult(
                 sparseCommitResults.Count != 0
                     ? sparseCommitResults.Dequeue()

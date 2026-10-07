@@ -57,8 +57,8 @@ namespace NeoCompose.Runtime
         /// </summary>
         private static NeoClient? ResolveUserClient(INeoSaveLoader loader, ProjectData data)
         {
-            if (string.IsNullOrEmpty(data.project.rootUserMemberId)
-                || loader is NeoSaveSynchronizer { Core.LoadsUserFile: false })
+            if (string.IsNullOrEmpty(data.project?.rootUserMemberId)
+                || loader is NeoSaveSynchronizer { Core: { LoadsUserFile: false } })
                 return null;
             var store = NeoProjectStore.Current
                 ?? throw new InvalidOperationException(

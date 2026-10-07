@@ -651,7 +651,10 @@ namespace NeoCompose.Runtime
         /// The layer this client persists (P104 §4.2): User in a user client,
         /// Save otherwise.
         /// </summary>
-        internal NeoValueOwnership PersistedOwnership { get; }
+        internal NeoValueOwnership PersistedOwnership
+        {
+            get;
+        }
         internal bool IsUserClient => PersistedOwnership == NeoValueOwnership.User;
         private ProjectSaveData PersistedData => IsUserClient ? userData : saveData;
         private INeoLiveContentSource? liveContentSource;
@@ -737,6 +740,7 @@ namespace NeoCompose.Runtime
             // P104 §4.2: the schema passes are idempotent over `data`, so the
             // first client of a ProjectData pays for them.
             bool validated = data.clientPassesValidated;
+            authoredIndexes = data.authoredIndexes ??= new NeoAuthoredIndexes();
             if (!validated)
             {
                 ValidateClassMemberPayload(data);
@@ -746,7 +750,6 @@ namespace NeoCompose.Runtime
                 ValidateInternalRecordRelations(data);
             }
             InternalRecordRelations = new NeoInternalRecordRelationGraph(data);
-            authoredIndexes = data.authoredIndexes ??= new NeoAuthoredIndexes();
             // User data holds no world partitions (§4.2).
             if (!IsUserClient)
                 AdoptStampedMainValueRows();
@@ -772,7 +775,13 @@ namespace NeoCompose.Runtime
             {
                 ValidateCallableMembers();
                 ValidateConstructorRecords();
+                authoredIndexes.deferredReadOnlyLookupDefaults = deferredReadOnlyLookupDefaults.ToArray();
                 data.clientPassesValidated = true;
+            }
+            else
+            {
+                // Each client resolves its deferred defaults as it loads partitions.
+                deferredReadOnlyLookupDefaults.AddRange(authoredIndexes.deferredReadOnlyLookupDefaults);
             }
             loadedExistingSave = LoadSaveDataOrDefault(loadedSaveContent);
             sessionData = BuildDefaultSessionData();
