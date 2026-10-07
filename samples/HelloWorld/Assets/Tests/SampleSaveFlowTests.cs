@@ -67,7 +67,7 @@ namespace HelloWorld.Assets.Tests
         public async System.Threading.Tasks.Task CreateNew_IsLocalOnlyUntilCommit_ThenListedOnReturn()
         {
             var store = Store(new NeoFileLocalSaveStore(TempDir()));
-            store.LoadAsync().GetAwaiter().GetResult();
+            await store.LoadAsync();
             Assert.IsEmpty(store.Saves);
 
             var synchronizer = store.CreateNew("My Game");
@@ -96,7 +96,7 @@ namespace HelloWorld.Assets.Tests
         public async System.Threading.Tasks.Task Archive_MarksSaveArchivedAndHidesItFromTheActiveList()
         {
             var store = Store(new NeoFileLocalSaveStore(TempDir()));
-            store.LoadAsync().GetAwaiter().GetResult();
+            await store.LoadAsync();
 
             var synchronizer = store.CreateNew("Doomed");
             var neo = await HelloWorldNeo.Load(synchronizer);
@@ -122,7 +122,7 @@ namespace HelloWorld.Assets.Tests
                 new NeoFileLocalSaveStore(TempDir()),
                 cloud,
                 Channel);
-            storeA.LoadAsync().GetAwaiter().GetResult();
+            await storeA.LoadAsync();
 
             var synchronizer = storeA.CreateNew("Cloud Game");
             var neoA = await HelloWorldNeo.Load(synchronizer);
@@ -134,13 +134,15 @@ namespace HelloWorld.Assets.Tests
             neoA.Dispose();
 
             Assert.IsTrue(cloud.saves.ContainsKey(customId), "Commit synced the save to the cloud.");
+            // One store per process owns the user file; device B is a new process.
+            storeA.Dispose();
 
             // Device B: a fresh local store sharing the same cloud sees + loads the save.
             var storeB = Store(
                 new NeoFileLocalSaveStore(TempDir()),
                 cloud,
                 Channel);
-            storeB.LoadAsync().GetAwaiter().GetResult();
+            await storeB.LoadAsync();
 
             Assert.IsTrue(
                 storeB.Saves.Any(s => s.customId == customId),

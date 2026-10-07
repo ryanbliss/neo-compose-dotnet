@@ -82,16 +82,12 @@ namespace NeoCompose.Tests
 
         private readonly List<NeoProjectStore> stores = new();
 
-        [SetUp]
-        public void SetUp() => NeoProjectStore.ResetCurrent();
-
         [TearDown]
         public void TearDown()
         {
             foreach (var store in stores)
                 store.Dispose();
             stores.Clear();
-            NeoProjectStore.ResetCurrent();
         }
 
         [Test]

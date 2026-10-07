@@ -66,14 +66,17 @@ namespace HelloWorld.Assets.Tests
             Assert.IsTrue(settled, "a gameplay save never settled");
         }
 
-        /// <summary>A loaded local store over this test's temp save folder.</summary>
-        private NeoProjectStore LoadedStore()
+        /// <summary>This test's loaded local store over its temp save folder.
+        /// One per test, as one store per process owns the user file.</summary>
+        private async System.Threading.Tasks.Task<NeoProjectStore> LoadedStore()
         {
+            if (stores.Count > 0)
+                return stores[0];
             var store = new NeoProjectStore(
                 dataSource: SampleProjectFixture.Source,
                 localStore: new NeoFileLocalSaveStore(saveDirectory));
-            store.LoadAsync().GetAwaiter().GetResult();
             stores.Add(store);
+            await store.LoadAsync();
             return store;
         }
 
@@ -87,10 +90,16 @@ namespace HelloWorld.Assets.Tests
             return gameplay;
         }
 
+        /// <summary>Spawns a gameplay screen over a brand-new save.</summary>
+        private async System.Threading.Tasks.Task<HelloWorldGameplay> SpawnNew()
+        {
+            return await Spawn((await LoadedStore()).CreateNew());
+        }
+
         /// <summary>Loads the generated client without constructing the sample UI.</summary>
         private async System.Threading.Tasks.Task<HelloWorldNeo> LoadedClient()
         {
-            var client = await HelloWorldNeo.Load(LoadedStore().CreateNew());
+            var client = await HelloWorldNeo.Load((await LoadedStore()).CreateNew());
             clients.Add(client);
             return client;
         }
@@ -98,7 +107,7 @@ namespace HelloWorld.Assets.Tests
         [Test]
         public async System.Threading.Tasks.Task VisitOutpost_UpdatesLocationGeneratedTextAndVisitCounts()
         {
-            var gameplay = await Spawn(LoadedStore().CreateNew());
+            var gameplay = await SpawnNew();
 
             Assert.AreEqual(HelloText(Planet.earth), gameplay.HelloWorldText);
             Assert.AreEqual(Planet.earth, gameplay.World);
@@ -124,7 +133,7 @@ namespace HelloWorld.Assets.Tests
         [Test]
         public async System.Threading.Tasks.Task FlareClock_TicksPerHop_WithOuterSystemSurcharge()
         {
-            var gameplay = await Spawn(LoadedStore().CreateNew());
+            var gameplay = await SpawnNew();
             foreach (var outpost in gameplay.Outposts)
                 outpost.Save.Unlocked = true;
             var inner = gameplay.Outposts.First(o => o.Planet == Planet.mars);
@@ -140,7 +149,7 @@ namespace HelloWorld.Assets.Tests
         [Test]
         public async System.Threading.Tasks.Task FlareClock_GyroWaivesOuterSurcharge_ParasolShieldsFirstHops()
         {
-            var gameplay = await Spawn(LoadedStore().CreateNew());
+            var gameplay = await SpawnNew();
             foreach (var outpost in gameplay.Outposts)
                 outpost.Save.Unlocked = true;
             var outer = gameplay.Outposts.First(o => o.Planet == Planet.neptune);
@@ -161,7 +170,7 @@ namespace HelloWorld.Assets.Tests
         [Test]
         public async System.Threading.Tasks.Task LoopEnding_ErasesTheSaveAndExitsToMenu()
         {
-            var store = LoadedStore();
+            var store = await LoadedStore();
             var synchronizer = store.CreateNew();
             var customId = synchronizer.CustomId;
             var gameplay = await Spawn(synchronizer);
@@ -180,7 +189,7 @@ namespace HelloWorld.Assets.Tests
         [Test]
         public async System.Threading.Tasks.Task OtherEndings_KeepTheSave()
         {
-            var gameplay = await Spawn(LoadedStore().CreateNew());
+            var gameplay = await SpawnNew();
             string erased = null;
             gameplay.OnEraseSave += id => erased = id;
 
@@ -193,7 +202,7 @@ namespace HelloWorld.Assets.Tests
         [UnityTest]
         public IEnumerator OldConsoleLanding_EasterEggOpensGenerated2DWorldScene()
         {
-            var loading = Spawn(LoadedStore().CreateNew());
+            var loading = SpawnNew();
             while (!loading.IsCompleted)
                 yield return null;
             var gameplay = loading.GetAwaiter().GetResult();
@@ -229,7 +238,7 @@ namespace HelloWorld.Assets.Tests
         [UnityTest]
         public IEnumerator OldConsoleLanding_BarrierClearUpdatesGameplayCacheFromTileDelta()
         {
-            var loading = Spawn(LoadedStore().CreateNew());
+            var loading = SpawnNew();
             while (!loading.IsCompleted)
                 yield return null;
             var gameplay = loading.GetAwaiter().GetResult();
@@ -287,7 +296,7 @@ namespace HelloWorld.Assets.Tests
         [UnityTest]
         public IEnumerator OldConsoleLanding_InteractWithBootGlyphDoesNotLoopTileLookup()
         {
-            var loading = Spawn(LoadedStore().CreateNew());
+            var loading = SpawnNew();
             while (!loading.IsCompleted)
                 yield return null;
             var gameplay = loading.GetAwaiter().GetResult();
@@ -565,7 +574,7 @@ namespace HelloWorld.Assets.Tests
             // Mercurial's intro used to unconditionally reset the stage to
             // followTheWakes when visited afterwards. The guards must keep
             // progression forward-only in ANY visit order.
-            var gameplay = await Spawn(LoadedStore().CreateNew());
+            var gameplay = await SpawnNew();
             var neo = GameplayNeo(gameplay);
             foreach (var outpost in gameplay.Outposts)
                 outpost.Save.Unlocked = true;
@@ -585,7 +594,7 @@ namespace HelloWorld.Assets.Tests
         [Test]
         public async System.Threading.Tasks.Task FlareOverflow_RebootsWorld_KeepsCargo_AndColdBootGreets()
         {
-            var gameplay = await Spawn(LoadedStore().CreateNew());
+            var gameplay = await SpawnNew();
             var neo = GameplayNeo(gameplay);
             foreach (var outpost in gameplay.Outposts)
                 outpost.Save.Unlocked = true;
@@ -624,7 +633,7 @@ namespace HelloWorld.Assets.Tests
                 // This fixture intentionally uses the gameplay host: entering a
                 // save performs the sample's initial dialogue/memory setup before
                 // later quest starts are exercised.
-                var gameplay = await Spawn(LoadedStore().CreateNew());
+                var gameplay = await SpawnNew();
                 var neo = GameplayNeo(gameplay);
                 foreach (var outpost in gameplay.Outposts)
                     outpost.Save.Unlocked = true;
@@ -810,7 +819,7 @@ namespace HelloWorld.Assets.Tests
         [Test]
         public async System.Threading.Tasks.Task ResetSave_DiscardsUnsavedVisit()
         {
-            var gameplay = await Spawn(LoadedStore().CreateNew());
+            var gameplay = await SpawnNew();
 
             var destination = gameplay.Outposts.First(outpost =>
                 outpost.valueId != gameplay.CurrentOutpost.valueId);
@@ -829,7 +838,8 @@ namespace HelloWorld.Assets.Tests
         public async System.Threading.Tasks.Task Save_PersistsVisitAndReopensByCustomId()
         {
             // Create + play + save a brand-new save (dynamic customId, as the menu does).
-            var synchronizer = LoadedStore().CreateNew();
+            var store = await LoadedStore();
+            var synchronizer = store.CreateNew();
             var customId = synchronizer.CustomId;
             var gameplay = await Spawn(synchronizer);
             var destination = gameplay.Outposts.First(outpost =>
@@ -838,9 +848,9 @@ namespace HelloWorld.Assets.Tests
             gameplay.OnVisitOutpost(destination);
             await gameplay.SaveAsync();
 
-            // Reopen that same save by its id from a fresh store, as the menu's
-            // Continue does — the played state is restored.
-            var reloaded = await Spawn(LoadedStore().Open(customId));
+            // Reopen that same save by its id, as the menu's Continue does —
+            // the played state is restored from the save file.
+            var reloaded = await Spawn(store.Open(customId));
 
             Assert.AreEqual(HelloText(destination.Planet), reloaded.HelloWorldText);
             Assert.AreEqual(destination.Planet, reloaded.World);
@@ -853,7 +863,7 @@ namespace HelloWorld.Assets.Tests
         [Test]
         public async System.Threading.Tasks.Task VisitOutpost_IgnoresLockedOutpost()
         {
-            var gameplay = await Spawn(LoadedStore().CreateNew());
+            var gameplay = await SpawnNew();
 
             var startingOutpost = gameplay.CurrentOutpost;
             var lockedDestination = gameplay.Outposts.First(outpost =>

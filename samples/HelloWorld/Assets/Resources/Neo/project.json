@@ -334,6 +334,10 @@
         }
     },
     "project": {
+        "author": {
+            "id": "k176tsj2gzp7jhet65n2xmj6gd87jcrm",
+            "kind": "user"
+        },
         "createdAt": 1777766565598,
         "defaultAudioClipTemplateId": null,
         "defaultPriorityGroupId": "system_ba6d6eae-7bd8-4173-b54e-665234e83d79",
@@ -345,19 +349,16 @@
             }
         },
         "name": "HelloWorld",
-        "rootAssetsMemberId": "8f1dbf20-8d7c-49e0-9e0f-5e172da6f684",
-        "rootSaveFileMemberId": "4a1a7058-e5ba-4479-9f2f-7686a649a6b5",
-        "rootSessionMemberId": "f0ce0706-def6-41ff-b8e9-baa2a7a84de6",
-        "updatedAt": 1780175819483,
         "owner": {
             "id": "kn72e2q5bt8g8bw3zg32rejddn87z5y1",
             "kind": "organization"
         },
-        "author": {
-            "id": "k176tsj2gzp7jhet65n2xmj6gd87jcrm",
-            "kind": "user"
-        },
-        "id": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        "rootAssetsMemberId": "8f1dbf20-8d7c-49e0-9e0f-5e172da6f684",
+        "rootSaveFileMemberId": "4a1a7058-e5ba-4479-9f2f-7686a649a6b5",
+        "rootSessionMemberId": "f0ce0706-def6-41ff-b8e9-baa2a7a84de6",
+        "rootUserMemberId": "a28b5ad5-135b-592b-8c37-bed89f863f50",
+        "id": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+        "updatedAt": 1791371836939
     },
     "members": {
         "01225bc0-9381-4c01-946c-488dd3c89bce": {
@@ -3045,6 +3046,21 @@
             "updatedAt": 1788081167516,
             "id": "99a98018-cf3f-40b0-8405-7b0e1e0020e0",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "a28b5ad5-135b-592b-8c37-bed89f863f50": {
+            "classId": "eafb8ff2-2adb-5c58-a188-c94a6a2c0aec",
+            "createdAt": 1791371836939,
+            "defaultValue": {
+                "value": {}
+            },
+            "kind": 7,
+            "name": "User",
+            "requirement": 1,
+            "storage": 5,
+            "valueId": "13f5f154-90aa-5d53-93cd-7ae33735f7d9",
+            "id": "a28b5ad5-135b-592b-8c37-bed89f863f50",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1791371836939
         },
         "a44ed1c2-3296-40e1-b9ef-7924ec97cb21": {
             "createdAt": 1781255546299,
@@ -11958,6 +11974,16 @@
             "updatedAt": 1788081185682,
             "id": "dd0bbe5a-47ef-4164-9421-caea07f6f56f",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "eafb8ff2-2adb-5c58-a188-c94a6a2c0aec": {
+            "allowedStorage": 5,
+            "createdAt": 1791371836939,
+            "name": "User",
+            "schema": {},
+            "uiVisibility": 1,
+            "id": "eafb8ff2-2adb-5c58-a188-c94a6a2c0aec",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1791371836939
         },
         "f1b08825-2ad0-4666-acf1-3df7ffbda64e": {
             "createdAt": 1782348579677,
