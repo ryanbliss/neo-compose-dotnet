@@ -1,0 +1,8 @@
+/// Runs when another collider starts touching this object's collider.
+@id("system_6f4099d5-3d13-4bea-b432-3069cbd8b18d")
+@system(kind: .ScriptRuntime)
+interface INeoUnityOnCollisionEnter2D {
+  /// Called with the other Neo object or null, the first contact's normal, and the relative velocity in cells per second.
+  @id("system_6f59b3b0-45cc-44a4-96e1-ab642ce10c05")
+  void OnCollisionEnter2D(NeoObjectBase? other, Vector2 normal, Vector2 relativeVelocity);
+}

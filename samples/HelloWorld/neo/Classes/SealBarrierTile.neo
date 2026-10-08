@@ -9,10 +9,12 @@
     CollisionTileLayer
 )
 class SealBarrierTile : ConsoleTile {
-  @storage(allowed: .Immutable) @id("neo-tile-grid-record-relations-v1-member-4392efaf0b72696ac7f7145b13f4c808")
+  @id("neo-tile-grid-record-relations-v1-member-4392efaf0b72696ac7f7145b13f4c808")
+  @storage(allowed: .Immutable)
   @settings(format: .Plain)
   public override readonly string Name = "Seal Barrier";
 
-  @storage(allowed: .Immutable) @id("neo-tile-grid-record-relations-v1-member-22d2189b7b892371aa4bd2142e7a8832")
+  @id("neo-tile-grid-record-relations-v1-member-22d2189b7b892371aa4bd2142e7a8832")
+  @storage(allowed: .Immutable)
   public override readonly SpriteInfo Sprite = Images.SealBarrierTile.Slice(0);
 }

@@ -39,30 +39,26 @@ sealed class VenusianTheOldestPattern : Dialogue {
   ) {
     @primary
     Outpost venusian = Reference<Outpost>(id: "ed141cc4-304c-40cd-8229-105f1ee9b99c");
-  
+
     """
     Darling, you're back! And looking absolutely radioactive. Listen — the House archive found our OLDEST couture pattern. Pre-classical. Pre-EVERYTHING. It's yours for 150 bits, because you're you.
     """
-  
+
     @id("79cf5eb4-7d70-449d-8e1c-d23b195ac610")
-    Option Buy = new(
-      name: "Buy",
-    ) {
+    Option Buy = new() {
       """
       Sold. Show me.
       """
-    
+
       return V2;
     }
-  
+
     @id("dd54e322-db50-43ad-b6ab-0bce89442edf")
-    Option Haggle = new(
-      name: "Haggle",
-    ) {
+    Option Haggle = new() {
       """
       For a piece of cloth?
       """
-    
+
       return V1b;
     }
   }
@@ -73,11 +69,11 @@ sealed class VenusianTheOldestPattern : Dialogue {
   ) {
     @primary
     Outpost venusian = Reference<Outpost>(id: "ed141cc4-304c-40cd-8229-105f1ee9b99c");
-  
+
     """
     A piece of— it's a sixteen-by-sixteen GRID, darling, every square numbered, colors by code. Ancient couture is PIXEL ART and we simply called it embroidery. 150. Final.
     """
-  
+
     return V2;
   }
 
@@ -87,10 +83,10 @@ sealed class VenusianTheOldestPattern : Dialogue {
   ) {
     @primary
     Outpost venusian = Reference<Outpost>(id: "ed141cc4-304c-40cd-8229-105f1ee9b99c");
-  
+
     @id("9f4f993d-c685-4620-9bc0-c9b57226887d")
     Action2();
-  
+
     return V3;
   }
 
@@ -100,11 +96,11 @@ sealed class VenusianTheOldestPattern : Dialogue {
   ) {
     @primary
     Outpost venusian = Reference<Outpost>(id: "ed141cc4-304c-40cd-8229-105f1ee9b99c");
-  
+
     """
     There. Sixteen by sixteen, and when you fill the squares... it's a little blue circle. A world, darling. The FIRST world. Some seamstress copied the icon of everything and vanity preserved what faith couldn't parse.
     """
-  
+
     return V4;
   }
 
@@ -114,10 +110,10 @@ sealed class VenusianTheOldestPattern : Dialogue {
   ) {
     @primary
     Outpost venusian = Reference<Outpost>(id: "ed141cc4-304c-40cd-8229-105f1ee9b99c");
-  
+
     @id("199efa5f-5349-444f-b5a7-569560c694d1")
     Action1();
-  
+
     return V5;
   }
 
@@ -127,7 +123,7 @@ sealed class VenusianTheOldestPattern : Dialogue {
   ) {
     @primary
     Outpost venusian = Reference<Outpost>(id: "ed141cc4-304c-40cd-8229-105f1ee9b99c");
-  
+
     """
     Wear it where the monks can see, won't you? They'll weep. It'll be DIVINE.
     """

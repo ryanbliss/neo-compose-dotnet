@@ -26,30 +26,26 @@ sealed class UrsaMajorIntro : Dialogue {
   ) {
     @primary
     Outpost outpost = Reference<Outpost>(id: "b81df7d3-be41-4685-9111-3cdc1821e693");
-  
+
     """
     Keep your voice down — the interferometer is listening. You're here about the sun. Everyone is, lately.
     """
-  
+
     @id("14c6dadd-3fd4-43e4-bcd5-f8eec3d0e8df")
-    Option Data = new(
-      name: "Data",
-    ) {
+    Option Data = new() {
       """
       Show me the numbers.
       """
-    
+
       return U2;
     }
-  
+
     @id("9ac2305f-83d3-4645-b3b5-c3b86765fecb")
-    Option Hunch = new(
-      name: "Hunch",
-    ) {
+    Option Hunch = new() {
       """
       Just tell me your gut.
       """
-    
+
       return U2g;
     }
   }
@@ -60,11 +56,11 @@ sealed class UrsaMajorIntro : Dialogue {
   ) {
     @primary
     Outpost outpost = Reference<Outpost>(id: "b81df7d3-be41-4685-9111-3cdc1821e693");
-  
+
     """
     Gut? We're scientists, we don't... oh, fine. My gut says the sun is losing weight, and it is NOT on a diet.
     """
-  
+
     return U2;
   }
 
@@ -74,11 +70,11 @@ sealed class UrsaMajorIntro : Dialogue {
   ) {
     @primary
     Outpost outpost = Reference<Outpost>(id: "b81df7d3-be41-4685-9111-3cdc1821e693");
-  
+
     """
     Solar mass is down three tenths of a percent in a single year. That does not happen. Something is siphoning the corona — and every tanker wake we track curves past Saturn into the deep system.
     """
-  
+
     return U3;
   }
 
@@ -88,12 +84,12 @@ sealed class UrsaMajorIntro : Dialogue {
   ) {
     @primary
     Outpost outpost_2 = Reference<Outpost>(id: "bb2dca5c-ab35-4ca5-82ec-a236f0de0a6f");
-  
+
     Outpost outpost = Reference<Outpost>(id: "b81df7d3-be41-4685-9111-3cdc1821e693");
-  
+
     @id("68eb6912-4f33-49d0-948e-3ddcb1702764")
     Action1();
-  
+
     return U4;
   }
 
@@ -103,7 +99,7 @@ sealed class UrsaMajorIntro : Dialogue {
   ) {
     @primary
     Outpost outpost = Reference<Outpost>(id: "b81df7d3-be41-4685-9111-3cdc1821e693");
-  
+
     """
     The Etna Diadem monks on Enceladus watch the deep current — monks notice what telescopes can't. Go gently. And if the sun flickers... call it in.
     """

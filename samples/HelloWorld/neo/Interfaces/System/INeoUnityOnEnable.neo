@@ -1,0 +1,8 @@
+/// Runs when this object's GameObject becomes active in the hierarchy.
+@id("system_3c3a67d4-9926-4b11-ac89-bcf30c2b5d90")
+@system(kind: .ScriptRuntime)
+interface INeoUnityOnEnable {
+  /// Called each time the rendered GameObject becomes active.
+  @id("system_26cd4ae9-4e81-45ad-a40c-b41e4ad5ddcf")
+  void OnEnable();
+}

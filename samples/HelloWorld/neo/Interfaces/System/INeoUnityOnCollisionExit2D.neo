@@ -1,0 +1,8 @@
+/// Runs when another collider stops touching this object's collider.
+@id("system_a6157ec0-e5e1-4f77-9ba1-8f5eb022e6a4")
+@system(kind: .ScriptRuntime)
+interface INeoUnityOnCollisionExit2D {
+  /// Called with the Neo object that hosts the other collider, or null when none does.
+  @id("system_a9e5df85-4c69-4cfc-b9ae-a9f40e7dbbb9")
+  void OnCollisionExit2D(NeoObjectBase? other);
+}

@@ -35,11 +35,11 @@ sealed class MercurialIntro : Dialogue {
   ) {
     @primary
     Outpost mercurial = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
-  
+
     """
     A Hand not of Light draweth from the corona. It rideth the flare-wakes outward, past the Wanderers, into the Deep Current. Follow the wakes, seeker, and thou shalt find the Spender.
     """
-  
+
     return Mx3a;
   }
 
@@ -49,77 +49,65 @@ sealed class MercurialIntro : Dialogue {
   ) {
     @primary
     Outpost mercurial = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
-  
+
     @id("82701398-39e0-4178-9315-ec1ee8f2d129")
     mercurial.Save.Reputation++;
-  
+
     return Asketh;
   }
 
   @id("70d647e0-09f6-4537-9576-b876550c13d2")
-  Text Hello = new(
-    name: "Hello",
-  ) {
+  Text Hello = new() {
     @primary
     Outpost mercurial = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
-  
+
     """
     Light graces you, brave traveler. We've been expecting you.
     """
-  
+
     @id("c21e9a69-facc-4ccc-b108-362f84011aba")
-    Option Surprise = new(
-      name: "Surprise",
-    ) {
+    Option Surprise = new() {
       """
       You've been <i>expecting </i>me?
       """
-    
+
       return SunShineth;
     }
-  
+
     @id("577544d5-d515-470f-9bdb-17d998d7e7d0")
-    Option Doubt = new(
-      name: "Doubt",
-    ) {
+    Option Doubt = new() {
       """
       I bet you say that to everyone
       """
-    
+
       return SunOffersLight;
     }
   }
 
   @id("ce3058ab-c8a3-4460-abb8-56428fcd87fe")
-  Text Asketh = new(
-    name: "Asketh",
-  ) {
+  Text Asketh = new() {
     @primary
     Outpost mercurial = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
-  
+
     """
     Light Shines its abundance on Mercurial. Ask that which hath evadeth you in Darker realms.
     """
-  
+
     @id("7a2031fb-f402-4f66-bc2d-998d2ee48ab6")
-    Option Cosmic = new(
-      name: "Cosmic",
-    ) {
+    Option Cosmic = new() {
       """
       There are reports of cosmic disturbances
       """
-    
+
       return CosmosCrieth;
     }
-  
+
     @id("fe7da25d-d51c-4435-82de-3cf16520dcdf")
-    Option Accuse = new(
-      name: "Accuse",
-    ) {
+    Option Accuse = new() {
       """
       I know you have been causing the solar flares <i>(Lie)</i>
       """
-    
+
       return LightToDark;
     }
   }
@@ -130,7 +118,7 @@ sealed class MercurialIntro : Dialogue {
   ) {
     @primary
     Outpost mercurial = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
-  
+
     """
     Begin where vanity shineth — Venus. And where stone remembereth — Mars. The Light goeth with thee, seeker. Spend it well.
     """
@@ -142,11 +130,11 @@ sealed class MercurialIntro : Dialogue {
   ) {
     @primary
     Outpost mercurial = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
-  
+
     """
     When Sun hath given all it may, it giveth all at once. Red Nova is the last gift, the bright goodbye. It was not yet Time — unless the Spender maketh it so.
     """
-  
+
     return Mx1;
   }
 
@@ -156,30 +144,26 @@ sealed class MercurialIntro : Dialogue {
   ) {
     @primary
     Outpost mercurial = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
-  
+
     """
     Aye, Cosmos crieth out through the Light. It was not Time for Red Nova, yet Time disturbeth all until Nova come.
     """
-  
+
     @id("83a11bd5-e0df-4675-940d-e411bc92d0a5")
-    Option Who = new(
-      name: "Who",
-    ) {
+    Option Who = new() {
       """
       Who spendeth the Sun before its Time?
       """
-    
+
       return Mx1;
     }
-  
+
     @id("d6e9a342-351d-4ca3-bc67-fec19a979221")
-    Option Prophecy = new(
-      name: "Prophecy",
-    ) {
+    Option Prophecy = new() {
       """
       What is the Red Nova?
       """
-    
+
       return Mx2;
     }
   }
@@ -190,30 +174,26 @@ sealed class MercurialIntro : Dialogue {
   ) {
     @primary
     Outpost mercurial = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
-  
+
     """
     The Sun offereth its Light freely, but it cannot reach those inclined to Darkness.
     """
-  
+
     @id("ec77f515-6f67-4c6e-8071-c67e3941193c")
-    Option Fair = new(
-      name: "Fair",
-    ) {
+    Option Fair = new() {
       """
       Fair enough. Well, I am looking for some information.
       """
-    
+
       return Asketh;
     }
-  
+
     @id("4180d4be-1858-4e98-992e-acf54b7f8fac")
-    Option Rude = new(
-      name: "Rude",
-    ) {
+    Option Rude = new() {
       """
       Aren't you blind? Sounds pretty dark to me...
       """
-    
+
       return DecreaseRep;
     }
   }
@@ -224,30 +204,26 @@ sealed class MercurialIntro : Dialogue {
   ) {
     @primary
     Outpost mercurial = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
-  
+
     """
     Sun shineth for those that seeketh.
     """
-  
+
     @id("448f16cd-7284-448b-90c4-f4fed1934c22")
-    Option Seeketh = new(
-      name: "Seeketh",
-    ) {
+    Option Seeketh = new() {
       """
       Well, I indeed was sent here to seeketh knowledge.
       """
-    
+
       return IncreaseRep;
     }
-  
+
     @id("0bc6c92e-beaa-45b4-a5c2-7b12bc34b129")
-    Option Mock = new(
-      name: "Mock",
-    ) {
+    Option Mock = new() {
       """
       Does the sun shineth for those that seeketh to be blind?
       """
-    
+
       return DecreaseRep;
     }
   }
@@ -258,10 +234,10 @@ sealed class MercurialIntro : Dialogue {
   ) {
     @primary
     Outpost mercurial = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
-  
+
     @id("640bc771-6f2c-46b0-9b9f-4d8eababb6b2")
     mercurial.SaveUnsafe!.Reputation--;
-  
+
     return LightToDark;
   }
 
@@ -271,19 +247,17 @@ sealed class MercurialIntro : Dialogue {
   ) {
     @primary
     Outpost mercurial = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
-  
+
     """
     Ah, so the Light has chosen Darkness as its vessel. Alas, all Light goes Dark in time. 
     """
-  
+
     @id("9f77e6c6-24d1-41e1-91cb-f968f943f4f8")
-    Option Okay = new(
-      name: "Okay",
-    ) {
+    Option Okay = new() {
       """
       Uh, okay...
       """
-    
+
       return Asketh;
     }
   }
@@ -293,16 +267,16 @@ sealed class MercurialIntro : Dialogue {
     name: "mx3b",
   ) {
     Outpost mercurial = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
-  
+
     @primary
     Outpost olympicMons = Reference<Outpost>(id: "424019cd-8b46-4dd9-9aac-3721331179bb");
-  
+
     @id("9387357d-21f5-4b29-87fe-9b28d081573d")
     Action1();
-  
+
     @id("c92be1f7-4d45-4a52-80f3-7ac16949ab7b")
     Action2();
-  
+
     return Mx4;
   }
 
@@ -311,13 +285,13 @@ sealed class MercurialIntro : Dialogue {
     name: "mx3a",
   ) {
     Outpost mercurial = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
-  
+
     @primary
     Outpost venusian = Reference<Outpost>(id: "ed141cc4-304c-40cd-8229-105f1ee9b99c");
-  
+
     @id("c303f726-41d9-4ee8-9c65-0397c902b7a6")
     Action3();
-  
+
     return Mx3b;
   }
 }

@@ -1,6 +1,11 @@
 @id("system_61b30a92-90dc-4bf8-8503-ee4f6414effc")
 @system(kind: .WorldAuthoring, worldKind: .ObjectBase)
 abstract class NeoObjectBase {
+  /// The object's box collider, or null for none. Any world object can carry one: placed objects, nested children, and sprites alike.
+  @id("system_a0083c92-72f7-405f-8863-ff86f995d36d")
+  @system(kind: .WorldAuthoring)
+  public virtual NeoCollider? Collider = null;
+
   /// When false, this object and its children are neither rendered nor collided with. The value stays live: member writes still apply and a running animation clip keeps playing. Disabling an object hides its whole subtree regardless of each child's own value, and re-enabling it restores exactly what was there.
   @id("system_4858148e-1c42-449d-8a03-c1601da529bd")
   @system(kind: .WorldAuthoring)

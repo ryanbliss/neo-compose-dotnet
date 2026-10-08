@@ -1,0 +1,8 @@
+/// Runs when this object's GameObject becomes inactive or despawns.
+@id("system_81750392-22a9-4881-a117-8d9de3e200cd")
+@system(kind: .ScriptRuntime)
+interface INeoUnityOnDisable {
+  /// Called each time the rendered GameObject stops being active.
+  @id("system_fbb3df8c-054a-4665-85d2-e11ad1eb08fb")
+  void OnDisable();
+}

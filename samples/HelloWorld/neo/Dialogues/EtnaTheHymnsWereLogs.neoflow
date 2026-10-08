@@ -49,11 +49,11 @@ sealed class EtnaTheHymnsWereLogs : Dialogue {
   ) {
     @primary
     Outpost outpost = Reference<Outpost>(id: "bb2dca5c-ab35-4ca5-82ec-a236f0de0a6f");
-  
+
     """
     Because neither is singing, traveler. Both are RECITING. The corn from its wiring, we from our fathers. Same source.
     """
-  
+
     return H1x;
   }
 
@@ -63,10 +63,10 @@ sealed class EtnaTheHymnsWereLogs : Dialogue {
   ) {
     @primary
     Outpost outpost = Reference<Outpost>(id: "bb2dca5c-ab35-4ca5-82ec-a236f0de0a6f");
-  
+
     @id("2b55ed52-fad7-4e0c-89cf-9cd602e8d6b7")
     Action4();
-  
+
     return H4;
   }
 
@@ -76,10 +76,10 @@ sealed class EtnaTheHymnsWereLogs : Dialogue {
   ) {
     @primary
     Outpost outpost = Reference<Outpost>(id: "bb2dca5c-ab35-4ca5-82ec-a236f0de0a6f");
-  
+
     @id("c9eb5167-5de6-438a-bd2c-f80f8adf29e1")
     Action1();
-  
+
     return H5;
   }
 
@@ -89,10 +89,10 @@ sealed class EtnaTheHymnsWereLogs : Dialogue {
   ) {
     @primary
     Outpost outpost = Reference<Outpost>(id: "bb2dca5c-ab35-4ca5-82ec-a236f0de0a6f");
-  
+
     @id("1c5b294b-eff6-4baa-89ca-f55aa755c0aa")
     Action3();
-  
+
     return H4;
   }
 
@@ -102,30 +102,26 @@ sealed class EtnaTheHymnsWereLogs : Dialogue {
   ) {
     @primary
     Outpost outpost = Reference<Outpost>(id: "bb2dca5c-ab35-4ca5-82ec-a236f0de0a6f");
-  
+
     """
     You carry the humming grain. Sit by the south geyser — listen. Your corn and our hymn... they hum the SAME line.
     """
-  
+
     @id("d1f952e6-e98b-4419-9f84-64b38ef3e0e5")
-    Option Offer = new(
-      name: "Offer",
-    ) {
+    Option Offer = new() {
       """
       Offer the Storm Corn
       """
-    
+
       return GiveCorn;
     }
-  
+
     @id("27dd1f16-c9f5-4d90-a3e9-414887c3f054")
-    Option Why = new(
-      name: "Why",
-    ) {
+    Option Why = new() {
       """
       Why would corn know your scripture?
       """
-    
+
       return H1b;
     }
   }
@@ -136,7 +132,7 @@ sealed class EtnaTheHymnsWereLogs : Dialogue {
   ) {
     @primary
     Outpost outpost = Reference<Outpost>(id: "bb2dca5c-ab35-4ca5-82ec-a236f0de0a6f");
-  
+
     """
     Write it down, traveler: the world keeps minutes of its own birth. Whatever opens with such a key... it was built to be opened.
     """
@@ -148,30 +144,26 @@ sealed class EtnaTheHymnsWereLogs : Dialogue {
   ) {
     @primary
     Outpost outpost = Reference<Outpost>(id: "bb2dca5c-ab35-4ca5-82ec-a236f0de0a6f");
-  
+
     """
     We transcribed the south hymn against your grain's hum. Line lengths. Repeated headers. Timestamps, traveler. Our holiest hymn is a record of the world starting up. Generations chanted a boot log phonetically and called the warmth it gave them faith.
     """
-  
+
     @id("c2e2c822-35b7-4317-b296-2cbc6b5f993f")
-    Option Gentle = new(
-      name: "Gentle",
-    ) {
+    Option Gentle = new() {
       """
       It still gave warmth. That part was real.
       """
-    
+
       return H3w;
     }
-  
+
     @id("fcc9d4c5-714f-472a-85b8-0bc6467e91c1")
-    Option Hollow = new(
-      name: "Hollow",
-    ) {
+    Option Hollow = new() {
       """
       So your faith is a transcription error.
       """
-    
+
       return H3c;
     }
   }
@@ -182,19 +174,17 @@ sealed class EtnaTheHymnsWereLogs : Dialogue {
   ) {
     @primary
     Outpost outpost = Reference<Outpost>(id: "bb2dca5c-ab35-4ca5-82ec-a236f0de0a6f");
-  
+
     """
     Then let the grain answer for itself, traveler.
     """
-  
+
     @id("281adb46-b69e-434f-9106-1aa805d88ed7")
-    Option Offer = new(
-      name: "Offer",
-    ) {
+    Option Offer = new() {
       """
       Hand over the Storm Corn
       """
-    
+
       return GiveCorn;
     }
   }
@@ -204,13 +194,13 @@ sealed class EtnaTheHymnsWereLogs : Dialogue {
     name: "give corn",
   ) {
     Outpost outpost = Reference<Outpost>(id: "bb2dca5c-ab35-4ca5-82ec-a236f0de0a6f");
-  
+
     @primary
     Item stormCorn = Reference<Item>(id: "0e9655ec-dc98-477c-b0ff-90d8f203040a");
-  
+
     @id("f260b8ef-c819-4408-bf87-a716c9c33f45")
     Action2();
-  
+
     return H2;
   }
 }

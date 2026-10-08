@@ -1,0 +1,8 @@
+/// Runs when another collider leaves this object's trigger collider.
+@id("system_9da00dcd-4035-46cc-8d98-00f5b8d91545")
+@system(kind: .ScriptRuntime)
+interface INeoUnityOnTriggerExit2D {
+  /// Called with the Neo object that hosts the other collider, or null when none does.
+  @id("system_c4a2d22b-1015-478b-b5e7-19722e03bb84")
+  void OnTriggerExit2D(NeoObjectBase? other);
+}

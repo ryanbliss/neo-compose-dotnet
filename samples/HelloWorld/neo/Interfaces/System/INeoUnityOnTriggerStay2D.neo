@@ -1,0 +1,8 @@
+/// Runs every physics step while another collider stays inside this object's trigger collider.
+@id("system_a66ca3a6-3df3-4cb2-a9ba-7f63c494932c")
+@system(kind: .ScriptRuntime)
+interface INeoUnityOnTriggerStay2D {
+  /// Called with the Neo object that hosts the other collider, or null when none does.
+  @id("system_2498ef11-707f-4988-85ec-a2f14ed06029")
+  void OnTriggerStay2D(NeoObjectBase? other);
+}

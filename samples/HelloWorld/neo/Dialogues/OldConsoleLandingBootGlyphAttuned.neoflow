@@ -17,11 +17,11 @@ sealed class OldConsoleLandingBootGlyphAttuned : Dialogue {
   ) {
     @primary
     BlockedPath blockedPath = Reference<BlockedPath>(id: "432f5226-99d8-4d59-8cf0-4d86ca64462f");
-  
+
     """
     The dark tile wakes under your boots. Teal rings spin outward once, twice, then settle into a slow, steady pulse.
     """
-  
+
     return Voice;
   }
 
@@ -31,7 +31,7 @@ sealed class OldConsoleLandingBootGlyphAttuned : Dialogue {
   ) {
     @primary
     BlockedPath blockedPath = Reference<BlockedPath>(id: "432f5226-99d8-4d59-8cf0-4d86ca64462f");
-  
+
     """
     A voice crackles up through the deck plating: "Boot trace verified. You're the first thing to walk this floor with a pulse in a very long time. The vault seal will answer to you now."
     """

@@ -1,0 +1,8 @@
+/// Runs every frame while this object is enabled.
+@id("system_9e3923ce-a569-491f-95d8-dca8411611eb")
+@system(kind: .ScriptRuntime)
+interface INeoUnityUpdate {
+  /// Called every frame with Time.deltaTime in seconds. Prefer effects for reacting to data changes.
+  @id("system_0bec2c4a-95cf-4dbb-83ac-2b6fd6616a47")
+  void Update(float deltaTime);
+}

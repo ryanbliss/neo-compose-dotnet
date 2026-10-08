@@ -1,0 +1,8 @@
+/// Runs every frame after Update while this object is enabled.
+@id("system_f2ecf221-8b14-44b1-b871-24c10c401b4b")
+@system(kind: .ScriptRuntime)
+interface INeoUnityLateUpdate {
+  /// Called every frame after positions are written back, with Time.deltaTime in seconds.
+  @id("system_407bee6d-2bf2-4cf9-a34e-cb903608159a")
+  void LateUpdate(float deltaTime);
+}

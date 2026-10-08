@@ -36,30 +36,26 @@ sealed class TitanIntro : Dialogue {
   ) {
     @primary
     Outpost outpost = Reference<Outpost>(id: "c9cbef1c-4660-432c-83e1-0e9c10c897e0");
-  
+
     """
     No names on Titan. You buying, selling, or asking? Fair warning: asking costs the most.
     """
-  
+
     @id("7e971881-1703-4f72-b358-ef64039db72f")
-    Option Pay = new(
-      name: "Pay",
-    ) {
+    Option Pay = new() {
       """
       Here's 200 bits. The solar condensate manifests — who signs them?
       """
-    
+
       return T2;
     }
-  
+
     @id("381efc72-1cfe-407c-bb2f-7f3f0da48418")
-    Option Lean = new(
-      name: "Lean",
-    ) {
+    Option Lean = new() {
       """
       The Pour Lords sent me. They're unhappy with the rate.
       """
-    
+
       return T2l;
     }
   }
@@ -70,11 +66,11 @@ sealed class TitanIntro : Dialogue {
   ) {
     @primary
     Outpost outpost = Reference<Outpost>(id: "c9cbef1c-4660-432c-83e1-0e9c10c897e0");
-  
+
     """
     The Lords? UNHAPPY? ...Fine. No charge. But you didn't hear this from me:
     """
-  
+
     return T3;
   }
 
@@ -84,10 +80,10 @@ sealed class TitanIntro : Dialogue {
   ) {
     @primary
     Outpost outpost = Reference<Outpost>(id: "c9cbef1c-4660-432c-83e1-0e9c10c897e0");
-  
+
     @id("d2188e44-7be9-44ad-873f-c7dd7c901697")
     Action1();
-  
+
     return T3;
   }
 
@@ -97,11 +93,11 @@ sealed class TitanIntro : Dialogue {
   ) {
     @primary
     Outpost outpost = Reference<Outpost>(id: "c9cbef1c-4660-432c-83e1-0e9c10c897e0");
-  
+
     """
     The manifests route through a shell company on Triton — 'Gyre Collective Logistics.' Neptune crowd. Cold people, colder money. Plutonian money, mark me.
     """
-  
+
     return T4;
   }
 
@@ -111,12 +107,12 @@ sealed class TitanIntro : Dialogue {
   ) {
     @primary
     Outpost caelusAnchorpoint = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
-  
+
     Outpost outpost = Reference<Outpost>(id: "c9cbef1c-4660-432c-83e1-0e9c10c897e0");
-  
+
     @id("0e6ddbee-d12a-4edf-b391-ba11f2741d49")
     Action3();
-  
+
     return GrantSmugglersManifest;
   }
 
@@ -126,7 +122,7 @@ sealed class TitanIntro : Dialogue {
   ) {
     @primary
     Outpost outpost = Reference<Outpost>(id: "c9cbef1c-4660-432c-83e1-0e9c10c897e0");
-  
+
     """
     A copy of the manifest, since you've been civil. Route through the Caelus Anchorpoint at Uranus — their relays log every command burst headed to Neptune.
     """
@@ -138,12 +134,12 @@ sealed class TitanIntro : Dialogue {
   ) {
     @primary
     Item smugglersManifest = Reference<Item>(id: "0c962c81-359a-4f8b-9263-7b6bb33b42b7");
-  
+
     Outpost outpost = Reference<Outpost>(id: "c9cbef1c-4660-432c-83e1-0e9c10c897e0");
-  
+
     @id("84c58cc0-446b-4e86-847c-2c486c869e92")
     Action2();
-  
+
     return T5;
   }
 }

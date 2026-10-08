@@ -45,13 +45,13 @@ sealed class IowanIntro : Dialogue {
     name: "grant Storm Corn",
   ) {
     Outpost outpost = Reference<Outpost>(id: "7a91f55f-a90e-4a80-80f4-43ad6386891a");
-  
+
     @primary
     Item stormCorn = Reference<Item>(id: "0e9655ec-dc98-477c-b0ff-90d8f203040a");
-  
+
     @id("d8e4dfcf-4c19-4973-a020-06358c1bbac4")
     Action2();
-  
+
     return I5;
   }
 
@@ -60,13 +60,13 @@ sealed class IowanIntro : Dialogue {
     name: "i4a",
   ) {
     Outpost outpost = Reference<Outpost>(id: "7a91f55f-a90e-4a80-80f4-43ad6386891a");
-  
+
     @primary
     Outpost outpost_2 = Reference<Outpost>(id: "83cc2935-5a85-4d71-9e50-4e4496f00631");
-  
+
     @id("19781ef2-66b2-4851-8cb6-3cb1393a9915")
     Action5();
-  
+
     return I4b;
   }
 
@@ -76,11 +76,11 @@ sealed class IowanIntro : Dialogue {
   ) {
     @primary
     Outpost outpost = Reference<Outpost>(id: "7a91f55f-a90e-4a80-80f4-43ad6386891a");
-  
+
     """
     Howdy, stranger! Welcome to Iowan — best storm corn in four hundred moons, and don't let Venus tell you otherwise.
     """
-  
+
     @id("5de8e168-75b1-446e-ba22-d9ee3da88fea")
     Option Corn = new(
       name: "Corn?",
@@ -88,18 +88,16 @@ sealed class IowanIntro : Dialogue {
       """
       You grow corn... on Jupiter?
       """
-    
+
       return I2;
     }
-  
+
     @id("49789b78-ff3a-4a98-9846-3c89286180df")
-    Option Business = new(
-      name: "Business",
-    ) {
+    Option Business = new() {
       """
       I'm tracking the freighters that ride the flare wakes.
       """
-    
+
       return I3;
     }
   }
@@ -110,11 +108,11 @@ sealed class IowanIntro : Dialogue {
   ) {
     @primary
     Outpost outpost = Reference<Outpost>(id: "7a91f55f-a90e-4a80-80f4-43ad6386891a");
-  
+
     """
     Freighters, eh? Pour Lords on Ganymede run all the fuel out here — start with their ledgers. The Europapas folk have seen things under the ice, too. And the eggheads up Ursa Major chart every wake in the sky. Pick your moon, stranger.
     """
-  
+
     return I4a;
   }
 
@@ -123,16 +121,16 @@ sealed class IowanIntro : Dialogue {
     name: "i4c",
   ) {
     Outpost outpost = Reference<Outpost>(id: "7a91f55f-a90e-4a80-80f4-43ad6386891a");
-  
+
     @primary
     Outpost outpost_2 = Reference<Outpost>(id: "b81df7d3-be41-4685-9111-3cdc1821e693");
-  
+
     @id("66eb4131-942d-4e35-8785-38be13173913")
     Action3();
-  
+
     @id("e47f29bd-a3fe-4163-9ab4-23053479fba1")
     Action4();
-  
+
     return GrantStormCorn;
   }
 
@@ -141,13 +139,13 @@ sealed class IowanIntro : Dialogue {
     name: "i4b",
   ) {
     Outpost outpost = Reference<Outpost>(id: "7a91f55f-a90e-4a80-80f4-43ad6386891a");
-  
+
     @primary
     Outpost outpost_2 = Reference<Outpost>(id: "1c9e473a-3616-4c1c-82f7-461e080c9785");
-  
+
     @id("56cebd90-e85a-4740-a3a3-461d02f5753a")
     Action1();
-  
+
     return I4c;
   }
 
@@ -157,7 +155,7 @@ sealed class IowanIntro : Dialogue {
   ) {
     @primary
     Outpost outpost = Reference<Outpost>(id: "7a91f55f-a90e-4a80-80f4-43ad6386891a");
-  
+
     """
     Take an ear of storm corn for the road. It hums when a flare's coming. Don't ask us why — we just farm here.
     """
@@ -169,11 +167,11 @@ sealed class IowanIntro : Dialogue {
   ) {
     @primary
     Outpost outpost = Reference<Outpost>(id: "7a91f55f-a90e-4a80-80f4-43ad6386891a");
-  
+
     """
     Cloud-vat corn, sweetened by lightning! Was, anyway. The flare radiation's been cooking the crop bone-white. First season we've ever lost.
     """
-  
+
     return I3;
   }
 }

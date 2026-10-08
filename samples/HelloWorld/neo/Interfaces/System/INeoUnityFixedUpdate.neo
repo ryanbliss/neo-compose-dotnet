@@ -1,0 +1,8 @@
+/// Runs every physics step while this object is enabled.
+@id("system_23677dec-fa02-4a09-8b0a-f762b10e467e")
+@system(kind: .ScriptRuntime)
+interface INeoUnityFixedUpdate {
+  /// Called every physics step with Time.fixedDeltaTime in seconds.
+  @id("system_43b19f97-ee83-496b-9f1c-56d0f008c410")
+  void FixedUpdate(float deltaTime);
+}

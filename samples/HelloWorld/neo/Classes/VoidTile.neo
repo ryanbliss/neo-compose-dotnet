@@ -9,10 +9,12 @@
     BackgroundTileLayer
 )
 class VoidTile : ConsoleTile {
-  @storage(allowed: .Immutable) @id("neo-tile-grid-record-relations-v1-member-228d0ac0a4b310f0fcc6ca4c1e7f748a")
+  @id("neo-tile-grid-record-relations-v1-member-228d0ac0a4b310f0fcc6ca4c1e7f748a")
+  @storage(allowed: .Immutable)
   @settings(format: .Plain)
   public override readonly string Name = "Void";
 
-  @storage(allowed: .Immutable) @id("neo-tile-grid-record-relations-v1-member-8f91e55864defb558c3e4327b8c47251")
+  @id("neo-tile-grid-record-relations-v1-member-8f91e55864defb558c3e4327b8c47251")
+  @storage(allowed: .Immutable)
   public override readonly SpriteInfo Sprite = Images.VoidTile.Slice(0);
 }
