@@ -210,7 +210,7 @@ namespace NeoCompose.Tests
                     },
                 },
                 enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
-            };
+            }.WithUserRoot();
         }
 
         private static FunctionArgumentTypeInfo InitialParameter()

@@ -708,7 +708,7 @@ namespace NeoCompose.Tests
                 enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
                 variantFolders = new Dictionary<string, VariantFolderRecord>(),
                 internalRecordRelations = new Dictionary<string, InternalRecordRelation>(),
-            };
+            }.WithUserRoot();
         }
 
         private static NeoSchemaClass SchemaClass(

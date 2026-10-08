@@ -2720,7 +2720,7 @@ namespace NeoCompose.Tests
                         value = "shared",
                     },
                 },
-            };
+            }.WithUserRoot();
         }
 
         private static void AddSparseSaveClass(ProjectData data)

@@ -1603,7 +1603,7 @@ namespace NeoCompose.Tests
                         optionKeyOrder = new List<string> { "option-a", "option-b" },
                     },
                 },
-            };
+            }.WithUserRoot();
             // class Wide { int W0 = 0; int W1 = 1; ... }
             var wideSchema = new (string key, string memberId)[wideMembers];
             for (int index = 0; index < wideMembers; index++)

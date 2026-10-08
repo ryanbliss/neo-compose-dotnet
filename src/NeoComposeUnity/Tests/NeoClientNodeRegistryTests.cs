@@ -522,7 +522,7 @@ namespace NeoCompose.Tests
                     [derivedItemClass.id] = derivedItemClass,
                 },
                 enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
-            };
+            }.WithUserRoot();
         }
 
         private static ClassMember RootMember(

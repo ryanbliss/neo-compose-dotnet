@@ -10575,7 +10575,7 @@ namespace NeoCompose.Tests
                     [OtherTileClassId] = otherTileClass,
                 },
                 enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
-            };
+            }.WithUserRoot();
             SetPlacementTiles(data, "shop-object", Vector2Int.zero);
             SetPlacementTiles(data, "shop-1", Vector2Int.zero);
             return data;

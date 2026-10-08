@@ -948,7 +948,7 @@ namespace NeoCompose.Tests
                     [emptyClass.id] = emptyClass,
                 },
                 enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
-            };
+            }.WithUserRoot();
         }
 
         private static void AddPlacement(

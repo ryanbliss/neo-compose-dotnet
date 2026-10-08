@@ -833,7 +833,7 @@ namespace NeoCompose.Tests
                         TileLayerClassId),
                 },
                 enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
-            };
+            }.WithUserRoot();
         }
 
         private static InternalRecordRelation ClassRelation(

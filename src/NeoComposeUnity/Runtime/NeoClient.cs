@@ -52,10 +52,10 @@ namespace NeoCompose.Runtime
             get; protected set;
         }
         /// <summary>
-        /// The User root (P104 §4.3), or null when the project has none. A
-        /// save client reads it through its user client and never writes it.
+        /// The User root (P104 §4.3). A save client reads it through its user
+        /// client and never writes it.
         /// </summary>
-        public NeoMemberClassWritable? user
+        public NeoMemberClassWritable user
         {
             get; protected set;
         }
@@ -756,21 +756,13 @@ namespace NeoCompose.Runtime
             SaveOptions = saveOptions ?? new NeoSaveOptions();
             this.assetDatabase = assetDatabase;
             Localization = localization ?? NeoLocalization.CreateEmpty(data.localization);
-            string? rootUserMemberId = string.IsNullOrEmpty(data.project.rootUserMemberId)
-                ? null
-                : data.project.rootUserMemberId;
-            if (IsUserClient)
-            {
-                ValidateRootClassMember(rootUserMemberId ?? "", nameof(Project.rootUserMemberId));
-            }
-            else
+            if (!IsUserClient)
             {
                 ValidateRootClassMember(data.project.rootAssetsMemberId, nameof(Project.rootAssetsMemberId));
                 ValidateRootClassMember(data.project.rootSaveFileMemberId, nameof(Project.rootSaveFileMemberId));
                 ValidateRootClassMember(data.project.rootSessionMemberId, nameof(Project.rootSessionMemberId));
-                if (rootUserMemberId is not null)
-                    ValidateRootClassMember(rootUserMemberId, nameof(Project.rootUserMemberId));
             }
+            ValidateRootClassMember(data.project.rootUserMemberId, nameof(Project.rootUserMemberId));
             if (!validated)
             {
                 ValidateCallableMembers();
@@ -795,16 +787,14 @@ namespace NeoCompose.Runtime
                 assets = null!;
                 save = null!;
                 session = null!;
-                user = new(this, rootUserMemberId!, null, NeoValueOwnership.User);
             }
             else
             {
                 assets = new(this, data.project.rootAssetsMemberId, null);
                 save = new(this, data.project.rootSaveFileMemberId, null, NeoValueOwnership.Save);
                 session = new(this, data.project.rootSessionMemberId, null, NeoValueOwnership.Session);
-                if (rootUserMemberId is not null)
-                    user = new(this, rootUserMemberId, null, NeoValueOwnership.User);
             }
+            user = new(this, data.project.rootUserMemberId, null, NeoValueOwnership.User);
             virtualInstanceReplayReady = true;
             if (!deferReplay)
             {
@@ -1576,8 +1566,7 @@ namespace NeoCompose.Runtime
             MarkAuthoredOwnership(data.project.rootAssetsMemberId, NeoValueOwnership.Asset, visited);
             MarkAuthoredOwnership(data.project.rootSaveFileMemberId, NeoValueOwnership.Save, visited);
             MarkAuthoredOwnership(data.project.rootSessionMemberId, NeoValueOwnership.Session, visited);
-            if (data.project.rootUserMemberId is { } rootUserMemberId)
-                MarkAuthoredOwnership(rootUserMemberId, NeoValueOwnership.User, visited);
+            MarkAuthoredOwnership(data.project.rootUserMemberId, NeoValueOwnership.User, visited);
             foreach (Member member in data.members.Values)
             {
                 if (member.valueId is null)
@@ -9971,8 +9960,8 @@ namespace NeoCompose.Runtime
             return unlinked;
         }
 
-        /// <summary>The project root member of a store, or null when the project has none (User before P104's migration).</summary>
-        private string? RootMemberId(NeoValueOwnership ownership) => ownership switch
+        /// <summary>The project root member of a store.</summary>
+        private string RootMemberId(NeoValueOwnership ownership) => ownership switch
         {
             NeoValueOwnership.Asset => data.project.rootAssetsMemberId,
             NeoValueOwnership.Save => data.project.rootSaveFileMemberId,
@@ -10032,8 +10021,7 @@ namespace NeoCompose.Runtime
             for (int index = 0; index < valueIds.Count; index++)
                 pending.Enqueue(valueIds[index]);
             var store = GetWritableStore(ownership);
-            string? rootMemberId = RootMemberId(ownership);
-            string? rootValueId = rootMemberId is not null && data.members.TryGetValue(rootMemberId, out var rootMember)
+            string? rootValueId = data.members.TryGetValue(RootMemberId(ownership), out var rootMember)
                 ? rootMember.valueId : null;
             while (pending.Count != 0)
             {
@@ -10184,8 +10172,7 @@ namespace NeoCompose.Runtime
             // root member's authored value id (a write shadows that id in
             // place), then walks the overlaid graph. There is no override map.
             var reachable = new HashSet<string>();
-            string? rootMemberId = RootMemberId(ownership);
-            if (rootMemberId is not null && data.members.TryGetValue(rootMemberId, out Member rootMember)
+            if (data.members.TryGetValue(RootMemberId(ownership), out Member rootMember)
                 && rootMember.valueId is not null)
             {
                 MarkReachableValue(ownership, rootMember.valueId, reachable);

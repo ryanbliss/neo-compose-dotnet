@@ -55,7 +55,8 @@
     "listContext": {
       "kind": "public"
     },
-    "ownerOrganization": null
+    "ownerOrganization": null,
+    "rootUserMemberId": "root-user"
   },
   "internalRecordRelations": {},
   "members": {
@@ -249,6 +250,21 @@
       "createdAt": 0,
       "updatedAt": 0,
       "modifier": 1
+    },
+    "root-user": {
+      "id": "root-user",
+      "projectId": "test-project",
+      "name": "User",
+      "kind": 7,
+      "classId": "root-user-class",
+      "valueId": "root-user-value",
+      "storage": 5,
+      "defaultValue": {
+        "value": {}
+      },
+      "requirement": 1,
+      "createdAt": 0,
+      "updatedAt": 0
     }
   },
   "enums": {
@@ -349,6 +365,16 @@
       "constructorIds": [
         "static-smoke-rules-ctor"
       ]
+    },
+    "root-user-class": {
+      "id": "root-user-class",
+      "projectId": "test-project",
+      "name": "User",
+      "schema": {},
+      "allowedStorage": 5,
+      "uiVisibility": 1,
+      "createdAt": 0,
+      "updatedAt": 0
     }
   },
   "constructors": {
@@ -426,6 +452,14 @@
     "static-smoke-motto-value": {
       "id": "static-smoke-motto-value",
       "value": "hello",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "root-user-value": {
+      "id": "root-user-value",
+      "projectId": "test-project",
+      "classId": "root-user-class",
+      "value": {},
       "createdAt": 0,
       "updatedAt": 0
     }

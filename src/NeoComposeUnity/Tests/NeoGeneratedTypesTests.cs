@@ -123,8 +123,8 @@ namespace NeoCompose.Tests
         [Test]
         public async System.Threading.Tasks.Task LiveContentSource_AppliesInboundContentWithoutManualWiring()
         {
-            var stack = NeoTestSaveStack.Create(LoadFixture("synth-example.json"));
-            var loader = new LiveContentLoader(stack.Synchronizer);
+            using var store = await LoadCurrentStoreAsync();
+            var loader = new LiveContentLoader(store.Open("test-save"));
             var app = await TestProjectNeo.Load(loader);
 
             app.Save.Score = 7;
@@ -156,8 +156,8 @@ namespace NeoCompose.Tests
             var first = source.SerializeSaveData();
             source.Save.Score = 9;
             var latest = source.SerializeSaveData();
-            var stack = NeoTestSaveStack.Create(LoadFixture("synth-example.json"));
-            var loader = new LiveContentLoader(stack.Synchronizer);
+            using var store = await LoadCurrentStoreAsync();
+            var loader = new LiveContentLoader(store.Open("test-save"));
             var pending = TestProjectNeo.Load(loader);
             Assert.IsFalse(pending.GetAwaiter().IsCompleted);
             loader.RaiseLiveContent(first);
@@ -174,8 +174,8 @@ namespace NeoCompose.Tests
         [Test]
         public async System.Threading.Tasks.Task LiveContentSource_CancellationDetachesInitializationListener()
         {
-            var stack = NeoTestSaveStack.Create(LoadFixture("synth-example.json"));
-            var loader = new LiveContentLoader(stack.Synchronizer);
+            using var store = await LoadCurrentStoreAsync();
+            var loader = new LiveContentLoader(store.Open("test-save"));
             using var cancellation = new System.Threading.CancellationTokenSource();
             var pending = TestProjectNeo.Load(loader, cancellationToken: cancellation.Token);
             Assert.IsFalse(pending.GetAwaiter().IsCompleted);
@@ -193,8 +193,8 @@ namespace NeoCompose.Tests
         [Test]
         public async System.Threading.Tasks.Task LiveContentSource_FailedInitializationDetachesListener()
         {
-            var stack = NeoTestSaveStack.Create(LoadFixture("synth-example.json"));
-            var loader = new LiveContentLoader(stack.Synchronizer);
+            using var store = await LoadCurrentStoreAsync();
+            var loader = new LiveContentLoader(store.Open("test-save"));
             var pending = TestProjectNeo.Load(loader);
             loader.RaiseLiveContent("invalid-save-content");
             try
@@ -209,8 +209,18 @@ namespace NeoCompose.Tests
             Assert.AreEqual(0, loader.SubscriberCount);
         }
 
+        // A custom loader reads the current store's schema and user file.
+        private static async System.Threading.Tasks.Task<NeoProjectStore> LoadCurrentStoreAsync()
+        {
+            var store = new NeoProjectStore(
+                dataSource: NeoTestExport.Source(LoadFixture("synth-example.json")),
+                localStore: new NeoInMemoryLocalSaveStore());
+            await store.LoadAsync();
+            return store;
+        }
+
         /// <summary>
-        /// Wraps the test stack's synchronizer so the test controls when live
+        /// Wraps the current store's synchronizer so the test controls when live
         /// content arrives (the real synchronizer only raises it from a live
         /// session's websocket push).
         /// </summary>

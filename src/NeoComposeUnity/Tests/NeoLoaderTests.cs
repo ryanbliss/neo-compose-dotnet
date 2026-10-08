@@ -100,8 +100,12 @@ namespace NeoCompose.Tests
         [TestCase(true)]
         public async Task NeoLoader_QueuedCommitsSettleInCallOrder(bool firstFails)
         {
-            var loader = new GatedSaveLoader(
-                NeoTestExport.Read(LoadFixture("synth-example.json"))!);
+            // A custom loader reads the current store's schema and user file.
+            using var store = new NeoProjectStore(
+                dataSource: NeoTestExport.Source(LoadFixture("synth-example.json")),
+                localStore: new NeoInMemoryLocalSaveStore());
+            await store.LoadAsync();
+            var loader = new GatedSaveLoader(store.Schema!);
             var app = await global::Assets.Scripts.Neo.TestProjectNeo.Load(loader);
 
             app.Save.Score = 1;
@@ -701,7 +705,8 @@ namespace NeoCompose.Tests
     ""id"": ""project-1"",
     ""rootAssetsMemberId"": ""root-assets"",
     ""rootSaveFileMemberId"": ""root-save"",
-    ""rootSessionMemberId"": ""root-session""
+    ""rootSessionMemberId"": ""root-session"",
+    ""rootUserMemberId"": ""root-user""
   }},
   ""internalRecordRelations"": {{}},
   ""variantFolders"": {{}},
@@ -728,6 +733,14 @@ namespace NeoCompose.Tests
       ""kind"": 7,
       ""classId"": ""class-root""
     }},
+    ""root-user"": {{
+      ""id"": ""root-user"",
+      ""projectId"": ""project-1"",
+      ""name"": ""User"",
+      ""kind"": 7,
+      ""storage"": 5,
+      ""classId"": ""class-user""
+    }},
     ""member-title"": {{
       ""id"": ""member-title"",
       ""projectId"": ""project-1"",
@@ -743,6 +756,14 @@ namespace NeoCompose.Tests
       ""projectId"": ""project-1"",
       ""name"": ""Root"",
       ""members"": {{ ""Title"": ""member-title"" }}
+    }},
+    ""class-user"": {{
+      ""id"": ""class-user"",
+      ""projectId"": ""project-1"",
+      ""name"": ""User"",
+      ""schema"": {{}},
+      ""allowedStorage"": 5,
+      ""uiVisibility"": 1
     }}
   }},
   ""values"": {{

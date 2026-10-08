@@ -96,7 +96,7 @@ namespace NeoCompose.Tests
                 members = new(),
                 values = new(),
                 enums = new(),
-            };
+            }.WithUserRoot();
             foreach (string name in new[] { "assets", "save", "session" })
             {
                 data.members[name + "-root"] = new ClassMember

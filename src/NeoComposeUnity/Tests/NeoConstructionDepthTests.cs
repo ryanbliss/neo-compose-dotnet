@@ -228,7 +228,7 @@ namespace NeoCompose.Tests
                 classes = classes,
                 constructors = new Dictionary<string, ConstructorRecord>(),
                 enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
-            };
+            }.WithUserRoot();
         }
 
         private static ClassMember RootMember(

@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.62.1] - 2026-10-07
+
+- Every project has a User root, so `Project.rootUserMemberId` and `NeoClient.user` are no longer nullable. A project without `rootUserMemberId` fails to load with "Project field 'rootUserMemberId' is required." The SDK no longer has any code path for a project without a User root.
+
 ## [0.62.0] - 2026-10-07
 
 P104: a project's `root.User` data lives in one user file per player and release channel, apart from saves. Requires export schema 38 and CLI 0.72.0; run `neo pull`, then `neo export`, after upgrading. A schema 37 export fails to load with the upgrade message.

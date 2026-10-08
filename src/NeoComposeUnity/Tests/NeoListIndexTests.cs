@@ -537,7 +537,7 @@ namespace NeoCompose.Tests
                         optionKeyOrder = new List<string> { "even", "odd" },
                     },
                 },
-            };
+            }.WithUserRoot();
         }
 
         private static ClassMember RootMember(

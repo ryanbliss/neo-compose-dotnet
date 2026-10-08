@@ -735,7 +735,7 @@ namespace NeoCompose.Tests
                     [paletteClass.id] = paletteClass,
                 },
                 enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
-            };
+            }.WithUserRoot();
         }
 
         private static ClassMember RootMember(string id, string valueId, string classId)

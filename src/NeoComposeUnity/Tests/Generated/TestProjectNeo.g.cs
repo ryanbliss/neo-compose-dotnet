@@ -40,6 +40,7 @@ namespace Assets.Scripts.Neo
             var client = await new NeoLoader().Load(synchronizer, assetDatabase, localizationOptions, null, saveOptions, cancellationToken);
             try
             {
+                if (client.ReadsUserFile) TestProjectUserNeo.RequireInstance();
                 return new TestProjectNeo(client, dialogueOptions);
             }
             catch

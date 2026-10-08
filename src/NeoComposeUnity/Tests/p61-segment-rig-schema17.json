@@ -350,7 +350,8 @@
     "rootAssetsMemberId": "8f1dbf20-8d7c-49e0-9e0f-5e172da6f684",
     "rootSaveFileMemberId": "4a1a7058-e5ba-4479-9f2f-7686a649a6b5",
     "rootSessionMemberId": "f0ce0706-def6-41ff-b8e9-baa2a7a84de6",
-    "updatedAt": 1780175819483
+    "updatedAt": 1780175819483,
+    "rootUserMemberId": "root-user"
   },
   "members": {
     "04d5e145-412b-4499-a253-b03496a065f0": {
@@ -7274,6 +7275,21 @@
       },
       "entryMemberId": "system_886c7f57-686f-5c8a-b35d-f42fb8e12ae6",
       "requirement": 1
+    },
+    "root-user": {
+      "id": "root-user",
+      "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+      "name": "User",
+      "kind": 7,
+      "classId": "root-user-class",
+      "valueId": "root-user-value",
+      "storage": 5,
+      "defaultValue": {
+        "value": {}
+      },
+      "requirement": 1,
+      "createdAt": 0,
+      "updatedAt": 0
     }
   },
   "enums": {
@@ -9213,6 +9229,16 @@
           "memberId": "system_f10bc0fd-9b8e-5901-9f4b-38e7cdc7a241"
         }
       }
+    },
+    "root-user-class": {
+      "id": "root-user-class",
+      "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+      "name": "User",
+      "schema": {},
+      "allowedStorage": 5,
+      "uiVisibility": 1,
+      "createdAt": 0,
+      "updatedAt": 0
     }
   },
   "constructors": {
@@ -19682,6 +19708,14 @@
         "fileId": "615fb640-00f1-416b-af1b-be81a97efc44",
         "sliceIndex": 2
       }
+    },
+    "root-user-value": {
+      "id": "root-user-value",
+      "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+      "classId": "root-user-class",
+      "value": {},
+      "createdAt": 0,
+      "updatedAt": 0
     }
   },
   "valuePartitions": {

@@ -7028,7 +7028,7 @@ namespace NeoCompose.Tests
                     [thingClass.id] = thingClass,
                 },
                 enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
-            };
+            }.WithUserRoot();
         }
 
         private static ProjectData BuildUnorderedListProjectData(

@@ -754,7 +754,7 @@ namespace NeoCompose.Tests
                         ("NativeSeen", "member-native-seen"), ("Poked", "member-poked")),
                 },
                 enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
-            };
+            }.WithUserRoot();
             foreach (JsonMember member in members)
                 data.members[member.id] = member;
             foreach (MemberValue value in values)

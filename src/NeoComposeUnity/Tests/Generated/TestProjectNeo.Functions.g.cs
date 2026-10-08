@@ -13,7 +13,7 @@ namespace Assets.Scripts.Neo
 {
     public sealed partial class TestProjectNeo
     {
-        private static readonly IReadOnlyDictionary<string, NeoClient.NeoNativeFunctionInvoker> NativeFunctionInvokers =
+        internal static readonly IReadOnlyDictionary<string, NeoClient.NeoNativeFunctionInvoker> NativeFunctionInvokers =
             new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
             {
                 ["member-move-to"] = (client, receiver, args) =>
@@ -153,7 +153,7 @@ namespace Assets.Scripts.Neo
                 },
             };
 
-        private static readonly IReadOnlyDictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker> DeferredNativeFunctionInvokers =
+        internal static readonly IReadOnlyDictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker> DeferredNativeFunctionInvokers =
             new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
             {
                 ["member-generic-contract-echo-later"] = (client, receiver, args, deferred) =>

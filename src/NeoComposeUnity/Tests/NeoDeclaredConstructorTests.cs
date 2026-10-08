@@ -3052,7 +3052,7 @@ namespace NeoCompose.Tests
                         },
                     },
                 },
-            };
+            }.WithUserRoot();
         }
 
         private static ClassMember RootMember(

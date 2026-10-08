@@ -2822,7 +2822,7 @@ namespace NeoCompose.Tests
                         updatedAt = Now,
                     },
                 },
-            };
+            }.WithUserRoot();
 
             configure?.Invoke(data);
             return NeoTestSaveStack.ClientFromSchema(data);

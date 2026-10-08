@@ -908,7 +908,7 @@ namespace NeoCompose.Tests
                         ("Relay", RelayMemberId)),
                 },
                 enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
-            });
+            }.WithUserRoot());
         }
 
         /// <summary>

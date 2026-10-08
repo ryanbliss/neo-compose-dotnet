@@ -384,7 +384,7 @@ namespace NeoCompose.Tests
                     },
                 },
                 enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
-            };
+            }.WithUserRoot();
             return NeoTestSaveStack.ClientFromSchema(data);
         }
 

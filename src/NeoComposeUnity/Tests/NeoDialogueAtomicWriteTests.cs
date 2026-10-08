@@ -1256,7 +1256,7 @@ namespace NeoCompose.Tests
                     ["part-name"] = new StringMemberValue { id = "part-name", value = "part" },
                 },
                 enums = new(),
-            };
+            }.WithUserRoot();
         }
 
         private static FunctionMember NativeFunction(string id, string name, NeoFunctionDispatchKind dispatch) => new()
