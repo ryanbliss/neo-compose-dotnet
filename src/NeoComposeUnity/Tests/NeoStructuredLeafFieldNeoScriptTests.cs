@@ -1061,7 +1061,7 @@ namespace NeoCompose.Tests
                         ("Tint", "member-point-tint")),
                 },
                 enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
-            };
+            }.WithUserRoot();
             return NeoTestSaveStack.ClientFromSchema(data);
         }
 

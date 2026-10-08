@@ -49,7 +49,8 @@
     "listContext": {
       "kind": "public"
     },
-    "ownerOrganization": null
+    "ownerOrganization": null,
+    "rootUserMemberId": "root-user"
   },
   "members": {
     "root-assets": {
@@ -3200,6 +3201,21 @@
           "Tracks": "value-animation-tracks"
         }
       }
+    },
+    "root-user": {
+      "id": "root-user",
+      "projectId": "test-project",
+      "name": "User",
+      "kind": 7,
+      "classId": "root-user-class",
+      "valueId": "root-user-value",
+      "storage": 5,
+      "defaultValue": {
+        "value": {}
+      },
+      "requirement": 1,
+      "createdAt": 0,
+      "updatedAt": 0
     }
   },
   "enums": {
@@ -4414,6 +4430,16 @@
       "schema": {},
       "extendsClassId": "class-animated-sprite",
       "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "root-user-class": {
+      "id": "root-user-class",
+      "projectId": "test-project",
+      "name": "User",
+      "schema": {},
+      "allowedStorage": 5,
+      "uiVisibility": 1,
       "createdAt": 0,
       "updatedAt": 0
     }
@@ -5806,6 +5832,14 @@
       "id": "value-animation-actions",
       "projectId": "test-project",
       "value": [],
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "root-user-value": {
+      "id": "root-user-value",
+      "projectId": "test-project",
+      "classId": "root-user-class",
+      "value": {},
       "createdAt": 0,
       "updatedAt": 0
     }

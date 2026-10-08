@@ -309,7 +309,7 @@ namespace NeoCompose.Tests
                     [optionalFloatCard.id] = optionalFloatCard,
                 },
                 enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
-            };
+            }.WithUserRoot();
         }
 
         private static ClassMember RootMember(string id, string valueId, string classId)

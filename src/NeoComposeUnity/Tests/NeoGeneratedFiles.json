@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "projectId": "test-project",
-  "codegenRevision": "30d96d89e3d179ccf291e522834281f90dbd44b464cf51eea76aae87eed97e7e",
+  "codegenRevision": "45a0847addd4616acfc29f142556dcb2e0a27daae14d6aa456430228e66dbc07",
   "files": [
     {
       "id": "class:class-abstract-readonly-stats",
@@ -264,6 +264,11 @@
       "hash": "9754a14011a06104fad7f8ed248b029db6bac0ef577413a06b9db6ec7acaab26"
     },
     {
+      "id": "class:root-user-class",
+      "path": "Generated/Classes/User.g.cs",
+      "hash": "315ef524662cf145cf828a158fdcf487bb32a5c0e15167cb6c8b7dbc83050f29"
+    },
+    {
       "id": "dialogues:memory",
       "path": "Generated/Dialogues/DialogueMemory.g.cs",
       "hash": "fbd642cf43d29d25bd3397954898d640cdfe541516afef09bf0e360b8aa7ac71"
@@ -321,17 +326,22 @@
     {
       "id": "project:factories",
       "path": "Generated/TestProjectNeo.Factories.g.cs",
-      "hash": "d25c5461074edb82bac892f47da166880def194bfd238477d9d5b38de0b769c5"
+      "hash": "03d3a426cc7c7a54fb5bd4d9d8a51d670bcfef3d1efcff7ae270f7c661af059e"
     },
     {
       "id": "project:functions",
       "path": "Generated/TestProjectNeo.Functions.g.cs",
-      "hash": "4991a87d045c6288838a776aef3ef5319b59f9ccb12d7ad07e1217cb35dc6270"
+      "hash": "44c2c8538c4886aa5f943a1a487f2839c5e2a30f54231df21a85bc950379739b"
     },
     {
       "id": "project:client",
       "path": "Generated/TestProjectNeo.g.cs",
-      "hash": "080196a454ced67c5c8328e4e4d1a402e711b3f8d54df6253b5dbd631bb5f0f0"
+      "hash": "816c062a797ff189181ce6ccf4e538b09108f20fa18064e8fa0535a92122251d"
+    },
+    {
+      "id": "project:user-client",
+      "path": "Generated/TestProjectUserNeo.g.cs",
+      "hash": "945d642b8b270070809196ac0ec7bc90049b5e1eb1d1f61bdef9aaa226a0f627"
     }
   ]
 }

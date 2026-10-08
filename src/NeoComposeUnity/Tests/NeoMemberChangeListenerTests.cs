@@ -2302,7 +2302,7 @@ namespace NeoCompose.Tests
                     },
                 },
                 enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
-            };
+            }.WithUserRoot();
             configure?.Invoke(data);
             var client = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: loadedSaveContent);
             client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>

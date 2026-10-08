@@ -548,7 +548,7 @@ namespace NeoCompose.Tests
                     },
                     ["v-root-session"] = RecordValue("v-root-session", "class-root-session", new Dictionary<string, string>()),
                 },
-            };
+            }.WithUserRoot();
         }
 
         private static ClassMember RootMember(

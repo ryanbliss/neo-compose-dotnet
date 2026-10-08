@@ -1044,7 +1044,7 @@ namespace NeoCompose.Tests
                     ["by-name-leaf"] = new ObjectMemberValue { id = "by-name-leaf", value = new() },
                 },
                 enums = new(),
-            };
+            }.WithUserRoot();
             configure?.Invoke(data);
             return NeoTestSaveStack.ClientFromSchema(data);
         }

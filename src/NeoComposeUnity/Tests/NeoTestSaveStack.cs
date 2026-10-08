@@ -66,10 +66,13 @@ namespace NeoCompose.Tests
             INeoLocalSaveStore? localStore = null)
         {
             localStore ??= new NeoInMemoryLocalSaveStore();
+            // A user file loads a frame later, so a store driven synchronously
+            // is a tooling store: its saves read authored User defaults.
             var store = new NeoProjectStore(
                 dataSource: projectSource,
                 localStore: localStore,
-                options: options);
+                options: options,
+                loadUserFile: false);
             store.LoadAsync().GetAwaiter().GetResult();
             return new NeoTestSaveStack(store, localStore);
         }
@@ -201,6 +204,51 @@ namespace NeoCompose.Tests
             public string CustomId => SaveCustomId;
             public Awaitable<string?> LoadSaveContentAsync() => NeoAwaitable.FromResult<string?>(null);
             public Awaitable CommitSaveContentAsync(string content, bool replaceSnapshot) => NeoAwaitable.Completed();
+        }
+    }
+
+    /// <summary>
+    /// The User root every project carries (P104), as the retired
+    /// <c>p104-user-root</c> migration minted it: an empty User-storage class,
+    /// its root member, and the member's empty object row.
+    /// </summary>
+    internal static class NeoTestUserRoot
+    {
+        public const string MemberId = "root-user";
+        public const string ClassId = "root-user-class";
+        public const string ValueId = "root-user-value";
+
+        public static ProjectData WithUserRoot(this ProjectData data)
+        {
+            string projectId = data.project.id;
+            data.project.rootUserMemberId = MemberId;
+            data.members[MemberId] = new ClassMember
+            {
+                id = MemberId,
+                projectId = projectId,
+                name = "User",
+                kind = MemberKind.Class,
+                Requirement = NeoMemberRequirementKind.Required,
+                Storage = NeoMemberStorage.User,
+                classId = ClassId,
+                valueId = ValueId,
+            };
+            data.classes[ClassId] = new NeoSchemaClass
+            {
+                id = ClassId,
+                projectId = projectId,
+                name = "User",
+                schema = new System.Collections.Generic.Dictionary<string, string>(),
+                allowedStorage = NeoMemberStorage.User,
+                UiVisibility = NeoClassVisibilityKind.Hidden,
+            };
+            data.values[ValueId] = new ObjectMemberValue
+            {
+                id = ValueId,
+                classId = ClassId,
+                value = new System.Collections.Generic.Dictionary<string, string>(),
+            };
+            return data;
         }
     }
 }

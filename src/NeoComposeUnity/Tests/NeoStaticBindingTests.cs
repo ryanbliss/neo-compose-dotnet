@@ -3283,7 +3283,7 @@ namespace NeoCompose.Tests
                     [ownedParentClass.id] = ownedParentClass,
                 },
                 enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
-            };
+            }.WithUserRoot();
             configure?.Invoke(data);
             return NeoTestSaveStack.ClientFromSchema(data);
         }

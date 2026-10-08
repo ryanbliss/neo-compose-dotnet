@@ -123,7 +123,7 @@ namespace NeoCompose.Tests
                     },
                 },
                 enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
-            };
+            }.WithUserRoot();
             client = NeoTestSaveStack.ClientFromSchema(data);
             var primitive = NeoReadOnlyTileGridPrimitive.Resolve(client, "grid-value");
             return new TestTileGridContent(primitive);

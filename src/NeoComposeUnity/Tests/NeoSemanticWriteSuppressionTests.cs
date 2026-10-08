@@ -227,8 +227,12 @@ namespace NeoCompose.Tests
         [Test]
         public async Task Commit_DoesNotStampOrCallLoaderWithoutASemanticChange()
         {
-            var schema = NeoTestExport.Read(
-                File.ReadAllText(ProjectFixture))!;
+            // A custom loader reads the current store's schema and user file.
+            using var store = new NeoProjectStore(
+                dataSource: NeoTestExport.Source(File.ReadAllText(ProjectFixture)),
+                localStore: new NeoInMemoryLocalSaveStore());
+            await store.LoadAsync();
+            var schema = store.Schema!;
             const string loaded = @"{
   'name': 'Loaded',
   'projectId': 'test-project',

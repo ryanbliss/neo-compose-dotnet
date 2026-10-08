@@ -375,7 +375,7 @@ namespace NeoCompose.Tests
                         ("BumpOne", BumpOneMemberId)),
                 },
                 enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
-            });
+            }.WithUserRoot());
         }
 
         /// <summary>

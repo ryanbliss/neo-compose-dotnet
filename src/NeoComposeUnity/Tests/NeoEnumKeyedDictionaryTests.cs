@@ -153,7 +153,7 @@ namespace NeoCompose.Tests
                         },
                     },
                 },
-            };
+            }.WithUserRoot();
         }
 
         private static ClassMember RootMember(string id, string valueId, string classId)

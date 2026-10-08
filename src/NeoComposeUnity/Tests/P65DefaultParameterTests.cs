@@ -624,7 +624,7 @@ namespace NeoCompose.Tests
                     [receiverClass.id] = receiverClass,
                 },
                 enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
-            });
+            }.WithUserRoot());
         }
 
         // -------------------------------------------------------------------
@@ -734,7 +734,7 @@ namespace NeoCompose.Tests
                     [autoConstructor.id] = autoConstructor,
                 },
                 enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
-            };
+            }.WithUserRoot();
         }
 
         private static StringMember StringField(string id, string name)

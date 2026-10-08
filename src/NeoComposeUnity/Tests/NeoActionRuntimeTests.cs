@@ -646,7 +646,7 @@ namespace NeoCompose.Tests
                 },
                 internalRecordRelations =
                     new Dictionary<string, InternalRecordRelation>(),
-            });
+            }.WithUserRoot());
             client.RegisterNativeFunctionInvokers(invokers);
             return client;
         }

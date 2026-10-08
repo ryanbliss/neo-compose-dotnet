@@ -533,8 +533,6 @@ namespace NeoCompose.Runtime
         /// <summary>Whether this client replays <paramref name="root"/>: User roots replay only in a user client.</summary>
         private bool ReplaysVirtualRootHere(ObjectMemberValue root)
         {
-            if (data.project.rootUserMemberId is null)
-                return true;
             bool user = userData.values.ContainsKey(root.id)
                 || authoredOwnership.TryGetValue(root.id, out NeoValueOwnership ownership) && ownership == NeoValueOwnership.User;
             return user == IsUserClient;

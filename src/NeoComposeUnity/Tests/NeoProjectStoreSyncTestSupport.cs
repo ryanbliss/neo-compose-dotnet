@@ -17,10 +17,42 @@ namespace NeoCompose.Tests
     {
         public const string TargetChannel = "channel-dev";
 
-        public const string ProjectJson =
-            "{\"metadata\":{\"schemaVersion\":38,\"projectId\":\"project-1\"," +
-            "\"versionId\":\"v1\",\"semver\":{\"label\":\"1.0\"}}," +
-            "\"variantFolders\":{}}";
+        /// <summary>The smallest current export: four empty project roots.</summary>
+        public const string ProjectJson = @"{
+  ""metadata"": { ""schemaVersion"": 38, ""projectId"": ""project-1"", ""versionId"": ""v1"", ""semver"": { ""label"": ""1.0"" } },
+  ""project"": {
+    ""id"": ""project-1"",
+    ""name"": ""Save Tests"",
+    ""rootAssetsMemberId"": ""root-assets"",
+    ""rootSaveFileMemberId"": ""root-save"",
+    ""rootSessionMemberId"": ""root-session"",
+    ""rootUserMemberId"": ""root-user""
+  },
+  ""members"": {
+    ""root-assets"": { ""id"": ""root-assets"", ""projectId"": ""project-1"", ""name"": ""Assets"", ""kind"": 7, ""storage"": 1, ""classId"": ""class-assets"", ""valueId"": ""v-root-assets"", ""requirement"": 1 },
+    ""root-save"": { ""id"": ""root-save"", ""projectId"": ""project-1"", ""name"": ""Save"", ""kind"": 7, ""storage"": 2, ""classId"": ""class-save"", ""valueId"": ""v-root-save"", ""requirement"": 1 },
+    ""root-session"": { ""id"": ""root-session"", ""projectId"": ""project-1"", ""name"": ""Session"", ""kind"": 7, ""storage"": 3, ""classId"": ""class-session"", ""valueId"": ""v-root-session"", ""requirement"": 1 },
+    ""root-user"": { ""id"": ""root-user"", ""projectId"": ""project-1"", ""name"": ""User"", ""kind"": 7, ""storage"": 5, ""classId"": ""class-user"", ""valueId"": ""v-root-user"", ""requirement"": 1 }
+  },
+  ""classes"": {
+    ""class-assets"": { ""id"": ""class-assets"", ""projectId"": ""project-1"", ""name"": ""Assets"", ""schema"": {}, ""allowedStorage"": 1 },
+    ""class-save"": { ""id"": ""class-save"", ""projectId"": ""project-1"", ""name"": ""Save"", ""schema"": {}, ""allowedStorage"": 2 },
+    ""class-session"": { ""id"": ""class-session"", ""projectId"": ""project-1"", ""name"": ""Session"", ""schema"": {}, ""allowedStorage"": 3 },
+    ""class-user"": { ""id"": ""class-user"", ""projectId"": ""project-1"", ""name"": ""User"", ""schema"": {}, ""allowedStorage"": 5 }
+  },
+  ""values"": {
+    ""v-root-assets"": { ""id"": ""v-root-assets"", ""classId"": ""class-assets"", ""value"": {} },
+    ""v-root-save"": { ""id"": ""v-root-save"", ""classId"": ""class-save"", ""value"": {} },
+    ""v-root-session"": { ""id"": ""v-root-session"", ""classId"": ""class-session"", ""value"": {} },
+    ""v-root-user"": { ""id"": ""v-root-user"", ""classId"": ""class-user"", ""value"": {} }
+  },
+  ""enums"": {},
+  ""interfaces"": {},
+  ""constructors"": {},
+  ""variants"": {},
+  ""variantFolders"": {},
+  ""internalRecordRelations"": {}
+}";
 
         public static string SaveContent(string name, string values = "{}") =>
             "{\"name\":\"" + name + "\",\"projectId\":\"project-1\"," +

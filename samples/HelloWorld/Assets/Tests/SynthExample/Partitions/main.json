@@ -421,5 +421,13 @@
     "value": [],
     "createdAt": 0,
     "updatedAt": 0
+  },
+  "root-user-value": {
+    "id": "root-user-value",
+    "projectId": "test-project",
+    "classId": "root-user-class",
+    "value": {},
+    "createdAt": 0,
+    "updatedAt": 0
   }
 }

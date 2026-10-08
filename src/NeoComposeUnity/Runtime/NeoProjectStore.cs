@@ -280,7 +280,7 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// The user client once this store's load in flight finishes: null
-        /// when the load failed or the project has no User root.
+        /// when the load failed.
         /// </summary>
         internal async Awaitable<NeoClient?> LoadedUserClientAsync(CancellationToken cancellationToken)
         {
@@ -422,7 +422,7 @@ namespace NeoCompose.Runtime
                     realtimeProvider);
                 core.LoadsUserFile = loadUserFile;
                 core.ListChanged += () => OnListChanged?.Invoke();
-                if (ownsUserFile && !string.IsNullOrEmpty(schema.project?.rootUserMemberId))
+                if (ownsUserFile)
                 {
                     // The user client builds while the list request is in flight.
                     var listRefresh = core.RefreshListAsync();

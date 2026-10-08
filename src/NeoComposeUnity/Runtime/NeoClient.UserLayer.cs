@@ -134,8 +134,7 @@ namespace NeoCompose.Runtime
         internal void CheckDelegateReferences(NeoValueOwnership ownership, NeoDelegateValue? value)
         {
             if (value is null
-                || ownership is not (NeoValueOwnership.Save or NeoValueOwnership.Asset)
-                || string.IsNullOrEmpty(data.project.rootUserMemberId))
+                || ownership is not (NeoValueOwnership.Save or NeoValueOwnership.Asset))
                 return;
             if (ReferencesUserRow(value, 0))
                 throw new InvalidOperationException(SaveHoldsUserReferenceError);
@@ -144,7 +143,7 @@ namespace NeoCompose.Runtime
         /// <summary><see cref="CheckDelegateReferences"/> over a staged delegate or action row.</summary>
         internal void CheckDelegateRow(NeoValueOwnership ownership, MemberValue row)
         {
-            if (ownership != NeoValueOwnership.Save || string.IsNullOrEmpty(data.project.rootUserMemberId))
+            if (ownership != NeoValueOwnership.Save)
                 return;
             if (row is DelegateMemberValue delegateRow)
                 CheckDelegateReferences(ownership, delegateRow.value);

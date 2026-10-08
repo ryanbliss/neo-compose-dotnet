@@ -53,16 +53,14 @@ namespace NeoCompose.Runtime
         /// <summary>
         /// The user client a save of <paramref name="data"/> reads User data
         /// through (P104 §4.3), once the current store's load finishes, or
-        /// null when the project has no User root or the save's store is a
-        /// tooling store.
+        /// null when the save's store is a tooling store.
         /// </summary>
         private static async Awaitable<NeoClient?> ResolveUserClientAsync(
             INeoSaveLoader loader,
             ProjectData data,
             System.Threading.CancellationToken cancellationToken)
         {
-            if (string.IsNullOrEmpty(data.project?.rootUserMemberId)
-                || loader is NeoSaveSynchronizer { Core: { LoadsUserFile: false } })
+            if (loader is NeoSaveSynchronizer { Core: { LoadsUserFile: false } })
                 return null;
             var store = NeoProjectStore.Current
                 ?? throw new InvalidOperationException(
@@ -90,7 +88,7 @@ namespace NeoCompose.Runtime
                     "A custom save loader's `Schema` must be `NeoProjectStore.Current.Schema`.");
             }
             return userClient
-                ?? throw new InvalidOperationException("`NeoProjectStore.Current`'s project has no User root.");
+                ?? throw new InvalidOperationException("`NeoProjectStore.Current` finished loading without a user client.");
         }
     }
 

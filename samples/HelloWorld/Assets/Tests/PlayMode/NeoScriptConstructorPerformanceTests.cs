@@ -357,9 +357,15 @@ namespace HelloWorld.Assets.Tests.PlayMode
                 "Session",
                 NeoMemberStorage.Session,
                 "constructor-performance-session-value");
+            ClassMember rootUser = RootMember(
+                "constructor-performance-user",
+                "User",
+                NeoMemberStorage.User,
+                "constructor-performance-user-value");
             members[rootAssets.id] = rootAssets;
             members[rootSave.id] = rootSave;
             members[rootSession.id] = rootSession;
+            members[rootUser.id] = rootUser;
 
             return new ProjectData
             {
@@ -377,6 +383,7 @@ namespace HelloWorld.Assets.Tests.PlayMode
                     rootAssetsMemberId = rootAssets.id,
                     rootSaveFileMemberId = rootSave.id,
                     rootSessionMemberId = rootSession.id,
+                    rootUserMemberId = rootUser.id,
                 },
                 classes = classes,
                 members = members,
@@ -385,6 +392,7 @@ namespace HelloWorld.Assets.Tests.PlayMode
                     [rootAssets.valueId!] = ObjectValue(rootAssets.valueId!),
                     [rootSave.valueId!] = ObjectValue(rootSave.valueId!),
                     [rootSession.valueId!] = ObjectValue(rootSession.valueId!),
+                    [rootUser.valueId!] = ObjectValue(rootUser.valueId!),
                 },
                 constructors = new Dictionary<string, ConstructorRecord>(),
                 internalRecordRelations =

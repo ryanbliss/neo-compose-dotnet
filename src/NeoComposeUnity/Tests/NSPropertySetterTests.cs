@@ -1738,7 +1738,7 @@ namespace NeoCompose.Tests
                         extendsClassId: "class-receiver"),
                 },
                 enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
-            };
+            }.WithUserRoot();
             return NeoTestSaveStack.ClientFromSchema(data);
         }
 

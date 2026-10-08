@@ -7638,7 +7638,7 @@ namespace NeoCompose.Tests
                 values = values,
                 classes = classes,
                 enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
-            });
+            }.WithUserRoot());
         }
 
         private static NeoClient BuildLookupOverlayClient(
@@ -7836,7 +7836,7 @@ namespace NeoCompose.Tests
                     ["receiver-class"] = ReceiverClass(("SetLevel", function.id)),
                 },
                 enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
-            });
+            }.WithUserRoot());
         }
 
         private static NeoClient BuildBooleanMutationClient(
@@ -7979,7 +7979,7 @@ namespace NeoCompose.Tests
                 values = values,
                 classes = classes,
                 enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
-            });
+            }.WithUserRoot());
         }
 
         private static ClassMember RootMember(

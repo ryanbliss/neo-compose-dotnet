@@ -97,7 +97,7 @@ namespace NeoCompose.Runtime
                     ? NSGetterEvaluator.UnwrapRow(session, ctx, NeoValueOwnership.Session)
                     : null,
             };
-            if (client.user?.value is ObjectMemberValue user)
+            if (client.user.value is ObjectMemberValue user)
                 root["User"] = NSGetterEvaluator.UnwrapRow(user, ctx, NeoValueOwnership.User);
             return root;
         }

@@ -2007,7 +2007,7 @@ namespace NeoCompose.Tests
                         updatedAt = "x",
                     },
                 },
-            };
+            }.WithUserRoot();
         }
 
         // ------------------------------------------------------------------

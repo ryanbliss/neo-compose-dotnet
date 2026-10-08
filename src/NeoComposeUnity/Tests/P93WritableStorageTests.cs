@@ -365,7 +365,7 @@ namespace NeoCompose.Tests
                 classes = classes,
                 values = values,
                 enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
-            };
+            }.WithUserRoot();
         }
 
         private static ClassMember Root(string id, string name, string classId, string valueId, NeoMemberStorage storage) => new()

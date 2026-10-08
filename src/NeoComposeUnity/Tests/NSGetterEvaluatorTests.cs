@@ -2108,7 +2108,7 @@ namespace NeoCompose.Tests
                     [rootClass.id] = rootClass,
                     [receiverClass.id] = receiverClass,
                 },
-            };
+            }.WithUserRoot();
             return NeoTestSaveStack.ClientFromSchema(data);
         }
 
@@ -2298,7 +2298,7 @@ namespace NeoCompose.Tests
                         sourceSyntax = "icu",
                     },
                 },
-            };
+            }.WithUserRoot();
             data.members[baseLookupMember.id] = baseLookupMember;
             var client = NeoTestSaveStack.ClientFromSchema(data);
             client.Localization.TryAddLoadedLocale(new ProjectLocalizationLocaleFile
@@ -2373,7 +2373,7 @@ namespace NeoCompose.Tests
                     },
                 },
                 classes = new Dictionary<string, NeoSchemaClass> { [rootClass.id] = rootClass },
-            };
+            }.WithUserRoot();
             const string template = "A seed that grows into a {PlantName} during the {Season}.";
             var localization = NeoLocalization.CreateEmpty(null);
             Assert.IsTrue(localization.TryAddLoadedLocale(new ProjectLocalizationLocaleFile
@@ -2457,7 +2457,7 @@ namespace NeoCompose.Tests
                     ["value-label"] = StringValue("value-label", "text-label"),
                 },
                 classes = new Dictionary<string, NeoSchemaClass> { [rootClass.id] = rootClass },
-            };
+            }.WithUserRoot();
             var localization = NeoLocalization.CreateEmpty(null);
             Assert.IsTrue(localization.TryAddLoadedLocale(new ProjectLocalizationLocaleFile
             {
@@ -2702,7 +2702,7 @@ namespace NeoCompose.Tests
                     [abstractStatsClass.id] = abstractStatsClass,
                     [concreteStatsClass.id] = concreteStatsClass,
                 },
-            };
+            }.WithUserRoot();
             return NeoTestSaveStack.ClientFromSchema(data);
         }
 
