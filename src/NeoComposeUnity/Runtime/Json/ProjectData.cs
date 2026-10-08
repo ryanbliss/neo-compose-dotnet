@@ -13,6 +13,9 @@ namespace NeoCompose.Runtime.Json
     public static class NeoProjectExportContract
     {
         /// <summary>
+        /// 39 admits the P105 <c>dialogueGroup</c> and <c>dialogue</c> function
+        /// kinds. An older SDK has no converter arm for them and would fail a
+        /// body mid-play instead of refusing the export.
         /// 38 adds the P104 User root (<c>project.rootUserMemberId</c>) and
         /// the User storage ordinal (5). An older SDK would fail the load
         /// with "Unknown member storage ordinal '5'" instead of this gate's
@@ -112,7 +115,7 @@ namespace NeoCompose.Runtime.Json
         /// the wrong configuration rather than an error. It must reject the
         /// export.
         /// </summary>
-        public const int CurrentSchemaVersion = 38;
+        public const int CurrentSchemaVersion = 39;
 
         /// <summary>
         /// The main partition's file, relative to <c>project.json</c>'s

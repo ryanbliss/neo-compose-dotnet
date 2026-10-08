@@ -296,6 +296,15 @@ namespace NeoCompose.Runtime.NeoScript
                     return AnyPointer(visitCount.info.pointer, predicate);
                 case HasVisitedFunction hasVisited:
                     return AnyPointer(hasVisited.info.pointer, predicate);
+                case DialogueGroupFunction group:
+                    return (group.info.valuePointer is not null
+                            && AnyPointer(group.info.valuePointer, predicate))
+                        || (group.info.onFinishPointer is not null
+                            && AnyPointer(group.info.onFinishPointer, predicate));
+                case DialogueFunction dialogue:
+                    return AnyPointer(dialogue.info.dialogueIdPointer, predicate)
+                        || (dialogue.info.onFinishPointer is not null
+                            && AnyPointer(dialogue.info.onFinishPointer, predicate));
                 case VectorConstructorFunction vector:
                     return AnyPointer(vector.info.componentPointers, predicate);
                 case ImageSliceFunction slice:

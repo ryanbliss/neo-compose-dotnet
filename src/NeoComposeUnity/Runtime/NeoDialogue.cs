@@ -20,8 +20,9 @@ using UILogicActionModel = NeoCompose.Runtime.Json.UILogicAction;
 namespace NeoCompose.Runtime
 {
     /// <summary>
-    /// Runtime instance of a single triggered dialogue. Subscribe to its events,
-    /// call <see cref="Start"/>, then drive shown text nodes through
+    /// Runtime instance of a single triggered dialogue. It arrives through
+    /// <see cref="NeoDialoguesBase.OnTrigger"/>: subscribe to its events there,
+    /// then drive shown text nodes through
     /// <see cref="NeoDialogueTextNode.Next"/> or <see cref="NeoDialogueTextOption.Select"/>.
     /// </summary>
     public sealed class NeoDialogue : IDisposable
@@ -35,6 +36,10 @@ namespace NeoCompose.Runtime
         private NeoDialoguePauseAction? activePauseAction;
         private NeoDeferredFunctionBase? activeDeferredFunction;
         private bool started;
+        // Tells the queue this dialogue ended; fires once (P105 §1.4).
+        private Action? ended;
+        // A Dispose() inside OnFinish or OnError is part of the same end.
+        private bool endHandlerRunning;
 
         /// <summary>
         /// Stable dialogue id from the exported Neo Compose project.
@@ -154,10 +159,11 @@ namespace NeoCompose.Runtime
         public event Action<Exception>? OnError;
 
         /// <summary>
-        /// Creates a runtime dialogue instance from exported data and runtime services.
-        /// Generated dialogue-group code normally constructs this for you.
+        /// Creates a runtime dialogue instance from exported data and runtime
+        /// services. Only the dialogue queue constructs one; games receive it
+        /// from <see cref="NeoDialoguesBase.OnTrigger"/>.
         /// </summary>
-        public NeoDialogue(
+        internal NeoDialogue(
             NeoClient client,
             DialogueModel data,
             NeoDialogueContext context,
@@ -165,9 +171,11 @@ namespace NeoCompose.Runtime
             NeoDialogueRuntimeOptions options,
             INeoDialogueMemoryStore? memoryStore,
             NeoDialogueValueResolver? valueResolver,
-            string? groupId = null)
+            string? groupId = null,
+            Action? ended = null)
         {
             this.client = client;
+            this.ended = ended;
             this.logger = logger;
             this.options = options;
             this.memoryStore = memoryStore;
@@ -205,7 +213,8 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// Starts dialogue execution. A dialogue instance can only be started once.
+        /// Starts dialogue execution. The dialogue queue calls it after
+        /// <see cref="NeoDialoguesBase.OnTrigger"/>; it runs once.
         /// </summary>
         /// <exception cref="ObjectDisposedException">
         /// Thrown when the dialogue has already been disposed.
@@ -213,7 +222,7 @@ namespace NeoCompose.Runtime
         /// <exception cref="InvalidOperationException">
         /// Thrown when the dialogue has already been started.
         /// </exception>
-        public void Start()
+        internal void Start()
         {
             if (State != NeoDialogueState.Created)
             {
@@ -762,9 +771,18 @@ namespace NeoCompose.Runtime
             activeDeferredFunction?.DisposeFromOwner("dialogue finished");
             activeDeferredFunction = null;
             State = NeoDialogueState.Finished;
-            OnFinish?.Invoke();
-            ClearListeners();
-            clientRegistration.Dispose();
+            endHandlerRunning = true;
+            try
+            {
+                OnFinish?.Invoke();
+            }
+            finally
+            {
+                endHandlerRunning = false;
+                ClearListeners();
+                clientRegistration.Dispose();
+                NotifyEnded();
+            }
         }
 
         internal void Fail(Exception exception)
@@ -773,8 +791,17 @@ namespace NeoCompose.Runtime
                 return;
             if (OnError != null)
             {
-                OnError.Invoke(exception);
-                Dispose();
+                endHandlerRunning = true;
+                try
+                {
+                    OnError.Invoke(exception);
+                }
+                finally
+                {
+                    endHandlerRunning = false;
+                    Dispose();
+                    NotifyEnded();
+                }
                 return;
             }
             logger.LogException(exception);
@@ -783,7 +810,8 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// Disposes this dialogue instance and clears event listeners.
+        /// Disposes this dialogue instance and clears event listeners. A
+        /// dialogue that hasn't ended yet ends here.
         /// </summary>
         public void Dispose()
         {
@@ -796,10 +824,14 @@ namespace NeoCompose.Runtime
             State = NeoDialogueState.Disposed;
             ClearListeners();
             clientRegistration.Dispose();
+            if (!endHandlerRunning)
+                NotifyEnded();
         }
 
+        /// <summary>Client teardown: the dialogue stops without ending its turn.</summary>
         internal void DisposeFromClient()
         {
+            ended = null;
             if (State == NeoDialogueState.Disposed)
                 return;
             activePauseAction?.DisposeFromOwner("NeoClient disposed");
@@ -809,6 +841,13 @@ namespace NeoCompose.Runtime
             State = NeoDialogueState.Disposed;
             ClearListeners();
             clientRegistration.Dispose();
+        }
+
+        private void NotifyEnded()
+        {
+            Action? notify = ended;
+            ended = null;
+            notify?.Invoke();
         }
 
         private void ClearListeners()

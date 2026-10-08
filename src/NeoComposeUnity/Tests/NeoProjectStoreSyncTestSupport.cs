@@ -19,7 +19,7 @@ namespace NeoCompose.Tests
 
         /// <summary>The smallest current export: four empty project roots.</summary>
         public const string ProjectJson = @"{
-  ""metadata"": { ""schemaVersion"": 38, ""projectId"": ""project-1"", ""versionId"": ""v1"", ""semver"": { ""label"": ""1.0"" } },
+  ""metadata"": { ""schemaVersion"": 39, ""projectId"": ""project-1"", ""versionId"": ""v1"", ""semver"": { ""label"": ""1.0"" } },
   ""project"": {
     ""id"": ""project-1"",
     ""name"": ""Save Tests"",

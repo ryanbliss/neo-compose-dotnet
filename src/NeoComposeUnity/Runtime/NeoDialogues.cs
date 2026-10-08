@@ -18,6 +18,13 @@ namespace NeoCompose.Runtime
         private readonly List<Action<NeoDialogue>> eligibleHandlers = new();
         private readonly Dictionary<(string groupId, string? lookupValueId), DialogueModel[]>
             dialoguesByTrigger;
+        private readonly Queue<NeoDialogueRequest> requests = new();
+        // The running dialogue's id and every queued one, so none queues twice.
+        private readonly HashSet<string> requestedIds = new(StringComparer.Ordinal);
+        private NeoDialogueRequest? running;
+        private NeoDialogueRequest? ended;
+        private bool runningTurn;
+        private bool warnedNoPresenter;
 
         protected NeoClient client
         {
@@ -41,6 +48,14 @@ namespace NeoCompose.Runtime
         }
 
         public event Action<NeoDialogueEligibilityError>? OnEligibleError;
+
+        /// <summary>
+        /// Raised when a triggered dialogue takes its turn. Subscribe to its
+        /// <see cref="NeoDialogue.OnShow"/>, <see cref="NeoDialogue.OnPause"/>,
+        /// and <see cref="NeoDialogue.OnError"/> here. The SDK calls
+        /// <c>Start()</c> right after every handler returns.
+        /// </summary>
+        public event Action<NeoDialogue>? OnTrigger;
 
         /// <summary>Dialogues over <paramref name="project"/>, whose values resolve to its generated views.</summary>
         protected NeoDialoguesBase(
@@ -75,24 +90,27 @@ namespace NeoCompose.Runtime
             client.RegisterDialoguesApi(this);
         }
 
-        public virtual bool TryTrigger(string dialogueId, out NeoDialogue dialogue)
+        /// <summary>
+        /// Triggers a direct dialogue. Returns true when it started or was
+        /// queued; <paramref name="onFinish"/> runs once it ends.
+        /// </summary>
+        public bool TryTrigger(string dialogueId, Action? onFinish = null)
         {
             client.EnsureNotDisposed();
-            if (TryTrigger(dialogueId, out NeoDialogueTriggerResult result) && result.Dialogue != null)
+            if (!HasPresenter())
+                return false;
+            if (!client.dialogues.ContainsKey(dialogueId))
             {
-                dialogue = result.Dialogue;
-                return true;
+                logger.LogWarning($"Dialogue '{dialogueId}' was not found.");
+                return false;
             }
-            if (result.Error != null)
+            if (!TryEvaluateDirectDialogue(dialogueId, out DialogueModel? data, out Exception? error))
             {
-                logger.LogException(result.Error);
+                if (error != null)
+                    logger.LogException(error);
+                return false;
             }
-            foreach (var warning in result.Warnings)
-            {
-                logger.LogWarning(warning.Message);
-            }
-            dialogue = null!;
-            return false;
+            return Enqueue(data!, ResolveDirectTrigger(data!), onFinish);
         }
 
         public int VisitCount(string pointer)
@@ -109,42 +127,17 @@ namespace NeoCompose.Runtime
         /// Evaluates whether a direct dialogue can trigger without constructing or
         /// registering a runtime <see cref="NeoDialogue"/> instance.
         /// </summary>
-        public virtual bool CanTrigger(string dialogueId)
+        public bool CanTrigger(string dialogueId)
         {
             client.EnsureNotDisposed();
-            return TryEvaluateDirectDialogue(
-                dialogueId,
-                out _,
-                out _,
-                out _);
-        }
-
-        public virtual bool TryTrigger(string dialogueId, out NeoDialogueTriggerResult result)
-        {
-            client.EnsureNotDisposed();
-            if (!TryEvaluateDirectDialogue(
-                dialogueId,
-                out DialogueModel? data,
-                out NeoDialogueContext? context,
-                out Exception? error))
-            {
-                result = error is null
-                    ? NeoDialogueTriggerResult.NotFound()
-                    : NeoDialogueTriggerResult.Failed(error);
-                return false;
-            }
-
-            result = NeoDialogueTriggerResult.Success(CreateDialogue(data!, context!));
-            return true;
+            return TryEvaluateDirectDialogue(dialogueId, out _, out _);
         }
 
         private bool TryEvaluateDirectDialogue(
             string dialogueId,
             out DialogueModel? data,
-            out NeoDialogueContext? context,
             out Exception? error)
         {
-            context = null;
             error = null;
             if (!client.dialogues.TryGetValue(dialogueId, out data))
                 return false;
@@ -158,7 +151,7 @@ namespace NeoCompose.Runtime
 
             var groupId = data.triggerNode?.dialogueGroupSettings?.dialogueGroupId;
             var trigger = ResolveDirectTrigger(data);
-            context = CreateContext(data, trigger);
+            var context = CreateContext(data, trigger);
             try
             {
                 if (!EvaluateGroupConditionChain(groupId, context, trigger))
@@ -195,32 +188,166 @@ namespace NeoCompose.Runtime
                 out _);
         }
 
-        internal bool TryTriggerGroup(
+        internal bool TryTriggerGroup(string groupId, Action? onFinish)
+        {
+            client.EnsureNotDisposed();
+            return HasPresenter() && TrySelectAndEnqueue(groupId, null, null, onFinish);
+        }
+
+        internal bool TryTriggerLookupGroup(
+            string groupId,
+            object? lookup,
+            string? lookupValueId,
+            Action? onFinish)
+        {
+            client.EnsureNotDisposed();
+            if (!HasPresenter())
+                return false;
+            if (string.IsNullOrEmpty(lookupValueId))
+            {
+                logger.LogException(new InvalidOperationException(
+                    $"Lookup dialogue group '{groupId}' requires a value with a Neo value id."));
+                return false;
+            }
+            return TrySelectAndEnqueue(groupId, lookup, lookupValueId, onFinish);
+        }
+
+        private bool TrySelectAndEnqueue(
             string groupId,
             object? trigger,
             string? lookupValueId,
-            out NeoDialogueTriggerResult result)
+            Action? onFinish)
         {
-            client.EnsureNotDisposed();
-            if (!TrySelectGroupDialogue(
+            bool selected = TrySelectGroupDialogue(
                 groupId,
                 trigger,
                 lookupValueId,
                 selectRankedCandidate: true,
-                out DialogueModel? selected,
+                out DialogueModel? data,
                 out List<NeoDialogueTriggerWarning> warnings,
-                out Exception? error))
-            {
-                result = error is null
-                    ? NeoDialogueTriggerResult.NotFound(warnings)
-                    : NeoDialogueTriggerResult.Failed(error, warnings);
-                return false;
-            }
+                out Exception? error);
+            foreach (var warning in warnings)
+                logger.LogWarning(warning.Message);
+            if (error != null)
+                logger.LogException(error);
+            return selected && Enqueue(data!, trigger, onFinish);
+        }
 
-            result = NeoDialogueTriggerResult.Success(
-                CreateDialogue(selected!, CreateContext(selected!, trigger)),
-                warnings);
+        /// <summary>
+        /// One warning per client: a host without a presenter rejects every
+        /// request rather than queueing dialogues nothing will show.
+        /// </summary>
+        private bool HasPresenter()
+        {
+            if (OnTrigger != null)
+                return true;
+            if (!warnedNoPresenter)
+            {
+                warnedNoPresenter = true;
+                logger.LogWarning(
+                    "Dialogue request rejected because nothing presents dialogues. Subscribe to Dialogues.OnTrigger before triggering.");
+            }
+            return false;
+        }
+
+        private bool Enqueue(DialogueModel data, object? trigger, Action? onFinish)
+        {
+            if (!requestedIds.Add(data.id))
+                return false;
+            requests.Enqueue(new NeoDialogueRequest(data, trigger, onFinish));
+            client.RunDialogueTurn();
             return true;
+        }
+
+        /// <summary>
+        /// Ends a finished dialogue's turn and starts queued ones until one
+        /// is running. The client calls it only outside NeoScript executions;
+        /// a request or end inside one reaches here at the outermost exit.
+        /// </summary>
+        internal void RunTurn()
+        {
+            // Code a turn runs can end or request a dialogue; this loop
+            // picks that up instead of nesting a second turn.
+            if (runningTurn)
+                return;
+            runningTurn = true;
+            try
+            {
+                while (true)
+                {
+                    if (ended != null)
+                    {
+                        Action? onFinish = ended.onFinish;
+                        ended = null;
+                        RunOnFinish(onFinish);
+                        continue;
+                    }
+                    if (running != null || requests.Count == 0)
+                        return;
+                    Start(requests.Dequeue());
+                }
+            }
+            finally
+            {
+                runningTurn = false;
+            }
+        }
+
+        private void Start(NeoDialogueRequest request)
+        {
+            Action<NeoDialogue>? presenter = OnTrigger;
+            if (presenter == null)
+            {
+                logger.LogWarning(
+                    $"Dropped {requests.Count + 1} queued dialogue requests because Dialogues.OnTrigger has no subscriber.");
+                ClearRequests();
+                return;
+            }
+            running = request;
+            NeoDialogue? dialogue = null;
+            try
+            {
+                dialogue = CreateDialogue(request, () => End(request));
+                presenter(dialogue);
+                dialogue.Start();
+            }
+            catch (Exception error)
+            {
+                logger.LogException(error);
+                if (dialogue == null)
+                    End(request);
+                else
+                    dialogue.Dispose();
+            }
+        }
+
+        private void End(NeoDialogueRequest request)
+        {
+            requestedIds.Remove(request.data.id);
+            running = null;
+            ended = request;
+            client.RunDialogueTurn();
+        }
+
+        private void RunOnFinish(Action? onFinish)
+        {
+            try
+            {
+                onFinish?.Invoke();
+            }
+            catch (Exception error)
+            {
+                logger.LogException(error);
+            }
+        }
+
+        /// <summary>Client disposal: nothing queued runs, and no <c>onFinish</c> does either.</summary>
+        internal void ClearRequests()
+        {
+            requests.Clear();
+            requestedIds.Clear();
+            running = null;
+            ended = null;
         }
 
         private bool TrySelectGroupDialogue(
@@ -351,20 +478,23 @@ namespace NeoCompose.Runtime
             logger.LogException(error.Exception);
         }
 
-        protected NeoDialogue CreateDialogue(
-            DialogueModel data,
-            NeoDialogueContext context)
+        /// <summary>
+        /// Builds a request's dialogue when its turn comes, so a queued one
+        /// registers nothing and records no visit while it waits.
+        /// </summary>
+        private NeoDialogue CreateDialogue(NeoDialogueRequest request, Action ended)
         {
-            string? groupId = data.triggerNode?.dialogueGroupSettings?.dialogueGroupId;
+            DialogueModel data = request.data;
             return new NeoDialogue(
                 client,
                 data,
-                context,
+                CreateContext(data, request.trigger),
                 logger,
                 options,
                 memoryStore,
                 valueResolver,
-                groupId);
+                data.triggerNode?.dialogueGroupSettings?.dialogueGroupId,
+                ended);
         }
 
         protected NeoDialogueContext CreateContext(
@@ -380,7 +510,7 @@ namespace NeoCompose.Runtime
                 ResolveLinkedValues(data.linkedValues));
         }
 
-        protected object? ResolveValue(string valueId)
+        protected internal object? ResolveValue(string valueId)
         {
             return valueResolver?.Invoke(valueId);
         }
@@ -750,24 +880,9 @@ namespace NeoCompose.Runtime
         protected NeoStandardDialogueGroup(NeoDialoguesBase root, string groupId)
             : base(root, groupId) { }
 
-        protected bool TryTriggerStandard(out NeoDialogue dialogue)
+        protected bool TryTriggerStandard(Action? onFinish)
         {
-            if (TryTriggerStandard(out NeoDialogueTriggerResult result) && result.Dialogue != null)
-            {
-                dialogue = result.Dialogue;
-                return true;
-            }
-            if (result.Error != null)
-            {
-                EmitEligibleError(new NeoDialogueEligibilityError(result.Error, groupId: groupId));
-            }
-            dialogue = null!;
-            return false;
-        }
-
-        protected bool TryTriggerStandard(out NeoDialogueTriggerResult result)
-        {
-            return root.TryTriggerGroup(groupId, null, null, out result);
+            return root.TryTriggerGroup(groupId, onFinish);
         }
 
         /// <summary>
@@ -785,36 +900,15 @@ namespace NeoCompose.Runtime
         protected NeoLookupDialogueGroup(NeoDialoguesBase root, string groupId)
             : base(root, groupId) { }
 
-        protected bool TryTriggerLookup(TLookup lookup, out NeoDialogue dialogue)
+        protected bool TryTriggerLookup(TLookup lookup, Action? onFinish)
         {
             if (lookup == null)
                 throw new ArgumentNullException(nameof(lookup));
-            if (TryTriggerLookup(lookup, out NeoDialogueTriggerResult result) && result.Dialogue != null)
-            {
-                dialogue = result.Dialogue;
-                return true;
-            }
-            if (result.Error != null)
-            {
-                EmitEligibleError(new NeoDialogueEligibilityError(result.Error, groupId: groupId));
-            }
-            dialogue = null!;
-            return false;
-        }
-
-        protected bool TryTriggerLookup(TLookup lookup, out NeoDialogueTriggerResult result)
-        {
-            if (lookup == null)
-                throw new ArgumentNullException(nameof(lookup));
-            string? valueId = NeoDialoguesBase.GetValueId(lookup);
-            if (string.IsNullOrEmpty(valueId))
-            {
-                result = NeoDialogueTriggerResult.Failed(
-                    new InvalidOperationException(
-                        $"Lookup dialogue group '{groupId}' requires a value with a Neo value id."));
-                return false;
-            }
-            return root.TryTriggerGroup(groupId, lookup, valueId, out result);
+            return root.TryTriggerLookupGroup(
+                groupId,
+                lookup,
+                NeoDialoguesBase.GetValueId(lookup),
+                onFinish);
         }
 
         /// <summary>
@@ -828,6 +922,21 @@ namespace NeoCompose.Runtime
             if (string.IsNullOrEmpty(valueId))
                 return false;
             return root.CanTriggerGroup(groupId, lookup, valueId);
+        }
+    }
+
+    /// <summary>A selected dialogue waiting for its turn, or the one running.</summary>
+    internal sealed class NeoDialogueRequest
+    {
+        internal readonly DialogueModel data;
+        internal readonly object? trigger;
+        internal readonly Action? onFinish;
+
+        internal NeoDialogueRequest(DialogueModel data, object? trigger, Action? onFinish)
+        {
+            this.data = data;
+            this.trigger = trigger;
+            this.onFinish = onFinish;
         }
     }
 

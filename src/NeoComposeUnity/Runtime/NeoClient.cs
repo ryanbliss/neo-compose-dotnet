@@ -899,6 +899,7 @@ namespace NeoCompose.Runtime
                 liveContentSource.OnLiveContentChanged -= HandleLiveContentChanged;
                 liveContentSource = null;
             }
+            DialoguesApi?.ClearRequests();
             foreach (var dialogue in new List<NeoDialogue>(activeDialogues))
             {
                 dialogue.DisposeFromClient();

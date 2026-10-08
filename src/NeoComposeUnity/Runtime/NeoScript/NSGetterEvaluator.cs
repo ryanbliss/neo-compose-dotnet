@@ -6003,6 +6003,10 @@ namespace NeoCompose.Runtime.NeoScript
                         return pointer is string text
                             && NeoDialogueMemoryQueries.HasVisited(ctx.memoryStore, text);
                     }
+                case DialogueGroupFunction dgf:
+                    return EvalDialogueGroupRequest(dgf.info, scope, ctx);
+                case DialogueFunction df:
+                    return EvalDialogueRequest(df.info, scope, ctx);
                 case VectorConstructorFunction vcf:
                     return EvalVectorConstructor(vcf.info, scope, ctx);
                 case ImageSliceFunction isf:
@@ -6017,6 +6021,95 @@ namespace NeoCompose.Runtime.NeoScript
                     throw new NSGetterRuntimeError(
                         $"Unknown function kind {fn.GetType().Name}");
             }
+        }
+
+        /// <summary>
+        /// P105 §2.5. A <c>root.Dialogues.&lt;Group&gt;</c> request. Selection
+        /// sees the generated view of a lookup entry, the value C# passes.
+        /// </summary>
+        private static bool EvalDialogueGroupRequest(
+            FunctionDialogueGroupInfo info,
+            NeoScriptScope scope,
+            Context ctx)
+        {
+            string? lookupValueId = info.valuePointer is null
+                ? null
+                : FindRowReference(EvalPointer(info.valuePointer, scope, ctx), ctx)?.valueId;
+            Action? onFinish = DialogueOnFinish(info.onFinishPointer, scope, ctx);
+            NeoDialoguesBase? dialogues = ctx.client.DialoguesApi;
+            if (dialogues is null)
+                return false;
+            object? lookup = lookupValueId is null ? null : dialogues.ResolveValue(lookupValueId);
+            switch (info.op)
+            {
+                case DialogueOp.CanTrigger:
+                    // A lookup entry with no stored row has nothing to select.
+                    if (info.valuePointer is not null && lookupValueId is null)
+                        return false;
+                    return dialogues.CanTriggerGroup(info.groupId, lookup, lookupValueId);
+                case DialogueOp.TryTrigger:
+                    return info.valuePointer is null
+                        ? dialogues.TryTriggerGroup(info.groupId, onFinish)
+                        : dialogues.TryTriggerLookupGroup(info.groupId, lookup, lookupValueId, onFinish);
+                default:
+                    throw new NSGetterRuntimeError($"Unknown dialogue request '{info.op}'.");
+            }
+        }
+
+        /// <summary>
+        /// P105 §2.5. <c>root.Dialogues.TryTrigger(id)</c>, <c>CanTrigger(id)</c>,
+        /// and the <c>NeoDialogueReference</c> methods, which pass the
+        /// reference's id.
+        /// </summary>
+        private static object? EvalDialogueRequest(
+            FunctionDialogueInfo info,
+            NeoScriptScope scope,
+            Context ctx)
+        {
+            object? id = EvalPointer(info.dialogueIdPointer, scope, ctx);
+            // `reference?.TryTrigger()` on a null reference short-circuits.
+            if (id is null && info.dialogueIdPointer is KeyOfPointer { optional: true })
+                return null;
+            if (id is not string dialogueId)
+            {
+                throw new NSGetterRuntimeError(
+                    $"{info.op} needs a dialogue id string, but got {(id is null ? "null" : id.GetType().Name)}.");
+            }
+            Action? onFinish = DialogueOnFinish(info.onFinishPointer, scope, ctx);
+            NeoDialoguesBase? dialogues = ctx.client.DialoguesApi;
+            if (dialogues is null)
+                return false;
+            switch (info.op)
+            {
+                case DialogueOp.CanTrigger:
+                    return dialogues.CanTrigger(dialogueId);
+                case DialogueOp.TryTrigger:
+                    return dialogues.TryTrigger(dialogueId, onFinish);
+                default:
+                    throw new NSGetterRuntimeError($"Unknown dialogue request '{info.op}'.");
+            }
+        }
+
+        /// <summary>
+        /// P105 §2.3. The SDK calls <c>onFinish</c> after the dialogue ends,
+        /// as its own outermost execution, so it reads and writes the way
+        /// any C# call into NeoScript does.
+        /// </summary>
+        private static Action? DialogueOnFinish(Pointer? pointer, NeoScriptScope scope, Context ctx)
+        {
+            if (pointer is null)
+                return null;
+            object? value = EvalPointer(pointer, scope, ctx);
+            if (value is null)
+                return null;
+            NeoClient client = ctx.client;
+            NeoValueOwnership ownership = ctx.valueOwnership;
+            return () =>
+            {
+                Context finishCtx = client.CreateGetterContext(ownership);
+                finishCtx.BindRoot(NeoScriptValueMarshaller.ResolveRoot(client, finishCtx));
+                InvokeDelegate(value, Array.Empty<object?>(), finishCtx);
+            };
         }
 
         private static object? EvalClassConstructor(
