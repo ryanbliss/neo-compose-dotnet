@@ -178,9 +178,10 @@ namespace NeoCompose.Runtime
             var scope = new NeoScriptScope();
             object? receiver = NSGetterEvaluator.UnwrapRow(owner, context, ownership);
             scope.SetLocal("listenerOwner", receiver);
-            object?[] arguments = { NSGetterEvaluator.EvalPointer(subscription.Read, scope, context) };
+            object? value = NSGetterEvaluator.EvalPointer(subscription.Read, scope, context);
             if (!notify)
                 return;
+            object?[] arguments = { value };
             foreach (NeoDelegateValue target in subscription.Targets.ToArray())
             {
                 NeoValueOwnership? receiverScope = null;
