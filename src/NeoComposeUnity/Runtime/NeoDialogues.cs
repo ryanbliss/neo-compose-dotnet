@@ -309,19 +309,29 @@ namespace NeoCompose.Runtime
             {
                 dialogue = CreateDialogue(request, () => End(request));
                 presenter(dialogue);
-                // A presenter that disposed the dialogue already ended its turn.
-                if (dialogue.State == NeoDialogueState.Created)
-                    dialogue.Start();
             }
             catch (Exception error)
             {
-                // A failure Start() rethrows was logged when it disposed the dialogue.
-                if (dialogue?.State != NeoDialogueState.Disposed)
-                    logger.LogException(error);
+                logger.LogException(error);
                 if (dialogue == null)
                     End(request);
                 else
                     dialogue.Dispose();
+                return;
+            }
+            // A presenter that disposed the dialogue already ended its turn.
+            if (dialogue.State != NeoDialogueState.Created)
+                return;
+            try
+            {
+                dialogue.Start();
+            }
+            catch (Exception error)
+            {
+                // A failure Start() rethrows was logged when it disposed the dialogue.
+                if (dialogue.State != NeoDialogueState.Disposed)
+                    logger.LogException(error);
+                dialogue.Dispose();
             }
         }
 

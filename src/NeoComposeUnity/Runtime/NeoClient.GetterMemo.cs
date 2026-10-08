@@ -1429,12 +1429,19 @@ namespace NeoCompose.Runtime
                     }
                     finally
                     {
-                        FlushUserChanges();
-                    }
-                    if (dialogueTurnPending)
-                    {
-                        dialogueTurnPending = false;
-                        DialoguesApi?.RunTurn();
+                        try
+                        {
+                            FlushUserChanges();
+                        }
+                        finally
+                        {
+                            // A throwing listener must not strand a queued dialogue.
+                            if (dialogueTurnPending)
+                            {
+                                dialogueTurnPending = false;
+                                DialoguesApi?.RunTurn();
+                            }
+                        }
                     }
                 }
             }

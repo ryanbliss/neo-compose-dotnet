@@ -125,6 +125,25 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void PresenterThatDisposesAndThrows_IsLoggedAndEndsTheTurn()
+        {
+            var root = CreateLoggedDialogues(CreateClient(), out TestDialogueLogger logger);
+            root.OnTrigger -= root.Present;
+            var finished = new List<string>();
+            root.OnTrigger += dialogue =>
+            {
+                dialogue.Dispose();
+                throw new InvalidOperationException("presenter boom");
+            };
+
+            Assert.IsTrue(root.TryTrigger("dialogue-direct", () => finished.Add("thrown")));
+
+            Assert.AreEqual(1, logger.Exceptions.Count);
+            StringAssert.Contains("presenter boom", logger.Exceptions[0].Message);
+            CollectionAssert.AreEqual(new[] { "thrown" }, finished);
+        }
+
+        [Test]
         public void ClientDispose_DropsTheQueueWithoutOnFinish()
         {
             var client = CreateClient();
@@ -197,6 +216,115 @@ namespace NeoCompose.Tests
             CollectionAssert.AreEqual(
                 new[] { "dialogue-direct", "dialogue-priority-high", "dialogue-lookup-direct", "dialogue-visit-a" },
                 root.Presented.ConvertAll(dialogue => dialogue.Id));
+        }
+
+        [Test]
+        public void NeoScript_OnFinish_WritesThroughThisAfterTheDialogueEnds()
+        {
+            // int bonus = 4;
+            // root.Dialogues.TryTrigger("dialogue-direct", () => { this.Score = this.Score + bonus; });
+            // root.Dialogues.TryTrigger("dialogue-priority-high", this.TenfoldScore);
+            Pointer score = KeyOfPointer(ThisPointer(), "Score");
+            Instruction AssignScore(Pointer value) => new AssignInstruction
+            {
+                type = InstructionKind.Assign,
+                target = new WriteTarget
+                {
+                    pointer = score,
+                    typeInfo = IntTypeInfo(),
+                    writability = WritabilityKind.Save,
+                },
+                operatorValue = "=",
+                pointer = value,
+            };
+            var voidType = new VoidTypeInfo
+            {
+                type = MemberKind.Void,
+                required = true,
+            };
+            var onFinishType = new DelegateTypeInfo
+            {
+                type = MemberKind.NSDelegate,
+                required = false,
+                returnTypeInfo = voidType,
+                argumentTypes = Array.Empty<TypeInfo>(),
+            };
+            // A void body's compiled action returns null.
+            var actionVoidType = new PrimitiveTypeInfo
+            {
+                type = MemberKind.Null,
+                required = true,
+            };
+            FunctionWithReturnType closure = ScriptBody(
+                actionVoidType,
+                AssignScore(ArithmeticPointer(
+                    ArithmeticOpKind.Addition,
+                    score,
+                    new VariablePointer { type = PointerKind.Variable, variableId = "__capture_0_0__" })));
+            var bonus = ScriptParameter("__capture_0_0__");
+            bonus.typeInfo = IntTypeInfo();
+            closure.parameters = new[] { closure.parameters[0], closure.parameters[1], bonus };
+            var lambda = new DelegateClosurePointer
+            {
+                type = PointerKind.DelegateClosure,
+                typeInfo = onFinishType,
+                action = closure,
+                captures = new Pointer[] { new VariablePointer { type = PointerKind.Variable, variableId = "bonus" } },
+            };
+            var methodGroup = new ValuePointer
+            {
+                type = PointerKind.Value,
+                value = new Value
+                {
+                    typeInfo = onFinishType,
+                    value = new JObject { ["memberId"] = "fn-tenfold", ["valueId"] = null },
+                },
+            };
+            var client = CreateClient(data =>
+            {
+                data.members["fn-talk"] = InstanceFunction(
+                    "fn-talk",
+                    "Talk",
+                    BoolTypeInfo(),
+                    ScriptBody(
+                        BoolTypeInfo(),
+                        new VariableInstruction
+                        {
+                            type = InstructionKind.Variable,
+                            variable = new Variable
+                            {
+                                id = "bonus",
+                                typeInfo = IntTypeInfo(),
+                                pointer = NumberPointer(4),
+                            },
+                        },
+                    new FunctionCallInstruction
+                    {
+                        type = InstructionKind.FunctionCall,
+                        call = Request(DialogueOp.TryTrigger, StringPointer("dialogue-direct"), lambda),
+                    },
+                        Return(Request(DialogueOp.TryTrigger, StringPointer("dialogue-priority-high"), methodGroup))));
+                data.members["fn-tenfold"] = InstanceFunction(
+                    "fn-tenfold",
+                    "TenfoldScore",
+                    voidType,
+                    ScriptBody(
+                        actionVoidType,
+                        AssignScore(ArithmeticPointer(ArithmeticOpKind.Multiplication, score, NumberPointer(10)))));
+                data.classes["class-root"].schema["Talk"] = "fn-talk";
+                data.classes["class-root"].schema["TenfoldScore"] = "fn-tenfold";
+            });
+            var root = CreateLoggedDialogues(client, out TestDialogueLogger logger);
+            var talk = new NeoMemberNSFunction(client, "fn-talk", null, NeoValueOwnership.Save);
+
+            Assert.AreEqual(true, talk.Invoke("root-save-default-value", Array.Empty<object?>()));
+            Assert.AreEqual(1d, SaveScore(client), "onFinish waits for the dialogue to end.");
+            root.LastPresented.Dispose();
+            CollectionAssert.IsEmpty(logger.Exceptions);
+            Assert.AreEqual(5d, SaveScore(client));
+            root.LastPresented.Dispose();
+
+            Assert.AreEqual(50d, SaveScore(client));
         }
 
         [Test]
@@ -350,6 +478,40 @@ namespace NeoCompose.Tests
                     value = new[] { "dialogue-visit-a" },
                 };
             });
+        }
+
+        private static NSFunctionMember InstanceFunction(
+            string id,
+            string name,
+            TypeInfo returnType,
+            FunctionWithReturnType action)
+        {
+            return new NSFunctionMember
+            {
+                id = id,
+                projectId = ProjectId,
+                name = name,
+                kind = MemberKind.NSFunction,
+                code = "compiled test function",
+                returnTypeInfo = returnType,
+                argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
+                Dispatch = NeoFunctionDispatchKind.Synchronous,
+                action = action,
+            };
+        }
+
+        private static double SaveScore(NeoClient client)
+        {
+            var read = new FunctionWithReturnType
+            {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                parameters = Array.Empty<Variable>(),
+                instructions = new Instruction[] { Return(RootKeyPointer("Save", "Score")) },
+                typeInfo = IntTypeInfo(),
+            };
+            NSGetterEvaluator.Context ctx = client.CreateGetterContext(NeoValueOwnership.Save);
+            ctx.BindRoot(NeoScriptValueMarshaller.ResolveRoot(client, ctx));
+            return Convert.ToDouble(NSGetterEvaluator.Evaluate(read, ctx));
         }
 
         private static TestDialogues CreateScriptDialogues(NeoClient client)

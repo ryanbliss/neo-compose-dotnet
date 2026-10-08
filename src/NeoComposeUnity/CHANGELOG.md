@@ -20,6 +20,8 @@ MyGameNeo.Instance.Dialogues.Talk.TryTrigger(npc, () => npc.Save.Talked = true);
 
 - `OnTrigger` fires when a dialogue takes its turn. Subscribe the dialogue's `OnShow`, `OnPause`, `OnFinish`, and `OnError` there; the SDK calls `Start()` right after the handlers return. One dialogue runs per client.
 - `TryTrigger(dialogueId, onFinish)`, the generated group `TryTrigger(onFinish)` and `TryTrigger(value, onFinish)`, and `NeoDialogueReference.TryTrigger(onFinish)` replace the `out NeoDialogue` and `out NeoDialogueTriggerResult` overloads. They return true when the dialogue started or queued. A request made while a dialogue runs waits its turn, in request order. A request for a dialogue that's already running or queued returns false. With no `OnTrigger` subscriber, every request returns false and logs one warning. `NeoDialogueTriggerResult` is gone; failures are logged.
+- The `NeoDialogue` constructor and `NeoDialogue.Start()` are internal. Only the queue creates and starts a dialogue.
+- A group's `OnEligibleError` no longer hears `TryTrigger` failures. The logger gets them instead.
 - `onFinish` runs when the turn ends: after the dialogue finishes, fails, or is disposed, and before the next queued dialogue starts. Disposing the client drops the queue without running any `onFinish`.
 - A queued dialogue records its visit when it starts, not when it's requested. It starts as it was selected, without re-checking its conditions.
 - Add `NeoDialogueReference.CanTrigger()`. `CanTrigger` never queues anything.

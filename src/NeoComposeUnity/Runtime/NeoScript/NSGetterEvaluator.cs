@@ -6073,7 +6073,7 @@ namespace NeoCompose.Runtime.NeoScript
             if (id is not string dialogueId)
             {
                 throw new NSGetterRuntimeError(
-                    $"{info.op} needs a dialogue id string, but got {(id is null ? "null" : id.GetType().Name)}.");
+                    $"{info.op} needs a dialogue id string, but got {ReceiverTypeName(id)}.");
             }
             Action? onFinish = DialogueOnFinish(info.onFinishPointer, scope, ctx);
             NeoDialoguesBase? dialogues = ctx.client.DialoguesApi;
