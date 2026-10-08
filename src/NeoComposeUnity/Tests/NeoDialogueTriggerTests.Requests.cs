@@ -223,7 +223,7 @@ namespace NeoCompose.Tests
         {
             // int bonus = 4;
             // root.Dialogues.TryTrigger("dialogue-direct", () => { this.Score = this.Score + bonus; });
-            // root.Dialogues.TryTrigger("dialogue-priority-high", this.TenfoldScore);
+            // return root.Dialogues.TryTrigger("dialogue-priority-high", this.TenfoldScore);
             Pointer score = KeyOfPointer(ThisPointer(), "Score");
             Instruction AssignScore(Pointer value) => new AssignInstruction
             {
@@ -298,11 +298,11 @@ namespace NeoCompose.Tests
                                 pointer = NumberPointer(4),
                             },
                         },
-                    new FunctionCallInstruction
-                    {
-                        type = InstructionKind.FunctionCall,
-                        call = Request(DialogueOp.TryTrigger, StringPointer("dialogue-direct"), lambda),
-                    },
+                        new FunctionCallInstruction
+                        {
+                            type = InstructionKind.FunctionCall,
+                            call = Request(DialogueOp.TryTrigger, StringPointer("dialogue-direct"), lambda),
+                        },
                         Return(Request(DialogueOp.TryTrigger, StringPointer("dialogue-priority-high"), methodGroup))));
                 data.members["fn-tenfold"] = InstanceFunction(
                     "fn-tenfold",
