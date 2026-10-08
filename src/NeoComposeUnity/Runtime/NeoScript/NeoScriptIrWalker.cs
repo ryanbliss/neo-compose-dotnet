@@ -114,9 +114,11 @@ namespace NeoCompose.Runtime.NeoScript
                 case ActionListenerInstruction listener:
                     return AnyPointer(listener.target.pointer, predicate)
                         || AnyPointer(listener.listener, predicate);
-                case ChangeListenerInstruction listener:
+                case ChangeListenerEditInstruction listener:
                     return AnyPointer(listener.target.owner, predicate)
                         || AnyPointer(listener.listener, predicate);
+                case ClearChangeListenersInstruction clear:
+                    return AnyPointer(clear.target.owner, predicate);
                 case BreakInstruction:
                 case ContinueInstruction:
                     return false;

@@ -640,7 +640,17 @@ namespace NeoCompose.Runtime
             && member is not (NSPropertyMember or FunctionMember or NSFunctionMember or FunctionRefMember or DelegateMember or ActionMember);
 
         internal void EditMemberChangeListener(string ownerId, NeoValueOwnership ownership,
-            string memberId, Json.TypeInfo observedType, NeoDelegateValue listener, bool add)
+            string memberId, Json.TypeInfo observedType, NeoDelegateValue listener, bool add) =>
+            EditMemberChangeListeners(ownerId, ownership, memberId, observedType, listener, add);
+
+        /// <summary><c>member.OnChanged.Clear()</c>: every handler leaves Save and Session wiring.</summary>
+        internal void ClearMemberChangeListeners(string ownerId, NeoValueOwnership ownership,
+            string memberId, Json.TypeInfo observedType) =>
+            EditMemberChangeListeners(ownerId, ownership, memberId, observedType, listener: null, add: false);
+
+        // A null listener clears the set.
+        private void EditMemberChangeListeners(string ownerId, NeoValueOwnership ownership,
+            string memberId, Json.TypeInfo observedType, NeoDelegateValue? listener, bool add)
         {
             if (!TryGetValue(ownership, ownerId, out MemberValue? owner)
                 || owner is not ObjectMemberValue { classId: not null } instance)
@@ -669,16 +679,19 @@ namespace NeoCompose.Runtime
             Json.TypeInfo actualType = NeoNSFunctionRuntime.TypeInfoFromBindingMember(this, observed, environment, new HashSet<string>());
             if (!TypeInfoMatches(observedType, actualType))
                 throw new NSGetterRuntimeError($"Observed member '{memberId}' no longer matches its compiled type.");
-            ValidateChangeListenerHandler(listener, observedType, instance);
-            listener = listener.PersistedCopy();
-            if (TryGetMember(listener.memberId!, out Member? handler) && handler.Modifier != NeoMemberModifierKind.Static)
-                listener.memberId = CanonicalListenerMemberId(handler);
-            if (listener.valueId is string receiverId)
+            if (listener is not null)
             {
-                if (!TryGetValueOwnership(receiverId, out NeoValueOwnership receiverOwnership))
-                    throw new NSGetterRuntimeError($"Listener receiver '{receiverId}' is not live.");
-                if (IsTransientListenerTier(receiverOwnership))
-                    lifetime = NeoValueOwnership.Session;
+                ValidateChangeListenerHandler(listener, observedType, instance);
+                listener = listener.PersistedCopy();
+                if (TryGetMember(listener.memberId!, out Member? handler) && handler.Modifier != NeoMemberModifierKind.Static)
+                    listener.memberId = CanonicalListenerMemberId(handler);
+                if (listener.valueId is string receiverId)
+                {
+                    if (!TryGetValueOwnership(receiverId, out NeoValueOwnership receiverOwnership))
+                        throw new NSGetterRuntimeError($"Listener receiver '{receiverId}' is not live.");
+                    if (IsTransientListenerTier(receiverOwnership))
+                        lifetime = NeoValueOwnership.Session;
+                }
             }
             // A save client's wiring on User data is its own, never the
             // user file's (P104 §3.5).
@@ -725,28 +738,6 @@ namespace NeoCompose.Runtime
             }
             if (pendingPlan is not null)
                 PrepareListenerMove(pendingPlan, ownership, ownerId);
-            // Promotion retains existing temporary registrations. Repeating +=
-            // must not turn one into persisted wiring, and -= must still find it.
-            if (lifetime == PersistedOwnership)
-            {
-                Dictionary<string, NeoDelegateValue[]>? temporary;
-                if (pendingPlan?.ListenerEntries?.TryGetValue((NeoValueOwnership.Session, ownership, rootId, ownerId), out temporary) != true)
-                    temporary = sessionChangeListeners.GetValueOrDefault((ownership, rootId))?.GetValueOrDefault(ownerId);
-                if (temporary?.TryGetValue(canonical, out var targets) == true)
-                    foreach (var target in targets)
-                        if (NeoActionValue.ListenerIdentity(target) == NeoActionValue.ListenerIdentity(listener))
-                        {
-                            lifetime = NeoValueOwnership.Session;
-                            break;
-                        }
-            }
-            NeoChangeListenerMap? explicitMap = lifetime == NeoValueOwnership.Session
-                ? sessionChangeListeners.GetValueOrDefault((ownership, rootId))
-                : PersistedData.changeListeners?.GetValueOrDefault(rootId);
-            Dictionary<string, NeoDelegateValue[]>? previousEntry = null;
-            if (pendingPlan?.ListenerEntries?.TryGetValue((lifetime, ownership, rootId, ownerId), out previousEntry) != true)
-                explicitMap?.TryGetValue(ownerId, out previousEntry);
-            NeoDelegateValue[] inherited = InheritedChangeListeners(rootId, ownerId, canonical, lifetime, observedLifetime, ownership);
             bool inheritedComplete = true;
             foreach (var target in InheritedChangeListenerTargets(rootId, ownerId, canonical, ownership))
                 if (target.valueId is string inheritedReceiver && !TryGetValueOwnership(inheritedReceiver, out _)
@@ -755,30 +746,82 @@ namespace NeoCompose.Runtime
                     inheritedComplete = false;
                     break;
                 }
-            if (!TryEditListenerEntry(previousEntry, canonical, inherited, listener, add, out var entry, inheritedComplete))
-                return;
-            var plan = pendingPlan ?? new NeoWritePlan(this);
-            plan.SetListenerEntry(lifetime, rootId, ownerId, entry, ownership);
+            NeoWritePlan? plan = pendingPlan;
+            if (listener is null)
+            {
+                // Clearing empties both tiers. A Session owner has no durable one.
+                if (lifetime == PersistedOwnership)
+                    StageListenerEntry(ref plan, pendingPlan, PersistedOwnership, ownership, rootId, ownerId, canonical,
+                        observedLifetime, null, false, inheritedComplete);
+                StageListenerEntry(ref plan, pendingPlan, NeoValueOwnership.Session, ownership, rootId, ownerId, canonical,
+                    observedLifetime, null, false, inheritedComplete);
+            }
+            else
+            {
+                // Promotion retains existing temporary registrations. Repeating +=
+                // must not turn one into persisted wiring, and -= must still find it.
+                if (lifetime == PersistedOwnership)
+                {
+                    Dictionary<string, NeoDelegateValue[]>? temporary;
+                    if (pendingPlan?.ListenerEntries?.TryGetValue((NeoValueOwnership.Session, ownership, rootId, ownerId), out temporary) != true)
+                        temporary = sessionChangeListeners.GetValueOrDefault((ownership, rootId))?.GetValueOrDefault(ownerId);
+                    if (temporary?.TryGetValue(canonical, out var targets) == true)
+                        foreach (var target in targets)
+                            if (NeoActionValue.ListenerIdentity(target) == NeoActionValue.ListenerIdentity(listener))
+                            {
+                                lifetime = NeoValueOwnership.Session;
+                                break;
+                            }
+                }
+                StageListenerEntry(ref plan, pendingPlan, lifetime, ownership, rootId, ownerId, canonical,
+                    observedLifetime, listener, add, inheritedComplete);
+            }
             if (pendingPlan is null)
-                plan.Commit();
+                plan?.Commit();
         }
 
+        private void StageListenerEntry(ref NeoWritePlan? plan, NeoWritePlan? pendingPlan, NeoValueOwnership lifetime,
+            NeoValueOwnership ownership, string rootId, string ownerId, string canonical, NeoValueOwnership observedLifetime,
+            NeoDelegateValue? listener, bool add, bool inheritedComplete)
+        {
+            NeoChangeListenerMap? explicitMap = lifetime == NeoValueOwnership.Session
+                ? sessionChangeListeners.GetValueOrDefault((ownership, rootId))
+                : PersistedData.changeListeners?.GetValueOrDefault(rootId);
+            Dictionary<string, NeoDelegateValue[]>? previousEntry = null;
+            if (pendingPlan?.ListenerEntries?.TryGetValue((lifetime, ownership, rootId, ownerId), out previousEntry) != true)
+                explicitMap?.TryGetValue(ownerId, out previousEntry);
+            NeoDelegateValue[] inherited = InheritedChangeListeners(rootId, ownerId, canonical, lifetime, observedLifetime, ownership);
+            if (!TryEditListenerEntry(previousEntry, canonical, inherited, listener, add, out var entry, inheritedComplete))
+                return;
+            plan ??= new NeoWritePlan(this);
+            plan.SetListenerEntry(lifetime, rootId, ownerId, entry, ownership);
+        }
+
+        // A null listener clears the set.
         private static bool TryEditListenerEntry(Dictionary<string, NeoDelegateValue[]>? previous, string memberId,
-            NeoDelegateValue[] inherited, NeoDelegateValue listener, bool add, out Dictionary<string, NeoDelegateValue[]>? entry,
+            NeoDelegateValue[] inherited, NeoDelegateValue? listener, bool add, out Dictionary<string, NeoDelegateValue[]>? entry,
             bool inheritedComplete = true)
         {
             NeoDelegateValue[] current = previous?.GetValueOrDefault(memberId) ?? inherited;
-            string identity = NeoActionValue.ListenerIdentity(listener);
-            int found = Array.FindIndex(current, item => NeoActionValue.ListenerIdentity(item) == identity);
             entry = previous;
-            if (add == (found >= 0))
-                return false;
             var next = new List<NeoDelegateValue>(current.Length + (add ? 1 : 0));
-            for (int index = 0; index < current.Length; index++)
-                if (add || index != found)
-                    next.Add(current[index].PersistedCopy());
-            if (add)
-                next.Add(listener.PersistedCopy());
+            if (listener is null)
+            {
+                if (current.Length == 0)
+                    return false;
+            }
+            else
+            {
+                string identity = NeoActionValue.ListenerIdentity(listener);
+                int found = Array.FindIndex(current, item => NeoActionValue.ListenerIdentity(item) == identity);
+                if (add == (found >= 0))
+                    return false;
+                for (int index = 0; index < current.Length; index++)
+                    if (add || index != found)
+                        next.Add(current[index].PersistedCopy());
+                if (add)
+                    next.Add(listener.PersistedCopy());
+            }
             entry = previous is null ? new(StringComparer.Ordinal) : new(previous, StringComparer.Ordinal);
             if (next.Count == 0 && inherited.Length == 0 && inheritedComplete)
                 entry.Remove(memberId);

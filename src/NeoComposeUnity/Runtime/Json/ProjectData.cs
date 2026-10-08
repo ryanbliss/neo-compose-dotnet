@@ -13,6 +13,9 @@ namespace NeoCompose.Runtime.Json
     public static class NeoProjectExportContract
     {
         /// <summary>
+        /// 41 adds the <c>clearChangeListeners</c> instruction. An older SDK
+        /// has no converter arm for it and would fail a body mid-play instead
+        /// of refusing the export.
         /// 40 lets <c>addChangeListener</c> and <c>removeChangeListener</c>
         /// target an instance getter (P106). An older SDK would throw "must be
         /// a writable stored instance member" mid-play instead of refusing the
@@ -119,7 +122,7 @@ namespace NeoCompose.Runtime.Json
         /// the wrong configuration rather than an error. It must reject the
         /// export.
         /// </summary>
-        public const int CurrentSchemaVersion = 40;
+        public const int CurrentSchemaVersion = 41;
 
         /// <summary>
         /// The main partition's file, relative to <c>project.json</c>'s

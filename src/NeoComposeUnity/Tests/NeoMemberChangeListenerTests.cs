@@ -1570,6 +1570,38 @@ namespace NeoCompose.Tests
             Assert.That(client.SerializeSaveData(), Is.EqualTo(before));
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void ClearRemovesSaveSessionAndAuthoredWiring(bool authored)
+        {
+            var heard = new List<double>();
+            var durable = new NeoDelegateValue { memberId = "handler", valueId = "save" };
+            using var client = BuildClient(heard.Add, data =>
+            {
+                if (authored)
+                    data.values["save"].changeListeners = new NeoChangeListenerMap
+                    {
+                        ["save"] = new Dictionary<string, NeoDelegateValue[]> { ["field"] = new[] { durable } },
+                    };
+            });
+            if (!authored)
+                client.EditMemberChangeListener("save", NeoValueOwnership.Save, "field", IntType(), durable, true);
+            client.EditMemberChangeListener("save", NeoValueOwnership.Save, "field", IntType(),
+                new NeoDelegateValue { memberId = "handler", valueId = "session" }, true);
+            WriteCount(client, 1);
+            Assert.That(heard, Is.EqualTo(new[] { 1d, 1d }));
+
+            client.ClearMemberChangeListeners("save", NeoValueOwnership.Save, "field", IntType());
+            WriteCount(client, 2);
+
+            Assert.That(heard, Is.EqualTo(new[] { 1d, 1d }));
+            var saved = JObject.Parse(client.SerializeSaveData())["changeListeners"];
+            if (authored)
+                Assert.That(((JArray)saved!["save"]!["save"]!["field"]!).Count, Is.Zero, "An empty set suppresses the authored default.");
+            else
+                Assert.That(saved, Is.Null);
+        }
+
         [Test]
         public void SessionReceiverNeverEntersSaveMetadata()
         {
@@ -2133,15 +2165,31 @@ namespace NeoCompose.Tests
             };
             var instruction = json.ToObject<Instruction>();
             Assert.That(instruction, Is.TypeOf(concrete));
-            var subscription = (ChangeListenerInstruction)instruction!;
+            var subscription = (ChangeListenerEditInstruction)instruction!;
             Assert.That(subscription.target.memberId, Is.EqualTo("field"));
             Assert.That(subscription.listener, Is.TypeOf<MemberTargetPointer>());
             Assert.That(((MemberTargetPointer)subscription.listener).receiver.IsInstance, Is.True);
             var roundTrip = JsonConvert.DeserializeObject<Instruction>(JsonConvert.SerializeObject(instruction));
             Assert.That(roundTrip, Is.TypeOf(concrete));
-            var receiver = (MemberTargetPointer)((ChangeListenerInstruction)roundTrip!).listener;
+            var receiver = (MemberTargetPointer)((ChangeListenerEditInstruction)roundTrip!).listener;
             Assert.That(((VariablePointer)receiver.receiver.pointer!).variableId, Is.EqualTo("receiver"));
             Assert.That(((ChangeListenerInstruction)roundTrip).target.typeInfo.type, Is.EqualTo(MemberKind.Int));
+        }
+
+        [Test]
+        public void ClearIrCarriesOnlyItsTarget()
+        {
+            var target = new JObject
+            {
+                ["owner"] = new JObject { ["type"] = "variable", ["variableId"] = "owner" },
+                ["memberId"] = "field",
+                ["typeInfo"] = new JObject { ["type"] = (int)MemberKind.Int, ["required"] = true },
+                ["writability"] = "save",
+            };
+            var clear = new JObject { ["type"] = InstructionKind.ClearChangeListeners, ["target"] = target };
+            Assert.That(clear.ToObject<Instruction>(), Is.TypeOf<ClearChangeListenersInstruction>());
+            var add = new JObject { ["type"] = InstructionKind.AddChangeListener, ["target"] = target.DeepClone() };
+            Assert.Catch(() => add.ToObject<Instruction>(), "Change listener instruction requires a listener pointer.");
         }
 
         private static PrimitiveTypeInfo IntType() => new() { type = MemberKind.Int, required = true };

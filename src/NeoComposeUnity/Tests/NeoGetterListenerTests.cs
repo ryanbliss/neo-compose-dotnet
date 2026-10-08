@@ -26,7 +26,8 @@ namespace NeoCompose.Tests
     /// class Box&lt;T&gt; { T Item; T Current => this.Item; }
     /// class SaveRoot { Watcher Watcher; Box&lt;int&gt; Box; int Other;
     ///   void Listen() { this.Watcher.Value.OnChanged += this.Heard; this.Watcher.Left = this.Watcher.Left + 1; }
-    ///   void Stop() { this.Watcher.Value.OnChanged -= this.Heard; } }
+    ///   void Stop() { this.Watcher.Value.OnChanged -= this.Heard; }
+    ///   void StopAll() { this.Watcher.Value.OnChanged.Clear(); } }
     /// </code>
     /// <c>Heard</c>, <c>Also</c>, and <c>Explode</c> are native.
     /// </summary>
@@ -246,9 +247,7 @@ namespace NeoCompose.Tests
                 ObjectValue("value-spare", "class-watcher", ("Left", "spare-left"), ("Right", "spare-right")),
             });
             fixture.Subscribe("member-value", ownerId: "value-spare");
-            var subscriptions = (System.Collections.IDictionary)typeof(NeoClient)
-                .GetField("getterSubscriptionsByRow", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
-                .GetValue(fixture.client)!;
+            System.Collections.IDictionary subscriptions = GetterSubscriptions(fixture.client);
             Assert.That(subscriptions.Contains("value-spare"), Is.True);
 
             Assert.IsTrue(fixture.client.TryGetMember("member-watcher", out JsonMember? watcher));
@@ -258,6 +257,41 @@ namespace NeoCompose.Tests
 
             Assert.That(subscriptions.Contains("value-spare"), Is.False);
             Assert.That(fixture.heard, Is.Empty);
+        }
+
+        [Test]
+        public void ASubscriptionWhoseHandlerReceiversAreGoneEndsAtTheNextChange()
+        {
+            using Fixture fixture = Build();
+            fixture.client.SetWritableValue(NeoValueOwnership.Save, ObjectValue("value-listener", "class-save-root"));
+            fixture.client.EditMemberChangeListener("value-watcher", NeoValueOwnership.Save, "member-value", IntType(),
+                new NeoDelegateValue { memberId = "member-heard", valueId = "value-listener" }, add: true);
+            System.Collections.IDictionary subscriptions = GetterSubscriptions(fixture.client);
+
+            var plan = new NeoWritePlan(fixture.client);
+            fixture.client.StageOwnedRemoval(plan, NeoValueOwnership.Save, "value-listener", null);
+            plan.Commit();
+            Assert.That(subscriptions.Contains("value-watcher"), Is.True, "Nothing it read changed yet.");
+            fixture.WriteLeft(1);
+
+            Assert.That(subscriptions.Contains("value-watcher"), Is.False);
+            Assert.That(fixture.heard, Is.Empty);
+        }
+
+        [Test]
+        public void ClearEndsTheSubscriptionUntilTheNextOne()
+        {
+            using Fixture fixture = Build();
+            fixture.Subscribe("member-value");
+            fixture.Subscribe("member-value", "member-also");
+
+            fixture.Run("member-stop-all");
+            fixture.WriteLeft(1);
+            Assert.That(GetterSubscriptions(fixture.client).Contains("value-watcher"), Is.False);
+            fixture.Subscribe("member-value");
+            fixture.WriteLeft(2);
+
+            CollectionAssert.AreEqual(new[] { ("member-heard", 2) }, fixture.heard);
         }
 
         [Test]
@@ -325,6 +359,9 @@ namespace NeoCompose.Tests
             {
                 var error = Assert.Throws<NSGetterRuntimeError>(() => fixture.Subscribe("member-value"));
                 StringAssert.Contains("so a constructor can't make one", error!.Message);
+                error = Assert.Throws<NSGetterRuntimeError>(() =>
+                    fixture.client.ClearMemberChangeListeners("value-watcher", NeoValueOwnership.Save, "member-value", IntType()));
+                StringAssert.Contains("so a constructor can't clear one", error!.Message);
             }
         }
 
@@ -341,6 +378,11 @@ namespace NeoCompose.Tests
             Assert.IsTrue(fixture.client.TryGetValue(NeoValueOwnership.Session, "value-session", out MemberValue? session));
             Assert.That(((ObjectMemberValue)session!).changeListeners, Is.Null);
         }
+
+        private static System.Collections.IDictionary GetterSubscriptions(NeoClient client) =>
+            (System.Collections.IDictionary)typeof(NeoClient)
+                .GetField("getterSubscriptionsByRow", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                .GetValue(client)!;
 
         private static Fixture Build(Action<ProjectData>? configure = null)
         {
@@ -375,6 +417,11 @@ namespace NeoCompose.Tests
                     Subscription(add: true),
                     Assign(KeyOf(KeyOf(This(), "Watcher"), "Left"), Add(KeyOf(KeyOf(This(), "Watcher"), "Left"), Literal(1)))),
                 ScriptFunction("member-stop", "Stop", Subscription(add: false)),
+                ScriptFunction("member-stop-all", "StopAll", new ClearChangeListenersInstruction
+                {
+                    type = InstructionKind.ClearChangeListeners,
+                    target = WatcherValue(),
+                }),
                 Mirror(),
                 Getter("member-value", "Value", KeyOf(This(), "Left"), setter: Assign(KeyOf(This(), "Left"), new VariablePointer
                 {
@@ -462,18 +509,12 @@ namespace NeoCompose.Tests
             return fixture;
         }
 
-        private static ChangeListenerInstruction Subscription(bool add)
+        private static ChangeListenerEditInstruction Subscription(bool add)
         {
-            ChangeListenerInstruction instruction = add
+            ChangeListenerEditInstruction instruction = add
                 ? new AddChangeListenerInstruction { type = InstructionKind.AddChangeListener }
                 : new RemoveChangeListenerInstruction { type = InstructionKind.RemoveChangeListener };
-            instruction.target = new ChangeListenerTarget
-            {
-                owner = KeyOf(This(), "Watcher"),
-                memberId = "member-value",
-                typeInfo = IntType(),
-                writability = WritabilityKind.Session,
-            };
+            instruction.target = WatcherValue();
             instruction.listener = new MemberTargetPointer
             {
                 type = PointerKind.MemberTarget,
@@ -482,6 +523,14 @@ namespace NeoCompose.Tests
             };
             return instruction;
         }
+
+        private static ChangeListenerTarget WatcherValue() => new()
+        {
+            owner = KeyOf(This(), "Watcher"),
+            memberId = "member-value",
+            typeInfo = IntType(),
+            writability = WritabilityKind.Session,
+        };
 
         // void Mirror(int next) { root.Save.Other = next; }
         private static NSFunctionMember Mirror()

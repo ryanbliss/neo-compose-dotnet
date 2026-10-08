@@ -396,14 +396,24 @@ namespace NeoCompose.Runtime.Json
         }
 
         public ChangeListenerTarget target = null!;
+    }
+
+    /// <summary><c>member.OnChanged += listener</c> or <c>-= listener</c>.</summary>
+    public abstract class ChangeListenerEditInstruction : ChangeListenerInstruction
+    {
         public Pointer listener = null!;
     }
 
-    public sealed class AddChangeListenerInstruction : ChangeListenerInstruction
+    public sealed class AddChangeListenerInstruction : ChangeListenerEditInstruction
     {
     }
 
-    public sealed class RemoveChangeListenerInstruction : ChangeListenerInstruction
+    public sealed class RemoveChangeListenerInstruction : ChangeListenerEditInstruction
+    {
+    }
+
+    /// <summary><c>member.OnChanged.Clear()</c> empties the listener set.</summary>
+    public sealed class ClearChangeListenersInstruction : ChangeListenerInstruction
     {
     }
 
@@ -453,6 +463,8 @@ namespace NeoCompose.Runtime.Json
                     return typeof(AddChangeListenerInstruction);
                 case InstructionKind.RemoveChangeListener:
                     return typeof(RemoveChangeListenerInstruction);
+                case InstructionKind.ClearChangeListeners:
+                    return typeof(ClearChangeListenersInstruction);
                 default:
                     return null;
             }
@@ -484,9 +496,9 @@ namespace NeoCompose.Runtime.Json
                     throw new JsonSerializationException("Change listener target requires a member id.");
                 if (target["typeInfo"] is not JObject)
                     throw new JsonSerializationException("Change listener target requires type information.");
-                if (obj["listener"] is not JObject)
-                    throw new JsonSerializationException("Change listener instruction requires a listener pointer.");
             }
+            if (typeof(ChangeListenerEditInstruction).IsAssignableFrom(concrete) && obj["listener"] is not JObject)
+                throw new JsonSerializationException("Change listener instruction requires a listener pointer.");
             if (concrete == typeof(FunctionCallInstruction)
                 && obj["call"]?.Type != JTokenType.Object)
             {

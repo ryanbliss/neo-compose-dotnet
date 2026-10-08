@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.65.0] - 2026-10-08
+
+NeoScript clears a listener set with `OnChanged.Clear()`, on a stored member or an instance getter. Requires export schema 41 and CLI 0.75.0; run `neo export` after upgrading.
+
+```neo
+public void Dispose() {
+  this.Value.OnChanged.Clear();
+}
+```
+
+- On a stored member, `Clear()` removes every handler from Save and Session wiring, including `@listeners` defaults. An authored default stays suppressed by an empty set, as removing it with `-=` does.
+- On a getter, `Clear()` ends the subscription. A constructor can't clear one.
+- Fixed: a getter subscription whose handlers' receivers were all removed stayed in memory until the observed row went away, and the memo kept that getter's reads the whole time. The next change to the getter now ends it.
+
 ## [0.64.0] - 2026-10-08
 
 P106: NeoScript subscribes to an instance getter with `OnChanged`, as generated C# already does. Requires export schema 40 and CLI 0.74.0; run `neo export` after upgrading.

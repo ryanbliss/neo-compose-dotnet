@@ -646,7 +646,13 @@ namespace NeoCompose.Runtime
                                     ?? throw new NSGetterRuntimeError("A listener owner must have a logical value identity.");
                                 NeoValueOwnership ownership = NSGetterEvaluator.FindRowOwnershipByReference(owner, actionCtx)
                                     ?? throw new NSGetterRuntimeError($"Listener owner '{ownerId}' has no runtime residency.");
-                                NeoDelegateValue listener = ResolveListenerTarget(Eval(subscription.listener, scope, actionCtx), "OnChanged");
+                                if (subscription is not ChangeListenerEditInstruction edit)
+                                {
+                                    client.ClearMemberChangeListeners(ownerId, ownership, subscription.target.memberId,
+                                        subscription.target.typeInfo);
+                                    break;
+                                }
+                                NeoDelegateValue listener = ResolveListenerTarget(Eval(edit.listener, scope, actionCtx), "OnChanged");
                                 client.EditMemberChangeListener(ownerId, ownership, subscription.target.memberId,
                                     subscription.target.typeInfo, listener, instruction is AddChangeListenerInstruction);
                                 break;
