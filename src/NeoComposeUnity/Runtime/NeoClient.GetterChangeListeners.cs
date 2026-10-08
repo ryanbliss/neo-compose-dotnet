@@ -50,16 +50,18 @@ namespace NeoCompose.Runtime
         private List<GetterSubscription> pendingGetterSubscriptions = new();
         private List<GetterSubscription>? spareGetterSubscriptions;
 
+        // A null listener clears the subscription.
         private void EditGetterChangeListener(ObjectMemberValue owner, Member declaration, Json.TypeInfo observedType,
-            NeoDelegateValue listener, bool add)
+            NeoDelegateValue? listener, bool add)
         {
             // P106 §2. A function a construction body calls reaches here at runtime.
+            string edit = listener is null ? "clear" : "make";
             if (constructionListenerCapture is not null)
-                throw new NSGetterRuntimeError("A getter subscription lives only for the play session, so a constructor can't make one. Subscribe from a function.");
+                throw new NSGetterRuntimeError($"A getter subscription lives only for the play session, so a constructor can't {edit} one. {(listener is null ? "Clear" : "Subscribe")} from a function.");
             if (isReplayingVirtualInstance)
-                throw new NSGetterRuntimeError("A getter subscription lives only for the play session, so a virtual instance's construction replay can't make one.");
+                throw new NSGetterRuntimeError($"A getter subscription lives only for the play session, so a virtual instance's construction replay can't {edit} one.");
             if (candidateReplay is not null)
-                throw new NSGetterRuntimeError("A getter subscription lives only for the play session, so a candidate construction replay can't make one.");
+                throw new NSGetterRuntimeError($"A getter subscription lives only for the play session, so a candidate construction replay can't {edit} one.");
             string canonical = CanonicalListenerMemberId(declaration);
             if (EffectiveInstanceMember(owner.classId!, canonical) is not NSPropertyMember)
                 throw new NSGetterRuntimeError($"Observed getter '{declaration.id}' does not belong to owner '{owner.id}'.");
@@ -70,14 +72,23 @@ namespace NeoCompose.Runtime
             Json.TypeInfo actualType = NeoNSFunctionRuntime.ResolveInvocationTypeInfo(this, returnType, ListenerOwnerEnvironment(owner));
             if (!TypeInfoMatches(observedType, actualType))
                 throw new NSGetterRuntimeError($"Observed getter '{declaration.id}' no longer matches its compiled type.");
+            getterSubscriptionsByRow.TryGetValue(owner.id, out var subscriptions);
+            GetterSubscription? subscription = null;
+            subscriptions?.TryGetValue(canonical, out subscription);
+            if (listener is null)
+            {
+                if (subscription is null)
+                    return;
+                // A queued dispatch finds no handlers to call.
+                subscription.Targets.Clear();
+                DropGetterSubscription(subscription);
+                return;
+            }
             ValidateChangeListenerHandler(listener, observedType, owner);
             listener = listener.PersistedCopy();
             if (TryGetMember(listener.memberId!, out Member? handler) && handler.Modifier != NeoMemberModifierKind.Static)
                 listener.memberId = CanonicalListenerMemberId(handler);
             string identity = NeoActionValue.ListenerIdentity(listener);
-            getterSubscriptionsByRow.TryGetValue(owner.id, out var subscriptions);
-            GetterSubscription? subscription = null;
-            subscriptions?.TryGetValue(canonical, out subscription);
             int found = subscription?.Targets.FindIndex(target => NeoActionValue.ListenerIdentity(target) == identity) ?? -1;
             if (!add)
             {

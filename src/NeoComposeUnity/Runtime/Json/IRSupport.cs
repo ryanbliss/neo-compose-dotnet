@@ -85,6 +85,7 @@ namespace NeoCompose.Runtime.Json
         public const string RemoveActionListener = "removeActionListener";
         public const string AddChangeListener = "addChangeListener";
         public const string RemoveChangeListener = "removeChangeListener";
+        public const string ClearChangeListeners = "clearChangeListeners";
     }
 
     public static class OperationKind
