@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.64.1] - 2026-10-08
+
+- Fixed: a getter subscription whose handlers' receivers were all removed stayed in memory until the observed row went away, and the memo kept that getter's reads the whole time. The next change to the getter now ends it.
+
 ## [0.64.0] - 2026-10-08
 
 P106: NeoScript subscribes to an instance getter with `OnChanged`, as generated C# already does. Requires export schema 40 and CLI 0.74.0; run `neo export` after upgrading.

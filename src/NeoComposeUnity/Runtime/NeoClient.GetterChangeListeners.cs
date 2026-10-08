@@ -201,6 +201,9 @@ namespace NeoCompose.Runtime
                 invocation.memberId = handler.id;
                 NSGetterEvaluator.InvokeDelegate(invocation, arguments, context, receiver, receiverScope);
             }
+            // Every handler's receiver is gone, so nothing hears the getter.
+            if (subscription.Targets.Count == 0)
+                DropGetterSubscription(subscription);
         }
     }
 }

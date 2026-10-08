@@ -246,9 +246,7 @@ namespace NeoCompose.Tests
                 ObjectValue("value-spare", "class-watcher", ("Left", "spare-left"), ("Right", "spare-right")),
             });
             fixture.Subscribe("member-value", ownerId: "value-spare");
-            var subscriptions = (System.Collections.IDictionary)typeof(NeoClient)
-                .GetField("getterSubscriptionsByRow", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
-                .GetValue(fixture.client)!;
+            System.Collections.IDictionary subscriptions = GetterSubscriptions(fixture.client);
             Assert.That(subscriptions.Contains("value-spare"), Is.True);
 
             Assert.IsTrue(fixture.client.TryGetMember("member-watcher", out JsonMember? watcher));
@@ -257,6 +255,25 @@ namespace NeoCompose.Tests
             plan.Commit();
 
             Assert.That(subscriptions.Contains("value-spare"), Is.False);
+            Assert.That(fixture.heard, Is.Empty);
+        }
+
+        [Test]
+        public void ASubscriptionWhoseHandlerReceiversAreGoneEndsAtTheNextChange()
+        {
+            using Fixture fixture = Build();
+            fixture.client.SetWritableValue(NeoValueOwnership.Save, ObjectValue("value-listener", "class-save-root"));
+            fixture.client.EditMemberChangeListener("value-watcher", NeoValueOwnership.Save, "member-value", IntType(),
+                new NeoDelegateValue { memberId = "member-heard", valueId = "value-listener" }, add: true);
+            System.Collections.IDictionary subscriptions = GetterSubscriptions(fixture.client);
+
+            var plan = new NeoWritePlan(fixture.client);
+            fixture.client.StageOwnedRemoval(plan, NeoValueOwnership.Save, "value-listener", null);
+            plan.Commit();
+            Assert.That(subscriptions.Contains("value-watcher"), Is.True, "Nothing it read changed yet.");
+            fixture.WriteLeft(1);
+
+            Assert.That(subscriptions.Contains("value-watcher"), Is.False);
             Assert.That(fixture.heard, Is.Empty);
         }
 
@@ -341,6 +358,11 @@ namespace NeoCompose.Tests
             Assert.IsTrue(fixture.client.TryGetValue(NeoValueOwnership.Session, "value-session", out MemberValue? session));
             Assert.That(((ObjectMemberValue)session!).changeListeners, Is.Null);
         }
+
+        private static System.Collections.IDictionary GetterSubscriptions(NeoClient client) =>
+            (System.Collections.IDictionary)typeof(NeoClient)
+                .GetField("getterSubscriptionsByRow", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                .GetValue(client)!;
 
         private static Fixture Build(Action<ProjectData>? configure = null)
         {
