@@ -4948,14 +4948,25 @@ namespace NeoCompose.Runtime.NeoScript
             NeoClient.GetterCaptureFrame enclosingCapture = client.BeginGetterReadCapture();
             object? result;
             NeoClient.GetterCaptureFrame capture;
+            bool evaluated = false;
             try
             {
                 result = Evaluate(getter, ctx, Array.Empty<object?>(), frame);
+                evaluated = true;
             }
             finally
             {
                 ctx.ExitFunction(frame);
                 capture = client.EndGetterReadCapture(enclosingCapture);
+                // A failed read keeps only what it read, so a watch hears
+                // the change that lets it succeed.
+                if (!evaluated)
+                {
+                    if (client.CanMemoizeGetters)
+                        client.MemoizeGetterReads(GetterMemoKeyOf(receiverRef!, memberId, ctx), capture);
+                    else
+                        client.RecycleGetterCapture(capture);
+                }
             }
             NeoClient.GetterMemoEntry? memoized = null;
             NeoClient.GetterMemoKey memoKey = GetterMemoKeyOf(receiverRef!, memberId, ctx);
@@ -4977,7 +4988,7 @@ namespace NeoCompose.Runtime.NeoScript
                 && MemoizableList(entries, ctx, out JsonMember? entryMember) is { } list)
                 memoized = client.MemoizeGetter(memoKey, null, null, capture, list, entryMember);
             else
-                client.RecycleGetterCapture(capture);
+                client.MemoizeGetterReads(memoKey, capture);
             if (memoized is not null)
                 receiverRef!.RememberGetter(memberId, ctx.valueOwnership, memoized);
             return result;

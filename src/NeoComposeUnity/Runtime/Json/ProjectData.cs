@@ -13,6 +13,10 @@ namespace NeoCompose.Runtime.Json
     public static class NeoProjectExportContract
     {
         /// <summary>
+        /// 40 lets <c>addChangeListener</c> and <c>removeChangeListener</c>
+        /// target an instance getter (P106). An older SDK would throw "must be
+        /// a writable stored instance member" mid-play instead of refusing the
+        /// export.
         /// 39 admits the P105 <c>dialogueGroup</c> and <c>dialogue</c> function
         /// kinds. An older SDK has no converter arm for them and would fail a
         /// body mid-play instead of refusing the export.
@@ -115,7 +119,7 @@ namespace NeoCompose.Runtime.Json
         /// the wrong configuration rather than an error. It must reject the
         /// export.
         /// </summary>
-        public const int CurrentSchemaVersion = 39;
+        public const int CurrentSchemaVersion = 40;
 
         /// <summary>
         /// The main partition's file, relative to <c>project.json</c>'s

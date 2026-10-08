@@ -835,7 +835,7 @@ namespace NeoCompose.Tests
         {
             return @"
 {
-  ""metadata"": { ""schemaVersion"": 39, ""projectId"": ""project-1"", ""versionId"": ""version-1"" },
+  ""metadata"": { ""schemaVersion"": 40, ""projectId"": ""project-1"", ""versionId"": ""version-1"" },
   ""variantFolders"": {},
   ""project"": {
     ""_id"": ""project-1"",

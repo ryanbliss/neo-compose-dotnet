@@ -1254,7 +1254,7 @@ namespace NeoCompose.Runtime
                     GetterMemoEntry entry = memoInvalidationScratch[i];
                     if (entry.key.kind == DependentKind.Effect)
                         QueueEffect(entry.key);
-                    else if (ForgetMemoEntry(entry) && getterWatchersByRow.Count != 0)
+                    else if (ForgetMemoEntry(entry) && HasGetterWatchers)
                         QueueGetterChange(entry.key);
                 }
                 memoInvalidationScratch.Clear();
@@ -1282,7 +1282,7 @@ namespace NeoCompose.Runtime
             {
                 foreach (GetterMemoEntry entry in getterMemo.Values)
                 {
-                    if (ForgetMemoEntry(entry) && getterWatchersByRow.Count != 0)
+                    if (ForgetMemoEntry(entry) && HasGetterWatchers)
                         QueueGetterChange(entry.key);
                     AbandonMemoEntry(entry);
                 }
@@ -1334,13 +1334,17 @@ namespace NeoCompose.Runtime
             });
         }
 
-        /// <summary>Whether a view watches the getters on <paramref name="rowId"/>.</summary>
+        /// <summary>Whether a view or a NeoScript subscription watches the getters on <paramref name="rowId"/>.</summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal bool WatchesGetters(string rowId) =>
-            getterWatchersByRow.Count != 0 && getterWatchersByRow.ContainsKey(rowId);
+            (getterWatchersByRow.Count != 0 && getterWatchersByRow.ContainsKey(rowId))
+            || (getterSubscriptionsByRow.Count != 0 && getterSubscriptionsByRow.ContainsKey(rowId));
+
+        private bool HasGetterWatchers => getterWatchersByRow.Count != 0 || getterSubscriptionsByRow.Count != 0;
 
         private void QueueGetterChange(GetterMemoKey key)
         {
+            QueueGetterSubscription(key);
             if (!getterWatchersByRow.TryGetValue(key.rowId, out List<NeoMemberClass>? nodes))
                 return;
             for (int i = 0; i < nodes.Count; i++)
@@ -1361,8 +1365,16 @@ namespace NeoCompose.Runtime
         /// </summary>
         private void FlushGetterChanges()
         {
-            if (getterChangeHolds != 0 || pendingGetterChanges.Count == 0)
+            if (getterChangeHolds != 0)
                 return;
+            if (pendingGetterChanges.Count != 0)
+                RaiseGetterChanges();
+            if (pendingGetterSubscriptions.Count != 0)
+                DispatchGetterSubscriptions();
+        }
+
+        private void RaiseGetterChanges()
+        {
             // A listener's own write queues and raises its own changes.
             var draining = pendingGetterChanges;
             pendingGetterChanges = spareGetterChanges ?? new();
@@ -1406,7 +1418,8 @@ namespace NeoCompose.Runtime
         {
             // An idle boundary has nothing to drain or raise.
             if (getterChangeHolds > 1
-                || (pendingGetterChanges.Count == 0 && !EffectsPending && !userChangesPending && !dialogueTurnPending))
+                || (pendingGetterChanges.Count == 0 && pendingGetterSubscriptions.Count == 0
+                    && !EffectsPending && !userChangesPending && !dialogueTurnPending))
                 getterChangeHolds--;
             else
                 ReleaseOutermostGetterChanges();

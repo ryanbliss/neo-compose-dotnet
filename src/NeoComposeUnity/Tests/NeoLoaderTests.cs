@@ -300,7 +300,7 @@ namespace NeoCompose.Tests
             var data = NeoTestExport.Read(
                 @"{
   ""metadata"": {
-    ""schemaVersion"": 39,
+    ""schemaVersion"": 40,
     ""projectId"": ""project-1"",
     ""versionId"": ""version-1""
   },
@@ -697,7 +697,7 @@ namespace NeoCompose.Tests
         {
             var projectJson = $@"{{
   ""metadata"": {{
-    ""schemaVersion"": 39,
+    ""schemaVersion"": 40,
     ""projectId"": ""project-1"",
     ""versionId"": ""version-1""
   }},
