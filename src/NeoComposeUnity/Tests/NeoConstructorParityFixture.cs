@@ -22,7 +22,7 @@ namespace NeoCompose.Tests
     public static class NeoConstructorParityFixture
     {
         public const string Json = @"{
-  ""$comment"": ""P43 §6.1 cross-runtime declared-constructor parity fixture. Construction is the one place two evaluators can agree on every individual step and still disagree on the ANSWER, because the answer is an ORDER: member initializers, then the base chain, then the body, then the call-site initializer block — with the last one winning even for a member the body wrote (§1.2, §6.1 step 4). That order is pinned here as executable IR rather than prose. Consumed by src/models/neoscript/neoscript-constructor-parity.test.ts (web) and NeoConstructorParityTests (neo-compose-dotnet, vendored copy at src/NeoComposeUnity/Tests/NeoConstructorParityFixture.cs). Hand-maintained: a fixture generated from one runtime cannot catch a divergence in the other's source of truth. Each evaluateCases entry is a compiled getter whose sole instruction returns a `declaredConstructor` pointer; run it against `document` with `__this__` = null and `__root__` built from the project's three root members, then read the produced record's schemaKey -> row value for `expectedFields`, or assert the thrown message contains `expectedErrorContains`. P49 §1 extends it with a required constructor: `Gate` and `Latch` carry `requiredConstructorId` rather than `constructorIds`, and `ctor-latch` is a class header's constructor whose `baseArguments` pass the header parameter to the base's required constructor, whose `baseInitializerFields` settle an inherited member from the base clause, and whose `code` is the `init` block. The three P49 cases pin the stage order that adds (base clause block, then init body, then call-site block) and the implicit `new` §1.3 disables."",
+  ""$comment"": ""P43 §6.1 cross-runtime declared-constructor parity fixture. Construction is the one place two evaluators can agree on every individual step and still disagree on the ANSWER, because the answer is an ORDER: member initializers, then the base chain, then the body, then the call-site initializer block — with the last one winning even for a member the body wrote (§1.2, §6.1 step 4). That order is pinned here as executable IR rather than prose. Consumed by src/models/neoscript/neoscript-constructor-parity.test.ts (web) and NeoConstructorParityTests (neo-compose-dotnet, vendored copy at src/NeoComposeUnity/Tests/NeoConstructorParityFixture.cs). Hand-maintained: a fixture generated from one runtime cannot catch a divergence in the other's source of truth. Each evaluateCases entry is a compiled getter whose sole instruction returns a `declaredConstructor` pointer; run it against `document` with `__this__` = null and `__root__` built from the project's root members, then read the produced record's schemaKey -> row value for `expectedFields`, or assert the thrown message contains `expectedErrorContains`. P49 §1 extends it with a required constructor: `Gate` and `Latch` carry `requiredConstructorId` rather than `constructorIds`, and `ctor-latch` is a class header's constructor whose `baseArguments` pass the header parameter to the base's required constructor, whose `baseInitializerFields` settle an inherited member from the base clause, and whose `code` is the `init` block. The three P49 cases pin the stage order that adds (base clause block, then init body, then call-site block) and the implicit `new` §1.3 disables."",
   ""document"": {
     ""project"": {
       ""id"": ""project-p43"",
@@ -38,6 +38,7 @@ namespace NeoCompose.Tests
       ""rootAssetsMemberId"": ""member-root-assets"",
       ""rootSaveFileMemberId"": ""member-root-save"",
       ""rootSessionMemberId"": ""member-root-session"",
+      ""rootUserMemberId"": ""member-root-user"",
       ""defaultPriorityGroupId"": null,
       ""defaultTextureTemplateId"": null,
       ""defaultAudioClipTemplateId"": null,
@@ -159,6 +160,14 @@ namespace NeoCompose.Tests
         ""updatedAt"": 1,
         ""id"": ""class-root-session"",
         ""name"": ""RootSession"",
+        ""schema"": {}
+      },
+      {
+        ""projectId"": ""project-p43"",
+        ""createdAt"": 1,
+        ""updatedAt"": 1,
+        ""id"": ""class-root-user"",
+        ""name"": ""RootUser"",
         ""schema"": {}
       },
       {
@@ -568,6 +577,17 @@ namespace NeoCompose.Tests
         ""projectId"": ""project-p43"",
         ""createdAt"": 1,
         ""updatedAt"": 1,
+        ""id"": ""member-root-user"",
+        ""name"": ""User"",
+        ""kind"": 7,
+        ""classId"": ""class-root-user"",
+        ""valueId"": ""value-root-user"",
+        ""requirement"": 1
+      },
+      {
+        ""projectId"": ""project-p43"",
+        ""createdAt"": 1,
+        ""updatedAt"": 1,
         ""id"": ""member-prefix"",
         ""name"": ""Prefix"",
         ""kind"": 3,
@@ -667,6 +687,14 @@ namespace NeoCompose.Tests
         ""projectId"": ""project-p43"",
         ""value"": {},
         ""classId"": ""class-root-session"",
+        ""createdAt"": 1,
+        ""updatedAt"": 1
+      },
+      {
+        ""id"": ""value-root-user"",
+        ""projectId"": ""project-p43"",
+        ""value"": {},
+        ""classId"": ""class-root-user"",
         ""createdAt"": 1,
         ""updatedAt"": 1
       }
