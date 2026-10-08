@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.64.0] - 2026-10-08
+
+P106: NeoScript subscribes to an instance getter with `OnChanged`, as generated C# already does. Requires export schema 40 and CLI 0.74.0; run `neo export` after upgrading.
+
+```neo
+public void Listen() {
+  this._quantity.Value.OnChanged += this.OnQuantityChanged;
+}
+```
+
+- Subscribing reads the getter once. When something that read depended on changes, the SDK reads the getter again and calls each handler with the result, after the outermost NeoScript execution or `RunTransaction` ends. Several changes before then call it once, and an equal result still calls it.
+- A getter subscription lives in the client's memory for the play session. It never reaches the save, the export, or `root.Session` rows. Replacing or removing the receiver ends it.
+- A C# watch no longer goes deaf after a getter read throws or returns a value the memo can't cache. The memo keeps what the read depended on, for C# watches and NeoScript subscriptions alike.
+- Fixed: a NeoScript `OnChanged` handler on a stored member couldn't read `root`. It threw "Cannot read property 'Save' of null".
+
 ## [0.63.0] - 2026-10-08
 
 P105: the game presents dialogues in one place, and the SDK queues them. Requires export schema 39 and CLI 0.73.0; run `neo pull`, then `neo export`, after upgrading. A project generated before this release doesn't compile against it.

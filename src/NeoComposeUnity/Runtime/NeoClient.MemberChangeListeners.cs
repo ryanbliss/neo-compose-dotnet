@@ -499,6 +499,7 @@ namespace NeoCompose.Runtime
             var snapshot = scratch.Snapshot;
             var identities = scratch.Identities;
             var context = CreateGetterContext(ownership);
+            context.BindRoot(NeoScriptValueMarshaller.ResolveRoot(this, context));
             var enclosingContext = memberChangeContext;
             if (enclosingContext is not null)
                 context.ShareAllocations(enclosingContext);
@@ -525,25 +526,14 @@ namespace NeoCompose.Runtime
                     bool sessionTarget = IsSessionListenerTarget(target, observedLifetime, receiverScope);
                     if (!registration.session && sessionTarget)
                         continue;
-                    var resolved = ResolveChangeListenerHandler(target, owner, receiverScope);
-                    if (resolved is null)
-                        continue;
-                    var signatureKey = (resolved.Value.member.id, resolved.Value.receiver.classId);
-                    var genericStamp = resolved.Value.receiver.genericBindings;
-                    if (!slot.HandlerSignatures.TryGetValue(signatureKey, out var signature)
-                        || !ReferenceEquals(signature.genericStamp, genericStamp))
-                    {
-                        signature = (genericStamp, ChangeListenerSignatureError(target.memberId!, slot.ObservedType,
-                            resolved.Value.member, resolved.Value.receiver));
-                        slot.HandlerSignatures[signatureKey] = signature;
-                    }
-                    if (signature.error is not null)
+                    Member? handler = ChangeListenerHandler(target, owner, receiverScope, slot.ObservedType, slot.HandlerSignatures);
+                    if (handler is null)
                         continue;
                     NeoDelegateValue invocation = target.PersistedCopy();
-                    invocation.memberId = CanonicalListenerMemberId(resolved.Value.member);
+                    invocation.memberId = CanonicalListenerMemberId(handler);
                     if (!identities.Add((receiverScope, NeoActionValue.ListenerIdentity(invocation))))
                         continue;
-                    invocation.memberId = resolved.Value.member.id;
+                    invocation.memberId = handler.id;
                     NSGetterEvaluator.InvokeDelegate(invocation, scratch.Arguments, context, receiver, receiverScope);
                 }
             }
@@ -557,6 +547,28 @@ namespace NeoCompose.Runtime
                 if (pooled)
                     listenerDispatchScratchInUse = false;
             }
+        }
+
+        /// <summary>
+        /// The member <paramref name="target"/> runs, or null when its
+        /// receiver or member is gone or it can't take the observed value.
+        /// </summary>
+        private Member? ChangeListenerHandler(NeoDelegateValue target, ObjectMemberValue owner, NeoValueOwnership? receiverScope,
+            Json.TypeInfo observedType, Dictionary<(string memberId, string? classId), (object? genericStamp, string? error)> signatures)
+        {
+            var resolved = ResolveChangeListenerHandler(target, owner, receiverScope);
+            if (resolved is null)
+                return null;
+            var signatureKey = (resolved.Value.member.id, resolved.Value.receiver.classId);
+            var genericStamp = resolved.Value.receiver.genericBindings;
+            if (!signatures.TryGetValue(signatureKey, out var signature)
+                || !ReferenceEquals(signature.genericStamp, genericStamp))
+            {
+                signature = (genericStamp, ChangeListenerSignatureError(target.memberId!, observedType,
+                    resolved.Value.member, resolved.Value.receiver));
+                signatures[signatureKey] = signature;
+            }
+            return signature.error is null ? resolved.Value.member : null;
         }
 
         internal string CanonicalListenerMemberId(Member member)
@@ -635,6 +647,11 @@ namespace NeoCompose.Runtime
                 throw new NSGetterRuntimeError($"Listener owner '{ownerId}' is not a live class value.");
             if (!TryGetMember(memberId, out Member? declaration))
                 throw new NSGetterRuntimeError($"Observed member '{memberId}' does not exist.");
+            if (declaration is NSPropertyMember)
+            {
+                EditGetterChangeListener(instance, declaration, observedType, listener, add);
+                return;
+            }
             string canonical = CanonicalListenerMemberId(declaration);
             Member? observed = null;
             if (ListenerSchema(instance.classId).TryGetValue(canonical, out var slot)
@@ -907,18 +924,22 @@ namespace NeoCompose.Runtime
             }
             if (member.Modifier == NeoMemberModifierKind.Static)
                 return (member, receiver);
-            string canonical = CanonicalListenerMemberId(member);
-            if (!effectiveListenerMembers.TryGetValue(receiver.classId!, out var members))
+            Member? effective = EffectiveInstanceMember(receiver.classId!, CanonicalListenerMemberId(member));
+            return effective is null ? null : (effective, receiver);
+        }
+
+        /// <summary>The member <paramref name="classId"/> instances run for canonical declaration <paramref name="canonical"/>.</summary>
+        private Member? EffectiveInstanceMember(string classId, string canonical)
+        {
+            if (!effectiveListenerMembers.TryGetValue(classId, out var members))
             {
                 members = new Dictionary<string, string>(StringComparer.Ordinal);
-                foreach (var slot in ResolveInstanceSurfaceSchema(receiver.classId!))
+                foreach (var slot in ResolveInstanceSurfaceSchema(classId))
                     if (TryGetMember(slot.memberId, out Member? candidate))
                         members[CanonicalListenerMemberId(candidate)] = slot.memberId;
-                effectiveListenerMembers[receiver.classId!] = members;
+                effectiveListenerMembers[classId] = members;
             }
-            if (!members.TryGetValue(canonical, out string id) || !TryGetMember(id, out Member? effective))
-                return null;
-            return (effective, receiver);
+            return members.TryGetValue(canonical, out string id) && TryGetMember(id, out Member? effective) ? effective : null;
         }
 
         private void ValidateChangeListenerHandler(NeoDelegateValue target, Json.TypeInfo observedType, ObjectMemberValue owner)
