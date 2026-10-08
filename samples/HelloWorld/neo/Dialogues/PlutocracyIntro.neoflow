@@ -4,7 +4,7 @@
   description: "The Red Nova Conspiracy — authored via @neocompose/cli.",
   saveOptionChoices: true
 )
-sealed class PlutocracyIntro : Dialogue {
+sealed class PlutocracyIntro : NeoDialogue {
   @primary
   Outpost Plutocracy = Reference<Outpost>(id: "18154c7e-8f9a-4767-b44c-a25b0e1ca234");
 

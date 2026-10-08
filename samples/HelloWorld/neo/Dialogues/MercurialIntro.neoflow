@@ -3,7 +3,7 @@
   name: "Mercurial intro",
   saveOptionChoices: true
 )
-sealed class MercurialIntro : Dialogue {
+sealed class MercurialIntro : NeoDialogue {
   @primary
   Outpost Mercurial = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
 

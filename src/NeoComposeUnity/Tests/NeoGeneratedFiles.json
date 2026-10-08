@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "projectId": "test-project",
-  "codegenRevision": "45a0847addd4616acfc29f142556dcb2e0a27daae14d6aa456430228e66dbc07",
+  "codegenRevision": "e4a632a177c87244e19da71c9840b8007735773ae5f81578f58ce246ec6cb03d",
   "files": [
     {
       "id": "class:class-abstract-readonly-stats",
@@ -281,7 +281,7 @@
     {
       "id": "dialogue-group:dialogue-group-standard",
       "path": "Generated/Dialogues/StandardDialogues.g.cs",
-      "hash": "5cdec5af8f1956b4e2ef71ede749585e16a38dd30b5ffeb743be02aedc58d6d3"
+      "hash": "55195cce0c830c4adf95c80b9a7f60b1d1ba790982a8ae74d14ada4a7dedcb51"
     },
     {
       "id": "enum:enum-element",

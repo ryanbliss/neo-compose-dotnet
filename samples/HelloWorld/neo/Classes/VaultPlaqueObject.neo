@@ -14,10 +14,10 @@ class VaultPlaqueObject : ConsoleObject {
   public override string Name = "Vault Plaque";
 
   @id("502c9308-974b-446d-935b-c22adde5a9d2")
-  public virtual Dialogue VaultPlaqueLocked = Reference<Dialogue>(id: "da73bce9-0d39-4c27-bb09-32b538f97f61");
+  public virtual NeoDialogueReference VaultPlaqueLocked = Reference<NeoDialogue>(id: "da73bce9-0d39-4c27-bb09-32b538f97f61");
 
   @id("d4a33b58-95a5-4874-8236-05ec38df8f82")
-  public virtual Dialogue VaultPlaqueReward = Reference<Dialogue>(id: "bbda459e-c77e-4084-9047-22b1dfbb0bff");
+  public virtual NeoDialogueReference VaultPlaqueReward = Reference<NeoDialogue>(id: "bbda459e-c77e-4084-9047-22b1dfbb0bff");
 
   @id("c481dc1e-b5fd-4352-a76b-536cc3e17f71")
   public override List<NeoObjectBase> Children = [

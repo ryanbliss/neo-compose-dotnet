@@ -4,7 +4,7 @@
   description: "The Red Nova Conspiracy — authored via @neocompose/cli.",
   saveOptionChoices: true
 )
-sealed class OlympicMonsIntro : Dialogue {
+sealed class OlympicMonsIntro : NeoDialogue {
   @primary
   Outpost OlympicMons = Reference<Outpost>(id: "424019cd-8b46-4dd9-9aac-3721331179bb");
 

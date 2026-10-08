@@ -1,10 +1,10 @@
 @id("5c65b156-e83a-41c5-bef0-ee375798bdc2")
 abstract class ExitPromptObject : ConsoleObject {
   @id("5676cb8a-be0f-4f1b-adc6-7241c09f8cf5")
-  public virtual Dialogue ExitPromptRelay = Reference<Dialogue>(id: "d5a8097d-f02b-41c7-8356-9442a4a29412");
+  public virtual NeoDialogueReference ExitPromptRelay = Reference<NeoDialogue>(id: "d5a8097d-f02b-41c7-8356-9442a4a29412");
 
   @id("663d7511-cfc3-427c-8431-90cfc87a9813")
-  public virtual Dialogue ExitPromptQuiet = Reference<Dialogue>(id: "7a6bcb67-d42a-4eb8-9934-0263d506e85c");
+  public virtual NeoDialogueReference ExitPromptQuiet = Reference<NeoDialogue>(id: "7a6bcb67-d42a-4eb8-9934-0263d506e85c");
 
   @id("14ec578e-0aa7-4d12-8d02-47463e03a1f3")
   @settings(format: .Plain)

@@ -555,6 +555,50 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void ADialogueCSharpRequestsFromAnEffectStartsAfterTheDrain()
+        {
+            using Fixture fixture = Build(plants: 2, configure: data =>
+            {
+                data.dialogueGroups["group-standard"] = new StandardDialogueGroup
+                {
+                    id = "group-standard",
+                    projectId = ProjectId,
+                    name = "Standard",
+                    type = DialogueGroupType.Standard,
+                };
+                data.dialogues["dialogue-effect"] = NeoDialogueTriggerTests.Dialogue(
+                    "dialogue-effect",
+                    "Effect",
+                    "group-standard");
+            });
+            var dialogues = new EffectDialogues(fixture.client);
+            int records = 0;
+            int recordsAtTrigger = -1;
+            dialogues.OnTrigger += _ => recordsAtTrigger = records;
+            // Every Check effect calls Record; the first one requests the dialogue.
+            fixture.client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+            {
+                ["member-record"] = (_, _, _) =>
+                {
+                    if (records++ == 0)
+                        dialogues.TryTrigger("dialogue-effect");
+                    return null;
+                },
+            });
+
+            fixture.client.StartScriptRuntime();
+
+            Assert.Greater(records, 1);
+            Assert.AreEqual(records, recordsAtTrigger, "The dialogue starts once every effect ran.");
+        }
+
+        private sealed class EffectDialogues : NeoDialoguesBase
+        {
+            public EffectDialogues(NeoClient client)
+                : base(client) { }
+        }
+
+        [Test]
         [Explicit("Effect run measurement; run serially by name.")]
         public void EffectPerformance_RunAgainstDirectCall()
         {

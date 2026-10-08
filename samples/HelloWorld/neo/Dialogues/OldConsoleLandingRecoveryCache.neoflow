@@ -4,7 +4,7 @@
   description: "Player opens the recovery cache in the vault and claims the bits.",
   saveOptionChoices: true
 )
-sealed class OldConsoleLandingRecoveryCache : Dialogue {
+sealed class OldConsoleLandingRecoveryCache : NeoDialogue {
   @primary
   BlockedPath BlockedPath = Reference<BlockedPath>(id: "432f5226-99d8-4d59-8cf0-4d86ca64462f");
 

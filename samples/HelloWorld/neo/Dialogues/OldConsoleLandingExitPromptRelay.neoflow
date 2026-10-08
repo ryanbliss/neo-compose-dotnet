@@ -4,7 +4,7 @@
   description: "Player returns to the ship carrying the boot trace while the seal is still up; the launch console relays it on maintenance authority.",
   saveOptionChoices: true
 )
-sealed class OldConsoleLandingExitPromptRelay : Dialogue {
+sealed class OldConsoleLandingExitPromptRelay : NeoDialogue {
   @primary
   BlockedPath BlockedPath = Reference<BlockedPath>(id: "432f5226-99d8-4d59-8cf0-4d86ca64462f");
 

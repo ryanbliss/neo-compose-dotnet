@@ -18,10 +18,7 @@ namespace Assets.Scripts.Neo
         {
         }
 
-        public bool TryTrigger(out NeoDialogue dialogue) =>
-            TryTriggerStandard(out dialogue);
-
-        public bool TryTrigger(out NeoDialogueTriggerResult result) =>
-            TryTriggerStandard(out result);
+        public bool TryTrigger(Action? onFinish = null) =>
+            TryTriggerStandard(onFinish);
     }
 }

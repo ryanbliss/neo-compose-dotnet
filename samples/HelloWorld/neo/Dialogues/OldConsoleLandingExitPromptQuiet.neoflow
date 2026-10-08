@@ -4,7 +4,7 @@
   description: "Player checks the ship's launch console when there is nothing to relay (no boot trace yet, or the seal is already open).",
   saveOptionChoices: true
 )
-sealed class OldConsoleLandingExitPromptQuiet : Dialogue {
+sealed class OldConsoleLandingExitPromptQuiet : NeoDialogue {
   @primary
   BlockedPath BlockedPath = Reference<BlockedPath>(id: "432f5226-99d8-4d59-8cf0-4d86ca64462f");
 

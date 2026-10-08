@@ -18,10 +18,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public bool TryTrigger(IReadOnlyOutpost value, out NeoDialogue dialogue) =>
-            TryTriggerLookup(value, out dialogue);
-
-        public bool TryTrigger(IReadOnlyOutpost value, out NeoDialogueTriggerResult result) =>
-            TryTriggerLookup(value, out result);
+        public bool TryTrigger(IReadOnlyOutpost value, Action? onFinish = null) =>
+            TryTriggerLookup(value, onFinish);
     }
 }

@@ -4,7 +4,7 @@
   description: "The Red Nova Conspiracy — authored via @neocompose/cli.",
   saveOptionChoices: true
 )
-sealed class EtnaDiademIntro : Dialogue {
+sealed class EtnaDiademIntro : NeoDialogue {
   @primary
   Outpost Outpost = Reference<Outpost>(id: "bb2dca5c-ab35-4ca5-82ec-a236f0de0a6f");
 

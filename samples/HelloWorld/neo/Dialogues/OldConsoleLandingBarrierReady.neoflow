@@ -4,7 +4,7 @@
   description: "Player presents the boot trace at the seal (or plaque); the quarantine seal releases and the vault opens.",
   saveOptionChoices: true
 )
-sealed class OldConsoleLandingBarrierReady : Dialogue {
+sealed class OldConsoleLandingBarrierReady : NeoDialogue {
   @primary
   BlockedPath BlockedPath = Reference<BlockedPath>(id: "432f5226-99d8-4d59-8cf0-4d86ca64462f");
 

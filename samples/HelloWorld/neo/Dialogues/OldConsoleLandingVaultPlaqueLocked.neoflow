@@ -4,7 +4,7 @@
   description: "Player reads the plaque at the sealed corridor before earning the boot trace.",
   saveOptionChoices: true
 )
-sealed class OldConsoleLandingVaultPlaqueLocked : Dialogue {
+sealed class OldConsoleLandingVaultPlaqueLocked : NeoDialogue {
   @primary
   BlockedPath BlockedPath = Reference<BlockedPath>(id: "432f5226-99d8-4d59-8cf0-4d86ca64462f");
 

@@ -524,12 +524,12 @@ namespace HelloWorld.Assets.Tests
 
             foreach (var outpost in neo.Assets.Outposts)
             {
-                if (!neo.Dialogues.Outposts.Introductions.TryTrigger(outpost, out NeoDialogue dialogue))
+                if (!neo.Dialogues.Outposts.Introductions.CanTrigger(outpost))
                 {
                     continue;
                 }
                 triggeredCount += 1;
-                WalkDialogue(dialogue, outpost.Name, preferFirstOption: true);
+                WalkIntro(neo, outpost);
             }
             Assert.Greater(triggeredCount, 0, "The sample should expose at least one intro dialogue.");
             TestContext.WriteLine($"INTRO_INTERACTIONS elapsedMs={clock.Elapsed.TotalMilliseconds:F3}");
@@ -578,6 +578,7 @@ namespace HelloWorld.Assets.Tests
             var neo = GameplayNeo(gameplay);
             foreach (var outpost in gameplay.Outposts)
                 outpost.Save.Unlocked = true;
+            TakeDialogues(gameplay, neo);
 
             var iowan = gameplay.Outposts.First(o => o.Name == "Iowan");
             var mercurial = gameplay.Outposts.First(o => o.Name == "Mercurial");
@@ -598,6 +599,7 @@ namespace HelloWorld.Assets.Tests
             var neo = GameplayNeo(gameplay);
             foreach (var outpost in gameplay.Outposts)
                 outpost.Save.Unlocked = true;
+            TakeDialogues(gameplay, neo);
 
             // Earn some cargo first (Iowan's intro grants Storm Corn).
             var iowan = gameplay.Outposts.First(o => o.Name == "Iowan");
@@ -637,6 +639,7 @@ namespace HelloWorld.Assets.Tests
                 var neo = GameplayNeo(gameplay);
                 foreach (var outpost in gameplay.Outposts)
                     outpost.Save.Unlocked = true;
+                TakeDialogues(gameplay, neo);
                 neo.Save.Bits = 900;
 
                 var scenarios = new (string outpost, string expectFlag, System.Action setup)[]
@@ -691,6 +694,16 @@ namespace HelloWorld.Assets.Tests
             Assert.AreEqual(QuestStage.threePaths, healNeo.Save.Quest.Stage, "evidence scenes self-heal the stage");
         }
 
+        /// <summary>
+        /// Ends the dialogue the save's load presented and detaches the
+        /// gameplay presenter, so the test walks every later dialogue itself.
+        /// </summary>
+        private static void TakeDialogues(HelloWorldGameplay gameplay, HelloWorldNeo neo)
+        {
+            neo.Dialogues.OnTrigger -= gameplay.ShowDialogue;
+            gameplay.ClearDialogue();
+        }
+
         private static void GrantItem(HelloWorldNeo neo, string itemName)
         {
             if (HasItemNamed(neo, itemName))
@@ -721,36 +734,76 @@ namespace HelloWorld.Assets.Tests
             // the return-trip precondition instead of replaying every intro here.
             if (outpost.Save.VisitCount == 0)
                 outpost.Save.VisitCount = 1;
-            bool triggered = neo.Dialogues.Outposts.Visits.TryTrigger(
-                outpost, out NeoDialogueTriggerResult result);
-            if (!triggered)
-            {
-                var detail = result.Error?.ToString() ?? "(no error)";
-                foreach (var warning in result.Warnings)
-                    detail += $" | {warning.Message}";
-                Assert.Fail(
-                    $"{outpost.Name}: a visit dialogue should trigger " +
+            WalkDialogue(
+                neo,
+                outpost.Name,
+                preferFirstOption,
+                () => neo.Dialogues.Outposts.Visits.TryTrigger(outpost),
+                () =>
+                    $"a visit dialogue should trigger " +
                     $"(preferFirst={preferFirstOption}, valueId={outpost.valueId}, " +
                     $"visitCount={outpost.Save.VisitCount}, stage={neo.Save.Quest.Stage}, " +
                     $"archive={neo.Save.Quest.EvidenceArchive}, " +
                     $"ledger={neo.Save.Quest.EvidenceLedger}, " +
-                    $"faith={neo.Save.Quest.EvidenceFaith}) — {detail}");
-            }
-            WalkDialogue(result.Dialogue, outpost.Name, preferFirstOption);
+                    $"faith={neo.Save.Quest.EvidenceFaith})");
         }
 
-        private static void WalkDialogue(NeoDialogue dialogue, string label, bool preferFirstOption)
+        private static void WalkIntro(HelloWorldNeo neo, IReadOnlyOutpost outpost)
+        {
+            WalkDialogue(
+                neo,
+                outpost.Name,
+                preferFirstOption: true,
+                () => neo.Dialogues.Outposts.Introductions.TryTrigger(outpost),
+                () => "intro should trigger");
+        }
+
+        /// <summary>
+        /// Presents the dialogue <paramref name="trigger"/> starts and walks it
+        /// start to finish, failing on any action error. No other dialogue may
+        /// be running, or the request would queue behind it.
+        /// </summary>
+        private static void WalkDialogue(
+            HelloWorldNeo neo,
+            string label,
+            bool preferFirstOption,
+            System.Func<bool> trigger,
+            System.Func<string> triggerFailure)
         {
             System.Exception error = null;
+            NeoDialogue dialogue = null;
             NeoDialogueTextNode current = null;
             var finished = false;
-            dialogue.OnError += ex => error = ex;
-            dialogue.OnShow += node => current = node;
-            dialogue.OnPause += pause => pause.Resume();
-            dialogue.OnFinish += () => finished = true;
+            void Present(NeoDialogue presented)
+            {
+                dialogue = presented;
+                presented.OnError += ex => error = ex;
+                presented.OnShow += node => current = node;
+                presented.OnPause += pause => pause.Resume();
+                presented.OnFinish += () => finished = true;
+            }
+            // A request that can't start reports why through the log.
+            var logs = new List<string>();
+            void Capture(string message, string stackTrace, LogType type) => logs.Add(message);
+            neo.Dialogues.OnTrigger += Present;
             try
             {
-                dialogue.Start();
+                Application.logMessageReceived += Capture;
+                bool triggered;
+                try
+                {
+                    triggered = trigger();
+                }
+                finally
+                {
+                    Application.logMessageReceived -= Capture;
+                }
+                if (!triggered)
+                {
+                    var detail = logs.Count == 0 ? "(nothing logged)" : string.Join(" | ", logs);
+                    Assert.Fail($"{label}: {triggerFailure()} — {detail}");
+                }
+                Assert.IsNotNull(dialogue, $"{label}: the request queued behind a running dialogue");
                 for (var step = 0; step < 80 && error == null && !finished; step++)
                 {
                     Assert.IsNotNull(current, $"{label}: dialogue stalled before finishing");
@@ -772,47 +825,8 @@ namespace HelloWorld.Assets.Tests
             }
             finally
             {
-                dialogue.Dispose();
-            }
-        }
-
-        private static void WalkIntro(HelloWorldNeo neo, IReadOnlyOutpost outpost)
-        {
-            Assert.IsTrue(
-                neo.Dialogues.Outposts.Introductions.TryTrigger(outpost, out NeoDialogue dialogue),
-                $"{outpost.Name}: intro should trigger");
-            System.Exception error = null;
-            NeoDialogueTextNode current = null;
-            var finished = false;
-            dialogue.OnError += ex => error = ex;
-            dialogue.OnShow += node => current = node;
-            dialogue.OnPause += pause => pause.Resume();
-            dialogue.OnFinish += () => finished = true;
-            try
-            {
-                dialogue.Start();
-                for (var step = 0; step < 60 && error == null && !finished; step++)
-                {
-                    Assert.IsNotNull(current, $"{outpost.Name}: dialogue stalled before finishing");
-                    var node = current;
-                    current = null;
-                    if (node.Options.Count > 0)
-                    {
-                        var option = node.Options.FirstOrDefault(o => o.Selectable);
-                        Assert.IsNotNull(option, $"{outpost.Name}: node has no selectable option");
-                        option.Select();
-                    }
-                    else
-                    {
-                        node.Next();
-                    }
-                }
-                Assert.IsNull(error, $"{outpost.Name}: {error}");
-                Assert.IsTrue(finished, $"{outpost.Name}: dialogue exceeded the 60-step limit");
-            }
-            finally
-            {
-                dialogue.Dispose();
+                neo.Dialogues.OnTrigger -= Present;
+                dialogue?.Dispose();
             }
         }
 

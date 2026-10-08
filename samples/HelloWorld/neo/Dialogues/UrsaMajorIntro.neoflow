@@ -4,7 +4,7 @@
   description: "The Red Nova Conspiracy — authored via @neocompose/cli.",
   saveOptionChoices: true
 )
-sealed class UrsaMajorIntro : Dialogue {
+sealed class UrsaMajorIntro : NeoDialogue {
   @primary
   Outpost Outpost = Reference<Outpost>(id: "b81df7d3-be41-4685-9111-3cdc1821e693");
 

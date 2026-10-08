@@ -4,7 +4,7 @@
   description: "Player inspects the vault seal before reading the boot glyph.",
   saveOptionChoices: true
 )
-sealed class OldConsoleLandingBarrierLocked : Dialogue {
+sealed class OldConsoleLandingBarrierLocked : NeoDialogue {
   @primary
   BlockedPath BlockedPath = Reference<BlockedPath>(id: "432f5226-99d8-4d59-8cf0-4d86ca64462f");
 

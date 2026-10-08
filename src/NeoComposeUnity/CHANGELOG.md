@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.63.0] - 2026-10-08
+
+P105: the game presents dialogues in one place, and the SDK queues them. Requires export schema 39 and CLI 0.73.0; run `neo pull`, then `neo export`, after upgrading. A project generated before this release doesn't compile against it.
+
+```csharp
+// Before: every caller started and presented its own dialogue.
+if (MyGameNeo.Instance.Dialogues.Talk.TryTrigger(npc, out NeoDialogue dialogue))
+{
+    dialogue.OnShow += ShowLine;
+    dialogue.OnFinish += () => npc.Save.Talked = true;
+    dialogue.Start();
+}
+
+// After: subscribe a presenter once. Callers pass an optional onFinish.
+MyGameNeo.Instance.Dialogues.OnTrigger += dialogue => dialogue.OnShow += ShowLine;
+MyGameNeo.Instance.Dialogues.Talk.TryTrigger(npc, () => npc.Save.Talked = true);
+```
+
+- `OnTrigger` fires when a dialogue takes its turn. Subscribe the dialogue's `OnShow`, `OnPause`, `OnFinish`, and `OnError` there; the SDK calls `Start()` right after the handlers return. One dialogue runs per client.
+- `TryTrigger(dialogueId, onFinish)`, the generated group `TryTrigger(onFinish)` and `TryTrigger(value, onFinish)`, and `NeoDialogueReference.TryTrigger(onFinish)` replace the `out NeoDialogue` and `out NeoDialogueTriggerResult` overloads. They return true when the dialogue started or queued. A request made while a dialogue runs waits its turn, in request order. A request for a dialogue that's already running or queued returns false. With no `OnTrigger` subscriber, every request returns false and logs one warning. `NeoDialogueTriggerResult` is gone; failures are logged.
+- `onFinish` runs when the turn ends: after the dialogue finishes, fails, or is disposed, and before the next queued dialogue starts. Disposing the client drops the queue without running any `onFinish`.
+- A queued dialogue records its visit when it starts, not when it's requested. It starts as it was selected, without re-checking its conditions.
+- Add `NeoDialogueReference.CanTrigger()`. `CanTrigger` never queues anything.
+- NeoScript requests dialogues through `root.Dialogues`, which mirrors the generated `Dialogues`: `TryTrigger`, `CanTrigger`, `VisitCount`, `HasVisited`, and one entry per dialogue group. `NeoDialogueReference` values get `TryTrigger(onFinish)` and `CanTrigger()`. A NeoScript `onFinish` runs as its own outermost call. A request made while effects drain or getter changes are held starts after they finish.
+
 ## [0.62.1] - 2026-10-07
 
 - Every project has a User root, so `Project.rootUserMemberId` and `NeoClient.user` are no longer nullable. A project without `rootUserMemberId` fails to load with "Project field 'rootUserMemberId' is required." The SDK no longer has any code path for a project without a User root.

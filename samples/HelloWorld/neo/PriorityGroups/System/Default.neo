@@ -1,6 +1,6 @@
 @id("system_ba6d6eae-7bd8-4173-b54e-665234e83d79")
 @system(kind: .DialoguePriorityDefault)
-PriorityGroup Default = new() {
+NeoPriorityGroup Default = new() {
   @id("dea5cd10-d2dd-4681-a372-c66a1ca60f43")
   PriorityOption Urgent = new();
 
