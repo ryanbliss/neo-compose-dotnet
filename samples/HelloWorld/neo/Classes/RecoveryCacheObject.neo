@@ -38,7 +38,7 @@ class RecoveryCacheObject : ConsoleObject {
   ];
 
   @id("47466be3-368c-4ac1-8c0e-7a825af6b538")
-  public virtual Dialogue RecoveryCache = Reference<Dialogue>(id: "cb0ac79c-f3b4-4c96-b968-8c4173c1f712");
+  public virtual NeoDialogueReference RecoveryCache = Reference<NeoDialogue>(id: "cb0ac79c-f3b4-4c96-b968-8c4173c1f712");
 
   @id("94472662-a3a9-4c02-8abb-6229442e1e49")
   @system(kind: .WorldAuthoring)

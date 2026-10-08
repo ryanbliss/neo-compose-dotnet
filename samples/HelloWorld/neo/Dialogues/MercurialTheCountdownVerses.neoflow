@@ -3,7 +3,7 @@
   name: "Mercurial: the countdown verses",
   saveOptionChoices: true
 )
-sealed class MercurialTheCountdownVerses : Dialogue {
+sealed class MercurialTheCountdownVerses : NeoDialogue {
   @primary
   Outpost Mercurial = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
 

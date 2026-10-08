@@ -3,7 +3,7 @@
   name: "Venusian: the oldest pattern",
   saveOptionChoices: true
 )
-sealed class VenusianTheOldestPattern : Dialogue {
+sealed class VenusianTheOldestPattern : NeoDialogue {
   @primary
   Outpost Venusian = Reference<Outpost>(id: "ed141cc4-304c-40cd-8229-105f1ee9b99c");
 

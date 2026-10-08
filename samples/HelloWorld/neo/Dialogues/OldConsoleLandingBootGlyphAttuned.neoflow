@@ -4,7 +4,7 @@
   description: "Player reads the boot glyph in the south chamber; captures the boot trace that the vault seal answers to.",
   saveOptionChoices: true
 )
-sealed class OldConsoleLandingBootGlyphAttuned : Dialogue {
+sealed class OldConsoleLandingBootGlyphAttuned : NeoDialogue {
   @primary
   BlockedPath BlockedPath = Reference<BlockedPath>(id: "432f5226-99d8-4d59-8cf0-4d86ca64462f");
 

@@ -4,7 +4,7 @@
   description: "The Red Nova Conspiracy — authored via @neocompose/cli.",
   saveOptionChoices: true
 )
-sealed class IowanIntro : Dialogue {
+sealed class IowanIntro : NeoDialogue {
   @primary
   Outpost Outpost = Reference<Outpost>(id: "7a91f55f-a90e-4a80-80f4-43ad6386891a");
 

@@ -3,7 +3,7 @@
   name: "Etna: the hymns were logs",
   saveOptionChoices: true
 )
-sealed class EtnaTheHymnsWereLogs : Dialogue {
+sealed class EtnaTheHymnsWereLogs : NeoDialogue {
   @primary
   Outpost Outpost = Reference<Outpost>(id: "bb2dca5c-ab35-4ca5-82ec-a236f0de0a6f");
 

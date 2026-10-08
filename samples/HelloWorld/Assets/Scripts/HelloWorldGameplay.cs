@@ -36,8 +36,6 @@ namespace HelloWorld.Assets.Scripts
         private int lastBits;
         private int lastInventoryCount;
         private bool dialogueOpenSoundPlayed;
-        private bool activeDialogueCountsAsOutpostVisit;
-        private Action activeDialogueCompletion;
 
         /// <summary>Raised when the player chooses to return to the save-file menu.</summary>
         public event Action OnExitToMenu;
@@ -78,6 +76,7 @@ namespace HelloWorld.Assets.Scripts
             // catch-all below re-renders the HUD for external edits to fields
             // we don't subscribe to individually (location, quest, etc.).
             saveSubscription = neo.Save.OnChanged(OnSaveChanged);
+            neo.Dialogues.OnTrigger += ShowDialogue;
             TriggerDialogue();
         }
 
@@ -179,14 +178,14 @@ namespace HelloWorld.Assets.Scripts
         public void TriggerDialogue(IReadOnlyOutpost outpost)
         {
             UpdateUI();
-            if (neo.Dialogues.Outposts.Introductions.TryTrigger(outpost, out NeoDialogue introDialogue))
+            // Finishing an outpost's dialogue counts as a visit.
+            Action countVisit = () =>
             {
-                ShowDialogue(introDialogue);
-            }
-            else if (neo.Dialogues.Outposts.Visits.TryTrigger(outpost, out NeoDialogue visitDialogue))
-            {
-                ShowDialogue(visitDialogue);
-            }
+                outpost.Save.VisitCount += 1;
+                UpdateUI();
+            };
+            if (!neo.Dialogues.Outposts.Introductions.TryTrigger(outpost, countVisit))
+                neo.Dialogues.Outposts.Visits.TryTrigger(outpost, countVisit);
         }
 
         public void OpenOldConsoleLanding()
@@ -208,7 +207,7 @@ namespace HelloWorld.Assets.Scripts
         Awaitable ILandingSceneHost.SaveProgressAsync() => SaveWithIndicatorAsync();
 
         bool ILandingSceneHost.TryTriggerDialogue(NeoDialogueReference dialogueReference, Action onFinish) =>
-            TriggerLandingDialogue(dialogueReference, onFinish);
+            dialogueReference.TryTrigger(onFinish);
 
         public void CloseOldConsoleLanding()
         {
@@ -217,15 +216,8 @@ namespace HelloWorld.Assets.Scripts
             UpdateUI();
         }
 
+        /// <summary>Presents every dialogue the client starts; the SDK starts it after this returns.</summary>
         public void ShowDialogue(NeoDialogue dialogue)
-        {
-            ShowDialogue(dialogue, countAsOutpostVisit: true, onFinish: null);
-        }
-
-        private void ShowDialogue(
-            NeoDialogue dialogue,
-            bool countAsOutpostVisit,
-            Action onFinish)
         {
             if (dialogue.Primary is Outpost outpost)
             {
@@ -237,22 +229,7 @@ namespace HelloWorld.Assets.Scripts
             dialogue.OnFinish += OnDialogueFinish;
             dialogue.OnError += OnDialogueError;
             dialogueOpenSoundPlayed = false;
-            activeDialogueCountsAsOutpostVisit = countAsOutpostVisit;
-            activeDialogueCompletion = onFinish;
             activeDialogue = dialogue;
-            dialogue.Start();
-        }
-
-        private bool TriggerLandingDialogue(NeoDialogueReference reference, Action onFinish)
-        {
-            ClearDialogue();
-            if (!reference.TryTrigger(out NeoDialogue dialogue))
-            {
-                return false;
-            }
-
-            ShowDialogue(dialogue, countAsOutpostVisit: false, onFinish);
-            return true;
         }
 
         public void OnDialogueShow(NeoDialogueTextNode node)
@@ -313,16 +290,8 @@ namespace HelloWorld.Assets.Scripts
 
         public void OnDialogueFinish()
         {
-            bool countAsOutpostVisit = activeDialogueCountsAsOutpostVisit;
-            Action completion = activeDialogueCompletion;
-
             gameAudio.Play(neo.Assets.Audio.DialogCloseSfx);
-            if (countAsOutpostVisit)
-            {
-                CurrentOutpost.Save.VisitCount += 1;
-            }
             ClearDialogue();
-            completion?.Invoke();
             if (neo.Save.Quest.Ending == WorldEnding.helloWorld)
             {
                 // The Loop ending: the player erases the only persistent thing —
@@ -432,8 +401,8 @@ namespace HelloWorld.Assets.Scripts
         }
 
         /// <summary>
-        /// Would visiting this outpost start a conversation right now? Trigger
-        /// evaluation is pure until <c>Start()</c>, so peeking is free — this
+        /// Would visiting this outpost start a conversation right now?
+        /// <c>CanTrigger</c> queues nothing, so peeking is free — this
         /// is what feeds the map's "something to do here" badges.
         /// </summary>
         private bool HasDialogueAvailable(IReadOnlyOutpost outpost)
@@ -467,7 +436,9 @@ namespace HelloWorld.Assets.Scripts
             // torn down mid-load — guard rather than assume.
             if (neo == null)
                 return;
-            ClearDialogue();
+            // Disposing the client drops its dialogues without their onFinish.
+            activeDialogue = null;
+            dialogueUI.Reset();
             bitsSubscription?.Dispose();
             bitsSubscription = null;
             inventorySubscription?.Dispose();
@@ -498,12 +469,10 @@ namespace HelloWorld.Assets.Scripts
             }
         }
 
-        private void ClearDialogue()
+        internal void ClearDialogue()
         {
             activeDialogue?.Dispose();
             activeDialogue = null;
-            activeDialogueCountsAsOutpostVisit = false;
-            activeDialogueCompletion = null;
             dialogueUI.Reset();
         }
 

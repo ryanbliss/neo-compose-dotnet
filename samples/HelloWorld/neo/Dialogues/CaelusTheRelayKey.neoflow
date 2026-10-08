@@ -3,7 +3,7 @@
   name: "Caelus: the relay key",
   saveOptionChoices: true
 )
-sealed class CaelusTheRelayKey : Dialogue {
+sealed class CaelusTheRelayKey : NeoDialogue {
   @primary
   Outpost CaelusAnchorpoint = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
 

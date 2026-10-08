@@ -3,7 +3,7 @@
   name: "Pour Lords: money older than light",
   saveOptionChoices: true
 )
-sealed class PourLordsMoneyOlderThanLight : Dialogue {
+sealed class PourLordsMoneyOlderThanLight : NeoDialogue {
   @primary
   Outpost Outpost = Reference<Outpost>(id: "1c9e473a-3616-4c1c-82f7-461e080c9785");
 

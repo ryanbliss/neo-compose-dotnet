@@ -4,7 +4,7 @@
   description: "The Red Nova Conspiracy — authored via @neocompose/cli.",
   saveOptionChoices: true
 )
-sealed class CaelusAnchorpointIntro : Dialogue {
+sealed class CaelusAnchorpointIntro : NeoDialogue {
   @primary
   Outpost CaelusAnchorpoint = Reference<Outpost>(id: "0bfa8e27-27e0-41b2-b90b-6d3c9442905a");
 

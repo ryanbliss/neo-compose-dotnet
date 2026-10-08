@@ -13,7 +13,7 @@ using NUnit.Framework;
 
 namespace NeoCompose.Tests
 {
-    public class NeoDialogueTriggerTests
+    public partial class NeoDialogueTriggerTests
     {
         private const string ProjectId = "dialogue-project";
         private const string Now = "1970-01-01T00:00:00.000Z";
@@ -25,21 +25,22 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void TryTrigger_WithDialogueId_ReturnsDialogue()
+        public void TryTrigger_WithDialogueId_PresentsDialogueBeforeStart()
         {
             var client = CreateClient();
             var root = new TestDialogues(client);
+            NeoDialogueState? presentedState = null;
+            root.OnTrigger += dialogue => presentedState = dialogue.State;
 
-            Assert.IsTrue(root.TryTrigger("dialogue-direct", out NeoDialogueTriggerResult result));
+            Assert.IsTrue(root.TryTrigger("dialogue-direct"));
 
-            Assert.IsTrue(result.Ok);
-            Assert.IsNotNull(result.Dialogue);
-            Assert.AreEqual("dialogue-direct", result.Dialogue!.Id);
-            Assert.AreEqual("A Direct Dialogue", result.Dialogue.Name);
-            Assert.IsNull(result.Dialogue.Description);
-            Assert.AreEqual("group-standard", result.Dialogue.GroupId);
-            Assert.AreEqual(NeoDialogueState.Created, result.Dialogue.State);
-            Assert.IsFalse(result.Dialogue.IsStarted);
+            var presented = root.LastPresented;
+            Assert.AreEqual("dialogue-direct", presented.Id);
+            Assert.AreEqual("A Direct Dialogue", presented.Name);
+            Assert.IsNull(presented.Description);
+            Assert.AreEqual("group-standard", presented.GroupId);
+            Assert.AreEqual(NeoDialogueState.Created, presentedState);
+            Assert.IsTrue(presented.IsStarted);
         }
 
         [Test]
@@ -51,24 +52,26 @@ namespace NeoCompose.Tests
             Assert.IsTrue(root.CanTrigger("dialogue-direct"));
             Assert.AreEqual(0, client.ActiveDialogueCount);
 
-            Assert.IsTrue(root.TryTrigger("dialogue-direct", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-direct");
             Assert.AreEqual(1, client.ActiveDialogueCount);
             dialogue.Dispose();
             Assert.AreEqual(0, client.ActiveDialogueCount);
         }
 
         [Test]
-        public void NeoDialogueReference_Bound_TryTrigger_ReturnsDialogue()
+        public void NeoDialogueReference_Bound_TryTrigger_PresentsDialogue()
         {
             var client = CreateClient();
             // Constructing the dialogues API registers it with the client, so a
             // client-bound reference can reach the trigger machinery.
-            _ = new TestDialogues(client);
+            var root = new TestDialogues(client);
 
             var reference = new NeoDialogueReference(client, "dialogue-direct");
 
-            Assert.IsTrue(reference.TryTrigger(out NeoDialogue dialogue));
-            Assert.AreEqual("dialogue-direct", dialogue.Id);
+            Assert.IsTrue(reference.CanTrigger());
+            CollectionAssert.IsEmpty(root.Presented);
+            Assert.IsTrue(reference.TryTrigger());
+            Assert.AreEqual("dialogue-direct", root.LastPresented.Id);
         }
 
         [Test]
@@ -78,7 +81,7 @@ namespace NeoCompose.Tests
             var reference = new NeoDialogueReference("dialogue-direct");
 
             Assert.Throws<InvalidOperationException>(
-                () => reference.TryTrigger(out NeoDialogue _));
+                () => reference.TryTrigger());
         }
 
         [Test]
@@ -92,10 +95,10 @@ namespace NeoCompose.Tests
             client.dialogues["dialogue-direct"].description = "text-dialogue-description";
             var root = new TestDialogues(client);
 
-            Assert.IsTrue(root.TryTrigger("dialogue-direct", out NeoDialogueTriggerResult result));
+            var dialogue = root.Create("dialogue-direct");
 
-            Assert.AreEqual("text-dialogue-description", result.Dialogue!.DescriptionTextId);
-            Assert.AreEqual("Localized description", result.Dialogue.Description);
+            Assert.AreEqual("text-dialogue-description", dialogue.DescriptionTextId);
+            Assert.AreEqual("Localized description", dialogue.Description);
         }
 
         [Test]
@@ -113,7 +116,7 @@ namespace NeoCompose.Tests
                 client,
                 valueResolver: valueId => ResolveClientValue(client, valueId));
 
-            Assert.IsTrue(root.TryTrigger("dialogue-text-variable-primary", out NeoDialogue triggered));
+            var triggered = root.Create("dialogue-text-variable-primary");
             NeoDialogueTextNode? shown = null;
             triggered.OnShow += node => shown = node;
 
@@ -137,7 +140,7 @@ namespace NeoCompose.Tests
                 client,
                 valueResolver: valueId => ResolveClientValue(client, valueId));
 
-            Assert.IsTrue(root.TryTrigger("dialogue-option-variable-primary", out NeoDialogue triggered));
+            var triggered = root.Create("dialogue-option-variable-primary");
             NeoDialogueTextNode? shown = null;
             triggered.OnShow += node => shown = node;
 
@@ -153,12 +156,10 @@ namespace NeoCompose.Tests
             var root = new TestDialogues(client);
             var group = new TestStandardDialogueGroup(root, "group-standard");
 
-            Assert.IsTrue(group.TryTrigger(out NeoDialogueTriggerResult result));
+            Assert.IsTrue(group.TryTrigger());
 
-            Assert.IsTrue(result.Ok);
-            Assert.IsNotNull(result.Dialogue);
-            Assert.AreEqual("dialogue-direct", result.Dialogue!.Id);
-            Assert.AreEqual("group-standard", result.Dialogue.Context.GroupId);
+            Assert.AreEqual("dialogue-direct", root.LastPresented.Id);
+            Assert.AreEqual("group-standard", root.LastPresented.Context.GroupId);
         }
 
         [Test]
@@ -191,9 +192,9 @@ namespace NeoCompose.Tests
 
             Assert.IsTrue(group.CanTrigger());
             Assert.AreEqual(0, randomCalls);
-            Assert.IsTrue(group.TryTrigger(out NeoDialogueTriggerResult result));
+            Assert.IsTrue(group.TryTrigger());
             Assert.AreEqual(1, randomCalls);
-            result.Dialogue!.Dispose();
+            root.LastPresented.Dispose();
         }
 
         [Test]
@@ -203,11 +204,9 @@ namespace NeoCompose.Tests
             var root = new TestDialogues(client);
             var group = new TestStandardDialogueGroup(root, "group-priority");
 
-            Assert.IsTrue(group.TryTrigger(out NeoDialogueTriggerResult result));
+            Assert.IsTrue(group.TryTrigger());
 
-            Assert.IsTrue(result.Ok);
-            Assert.IsNotNull(result.Dialogue);
-            Assert.AreEqual("dialogue-priority-high", result.Dialogue!.Id);
+            Assert.AreEqual("dialogue-priority-high", root.LastPresented.Id);
         }
 
         [Test]
@@ -219,11 +218,9 @@ namespace NeoCompose.Tests
             var root = new TestDialogues(client, memoryStore: memory);
             var group = new TestStandardDialogueGroup(root, "group-visits");
 
-            Assert.IsTrue(group.TryTrigger(out NeoDialogueTriggerResult result));
+            Assert.IsTrue(group.TryTrigger());
 
-            Assert.IsTrue(result.Ok);
-            Assert.IsNotNull(result.Dialogue);
-            Assert.AreEqual("dialogue-visit-b", result.Dialogue!.Id);
+            Assert.AreEqual("dialogue-visit-b", root.LastPresented.Id);
         }
 
         [Test]
@@ -256,13 +253,12 @@ namespace NeoCompose.Tests
             var root = new TestDialogues(client);
             var group = new TestLookupDialogueGroup(root, "group-lookup");
 
-            Assert.IsTrue(group.TryTrigger(new TestLookupValue("lookup-value-b"), out NeoDialogueTriggerResult result));
+            Assert.IsTrue(group.TryTrigger(new TestLookupValue("lookup-value-b")));
 
-            Assert.IsTrue(result.Ok);
-            Assert.IsNotNull(result.Dialogue);
-            Assert.AreEqual("dialogue-lookup-b", result.Dialogue!.Id);
-            Assert.AreEqual("lookup-value-b", ((TestLookupValue)result.Dialogue.Context.Trigger!).valueId);
-            Assert.IsNull(result.Dialogue.Context.Primary);
+            var dialogue = root.LastPresented;
+            Assert.AreEqual("dialogue-lookup-b", dialogue.Id);
+            Assert.AreEqual("lookup-value-b", ((TestLookupValue)dialogue.Context.Trigger!).valueId);
+            Assert.IsNull(dialogue.Context.Primary);
         }
 
         [Test]
@@ -284,39 +280,36 @@ namespace NeoCompose.Tests
             var root = new TestDialogues(client);
             var group = new TestLookupDialogueGroup(root, "group-lookup");
 
-            Assert.IsTrue(group.TryTrigger(new DerivedTestLookupValue("lookup-value-b"), out NeoDialogueTriggerResult result));
+            Assert.IsTrue(group.TryTrigger(new DerivedTestLookupValue("lookup-value-b")));
 
-            Assert.IsTrue(result.Ok);
-            Assert.IsNotNull(result.Dialogue);
-            Assert.AreEqual("dialogue-lookup-b", result.Dialogue!.Id);
-            Assert.IsInstanceOf<DerivedTestLookupValue>(result.Dialogue.Context.Trigger);
+            Assert.AreEqual("dialogue-lookup-b", root.LastPresented.Id);
+            Assert.IsInstanceOf<DerivedTestLookupValue>(root.LastPresented.Context.Trigger);
         }
 
         [Test]
         public void LookupGroupTryTrigger_RequiresValueReferenceId()
         {
             var client = CreateClient();
-            var root = new TestDialogues(client);
+            var root = CreateLoggedDialogues(client, out TestDialogueLogger logger);
             var group = new TestLookupDialogueGroup(root, "group-lookup");
 
-            Assert.IsFalse(group.TryTrigger(new TestLookupValue(null), out NeoDialogueTriggerResult result));
+            Assert.IsFalse(group.TryTrigger(new TestLookupValue(null)));
 
-            Assert.IsFalse(result.Ok);
-            Assert.IsNotNull(result.Error);
-            StringAssert.Contains("requires a value with a Neo value id", result.Error!.Message);
+            CollectionAssert.IsEmpty(root.Presented);
+            Assert.AreEqual(1, logger.Exceptions.Count);
+            StringAssert.Contains("requires a value with a Neo value id", logger.Exceptions[0].Message);
         }
 
         [Test]
         public void TryTrigger_WithFalseCondition_ReturnsNotFound()
         {
             var client = CreateClient();
-            var root = new TestDialogues(client);
+            var root = CreateLoggedDialogues(client, out TestDialogueLogger logger);
 
-            Assert.IsFalse(root.TryTrigger("dialogue-condition-false", out NeoDialogueTriggerResult result));
+            Assert.IsFalse(root.TryTrigger("dialogue-condition-false"));
 
-            Assert.IsFalse(result.Ok);
-            Assert.IsNull(result.Dialogue);
-            Assert.IsNull(result.Error);
+            CollectionAssert.IsEmpty(root.Presented);
+            CollectionAssert.IsEmpty(logger.Exceptions);
         }
 
         [Test]
@@ -325,39 +318,37 @@ namespace NeoCompose.Tests
             var client = CreateClient();
             var memory = new TestMemoryStore();
             memory.GetOrCreateTestDialogueMemory("dialogue-limited").VisitCount = 1;
-            var root = new TestDialogues(client, memoryStore: memory);
+            var root = CreateLoggedDialogues(client, out TestDialogueLogger logger, memory);
 
-            Assert.IsFalse(root.TryTrigger("dialogue-limited", out NeoDialogueTriggerResult result));
+            Assert.IsFalse(root.TryTrigger("dialogue-limited"));
 
-            Assert.IsFalse(result.Ok);
-            Assert.IsNull(result.Dialogue);
-            Assert.IsNull(result.Error);
+            CollectionAssert.IsEmpty(root.Presented);
+            CollectionAssert.IsEmpty(logger.Exceptions);
         }
 
         [Test]
         public void TryTrigger_EvaluatesInheritedGroupConditions()
         {
             var client = CreateClient();
-            var root = new TestDialogues(client);
+            var root = CreateLoggedDialogues(client, out TestDialogueLogger logger);
 
-            Assert.IsFalse(root.TryTrigger("dialogue-parent-condition", out NeoDialogueTriggerResult result));
+            Assert.IsFalse(root.TryTrigger("dialogue-parent-condition"));
 
-            Assert.IsFalse(result.Ok);
-            Assert.IsNull(result.Dialogue);
-            Assert.IsNull(result.Error);
+            CollectionAssert.IsEmpty(root.Presented);
+            CollectionAssert.IsEmpty(logger.Exceptions);
         }
 
         [Test]
         public void TryTrigger_DirectLookupDialogueRequiresStoredLookupValue()
         {
             var client = CreateClient();
-            var root = new TestDialogues(client);
+            var root = CreateLoggedDialogues(client, out TestDialogueLogger logger);
 
-            Assert.IsFalse(root.TryTrigger("dialogue-lookup-a", out NeoDialogueTriggerResult result));
+            Assert.IsFalse(root.TryTrigger("dialogue-lookup-a"));
 
-            Assert.IsFalse(result.Ok);
-            Assert.IsNotNull(result.Error);
-            StringAssert.Contains("references missing lookup value", result.Error!.Message);
+            CollectionAssert.IsEmpty(root.Presented);
+            Assert.AreEqual(1, logger.Exceptions.Count);
+            StringAssert.Contains("references missing lookup value", logger.Exceptions[0].Message);
         }
 
         [Test]
@@ -368,13 +359,12 @@ namespace NeoCompose.Tests
                 client,
                 valueResolver: valueId => new TestLookupValue(valueId));
 
-            Assert.IsTrue(root.TryTrigger("dialogue-lookup-direct", out NeoDialogueTriggerResult result));
+            Assert.IsTrue(root.TryTrigger("dialogue-lookup-direct"));
 
-            Assert.IsTrue(result.Ok);
-            Assert.IsNotNull(result.Dialogue);
-            Assert.IsInstanceOf<TestLookupValue>(result.Dialogue!.Context.Trigger);
-            Assert.AreEqual("lookup-value-direct", ((TestLookupValue)result.Dialogue.Context.Trigger!).valueId);
-            Assert.IsNull(result.Dialogue.Context.Primary);
+            var dialogue = root.LastPresented;
+            Assert.IsInstanceOf<TestLookupValue>(dialogue.Context.Trigger);
+            Assert.AreEqual("lookup-value-direct", ((TestLookupValue)dialogue.Context.Trigger!).valueId);
+            Assert.IsNull(dialogue.Context.Primary);
         }
 
         [Test]
@@ -385,11 +375,9 @@ namespace NeoCompose.Tests
                 client,
                 valueResolver: valueId => new TestLookupValue(valueId));
 
-            Assert.IsTrue(root.TryTrigger("dialogue-linked-values", out NeoDialogueTriggerResult result));
+            Assert.IsTrue(root.TryTrigger("dialogue-linked-values"));
 
-            Assert.IsTrue(result.Ok);
-            Assert.IsNotNull(result.Dialogue);
-            Assert.IsTrue(result.Dialogue!.Context.LinkedValues.TryGetValue(
+            Assert.IsTrue(root.LastPresented.Context.LinkedValues.TryGetValue(
                 "linked-value-a",
                 out object? linked));
             Assert.IsInstanceOf<TestLookupValue>(linked);
@@ -402,11 +390,9 @@ namespace NeoCompose.Tests
             var client = CreateClient();
             var root = new TestDialogues(client);
 
-            Assert.IsTrue(root.TryTrigger("dialogue-context-condition", out NeoDialogueTriggerResult result));
+            Assert.IsTrue(root.TryTrigger("dialogue-context-condition"));
 
-            Assert.IsTrue(result.Ok);
-            Assert.IsNotNull(result.Dialogue);
-            Assert.AreEqual("dialogue-context-condition", result.Dialogue!.Id);
+            Assert.AreEqual("dialogue-context-condition", root.LastPresented.Id);
         }
 
         [Test]
@@ -417,12 +403,10 @@ namespace NeoCompose.Tests
                 client,
                 valueResolver: valueId => new TestLookupValue(valueId));
 
-            Assert.IsTrue(root.TryTrigger("dialogue-group-context-primary", out NeoDialogueTriggerResult result));
+            Assert.IsTrue(root.TryTrigger("dialogue-group-context-primary"));
 
-            Assert.IsTrue(result.Ok);
-            Assert.IsNotNull(result.Dialogue);
-            Assert.IsInstanceOf<TestLookupValue>(result.Dialogue!.Context.Primary);
-            Assert.AreEqual("primary-dialogue", ((TestLookupValue)result.Dialogue.Context.Primary!).valueId);
+            Assert.IsInstanceOf<TestLookupValue>(root.LastPresented.Context.Primary);
+            Assert.AreEqual("primary-dialogue", ((TestLookupValue)root.LastPresented.Context.Primary!).valueId);
         }
 
         [Test]
@@ -432,27 +416,23 @@ namespace NeoCompose.Tests
             var root = new TestDialogues(client);
             var group = new TestLookupDialogueGroup(root, "group-lookup");
 
-            Assert.IsTrue(group.TryTrigger(
-                new TestLookupValue("lookup-value-this-trigger"),
-                out NeoDialogueTriggerResult result));
+            Assert.IsTrue(group.TryTrigger(new TestLookupValue("lookup-value-this-trigger")));
 
-            Assert.IsTrue(result.Ok);
-            Assert.IsNotNull(result.Dialogue);
-            Assert.AreEqual("dialogue-lookup-this-trigger", result.Dialogue!.Id);
-            Assert.IsNull(result.Dialogue.Context.Primary);
+            Assert.AreEqual("dialogue-lookup-this-trigger", root.LastPresented.Id);
+            Assert.IsNull(root.LastPresented.Context.Primary);
         }
 
         [Test]
         public void TryTrigger_WithNonBoolCondition_ReturnsError()
         {
             var client = CreateClient();
-            var root = new TestDialogues(client);
+            var root = CreateLoggedDialogues(client, out TestDialogueLogger logger);
 
-            Assert.IsFalse(root.TryTrigger("dialogue-condition-error", out NeoDialogueTriggerResult result));
+            Assert.IsFalse(root.TryTrigger("dialogue-condition-error"));
 
-            Assert.IsFalse(result.Ok);
-            Assert.IsNotNull(result.Error);
-            StringAssert.Contains("expected bool", result.Error!.Message);
+            CollectionAssert.IsEmpty(root.Presented);
+            Assert.AreEqual(1, logger.Exceptions.Count);
+            StringAssert.Contains("expected bool", logger.Exceptions[0].Message);
         }
 
         [Test]
@@ -460,7 +440,7 @@ namespace NeoCompose.Tests
         {
             var client = CreateClient();
             var root = new TestDialogues(client);
-            Assert.IsTrue(root.TryTrigger("dialogue-direct", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-direct");
 
             NeoDialogueTextNode? shown = null;
             bool finished = false;
@@ -504,7 +484,7 @@ namespace NeoCompose.Tests
                         System.DateTimeKind.Utc),
                 },
                 memory);
-            Assert.IsTrue(root.TryTrigger("dialogue-direct", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-direct");
             Assert.IsNull(memory.FindDialogueMemory("dialogue-direct"));
             Assert.AreEqual(0, dialogue.VisitCount());
             Assert.IsFalse(dialogue.HasVisited());
@@ -536,7 +516,7 @@ namespace NeoCompose.Tests
             var root = new TestDialogues(
                 client,
                 valueResolver: valueId => new TestLookupValue(valueId));
-            Assert.IsTrue(root.TryTrigger("dialogue-node-primary", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-node-primary");
 
             NeoDialogueTextNode? shown = null;
             dialogue.OnShow += node => shown = node;
@@ -559,7 +539,7 @@ namespace NeoCompose.Tests
         {
             var client = CreateClient();
             var root = new TestDialogues(client);
-            Assert.IsTrue(root.TryTrigger("dialogue-text-variables-root", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-text-variables-root");
 
             NeoDialogueTextNode? shown = null;
             dialogue.OnShow += node => shown = node;
@@ -577,7 +557,7 @@ namespace NeoCompose.Tests
             var root = new TestDialogues(
                 client,
                 valueResolver: valueId => ResolveClientValue(client, valueId));
-            Assert.IsTrue(root.TryTrigger("dialogue-text-variable-primary", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-text-variable-primary");
 
             NeoDialogueTextNode? shown = null;
             dialogue.OnShow += node => shown = node;
@@ -595,7 +575,7 @@ namespace NeoCompose.Tests
             var root = new TestDialogues(
                 client,
                 valueResolver: valueId => ResolveClientValue(client, valueId));
-            Assert.IsTrue(root.TryTrigger("dialogue-option-variable-primary", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-option-variable-primary");
 
             NeoDialogueTextNode? shown = null;
             dialogue.OnShow += node => shown = node;
@@ -612,7 +592,7 @@ namespace NeoCompose.Tests
         {
             var client = CreateClient();
             var root = new TestDialogues(client);
-            Assert.IsTrue(root.TryTrigger("dialogue-text-variable-missing", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-text-variable-missing");
             System.Exception? error = null;
             bool showed = false;
             dialogue.OnShow += _ => showed = true;
@@ -633,7 +613,7 @@ namespace NeoCompose.Tests
             var root = new TestDialogues(
                 client,
                 valueResolver: valueId => new TestLookupValue(valueId));
-            Assert.IsTrue(root.TryTrigger("dialogue-text-linked-values", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-text-linked-values");
 
             NeoDialogueTextNode? shown = null;
             dialogue.OnShow += node => shown = node;
@@ -652,7 +632,7 @@ namespace NeoCompose.Tests
         {
             var client = CreateClient();
             var root = new TestDialogues(client);
-            Assert.IsTrue(root.TryTrigger("dialogue-options", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-options");
 
             var shown = new List<NeoDialogueTextNode>();
             bool finished = false;
@@ -687,7 +667,7 @@ namespace NeoCompose.Tests
             var client = CreateClient();
             var memory = new TestMemoryStore();
             var root = new TestDialogues(client, memoryStore: memory);
-            Assert.IsTrue(root.TryTrigger("dialogue-options", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-options");
 
             var shown = new List<NeoDialogueTextNode>();
             dialogue.OnShow += shown.Add;
@@ -711,7 +691,7 @@ namespace NeoCompose.Tests
             var client = CreateClient();
             var memory = new TestMemoryStore();
             var root = new TestDialogues(client, memoryStore: memory);
-            Assert.IsTrue(root.TryTrigger("dialogue-options-no-save", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-options-no-save");
 
             var shown = new List<NeoDialogueTextNode>();
             dialogue.OnShow += shown.Add;
@@ -730,7 +710,7 @@ namespace NeoCompose.Tests
         {
             var client = CreateClient();
             var root = new TestDialogues(client);
-            Assert.IsTrue(root.TryTrigger("dialogue-option-settings", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-option-settings");
 
             NeoDialogueTextNode? shown = null;
             dialogue.OnShow += node => shown = node;
@@ -757,7 +737,7 @@ namespace NeoCompose.Tests
         {
             var client = CreateClient();
             var root = new TestDialogues(client);
-            Assert.IsTrue(root.TryTrigger("dialogue-option-condition-error", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-option-condition-error");
 
             System.Exception? error = null;
             dialogue.OnError += ex => error = ex;
@@ -774,7 +754,7 @@ namespace NeoCompose.Tests
         {
             var client = CreateClient();
             var root = new TestDialogues(client);
-            Assert.IsTrue(root.TryTrigger("dialogue-conditions-node", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-conditions-node");
 
             NeoDialogueTextNode? shown = null;
             dialogue.OnShow += node => shown = node;
@@ -798,7 +778,7 @@ namespace NeoCompose.Tests
                 value = 1,
             });
             var root = new TestDialogues(client);
-            Assert.IsTrue(root.TryTrigger("dialogue-action-assign", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-action-assign");
 
             NeoDialogueTextNode? shown = null;
             dialogue.OnShow += node => shown = node;
@@ -823,7 +803,7 @@ namespace NeoCompose.Tests
                 value = 1000,
             });
             var root = new TestDialogues(client);
-            Assert.IsTrue(root.TryTrigger("dialogue-action-assign-compound", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-action-assign-compound");
 
             dialogue.Start();
 
@@ -847,7 +827,7 @@ namespace NeoCompose.Tests
             var scoreNode = client.save.Get<NeoMemberIntWritable>("Score");
             scoreNode.Set((int)initialValue);
             var root = new TestDialogues(client);
-            Assert.IsTrue(root.TryTrigger(dialogueId, out NeoDialogue dialogue));
+            var dialogue = root.Create(dialogueId);
 
             dialogue.Start();
 
@@ -861,7 +841,7 @@ namespace NeoCompose.Tests
         {
             var client = CreateClient();
             var root = new TestDialogues(client);
-            Assert.IsTrue(root.TryTrigger("dialogue-action-asset-write", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-action-asset-write");
 
             System.Exception? error = null;
             dialogue.OnError += ex => error = ex;
@@ -879,7 +859,7 @@ namespace NeoCompose.Tests
         {
             var client = CreateClient();
             var root = new TestDialogues(client);
-            Assert.IsTrue(root.TryTrigger("dialogue-action-default-save-write", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-action-default-save-write");
 
             dialogue.Start();
 
@@ -900,9 +880,7 @@ namespace NeoCompose.Tests
         {
             var client = CreateClient();
             var root = new TestDialogues(client);
-            Assert.IsTrue(root.TryTrigger(
-                "dialogue-action-session-bool-write-with-inferred-ownership",
-                out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-action-session-bool-write-with-inferred-ownership");
 
             dialogue.Start();
 
@@ -927,7 +905,7 @@ namespace NeoCompose.Tests
                 value = new string[0],
             });
             var root = new TestDialogues(client);
-            Assert.IsTrue(root.TryTrigger("dialogue-action-list-add", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-action-list-add");
 
             dialogue.Start();
 
@@ -958,7 +936,7 @@ namespace NeoCompose.Tests
                 value = new string[0],
             });
             var root = new TestDialogues(client);
-            Assert.IsTrue(root.TryTrigger("dialogue-action-lookup-add", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-action-lookup-add");
 
             System.Exception? error = null;
             dialogue.OnError += ex => error = ex;
@@ -1017,7 +995,7 @@ namespace NeoCompose.Tests
             var root = new TestDialogues(client);
             foreach (string id in new[] { "set-add", "set-add", "set-remove" })
             {
-                Assert.IsTrue(root.TryTrigger(id, out NeoDialogue dialogue));
+                var dialogue = root.Create(id);
                 Exception? error = null;
                 dialogue.OnError += ex => error = ex;
                 dialogue.Start();
@@ -1043,7 +1021,7 @@ namespace NeoCompose.Tests
                 value = new[] { "asset-item-value" },
             });
             var root = new TestDialogues(client);
-            Assert.IsTrue(root.TryTrigger("dialogue-action-lookup-add", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-action-lookup-add");
 
             System.Exception? error = null;
             dialogue.OnError += ex => error = ex;
@@ -1062,7 +1040,7 @@ namespace NeoCompose.Tests
             var client = CreateClient();
             SeedList(client, "list-value");
             var root = new TestDialogues(client);
-            Assert.IsTrue(root.TryTrigger("dialogue-action-list-remove", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-action-list-remove");
 
             dialogue.Start();
 
@@ -1078,7 +1056,7 @@ namespace NeoCompose.Tests
             var client = CreateClient();
             SeedList(client, "list-value");
             var root = new TestDialogues(client);
-            Assert.IsTrue(root.TryTrigger("dialogue-action-list-remove-at", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-action-list-remove-at");
 
             dialogue.Start();
 
@@ -1094,7 +1072,7 @@ namespace NeoCompose.Tests
             var client = CreateClient();
             SeedList(client, "list-value");
             var root = new TestDialogues(client);
-            Assert.IsTrue(root.TryTrigger("dialogue-action-list-clear", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-action-list-clear");
 
             dialogue.Start();
 
@@ -1110,7 +1088,7 @@ namespace NeoCompose.Tests
             var client = CreateClient();
             SeedDictionary(client, "dict-value");
             var root = new TestDialogues(client);
-            Assert.IsTrue(root.TryTrigger("dialogue-action-dict-add", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-action-dict-add");
 
             dialogue.Start();
 
@@ -1126,7 +1104,7 @@ namespace NeoCompose.Tests
             var client = CreateClient();
             SeedDictionary(client, "dict-value");
             var root = new TestDialogues(client);
-            Assert.IsTrue(root.TryTrigger("dialogue-action-dict-remove", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-action-dict-remove");
 
             dialogue.Start();
 
@@ -1141,7 +1119,7 @@ namespace NeoCompose.Tests
             var client = CreateClient();
             SeedDictionary(client, "dict-value");
             var root = new TestDialogues(client);
-            Assert.IsTrue(root.TryTrigger("dialogue-action-dict-clear", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-action-dict-clear");
 
             dialogue.Start();
 
@@ -1194,7 +1172,7 @@ namespace NeoCompose.Tests
                 },
             });
             var root = new TestDialogues(client);
-            Assert.IsTrue(root.TryTrigger("dialogue-action-dict-clear", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-action-dict-clear");
 
             dialogue.Start();
 
@@ -1217,7 +1195,7 @@ namespace NeoCompose.Tests
                 value = new Dictionary<string, string>(),
             });
             var root = new TestDialogues(client);
-            Assert.IsTrue(root.TryTrigger("dialogue-action-class-set", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-action-class-set");
 
             dialogue.Start();
 
@@ -1242,7 +1220,7 @@ namespace NeoCompose.Tests
             var root = new TestDialogues(
                 client,
                 valueResolver: valueId => new TestLookupValue(valueId));
-            Assert.IsTrue(root.TryTrigger("dialogue-action-primary-set", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-action-primary-set");
 
             dialogue.Start();
 
@@ -1274,7 +1252,7 @@ namespace NeoCompose.Tests
             var root = new TestDialogues(
                 client,
                 valueResolver: valueId => new TestLookupValue(valueId));
-            Assert.IsTrue(root.TryTrigger("dialogue-action-list-add-primary", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-action-list-add-primary");
 
             dialogue.Start();
 
@@ -1296,7 +1274,7 @@ namespace NeoCompose.Tests
             var root = new TestDialogues(
                 client,
                 valueResolver: valueId => new TestLookupValue(valueId));
-            Assert.IsTrue(root.TryTrigger("dialogue-action-lookup-add-primary", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-action-lookup-add-primary");
 
             dialogue.Start();
 
@@ -1334,7 +1312,7 @@ namespace NeoCompose.Tests
             var root = new TestDialogues(
                 client,
                 valueResolver: valueId => new TestLookupValue(valueId));
-            Assert.IsTrue(root.TryTrigger("dialogue-action-lookup-add-primary", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-action-lookup-add-primary");
 
             dialogue.Start();
 
@@ -1355,7 +1333,7 @@ namespace NeoCompose.Tests
             var root = new TestDialogues(
                 client,
                 valueResolver: valueId => new TestLookupValue(valueId));
-            Assert.IsTrue(root.TryTrigger("dialogue-action-lookup-add-twice", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-action-lookup-add-twice");
 
             dialogue.Start();
 
@@ -1394,7 +1372,7 @@ namespace NeoCompose.Tests
             var root = new TestDialogues(
                 client,
                 valueResolver: valueId => new TestLookupValue(valueId));
-            Assert.IsTrue(root.TryTrigger("dialogue-action-lookup-add-root-path", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-action-lookup-add-root-path");
 
             dialogue.Start();
 
@@ -1414,7 +1392,7 @@ namespace NeoCompose.Tests
             var root = new TestDialogues(
                 client,
                 valueResolver: valueId => new TestLookupValue(valueId));
-            Assert.IsTrue(root.TryTrigger("dialogue-action-lookup-add-root-path", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-action-lookup-add-root-path");
 
             dialogue.Start();
 
@@ -1444,7 +1422,7 @@ namespace NeoCompose.Tests
             var root = new TestDialogues(
                 client,
                 valueResolver: valueId => new TestLookupValue(valueId));
-            Assert.IsTrue(root.TryTrigger("dialogue-action-dict-add-primary", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-action-dict-add-primary");
 
             dialogue.Start();
 
@@ -1494,7 +1472,7 @@ namespace NeoCompose.Tests
                 value = new[] { "shared-item-value" },
             });
             var root = new TestDialogues(client);
-            Assert.IsTrue(root.TryTrigger("dialogue-action-list-clear", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-action-list-clear");
 
             dialogue.Start();
 
@@ -1509,7 +1487,7 @@ namespace NeoCompose.Tests
         {
             var client = CreateClient();
             var root = new TestDialogues(client);
-            Assert.IsTrue(root.TryTrigger("dialogue-action-error", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-action-error");
 
             bool showedText = false;
             System.Exception? error = null;
@@ -1536,7 +1514,7 @@ namespace NeoCompose.Tests
                 value = 1,
             });
             var root = new TestDialogues(client);
-            Assert.IsTrue(root.TryTrigger("dialogue-action-pause-manual", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-action-pause-manual");
 
             NeoDialoguePauseAction? pause = null;
             NeoDialogueTextNode? shown = null;
@@ -1589,7 +1567,7 @@ namespace NeoCompose.Tests
                     },
                 });
             var root = new TestDialogues(client);
-            Assert.IsTrue(root.TryTrigger("dialogue-action-deferred-score", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-action-deferred-score");
 
             NeoDialogueTextNode? shown = null;
             dialogue.OnShow += node => shown = node;
@@ -1636,7 +1614,7 @@ namespace NeoCompose.Tests
                     },
                 });
             var root = new TestDialogues(client);
-            Assert.IsTrue(root.TryTrigger("dialogue-action-deferred-score", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-action-deferred-score");
 
             NeoDialogueTextNode? shown = null;
             dialogue.OnShow += node => shown = node;
@@ -1666,7 +1644,7 @@ namespace NeoCompose.Tests
                     },
                 });
             var root = new TestDialogues(client);
-            Assert.IsTrue(root.TryTrigger("dialogue-action-deferred-score", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-action-deferred-score");
 
             dialogue.Start();
             dialogue.Dispose();
@@ -1790,7 +1768,7 @@ namespace NeoCompose.Tests
                 value = 1,
             });
             var root = new TestDialogues(client);
-            Assert.IsTrue(root.TryTrigger("dialogue-action-pause-consecutive", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-action-pause-consecutive");
 
             var pauses = new List<NeoDialoguePauseAction>();
             NeoDialogueTextNode? shown = null;
@@ -1825,7 +1803,7 @@ namespace NeoCompose.Tests
                 value = 1,
             });
             var root = new TestDialogues(client);
-            Assert.IsTrue(root.TryTrigger("dialogue-action-pause-manual", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-action-pause-manual");
 
             NeoDialogueTextNode? shown = null;
             dialogue.OnPause += action => action.Resume();
@@ -1851,7 +1829,7 @@ namespace NeoCompose.Tests
                 value = 1,
             });
             var root = new TestDialogues(client);
-            Assert.IsTrue(root.TryTrigger("dialogue-action-pause-auto-zero", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-action-pause-auto-zero");
 
             bool handlerSawPausedState = false;
             NeoDialogueTextNode? shown = null;
@@ -1889,7 +1867,7 @@ namespace NeoCompose.Tests
                 {
                     PauseScheduler = scheduler,
                 });
-            Assert.IsTrue(root.TryTrigger("dialogue-action-pause-auto-delay", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-action-pause-auto-delay");
 
             NeoDialoguePauseAction? pause = null;
             NeoDialogueTextNode? shown = null;
@@ -1929,7 +1907,7 @@ namespace NeoCompose.Tests
                 {
                     PauseScheduler = scheduler,
                 });
-            Assert.IsTrue(root.TryTrigger("dialogue-action-pause-auto-delay", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-action-pause-auto-delay");
 
             NeoDialogueTextNode? shown = null;
             dialogue.OnShow += node => shown = node;
@@ -1957,7 +1935,7 @@ namespace NeoCompose.Tests
                 {
                     Logger = logger,
                 });
-            Assert.IsTrue(root.TryTrigger("dialogue-action-pause-only", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-action-pause-only");
 
             dialogue.Start();
 
@@ -1978,7 +1956,7 @@ namespace NeoCompose.Tests
                 {
                     PauseScheduler = scheduler,
                 });
-            Assert.IsTrue(root.TryTrigger("dialogue-action-pause-auto-delay", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-action-pause-auto-delay");
 
             NeoDialoguePauseAction? pause = null;
             dialogue.OnPause += action => pause = action;
@@ -2003,7 +1981,7 @@ namespace NeoCompose.Tests
                 {
                     PauseScheduler = scheduler,
                 });
-            Assert.IsTrue(root.TryTrigger("dialogue-action-pause-auto-delay", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-action-pause-auto-delay");
 
             NeoDialoguePauseAction? pause = null;
             dialogue.OnPause += action => pause = action;
@@ -2022,7 +2000,7 @@ namespace NeoCompose.Tests
         {
             var client = CreateClient();
             var root = new TestDialogues(client);
-            Assert.IsTrue(root.TryTrigger("dialogue-action-pause-then-error", out NeoDialogue dialogue));
+            var dialogue = root.Create("dialogue-action-pause-then-error");
 
             System.Exception? error = null;
             dialogue.OnPause += action => action.Resume();
@@ -2863,7 +2841,7 @@ namespace NeoCompose.Tests
             };
         }
 
-        private static Dialogue Dialogue(
+        internal static Dialogue Dialogue(
             string id,
             string name,
             string groupId,
@@ -4118,6 +4096,21 @@ namespace NeoCompose.Tests
             }
         }
 
+        private static TestDialogues CreateLoggedDialogues(
+            NeoClient client,
+            out TestDialogueLogger logger,
+            INeoDialogueMemoryStore? memoryStore = null)
+        {
+            logger = new TestDialogueLogger();
+            return new TestDialogues(
+                client,
+                new NeoDialogueRuntimeOptions
+                {
+                    Logger = logger,
+                },
+                memoryStore);
+        }
+
         private sealed class TestDialogueLogger : INeoDialogueLogger
         {
             public readonly List<string> Warnings = new();
@@ -4131,12 +4124,40 @@ namespace NeoCompose.Tests
 
         private sealed class TestDialogues : NeoDialoguesBase
         {
+            /// <summary>Every dialogue <see cref="NeoDialoguesBase.OnTrigger"/> presented, in order.</summary>
+            public readonly List<NeoDialogue> Presented = new();
+
             public TestDialogues(
                 NeoClient client,
                 NeoDialogueRuntimeOptions? options = null,
                 INeoDialogueMemoryStore? memoryStore = null,
                 NeoDialogueValueResolver? valueResolver = null)
-                : base(client, options, memoryStore, valueResolver) { }
+                : base(client, options, memoryStore, valueResolver)
+            {
+                OnTrigger += Present;
+            }
+
+            public NeoDialogue LastPresented => Presented[Presented.Count - 1];
+
+            public void Present(NeoDialogue dialogue) => Presented.Add(dialogue);
+
+            /// <summary>
+            /// Builds a dialogue the way its turn does, unstarted, so a test of
+            /// dialogue execution can subscribe before it calls Start().
+            /// </summary>
+            public NeoDialogue Create(string dialogueId, object? trigger = null)
+            {
+                var data = client.dialogues[dialogueId];
+                return new NeoDialogue(
+                    client,
+                    data,
+                    CreateContext(data, trigger),
+                    logger,
+                    options,
+                    memoryStore,
+                    valueResolver,
+                    data.triggerNode?.dialogueGroupSettings?.dialogueGroupId);
+            }
         }
 
         private sealed class TestStandardDialogueGroup : NeoStandardDialogueGroup
@@ -4144,9 +4165,9 @@ namespace NeoCompose.Tests
             public TestStandardDialogueGroup(NeoDialoguesBase root, string groupId)
                 : base(root, groupId) { }
 
-            public bool TryTrigger(out NeoDialogueTriggerResult result)
+            public bool TryTrigger(Action? onFinish = null)
             {
-                return TryTriggerStandard(out result);
+                return TryTriggerStandard(onFinish);
             }
         }
 
@@ -4155,9 +4176,9 @@ namespace NeoCompose.Tests
             public TestLookupDialogueGroup(NeoDialoguesBase root, string groupId)
                 : base(root, groupId) { }
 
-            public bool TryTrigger(TestLookupValue lookup, out NeoDialogueTriggerResult result)
+            public bool TryTrigger(TestLookupValue lookup, Action? onFinish = null)
             {
-                return TryTriggerLookup(lookup, out result);
+                return TryTriggerLookup(lookup, onFinish);
             }
         }
 

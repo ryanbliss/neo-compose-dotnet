@@ -4,7 +4,7 @@
   description: "The Red Nova Conspiracy — authored via @neocompose/cli.",
   saveOptionChoices: true
 )
-sealed class VenusianIntro : Dialogue {
+sealed class VenusianIntro : NeoDialogue {
   @primary
   Outpost Venusian = Reference<Outpost>(id: "ed141cc4-304c-40cd-8229-105f1ee9b99c");
 

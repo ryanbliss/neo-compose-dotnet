@@ -3,7 +3,7 @@
   name: "Ursa Major: the stars don't move",
   saveOptionChoices: true
 )
-sealed class UrsaMajorTheStarsDontMove : Dialogue {
+sealed class UrsaMajorTheStarsDontMove : NeoDialogue {
   @primary
   Outpost Outpost = Reference<Outpost>(id: "b81df7d3-be41-4685-9111-3cdc1821e693");
 

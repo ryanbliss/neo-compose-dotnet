@@ -1383,6 +1383,20 @@ namespace NeoCompose.Runtime
 
         internal void HoldGetterChanges() => getterChangeHolds++;
 
+        // A dialogue never starts or ends its turn inside NeoScript; one
+        // requested or ended there waits for the outermost exit (P105 §1.3).
+        private bool dialogueTurnPending;
+
+        internal void RunDialogueTurn()
+        {
+            if (getterChangeHolds != 0)
+            {
+                dialogueTurnPending = true;
+                return;
+            }
+            DialoguesApi?.RunTurn();
+        }
+
         /// <summary>
         /// The outermost release runs the pending effects, still held so
         /// their own writes join this boundary, then raises the getter changes.
@@ -1391,7 +1405,8 @@ namespace NeoCompose.Runtime
         internal void ReleaseGetterChanges()
         {
             // An idle boundary has nothing to drain or raise.
-            if (getterChangeHolds > 1 || (pendingGetterChanges.Count == 0 && !EffectsPending && !userChangesPending))
+            if (getterChangeHolds > 1
+                || (pendingGetterChanges.Count == 0 && !EffectsPending && !userChangesPending && !dialogueTurnPending))
                 getterChangeHolds--;
             else
                 ReleaseOutermostGetterChanges();
@@ -1414,7 +1429,19 @@ namespace NeoCompose.Runtime
                     }
                     finally
                     {
-                        FlushUserChanges();
+                        try
+                        {
+                            FlushUserChanges();
+                        }
+                        finally
+                        {
+                            // A throwing listener must not strand a queued dialogue.
+                            if (dialogueTurnPending)
+                            {
+                                dialogueTurnPending = false;
+                                DialoguesApi?.RunTurn();
+                            }
+                        }
                     }
                 }
             }

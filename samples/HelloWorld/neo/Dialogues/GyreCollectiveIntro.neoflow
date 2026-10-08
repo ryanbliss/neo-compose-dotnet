@@ -4,7 +4,7 @@
   description: "The Red Nova Conspiracy — authored via @neocompose/cli.",
   saveOptionChoices: true
 )
-sealed class GyreCollectiveIntro : Dialogue {
+sealed class GyreCollectiveIntro : NeoDialogue {
   @primary
   Outpost GyreCollective = Reference<Outpost>(id: "763b50d2-c0b2-4346-b8fb-a092e7337af3");
 

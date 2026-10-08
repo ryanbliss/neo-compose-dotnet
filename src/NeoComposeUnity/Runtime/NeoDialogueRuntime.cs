@@ -176,7 +176,7 @@ namespace NeoCompose.Runtime
         Disposed,
     }
 
-    public sealed class NeoDialogueTriggerWarning
+    internal sealed class NeoDialogueTriggerWarning
     {
         public string Message
         {
@@ -199,58 +199,6 @@ namespace NeoCompose.Runtime
             Message = message;
             DialogueId = dialogueId;
             GroupId = groupId;
-        }
-    }
-
-    public sealed class NeoDialogueTriggerResult
-    {
-        public bool Ok
-        {
-            get;
-        }
-        public NeoDialogue? Dialogue
-        {
-            get;
-        }
-        public Exception? Error
-        {
-            get;
-        }
-        public IReadOnlyList<NeoDialogueTriggerWarning> Warnings
-        {
-            get;
-        }
-
-        private NeoDialogueTriggerResult(
-            bool ok,
-            NeoDialogue? dialogue,
-            Exception? error,
-            IReadOnlyList<NeoDialogueTriggerWarning> warnings)
-        {
-            Ok = ok;
-            Dialogue = dialogue;
-            Error = error;
-            Warnings = warnings;
-        }
-
-        public static NeoDialogueTriggerResult Success(
-            NeoDialogue dialogue,
-            IReadOnlyList<NeoDialogueTriggerWarning>? warnings = null)
-        {
-            return new NeoDialogueTriggerResult(true, dialogue, null, warnings ?? Array.Empty<NeoDialogueTriggerWarning>());
-        }
-
-        public static NeoDialogueTriggerResult NotFound(
-            IReadOnlyList<NeoDialogueTriggerWarning>? warnings = null)
-        {
-            return new NeoDialogueTriggerResult(false, null, null, warnings ?? Array.Empty<NeoDialogueTriggerWarning>());
-        }
-
-        public static NeoDialogueTriggerResult Failed(
-            Exception error,
-            IReadOnlyList<NeoDialogueTriggerWarning>? warnings = null)
-        {
-            return new NeoDialogueTriggerResult(false, null, error, warnings ?? Array.Empty<NeoDialogueTriggerWarning>());
         }
     }
 

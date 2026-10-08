@@ -361,7 +361,7 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.IsDisposed);
             Assert.Throws<System.ObjectDisposedException>(() =>
             {
-                app.Dialogues.Standard.TryTrigger(out NeoDialogue _);
+                app.Dialogues.Standard.TryTrigger();
             });
             Assert.DoesNotThrow(() => disposable.Dispose());
         }
@@ -1461,6 +1461,24 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void GeneratedDialogueGroup_TryTriggerTakesOptionalOnFinish()
+        {
+            var methods = typeof(StandardDialogues).GetMethods(
+                System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)
+                .Where(method => method.Name == "TryTrigger")
+                .ToArray();
+
+            Assert.AreEqual(1, methods.Length);
+            var parameters = methods[0].GetParameters();
+            Assert.AreEqual(typeof(bool), methods[0].ReturnType);
+            Assert.AreEqual(1, parameters.Length);
+            Assert.AreEqual(typeof(System.Action), parameters[0].ParameterType);
+            Assert.AreEqual("onFinish", parameters[0].Name);
+            Assert.IsTrue(parameters[0].IsOptional);
+            Assert.IsNull(parameters[0].DefaultValue);
+        }
+
+        [Test]
         public void GeneratedDialogueGroup_UsesGeneratedValueResolverAndMemoryStore()
         {
             var now = new System.DateTime(
@@ -1479,18 +1497,20 @@ namespace NeoCompose.Tests
                     RandomDouble = () => 0,
                 });
 
-            Assert.IsTrue(app.Dialogues.Standard.TryTrigger(out NeoDialogue dialogue));
+            NeoDialogue? dialogue = null;
+            NeoDialogueTextNode? shown = null;
+            app.Dialogues.OnTrigger += presented =>
+            {
+                dialogue = presented;
+                presented.OnShow += node => shown = node;
+            };
 
-            Assert.AreEqual("dialogue-linked-hero", dialogue.Id);
+            Assert.IsTrue(app.Dialogues.Standard.TryTrigger());
+
+            Assert.AreEqual("dialogue-linked-hero", dialogue!.Id);
             Assert.IsInstanceOf<Hero>(dialogue.Primary);
             Assert.IsTrue(dialogue.LinkedValues.TryGetValue("v-dict", out object? linked));
             Assert.IsInstanceOf<Hero>(linked);
-
-            NeoDialogueTextNode? shown = null;
-            dialogue.OnShow += node => shown = node;
-
-            dialogue.Start();
-
             Assert.IsNotNull(shown);
             Assert.IsInstanceOf<Hero>(shown!.Primary);
             Assert.IsTrue(shown.LinkedValues.TryGetValue("v-dict", out object? textLinked));

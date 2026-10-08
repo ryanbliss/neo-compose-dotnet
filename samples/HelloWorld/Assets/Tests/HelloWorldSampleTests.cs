@@ -309,29 +309,28 @@ namespace HelloWorld.Assets.Tests
             if (capitol == null)
                 return;
 
-            Assert.IsTrue(client.Dialogues.Outposts.Introductions.TryTrigger(
-                capitol,
-                out NeoDialogue dialogue));
-
             var shown = new System.Collections.Generic.List<NeoDialogueTextNode>();
             bool finished = false;
-            dialogue.OnShow += node =>
+            client.Dialogues.OnTrigger += dialogue =>
             {
-                shown.Add(node);
-                Assert.IsInstanceOf<Outpost>(node.Primary);
-                var primary = (Outpost)node.Primary!;
-                Assert.AreEqual(capitol.valueId, primary.valueId);
-                Assert.AreEqual("Capitol OG", primary.Name);
-                if (node.Options.Count > 0)
+                dialogue.OnShow += node =>
                 {
-                    node.Options[0].Select();
-                    return;
-                }
-                node.Next();
+                    shown.Add(node);
+                    Assert.IsInstanceOf<Outpost>(node.Primary);
+                    var primary = (Outpost)node.Primary!;
+                    Assert.AreEqual(capitol.valueId, primary.valueId);
+                    Assert.AreEqual("Capitol OG", primary.Name);
+                    if (node.Options.Count > 0)
+                    {
+                        node.Options[0].Select();
+                        return;
+                    }
+                    node.Next();
+                };
+                dialogue.OnFinish += () => finished = true;
             };
-            dialogue.OnFinish += () => finished = true;
 
-            dialogue.Start();
+            Assert.IsTrue(client.Dialogues.Outposts.Introductions.TryTrigger(capitol));
 
             Assert.IsTrue(finished);
             Assert.GreaterOrEqual(shown.Count, 1);
@@ -343,14 +342,10 @@ namespace HelloWorld.Assets.Tests
         {
             var client = await LoadSampleClient(EnglishLocalizationOptions());
 
-            foreach (var dialogueId in OldConsoleLandingDialogueIds)
+            var shown = new System.Collections.Generic.List<NeoDialogueTextNode>();
+            bool finished = false;
+            client.Dialogues.OnTrigger += dialogue =>
             {
-                Assert.IsTrue(
-                    client.Dialogues.TryTrigger(dialogueId, out NeoDialogue dialogue),
-                    $"Expected old-console landing dialogue '{dialogueId}' to trigger directly.");
-
-                var shown = new System.Collections.Generic.List<NeoDialogueTextNode>();
-                bool finished = false;
                 dialogue.OnShow += node =>
                 {
                     shown.Add(node);
@@ -367,15 +362,21 @@ namespace HelloWorld.Assets.Tests
                     node.Next();
                 };
                 dialogue.OnFinish += () => finished = true;
+            };
 
-                dialogue.Start();
+            foreach (var dialogueId in OldConsoleLandingDialogueIds)
+            {
+                shown.Clear();
+                finished = false;
+                Assert.IsTrue(
+                    client.Dialogues.TryTrigger(dialogueId),
+                    $"Expected old-console landing dialogue '{dialogueId}' to trigger directly.");
 
                 Assert.IsTrue(finished, dialogueId);
                 Assert.GreaterOrEqual(shown.Count, 1, dialogueId);
                 Assert.IsTrue(
                     shown.Any(node => node.Text.Contains(OldConsoleLandingExpectedTextByDialogueId[dialogueId])),
                     dialogueId);
-                dialogue.Dispose();
             }
         }
 

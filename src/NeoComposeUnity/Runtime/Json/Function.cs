@@ -191,6 +191,42 @@ namespace NeoCompose.Runtime.Json
         public Pointer pointer = null!;
     }
 
+    /// <summary>P105 §2.5 — what a dialogue request asks. Mirrors TS-side <c>TNSDialogueOp</c>.</summary>
+    public static class DialogueOp
+    {
+        public const string TryTrigger = "TryTrigger";
+        public const string CanTrigger = "CanTrigger";
+    }
+
+    /// <summary>
+    /// Info shape for <c>dialogueGroup</c>: <c>root.Dialogues.&lt;Group&gt;</c>
+    /// requests (P105 §2.5). Mirrors TS-side <c>INSFunctionDialogueGroup</c>.
+    /// </summary>
+    public class FunctionDialogueGroupInfo
+    {
+        /// <summary>One of <see cref="DialogueOp"/>.</summary>
+        public string op = null!;
+        public string groupId = null!;
+        /// <summary>The lookup entry; present exactly for a lookup group.</summary>
+        public Pointer? valuePointer;
+        /// <summary><c>NeoDelegate&lt;void&gt;?</c>; only <c>TryTrigger</c> carries it.</summary>
+        public Pointer? onFinishPointer;
+    }
+
+    /// <summary>
+    /// Info shape for <c>dialogue</c>: <c>root.Dialogues.TryTrigger(id)</c>
+    /// and the <c>NeoDialogueReference</c> methods (P105 §2.5). Mirrors
+    /// TS-side <c>INSFunctionDialogue</c>.
+    /// </summary>
+    public class FunctionDialogueInfo
+    {
+        /// <summary>One of <see cref="DialogueOp"/>.</summary>
+        public string op = null!;
+        public Pointer dialogueIdPointer = null!;
+        /// <summary><c>NeoDelegate&lt;void&gt;?</c>; only <c>TryTrigger</c> carries it.</summary>
+        public Pointer? onFinishPointer;
+    }
+
     /// <summary>
     /// Info shape for global vector constructors. Mirrors TS-side
     /// <c>INSFunctionVectorConstructorInfo</c>.
@@ -440,6 +476,16 @@ namespace NeoCompose.Runtime.Json
         public FunctionDialogueMemoryInfo info = null!;
     }
 
+    public sealed class DialogueGroupFunction : Function
+    {
+        public FunctionDialogueGroupInfo info = null!;
+    }
+
+    public sealed class DialogueFunction : Function
+    {
+        public FunctionDialogueInfo info = null!;
+    }
+
     public sealed class VectorConstructorFunction : Function
     {
         public FunctionVectorConstructorInfo info = null!;
@@ -507,6 +553,10 @@ namespace NeoCompose.Runtime.Json
                     return typeof(VisitCountFunction);
                 case FunctionKind.HasVisited:
                     return typeof(HasVisitedFunction);
+                case FunctionKind.DialogueGroup:
+                    return typeof(DialogueGroupFunction);
+                case FunctionKind.Dialogue:
+                    return typeof(DialogueFunction);
                 case FunctionKind.VectorConstructor:
                     return typeof(VectorConstructorFunction);
                 case FunctionKind.ImageSlice:

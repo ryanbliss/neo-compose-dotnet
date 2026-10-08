@@ -10,10 +10,10 @@ namespace NeoCompose.Runtime
     /// <summary>
     /// A stable, lightweight handle to a dialogue by id — the runtime value a
     /// <c>DialogueLookup</c> member resolves to. Triggering goes through
-    /// <see cref="TryTrigger(out NeoDialogue)"/>, which honors the dialogue's
-    /// trigger criteria (conditions, occurrence limits, group priority) exactly
-    /// like <see cref="NeoDialoguesBase.TryTrigger(string, out NeoDialogue)"/> —
-    /// the reference never bypasses them.
+    /// <see cref="TryTrigger"/>, which honors the dialogue's trigger criteria
+    /// (conditions, occurrence limits, group priority) exactly like
+    /// <see cref="NeoDialoguesBase.TryTrigger"/> — the reference never
+    /// bypasses them.
     ///
     /// <para>Two ways to construct one:</para>
     /// <list type="bullet">
@@ -40,7 +40,7 @@ namespace NeoCompose.Runtime
         /// Authoring/assignment ctor. Produces an <em>unbound</em> reference
         /// suitable for setting a DialogueLookup value or adding to a
         /// <see cref="NeoDialogueReferenceSet"/>. Calling
-        /// <see cref="TryTrigger(out NeoDialogue)"/> on an unbound reference
+        /// <see cref="TryTrigger"/> on an unbound reference
         /// throws — read the value back from the SDK to trigger it.
         /// </summary>
         public NeoDialogueReference(string dialogueId)
@@ -62,21 +62,21 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// Triggers the referenced dialogue, honoring all trigger criteria.
-        /// Returns <c>false</c> when the id is unknown or the criteria are not
-        /// met right now.
+        /// Returns true when it started or was queued; <paramref name="onFinish"/>
+        /// runs once it ends.
         /// </summary>
-        public bool TryTrigger(out NeoDialogue dialogue)
+        public bool TryTrigger(Action? onFinish = null)
         {
-            return RequireDialoguesApi().TryTrigger(Id, out dialogue);
+            return RequireDialoguesApi().TryTrigger(Id, onFinish);
         }
 
         /// <summary>
-        /// Triggers the referenced dialogue and surfaces the full
-        /// <see cref="NeoDialogueTriggerResult"/> (warnings/errors included).
+        /// Evaluates whether the referenced dialogue can trigger, without
+        /// queuing it.
         /// </summary>
-        public bool TryTrigger(out NeoDialogueTriggerResult result)
+        public bool CanTrigger()
         {
-            return RequireDialoguesApi().TryTrigger(Id, out result);
+            return RequireDialoguesApi().CanTrigger(Id);
         }
 
         private NeoDialoguesBase RequireDialoguesApi()

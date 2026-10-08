@@ -3,13 +3,13 @@
   name: "Shuffle 1",
   saveOptionChoices: true
 )
-sealed class Shuffle1_2 : Dialogue {
+sealed class Shuffle1_2 : NeoDialogue {
   @primary
   Outpost Mercurial = Reference<Outpost>(id: "88cacaa9-25d2-4cfd-bd10-55db71139608");
 
   @id("84bc85cd-c1b6-4a19-a3c5-342f25e962f3")
   override Trigger Trigger = new(
-    group: Reference<DialogueGroup>(id: "c89bb6c6-e80f-4dbe-9d25-50b6b87a0f43"),
+    group: Reference<NeoDialogueGroup>(id: "c89bb6c6-e80f-4dbe-9d25-50b6b87a0f43"),
   ) => Text1;
 
   @id("4dca4c60-300f-48db-8edd-4fcd3da840b9")

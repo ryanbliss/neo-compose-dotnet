@@ -1,5 +1,5 @@
 @id("9b1c8f42-18fc-4e34-9b46-3e1c138874bc")
-DialogueGroup Introductions = new(
+NeoDialogueGroup Introductions = new(
   kind: .Lookup,
   parent: Outposts,
   collection: Assets.Outposts,

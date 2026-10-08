@@ -4,7 +4,7 @@
   description: "Player reads the plaque after the seal is down; the console records the claim.",
   saveOptionChoices: true
 )
-sealed class OldConsoleLandingVaultPlaqueReward : Dialogue {
+sealed class OldConsoleLandingVaultPlaqueReward : NeoDialogue {
   @primary
   BlockedPath BlockedPath = Reference<BlockedPath>(id: "432f5226-99d8-4d59-8cf0-4d86ca64462f");
 
