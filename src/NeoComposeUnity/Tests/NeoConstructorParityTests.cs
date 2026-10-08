@@ -28,7 +28,7 @@ namespace NeoCompose.Tests
     ///
     /// <para>Both halves interpret the fixture identically: build a client over
     /// <c>document</c>, evaluate each case's getter with <c>__this__</c> null
-    /// and <c>__root__</c> derived from the project's three root members, then
+    /// and <c>__root__</c> derived from the project's root members, then
     /// either read the produced record's <c>schemaKey → row value</c> pairs and
     /// compare them to <c>expectedFields</c>, or assert the thrown message
     /// contains <c>expectedErrorContains</c>.</para>
@@ -287,7 +287,7 @@ namespace NeoCompose.Tests
         /// <summary>
         /// <c>__root__</c> is derived from the loaded document rather than
         /// stored in the fixture — exactly as the web half derives it from the
-        /// project's three root members — so the fixture cannot drift from
+        /// project's root members — so the fixture cannot drift from
         /// either runtime's own notion of the root record.
         /// </summary>
         private static NSGetterEvaluator.Context BuildContext(NeoClient client)
