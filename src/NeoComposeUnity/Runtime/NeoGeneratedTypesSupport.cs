@@ -448,6 +448,8 @@ namespace NeoCompose.Runtime
             internal readonly Dictionary<object, object> resolvedSites = new();
             // By declaration identity: whether its declared value is shared.
             internal readonly Dictionary<string, bool> immutableConstants = new(StringComparer.Ordinal);
+            // By class id: whether an instance can own an Immutable member.
+            internal readonly Dictionary<string, bool> mayOwnImmutable = new(StringComparer.Ordinal);
         }
 
         /// <summary>
@@ -932,6 +934,7 @@ namespace NeoCompose.Runtime
                 // A generic entry initializer constructs in its closed placement.
                 initializerContext.initializerPlacement = member as ClassMember;
                 object?[] arguments = Array.Empty<object?>();
+                // Parameters are __this__, __root__, then the declaring constructor's arguments.
                 int expected = Math.Max(0, (init.compiled.parameters?.Length ?? 0) - 2);
                 if (expected > 0)
                 {
@@ -2669,7 +2672,7 @@ namespace NeoCompose.Runtime
             // initializers, a validation graph) replays once it is finished.
             if (!requireCompleteRoot)
                 return new RuntimeConstructedClassValue(parentRow, factoryMember);
-            ReplayImmutableMembers(client, parentRow.id, scope.ExistingEvaluationContext);
+            ReplayImmutableMembers(client, parentRow, scope.ExistingEvaluationContext);
             if (!client.TryGetValue(NeoValueOwnership.Session, parentRow.id, out ObjectMemberValue? current))
                 throw new InvalidOperationException($"Runtime construction lost root '{parentRow.id}'.");
             return new RuntimeConstructedClassValue(current!, factoryMember);
@@ -4786,7 +4789,7 @@ namespace NeoCompose.Runtime
                         argumentValues,
                         root.id,
                         ctx);
-                    ReplayImmutableMembers(client, root.id, ctx);
+                    ReplayImmutableMembers(client, root, ctx);
                 }
                 catch
                 {
@@ -4988,17 +4991,63 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal static void ReplayImmutableMembers(
             NeoClient client,
-            string rootValueId,
+            ObjectMemberValue root,
             NeoScript.NSGetterEvaluator.Context? ctx)
         {
             if (client.IsReplayingVirtualInstance)
                 return;
-            IReadOnlyCollection<string> removed = client.ReplayImmutableMembers(rootValueId);
+            if (root.classId is not null && !ClassMayOwnImmutable(client, root.classId))
+                return;
+            IReadOnlyCollection<string> removed = client.ReplayImmutableMembers(root.id);
             if (removed.Count == 0)
                 return;
             client.DisposeWrappersTouchingRows(removed);
             if (ctx is not null)
                 NeoScript.NSGetterEvaluator.EvictCachedRows(ctx, NeoValueOwnership.Session, removed);
+        }
+
+        /// <summary>
+        /// Whether an instance of the class can own an Immutable member at any
+        /// depth. A member that can hold a class instance may hold a subclass
+        /// that declares one, so it answers yes.
+        /// </summary>
+        private static bool ClassMayOwnImmutable(NeoClient client, string classId)
+        {
+            ConstructorSchemaCache cache = ConstructorSchemaCaches.GetOrCreateValue(client);
+            lock (cache.gate)
+            {
+                if (cache.mayOwnImmutable.TryGetValue(classId, out bool cached))
+                    return cached;
+            }
+            bool owns = false;
+            IList<MergedSchemaEntry> schema = NeoSchemaClassInheritance.MergeInstanceSchema(
+                client.ResolveClassInheritanceChain(classId),
+                id => client.TryGetMember(id, out Member? member) ? member : null);
+            foreach (MergedSchemaEntry entry in schema)
+            {
+                if (MayOwnImmutable(client, entry.memberId))
+                {
+                    owns = true;
+                    break;
+                }
+            }
+            lock (cache.gate)
+                cache.mayOwnImmutable[classId] = owns;
+            return owns;
+        }
+
+        private static bool MayOwnImmutable(NeoClient client, string memberId)
+        {
+            if (!client.TryGetMember(memberId, out Member? member))
+                return true;
+            if (member!.Storage == NeoMemberStorage.Immutable)
+                return true;
+            return member switch
+            {
+                ListMember list => MayOwnImmutable(client, list.entryMemberId),
+                DictionaryMember dictionary => MayOwnImmutable(client, dictionary.entryMemberId),
+                _ => member.kind is MemberKind.Class or MemberKind.Interface or MemberKind.Generic,
+            };
         }
 
         private static void ReclaimFailedConstruction(
