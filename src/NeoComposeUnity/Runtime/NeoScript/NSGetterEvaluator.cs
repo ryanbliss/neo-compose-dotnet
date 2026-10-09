@@ -4661,7 +4661,7 @@ namespace NeoCompose.Runtime.NeoScript
                     return child;
                 }
             }
-            // A runtime construction stores no Immutable value.
+            // Instances share an Immutable constant's declaration value.
             if (ctx.client.ImmutableDeclarationValueId(member) is string declaredValueId)
             {
                 NeoValueNode? declaredNode = null;

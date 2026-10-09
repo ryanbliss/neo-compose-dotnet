@@ -14,9 +14,10 @@ using NUnit.Framework;
 namespace NeoCompose.Tests
 {
     /// <summary>
-    /// Runtime construction never creates an Immutable value: the instance
-    /// reads its declaration in session, after joining a Save list, and after
-    /// a reload, and no copy is stranded in another store.
+    /// Runtime construction stores no Immutable value: each instance evaluates
+    /// its Immutable members from their declarations, with its own constructor
+    /// arguments, in session, after joining a Save list, and after a reload,
+    /// and no copy is stranded in another store.
     /// </summary>
     public partial class P75VirtualInstanceValueTests
     {
@@ -104,8 +105,10 @@ namespace NeoCompose.Tests
             AssertRank(reopened, SavedThing(reopened), "reloaded");
         }
 
-        [Test]
-        public void RuntimeConstructionReadsAConstructedImmutableClassMember()
+        // Thing.Badge is an Immutable `new Badge(Label: "gold")`: its body
+        // carries the constructor envelope but reads neither `this` nor an
+        // argument, so it is a constant.
+        private static ProjectData BuildImmutableBadgeProjectData()
         {
             ProjectData data = BuildHostSlotProjectData();
             data.classes["badge-class"] = new NeoSchemaClass
@@ -120,7 +123,13 @@ namespace NeoCompose.Tests
                 id = "badge-label",
                 name = "Label",
                 kind = MemberKind.String,
-                defaultValue = new StringMemberValueBase { value = "gold" },
+                defaultValue = new StringMemberValueBase { value = "plain" },
+            };
+            var badgeType = new ClassTypeInfo
+            {
+                type = MemberKind.Class,
+                required = true,
+                classId = "badge-class",
             };
             data.classes["thing-class"].schema["Badge"] = "thing-badge";
             data.members["thing-badge"] = new ClassMember
@@ -136,12 +145,16 @@ namespace NeoCompose.Tests
                 {
                     init = new InitializerBody
                     {
-                        code = "new Badge()",
+                        code = "new Badge(Label: \"gold\")",
                         compiled = new FunctionWithReturnType
                         {
                             compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
-                            parameters = Array.Empty<Variable>(),
-                            typeInfo = BadgeType(),
+                            parameters = new[]
+                            {
+                                ConstructorVariable("__this__", ClassType("thing-class")),
+                                ConstructorVariable("__root__", ClassType("save-root-class")),
+                            },
+                            typeInfo = badgeType,
                             instructions = new Instruction[]
                             {
                                 new ReturnInstruction
@@ -155,8 +168,16 @@ namespace NeoCompose.Tests
                                             type = FunctionKind.ClassConstructor,
                                             info = new FunctionClassConstructorInfo
                                             {
-                                                schemaClassInfo = BadgeType(),
-                                                fields = Array.Empty<FunctionClassConstructorField>(),
+                                                schemaClassInfo = badgeType,
+                                                fields = new[]
+                                                {
+                                                    new FunctionClassConstructorField
+                                                    {
+                                                        schemaKey = "Label",
+                                                        memberId = "badge-label",
+                                                        valuePointer = StringLiteral("gold"),
+                                                    },
+                                                },
                                             },
                                         },
                                     },
@@ -166,29 +187,78 @@ namespace NeoCompose.Tests
                     },
                 },
             };
-            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
-            NeoMemberClassWritable first = NeoGeneratedTypesSupport.CreateWritableClassValue(client, "thing-class");
-            NeoMemberClassWritable second = NeoGeneratedTypesSupport.CreateWritableClassValue(client, "thing-class");
-            foreach (NeoMemberClassWritable thing in new[] { first, second })
-            {
-                NeoMemberClass badge = thing.Get<NeoMemberClass>("Badge");
-                Assert.AreEqual("gold", badge.Get<NeoMemberString>("Label").value!.value);
-                Assert.IsFalse(((ObjectMemberValue)thing.value!).value!.ContainsKey("Badge"));
-            }
-            string badgeId = first.Get<NeoMemberClass>("Badge").value!.id;
-            Assert.AreEqual(badgeId, second.Get<NeoMemberClass>("Badge").value!.id, "one declaration value serves every instance");
-            Assert.IsFalse(client.sessionValues.ContainsKey(badgeId), "the declaration value is not Session data");
+            return data;
+        }
 
-            static ClassTypeInfo BadgeType() => new()
-            {
-                type = MemberKind.Class,
-                required = true,
-                classId = "badge-class"
-            };
+        private static Member MemberOf(NeoClient client, string memberId)
+        {
+            Assert.IsTrue(client.TryGetMember(memberId, out Member? member), memberId);
+            return member!;
+        }
+
+        private static string BadgeId(NeoMemberClass thing, string phase)
+        {
+            NeoMemberClass badge = thing.Get<NeoMemberClass>("Badge");
+            Assert.AreEqual("gold", badge.Get<NeoMemberString>("Label").value!.value, $"{phase}: label");
+            Assert.IsFalse(((ObjectMemberValue)thing.value!).value!.ContainsKey("Badge"), $"{phase}: the row stores no Immutable value");
+            return badge.value!.id;
         }
 
         [Test]
-        public void ConstructorArgumentImmutableMemberReadsItsReplayInSession()
+        public void RuntimeConstructionSharesAnImmutableConstant()
+        {
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(BuildImmutableBadgeProjectData());
+            string first = BadgeId(NeoGeneratedTypesSupport.CreateWritableClassValue(client, "thing-class"), "first");
+            string second = BadgeId(NeoGeneratedTypesSupport.CreateWritableClassValue(client, "thing-class"), "second");
+            Assert.AreEqual(first, second, "instances share the constant");
+            Assert.AreEqual(client.ImmutableDeclarationValueId(MemberOf(client, "thing-badge")), first);
+            Assert.IsFalse(client.sessionValues.ContainsKey(first), "the constant is not Session data");
+        }
+
+        [Test]
+        public void ImmutableConstantFollowsTheRowsItsDeclarationOwns()
+        {
+            ProjectData data = BuildImmutableBadgeProjectData();
+            var badge = (ClassMember)data.members["thing-badge"];
+            badge.defaultValue = new ObjectMemberValueBase
+            {
+                value = new Dictionary<string, string> { ["Label"] = "badge-label-row" },
+            };
+            var labelRow = new StringMemberValue { id = "badge-label-row", value = "gold" };
+            data.values["badge-label-row"] = labelRow;
+            data.members["thing-handler"] = new DelegateMember
+            {
+                id = "thing-handler",
+                projectId = "p75-project",
+                name = "Handler",
+                kind = MemberKind.NSDelegate,
+                Storage = NeoMemberStorage.Immutable,
+                returnTypeInfo = new PrimitiveTypeInfo { type = MemberKind.String, required = true },
+                argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
+                // A method group binds `this`.
+                defaultValue = new DelegateMemberValueBase
+                {
+                    value = new NeoDelegateValue { memberId = "thing-badge" },
+                },
+            };
+            using (NeoClient client = NeoTestSaveStack.ClientFromSchema(data))
+            {
+                Assert.IsTrue(NeoGeneratedTypesSupport.IsImmutableConstant(client, MemberOf(client, "thing-badge")));
+                Assert.IsFalse(NeoGeneratedTypesSupport.IsImmutableConstant(client, MemberOf(client, "thing-handler")));
+            }
+            labelRow.value = null;
+            labelRow.init = ReturnVariableInitializer(
+                "this.Label",
+                new PrimitiveTypeInfo { type = MemberKind.String, required = true },
+                new[] { ConstructorVariable("__this__", ClassType("badge-class")) },
+                "__this__");
+            using (NeoClient client = NeoTestSaveStack.ClientFromSchema(data))
+                Assert.IsFalse(NeoGeneratedTypesSupport.IsImmutableConstant(client, MemberOf(client, "thing-badge")));
+        }
+
+        // Thing.Rank is an Immutable `InitialRank`, read from the declared
+        // constructor's argument; the authored instance passes 5.
+        private static ProjectData BuildConstructorRankProjectData()
         {
             ProjectData data = BuildImmutableRankProjectData(computed: false);
             var argument = new FunctionArgumentTypeInfo
@@ -225,7 +295,13 @@ namespace NeoCompose.Tests
             var authored = (ObjectMemberValue)data.values["thing-instance"];
             authored.instanceConstructorId = "thing-ctor";
             authored.constructorArgs = new Dictionary<string, JToken?> { ["__arg_0__"] = 5 };
+            return data;
+        }
 
+        [Test]
+        public void ConstructorArgumentImmutableMemberReadsItsReplayInSession()
+        {
+            ProjectData data = BuildConstructorRankProjectData();
             string saved;
             using (NeoClient client = NeoTestSaveStack.ClientFromSchema(data))
             {
@@ -254,6 +330,118 @@ namespace NeoCompose.Tests
                 var row = (ObjectMemberValue)thing.value!;
                 Assert.IsFalse(row.value!.ContainsKey("Rank"), $"{phase}: the row stores no Immutable value");
             }
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void NeoScriptConstructionReadsItsImmutableMemberInSave(bool computed)
+        {
+            ProjectData data = BuildImmutableRankProjectData(computed);
+            string saved;
+            using (NeoClient client = NeoTestSaveStack.ClientFromSchema(data))
+            {
+                int sessionRows = client.sessionValues.Count;
+                ExecuteSaveInstruction(client, new AssignInstruction
+                {
+                    type = InstructionKind.Assign,
+                    operatorValue = "=",
+                    target = new WriteTarget
+                    {
+                        pointer = SavePointer("Thing"),
+                        typeInfo = ClassType("thing-class"),
+                        writability = WritabilityKind.Save,
+                    },
+                    pointer = new FunctionPointer
+                    {
+                        type = PointerKind.Function,
+                        function = new ClassConstructorFunction
+                        {
+                            type = FunctionKind.ClassConstructor,
+                            info = new FunctionClassConstructorInfo
+                            {
+                                schemaClassInfo = ClassType("thing-class"),
+                                fields = Array.Empty<FunctionClassConstructorField>(),
+                            },
+                        },
+                    },
+                });
+                AssertRank(client, client.save.Get<NeoMemberClassWritable>("Thing"), "assigned");
+                Assert.AreEqual(sessionRows, client.sessionValues.Count, "nothing is stranded in Session");
+                saved = client.SerializeSaveData();
+            }
+            using NeoClient reopened = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: saved);
+            AssertRank(reopened, reopened.save.Get<NeoMemberClassWritable>("Thing"), "reloaded");
+        }
+
+        [Test]
+        public void CloneSharesAnImmutableConstant()
+        {
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(BuildImmutableBadgeProjectData());
+            NeoMemberClassWritable source = NeoGeneratedTypesSupport.CreateWritableClassValue(client, "thing-class");
+            NeoMemberClassWritable clone = NeoGeneratedTypesSupport.CloneClassValue(
+                client,
+                new ImmutableProbeReference { valueId = source.value!.id });
+            Assert.AreEqual(BadgeId(source, "source"), BadgeId(clone, "cloned"));
+        }
+
+        [Test]
+        public void CloneReplaysAPerInstanceImmutableMember()
+        {
+            ProjectData data = BuildConstructorRankProjectData();
+            string saved;
+            using (NeoClient client = NeoTestSaveStack.ClientFromSchema(data))
+            {
+                NeoMemberClassWritable source = NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(
+                    client,
+                    "thing-class",
+                    "thing-ctor",
+                    new[] { new NeoDeclaredConstructorArgument("InitialRank", 9d) });
+                var sessionRows = new HashSet<string>(client.sessionValues.Keys);
+                NeoMemberClassWritable clone = NeoGeneratedTypesSupport.CloneClassValue(
+                    client,
+                    new ImmutableProbeReference { valueId = source.value!.id });
+                Assert.AreEqual(9d, clone.Get<NeoMemberInt>("Rank").value!.value);
+                Assert.AreNotEqual(
+                    source.Get<NeoMemberInt>("Rank").value!.id,
+                    clone.Get<NeoMemberInt>("Rank").value!.id,
+                    "the clone evaluates its own value");
+                Assert.IsFalse(((ObjectMemberValue)clone.value!).value!.ContainsKey("Rank"));
+
+                client.save.Get<NeoMemberListWritable>("Things").AddSerialized(
+                    NeoGeneratedTypesSupport.ValueReference(
+                        new ImmutableProbeReference { valueId = clone.value!.id }));
+                CollectionAssert.IsSubsetOf(client.sessionValues.Keys, sessionRows, "nothing of the clone is stranded in Session");
+                saved = client.SerializeSaveData();
+            }
+            using NeoClient reopened = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: saved);
+            Assert.AreEqual(9d, SavedThing(reopened).Get<NeoMemberInt>("Rank").value!.value);
+        }
+
+        [Test]
+        public void CloneSharesAnAuthoredImmutableValue()
+        {
+            ProjectData data = BuildImmutableRankProjectData(computed: false);
+            data.values["thing-instance-rank"] = new NumberMemberValue { id = "thing-instance-rank", value = 4 };
+            ((ObjectMemberValue)data.values["thing-instance"]).value!["Rank"] = "thing-instance-rank";
+            string saved;
+            using (NeoClient client = NeoTestSaveStack.ClientFromSchema(data))
+            {
+                NeoMemberClassWritable clone = NeoGeneratedTypesSupport.CloneClassValue(
+                    client,
+                    new ImmutableProbeReference { valueId = "thing-instance" });
+                Assert.AreEqual(
+                    "thing-instance-rank",
+                    ((ObjectMemberValue)clone.value!).value!["Rank"],
+                    "the clone shares the export's value");
+                Assert.AreEqual(4d, clone.Get<NeoMemberInt>("Rank").value!.value);
+
+                client.save.Get<NeoMemberListWritable>("Things").AddSerialized(
+                    NeoGeneratedTypesSupport.ValueReference(
+                        new ImmutableProbeReference { valueId = clone.value!.id }));
+                saved = client.SerializeSaveData();
+            }
+            using NeoClient reopened = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: saved);
+            Assert.AreEqual(4d, SavedThing(reopened).Get<NeoMemberInt>("Rank").value!.value);
         }
 
         [Test]

@@ -446,6 +446,8 @@ namespace NeoCompose.Runtime
             // Construction IR is immutable and its value-free validation reads
             // only the schema, so each construction site resolves once.
             internal readonly Dictionary<object, object> resolvedSites = new();
+            // By declaration identity: whether its declared value is shared.
+            internal readonly Dictionary<string, bool> immutableConstants = new(StringComparer.Ordinal);
         }
 
         /// <summary>
@@ -930,7 +932,7 @@ namespace NeoCompose.Runtime
                 // A generic entry initializer constructs in its closed placement.
                 initializerContext.initializerPlacement = member as ClassMember;
                 object?[] arguments = Array.Empty<object?>();
-                int expected = InitializerArgumentCount(init);
+                int expected = Math.Max(0, (init.compiled.parameters?.Length ?? 0) - 2);
                 if (expected > 0)
                 {
                     string? owner = ResolveInitializerOwner(client, init, member, constructedClassId);
@@ -2663,7 +2665,14 @@ namespace NeoCompose.Runtime
                 : UnplacedClassMember(classId, null, parentRow);
             client.ResolveConstructedListenerDefaults(parentRow, factoryMember);
             listenerCapture?.Complete(parentRow.id);
-            return new RuntimeConstructedClassValue(parentRow, factoryMember);
+            // An unfinished root (a declared constructor's member
+            // initializers, a validation graph) replays once it is finished.
+            if (!requireCompleteRoot)
+                return new RuntimeConstructedClassValue(parentRow, factoryMember);
+            ReplayImmutableMembers(client, parentRow.id, scope.ExistingEvaluationContext);
+            if (!client.TryGetValue(NeoValueOwnership.Session, parentRow.id, out ObjectMemberValue? current))
+                throw new InvalidOperationException($"Runtime construction lost root '{parentRow.id}'.");
+            return new RuntimeConstructedClassValue(current!, factoryMember);
         }
 
         /// <summary>
@@ -4777,8 +4786,7 @@ namespace NeoCompose.Runtime
                         argumentValues,
                         root.id,
                         ctx);
-                    if (!client.IsReplayingVirtualInstance)
-                        ReplayImmutableConstructorMembers(client, resolved.metadata, root.id, ctx);
+                    ReplayImmutableMembers(client, root.id, ctx);
                 }
                 catch
                 {
@@ -4973,37 +4981,24 @@ namespace NeoCompose.Runtime
         /// trio the evaluator's terminal reclamation sweep uses.
         /// </summary>
         /// <summary>
-        /// An Immutable initializer that reads constructor arguments has a value
-        /// per instance. Construction evaluated it for the body; the stamped
-        /// root now drops it and reads the replay's value, exactly as it will
-        /// after a reload.
+        /// A finished runtime construction stores no Immutable value. Its
+        /// Immutable members were evaluated for the constructor; the graph now
+        /// drops them and reads the replay's per-instance values, exactly as
+        /// it will after a reload.
         /// </summary>
-        private static void ReplayImmutableConstructorMembers(
+        internal static void ReplayImmutableMembers(
             NeoClient client,
-            RuntimeConstructorMetadata metadata,
             string rootValueId,
-            NeoScript.NSGetterEvaluator.Context ctx)
+            NeoScript.NSGetterEvaluator.Context? ctx)
         {
-            List<string>? schemaKeys = null;
-            foreach (var pair in metadata.membersBySchemaKey)
-            {
-                if (pair.Value.Storage == NeoMemberStorage.Immutable
-                    && InitializerReadsConstructorArguments(pair.Value))
-                {
-                    (schemaKeys ??= new List<string>()).Add(pair.Key);
-                }
-            }
-            if (schemaKeys is null)
+            if (client.IsReplayingVirtualInstance)
                 return;
-            IReadOnlyCollection<string> removed =
-                client.ReplayImmutableConstructorMembers(rootValueId, schemaKeys);
+            IReadOnlyCollection<string> removed = client.ReplayImmutableMembers(rootValueId);
             if (removed.Count == 0)
                 return;
             client.DisposeWrappersTouchingRows(removed);
-            NeoScript.NSGetterEvaluator.EvictCachedRows(
-                ctx,
-                NeoValueOwnership.Session,
-                removed);
+            if (ctx is not null)
+                NeoScript.NSGetterEvaluator.EvictCachedRows(ctx, NeoValueOwnership.Session, removed);
         }
 
         private static void ReclaimFailedConstruction(
@@ -5492,8 +5487,6 @@ namespace NeoCompose.Runtime
                     continue;
                 if (member.Storage == NeoMemberStorage.Immutable)
                 {
-                    if (HasExplicitDefaultValue(member))
-                        continue;
                     throw new InvalidOperationException(
                         $"Cannot construct '{resolved.schemaClass.name}' at runtime: Immutable member '{entry.schemaKey}'/'{entry.memberId}' is required and has no initializer.");
                 }
@@ -6302,6 +6295,231 @@ namespace NeoCompose.Runtime
                 && member is not NSFunctionMember;
         }
 
+        /// <summary>
+        /// An Immutable member whose declared value is the same for every
+        /// instance: neither its declaration nor any row that declaration owns
+        /// reads <c>this</c> or a constructor argument. Instances that omit it
+        /// share one declaration value; see <see cref="NeoClient.ImmutableDeclarationValueId"/>.
+        /// </summary>
+        internal static bool IsImmutableConstant(NeoClient client, Member member)
+        {
+            if (member.Storage != NeoMemberStorage.Immutable)
+                return false;
+            if (!IsStoredConstructorMember(member))
+                return false;
+            if (MemberValueFactory.DefaultOf(member) is not MemberValueBase declared)
+                return false;
+            ConstructorSchemaCache cache = ConstructorSchemaCaches.GetOrCreateValue(client);
+            string identity = member.RuntimeDeclarationIdentity;
+            lock (cache.gate)
+            {
+                if (cache.immutableConstants.TryGetValue(identity, out bool cached))
+                    return cached;
+            }
+            bool constant = !DeclarationReadsInstance(
+                client,
+                member,
+                declared,
+                null,
+                new HashSet<string>(StringComparer.Ordinal));
+            lock (cache.gate)
+                cache.immutableConstants[identity] = constant;
+            return constant;
+        }
+
+        /// <summary>
+        /// Whether a declared value, or a row it owns, reads its instance. Owned
+        /// rows are followed exactly as cloning follows them; a Lookup only
+        /// references.
+        /// </summary>
+        private static bool DeclarationReadsInstance(
+            NeoClient client,
+            Member member,
+            MemberValueBase body,
+            string? rowId,
+            HashSet<string> visited)
+        {
+            if (body.init is InitializerBody init)
+            {
+                // A missing body is a stale export; its reads are unknown.
+                return init.compiled is not FunctionWithReturnType compiled
+                    || (compiled.readsInstanceParameters ??= ReadsInstanceParameters(compiled));
+            }
+            if (body is MemberValue { constructorArgs: { } arguments })
+            {
+                foreach (JToken? argument in arguments.Values)
+                {
+                    if (HoldsUnboundMemberTarget(argument))
+                        return true;
+                }
+            }
+            switch (member)
+            {
+                case ClassMember classMember:
+                    {
+                        Dictionary<string, string>? children = body switch
+                        {
+                            ObjectMemberValueBase declared => declared.value,
+                            ObjectMemberValue row => row.value,
+                            _ => null,
+                        };
+                        if (children is null)
+                            return false;
+                        var schemaByKey = new Dictionary<string, MergedSchemaEntry>(StringComparer.Ordinal);
+                        foreach (MergedSchemaEntry entry in ResolveMergedSchema(
+                            client,
+                            body.classId ?? classMember.classId,
+                            classMember.classArguments))
+                        {
+                            schemaByKey[entry.schemaKey] = entry;
+                        }
+                        foreach (var pair in children)
+                        {
+                            if (!schemaByKey.TryGetValue(pair.Key, out MergedSchemaEntry? entry)
+                                || !client.TryGetMember(entry.memberId, out Member? child)
+                                || RowReadsInstance(client, child, pair.Value, visited))
+                            {
+                                return true;
+                            }
+                        }
+                        return false;
+                    }
+                case ListMember listMember:
+                    {
+                        string[]? entries = body switch
+                        {
+                            ArrayMemberValueBase declared => declared.value,
+                            ArrayMemberValue row => row.value,
+                            _ => null,
+                        };
+                        if (entries is null)
+                            return false;
+                        if (!client.TryGetMember(listMember.entryMemberId, out Member? entryMember))
+                            return true;
+                        // An inline declaration default owns no unordered entries.
+                        IEnumerable<string> entryIds = !client.IsUnorderedList(listMember)
+                            ? entries
+                            : rowId is null
+                                ? Array.Empty<string>()
+                                : client.GetUnorderedListEntryIds(rowId);
+                        foreach (string entryId in entryIds)
+                        {
+                            if (RowReadsInstance(client, entryMember, entryId, visited))
+                                return true;
+                        }
+                        return false;
+                    }
+                case DictionaryMember dictionaryMember:
+                    {
+                        Dictionary<string, string>? entries = body switch
+                        {
+                            ObjectMemberValueBase declared => declared.value,
+                            ObjectMemberValue row => row.value,
+                            _ => null,
+                        };
+                        if (entries is null)
+                            return false;
+                        if (!client.TryGetMember(dictionaryMember.entryMemberId, out Member? entryMember))
+                            return true;
+                        foreach (string entryId in entries.Values)
+                        {
+                            if (RowReadsInstance(client, entryMember, entryId, visited))
+                                return true;
+                        }
+                        return false;
+                    }
+                // An unsubstituted generic slot could hold an owned graph.
+                case GenericMember:
+                    return true;
+                case DelegateMember:
+                    {
+                        NeoDelegateValue? target = body switch
+                        {
+                            DelegateMemberValueBase declared => declared.value,
+                            DelegateMemberValue row => row.value,
+                            _ => null,
+                        };
+                        return target is { IsClosure: false, valueId: null };
+                    }
+                case ActionMember:
+                    {
+                        NeoActionValue? action = body switch
+                        {
+                            ActionMemberValueBase declared => declared.value,
+                            ActionMemberValue row => row.value,
+                            _ => null,
+                        };
+                        return action?.listeners.Exists(listener => !listener.IsClosure && listener.valueId is null) == true;
+                    }
+                default:
+                    return false;
+            }
+        }
+
+        private static bool RowReadsInstance(
+            NeoClient client,
+            Member member,
+            string valueId,
+            HashSet<string> visited)
+        {
+            if (!visited.Add(valueId))
+                return false;
+            return !client.TryGetValue(valueId, out MemberValue? row)
+                || DeclarationReadsInstance(client, member, row, row.id, visited);
+        }
+
+        // Initializers compile against [__this__, __root__, ...constructor].
+        private static bool ReadsInstanceParameters(FunctionWithReturnType body)
+        {
+            var instanceParameters = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var parameter in body.parameters ?? Array.Empty<Variable>())
+            {
+                if (parameter.id != "__root__")
+                    instanceParameters.Add(parameter.id);
+            }
+            return NeoScript.NeoScriptIrWalker.AnyPointer(
+                body.instructions,
+                pointer => pointer switch
+                {
+                    VariablePointer variable => instanceParameters.Contains(variable.variableId),
+                    ValuePointer literal => HoldsUnboundMemberTarget(literal.value.value),
+                    _ => false,
+                });
+        }
+
+        /// <summary>
+        /// A method group such as <c>selector: SelectTorso</c> compiles to a
+        /// member target with no row; the evaluator binds it to <c>this</c>.
+        /// </summary>
+        private static bool HoldsUnboundMemberTarget(JToken? token)
+        {
+            switch (token)
+            {
+                case JObject obj:
+                    if (obj.Count == 2
+                        && obj["memberId"] is JValue { Type: JTokenType.String }
+                        && obj["valueId"] is JValue { Type: JTokenType.Null })
+                    {
+                        return true;
+                    }
+                    foreach (var property in obj.Properties())
+                    {
+                        if (HoldsUnboundMemberTarget(property.Value))
+                            return true;
+                    }
+                    return false;
+                case JArray entries:
+                    foreach (JToken entry in entries)
+                    {
+                        if (HoldsUnboundMemberTarget(entry))
+                            return true;
+                    }
+                    return false;
+                default:
+                    return false;
+            }
+        }
+
         private static bool HasExplicitDefaultValue(Member schemaMember)
         {
             return schemaMember switch
@@ -7077,7 +7295,8 @@ namespace NeoCompose.Runtime
                     // A declaration's own root keeps direct authored bindings.
                     if (declarationRoot?.usesOwnBindings == true && member.valueId is not null)
                         continue;
-                    if (declarationRoot is null && OmitsImmutableMember(client, member))
+                    // Every instance shares a constant's declaration value.
+                    if (declarationRoot is null && env.Count == 0 && IsImmutableConstant(client, member))
                         continue;
 
                     // P43 §1 / §8 — an init-backed default is EVALUATED here
@@ -7145,32 +7364,12 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// Runtime construction never supplies an Immutable value: the instance
-        /// reads its declaration, and a P75 replay rebuilds it virtually.
+        /// Runtime construction never supplies an Immutable value: each instance
+        /// evaluates its declared initializer, served by its P75 replay.
         /// </summary>
         private static bool RejectsImmutableMember(NeoClient client, Member member) =>
             member.Storage == NeoMemberStorage.Immutable
             && !client.IsReplayingVirtualInstance;
-
-        /// <summary>
-        /// An Immutable member a runtime construction leaves out of its rows.
-        /// One whose initializer reads constructor arguments is still evaluated,
-        /// so the constructor body can read it; see
-        /// <see cref="NeoClient.ReplayImmutableConstructorMembers"/>.
-        /// </summary>
-        private static bool OmitsImmutableMember(NeoClient client, Member member) =>
-            RejectsImmutableMember(client, member) && !InitializerReadsConstructorArguments(member);
-
-        /// <summary>
-        /// Initializers compile against every argument of their class's
-        /// required constructor, after <c>__this__</c> and <c>__root__</c>.
-        /// </summary>
-        private static int InitializerArgumentCount(InitializerBody init) =>
-            Math.Max(0, (init.compiled?.parameters?.Length ?? 0) - 2);
-
-        internal static bool InitializerReadsConstructorArguments(Member member) =>
-            MemberValueFactory.InitializerOf(member) is InitializerBody init
-            && InitializerArgumentCount(init) > 0;
 
         private static IList<MergedSchemaEntry> ResolveMergedSchema(
             NeoClient client,
@@ -7621,8 +7820,6 @@ namespace NeoCompose.Runtime
                     client,
                     member,
                     env);
-                if (OmitsImmutableMember(client, effectiveMember))
-                    continue;
                 // P43 §1.1a — an init-backed ROW is evaluated, not copied. Its
                 // id still names a stored, addressable row in the authored
                 // graph; only its interior is computed.
@@ -7700,8 +7897,6 @@ namespace NeoCompose.Runtime
                     client,
                     member,
                     env);
-                if (OmitsImmutableMember(client, effectiveMember))
-                    continue;
                 if (sourceRow.init is not null)
                 {
                     string? initValueId = MaterializeInitializedValue(

@@ -3458,10 +3458,23 @@ namespace NeoCompose.Runtime
                                             effectiveFields[link.Key] = link.Value;
                             }
                             var remapped = new Dictionary<string, string>();
+                            bool omitsImmutable = false;
                             foreach (var pair in effectiveFields)
                             {
                                 Member? childMember =
                                     TryResolveOwnedChildMember(sourceRow, sourceMember, pair.Key);
+                                // A runtime copy owns no Immutable value: an
+                                // authored one stays shared with the export,
+                                // and an evaluated one replays from the copy.
+                                if (childMember?.Storage == NeoMemberStorage.Immutable
+                                    && !isReplayingVirtualInstance)
+                                {
+                                    if (obj.value.ContainsKey(pair.Key) && data.values.ContainsKey(pair.Value))
+                                        remapped[pair.Key] = pair.Value;
+                                    else
+                                        omitsImmutable = true;
+                                    continue;
+                                }
                                 remapped[pair.Key] = childMember is not null
                                     && plan.TryGet(
                                         ChildOwnership(childMember, sourceOwnership),
@@ -3479,6 +3492,8 @@ namespace NeoCompose.Runtime
                                         : pair.Value;
                             }
                             obj.value = remapped;
+                            if (omitsImmutable && !IsVirtualInstanceRoot(obj))
+                                StampConstructionProvenance(obj, null, new Dictionary<string, JToken?>());
                             if (sourceRow is ObjectMemberValue constructedSource && obj.constructorArgs is not null)
                                 foreach (var link in EnumerateConstructorSettledAggregateLinks(constructedSource, sourceMember))
                                     if (remapped.TryGetValue(link.schemaKey, out string? clonedChildId))

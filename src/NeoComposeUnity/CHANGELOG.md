@@ -14,7 +14,9 @@ class MixerGroup(string name) {
 
 - A readonly member is set by its initializer, a constructor, an object initializer block, or an authored value, then never written. Each instance stores its own value, so `readonly Name = name` works.
 - A readonly collection's entries are fixed after construction. Generated `Add`, `Remove`, and `Clear` throw; each entry keeps its own mutability.
-- Runtime construction no longer sets Immutable members. Generated C# factories drop their parameters, and an initializer block, constructor body, or base clause that sets one throws. The instance reads the declared initializer, evaluated with its own constructor arguments when the initializer reads them.
+- Runtime construction no longer sets Immutable members. Generated C# factories drop their parameters, and an initializer block, constructor body, or base clause that sets one throws. The value is never stored with the instance.
+- An Immutable member whose declaration reads neither `this` nor a constructor argument is a constant: every instance reads one shared value. Any other Immutable member is evaluated per instance, with its own `this` and constructor arguments, and re-evaluates after a reload.
+- `Clone()` shares an authored or constant Immutable value and re-evaluates a per-instance one.
 - Fixed: an Immutable child of a runtime-constructed instance read null, or was left behind in Session after the instance joined a Save list.
 
 ## [0.65.0] - 2026-10-08

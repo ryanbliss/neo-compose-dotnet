@@ -491,6 +491,10 @@ namespace NeoCompose.Runtime.Json
         [Newtonsoft.Json.JsonIgnore]
         internal bool[]? gridQueryParameters;
 
+        /// <summary>Whether the body reads <c>this</c> or a constructor argument, as an initializer; built on first use.</summary>
+        [Newtonsoft.Json.JsonIgnore]
+        internal bool? readsInstanceParameters;
+
         /// <summary>
         /// The only NeoScript compiler revision this runtime executes.
         /// Revision history: revision 1 is the original wire shape;

@@ -548,7 +548,7 @@ namespace NeoCompose.Runtime
             }
             else if (client.ImmutableDeclarationValueId(childMember) is string declaredValueId)
             {
-                // A runtime construction stores no Immutable value.
+                // Instances share an Immutable constant's declaration value.
                 childValueId = declaredValueId;
             }
             if (previousChildren.TryGetValue(entry.schemaKey, out NeoMember? existing)

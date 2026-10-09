@@ -349,33 +349,65 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// Drops a just-constructed Session root's Immutable keys, so those
-        /// members read the replay's per-instance values. Returns the Session
-        /// rows the dropped keys owned.
+        /// Drops every Immutable key of a finished runtime construction's
+        /// Session graph, at every depth, so those members read the replay's
+        /// per-instance values exactly as they will after a reload. Returns
+        /// the Session rows the dropped keys owned.
         /// </summary>
-        internal IReadOnlyCollection<string> ReplayImmutableConstructorMembers(
-            string rootValueId,
-            IReadOnlyList<string> schemaKeys)
+        internal IReadOnlyCollection<string> ReplayImmutableMembers(string rootValueId)
         {
-            if (!sessionData.values.TryGetValue(rootValueId, out MemberValue? row)
-                || row is not ObjectMemberValue live
-                || live.value is null)
+            List<ObjectMemberValue>? stripped = null;
+            List<string>? childIds = null;
+            var pending = new Stack<(string valueId, Member? member)>();
+            var visited = new HashSet<string>(StringComparer.Ordinal);
+            pending.Push((rootValueId, null));
+            while (pending.Count != 0)
             {
-                throw new InvalidOperationException(
-                    $"Declared constructor lost root '{rootValueId}' before its Immutable members could replay.");
+                (string valueId, Member? member) = pending.Pop();
+                if (!visited.Add(valueId) || !sessionData.values.TryGetValue(valueId, out MemberValue? row))
+                    continue;
+                if (row is not ObjectMemberValue { classId: not null, value: not null } instance)
+                {
+                    foreach (var link in EnumerateOwnedChildLinks(row, member))
+                        pending.Push(link);
+                    continue;
+                }
+                ObjectMemberValue? sparse = null;
+                foreach (KeyValuePair<string, string> pair in instance.value)
+                {
+                    Member? child = TryResolveOwnedChildMember(instance, member, pair.Key);
+                    if (child is null)
+                        continue;
+                    if (child.Storage != NeoMemberStorage.Immutable)
+                    {
+                        pending.Push((pair.Value, child));
+                        continue;
+                    }
+                    // An authored value stays shared with the export.
+                    if (data.values.ContainsKey(pair.Value))
+                        continue;
+                    sparse ??= (ObjectMemberValue)CloneRowForWrite(instance);
+                    sparse.value!.Remove(pair.Key);
+                    if (!string.IsNullOrEmpty(pair.Value))
+                        (childIds ??= new List<string>()).Add(pair.Value);
+                }
+                if (sparse is null)
+                    continue;
+                // A member-wise row replays its own class initializers.
+                if (!IsVirtualInstanceRoot(sparse))
+                    StampConstructionProvenance(sparse, null, new Dictionary<string, JToken?>());
+                (stripped ??= new List<ObjectMemberValue>()).Add(sparse);
             }
-            var root = (ObjectMemberValue)CloneRowForWrite(live);
-            var childIds = new List<string>();
-            foreach (string schemaKey in schemaKeys)
-            {
-                if (root.value!.Remove(schemaKey, out string? childId) && !string.IsNullOrEmpty(childId))
-                    childIds.Add(childId);
-            }
-            if (childIds.Count == 0)
+            if (stripped is null)
                 return Array.Empty<string>();
-            // Committing the stamped root replays it, which serves the
+            // Committing the sparse rows replays their roots, which serves the
             // dropped keys from the virtual layer.
-            SetWritableValueSilently(NeoValueOwnership.Session, root);
+            var plan = new NeoWritePlan(this);
+            foreach (ObjectMemberValue sparse in stripped)
+                plan.Set(NeoValueOwnership.Session, sparse, silent: true);
+            plan.Commit();
+            if (childIds is null)
+                return Array.Empty<string>();
             var removed = new List<string>();
             foreach (string childId in childIds)
                 removed.AddRange(RemoveTemporaryWritableValueGraph(NeoValueOwnership.Session, childId));
@@ -388,22 +420,15 @@ namespace NeoCompose.Runtime
         private readonly Dictionary<string, string?> immutableDeclarationValueIds = new(StringComparer.Ordinal);
 
         /// <summary>
-        /// The value an Immutable member reads on an instance that stores
-        /// none. A runtime construction never supplies one, so the instance
-        /// reads its declaration. An initializer has no <c>this</c>, so one
-        /// value serves every instance: it is evaluated once per declaration
-        /// and kept in the virtual layer as Asset data.
+        /// The value an Immutable constant reads on an instance that stores
+        /// none. Its value is the same for every instance, so it is evaluated
+        /// once per declaration and kept in the virtual layer as Asset data.
         /// </summary>
         internal string? ImmutableDeclarationValueId(Member member)
         {
             // A member bound to its own value reads that binding.
-            if (member.Storage != NeoMemberStorage.Immutable
-                || member.valueId is not null
-                || MemberValueFactory.DefaultOf(member) is null
-                || NeoGeneratedTypesSupport.InitializerReadsConstructorArguments(member))
-            {
+            if (member.valueId is not null || !NeoGeneratedTypesSupport.IsImmutableConstant(this, member))
                 return null;
-            }
             string identity = member.RuntimeDeclarationIdentity;
             if (immutableDeclarationValueIds.TryGetValue(identity, out string? cached)
                 && cached is not null
