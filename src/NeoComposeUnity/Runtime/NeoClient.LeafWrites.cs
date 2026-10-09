@@ -165,6 +165,7 @@ namespace NeoCompose.Runtime
             ThrowIfUserWrite(ownership);
             CheckDelegateRow(ownership, next);
             ThrowIfDepartedWrite(next.id);
+            ThrowIfConstantWrite(next.id);
             if (candidateReplay is not null || candidateReadPlan is not null
                 || nestedConstructorCapture is not null || replayAllocationScope is not null
                 || isReplayingVirtualInstance)

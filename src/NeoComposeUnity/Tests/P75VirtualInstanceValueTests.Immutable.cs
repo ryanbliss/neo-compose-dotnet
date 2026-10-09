@@ -211,8 +211,190 @@ namespace NeoCompose.Tests
             string first = BadgeId(NeoGeneratedTypesSupport.CreateWritableClassValue(client, "thing-class"), "first");
             string second = BadgeId(NeoGeneratedTypesSupport.CreateWritableClassValue(client, "thing-class"), "second");
             Assert.AreEqual(first, second, "instances share the constant");
-            Assert.AreEqual(client.ImmutableDeclarationValueId(MemberOf(client, "thing-badge")), first);
+            Assert.AreEqual(client.ConstantDeclarationValueId(MemberOf(client, "thing-badge")), first);
             Assert.IsFalse(client.sessionValues.ContainsKey(first), "the constant is not Session data");
+        }
+
+        [Test]
+        public void StoredInstanceSharesAnImmutableConstant()
+        {
+            // A member-wise stored row replays against its declaration; the
+            // constant must not be rebuilt per instance (Neowyn's 638 grass
+            // tiles each rebuilt a 251-row SmartTile).
+            ProjectData data = BuildImmutableBadgeProjectData();
+            data.values["thing-instance"] = ObjectValue("thing-instance", "thing-class");
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            NeoMemberClassWritable thing = client.save.Get<NeoMemberClassWritable>("Thing");
+            Assert.IsFalse(
+                client.TryGetVirtualClassChildValueId(thing.value!.id, "Badge", out _),
+                "the replay indexes no per-instance copy of the constant");
+            Assert.AreEqual(client.ConstantDeclarationValueId(MemberOf(client, "thing-badge")), BadgeId(thing, "stored"));
+        }
+
+        [Test]
+        public void NullImmutableConstantIsMaterializedOnce()
+        {
+            // Thing.Badge is an optional Immutable `Badge? Badge = null`.
+            ProjectData data = BuildImmutableBadgeProjectData();
+            var badge = (ClassMember)data.members["thing-badge"];
+            badge.Requirement = NeoMemberRequirementKind.Optional;
+            badge.defaultValue = new ObjectMemberValueBase();
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            Member member = MemberOf(client, "thing-badge");
+            Assert.IsTrue(NeoGeneratedTypesSupport.IsConstantMember(client, member));
+            Assert.IsNull(client.ConstantDeclarationValueId(member));
+
+            // Unity Mono does not implement GetAllocatedBytesForCurrentThread.
+            var recorder = UnityEngine.Profiling.Recorder.Get("GC.Alloc");
+            recorder.enabled = false;
+            recorder.FilterToCurrentThread();
+            recorder.enabled = true;
+            try
+            {
+                for (int i = 0; i < 100; i++)
+                    client.ConstantDeclarationValueId(member);
+            }
+            finally
+            {
+                recorder.enabled = false;
+                recorder.CollectFromAllThreads();
+            }
+            Assert.That(recorder.sampleBlockCount, Is.Zero,
+                "A null constant's repeat reads must hit the cache instead of materializing again.");
+        }
+
+        // Badge.Label is writable in each case, so no Badge value is constant.
+        [TestCase("literal")]
+        [TestCase("initializer")]
+        [TestCase("subclass")]
+        public void ImmutableValueHoldingAWritableRowIsNotShared(string shape)
+        {
+            ProjectData data = BuildImmutableBadgeProjectData();
+            var badge = (ClassMember)data.members["thing-badge"];
+            if (shape == "subclass")
+            {
+                // Only a subclass the initializer could return is writable.
+                data.classes["fancy-badge-class"] = new NeoSchemaClass
+                {
+                    id = "fancy-badge-class",
+                    name = "FancyBadge",
+                    projectId = "p75-project",
+                    extendsClassId = "badge-class",
+                    schema = new Dictionary<string, string> { ["Shine"] = "fancy-badge-shine" },
+                };
+                data.members["fancy-badge-shine"] = new IntMember
+                {
+                    id = "fancy-badge-shine",
+                    name = "Shine",
+                    kind = MemberKind.Int,
+                    Storage = NeoMemberStorage.Session,
+                    defaultValue = new NumberMemberValueBase { value = 1 },
+                };
+            }
+            else
+            {
+                data.members["badge-label"].Storage = NeoMemberStorage.Save;
+            }
+            if (shape == "literal")
+            {
+                badge.defaultValue = new ObjectMemberValueBase
+                {
+                    value = new Dictionary<string, string> { ["Label"] = "badge-label-row" },
+                };
+                data.values["badge-label-row"] = new StringMemberValue { id = "badge-label-row", value = "gold" };
+            }
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            Member member = MemberOf(client, "thing-badge");
+            Assert.IsFalse(NeoGeneratedTypesSupport.IsConstantMember(client, member));
+            Assert.IsNull(client.ConstantDeclarationValueId(member));
+        }
+
+        // Thing.Rank is `readonly int Rank = 7` in the Save family.
+        private static ProjectData BuildReadOnlyRankProjectData(bool computed)
+        {
+            ProjectData data = BuildImmutableRankProjectData(computed);
+            Member rank = data.members["thing-rank"];
+            rank.Storage = NeoMemberStorage.Inherit;
+            rank.Mutability = NeoMemberMutabilityKind.ReadOnly;
+            return data;
+        }
+
+        [Test]
+        public void ReadOnlyLiteralIsSharedUnderAnyStorage()
+        {
+            ProjectData data = BuildReadOnlyRankProjectData(computed: false);
+            string saved;
+            string shared;
+            using (NeoClient client = NeoTestSaveStack.ClientFromSchema(data))
+            {
+                shared = client.ConstantDeclarationValueId(MemberOf(client, "thing-rank"))!;
+                Assert.IsNotNull(shared);
+                NeoMemberClassWritable thing = NeoGeneratedTypesSupport.CreateWritableClassValue(client, "thing-class");
+                AssertRank(client, thing, "constructed");
+                NeoMemberIntWritable rank = thing.Get<NeoMemberIntWritable>("Rank");
+                Assert.AreEqual(shared, rank.value!.id, "the instance reads the shared value");
+                var write = Assert.Throws<InvalidOperationException>(() => rank.Set(8));
+                StringAssert.Contains("set only at construction", write!.Message);
+                AssertRank(client, thing, "after the rejected write");
+
+                client.save.Get<NeoMemberListWritable>("Things").AddSerialized(
+                    NeoGeneratedTypesSupport.ValueReference(
+                        new ImmutableProbeReference { valueId = thing.value!.id }));
+                saved = client.SerializeSaveData();
+            }
+            using NeoClient reopened = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: saved);
+            AssertRank(reopened, SavedThing(reopened), "reloaded");
+            Assert.AreEqual(
+                reopened.ConstantDeclarationValueId(MemberOf(reopened, "thing-rank")),
+                SavedThing(reopened).Get<NeoMemberInt>("Rank").value!.id);
+        }
+
+        [Test]
+        public void ReadOnlyInitializerIsEvaluatedPerInstance()
+        {
+            // The initializer could read mutable state; each instance keeps
+            // what it read when it was constructed.
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(BuildReadOnlyRankProjectData(computed: true));
+            Assert.IsFalse(NeoGeneratedTypesSupport.IsConstantMember(client, MemberOf(client, "thing-rank")));
+            NeoMemberClassWritable thing = NeoGeneratedTypesSupport.CreateWritableClassValue(client, "thing-class");
+            Assert.IsTrue(((ObjectMemberValue)thing.value!).value!.ContainsKey("Rank"), "the instance stores its value");
+            Assert.AreEqual(7d, thing.Get<NeoMemberInt>("Rank").value!.value);
+        }
+
+        // Thing.Tags is a `List<string>` declared `["shiny"]`.
+        [TestCase(NeoMemberStorage.Immutable, NeoMemberMutabilityKind.Mutable, NeoMemberStorage.Inherit, true)]
+        [TestCase(NeoMemberStorage.Immutable, NeoMemberMutabilityKind.Mutable, NeoMemberStorage.Save, false)]
+        [TestCase(NeoMemberStorage.Inherit, NeoMemberMutabilityKind.ReadOnly, NeoMemberStorage.Inherit, false)]
+        public void ListIsSharedOnlyWhenItsMembershipAndEntriesAreFixed(
+            NeoMemberStorage storage,
+            NeoMemberMutabilityKind mutability,
+            NeoMemberStorage entryStorage,
+            bool constant)
+        {
+            ProjectData data = BuildHostSlotProjectData();
+            data.classes["thing-class"].schema["Tags"] = "thing-tags";
+            data.members["thing-tag"] = new StringMember
+            {
+                id = "thing-tag",
+                projectId = "p75-project",
+                name = "Tag",
+                kind = MemberKind.String,
+                Storage = entryStorage,
+            };
+            data.members["thing-tags"] = new ListMember
+            {
+                id = "thing-tags",
+                projectId = "p75-project",
+                name = "Tags",
+                kind = MemberKind.List,
+                entryMemberId = "thing-tag",
+                Storage = storage,
+                Mutability = mutability,
+                defaultValue = new ArrayMemberValueBase { value = new[] { "thing-tag-row" } },
+            };
+            data.values["thing-tag-row"] = new StringMemberValue { id = "thing-tag-row", value = "shiny" };
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            Assert.AreEqual(constant, NeoGeneratedTypesSupport.IsConstantMember(client, MemberOf(client, "thing-tags")));
         }
 
         [Test]
@@ -243,8 +425,8 @@ namespace NeoCompose.Tests
             };
             using (NeoClient client = NeoTestSaveStack.ClientFromSchema(data))
             {
-                Assert.IsTrue(NeoGeneratedTypesSupport.IsImmutableConstant(client, MemberOf(client, "thing-badge")));
-                Assert.IsFalse(NeoGeneratedTypesSupport.IsImmutableConstant(client, MemberOf(client, "thing-handler")));
+                Assert.IsTrue(NeoGeneratedTypesSupport.IsConstantMember(client, MemberOf(client, "thing-badge")));
+                Assert.IsFalse(NeoGeneratedTypesSupport.IsConstantMember(client, MemberOf(client, "thing-handler")));
             }
             labelRow.value = null;
             labelRow.init = ReturnVariableInitializer(
@@ -253,7 +435,7 @@ namespace NeoCompose.Tests
                 new[] { ConstructorVariable("__this__", ClassType("badge-class")) },
                 "__this__");
             using (NeoClient client = NeoTestSaveStack.ClientFromSchema(data))
-                Assert.IsFalse(NeoGeneratedTypesSupport.IsImmutableConstant(client, MemberOf(client, "thing-badge")));
+                Assert.IsFalse(NeoGeneratedTypesSupport.IsConstantMember(client, MemberOf(client, "thing-badge")));
         }
 
         // Thing.Rank is an Immutable `InitialRank`, read from the declared

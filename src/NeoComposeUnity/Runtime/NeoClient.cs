@@ -2193,6 +2193,7 @@ namespace NeoCompose.Runtime
             classNodes.Clear();
             interfaceHooks.Clear();
             NeoGeneratedTypesSupport.InvalidateConstructorSchemaCaches(this);
+            constantDeclarationValueIds.Clear();
             settledAggregateParameters.Clear();
             ApplyScriptRuntimeSchema();
         }

@@ -546,9 +546,9 @@ namespace NeoCompose.Runtime
             {
                 childValueId = virtualChildValueId;
             }
-            else if (client.ImmutableDeclarationValueId(childMember) is string declaredValueId)
+            else if (client.ConstantDeclarationValueId(childMember) is string declaredValueId)
             {
-                // Instances share an Immutable constant's declaration value.
+                // Instances share a constant member's declaration value.
                 childValueId = declaredValueId;
             }
             if (previousChildren.TryGetValue(entry.schemaKey, out NeoMember? existing)

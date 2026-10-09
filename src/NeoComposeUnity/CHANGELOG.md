@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.66.1] - 2026-10-09
+
+- Fixed: loading a save rebuilt every constant Immutable member once per stored instance. Each now reads the one shared declaration value. In Neowyn, where each of 638 grass tiles rebuilt its `SmartTile`, loading a save drops from ~5.1 s to ~1.1 s, its 0.65.0 time.
+- Fixed: an Immutable constant whose value holds a writable member, such as a Save field, was shared by every instance. Each instance now evaluates its own.
+- Changed: a `readonly` member whose declared value is a literal holding nothing writable is shared like an Immutable constant, as it was in 0.65.0. Instances that don't set it store nothing. Readonly collections stay per instance, since a constructor can still change their membership.
+- Changed: writing a shared constant value throws.
+- Fixed: a constant Immutable member declared `null` re-evaluated its declaration on every read.
+
 ## [0.66.0] - 2026-10-08
 
 `readonly` is init-only, as in C#, on Save, Session, Immutable, and User classes. Requires export schema 42 and CLI 0.76.0; run `neo export` after upgrading.

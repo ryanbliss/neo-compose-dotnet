@@ -122,7 +122,7 @@ namespace NeoCompose.Tests
 
             Assert.AreEqual(12, hero.BaseDamage);
             Assert.AreEqual(
-                client.ImmutableDeclarationValueId(client.members["member-base-damage"]),
+                client.ConstantDeclarationValueId(client.members["member-base-damage"]),
                 node.Get<NeoMemberInt>("BaseDamage").value!.id);
         }
 

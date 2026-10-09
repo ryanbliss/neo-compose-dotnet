@@ -284,6 +284,7 @@ namespace NeoCompose.Runtime
             Client.ThrowIfUserWrite(ownership);
             Client.CheckDelegateRow(ownership, row);
             Client.ThrowIfDepartedWrite(row.id);
+            Client.ThrowIfConstantWrite(row.id);
             var key = (ownership, row.id);
             Record(key);
             Restage(key, row);
@@ -337,6 +338,7 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException("Cannot remove immutable asset data.");
             Client.ThrowIfUserWrite(ownership);
             Client.ThrowIfDepartedWrite(id);
+            Client.ThrowIfConstantWrite(id);
             var key = (ownership, id);
             Record(key);
             Restage(key, null);

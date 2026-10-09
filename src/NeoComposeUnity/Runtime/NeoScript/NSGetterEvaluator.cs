@@ -4661,8 +4661,8 @@ namespace NeoCompose.Runtime.NeoScript
                     return child;
                 }
             }
-            // Instances share an Immutable constant's declaration value.
-            if (ctx.client.ImmutableDeclarationValueId(member) is string declaredValueId)
+            // Instances share a constant member's declaration value.
+            if (ctx.client.ConstantDeclarationValueId(member) is string declaredValueId)
             {
                 NeoValueNode? declaredNode = null;
                 return ResolveValueIfId(declaredValueId, ctx, receiverOwnership, member, ref declaredNode);
