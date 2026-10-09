@@ -21,9 +21,6 @@ namespace NeoCompose.Runtime
         internal readonly Dictionary<string, MemberValue> listenerRoots = new(StringComparer.Ordinal);
         internal readonly Dictionary<string, NeoValueOwnership> ownership = new();
         internal readonly Dictionary<string, NeoValueOwnership> storageRoots = new();
-        // The Lookup defaults the read-only pass deferred to partition loads.
-        internal (Member member, string subject)[] deferredReadOnlyLookupDefaults =
-            Array.Empty<(Member, string)>();
         internal bool membershipBuilt;
         internal bool ownershipBuilt;
         internal int ownershipEpoch;

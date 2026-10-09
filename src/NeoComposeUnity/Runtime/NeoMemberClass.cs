@@ -112,13 +112,6 @@ namespace NeoCompose.Runtime
             Member childMember,
             string? overrideValueId)
         {
-            if (childMember.Mutability == NeoMemberMutabilityKind.ReadOnly)
-            {
-                // Declaration-backed nodes are shared by member id across all
-                // containing instances. They deliberately have no containing
-                // parent and always use the non-writable Asset family.
-                return Create(client, childMember, overrideValueId: null);
-            }
             return CreateOwnedChild(client, childMember, overrideValueId, writableFamily: false);
         }
 
@@ -525,36 +518,38 @@ namespace NeoCompose.Runtime
                 childMember = declaration;
             }
             string? childValueId = null;
-            if (childMember.Mutability != NeoMemberMutabilityKind.ReadOnly)
+            if (value?.value is not null
+                && value.value.TryGetValue(entry.schemaKey, out string valueIdForKey))
             {
-                if (value?.value is not null
-                    && value.value.TryGetValue(entry.schemaKey, out string valueIdForKey))
-                {
-                    childValueId = valueIdForKey;
-                }
-                else if (overrideValueId is null
-                    && member.defaultValue?.value is not null
-                    && member.defaultValue.value.TryGetValue(
-                        entry.schemaKey,
-                        out string defaultValueIdForKey))
-                {
-                    // A member's own authored row may be sparse even when
-                    // its declaration carries a composite default. Missing
-                    // keys inherit that default child row; authored row
-                    // keys still win above. Externally-bound instance rows
-                    // keep absence meaningful (for example an omitted
-                    // optional tile-grid assetValueId). Partial Class
-                    // members never reach this branch for missing keys.
-                    childValueId = defaultValueIdForKey;
-                }
-                else if (resolvedValueId is not null
-                    && client.TryGetVirtualClassChildValueId(
-                        resolvedValueId,
-                        entry.schemaKey,
-                        out string? virtualChildValueId))
-                {
-                    childValueId = virtualChildValueId;
-                }
+                childValueId = valueIdForKey;
+            }
+            else if (overrideValueId is null
+                && member.defaultValue?.value is not null
+                && member.defaultValue.value.TryGetValue(
+                    entry.schemaKey,
+                    out string defaultValueIdForKey))
+            {
+                // A member's own authored row may be sparse even when
+                // its declaration carries a composite default. Missing
+                // keys inherit that default child row; authored row
+                // keys still win above. Externally-bound instance rows
+                // keep absence meaningful (for example an omitted
+                // optional tile-grid assetValueId). Partial Class
+                // members never reach this branch for missing keys.
+                childValueId = defaultValueIdForKey;
+            }
+            else if (resolvedValueId is not null
+                && client.TryGetVirtualClassChildValueId(
+                    resolvedValueId,
+                    entry.schemaKey,
+                    out string? virtualChildValueId))
+            {
+                childValueId = virtualChildValueId;
+            }
+            else if (client.ImmutableDeclarationValueId(childMember) is string declaredValueId)
+            {
+                // A runtime construction stores no Immutable value.
+                childValueId = declaredValueId;
             }
             if (previousChildren.TryGetValue(entry.schemaKey, out NeoMember? existing)
                 // A P75 rebuild mints new rows at the SAME deterministic
@@ -580,8 +575,7 @@ namespace NeoCompose.Runtime
             if (childValueId is null
                 && MemberValueFactory.InitializerOf(childMember) is not null
                 && (client.IsAwaitingVirtualInstanceInitializers(value)
-                    || (childMember.valueId is null
-                        && childMember.Mutability != NeoMemberMutabilityKind.ReadOnly)))
+                    || childMember.valueId is null))
             {
                 return;
             }
@@ -757,10 +751,6 @@ namespace NeoCompose.Runtime
             Member childMember,
             string? overrideValueId)
         {
-            if (childMember.Mutability == NeoMemberMutabilityKind.ReadOnly)
-            {
-                return Create(client, childMember, overrideValueId: null);
-            }
             return CreateOwnedChild(client, childMember, overrideValueId, writableFamily: true);
         }
 
@@ -1226,12 +1216,6 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException(
                     $"Cannot bind a child value on Class '{member.id}': child is not a registered schema field.");
             }
-            string? memberId = LookupMergedMemberId(key);
-            if (memberId is not null
-                && client.TryGetMember(memberId, out Member? rawMember))
-            {
-                RejectReadOnlyInstanceMutation(key, SubstituteChildMember(rawMember));
-            }
             NeoTimestamp nowIso = NeoTimestamp.Now();
             ObjectMemberValue record = EnsureWritableObject(plan, nowIso);
             record.value![key] = childValueId;
@@ -1363,7 +1347,7 @@ namespace NeoCompose.Runtime
             if (childMember.Mutability != NeoMemberMutabilityKind.ReadOnly)
                 return;
             throw new System.InvalidOperationException(
-                $"Cannot write '{key}': read-only declaration member '{childMember.name}' ({childMember.id}) cannot have an instance value. Change its class default instead.");
+                $"Cannot write '{key}': readonly member '{childMember.name}' ({childMember.id}) is set only at construction.");
         }
 
         /// <summary>

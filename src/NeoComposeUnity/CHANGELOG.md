@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.66.0] - 2026-10-08
+
+`readonly` is init-only, as in C#, on Save, Session, Immutable, and User classes. Requires export schema 42 and CLI 0.76.0; run `neo export` after upgrading.
+
+```neo
+class MixerGroup(string name) {
+  public readonly string Name = name;
+  public readonly List<MixerChannel> Children = [];
+  public float Volume = 1;
+}
+```
+
+- A readonly member is set by its initializer, a constructor, an object initializer block, or an authored value, then never written. Each instance stores its own value, so `readonly Name = name` works.
+- A readonly collection's entries are fixed after construction. Generated `Add`, `Remove`, and `Clear` throw; each entry keeps its own mutability.
+- Runtime construction no longer sets Immutable members. Generated C# factories drop their parameters, and an initializer block, constructor body, or base clause that sets one throws. The instance reads the declared initializer, evaluated with its own constructor arguments when the initializer reads them.
+- Fixed: an Immutable child of a runtime-constructed instance read null, or was left behind in Session after the instance joined a Save list.
+
 ## [0.65.0] - 2026-10-08
 
 NeoScript clears a listener set with `OnChanged.Clear()`, on a stored member or an instance getter. Requires export schema 41 and CLI 0.75.0; run `neo export` after upgrading.

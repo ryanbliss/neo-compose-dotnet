@@ -349,6 +349,93 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
+        /// Drops a just-constructed Session root's Immutable keys, so those
+        /// members read the replay's per-instance values. Returns the Session
+        /// rows the dropped keys owned.
+        /// </summary>
+        internal IReadOnlyCollection<string> ReplayImmutableConstructorMembers(
+            string rootValueId,
+            IReadOnlyList<string> schemaKeys)
+        {
+            if (!sessionData.values.TryGetValue(rootValueId, out MemberValue? row)
+                || row is not ObjectMemberValue live
+                || live.value is null)
+            {
+                throw new InvalidOperationException(
+                    $"Declared constructor lost root '{rootValueId}' before its Immutable members could replay.");
+            }
+            var root = (ObjectMemberValue)CloneRowForWrite(live);
+            var childIds = new List<string>();
+            foreach (string schemaKey in schemaKeys)
+            {
+                if (root.value!.Remove(schemaKey, out string? childId) && !string.IsNullOrEmpty(childId))
+                    childIds.Add(childId);
+            }
+            if (childIds.Count == 0)
+                return Array.Empty<string>();
+            // Committing the stamped root replays it, which serves the
+            // dropped keys from the virtual layer.
+            SetWritableValueSilently(NeoValueOwnership.Session, root);
+            var removed = new List<string>();
+            foreach (string childId in childIds)
+                removed.AddRange(RemoveTemporaryWritableValueGraph(NeoValueOwnership.Session, childId));
+            return removed;
+        }
+
+        // Every declaration value is indexed under this one pseudo root, so a
+        // full virtual rebuild retires them with the instance expansions.
+        private const string ImmutableDeclarationValuesRoot = "__neo_immutable_declarations";
+        private readonly Dictionary<string, string?> immutableDeclarationValueIds = new(StringComparer.Ordinal);
+
+        /// <summary>
+        /// The value an Immutable member reads on an instance that stores
+        /// none. A runtime construction never supplies one, so the instance
+        /// reads its declaration. An initializer has no <c>this</c>, so one
+        /// value serves every instance: it is evaluated once per declaration
+        /// and kept in the virtual layer as Asset data.
+        /// </summary>
+        internal string? ImmutableDeclarationValueId(Member member)
+        {
+            // A member bound to its own value reads that binding.
+            if (member.Storage != NeoMemberStorage.Immutable
+                || member.valueId is not null
+                || MemberValueFactory.DefaultOf(member) is null
+                || NeoGeneratedTypesSupport.InitializerReadsConstructorArguments(member))
+            {
+                return null;
+            }
+            string identity = member.RuntimeDeclarationIdentity;
+            if (immutableDeclarationValueIds.TryGetValue(identity, out string? cached)
+                && cached is not null
+                && (virtualValues.ContainsKey(cached) || data.values.ContainsKey(cached)))
+            {
+                return cached;
+            }
+            var rows = new List<MemberValue>();
+            string? valueId;
+            using (var allocations = new ReplayAllocationScope(this))
+            {
+                valueId = NeoGeneratedTypesSupport.MaterializeDeclarationValue(this, member, rows);
+                // Rows the initializer constructed belong to the value; the
+                // scope reclaims them from Session.
+                foreach (string allocated in allocations.Ids)
+                    if (sessionData.values.TryGetValue(allocated, out MemberValue? row))
+                        rows.Add(CloneRowForWrite(row));
+            }
+            foreach (MemberValue row in rows)
+            {
+                virtualValues[row.id] = row;
+                virtualValueOwnership[row.id] = NeoValueOwnership.Asset;
+                SyncValueNode(row.id);
+                TrackVirtualValue(ImmutableDeclarationValuesRoot, row.id);
+                if (!string.IsNullOrEmpty(row.containerId))
+                    AddMembership(virtualEntriesByContainer, virtualContainerByRow, row.id, row.containerId!);
+            }
+            immutableDeclarationValueIds[identity] = valueId;
+            return valueId;
+        }
+
+        /// <summary>
         /// P75: replays sparse instance roots against the current declaration
         /// defaults, then indexes their omitted rows under deterministic ids.
         /// The replay graph is temporary Session data; only immutable read
@@ -495,11 +582,6 @@ namespace NeoCompose.Runtime
                     readyRoots.Enqueue(nestedRoot);
                 }
             }
-            // Recovery already removed illegal read-only Class keys, but its
-            // stale value rows cannot be judged until sparse writable paths
-            // have entered the virtual index. Delete only after every root
-            // reachable through those paths has replayed.
-            RemoveRecoveredReadOnlySaveValues();
             // Unreferenced authored rows are not part of a runtime graph.
             // Exports can retain detached historical children; do not execute
             // their constructors. Persisted save roots still fail closed.
@@ -568,7 +650,7 @@ namespace NeoCompose.Runtime
                 if (!IsVirtualInstanceRoot(root))
                 {
                     if (!virtualFootprintByRoot.ContainsKey(root.id)
-                        && ResolveStoredInstanceSchema(root.classId!).All(entry => root.value!.ContainsKey(entry.schemaKey)))
+                        && ResolveInstanceSurfaceSchema(root.classId!).All(entry => root.value!.ContainsKey(entry.schemaKey)))
                         return;
                     if ((virtualClassChildren.ContainsKey(root.id)
                             && virtualRootByFootprintId.TryGetValue(root.id, out string? owner) && owner != root.id)
@@ -1608,7 +1690,7 @@ namespace NeoCompose.Runtime
             if (member is ClassMember classMember && row is ObjectMemberValue { value: not null } classRow)
             {
                 string classId = classRow.classId ?? classMember.classId;
-                foreach (var entry in ResolveStoredInstanceSchema(classId))
+                foreach (var entry in ResolveInstanceSurfaceSchema(classId))
                 {
                     bool constructed = classRow.value.TryGetValue(entry.schemaKey, out string childId);
                     if (!constructed && classMember.Payload == NeoMemberPayloadKind.Partial)

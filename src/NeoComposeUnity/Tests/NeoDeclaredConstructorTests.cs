@@ -1881,17 +1881,14 @@ namespace NeoCompose.Tests
                 kind = MemberKind.String,
                 Requirement = NeoMemberRequirementKind.Required,
                 Format = NeoStringFormatKind.Plain,
-                Mutability = NeoMemberMutabilityKind.ReadOnly,
                 defaultValue = new StringMemberValueBase
                 {
                     init = new InitializerBody { code = "Compute()" },
                 },
             };
 
-            // Read-only members are REQUIRED to carry an explicit default, and
-            // an initializer satisfies that check — so without this guard a
-            // read-only member declared with an initializer would load fine and
-            // then read back as null.
+            // Without this guard a literal read of an initializer default
+            // would read back as null.
             InvalidOperationException error =
                 Assert.Throws<InvalidOperationException>(() =>
                     MemberValueFactory.CreateFromDefault(

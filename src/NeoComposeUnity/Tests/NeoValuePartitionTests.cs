@@ -120,7 +120,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void PartitionFile_IsReadAndValidatedOncePerProjectData()
+        public void PartitionFile_IsReadOncePerProjectData()
         {
             var reads = new List<string>();
             ProjectData data = BuildPartitionedProjectData(reads: reads);
@@ -133,8 +133,7 @@ namespace NeoCompose.Tests
             second.LoadValuePartition(WorldPartitionKey);
 
             CollectionAssert.AreEqual(new[] { WorldPartitionKey }, reads);
-            Assert.IsTrue(data.valuePartitions.TryGetLoaded(WorldPartitionKey, out var partition));
-            Assert.IsTrue(partition!.Validated);
+            Assert.IsTrue(data.valuePartitions.TryGetLoaded(WorldPartitionKey, out _));
             Assert.IsTrue(second.values.ContainsKey("floor-1"));
         }
 

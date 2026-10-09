@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "projectId": "test-project",
-  "codegenRevision": "e4a632a177c87244e19da71c9840b8007735773ae5f81578f58ce246ec6cb03d",
+  "codegenRevision": "7bbb5934f7d376a367fb30e4202e23fdc98aff147a616f9fa2071518db2139c5",
   "files": [
     {
       "id": "class:class-abstract-readonly-stats",
@@ -206,7 +206,7 @@
     {
       "id": "class:class-root",
       "path": "Generated/Classes/Root.g.cs",
-      "hash": "2fdfb6accd96220e1d7ac06396b13fb27df0796ee123fbed99ebbfaa5b736d10"
+      "hash": "d322bf241d8e5bcb8a3e832615d578943d5dc69cda3b8cbe3d1a90380d2238bb"
     },
     {
       "id": "class:class-sample-blocked-path",
@@ -251,7 +251,7 @@
     {
       "id": "class:class-storage-e",
       "path": "Generated/Classes/StorageE.g.cs",
-      "hash": "fe2e7db531faa5e7cb4e599d0fa0c542891f77b7c9ae4638391d0da2156eb5c7"
+      "hash": "a42a8a5c99366ceaebed111be9f3aee207c287e5a7e7194b7e17db9619a9a535"
     },
     {
       "id": "class:class-storage-f",

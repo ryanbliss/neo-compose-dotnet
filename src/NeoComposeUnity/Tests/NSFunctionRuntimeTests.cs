@@ -4137,9 +4137,8 @@ namespace NeoCompose.Tests
             Assert.IsInstanceOf<VoidTypeInfo>(json.ToObject<DelegateTypeInfo>()!.returnTypeInfo);
         }
 
-        [TestCase(false)]
-        [TestCase(true)]
-        public void Invoke_WritesGenericFieldsUsingSavePlacement(bool readOnly)
+        [Test]
+        public void Invoke_WritesGenericFieldsUsingSavePlacement()
         {
             const string param = "watcher-param";
             var current = new GenericMember
@@ -4149,10 +4148,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 kind = MemberKind.Generic,
                 genericParamId = param,
-                Mutability = readOnly ? NeoMemberMutabilityKind.ReadOnly : NeoMemberMutabilityKind.Mutable,
             };
-            if (readOnly)
-                current.Storage = NeoMemberStorage.Immutable;
             var previous = new GenericMember
             {
                 id = "watcher-previous",
@@ -4214,11 +4210,6 @@ namespace NeoCompose.Tests
             client.SetWritableValue(NeoValueOwnership.Save, root);
             client.SetWritableValue(NeoValueOwnership.Save, ObjectValue("saved-watcher", watcherClass.id));
             var node = new NeoMemberNSFunction(client, function, null, NeoValueOwnership.Save);
-            if (readOnly)
-            {
-                StringAssert.Contains("readonly", Assert.Throws<NSGetterRuntimeError>(() => node.Invoke("saved-watcher", new object?[] { 12 }))!.Message);
-                return;
-            }
             Assert.AreEqual(12L, Convert.ToInt64(node.Invoke("saved-watcher", new object?[] { 12 })));
             Assert.IsTrue(client.TryGetValue(NeoValueOwnership.Save, "saved-watcher", out ObjectMemberValue? saved));
             string currentId = saved!.value!["Current"];

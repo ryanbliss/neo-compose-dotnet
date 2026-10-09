@@ -930,7 +930,7 @@ namespace NeoCompose.Runtime
                 // A generic entry initializer constructs in its closed placement.
                 initializerContext.initializerPlacement = member as ClassMember;
                 object?[] arguments = Array.Empty<object?>();
-                int expected = Math.Max(0, (init.compiled.parameters?.Length ?? 0) - 2);
+                int expected = InitializerArgumentCount(init);
                 if (expected > 0)
                 {
                     string? owner = ResolveInitializerOwner(client, init, member, constructedClassId);
@@ -2132,7 +2132,7 @@ namespace NeoCompose.Runtime
                     }
 
                     MergedSchemaEntry? matchedEntry = null;
-                    foreach (MergedSchemaEntry entry in client.ResolveStoredInstanceSchema(parentClass.id))
+                    foreach (MergedSchemaEntry entry in client.ResolveInstanceSurfaceSchema(parentClass.id))
                     {
                         if (entry.schemaKey == pair.Key)
                         {
@@ -3273,11 +3273,6 @@ namespace NeoCompose.Runtime
                         if (!trustedMaterialization
                             && row.value.ContainsKey(entry.schemaKey))
                         {
-                            if (member.Mutability == NeoMemberMutabilityKind.ReadOnly)
-                            {
-                                throw new InvalidOperationException(
-                                    $"Constructed Class row '{path}' contains read-only declaration member '{entry.schemaKey}'; read-only declaration members cannot have instance values.");
-                            }
                             throw new InvalidOperationException(
                                 $"Constructed Class row '{path}' contains non-stored member '{entry.schemaKey}'.");
                         }
@@ -3296,7 +3291,8 @@ namespace NeoCompose.Runtime
                         // Sparse replay gets omitted members from its stored overlay.
                         if (member.Requirement == NeoMemberRequirementKind.Required
                             && requireRequiredMembers
-                            && !client.IsReplayingVirtualInstance)
+                            && !client.IsReplayingVirtualInstance
+                            && !(member.Storage == NeoMemberStorage.Immutable && HasExplicitDefaultValue(member)))
                         {
                             throw new InvalidOperationException(
                                 $"Constructed Class row '{path}' is missing required member '{entry.schemaKey}'/'{entry.memberId}'.");
@@ -4781,6 +4777,8 @@ namespace NeoCompose.Runtime
                         argumentValues,
                         root.id,
                         ctx);
+                    if (!client.IsReplayingVirtualInstance)
+                        ReplayImmutableConstructorMembers(client, resolved.metadata, root.id, ctx);
                 }
                 catch
                 {
@@ -4974,6 +4972,40 @@ namespace NeoCompose.Runtime
         /// published, using the same removal + wrapper-disposal + cache-eviction
         /// trio the evaluator's terminal reclamation sweep uses.
         /// </summary>
+        /// <summary>
+        /// An Immutable initializer that reads constructor arguments has a value
+        /// per instance. Construction evaluated it for the body; the stamped
+        /// root now drops it and reads the replay's value, exactly as it will
+        /// after a reload.
+        /// </summary>
+        private static void ReplayImmutableConstructorMembers(
+            NeoClient client,
+            RuntimeConstructorMetadata metadata,
+            string rootValueId,
+            NeoScript.NSGetterEvaluator.Context ctx)
+        {
+            List<string>? schemaKeys = null;
+            foreach (var pair in metadata.membersBySchemaKey)
+            {
+                if (pair.Value.Storage == NeoMemberStorage.Immutable
+                    && InitializerReadsConstructorArguments(pair.Value))
+                {
+                    (schemaKeys ??= new List<string>()).Add(pair.Key);
+                }
+            }
+            if (schemaKeys is null)
+                return;
+            IReadOnlyCollection<string> removed =
+                client.ReplayImmutableConstructorMembers(rootValueId, schemaKeys);
+            if (removed.Count == 0)
+                return;
+            client.DisposeWrappersTouchingRows(removed);
+            NeoScript.NSGetterEvaluator.EvictCachedRows(
+                ctx,
+                NeoValueOwnership.Session,
+                removed);
+        }
+
         private static void ReclaimFailedConstruction(
             NeoClient client,
             string rootValueId,
@@ -5458,6 +5490,13 @@ namespace NeoCompose.Runtime
                     continue;
                 if (root.value.ContainsKey(entry.schemaKey))
                     continue;
+                if (member.Storage == NeoMemberStorage.Immutable)
+                {
+                    if (HasExplicitDefaultValue(member))
+                        continue;
+                    throw new InvalidOperationException(
+                        $"Cannot construct '{resolved.schemaClass.name}' at runtime: Immutable member '{entry.schemaKey}'/'{entry.memberId}' is required and has no initializer.");
+                }
                 throw new InvalidOperationException(
                     $"Declared constructor for '{resolved.schemaClass.name}' left required member '{entry.schemaKey}'/'{entry.memberId}' unset. Assign it in the constructor body, give it a default, or pass it at the call site.");
             }
@@ -6116,6 +6155,13 @@ namespace NeoCompose.Runtime
                 Member member = membersBySchemaKey[entry.schemaKey];
                 if (!IsStoredConstructorMember(member))
                     continue;
+                if (!replayStoredInstance
+                    && RejectsImmutableMember(client, member)
+                    && RequiresRuntimeConstructorArgument(member))
+                {
+                    throw new InvalidOperationException(
+                        $"Cannot construct '{schemaClass.name}' at runtime: Immutable member '{entry.schemaKey}'/'{entry.memberId}' is required and has no initializer.");
+                }
                 // A declared constructor never has to name every required
                 // field at the call site — its body may set them — so this
                 // check is off for that path and the finished instance is
@@ -6140,13 +6186,13 @@ namespace NeoCompose.Runtime
                 Member member = membersBySchemaKey[field.schemaKey];
                 if (!IsStoredConstructorMember(member))
                 {
-                    if (member.Mutability == NeoMemberMutabilityKind.ReadOnly)
-                    {
-                        throw new InvalidOperationException(
-                            $"Class constructor field '{field.schemaKey}' references read-only declaration member '{entry.memberId}'. Regenerate the NeoScript IR; readonly fields are never constructor parameters.");
-                    }
                     throw new InvalidOperationException(
                         $"Class constructor field '{field.schemaKey}' references non-stored member '{entry.memberId}'.");
+                }
+                if (!replayStoredInstance && RejectsImmutableMember(client, member))
+                {
+                    throw new InvalidOperationException(
+                        $"Class constructor field '{field.schemaKey}' sets Immutable member '{entry.memberId}'. Runtime construction reads Immutable members from their declaration.");
                 }
             }
             var metadata = new RuntimeConstructorMetadata
@@ -6251,7 +6297,6 @@ namespace NeoCompose.Runtime
         internal static bool IsStoredConstructorMember(Member member)
         {
             return member.Modifier != NeoMemberModifierKind.Static
-                && member.Mutability != NeoMemberMutabilityKind.ReadOnly
                 && member is not NSPropertyMember
                 && member is not FunctionMember
                 && member is not NSFunctionMember;
@@ -6357,6 +6402,45 @@ namespace NeoCompose.Runtime
                     };
                 return id;
             }
+        }
+
+        /// <summary>
+        /// The value <paramref name="member"/>'s declaration produces, built
+        /// into <paramref name="rows"/>: its initializer's product, or its
+        /// literal default. See <see cref="NeoClient.ImmutableDeclarationValueId"/>.
+        /// </summary>
+        internal static string? MaterializeDeclarationValue(
+            NeoClient client,
+            Member member,
+            List<MemberValue> rows)
+        {
+            var scope = new NeoConstructionScope(client, null);
+            NeoTimestamp nowIso = NeoTimestamp.Now();
+            string path = $"$.{member.name}";
+            if (InitializerOf(member) is not null)
+            {
+                return MaterializeInitializedValue(
+                    client,
+                    member,
+                    MemberValueFactory.DefaultOf(member)!,
+                    rows,
+                    nowIso,
+                    scope,
+                    NeoGenericResolution.EmptyEnv,
+                    path);
+            }
+            MemberValue? row = CreateDefaultValueRow(
+                client,
+                member,
+                rows,
+                nowIso,
+                scope,
+                NeoGenericResolution.EmptyEnv,
+                path);
+            if (row is null)
+                return null;
+            rows.Add(row);
+            return row.id;
         }
 
         private static string? MaterializeRuntimeConstructorValue(
@@ -6993,6 +7077,8 @@ namespace NeoCompose.Runtime
                     // A declaration's own root keeps direct authored bindings.
                     if (declarationRoot?.usesOwnBindings == true && member.valueId is not null)
                         continue;
+                    if (declarationRoot is null && OmitsImmutableMember(client, member))
+                        continue;
 
                     // P43 §1 / §8 — an init-backed default is EVALUATED here
                     // rather than read, so a runtime-constructed instance gets
@@ -7057,6 +7143,34 @@ namespace NeoCompose.Runtime
                 scope.ExitClass(classId);
             }
         }
+
+        /// <summary>
+        /// Runtime construction never supplies an Immutable value: the instance
+        /// reads its declaration, and a P75 replay rebuilds it virtually.
+        /// </summary>
+        private static bool RejectsImmutableMember(NeoClient client, Member member) =>
+            member.Storage == NeoMemberStorage.Immutable
+            && !client.IsReplayingVirtualInstance;
+
+        /// <summary>
+        /// An Immutable member a runtime construction leaves out of its rows.
+        /// One whose initializer reads constructor arguments is still evaluated,
+        /// so the constructor body can read it; see
+        /// <see cref="NeoClient.ReplayImmutableConstructorMembers"/>.
+        /// </summary>
+        private static bool OmitsImmutableMember(NeoClient client, Member member) =>
+            RejectsImmutableMember(client, member) && !InitializerReadsConstructorArguments(member);
+
+        /// <summary>
+        /// Initializers compile against every argument of their class's
+        /// required constructor, after <c>__this__</c> and <c>__root__</c>.
+        /// </summary>
+        private static int InitializerArgumentCount(InitializerBody init) =>
+            Math.Max(0, (init.compiled?.parameters?.Length ?? 0) - 2);
+
+        internal static bool InitializerReadsConstructorArguments(Member member) =>
+            MemberValueFactory.InitializerOf(member) is InitializerBody init
+            && InitializerArgumentCount(init) > 0;
 
         private static IList<MergedSchemaEntry> ResolveMergedSchema(
             NeoClient client,
@@ -7507,6 +7621,8 @@ namespace NeoCompose.Runtime
                     client,
                     member,
                     env);
+                if (OmitsImmutableMember(client, effectiveMember))
+                    continue;
                 // P43 §1.1a — an init-backed ROW is evaluated, not copied. Its
                 // id still names a stored, addressable row in the authored
                 // graph; only its interior is computed.
@@ -7584,6 +7700,8 @@ namespace NeoCompose.Runtime
                     client,
                     member,
                     env);
+                if (OmitsImmutableMember(client, effectiveMember))
+                    continue;
                 if (sourceRow.init is not null)
                 {
                     string? initValueId = MaterializeInitializedValue(

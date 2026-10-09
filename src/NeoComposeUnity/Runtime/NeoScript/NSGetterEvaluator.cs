@@ -1977,8 +1977,7 @@ namespace NeoCompose.Runtime.NeoScript
                         kop.keyOf,
                         scope,
                         ctx,
-                        kop.optional == true,
-                        kop.memberId);
+                        kop.optional == true);
                 case OperationPointer op:
                     return EvalOperation(op.operation, scope, ctx);
                 case FunctionPointer fp:
@@ -3282,7 +3281,6 @@ namespace NeoCompose.Runtime.NeoScript
                 scope,
                 ctx,
                 keyOfPointer.optional == true,
-                keyOfPointer.memberId,
                 ref owner,
                 reportReceiver: true);
         }
@@ -3984,8 +3982,7 @@ namespace NeoCompose.Runtime.NeoScript
             KeyOf keyOf,
             NeoScriptScope scope,
             Context ctx,
-            bool optional,
-            string? pinnedMemberId)
+            bool optional)
         {
             object? receiver;
             if (ctx.client.PendingScriptWrites is { HasCollections: true } batch
@@ -4004,7 +4001,6 @@ namespace NeoCompose.Runtime.NeoScript
                 scope,
                 ctx,
                 optional,
-                pinnedMemberId,
                 ref unused,
                 reportReceiver: false);
         }
@@ -4027,7 +4023,6 @@ namespace NeoCompose.Runtime.NeoScript
                 scope,
                 ctx,
                 pointer.optional == true,
-                pointer.memberId,
                 ref unused,
                 reportReceiver: false);
         }
@@ -4046,7 +4041,6 @@ namespace NeoCompose.Runtime.NeoScript
             NeoScriptScope scope,
             Context ctx,
             bool optional,
-            string? pinnedMemberId,
             ref object? reportedReceiver,
             bool reportReceiver)
         {
@@ -4143,17 +4137,6 @@ namespace NeoCompose.Runtime.NeoScript
                     receiverRow);
                 if (Dispatched(dispatched))
                     return dispatched;
-                // Interface/static-type pointers retain the compile-time
-                // declaration id. Use it only when the concrete runtime Class
-                // had no member at this key; a concrete stored override must
-                // remain authoritative over a read-only base declaration.
-                if (!ReferenceEquals(dispatched, DispatchMatchedNoValue)
-                    && !string.IsNullOrEmpty(pinnedMemberId)
-                    && ctx.client.TryGetMember(pinnedMemberId!, out JsonMember? pinnedMember)
-                    && pinnedMember.Mutability == NeoMemberMutabilityKind.ReadOnly)
-                {
-                    return ReadOnlyDeclarationDefault(pinnedMember, ctx);
-                }
                 if (record!.TryGetValue(k, out var at))
                 {
                     // A primitive is its own value: only a value id
@@ -4612,11 +4595,6 @@ namespace NeoCompose.Runtime.NeoScript
                     NeoNSFunctionRuntime.ResolveReceiverGenericEnv(ctx.client, receiver, ctx, $"Member '{member.name}'"));
             }
 
-            if (member.Mutability == NeoMemberMutabilityKind.ReadOnly)
-            {
-                return ReadOnlyDeclarationDefault(member, ctx);
-            }
-
             if (member.kind == MemberKind.NSProperty)
             {
                 if (entry!.member is not NSPropertyMember { getter: { } getter })
@@ -4682,6 +4660,12 @@ namespace NeoCompose.Runtime.NeoScript
                         ownRecord?.RememberChildNode(entry!, virtualChildId, childNode, virtualEpoch);
                     return child;
                 }
+            }
+            // A runtime construction stores no Immutable value.
+            if (ctx.client.ImmutableDeclarationValueId(member) is string declaredValueId)
+            {
+                NeoValueNode? declaredNode = null;
+                return ResolveValueIfId(declaredValueId, ctx, receiverOwnership, member, ref declaredNode);
             }
             // A row the sparse index does not cover can omit a null class
             // default. Match the generated accessor's default without hiding
@@ -4830,33 +4814,6 @@ namespace NeoCompose.Runtime.NeoScript
                 return null;
             int slot = record.StoredSlot(entry);
             return slot >= 0 ? record.StoredNode(slot) : null;
-        }
-
-        private static object? ReadOnlyDeclarationDefault(
-            JsonMember member,
-            Context ctx)
-        {
-            MemberValue? synthetic = ctx.client.ReadOnlyDeclarationDefault(member);
-            if (synthetic is null)
-            {
-                throw new NSGetterRuntimeError(
-                    $"Read-only member '{member.name}' ({member.id}) has no declaration default.");
-            }
-            object? unwrapped = UnwrapCached(
-                synthetic,
-                ctx,
-                NeoValueOwnership.Asset,
-                member);
-            if (member is LookupMember lookup
-                && lookup.Selection != NeoMemberSelectionKind.Multi
-                && unwrapped is object?[] selections
-                && selections.Length == 1
-                && selections[0] is string selectedId)
-            {
-                return ResolveValueIfId(selectedId, ctx,
-                    ResolveLookupSelectionOwnership(ctx, lookup, selectedId));
-            }
-            return unwrapped;
         }
 
         /// <summary>

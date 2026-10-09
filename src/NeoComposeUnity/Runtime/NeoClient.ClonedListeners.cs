@@ -228,7 +228,7 @@ namespace NeoCompose.Runtime
                     var construction = CopiedListenerBaseline(copy.Key.scope, owner.id, out bool adopted)
                         ?? (copy.Key.scope == NeoValueOwnership.Session ? PendingConstructionListeners(owner.id) : null);
                     var entry = new Dictionary<string, NeoDelegateValue[]>(StringComparer.Ordinal);
-                    foreach (var slot in ResolveStoredInstanceSchema(owner.classId))
+                    foreach (var slot in ResolveInstanceSurfaceSchema(owner.classId))
                     {
                         if (!TryGetMember(slot.memberId, out Member? declaration) || !IsChangeListenerMember(declaration))
                             continue;

@@ -189,11 +189,5 @@ namespace NeoCompose.Runtime.Json
         {
             get;
         }
-
-        /// <summary>
-        /// Set once the rows pass read-only validation, which then runs once
-        /// per <see cref="ProjectData"/> however many clients load them.
-        /// </summary>
-        internal bool Validated;
     }
 }

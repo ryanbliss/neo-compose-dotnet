@@ -78,7 +78,7 @@ namespace NeoCompose.Runtime
             if (listenerSchemaByClass.TryGetValue(classId, out var fields))
                 return fields;
             fields = new Dictionary<string, MergedSchemaEntry>(StringComparer.Ordinal);
-            foreach (MergedSchemaEntry field in ResolveStoredInstanceSchema(classId))
+            foreach (MergedSchemaEntry field in ResolveInstanceSurfaceSchema(classId))
                 if (TryGetMember(field.memberId, out Member? declaration))
                     fields.TryAdd(CanonicalListenerMemberId(declaration), field);
             listenerSchemaByClass.Add(classId, fields);

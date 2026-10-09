@@ -1961,6 +1961,12 @@ namespace NeoCompose.Runtime
             string where)
         {
             EnsureStructurallyEligible(child, where);
+            // Readonly is shallow: only the written leaf must accept runtime writes.
+            if (child.member.Mutability == NeoMemberMutabilityKind.ReadOnly)
+            {
+                throw new InvalidOperationException(
+                    $"{where} is a readonly leaf, which is set only at construction.");
+            }
             if (declared != NeoMemberStorage.Save
                 && declared != NeoMemberStorage.Session
                 && declared != NeoMemberStorage.Writable)
@@ -1974,7 +1980,6 @@ namespace NeoCompose.Runtime
         {
             if (node is NeoMemberList or NeoMemberDictionary
                 || node.member is FunctionMember or NSFunctionMember or NSPropertyMember
-                || node.member.Mutability == NeoMemberMutabilityKind.ReadOnly
                 || node.member.Modifier == NeoMemberModifierKind.Static)
             {
                 throw new InvalidOperationException(

@@ -463,6 +463,13 @@ namespace NeoCompose.Runtime
                 $"Cannot write generated Neo member '{memberName}' because this {GetType().Name} value is read-only.");
         }
 
+        /// <summary>A readonly collection's membership is set only at construction.</summary>
+        protected static void ThrowReadOnlyMembership(string memberName)
+        {
+            throw new InvalidOperationException(
+                $"Cannot change the entries of readonly Neo member '{memberName}'. It is set only at construction.");
+        }
+
         public bool TryWritable<TWritable>(out TWritable writable)
             where TWritable : class, INeoValueReference
         {

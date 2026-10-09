@@ -107,7 +107,7 @@ namespace NeoCompose.Tests
         // ------------------------------------------------------------------
 
         [Test]
-        public void ReadOnlyClassField_UsesDeclarationDefaultWithoutInstanceEdge()
+        public void ImmutableClassField_ReadsItsDeclarationWithoutInstanceEdge()
         {
             ProjectData export = NeoTestExport.Read(
                 LoadFixture("synth-example.json"))!;
@@ -122,7 +122,7 @@ namespace NeoCompose.Tests
 
             Assert.AreEqual(12, hero.BaseDamage);
             Assert.AreEqual(
-                "__neo_readonly_default:member-base-damage",
+                client.ImmutableDeclarationValueId(client.members["member-base-damage"]),
                 node.Get<NeoMemberInt>("BaseDamage").value!.id);
         }
 
