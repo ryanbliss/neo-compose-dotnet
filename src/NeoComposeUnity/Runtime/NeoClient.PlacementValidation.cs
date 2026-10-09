@@ -645,7 +645,7 @@ namespace NeoCompose.Runtime
             NeoVector2Value? point = (cell as Vector2MemberValue)?.value;
             if (cell is null && tile.value?.ContainsKey("Cell") != true)
             {
-                foreach (var field in ResolveStoredInstanceSchema(tile.classId!))
+                foreach (var field in ResolveInstanceSurfaceSchema(tile.classId!))
                     if (field.schemaKey == "Cell" && TryGetMember(field.memberId, out Member? declaration)
                         && declaration is Vector2IntMember vectorDeclaration)
                     {
@@ -737,7 +737,7 @@ namespace NeoCompose.Runtime
             if (ValidatePlacementCollectionField(owner, "PlacementTiles") is not ArrayMemberValue footprint)
                 return;
             string? entryClassId = null;
-            foreach (var field in ResolveStoredInstanceSchema(owner.classId!))
+            foreach (var field in ResolveInstanceSurfaceSchema(owner.classId!))
                 if (field.schemaKey == "PlacementTiles"
                     && TryGetMember(field.memberId, out Member? member) && member is ListMember list
                     && TryGetMember(list.entryMemberId, out Member? entry) && entry is ClassMember classEntry)

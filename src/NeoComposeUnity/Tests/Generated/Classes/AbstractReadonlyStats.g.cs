@@ -96,12 +96,15 @@ namespace Assets.Scripts.Neo
         public sealed class Fields
         {
             private Fields() {}
+
+            public static readonly NeoField<int> Damage = new("Damage");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
         {
             return new Dictionary<INeoField, Func<string?>>
             {
+                [Fields.Damage] = () => null,
             };
         }
 
@@ -119,6 +122,7 @@ namespace Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
+                [Fields.Damage] = () => Damage,
             };
         }
 

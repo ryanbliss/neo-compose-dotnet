@@ -3711,11 +3711,6 @@ namespace NeoCompose.Runtime
                     && NSGetterEvaluator.TryResolveSurfaceMember(
                         keyOf, receiver, objectRow.classId!, keyString, ctx, out JsonMember? memberMember, out MergedSchemaEntry? entry))
                 {
-                    if (memberMember!.Mutability == NeoMemberMutabilityKind.ReadOnly)
-                    {
-                        throw new NSGetterRuntimeError(
-                            $"Member '{memberMember.name}' is readonly and can only be changed through its class default.");
-                    }
                     if (memberMember is GenericMember)
                     {
                         memberMember = NeoGenericResolution.SubstituteMember(
@@ -3880,8 +3875,7 @@ namespace NeoCompose.Runtime
             return client.TryGetValue(receiverOwnership, receiverRowId, out MemberValue? row)
                 && row is ObjectMemberValue { classId: string classId } && classId.Length > 0
                 && Eval(keyOf.key, scope, ctx) is string key
-                && NSGetterEvaluator.TryResolveSurfaceMember(keyOf, null, classId, key, ctx, out member, out _)
-                && member!.Mutability != NeoMemberMutabilityKind.ReadOnly;
+                && NSGetterEvaluator.TryResolveSurfaceMember(keyOf, null, classId, key, ctx, out member, out _);
         }
 
         private static string EnsureWritableRow(NeoClient client, string rowId, NeoValueOwnership ownership)

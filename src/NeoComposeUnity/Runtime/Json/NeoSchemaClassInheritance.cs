@@ -198,15 +198,6 @@ namespace NeoCompose.Runtime.Json
         internal static bool IsInstanceMember(Member? member) =>
             member?.Modifier != NeoMemberModifierKind.Static;
 
-        /// <summary>Whether an instance member owns a key/value edge on every Class row.</summary>
-        internal static bool IsStoredInstanceMember(Member? member) =>
-            member?.Mutability != NeoMemberMutabilityKind.ReadOnly;
-
-        /// <summary>Whether an instance member is a declaration-backed read-only field.</summary>
-        internal static bool IsReadOnlyInstanceMember(Member? member) =>
-            member?.Mutability == NeoMemberMutabilityKind.ReadOnly
-            && member.Modifier != NeoMemberModifierKind.Abstract;
-
         /// <summary>
         /// Backward-compatible name for the complete typed instance surface.
         /// Prefer <see cref="MergeInstanceSurfaceSchema"/> at new call sites.
@@ -215,46 +206,6 @@ namespace NeoCompose.Runtime.Json
             IList<NeoSchemaClass> chain,
             Func<string, Member?> memberLookup) =>
             MergeInstanceSurfaceSchema(chain, memberLookup);
-
-        /// <summary>
-        /// Projects the instance surface to fields that own a key/value edge
-        /// on every Class row. Declaration-backed read-only fields stay on the
-        /// typed surface but are absent from this stored-data projection.
-        /// </summary>
-        public static IList<MergedSchemaEntry> MergeStoredInstanceSchema(
-            IList<NeoSchemaClass> chain,
-            Func<string, Member?> memberLookup)
-        {
-            IList<MergedSchemaEntry> surface =
-                MergeInstanceSurfaceSchema(chain, memberLookup);
-            List<MergedSchemaEntry> result = new(surface.Count);
-            foreach (MergedSchemaEntry entry in surface)
-            {
-                if (IsStoredInstanceMember(memberLookup(entry.memberId)))
-                    result.Add(entry);
-            }
-            return result;
-        }
-
-        /// <summary>
-        /// Projects the instance surface to declaration-backed read-only
-        /// fields. These are visible instance properties but never stored on
-        /// an individual Class row.
-        /// </summary>
-        public static IList<MergedSchemaEntry> MergeReadOnlyMembers(
-            IList<NeoSchemaClass> chain,
-            Func<string, Member?> memberLookup)
-        {
-            IList<MergedSchemaEntry> surface =
-                MergeInstanceSurfaceSchema(chain, memberLookup);
-            List<MergedSchemaEntry> result = new(surface.Count);
-            foreach (MergedSchemaEntry entry in surface)
-            {
-                if (IsReadOnlyInstanceMember(memberLookup(entry.memberId)))
-                    result.Add(entry);
-            }
-            return result;
-        }
 
         /// <summary>
         /// Projects a merged Class schema to inherited class-owned

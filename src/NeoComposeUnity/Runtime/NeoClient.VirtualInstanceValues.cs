@@ -349,6 +349,118 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
+        /// Drops every Immutable key of a finished runtime construction's
+        /// Session graph, at every depth, so those members read the replay's
+        /// per-instance values exactly as they will after a reload. Returns
+        /// the Session rows the dropped keys owned.
+        /// </summary>
+        internal IReadOnlyCollection<string> ReplayImmutableMembers(string rootValueId)
+        {
+            List<ObjectMemberValue>? stripped = null;
+            List<string>? childIds = null;
+            var pending = new Stack<(string valueId, Member? member)>();
+            var visited = new HashSet<string>(StringComparer.Ordinal);
+            pending.Push((rootValueId, null));
+            while (pending.Count != 0)
+            {
+                (string valueId, Member? member) = pending.Pop();
+                if (!visited.Add(valueId) || !sessionData.values.TryGetValue(valueId, out MemberValue? row))
+                    continue;
+                if (row is not ObjectMemberValue { classId: not null, value: not null } instance)
+                {
+                    foreach (var link in EnumerateOwnedChildLinks(row, member))
+                        pending.Push(link);
+                    continue;
+                }
+                ObjectMemberValue? sparse = null;
+                foreach (KeyValuePair<string, string> pair in instance.value)
+                {
+                    Member? child = TryResolveOwnedChildMember(instance, member, pair.Key);
+                    if (child is null)
+                        continue;
+                    if (child.Storage != NeoMemberStorage.Immutable)
+                    {
+                        pending.Push((pair.Value, child));
+                        continue;
+                    }
+                    // An authored value stays shared with the export.
+                    if (data.values.ContainsKey(pair.Value))
+                        continue;
+                    sparse ??= (ObjectMemberValue)CloneRowForWrite(instance);
+                    sparse.value!.Remove(pair.Key);
+                    if (!string.IsNullOrEmpty(pair.Value))
+                        (childIds ??= new List<string>()).Add(pair.Value);
+                }
+                if (sparse is null)
+                    continue;
+                // A member-wise row replays its own class initializers.
+                if (!IsVirtualInstanceRoot(sparse))
+                    StampConstructionProvenance(sparse, null, new Dictionary<string, JToken?>());
+                (stripped ??= new List<ObjectMemberValue>()).Add(sparse);
+            }
+            if (stripped is null)
+                return Array.Empty<string>();
+            // Committing the sparse rows replays their roots, which serves the
+            // dropped keys from the virtual layer.
+            var plan = new NeoWritePlan(this);
+            foreach (ObjectMemberValue sparse in stripped)
+                plan.Set(NeoValueOwnership.Session, sparse, silent: true);
+            plan.Commit();
+            if (childIds is null)
+                return Array.Empty<string>();
+            var removed = new List<string>();
+            foreach (string childId in childIds)
+                removed.AddRange(RemoveTemporaryWritableValueGraph(NeoValueOwnership.Session, childId));
+            return removed;
+        }
+
+        // Every declaration value is indexed under this one pseudo root, so a
+        // full virtual rebuild retires them with the instance expansions.
+        private const string ImmutableDeclarationValuesRoot = "__neo_immutable_declarations";
+        private readonly Dictionary<string, string?> immutableDeclarationValueIds = new(StringComparer.Ordinal);
+
+        /// <summary>
+        /// The value an Immutable constant reads on an instance that stores
+        /// none. Its value is the same for every instance, so it is evaluated
+        /// once per declaration and kept in the virtual layer as Asset data.
+        /// </summary>
+        internal string? ImmutableDeclarationValueId(Member member)
+        {
+            // A member bound to its own value reads that binding.
+            if (member.valueId is not null || !NeoGeneratedTypesSupport.IsImmutableConstant(this, member))
+                return null;
+            string identity = member.RuntimeDeclarationIdentity;
+            if (immutableDeclarationValueIds.TryGetValue(identity, out string? cached)
+                && cached is not null
+                && (virtualValues.ContainsKey(cached) || data.values.ContainsKey(cached)))
+            {
+                return cached;
+            }
+            var rows = new List<MemberValue>();
+            string? valueId;
+            using (var allocations = new ReplayAllocationScope(this))
+            {
+                valueId = NeoGeneratedTypesSupport.MaterializeDeclarationValue(this, member, rows);
+                // Rows the initializer constructed belong to the value; the
+                // scope reclaims them from Session.
+                foreach (string allocated in allocations.Ids)
+                    if (sessionData.values.TryGetValue(allocated, out MemberValue? row))
+                        rows.Add(CloneRowForWrite(row));
+            }
+            foreach (MemberValue row in rows)
+            {
+                virtualValues[row.id] = row;
+                virtualValueOwnership[row.id] = NeoValueOwnership.Asset;
+                SyncValueNode(row.id);
+                TrackVirtualValue(ImmutableDeclarationValuesRoot, row.id);
+                if (!string.IsNullOrEmpty(row.containerId))
+                    AddMembership(virtualEntriesByContainer, virtualContainerByRow, row.id, row.containerId!);
+            }
+            immutableDeclarationValueIds[identity] = valueId;
+            return valueId;
+        }
+
+        /// <summary>
         /// P75: replays sparse instance roots against the current declaration
         /// defaults, then indexes their omitted rows under deterministic ids.
         /// The replay graph is temporary Session data; only immutable read
@@ -495,11 +607,6 @@ namespace NeoCompose.Runtime
                     readyRoots.Enqueue(nestedRoot);
                 }
             }
-            // Recovery already removed illegal read-only Class keys, but its
-            // stale value rows cannot be judged until sparse writable paths
-            // have entered the virtual index. Delete only after every root
-            // reachable through those paths has replayed.
-            RemoveRecoveredReadOnlySaveValues();
             // Unreferenced authored rows are not part of a runtime graph.
             // Exports can retain detached historical children; do not execute
             // their constructors. Persisted save roots still fail closed.
@@ -568,7 +675,7 @@ namespace NeoCompose.Runtime
                 if (!IsVirtualInstanceRoot(root))
                 {
                     if (!virtualFootprintByRoot.ContainsKey(root.id)
-                        && ResolveStoredInstanceSchema(root.classId!).All(entry => root.value!.ContainsKey(entry.schemaKey)))
+                        && ResolveInstanceSurfaceSchema(root.classId!).All(entry => root.value!.ContainsKey(entry.schemaKey)))
                         return;
                     if ((virtualClassChildren.ContainsKey(root.id)
                             && virtualRootByFootprintId.TryGetValue(root.id, out string? owner) && owner != root.id)
@@ -1608,7 +1715,7 @@ namespace NeoCompose.Runtime
             if (member is ClassMember classMember && row is ObjectMemberValue { value: not null } classRow)
             {
                 string classId = classRow.classId ?? classMember.classId;
-                foreach (var entry in ResolveStoredInstanceSchema(classId))
+                foreach (var entry in ResolveInstanceSurfaceSchema(classId))
                 {
                     bool constructed = classRow.value.TryGetValue(entry.schemaKey, out string childId);
                     if (!constructed && classMember.Payload == NeoMemberPayloadKind.Partial)

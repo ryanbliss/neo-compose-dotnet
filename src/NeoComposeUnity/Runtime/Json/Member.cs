@@ -566,9 +566,7 @@ namespace NeoCompose.Runtime.Json
         [JsonProperty("format", NullValueHandling = NullValueHandling.Ignore)]
         private NeoStringFormatKind? format;
         /// <summary>
-        /// Opts this String into the per-instance search projection. A
-        /// declaration-backed read-only field cannot enable it because no
-        /// per-instance row exists to index.
+        /// Opts this String into the per-instance search projection.
         /// </summary>
         [JsonProperty("searchBy", NullValueHandling = NullValueHandling.Ignore)]
         private NeoMemberSearchByKind? searchBy;

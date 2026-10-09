@@ -29,8 +29,6 @@ namespace NeoCompose.Runtime
             Chain = chain;
             IList<MergedSchemaEntry> merged = NeoSchemaClassInheritance.MergeSchemas(chain);
             var surface = new List<MergedSchemaEntry>(merged.Count);
-            var stored = new List<MergedSchemaEntry>(merged.Count);
-            var readOnly = new List<MergedSchemaEntry>();
             surfaceByKey = new Dictionary<string, MergedSchemaEntry>(
                 merged.Count,
                 System.StringComparer.Ordinal);
@@ -42,14 +40,8 @@ namespace NeoCompose.Runtime
                     continue;
                 surface.Add(entry);
                 surfaceByKey.TryAdd(entry.schemaKey, entry);
-                if (NeoSchemaClassInheritance.IsStoredInstanceMember(member))
-                    stored.Add(entry);
-                else if (NeoSchemaClassInheritance.IsReadOnlyInstanceMember(member))
-                    readOnly.Add(entry);
             }
             Surface = surface;
-            Stored = stored;
-            ReadOnly = readOnly;
             Effects = CollectEffects(surface);
             if (hooks != NeoLifecycleHooks.None)
                 hookMembers = CollectHooks(ref hooks);
@@ -115,18 +107,6 @@ namespace NeoCompose.Runtime
 
         /// <summary>Every instance member, static declarations excluded.</summary>
         internal IList<MergedSchemaEntry> Surface
-        {
-            get;
-        }
-
-        /// <summary>The instance members every class row stores an edge for.</summary>
-        internal IList<MergedSchemaEntry> Stored
-        {
-            get;
-        }
-
-        /// <summary>Declaration-backed read-only instance members.</summary>
-        internal IList<MergedSchemaEntry> ReadOnly
         {
             get;
         }

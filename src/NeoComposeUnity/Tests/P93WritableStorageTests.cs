@@ -198,7 +198,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void ReadOnlyMember_RejectsAWritableDescendant()
+        public void ReadOnlyMember_AllowsAWritableDescendant()
         {
             ProjectData data = Build();
             data.members["frozen-member"] = new ClassMember
@@ -225,8 +225,8 @@ namespace NeoCompose.Tests
                 updatedAt = "x",
             };
             data.classes["assets-class"].schema["Frozen"] = "frozen-member";
-            var error = Assert.Throws<InvalidOperationException>(() => NeoTestSaveStack.ClientFromSchema(data));
-            StringAssert.Contains("owns writable descendant member 'Size'", error!.Message);
+            // Readonly is shallow: the slot is fixed, its members keep their own storage.
+            Assert.DoesNotThrow(() => NeoTestSaveStack.ClientFromSchema(data).Dispose());
         }
 
         private static void ExecuteRuntimeWrite(

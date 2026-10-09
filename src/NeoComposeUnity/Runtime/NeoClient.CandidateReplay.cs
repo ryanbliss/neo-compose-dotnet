@@ -168,7 +168,7 @@ namespace NeoCompose.Runtime
                 if (row is ObjectMemberValue { classId: null, value: not null } && member is ClassMember)
                     return false;
                 if (row is ObjectMemberValue { classId: not null, value: not null } obj)
-                    foreach (var field in ResolveStoredInstanceSchema(obj.classId))
+                    foreach (var field in ResolveInstanceSurfaceSchema(obj.classId))
                         if (TryGetMember(field.memberId, out Member? fieldMember)
                             && NeoGeneratedTypesSupport.IsStoredConstructorMember(fieldMember)
                             && !obj.value.ContainsKey(field.schemaKey))

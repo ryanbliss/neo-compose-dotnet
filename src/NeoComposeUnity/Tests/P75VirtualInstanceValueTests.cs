@@ -16,7 +16,7 @@ using JsonMember = NeoCompose.Runtime.Json.Member;
 
 namespace NeoCompose.Tests
 {
-    public class P75VirtualInstanceValueTests
+    public partial class P75VirtualInstanceValueTests
     {
         [Test]
         public void InlineDefaultListenersRemapTheirOwnerAndInternalReceiverWithoutSaveMetadata()
@@ -3428,42 +3428,6 @@ namespace NeoCompose.Tests
             Assert.AreEqual(
                 "from generic default",
                 payload.Get<NeoMemberStringWritable>("Name").value!.value);
-        }
-
-        [TestCase(false)]
-        [TestCase(true)]
-        public void ReadOnlyValidationResolvesGenericConstructorChildrenBeforeRuntimeStoresExist(bool placementOnly)
-        {
-            ProjectData data = BuildGenericConstructorProjectData();
-            if (placementOnly)
-            {
-                UsePlacementGenericBinding(data);
-                data.values["constructor-payload"].classId = null;
-            }
-            ConstructorRecord constructor = data.constructors["thing-ctor"];
-            ((GenericMember)data.members["thing-payload"]).defaultValue = new NullMemberValueBase
-            {
-                init = ReturnVariableInitializer("Payload", constructor.argumentTypes[0],
-                    constructor.action!.parameters, "__arg_0__"),
-            };
-            data.classes["thing-class"].schema["ReadOnly"] = "read-only";
-            data.members["read-only"] = new IntMember
-            {
-                id = "read-only",
-                projectId = "p75-project",
-                name = "ReadOnly",
-                kind = MemberKind.Int,
-                Storage = NeoMemberStorage.Immutable,
-                Mutability = NeoMemberMutabilityKind.ReadOnly,
-                defaultValue = new NumberMemberValueBase { value = 1 },
-            };
-
-            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
-
-            Assert.AreEqual("from constructor argument", client.save
-                .Get<NeoMemberClassWritable>("Thing")
-                .Get<NeoMemberClassWritable>("Payload")
-                .Get<NeoMemberStringWritable>("Name").value!.value);
         }
 
         [TestCase(false)]

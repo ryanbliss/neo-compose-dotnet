@@ -38,19 +38,18 @@ namespace Assets.Scripts.Neo
         {
         }
 
-        public StorageE(int? Value = null, StorageF? StaticChild = null)
-            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Value, StaticChild), false, NeoValueOwnership.Session)
+        public StorageE(int? Value = null)
+            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Value), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(int? Value = null, StorageF? StaticChild = null)
+        private static NeoMemberClassWritable CreateFactoryNode(int? Value = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
                 "class-storage-e",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Value", "member-storage-e-value", Value),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("StaticChild", "member-storage-e-static-child", StaticChild)
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Value", "member-storage-e-value", Value)
             );
         }
 

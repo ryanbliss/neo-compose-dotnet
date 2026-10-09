@@ -177,8 +177,7 @@ namespace NeoCompose.Runtime.NeoScript
 
         /// <summary>
         /// Reads <paramref name="key"/> off a detached object: a stored slot,
-        /// an NSProperty getter bound to the object, or a read-only
-        /// declaration default. False leaves every other key to the row path.
+        /// or an NSProperty getter bound to the object. False leaves every other key to the row path.
         /// </summary>
         private static bool TryReadDetachedMember(
             NeoScriptObject value,
@@ -216,11 +215,6 @@ namespace NeoCompose.Runtime.NeoScript
             JsonMember? member = entry?.member;
             if (member is null)
                 return false;
-            if (member.Mutability == NeoMemberMutabilityKind.ReadOnly)
-            {
-                result = ReadOnlyDeclarationDefault(member, ctx);
-                return true;
-            }
             if (entry!.member is NSPropertyMember { getter: not null })
             {
                 result = DispatchNSGetterById(entry.memberId, value, ctx);

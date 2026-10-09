@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
   "projectId": "test-project",
-  "codegenRevision": "e4a632a177c87244e19da71c9840b8007735773ae5f81578f58ce246ec6cb03d",
+  "codegenRevision": "ac7f9812e3b16cc37d09ba5006316dda6bac23884c83b368a10880bc3f2c765b",
   "files": [
     {
       "id": "class:class-abstract-readonly-stats",
       "path": "Generated/Classes/AbstractReadonlyStats.g.cs",
-      "hash": "733ff2a70aeb521d24fd4982b513e1a090a51a365578beeb4f9a63e9337117cc"
+      "hash": "205ca1e7da5d310483959739879e3f020633b8810dc2d539292a778260f463aa"
     },
     {
       "id": "class:class-animated-sprite",
@@ -26,7 +26,7 @@
     {
       "id": "class:class-concrete-readonly-stats",
       "path": "Generated/Classes/ConcreteReadonlyStats.g.cs",
-      "hash": "c511f6744951ae632520507a3f8887b054839c9203b8d10b8c3e0cff896a3280"
+      "hash": "88a1e5fd9df12db4fd1b3fb4da51da290e670f4b5afac8b2bfdc3a37a4fea53d"
     },
     {
       "id": "class:class-contract-base",
@@ -116,7 +116,7 @@
     {
       "id": "class:class-hero",
       "path": "Generated/Classes/Hero.g.cs",
-      "hash": "983722818ddc041eecede7ba65b200d5429e80a10180dcd82648c136b076f050"
+      "hash": "5f5bd1b54ead927b1f9e5f76873b0b3aa2aff891a5e8cecb479d69883a449d8c"
     },
     {
       "id": "class:system_6529416a-f68b-49a3-b3d2-2af8fda60cb4",
@@ -206,7 +206,7 @@
     {
       "id": "class:class-root",
       "path": "Generated/Classes/Root.g.cs",
-      "hash": "2fdfb6accd96220e1d7ac06396b13fb27df0796ee123fbed99ebbfaa5b736d10"
+      "hash": "d322bf241d8e5bcb8a3e832615d578943d5dc69cda3b8cbe3d1a90380d2238bb"
     },
     {
       "id": "class:class-sample-blocked-path",
@@ -251,7 +251,7 @@
     {
       "id": "class:class-storage-e",
       "path": "Generated/Classes/StorageE.g.cs",
-      "hash": "fe2e7db531faa5e7cb4e599d0fa0c542891f77b7c9ae4638391d0da2156eb5c7"
+      "hash": "a42a8a5c99366ceaebed111be9f3aee207c287e5a7e7194b7e17db9619a9a535"
     },
     {
       "id": "class:class-storage-f",
