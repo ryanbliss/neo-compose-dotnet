@@ -462,10 +462,14 @@ namespace NeoCompose.Tests
             Assert.AreEqual("base-value", ReadString(client, root, "Tag"));
         }
 
-        [Test]
-        public void DeclaredConstructor_MemberInitializersRunThenTheBodyOverwrites()
+        [TestCase(false)]
+        [TestCase(true)]
+        public void DeclaredConstructor_MemberInitializersRunThenTheBodyOverwrites(bool readOnly)
         {
-            NeoClient client = BuildClient();
+            ProjectData data = BuildProjectData();
+            if (readOnly)
+                data.members["part-label"].Mutability = NeoMemberMutabilityKind.ReadOnly;
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
             var ctx = new NSGetterEvaluator.Context(client, null, null);
 
             object? result = NSGetterEvaluator.Evaluate(
@@ -479,6 +483,13 @@ namespace NeoCompose.Tests
             Assert.AreEqual("hi", ReadString(client, root, "Label"));
             // A literal member initializer the body never touched survives.
             Assert.AreEqual(1, ReadNumber(client, root, "Level"));
+            if (readOnly)
+            {
+                // The body bound its own value; the shared constant is untouched.
+                Assert.IsTrue(client.TryGetMember("part-label", out JsonMember? label));
+                Assert.IsTrue(client.TryGetValue(client.ConstantDeclarationValueId(label!)!, out MemberValue? shared));
+                Assert.AreEqual("base", ((StringMemberValue)shared!).value);
+            }
         }
 
         [Test]
@@ -1616,6 +1627,47 @@ namespace NeoCompose.Tests
             Assert.AreEqual(empty, absent);
             Assert.AreEqual("seeded", absent.label);
             Assert.AreEqual("from-base-clause", absent.tag);
+        }
+
+        [TestCase(false, false, "tag")]
+        [TestCase(true, false, "from-base-clause")]
+        [TestCase(true, true, "from-body")]
+        public void RequiredConstructor_ReadonlyConstantBindsOnlyWhereAStageWritesIt(
+            bool baseBlock,
+            bool body,
+            string expected)
+        {
+            ProjectData data = BuildProjectData();
+            var tag = (StringMember)data.members["gear-tag"];
+            tag.Mutability = NeoMemberMutabilityKind.ReadOnly;
+            tag.defaultValue = new StringMemberValueBase { value = "tag" };
+            ConstructorRecord cog = data.constructors["ctor-cog"];
+            if (!baseBlock)
+            {
+                cog.baseInitializerFields = null;
+                cog.compiledBaseInitializerFields = null;
+            }
+            if (body)
+                cog.action = ConstructorAction(1, ThisFieldAssignment("Tag", StringPointer("from-body")));
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            Member member = client.members["gear-tag"];
+            Assert.IsTrue(NeoGeneratedTypesSupport.IsConstantMember(client, member));
+
+            ObjectMemberValue root = NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(
+                client,
+                "cog-class",
+                "ctor-cog",
+                new[]
+                {
+                    new NeoDeclaredConstructorArgument("Seed", "seeded"),
+                }).value!;
+
+            // An instance no stage wrote stores nothing and reads the shared value.
+            Assert.AreEqual(baseBlock, root.value.ContainsKey("Tag"));
+            if (baseBlock)
+                Assert.AreEqual(expected, ReadString(client, root, "Tag"));
+            Assert.IsTrue(client.TryGetValue(client.ConstantDeclarationValueId(member)!, out MemberValue? shared));
+            Assert.AreEqual("tag", ((StringMemberValue)shared!).value);
         }
 
         /// <summary>

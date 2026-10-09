@@ -416,25 +416,33 @@ namespace NeoCompose.Runtime
 
         // Every declaration value is indexed under this one pseudo root, so a
         // full virtual rebuild retires them with the instance expansions.
-        private const string ImmutableDeclarationValuesRoot = "__neo_immutable_declarations";
-        private readonly Dictionary<string, string?> immutableDeclarationValueIds = new(StringComparer.Ordinal);
+        private const string ConstantDeclarationValuesRoot = "__neo_constant_declarations";
+        // Null caches "no shared value": a member that is not a constant, or
+        // a constant whose declared value is null.
+        private readonly Dictionary<string, string?> constantDeclarationValueIds = new(StringComparer.Ordinal);
+        // Every row of a shared declaration value.
+        private readonly HashSet<string> constantDeclarationRowIds = new(StringComparer.Ordinal);
 
         /// <summary>
-        /// The value an Immutable constant reads on an instance that stores
-        /// none. Its value is the same for every instance, so it is evaluated
-        /// once per declaration and kept in the virtual layer as Asset data.
+        /// The value a constant member reads on an instance that stores none.
+        /// Its value is the same for every instance, so it is evaluated once
+        /// per declaration and kept in the virtual layer as Asset data.
         /// </summary>
-        internal string? ImmutableDeclarationValueId(Member member)
+        internal string? ConstantDeclarationValueId(Member member)
         {
             // A member bound to its own value reads that binding.
-            if (member.valueId is not null || !NeoGeneratedTypesSupport.IsImmutableConstant(this, member))
+            if (member.valueId is not null || !NeoGeneratedTypesSupport.MayBeConstant(member))
                 return null;
             string identity = member.RuntimeDeclarationIdentity;
-            if (immutableDeclarationValueIds.TryGetValue(identity, out string? cached)
-                && cached is not null
-                && (virtualValues.ContainsKey(cached) || data.values.ContainsKey(cached)))
+            if (constantDeclarationValueIds.TryGetValue(identity, out string? cached)
+                && (cached is null || TryGetValue(cached, out MemberValue? _)))
             {
                 return cached;
+            }
+            if (!NeoGeneratedTypesSupport.IsConstantMember(this, member))
+            {
+                constantDeclarationValueIds[identity] = null;
+                return null;
             }
             var rows = new List<MemberValue>();
             string? valueId;
@@ -452,12 +460,30 @@ namespace NeoCompose.Runtime
                 virtualValues[row.id] = row;
                 virtualValueOwnership[row.id] = NeoValueOwnership.Asset;
                 SyncValueNode(row.id);
-                TrackVirtualValue(ImmutableDeclarationValuesRoot, row.id);
+                TrackVirtualValue(ConstantDeclarationValuesRoot, row.id);
+                constantDeclarationRowIds.Add(row.id);
                 if (!string.IsNullOrEmpty(row.containerId))
                     AddMembership(virtualEntriesByContainer, virtualContainerByRow, row.id, row.containerId!);
             }
-            immutableDeclarationValueIds[identity] = valueId;
+            // An initializer can return an authored row; it is shared too.
+            if (valueId is not null && data.values.ContainsKey(valueId))
+                constantDeclarationRowIds.Add(valueId);
+            constantDeclarationValueIds[identity] = valueId;
             return valueId;
+        }
+
+        /// <summary>
+        /// Rejects a write to a constant's shared value, which every instance
+        /// reads. Like any <c>readonly</c> or Immutable value, it is set only
+        /// at construction.
+        /// </summary>
+        internal void ThrowIfConstantWrite(string id)
+        {
+            if (constantDeclarationRowIds.Count != 0 && constantDeclarationRowIds.Contains(id))
+            {
+                throw new InvalidOperationException(
+                    $"Value '{id}' is a constant member's shared value, which is set only at construction.");
+            }
         }
 
         /// <summary>
@@ -535,6 +561,8 @@ namespace NeoCompose.Runtime
             virtualEntriesByContainer.Clear();
             virtualContainerByRow.Clear();
             virtualValueIdsByRoot.Clear();
+            constantDeclarationValueIds.Clear();
+            constantDeclarationRowIds.Clear();
             virtualClassParentIdsByRoot.Clear();
             foreach (string expansionId in defaultListenerOwnersByExpansion.Keys.ToArray())
                 ClearListenerDefaults(expansionId);

@@ -447,7 +447,9 @@ namespace NeoCompose.Runtime
             // only the schema, so each construction site resolves once.
             internal readonly Dictionary<object, object> resolvedSites = new();
             // By declaration identity: whether its declared value is shared.
-            internal readonly Dictionary<string, bool> immutableConstants = new(StringComparer.Ordinal);
+            internal readonly Dictionary<string, bool> constantMembers = new(StringComparer.Ordinal);
+            // By class id: the class and every class that extends it.
+            internal Dictionary<string, List<string>>? classAndSubclasses;
             // By class id: whether an instance can own an Immutable member.
             internal readonly Dictionary<string, bool> mayOwnImmutable = new(StringComparer.Ordinal);
         }
@@ -3300,11 +3302,13 @@ namespace NeoCompose.Runtime
                         // AssertDeclaredConstructorRootIsComplete. Nested rows
                         // always keep the check; nothing writes into them
                         // between preparation and publication.
-                        // Sparse replay gets omitted members from its stored overlay.
+                        // Sparse replay gets omitted members from its stored
+                        // overlay, and a constant reads its shared value.
                         if (member.Requirement == NeoMemberRequirementKind.Required
                             && requireRequiredMembers
                             && !client.IsReplayingVirtualInstance
-                            && !(member.Storage == NeoMemberStorage.Immutable && HasExplicitDefaultValue(member)))
+                            && !(member.Storage == NeoMemberStorage.Immutable && HasExplicitDefaultValue(member))
+                            && !IsConstantMember(client, member))
                         {
                             throw new InvalidOperationException(
                                 $"Constructed Class row '{path}' is missing required member '{entry.schemaKey}'/'{entry.memberId}'.");
@@ -6345,56 +6349,146 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// An Immutable member whose declared value is the same for every
-        /// instance: neither its declaration nor any row that declaration owns
-        /// reads <c>this</c> or a constructor argument. Instances that omit it
-        /// share one declaration value; see <see cref="NeoClient.ImmutableDeclarationValueId"/>.
+        /// A member whose declared value every instance shares. It is fixed
+        /// (<c>readonly</c> or Immutable), neither its declaration nor any
+        /// row that declaration owns reads <c>this</c> or a constructor
+        /// argument, nothing in the value is writable, and only Immutable rows
+        /// run an initializer or constructor. Instances that omit it read one
+        /// declaration value; see <see cref="NeoClient.ConstantDeclarationValueId"/>.
         /// </summary>
-        internal static bool IsImmutableConstant(NeoClient client, Member member)
+        internal static bool IsConstantMember(NeoClient client, Member member)
         {
-            if (member.Storage != NeoMemberStorage.Immutable)
+            if (!MayBeConstant(member)
+                || MemberValueFactory.DefaultOf(member) is not MemberValueBase declared)
+            {
                 return false;
-            if (!IsStoredConstructorMember(member))
-                return false;
-            if (MemberValueFactory.DefaultOf(member) is not MemberValueBase declared)
+            }
+            Fixedness fixedness = FixednessOf(member, Fixedness.Writable);
+            // An instance's constructor can still change the membership of
+            // its readonly collection.
+            if (fixedness == Fixedness.ReadOnly && member is ListMember or DictionaryMember)
                 return false;
             ConstructorSchemaCache cache = ConstructorSchemaCaches.GetOrCreateValue(client);
             string identity = member.RuntimeDeclarationIdentity;
             lock (cache.gate)
             {
-                if (cache.immutableConstants.TryGetValue(identity, out bool cached))
+                if (cache.constantMembers.TryGetValue(identity, out bool cached))
                     return cached;
             }
-            bool constant = !DeclarationReadsInstance(
+            bool constant = !DeclarationVaries(
                 client,
                 member,
                 declared,
                 null,
-                new HashSet<string>(StringComparer.Ordinal));
+                new ConstantScope(fixedness, ownsReads: true),
+                new ConstantWalk());
             lock (cache.gate)
-                cache.immutableConstants[identity] = constant;
+                cache.constantMembers[identity] = constant;
             return constant;
         }
 
         /// <summary>
-        /// Whether a declared value, or a row it owns, reads its instance. Owned
-        /// rows are followed exactly as cloning follows them; a Lookup only
-        /// references.
+        /// The schema-only half of <see cref="IsConstantMember"/>: a stored,
+        /// fixed member.
         /// </summary>
-        private static bool DeclarationReadsInstance(
+        internal static bool MayBeConstant(Member member)
+        {
+            return IsStoredConstructorMember(member)
+                && FixednessOf(member, Fixedness.Writable) != Fixedness.Writable;
+        }
+
+        /// <summary>Whether a value can change after construction, and why not.</summary>
+        private enum Fixedness
+        {
+            Writable,
+            ReadOnly,
+            Immutable,
+        }
+
+        /// <summary>A member's fixedness; Inherit storage takes an Immutable parent's.</summary>
+        private static Fixedness FixednessOf(Member member, Fixedness parent)
+        {
+            NeoMemberStorage storage = member.Storage;
+            if (storage == NeoMemberStorage.Immutable
+                || (storage == NeoMemberStorage.Inherit && parent == Fixedness.Immutable))
+            {
+                return Fixedness.Immutable;
+            }
+            return member.Mutability == NeoMemberMutabilityKind.ReadOnly
+                ? Fixedness.ReadOnly
+                : Fixedness.Writable;
+        }
+
+        /// <summary>
+        /// How a fixed value is checked. <see cref="ownsReads"/> is false for
+        /// a child the value omits: it takes its own declaration, whose
+        /// <c>this</c> is the shared value.
+        /// </summary>
+        private readonly struct ConstantScope
+        {
+            internal readonly Fixedness fixedness;
+            internal readonly bool ownsReads;
+
+            internal ConstantScope(Fixedness fixedness, bool ownsReads)
+            {
+                this.fixedness = fixedness;
+                this.ownsReads = ownsReads;
+            }
+
+            internal bool Immutable => fixedness == Fixedness.Immutable;
+        }
+
+        /// <summary>
+        /// Rows, omitted children, and classes one constant check has visited,
+        /// with the scope each was checked under.
+        /// </summary>
+        private sealed class ConstantWalk
+        {
+            internal readonly HashSet<(string, Fixedness, bool)> rows = new();
+            internal readonly HashSet<(string, Fixedness, bool)> declarations = new();
+            internal readonly HashSet<(string, Fixedness)> classes = new();
+        }
+
+        /// <summary>
+        /// Whether a fixed declared value can differ between instances or
+        /// change after construction: the declaration, or a row it owns,
+        /// reads its instance, the value holds a writable row, or a row
+        /// outside the Immutable family runs code. Owned rows are followed
+        /// exactly as cloning follows them; a Lookup only references. A child
+        /// the value omits takes its own declaration, whose <c>this</c> is
+        /// the shared value, so only what it holds counts.
+        /// </summary>
+        private static bool DeclarationVaries(
             NeoClient client,
             Member member,
             MemberValueBase body,
             string? rowId,
-            HashSet<string> visited)
+            ConstantScope scope,
+            ConstantWalk walk)
         {
+            bool ownsReads = scope.ownsReads;
+            // Each instance runs a readonly value's initializer or constructor
+            // when it is constructed, and that code can read mutable state.
+            // Immutable values are evaluated on load either way.
+            if (!scope.Immutable
+                && (body.init is not null
+                    || body is MemberValue { hasInstanceConstructorId: true } or MemberValue { constructorArgs: not null }))
+            {
+                return true;
+            }
             if (body.init is InitializerBody init)
             {
                 // A missing body is a stale export; its reads are unknown.
-                return init.compiled is not FunctionWithReturnType compiled
-                    || (compiled.readsInstanceParameters ??= ReadsInstanceParameters(compiled));
+                if (ownsReads
+                    && (init.compiled is not FunctionWithReturnType compiled
+                        || (compiled.readsInstanceParameters ??= ReadsInstanceParameters(compiled))))
+                {
+                    return true;
+                }
+                // The initializer decides the value, so any value of its type must be fixed.
+                return TypeHoldsWritable(client, member, Fixedness.Immutable, walk);
             }
-            if (body is MemberValue { constructorArgs: { } arguments })
+            if (ownsReads && body is MemberValue { constructorArgs: { } arguments })
             {
                 foreach (JToken? argument in arguments.Values)
                 {
@@ -6414,24 +6508,42 @@ namespace NeoCompose.Runtime
                         };
                         if (children is null)
                             return false;
-                        var schemaByKey = new Dictionary<string, MergedSchemaEntry>(StringComparer.Ordinal);
+                        int owned = 0;
                         foreach (MergedSchemaEntry entry in ResolveMergedSchema(
                             client,
                             body.classId ?? classMember.classId,
                             classMember.classArguments))
                         {
-                            schemaByKey[entry.schemaKey] = entry;
-                        }
-                        foreach (var pair in children)
-                        {
-                            if (!schemaByKey.TryGetValue(pair.Key, out MergedSchemaEntry? entry)
-                                || !client.TryGetMember(entry.memberId, out Member? child)
-                                || RowReadsInstance(client, child, pair.Value, visited))
+                            if (!client.TryGetMember(entry.memberId, out Member? child))
+                                return true;
+                            bool hasRow = children.TryGetValue(entry.schemaKey, out string? childId);
+                            if (hasRow)
+                                owned++;
+                            else if (!IsStoredConstructorMember(child))
+                                continue;
+                            Fixedness childFixedness = FixednessOf(child, scope.fixedness);
+                            if (childFixedness == Fixedness.Writable)
+                                return true;
+                            if (hasRow)
+                            {
+                                if (RowVaries(client, child, childId!, new ConstantScope(childFixedness, ownsReads), walk))
+                                    return true;
+                            }
+                            else if (MemberValueFactory.DefaultOf(child) is MemberValueBase childDeclared
+                                && walk.declarations.Add((child.RuntimeDeclarationIdentity, childFixedness, false))
+                                && DeclarationVaries(
+                                    client,
+                                    child,
+                                    childDeclared,
+                                    null,
+                                    new ConstantScope(childFixedness, ownsReads: false),
+                                    walk))
                             {
                                 return true;
                             }
                         }
-                        return false;
+                        // A key outside the schema is stale; its row is unknown.
+                        return owned != children.Count;
                     }
                 case ListMember listMember:
                     {
@@ -6443,20 +6555,13 @@ namespace NeoCompose.Runtime
                         };
                         if (entries is null)
                             return false;
-                        if (!client.TryGetMember(listMember.entryMemberId, out Member? entryMember))
-                            return true;
                         // An inline declaration default owns no unordered entries.
                         IEnumerable<string> entryIds = !client.IsUnorderedList(listMember)
                             ? entries
                             : rowId is null
                                 ? Array.Empty<string>()
                                 : client.GetUnorderedListEntryIds(rowId);
-                        foreach (string entryId in entryIds)
-                        {
-                            if (RowReadsInstance(client, entryMember, entryId, visited))
-                                return true;
-                        }
-                        return false;
+                        return EntriesVary(client, listMember.entryMemberId, entryIds, scope, walk);
                     }
                 case DictionaryMember dictionaryMember:
                     {
@@ -6466,16 +6571,8 @@ namespace NeoCompose.Runtime
                             ObjectMemberValue row => row.value,
                             _ => null,
                         };
-                        if (entries is null)
-                            return false;
-                        if (!client.TryGetMember(dictionaryMember.entryMemberId, out Member? entryMember))
-                            return true;
-                        foreach (string entryId in entries.Values)
-                        {
-                            if (RowReadsInstance(client, entryMember, entryId, visited))
-                                return true;
-                        }
-                        return false;
+                        return entries is not null
+                            && EntriesVary(client, dictionaryMember.entryMemberId, entries.Values, scope, walk);
                     }
                 // An unsubstituted generic slot could hold an owned graph.
                 case GenericMember:
@@ -6488,7 +6585,7 @@ namespace NeoCompose.Runtime
                             DelegateMemberValue row => row.value,
                             _ => null,
                         };
-                        return target is { IsClosure: false, valueId: null };
+                        return ownsReads && target is { IsClosure: false, valueId: null };
                     }
                 case ActionMember:
                     {
@@ -6498,23 +6595,151 @@ namespace NeoCompose.Runtime
                             ActionMemberValue row => row.value,
                             _ => null,
                         };
-                        return action?.listeners.Exists(listener => !listener.IsClosure && listener.valueId is null) == true;
+                        return ownsReads
+                            && action?.listeners.Exists(listener => !listener.IsClosure && listener.valueId is null) == true;
                     }
                 default:
                     return false;
             }
         }
 
-        private static bool RowReadsInstance(
+        /// <summary>
+        /// Whether a fixed collection's entries vary. Its membership is fixed;
+        /// each entry keeps its own storage.
+        /// </summary>
+        private static bool EntriesVary(
+            NeoClient client,
+            string entryMemberId,
+            IEnumerable<string> entryIds,
+            ConstantScope scope,
+            ConstantWalk walk)
+        {
+            if (!client.TryGetMember(entryMemberId, out Member? entryMember))
+                return true;
+            Fixedness entryFixedness = FixednessOf(entryMember, scope.fixedness);
+            var entryScope = new ConstantScope(entryFixedness, scope.ownsReads);
+            foreach (string entryId in entryIds)
+            {
+                if (entryFixedness == Fixedness.Writable
+                    || RowVaries(client, entryMember, entryId, entryScope, walk))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private static bool RowVaries(
             NeoClient client,
             Member member,
             string valueId,
-            HashSet<string> visited)
+            ConstantScope scope,
+            ConstantWalk walk)
         {
-            if (!visited.Add(valueId))
+            if (!walk.rows.Add((valueId, scope.fixedness, scope.ownsReads)))
                 return false;
             return !client.TryGetValue(valueId, out MemberValue? row)
-                || DeclarationReadsInstance(client, member, row, row.id, visited);
+                || DeclarationVaries(client, member, row, row.id, scope, walk);
+        }
+
+        /// <summary>
+        /// Whether some value of a member's type can hold a writable row. A
+        /// Class member can hold any subclass.
+        /// </summary>
+        private static bool TypeHoldsWritable(
+            NeoClient client,
+            Member member,
+            Fixedness fixedness,
+            ConstantWalk walk)
+        {
+            switch (member)
+            {
+                case ClassMember classMember:
+                    if (ClassAndSubclasses(client, classMember.classId) is not { } classIds)
+                        return true;
+                    foreach (string classId in classIds)
+                    {
+                        if (ClassHoldsWritable(client, classId, fixedness, walk))
+                            return true;
+                    }
+                    return false;
+                case ListMember listMember:
+                    return EntryTypeHoldsWritable(client, listMember.entryMemberId, fixedness, walk);
+                case DictionaryMember dictionaryMember:
+                    return EntryTypeHoldsWritable(client, dictionaryMember.entryMemberId, fixedness, walk);
+                case GenericMember:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        private static bool EntryTypeHoldsWritable(
+            NeoClient client,
+            string entryMemberId,
+            Fixedness parent,
+            ConstantWalk walk)
+        {
+            if (!client.TryGetMember(entryMemberId, out Member? entryMember))
+                return true;
+            Fixedness fixedness = FixednessOf(entryMember, parent);
+            return fixedness == Fixedness.Writable
+                || TypeHoldsWritable(client, entryMember, fixedness, walk);
+        }
+
+        // A class this walk already entered answers no: either it found no
+        // writable row, or it is still being checked and decides the result.
+        private static bool ClassHoldsWritable(
+            NeoClient client,
+            string classId,
+            Fixedness fixedness,
+            ConstantWalk walk)
+        {
+            if (!walk.classes.Add((classId, fixedness)))
+                return false;
+            foreach (MergedSchemaEntry entry in ResolveMergedSchema(client, classId))
+            {
+                if (!client.TryGetMember(entry.memberId, out Member? child))
+                    return true;
+                if (!IsStoredConstructorMember(child))
+                    continue;
+                Fixedness childFixedness = FixednessOf(child, fixedness);
+                if (childFixedness == Fixedness.Writable
+                    || TypeHoldsWritable(client, child, childFixedness, walk))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// A class and every class that extends it, or null for a class the
+        /// schema does not define.
+        /// </summary>
+        private static IReadOnlyList<string>? ClassAndSubclasses(NeoClient client, string classId)
+        {
+            ConstructorSchemaCache cache = ConstructorSchemaCaches.GetOrCreateValue(client);
+            lock (cache.gate)
+            {
+                if (cache.classAndSubclasses is null)
+                {
+                    var families = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+                    foreach (string id in client.classes.Keys)
+                    {
+                        foreach (NeoSchemaClass ancestor in client.ResolveClassInheritanceChain(id))
+                        {
+                            if (!families.TryGetValue(ancestor.id, out List<string>? family))
+                                families[ancestor.id] = family = new List<string>();
+                            family.Add(id);
+                        }
+                    }
+                    cache.classAndSubclasses = families;
+                }
+                return cache.classAndSubclasses.TryGetValue(classId, out List<string>? found)
+                    ? found
+                    : null;
+            }
         }
 
         // Initializers compile against [__this__, __root__, ...constructor].
@@ -6674,7 +6899,7 @@ namespace NeoCompose.Runtime
         /// <summary>
         /// The value <paramref name="member"/>'s declaration produces, built
         /// into <paramref name="rows"/>: its initializer's product, or its
-        /// literal default. See <see cref="NeoClient.ImmutableDeclarationValueId"/>.
+        /// literal default. See <see cref="NeoClient.ConstantDeclarationValueId"/>.
         /// </summary>
         internal static string? MaterializeDeclarationValue(
             NeoClient client,
@@ -7345,7 +7570,7 @@ namespace NeoCompose.Runtime
                     if (declarationRoot?.usesOwnBindings == true && member.valueId is not null)
                         continue;
                     // Every instance shares a constant's declaration value.
-                    if (declarationRoot is null && env.Count == 0 && IsImmutableConstant(client, member))
+                    if (env.Count == 0 && IsConstantMember(client, member))
                         continue;
 
                     // P43 §1 / §8 — an init-backed default is EVALUATED here
