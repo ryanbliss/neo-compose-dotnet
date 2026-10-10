@@ -102,6 +102,51 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public async Task UserReplay_BindsInheritedInitializersThroughNestedWrappers()
+        {
+            var corpus = JObject.Parse(Corpus);
+            var members = (JObject)corpus["members"]!;
+            var classes = (JObject)corpus["classes"]!;
+            var values = (JObject)corpus["values"]!;
+            classes["class-user"]!["schema"]!["Settings"] = "member-settings";
+            members["member-settings"] = RootMember("member-settings", "Settings", "class-settings", "v-settings", null);
+            classes["class-settings"] = Class("class-settings", "Settings", new JObject());
+            classes["class-settings"]!["extendsClassId"] = "class-settings-base";
+            classes["class-settings-base"] = Class("class-settings-base", "SettingsBase", new JObject { ["Level"] = "member-level" });
+            members["member-level"] = IntMember("member-level", "Level");
+            members["member-level"]!["requirement"] = 1;
+            members["member-level"]!["defaultValue"] = JObject.FromObject(new NumberMemberValueBase
+            {
+                init = new InitializerBody
+                {
+                    code = "7",
+                    compiled = new FunctionWithReturnType
+                    {
+                        compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                        parameters = Array.Empty<Variable>(),
+                        typeInfo = IntType(),
+                        instructions = new Instruction[] { new ReturnInstruction { type = InstructionKind.Return, pointer = Literal(7) } },
+                    },
+                },
+            });
+            values["v-root-user"]!["value"]!["Settings"] = "v-settings";
+            values["v-settings"] = ObjectRow("v-settings", "class-settings", new JObject());
+            string source = corpus.ToString(Newtonsoft.Json.Formatting.None);
+            var local = new NeoInMemoryLocalSaveStore();
+            var store = await LoadStoreAsync(local, corpus: source);
+
+            NeoMemberIntWritable Level(NeoClient client) => UserRoot(client)
+                .Get<NeoMemberClassWritable>("Settings").Get<NeoMemberIntWritable>("Level");
+            Assert.That(Level(store.LoadedUserClient!).value!.value, Is.EqualTo(7));
+            Level(store.LoadedUserClient!).Set(9);
+            await store.LoadedUserClient!.CommitAsync();
+            store.Dispose();
+            NeoProjectStore.ResetCurrent();
+            var reloaded = await LoadStoreAsync(local, corpus: source);
+            Assert.That(Level(reloaded.LoadedUserClient!).value!.value, Is.EqualTo(9));
+        }
+
+        [Test]
         public async Task SecondAndToolingStores_LoadNoUserFile()
         {
             var first = await LoadStoreAsync(new NeoInMemoryLocalSaveStore());

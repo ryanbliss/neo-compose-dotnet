@@ -651,8 +651,8 @@ namespace NeoCompose.Runtime
 
             DisposeWrappersTouchingRows(outgoingVirtualIds);
 
-            // The three roots were created before replay so constructor and
-            // variant code could resolve Assets/Save/Session. Rebind their
+            // The roots were created before replay so constructor and
+            // variant code could resolve Assets/Save/Session/User. Rebind their
             // wrapper trees once the virtual child index is complete.
             RefreshAllVirtualWrapperTrees();
         }
@@ -811,6 +811,7 @@ namespace NeoCompose.Runtime
             RefreshVirtualWrapperTree(assets);
             RefreshVirtualWrapperTree(save);
             RefreshVirtualWrapperTree(session);
+            RefreshVirtualWrapperTree(user);
         }
 
         private void AssertPersistedVirtualInstanceRootIsClassPlacement(
