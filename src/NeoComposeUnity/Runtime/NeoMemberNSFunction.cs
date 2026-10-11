@@ -1325,6 +1325,29 @@ namespace NeoCompose.Runtime
             return resolved;
         }
 
+        /// <summary>The entry member of a lookup binding that declares no type of its own.</summary>
+        private static JsonMember LookupBindingEntry(NeoClient client, LookupMember lookup)
+        {
+            if (lookup.collectionMemberId is null)
+            {
+                throw new NSGetterRuntimeError(
+                    $"Generic NSFunction Lookup binding '{lookup.id}' is unbound and declares no type.");
+            }
+            client.TryGetMember(lookup.collectionMemberId, out JsonMember? collection);
+            string? entryId = collection switch
+            {
+                ListMember list => list.entryMemberId,
+                DictionaryMember dictionary => dictionary.entryMemberId,
+                _ => null,
+            };
+            if (entryId is null || !client.TryGetMember(entryId, out JsonMember? entryMember))
+            {
+                throw new NSGetterRuntimeError(
+                    $"Generic NSFunction Lookup binding '{lookup.id}' has a missing collection entry type.");
+            }
+            return entryMember;
+        }
+
         internal static TypeInfo TypeInfoFromBindingMember(
             NeoClient client,
             JsonMember member,
@@ -1386,18 +1409,8 @@ namespace NeoCompose.Runtime
                             visitingMembers);
                     case LookupMember lookup:
                         {
-                            client.TryGetMember(lookup.collectionMemberId, out JsonMember? collection);
-                            string? entryId = collection switch
-                            {
-                                ListMember list => list.entryMemberId,
-                                DictionaryMember dictionary => dictionary.entryMemberId,
-                                _ => null,
-                            };
-                            if (entryId is null || !client.TryGetMember(entryId, out JsonMember? entryMember))
-                                throw new NSGetterRuntimeError(
-                                    $"Generic NSFunction Lookup binding '{lookup.id}' has a missing collection entry type.");
                             TypeInfo entry = lookup.declaredTypeInfo is null
-                                ? TypeInfoFromBindingMember(client, entryMember, genericEnv, visitingMembers)
+                                ? TypeInfoFromBindingMember(client, LookupBindingEntry(client, lookup), genericEnv, visitingMembers)
                                 : ResolveInvocationTypeInfo(client, lookup.declaredTypeInfo, genericEnv, visitingMembers).ShallowClone();
                             bool multiple = lookup.Selection == NeoMemberSelectionKind.Multi;
                             entry.required = multiple || lookup.Requirement == NeoMemberRequirementKind.Required;

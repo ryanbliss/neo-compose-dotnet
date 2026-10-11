@@ -12,7 +12,7 @@ class BackgroundTileLayer : ConsoleTileLayer {
   @id("neo-tile-grid-record-relations-v1-member-05518aaa5d34a1a6a242fe8e0f6b6134")
   @settings(collection: Assets.SortingLayers, collectionValue: Reference(root.Assets.SortingLayers))
   @system(kind: .WorldAuthoring)
-  public override NeoSortingLayer SortingLayer = Reference<NeoSortingLayer>(id: "88c0d53b-94ee-4f48-839b-9148d07828fb");
+  public override Reference<NeoSortingLayer> SortingLayer = Reference<NeoSortingLayer>(id: "88c0d53b-94ee-4f48-839b-9148d07828fb");
 
   @id("neo-tile-grid-record-relations-v1-member-bfb14c8f7f3c5d6ceaec91328dd7d46c")
   @settings(min: -32768, max: 32767)

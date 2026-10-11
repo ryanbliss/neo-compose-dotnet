@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.67.0] - 2026-10-11
+
+Unbound references (P107). A `Reference<T>` member with no `@settings(collection:)` selects any stored row of `T` or a subclass. Requires CLI 0.77.0; run `neo export` after upgrading.
+
+```csharp
+// Generated for `public Reference<Hero>? FavoriteHero;`
+public virtual IReadOnlyHero? FavoriteHero { get; set; }
+
+if (save.FavoriteHero?.TryWritable(out Hero hero) == true)
+{
+    hero.Health = 8;
+}
+```
+
+- Each selected row resolves through its own member and store. A Save, Session, or User row resolves writable, and an asset row read-only, so the generated property returns the read-only interface. A multi-select reference returns `NeoLookupSet<IReadOnlyT>`.
+- `Add` on an unbound reference accepts any stored row of its declared class or a subclass. A generic `T` checks its constraint.
+- A NeoScript write through an unbound reference to an asset row throws, as any runtime-owned write to an asset does.
+- `LookupMember.collectionMemberId` is nullable.
+
 ## [0.66.1] - 2026-10-09
 
 - Fixed: loading a save rebuilt every constant Immutable member once per stored instance. Each now reads the one shared declaration value. In Neowyn, where each of 638 grass tiles rebuilt its `SmartTile`, loading a save drops from ~5.1 s to ~1.1 s, its 0.65.0 time.

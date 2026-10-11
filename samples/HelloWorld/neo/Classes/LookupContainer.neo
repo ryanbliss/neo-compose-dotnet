@@ -2,7 +2,7 @@
 class LookupContainer {
   @id("b8f18264-dfdc-4ae7-ada7-77e1db50f70a")
   @settings(collection: LookupContainer.LookupList)
-  public virtual LookupEntry Lookup = [];
+  public virtual Reference<LookupEntry> Lookup = [];
 
   @id("a65d4782-28cb-401f-8577-128dccca3d46")
   public virtual Dictionary<string, LookupEntry> LookupList = {};
