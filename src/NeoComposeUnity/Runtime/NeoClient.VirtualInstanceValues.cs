@@ -424,6 +424,17 @@ namespace NeoCompose.Runtime
         private readonly HashSet<string> constantDeclarationRowIds = new(StringComparer.Ordinal);
 
         /// <summary>
+        /// Whether a stored key names a constant's own row that no longer
+        /// exists. Saves from before 0.66.1 key each instance's replayed
+        /// copy of its constants, which replay no longer creates, so such a
+        /// key reads as absent.
+        /// </summary>
+        internal bool IsUnresolvedConstantKey(Member member, string valueId) =>
+            !string.IsNullOrEmpty(valueId)
+            && NeoGeneratedTypesSupport.MayBeConstant(member)
+            && !TryGetValue(valueId, out MemberValue? _);
+
+        /// <summary>
         /// The value a constant member reads on an instance that stores none.
         /// Its value is the same for every instance, so it is evaluated once
         /// per declaration and kept in the virtual layer as Asset data.

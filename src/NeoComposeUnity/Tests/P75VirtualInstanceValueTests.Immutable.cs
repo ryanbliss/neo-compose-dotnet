@@ -350,6 +350,31 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void SavedKeyToAnUnsharedConstantReadsTheDeclaration()
+        {
+            // Saves from before 0.66.1 key each instance's own constant row,
+            // which replay no longer creates (Neowyn's held tool lost its
+            // BaseFlipX and switched hands).
+            ProjectData data = BuildReadOnlyRankProjectData(computed: false);
+            string thingId;
+            JObject saved;
+            using (NeoClient client = NeoTestSaveStack.ClientFromSchema(data))
+            {
+                NeoMemberClassWritable thing = NeoGeneratedTypesSupport.CreateWritableClassValue(client, "thing-class");
+                client.save.Get<NeoMemberListWritable>("Things").AddSerialized(
+                    NeoGeneratedTypesSupport.ValueReference(
+                        new ImmutableProbeReference { valueId = thing.value!.id }));
+                thingId = SavedThing(client).value!.id;
+                saved = JObject.Parse(client.SerializeSaveData());
+            }
+            saved["values"]![thingId]!["value"]!["Rank"] = "unshared-rank-row";
+            using NeoClient reopened = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: saved.ToString());
+            NeoMemberClassWritable reloaded = SavedThing(reopened);
+            Assert.AreEqual(7d, reloaded.Get<NeoMemberInt>("Rank").value?.value, "C# read");
+            Assert.AreEqual(7d, EvaluateRowMember(reopened, thingId, "Rank"), "NeoScript read");
+        }
+
+        [Test]
         public void ReadOnlyInitializerIsEvaluatedPerInstance()
         {
             // The initializer could read mutable state; each instance keeps

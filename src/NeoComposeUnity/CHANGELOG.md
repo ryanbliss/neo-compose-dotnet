@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.67.4] - 2026-10-11
+
+- Fixed: a save written before 0.66.1 broke reads of `readonly` constants on stored instances. The stored row still keyed each instance's own copy of the constant, which replay no longer creates, so the C# accessor threw "has no value" and NeoScript read the raw id. A key that resolves nowhere now reads the shared declaration value. In Neowyn, the held tool's `BaseFlipX` broke on old saves, so the tool flipped inconsistently and switched hands facing up.
+
 ## [0.67.3] - 2026-10-11
 
 - Fixed: a `readonly` member set at a nested call site, such as `new BodyArmSprite(config) { Behavior = .Arm }` inside a list default, lost that value whenever an input of its constructor changed. The leaf replayed on its own and only restored call-site fields its constructor had also written, and since 0.66.1 a constructor no longer stores a constant. The member then read the shared declaration value. In Neowyn, equipping a tool reset the tool layer to `.Centered`, so it mirrored to the wrong hand facing up.

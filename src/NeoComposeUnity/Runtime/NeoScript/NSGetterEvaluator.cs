@@ -4671,11 +4671,16 @@ namespace NeoCompose.Runtime.NeoScript
                     childNode = storedRecord?.ChildNode(entry!, at);
                 }
                 object? child = ResolveValueIfId(at, ctx, receiverOwnership, member, ref childNode);
-                if (storedSlot >= 0)
-                    storedRecord!.RememberStoredNode(storedSlot, childNode);
-                else
-                    storedRecord?.RememberChildNode(entry!, at, childNode);
-                return child;
+                // An unresolved id comes back as itself. A constant keyed to
+                // a row that no longer exists reads its declaration below.
+                if (!(ReferenceEquals(child, at) && at is string atId && ctx.client.IsUnresolvedConstantKey(member, atId)))
+                {
+                    if (storedSlot >= 0)
+                        storedRecord!.RememberStoredNode(storedSlot, childNode);
+                    else
+                        storedRecord?.RememberChildNode(entry!, at, childNode);
+                    return child;
+                }
             }
             if (receiverRef?.member is ClassMember { Payload: NeoMemberPayloadKind.Partial })
             {
