@@ -35,11 +35,15 @@ namespace NeoCompose.Tests
     /// class TagHolder&lt;T&gt; { @storage(allowed: .Immutable) public Tag&lt;T&gt; B = new Tag&lt;T&gt; { N = 2 }; }
     /// class Cell&lt;T&gt;(T value) { public T Value = value; }
     /// class CellStore { public static Cell&lt;NeoDelegate&lt;int&gt;&gt; Stored = new(() =&gt; 1); }
+    /// class Bin&lt;T&gt;(List&lt;T&gt; items) { public List&lt;T&gt; Values = items; }
+    /// class Catalog&lt;T&gt;(Dictionary&lt;string, T&gt; entries) { public Dictionary&lt;string, T&gt; Entries = entries; }
+    /// class BinStore { public static Bin&lt;int&gt; Stored = new([1, 2]); public static Catalog&lt;int&gt; Named = new({"a": 3}); }
     /// class Probe {
     ///   public static int BoxCount() { var box = new Box&lt;int&gt;(); box.Values.Add(3); var decl = new DeclBox&lt;string&gt;(); decl.Values.Add("x"); return box.Values.Count + decl.Values.Count; }
     ///   public static int HolderCount() { var h = new Holder&lt;string&gt;(); h.B.Values.Add("a"); h.S.Values.Add("b"); var m = h.Make(); m.Values.Add("c"); h.C.Values.Add("d"); return h.B.Values.Count + h.S.Values.Count + m.Values.Count + h.B.N + h.C.Values.Count + h.C.N + h.L[0].N; }
     ///   public static int DelegateCount() { var h = new Holder&lt;string&gt;(); var f = h.MakeField(); f.Values.Add("a"); var maker = h.Maker(); var g = maker(); g.Values.Add("b"); g.Values.Add("c"); return f.Values.Count + g.Values.Count; }
     ///   public static int DelegateArgumentCount() { var cell = new Cell&lt;NeoDelegate&lt;int, int&gt;&gt;((x) =&gt; x + 1); return CellStore.Stored.Value() + cell.Value(2); }
+    ///   public static int CollectionArgumentSum() { return BinStore.Stored.Values[1] + BinStore.Named.Entries["a"]; }
     ///   public static int ImmutableCount() { return new TagHolder&lt;int&gt;().B.N + new TagHolder&lt;string&gt;().B.N; }
     /// }
     /// </code>
@@ -76,6 +80,14 @@ namespace NeoCompose.Tests
             using NeoClient client = Client();
 
             Assert.AreEqual(4, InvokeProbe(client, "DelegateArgumentCount"));
+        }
+
+        [Test]
+        public void StoredCollectionArgumentsCloseTheirEntries()
+        {
+            using NeoClient client = Client();
+
+            Assert.AreEqual(5, InvokeProbe(client, "CollectionArgumentSum"));
         }
 
         [Test]
