@@ -307,6 +307,25 @@ namespace NeoCompose.Runtime
                 }
                 overlaid[pair.Key] = NeoGenericEnvEntry.Bound(pair.Value.memberId!);
             }
+            // `Bag<T> <- SubBag<U>` constructed as `SubBag<int>`: T forwards to
+            // U, its terminal param, so it closes with U. Mirrors the web's
+            // `closeForwardedGenericParams`.
+            List<string>? forwarded = null;
+            foreach (var pair in overlaid)
+            {
+                if (!pair.Value.IsBound && pair.Value.unboundParamId != pair.Key)
+                    (forwarded ??= new List<string>()).Add(pair.Key);
+            }
+            if (forwarded is null)
+                return overlaid;
+            foreach (string paramId in forwarded)
+            {
+                if (overlaid.TryGetValue(overlaid[paramId].unboundParamId!, out NeoGenericEnvEntry? target)
+                    && target.IsBound)
+                {
+                    overlaid[paramId] = target;
+                }
+            }
             return overlaid;
         }
 

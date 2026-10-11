@@ -85,11 +85,11 @@ namespace NeoCompose.Runtime
                 || constructor.argumentTypes.Length == 0)
                 yield break;
 
-            // A Class row never carries a genericBindings stamp -- stamping is
-            // a List/Dictionary creation step -- so a generic instance such as
-            // ValueWatcher<int> closes its params through the PLACEMENT that
-            // declares it. Without those arguments every generic constructor
-            // parameter resolves unbound and the walk throws mid-commit.
+            // Only a runtime-constructed Class root carries a genericBindings
+            // stamp, so a placed generic instance such as ValueWatcher<int>
+            // closes its params through the PLACEMENT that declares it.
+            // Without those arguments every generic constructor parameter
+            // resolves unbound and the walk throws mid-commit.
             var placement = TryInferMemberForValueId(row.id, out Member? inferred)
                 ? inferred as ClassMember
                 : null;

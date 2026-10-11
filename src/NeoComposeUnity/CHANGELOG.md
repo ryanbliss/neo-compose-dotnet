@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.66.2] - 2026-10-11
+
+- Fixed: a generic class without a declared constructor failed to construct from NeoScript with "Cannot construct open generic class", as in `new Box<int>()`. Its type arguments now close it.
+- Fixed: a generic class constructing with its own parameter, such as `public Bag<T> B = new Bag<T>();` or `return new Bag<T>();`, now closes `T` through the instance. That includes an initializer with fields, such as `new Bag<T> { N = 3 }`. Run `neo export` with the matching CLI release.
+- Fixed: a subclass that forwards its parameter, such as `class SubBag<U> : Bag<U>` constructed as `SubBag<int>`, left the base's `T` unbound.
+- Fixed: calling a generic method on an instance constructed in NeoScript, such as `new Holder<string>().Make()`, threw "Generic NSFunction type … is unbound for this receiver."
+- Fixed: a stored closure called through another instance, such as `holder.MakeField()` from a static, ran with the caller's `this` instead of the instance that owns it, as the web runtime does.
+
 ## [0.66.1] - 2026-10-09
 
 - Fixed: loading a save rebuilt every constant Immutable member once per stored instance. Each now reads the one shared declaration value. In Neowyn, where each of 638 grass tiles rebuilt its `SmartTile`, loading a save drops from ~5.1 s to ~1.1 s, its 0.65.0 time.
