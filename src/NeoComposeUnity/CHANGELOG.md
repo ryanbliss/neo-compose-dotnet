@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.66.3] - 2026-10-11
+
+- Changed: "has no matching type descriptor" now names the generic parameter and its kind, such as `'T' (Int)`, instead of the parameter's id.
+
 ## [0.66.2] - 2026-10-11
 
 - Fixed: a generic class without a declared constructor failed to construct from NeoScript with "Cannot construct open generic class", as in `new Box<int>()`. Its type arguments now close it.

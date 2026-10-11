@@ -6411,13 +6411,28 @@ namespace NeoCompose.Runtime
             if (memberId is null)
             {
                 throw new InvalidOperationException(
-                    $"Class constructor type argument '{parameterId}' has no matching type descriptor in the export. Run `neo pull` and `neo export`.");
+                    $"Class constructor type argument '{GenericParameterName(client, parameterId)}' ({typeArgument.type}) has no matching type descriptor in the export. Run `neo pull` and `neo export`.");
             }
             lock (cache.gate)
             {
                 cache.descriptorMemberIds[typeArgument] = memberId;
             }
             return memberId;
+        }
+
+        private static string GenericParameterName(NeoClient client, string parameterId)
+        {
+            foreach (NeoSchemaClass schemaClass in client.classes.Values)
+            {
+                if (schemaClass.genericParams is null)
+                    continue;
+                foreach (GenericParamDeclaration parameter in schemaClass.genericParams)
+                {
+                    if (parameter.id == parameterId)
+                        return parameter.name;
+                }
+            }
+            return parameterId;
         }
 
         private static void ValidateRuntimeConstructorTypeArguments(
