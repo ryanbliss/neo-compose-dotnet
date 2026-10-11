@@ -4,6 +4,7 @@
 #nullable enable
 
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using NeoCompose.Runtime.Json;
 
@@ -87,22 +88,50 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal NeoMember ResolveSelectedAt(int index, string id, Member? entry, NeoValueOwnership targetOwnership)
         {
-            entry ??= ResolveRow(client, member, id, out targetOwnership);
             if (index >= selections.Length)
                 System.Array.Resize(ref selections, System.Math.Max(index + 1, Selected().Length));
             NeoMember? kept = selections[index];
-            // Reuse the composed key, but still consult the active registry:
-            // candidate replay and same-key replacement must resolve their own node.
-            if (kept is not null
+            if (entry is null)
+            {
+                // An unbound row decides its own member and store, so check
+                // the kept node against the row's store before reading the row.
+                if (kept is not null && kept.overrideValueId == id)
+                {
+                    if (!client.TryGetValueOwnership(id, out NeoValueOwnership rowOwnership))
+                        rowOwnership = NeoValueOwnership.Asset;
+                    if (TryKeep(kept, kept.member, rowOwnership, out NeoMember? current))
+                        return selections[index] = current;
+                }
+                entry = ResolveRow(client, member, id, out targetOwnership);
+            }
+            else if (kept is not null
                 && kept.overrideValueId == id
-                && kept.ownership == targetOwnership
                 && kept.member.RuntimeDeclarationIdentity == entry.RuntimeDeclarationIdentity
-                && client.TryGetNode(kept.RegistryKey, out NeoMember? current)
-                && (targetOwnership == NeoValueOwnership.Asset || IsWritableCompatible(entry, current)))
+                && TryKeep(kept, entry, targetOwnership, out NeoMember? current))
             {
                 return selections[index] = current;
             }
             return selections[index] = ResolveSelection(client, entry, id, targetOwnership);
+        }
+
+        /// <summary>
+        /// The registry's node for <paramref name="kept"/>'s key. Reuses the
+        /// composed key, but still consults the active registry: candidate
+        /// replay and same-key replacement must resolve their own node.
+        /// </summary>
+        private bool TryKeep(
+            NeoMember kept,
+            Member entry,
+            NeoValueOwnership targetOwnership,
+            [NotNullWhen(true)] out NeoMember? current)
+        {
+            if (kept.ownership != targetOwnership)
+            {
+                current = null;
+                return false;
+            }
+            return client.TryGetNode(kept.RegistryKey, out current)
+                && (targetOwnership == NeoValueOwnership.Asset || IsWritableCompatible(entry, current));
         }
 
         /// <summary>
