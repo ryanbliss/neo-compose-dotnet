@@ -6401,9 +6401,15 @@ namespace NeoCompose.Runtime
         /// The store a lookup's collection value lives in. The lookup keeps
         /// its collection member and the collection's value node for this
         /// client's schema resolution, so a read looks neither id up again.
+        /// False for an unbound reference: each selected row's store decides.
         /// </summary>
         internal bool TryGetLookupCollectionOwnership(LookupMember lookup, out NeoValueOwnership ownership)
         {
+            if (lookup.collectionMemberId is null)
+            {
+                ownership = default;
+                return false;
+            }
             LookupCollectionTarget? target = lookup.collectionTarget;
             if (target is null || !ReferenceEquals(target.schemaResolution, SchemaResolution))
             {
