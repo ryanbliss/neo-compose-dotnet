@@ -8500,7 +8500,7 @@ namespace NeoCompose.Runtime
                     : null;
         }
 
-        private static bool TypeInfoMatches(Json.TypeInfo? left, Json.TypeInfo? right)
+        internal static bool TypeInfoMatches(Json.TypeInfo? left, Json.TypeInfo? right)
         {
             if (left is null || right is null)
                 return left is null && right is null;

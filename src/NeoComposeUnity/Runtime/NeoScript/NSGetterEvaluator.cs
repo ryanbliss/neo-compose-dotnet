@@ -854,6 +854,11 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 get; set;
             }
+            /// <summary>Generic env of the instance whose member initializer is evaluating.</summary>
+            internal IReadOnlyDictionary<string, NeoGenericEnvEntry>? initializerGenericEnv
+            {
+                get; set;
+            }
             internal bool TryGetConstructionClassContext(
                 string classId,
                 out IReadOnlyDictionary<string, GenericBinding>? classArguments,
@@ -972,6 +977,8 @@ namespace NeoCompose.Runtime.NeoScript
                     contextValue = null;
                 if (initializerPlacement is not null)
                     initializerPlacement = null;
+                if (initializerGenericEnv is not null)
+                    initializerGenericEnv = null;
                 // A C# setter entered its setter here.
                 if (!ReferenceEquals(setterCallStack, client.EmptyCallFrames))
                     setterCallStack = client.EmptyCallFrames;
@@ -1107,6 +1114,7 @@ namespace NeoCompose.Runtime.NeoScript
                 internal object? immediateExpressionState;
                 internal object? immediateExpressionOptions;
                 internal ClassMember? initializerPlacement;
+                internal IReadOnlyDictionary<string, NeoGenericEnvEntry>? initializerGenericEnv;
                 // Entered by getter and construction frames only.
                 internal IReadOnlyCollection<string>? getterCallStack;
                 internal IReadOnlyList<string>? constructionStack;
@@ -1190,6 +1198,8 @@ namespace NeoCompose.Runtime.NeoScript
                 }
                 if (initializerPlacement is not null)
                     saved.initializerPlacement = initializerPlacement;
+                if (initializerGenericEnv is not null)
+                    saved.initializerGenericEnv = initializerGenericEnv;
                 saved.constructorBody = constructorBody;
                 constructorBody = false;
                 if (!ReferenceEquals(thisValue, receiver))
@@ -1277,6 +1287,9 @@ namespace NeoCompose.Runtime.NeoScript
                 if (!ReferenceEquals(initializerPlacement, saved.initializerPlacement))
                     initializerPlacement = saved.initializerPlacement;
                 saved.initializerPlacement = null;
+                if (!ReferenceEquals(initializerGenericEnv, saved.initializerGenericEnv))
+                    initializerGenericEnv = saved.initializerGenericEnv;
+                saved.initializerGenericEnv = null;
                 constructorBody = saved.constructorBody;
             }
 
@@ -2903,6 +2916,41 @@ namespace NeoCompose.Runtime.NeoScript
             }
         }
 
+        /// <summary>
+        /// P60: a stored closure no longer carries the receiver it was
+        /// authored on, so its <c>this</c> is the nearest instance owning its
+        /// row whose class matches the closure's <c>this</c> type, as in
+        /// <c>new Holder&lt;int&gt;().Make()</c> from a static. Mirrors the
+        /// web's <c>delegateClosureLexicalThis</c>. A closure without a Class
+        /// <c>this</c>, or one a host invokes without reading it from a row,
+        /// keeps the caller's receiver.
+        /// </summary>
+        private static object? PersistedClosureLexicalThis(
+            NeoDelegateValue value,
+            FunctionWithReturnType action,
+            Context ctx)
+        {
+            if (action.parameters[0].typeInfo is not ClassTypeInfo thisType)
+                return ctx.thisValue;
+            RowReference? closureRow = FindRowReference(value, ctx);
+            if (closureRow is null)
+                return ctx.thisValue;
+            string valueId = closureRow.valueId;
+            NeoValueOwnership ownership = closureRow.ownership;
+            while (ctx.client.TryFindOwnedParent(ownership, valueId, out string? parentId, out ownership))
+            {
+                valueId = parentId;
+                if (ctx.client.TryGetValue(ownership, valueId, out ObjectMemberValue? owner)
+                    && owner.classId is string ownerClassId
+                    && ctx.client.ClassChainContains(ownerClassId, thisType.classId))
+                {
+                    return UnwrapRow(owner, ctx, ownership);
+                }
+            }
+            throw new NSGetterRuntimeError(
+                $"Stored NeoDelegate closure value '{closureRow.valueId}' has no owning '{thisType.classId}' instance; lexical this cannot be reconstructed from ownership.");
+        }
+
         private static object? InvokeDelegateClosure(
             NeoDelegateValue value,
             object?[] args,
@@ -2920,7 +2968,7 @@ namespace NeoCompose.Runtime.NeoScript
             }
             object? lexicalThis = value.hasLexicalEnvironment
                 ? value.lexicalThis
-                : ctx.thisValue;
+                : PersistedClosureLexicalThis(value, action, ctx);
             object? lexicalRoot = value.hasLexicalEnvironment
                 ? value.lexicalRoot
                 : ctx.rootValue;
@@ -5600,7 +5648,13 @@ namespace NeoCompose.Runtime.NeoScript
                     replayClassArguments,
                 out IReadOnlyDictionary<string, string>?
                     replayGenericBindings);
-            bool cacheable = replayClassArguments is null && replayGenericBindings is null;
+            IReadOnlyDictionary<string, NeoGenericEnvEntry>? enclosingEnv =
+                replayClassArguments is null
+                    ? EnclosingGenericEnv(info.schemaClassInfo, ctx)
+                    : null;
+            bool cacheable = replayClassArguments is null
+                && replayGenericBindings is null
+                && enclosingEnv is null;
             if (!cacheable
                 || !NeoGeneratedTypesSupport.TryGetResolvedSite(
                     ctx.client, info, ref info.resolvedSite, out NeoGeneratedTypesSupport.NeoResolvedDeclaredConstructor resolved))
@@ -5619,7 +5673,8 @@ namespace NeoCompose.Runtime.NeoScript
                         argumentNames,
                         fields,
                         replayClassArguments,
-                        replayGenericBindings);
+                        replayGenericBindings,
+                        enclosingEnv: enclosingEnv);
                 }
                 catch (Exception error)
                     when (error is InvalidOperationException
@@ -6080,6 +6135,43 @@ namespace NeoCompose.Runtime.NeoScript
             };
         }
 
+        /// <summary>
+        /// `new Box<T>()` inside a generic class closes <c>T</c> through its
+        /// receiver, or in a member initializer, through the instance being
+        /// initialized. Null when no type argument names an enclosing param.
+        /// </summary>
+        private static IReadOnlyDictionary<string, NeoGenericEnvEntry>? EnclosingGenericEnv(
+            ClassTypeInfo classInfo,
+            Context ctx)
+        {
+            if (!NamesEnclosingTypeParameter(classInfo))
+                return null;
+            if (ctx.thisValue is { } receiver)
+            {
+                return NeoNSFunctionRuntime.ResolveReceiverGenericEnv(
+                    ctx.client,
+                    receiver,
+                    ctx,
+                    "Generic construction");
+            }
+            return ctx.initializerGenericEnv
+                ?? throw new NSGetterRuntimeError(
+                    "Cannot close a generic construction's type arguments without its Class receiver.");
+        }
+
+        /// <summary>Whether a construction's type arguments name an enclosing class's param.</summary>
+        internal static bool NamesEnclosingTypeParameter(ClassTypeInfo classInfo)
+        {
+            if (classInfo.typeArguments is null)
+                return false;
+            foreach (TypeInfo typeArgument in classInfo.typeArguments.Values)
+            {
+                if (typeArgument is GenericTypeInfo)
+                    return true;
+            }
+            return false;
+        }
+
         private static object? EvalClassConstructor(
             ClassConstructorFunction constructor,
             NeoScriptScope scope,
@@ -6126,7 +6218,12 @@ namespace NeoCompose.Runtime.NeoScript
                     replayClassArguments,
                 out IReadOnlyDictionary<string, string>?
                     replayGenericBindings);
-            if (replayClassArguments is not null
+            IReadOnlyDictionary<string, NeoGenericEnvEntry>? enclosingEnv =
+                replayClassArguments is null
+                    ? EnclosingGenericEnv(constructor.info.schemaClassInfo, ctx)
+                    : null;
+            bool cacheable = replayClassArguments is null && enclosingEnv is null;
+            if (!cacheable
                 || !NeoGeneratedTypesSupport.TryGetResolvedSite(
                     ctx.client,
                     constructor.info,
@@ -6140,7 +6237,8 @@ namespace NeoCompose.Runtime.NeoScript
                         ctx.client,
                         constructor.info.schemaClassInfo,
                         fields,
-                        replayClassArguments);
+                        replayClassArguments,
+                        enclosingEnv);
                 }
                 catch (Exception error)
                     when (error is InvalidOperationException
@@ -6149,7 +6247,7 @@ namespace NeoCompose.Runtime.NeoScript
                     throw new NSGetterRuntimeError(
                         $"Class constructor failed: {error.Message}");
                 }
-                if (replayClassArguments is null)
+                if (cacheable)
                     NeoGeneratedTypesSupport.CacheResolvedSite(ctx.client, constructor.info, ref constructor.info.resolvedSite, metadata);
             }
             // P43 §7.2.3 — the schema-derived arm is a construction
@@ -8717,11 +8815,13 @@ namespace NeoCompose.Runtime.NeoScript
             // leaf receiver cannot be traced back to its row and
             // `Foo.Position.y = 0.25` dies at "Assignment receiver is not
             // backed by a Neo value row." A sprite row needed nothing: it
-            // already unwraps to an `IDictionary`.
+            // already unwraps to an `IDictionary`. A stored closure traces
+            // back to its row to recover its lexical `this` (P60).
             if (unwrapped is IDictionary<string, object?>
                 || unwrapped is object?[]
                 || unwrapped is NeoVector2Value
-                || unwrapped is NeoColorValue)
+                || unwrapped is NeoColorValue
+                || unwrapped is NeoDelegateValue)
             {
                 string? effectiveClassId = row.classId
                     ?? (member as ClassMember)?.classId;
@@ -8730,9 +8830,10 @@ namespace NeoCompose.Runtime.NeoScript
                     ownership,
                     effectiveClassId,
                     member);
-                // Records and arrays are built per unwrap; a vector or
-                // colour is the row's own instance and may already be indexed.
-                if (unwrapped is NeoVector2Value or NeoColorValue)
+                // Records and arrays are built per unwrap; a vector, colour,
+                // or delegate is the row's own instance and may already be
+                // indexed.
+                if (unwrapped is NeoVector2Value or NeoColorValue or NeoDelegateValue)
                     SetRowReference(ctx, unwrapped, reference);
                 else
                     AddFreshRowReference(ctx, unwrapped!, reference);
@@ -10515,7 +10616,7 @@ namespace NeoCompose.Runtime.NeoScript
         /// detached objects never are, and skip the table's locked lookup.
         /// </summary>
         private static bool MayBeRowAlias(object? value) =>
-            value is object?[] or IDictionary<string, object?> or NeoVector2Value or NeoColorValue;
+            value is object?[] or IDictionary<string, object?> or NeoVector2Value or NeoColorValue or NeoDelegateValue;
 
         internal static RowReference? FindRowReference(object? value, Context ctx)
         {

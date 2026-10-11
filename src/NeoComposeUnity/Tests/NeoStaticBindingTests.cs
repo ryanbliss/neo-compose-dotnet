@@ -2187,11 +2187,12 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void ClassConstructor_OpenGenericFamilyIsRejected()
+        public void ClassConstructor_OpenGenericWithoutTypeArgumentsIsRejected()
         {
             NeoClient client = BuildClient();
             ClassTypeInfo openType = ClosedStringBoxType();
             openType.classId = "generic-box-class";
+            openType.typeArguments = null;
             var constructor = new FunctionPointer
             {
                 type = PointerKind.Function,
