@@ -4211,6 +4211,8 @@ namespace NeoCompose.Runtime
                 }
                 return selectionId!;
             }
+            if (lookupTypeInfo.collectionMemberId is null)
+                return ResolveUnboundSelectionId(client, lookupTypeInfo, value, ctx);
             if (!client.TryGetMember(lookupTypeInfo.collectionMemberId, out JsonMember? collectionMember))
             {
                 throw new NSGetterRuntimeError(
@@ -4253,6 +4255,30 @@ namespace NeoCompose.Runtime
                     "Lookup set argument was not found in the configured lookup collection.");
             }
             return matchedValueId;
+        }
+
+        /// <summary>An unbound reference (P107) selects any stored row of its entry class.</summary>
+        private static string ResolveUnboundSelectionId(
+            NeoClient client,
+            LookupTypeInfo lookupTypeInfo,
+            object? value,
+            NSGetterEvaluator.Context ctx)
+        {
+            string? valueId = value is string id
+                ? id
+                : FindValueId(value, ctx);
+            if (string.IsNullOrWhiteSpace(valueId))
+            {
+                throw new NSGetterRuntimeError(
+                    "Reference set argument must be a stored row id or generated class value.");
+            }
+            string? classId = (lookupTypeInfo.entryTypeInfo as ClassTypeInfo)?.classId;
+            if (!NeoMemberLookup.IsStoredRowOf(client, valueId!, classId))
+            {
+                throw new NSGetterRuntimeError(
+                    $"Reference selection id '{valueId}' is not a stored row of the reference's type.");
+            }
+            return valueId!;
         }
 
         private static string? FindLookupCollectionValueByPayload(

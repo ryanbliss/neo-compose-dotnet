@@ -3216,6 +3216,33 @@
       "requirement": 1,
       "createdAt": 0,
       "updatedAt": 0
+    },
+    "member-favorite-hero": {
+      "id": "member-favorite-hero",
+      "name": "FavoriteHero",
+      "kind": 9,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "declaredTypeInfo": {
+        "type": 7,
+        "classId": "class-hero",
+        "required": true
+      }
+    },
+    "member-party": {
+      "id": "member-party",
+      "name": "Party",
+      "kind": 9,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "declaredTypeInfo": {
+        "type": 7,
+        "classId": "class-hero",
+        "required": true
+      },
+      "selection": 1
     }
   },
   "enums": {
@@ -3600,7 +3627,9 @@
         "StorageInherit": "member-storage-a",
         "ElementStats": "member-elem-stats",
         "ElementMultipliers": "member-elem-multipliers",
-        "ElementChampions": "member-elem-champions"
+        "ElementChampions": "member-elem-champions",
+        "FavoriteHero": "member-favorite-hero",
+        "Party": "member-party"
       },
       "projectId": "test-project",
       "createdAt": 0,

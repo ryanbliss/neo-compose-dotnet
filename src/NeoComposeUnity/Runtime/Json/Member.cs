@@ -908,7 +908,8 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public sealed class LookupMember : Member<string[]?>, ISchemaResolutionSite
     {
-        public string collectionMemberId = null!;
+        /// <summary>The collection the lookup selects from; null for an unbound reference (P107), whose rows resolve by id.</summary>
+        public string? collectionMemberId;
         private string? _collectionValueId;
         private bool collectionValueIdWasAssigned;
 
