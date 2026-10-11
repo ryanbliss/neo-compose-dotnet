@@ -519,7 +519,8 @@ namespace NeoCompose.Runtime
             }
             string? childValueId = null;
             if (value?.value is not null
-                && value.value.TryGetValue(entry.schemaKey, out string valueIdForKey))
+                && value.value.TryGetValue(entry.schemaKey, out string valueIdForKey)
+                && !client.IsUnresolvedConstantKey(childMember, valueIdForKey))
             {
                 childValueId = valueIdForKey;
             }
