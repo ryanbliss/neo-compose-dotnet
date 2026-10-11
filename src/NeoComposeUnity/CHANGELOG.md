@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.67.3] - 2026-10-11
+
+- Fixed: a `readonly` member set at a nested call site, such as `new BodyArmSprite(config) { Behavior = .Arm }` inside a list default, lost that value whenever an input of its constructor changed. The leaf replayed on its own and only restored call-site fields its constructor had also written, and since 0.66.1 a constructor no longer stores a constant. The member then read the shared declaration value. In Neowyn, equipping a tool reset the tool layer to `.Centered`, so it mirrored to the wrong hand facing up.
+- Fixed: a runtime-constructed instance that left a required `readonly` constant unset threw "left required member unset" instead of reading the shared value.
+
 ## [0.67.2] - 2026-10-11
 
 - Changed: "has no matching type descriptor" now names the generic parameter and its kind, such as `'T' (Int)`, instead of the parameter's id.
