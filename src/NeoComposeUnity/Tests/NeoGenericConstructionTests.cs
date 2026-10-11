@@ -33,10 +33,13 @@ namespace NeoCompose.Tests
     /// }
     /// class Tag&lt;T&gt; { public readonly int N = 1; }
     /// class TagHolder&lt;T&gt; { @storage(allowed: .Immutable) public Tag&lt;T&gt; B = new Tag&lt;T&gt; { N = 2 }; }
+    /// class Cell&lt;T&gt;(T value) { public T Value = value; }
+    /// class CellStore { public static Cell&lt;NeoDelegate&lt;int&gt;&gt; Stored = new(() =&gt; 1); }
     /// class Probe {
     ///   public static int BoxCount() { var box = new Box&lt;int&gt;(); box.Values.Add(3); var decl = new DeclBox&lt;string&gt;(); decl.Values.Add("x"); return box.Values.Count + decl.Values.Count; }
     ///   public static int HolderCount() { var h = new Holder&lt;string&gt;(); h.B.Values.Add("a"); h.S.Values.Add("b"); var m = h.Make(); m.Values.Add("c"); h.C.Values.Add("d"); return h.B.Values.Count + h.S.Values.Count + m.Values.Count + h.B.N + h.C.Values.Count + h.C.N + h.L[0].N; }
     ///   public static int DelegateCount() { var h = new Holder&lt;string&gt;(); var f = h.MakeField(); f.Values.Add("a"); var maker = h.Maker(); var g = maker(); g.Values.Add("b"); g.Values.Add("c"); return f.Values.Count + g.Values.Count; }
+    ///   public static int DelegateArgumentCount() { var cell = new Cell&lt;NeoDelegate&lt;int, int&gt;&gt;((x) =&gt; x + 1); return CellStore.Stored.Value() + cell.Value(2); }
     ///   public static int ImmutableCount() { return new TagHolder&lt;int&gt;().B.N + new TagHolder&lt;string&gt;().B.N; }
     /// }
     /// </code>
@@ -68,6 +71,33 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void DelegateTypeArgumentKeepsItsSignature()
+        {
+            using NeoClient client = Client();
+
+            Assert.AreEqual(4, InvokeProbe(client, "DelegateArgumentCount"));
+        }
+
+        [Test]
+        public void MissingDescriptorNamesTheParameterAndKind()
+        {
+            ProjectData data = Data();
+            foreach (Member descriptor in data.members.Values
+                .Where(member => member.name == "Type argument" && member.kind == MemberKind.String)
+                .ToList())
+            {
+                data.members.Remove(descriptor.id);
+            }
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data, assumeCurrentSchema: false);
+
+            Exception error = Assert.Catch(() => InvokeProbe(client, "BoxCount"));
+
+            StringAssert.Contains(
+                "type argument 'T' (String) has no matching type descriptor",
+                error.ToString());
+        }
+
+        [Test]
         public void ImmutableInitializerClosesPerInstance()
         {
             using NeoClient client = Client();
@@ -81,9 +111,13 @@ namespace NeoCompose.Tests
 
         private static NeoClient Client()
         {
-            ProjectData data = NeoTestExport.Read(File.ReadAllText(
+            return NeoTestSaveStack.ClientFromSchema(Data(), assumeCurrentSchema: false);
+        }
+
+        private static ProjectData Data()
+        {
+            return NeoTestExport.Read(File.ReadAllText(
                 "Packages/com.ryanbliss.neocompose/Tests/generic-construction-export.json"));
-            return NeoTestSaveStack.ClientFromSchema(data, assumeCurrentSchema: false);
         }
 
         private static object? InvokeProbe(NeoClient client, string name)
