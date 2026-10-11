@@ -1629,17 +1629,22 @@ namespace NeoCompose.Tests
             Assert.AreEqual("from-base-clause", absent.tag);
         }
 
-        [TestCase(false, false, "tag")]
-        [TestCase(true, false, "from-base-clause")]
-        [TestCase(true, true, "from-body")]
+        [TestCase(false, false, false, "tag")]
+        [TestCase(false, false, true, "tag")]
+        [TestCase(true, false, false, "from-base-clause")]
+        [TestCase(true, true, false, "from-body")]
         public void RequiredConstructor_ReadonlyConstantBindsOnlyWhereAStageWritesIt(
             bool baseBlock,
             bool body,
+            bool required,
             string expected)
         {
             ProjectData data = BuildProjectData();
             var tag = (StringMember)data.members["gear-tag"];
             tag.Mutability = NeoMemberMutabilityKind.ReadOnly;
+            // A required constant no stage writes is still complete: it reads the shared value.
+            if (required)
+                tag.Requirement = NeoMemberRequirementKind.Required;
             tag.defaultValue = new StringMemberValueBase { value = "tag" };
             ConstructorRecord cog = data.constructors["ctor-cog"];
             if (!baseBlock)

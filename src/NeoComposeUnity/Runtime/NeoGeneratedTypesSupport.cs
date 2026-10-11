@@ -5580,6 +5580,9 @@ namespace NeoCompose.Runtime
                     continue;
                 if (root.value.ContainsKey(entry.schemaKey))
                     continue;
+                // An instance no stage wrote reads the constant's shared value.
+                if (IsConstantMember(client, member))
+                    continue;
                 if (member.Storage == NeoMemberStorage.Immutable)
                 {
                     throw new InvalidOperationException(

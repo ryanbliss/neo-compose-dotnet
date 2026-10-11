@@ -1382,10 +1382,11 @@ namespace NeoCompose.Tests
             Assert.AreEqual(5, reloadedNested.Get<NeoMemberClass>("Deep").Get<NeoMemberInt>("Count").value!.value);
         }
 
-        [TestCase(false, false)]
-        [TestCase(true, false)]
-        [TestCase(false, true)]
-        public void NestedLeafDependencyReplaysOnlyItsOwnGraph(bool parentReadsResult, bool parentWritesResult)
+        [TestCase(false, false, false)]
+        [TestCase(true, false, false)]
+        [TestCase(false, true, false)]
+        [TestCase(false, false, true)]
+        public void NestedLeafDependencyReplaysOnlyItsOwnGraph(bool parentReadsResult, bool parentWritesResult, bool readOnlyName)
         {
             var data = BuildProjectData();
             data.classes["save-root-class"].schema["Input"] = "input-member";
@@ -1418,6 +1419,9 @@ namespace NeoCompose.Tests
                 schema = new Dictionary<string, string> { ["Count"] = "leaf-count", ["Name"] = "leaf-name" },
             };
             data.members["leaf-name"] = new StringMember { id = "leaf-name", name = "Name", kind = MemberKind.String, defaultValue = new StringMemberValueBase { value = "default" } };
+            // A readonly literal is a constant: only a stage that writes it stores it.
+            if (readOnlyName)
+                data.members["leaf-name"].Mutability = NeoMemberMutabilityKind.ReadOnly;
             data.members["leaf-count"] = new IntMember
             {
                 id = "leaf-count",

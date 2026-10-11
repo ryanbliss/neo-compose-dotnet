@@ -240,8 +240,22 @@ namespace NeoCompose.Runtime
             internal ObjectMemberValue NamespaceRoot = null!;
             internal NeoValueOwnership Ownership;
             internal string Path = null!;
-            internal readonly Dictionary<string, MemberValue> Fields = new();
+            internal readonly Dictionary<string, NestedCallSiteField> Fields = new();
             internal readonly Dictionary<string, string> Ids = new();
+        }
+
+        private readonly struct NestedCallSiteField
+        {
+            internal readonly MemberValue Row;
+            internal readonly Member Member;
+            internal readonly string Path;
+
+            internal NestedCallSiteField(MemberValue row, Member member, string path)
+            {
+                Row = row;
+                Member = member;
+                Path = path;
+            }
         }
 
         private void RestoreNestedCallSiteFields(VirtualExpansionNode graph, NestedReplayBoundary boundary)
@@ -251,8 +265,25 @@ namespace NeoCompose.Runtime
                 if (boundary.Ids.TryGetValue(child.path, out var id))
                     child.virtualId = id;
             foreach (var pair in boundary.Fields)
+            {
+                NestedCallSiteField field = pair.Value;
                 if (graph.classChildren.TryGetValue(pair.Key, out var child))
-                    child.row = pair.Value;
+                {
+                    child.row = field.Row;
+                    continue;
+                }
+                // The constructor alone leaves a constant to its shared
+                // declaration value, so only the call site's write stores it.
+                graph.classChildren[pair.Key] = new VirtualExpansionNode
+                {
+                    row = field.Row,
+                    member = field.Member,
+                    path = field.Path,
+                    schemaKey = pair.Key,
+                    virtualId = boundary.Ids[field.Path],
+                    parent = graph,
+                };
+            }
         }
 
         private void PartitionNestedReplay(VirtualExpansionNode graph, PreparedVirtualExpansion expansion,
@@ -291,7 +322,7 @@ namespace NeoCompose.Runtime
                     foreach (string field in capture.Fields)
                         if (node.classChildren.TryGetValue(field, out var child)
                             && child.effectiveId is string fieldId && expansion.Values.TryGetValue(fieldId, out var fieldRow))
-                            boundary.Fields[field] = fieldRow;
+                            boundary.Fields[field] = new NestedCallSiteField(fieldRow, child.member, child.path);
                     var nested = new PreparedVirtualExpansion(root) { Boundary = boundary };
                     nested.Dependencies.UnionWith(capture.Reads);
                     Move(node, nested, isRoot: true);
