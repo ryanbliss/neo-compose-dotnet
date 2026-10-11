@@ -42,6 +42,10 @@ namespace Assets.Scripts.Neo
         NeoReadOnlyDictionary<Element, int?> ElementMultipliers { get; }
 
         NeoReadOnlyDictionary<Element, IReadOnlyHero> ElementChampions { get; }
+
+        IReadOnlyHero? FavoriteHero { get; }
+
+        NeoReadOnlyLookupSet<IReadOnlyHero> Party { get; }
     }
 
     public partial class Root : NeoGeneratedClassValue, IReadOnlyRoot
@@ -56,12 +60,12 @@ namespace Assets.Scripts.Neo
         {
         }
 
-        public Root(IEnumerable<Hero?>? Heroes = null, bool? Flag = null, int? Score = null, NeoMemory? NeoMemory = null, SampleLayerGroupBase? SampleLayerGroup = null, StorageA? StorageInherit = null, IDictionary<string, int?>? ElementStats = null, IDictionary<string, Hero>? ElementChampions = null)
-            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Heroes, Flag, Score, NeoMemory, SampleLayerGroup, StorageInherit, ElementStats, ElementChampions), false, NeoValueOwnership.Session)
+        public Root(IEnumerable<Hero?>? Heroes = null, bool? Flag = null, int? Score = null, NeoMemory? NeoMemory = null, SampleLayerGroupBase? SampleLayerGroup = null, StorageA? StorageInherit = null, IDictionary<string, int?>? ElementStats = null, IDictionary<string, Hero>? ElementChampions = null, NeoLookupSelection? FavoriteHero = null, IEnumerable<NeoLookupSelection>? Party = null)
+            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Heroes, Flag, Score, NeoMemory, SampleLayerGroup, StorageInherit, ElementStats, ElementChampions, FavoriteHero, Party), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(IEnumerable<Hero?>? Heroes = null, bool? Flag = null, int? Score = null, NeoMemory? NeoMemory = null, SampleLayerGroupBase? SampleLayerGroup = null, StorageA? StorageInherit = null, IDictionary<string, int?>? ElementStats = null, IDictionary<string, Hero>? ElementChampions = null)
+        private static NeoMemberClassWritable CreateFactoryNode(IEnumerable<Hero?>? Heroes = null, bool? Flag = null, int? Score = null, NeoMemory? NeoMemory = null, SampleLayerGroupBase? SampleLayerGroup = null, StorageA? StorageInherit = null, IDictionary<string, int?>? ElementStats = null, IDictionary<string, Hero>? ElementChampions = null, NeoLookupSelection? FavoriteHero = null, IEnumerable<NeoLookupSelection>? Party = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
@@ -74,7 +78,9 @@ namespace Assets.Scripts.Neo
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SampleLayerGroup", "member-sample-layer-group", SampleLayerGroup),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("StorageInherit", "member-storage-a", StorageInherit),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ElementStats", "member-elem-stats", ElementStats),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ElementChampions", "member-elem-champions", ElementChampions)
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ElementChampions", "member-elem-champions", ElementChampions),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("FavoriteHero", "member-favorite-hero", FavoriteHero),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Party", "member-party", Party)
             );
         }
 
@@ -392,6 +398,54 @@ namespace Assets.Scripts.Neo
             }
         }
 
+        public virtual IReadOnlyHero? FavoriteHero
+        {
+            get
+            {
+                if (TryReadDetachedLookup("FavoriteHero", out NeoMember? detachedSelection))
+                {
+                    return detachedSelection is null ? null : detachedSelection is NeoMemberClassWritable writableDetachedSelection ? global::Assets.Scripts.Neo.Hero.CreateWritable(client, writableDetachedSelection) : global::Assets.Scripts.Neo.Hero.Create(client, (NeoMemberClass)detachedSelection);
+                }
+                var selected = node.Get<NeoMemberLookup>("FavoriteHero").GetFirstSelected();
+                return selected is null ? null : selected is NeoMemberClassWritable writableSelected ? global::Assets.Scripts.Neo.Hero.CreateWritable(client, writableSelected) : global::Assets.Scripts.Neo.Hero.Create(client, (NeoMemberClass)selected);
+            }
+            set
+            {
+                ThrowIfReadOnly("Root.FavoriteHero");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "FavoriteHero", NeoGeneratedTypesSupport.Value(value is null ? null : new[] { NeoGeneratedTypesSupport.LookupSelectionId(value.valueId) }));
+            }
+        }
+
+        public virtual NeoLookupSet<IReadOnlyHero> Party
+        {
+            get
+            {
+                var memberNode = writableNode.Get<NeoMemberLookupWritable>("Party");
+                if (TryGetStoredView<NeoLookupSet<IReadOnlyHero>>("Party", memberNode, out var cached)) return cached;
+                return CacheStoredView("Party", memberNode, new NeoLookupSet<IReadOnlyHero>(client, memberNode, () => writableNode.GetOrCreateLookup("Party"), child => child is NeoMemberClassWritable writableChild ? global::Assets.Scripts.Neo.Hero.CreateWritable(client, writableChild) : global::Assets.Scripts.Neo.Hero.Create(client, (NeoMemberClass)child), () => ThrowIfReadOnly("Root.Party"), () => IsReadOnly));
+            }
+            set
+            {
+                ThrowIfReadOnly("Root.Party");
+                var ids = new List<string>();
+                if (value is not null)
+                {
+                    foreach (var selected in value) ids.Add(NeoGeneratedTypesSupport.LookupSelectionId(selected.valueId));
+                }
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Party", NeoGeneratedTypesSupport.Value(ids.ToArray()));
+            }
+        }
+
+        NeoReadOnlyLookupSet<IReadOnlyHero> IReadOnlyRoot.Party
+        {
+            get
+            {
+                var memberNode = node.Get<NeoMemberLookup>("Party");
+                if (TryGetStoredView<NeoReadOnlyLookupSet<IReadOnlyHero>>("Party", memberNode, out var cached)) return cached;
+                return CacheStoredView("Party", memberNode, new NeoReadOnlyLookupSet<IReadOnlyHero>(client, memberNode, child => child is NeoMemberClassWritable writableChild ? global::Assets.Scripts.Neo.Hero.CreateWritable(client, writableChild) : global::Assets.Scripts.Neo.Hero.Create(client, (NeoMemberClass)child)));
+            }
+        }
+
         public sealed class Fields
         {
             private Fields() {}
@@ -417,6 +471,10 @@ namespace Assets.Scripts.Neo
             public static readonly NeoField<NeoDictionary<Element, int?>> ElementMultipliers = new("ElementMultipliers");
 
             public static readonly NeoField<NeoDictionary<Element, Hero>> ElementChampions = new("ElementChampions");
+
+            public static readonly NeoField<IReadOnlyHero?> FavoriteHero = new("FavoriteHero");
+
+            public static readonly NeoField<NeoLookupSet<IReadOnlyHero>> Party = new("Party");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -434,6 +492,8 @@ namespace Assets.Scripts.Neo
                 [Fields.ElementStats] = () => null,
                 [Fields.ElementMultipliers] = () => null,
                 [Fields.ElementChampions] = () => null,
+                [Fields.FavoriteHero] = () => null,
+                [Fields.Party] = () => null,
             };
         }
 
@@ -462,6 +522,8 @@ namespace Assets.Scripts.Neo
                 [Fields.ElementStats] = () => ElementStats,
                 [Fields.ElementMultipliers] = () => ElementMultipliers,
                 [Fields.ElementChampions] = () => ElementChampions,
+                [Fields.FavoriteHero] = () => FavoriteHero,
+                [Fields.Party] = () => Party,
             };
         }
 

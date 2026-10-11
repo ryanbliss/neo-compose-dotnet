@@ -2234,7 +2234,7 @@ namespace NeoCompose.Runtime
                 DictionaryMember dictionary => dictionary.entryMemberId,
                 _ => null,
             };
-            if (member is LookupMember lookup
+            if (member is LookupMember { collectionMemberId: { } } lookup
                 && client.TryGetMember(
                     lookup.collectionMemberId,
                     out Member? collectionMember))

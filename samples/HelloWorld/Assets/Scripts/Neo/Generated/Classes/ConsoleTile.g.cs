@@ -107,6 +107,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             private Fields() {}
 
+            public static readonly NeoField<string> Name = new("Name");
+
+            public static readonly NeoField<NeoSprite> Sprite = new("Sprite");
+
+            public static readonly NeoField<NeoSmartTile?> SmartTile = new("SmartTile");
+
             public static readonly NeoField<NeoVector2Int> Cell = new("Cell");
         }
 
@@ -114,6 +120,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<string?>>
             {
+                [Fields.Name] = () => null,
+                [Fields.Sprite] = () => null,
+                [Fields.SmartTile] = () => null,
                 [Fields.Cell] = () => null,
             };
         }
@@ -132,6 +141,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
+                [Fields.Name] = () => Name,
+                [Fields.Sprite] = () => Sprite,
+                [Fields.SmartTile] = () => SmartTile,
                 [Fields.Cell] = () => Cell,
             };
         }

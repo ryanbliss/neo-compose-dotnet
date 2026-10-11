@@ -27,8 +27,7 @@ MonoBehaviour:
     audioClip: {fileID: 0}
   - fileId: 02e201f3-f061-4310-bdde-54e2dd905634
     fileName: Vault plaque.png
-    assetPath: Assets/Resources/Neo/Files/Sprites/02e201f3-f061-4310-bdde-54e2dd905634-Vault
-      plaque.png
+    assetPath: Assets/Resources/Neo/Files/Sprites/02e201f3-f061-4310-bdde-54e2dd905634-Vault plaque.png
     fileUpdatedAt: 1784369194780
     lastDownloadedAt: 2026-07-27T01:01:16.9585680Z
     fileRecordHash: f3da7fcd404c2904a1f030a60bf53d28b35e20c2b746f5f05180a24f0678d2a5
@@ -86,8 +85,7 @@ MonoBehaviour:
     audioClip: {fileID: 0}
   - fileId: 1e4112b5-503c-4cfc-a026-4f5d38e6999c
     fileName: Flare static.png
-    assetPath: Assets/Resources/Neo/Files/Sprites/1e4112b5-503c-4cfc-a026-4f5d38e6999c-Flare
-      static.png
+    assetPath: Assets/Resources/Neo/Files/Sprites/1e4112b5-503c-4cfc-a026-4f5d38e6999c-Flare static.png
     fileUpdatedAt: 1784369194780
     lastDownloadedAt: 2026-07-27T01:01:18.2775140Z
     fileRecordHash: 8029d52ff9154137b14d5c651a1e5462e0fb30884ac763420d06f7b72bebe740
@@ -173,8 +171,7 @@ MonoBehaviour:
     audioClip: {fileID: 0}
   - fileId: 4e7ce3fa-2fc2-4e75-b8d3-a9b0d30d3506
     fileName: First world icon.png
-    assetPath: Assets/Resources/Neo/Files/Sprites/4e7ce3fa-2fc2-4e75-b8d3-a9b0d30d3506-First
-      world icon.png
+    assetPath: Assets/Resources/Neo/Files/Sprites/4e7ce3fa-2fc2-4e75-b8d3-a9b0d30d3506-First world icon.png
     fileUpdatedAt: 1784369194780
     lastDownloadedAt: 2026-07-27T01:01:19.7768330Z
     fileRecordHash: d121a6e71cf9bd992b6ecb4d69b489beaf4588d5dc2d7ce5ef459a8da9c79f85
@@ -257,8 +254,7 @@ MonoBehaviour:
     audioClip: {fileID: 0}
   - fileId: 615fb640-00f1-416b-af1b-be81a97efc44
     fileName: Earth (day and night).png
-    assetPath: Assets/Resources/Neo/Files/Sprites/615fb640-00f1-416b-af1b-be81a97efc44-Earth
-      (day and night).png
+    assetPath: Assets/Resources/Neo/Files/Sprites/615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night).png
     fileUpdatedAt: 1784369194780
     lastDownloadedAt: 2026-07-27T01:01:21.5917730Z
     fileRecordHash: a30ff6c518ebda2f510190b557d43ef8748e256c5e19c4a554a4685211a2fcc1
@@ -322,8 +318,7 @@ MonoBehaviour:
     audioClip: {fileID: 0}
   - fileId: 65625941-be23-4913-8131-f383bf4ff690
     fileName: Venus (cloudy).png
-    assetPath: Assets/Resources/Neo/Files/Sprites/65625941-be23-4913-8131-f383bf4ff690-Venus
-      (cloudy).png
+    assetPath: Assets/Resources/Neo/Files/Sprites/65625941-be23-4913-8131-f383bf4ff690-Venus (cloudy).png
     fileUpdatedAt: 1784369194780
     lastDownloadedAt: 2026-07-27T01:01:21.7990530Z
     fileRecordHash: d9b076102600061bb304c3215bb28f446b4230bd4c3aa98f0a80971141920792
@@ -423,8 +418,7 @@ MonoBehaviour:
     audioClip: {fileID: 0}
   - fileId: 8c2b0f9f-f5e5-42a5-9ce7-7e15dc89b6c7
     fileName: Ship (thruster).png
-    assetPath: Assets/Resources/Neo/Files/Sprites/8c2b0f9f-f5e5-42a5-9ce7-7e15dc89b6c7-Ship
-      (thruster).png
+    assetPath: Assets/Resources/Neo/Files/Sprites/8c2b0f9f-f5e5-42a5-9ce7-7e15dc89b6c7-Ship (thruster).png
     fileUpdatedAt: 1784369194780
     lastDownloadedAt: 2026-07-27T01:01:23.4942530Z
     fileRecordHash: 023d3a605af1b490fa3e30eea6761f89500f04f5f0c3f24ed9e02d4fe093916d

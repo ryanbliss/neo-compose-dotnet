@@ -12,7 +12,7 @@ class CollisionTileLayer : ConsoleTileLayer {
   @id("neo-tile-grid-record-relations-v1-member-b2410feb9b3bad4b60991f9934f0722d")
   @settings(collection: Assets.SortingLayers, collectionValue: Reference(root.Assets.SortingLayers))
   @system(kind: .WorldAuthoring)
-  public override NeoSortingLayer SortingLayer = Reference<NeoSortingLayer>(id: "88c0d53b-94ee-4f48-839b-9148d07828fb");
+  public override Reference<NeoSortingLayer> SortingLayer = Reference<NeoSortingLayer>(id: "88c0d53b-94ee-4f48-839b-9148d07828fb");
 
   @id("neo-tile-grid-record-relations-v1-member-c31187a5f4ace1a4f43213bb0dc7fe8d")
   @settings(min: -32768, max: 32767)
