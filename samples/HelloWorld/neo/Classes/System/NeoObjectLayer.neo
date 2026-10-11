@@ -10,7 +10,7 @@ abstract class NeoObjectLayer {
   @id("system_89dbb12e-1d7c-42ad-b872-63fc7fe8bd5b")
   @settings(collection: Assets.SortingLayers, collectionValue: Reference(root.Assets.SortingLayers))
   @system(kind: .WorldAuthoring)
-  public virtual NeoSortingLayer SortingLayer = Reference<NeoSortingLayer>(id: "88c0d53b-94ee-4f48-839b-9148d07828fb");
+  public virtual Reference<NeoSortingLayer> SortingLayer = Reference<NeoSortingLayer>(id: "88c0d53b-94ee-4f48-839b-9148d07828fb");
 
   @id("system_472dfd84-59cb-4516-8763-90d0af6d039f")
   @settings(min: -32768, max: 32767)
