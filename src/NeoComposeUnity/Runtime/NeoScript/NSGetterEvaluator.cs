@@ -6467,6 +6467,11 @@ namespace NeoCompose.Runtime.NeoScript
                 }
                 return Box(s.Contains(ts));
             }
+            JsonMember? setEntryMember = pending is not null
+                ? pending.CollectionMember is SetMember ? (JsonMember?)pending.EntryMember : null
+                : StoredSetEntryMember(c, ctx);
+            if (setEntryMember is not null)
+                return Box(SetHoldsKey(c, target, setEntryMember, ctx));
             if (cnf.info.reference)
                 return Box(ReferenceIndexOf(c, target, ctx) >= 0);
             string? targetReferenceId = target as string
@@ -6504,6 +6509,44 @@ namespace NeoCompose.Runtime.NeoScript
                 }
             }
             return BoxedFalse;
+        }
+
+        /// <summary>
+        /// The resolved entry member of <paramref name="collection"/> when it
+        /// is a stored Set, whose entries compare by P108 key.
+        /// </summary>
+        private static JsonMember? StoredSetEntryMember(object? collection, Context ctx) =>
+            FindRowReference(collection, ctx) is { } rowRef && rowRef.CollectionMember(ctx.client) is SetMember
+                ? rowRef.EntryMember(ctx.client)
+                : null;
+
+        /// <summary>
+        /// Whether Set <paramref name="set"/> holds an entry whose key is
+        /// <paramref name="value"/>'s: its value id for Class entries.
+        /// </summary>
+        private static bool SetHoldsKey(object? set, object? value, JsonMember entryMember, Context ctx)
+        {
+            if (value is null)
+                return false;
+            var cursor = new CollectionCursor(set, ctx);
+            if (entryMember is ClassMember)
+            {
+                if (ReferenceKeyOf(value, ctx) is not string referenceId)
+                    return false;
+                while (cursor.MoveNextUnresolved())
+                {
+                    if (cursor.ValueId == referenceId)
+                        return true;
+                }
+                return false;
+            }
+            string key = NeoSetEntryKey.OfPayload(entryMember, value);
+            while (cursor.MoveNextUnresolved())
+            {
+                if (NeoSetEntryKey.OfPayload(entryMember, cursor.ResolveEntry(ctx)) == key)
+                    return true;
+            }
+            return false;
         }
 
         private static object? EvalIndexOf(
@@ -8382,6 +8425,7 @@ namespace NeoCompose.Runtime.NeoScript
                     return value is string decimalText
                         && NeoDecimalValues.GetViolation(decimalText) == NeoDecimalValues.Violation.None;
                 case MemberKind.List:
+                case MemberKind.Set:
                     return value is object?[];
                 case MemberKind.Lookup:
                     {
@@ -10141,7 +10185,7 @@ namespace NeoCompose.Runtime.NeoScript
                 return NeoScriptDebug.FormatValue($"(Interface<{interfaceType.interfaceId}>, Value<{FindRowIdByReference(value, ctx) ?? "<unknown>"}>)", MemberKind.String);
             if (type is LookupTypeInfo { entryTypeInfo: EnumTypeInfo enumType })
                 type = enumType;
-            if (value is not null && type.type is MemberKind.Class or MemberKind.List or MemberKind.Dictionary or MemberKind.Lookup)
+            if (value is not null && type.type is MemberKind.Class or MemberKind.List or MemberKind.Set or MemberKind.Dictionary or MemberKind.Lookup)
                 return NeoScriptDebug.FormatValue(FormatForInterp(value, type, ctx), MemberKind.String);
             if (type.type == MemberKind.Enum && value is object?[] values)
             {
@@ -10220,11 +10264,12 @@ namespace NeoCompose.Runtime.NeoScript
                         return $"(Class<{typeName}>, Value<{rowId}>)";
                     }
                 case MemberKind.List:
+                case MemberKind.Set:
                     {
                         var entryType = (sourceType as CollectionTypeInfo)?.entryTypeInfo;
                         string entryName = entryType is null ? "unknown" : DescribeRuntimeType(entryType, ctx);
                         string rowId = FindRowIdByReference(value, ctx) ?? "<unknown>";
-                        return $"(List<{entryName}>, Value<{rowId}>)";
+                        return $"({sourceType.type}<{entryName}>, Value<{rowId}>)";
                     }
                 case MemberKind.Dictionary:
                     {
@@ -10287,6 +10332,11 @@ namespace NeoCompose.Runtime.NeoScript
                     {
                         var inner = (t as CollectionTypeInfo)?.entryTypeInfo;
                         return inner is null ? "List<unknown>" : $"List<{DescribeRuntimeType(inner, ctx)}>";
+                    }
+                case MemberKind.Set:
+                    {
+                        var inner = (t as CollectionTypeInfo)?.entryTypeInfo;
+                        return inner is null ? "Set<unknown>" : $"Set<{DescribeRuntimeType(inner, ctx)}>";
                     }
                 case MemberKind.Dictionary:
                     {

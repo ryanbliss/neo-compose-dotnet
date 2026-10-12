@@ -1626,6 +1626,7 @@ namespace NeoCompose.Runtime
                 && typeInfo.type is MemberKind.Class
                     or MemberKind.Interface
                     or MemberKind.List
+                    or MemberKind.Set
                     or MemberKind.Dictionary)
             {
                 string valueId = token.Value<string>()!;

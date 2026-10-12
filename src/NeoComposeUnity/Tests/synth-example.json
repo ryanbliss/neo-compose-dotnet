@@ -3243,6 +3243,78 @@
         "required": true
       },
       "selection": 1
+    },
+    "member-root-lucky": {
+      "id": "member-root-lucky",
+      "name": "Lucky",
+      "kind": 28,
+      "entryMemberId": "member-root-lucky-entry",
+      "requirement": 1,
+      "defaultValue": {
+        "value": []
+      },
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "member-root-lucky-entry": {
+      "id": "member-root-lucky-entry",
+      "name": "Lucky Entry",
+      "kind": 2,
+      "requirement": 1,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "member-root-allies": {
+      "id": "member-root-allies",
+      "name": "Allies",
+      "kind": 28,
+      "entryMemberId": "member-root-ally",
+      "requirement": 1,
+      "defaultValue": {
+        "value": []
+      },
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "member-root-elements": {
+      "id": "member-root-elements",
+      "name": "Elements",
+      "kind": 8,
+      "enumId": "enum-element",
+      "selection": 1,
+      "requirement": 1,
+      "defaultValue": {
+        "value": []
+      },
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "member-generic-contract-unique": {
+      "id": "member-generic-contract-unique",
+      "name": "Unique",
+      "kind": 28,
+      "entryMemberId": "member-generic-contract-entry",
+      "requirement": 1,
+      "defaultValue": {
+        "value": []
+      },
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "member-root-ally": {
+      "id": "member-root-ally",
+      "name": "Ally",
+      "kind": 7,
+      "classId": "class-hero",
+      "requirement": 1,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
     }
   },
   "enums": {
@@ -3629,7 +3701,10 @@
         "ElementMultipliers": "member-elem-multipliers",
         "ElementChampions": "member-elem-champions",
         "FavoriteHero": "member-favorite-hero",
-        "Party": "member-party"
+        "Party": "member-party",
+        "Lucky": "member-root-lucky",
+        "Allies": "member-root-allies",
+        "Elements": "member-root-elements"
       },
       "projectId": "test-project",
       "createdAt": 0,
@@ -3936,7 +4011,8 @@
         "Payload": "member-generic-contract-payload",
         "Computed": "member-generic-contract-computed",
         "Echo": "member-generic-contract-echo",
-        "EchoLater": "member-generic-contract-echo-later"
+        "EchoLater": "member-generic-contract-echo-later",
+        "Unique": "member-generic-contract-unique"
       },
       "modifier": 1,
       "genericParams": [

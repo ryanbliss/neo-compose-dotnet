@@ -194,6 +194,7 @@ namespace NeoCompose.Runtime.Json
                 case MemberKind.Enum:
                     return typeof(EnumTypeInfo);
                 case MemberKind.List:
+                case MemberKind.Set:
                 case MemberKind.Dictionary:
                     return typeof(CollectionTypeInfo);
                 case MemberKind.Lookup:
@@ -253,6 +254,7 @@ namespace NeoCompose.Runtime.Json
                 case MemberKind.Enum:
                     return typeof(EnumTypeInfo);
                 case MemberKind.List:
+                case MemberKind.Set:
                 case MemberKind.Dictionary:
                     return typeof(CollectionTypeInfo);
                 case MemberKind.Lookup:

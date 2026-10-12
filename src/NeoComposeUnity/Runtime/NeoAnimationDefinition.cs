@@ -1859,6 +1859,7 @@ namespace NeoCompose.Runtime
             }
             // A Class target plays whole values; only collections stay containers.
             if (targetMember.kind == MemberKind.List
+                || targetMember.kind == MemberKind.Set
                 || targetMember.kind == MemberKind.Dictionary)
             {
                 throw new InvalidOperationException(

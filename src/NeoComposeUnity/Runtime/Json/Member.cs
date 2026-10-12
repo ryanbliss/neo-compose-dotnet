@@ -736,7 +736,7 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>Mirror of TS-side <c>TMemberList</c>.</summary>
-    public sealed class ListMember : Member<string[]?>
+    public class ListMember : Member<string[]?>
     {
         public string entryMemberId = null!;
 
@@ -779,6 +779,15 @@ namespace NeoCompose.Runtime.Json
 
         /// <summary>Optional authoring layout retained for export round trips.</summary>
         public ListColumnSetting[]? columnSettings;
+    }
+
+    /// <summary>
+    /// Mirror of TS-side <c>TMemberSet</c> (P108): an ordered List whose
+    /// entries are unique by <see cref="NeoSetEntryKey"/>. Every List read
+    /// applies; positional writes do not.
+    /// </summary>
+    public sealed class SetMember : ListMember
+    {
     }
 
     /// <summary>Mirror of TS-side <c>TMemberClass</c>.</summary>
@@ -1544,6 +1553,8 @@ namespace NeoCompose.Runtime.Json
                     return typeof(DictionaryMember);
                 case MemberKind.List:
                     return typeof(ListMember);
+                case MemberKind.Set:
+                    return typeof(SetMember);
                 case MemberKind.Class:
                     return typeof(ClassMember);
                 case MemberKind.Enum:

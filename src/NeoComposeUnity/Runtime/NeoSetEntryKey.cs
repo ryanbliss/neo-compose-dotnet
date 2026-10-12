@@ -1,0 +1,161 @@
+// Copyright (c) Ryan Bliss and contributors. All rights reserved.
+// Licensed under the MIT License.
+
+#nullable enable
+
+using System;
+using System.Globalization;
+using NeoCompose.Runtime.Json;
+
+namespace NeoCompose.Runtime
+{
+    /// <summary>
+    /// The P108 §3 key of one Set entry: the value id for Class entries and a
+    /// canonical encoding of the stored value for every value kind. Two
+    /// entries of one Set are equal iff their keys are equal. Mirrors the
+    /// TypeScript <c>setEntryKey</c>; <c>NeoSetEntryKeyParityFixture</c> pins
+    /// both.
+    /// </summary>
+    internal static class NeoSetEntryKey
+    {
+        /// <summary>
+        /// The key of a stored entry. <paramref name="entryMember"/> must be
+        /// the resolved entry member: a generic entry is substituted with its
+        /// closed binding first.
+        /// </summary>
+        internal static string Of(Member entryMember, MemberValue row)
+        {
+            if (entryMember is null)
+                throw new ArgumentNullException(nameof(entryMember));
+            if (row is null)
+                throw new ArgumentNullException(nameof(row));
+            switch (entryMember)
+            {
+                case ClassMember:
+                    return row.id;
+                case BoolMember:
+                    return Require(row as BoolMemberValue, entryMember).value switch
+                    {
+                        true => "true",
+                        false => "false",
+                        null => throw new InvalidOperationException(
+                            $"NeoSetEntryKey: '{entryMember.name}' entry '{row.id}' has no stored boolean."),
+                    };
+                case IntMember:
+                    return IntKey(RequireNumber(row, entryMember));
+                case FloatMember:
+                    return Float32Key(RequireNumber(row, entryMember));
+                case DecimalMember:
+                    return DecimalKey(RequireString(row, entryMember));
+                case StringMember text:
+                    if (text.Format == NeoStringFormatKind.Localized)
+                    {
+                        throw new InvalidOperationException(
+                            $"NeoSetEntryKey: '{entryMember.name}' is a localized string; Set<string> elements must be @settings(format: .Plain).");
+                    }
+                    return RequireString(row, entryMember);
+                case EnumMember:
+                    return string.Join(",", Require(row as ArrayMemberValue, entryMember).value ?? Array.Empty<string>());
+                case Vector2Member:
+                    {
+                        NeoVector2Value vector = RequireValue(Require(row as Vector2MemberValue, entryMember).value, entryMember);
+                        return Float32Key(vector.x) + "," + Float32Key(vector.y);
+                    }
+                case Vector2IntMember:
+                    {
+                        NeoVector2Value vector = RequireValue(Require(row as Vector2MemberValue, entryMember).value, entryMember);
+                        return IntKey(vector.x) + "," + IntKey(vector.y);
+                    }
+                case Vector3Member:
+                    {
+                        NeoVector3Value vector = RequireValue(Require(row as Vector3MemberValue, entryMember).value, entryMember);
+                        return Float32Key(vector.x) + "," + Float32Key(vector.y) + "," + Float32Key(vector.z);
+                    }
+                case Vector3IntMember:
+                    {
+                        NeoVector3Value vector = RequireValue(Require(row as Vector3MemberValue, entryMember).value, entryMember);
+                        return IntKey(vector.x) + "," + IntKey(vector.y) + "," + IntKey(vector.z);
+                    }
+                case ColorMember:
+                    {
+                        NeoColorValue color = RequireValue(Require(row as ColorMemberValue, entryMember).value, entryMember);
+                        return Float32Key(color.r) + "," + Float32Key(color.g) + "," + Float32Key(color.b) + "," + Float32Key(color.a);
+                    }
+                case SpriteMember:
+                    {
+                        SpriteValue sprite = RequireValue(Require(row as SpriteMemberValue, entryMember).value, entryMember);
+                        return sprite.fileId + ":" + sprite.sliceIndex.ToString(CultureInfo.InvariantCulture);
+                    }
+                case AudioMember:
+                    return RequireValue(Require(row as FileMemberValue, entryMember).value, entryMember).fileId;
+                default:
+                    throw new InvalidOperationException(
+                        $"NeoSetEntryKey: '{entryMember.name}' is a {entryMember.GetType().Name}, which is not a Set element kind.");
+            }
+        }
+
+        /// <summary>
+        /// The key a value-kind entry built from <paramref name="payload"/>
+        /// would have. Class entries key by value id, so callers resolve them
+        /// before reaching here.
+        /// </summary>
+        internal static string OfPayload(Member entryMember, object? payload)
+        {
+            if (entryMember is ClassMember)
+            {
+                throw new InvalidOperationException(
+                    $"NeoSetEntryKey: Class entry '{entryMember.name}' keys by value id, not by payload.");
+            }
+            return Of(entryMember, MemberValueFactory.Create(entryMember, payload, string.Empty, default, default));
+        }
+
+        private static double RequireNumber(MemberValue row, Member entryMember) =>
+            Require(row as NumberMemberValue, entryMember).value
+                ?? throw new InvalidOperationException(
+                    $"NeoSetEntryKey: '{entryMember.name}' entry '{row.id}' has no stored number.");
+
+        private static string RequireString(MemberValue row, Member entryMember) =>
+            Require(row as StringMemberValue, entryMember).value
+                ?? throw new InvalidOperationException(
+                    $"NeoSetEntryKey: '{entryMember.name}' entry '{row.id}' has no stored string.");
+
+        private static TRow Require<TRow>(TRow? row, Member entryMember)
+            where TRow : MemberValue =>
+            row ?? throw new InvalidOperationException(
+                $"NeoSetEntryKey: '{entryMember.name}' entry is not a {typeof(TRow).Name}.");
+
+        private static TValue RequireValue<TValue>(TValue? value, Member entryMember)
+            where TValue : class =>
+            value ?? throw new InvalidOperationException(
+                $"NeoSetEntryKey: '{entryMember.name}' entry has no stored {typeof(TValue).Name}.");
+
+        private static string IntKey(double value) =>
+            ((long)value).ToString(CultureInfo.InvariantCulture);
+
+        /// <summary>
+        /// The stored float32's bit pattern as a signed integer, so the
+        /// TypeScript mirror produces the same text without sharing a float
+        /// formatter. <c>0</c> and <c>-0</c> share a key.
+        /// </summary>
+        private static string Float32Key(double value)
+        {
+            float single = (float)value;
+            if (single == 0f)
+                single = 0f;
+            return BitConverter.SingleToInt32Bits(single).ToString(CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>Canonical decimal string: <c>1.0</c>, <c>1.00</c>, and <c>1</c> share a key.</summary>
+        private static string DecimalKey(string value)
+        {
+            string text = value;
+            if (text.IndexOf('.') >= 0 && text.EndsWith("0", StringComparison.Ordinal))
+            {
+                text = text.TrimEnd('0');
+                if (text.EndsWith(".", StringComparison.Ordinal))
+                    text = text.Substring(0, text.Length - 1);
+            }
+            return text == "-0" ? "0" : text;
+        }
+    }
+}

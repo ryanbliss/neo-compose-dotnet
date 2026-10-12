@@ -133,7 +133,10 @@ namespace NeoCompose.Runtime
     ///   <item><description>List → <c>NeoReadOnlyList&lt;TEntry&gt;</c> /
     ///   <c>NeoList&lt;TEntry&gt;</c>; Dictionary →
     ///   <c>NeoReadOnlyDictionary&lt;TEntry&gt;</c> /
-    ///   <c>NeoDictionary&lt;TEntry&gt;</c>. Read-as-wrapper only —
+    ///   <c>NeoDictionary&lt;TEntry&gt;</c>; Set → <c>NeoReadOnlySet&lt;TEntry&gt;</c> /
+    ///   <c>NeoSet&lt;TEntry&gt;</c>; multi-select Enum →
+    ///   <c>NeoReadOnlyEnumSet&lt;TEnum&gt;</c> / <c>NeoEnumSet&lt;TEnum&gt;</c>.
+    ///   Read-as-wrapper only —
     ///   <see cref="NeoGenericBinding{T}.Write"/> throws; mutate through the
     ///   wrapper. Under IL2CPP emit one
     ///   <see cref="AotSeedCollectionCodecs{TEntry}"/> call per closed
@@ -193,7 +196,10 @@ namespace NeoCompose.Runtime
                 return false;
             Type definition = target.GetGenericTypeDefinition();
             bool isOwnWrapperShape = isList
-                ? definition == typeof(NeoReadOnlyList<>) || definition == typeof(NeoList<>)
+                ? definition == typeof(NeoReadOnlyList<>)
+                    || definition == typeof(NeoList<>)
+                    || definition == typeof(NeoReadOnlySet<>)
+                    || definition == typeof(NeoSet<>)
                 : definition == typeof(NeoReadOnlyDictionary<>)
                     || definition == typeof(NeoDictionary<>)
                     || definition == typeof(NeoReadOnlyDictionary<,>)
@@ -241,11 +247,13 @@ namespace NeoCompose.Runtime
                 case MemberKind.Audio:
                     return AudioCodec<T>(client, member);
                 case MemberKind.Enum:
-                    return EnumCodec<T>(member);
+                    return EnumCodec<T>(client, member);
                 case MemberKind.Class:
                     return ClassCodec<T>(client, member);
                 case MemberKind.List:
                     return ListCodec<T>(client, member);
+                case MemberKind.Set:
+                    return SetCodec<T>(client, member);
                 case MemberKind.Dictionary:
                     return DictionaryCodec<T>(client, member);
                 case MemberKind.Generic:
@@ -275,6 +283,8 @@ namespace NeoCompose.Runtime
             // exist so the AOT compiler sees the closed instantiations.
             CreateReadOnlyListCodec<TEntry>(null!, null!);
             CreateListCodec<TEntry>(null!, null!);
+            CreateReadOnlySetCodec<TEntry>(null!, null!);
+            CreateSetCodec<TEntry>(null!, null!);
             CreateReadOnlyDictionaryCodec<TEntry>(null!, null!);
             CreateDictionaryCodec<TEntry>(null!, null!);
         }
@@ -807,7 +817,7 @@ namespace NeoCompose.Runtime
         // class converts it to and from option ids.
         // ------------------------------------------------------------------
 
-        private static NeoGenericBinding<T> EnumCodec<T>(Member member)
+        private static NeoGenericBinding<T> EnumCodec<T>(NeoClient client, Member member)
         {
             bool multiSelect = member is EnumMember enumMember && enumMember.Selection == NeoMemberSelectionKind.Multi;
             if (member is EnumMember canonical && canonical.enumId == NeoCellPatternStorage.ExcludingEnumId)
@@ -843,18 +853,26 @@ namespace NeoCompose.Runtime
                         v => NeoValueWritePayload.FromValue(v)));
                 }
                 if (typeof(T).IsGenericType
-                    && typeof(T).GetGenericTypeDefinition() == typeof(IReadOnlyList<>)
-                    && typeof(T).GetGenericArguments()[0].IsEnum)
+                    && typeof(T).GetGenericTypeDefinition() == typeof(NeoReadOnlyEnumSet<>))
                 {
                     return InvokeGenericCore<T>(
                         member,
-                        nameof(CreateEnumListCodec),
+                        nameof(CreateReadOnlyEnumSetCodec),
                         typeof(T).GetGenericArguments()[0],
-                        new object?[] { member });
+                        new object?[] { client, member });
+                }
+                if (typeof(T).IsGenericType
+                    && typeof(T).GetGenericTypeDefinition() == typeof(NeoEnumSet<>))
+                {
+                    return InvokeGenericCore<T>(
+                        member,
+                        nameof(CreateEnumSetCodec),
+                        typeof(T).GetGenericArguments()[0],
+                        new object?[] { client, member });
                 }
                 throw Mismatch<T>(
                     member,
-                    "IReadOnlyList<Enum>' (generated enums) or 'string[]' (option ids)");
+                    "NeoReadOnlyEnumSet<Enum>' or 'NeoEnumSet<Enum>' (generated enums) or 'string[]' (option ids)");
             }
             if (typeof(T) == typeof(string))
             {
@@ -933,26 +951,43 @@ namespace NeoCompose.Runtime
                 v => NeoValueWritePayload.FromValue(v is null ? null : new[] { toOptionId(v.Value) }));
         }
 
-        private static NeoGenericBinding<IReadOnlyList<TEnum>> CreateEnumListCodec<TEnum>(
+        private static NeoGenericBinding<NeoReadOnlyEnumSet<TEnum>> CreateReadOnlyEnumSetCodec<TEnum>(
+            NeoClient client,
             Member member)
             where TEnum : struct, System.Enum
         {
-            var (fromOptionId, toOptionId) = RequireEnumOptions<TEnum, IReadOnlyList<TEnum>>(member);
-            string[] ToOptionIds(IReadOnlyList<TEnum> values)
-            {
-                var ids = new string[values.Count];
-                for (int i = 0; i < values.Count; i++)
-                    ids[i] = toOptionId(values[i]);
-                return ids;
-            }
-            return new NeoGenericBinding<IReadOnlyList<TEnum>>(
+            var (fromOptionId, toOptionId) = RequireEnumOptions<TEnum, NeoReadOnlyEnumSet<TEnum>>(member);
+            return new NeoGenericBinding<NeoReadOnlyEnumSet<TEnum>>(
                 MemberKind.Enum,
-                node => NeoGeneratedTypesSupport.ReadEnumList(
-                    RequireNode<NeoMemberEnum>(node, member).Selected(),
-                    fromOptionId),
-                (node, v) => RequireWritable<NeoMemberEnumWritable>(node, member)
-                    .Set(v is null ? null : ToOptionIds(v)),
-                v => NeoValueWritePayload.FromValue(v is null ? null : ToOptionIds(v)));
+                node => new NeoReadOnlyEnumSet<TEnum>(
+                    client,
+                    RequireNode<NeoMemberEnum>(node, member),
+                    fromOptionId,
+                    toOptionId),
+                (node, v) => throw CollectionAssignment(member),
+                v => throw CollectionSerialize(member));
+        }
+
+        private static NeoGenericBinding<NeoEnumSet<TEnum>> CreateEnumSetCodec<TEnum>(
+            NeoClient client,
+            Member member)
+            where TEnum : struct, System.Enum
+        {
+            var (fromOptionId, toOptionId) = RequireEnumOptions<TEnum, NeoEnumSet<TEnum>>(member);
+            return new NeoGenericBinding<NeoEnumSet<TEnum>>(
+                MemberKind.Enum,
+                node =>
+                {
+                    var enumNode = RequireNode<NeoMemberEnum>(node, member);
+                    return new NeoEnumSet<TEnum>(
+                        client,
+                        enumNode,
+                        () => RequireWritable<NeoMemberEnumWritable>(enumNode, member),
+                        fromOptionId,
+                        toOptionId);
+                },
+                (node, v) => throw CollectionAssignment(member),
+                v => throw CollectionSerialize(member));
         }
 
         // ------------------------------------------------------------------
@@ -1129,6 +1164,34 @@ namespace NeoCompose.Runtime
                 new object?[] { client, member });
         }
 
+        private static NeoGenericBinding<T> SetCodec<T>(NeoClient client, Member member)
+        {
+            Type target = typeof(T);
+            if (!target.IsGenericType)
+            {
+                throw Mismatch<T>(member, "NeoReadOnlySet<TEntry>' or 'NeoSet<TEntry>");
+            }
+            Type definition = target.GetGenericTypeDefinition();
+            string coreName;
+            if (definition == typeof(NeoReadOnlySet<>))
+            {
+                coreName = nameof(CreateReadOnlySetCodec);
+            }
+            else if (definition == typeof(NeoSet<>))
+            {
+                coreName = nameof(CreateSetCodec);
+            }
+            else
+            {
+                throw Mismatch<T>(member, "NeoReadOnlySet<TEntry>' or 'NeoSet<TEntry>");
+            }
+            return InvokeGenericCore<T>(
+                member,
+                coreName,
+                target.GetGenericArguments()[0],
+                new object?[] { client, member });
+        }
+
         private static NeoGenericBinding<T> DictionaryCodec<T>(NeoClient client, Member member)
         {
             Type target = typeof(T);
@@ -1229,6 +1292,59 @@ namespace NeoCompose.Runtime
                         () => listNode as NeoMemberListWritable
                             ?? throw new InvalidOperationException(
                                 $"Cannot mutate list generic member '{member.name}' ({member.id}): the node is the read-only NeoMemberList; writes require Save/Session ownership."),
+                        (c, child) => EntryCodec().Read(child),
+                        item => EntryCodec().Serialize(item));
+                },
+                (node, v) => throw CollectionAssignment(member),
+                v => throw CollectionSerialize(member));
+        }
+
+        private static NeoGenericBinding<NeoReadOnlySet<TEntry>> CreateReadOnlySetCodec<TEntry>(
+            NeoClient client,
+            Member member)
+        {
+            return new NeoGenericBinding<NeoReadOnlySet<TEntry>>(
+                MemberKind.Set,
+                node =>
+                {
+                    var setNode = RequireNode<NeoMemberList>(node, member);
+                    NeoGenericBinding<TEntry>? entryCodec = null;
+                    NeoGenericBinding<TEntry> EntryCodec()
+                    {
+                        entryCodec ??= ResolveForMember<TEntry>(client, setNode.EntryMember);
+                        return entryCodec;
+                    }
+                    return new NeoReadOnlySet<TEntry>(
+                        client,
+                        setNode,
+                        (c, child) => EntryCodec().Read(child),
+                        item => EntryCodec().Serialize(item));
+                },
+                (node, v) => throw CollectionAssignment(member),
+                v => throw CollectionSerialize(member));
+        }
+
+        private static NeoGenericBinding<NeoSet<TEntry>> CreateSetCodec<TEntry>(
+            NeoClient client,
+            Member member)
+        {
+            return new NeoGenericBinding<NeoSet<TEntry>>(
+                MemberKind.Set,
+                node =>
+                {
+                    var setNode = RequireNode<NeoMemberList>(node, member);
+                    NeoGenericBinding<TEntry>? entryCodec = null;
+                    NeoGenericBinding<TEntry> EntryCodec()
+                    {
+                        entryCodec ??= ResolveForMember<TEntry>(client, setNode.EntryMember);
+                        return entryCodec;
+                    }
+                    return new NeoSet<TEntry>(
+                        client,
+                        setNode,
+                        () => setNode as NeoMemberListWritable
+                            ?? throw new InvalidOperationException(
+                                $"Cannot mutate set generic member '{member.name}' ({member.id}): the node is the read-only NeoMemberList; writes require Save/Session ownership."),
                         (c, child) => EntryCodec().Read(child),
                         item => EntryCodec().Serialize(item));
                 },

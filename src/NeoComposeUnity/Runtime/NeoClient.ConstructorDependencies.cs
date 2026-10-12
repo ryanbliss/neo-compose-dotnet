@@ -103,7 +103,7 @@ namespace NeoCompose.Runtime
                     || token?.Type != JTokenType.String)
                     continue;
                 var parameter = NeoNSFunctionRuntime.ResolveInvocationTypeInfo(this, constructor.argumentTypes[index], env);
-                if (parameter.type is not (MemberKind.Class or MemberKind.Interface or MemberKind.List or MemberKind.Dictionary))
+                if (parameter.type is not (MemberKind.Class or MemberKind.Interface or MemberKind.List or MemberKind.Set or MemberKind.Dictionary))
                     continue;
                 var pending = new Queue<(string id, TypeInfo type)>();
                 var visited = new HashSet<string>();
@@ -127,7 +127,7 @@ namespace NeoCompose.Runtime
                         : data.values.ContainsKey(id) ? NeoValueOwnership.Asset : ownership;
                     if (!TryGetValue(argumentOwnership, id, out argumentRow))
                         continue;
-                    if (type.type == MemberKind.List && argumentRow is ArrayMemberValue array)
+                    if (type.type is MemberKind.List or MemberKind.Set && argumentRow is ArrayMemberValue array)
                     {
                         foreach (var childId in array.value ?? System.Array.Empty<string>())
                             pending.Enqueue((childId, entryType));

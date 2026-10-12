@@ -896,7 +896,7 @@ namespace NeoCompose.Runtime
         }
     }
 
-    public class NeoReadOnlyLookupSet<T> : IReadOnlyCollection<T>
+    public class NeoReadOnlyLookupSet<T> : INeoReadOnlySet<T>
     {
         protected readonly NeoClient client;
         protected NeoMemberLookup node;
@@ -1073,7 +1073,7 @@ namespace NeoCompose.Runtime
     /// non-generic and resolves the stored <c>dialogueId</c>s directly (no
     /// collection <c>GetSelected()</c> walk). See spec §5.3.
     /// </summary>
-    public class NeoReadOnlyDialogueReferenceSet : IReadOnlyCollection<NeoDialogueReference>
+    public class NeoReadOnlyDialogueReferenceSet : INeoReadOnlySet<NeoDialogueReference>
     {
         protected readonly NeoClient client;
         protected NeoMemberDialogueLookup node;

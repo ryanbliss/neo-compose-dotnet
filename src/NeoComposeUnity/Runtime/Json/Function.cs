@@ -434,6 +434,8 @@ namespace NeoCompose.Runtime.Json
         public Pointer? countPointer;
         public Pointer? otherPointer;
         public string? keyType;
+        /// <summary>ToSet only: entries dedupe by identity (see <see cref="Condition.reference"/>).</summary>
+        public bool reference;
     }
 
     public sealed class FirstFunction : Function

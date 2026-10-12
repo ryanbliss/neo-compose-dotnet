@@ -73,6 +73,13 @@ namespace NeoCompose.Runtime.Json
         /// Selected atomically, never field-addressed.
         /// </summary>
         Variant = 27,
+        /// <summary>
+        /// Insertion-ordered owned entries, no two equal (P108). Stored as an
+        /// ordered List: the value is the entry value ids in insertion order.
+        /// The SDK models it as a <see cref="SetMember"/>, a
+        /// <see cref="ListMember"/> that is never unordered.
+        /// </summary>
+        Set = 28,
         Unknown = -1,
         Void = -2,
     }

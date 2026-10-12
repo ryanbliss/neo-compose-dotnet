@@ -36,6 +36,8 @@ namespace Assets.Scripts.Neo
         T Echo(T value);
 
         Task<T> EchoLater(T value);
+
+        NeoReadOnlySet<T> Unique { get; }
     }
 
     public abstract partial class GenericContract<T> : NeoGeneratedClassValue, IReadOnlyGenericContract<T>
@@ -121,6 +123,26 @@ namespace Assets.Scripts.Neo
 
 
 
+        public virtual NeoSet<T> Unique
+        {
+            get
+            {
+                var memberNode = writableNode.Get<NeoMemberListWritable>("Unique");
+                if (TryGetStoredView<NeoSet<T>>("Unique", memberNode, out var cached)) return cached;
+                return CacheStoredView("Unique", memberNode, new NeoSet<T>(client, memberNode, () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("Unique"), (client, child) => NeoGenericBindings.Resolve<T>(client, (NeoMember)child).Read((NeoMember)child), item => NeoGenericBindings.Resolve<T>(client, writableNode.Get<NeoMemberListWritable>("Unique")).Serialize(item), () => ThrowIfReadOnly("GenericContract.Unique"), () => IsReadOnly));
+            }
+        }
+
+        NeoReadOnlySet<T> IReadOnlyGenericContract<T>.Unique
+        {
+            get
+            {
+                var memberNode = node.Get<NeoMemberList>("Unique");
+                if (TryGetStoredView<NeoReadOnlySet<T>>("Unique", memberNode, out var cached)) return cached;
+                return CacheStoredView("Unique", memberNode, new NeoReadOnlySet<T>(client, memberNode, (client, child) => NeoGenericBindings.Resolve<T>(client, (NeoMember)child).Read((NeoMember)child), item => NeoGenericBindings.Resolve<T>(client, memberNode).Serialize(item)));
+            }
+        }
+
         public abstract T Echo(T value);
 
         public abstract Task<T> EchoLater(T value);
@@ -136,6 +158,8 @@ namespace Assets.Scripts.Neo
             public static readonly NeoField<GenericPayload<T>?> Payload = new("Payload");
 
             public static readonly NeoField<T> Computed = new("Computed");
+
+            public static readonly NeoField<NeoSet<T>> Unique = new("Unique");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -146,6 +170,7 @@ namespace Assets.Scripts.Neo
                 [Fields.Values] = () => null,
                 [Fields.Payload] = () => null,
                 [Fields.Computed] = () => null,
+                [Fields.Unique] = () => null,
             };
         }
 
@@ -167,6 +192,7 @@ namespace Assets.Scripts.Neo
                 [Fields.Values] = () => Values,
                 [Fields.Payload] = () => Payload,
                 [Fields.Computed] = () => Computed,
+                [Fields.Unique] = () => Unique,
             };
         }
 

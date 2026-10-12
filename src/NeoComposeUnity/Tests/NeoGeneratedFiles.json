@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "projectId": "test-project",
-  "codegenRevision": "ac7f9812e3b16cc37d09ba5006316dda6bac23884c83b368a10880bc3f2c765b",
+  "codegenRevision": "8e940ebfec562d0be7fe7b82014f66293ea075c2ca394c3a3eaac419eaddfeb8",
   "files": [
     {
       "id": "class:class-abstract-readonly-stats",
@@ -71,12 +71,12 @@
     {
       "id": "class:class-generic-contract",
       "path": "Generated/Classes/GenericContract.g.cs",
-      "hash": "8d8ae73156d5276ed90fe63fb90bc428119293c2aaf1f447d44a3d16eae1db95"
+      "hash": "d11fd4d2a9a99099b5009a43dafa9e0491ea4293ff7bb89c334ccba68fdf5758"
     },
     {
       "id": "class:class-generic-float-contract",
       "path": "Generated/Classes/GenericFloatContract.g.cs",
-      "hash": "bf428ad3a08b22e057ca8bb90131f8d2090ba0da1757abdf4ea6dd947f86e210"
+      "hash": "b6f81cdd1b0cd8555c7e4b2298498b1ddee5306a7de370496d33af0d1e2987ea"
     },
     {
       "id": "class:class-generic-float-payload",
@@ -106,7 +106,7 @@
     {
       "id": "class:class-generic-string-contract",
       "path": "Generated/Classes/GenericStringContract.g.cs",
-      "hash": "f01222fd8cd1ad701f9fa63999f367dce4568953a0c9efec277c1d81a9757742"
+      "hash": "f5dd8f98ffaa67ae7af28533c1e35bdcc3dcb0bac2e0dc96d2ebba480809506a"
     },
     {
       "id": "class:class-generic-string-payload",
@@ -206,7 +206,7 @@
     {
       "id": "class:class-root",
       "path": "Generated/Classes/Root.g.cs",
-      "hash": "23d43273c32ffa79ea85a7dd87f358f4e0f2fb4eb5efbf45776f29fc6a8650ab"
+      "hash": "3bc1c2621c27f1a86cc0b9f6fa6eabef57dce1edfcf4b29a61de8131ddaf3470"
     },
     {
       "id": "class:class-sample-blocked-path",

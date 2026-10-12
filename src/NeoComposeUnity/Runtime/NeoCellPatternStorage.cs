@@ -118,7 +118,7 @@ namespace NeoCompose.Runtime
                 return ExcludingIds(excluding);
             if (value is null || type is not CollectionTypeInfo collection || !ContainsCanonical(collection.entryTypeInfo))
                 return value;
-            if (type.type == MemberKind.List && value is IEnumerable entries)
+            if (type.type is MemberKind.List or MemberKind.Set && value is IEnumerable entries)
             {
                 var result = new List<object?>();
                 foreach (object? entry in entries)

@@ -148,6 +148,7 @@ namespace NeoCompose.Runtime.NeoScript
                 int i => i.ToString(CultureInfo.InvariantCulture),
                 long l => l.ToString(CultureInfo.InvariantCulture),
                 _ when type == MemberKind.List => value is Array a ? $"<List count={a.Length}>" : "<List count=?>",
+                _ when type == MemberKind.Set => value is Array a ? $"<Set count={a.Length}>" : "<Set count=?>",
                 _ when type == MemberKind.Dictionary => "<Dictionary>",
                 _ when type == MemberKind.Class || type == MemberKind.Interface => "<Class>",
                 _ when type == MemberKind.NSDelegate => "<Delegate>",

@@ -4941,6 +4941,7 @@ namespace NeoCompose.Runtime
                 string? rowId = declaredKind is MemberKind.Class
                     or MemberKind.Interface
                     or MemberKind.List
+                    or MemberKind.Set
                     or MemberKind.Dictionary
                     ? NeoScript.NSGetterEvaluator.ConstructorReferenceOf(value, ctx)?.valueId
                     : null;
@@ -6047,7 +6048,7 @@ namespace NeoCompose.Runtime
                 if (!client.TryGetReplayReference(valueId, out MemberValue? row, storage) || row.IsRemoved)
                     throw new InvalidOperationException(
                         $"Stored {subject} references missing value '{valueId}' in {storage} storage.");
-                if (expectedType.type is not (MemberKind.List or MemberKind.Dictionary))
+                if (expectedType.type is not (MemberKind.List or MemberKind.Set or MemberKind.Dictionary))
                 {
                     return sourceMember is null
                         ? NeoScript.NSGetterEvaluator.UnwrapRow(row, ctx, storage)
@@ -6055,6 +6056,7 @@ namespace NeoCompose.Runtime
                 }
                 if (sourceMember is not null
                     && ((expectedType.type == MemberKind.List && sourceMember is not ListMember)
+                        || (expectedType.type == MemberKind.Set && sourceMember is not SetMember)
                         || (expectedType.type == MemberKind.Dictionary && sourceMember is not DictionaryMember)))
                     throw new InvalidOperationException(
                         $"Stored {subject} value '{valueId}' has no matching {expectedType.type} member.");
@@ -6085,7 +6087,7 @@ namespace NeoCompose.Runtime
                     // type; they need not also occupy a schema member.
                     switch (expectedType.type)
                     {
-                        case MemberKind.List when row is ArrayMemberValue listRow:
+                        case MemberKind.List or MemberKind.Set when row is ArrayMemberValue listRow:
                             if (listRow.value is null)
                                 return null;
                             IEnumerable<string> ids = sourceMember is ListMember list && client.IsUnorderedList(list)
@@ -8780,6 +8782,7 @@ namespace NeoCompose.Runtime
                         MemberKind.Class
                         or MemberKind.Interface
                         or MemberKind.List
+                        or MemberKind.Set
                         or MemberKind.Dictionary
                         or MemberKind.Generic))
                     {
@@ -9218,32 +9221,48 @@ namespace NeoCompose.Runtime
             return result;
         }
 
-        public static IReadOnlyList<TEnum> ReadEnumList<TEnum>(
-            string[] optionIds,
-            Func<string, TEnum> create)
+        /// <summary>
+        /// A computed Set: the evaluator's entries, each read with the
+        /// scalar getter codec, as a snapshot every set implementer's
+        /// interface accepts.
+        /// </summary>
+        public static INeoReadOnlySet<T> ReadScriptSet<T>(object? value, Func<object?, T> read)
         {
-            var values = new List<TEnum>();
-            foreach (var optionId in optionIds)
-                values.Add(create(optionId));
-            return values;
+            if (value is not IReadOnlyList<object?> entries)
+                throw new InvalidOperationException("NeoScript returned an invalid Set value.");
+            var result = new T[entries.Count];
+            for (int i = 0; i < entries.Count; i++)
+                result[i] = read(entries[i]);
+            return new NeoScriptSet<T>(result);
         }
 
-        public static IReadOnlyList<TEnum> ReadEnumList<TEnum>(
+        /// <summary>A computed multi-select Enum's option ids as an enum set snapshot.</summary>
+        public static NeoReadOnlyEnumSet<TEnum> ReadEnumSet<TEnum>(
             object? value,
-            Func<string, TEnum> create)
+            Func<string, TEnum> fromOptionId,
+            Func<TEnum, string> toOptionId)
+            where TEnum : struct, System.Enum
         {
             if (value is string[] optionIds)
-                return ReadEnumList(optionIds, create);
-            var values = new List<TEnum>();
-            if (value is object?[] entries)
+                return new NeoReadOnlyEnumSet<TEnum>(optionIds, fromOptionId, toOptionId);
+            if (value is null)
+                return new NeoReadOnlyEnumSet<TEnum>(Array.Empty<string>(), fromOptionId, toOptionId);
+            if (value is not object?[] entries)
+                throw new InvalidOperationException($"ReadEnumSet: value is a {value.GetType().Name}, not a list of option ids.");
+            var ids = new string[entries.Length];
+            for (int index = 0; index < entries.Length; index++)
             {
-                foreach (object? entry in entries)
+                // A query over enum entries yields each as a one-option value.
+                ids[index] = entries[index] switch
                 {
-                    if (entry is string optionId)
-                        values.Add(create(optionId));
-                }
+                    string optionId => optionId,
+                    string[] { Length: 1 } single => single[0],
+                    object?[] { Length: 1 } wrapped when wrapped[0] is string optionId => optionId,
+                    _ => throw new InvalidOperationException(
+                        $"ReadEnumSet: entry {index} is {entries[index]?.GetType().Name ?? "null"}, not an option id."),
+                };
             }
-            return values;
+            return new NeoReadOnlyEnumSet<TEnum>(ids, fromOptionId, toOptionId);
         }
 
         public static IReadOnlyList<T> ReadLookupList<T>(

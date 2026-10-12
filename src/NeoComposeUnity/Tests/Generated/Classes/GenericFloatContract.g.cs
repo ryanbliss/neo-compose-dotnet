@@ -29,12 +29,12 @@ namespace Assets.Scripts.Neo
         {
         }
 
-        public GenericFloatContract(float Amount, IEnumerable<float>? Values = null, GenericPayload<float>? Payload = null)
-            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Amount, Values, Payload), false, NeoValueOwnership.Session)
+        public GenericFloatContract(float Amount, IEnumerable<float>? Values = null, GenericPayload<float>? Payload = null, IEnumerable<float>? Unique = null)
+            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Amount, Values, Payload, Unique), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(float Amount, IEnumerable<float>? Values = null, GenericPayload<float>? Payload = null)
+        private static NeoMemberClassWritable CreateFactoryNode(float Amount, IEnumerable<float>? Values = null, GenericPayload<float>? Payload = null, IEnumerable<float>? Unique = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
@@ -42,7 +42,8 @@ namespace Assets.Scripts.Neo
                 "class-generic-float-contract",
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Amount", "member-generic-contract-amount", Amount),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Values", "member-generic-contract-values", Values),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Payload", "member-generic-contract-payload", Payload)
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Payload", "member-generic-contract-payload", Payload),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Unique", "member-generic-contract-unique", Unique)
             );
         }
 
@@ -190,6 +191,16 @@ namespace Assets.Scripts.Neo
             }
         }
 
+        NeoReadOnlySet<float> IReadOnlyGenericContract<float>.Unique
+        {
+            get
+            {
+                var memberNode = node.Get<NeoMemberList>("Unique");
+                if (TryGetStoredView<NeoReadOnlySet<float>>("Unique", memberNode, out var cached)) return cached;
+                return CacheStoredView("Unique", memberNode, new NeoReadOnlySet<float>(client, memberNode, (client, child) => NeoGenericBindings.Resolve<float>(client, (NeoMember)child).Read((NeoMember)child), item => NeoGenericBindings.Resolve<float>(client, memberNode).Serialize(item)));
+            }
+        }
+
         public new sealed class Fields
         {
             private Fields() {}
@@ -201,6 +212,8 @@ namespace Assets.Scripts.Neo
             public static readonly NeoField<GenericPayload<float>?> Payload = new("Payload");
 
             public static readonly NeoField<float> Computed = new("Computed");
+
+            public static readonly NeoField<NeoSet<float>> Unique = new("Unique");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -211,6 +224,7 @@ namespace Assets.Scripts.Neo
                 [Fields.Values] = () => null,
                 [Fields.Payload] = () => null,
                 [Fields.Computed] = () => null,
+                [Fields.Unique] = () => null,
             };
         }
 
@@ -232,6 +246,7 @@ namespace Assets.Scripts.Neo
                 [Fields.Values] = () => Values,
                 [Fields.Payload] = () => Payload,
                 [Fields.Computed] = () => Computed,
+                [Fields.Unique] = () => Unique,
             };
         }
 

@@ -46,6 +46,12 @@ namespace Assets.Scripts.Neo
         IReadOnlyHero? FavoriteHero { get; }
 
         NeoReadOnlyLookupSet<IReadOnlyHero> Party { get; }
+
+        NeoReadOnlySet<int> Lucky { get; }
+
+        NeoReadOnlySet<IReadOnlyHero> Allies { get; }
+
+        NeoReadOnlyEnumSet<Element> Elements { get; }
     }
 
     public partial class Root : NeoGeneratedClassValue, IReadOnlyRoot
@@ -60,12 +66,12 @@ namespace Assets.Scripts.Neo
         {
         }
 
-        public Root(IEnumerable<Hero?>? Heroes = null, bool? Flag = null, int? Score = null, NeoMemory? NeoMemory = null, SampleLayerGroupBase? SampleLayerGroup = null, StorageA? StorageInherit = null, IDictionary<string, int?>? ElementStats = null, IDictionary<string, Hero>? ElementChampions = null, NeoLookupSelection? FavoriteHero = null, IEnumerable<NeoLookupSelection>? Party = null)
-            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Heroes, Flag, Score, NeoMemory, SampleLayerGroup, StorageInherit, ElementStats, ElementChampions, FavoriteHero, Party), false, NeoValueOwnership.Session)
+        public Root(IEnumerable<Hero?>? Heroes = null, bool? Flag = null, int? Score = null, NeoMemory? NeoMemory = null, SampleLayerGroupBase? SampleLayerGroup = null, StorageA? StorageInherit = null, IDictionary<string, int?>? ElementStats = null, IDictionary<string, Hero>? ElementChampions = null, NeoLookupSelection? FavoriteHero = null, IEnumerable<NeoLookupSelection>? Party = null, IEnumerable<int>? Lucky = null, IEnumerable<Hero>? Allies = null, IEnumerable<Element>? Elements = null)
+            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Heroes, Flag, Score, NeoMemory, SampleLayerGroup, StorageInherit, ElementStats, ElementChampions, FavoriteHero, Party, Lucky, Allies, Elements), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(IEnumerable<Hero?>? Heroes = null, bool? Flag = null, int? Score = null, NeoMemory? NeoMemory = null, SampleLayerGroupBase? SampleLayerGroup = null, StorageA? StorageInherit = null, IDictionary<string, int?>? ElementStats = null, IDictionary<string, Hero>? ElementChampions = null, NeoLookupSelection? FavoriteHero = null, IEnumerable<NeoLookupSelection>? Party = null)
+        private static NeoMemberClassWritable CreateFactoryNode(IEnumerable<Hero?>? Heroes = null, bool? Flag = null, int? Score = null, NeoMemory? NeoMemory = null, SampleLayerGroupBase? SampleLayerGroup = null, StorageA? StorageInherit = null, IDictionary<string, int?>? ElementStats = null, IDictionary<string, Hero>? ElementChampions = null, NeoLookupSelection? FavoriteHero = null, IEnumerable<NeoLookupSelection>? Party = null, IEnumerable<int>? Lucky = null, IEnumerable<Hero>? Allies = null, IEnumerable<Element>? Elements = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
@@ -80,7 +86,10 @@ namespace Assets.Scripts.Neo
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ElementStats", "member-elem-stats", ElementStats),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ElementChampions", "member-elem-champions", ElementChampions),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("FavoriteHero", "member-favorite-hero", FavoriteHero),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Party", "member-party", Party)
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Party", "member-party", Party),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Lucky", "member-root-lucky", Lucky),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Allies", "member-root-allies", Allies),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Elements", "member-root-elements", Elements)
             );
         }
 
@@ -446,6 +455,70 @@ namespace Assets.Scripts.Neo
             }
         }
 
+        public virtual NeoSet<int> Lucky
+        {
+            get
+            {
+                var memberNode = writableNode.Get<NeoMemberListWritable>("Lucky");
+                if (TryGetStoredView<NeoSet<int>>("Lucky", memberNode, out var cached)) return cached;
+                return CacheStoredView("Lucky", memberNode, new NeoSet<int>(client, memberNode, () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("Lucky"), (client, child) => NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child) ?? throw new InvalidOperationException("Required int 'Lucky Entry' has no value."), item => NeoGeneratedTypesSupport.Value(item), () => ThrowIfReadOnly("Root.Lucky"), () => IsReadOnly));
+            }
+        }
+
+        NeoReadOnlySet<int> IReadOnlyRoot.Lucky
+        {
+            get
+            {
+                var memberNode = node.Get<NeoMemberList>("Lucky");
+                if (TryGetStoredView<NeoReadOnlySet<int>>("Lucky", memberNode, out var cached)) return cached;
+                return CacheStoredView("Lucky", memberNode, new NeoReadOnlySet<int>(client, memberNode, (client, child) => NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child) ?? throw new InvalidOperationException("Required int 'Lucky Entry' has no value."), item => NeoGeneratedTypesSupport.Value(item)));
+            }
+        }
+
+        public virtual NeoSet<Hero> Allies
+        {
+            get
+            {
+                var memberNode = writableNode.Get<NeoMemberListWritable>("Allies");
+                if (TryGetStoredView<NeoSet<Hero>>("Allies", memberNode, out var cached)) return cached;
+                return CacheStoredView("Allies", memberNode, new NeoSet<Hero>(client, memberNode, () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("Allies"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::Assets.Scripts.Neo.Hero.CreateWritable(client, writableChild) : global::Assets.Scripts.Neo.Hero.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("Root.Allies"), () => IsReadOnly));
+            }
+        }
+
+        NeoReadOnlySet<IReadOnlyHero> IReadOnlyRoot.Allies
+        {
+            get
+            {
+                var memberNode = node.Get<NeoMemberList>("Allies");
+                if (TryGetStoredView<NeoReadOnlySet<IReadOnlyHero>>("Allies", memberNode, out var cached)) return cached;
+                return CacheStoredView("Allies", memberNode, new NeoReadOnlySet<IReadOnlyHero>(client, memberNode, (client, child) => global::Assets.Scripts.Neo.Hero.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item)));
+            }
+        }
+
+        public virtual NeoEnumSet<Element> Elements
+        {
+            get
+            {
+                var memberNode = node.Get<NeoMemberEnum>("Elements");
+                if (TryGetStoredView<NeoEnumSet<Element>>("Elements", memberNode, out var cached)) return cached;
+                return CacheStoredView("Elements", memberNode, new NeoEnumSet<Element>(client, memberNode, () => writableNode.GetOrCreateCollection<NeoMemberEnumWritable>("Elements"), static (factoryOptionId) => ElementOptions.FromOptionId(factoryOptionId), key => key.OptionId(), () => ThrowIfReadOnly("Root.Elements"), () => IsReadOnly));
+            }
+        }
+
+        NeoReadOnlyEnumSet<Element> IReadOnlyRoot.Elements
+        {
+            get
+            {
+                if (TryReadDetached("Elements", out object? detachedValue))
+                {
+                    return NeoGeneratedTypesSupport.ReadEnumSet(detachedValue, static (factoryOptionId) => ElementOptions.FromOptionId(factoryOptionId), key => key.OptionId());
+                }
+                var memberNode = node.Get<NeoMemberEnum>("Elements");
+                if (TryGetStoredView<NeoReadOnlyEnumSet<Element>>("Elements", memberNode, out var cached)) return cached;
+                return CacheStoredView("Elements", memberNode, new NeoReadOnlyEnumSet<Element>(client, memberNode, static (factoryOptionId) => ElementOptions.FromOptionId(factoryOptionId), key => key.OptionId()));
+            }
+        }
+
         public sealed class Fields
         {
             private Fields() {}
@@ -475,6 +548,12 @@ namespace Assets.Scripts.Neo
             public static readonly NeoField<IReadOnlyHero?> FavoriteHero = new("FavoriteHero");
 
             public static readonly NeoField<NeoLookupSet<IReadOnlyHero>> Party = new("Party");
+
+            public static readonly NeoField<NeoSet<int>> Lucky = new("Lucky");
+
+            public static readonly NeoField<NeoSet<Hero>> Allies = new("Allies");
+
+            public static readonly NeoField<NeoEnumSet<Element>> Elements = new("Elements");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -494,6 +573,9 @@ namespace Assets.Scripts.Neo
                 [Fields.ElementChampions] = () => null,
                 [Fields.FavoriteHero] = () => null,
                 [Fields.Party] = () => null,
+                [Fields.Lucky] = () => null,
+                [Fields.Allies] = () => null,
+                [Fields.Elements] = () => null,
             };
         }
 
@@ -524,6 +606,9 @@ namespace Assets.Scripts.Neo
                 [Fields.ElementChampions] = () => ElementChampions,
                 [Fields.FavoriteHero] = () => FavoriteHero,
                 [Fields.Party] = () => Party,
+                [Fields.Lucky] = () => Lucky,
+                [Fields.Allies] = () => Allies,
+                [Fields.Elements] = () => Elements,
             };
         }
 
