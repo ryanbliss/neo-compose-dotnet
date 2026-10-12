@@ -20,7 +20,7 @@ namespace NeoCompose.Tests
     public static class NeoScriptControlFlowParityFixture
     {
         public const string Json = @"{
-  ""$comment"": ""P50-P52 cross-runtime NeoScript control-flow parity fixture with 13 P50, 13 P51, and 11 P52 cases. The P50-P52 raw IR was hand-authored; the two issue #1002 enum dictionary cases were compiled once, then frozen. The web test consumes this IR directly, and the JSON must be vendored verbatim into the neo-compose-dotnet Unity tests; do not regenerate it from either compiler/runtime. P50 cases pin ordered loop control, outer-local updates, collection snapshot membership, JavaScript dictionary-value order (including numeric-like keys), empty, derived, and Lookup-contract collections, receiver evaluation count, throw/return propagation, and the shared 10,000-iteration budget. P51 cases additionally pin optional-int null normalization and switch/loop nesting transfer ownership. P52 cases additionally pin try-inside-switch recovery. Persisted write-intent needs project records and an effect-capable harness, so it is deliberately covered by compiler and runtime-specific tests rather than this getter-only empty-project fixture. Issue #1002 adds two compiled enum-keyed dictionary cases for Where key equality and deconstructed foreach key/value reads with break; both runtimes evaluate the frozen IR without a runtime change."",
+  ""$comment"": ""P50-P52 cross-runtime NeoScript control-flow parity fixture with 13 P50, 13 P51, and 11 P52 cases. The P50-P52 raw IR was hand-authored; the two issue #1002 enum dictionary cases were compiled once, then frozen. The web test consumes this IR directly, and the JSON must be vendored verbatim into the neo-compose-dotnet Unity tests; do not regenerate it from either compiler/runtime. P50 cases pin ordered loop control, outer-local updates, collection snapshot membership, JavaScript dictionary-value order (including numeric-like keys), empty, derived, and Lookup-contract collections, receiver evaluation count, throw/return propagation, and nested loops past 10,000 total iterations. P51 cases additionally pin optional-int null normalization and switch/loop nesting transfer ownership. P52 cases additionally pin try-inside-switch recovery. Persisted write-intent needs project records and an effect-capable harness, so it is deliberately covered by compiler and runtime-specific tests rather than this getter-only empty-project fixture. Issue #1002 adds two compiled enum-keyed dictionary cases for Where key equality and deconstructed foreach key/value reads with break; both runtimes evaluate the frozen IR without a runtime change."",
   ""evaluateCases"": [
     {
       ""name"": ""for consumes continue and break while updating an outer local"",
@@ -1094,7 +1094,7 @@ namespace NeoCompose.Tests
       ""expected"": 8
     },
     {
-      ""name"": ""nested loops share the top-level iteration budget"",
+      ""name"": ""nested loops run past 10,000 total iterations"",
       ""getter"": {
         ""compilerRevision"": 17,
         ""parameters"": [],
@@ -1279,7 +1279,7 @@ namespace NeoCompose.Tests
           ""required"": true
         }
       },
-      ""expectedError"": ""NeoScript loop iteration limit of 10000 exceeded.""
+      ""expected"": 0
     },
     {
       ""name"": ""foreach dictionary uses JavaScript Object.values order for numeric-like keys"",

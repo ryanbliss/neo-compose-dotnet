@@ -28,8 +28,6 @@ namespace NeoCompose.Tests
         [TestCaseSource(nameof(CaseNames))]
         public void EvaluateMatchesSharedFixture(string name)
         {
-            if (name.Contains("budget"))
-                Assert.Ignore("Unity intentionally has no script execution budget; this case pins the web sandbox limit.");
             JObject testCase = null!;
             foreach (JObject candidate in Cases())
                 if (candidate["name"]!.Value<string>() == name)

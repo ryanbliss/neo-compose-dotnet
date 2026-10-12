@@ -1,5 +1,5 @@
 {
-  "$comment": "Hand-authored revision 15 raw IR shared verbatim by TypeScript and Unity. Do not regenerate from a compiler or runtime. Pins loop phases, transfer ownership, budgets, literal ordinal replacement and evaluation of discarded calls.",
+  "$comment": "Hand-authored revision 15 raw IR shared verbatim by TypeScript and Unity. Do not regenerate from a compiler or runtime. Pins loop phases, transfer ownership, loops past 10,000 iterations, literal ordinal replacement and evaluation of discarded calls.",
   "evaluateCases": [
     {
       "name": "while consumes continue and break with outer-local writes",
@@ -797,25 +797,39 @@
       "expectedError": "string.Replace search must not be empty."
     },
     {
-      "name": "while consumes the shared loop budget with an empty body",
+      "name": "while runs past 10,000 iterations",
       "getter": {
         "compilerRevision": 17,
         "parameters": [],
         "instructions": [
+          {
+            "type": "variable",
+            "variable": {
+              "id": "i",
+              "typeInfo": {
+                "type": 2,
+                "required": true
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 2,
+                    "required": true
+                  },
+                  "value": 0
+                }
+              }
+            }
+          },
           {
             "type": "while",
             "condition": {
               "condition": {
-                "type": "equalTo",
+                "type": "lessThan",
                 "operand1": {
-                  "type": "value",
-                  "value": {
-                    "typeInfo": {
-                      "type": 2,
-                      "required": true
-                    },
-                    "value": 1
-                  }
+                  "type": "variable",
+                  "variableId": "i"
                 },
                 "operand2": {
                   "type": "value",
@@ -824,24 +838,59 @@
                       "type": 2,
                       "required": true
                     },
-                    "value": 1
+                    "value": 20000
                   }
                 }
               }
             },
-            "instructions": []
+            "instructions": [
+              {
+                "type": "assign",
+                "target": {
+                  "pointer": {
+                    "type": "variable",
+                    "variableId": "i"
+                  },
+                  "typeInfo": {
+                    "type": 2,
+                    "required": true
+                  },
+                  "writability": "local"
+                },
+                "operator": "++",
+                "pointer": {
+                  "type": "operation",
+                  "operation": {
+                    "type": "arithmetic",
+                    "arithmetic": {
+                      "type": "+",
+                      "pointers": [
+                        {
+                          "type": "variable",
+                          "variableId": "i"
+                        },
+                        {
+                          "type": "value",
+                          "value": {
+                            "typeInfo": {
+                              "type": 2,
+                              "required": true
+                            },
+                            "value": 1
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            ]
           },
           {
             "type": "return",
             "pointer": {
-              "type": "value",
-              "value": {
-                "typeInfo": {
-                  "type": 2,
-                  "required": true
-                },
-                "value": 0
-              }
+              "type": "variable",
+              "variableId": "i"
             }
           }
         ],
@@ -850,28 +899,42 @@
           "required": true
         }
       },
-      "expectedError": "NeoScript loop iteration limit of 10000 exceeded."
+      "expected": 20000
     },
     {
-      "name": "doWhile consumes the shared loop budget with an empty body",
+      "name": "doWhile runs past 10,000 iterations",
       "getter": {
         "compilerRevision": 17,
         "parameters": [],
         "instructions": [
           {
+            "type": "variable",
+            "variable": {
+              "id": "i",
+              "typeInfo": {
+                "type": 2,
+                "required": true
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 2,
+                    "required": true
+                  },
+                  "value": 0
+                }
+              }
+            }
+          },
+          {
             "type": "doWhile",
             "condition": {
               "condition": {
-                "type": "equalTo",
+                "type": "lessThan",
                 "operand1": {
-                  "type": "value",
-                  "value": {
-                    "typeInfo": {
-                      "type": 2,
-                      "required": true
-                    },
-                    "value": 1
-                  }
+                  "type": "variable",
+                  "variableId": "i"
                 },
                 "operand2": {
                   "type": "value",
@@ -880,24 +943,59 @@
                       "type": 2,
                       "required": true
                     },
-                    "value": 1
+                    "value": 20000
                   }
                 }
               }
             },
-            "instructions": []
+            "instructions": [
+              {
+                "type": "assign",
+                "target": {
+                  "pointer": {
+                    "type": "variable",
+                    "variableId": "i"
+                  },
+                  "typeInfo": {
+                    "type": 2,
+                    "required": true
+                  },
+                  "writability": "local"
+                },
+                "operator": "++",
+                "pointer": {
+                  "type": "operation",
+                  "operation": {
+                    "type": "arithmetic",
+                    "arithmetic": {
+                      "type": "+",
+                      "pointers": [
+                        {
+                          "type": "variable",
+                          "variableId": "i"
+                        },
+                        {
+                          "type": "value",
+                          "value": {
+                            "typeInfo": {
+                              "type": 2,
+                              "required": true
+                            },
+                            "value": 1
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            ]
           },
           {
             "type": "return",
             "pointer": {
-              "type": "value",
-              "value": {
-                "typeInfo": {
-                  "type": 2,
-                  "required": true
-                },
-                "value": 0
-              }
+              "type": "variable",
+              "variableId": "i"
             }
           }
         ],
@@ -906,7 +1004,7 @@
           "required": true
         }
       },
-      "expectedError": "NeoScript loop iteration limit of 10000 exceeded."
+      "expected": 20000
     },
     {
       "name": "Insert retains ordered list position",
