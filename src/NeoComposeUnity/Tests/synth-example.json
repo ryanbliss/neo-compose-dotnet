@@ -3315,6 +3315,84 @@
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0
+    },
+    "member-root-waypoints": {
+      "id": "member-root-waypoints",
+      "name": "Waypoints",
+      "kind": 28,
+      "entryMemberId": "member-root-waypoint",
+      "requirement": 1,
+      "defaultValue": {
+        "value": []
+      },
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "member-root-waypoint": {
+      "id": "member-root-waypoint",
+      "name": "Waypoint",
+      "kind": 14,
+      "requirement": 1,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "member-owned-crew": {
+      "id": "member-owned-crew",
+      "name": "Crew",
+      "kind": 28,
+      "entryMemberId": "member-root-ally",
+      "requirement": 1,
+      "defaultValue": {
+        "value": []
+      },
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "member-owned-crew-tags": {
+      "id": "member-owned-crew-tags",
+      "name": "Tags",
+      "kind": 8,
+      "enumId": "enum-element",
+      "selection": 1,
+      "requirement": 1,
+      "defaultValue": {
+        "value": []
+      },
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "member-picked-crew": {
+      "id": "member-picked-crew",
+      "name": "Crew",
+      "kind": 9,
+      "declaredTypeInfo": {
+        "type": 7,
+        "classId": "class-hero",
+        "required": true
+      },
+      "selection": 1,
+      "requirement": 1,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "member-picked-crew-tags": {
+      "id": "member-picked-crew-tags",
+      "name": "Tags",
+      "kind": 8,
+      "enumId": "enum-element",
+      "selection": 1,
+      "requirement": 1,
+      "defaultValue": {
+        "value": []
+      },
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
     }
   },
   "enums": {
@@ -3664,6 +3742,44 @@
       "extendsInterfaceIds": [],
       "createdAt": 0,
       "updatedAt": 0
+    },
+    "interface-crew": {
+      "id": "interface-crew",
+      "projectId": "test-project",
+      "name": "ICrew",
+      "members": {
+        "Crew": {
+          "id": "interface-crew-crew",
+          "typeInfo": {
+            "type": 9,
+            "required": true,
+            "entryTypeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "class-hero"
+            }
+          }
+        },
+        "Tags": {
+          "id": "interface-crew-tags",
+          "typeInfo": {
+            "type": 9,
+            "required": true,
+            "entryTypeInfo": {
+              "type": 8,
+              "required": true,
+              "enumId": "enum-element"
+            }
+          }
+        }
+      },
+      "memberKeyOrder": [
+        "Crew",
+        "Tags"
+      ],
+      "extendsInterfaceIds": [],
+      "createdAt": 0,
+      "updatedAt": 0
     }
   },
   "classes": {
@@ -3704,7 +3820,8 @@
         "Party": "member-party",
         "Lucky": "member-root-lucky",
         "Allies": "member-root-allies",
-        "Elements": "member-root-elements"
+        "Elements": "member-root-elements",
+        "Waypoints": "member-root-waypoints"
       },
       "projectId": "test-project",
       "createdAt": 0,
@@ -4545,6 +4662,34 @@
       "schema": {},
       "allowedStorage": 5,
       "uiVisibility": 1,
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "class-owned-crew": {
+      "id": "class-owned-crew",
+      "name": "OwnedCrew",
+      "schema": {
+        "Crew": "member-owned-crew",
+        "Tags": "member-owned-crew-tags"
+      },
+      "implementsInterfaceIds": [
+        "interface-crew"
+      ],
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "class-picked-crew": {
+      "id": "class-picked-crew",
+      "name": "PickedCrew",
+      "schema": {
+        "Crew": "member-picked-crew",
+        "Tags": "member-picked-crew-tags"
+      },
+      "implementsInterfaceIds": [
+        "interface-crew"
+      ],
+      "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0
     }

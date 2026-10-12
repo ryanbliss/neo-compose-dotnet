@@ -3924,6 +3924,14 @@ namespace NeoCompose.Runtime
             valueId = null;
             if (typeInfo.type != MemberKind.Class)
                 return false;
+            return TryGetValueReferenceId(value, ctx, out valueId);
+        }
+
+        private static bool TryGetValueReferenceId(
+            object? value,
+            NSGetterEvaluator.Context ctx,
+            out string? valueId)
+        {
             if (value is INeoValueReference reference
                 && !string.IsNullOrEmpty(reference.valueId))
             {
@@ -4534,8 +4542,10 @@ namespace NeoCompose.Runtime
                 && client.TryInferMemberForValueId(valueId, out JsonMember? member)
                 ? member : MemberFromTypeInfo(typeInfo);
 
+        // A generic entry has no type-info member either: its row's binding
+        // closes it.
         private static JsonMember EntryMember(NeoClient client, MemberValue collectionRow, TypeInfo entryTypeInfo) =>
-            entryTypeInfo.type is MemberKind.List or MemberKind.Set or MemberKind.Dictionary
+            entryTypeInfo.type is MemberKind.List or MemberKind.Set or MemberKind.Dictionary or MemberKind.Generic
                 && client.TryInferMemberForValueId(collectionRow.id, out JsonMember? collection)
                 && client.TryResolveCollectionEntryMember(collection, collectionRow) is JsonMember entry
                 ? entry : MemberFromTypeInfo(entryTypeInfo);
@@ -5807,12 +5817,14 @@ namespace NeoCompose.Runtime
                     referenceId = ReferenceIdOf(args[0], ctx);
                 }
                 else if ((inserts || mutation == CollectionMutationKind.Remove)
-                    && TryGetClassValueReferenceId(
+                    && (entryTypeInfo.type == MemberKind.Class || entryMember is ClassMember)
+                    && TryGetValueReferenceId(
                         args[mutation == CollectionMutationKind.Insert ? 1 : 0],
-                        entryTypeInfo,
                         ctx,
                         out string? id))
                 {
+                    // The closed entry member decides: a generic bound to a
+                    // Class imports the referenced value like a Class entry.
                     referenceId = id;
                 }
                 WriteCollection(client, rowId, preparedPlan, batch =>
@@ -5830,7 +5842,7 @@ namespace NeoCompose.Runtime
                                     : list.Count;
                                 if (insertionIndex < 0 || insertionIndex > list.Count)
                                     throw new NSGetterRuntimeError("List.Insert index is out of range.");
-                                if (isSet && IndexOfSetEntry(batch, list, args[0], referenceId) >= 0)
+                                if (isSet && IndexOfSetEntry(batch, list, args[0], referenceId, ctx) >= 0)
                                     return;
                                 string childId;
                                 if (referenceId is not null)
@@ -5873,7 +5885,7 @@ namespace NeoCompose.Runtime
                         case CollectionMutationKind.Remove:
                             if (isSet)
                             {
-                                int match = IndexOfSetEntry(batch, list, args[0], referenceId);
+                                int match = IndexOfSetEntry(batch, list, args[0], referenceId, ctx);
                                 if (match >= 0)
                                     batch.Release(ownership, list.RemoveAt(match, now), EntryMember(client, list.Row, entryTypeInfo), rowId);
                                 return;
@@ -5905,12 +5917,20 @@ namespace NeoCompose.Runtime
             /// <summary>
             /// The index of the entry whose P108 key equals <paramref name="value"/>'s:
             /// its value id for Class entries, so a new detached value matches none.
+            /// The closed entry member decides, so a generic bound to a Class
+            /// compares by identity too.
             /// </summary>
-            private int IndexOfSetEntry(NeoWriteBatch batch, NeoWriteBatch.PendingList list, object? value, string? referenceId)
+            private int IndexOfSetEntry(
+                NeoWriteBatch batch,
+                NeoWriteBatch.PendingList list,
+                object? value,
+                string? referenceId,
+                NSGetterEvaluator.Context ctx)
             {
                 JsonMember member = entryMember ?? MemberFromTypeInfo(entryTypeInfo);
                 if (member is ClassMember)
                 {
+                    referenceId ??= value is null ? null : FindValueId(value, ctx);
                     if (referenceId is null || !list.Contains(referenceId))
                         return -1;
                     for (int i = 0; i < list.Count; i++)

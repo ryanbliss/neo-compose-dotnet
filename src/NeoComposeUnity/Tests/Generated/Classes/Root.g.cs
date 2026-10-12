@@ -52,6 +52,8 @@ namespace Assets.Scripts.Neo
         NeoReadOnlySet<IReadOnlyHero> Allies { get; }
 
         NeoReadOnlyEnumSet<Element> Elements { get; }
+
+        NeoReadOnlySet<NeoReadOnlyVector2> Waypoints { get; }
     }
 
     public partial class Root : NeoGeneratedClassValue, IReadOnlyRoot
@@ -66,12 +68,12 @@ namespace Assets.Scripts.Neo
         {
         }
 
-        public Root(IEnumerable<Hero?>? Heroes = null, bool? Flag = null, int? Score = null, NeoMemory? NeoMemory = null, SampleLayerGroupBase? SampleLayerGroup = null, StorageA? StorageInherit = null, IDictionary<string, int?>? ElementStats = null, IDictionary<string, Hero>? ElementChampions = null, NeoLookupSelection? FavoriteHero = null, IEnumerable<NeoLookupSelection>? Party = null, IEnumerable<int>? Lucky = null, IEnumerable<Hero>? Allies = null, IEnumerable<Element>? Elements = null)
-            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Heroes, Flag, Score, NeoMemory, SampleLayerGroup, StorageInherit, ElementStats, ElementChampions, FavoriteHero, Party, Lucky, Allies, Elements), false, NeoValueOwnership.Session)
+        public Root(IEnumerable<Hero?>? Heroes = null, bool? Flag = null, int? Score = null, NeoMemory? NeoMemory = null, SampleLayerGroupBase? SampleLayerGroup = null, StorageA? StorageInherit = null, IDictionary<string, int?>? ElementStats = null, IDictionary<string, Hero>? ElementChampions = null, NeoLookupSelection? FavoriteHero = null, IEnumerable<NeoLookupSelection>? Party = null, IEnumerable<int>? Lucky = null, IEnumerable<Hero>? Allies = null, IEnumerable<Element>? Elements = null, IEnumerable<NeoVector2>? Waypoints = null)
+            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Heroes, Flag, Score, NeoMemory, SampleLayerGroup, StorageInherit, ElementStats, ElementChampions, FavoriteHero, Party, Lucky, Allies, Elements, Waypoints), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(IEnumerable<Hero?>? Heroes = null, bool? Flag = null, int? Score = null, NeoMemory? NeoMemory = null, SampleLayerGroupBase? SampleLayerGroup = null, StorageA? StorageInherit = null, IDictionary<string, int?>? ElementStats = null, IDictionary<string, Hero>? ElementChampions = null, NeoLookupSelection? FavoriteHero = null, IEnumerable<NeoLookupSelection>? Party = null, IEnumerable<int>? Lucky = null, IEnumerable<Hero>? Allies = null, IEnumerable<Element>? Elements = null)
+        private static NeoMemberClassWritable CreateFactoryNode(IEnumerable<Hero?>? Heroes = null, bool? Flag = null, int? Score = null, NeoMemory? NeoMemory = null, SampleLayerGroupBase? SampleLayerGroup = null, StorageA? StorageInherit = null, IDictionary<string, int?>? ElementStats = null, IDictionary<string, Hero>? ElementChampions = null, NeoLookupSelection? FavoriteHero = null, IEnumerable<NeoLookupSelection>? Party = null, IEnumerable<int>? Lucky = null, IEnumerable<Hero>? Allies = null, IEnumerable<Element>? Elements = null, IEnumerable<NeoVector2>? Waypoints = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
@@ -89,7 +91,8 @@ namespace Assets.Scripts.Neo
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Party", "member-party", Party),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Lucky", "member-root-lucky", Lucky),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Allies", "member-root-allies", Allies),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Elements", "member-root-elements", Elements)
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Elements", "member-root-elements", Elements),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Waypoints", "member-root-waypoints", Waypoints)
             );
         }
 
@@ -519,6 +522,26 @@ namespace Assets.Scripts.Neo
             }
         }
 
+        public virtual NeoSet<NeoReadOnlyVector2> Waypoints
+        {
+            get
+            {
+                var memberNode = writableNode.Get<NeoMemberListWritable>("Waypoints");
+                if (TryGetStoredView<NeoSet<NeoReadOnlyVector2>>("Waypoints", memberNode, out var cached)) return cached;
+                return CacheStoredView("Waypoints", memberNode, new NeoSet<NeoReadOnlyVector2>(client, memberNode, () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("Waypoints"), (client, child) => new NeoReadOnlyVector2((NeoMemberVector2)child), item => NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.Vector2Value(item.Value)), () => ThrowIfReadOnly("Root.Waypoints"), () => IsReadOnly));
+            }
+        }
+
+        NeoReadOnlySet<NeoReadOnlyVector2> IReadOnlyRoot.Waypoints
+        {
+            get
+            {
+                var memberNode = node.Get<NeoMemberList>("Waypoints");
+                if (TryGetStoredView<NeoReadOnlySet<NeoReadOnlyVector2>>("Waypoints", memberNode, out var cached)) return cached;
+                return CacheStoredView("Waypoints", memberNode, new NeoReadOnlySet<NeoReadOnlyVector2>(client, memberNode, (client, child) => new NeoReadOnlyVector2((NeoMemberVector2)child), item => NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.Vector2Value(item.Value))));
+            }
+        }
+
         public sealed class Fields
         {
             private Fields() {}
@@ -554,6 +577,8 @@ namespace Assets.Scripts.Neo
             public static readonly NeoField<NeoSet<Hero>> Allies = new("Allies");
 
             public static readonly NeoField<NeoEnumSet<Element>> Elements = new("Elements");
+
+            public static readonly NeoField<NeoSet<NeoReadOnlyVector2>> Waypoints = new("Waypoints");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -576,6 +601,7 @@ namespace Assets.Scripts.Neo
                 [Fields.Lucky] = () => null,
                 [Fields.Allies] = () => null,
                 [Fields.Elements] = () => null,
+                [Fields.Waypoints] = () => null,
             };
         }
 
@@ -609,6 +635,7 @@ namespace Assets.Scripts.Neo
                 [Fields.Lucky] = () => Lucky,
                 [Fields.Allies] = () => Allies,
                 [Fields.Elements] = () => Elements,
+                [Fields.Waypoints] = () => Waypoints,
             };
         }
 
