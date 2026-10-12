@@ -150,28 +150,6 @@ namespace NeoCompose.Runtime
     public static class NeoGenericBindings
     {
         /// <summary>
-        /// One P108 Set entry bound to <typeparamref name="T"/>. A writable
-        /// value wrapper comes back detached, so editing it changes no
-        /// stored entry's key.
-        /// </summary>
-        public static T ReadSetEntry<T>(NeoClient client, NeoMember entry)
-        {
-            T value = Resolve<T>(client, entry).Read(entry);
-            if (typeof(T).IsValueType)
-                return value;
-            object? detached = value switch
-            {
-                NeoVector2 vector => new NeoVector2(vector.Value),
-                NeoVector2Int vector => new NeoVector2Int(vector.Value),
-                NeoVector3 vector => new NeoVector3(vector.Value),
-                NeoVector3Int vector => new NeoVector3Int(vector.Value),
-                NeoColor color => new NeoColor(color.Value),
-                _ => value,
-            };
-            return (T)detached!;
-        }
-
-        /// <summary>
         /// Resolves the codec for <paramref name="node"/>. For scalar slots
         /// the node's own (already substituted) member record decides the
         /// kind; for a collection node whose own wrapper projection does not

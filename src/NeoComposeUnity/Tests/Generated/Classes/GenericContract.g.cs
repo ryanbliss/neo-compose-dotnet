@@ -129,7 +129,7 @@ namespace Assets.Scripts.Neo
             {
                 var memberNode = writableNode.Get<NeoMemberListWritable>("Unique");
                 if (TryGetStoredView<NeoSet<T>>("Unique", memberNode, out var cached)) return cached;
-                return CacheStoredView("Unique", memberNode, new NeoSet<T>(client, memberNode, () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("Unique"), (client, child) => NeoGenericBindings.ReadSetEntry<T>(client, (NeoMember)child), item => NeoGenericBindings.Resolve<T>(client, writableNode.Get<NeoMemberListWritable>("Unique")).Serialize(item), () => ThrowIfReadOnly("GenericContract.Unique"), () => IsReadOnly));
+                return CacheStoredView("Unique", memberNode, new NeoSet<T>(client, memberNode, () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("Unique"), (client, child) => NeoGenericBindings.Resolve<T>(client, (NeoMember)child).Read((NeoMember)child), item => NeoGenericBindings.Resolve<T>(client, writableNode.Get<NeoMemberListWritable>("Unique")).Serialize(item), () => ThrowIfReadOnly("GenericContract.Unique"), () => IsReadOnly));
             }
         }
 
@@ -139,7 +139,7 @@ namespace Assets.Scripts.Neo
             {
                 var memberNode = node.Get<NeoMemberList>("Unique");
                 if (TryGetStoredView<NeoReadOnlySet<T>>("Unique", memberNode, out var cached)) return cached;
-                return CacheStoredView("Unique", memberNode, new NeoReadOnlySet<T>(client, memberNode, (client, child) => NeoGenericBindings.ReadSetEntry<T>(client, (NeoMember)child), item => NeoGenericBindings.Resolve<T>(client, memberNode).Serialize(item)));
+                return CacheStoredView("Unique", memberNode, new NeoReadOnlySet<T>(client, memberNode, (client, child) => NeoGenericBindings.Resolve<T>(client, (NeoMember)child).Read((NeoMember)child), item => NeoGenericBindings.Resolve<T>(client, memberNode).Serialize(item)));
             }
         }
 

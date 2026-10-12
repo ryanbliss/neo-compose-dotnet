@@ -3,6 +3,7 @@
 
 #nullable enable
 
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -97,18 +98,18 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void GenericSet_BoundToAWritableWrapperHandsOutDetachedEntries()
+        public void GenericSet_BoundToAWritableWrapperRejectsEntryEdits()
         {
             var app = LoadGeneratedClient();
             NeoSet<NeoVector2> tags = app.Save.VectorBag.Tags;
             Assert.IsTrue(tags.Add(new NeoVector2(1f, 2f)));
 
             NeoVector2 entry = tags.Single();
-            entry.x = 5f;
+            var error = Assert.Throws<InvalidOperationException>(() => entry.x = 5f);
+            StringAssert.Contains("compares entries by value", error.Message);
 
             Assert.AreEqual(new Vector2(1f, 2f), tags.Single().Value);
             Assert.IsFalse(tags.Add(new NeoVector2(1f, 2f)));
-            Assert.IsTrue(tags.Add(new NeoVector2(5f, 2f)));
         }
 
         [Test]
@@ -248,6 +249,42 @@ namespace NeoCompose.Tests
             }
 
             CollectionAssert.AreEqual(new double?[] { 7, 5, 3 }, script.Numbers(LuckyValueId));
+        }
+
+        /// <summary>
+        /// P108 §6. Repeated <c>Contains</c> on a stored value Set reads each
+        /// entry row once per getter capture, and a new capture reads again.
+        /// </summary>
+        [Test]
+        public void StoredSetContains_ReadsEachEntryOncePerCapture()
+        {
+            using var script = new Script(BuildProjectData());
+            Pointer lucky = Ref(LuckyValueId);
+            int ReadsOf(NeoClient.GetterCaptureFrame capture, string id)
+            {
+                int reads = 0;
+                for (int i = 0; i < capture.valueReads!.Count; i++)
+                {
+                    if (capture.valueReads.items[i] == id)
+                        reads++;
+                }
+                return reads;
+            }
+
+            using (script.client.CaptureValueReads(new HashSet<string>()))
+            {
+                for (int pass = 0; pass < 2; pass++)
+                {
+                    var enclosing = script.client.BeginGetterReadCapture();
+                    Assert.AreEqual(true, script.Eval(Contains(lucky, Int(3), reference: false)));
+                    Assert.AreEqual(true, script.Eval(Contains(lucky, Int(7), reference: false)));
+                    Assert.AreEqual(false, script.Eval(Contains(lucky, Int(9), reference: false)));
+                    var capture = script.client.EndGetterReadCapture(enclosing);
+                    Assert.AreEqual(1, ReadsOf(capture, "lucky-3"), $"pass {pass}");
+                    Assert.AreEqual(1, ReadsOf(capture, "lucky-7"), $"pass {pass}");
+                    script.client.RecycleGetterCapture(capture);
+                }
+            }
         }
 
         /// <summary>

@@ -6533,25 +6533,88 @@ namespace NeoCompose.Runtime.NeoScript
         {
             if (value is null)
                 return false;
-            var cursor = new CollectionCursor(set, ctx);
-            if (entryMember is ClassMember)
+            string? key = entryMember is ClassMember
+                ? ReferenceKeyOf(value, ctx) as string
+                : NeoSetEntryKey.OfPayload(entryMember, value);
+            return key is not null && StoredSetKeysOf(set, entryMember, ctx).Contains(key);
+        }
+
+        /// <summary>
+        /// A stored Set's entry keys, stamped with the evaluation that read
+        /// them: a getter capture, or an action's outermost execution.
+        /// </summary>
+        private sealed class StoredSetKeys
+        {
+            internal object? scope;
+            internal long scopeId;
+            internal readonly HashSet<string> keys = new(StringComparer.Ordinal);
+        }
+
+        // By committed row: a write clones the row, so a Set whose membership
+        // changes has no keys here. Its unwrapped array can be patched in place.
+        private static readonly ConditionalWeakTable<MemberValue, StoredSetKeys> storedSetKeys = new();
+
+        /// <summary>
+        /// The keys of stored Set <paramref name="set"/>, read once per
+        /// evaluation, so repeated <c>Contains</c> reads each entry row once.
+        /// A new evaluation reads them again, so its capture hears the reads.
+        /// </summary>
+        private static HashSet<string> StoredSetKeysOf(object? set, JsonMember entryMember, Context ctx)
+        {
+            NeoClient client = ctx.client;
+            object? scope = null;
+            long scopeId = 0;
+            // Replays record reads their own way, so they read every time.
+            if (!client.IsReplayingVirtualInstance && client.InfersCommittedParents)
             {
-                if (ReferenceKeyOf(value, ctx) is not string referenceId)
-                    return false;
-                while (cursor.MoveNextUnresolved())
+                if (client.GetterCaptureId != 0)
                 {
-                    if (cursor.ValueId == referenceId)
-                        return true;
+                    scope = client;
+                    scopeId = client.GetterCaptureId;
                 }
-                return false;
+                else if (ctx.allocationTracker.ActiveExecutionCount != 0)
+                {
+                    scope = ctx.allocationTracker;
+                    scopeId = ctx.allocationTracker.Generation;
+                }
             }
-            string key = NeoSetEntryKey.OfPayload(entryMember, value);
+            if (scope is null
+                || FindRowReference(set, ctx) is not { } setRef
+                || !client.TryGetValue(setRef.ownership, setRef.valueId, out MemberValue? row))
+            {
+                return ReadSetKeys(set, entryMember, ctx, new HashSet<string>(StringComparer.Ordinal));
+            }
+            StoredSetKeys stored = storedSetKeys.GetOrCreateValue(row);
+            if (!ReferenceEquals(stored.scope, scope) || stored.scopeId != scopeId)
+            {
+                stored.keys.Clear();
+                ReadSetKeys(set, entryMember, ctx, stored.keys);
+                stored.scope = scope;
+                stored.scopeId = scopeId;
+            }
+            return stored.keys;
+        }
+
+        /// <summary>
+        /// Adds each stored entry's key to <paramref name="keys"/>: the value
+        /// id for Class entries, so those read no row.
+        /// </summary>
+        private static HashSet<string> ReadSetKeys(object? set, JsonMember entryMember, Context ctx, HashSet<string> keys)
+        {
+            var cursor = new CollectionCursor(set, ctx);
             while (cursor.MoveNextUnresolved())
             {
-                if (NeoSetEntryKey.Of(entryMember, cursor.ReadEntryRow(ctx)) == key)
-                    return true;
+                if (entryMember is ClassMember)
+                {
+                    if (cursor.ValueId is { } valueId)
+                        keys.Add(valueId);
+                }
+                else
+                {
+                    keys.Add(NeoSetEntryKey.Of(entryMember, cursor.ReadEntryRow(ctx)));
+                }
             }
-            return false;
+            return keys;
         }
 
         /// <summary>
