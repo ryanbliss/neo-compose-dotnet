@@ -3393,6 +3393,56 @@
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0
+    },
+    "member-generic-bag-tags": {
+      "id": "member-generic-bag-tags",
+      "name": "Tags",
+      "kind": 28,
+      "entryMemberId": "member-generic-bag-entry",
+      "requirement": 1,
+      "defaultValue": {
+        "value": []
+      },
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "member-generic-bag-entry": {
+      "id": "member-generic-bag-entry",
+      "name": "Tag",
+      "kind": 21,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "genericParamId": "param-generic-bag-e"
+    },
+    "member-generic-bag-vector-binding": {
+      "id": "member-generic-bag-vector-binding",
+      "name": "Generic Bag Vector Binding",
+      "kind": 14,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "requirement": 1
+    },
+    "member-root-vector-bag": {
+      "id": "member-root-vector-bag",
+      "name": "VectorBag",
+      "kind": 7,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "classId": "class-generic-bag",
+      "classArguments": {
+        "param-generic-bag-e": {
+          "kind": 1,
+          "memberId": "member-generic-bag-vector-binding"
+        }
+      },
+      "requirement": 1,
+      "defaultValue": {
+        "value": {}
+      }
     }
   },
   "enums": {
@@ -3821,7 +3871,8 @@
         "Lucky": "member-root-lucky",
         "Allies": "member-root-allies",
         "Elements": "member-root-elements",
-        "Waypoints": "member-root-waypoints"
+        "Waypoints": "member-root-waypoints",
+        "VectorBag": "member-root-vector-bag"
       },
       "projectId": "test-project",
       "createdAt": 0,
@@ -4688,6 +4739,22 @@
       },
       "implementsInterfaceIds": [
         "interface-crew"
+      ],
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "class-generic-bag": {
+      "id": "class-generic-bag",
+      "name": "GenericBag",
+      "schema": {
+        "Tags": "member-generic-bag-tags"
+      },
+      "genericParams": [
+        {
+          "id": "param-generic-bag-e",
+          "name": "E"
+        }
       ],
       "projectId": "test-project",
       "createdAt": 0,

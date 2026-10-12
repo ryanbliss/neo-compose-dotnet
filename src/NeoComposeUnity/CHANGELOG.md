@@ -15,10 +15,11 @@ save.Allies.Add(ann);        // Class entries compare by identity
 save.Allies.UnionWith(party);
 ```
 
-- `NeoSet<T>` implements `ISet<T>`, and `NeoReadOnlySet<T>` extends `NeoReadOnlyList<T>`. Value entries compare by their stored value: floats by their float32 bits, so `-0` equals `0`, and decimals ignore trailing zeros. Vector, color, sprite, and audio entries come back as read-only wrappers such as `NeoReadOnlyVector2`.
+- `NeoSet<T>` implements `ISet<T>`, and `NeoReadOnlySet<T>` extends `NeoReadOnlyList<T>`. Value entries compare by their stored value: floats by their float32 bits, so `-0` equals `0`, and decimals ignore trailing zeros. Vector, color, sprite, and audio entries come back as read-only wrappers such as `NeoReadOnlyVector2`. A generic `Set<T>` bound to one of those kinds hands out a detached copy instead, because `T` is the writable type: editing the copy changes nothing stored. `ExceptWith` and `IntersectWith` remove every entry in one write.
 - A multi-select Enum now generates `NeoEnumSet<E>` (read-only: `NeoReadOnlyEnumSet<E>`) instead of `IReadOnlyList<E>`, and stores option ids. It has no setter: replace `save.Elements = options` with `save.Elements.Clear(); save.Elements.UnionWith(options);`.
 - A `Set<T>` property on an interface or abstract getter returns `INeoReadOnlySet<T>`, which owned Sets, multi-select Enums, and multi-select references all implement. An owned Set of Class entries can satisfy an interface `Set<T>` but not an abstract class getter: C# collection interfaces are invariant, and codegen reports the mismatch.
 - NeoScript: `Add` of an entry the Set already holds does nothing, and `Remove` and `Contains` match by the same key. `ToSet()` keeps the first occurrence of each entry in order. A `Set<T>` parameter follows the container it holds, an owned Set or a multi-select reference.
+- Fixed: the read-only interface of a field closed over a member-bound class argument, such as `Bag<Vector2> Pocket`, named `IReadOnlyBag<NeoReadOnlyVector2>`. That doesn't compile against the class it reads, `Bag<NeoVector2>`. It now names `IReadOnlyBag<NeoVector2>`. Run `neo export` with the matching CLI release.
 - Fixed: NeoScript `Add` on a `List<T>` or `Set<T>` whose `T` is bound to a Class threw "Unsupported write target type 'Generic'". The value is now imported, as it is for a `List<Hero>`.
 
 ## [0.67.4] - 2026-10-11

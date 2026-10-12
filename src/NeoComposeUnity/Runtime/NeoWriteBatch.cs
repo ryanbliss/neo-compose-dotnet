@@ -427,6 +427,10 @@ namespace NeoCompose.Runtime
             private string[] ids;
             private bool owned;
             private HashSet<string>? members;
+            // A value Set's entry ids by P108 key, built on the first lookup.
+            private Dictionary<string, string>? setEntries;
+            private Member? setEntryMember;
+            private NeoWritePlan? setPlan;
 
             internal PendingList(ArrayMemberValue row, NeoValueOwnership ownership, object? target) : base(row, ownership, target)
             {
@@ -453,6 +457,41 @@ namespace NeoCompose.Runtime
                 return members.Contains(id);
             }
 
+            /// <summary>
+            /// The id of the value Set entry whose P108 key is <paramref name="key"/>,
+            /// through a map built once and kept with the list's changes.
+            /// </summary>
+            internal string? FindSetEntry(string key, Member entryMember, NeoWritePlan plan)
+            {
+                if (setEntries is null)
+                {
+                    setEntryMember = entryMember;
+                    setPlan = plan;
+                    setEntries = new Dictionary<string, string>(Count, StringComparer.Ordinal);
+                    for (int index = 0; index < Count; index++)
+                        setEntries.TryAdd(SetEntryKey(ids[index]), ids[index]);
+                }
+                return setEntries.TryGetValue(key, out string? id) ? id : null;
+            }
+
+            internal int IndexOf(string id) => Array.IndexOf(ids, id, 0, Count);
+
+            private string SetEntryKey(string id)
+            {
+                if (!setPlan!.TryGet(Ownership, id, out MemberValue? entry))
+                    throw new NSGetterRuntimeError($"Set '{Row.id}' entry '{id}' has no row.");
+                return NeoSetEntryKey.Of(setEntryMember!, entry!);
+            }
+
+            private void ForgetSetEntry(string id)
+            {
+                if (setEntries is null)
+                    return;
+                string key = SetEntryKey(id);
+                if (setEntries.TryGetValue(key, out string? holder) && holder == id)
+                    setEntries.Remove(key);
+            }
+
             internal void Insert(int index, string id, NeoTimestamp now)
             {
                 if (!owned || Count == ids.Length)
@@ -468,6 +507,7 @@ namespace NeoCompose.Runtime
                 ids[index] = id;
                 Count++;
                 members?.Add(id);
+                setEntries?.TryAdd(SetEntryKey(id), id);
                 Changes(now);
             }
 
@@ -475,8 +515,10 @@ namespace NeoCompose.Runtime
             internal string Set(int index, string id, NeoTimestamp now)
             {
                 string previous = ids[index];
+                ForgetSetEntry(previous);
                 Own();
                 ids[index] = id;
+                setEntries?.TryAdd(SetEntryKey(id), id);
                 if (members is not null)
                 {
                     members.Remove(previous);
@@ -489,6 +531,7 @@ namespace NeoCompose.Runtime
             internal string RemoveAt(int index, NeoTimestamp now)
             {
                 string id = ids[index];
+                ForgetSetEntry(id);
                 Own();
                 Array.Copy(ids, index + 1, ids, index, Count - index - 1);
                 ids[--Count] = null!;
@@ -517,6 +560,7 @@ namespace NeoCompose.Runtime
                 owned = true;
                 Count = 0;
                 members?.Clear();
+                setEntries?.Clear();
                 Changes(now);
                 return cleared;
             }

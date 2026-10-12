@@ -5842,7 +5842,7 @@ namespace NeoCompose.Runtime
                                     : list.Count;
                                 if (insertionIndex < 0 || insertionIndex > list.Count)
                                     throw new NSGetterRuntimeError("List.Insert index is out of range.");
-                                if (isSet && IndexOfSetEntry(batch, list, args[0], referenceId, ctx) >= 0)
+                                if (isSet && FindSetEntry(batch, list, args[0], referenceId, ctx) is not null)
                                     return;
                                 string childId;
                                 if (referenceId is not null)
@@ -5885,9 +5885,8 @@ namespace NeoCompose.Runtime
                         case CollectionMutationKind.Remove:
                             if (isSet)
                             {
-                                int match = IndexOfSetEntry(batch, list, args[0], referenceId, ctx);
-                                if (match >= 0)
-                                    batch.Release(ownership, list.RemoveAt(match, now), EntryMember(client, list.Row, entryTypeInfo), rowId);
+                                if (FindSetEntry(batch, list, args[0], referenceId, ctx) is { } match)
+                                    batch.Release(ownership, list.RemoveAt(list.IndexOf(match), now), EntryMember(client, list.Row, entryTypeInfo), rowId);
                                 return;
                             }
                             for (int i = 0; i < list.Count; i++)
@@ -5915,12 +5914,12 @@ namespace NeoCompose.Runtime
             }
 
             /// <summary>
-            /// The index of the entry whose P108 key equals <paramref name="value"/>'s:
+            /// The id of the entry whose P108 key equals <paramref name="value"/>'s:
             /// its value id for Class entries, so a new detached value matches none.
             /// The closed entry member decides, so a generic bound to a Class
             /// compares by identity too.
             /// </summary>
-            private int IndexOfSetEntry(
+            private string? FindSetEntry(
                 NeoWriteBatch batch,
                 NeoWriteBatch.PendingList list,
                 object? value,
@@ -5928,27 +5927,10 @@ namespace NeoCompose.Runtime
                 NSGetterEvaluator.Context ctx)
             {
                 JsonMember member = entryMember ?? MemberFromTypeInfo(entryTypeInfo);
-                if (member is ClassMember)
-                {
-                    referenceId ??= value is null ? null : FindValueId(value, ctx);
-                    if (referenceId is null || !list.Contains(referenceId))
-                        return -1;
-                    for (int i = 0; i < list.Count; i++)
-                    {
-                        if (list[i] == referenceId)
-                            return i;
-                    }
-                    return -1;
-                }
-                string key = NeoSetEntryKey.OfPayload(member, value);
-                for (int i = 0; i < list.Count; i++)
-                {
-                    if (!batch.Plan.TryGet(ownership, list[i], out MemberValue? entry))
-                        throw new NSGetterRuntimeError($"Set '{rowId}' entry '{list[i]}' has no row.");
-                    if (NeoSetEntryKey.Of(member, entry!) == key)
-                        return i;
-                }
-                return -1;
+                if (member is not ClassMember)
+                    return list.FindSetEntry(NeoSetEntryKey.OfPayload(member, value), member, batch.Plan);
+                referenceId ??= value is null ? null : FindValueId(value, ctx);
+                return referenceId is not null && list.Contains(referenceId) ? referenceId : null;
             }
         }
 

@@ -54,6 +54,8 @@ namespace Assets.Scripts.Neo
         NeoReadOnlyEnumSet<Element> Elements { get; }
 
         NeoReadOnlySet<NeoReadOnlyVector2> Waypoints { get; }
+
+        IReadOnlyGenericBag<NeoVector2> VectorBag { get; }
     }
 
     public partial class Root : NeoGeneratedClassValue, IReadOnlyRoot
@@ -68,12 +70,12 @@ namespace Assets.Scripts.Neo
         {
         }
 
-        public Root(IEnumerable<Hero?>? Heroes = null, bool? Flag = null, int? Score = null, NeoMemory? NeoMemory = null, SampleLayerGroupBase? SampleLayerGroup = null, StorageA? StorageInherit = null, IDictionary<string, int?>? ElementStats = null, IDictionary<string, Hero>? ElementChampions = null, NeoLookupSelection? FavoriteHero = null, IEnumerable<NeoLookupSelection>? Party = null, IEnumerable<int>? Lucky = null, IEnumerable<Hero>? Allies = null, IEnumerable<Element>? Elements = null, IEnumerable<NeoVector2>? Waypoints = null)
-            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Heroes, Flag, Score, NeoMemory, SampleLayerGroup, StorageInherit, ElementStats, ElementChampions, FavoriteHero, Party, Lucky, Allies, Elements, Waypoints), false, NeoValueOwnership.Session)
+        public Root(IEnumerable<Hero?>? Heroes = null, bool? Flag = null, int? Score = null, NeoMemory? NeoMemory = null, SampleLayerGroupBase? SampleLayerGroup = null, StorageA? StorageInherit = null, IDictionary<string, int?>? ElementStats = null, IDictionary<string, Hero>? ElementChampions = null, NeoLookupSelection? FavoriteHero = null, IEnumerable<NeoLookupSelection>? Party = null, IEnumerable<int>? Lucky = null, IEnumerable<Hero>? Allies = null, IEnumerable<Element>? Elements = null, IEnumerable<NeoVector2>? Waypoints = null, GenericBag<NeoVector2>? VectorBag = null)
+            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Heroes, Flag, Score, NeoMemory, SampleLayerGroup, StorageInherit, ElementStats, ElementChampions, FavoriteHero, Party, Lucky, Allies, Elements, Waypoints, VectorBag), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(IEnumerable<Hero?>? Heroes = null, bool? Flag = null, int? Score = null, NeoMemory? NeoMemory = null, SampleLayerGroupBase? SampleLayerGroup = null, StorageA? StorageInherit = null, IDictionary<string, int?>? ElementStats = null, IDictionary<string, Hero>? ElementChampions = null, NeoLookupSelection? FavoriteHero = null, IEnumerable<NeoLookupSelection>? Party = null, IEnumerable<int>? Lucky = null, IEnumerable<Hero>? Allies = null, IEnumerable<Element>? Elements = null, IEnumerable<NeoVector2>? Waypoints = null)
+        private static NeoMemberClassWritable CreateFactoryNode(IEnumerable<Hero?>? Heroes = null, bool? Flag = null, int? Score = null, NeoMemory? NeoMemory = null, SampleLayerGroupBase? SampleLayerGroup = null, StorageA? StorageInherit = null, IDictionary<string, int?>? ElementStats = null, IDictionary<string, Hero>? ElementChampions = null, NeoLookupSelection? FavoriteHero = null, IEnumerable<NeoLookupSelection>? Party = null, IEnumerable<int>? Lucky = null, IEnumerable<Hero>? Allies = null, IEnumerable<Element>? Elements = null, IEnumerable<NeoVector2>? Waypoints = null, GenericBag<NeoVector2>? VectorBag = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
@@ -92,7 +94,8 @@ namespace Assets.Scripts.Neo
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Lucky", "member-root-lucky", Lucky),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Allies", "member-root-allies", Allies),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Elements", "member-root-elements", Elements),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Waypoints", "member-root-waypoints", Waypoints)
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Waypoints", "member-root-waypoints", Waypoints),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("VectorBag", "member-root-vector-bag", VectorBag)
             );
         }
 
@@ -542,6 +545,36 @@ namespace Assets.Scripts.Neo
             }
         }
 
+        public virtual GenericBag<NeoVector2> VectorBag
+        {
+            get
+            {
+                if (IsReadOnly)
+                {
+                    var child = node.Get<NeoMemberClass>("VectorBag");
+                    return global::Assets.Scripts.Neo.GenericBag<NeoVector2>.Create(client, child);
+                }
+                else
+                {
+                    var child = writableNode.Get<NeoMemberClassWritable>("VectorBag");
+                    return global::Assets.Scripts.Neo.GenericBag<NeoVector2>.CreateWritable(client, child);
+                }
+            }
+            set
+            {
+                ThrowIfReadOnly("Root.VectorBag");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "VectorBag", NeoGeneratedTypesSupport.ValueReference(value));
+            }
+        }
+
+        IReadOnlyGenericBag<NeoVector2> IReadOnlyRoot.VectorBag
+        {
+            get
+            {
+                return global::Assets.Scripts.Neo.GenericBag<NeoVector2>.Create(client, node.Get<NeoMemberClass>("VectorBag"));
+            }
+        }
+
         public sealed class Fields
         {
             private Fields() {}
@@ -579,6 +612,8 @@ namespace Assets.Scripts.Neo
             public static readonly NeoField<NeoEnumSet<Element>> Elements = new("Elements");
 
             public static readonly NeoField<NeoSet<NeoReadOnlyVector2>> Waypoints = new("Waypoints");
+
+            public static readonly NeoField<GenericBag<NeoVector2>> VectorBag = new("VectorBag");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -602,6 +637,7 @@ namespace Assets.Scripts.Neo
                 [Fields.Allies] = () => null,
                 [Fields.Elements] = () => null,
                 [Fields.Waypoints] = () => null,
+                [Fields.VectorBag] = () => null,
             };
         }
 
@@ -636,6 +672,7 @@ namespace Assets.Scripts.Neo
                 [Fields.Allies] = () => Allies,
                 [Fields.Elements] = () => Elements,
                 [Fields.Waypoints] = () => Waypoints,
+                [Fields.VectorBag] = () => VectorBag,
             };
         }
 

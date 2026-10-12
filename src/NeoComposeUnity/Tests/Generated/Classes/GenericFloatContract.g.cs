@@ -197,7 +197,7 @@ namespace Assets.Scripts.Neo
             {
                 var memberNode = node.Get<NeoMemberList>("Unique");
                 if (TryGetStoredView<NeoReadOnlySet<float>>("Unique", memberNode, out var cached)) return cached;
-                return CacheStoredView("Unique", memberNode, new NeoReadOnlySet<float>(client, memberNode, (client, child) => NeoGenericBindings.Resolve<float>(client, (NeoMember)child).Read((NeoMember)child), item => NeoGenericBindings.Resolve<float>(client, memberNode).Serialize(item)));
+                return CacheStoredView("Unique", memberNode, new NeoReadOnlySet<float>(client, memberNode, (client, child) => NeoGenericBindings.ReadSetEntry<float>(client, (NeoMember)child), item => NeoGenericBindings.Resolve<float>(client, memberNode).Serialize(item)));
             }
         }
 

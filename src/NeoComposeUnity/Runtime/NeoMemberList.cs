@@ -992,6 +992,53 @@ namespace NeoCompose.Runtime
                 removedValueIds: new[] { removedValueId }));
         }
 
+        /// <summary>
+        /// Removes every entry in <paramref name="entryValueIds"/> from this
+        /// ordered list with one write.
+        /// </summary>
+        internal void RemoveByIds(HashSet<string> entryValueIds)
+        {
+            ObserveScriptWrites();
+            if (IsUnordered)
+            {
+                throw new System.InvalidOperationException(
+                    $"RemoveByIds requires an ordered list; list member '{member.id}' is unordered.");
+            }
+            if (entryValueIds.Count == 0 || value?.value is null)
+            {
+                return;
+            }
+            var plan = new NeoWritePlan(client);
+            NeoTimestamp nowIso = NeoTimestamp.Now();
+            ArrayMemberValue parentRow = EnsureWritableArray(plan, nowIso, replacesEntries: true);
+            string[] currentArr = parentRow.value!;
+            var kept = new List<string>(currentArr.Length);
+            var removedValueIds = new List<string>(entryValueIds.Count);
+            foreach (string id in currentArr)
+            {
+                if (entryValueIds.Contains(id))
+                    removedValueIds.Add(id);
+                else
+                    kept.Add(id);
+            }
+            if (removedValueIds.Count == 0)
+            {
+                return;
+            }
+            parentRow.value = kept.ToArray();
+            parentRow.updatedAt = nowIso;
+            plan.Set(ownership, parentRow);
+            client.StageUnlinkedRemovals(plan, client.ChildOwnership(entryMember, ownership), removedValueIds, entryMember);
+            CommitOwnChange(plan);
+            value = parentRow;
+
+            RefreshCommittedValue();
+
+            NotifyListChanged(new NeoListChangedArgs(
+                NeoListChangeKind.Remove,
+                removedValueIds: removedValueIds));
+        }
+
         internal void ClearSerialized()
         {
             ObserveScriptWrites();

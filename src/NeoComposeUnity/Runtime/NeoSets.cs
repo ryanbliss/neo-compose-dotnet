@@ -42,7 +42,8 @@ namespace NeoCompose.Runtime
 
         bool Remove(T item);
 
-        void RemoveKeys(List<string> keys);
+        /// <summary>Removes the entries holding <paramref name="keys"/> with one write.</summary>
+        void RemoveKeys(IEnumerable<string> keys);
     }
 
     /// <summary>
@@ -86,8 +87,9 @@ namespace NeoCompose.Runtime
 
         internal static void ExceptWith<T>(INeoKeyedSet<T> set, IEnumerable<T> other)
         {
-            foreach (T item in new Snapshot<T>(set, other).Items)
-                set.Remove(item);
+            var snapshot = new Snapshot<T>(set, other);
+            if (snapshot.Keys.Count > 0)
+                set.RemoveKeys(snapshot.Keys);
         }
 
         internal static void IntersectWith<T>(INeoKeyedSet<T> set, IEnumerable<T> other)
@@ -349,14 +351,17 @@ namespace NeoCompose.Runtime
             return keys;
         }
 
-        void INeoKeyedSet<T>.RemoveKeys(List<string> keys)
+        void INeoKeyedSet<T>.RemoveKeys(IEnumerable<string> keys)
         {
             beforeWrite?.Invoke();
+            var valueIds = new HashSet<string>(StringComparer.Ordinal);
             foreach (string key in keys)
             {
                 if (node.FindSetEntry(key) is { } valueId)
-                    WritableNode().RemoveById(valueId);
+                    valueIds.Add(valueId);
             }
+            if (valueIds.Count > 0)
+                WritableNode().RemoveByIds(valueIds);
         }
     }
 
@@ -628,7 +633,7 @@ namespace NeoCompose.Runtime
 
         List<string> INeoKeyedSet<TEnum>.EntryKeys() => new(OptionIds);
 
-        void INeoKeyedSet<TEnum>.RemoveKeys(List<string> keys)
+        void INeoKeyedSet<TEnum>.RemoveKeys(IEnumerable<string> keys)
         {
             beforeWrite?.Invoke();
             var removed = new HashSet<string>(keys, StringComparer.Ordinal);
@@ -638,7 +643,8 @@ namespace NeoCompose.Runtime
                 if (!removed.Contains(optionId))
                     next.Add(optionId);
             }
-            Write(next.ToArray());
+            if (next.Count < OptionIds.Length)
+                Write(next.ToArray());
         }
     }
 }

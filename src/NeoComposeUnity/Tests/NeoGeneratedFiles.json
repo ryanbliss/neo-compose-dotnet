@@ -69,14 +69,19 @@
       "hash": "721639bcc713d2f07af3c9e98f6d051517c91f0ffa6b024d8ae2e2c03ae8c6b7"
     },
     {
+      "id": "class:class-generic-bag",
+      "path": "Generated/Classes/GenericBag.g.cs",
+      "hash": "5a4894ec77789b3bccd577e8b759961e49f71a2e3c0b3655bc804abeb1acbf21"
+    },
+    {
       "id": "class:class-generic-contract",
       "path": "Generated/Classes/GenericContract.g.cs",
-      "hash": "d11fd4d2a9a99099b5009a43dafa9e0491ea4293ff7bb89c334ccba68fdf5758"
+      "hash": "063043cc5a75158cdcb2b2b519c9c4e0a6f5862e2e393a3740a5ea134e74db17"
     },
     {
       "id": "class:class-generic-float-contract",
       "path": "Generated/Classes/GenericFloatContract.g.cs",
-      "hash": "b6f81cdd1b0cd8555c7e4b2298498b1ddee5306a7de370496d33af0d1e2987ea"
+      "hash": "a5bf9628e6b97dd3aa48c43fda63c795d2f7e5275add32ae40c9b06cfd5ac6f3"
     },
     {
       "id": "class:class-generic-float-payload",
@@ -106,7 +111,7 @@
     {
       "id": "class:class-generic-string-contract",
       "path": "Generated/Classes/GenericStringContract.g.cs",
-      "hash": "f5dd8f98ffaa67ae7af28533c1e35bdcc3dcb0bac2e0dc96d2ebba480809506a"
+      "hash": "f66573ed3ef25319704aa3f8ae4023c789533220654d74d2c1251b5c05747108"
     },
     {
       "id": "class:class-generic-string-payload",
@@ -216,7 +221,7 @@
     {
       "id": "class:class-root",
       "path": "Generated/Classes/Root.g.cs",
-      "hash": "0f1be5679576c7bfcb1efd5210c418982cd62c96ac88e61384d26ede10a77740"
+      "hash": "8b886962d594ff149bb5db8ec546ac3464edb1b41e19e61d04cf1b971e81c45e"
     },
     {
       "id": "class:class-sample-blocked-path",

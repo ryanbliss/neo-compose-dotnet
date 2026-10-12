@@ -56,6 +56,32 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void NeoSet_AlgebraRemovesEntriesWithOneWrite()
+        {
+            var app = LoadGeneratedClient();
+            NeoSet<int> lucky = app.Save.Lucky;
+            lucky.UnionWith(new[] { 1, 2, 3, 4, 2 });
+            CollectionAssert.AreEqual(new[] { 1, 2, 3, 4 }, lucky.ToArray());
+            var changes = 0;
+            using var subscription = lucky.OnChanged((_, _) => changes++);
+
+            lucky.ExceptWith(new[] { 1, 3, 9 });
+
+            Assert.AreEqual(1, changes);
+            CollectionAssert.AreEqual(new[] { 2, 4 }, lucky.ToArray());
+
+            lucky.IntersectWith(new[] { 4, 5 });
+
+            Assert.AreEqual(2, changes);
+            CollectionAssert.AreEqual(new[] { 4 }, lucky.ToArray());
+
+            lucky.ExceptWith(new[] { 9 });
+
+            Assert.AreEqual(2, changes);
+            Assert.IsTrue(lucky.SetEquals(new[] { 4, 4 }));
+        }
+
+        [Test]
         public void NeoSet_ValueEntriesComeBackAsReadOnlyWrappers()
         {
             var app = LoadGeneratedClient();
@@ -68,6 +94,21 @@ namespace NeoCompose.Tests
             NeoReadOnlyVector2 entry = waypoints.Single();
             Assert.IsNotInstanceOf<NeoVector2>(entry);
             Assert.AreEqual(new Vector2(0f, 1f), entry.Value);
+        }
+
+        [Test]
+        public void GenericSet_BoundToAWritableWrapperHandsOutDetachedEntries()
+        {
+            var app = LoadGeneratedClient();
+            NeoSet<NeoVector2> tags = app.Save.VectorBag.Tags;
+            Assert.IsTrue(tags.Add(new NeoVector2(1f, 2f)));
+
+            NeoVector2 entry = tags.Single();
+            entry.x = 5f;
+
+            Assert.AreEqual(new Vector2(1f, 2f), tags.Single().Value);
+            Assert.IsFalse(tags.Add(new NeoVector2(1f, 2f)));
+            Assert.IsTrue(tags.Add(new NeoVector2(5f, 2f)));
         }
 
         [Test]
@@ -172,6 +213,41 @@ namespace NeoCompose.Tests
 
             CollectionAssert.AreEqual(new double?[] { 3, 5 }, script.Numbers(LuckyValueId));
             Assert.AreEqual(false, script.Eval(Contains(lucky, Int(7), reference: false)));
+        }
+
+        /// <summary>
+        /// Within one execution the Set's pending entries answer Add, Remove,
+        /// and Contains by key without committing the batch.
+        /// </summary>
+        [Test]
+        public void PendingSet_MatchesByKeyAcrossOneExecution()
+        {
+            using var script = new Script(BuildProjectData());
+            Pointer lucky = Ref(LuckyValueId);
+            var target = new WriteTarget
+            {
+                pointer = lucky,
+                typeInfo = SetOf(new PrimitiveTypeInfo { type = MemberKind.Int, required = true }),
+                writability = WritabilityKind.Save,
+            };
+
+            script.client.EnterScriptWrites();
+            try
+            {
+                script.Mutate(target, CollectionMutationKind.Add, Int(5));
+                Assert.AreEqual(true, script.Eval(Contains(lucky, Int(5), reference: false)));
+                script.Mutate(target, CollectionMutationKind.Add, Int(5));
+                script.Mutate(target, CollectionMutationKind.Remove, Int(3));
+                Assert.AreEqual(false, script.Eval(Contains(lucky, Int(3), reference: false)));
+                script.Mutate(target, CollectionMutationKind.Add, Int(3));
+                Assert.AreEqual(true, script.Eval(Contains(lucky, Int(3), reference: false)));
+            }
+            finally
+            {
+                script.client.ExitScriptWrites();
+            }
+
+            CollectionAssert.AreEqual(new double?[] { 7, 5, 3 }, script.Numbers(LuckyValueId));
         }
 
         /// <summary>
