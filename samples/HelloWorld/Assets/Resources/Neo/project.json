@@ -20584,7 +20584,7 @@
                 "defaultSaveOptionChoices": true
             },
             "sourceName": "CapitolOGIntro",
-            "updatedAt": 1791414081983,
+            "updatedAt": 1791765829491,
             "id": "3e842799-4859-4fbc-a317-8640bc6875e5",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "nodes": {
@@ -21251,13 +21251,51 @@
                                         {
                                             "operator": "++",
                                             "pointer": {
-                                                "type": "value",
-                                                "value": {
-                                                    "typeInfo": {
-                                                        "required": true,
-                                                        "type": 2
-                                                    },
-                                                    "value": 1
+                                                "type": "operation",
+                                                "operation": {
+                                                    "type": "arithmetic",
+                                                    "arithmetic": {
+                                                        "type": "+",
+                                                        "pointers": [
+                                                            {
+                                                                "keyOf": {
+                                                                    "key": {
+                                                                        "type": "value",
+                                                                        "value": {
+                                                                            "typeInfo": {
+                                                                                "required": true,
+                                                                                "type": 3
+                                                                            },
+                                                                            "value": "Reputation"
+                                                                        }
+                                                                    },
+                                                                    "pointer": {
+                                                                        "memberId": "cccadaa5-0623-4a0f-9197-7175726c0e8b",
+                                                                        "receiver": {
+                                                                            "kind": "instance",
+                                                                            "pointer": {
+                                                                                "type": "reference",
+                                                                                "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b"
+                                                                            }
+                                                                        },
+                                                                        "type": "callGetter"
+                                                                    }
+                                                                },
+                                                                "type": "keyOf"
+                                                            },
+                                                            {
+                                                                "type": "value",
+                                                                "value": {
+                                                                    "typeInfo": {
+                                                                        "required": true,
+                                                                        "type": 2
+                                                                    },
+                                                                    "value": 1
+                                                                }
+                                                            }
+                                                        ],
+                                                        "numeric": "int"
+                                                    }
                                                 }
                                             },
                                             "target": {
