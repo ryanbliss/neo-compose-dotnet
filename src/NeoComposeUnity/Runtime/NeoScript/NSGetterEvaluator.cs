@@ -4254,7 +4254,7 @@ namespace NeoCompose.Runtime.NeoScript
             Count,
             /// <summary>One entry by position, id or key: a List or Dictionary.</summary>
             Entry,
-            /// <summary>Whether an entry has a given id: a List or multi-select Lookup.</summary>
+            /// <summary>Whether an entry has a given id or Set key: a List, Set or multi-select Lookup.</summary>
             Membership,
             /// <summary>The collection a mutation changes: any pending collection.</summary>
             Target,
@@ -4472,6 +4472,7 @@ namespace NeoCompose.Runtime.NeoScript
             batch.ResolveMembers(pending, member);
             return pending.CollectionMember switch
             {
+                SetMember => true,
                 ListMember => read != PendingRead.Membership || pending.EntryMember is ClassMember,
                 DictionaryMember => read != PendingRead.Membership,
                 LookupMember { Selection: NeoMemberSelectionKind.Multi } => read != PendingRead.Entry,
@@ -6438,6 +6439,11 @@ namespace NeoCompose.Runtime.NeoScript
             else
                 c = EvalPointer(cnf.info.collectionPointer, scope, ctx);
             object? target = EvalPointer(cnf.info.valuePointer, scope, ctx);
+            if (pending is { CollectionMember: SetMember })
+            {
+                ctx.client.NotePendingRead(pending.Row.id);
+                return Box(target is not null && PendingSetHolds((NeoWriteBatch.PendingList)pending, target, ctx));
+            }
             if (pending is not null && cnf.info.reference)
             {
                 // Pending entries are value ids, so identity needs none read.
@@ -6467,6 +6473,9 @@ namespace NeoCompose.Runtime.NeoScript
                 }
                 return Box(s.Contains(ts));
             }
+            JsonMember? setEntryMember = pending is null ? StoredSetEntryMember(c, ctx) : null;
+            if (setEntryMember is not null)
+                return Box(SetHoldsKey(c, target, setEntryMember, ctx));
             if (cnf.info.reference)
                 return Box(ReferenceIndexOf(c, target, ctx) >= 0);
             string? targetReferenceId = target as string
@@ -6504,6 +6513,123 @@ namespace NeoCompose.Runtime.NeoScript
                 }
             }
             return BoxedFalse;
+        }
+
+        /// <summary>
+        /// The resolved entry member of <paramref name="collection"/> when it
+        /// is a stored Set, whose entries compare by P108 key.
+        /// </summary>
+        private static JsonMember? StoredSetEntryMember(object? collection, Context ctx) =>
+            FindRowReference(collection, ctx) is { } rowRef && rowRef.CollectionMember(ctx.client) is SetMember
+                ? rowRef.EntryMember(ctx.client)
+                : null;
+
+        /// <summary>
+        /// Whether stored Set <paramref name="set"/> holds an entry whose key
+        /// is <paramref name="value"/>'s: its value id for Class entries, so
+        /// those compare ids without reading a row.
+        /// </summary>
+        private static bool SetHoldsKey(object? set, object? value, JsonMember entryMember, Context ctx)
+        {
+            if (value is null)
+                return false;
+            string? key = entryMember is ClassMember
+                ? ReferenceKeyOf(value, ctx) as string
+                : NeoSetEntryKey.OfPayload(entryMember, value);
+            return key is not null && StoredSetKeysOf(set, entryMember, ctx).Contains(key);
+        }
+
+        /// <summary>
+        /// A stored Set's entry keys, stamped with the evaluation that read
+        /// them: a getter capture, or an action's outermost execution.
+        /// </summary>
+        private sealed class StoredSetKeys
+        {
+            internal object? scope;
+            internal long scopeId;
+            internal readonly HashSet<string> keys = new(StringComparer.Ordinal);
+        }
+
+        // By committed row: a write clones the row, so a Set whose membership
+        // changes has no keys here. Its unwrapped array can be patched in place.
+        private static readonly ConditionalWeakTable<MemberValue, StoredSetKeys> storedSetKeys = new();
+
+        /// <summary>
+        /// The keys of stored Set <paramref name="set"/>, read once per
+        /// evaluation, so repeated <c>Contains</c> reads each entry row once.
+        /// A new evaluation reads them again, so its capture hears the reads.
+        /// </summary>
+        private static HashSet<string> StoredSetKeysOf(object? set, JsonMember entryMember, Context ctx)
+        {
+            NeoClient client = ctx.client;
+            object? scope = null;
+            long scopeId = 0;
+            // Replays record reads their own way, so they read every time.
+            if (!client.IsReplayingVirtualInstance && client.InfersCommittedParents)
+            {
+                if (client.GetterCaptureId != 0)
+                {
+                    scope = client;
+                    scopeId = client.GetterCaptureId;
+                }
+                else if (ctx.allocationTracker.ActiveExecutionCount != 0)
+                {
+                    scope = ctx.allocationTracker;
+                    scopeId = ctx.allocationTracker.Generation;
+                }
+            }
+            if (scope is null
+                || FindRowReference(set, ctx) is not { } setRef
+                || !client.TryGetValue(setRef.ownership, setRef.valueId, out MemberValue? row))
+            {
+                return ReadSetKeys(set, entryMember, ctx, new HashSet<string>(StringComparer.Ordinal));
+            }
+            StoredSetKeys stored = storedSetKeys.GetOrCreateValue(row);
+            if (!ReferenceEquals(stored.scope, scope) || stored.scopeId != scopeId)
+            {
+                stored.keys.Clear();
+                ReadSetKeys(set, entryMember, ctx, stored.keys);
+                stored.scope = scope;
+                stored.scopeId = scopeId;
+            }
+            return stored.keys;
+        }
+
+        /// <summary>
+        /// Adds each stored entry's key to <paramref name="keys"/>: the value
+        /// id for Class entries, so those read no row.
+        /// </summary>
+        private static HashSet<string> ReadSetKeys(object? set, JsonMember entryMember, Context ctx, HashSet<string> keys)
+        {
+            var cursor = new CollectionCursor(set, ctx);
+            while (cursor.MoveNextUnresolved())
+            {
+                if (entryMember is ClassMember)
+                {
+                    if (cursor.ValueId is { } valueId)
+                        keys.Add(valueId);
+                }
+                else
+                {
+                    keys.Add(NeoSetEntryKey.Of(entryMember, cursor.ReadEntryRow(ctx)));
+                }
+            }
+            return keys;
+        }
+
+        /// <summary>
+        /// Whether pending Set <paramref name="set"/> holds an entry whose key
+        /// is <paramref name="value"/>'s, answered from the batch so the read
+        /// commits nothing.
+        /// </summary>
+        private static bool PendingSetHolds(NeoWriteBatch.PendingList set, object value, Context ctx)
+        {
+            JsonMember entryMember = set.EntryMember
+                ?? throw new NSGetterRuntimeError($"Set '{set.Row.id}' has no resolved entry member.");
+            if (entryMember is ClassMember)
+                return ReferenceKeyOf(value, ctx) is string referenceId && set.Contains(referenceId);
+            NeoWritePlan plan = ctx.client.PendingScriptWrites!.Plan;
+            return set.FindSetEntry(NeoSetEntryKey.OfPayload(entryMember, value), entryMember, plan) is not null;
         }
 
         private static object? EvalIndexOf(
@@ -8184,6 +8310,19 @@ namespace NeoCompose.Runtime.NeoScript
                 collectionRef?.RememberEntryNode(Index, count, raw, node);
                 return entry;
             }
+
+            /// <summary>The current stored entry's value row.</summary>
+            internal readonly MemberValue ReadEntryRow(Context ctx)
+            {
+                if (Raw is not string id)
+                    throw new NSGetterRuntimeError($"Stored collection entry {Index} has no value id.");
+                NeoValueNode? node = collectionRef?.EntryNode(Index, id);
+                NeoValueOwnership ownership = entryOwnership ?? ResolveOwnershipForValueId(ctx, id, ref node);
+                MemberValue row = ctx.client.ReadReplayReference(id, ref node, ownership)
+                    ?? throw new NSGetterRuntimeError($"Stored collection entry '{id}' has no row.");
+                collectionRef?.RememberEntryNode(Index, count, id, node);
+                return row;
+            }
         }
 
         // ---------------------------------------------------------------
@@ -8382,6 +8521,7 @@ namespace NeoCompose.Runtime.NeoScript
                     return value is string decimalText
                         && NeoDecimalValues.GetViolation(decimalText) == NeoDecimalValues.Violation.None;
                 case MemberKind.List:
+                case MemberKind.Set:
                     return value is object?[];
                 case MemberKind.Lookup:
                     {
@@ -10141,7 +10281,7 @@ namespace NeoCompose.Runtime.NeoScript
                 return NeoScriptDebug.FormatValue($"(Interface<{interfaceType.interfaceId}>, Value<{FindRowIdByReference(value, ctx) ?? "<unknown>"}>)", MemberKind.String);
             if (type is LookupTypeInfo { entryTypeInfo: EnumTypeInfo enumType })
                 type = enumType;
-            if (value is not null && type.type is MemberKind.Class or MemberKind.List or MemberKind.Dictionary or MemberKind.Lookup)
+            if (value is not null && type.type is MemberKind.Class or MemberKind.List or MemberKind.Set or MemberKind.Dictionary or MemberKind.Lookup)
                 return NeoScriptDebug.FormatValue(FormatForInterp(value, type, ctx), MemberKind.String);
             if (type.type == MemberKind.Enum && value is object?[] values)
             {
@@ -10220,11 +10360,12 @@ namespace NeoCompose.Runtime.NeoScript
                         return $"(Class<{typeName}>, Value<{rowId}>)";
                     }
                 case MemberKind.List:
+                case MemberKind.Set:
                     {
                         var entryType = (sourceType as CollectionTypeInfo)?.entryTypeInfo;
                         string entryName = entryType is null ? "unknown" : DescribeRuntimeType(entryType, ctx);
                         string rowId = FindRowIdByReference(value, ctx) ?? "<unknown>";
-                        return $"(List<{entryName}>, Value<{rowId}>)";
+                        return $"({sourceType.type}<{entryName}>, Value<{rowId}>)";
                     }
                 case MemberKind.Dictionary:
                     {
@@ -10287,6 +10428,11 @@ namespace NeoCompose.Runtime.NeoScript
                     {
                         var inner = (t as CollectionTypeInfo)?.entryTypeInfo;
                         return inner is null ? "List<unknown>" : $"List<{DescribeRuntimeType(inner, ctx)}>";
+                    }
+                case MemberKind.Set:
+                    {
+                        var inner = (t as CollectionTypeInfo)?.entryTypeInfo;
+                        return inner is null ? "Set<unknown>" : $"Set<{DescribeRuntimeType(inner, ctx)}>";
                     }
                 case MemberKind.Dictionary:
                     {

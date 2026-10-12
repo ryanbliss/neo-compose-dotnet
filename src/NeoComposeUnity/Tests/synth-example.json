@@ -3243,6 +3243,206 @@
         "required": true
       },
       "selection": 1
+    },
+    "member-root-lucky": {
+      "id": "member-root-lucky",
+      "name": "Lucky",
+      "kind": 28,
+      "entryMemberId": "member-root-lucky-entry",
+      "requirement": 1,
+      "defaultValue": {
+        "value": []
+      },
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "member-root-lucky-entry": {
+      "id": "member-root-lucky-entry",
+      "name": "Lucky Entry",
+      "kind": 2,
+      "requirement": 1,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "member-root-allies": {
+      "id": "member-root-allies",
+      "name": "Allies",
+      "kind": 28,
+      "entryMemberId": "member-root-ally",
+      "requirement": 1,
+      "defaultValue": {
+        "value": []
+      },
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "member-root-elements": {
+      "id": "member-root-elements",
+      "name": "Elements",
+      "kind": 8,
+      "enumId": "enum-element",
+      "selection": 1,
+      "requirement": 1,
+      "defaultValue": {
+        "value": []
+      },
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "member-generic-contract-unique": {
+      "id": "member-generic-contract-unique",
+      "name": "Unique",
+      "kind": 28,
+      "entryMemberId": "member-generic-contract-entry",
+      "requirement": 1,
+      "defaultValue": {
+        "value": []
+      },
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "member-root-ally": {
+      "id": "member-root-ally",
+      "name": "Ally",
+      "kind": 7,
+      "classId": "class-hero",
+      "requirement": 1,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "member-root-waypoints": {
+      "id": "member-root-waypoints",
+      "name": "Waypoints",
+      "kind": 28,
+      "entryMemberId": "member-root-waypoint",
+      "requirement": 1,
+      "defaultValue": {
+        "value": []
+      },
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "member-root-waypoint": {
+      "id": "member-root-waypoint",
+      "name": "Waypoint",
+      "kind": 14,
+      "requirement": 1,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "member-owned-crew": {
+      "id": "member-owned-crew",
+      "name": "Crew",
+      "kind": 28,
+      "entryMemberId": "member-root-ally",
+      "requirement": 1,
+      "defaultValue": {
+        "value": []
+      },
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "member-owned-crew-tags": {
+      "id": "member-owned-crew-tags",
+      "name": "Tags",
+      "kind": 8,
+      "enumId": "enum-element",
+      "selection": 1,
+      "requirement": 1,
+      "defaultValue": {
+        "value": []
+      },
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "member-picked-crew": {
+      "id": "member-picked-crew",
+      "name": "Crew",
+      "kind": 9,
+      "declaredTypeInfo": {
+        "type": 7,
+        "classId": "class-hero",
+        "required": true
+      },
+      "selection": 1,
+      "requirement": 1,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "member-picked-crew-tags": {
+      "id": "member-picked-crew-tags",
+      "name": "Tags",
+      "kind": 8,
+      "enumId": "enum-element",
+      "selection": 1,
+      "requirement": 1,
+      "defaultValue": {
+        "value": []
+      },
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "member-generic-bag-tags": {
+      "id": "member-generic-bag-tags",
+      "name": "Tags",
+      "kind": 28,
+      "entryMemberId": "member-generic-bag-entry",
+      "requirement": 1,
+      "defaultValue": {
+        "value": []
+      },
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "member-generic-bag-entry": {
+      "id": "member-generic-bag-entry",
+      "name": "Tag",
+      "kind": 21,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "genericParamId": "param-generic-bag-e"
+    },
+    "member-generic-bag-vector-binding": {
+      "id": "member-generic-bag-vector-binding",
+      "name": "Generic Bag Vector Binding",
+      "kind": 14,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "requirement": 1
+    },
+    "member-root-vector-bag": {
+      "id": "member-root-vector-bag",
+      "name": "VectorBag",
+      "kind": 7,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "classId": "class-generic-bag",
+      "classArguments": {
+        "param-generic-bag-e": {
+          "kind": 1,
+          "memberId": "member-generic-bag-vector-binding"
+        }
+      },
+      "requirement": 1,
+      "defaultValue": {
+        "value": {}
+      }
     }
   },
   "enums": {
@@ -3592,6 +3792,44 @@
       "extendsInterfaceIds": [],
       "createdAt": 0,
       "updatedAt": 0
+    },
+    "interface-crew": {
+      "id": "interface-crew",
+      "projectId": "test-project",
+      "name": "ICrew",
+      "members": {
+        "Crew": {
+          "id": "interface-crew-crew",
+          "typeInfo": {
+            "type": 9,
+            "required": true,
+            "entryTypeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "class-hero"
+            }
+          }
+        },
+        "Tags": {
+          "id": "interface-crew-tags",
+          "typeInfo": {
+            "type": 9,
+            "required": true,
+            "entryTypeInfo": {
+              "type": 8,
+              "required": true,
+              "enumId": "enum-element"
+            }
+          }
+        }
+      },
+      "memberKeyOrder": [
+        "Crew",
+        "Tags"
+      ],
+      "extendsInterfaceIds": [],
+      "createdAt": 0,
+      "updatedAt": 0
     }
   },
   "classes": {
@@ -3629,7 +3867,12 @@
         "ElementMultipliers": "member-elem-multipliers",
         "ElementChampions": "member-elem-champions",
         "FavoriteHero": "member-favorite-hero",
-        "Party": "member-party"
+        "Party": "member-party",
+        "Lucky": "member-root-lucky",
+        "Allies": "member-root-allies",
+        "Elements": "member-root-elements",
+        "Waypoints": "member-root-waypoints",
+        "VectorBag": "member-root-vector-bag"
       },
       "projectId": "test-project",
       "createdAt": 0,
@@ -3936,7 +4179,8 @@
         "Payload": "member-generic-contract-payload",
         "Computed": "member-generic-contract-computed",
         "Echo": "member-generic-contract-echo",
-        "EchoLater": "member-generic-contract-echo-later"
+        "EchoLater": "member-generic-contract-echo-later",
+        "Unique": "member-generic-contract-unique"
       },
       "modifier": 1,
       "genericParams": [
@@ -4469,6 +4713,50 @@
       "schema": {},
       "allowedStorage": 5,
       "uiVisibility": 1,
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "class-owned-crew": {
+      "id": "class-owned-crew",
+      "name": "OwnedCrew",
+      "schema": {
+        "Crew": "member-owned-crew",
+        "Tags": "member-owned-crew-tags"
+      },
+      "implementsInterfaceIds": [
+        "interface-crew"
+      ],
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "class-picked-crew": {
+      "id": "class-picked-crew",
+      "name": "PickedCrew",
+      "schema": {
+        "Crew": "member-picked-crew",
+        "Tags": "member-picked-crew-tags"
+      },
+      "implementsInterfaceIds": [
+        "interface-crew"
+      ],
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "class-generic-bag": {
+      "id": "class-generic-bag",
+      "name": "GenericBag",
+      "schema": {
+        "Tags": "member-generic-bag-tags"
+      },
+      "genericParams": [
+        {
+          "id": "param-generic-bag-e",
+          "name": "E"
+        }
+      ],
+      "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0
     }

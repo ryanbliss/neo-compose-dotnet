@@ -85,11 +85,20 @@ namespace NeoCompose.Runtime
         /// </summary>
         public void Set(string[]? optionIds)
         {
-            if (member.Requirement == NeoMemberRequirementKind.Required && (optionIds is null || optionIds.Length == 0))
+            if (member.Requirement == NeoMemberRequirementKind.Required && optionIds is null)
             {
                 throw new System.ArgumentNullException(
                     nameof(optionIds),
-                    $"Cannot be null/empty when {nameof(member)} requirement is Required");
+                    $"Cannot be null when {nameof(member)} requirement is Required");
+            }
+            // A required multi-select holds a set of options; empty is its rest state.
+            if (member.Requirement == NeoMemberRequirementKind.Required
+                && member.Selection != NeoMemberSelectionKind.Multi
+                && optionIds!.Length == 0)
+            {
+                throw new System.ArgumentException(
+                    $"Cannot be empty when {nameof(member)} requirement is Required",
+                    nameof(optionIds));
             }
 
             string[]? normalized = optionIds;

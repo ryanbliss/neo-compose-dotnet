@@ -1438,6 +1438,7 @@ namespace NeoCompose.Runtime
                     collection.required
                     && collection.entryTypeInfo is not null
                     && (collection.type == MemberKind.List
+                        || collection.type == MemberKind.Set
                         || collection.type == MemberKind.Dictionary),
                 LookupTypeInfo lookup =>
                     lookup.required
@@ -2879,7 +2880,7 @@ namespace NeoCompose.Runtime
                 }, scope, ctx));
             }
             if (instruction.target.pointer is KeyOfPointer keyOfTarget
-                && instruction.target.typeInfo.type is MemberKind.List or MemberKind.Dictionary)
+                && instruction.target.typeInfo.type is MemberKind.List or MemberKind.Set or MemberKind.Dictionary)
             {
                 object? receiver;
                 if (client.PendingScriptWrites is { HasCollections: true } batch && WritesStorage(instruction.target))
@@ -2946,13 +2947,13 @@ namespace NeoCompose.Runtime
             if (pending.Target is NeoResolvedCollectionTarget target)
                 return target;
             string id = pending.Row.id;
-            if (collectionType is LookupTypeInfo lookup)
+            if (pending is NeoWriteBatch.PendingList)
+                batch.ResolveMembers(pending);
+            bool isSet = pending.CollectionMember is SetMember;
+            if (collectionType is LookupTypeInfo lookup && !isSet)
                 target = new NeoLookupSetWriteTarget(id, lookup, pending.Ownership);
             else if (pending is NeoWriteBatch.PendingList)
-            {
-                batch.ResolveMembers(pending);
-                target = new NeoListWriteTarget(id, EntryTypeInfo(collectionType), pending.EntryMember, pending.Ownership);
-            }
+                target = new NeoListWriteTarget(id, EntryTypeInfo(collectionType), pending.EntryMember, pending.Ownership, isSet: isSet);
             else
                 return PendingDictionaryTarget(pending, EntryTypeInfo(collectionType));
             pending.Target = target;
@@ -3599,7 +3600,7 @@ namespace NeoCompose.Runtime
             }
             if (preparedPlan is null && client.PendingScriptWrites?.Target(ownership, rowId) is NeoResolvedCollectionTarget pending)
                 return pending;
-            if (member is null && target.typeInfo.type == MemberKind.List)
+            if (member is null && target.typeInfo.type is MemberKind.List or MemberKind.Set or MemberKind.Lookup)
                 client.TryInferMemberForValueId(rowId, out member);
             if (target.typeInfo is not LookupTypeInfo
                 && member is ListMember listMember && client.IsUnorderedList(listMember))
@@ -3617,7 +3618,9 @@ namespace NeoCompose.Runtime
             }
             if (row is ArrayMemberValue)
             {
-                if (target.typeInfo is LookupTypeInfo lookupTypeInfo)
+                // A Set<T> target holds an owned Set or a lookup set: the
+                // stored member picks the semantics, not the static type.
+                if (target.typeInfo is LookupTypeInfo lookupTypeInfo && member is not SetMember)
                 {
                     return new NeoLookupSetWriteTarget(rowId, lookupTypeInfo, ownership, preparedPlan);
                 }
@@ -3626,7 +3629,8 @@ namespace NeoCompose.Runtime
                     EntryTypeInfo(target.typeInfo),
                     client.TryResolveCollectionEntryMember(member, row),
                     ownership,
-                    preparedPlan);
+                    preparedPlan,
+                    member is SetMember);
             }
             if (row is ObjectMemberValue)
             {
@@ -3920,6 +3924,14 @@ namespace NeoCompose.Runtime
             valueId = null;
             if (typeInfo.type != MemberKind.Class)
                 return false;
+            return TryGetValueReferenceId(value, ctx, out valueId);
+        }
+
+        private static bool TryGetValueReferenceId(
+            object? value,
+            NSGetterEvaluator.Context ctx,
+            out string? valueId)
+        {
             if (value is INeoValueReference reference
                 && !string.IsNullOrEmpty(reference.valueId))
             {
@@ -4045,6 +4057,13 @@ namespace NeoCompose.Runtime
                     {
                         id = id,
                         kind = MemberKind.List,
+                        entryMemberId = id,
+                    };
+                case MemberKind.Set:
+                    return new SetMember
+                    {
+                        id = id,
+                        kind = MemberKind.Set,
                         entryMemberId = id,
                     };
                 case MemberKind.Dictionary:
@@ -4519,12 +4538,14 @@ namespace NeoCompose.Runtime
         // can't reach a nested List or Dictionary's entries. Building or
         // releasing one takes the schema member instead.
         private static JsonMember RowMember(NeoClient client, string valueId, TypeInfo typeInfo) =>
-            typeInfo.type is MemberKind.List or MemberKind.Dictionary
+            typeInfo.type is MemberKind.List or MemberKind.Set or MemberKind.Dictionary
                 && client.TryInferMemberForValueId(valueId, out JsonMember? member)
                 ? member : MemberFromTypeInfo(typeInfo);
 
+        // A generic entry has no type-info member either: its row's binding
+        // closes it.
         private static JsonMember EntryMember(NeoClient client, MemberValue collectionRow, TypeInfo entryTypeInfo) =>
-            entryTypeInfo.type is MemberKind.List or MemberKind.Dictionary
+            entryTypeInfo.type is MemberKind.List or MemberKind.Set or MemberKind.Dictionary or MemberKind.Generic
                 && client.TryInferMemberForValueId(collectionRow.id, out JsonMember? collection)
                 && client.TryResolveCollectionEntryMember(collection, collectionRow) is JsonMember entry
                 ? entry : MemberFromTypeInfo(entryTypeInfo);
@@ -5763,19 +5784,23 @@ namespace NeoCompose.Runtime
             private readonly TypeInfo entryTypeInfo;
             private readonly JsonMember? entryMember;
             private readonly NeoValueOwnership ownership;
+            // A Set skips an Add whose key it holds and removes by key.
+            private readonly bool isSet;
 
             public NeoListWriteTarget(
                 string rowId,
                 TypeInfo entryTypeInfo,
                 JsonMember? entryMember,
                 NeoValueOwnership ownership,
-                NeoWritePlan? preparedPlan = null)
+                NeoWritePlan? preparedPlan = null,
+                bool isSet = false)
             {
                 this.preparedPlan = preparedPlan;
                 this.rowId = rowId;
                 this.entryTypeInfo = entryTypeInfo;
                 this.entryMember = entryMember;
                 this.ownership = ownership;
+                this.isSet = isSet;
             }
 
             public override void Mutate(
@@ -5792,12 +5817,14 @@ namespace NeoCompose.Runtime
                     referenceId = ReferenceIdOf(args[0], ctx);
                 }
                 else if ((inserts || mutation == CollectionMutationKind.Remove)
-                    && TryGetClassValueReferenceId(
+                    && (entryTypeInfo.type == MemberKind.Class || entryMember is ClassMember)
+                    && TryGetValueReferenceId(
                         args[mutation == CollectionMutationKind.Insert ? 1 : 0],
-                        entryTypeInfo,
                         ctx,
                         out string? id))
                 {
+                    // The closed entry member decides: a generic bound to a
+                    // Class imports the referenced value like a Class entry.
                     referenceId = id;
                 }
                 WriteCollection(client, rowId, preparedPlan, batch =>
@@ -5815,6 +5842,8 @@ namespace NeoCompose.Runtime
                                     : list.Count;
                                 if (insertionIndex < 0 || insertionIndex > list.Count)
                                     throw new NSGetterRuntimeError("List.Insert index is out of range.");
+                                if (isSet && FindSetEntry(batch, list, args[0], referenceId, ctx) is not null)
+                                    return;
                                 string childId;
                                 if (referenceId is not null)
                                 {
@@ -5854,6 +5883,12 @@ namespace NeoCompose.Runtime
                                 return;
                             }
                         case CollectionMutationKind.Remove:
+                            if (isSet)
+                            {
+                                if (FindSetEntry(batch, list, args[0], referenceId, ctx) is { } match)
+                                    batch.Release(ownership, list.RemoveAt(list.IndexOf(match), now), EntryMember(client, list.Row, entryTypeInfo), rowId);
+                                return;
+                            }
                             for (int i = 0; i < list.Count; i++)
                             {
                                 if (list[i] != referenceId
@@ -5876,6 +5911,26 @@ namespace NeoCompose.Runtime
                             throw new NSGetterRuntimeError($"Unsupported list mutation '{mutation}'.");
                     }
                 });
+            }
+
+            /// <summary>
+            /// The id of the entry whose P108 key equals <paramref name="value"/>'s:
+            /// its value id for Class entries, so a new detached value matches none.
+            /// The closed entry member decides, so a generic bound to a Class
+            /// compares by identity too.
+            /// </summary>
+            private string? FindSetEntry(
+                NeoWriteBatch batch,
+                NeoWriteBatch.PendingList list,
+                object? value,
+                string? referenceId,
+                NSGetterEvaluator.Context ctx)
+            {
+                JsonMember member = entryMember ?? MemberFromTypeInfo(entryTypeInfo);
+                if (member is not ClassMember)
+                    return list.FindSetEntry(NeoSetEntryKey.OfPayload(member, value), member, batch.Plan);
+                referenceId ??= value is null ? null : FindValueId(value, ctx);
+                return referenceId is not null && list.Contains(referenceId) ? referenceId : null;
             }
         }
 

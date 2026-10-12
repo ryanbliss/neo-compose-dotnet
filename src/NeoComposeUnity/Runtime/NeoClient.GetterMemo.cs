@@ -235,6 +235,9 @@ namespace NeoCompose.Runtime
         // Numbers each capture, so a reader can tell whether a row is
         // already in the open one. Zero while none is open.
         private long getterCaptureId;
+
+        /// <summary>The open getter capture's id, or 0 outside one.</summary>
+        internal long GetterCaptureId => getterCaptureId;
         private long lastGetterCaptureId;
 
         /// <summary>

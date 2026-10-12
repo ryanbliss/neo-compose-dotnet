@@ -115,7 +115,7 @@ namespace NeoCompose.Runtime
         /// <summary>Dictionary only — set iff <see cref="keyKind"/> is Enum.</summary>
         public string? keyEnumId;
 
-        /// <summary>List / Dictionary only — recursive entry signature.</summary>
+        /// <summary>List / Set / Dictionary only — recursive entry signature.</summary>
         public NeoClassArgumentSignature? entry;
     }
 
@@ -930,6 +930,7 @@ namespace NeoCompose.Runtime
                 return resolved;
             }
             if (argument.type == MemberKind.List
+                || argument.type == MemberKind.Set
                 || argument.type == MemberKind.Dictionary
                 || argument.type == MemberKind.Lookup)
             {
@@ -1220,6 +1221,7 @@ namespace NeoCompose.Runtime
                 };
             }
             if (signature.type == MemberKind.List
+                || signature.type == MemberKind.Set
                 || signature.type == MemberKind.Dictionary)
             {
                 return new CollectionTypeInfo
@@ -1289,6 +1291,7 @@ namespace NeoCompose.Runtime
                 argument.enumId = signature.enumId;
             }
             else if (signature.type == MemberKind.List
+                || signature.type == MemberKind.Set
                 || signature.type == MemberKind.Dictionary)
             {
                 argument.entryTypeInfo =
@@ -1391,6 +1394,15 @@ namespace NeoCompose.Runtime
                     required = required,
                     classId = classMember.classId,
                     args = args,
+                };
+            }
+            if (member is SetMember setMember)
+            {
+                return new NeoClassArgumentSignature
+                {
+                    type = MemberKind.Set,
+                    required = required,
+                    entry = EntrySignature(client, setMember.entryMemberId, env, seen),
                 };
             }
             if (member is ListMember listMember)
@@ -1531,6 +1543,8 @@ namespace NeoCompose.Runtime
                     return false;
                 return SignaturesEqual(a.entry!, b.entry!);
             }
+            if (a.type == MemberKind.Set)
+                return SignaturesEqual(a.entry!, b.entry!);
             if (a.type == MemberKind.Dictionary)
             {
                 if (a.keyKind != b.keyKind)

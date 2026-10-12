@@ -168,6 +168,7 @@ namespace NeoCompose.Runtime.Json
             [MemberKind.Dictionary] = Sparse(NeoDistributionGrowthReason.EntryCount),
             // Entry count grows with content.
             [MemberKind.List] = Sparse(NeoDistributionGrowthReason.EntryCount),
+            [MemberKind.Set] = Sparse(NeoDistributionGrowthReason.EntryCount),
             // Schema and authored child count can grow.
             [MemberKind.Class] = Sparse(NeoDistributionGrowthReason.AuthoredChildren),
             // The enum declaration bounds the selected option ids; enum edits

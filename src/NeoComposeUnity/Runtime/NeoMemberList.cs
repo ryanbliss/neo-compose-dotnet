@@ -35,6 +35,10 @@ namespace NeoCompose.Runtime
         private protected void ForgetChildrenSource() => childrenEntryIds = null;
         private Dictionary<string, NeoMember>? childrenByValueId;
         private readonly Dictionary<string, NeoRawListIndex> derivedIndexes = new();
+        // P108 value-kind Set entries by key, and back. Class entries key by
+        // value id, so they use the identity index instead.
+        private Dictionary<string, string>? valueIdsBySetKey;
+        private Dictionary<string, string>? setKeysByValueId;
 
         /// <summary>
         /// Operation counters used by tests and development diagnostics to
@@ -185,6 +189,8 @@ namespace NeoCompose.Runtime
             childrenByValueId?.Clear();
             childrenByValueId = null;
             derivedIndexes.Clear();
+            valueIdsBySetKey = null;
+            setKeysByValueId = null;
             base.Dispose();
         }
 
@@ -233,6 +239,78 @@ namespace NeoCompose.Runtime
             EnsureIdentityIndex();
             IndexDiagnostics.IdentityLookupCount += 1;
             return childrenByValueId!.ContainsKey(valueId);
+        }
+
+        /// <summary>
+        /// The id of the entry whose P108 §3 key is <paramref name="key"/>,
+        /// or null when no entry holds it. The value-kind map is built lazily,
+        /// then maintained with List membership changes.
+        /// </summary>
+        internal string? FindSetEntry(string key)
+        {
+            if (key is null)
+                throw new ArgumentNullException(nameof(key));
+            ObserveScriptWrites();
+            if (childMembers.Count == 0)
+                return null;
+            if (entryMember is ClassMember)
+            {
+                EnsureIdentityIndex();
+                return childrenByValueId!.ContainsKey(key) ? key : null;
+            }
+            EnsureSetKeyIndex();
+            return valueIdsBySetKey!.TryGetValue(key, out string? valueId) ? valueId : null;
+        }
+
+        /// <summary>The P108 §3 key a value-kind entry built from <paramref name="payload"/> would hold.</summary>
+        internal string SetEntryKeyOf(NeoValueWritePayload? payload) =>
+            NeoSetEntryKey.OfPayload(entryMember, payload?.value);
+
+        /// <summary>The P108 §3 key of one of this list's entries.</summary>
+        internal string SetEntryKeyOfEntry(NeoMember child)
+        {
+            if (entryMember is ClassMember)
+                return EntryValueId(child);
+            MemberValue row = child.value ?? throw new InvalidOperationException(
+                $"Entry '{EntryValueId(child)}' of Set member '{member.id}' has no value row.");
+            return NeoSetEntryKey.Of(entryMember, row);
+        }
+
+        private void EnsureSetKeyIndex()
+        {
+            if (valueIdsBySetKey is not null)
+                return;
+            var byKey = new Dictionary<string, string>(childMembers.Count, StringComparer.Ordinal);
+            var byValueId = new Dictionary<string, string>(childMembers.Count, StringComparer.Ordinal);
+            foreach (NeoMember child in childMembers)
+            {
+                if (child.value is null)
+                    continue;
+                string key = NeoSetEntryKey.Of(entryMember, child.value);
+                string id = EntryValueId(child);
+                byValueId[id] = key;
+                byKey.TryAdd(key, id);
+            }
+            valueIdsBySetKey = byKey;
+            setKeysByValueId = byValueId;
+        }
+
+        private void ForgetSetKey(string valueId)
+        {
+            if (!setKeysByValueId!.Remove(valueId, out string? key))
+                return;
+            if (valueIdsBySetKey!.TryGetValue(key, out string? holder) && holder == valueId)
+                valueIdsBySetKey.Remove(key);
+        }
+
+        private void RecordSetKey(string valueId)
+        {
+            EnsureIdentityIndex();
+            if (!childrenByValueId!.TryGetValue(valueId, out NeoMember? child) || child.value is null)
+                return;
+            string key = NeoSetEntryKey.Of(entryMember, child.value);
+            setKeysByValueId![valueId] = key;
+            valueIdsBySetKey!.TryAdd(key, valueId);
         }
 
         internal NeoRawListIndex GetDerivedIndex(string schemaKey, bool unique)
@@ -519,6 +597,29 @@ namespace NeoCompose.Runtime
                 }
             }
 
+            if (valueIdsBySetKey is not null)
+            {
+                for (int i = 0; i < change.RemovedValueIds.Count; i++)
+                {
+                    ForgetSetKey(change.RemovedValueIds[i]);
+                }
+                if (change.Kind == NeoListChangeKind.Clear)
+                {
+                    valueIdsBySetKey.Clear();
+                    setKeysByValueId!.Clear();
+                }
+                for (int i = 0; i < change.AddedValueIds.Count; i++)
+                {
+                    RecordSetKey(change.AddedValueIds[i]);
+                }
+                for (int i = 0; i < change.ReplacedValueIds.Count; i++)
+                {
+                    string replacedId = change.ReplacedValueIds[i];
+                    ForgetSetKey(replacedId);
+                    RecordSetKey(replacedId);
+                }
+            }
+
             foreach (NeoRawListIndex index in derivedIndexes.Values)
             {
                 for (int i = 0; i < change.RemovedValueIds.Count; i++)
@@ -570,6 +671,8 @@ namespace NeoCompose.Runtime
             {
                 index.Invalidate();
             }
+            valueIdsBySetKey = null;
+            setKeysByValueId = null;
         }
 
         private void InvalidateAllIndexes()
@@ -887,6 +990,53 @@ namespace NeoCompose.Runtime
             NotifyListChanged(new NeoListChangedArgs(
                 NeoListChangeKind.Remove,
                 removedValueIds: new[] { removedValueId }));
+        }
+
+        /// <summary>
+        /// Removes every entry in <paramref name="entryValueIds"/> from this
+        /// ordered list with one write.
+        /// </summary>
+        internal void RemoveByIds(HashSet<string> entryValueIds)
+        {
+            ObserveScriptWrites();
+            if (IsUnordered)
+            {
+                throw new System.InvalidOperationException(
+                    $"RemoveByIds requires an ordered list; list member '{member.id}' is unordered.");
+            }
+            if (entryValueIds.Count == 0 || value?.value is null)
+            {
+                return;
+            }
+            var plan = new NeoWritePlan(client);
+            NeoTimestamp nowIso = NeoTimestamp.Now();
+            ArrayMemberValue parentRow = EnsureWritableArray(plan, nowIso, replacesEntries: true);
+            string[] currentArr = parentRow.value!;
+            var kept = new List<string>(currentArr.Length);
+            var removedValueIds = new List<string>(entryValueIds.Count);
+            foreach (string id in currentArr)
+            {
+                if (entryValueIds.Contains(id))
+                    removedValueIds.Add(id);
+                else
+                    kept.Add(id);
+            }
+            if (removedValueIds.Count == 0)
+            {
+                return;
+            }
+            parentRow.value = kept.ToArray();
+            parentRow.updatedAt = nowIso;
+            plan.Set(ownership, parentRow);
+            client.StageUnlinkedRemovals(plan, client.ChildOwnership(entryMember, ownership), removedValueIds, entryMember);
+            CommitOwnChange(plan);
+            value = parentRow;
+
+            RefreshCommittedValue();
+
+            NotifyListChanged(new NeoListChangedArgs(
+                NeoListChangeKind.Remove,
+                removedValueIds: removedValueIds));
         }
 
         internal void ClearSerialized()

@@ -903,6 +903,16 @@ namespace NeoCompose.Runtime
                     + $"member '{node.member.name}' is read-only.");
             }
 
+            // P108 §3. A Set keys a value entry by its value, so an edit in
+            // place would change its key. A generic T bound to a writable
+            // wrapper type reaches here; the read-only wrappers never do.
+            if (node.parent is NeoMemberList { member: SetMember } set)
+            {
+                throw new System.InvalidOperationException(
+                    $"Cannot write field '{field}' on {wrapperName} because it is an entry of Set "
+                    + $"'{set.member.name}', which compares entries by value. Remove the entry and add the new value.");
+            }
+
             return writable;
         }
     }

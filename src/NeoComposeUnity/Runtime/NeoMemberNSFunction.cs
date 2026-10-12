@@ -1244,7 +1244,7 @@ namespace NeoCompose.Runtime
                 LookupTypeInfo lookup => lookup.entryTypeInfo,
                 _ => null,
             };
-            if (typeInfo.type is MemberKind.List or MemberKind.Dictionary
+            if (typeInfo.type is MemberKind.List or MemberKind.Set or MemberKind.Dictionary
                 && entryTypeInfo is not null
                 && ContainsGeneric(entryTypeInfo))
             {
@@ -1924,6 +1924,7 @@ namespace NeoCompose.Runtime
                     value = NormalizeEnum(value, typeInfo, subject);
                     break;
                 case MemberKind.List:
+                case MemberKind.Set:
                 case MemberKind.Lookup:
                     value = NormalizeEnumerable(
                         client, ownership, value, typeInfo, ctx, subject, ref resolvedIdentity);
@@ -1975,7 +1976,7 @@ namespace NeoCompose.Runtime
                 MemberKind.Class or MemberKind.Interface =>
                     value is IDictionary<string, object?>
                     || value is INeoValueReference,
-                MemberKind.List or MemberKind.Lookup =>
+                MemberKind.List or MemberKind.Set or MemberKind.Lookup =>
                     value is IEnumerable && value is not string,
                 MemberKind.DialogueLookup =>
                     IsDialogueLookupWireValue(value),
@@ -2105,6 +2106,7 @@ namespace NeoCompose.Runtime
                         return;
                     }
                 case MemberKind.List:
+                case MemberKind.Set:
                 case MemberKind.Lookup:
                     {
                         TypeInfo? entryType = typeInfo switch

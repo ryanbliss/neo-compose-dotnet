@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "projectId": "test-project",
-  "codegenRevision": "ac7f9812e3b16cc37d09ba5006316dda6bac23884c83b368a10880bc3f2c765b",
+  "codegenRevision": "8e940ebfec562d0be7fe7b82014f66293ea075c2ca394c3a3eaac419eaddfeb8",
   "files": [
     {
       "id": "class:class-abstract-readonly-stats",
@@ -69,14 +69,19 @@
       "hash": "721639bcc713d2f07af3c9e98f6d051517c91f0ffa6b024d8ae2e2c03ae8c6b7"
     },
     {
+      "id": "class:class-generic-bag",
+      "path": "Generated/Classes/GenericBag.g.cs",
+      "hash": "0ee195b82987a98210283a9f874ecf53f94ef02333e5432b4d37399c48ede017"
+    },
+    {
       "id": "class:class-generic-contract",
       "path": "Generated/Classes/GenericContract.g.cs",
-      "hash": "8d8ae73156d5276ed90fe63fb90bc428119293c2aaf1f447d44a3d16eae1db95"
+      "hash": "d11fd4d2a9a99099b5009a43dafa9e0491ea4293ff7bb89c334ccba68fdf5758"
     },
     {
       "id": "class:class-generic-float-contract",
       "path": "Generated/Classes/GenericFloatContract.g.cs",
-      "hash": "bf428ad3a08b22e057ca8bb90131f8d2090ba0da1757abdf4ea6dd947f86e210"
+      "hash": "b6f81cdd1b0cd8555c7e4b2298498b1ddee5306a7de370496d33af0d1e2987ea"
     },
     {
       "id": "class:class-generic-float-payload",
@@ -106,7 +111,7 @@
     {
       "id": "class:class-generic-string-contract",
       "path": "Generated/Classes/GenericStringContract.g.cs",
-      "hash": "f01222fd8cd1ad701f9fa63999f367dce4568953a0c9efec277c1d81a9757742"
+      "hash": "f5dd8f98ffaa67ae7af28533c1e35bdcc3dcb0bac2e0dc96d2ebba480809506a"
     },
     {
       "id": "class:class-generic-string-payload",
@@ -204,9 +209,19 @@
       "hash": "411128d16665130bd8e666ce60906c004fb3130a2776c2f9f08a151a6686c8a6"
     },
     {
+      "id": "class:class-owned-crew",
+      "path": "Generated/Classes/OwnedCrew.g.cs",
+      "hash": "08fa9ce1d1c86550c50409d9486b45ad74b58e89bc43bf36c6500a9b756f7887"
+    },
+    {
+      "id": "class:class-picked-crew",
+      "path": "Generated/Classes/PickedCrew.g.cs",
+      "hash": "3c3a69945b7ea718686582306ba9139018de971e828f1089851320df4c826ca7"
+    },
+    {
       "id": "class:class-root",
       "path": "Generated/Classes/Root.g.cs",
-      "hash": "23d43273c32ffa79ea85a7dd87f358f4e0f2fb4eb5efbf45776f29fc6a8650ab"
+      "hash": "8b886962d594ff149bb5db8ec546ac3464edb1b41e19e61d04cf1b971e81c45e"
     },
     {
       "id": "class:class-sample-blocked-path",
@@ -319,6 +334,11 @@
       "hash": "df58813e744c59f7374734fa1464bf3754b914ab38bbe6594d1e63d278a76538"
     },
     {
+      "id": "interface:interface-crew",
+      "path": "Generated/Interfaces/ICrew.g.cs",
+      "hash": "712d2d4196205418bf700112fbfab3abb8c4148d7c805d82ad13b8867527ead8"
+    },
+    {
       "id": "interface:interface-hero-deferred-transform",
       "path": "Generated/Interfaces/IHeroDeferredTransform.g.cs",
       "hash": "5b82715d4b4a2f3a5e4b4870b28cb7d80d9e1fdabf546d45506fa4b62117020b"
@@ -326,7 +346,7 @@
     {
       "id": "project:factories",
       "path": "Generated/TestProjectNeo.Factories.g.cs",
-      "hash": "03d3a426cc7c7a54fb5bd4d9d8a51d670bcfef3d1efcff7ae270f7c661af059e"
+      "hash": "206a3438dd4226d8d3c0530577ab83bc73c33f370455671e8a9d2d30d205a140"
     },
     {
       "id": "project:functions",

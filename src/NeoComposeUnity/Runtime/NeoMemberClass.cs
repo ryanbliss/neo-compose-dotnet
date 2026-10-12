@@ -787,6 +787,7 @@ namespace NeoCompose.Runtime
             {
                 ListMember => NeoValueWritePayload.FromValue(System.Array.Empty<string>()),
                 DictionaryMember => NeoValueWritePayload.FromValue(new Dictionary<string, string>()),
+                EnumMember { Selection: NeoMemberSelectionKind.Multi } => NeoValueWritePayload.FromValue(System.Array.Empty<string>()),
                 _ => throw new System.InvalidOperationException(
                     $"Member '{key}' is not a collection member."),
             };

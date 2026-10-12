@@ -208,7 +208,9 @@ namespace NeoCompose.Runtime
                         && classMember.Payload == NeoMemberPayloadKind.Full:
                     kind = DetachedSlotKind.Class;
                     return true;
-                case ListMember listMember when !client.IsUnorderedList(listMember):
+                // A Set dedupes by entry key on add, which only a row checks.
+                case ListMember listMember
+                    when listMember is not SetMember && !client.IsUnorderedList(listMember):
                     kind = DetachedSlotKind.List;
                     return true;
                 default:

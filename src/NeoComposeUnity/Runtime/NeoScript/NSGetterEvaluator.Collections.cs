@@ -67,6 +67,7 @@ namespace NeoCompose.Runtime.NeoScript
                 bool skipping = true;
                 bool all = true;
                 object? selected = null;
+                HashSet<object?>? seenSetKeys = null;
                 var cursor = new CollectionCursor(collection, ctx);
                 while (cursor.MoveNextUnresolved())
                 {
@@ -128,6 +129,14 @@ namespace NeoCompose.Runtime.NeoScript
                         case "Concat":
                             AppendResult(ref values, ref produced, QueryEntry(entry, info.enumEntries));
                             break;
+                        case "ToSet":
+                            seenSetKeys ??= new HashSet<object?>(info.reference ? EqualityComparer<object?>.Default : JsValueComparer.Instance);
+                            object? setKey = info.reference && entry is not null
+                                ? cursor.ValueId ?? ReferenceKeyOf(entry, ctx) ?? entry
+                                : entry;
+                            if (seenSetKeys.Add(setKey))
+                                AppendResult(ref values, ref produced, QueryEntry(entry, info.enumEntries));
+                            break;
                         default:
                             throw new NSGetterRuntimeError($"Unsupported collection query '{info.op}'.");
                     }
@@ -175,6 +184,52 @@ namespace NeoCompose.Runtime.NeoScript
                     callback.CompleteOperator(result);
                     callback.Dispose();
                 }
+            }
+        }
+
+        /// <summary>
+        /// <see cref="JsEqual"/> as a hash comparer, so ToSet dedupes value
+        /// entries in one pass.
+        /// </summary>
+        private sealed class JsValueComparer : IEqualityComparer<object?>
+        {
+            internal static readonly JsValueComparer Instance = new();
+
+            bool IEqualityComparer<object?>.Equals(object? x, object? y) => JsEqual(x, y);
+
+            int IEqualityComparer<object?>.GetHashCode(object? value) => Hash(value);
+
+            private static int Hash(object? value)
+            {
+                switch (value)
+                {
+                    case null:
+                        return 0;
+                    case string text:
+                        return StringComparer.Ordinal.GetHashCode(text);
+                    case bool flag:
+                        return flag ? 1 : 2;
+                    case object?[] array:
+                        {
+                            int hash = 17;
+                            foreach (object? entry in array)
+                                hash = hash * 31 + Hash(entry);
+                            return hash;
+                        }
+                    case IDictionary<string, object?> record:
+                        {
+                            // Field order doesn't matter to JsEqual.
+                            int hash = 19;
+                            foreach (KeyValuePair<string, object?> field in record)
+                                hash ^= StringComparer.Ordinal.GetHashCode(field.Key) * 31 + Hash(field.Value);
+                            return hash;
+                        }
+                    case NeoDelegateValue:
+                        return 3;
+                }
+                if (TryAsDouble(value, out double number))
+                    return number == 0 ? 0 : number.GetHashCode();
+                return value.GetHashCode();
             }
         }
 
