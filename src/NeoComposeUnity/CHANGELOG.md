@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.68.0] - 2026-10-11
+
+Set members (P108). A `Set<T>` member keeps insertion order and holds no two equal entries. Requires CLI 0.78.0; run `neo export` after upgrading.
+
+```csharp
+// Generated for `public Set<int> Lucky;` and `public Set<Hero> Allies;`
+public virtual NeoSet<int> Lucky { get; }
+public virtual NeoSet<Hero> Allies { get; }
+
+save.Lucky.Add(3);           // true
+save.Lucky.Add(3);           // false: nothing is written and OnChanged does not fire
+save.Allies.Add(ann);        // Class entries compare by identity
+save.Allies.UnionWith(party);
+```
+
+- `NeoSet<T>` implements `ISet<T>`, and `NeoReadOnlySet<T>` extends `NeoReadOnlyList<T>`. Value entries compare by their stored value: floats by their float32 bits, so `-0` equals `0`, and decimals ignore trailing zeros. Vector, color, sprite, and audio entries come back as read-only wrappers such as `NeoReadOnlyVector2`.
+- A multi-select Enum now generates `NeoEnumSet<E>` (read-only: `NeoReadOnlyEnumSet<E>`) instead of `IReadOnlyList<E>`, and stores option ids. It has no setter: replace `save.Elements = options` with `save.Elements.Clear(); save.Elements.UnionWith(options);`.
+- A `Set<T>` property on an interface or abstract getter returns `INeoReadOnlySet<T>`, which owned Sets, multi-select Enums, and multi-select references all implement. An owned Set of Class entries can satisfy an interface `Set<T>` but not an abstract class getter: C# collection interfaces are invariant, and codegen reports the mismatch.
+- NeoScript: `Add` of an entry the Set already holds does nothing, and `Remove` and `Contains` match by the same key. `ToSet()` keeps the first occurrence of each entry in order. A `Set<T>` parameter follows the container it holds, an owned Set or a multi-select reference.
+- Fixed: NeoScript `Add` on a `List<T>` or `Set<T>` whose `T` is bound to a Class threw "Unsupported write target type 'Generic'". The value is now imported, as it is for a `List<Hero>`.
+
 ## [0.67.4] - 2026-10-11
 
 - Fixed: a save written before 0.66.1 broke reads of `readonly` constants on stored instances. The stored row still keyed each instance's own copy of the constant, which replay no longer creates, so the C# accessor threw "has no value" and NeoScript read the raw id. A key that resolves nowhere now reads the shared declaration value. In Neowyn, the held tool's `BaseFlipX` broke on old saves, so the tool flipped inconsistently and switched hands facing up.
