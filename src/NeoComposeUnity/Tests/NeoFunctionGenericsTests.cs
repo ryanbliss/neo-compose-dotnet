@@ -165,9 +165,11 @@ namespace NeoCompose.Tests
                 Assert.IsFalse(probe.Outer<IReadOnlyGenericDog>(cat));
             }
 
-            // IsA: two C# tables, plus Middle's forwarding site in each of Middle's two frames.
-            Assert.AreEqual(4, Bindings(app.Client, "member-generic-probe-isa"));
-            Assert.AreEqual(2, Bindings(app.Client, "member-generic-probe-middle"));
+            // The function holds only its C# calls' bindings: one per cached table.
+            Assert.AreEqual(2, Bindings(app.Client, "member-generic-probe-isa"));
+            Assert.AreEqual(2, Bindings(app.Client, "member-generic-probe-outer"));
+            // Middle is reached only through Outer's forwarding site, which keeps its own.
+            Assert.AreEqual(0, Bindings(app.Client, "member-generic-probe-middle"));
         }
 
         private static int Bindings(NeoClient client, string memberId)

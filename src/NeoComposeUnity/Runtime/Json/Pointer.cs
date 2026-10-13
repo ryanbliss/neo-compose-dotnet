@@ -391,10 +391,15 @@ namespace NeoCompose.Runtime.Json
         [JsonIgnore]
         internal NeoScript.NSGetterEvaluator.CallSiteTarget? uncachedTarget;
 
+        /// <summary>P110 §5. This site's generic bindings, newest first.</summary>
+        [JsonIgnore]
+        internal NeoBoundNSFunctionSignature? BoundSignatures;
+
         void ISchemaResolutionSite.ForgetResolution()
         {
             resolvedTargets = null;
             uncachedTarget = null;
+            BoundSignatures = null;
         }
         // 0 until checked, then 1 for concrete type arguments, 2 for forwarded.
         [JsonIgnore]
