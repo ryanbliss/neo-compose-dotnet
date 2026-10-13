@@ -927,6 +927,8 @@ namespace NeoCompose.Runtime
                     ctx,
                     in function.Subjects[0],
                     resolvedIdentity: boundary);
+                if (boundary)
+                    normalized = NSGetterEvaluator.ResolveHostCollection(normalized, ctx);
                 // Marshalling usually returns the evaluator's own value;
                 // reuse the executor's result instead of allocating a copy
                 // of it.
@@ -2212,7 +2214,7 @@ namespace NeoCompose.Runtime
                     $"Neo value '{valueId}' for {subject} resolved to null.");
         }
 
-        private static object?[] NormalizeEnumerable(
+        private static object NormalizeEnumerable(
             NeoClient client,
             NeoValueOwnership ownership,
             object value,
@@ -2233,6 +2235,12 @@ namespace NeoCompose.Runtime
                 LookupTypeInfo lookup => lookup.entryTypeInfo,
                 _ => null,
             };
+            if (value is RuntimeSet set)
+            {
+                if (entryType is not null)
+                    set.Validate(entryType, entry => Normalize(client, ownership, entry, entryType, ctx, subject.Entry()));
+                return set;
+            }
             NeoValueOwnership? rowOwnership = NSGetterEvaluator.FindRowOwnershipByReference(
                 value, ctx, out NSGetterEvaluator.RowReference? rowRef);
             // Enum and dialogue sets carry selection ids directly, rather
@@ -2244,7 +2252,7 @@ namespace NeoCompose.Runtime
                     : NormalizeDialogueLookup(value, subject, allowMultiple: true);
                 return rowOwnership is not null && value is object?[] selectionRows
                     ? selectionRows
-                    : selections;
+                    : NSGetterEvaluator.DeclaredRuntimeSet(selections, typeInfo, ctx)!;
             }
             // Row-backed collections contain child ids. Validate their values,
             // then preserve the collection identity for indexing and writes.
@@ -2286,7 +2294,7 @@ namespace NeoCompose.Runtime
             result.CopyTo(normalized);
             NeoGeneratedTypesSupport.PreserveConstructorCollectionOrigin(value, normalized);
             NSGetterEvaluator.KeepEntryMemberOf(value, normalized);
-            return normalized;
+            return NSGetterEvaluator.DeclaredRuntimeSet(normalized, typeInfo, ctx)!;
         }
 
         private static void ValidateResolvedEntry(

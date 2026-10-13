@@ -3073,6 +3073,187 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void Invoke_NestedLocalSetsCrossHostBoundariesAsArrays()
+        {
+            var setType = new LookupTypeInfo { type = MemberKind.Lookup, required = true, entryTypeInfo = IntType() };
+            var nestedType = new CollectionTypeInfo { type = MemberKind.List, required = true, entryTypeInfo = setType };
+            var argument = Argument("sets", MemberKind.List);
+            argument.entryTypeInfo = setType;
+            var native = NativeFunction("accept-sets", "AcceptSets", false);
+            native.argumentTypes = new[] { argument };
+            var call = Call(native.id, "accept-nested");
+            call.args = new[] { Variable("__arg_0__") };
+            var function = ScriptFunction("nested-sets", "NestedSets", false, nestedType, new[] { argument },
+                Action(nestedType, new[] { argument },
+                    VariableDeclaration("accepted", call, IntType()), Return(Variable("__arg_0__"))));
+            using var client = BuildClient(new JsonMember[] { native, function },
+                ReceiverClass((native.name, native.id), (function.name, function.id)));
+            object? received = null;
+            client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+            {
+                [native.id] = (_, _, args) => { received = args[0]; return 0; },
+            });
+            object? result = new NeoMemberNSFunction(client, function, null).Invoke("receiver-value",
+                new object?[] { new object?[] { new object?[] { 1, 2, 2 } } });
+            foreach (object? boundary in new[] { received, result })
+            {
+                Assert.IsInstanceOf<object?[]>(boundary);
+                object? nested = ((object?[])boundary!)[0];
+                Assert.IsInstanceOf<object?[]>(nested);
+                CollectionAssert.AreEqual(new object?[] { 1, 2 }, (object?[])nested!);
+            }
+        }
+
+        [TestCase("value")]
+        [TestCase("reference")]
+        [TestCase("parameter")]
+        [TestCase("lookup-reference")]
+        [TestCase("lookup-value")]
+        public void Invoke_LocalSetOperationsScaleLinearly(string mode)
+        {
+            bool reference = mode.Contains("reference");
+            bool bounded = mode.StartsWith("lookup-");
+            TypeInfo entryType = reference
+                ? new ClassTypeInfo { type = MemberKind.Class, required = true, classId = "receiver-class" }
+                : IntType();
+            var setType = new LookupTypeInfo { type = MemberKind.Lookup, required = true, entryTypeInfo = entryType };
+            if (bounded)
+            {
+                setType.collectionMemberId = "bench-choices";
+                setType.collectionValueId = "bench-pool";
+            }
+            var setArgument = Argument("set", MemberKind.Lookup);
+            setArgument.entryTypeInfo = entryType;
+            var itemArgument = Argument("item", entryType.type);
+            if (reference)
+                itemArgument.classId = "receiver-class";
+            var helperArguments = new[] { setArgument, itemArgument };
+            CollectionCallInstruction Mutation(string id, string mutation, Pointer item) => new()
+            {
+                type = InstructionKind.CollectionCall,
+                mutation = mutation,
+                reference = reference,
+                target = new WriteTarget { pointer = Variable(id), typeInfo = setType, writability = bounded ? WritabilityKind.Save : WritabilityKind.Local },
+                args = new[] { item },
+            };
+            NSFunctionMember helper = ScriptFunction("bench-set-add", "AddToSet", false, IntType(), helperArguments,
+                Action(IntType(), helperArguments, Mutation("__arg_0__", CollectionMutationKind.Add, Variable("__arg_1__")), Return(Number(0))));
+            Pointer item = reference
+                ? new KeyOfPointer { type = PointerKind.KeyOf, keyOf = new KeyOf { pointer = Reference("bench-pool"), key = Variable("i") } }
+                : Variable("i");
+            var addCall = Call(helper.id, "bench-add");
+            addCall.args = new[] { Variable("set"), item };
+            Pointer Count() => new FunctionPointer
+            {
+                type = PointerKind.Function,
+                function = new CountFunction
+                {
+                    type = FunctionKind.Count,
+                    info = new FunctionCollectionOptionalBoolInfo { collectionPointer = Variable("set") }
+                }
+            };
+            Pointer Contains() => new FunctionPointer
+            {
+                type = PointerKind.Function,
+                function = new ContainsFunction
+                {
+                    type = FunctionKind.Contains,
+                    info = new FunctionCollectionContainsInfo { collectionPointer = Variable("set"), valuePointer = item, reference = reference }
+                }
+            };
+            ForInstruction Loop(params Instruction[] instructions) => new()
+            {
+                type = InstructionKind.For,
+                initializer = LocalVariable("i", Number(0), IntType()),
+                condition = Compare(OperatorKind.LessThan, Variable("i"), Variable("__arg_0__")),
+                iterator = AssignLocal("i", Add(Variable("i"), Number(1)), IntType()),
+                instructions = instructions,
+            };
+            var countArgument = Argument("count", MemberKind.Int);
+            NSFunctionMember function = ScriptFunction("bench-set", "BuildSet", false, IntType(), new[] { countArgument },
+                Action(IntType(), new[] { countArgument },
+                    VariableDeclaration("set", bounded ? Key(Variable("__this__"), "Selected") : new FunctionPointer
+                    {
+                        type = PointerKind.Function,
+                        function = new CollectionQueryFunction
+                        {
+                            type = FunctionKind.CollectionQuery,
+                            info = new FunctionCollectionQueryInfo { op = "ToSet", collectionPointer = List(), reference = reference }
+                        }
+                    }, setType),
+                    Loop(mode == "value" || bounded ? Mutation("set", CollectionMutationKind.Add, item) : new FunctionCallInstruction { type = InstructionKind.FunctionCall, call = addCall },
+                        If(Compare(OperatorKind.EqualTo, Contains(), Boolean(false)), Return(Number(-1))),
+                        If(Compare(OperatorKind.DoesNotEqual, Count(), Add(Variable("i"), Number(1))), Return(Number(-2)))),
+                    Loop(Mutation("set", CollectionMutationKind.Remove, item),
+                        If(Compare(OperatorKind.EqualTo, Contains(), Boolean(true)), Return(Number(-3)))),
+                    Return(Count())));
+            double Measure(int count)
+            {
+                var rows = new List<MemberValue>();
+                if (reference || bounded)
+                {
+                    var ids = new string[count];
+                    for (int i = 0; i < count; i++)
+                    {
+                        ids[i] = "bench-item-" + i;
+                        rows.Add(reference ? ObjectValue(ids[i], "receiver-class") : new NumberMemberValue { id = ids[i], value = i });
+                    }
+                    rows.Add(new ArrayMemberValue { id = "bench-pool", value = ids });
+                }
+                var members = new List<JsonMember> { helper, function };
+                var receiverClass = ReceiverClass((helper.name, helper.id), (function.name, function.id));
+                ObjectMemberValue? receiver = null;
+                if (bounded)
+                {
+                    JsonMember entry = reference ? new ClassMember { id = "bench-entry", kind = MemberKind.Class, classId = "receiver-class" }
+                        : new IntMember { id = "bench-entry", kind = MemberKind.Int };
+                    members.Add(entry);
+                    members.Add(new ListMember { id = "bench-choices", kind = MemberKind.List, entryMemberId = entry.id, valueId = "bench-pool" });
+                    members.Add(new LookupMember
+                    {
+                        id = "bench-selected",
+                        name = "Selected",
+                        kind = MemberKind.Lookup,
+                        collectionMemberId = "bench-choices",
+                        collectionValueId = "bench-pool",
+                        Storage = NeoMemberStorage.Save,
+                        Selection = NeoMemberSelectionKind.Multi
+                    });
+                    receiverClass.schema["Selected"] = "bench-selected";
+                    receiver = ObjectValue("receiver-value", "receiver-class");
+                    receiver.value!["Selected"] = "bench-selection";
+                    rows.Add(receiver);
+                    rows.Add(new ArrayMemberValue { id = "bench-selection", value = Array.Empty<string>() });
+                }
+                using var client = BuildClient(members.ToArray(), receiverClass, additionalValues: rows.ToArray());
+                if (receiver is not null)
+                {
+                    client.SetWritableValue(NeoValueOwnership.Save, receiver);
+                    client.SetWritableValue(NeoValueOwnership.Save, new ArrayMemberValue { id = "bench-selection", value = Array.Empty<string>() });
+                }
+                var node = new NeoMemberNSFunction(client, function, null, bounded ? NeoValueOwnership.Save : NeoValueOwnership.Asset);
+                object?[] args = { count };
+                void Run() => Assert.AreEqual(0, Convert.ToInt32(node.Invoke("receiver-value", args)));
+                Run();
+                Run();
+                var samples = new double[5];
+                for (int i = 0; i < samples.Length; i++)
+                {
+                    var watch = System.Diagnostics.Stopwatch.StartNew();
+                    Run();
+                    watch.Stop();
+                    samples[i] = watch.Elapsed.TotalMilliseconds;
+                }
+                Array.Sort(samples);
+                return samples[2];
+            }
+            const int n = 4000;
+            double small = Measure(n), large = Measure(n * 2);
+            TestContext.WriteLine($"Set {mode}: n={n}, n_ms={small:F2}, 2n_ms={large:F2}, ratio={large / small:F2}");
+            Assert.Less(large / small, 3.3);
+        }
+
+        [Test]
         public void ResolvedSetSelectionsRejectInvalidIds([Values(false, true)] bool dialogue)
         {
             using NeoClient client = BuildClient(Array.Empty<JsonMember>(), ReceiverClass());
