@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using NeoCompose.Runtime.Json;
+using Newtonsoft.Json.Linq;
 
 namespace NeoCompose.Runtime
 {
@@ -287,7 +288,7 @@ namespace NeoCompose.Runtime
         }
 
         private void PartitionNestedReplay(VirtualExpansionNode graph, PreparedVirtualExpansion expansion,
-            ObjectMemberValue instanceRoot)
+            ObjectMemberValue instanceRoot, HashSet<string> temporaries)
         {
             var partitioned = new HashSet<string>();
             Visit(graph);
@@ -307,6 +308,7 @@ namespace NeoCompose.Runtime
                     && !capture.HasExternalWrites && !capture.HasExternalReads
                     && expansion.Values.TryGetValue(effectiveId, out var row)
                     && row is ObjectMemberValue root && IsVirtualInstanceRoot(root)
+                    && !NamesReplayTemporary(root.constructorArgs, temporaries)
                     && !node.classChildren.Values.Any(child => child.classChildren.Count != 0
                         || child.listChildren.Count != 0 || child.dictionaryChildren.Count != 0))
                 {
@@ -337,6 +339,18 @@ namespace NeoCompose.Runtime
                 foreach (var child in node.dictionaryChildren.Values)
                     Visit(child);
             }
+
+            // A boundary replays its root alone from the recipe, after this
+            // replay reclaims its temporary rows. An argument the nested
+            // construction does not keep as its own field still names one of
+            // them, so only the enclosing recipe can rebuild it.
+            static bool NamesReplayTemporary(Dictionary<string, JToken?>? args, HashSet<string> temporaries)
+                => args?.Values.Any(arg => arg is not null && NamesTemporary(arg, temporaries)) == true;
+
+            static bool NamesTemporary(JToken token, HashSet<string> temporaries)
+                => token.Type == JTokenType.String
+                    ? temporaries.Contains(token.Value<string>()!)
+                    : token.Children().Any(child => NamesTemporary(child, temporaries));
 
             void Move(VirtualExpansionNode node, PreparedVirtualExpansion nested, bool isRoot = false)
             {

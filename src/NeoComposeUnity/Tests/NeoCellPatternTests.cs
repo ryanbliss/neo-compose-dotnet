@@ -205,6 +205,43 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void CloneOfACloneSurvivesSavingAndReload()
+        {
+            // A copy's constructor arguments may name its source's rows. The
+            // copy must still replay after the source is gone and the save is
+            // reloaded into a fresh client.
+            Vector2Int[] offsets = { V(2, 0), V(0, 2) };
+            ProjectData data = NeoGenericTestFixture.BuildProjectData();
+            AddCellPatternSchema(data);
+            AddStoredPattern(data, "stored", offsets);
+            data.members["save-Copy"] = new ClassMember
+            {
+                id = "save-Copy",
+                projectId = "project-a",
+                name = "Copy",
+                kind = MemberKind.Class,
+                classId = NeoCellPatternOffsets.ClassId,
+            };
+            data.classes["save-root-class"].schema["Copy"] = "save-Copy";
+
+            string saved;
+            using (NeoClient client = NeoTestSaveStack.ClientFromSchema(data))
+            {
+                string first = client.CloneValueReference("stored");
+                string second = client.CloneValueReference(first);
+                client.save.SetSerializedValue("Copy", NeoValueWritePayload.FromValueReference(second));
+                client.RunGarbageCollector();
+                saved = client.SerializeSaveData();
+            }
+
+            using NeoClient reloaded = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: saved);
+            string copy = reloaded.save.Get<NeoMemberClassWritable>("Copy").value!.id;
+            TestCellPattern pattern = TestCellPattern.Writable(reloaded, copy, NeoValueOwnership.Save);
+            Assert.AreEqual(2, pattern.Count);
+            CollectionAssert.AreEqual(offsets, pattern);
+        }
+
+        [Test]
         public void Box60_Completes()
         {
             TestCellPattern box = Box(60);
