@@ -4875,7 +4875,7 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"Declared constructor for '{resolved.classTypeInfo.classId}' lost its root row '{rootValueId}' before creation provenance could be recorded.");
             }
-            NeoClient.StampConstructionProvenance(
+            client.StampLiveConstructionProvenance(
                 live,
                 resolved.link.record?.id,
                 SerializeConstructionProvenanceArgs(

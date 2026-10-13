@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.69.1] - 2026-10-13
+
+- Fixed: a save could hold an instance that no load could replay, failing with "P75 could not replay sparse instance ... Constructor argument references missing value". It happened when an instance was built from a row its owner then removed, such as `new InventoryItemStack(target.Item, 1, target.Data)` followed by despawning `target`. The removal took the row the recipe still named. Despawns, field replacements, and the garbage collector now keep a row that a live recipe in any store names, until no recipe names it. In Neowyn, breaking a placed tulip with the pickaxe and picking it up corrupted the save. Saves already written with a dangling argument stay broken; this fix only stops new ones.
+
 ## [0.69.0] - 2026-10-12
 
 `NeoCellPattern` is an ordinary generated class (P109). Its factories run their NeoScript bodies, its presets are stored values, the grid queries take an optional offset, and `NeoObject.GetTiles` reads every occupied cell's tile. Requires CLI 0.79.0; run `neo export` after upgrading.

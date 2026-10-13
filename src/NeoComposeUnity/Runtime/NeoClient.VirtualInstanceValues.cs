@@ -266,6 +266,20 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
+        /// <see cref="StampConstructionProvenance"/> on a Session row already
+        /// in the store. The placement index links a recipe to the rows its
+        /// arguments name, so the row is relinked too.
+        /// </summary>
+        internal void StampLiveConstructionProvenance(
+            ObjectMemberValue live,
+            string? constructorId,
+            Dictionary<string, JToken?> constructorArgs)
+        {
+            StampConstructionProvenance(live, constructorId, constructorArgs);
+            IndexPlacementParent(NeoValueOwnership.Session, live);
+        }
+
+        /// <summary>
         /// Serializes one evaluated constructor argument into the creation
         /// data <see cref="MemberValue.constructorArgs"/> stores: literals
         /// stay literals, a constructed argument becomes the id of its

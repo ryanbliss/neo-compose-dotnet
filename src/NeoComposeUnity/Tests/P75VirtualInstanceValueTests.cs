@@ -3253,6 +3253,174 @@ namespace NeoCompose.Tests
             Assert.AreEqual("unordered input", listEntry!.value);
         }
 
+        public enum OwnerRemoval
+        {
+            /// <summary>A field write replaces the owner.</summary>
+            Replace,
+            /// <summary>A tile despawn drops the owner and what it owns.</summary>
+            Despawn,
+            /// <summary>The owner is unlinked and left to the collector.</summary>
+            Unlink,
+        }
+
+        /// <summary>
+        /// Neowyn's pickaxe builds <c>new InventoryItemStack(item, 1, target.Data)</c>
+        /// and then despawns <c>target</c>, whose removal takes its owned
+        /// <c>Data</c> row with it. The stack's recipe still names that row,
+        /// so it must outlive its owner; otherwise the save stores a stack
+        /// that no load can replay.
+        /// </summary>
+        [Test]
+        public void RecipeKeepsAnInputItsOwnerRemoves([Values] OwnerRemoval removal, [Values] bool recipeSavedFirst)
+        {
+            var data = BuildProjectData();
+            var placedClass = SchemaClass("placed-class", "Placed", NeoMemberStorage.Save);
+            placedClass.schema["Data"] = "placed-data";
+            data.classes[placedClass.id] = placedClass;
+            data.members["placed-data"] = new ClassMember
+            {
+                id = "placed-data",
+                projectId = "p75-project",
+                name = "Data",
+                kind = MemberKind.Class,
+                classId = "thing-class",
+                Storage = NeoMemberStorage.Save,
+            };
+            data.members["placed-member"] = new ClassMember
+            {
+                id = "placed-member",
+                projectId = "p75-project",
+                name = "Placed",
+                kind = MemberKind.Class,
+                classId = placedClass.id,
+                Storage = NeoMemberStorage.Save,
+            };
+            data.classes["save-root-class"].schema["Placed"] = "placed-member";
+            var holderClass = SchemaClass("recipe-holder", "RecipeHolder", NeoMemberStorage.Inherit);
+            holderClass.constructorIds = new[] { "recipe-ctor" };
+            data.classes[holderClass.id] = holderClass;
+            var argument = new FunctionArgumentTypeInfo
+            {
+                name = "config",
+                type = MemberKind.Class,
+                classId = "thing-class",
+                required = true,
+            };
+            data.constructors["recipe-ctor"] = new ConstructorRecord
+            {
+                id = "recipe-ctor",
+                projectId = "p75-project",
+                classId = holderClass.id,
+                argumentTypes = new[] { argument },
+                action = new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = new[]
+                    {
+                        ConstructorVariable("__this__", ClassType(holderClass.id)),
+                        ConstructorVariable("__root__", ClassType("save-root-class")),
+                        ConstructorVariable("__arg_0__", argument),
+                    },
+                    typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null, required = true },
+                    instructions = Array.Empty<Instruction>(),
+                },
+            };
+            data.members["recipe-member"] = new ClassMember
+            {
+                id = "recipe-member",
+                projectId = "p75-project",
+                name = "Recipe",
+                kind = MemberKind.Class,
+                classId = holderClass.id,
+            };
+            data.classes["save-root-class"].schema["Recipe"] = "recipe-member";
+
+            string saved, inputId;
+            using (var client = NeoTestSaveStack.ClientFromSchema(data))
+            {
+                // A runtime Save row that owns the input in its Data field.
+                using var placed = NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(
+                    client, placedClass.id, null, Array.Empty<NeoDeclaredConstructorArgument>());
+                NeoGeneratedTypesSupport.SetValue(client.save, "Placed",
+                    NeoGeneratedTypesSupport.ValueReference(new PlacedValue(client, placed)));
+                var owner = client.save.Get<NeoMemberClassWritable>("Placed");
+                string ownerId = owner.value!.id;
+                using var input = NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(
+                    client, "thing-class", null, Array.Empty<NeoDeclaredConstructorArgument>());
+                input.Get<NeoMemberIntWritable>("Count").Set(42);
+                NeoGeneratedTypesSupport.SetValue(owner, "Data",
+                    NeoGeneratedTypesSupport.ValueReference(new HeldThingValue(client, input)));
+                using var owned = new HeldThingValue(client, owner.Get<NeoMemberClassWritable>("Data"));
+                inputId = owned.valueId!;
+                Assert.IsTrue(client.saveValues.ContainsKey(inputId));
+
+                using var recipe = NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(
+                    client, holderClass.id, "recipe-ctor",
+                    new[] { new NeoDeclaredConstructorArgument("config", owned) });
+                Assert.AreEqual(inputId, recipe.value!.constructorArgs!["__arg_0__"]!.Value<string>());
+                using var recipeValue = new RecipeHolderValue(client, recipe);
+                if (recipeSavedFirst)
+                    NeoGeneratedTypesSupport.SetValue(client.save, "Recipe",
+                        NeoGeneratedTypesSupport.ValueReference(recipeValue));
+
+                var root = (ObjectMemberValue)client.CloneRowForWrite(client.save.value!);
+                root.value!.Remove("Placed");
+                switch (removal)
+                {
+                    case OwnerRemoval.Replace:
+                        using (var replacement = NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(
+                            client, placedClass.id, null, Array.Empty<NeoDeclaredConstructorArgument>()))
+                            NeoGeneratedTypesSupport.SetValue(client.save, "Placed",
+                                NeoGeneratedTypesSupport.ValueReference(new PlacedValue(client, replacement)));
+                        break;
+                    case OwnerRemoval.Despawn:
+                        // NeoTileGridPrimitive.RemoveMemberRow's write.
+                        var plan = new NeoWritePlan(client);
+                        plan.Set(NeoValueOwnership.Save, root);
+                        client.StageOwnedRemoval(plan, NeoValueOwnership.Save, ownerId,
+                            client.TryInferMemberForValueId(ownerId, out var member) ? member : null);
+                        plan.Commit();
+                        break;
+                    case OwnerRemoval.Unlink:
+                        client.SetSaveValue(root);
+                        break;
+                }
+                client.RunGarbageCollector();
+                Assert.IsFalse(client.saveValues.ContainsKey(ownerId), "The owner itself still goes.");
+
+                if (!recipeSavedFirst)
+                    NeoGeneratedTypesSupport.SetValue(client.save, "Recipe",
+                        NeoGeneratedTypesSupport.ValueReference(recipeValue));
+                client.RunGarbageCollector();
+                saved = client.SerializeSaveData();
+            }
+
+            using var reopened = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: saved);
+            Assert.IsNotNull(JObject.Parse(saved)["values"]![inputId],
+                "A saved recipe must carry the input its constructor arguments name.");
+            var restored = reopened.save.Get<NeoMemberClassWritable>("Recipe");
+            Assert.AreEqual(inputId, restored.value!.constructorArgs!["__arg_0__"]!.Value<string>());
+            Assert.IsTrue(reopened.TryGetValue(inputId, out ObjectMemberValue? storedInput));
+            Assert.IsTrue(reopened.TryGetValue(storedInput!.value!["Count"], out NumberMemberValue? count));
+            Assert.AreEqual(42, count!.value);
+        }
+
+        private sealed class PlacedValue : NeoGeneratedClassValue
+        {
+            internal PlacedValue(NeoClient client, NeoMemberClassWritable node)
+                : base(client, node, "placed-class", isReadOnly: false, inheritedStorageOwnership: NeoValueOwnership.Save)
+            {
+            }
+        }
+
+        private sealed class RecipeHolderValue : NeoGeneratedClassValue
+        {
+            internal RecipeHolderValue(NeoClient client, NeoMemberClassWritable node)
+                : base(client, node, "recipe-holder", isReadOnly: false, inheritedStorageOwnership: NeoValueOwnership.Session)
+            {
+            }
+        }
+
         [Test]
         public void SavingGenericConstructorArgumentRetainsItsResolvedClassInput()
         {

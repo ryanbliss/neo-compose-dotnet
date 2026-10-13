@@ -9222,10 +9222,14 @@ namespace NeoCompose.Runtime
 
         public int RunGarbageCollector()
         {
-            var unlinkedValueIds = FindUnlinkedSaveValueIds();
+            var reachable = BuildReachableSaveValueIds();
+            var unlinkedValueIds = PersistedData.values.Keys.Where(valueId => !reachable.Contains(valueId)).ToList();
+            // An unlinked row can own a row that is still reachable, such as
+            // a recipe's constructor argument, so only unlinked rows go.
+            var removed = new HashSet<string>();
             foreach (var valueId in unlinkedValueIds)
             {
-                RemoveSaveValueAndDescendants(valueId);
+                RemoveWritableValueAndDescendantsIfUnlinked(NeoValueOwnership.Save, valueId, reachable, removed);
             }
             return unlinkedValueIds.Count;
         }
@@ -9358,6 +9362,8 @@ namespace NeoCompose.Runtime
                 }
                 foreach (string parentId in parents)
                 {
+                    if (OtherStoreRecipeNames(ownership, parentId, id))
+                        return false;
                     if (!TryGetOverlaidValue(ownership, parentId, out MemberValue? parent) || parent.IsRemoved)
                         continue;
                     if (parent is ObjectMemberValue obj)
@@ -9505,6 +9511,7 @@ namespace NeoCompose.Runtime
             {
                 MarkReachableValue(ownership, rowId, reachable);
             }
+            MarkOtherStoreConstructorInputs(ownership, reachable);
             // Storage partitions: overlay rows stamped into a partition that
             // is NOT currently loaded cannot be judged — their containment
             // container (and the rest of the authored subtree anchoring them)

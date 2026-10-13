@@ -1197,6 +1197,23 @@ namespace NeoCompose.Runtime
             if (reachable?.Contains(valueId) == true || !visited.Add(valueId))
                 return;
             MemberValue? row = plan.HeldBy?.PendingRow(ownership, valueId) ?? plan.Resolve(ownership, valueId);
+            // A recipe replays from the rows its constructor arguments name, so
+            // such a row outlives its owner. It leaves its container and keeps
+            // what it owns; reachability reclaims it once no recipe names it.
+            // Staged removals already pass through that reachability walk.
+            if (!tombstone
+                && removals is null
+                && plan.TryGetWritable(ownership, valueId, out MemberValue? stored)
+                && IsLiveConstructorInput(plan, ownership, valueId, visited))
+            {
+                if (stored!.containerId is not null)
+                {
+                    MemberValue unlinked = CloneRowForWrite(stored);
+                    unlinked.containerId = null;
+                    plan.Set(ownership, unlinked);
+                }
+                return;
+            }
             if (row is not null)
             {
                 foreach (var child in EnumerateOwnedChildLinks(row, member))
