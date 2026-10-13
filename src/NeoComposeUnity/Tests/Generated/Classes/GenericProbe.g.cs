@@ -168,25 +168,25 @@ namespace Assets.Scripts.Neo
 
         public virtual bool IsA<T>(IReadOnlyGenericAnimal animal) where T : class, IReadOnlyGenericAnimal
         {
-            var result = InvokeGenericFunction("IsA", new[] { client.TypeArguments.Of<T>() }, new object?[] { animal });
+            var result = InvokeGenericFunction("IsA", client.TypeArguments.Table<System.ValueTuple<T>>(), new object?[] { animal });
             return (bool)result!;
         }
 
         public virtual bool Middle<T>(IReadOnlyGenericAnimal animal) where T : class, IReadOnlyGenericAnimal
         {
-            var result = InvokeGenericFunction("Middle", new[] { client.TypeArguments.Of<T>() }, new object?[] { animal });
+            var result = InvokeGenericFunction("Middle", client.TypeArguments.Table<System.ValueTuple<T>>(), new object?[] { animal });
             return (bool)result!;
         }
 
         public virtual bool Outer<T>(IReadOnlyGenericAnimal animal) where T : class, IReadOnlyGenericAnimal
         {
-            var result = InvokeGenericFunction("Outer", new[] { client.TypeArguments.Of<T>() }, new object?[] { animal });
+            var result = InvokeGenericFunction("Outer", client.TypeArguments.Table<System.ValueTuple<T>>(), new object?[] { animal });
             return (bool)result!;
         }
 
         public virtual bool IsDefault<T>(IReadOnlyGenericAnimal animal) where T : class, IReadOnlyGenericAnimal
         {
-            var result = InvokeGenericFunction("IsDefault", new[] { client.TypeArguments.Of<T>() }, new object?[] { animal });
+            var result = InvokeGenericFunction("IsDefault", client.TypeArguments.Table<System.ValueTuple<T>>(), new object?[] { animal });
             return (bool)result!;
         }
 
@@ -195,13 +195,13 @@ namespace Assets.Scripts.Neo
 
         public virtual IReadOnlyList<T> OnlyOf<T>(IReadOnlyList<IReadOnlyGenericAnimal> animals) where T : class, IReadOnlyGenericAnimal
         {
-            var result = InvokeGenericFunction("OnlyOf", new[] { client.TypeArguments.Of<T>() }, new object?[] { animals });
+            var result = InvokeGenericFunction("OnlyOf", client.TypeArguments.Table<System.ValueTuple<T>>(), new object?[] { animals });
             return NeoGeneratedTypesSupport.ReadScriptList<T>(result, resultEntry => { return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultEntry, false, static (factoryClient, factoryNode) => GenericAnimal.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => GenericAnimal.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => GenericAnimal.CreateDetached(factoryClient, factoryValue, factorySaved)), "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories); });
         }
 
         public virtual NeoDelegateValue MakeCheck<T>() where T : class, IReadOnlyGenericAnimal
         {
-            var result = InvokeGenericFunction("MakeCheck", new[] { client.TypeArguments.Of<T>() }, new object?[] { });
+            var result = InvokeGenericFunction("MakeCheck", client.TypeArguments.Table<System.ValueTuple<T>>(), new object?[] { });
             return (NeoDelegateValue)result!;
         }
 
@@ -213,13 +213,13 @@ namespace Assets.Scripts.Neo
 
         public virtual bool ClosureCheck<T>(IReadOnlyGenericAnimal animal) where T : class, IReadOnlyGenericAnimal
         {
-            var result = InvokeGenericFunction("ClosureCheck", new[] { client.TypeArguments.Of<T>() }, new object?[] { animal });
+            var result = InvokeGenericFunction("ClosureCheck", client.TypeArguments.Table<System.ValueTuple<T>>(), new object?[] { animal });
             return (bool)result!;
         }
 
         public virtual T? PickVia<T>(IReadOnlyList<IReadOnlyGenericAnimal> animals) where T : class, IReadOnlyGenericAnimal
         {
-            var result = InvokeGenericFunction("PickVia", new[] { client.TypeArguments.Of<T>() }, new object?[] { animals });
+            var result = InvokeGenericFunction("PickVia", client.TypeArguments.Table<System.ValueTuple<T>>(), new object?[] { animals });
             return result is null ? null : NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, false, static (factoryClient, factoryNode) => GenericAnimal.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => GenericAnimal.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => GenericAnimal.CreateDetached(factoryClient, factoryValue, factorySaved)), "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories);
         }
 

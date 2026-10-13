@@ -268,7 +268,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         /// </summary>
         public virtual IReadOnlyList<T> GetObjects<T>(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null) where T : class, IReadOnlyNeoObject
         {
-            var result = client.ScriptGridQueries.Invoke("system_f5ca386c-990c-54a1-8473-2d49d2cd887d", this, new object?[] { pattern, offset }, new[] { client.TypeArguments.Of<T>() });
+            var result = client.ScriptGridQueries.Invoke("system_f5ca386c-990c-54a1-8473-2d49d2cd887d", this, new object?[] { pattern, offset }, client.TypeArguments.Table<System.ValueTuple<T>>());
             return NeoGeneratedTypesSupport.ReadScriptList<T>(result, resultEntry => { return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultEntry, false, static (factoryClient, factoryNode) => NeoObject.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoObject.CreateWritable(factoryClient, factoryNode)), "T", HelloWorldNeo.NeoReadOnlyValueFactories, HelloWorldNeo.NeoWritableValueFactories); });
         }
 
@@ -283,7 +283,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         /// </summary>
         public virtual T? GetTile<T>(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null) where T : class, IReadOnlyNeoTile
         {
-            var result = client.ScriptGridQueries.Invoke("system_593e6208-e2ca-505e-9933-04b17102b6d2", this, new object?[] { pattern, offset }, new[] { client.TypeArguments.Of<T>() });
+            var result = client.ScriptGridQueries.Invoke("system_593e6208-e2ca-505e-9933-04b17102b6d2", this, new object?[] { pattern, offset }, client.TypeArguments.Table<System.ValueTuple<T>>());
             return result is null ? null : NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, false, static (factoryClient, factoryNode) => NeoTile.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoTile.CreateWritable(factoryClient, factoryNode)), "T", HelloWorldNeo.NeoReadOnlyValueFactories, HelloWorldNeo.NeoWritableValueFactories);
         }
 
@@ -298,7 +298,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         /// </summary>
         public virtual IReadOnlyList<T> GetTiles<T>(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null) where T : class, IReadOnlyNeoTile
         {
-            var result = client.ScriptGridQueries.Invoke("system_5a41d36a-bcd9-4867-9e46-d743f6e09582", this, new object?[] { pattern, offset }, new[] { client.TypeArguments.Of<T>() });
+            var result = client.ScriptGridQueries.Invoke("system_5a41d36a-bcd9-4867-9e46-d743f6e09582", this, new object?[] { pattern, offset }, client.TypeArguments.Table<System.ValueTuple<T>>());
             return NeoGeneratedTypesSupport.ReadScriptList<T>(result, resultEntry => { return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultEntry, false, static (factoryClient, factoryNode) => NeoTile.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoTile.CreateWritable(factoryClient, factoryNode)), "T", HelloWorldNeo.NeoReadOnlyValueFactories, HelloWorldNeo.NeoWritableValueFactories); });
         }
 

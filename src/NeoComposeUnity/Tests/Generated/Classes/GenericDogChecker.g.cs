@@ -99,7 +99,7 @@ namespace Assets.Scripts.Neo
 
         public override bool Check<U>(IReadOnlyGenericAnimal animal) where U : class
         {
-            var result = InvokeGenericFunction("Check", new[] { client.TypeArguments.Of<U>() }, new object?[] { animal });
+            var result = InvokeGenericFunction("Check", client.TypeArguments.Table<System.ValueTuple<U>>(), new object?[] { animal });
             return (bool)result!;
         }
 

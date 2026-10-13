@@ -86,7 +86,7 @@
     {
       "id": "class:class-generic-checker",
       "path": "Generated/Classes/GenericChecker.g.cs",
-      "hash": "153de0b86765564f59a2843cb1a854306c0edd3f2161ec74a4a9f41706ecee10"
+      "hash": "02a6e07154f156bfb19cc86f26c54bdbd8b0c29788b5bc17b1c01cfe3c48dc29"
     },
     {
       "id": "class:class-generic-contract",
@@ -101,7 +101,7 @@
     {
       "id": "class:class-generic-dog-checker",
       "path": "Generated/Classes/GenericDogChecker.g.cs",
-      "hash": "f9dc492e38ca23c98c48fe4aab8322dee858c82e3b0b3038bdec301a8145c171"
+      "hash": "2f1b9421544bae193e86b1ae53b1dceb5606170bc870c2bf2c507df98d326f18"
     },
     {
       "id": "class:class-generic-float-contract",
@@ -136,7 +136,7 @@
     {
       "id": "class:class-generic-probe",
       "path": "Generated/Classes/GenericProbe.g.cs",
-      "hash": "2c0a4496337e59c4ee64d1766212e29e536d1dcfd13512cdf8916aa74ef61120"
+      "hash": "79815f74b1624a40425959b3f2281bab79564655cbab150458b340dd1ae731ef"
     },
     {
       "id": "class:class-generic-string-contract",

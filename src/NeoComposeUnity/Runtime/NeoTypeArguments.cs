@@ -33,6 +33,7 @@ namespace NeoCompose.Runtime
         };
 
         private readonly Dictionary<Type, TypeInfo> cache = new();
+        private readonly Dictionary<Type, TypeInfo[]> tables = new();
         private IReadOnlyDictionary<Type, string> classIds = new Dictionary<Type, string>();
         private IReadOnlyDictionary<Type, string> enumIds = new Dictionary<Type, string>();
 
@@ -48,10 +49,43 @@ namespace NeoCompose.Runtime
             this.classIds = classIds;
             this.enumIds = enumIds;
             cache.Clear();
+            tables.Clear();
         }
 
         /// <summary><typeparamref name="T"/>'s NeoScript type, cached per type.</summary>
         public TypeInfo Of<T>() => Of(typeof(T));
+
+        /// <summary>
+        /// A generic call's type-argument table, one entry per element of
+        /// <typeparamref name="TTuple"/>, as in <c>Table&lt;(T, U)&gt;()</c>.
+        /// Cached per tuple type, so a call allocates nothing and the
+        /// runtime binds each table once.
+        /// </summary>
+        public TypeInfo[] Table<TTuple>()
+            where TTuple : struct
+        {
+            Type tuple = typeof(TTuple);
+            if (tables.TryGetValue(tuple, out TypeInfo[]? table))
+                return table;
+            var arguments = new List<TypeInfo>();
+            AddTupleElements(tuple, arguments);
+            table = arguments.ToArray();
+            tables[tuple] = table;
+            return table;
+        }
+
+        private void AddTupleElements(Type tuple, List<TypeInfo> arguments)
+        {
+            Type[] elements = tuple.GetGenericArguments();
+            for (int i = 0; i < elements.Length; i++)
+            {
+                // A tuple of eight or more nests the rest in its eighth element.
+                if (i == 7)
+                    AddTupleElements(elements[i], arguments);
+                else
+                    arguments.Add(Of(elements[i]));
+            }
+        }
 
         private TypeInfo Of(Type type)
         {

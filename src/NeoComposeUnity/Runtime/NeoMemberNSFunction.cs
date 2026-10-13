@@ -498,9 +498,10 @@ namespace NeoCompose.Runtime
         {
             get;
         }
-        // The signature bound to the last call's type arguments. A call site
-        // passes the same types on every call, so binding runs once per site.
-        internal NeoBoundNSFunctionSignature? BoundSignature;
+        // Every binding this function has made, newest first. A call site
+        // passes the same written array every call, and a forwarding site's
+        // caller frame holds a bound table, so each binding runs once.
+        internal NeoBoundNSFunctionSignature? BoundSignatures;
         // Terminal marshalling for the declared (non-generic) return type;
         // the resolved function is cached per client, so one delegate serves
         // every invocation. A C# caller's result also has its resolved
@@ -543,13 +544,29 @@ namespace NeoCompose.Runtime
     /// <summary>P110 §5. A generic function's signature bound to one type-argument table.</summary>
     internal sealed class NeoBoundNSFunctionSignature
     {
-        internal NeoBoundNSFunctionSignature(TypeInfo[] typeArguments, TypeInfo returnTypeInfo, TypeInfo[] argumentTypes)
+        internal NeoBoundNSFunctionSignature(
+            TypeInfo[]? written,
+            TypeInfo[]? callerTable,
+            NeoBoundNSFunctionSignature? next,
+            TypeInfo[] typeArguments,
+            TypeInfo returnTypeInfo,
+            TypeInfo[] argumentTypes)
         {
+            this.written = written;
+            this.callerTable = callerTable;
+            Next = next;
             TypeArguments = typeArguments;
             ReturnTypeInfo = returnTypeInfo;
             ArgumentTypes = argumentTypes;
         }
 
+        private readonly TypeInfo[]? written;
+        private readonly TypeInfo[]? callerTable;
+
+        internal NeoBoundNSFunctionSignature? Next
+        {
+            get;
+        }
         internal TypeInfo[] TypeArguments
         {
             get;
@@ -565,20 +582,9 @@ namespace NeoCompose.Runtime
         internal NeoScriptTerminalNormalizer? TerminalNormalizer;
         internal NeoScriptTerminalNormalizer? BoundaryTerminalNormalizer;
 
-        /// <summary>Whether <paramref name="typeArguments"/> holds the same types this was bound to.</summary>
-        internal bool BindsTo(TypeInfo[] typeArguments)
-        {
-            if (ReferenceEquals(typeArguments, TypeArguments))
-                return true;
-            if (typeArguments.Length != TypeArguments.Length)
-                return false;
-            for (int i = 0; i < typeArguments.Length; i++)
-            {
-                if (!ReferenceEquals(typeArguments[i], TypeArguments[i]))
-                    return false;
-            }
-            return true;
-        }
+        /// <summary>Whether a call with these inputs binds to this signature.</summary>
+        internal bool BoundFrom(TypeInfo[]? written, TypeInfo[]? callerTable) =>
+            ReferenceEquals(this.written, written) && ReferenceEquals(this.callerTable, callerTable);
     }
 
     internal static class NeoNSFunctionRuntime
@@ -922,21 +928,29 @@ namespace NeoCompose.Runtime
             NSGetterEvaluator.Context ctx)
         {
             TypeInfo[]? written = typeArguments ?? site?.typeArguments;
+            bool forwards = typeArguments is null && site is not null && site.TypeArgumentsForward;
+            // Only a forwarding call's table depends on its caller's frame.
+            TypeInfo[]? callerTable = forwards ? ctx.functionTypeArguments : null;
+            for (NeoBoundNSFunctionSignature? bound = function.BoundSignatures; bound is not null; bound = bound.Next)
+            {
+                if (bound.BoundFrom(written, callerTable))
+                    return bound;
+            }
             TypeInfo[] table = written is null && function.DefaultTypeArguments is { } defaults
                 ? defaults
                 : NeoFunctionTypeArguments.ForCall(
                     written,
-                    typeArguments is null && site is not null && site.TypeArgumentsForward,
+                    forwards,
                     function.GenericParams,
                     function.Member.name,
-                    ctx.functionTypeArguments)!;
-            NeoBoundNSFunctionSignature? last = function.BoundSignature;
-            if (last is not null && last.BindsTo(table))
-                return last;
+                    callerTable)!;
             var argumentTypes = new TypeInfo[function.ArgumentTypes.Length];
             for (int i = 0; i < argumentTypes.Length; i++)
                 argumentTypes[i] = NeoFunctionTypeArguments.BindArgument(function.ArgumentTypes[i], table);
-            return function.BoundSignature = new NeoBoundNSFunctionSignature(
+            return function.BoundSignatures = new NeoBoundNSFunctionSignature(
+                written,
+                callerTable,
+                function.BoundSignatures,
                 table,
                 NeoFunctionTypeArguments.Bind(function.ReturnTypeInfo, table),
                 argumentTypes);

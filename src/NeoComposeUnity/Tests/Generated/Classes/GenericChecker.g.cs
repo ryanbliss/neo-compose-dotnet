@@ -106,7 +106,7 @@ namespace Assets.Scripts.Neo
 
         public virtual bool Check<T>(IReadOnlyGenericAnimal animal) where T : class, IReadOnlyGenericAnimal
         {
-            var result = InvokeGenericFunction("Check", new[] { client.TypeArguments.Of<T>() }, new object?[] { animal });
+            var result = InvokeGenericFunction("Check", client.TypeArguments.Table<System.ValueTuple<T>>(), new object?[] { animal });
             return (bool)result!;
         }
 

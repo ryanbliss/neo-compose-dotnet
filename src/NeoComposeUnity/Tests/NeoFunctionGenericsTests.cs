@@ -136,6 +136,50 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void TypeArgumentsTable_IsCachedPerTuple_AndFlattensNestedTuples()
+        {
+            var typeArguments = LoadApp().Client.TypeArguments;
+
+            TypeInfo[] dog = typeArguments.Table<ValueTuple<IReadOnlyGenericDog>>();
+            Assert.AreSame(dog, typeArguments.Table<ValueTuple<IReadOnlyGenericDog>>());
+            Assert.AreSame(typeArguments.Of<IReadOnlyGenericDog>(), dog[0]);
+            TypeInfo[] wide = typeArguments.Table<(int, int, int, int, int, int, int, bool, string)>();
+            Assert.AreEqual(9, wide.Length);
+            Assert.AreEqual(MemberKind.Bool, wide[7].type);
+            Assert.AreEqual(MemberKind.String, wide[8].type);
+        }
+
+        [Test]
+        public void AlternatingTypeArguments_BindOncePerCallInput()
+        {
+            var app = LoadApp();
+            var probe = new GenericProbe();
+            var dog = probe.MakeDog();
+            var cat = probe.MakeCat();
+
+            for (int i = 0; i < 3; i++)
+            {
+                Assert.IsTrue(probe.IsA<IReadOnlyGenericDog>(dog));
+                Assert.IsFalse(probe.IsA<IReadOnlyGenericCat>(dog));
+                Assert.IsTrue(probe.Outer<IReadOnlyGenericCat>(cat));
+                Assert.IsFalse(probe.Outer<IReadOnlyGenericDog>(cat));
+            }
+
+            // IsA: two C# tables, plus Middle's forwarding site in each of Middle's two frames.
+            Assert.AreEqual(4, Bindings(app.Client, "member-generic-probe-isa"));
+            Assert.AreEqual(2, Bindings(app.Client, "member-generic-probe-middle"));
+        }
+
+        private static int Bindings(NeoClient client, string memberId)
+        {
+            int count = 0;
+            NeoBoundNSFunctionSignature? bound = NeoNSFunctionRuntime.ResolveSignature(client, memberId).BoundSignatures;
+            for (; bound is not null; bound = bound.Next)
+                count++;
+            return count;
+        }
+
+        [Test]
         public void TypeArgumentsOf_NamesAnUnmappedType()
         {
             var app = LoadApp();
