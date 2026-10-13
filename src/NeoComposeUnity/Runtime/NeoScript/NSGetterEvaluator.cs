@@ -6672,7 +6672,7 @@ namespace NeoCompose.Runtime.NeoScript
             // A grid query's own result has no other holder: its matches
             // compact into it, behind the entry being read.
             bool inPlace = wf.info.collectionPointer is CallFunctionPointer call
-                && NeoScriptGridQueries.ReturnsObjects(call.memberId)
+                && NeoScriptGridQueries.ReturnsFreshList(call.memberId)
                 && TemporaryLists.TakeExclusive(c);
             object?[]? matches = isList
                 ? inPlace ? (object?[])c! : new object?[capacity]

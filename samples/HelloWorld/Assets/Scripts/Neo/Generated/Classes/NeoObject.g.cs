@@ -39,15 +39,21 @@ namespace HelloWorld.Assets.Scripts.Neo
 
 
         /// <summary>
-        /// Objects at the cells around this placement, in pattern order. Use GetObjects&lt;T&gt;(pattern) to filter by class. A repeated footprint can appear more than once.
+        /// Objects at the cells around this placement, shifted by offset, in pattern order. Use GetObjects&lt;T&gt;(pattern, offset) to filter by class. A repeated footprint can appear more than once.
         /// </summary>
-        IReadOnlyList<IReadOnlyNeoObject> GetObjects(NeoCompose.Runtime.NeoCellPattern pattern);
+        IReadOnlyList<IReadOnlyNeoObject> GetObjects(NeoCompose.Runtime.NeoCellPattern pattern, Vector2Int? offset = null);
 
 
         /// <summary>
-        /// The first tile found in pattern order around this placement, or null. Each cell uses the grid layer precedence.
+        /// The first tile found in pattern order around this placement, shifted by offset, or null. Each cell uses the grid layer precedence.
         /// </summary>
-        IReadOnlyNeoTile? GetTile(NeoCompose.Runtime.NeoCellPattern pattern);
+        IReadOnlyNeoTile? GetTile(NeoCompose.Runtime.NeoCellPattern pattern, Vector2Int? offset = null);
+
+
+        /// <summary>
+        /// The tiles at the cells around this placement, shifted by offset, in pattern order. Each cell uses the grid layer precedence and empty cells are skipped.
+        /// </summary>
+        IReadOnlyList<IReadOnlyNeoTile> GetTiles(NeoCompose.Runtime.NeoCellPattern pattern, Vector2Int? offset = null);
 
         NeoReadOnlyList<IReadOnlyNeoPlacementTile> PlacementTiles { get; }
     }
@@ -208,6 +214,7 @@ namespace HelloWorld.Assets.Scripts.Neo
 
 
 
+
         public virtual NeoList<NeoPlacementTile> PlacementTiles
         {
             get
@@ -236,21 +243,30 @@ namespace HelloWorld.Assets.Scripts.Neo
         }
 
         /// <summary>
-        /// Objects at the cells around this placement, in pattern order. Use GetObjects&lt;T&gt;(pattern) to filter by class. A repeated footprint can appear more than once.
+        /// Objects at the cells around this placement, shifted by offset, in pattern order. Use GetObjects&lt;T&gt;(pattern, offset) to filter by class. A repeated footprint can appear more than once.
         /// </summary>
-        public virtual IReadOnlyList<IReadOnlyNeoObject> GetObjects(NeoCompose.Runtime.NeoCellPattern pattern)
+        public virtual IReadOnlyList<IReadOnlyNeoObject> GetObjects(NeoCompose.Runtime.NeoCellPattern pattern, Vector2Int? offset = null)
         {
-            var result = client.ScriptGridQueries.Invoke("system_f5ca386c-990c-54a1-8473-2d49d2cd887d", this, new object?[] { pattern });
+            var result = client.ScriptGridQueries.Invoke("system_f5ca386c-990c-54a1-8473-2d49d2cd887d", this, new object?[] { pattern, offset });
             return NeoGeneratedTypesSupport.ReadScriptList<IReadOnlyNeoObject>(result, resultEntry => { return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultEntry, false, static (factoryClient, factoryNode) => NeoObject.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoObject.CreateWritable(factoryClient, factoryNode)); });
         }
 
         /// <summary>
-        /// The first tile found in pattern order around this placement, or null. Each cell uses the grid layer precedence.
+        /// The first tile found in pattern order around this placement, shifted by offset, or null. Each cell uses the grid layer precedence.
         /// </summary>
-        public virtual IReadOnlyNeoTile? GetTile(NeoCompose.Runtime.NeoCellPattern pattern)
+        public virtual IReadOnlyNeoTile? GetTile(NeoCompose.Runtime.NeoCellPattern pattern, Vector2Int? offset = null)
         {
-            var result = client.ScriptGridQueries.Invoke("system_593e6208-e2ca-505e-9933-04b17102b6d2", this, new object?[] { pattern });
-            return NeoGeneratedTypesSupport.ReadNSPropertyClass(client, result, false, true, null, static (factoryClient, factoryNode) => NeoTile.CreateWritable(factoryClient, factoryNode));
+            var result = client.ScriptGridQueries.Invoke("system_593e6208-e2ca-505e-9933-04b17102b6d2", this, new object?[] { pattern, offset });
+            return NeoGeneratedTypesSupport.ReadNSPropertyClass(client, result, false, false, static (factoryClient, factoryNode) => NeoTile.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoTile.CreateWritable(factoryClient, factoryNode));
+        }
+
+        /// <summary>
+        /// The tiles at the cells around this placement, shifted by offset, in pattern order. Each cell uses the grid layer precedence and empty cells are skipped.
+        /// </summary>
+        public virtual IReadOnlyList<IReadOnlyNeoTile> GetTiles(NeoCompose.Runtime.NeoCellPattern pattern, Vector2Int? offset = null)
+        {
+            var result = client.ScriptGridQueries.Invoke("system_5a41d36a-bcd9-4867-9e46-d743f6e09582", this, new object?[] { pattern, offset });
+            return NeoGeneratedTypesSupport.ReadScriptList<IReadOnlyNeoTile>(result, resultEntry => { return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultEntry, false, static (factoryClient, factoryNode) => NeoTile.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoTile.CreateWritable(factoryClient, factoryNode)); });
         }
 
         public new sealed class Fields

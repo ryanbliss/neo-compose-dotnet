@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.69.0] - 2026-10-12
+
+`NeoObject.GetTiles(pattern, offset)` returns the tile at each occupied cell of the pattern, in pattern order, and skips empty cells. Each cell uses the grid layer precedence, as `GetTile` does. `GetObjects` and `GetTile` take the same optional `offset`, which shifts the whole pattern without building a translated one. Requires CLI 0.79.0; run `neo export` after upgrading.
+
+```csharp
+// Before
+IReadOnlyNeoTile? GetTile(NeoCellPattern pattern);
+IReadOnlyList<IReadOnlyNeoObject> GetObjects(NeoCellPattern pattern);
+
+// After
+IReadOnlyNeoTile? GetTile(NeoCellPattern pattern, Vector2Int? offset = null);
+IReadOnlyList<IReadOnlyNeoObject> GetObjects(NeoCellPattern pattern, Vector2Int? offset = null);
+IReadOnlyList<IReadOnlyNeoTile> GetTiles(NeoCellPattern pattern, Vector2Int? offset = null);
+
+var below = spawn.GetTiles(NeoCellPattern.Box(1), new Vector2Int(0, -8));
+```
+
+- Fixed: the generated C# `GetTile` threw "NSProperty getter returned an asset-owned class value where a saved value was expected" for any authored tile. It now returns the placed tile however it is stored.
+
 ## [0.68.0] - 2026-10-11
 
 Set members (P108). A `Set<T>` member keeps insertion order and holds no two equal entries. Requires CLI 0.78.0; run `neo export` after upgrading.

@@ -585,6 +585,21 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
+        public async System.Threading.Tasks.Task NeoObjectGetTiles_ReadsEachOccupiedCellShiftedByTheOffset()
+        {
+            var client = await LoadSampleClient(EnglishLocalizationOptions());
+            var content = client.Assets.Worlds.OldConsoleLanding.Content;
+            var spawn = content.GetObject<PlayerSpawnObject>(new Vector2Int(-7, 2))!;
+            // The boot glyph sits eight rows below the spawn, at (-7, -6).
+            var below = new Vector2Int(0, -8);
+
+            var tiles = spawn.GetTiles(NeoCellPattern.Center, below);
+            Assert.IsInstanceOf<BootGlyphTile>(tiles.Single());
+            Assert.AreEqual(tiles[0].valueId, spawn.GetTile(NeoCellPattern.Center, below)?.valueId);
+            CollectionAssert.IsEmpty(spawn.GetTiles(NeoCellPattern.Center, new Vector2Int(50, 50)));
+        }
+
+        [Test]
         public async System.Threading.Tasks.Task TileLayerLinkQueries_MatchTheTilesTheLinkProjectsOntoItsLayer()
         {
             var client = await LoadSampleClient(EnglishLocalizationOptions());

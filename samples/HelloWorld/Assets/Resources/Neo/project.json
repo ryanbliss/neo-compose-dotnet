@@ -6895,6 +6895,14 @@
                     "name": "pattern",
                     "required": true,
                     "type": 7
+                },
+                {
+                    "defaultValue": {
+                        "value": null
+                    },
+                    "name": "offset",
+                    "required": false,
+                    "type": 15
                 }
             ],
             "createdAt": 1789524581676,
@@ -6909,9 +6917,46 @@
             "system": {
                 "kind": "worldAuthoring"
             },
-            "updatedAt": 1789524581676,
             "id": "system_593e6208-e2ca-505e-9933-04b17102b6d2",
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1791852503722
+        },
+        "system_5a41d36a-bcd9-4867-9e46-d743f6e09582": {
+            "argumentTypes": [
+                {
+                    "classId": "system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7",
+                    "name": "pattern",
+                    "required": true,
+                    "type": 7
+                },
+                {
+                    "defaultValue": {
+                        "value": null
+                    },
+                    "name": "offset",
+                    "required": false,
+                    "type": 15
+                }
+            ],
+            "createdAt": 1791852503722,
+            "dispatch": 0,
+            "kind": 13,
+            "name": "GetTiles",
+            "returnTypeInfo": {
+                "entryTypeInfo": {
+                    "classId": "system_d7fa161b-b269-4bf1-9ec9-3aebec67e6e0",
+                    "required": true,
+                    "type": 7
+                },
+                "required": true,
+                "type": 6
+            },
+            "system": {
+                "kind": "worldAuthoring"
+            },
+            "id": "system_5a41d36a-bcd9-4867-9e46-d743f6e09582",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1791852503722
         },
         "system_5a9ca1f5-a21b-4d4e-8c55-00341af594b4": {
             "createdAt": 1782012571783,
@@ -10332,6 +10377,14 @@
                     "name": "pattern",
                     "required": true,
                     "type": 7
+                },
+                {
+                    "defaultValue": {
+                        "value": null
+                    },
+                    "name": "offset",
+                    "required": false,
+                    "type": 15
                 }
             ],
             "createdAt": 1789524581676,
@@ -10350,9 +10403,9 @@
             "system": {
                 "kind": "worldAuthoring"
             },
-            "updatedAt": 1789524581676,
             "id": "system_f5ca386c-990c-54a1-8473-2d49d2cd887d",
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1791852503722
         },
         "system_f8106137-0cde-4be0-bce7-3db5cf40257a": {
             "createdAt": 1782971224672,
@@ -12820,6 +12873,7 @@
                 "GetCell": "system_df1c2d06-eeec-5340-addc-740f3668c9e4",
                 "GetObjects": "system_f5ca386c-990c-54a1-8473-2d49d2cd887d",
                 "GetTile": "system_593e6208-e2ca-505e-9933-04b17102b6d2",
+                "GetTiles": "system_5a41d36a-bcd9-4867-9e46-d743f6e09582",
                 "PlacementTiles": "system_5a9ca1f5-a21b-4d4e-8c55-00341af594b4"
             },
             "system": {
@@ -12828,7 +12882,7 @@
             },
             "id": "system_f671535d-0eb6-4139-9caf-5c5276febd31",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "updatedAt": 1791023082047
+            "updatedAt": 1791852503722
         },
         "system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7": {
             "constructorIds": [

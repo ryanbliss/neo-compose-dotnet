@@ -141,7 +141,8 @@ namespace NeoCompose.Runtime
                 {
                     if (pointer is VariablePointer variable && variable.variableId == id)
                         reads++;
-                    else if (pointer is CallFunctionPointer { args: { Length: 1 } args } call
+                    // The pattern is the first argument; the offset defaults to null.
+                    else if (pointer is CallFunctionPointer { args: { Length: >= 1 } args } call
                         && NeoScriptGridQueries.ReadsCells(call.memberId)
                         && args[0] is VariablePointer cells
                         && cells.variableId == id)

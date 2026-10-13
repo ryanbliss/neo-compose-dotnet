@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-  "codegenRevision": "8e940ebfec562d0be7fe7b82014f66293ea075c2ca394c3a3eaac419eaddfeb8",
+  "codegenRevision": "b6486cad72c560ff3d813d04fb6a2db8e24d5e18cc5dc110ff7ceb9cacbe6bc9",
   "files": [
     {
       "id": "class:11177bd5-0678-4bff-86b8-46718ff1827b",
@@ -186,7 +186,7 @@
     {
       "id": "class:system_f671535d-0eb6-4139-9caf-5c5276febd31",
       "path": "Generated/Classes/NeoObject.g.cs",
-      "hash": "e8e9f89ae67f0e8ed0ef29ecaddfdf9824b161c04ee1bff4ee75451529c7c625"
+      "hash": "a35b1a0c3f14e6ffc2b8aaaf43c52ffb7cc9dd45396b5f165fbb29da34ade43f"
     },
     {
       "id": "class:system_61b30a92-90dc-4bf8-8503-ee4f6414effc",
