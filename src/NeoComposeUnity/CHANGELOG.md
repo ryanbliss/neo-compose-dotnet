@@ -27,7 +27,6 @@ public static NeoGeneratedClassValue? GetTile(this IReadOnlyNeoTileLayerRuntime 
 - `NeoObject.GetTiles(pattern, offset)` returns the tile at each occupied cell of the pattern, in pattern order, and skips empty cells. Each cell uses the grid layer precedence, as `GetTile` does.
 - Fixed: the generated C# `GetTile` threw "NSProperty getter returned an asset-owned class value where a saved value was expected" for any authored tile. It now returns the placed tile however it is stored.
 - `Contains`, `Cells`, `WithCenter`, `WithoutCenter`, `Translate`, and `Union` stay native. They return an ordinary `NeoCellPattern` temporary, and a no-op such as `Translate(Vector2Int.zero)` returns its receiver.
-- Stored IR that reads a member compiled as a computed static getter, such as `NeoCellPattern.Center` before this release, reads the stored value.
 
 ## [0.68.0] - 2026-10-11
 
