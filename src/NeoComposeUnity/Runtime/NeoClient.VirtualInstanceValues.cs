@@ -1440,7 +1440,7 @@ namespace NeoCompose.Runtime
                 if (replayBoundary is not null)
                     expansion.Boundary = replayBoundary;
                 else
-                    PartitionNestedReplay(graph, expansion, instanceRoot);
+                    PartitionNestedReplay(graph, expansion, instanceRoot, allocations.Ids);
             }
             if (prepareOnly)
                 return expansion;

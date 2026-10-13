@@ -24,7 +24,6 @@ namespace NeoCompose.Runtime
         // watching its receiver row that the getter changed (WatchGetters).
         // The same read index holds effects (P97 §3.1): a change queues an
         // effect where it forgets a getter.
-        internal const string StaticGetterRowId = "";
 
         internal enum DependentKind : byte
         {

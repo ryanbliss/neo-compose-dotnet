@@ -1602,6 +1602,159 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void NestedLeafWithUnstoredArgumentReplaysThroughItsOwner()
+        {
+            // `Leaf = new Leaf(new Config())`: the leaf reads a runtime input but
+            // keeps no field for its argument, so its recipe names a row only
+            // the owner's replay creates.
+            var data = BuildProjectData();
+            data.classes["save-root-class"].schema["Input"] = "input-member";
+            data.members["input-member"] = new IntMember
+            {
+                id = "input-member",
+                name = "Input",
+                kind = MemberKind.Int,
+                Storage = NeoMemberStorage.Save,
+                defaultValue = new NumberMemberValueBase { value = 1 },
+            };
+            data.values["input-value"] = new NumberMemberValue { id = "input-value", value = 1 };
+            ((ObjectMemberValue)data.values["value-save"]).value!["Input"] = "input-value";
+            data.classes["config-class"] = new NeoSchemaClass
+            {
+                id = "config-class",
+                name = "Config",
+                projectId = "p75-project",
+                schema = new Dictionary<string, string> { ["Size"] = "config-size" },
+            };
+            data.members["config-size"] = new IntMember
+            {
+                id = "config-size",
+                name = "Size",
+                kind = MemberKind.Int,
+                defaultValue = new NumberMemberValueBase { value = 3 },
+            };
+            data.classes["leaf-class"] = new NeoSchemaClass
+            {
+                id = "leaf-class",
+                name = "Leaf",
+                projectId = "p75-project",
+                schema = new Dictionary<string, string> { ["Count"] = "leaf-count" },
+                constructorIds = new[] { "leaf-ctor" },
+            };
+            data.members["leaf-count"] = new IntMember
+            {
+                id = "leaf-count",
+                name = "Count",
+                kind = MemberKind.Int,
+                defaultValue = new NumberMemberValueBase
+                {
+                    init = new InitializerBody
+                    {
+                        code = "fixture",
+                        compiled = new FunctionWithReturnType
+                        {
+                            compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                            parameters = new[] { ConstructorVariable("__root__", ClassType("__root__")) },
+                            typeInfo = IntTypeInfo(),
+                            instructions = new Instruction[]
+                            {
+                                new ReturnInstruction
+                                {
+                                    type = InstructionKind.Return,
+                                    pointer = PointerKeyOf(new ReferencePointer { type = PointerKind.Reference, valueId = "value-save" }, "Input"),
+                                },
+                            },
+                        },
+                    },
+                },
+            };
+            data.constructors["leaf-ctor"] = new ConstructorRecord
+            {
+                id = "leaf-ctor",
+                classId = "leaf-class",
+                projectId = "p75-project",
+                argumentTypes = new[] { new FunctionArgumentTypeInfo { name = "config", type = MemberKind.Class, classId = "config-class", required = true } },
+                action = new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = new[] { ConstructorVariable("__this__", ClassType("leaf-class")), ConstructorVariable("__root__", ClassType("__root__")), ConstructorVariable("__arg_0__", ClassType("config-class")) },
+                    typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null, required = true },
+                    instructions = Array.Empty<Instruction>(),
+                },
+            };
+            data.classes["thing-class"].schema["Leaf"] = "thing-leaf";
+            data.members["thing-leaf"] = new ClassMember
+            {
+                id = "thing-leaf",
+                name = "Leaf",
+                kind = MemberKind.Class,
+                classId = "leaf-class",
+                defaultValue = new ObjectMemberValueBase
+                {
+                    init = new InitializerBody
+                    {
+                        code = "fixture",
+                        compiled = new FunctionWithReturnType
+                        {
+                            compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                            parameters = new[] { ConstructorVariable("__root__", ClassType("__root__")) },
+                            typeInfo = ClassType("leaf-class"),
+                            instructions = new Instruction[]
+                            {
+                                new ReturnInstruction
+                                {
+                                    type = InstructionKind.Return,
+                                    pointer = new FunctionPointer
+                                    {
+                                        type = PointerKind.Function,
+                                        function = new DeclaredConstructorFunction
+                                        {
+                                            type = FunctionKind.DeclaredConstructor,
+                                            info = new DeclaredConstructorInfo
+                                            {
+                                                schemaClassInfo = ClassType("leaf-class"),
+                                                constructorId = "leaf-ctor",
+                                                args = new[]
+                                                {
+                                                    new DeclaredConstructorArgument
+                                                    {
+                                                        name = "config",
+                                                        valuePointer = new FunctionPointer
+                                                        {
+                                                            type = PointerKind.Function,
+                                                            function = new ClassConstructorFunction
+                                                            {
+                                                                type = FunctionKind.ClassConstructor,
+                                                                info = new FunctionClassConstructorInfo
+                                                                {
+                                                                    schemaClassInfo = ClassType("config-class"),
+                                                                    fields = Array.Empty<FunctionClassConstructorField>(),
+                                                                },
+                                                            },
+                                                        },
+                                                    },
+                                                },
+                                                fields = Array.Empty<FunctionClassConstructorField>(),
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            };
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var leaf = client.save.Get<NeoMemberClassWritable>("Thing").Get<NeoMemberClassWritable>("Leaf");
+            Assert.AreEqual(1, leaf.Get<NeoMemberIntWritable>("Count").value!.value);
+            Assert.DoesNotThrow(() => client.save.Get<NeoMemberIntWritable>("Input").Set(7),
+                "Replaying the leaf alone must not read its owner's reclaimed argument row.");
+            Assert.AreEqual(7, leaf.Get<NeoMemberIntWritable>("Count").value!.value);
+            client.save.Get<NeoMemberIntWritable>("Input").Set(9);
+            Assert.AreEqual(9, leaf.Get<NeoMemberIntWritable>("Count").value!.value);
+        }
+
+        [Test]
         public void RemovingAListEntryRetainsUnchangedSiblingConstruction()
         {
             var data = BuildNestedProjectData();

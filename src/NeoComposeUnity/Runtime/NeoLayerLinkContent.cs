@@ -33,7 +33,7 @@ namespace NeoCompose.Runtime
     /// Grid-space lookups over a layer link's own authored content: the link's
     /// <c>Position</c> is the projection origin, so cells here line up with the
     /// cells the link contributes to its target layer. Single-result overloads
-    /// with a <see cref="NeoCellPattern"/> return the first match in pattern
+    /// with an <see cref="INeoCellPattern"/> return the first match in pattern
     /// order (nearest first for center-out patterns).
     /// </summary>
     public static class NeoLayerLinkLookupExtensions
@@ -80,13 +80,14 @@ namespace NeoCompose.Runtime
         public static NeoGeneratedClassValue? GetTile(
             this INeoTileLayerLinkValue link,
             Vector2Int origin,
-            NeoCellPattern pattern)
+            INeoCellPattern pattern)
         {
             if (pattern is null)
                 throw new ArgumentNullException(nameof(pattern));
             var projection = ProjectTiles(link);
-            foreach (var cell in pattern.GetCells(origin))
+            for (int index = 0, count = pattern.Count; index < count; index++)
             {
+                Vector2Int cell = origin + pattern[index];
                 if (projection.ByCell.TryGetValue(cell, out var tile))
                 {
                     return tile?.Tile;
@@ -98,14 +99,15 @@ namespace NeoCompose.Runtime
         public static TTile? GetTile<TTile>(
             this INeoTileLayerLinkValue link,
             Vector2Int origin,
-            NeoCellPattern pattern)
+            INeoCellPattern pattern)
             where TTile : class, INeoValueReference
         {
             if (pattern is null)
                 throw new ArgumentNullException(nameof(pattern));
             var projection = ProjectTiles(link);
-            foreach (var cell in pattern.GetCells(origin))
+            for (int index = 0, count = pattern.Count; index < count; index++)
             {
+                Vector2Int cell = origin + pattern[index];
                 if (projection.ByCell.TryGetValue(cell, out var tile))
                 {
                     var typed = tile.As<TTile>();
@@ -119,14 +121,15 @@ namespace NeoCompose.Runtime
         public static IReadOnlyList<NeoGeneratedClassValue> GetTiles(
             this INeoTileLayerLinkValue link,
             Vector2Int origin,
-            NeoCellPattern pattern)
+            INeoCellPattern pattern)
         {
             if (pattern is null)
                 throw new ArgumentNullException(nameof(pattern));
             var projection = ProjectTiles(link);
             var tiles = new List<NeoGeneratedClassValue>();
-            foreach (var cell in pattern.GetCells(origin))
+            for (int index = 0, count = pattern.Count; index < count; index++)
             {
+                Vector2Int cell = origin + pattern[index];
                 if (projection.ByCell.TryGetValue(cell, out var tile))
                 {
                     tiles.Add(tile.Tile);
@@ -138,7 +141,7 @@ namespace NeoCompose.Runtime
         public static IReadOnlyList<TTile> GetTiles<TTile>(
             this INeoTileLayerLinkValue link,
             Vector2Int origin,
-            NeoCellPattern pattern)
+            INeoCellPattern pattern)
             where TTile : class, INeoValueReference
         {
             return TypedTiles<TTile>(link.GetTiles(origin, pattern));
@@ -203,13 +206,14 @@ namespace NeoCompose.Runtime
         public static NeoGeneratedClassValue? GetObject(
             this INeoObjectLayerLinkValue link,
             Vector2Int origin,
-            NeoCellPattern pattern)
+            INeoCellPattern pattern)
         {
             if (pattern is null)
                 throw new ArgumentNullException(nameof(pattern));
             var projection = ProjectObjects(link);
-            foreach (var cell in pattern.GetCells(origin))
+            for (int index = 0, count = pattern.Count; index < count; index++)
             {
+                Vector2Int cell = origin + pattern[index];
                 foreach (var obj in projection)
                 {
                     if (obj.Cell == cell)
@@ -222,14 +226,15 @@ namespace NeoCompose.Runtime
         public static TObject? GetObject<TObject>(
             this INeoObjectLayerLinkValue link,
             Vector2Int origin,
-            NeoCellPattern pattern)
+            INeoCellPattern pattern)
             where TObject : class, INeoValueReference
         {
             if (pattern is null)
                 throw new ArgumentNullException(nameof(pattern));
             var projection = ProjectObjects(link);
-            foreach (var cell in pattern.GetCells(origin))
+            for (int index = 0, count = pattern.Count; index < count; index++)
             {
+                Vector2Int cell = origin + pattern[index];
                 foreach (var obj in projection)
                 {
                     if (obj.Cell != cell)
@@ -245,14 +250,15 @@ namespace NeoCompose.Runtime
         public static IReadOnlyList<NeoGeneratedClassValue> GetObjects(
             this INeoObjectLayerLinkValue link,
             Vector2Int origin,
-            NeoCellPattern pattern)
+            INeoCellPattern pattern)
         {
             if (pattern is null)
                 throw new ArgumentNullException(nameof(pattern));
             var projection = ProjectObjects(link);
             var objects = new List<NeoGeneratedClassValue>();
-            foreach (var cell in pattern.GetCells(origin))
+            for (int index = 0, count = pattern.Count; index < count; index++)
             {
+                Vector2Int cell = origin + pattern[index];
                 foreach (var obj in projection)
                 {
                     if (obj.Cell == cell)
@@ -267,7 +273,7 @@ namespace NeoCompose.Runtime
         public static IReadOnlyList<TObject> GetObjects<TObject>(
             this INeoObjectLayerLinkValue link,
             Vector2Int origin,
-            NeoCellPattern pattern)
+            INeoCellPattern pattern)
             where TObject : class, INeoValueReference
         {
             return TypedObjects<TObject>(link.GetObjects(origin, pattern));

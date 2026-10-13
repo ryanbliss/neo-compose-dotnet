@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-  "codegenRevision": "8e940ebfec562d0be7fe7b82014f66293ea075c2ca394c3a3eaac419eaddfeb8",
+  "codegenRevision": "bac1e765b6731dfd0abb8404c7b4c2b65f161f2a539cc485ee297e555852f3ab",
   "files": [
     {
       "id": "class:11177bd5-0678-4bff-86b8-46718ff1827b",
@@ -159,6 +159,11 @@
       "hash": "c09c4cb0f4bc3129bf4f48093017a92abf43b57a68062e167aa75657e8101bc7"
     },
     {
+      "id": "class:system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7",
+      "path": "Generated/Classes/NeoCellPattern.g.cs",
+      "hash": "c5ada96ef0057343e6a78ba0c203c0c69538cb778228165e83248b38adf71310"
+    },
+    {
       "id": "class:system_8b540423-5920-4c83-a632-1415448e7fd7",
       "path": "Generated/Classes/NeoChoiceLog.g.cs",
       "hash": "6af21ed555d59dfc948eb75c9986ee070ecc8be425b4c6af2538d76fbb681021"
@@ -186,7 +191,7 @@
     {
       "id": "class:system_f671535d-0eb6-4139-9caf-5c5276febd31",
       "path": "Generated/Classes/NeoObject.g.cs",
-      "hash": "e8e9f89ae67f0e8ed0ef29ecaddfdf9824b161c04ee1bff4ee75451529c7c625"
+      "hash": "48a2eca4474243b2faf5dbec47c73f6994b66e12f478f15f3cb44e7300a3b5a0"
     },
     {
       "id": "class:system_61b30a92-90dc-4bf8-8503-ee4f6414effc",
@@ -389,6 +394,11 @@
       "hash": "c05cae461b796122f365b33a4f1bc10970ffea023fdb4b09454241d46d1dc6ea"
     },
     {
+      "id": "enum:system_072f749f-62fe-5917-9f7e-f9f29c3a7063",
+      "path": "Generated/Enums/NeoCellPatternExcluding.g.cs",
+      "hash": "8f7a2b3bf8a21a5c6b98f6b796a01154ea842471c685682bbb8f8ba309c20bd9"
+    },
+    {
       "id": "enum:system_fb8a4243-fa52-4142-8097-765d9e86ff25",
       "path": "Generated/Enums/NeoSelectorRefreshKind.g.cs",
       "hash": "f6c17bec15a3fbf6d482ba037c2d7f4ff7490d14950d4fa6e9b9a04abd252a7c"
@@ -441,7 +451,7 @@
     {
       "id": "project:factories",
       "path": "Generated/HelloWorldNeo.Factories.g.cs",
-      "hash": "9babcc984a63166d18a7d9e3b04cc0dfabdb143a2c6aa28ade322236993a5995"
+      "hash": "e52d77d556e3bae67aa09791b984bd4a664eb7c32b55a2ef09d80a21cd4df029"
     },
     {
       "id": "project:functions",

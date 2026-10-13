@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.69.0] - 2026-10-12
+
+`NeoCellPattern` is an ordinary generated class (P109). Its factories run their NeoScript bodies, its presets are stored values, the grid queries take an optional offset, and `NeoObject.GetTiles` reads every occupied cell's tile. Requires CLI 0.79.0; run `neo export` after upgrading.
+
+```csharp
+// Generated: factories and presets need a running client.
+IReadOnlyNeoCellPattern reach = NeoCellPattern.Cross(1);
+IReadOnlyNeoCellPattern here = NeoCellPattern.Center;
+var custom = new NeoCellPattern(new[] { new Vector2Int(2, 0), Vector2Int.zero });
+
+// Queries shift the pattern without building a translated one.
+placed.GetObjects(pattern, offset); // the cells of placed.GetObjects(pattern.Translate(offset))
+
+// New: the tile at each occupied cell, in pattern order.
+IReadOnlyList<IReadOnlyNeoTile> GetTiles(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null);
+var below = spawn.GetTiles(NeoCellPattern.Box(1), new Vector2Int(0, -8));
+
+// The SDK grid APIs take any stored pattern.
+public static NeoGeneratedClassValue? GetTile(this IReadOnlyNeoTileLayerRuntime layer, Vector2Int origin, INeoCellPattern pattern);
+```
+
+- Breaking: the SDK's `NeoCellPattern` and `NeoCellPatternExcluding` types are gone. The generated `NeoCellPattern` replaces them. It extends `NeoGeneratedCellPatternValue`, which implements `INeoCellPattern : IReadOnlyList<Vector2Int>` over the stored offsets and enumerates them without allocating. Factories and presets need a running client, so a `static readonly` field initialized from one throws. Read it after the client starts, as the HelloWorld sample's `LandingSceneGameplay` does.
+- The SDK tile, object, and layer-link pattern queries take `INeoCellPattern`.
+- `GetObjects` and `GetTile` take an optional `offset`. Null or omitted is zero, so IR compiled with one argument returns what it did.
+- `NeoObject.GetTiles(pattern, offset)` returns the tile at each occupied cell of the pattern, in pattern order, and skips empty cells. Each cell uses the grid layer precedence, as `GetTile` does.
+- Fixed: the generated C# `GetTile` threw "NSProperty getter returned an asset-owned class value where a saved value was expected" for any authored tile. It now returns the placed tile however it is stored.
+- `Contains`, `Cells`, `WithCenter`, `WithoutCenter`, `Translate`, and `Union` stay native. They return an ordinary `NeoCellPattern` temporary, and a no-op such as `Translate(Vector2Int.zero)` returns its receiver.
+- Fixed: a nested construction inside a sparse instance threw "Constructor argument references missing value" when a value it read changed, if one of its class or collection arguments was built by its owner and not kept as one of its fields, such as `new Shape(new Config())`. The owner now replays it.
+
 ## [0.68.0] - 2026-10-11
 
 Set members (P108). A `Set<T>` member keeps insertion order and holds no two equal entries. Requires CLI 0.78.0; run `neo export` after upgrading.
