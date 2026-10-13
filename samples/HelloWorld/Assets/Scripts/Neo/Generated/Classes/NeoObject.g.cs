@@ -39,19 +39,40 @@ namespace HelloWorld.Assets.Scripts.Neo
 
 
         /// <summary>
-        /// Objects at the cells around this placement, shifted by offset, in pattern order. Use GetObjects&lt;T&gt;(pattern, offset) to filter by class. A repeated footprint can appear more than once.
+        /// Objects of type T at the cells around this placement, shifted by offset, in pattern order. A repeated footprint can appear more than once.
+        /// </summary>
+        IReadOnlyList<T> GetObjects<T>(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null) where T : class, IReadOnlyNeoObject;
+
+
+
+        /// <summary>
+        /// Objects of type T at the cells around this placement, shifted by offset, in pattern order. A repeated footprint can appear more than once.
         /// </summary>
         IReadOnlyList<IReadOnlyNeoObject> GetObjects(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null);
 
 
         /// <summary>
-        /// The first tile found in pattern order around this placement, shifted by offset, or null. Each cell uses the grid layer precedence.
+        /// The first tile of type T found in pattern order around this placement, shifted by offset, or null. Each cell uses the grid layer precedence.
+        /// </summary>
+        T? GetTile<T>(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null) where T : class, IReadOnlyNeoTile;
+
+
+
+        /// <summary>
+        /// The first tile of type T found in pattern order around this placement, shifted by offset, or null. Each cell uses the grid layer precedence.
         /// </summary>
         IReadOnlyNeoTile? GetTile(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null);
 
 
         /// <summary>
-        /// The tiles at the cells around this placement, shifted by offset, in pattern order. Each cell uses the grid layer precedence and empty cells are skipped.
+        /// The tiles of type T at the cells around this placement, shifted by offset, in pattern order. Each cell uses the grid layer precedence and empty cells are skipped.
+        /// </summary>
+        IReadOnlyList<T> GetTiles<T>(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null) where T : class, IReadOnlyNeoTile;
+
+
+
+        /// <summary>
+        /// The tiles of type T at the cells around this placement, shifted by offset, in pattern order. Each cell uses the grid layer precedence and empty cells are skipped.
         /// </summary>
         IReadOnlyList<IReadOnlyNeoTile> GetTiles(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null);
 
@@ -243,31 +264,49 @@ namespace HelloWorld.Assets.Scripts.Neo
         }
 
         /// <summary>
-        /// Objects at the cells around this placement, shifted by offset, in pattern order. Use GetObjects&lt;T&gt;(pattern, offset) to filter by class. A repeated footprint can appear more than once.
+        /// Objects of type T at the cells around this placement, shifted by offset, in pattern order. A repeated footprint can appear more than once.
         /// </summary>
-        public virtual IReadOnlyList<IReadOnlyNeoObject> GetObjects(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null)
+        public virtual IReadOnlyList<T> GetObjects<T>(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null) where T : class, IReadOnlyNeoObject
         {
-            var result = client.ScriptGridQueries.Invoke("system_f5ca386c-990c-54a1-8473-2d49d2cd887d", this, new object?[] { pattern, offset });
-            return NeoGeneratedTypesSupport.ReadScriptList<IReadOnlyNeoObject>(result, resultEntry => { return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultEntry, false, static (factoryClient, factoryNode) => NeoObject.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoObject.CreateWritable(factoryClient, factoryNode)); });
+            var result = client.ScriptGridQueries.Invoke("system_f5ca386c-990c-54a1-8473-2d49d2cd887d", this, new object?[] { pattern, offset }, new[] { client.TypeArguments.Of<T>() });
+            return NeoGeneratedTypesSupport.ReadScriptList<T>(result, resultEntry => { return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultEntry, false, static (factoryClient, factoryNode) => NeoObject.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoObject.CreateWritable(factoryClient, factoryNode)), "T", HelloWorldNeo.NeoReadOnlyValueFactories, HelloWorldNeo.NeoWritableValueFactories); });
         }
 
         /// <summary>
-        /// The first tile found in pattern order around this placement, shifted by offset, or null. Each cell uses the grid layer precedence.
+        /// Objects of type T at the cells around this placement, shifted by offset, in pattern order. A repeated footprint can appear more than once.
         /// </summary>
-        public virtual IReadOnlyNeoTile? GetTile(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null)
+        public IReadOnlyList<IReadOnlyNeoObject> GetObjects(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null)
+            => GetObjects<IReadOnlyNeoObject>(pattern, offset);
+
+        /// <summary>
+        /// The first tile of type T found in pattern order around this placement, shifted by offset, or null. Each cell uses the grid layer precedence.
+        /// </summary>
+        public virtual T? GetTile<T>(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null) where T : class, IReadOnlyNeoTile
         {
-            var result = client.ScriptGridQueries.Invoke("system_593e6208-e2ca-505e-9933-04b17102b6d2", this, new object?[] { pattern, offset });
-            return NeoGeneratedTypesSupport.ReadNSPropertyClass(client, result, false, false, static (factoryClient, factoryNode) => NeoTile.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoTile.CreateWritable(factoryClient, factoryNode));
+            var result = client.ScriptGridQueries.Invoke("system_593e6208-e2ca-505e-9933-04b17102b6d2", this, new object?[] { pattern, offset }, new[] { client.TypeArguments.Of<T>() });
+            return result is null ? null : NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, false, static (factoryClient, factoryNode) => NeoTile.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoTile.CreateWritable(factoryClient, factoryNode)), "T", HelloWorldNeo.NeoReadOnlyValueFactories, HelloWorldNeo.NeoWritableValueFactories);
         }
 
         /// <summary>
-        /// The tiles at the cells around this placement, shifted by offset, in pattern order. Each cell uses the grid layer precedence and empty cells are skipped.
+        /// The first tile of type T found in pattern order around this placement, shifted by offset, or null. Each cell uses the grid layer precedence.
         /// </summary>
-        public virtual IReadOnlyList<IReadOnlyNeoTile> GetTiles(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null)
+        public IReadOnlyNeoTile? GetTile(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null)
+            => GetTile<IReadOnlyNeoTile>(pattern, offset);
+
+        /// <summary>
+        /// The tiles of type T at the cells around this placement, shifted by offset, in pattern order. Each cell uses the grid layer precedence and empty cells are skipped.
+        /// </summary>
+        public virtual IReadOnlyList<T> GetTiles<T>(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null) where T : class, IReadOnlyNeoTile
         {
-            var result = client.ScriptGridQueries.Invoke("system_5a41d36a-bcd9-4867-9e46-d743f6e09582", this, new object?[] { pattern, offset });
-            return NeoGeneratedTypesSupport.ReadScriptList<IReadOnlyNeoTile>(result, resultEntry => { return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultEntry, false, static (factoryClient, factoryNode) => NeoTile.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoTile.CreateWritable(factoryClient, factoryNode)); });
+            var result = client.ScriptGridQueries.Invoke("system_5a41d36a-bcd9-4867-9e46-d743f6e09582", this, new object?[] { pattern, offset }, new[] { client.TypeArguments.Of<T>() });
+            return NeoGeneratedTypesSupport.ReadScriptList<T>(result, resultEntry => { return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultEntry, false, static (factoryClient, factoryNode) => NeoTile.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoTile.CreateWritable(factoryClient, factoryNode)), "T", HelloWorldNeo.NeoReadOnlyValueFactories, HelloWorldNeo.NeoWritableValueFactories); });
         }
+
+        /// <summary>
+        /// The tiles of type T at the cells around this placement, shifted by offset, in pattern order. Each cell uses the grid layer precedence and empty cells are skipped.
+        /// </summary>
+        public IReadOnlyList<IReadOnlyNeoTile> GetTiles(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null)
+            => GetTiles<IReadOnlyNeoTile>(pattern, offset);
 
         public new sealed class Fields
         {

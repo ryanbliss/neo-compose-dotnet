@@ -1056,6 +1056,11 @@ namespace NeoCompose.Runtime.Json
         public string? listMemberId;
         public string? ownerClassId;
         public string? genericParamId;
+        /// <summary>P110 §4. Set with <see cref="index"/> on a function's own type parameter.</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string? ownerMemberId;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public int? index;
         public Dictionary<string, TypeInfo>? typeArguments;
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         [JsonConverter(typeof(FunctionReturnTypeInfoConverter))]
@@ -1110,6 +1115,8 @@ namespace NeoCompose.Runtime.Json
                 listMemberId = json.Value<string>("listMemberId"),
                 ownerClassId = json.Value<string>("ownerClassId"),
                 genericParamId = json.Value<string>("genericParamId"),
+                ownerMemberId = json.Value<string>("ownerMemberId"),
+                index = json.Value<int?>("index"),
                 typeArguments = json["typeArguments"]?.ToObject<Dictionary<string, TypeInfo>>(serializer),
                 returnTypeInfo = ReadDelegateReturnType(
                     json["returnTypeInfo"],
@@ -1199,12 +1206,27 @@ namespace NeoCompose.Runtime.Json
         }
     }
 
+    /// <summary>A type parameter a function declares (P110 §4).</summary>
+    public sealed class FunctionGenericParam
+    {
+        public string name = null!;
+        /// <summary>A required Class or Enum type info, or null for none.</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public TypeInfo? constraint;
+        /// <summary>The type a call that names none binds, or null for none.</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public TypeInfo? defaultType;
+    }
+
     /// <summary>Mirror of TS-side <c>TMemberFunction</c>.</summary>
     public sealed class FunctionMember : Member<object?>
     {
         [JsonConverter(typeof(FunctionReturnTypeInfoConverter))]
         public TypeInfo returnTypeInfo = null!;
         public FunctionArgumentTypeInfo[] argumentTypes = null!;
+        /// <summary>P110 §4. The function's own type parameters; null when it has none.</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public FunctionGenericParam[]? genericParams;
         [JsonProperty("dispatch", NullValueHandling = NullValueHandling.Ignore)]
         private NeoFunctionDispatchKind? dispatch;
 
@@ -1279,6 +1301,9 @@ namespace NeoCompose.Runtime.Json
         public TypeInfo returnTypeInfo = null!;
 
         public FunctionArgumentTypeInfo[] argumentTypes = null!;
+        /// <summary>P110 §4. The function's own type parameters; null when it has none.</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public FunctionGenericParam[]? genericParams;
         [JsonProperty("dispatch", NullValueHandling = NullValueHandling.Ignore)]
         private NeoFunctionDispatchKind? dispatch;
 

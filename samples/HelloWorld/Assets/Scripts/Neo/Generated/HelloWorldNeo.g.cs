@@ -28,6 +28,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             Client.ScriptGridQueries.RegisterFactories(ScriptGridContentFactories);
             Client.RegisterNativeFunctionInvokers(NativeFunctionInvokers);
             Client.RegisterDeferredNativeFunctionInvokers(DeferredNativeFunctionInvokers);
+            Client.TypeArguments.Register(NeoTypeArgumentClassIds, NeoTypeArgumentEnumIds);
             Instance = this;
             Assets = new Assets(client, client.assets, true, NeoValueOwnership.Asset);
             Save = new Save(client, client.save, false, client.save.ownership);

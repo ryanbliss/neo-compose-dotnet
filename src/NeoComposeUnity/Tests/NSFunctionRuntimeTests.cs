@@ -288,7 +288,7 @@ namespace NeoCompose.Tests
             client.ScriptDebugSink = events.Add;
             client.RegisterDeferredNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
             {
-                [native.id] = (_, _, _, handle) => pending.Add(NeoGeneratedTypesSupport.ResolveDeferredFunction<NeoDeferredFunction<int>>(handle, native.name)),
+                [native.id] = (_, _, _, _, handle) => pending.Add(NeoGeneratedTypesSupport.ResolveDeferredFunction<NeoDeferredFunction<int>>(handle, native.name)),
             });
             var node = new NeoMemberNSFunction(client, outer, null);
             var first = node.InvokeAsync("receiver-value", Array.Empty<object?>());
@@ -333,7 +333,7 @@ namespace NeoCompose.Tests
             var pending = new List<NeoDeferredFunction<int>>();
             client.RegisterDeferredNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
             {
-                [native.id] = (_, _, _, handle) => pending.Add(NeoGeneratedTypesSupport.ResolveDeferredFunction<NeoDeferredFunction<int>>(handle, native.name)),
+                [native.id] = (_, _, _, _, handle) => pending.Add(NeoGeneratedTypesSupport.ResolveDeferredFunction<NeoDeferredFunction<int>>(handle, native.name)),
             });
             var node = new NeoMemberNSFunction(client, function, null);
             var task = node.InvokeAsync("receiver-value", Array.Empty<object?>());
@@ -416,7 +416,7 @@ namespace NeoCompose.Tests
             var received = new List<object?>();
             client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
             {
-                [collect.id] = (_, _, args) =>
+                [collect.id] = (_, _, args, _) =>
                 {
                     received.Add(args[0]);
                     received.Add(args[1]);
@@ -425,7 +425,7 @@ namespace NeoCompose.Tests
             });
             client.RegisterDeferredNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
             {
-                [collectLater.id] = (_, _, args, handle) =>
+                [collectLater.id] = (_, _, args, _, handle) =>
                 {
                     received.Add(args[0]);
                     NeoGeneratedTypesSupport.ResolveDeferredFunction<NeoDeferredFunction<int>>(handle, collectLater.name).Complete(0);
@@ -661,7 +661,7 @@ namespace NeoCompose.Tests
             object? first = null;
             client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
             {
-                [native.id] = (_, _, args) =>
+                [native.id] = (_, _, args, _) =>
                 {
                     received = args;
                     first = args[0];
@@ -941,7 +941,7 @@ namespace NeoCompose.Tests
             var innerNode = new NeoMemberNSFunction(client, inner.id, null, NeoValueOwnership.Session);
             client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
             {
-                [native.id] = (_, _, args) => innerNode.InvokeStatic((object?)(Convert.ToInt32(args[0]) * 10)),
+                [native.id] = (_, _, args, _) => innerNode.InvokeStatic((object?)(Convert.ToInt32(args[0]) * 10)),
             });
             var outerNode = new NeoMemberNSFunction(client, outer.id, null, NeoValueOwnership.Session);
             for (int i = 1; i < 4; i++)
@@ -3913,7 +3913,7 @@ namespace NeoCompose.Tests
             client.RegisterNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
                 {
-                    [native.id] = (_, _, args) =>
+                    [native.id] = (_, _, args, _) =>
                     {
                         invocationCount++;
                         return args[0];
@@ -4056,14 +4056,14 @@ namespace NeoCompose.Tests
             int nativeCalls = 0;
             client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
             {
-                [native.id] = (_, receiver, args) =>
+                [native.id] = (_, receiver, args, _) =>
                 {
                     nativeCalls++;
                     Assert.IsNotNull(receiver);
                     Assert.AreEqual(0, args.Length);
                     return 7;
                 },
-                [nativeOverride.id] = (_, _, _) => throw new Exception("Base native call dispatched to the override."),
+                [nativeOverride.id] = (_, _, _, _) => throw new Exception("Base native call dispatched to the override."),
             });
             var node = new NeoMemberNSFunction(client, baseFunction, null);
             object? result = deferred
@@ -4438,11 +4438,11 @@ namespace NeoCompose.Tests
             NeoDeferredFunction<int>? pending = null;
             client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
             {
-                [count.id] = (_, _, _) => ++immediateCalls,
+                [count.id] = (_, _, _, _) => ++immediateCalls,
             });
             client.RegisterDeferredNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
             {
-                [fetch.id] = (_, _, _, handle) =>
+                [fetch.id] = (_, _, _, _, handle) =>
                 {
                     deferredCalls++;
                     pending = NeoGeneratedTypesSupport.ResolveDeferredFunction<NeoDeferredFunction<int>>(handle, fetch.name);
@@ -4505,7 +4505,7 @@ namespace NeoCompose.Tests
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    [native.id] = (_, _, _, deferred) =>
+                    [native.id] = (_, _, _, _, deferred) =>
                     {
                         invocationCount++;
                         var typed = NeoGeneratedTypesSupport.ResolveDeferredFunction<NeoDeferredFunction<int>>(
@@ -4570,7 +4570,7 @@ namespace NeoCompose.Tests
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    [native.id] = (_, _, _, deferred) =>
+                    [native.id] = (_, _, _, _, deferred) =>
                         pending = NeoGeneratedTypesSupport
                             .ResolveDeferredFunction<NeoDeferredFunction<int>>(
                                 deferred,
@@ -4621,7 +4621,7 @@ namespace NeoCompose.Tests
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    [native.id] = (_, _, _, deferred) =>
+                    [native.id] = (_, _, _, _, deferred) =>
                         NeoGeneratedTypesSupport
                             .ResolveDeferredFunction<NeoDeferredFunction<int>>(
                                 deferred,
@@ -4659,7 +4659,7 @@ namespace NeoCompose.Tests
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    [native.id] = (_, _, _, _) => invocationCount++,
+                    [native.id] = (_, _, _, _, _) => invocationCount++,
                 });
             var node = new NeoMemberNSFunction(client, function, null);
 
@@ -4686,7 +4686,7 @@ namespace NeoCompose.Tests
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    [native.id] = (_, _, _, _) => invocationCount++,
+                    [native.id] = (_, _, _, _, _) => invocationCount++,
                 });
 
             Task<int> task = client.InvokeDeferredNativeFunction<int>(
@@ -4723,7 +4723,7 @@ namespace NeoCompose.Tests
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    [native.id] = (_, _, _, deferred) =>
+                    [native.id] = (_, _, _, _, deferred) =>
                         pending = NeoGeneratedTypesSupport.ResolveDeferredFunction<NeoDeferredFunction<int>>(
                             deferred,
                             native.name),
@@ -4894,7 +4894,7 @@ namespace NeoCompose.Tests
             if (deferred)
                 client.RegisterDeferredNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    [change.id] = (_, _, _, handle) =>
+                    [change.id] = (_, _, _, _, handle) =>
                     {
                         ChangePath();
                         pending = NeoGeneratedTypesSupport.ResolveDeferredFunction<NeoDeferredFunction<int>>(handle, change.name);
@@ -4903,7 +4903,7 @@ namespace NeoCompose.Tests
             else
                 client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
                 {
-                    [change.id] = (_, _, _) =>
+                    [change.id] = (_, _, _, _) =>
                     {
                         ChangePath();
                         return 9;
@@ -5363,7 +5363,7 @@ namespace NeoCompose.Tests
             client.RegisterNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
                 {
-                    [removeShadow.id] = (currentClient, _, _) =>
+                    [removeShadow.id] = (currentClient, _, _, _) =>
                     {
                         removalCalls++;
                         currentClient.RemoveWritableValueAndDescendantsIfUnlinked(
@@ -5789,7 +5789,7 @@ namespace NeoCompose.Tests
             client.RegisterNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
                 {
-                    [native.id] = (_, _, _) => throw hostError,
+                    [native.id] = (_, _, _, _) => throw hostError,
                 });
             Assert.AreSame(
                 hostError,
@@ -6617,7 +6617,7 @@ namespace NeoCompose.Tests
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    [tryPause.id] = (_, _, _, deferred) =>
+                    [tryPause.id] = (_, _, _, _, deferred) =>
                     {
                         tryCalls++;
                         pendingTry = NeoGeneratedTypesSupport
@@ -6625,7 +6625,7 @@ namespace NeoCompose.Tests
                                 deferred,
                                 tryPause.name);
                     },
-                    [filterPause.id] = (_, _, _, deferred) =>
+                    [filterPause.id] = (_, _, _, _, deferred) =>
                     {
                         filterCalls++;
                         pendingFilter = NeoGeneratedTypesSupport
@@ -6633,7 +6633,7 @@ namespace NeoCompose.Tests
                                 deferred,
                                 filterPause.name);
                     },
-                    [catchPause.id] = (_, _, _, deferred) =>
+                    [catchPause.id] = (_, _, _, _, deferred) =>
                     {
                         catchCalls++;
                         pendingCatch = NeoGeneratedTypesSupport
@@ -6694,7 +6694,7 @@ namespace NeoCompose.Tests
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    [fail.id] = (_, _, _, deferred) =>
+                    [fail.id] = (_, _, _, _, deferred) =>
                         pending = NeoGeneratedTypesSupport
                             .ResolveDeferredFunction<NeoDeferredFunction<int>>(
                                 deferred,
@@ -6716,7 +6716,7 @@ namespace NeoCompose.Tests
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    [fail.id] = (_, _, _, deferred) =>
+                    [fail.id] = (_, _, _, _, deferred) =>
                         pending = NeoGeneratedTypesSupport
                             .ResolveDeferredFunction<NeoDeferredFunction<int>>(
                                 deferred,
@@ -6767,7 +6767,7 @@ namespace NeoCompose.Tests
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    [filterFail.id] = (_, _, _, deferred) =>
+                    [filterFail.id] = (_, _, _, _, deferred) =>
                         pending = NeoGeneratedTypesSupport
                             .ResolveDeferredFunction<NeoDeferredFunction<int>>(
                                 deferred,
@@ -6831,7 +6831,7 @@ namespace NeoCompose.Tests
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    [fail.id] = (_, _, _, deferred) =>
+                    [fail.id] = (_, _, _, _, deferred) =>
                         pending = NeoGeneratedTypesSupport
                             .ResolveDeferredFunction<NeoDeferredFunction<int>>(
                                 deferred,
@@ -6886,7 +6886,7 @@ namespace NeoCompose.Tests
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    [fail.id] = (_, _, _, deferred) =>
+                    [fail.id] = (_, _, _, _, deferred) =>
                         pending = NeoGeneratedTypesSupport
                             .ResolveDeferredFunction<NeoDeferredFunction<int>>(
                                 deferred,
@@ -6956,7 +6956,7 @@ namespace NeoCompose.Tests
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    [selector.id] = (_, _, _, deferred) =>
+                    [selector.id] = (_, _, _, _, deferred) =>
                     {
                         selectorCalls++;
                         pendingSelector = NeoGeneratedTypesSupport
@@ -6964,7 +6964,7 @@ namespace NeoCompose.Tests
                                 deferred,
                                 selector.name);
                     },
-                    [pause.id] = (_, _, _, deferred) =>
+                    [pause.id] = (_, _, _, _, deferred) =>
                     {
                         bodyCalls++;
                         pendingBody = NeoGeneratedTypesSupport
@@ -7073,7 +7073,7 @@ namespace NeoCompose.Tests
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    [initialize.id] = (_, _, _, deferred) =>
+                    [initialize.id] = (_, _, _, _, deferred) =>
                     {
                         initializeCalls++;
                         pendingInitialize = NeoGeneratedTypesSupport
@@ -7081,7 +7081,7 @@ namespace NeoCompose.Tests
                                 deferred,
                                 initialize.name);
                     },
-                    [iterate.id] = (_, _, _, deferred) =>
+                    [iterate.id] = (_, _, _, _, deferred) =>
                     {
                         iterateCalls++;
                         pendingIterate = NeoGeneratedTypesSupport
@@ -7159,7 +7159,7 @@ namespace NeoCompose.Tests
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    [pause.id] = (_, _, _, deferred) =>
+                    [pause.id] = (_, _, _, _, deferred) =>
                     {
                         invocationCount++;
                         pending = NeoGeneratedTypesSupport
@@ -7231,7 +7231,7 @@ namespace NeoCompose.Tests
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    [check.id] = (_, _, _, deferred) =>
+                    [check.id] = (_, _, _, _, deferred) =>
                     {
                         invocationCount++;
                         pending = NeoGeneratedTypesSupport
@@ -7302,7 +7302,7 @@ namespace NeoCompose.Tests
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    [pause.id] = (_, _, _, deferred) =>
+                    [pause.id] = (_, _, _, _, deferred) =>
                     {
                         invocationCount++;
                         pending = NeoGeneratedTypesSupport
@@ -7368,7 +7368,7 @@ namespace NeoCompose.Tests
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    [check.id] = (_, _, _, deferred) =>
+                    [check.id] = (_, _, _, _, deferred) =>
                     {
                         invocationCount++;
                         pending = NeoGeneratedTypesSupport
@@ -7454,7 +7454,7 @@ namespace NeoCompose.Tests
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    [load.id] = (_, _, _, deferred) =>
+                    [load.id] = (_, _, _, _, deferred) =>
                     {
                         invocationCount++;
                         pending = NeoGeneratedTypesSupport
@@ -7529,7 +7529,7 @@ namespace NeoCompose.Tests
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    [pause.id] = (_, _, _, deferred) =>
+                    [pause.id] = (_, _, _, _, deferred) =>
                     {
                         invocationCount++;
                         pending = NeoGeneratedTypesSupport

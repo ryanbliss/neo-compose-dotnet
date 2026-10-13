@@ -47,6 +47,13 @@ namespace NeoCompose.Runtime.Json
         /// </summary>
         protected abstract Type? ResolveSubclass(JToken discriminator);
 
+        /// <summary>
+        /// <see cref="ResolveSubclass(JToken)"/> for a union whose arms share
+        /// a discriminator value and differ by their fields.
+        /// </summary>
+        protected virtual Type? ResolveSubclass(JObject obj, JToken discriminator) =>
+            ResolveSubclass(discriminator);
+
         protected virtual void ValidateObjectBeforeDiscriminator(JObject obj)
         {
         }
@@ -82,7 +89,7 @@ namespace NeoCompose.Runtime.Json
                 throw new JsonSerializationException(
                     $"Missing discriminator field '{DiscriminatorField}' on {typeof(TBase).Name}");
             }
-            var concrete = ResolveSubclass(disc);
+            var concrete = ResolveSubclass(obj, disc);
             if (concrete == null)
             {
                 throw new JsonSerializationException(

@@ -41,6 +41,9 @@ namespace NeoCompose.Runtime.Json
         public TypeInfo? returnTypeInfo;
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public List<FunctionArgumentTypeInfo>? argumentTypes;
+        /// <summary>P110 §4. The function's own type parameters; null when it has none.</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public FunctionGenericParam[]? genericParams;
         [JsonProperty("dispatch", NullValueHandling = NullValueHandling.Ignore)]
         private NeoFunctionDispatchKind? dispatch;
 
@@ -215,7 +218,10 @@ namespace NeoCompose.Runtime.Json
 
         private static void RejectUnsupportedTypeInfo(TypeInfo typeInfo, string subject)
         {
-            if (typeInfo.type == MemberKind.Generic
+            // A class's type parameter can't appear in an interface; the
+            // function's own can (P110 §4).
+            if ((typeInfo.type == MemberKind.Generic
+                    && !NeoScript.NeoFunctionTypeArguments.IsFunctionGeneric(typeInfo))
                 || typeInfo.type == MemberKind.Unknown)
             {
                 throw new JsonSerializationException(

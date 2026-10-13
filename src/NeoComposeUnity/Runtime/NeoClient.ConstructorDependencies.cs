@@ -113,11 +113,15 @@ namespace NeoCompose.Runtime
                         {
                             if (!plan.TryGetWritable(store, parentId, out MemberValue? parent) || parent!.IsRemoved)
                                 continue;
+                            if (parent is ObjectMemberValue { classId: not null } recipe)
+                            {
+                                // A recipe reads its own store's copy first.
+                                bool readsThisRow = store == ownership || !plan.TryGetWritable(store, id, out _);
+                                if (readsThisRow && ConstructorArgsReference(recipe, id))
+                                    return true;
+                            }
                             // A collection argument's entries are inputs too.
-                            if (parent is ObjectMemberValue { classId: not null } recipe
-                                    ? ConstructorArgsReference(recipe, id)
-                                        && (store == ownership || !plan.TryGetWritable(store, id, out _))
-                                    : parent is ArrayMemberValue or ObjectMemberValue && Named(parentId))
+                            else if (parent is ArrayMemberValue or ObjectMemberValue && Named(parentId))
                                 return true;
                         }
                     }

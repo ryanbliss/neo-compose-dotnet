@@ -859,6 +859,11 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 get; set;
             }
+            /// <summary>
+            /// P110 §5. The running generic function's type arguments, by
+            /// position. Its own type parameters read them by index.
+            /// </summary>
+            internal TypeInfo[]? functionTypeArguments;
             internal bool TryGetConstructionClassContext(
                 string classId,
                 out IReadOnlyDictionary<string, GenericBinding>? classArguments,
@@ -979,6 +984,8 @@ namespace NeoCompose.Runtime.NeoScript
                     initializerPlacement = null;
                 if (initializerGenericEnv is not null)
                     initializerGenericEnv = null;
+                if (functionTypeArguments is not null)
+                    functionTypeArguments = null;
                 // A C# setter entered its setter here.
                 if (!ReferenceEquals(setterCallStack, client.EmptyCallFrames))
                     setterCallStack = client.EmptyCallFrames;
@@ -1081,12 +1088,21 @@ namespace NeoCompose.Runtime.NeoScript
                 thisValue = receiver;
             }
 
-            internal Context WithFunctionPushed(string memberId, IReadOnlyList<string> directCallStack, object? receiver)
+            internal Context WithFunctionPushed(
+                string memberId, IReadOnlyList<string> directCallStack, object? receiver, TypeInfo[]? typeArguments)
             {
                 Context child = Fork();
                 child.functionCallStackField = PushFunction(child.functionCallStackField, memberId, directCallStack);
                 child.thisValue = receiver;
+                child.functionTypeArguments = typeArguments;
                 return child;
+            }
+
+            /// <summary>Binds a generic callee's type arguments inside the frame its call entered.</summary>
+            internal void BindFunctionTypeArguments(TypeInfo[]? typeArguments)
+            {
+                if (!ReferenceEquals(functionTypeArguments, typeArguments))
+                    functionTypeArguments = typeArguments;
             }
 
             /// <summary>
@@ -1115,6 +1131,7 @@ namespace NeoCompose.Runtime.NeoScript
                 internal object? immediateExpressionOptions;
                 internal ClassMember? initializerPlacement;
                 internal IReadOnlyDictionary<string, NeoGenericEnvEntry>? initializerGenericEnv;
+                internal TypeInfo[]? functionTypeArguments;
                 // Entered by getter and construction frames only.
                 internal IReadOnlyCollection<string>? getterCallStack;
                 internal IReadOnlyList<string>? constructionStack;
@@ -1200,6 +1217,8 @@ namespace NeoCompose.Runtime.NeoScript
                     saved.initializerPlacement = initializerPlacement;
                 if (initializerGenericEnv is not null)
                     saved.initializerGenericEnv = initializerGenericEnv;
+                if (functionTypeArguments is not null)
+                    saved.functionTypeArguments = functionTypeArguments;
                 saved.constructorBody = constructorBody;
                 constructorBody = false;
                 if (!ReferenceEquals(thisValue, receiver))
@@ -1290,6 +1309,9 @@ namespace NeoCompose.Runtime.NeoScript
                 if (!ReferenceEquals(initializerGenericEnv, saved.initializerGenericEnv))
                     initializerGenericEnv = saved.initializerGenericEnv;
                 saved.initializerGenericEnv = null;
+                if (!ReferenceEquals(functionTypeArguments, saved.functionTypeArguments))
+                    functionTypeArguments = saved.functionTypeArguments;
+                saved.functionTypeArguments = null;
                 constructorBody = saved.constructorBody;
             }
 
@@ -2143,7 +2165,7 @@ namespace NeoCompose.Runtime.NeoScript
             if (value.IsClosure)
             {
                 ctx.allocationTracker.ReusableContext = false;
-                return value.Capture(ctx.thisValue, ctx.rootValue);
+                return value.Capture(ctx.thisValue, ctx.rootValue, ctx.functionTypeArguments);
             }
 
             // Bind implicit and explicit this.Member literals at creation,
@@ -2448,7 +2470,7 @@ namespace NeoCompose.Runtime.NeoScript
                 code = closurePointer.code,
                 action = closurePointer.action,
                 captures = captures,
-            }.Capture(ctx.thisValue, ctx.rootValue);
+            }.Capture(ctx.thisValue, ctx.rootValue, ctx.functionTypeArguments);
         }
 
         /// <summary>A delegate invocation.</summary>
@@ -2513,21 +2535,45 @@ namespace NeoCompose.Runtime.NeoScript
         }
 
         /// <param name="function">The call site's resolved signature, or null to resolve it per call.</param>
+        /// <param name="site">The call, whose type arguments a generic native receives; null for a delegate call.</param>
         /// <param name="ownsArguments">Whether <paramref name="args"/> is a call site's rented buffer.</param>
         internal static object? InvokeNativeFunction(string memberId, NeoClient.ResolvedNativeFunction? function,
-            object? receiver, object?[] args, Context ctx, bool ownsArguments = false)
+            object? receiver, object?[] args, Context ctx, CallFunctionPointer? site = null, bool ownsArguments = false)
         {
+            TypeInfo[]? typeArguments = function?.signature.genericParams is null
+                ? null
+                : NativeTypeArguments(function, site, ctx);
             if (function is null || function.intrinsic)
             {
                 if (NeoCellPatternRuntime.TryInvoke(memberId, receiver, args, ctx, out object? result))
                     return result;
-                if (ctx.client.ScriptGridQueries.TryInvoke(memberId, receiver, args, ctx, out result))
+                if (ctx.client.ScriptGridQueries.TryInvoke(memberId, receiver, args, typeArguments, ctx, out result))
                     return result;
             }
             args = ResolveHostArguments(args, ctx, ref ownsArguments);
-            return function is null
-                ? ctx.client.InvokeNativeFunction(memberId, receiver, args, ownsArguments)
-                : ctx.client.InvokeNativeFunction(function, receiver, args, ownsArguments);
+            if (function is null)
+            {
+                function = ctx.client.ResolveNativeFunction(memberId);
+                if (function.signature.genericParams is not null)
+                    typeArguments = NativeTypeArguments(function, site, ctx);
+            }
+            return ctx.client.InvokeNativeFunction(function, receiver, args, typeArguments, ownsArguments);
+        }
+
+        /// <summary>P110 §5. A generic native call's type arguments, resolved in the caller's frame.</summary>
+        internal static TypeInfo[] NativeTypeArguments(
+            NeoClient.ResolvedNativeFunction function,
+            CallFunctionPointer? site,
+            Context ctx)
+        {
+            if (site?.typeArguments is null && function.defaultTypeArguments is { } defaults)
+                return defaults;
+            return NeoFunctionTypeArguments.ForCall(
+                site?.typeArguments,
+                site is not null && site.TypeArgumentsForward,
+                function.signature.genericParams,
+                function.name,
+                ctx.functionTypeArguments)!;
         }
 
         private static object? EvalFunctionCall(
@@ -2572,7 +2618,7 @@ namespace NeoCompose.Runtime.NeoScript
                 {
                     return InvokeNativeFunction(target.memberId, target.nativeFunction, receiver,
                         FillNativeCallSiteArguments(target.memberId, target.nativeFunction?.signature, args), ctx,
-                        ownsArguments: true);
+                        site: pointer, ownsArguments: true);
                 }
                 if (!ctx.client.TryGetMember(target.memberId, out JsonMember? _))
                 {
@@ -2884,6 +2930,8 @@ namespace NeoCompose.Runtime.NeoScript
                 nestedCtx = ctx.WithThis(lexicalThis);
                 nestedCtx.BindRoot(lexicalRoot);
             }
+            // The body reads the type arguments of the frame that made it.
+            nestedCtx.BindFunctionTypeArguments(value.lexicalTypeArguments);
             NeoScriptScopeLayout layout = action.scopeLayout ??= new NeoScriptScopeLayout(action);
             var scope = layout.RentScope();
             bool completed = false;
@@ -8373,6 +8421,12 @@ namespace NeoCompose.Runtime.NeoScript
         private static bool RuntimeTypeCheck(object? value, TypeInfo checkType, Context ctx,
             HashSet<object>? seenCollections = null)
         {
+            // P110 §5. A function's frame always holds a concrete type argument.
+            if (checkType.type == MemberKind.Generic && NeoFunctionTypeArguments.IsFunctionGeneric(checkType))
+            {
+                TypeInfo bound = NeoFunctionTypeArguments.FrameArgument(checkType, ctx.functionTypeArguments, ctx.client);
+                return RuntimeTypeCheck(value, bound, ctx, seenCollections);
+            }
             if (checkType.type == MemberKind.Null)
                 return value is null;
             if (value is null)

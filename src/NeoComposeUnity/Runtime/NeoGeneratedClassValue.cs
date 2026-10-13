@@ -273,17 +273,23 @@ namespace NeoCompose.Runtime
         /// view's receiver. A pending temporary is called as itself, so the
         /// call makes no rows.
         /// </summary>
-        protected object? InvokeFunction(string key, object?[] args)
+        protected object? InvokeFunction(string key, object?[] args) => InvokeGenericFunction(key, null, args);
+
+        /// <summary>
+        /// Calls immediate generic instance NSFunction <paramref name="key"/>
+        /// with <paramref name="typeArguments"/>, as <see cref="InvokeFunction(string, object?[])"/> does.
+        /// </summary>
+        protected object? InvokeGenericFunction(string key, TypeInfo[]? typeArguments, object?[] args)
         {
             if (detached is { attachedId: null } pending)
-                return NeoNSFunctionRuntime.InvokeDetached(pending, key, args);
+                return NeoNSFunctionRuntime.InvokeDetached(pending, key, args, typeArguments);
             if (valueId is null)
             {
                 throw new InvalidOperationException(
                     $"Cannot invoke NSFunction '{key}' without a backing receiver value id.");
             }
             // The writable view keeps an inherited Save/Session ownership.
-            return writableNode.Get<NeoMemberNSFunction>(key).Invoke(valueId!, args);
+            return writableNode.Get<NeoMemberNSFunction>(key).Invoke(valueId!, args, typeArguments);
         }
 
         internal bool IsDisposed => isDisposed;

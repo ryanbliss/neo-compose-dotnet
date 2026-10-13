@@ -84,6 +84,17 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>
+    /// P110 §4. A function's own type parameter, by its position in the
+    /// declaring function's <c>genericParams</c>. A call frame binds it to
+    /// a concrete type.
+    /// </summary>
+    public sealed class FunctionGenericTypeInfo : TypeInfo
+    {
+        public string ownerMemberId = null!;
+        public int index;
+    }
+
+    /// <summary>
     /// First-class callable type info. The return type is declared first and
     /// the positional argument types follow, matching NeoDelegate's generic
     /// parameter order.
@@ -159,6 +170,15 @@ namespace NeoCompose.Runtime.Json
 
     public class TypeInfoConverter : DiscriminatedConverter<TypeInfo>
     {
+        protected override Type? ResolveSubclass(JObject obj, JToken discriminator) =>
+            FunctionGenericTypeInfoArm(obj, ResolveSubclass(discriminator));
+
+        /// <summary>A Generic type info naming its owner function is the function arm.</summary>
+        internal static Type? FunctionGenericTypeInfoArm(JObject obj, Type? resolved) =>
+            resolved == typeof(GenericTypeInfo) && obj.Property("ownerMemberId") is not null
+                ? typeof(FunctionGenericTypeInfo)
+                : resolved;
+
         protected override Type? ResolveSubclass(JToken discriminator)
         {
             if (discriminator.Type == JTokenType.String)
@@ -215,6 +235,9 @@ namespace NeoCompose.Runtime.Json
 
     public class FunctionReturnTypeInfoConverter : DiscriminatedConverter<TypeInfo>
     {
+        protected override Type? ResolveSubclass(JObject obj, JToken discriminator) =>
+            TypeInfoConverter.FunctionGenericTypeInfoArm(obj, ResolveSubclass(discriminator));
+
         protected override Type? ResolveSubclass(JToken discriminator)
         {
             if (discriminator.Type == JTokenType.String)

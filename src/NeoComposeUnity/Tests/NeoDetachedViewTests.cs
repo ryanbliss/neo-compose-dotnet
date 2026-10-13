@@ -336,7 +336,7 @@ namespace NeoCompose.Tests
             int evaluations = 0;
             client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
             {
-                [finalize.id] = (_, _, args) =>
+                [finalize.id] = (_, _, args, _) =>
                 {
                     evaluations++;
                     TestReport report = ReadReport(client, args[0]);
@@ -1063,7 +1063,7 @@ namespace NeoCompose.Tests
             if (deferred)
                 client.RegisterDeferredNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    [change.id] = (_, _, _, handle) =>
+                    [change.id] = (_, _, _, _, handle) =>
                     {
                         argument = ChangeReceiver();
                         pending = handle;
@@ -1072,7 +1072,7 @@ namespace NeoCompose.Tests
             else
                 client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
                 {
-                    [change.id] = (_, _, _) => ChangeReceiver(),
+                    [change.id] = (_, _, _, _) => ChangeReceiver(),
                 });
             NeoScriptExecutionResult execution = NeoScriptExecutor.Execute(client, new FunctionWithReturnType
             {

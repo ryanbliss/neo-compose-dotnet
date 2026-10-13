@@ -1559,7 +1559,7 @@ namespace NeoCompose.Tests
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    ["member-deferred-score"] = (_, _, _, deferred) =>
+                    ["member-deferred-score"] = (_, _, _, _, deferred) =>
                     {
                         pending = NeoGeneratedTypesSupport.ResolveDeferredFunction<NeoDeferredFunction<int>>(
                             deferred,
@@ -1604,7 +1604,7 @@ namespace NeoCompose.Tests
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    ["member-deferred-score"] = (_, _, _, deferred) =>
+                    ["member-deferred-score"] = (_, _, _, _, deferred) =>
                     {
                         var typed = NeoGeneratedTypesSupport.ResolveDeferredFunction<NeoDeferredFunction<int>>(
                             deferred,
@@ -1636,7 +1636,7 @@ namespace NeoCompose.Tests
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    ["member-deferred-score"] = (_, _, _, deferred) =>
+                    ["member-deferred-score"] = (_, _, _, _, deferred) =>
                     {
                         pending = NeoGeneratedTypesSupport.ResolveDeferredFunction<NeoDeferredFunction<int>>(
                             deferred,
@@ -1663,7 +1663,7 @@ namespace NeoCompose.Tests
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    ["member-deferred-score"] = (_, _, _, deferred) =>
+                    ["member-deferred-score"] = (_, _, _, _, deferred) =>
                     {
                         pending = NeoGeneratedTypesSupport.ResolveDeferredFunction<NeoDeferredFunction<int>>(
                             deferred,
@@ -1690,7 +1690,7 @@ namespace NeoCompose.Tests
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    ["member-deferred-score"] = (_, _, _, _) =>
+                    ["member-deferred-score"] = (_, _, _, _, _) =>
                         throw new InvalidOperationException("direct boom"),
                 });
 
@@ -1712,7 +1712,7 @@ namespace NeoCompose.Tests
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    ["member-deferred-score"] = (_, _, _, deferred) =>
+                    ["member-deferred-score"] = (_, _, _, _, deferred) =>
                         deferred.Fail(new InvalidOperationException("deferred failed")),
                 });
 
@@ -1735,7 +1735,7 @@ namespace NeoCompose.Tests
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    ["member-deferred-score"] = (_, _, _, deferred) =>
+                    ["member-deferred-score"] = (_, _, _, _, deferred) =>
                     {
                         pending = NeoGeneratedTypesSupport.ResolveDeferredFunction<NeoDeferredFunction<int>>(
                             deferred,

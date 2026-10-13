@@ -427,7 +427,7 @@ namespace NeoCompose.Tests
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    ["member-deferred"] = (_, _, _, deferred) =>
+                    ["member-deferred"] = (_, _, _, _, deferred) =>
                         NeoGeneratedTypesSupport
                             .ResolveDeferredFunction<NeoDeferredFunction>(
                                 deferred,
@@ -601,7 +601,7 @@ namespace NeoCompose.Tests
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    ["member-deferred"] = (_, _, _, deferred) =>
+                    ["member-deferred"] = (_, _, _, _, deferred) =>
                         NeoGeneratedTypesSupport
                             .ResolveDeferredFunction<NeoDeferredFunction>(
                                 deferred,
@@ -630,7 +630,7 @@ namespace NeoCompose.Tests
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    ["member-deferred"] = (_, _, _, deferred) =>
+                    ["member-deferred"] = (_, _, _, _, deferred) =>
                         NeoGeneratedTypesSupport
                             .ResolveDeferredFunction<NeoDeferredFunction>(
                                 deferred,
@@ -657,7 +657,7 @@ namespace NeoCompose.Tests
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    ["member-deferred"] = (_, _, _, deferred) =>
+                    ["member-deferred"] = (_, _, _, _, deferred) =>
                         pending = NeoGeneratedTypesSupport
                             .ResolveDeferredFunction<NeoDeferredFunction>(
                                 deferred,
@@ -700,7 +700,7 @@ namespace NeoCompose.Tests
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    ["member-deferred"] = (_, _, _, deferred) =>
+                    ["member-deferred"] = (_, _, _, _, deferred) =>
                         pending = NeoGeneratedTypesSupport
                             .ResolveDeferredFunction<NeoDeferredFunction>(
                                 deferred,
@@ -728,7 +728,7 @@ namespace NeoCompose.Tests
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    ["member-deferred"] = (_, _, _, deferred) =>
+                    ["member-deferred"] = (_, _, _, _, deferred) =>
                         pending = NeoGeneratedTypesSupport
                             .ResolveDeferredFunction<NeoDeferredFunction>(
                                 deferred,
@@ -768,7 +768,7 @@ namespace NeoCompose.Tests
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    ["member-deferred"] = (_, _, _, deferred) =>
+                    ["member-deferred"] = (_, _, _, _, deferred) =>
                         pending = NeoGeneratedTypesSupport
                             .ResolveDeferredFunction<NeoDeferredFunction>(
                                 deferred,
@@ -798,7 +798,7 @@ namespace NeoCompose.Tests
             client.RegisterNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
                 {
-                    ["member-capture"] = (_, _, args) =>
+                    ["member-capture"] = (_, _, args, _) =>
                     {
                         captured = args[0];
                         return null;

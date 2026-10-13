@@ -40,7 +40,7 @@ namespace NeoCompose.Tests
             var heard = new List<double>();
             client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
             {
-                ["count-handler"] = (_, _, args) => { heard.Add(Convert.ToDouble(args[0])); return null; },
+                ["count-handler"] = (_, _, args, _) => { heard.Add(Convert.ToDouble(args[0])); return null; },
             });
             Assert.That(client.SerializeSaveData(), Does.Not.Contain("changeListeners"));
             client.save.Get<NeoMemberClassWritable>("Thing").Get<NeoMemberIntWritable>("Count").Set(12);
@@ -164,7 +164,7 @@ namespace NeoCompose.Tests
             var heard = new List<double>();
             client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
             {
-                ["count-handler"] = (_, _, args) => { heard.Add(Convert.ToDouble(args[0])); return null; },
+                ["count-handler"] = (_, _, args, _) => { heard.Add(Convert.ToDouble(args[0])); return null; },
             });
             NeoMemberClassWritable owner = memberWise
                 ? NeoGeneratedTypesSupport.CreateWritableClassValue(client, "save-root-class")
@@ -227,7 +227,7 @@ namespace NeoCompose.Tests
             var heard = new List<double>();
             client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
             {
-                ["count-handler"] = (_, _, args) => { heard.Add(Convert.ToDouble(args[0])); return null; },
+                ["count-handler"] = (_, _, args, _) => { heard.Add(Convert.ToDouble(args[0])); return null; },
             });
             var owner = client.save.Get<NeoMemberClassWritable>("Thing");
             _ = owner.value;
@@ -401,7 +401,7 @@ namespace NeoCompose.Tests
             var heard = new List<double>();
             client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
             {
-                ["count-handler"] = (_, _, args) => { heard.Add(Convert.ToDouble(args[0])); return null; },
+                ["count-handler"] = (_, _, args, _) => { heard.Add(Convert.ToDouble(args[0])); return null; },
             });
             var owner = memberWise
                 ? NeoGeneratedTypesSupport.CreateWritableClassValue(client, "save-root-class").Get<NeoMemberClassWritable>("Thing")
@@ -669,8 +669,8 @@ namespace NeoCompose.Tests
             var heard = new List<double>();
             client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
             {
-                ["count-handler"] = (_, _, args) => { heard.Add(Convert.ToDouble(args[0])); return null; },
-                ["product-handler"] = (_, _, args) => { heard.Add(2 * Convert.ToDouble(args[0])); return null; },
+                ["count-handler"] = (_, _, args, _) => { heard.Add(Convert.ToDouble(args[0])); return null; },
+                ["product-handler"] = (_, _, args, _) => { heard.Add(2 * Convert.ToDouble(args[0])); return null; },
             });
             var root = memberWise
                 ? NeoGeneratedTypesSupport.CreateWritableClassValue(client, "save-root-class").Get<NeoMemberClassWritable>("Thing")
@@ -730,7 +730,7 @@ namespace NeoCompose.Tests
             var heard = new List<double>();
             client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
             {
-                ["count-handler"] = (_, _, args) => { heard.Add(Convert.ToDouble(args[0])); return null; },
+                ["count-handler"] = (_, _, args, _) => { heard.Add(Convert.ToDouble(args[0])); return null; },
             });
             var count = client.save.Get<NeoMemberClassWritable>("Thing").Get<NeoMemberIntWritable>("Count");
             Assert.That(client.SerializeSaveData(), Does.Not.Contain("changeListeners"));
@@ -865,7 +865,7 @@ namespace NeoCompose.Tests
             var heard = new List<double>();
             client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
             {
-                ["count-handler"] = (_, _, args) => { heard.Add(Convert.ToDouble(args[0])); return null; },
+                ["count-handler"] = (_, _, args, _) => { heard.Add(Convert.ToDouble(args[0])); return null; },
             });
             if (failFirst)
             {
@@ -4881,7 +4881,7 @@ namespace NeoCompose.Tests
             var ran = new List<string>();
             client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
             {
-                ["thing-record"] = (_, receiver, _) =>
+                ["thing-record"] = (_, receiver, _, _) =>
                 {
                     ran.Add(NeoGeneratedTypesSupport.ValueId(receiver)!);
                     return null;

@@ -460,7 +460,7 @@ namespace NeoCompose.Tests
             var ctx = client.CreateGetterContext(NeoValueOwnership.Asset);
             object? receiver = NSGetterEvaluator.UnwrapRow(client.ResolveValueRow("shop-1")!, ctx, NeoValueOwnership.Asset);
             Assert.IsTrue(client.ScriptGridQueries.TryInvoke("system_f5ca386c-990c-54a1-8473-2d49d2cd887d", receiver,
-                new object?[] { NeoCellPatternRuntimeTests.Construct(client, Vector2Int.zero) }, ctx, out object? result));
+                new object?[] { NeoCellPatternRuntimeTests.Construct(client, Vector2Int.zero) }, null, ctx, out object? result));
             Assert.AreSame(receiver, ((object?[])result!).Single());
             Assert.AreEqual(ObjectClassId, NSGetterEvaluator.FindRowClassIdByReference(((object?[])result!).Single(), ctx));
         }
@@ -485,7 +485,7 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue("shop-1", out ObjectMemberValue? row));
             object? receiver = NSGetterEvaluator.UnwrapRow(row!, ctx, NeoValueOwnership.Asset);
             Assert.IsTrue(client.ScriptGridQueries.TryInvoke("system_df1c2d06-eeec-5340-addc-740f3668c9e4", receiver,
-                Array.Empty<object?>(), ctx, out object? cell));
+                Array.Empty<object?>(), null, ctx, out object? cell));
             Assert.AreEqual(new Vector2Int(10, 20), NeoGeneratedTypesSupport.ReadVector2IntValue(cell));
             Assert.AreEqual(1, created);
             // A getter that queried the grid stays memoized until a change
@@ -495,7 +495,7 @@ namespace NeoCompose.Tests
             {
                 NeoClient.GetterCaptureFrame enclosing = client.BeginGetterReadCapture();
                 Assert.IsTrue(client.ScriptGridQueries.TryInvoke("system_f5ca386c-990c-54a1-8473-2d49d2cd887d", receiver,
-                    new object?[] { NeoCellPatternRuntimeTests.Construct(client, offset) }, ctx, out object? queried));
+                    new object?[] { NeoCellPatternRuntimeTests.Construct(client, offset) }, null, ctx, out object? queried));
                 Assert.AreEqual(empty, ((object?[])queried!).Length == 0);
                 client.MemoizeGetter(key, 0, null, client.EndGetterReadCapture(enclosing));
                 Assert.IsNotNull(client.FindMemoizedGetter(key));
@@ -518,7 +518,7 @@ namespace NeoCompose.Tests
             });
             Assert.IsNull(client.FindMemoizedGetter(key), "Moving the queried receiver drops it.");
             Assert.IsTrue(client.ScriptGridQueries.TryInvoke("system_df1c2d06-eeec-5340-addc-740f3668c9e4", receiver,
-                Array.Empty<object?>(), ctx, out cell));
+                Array.Empty<object?>(), null, ctx, out cell));
             Assert.AreEqual(new Vector2Int(11, 20), NeoGeneratedTypesSupport.ReadVector2IntValue(cell), "A query after a move reads the moved placement.");
 
             MemoizeQuery(new Vector2Int(50, 50));
@@ -537,7 +537,7 @@ namespace NeoCompose.Tests
             client.SetWritableValues(NeoValueOwnership.Save, Shop("new-shop", 61, 70));
             Assert.IsNull(client.FindMemoizedGetter(key), "New containment membership on a queried empty cell drops it.");
             Assert.IsTrue(client.ScriptGridQueries.TryInvoke("system_f5ca386c-990c-54a1-8473-2d49d2cd887d", receiver,
-                new object?[] { NeoCellPatternRuntimeTests.Construct(client, new Vector2Int(50, 50)) }, ctx, out object? inserted));
+                new object?[] { NeoCellPatternRuntimeTests.Construct(client, new Vector2Int(50, 50)) }, null, ctx, out object? inserted));
             Assert.AreEqual("new-shop", NSGetterEvaluator.FindRowIdByReference(((object?[])inserted!).Single(), ctx),
                 "A query after the insertion reads the rebuilt layer index.");
 
@@ -566,7 +566,7 @@ namespace NeoCompose.Tests
             {
                 NeoClient.GetterCaptureFrame enclosing = client.BeginGetterReadCapture();
                 Assert.IsTrue(client.ScriptGridQueries.TryInvoke("system_593e6208-e2ca-505e-9933-04b17102b6d2", receiver,
-                    new object?[] { NeoCellPatternRuntimeTests.Construct(client, new Vector2Int(-1, 2)) }, ctx, out object? tile));
+                    new object?[] { NeoCellPatternRuntimeTests.Construct(client, new Vector2Int(-1, 2)) }, null, ctx, out object? tile));
                 client.MemoizeGetter(key, 0, null, client.EndGetterReadCapture(enclosing));
                 return tile is not null;
             }
@@ -605,7 +605,7 @@ namespace NeoCompose.Tests
             object?[] Tiles(object pattern, object? offset)
             {
                 Assert.IsTrue(client.ScriptGridQueries.TryInvoke("system_5a41d36a-bcd9-4867-9e46-d743f6e09582", receiver,
-                    new object?[] { pattern, offset }, ctx, out object? tiles));
+                    new object?[] { pattern, offset }, null, ctx, out object? tiles));
                 return (object?[])tiles!;
             }
             // shop-1 sits at (10, 20); the background tile at (2, 3) and the
@@ -619,7 +619,7 @@ namespace NeoCompose.Tests
             Assert.AreEqual(1, Tiles(center, new Vector2Int(-1, 2)).Length, "The offset shifts the whole pattern.");
             CollectionAssert.IsEmpty(Tiles(center, null));
             Assert.IsTrue(client.ScriptGridQueries.TryInvoke("system_593e6208-e2ca-505e-9933-04b17102b6d2", receiver,
-                new object?[] { center, new Vector2Int(-8, -17) }, ctx, out object? tile));
+                new object?[] { center, new Vector2Int(-8, -17) }, null, ctx, out object? tile));
             Assert.AreEqual("class-backed-placement", NSGetterEvaluator.FindRowIdByReference(tile, ctx));
         }
 
@@ -658,7 +658,7 @@ namespace NeoCompose.Tests
             object? receiver = NSGetterEvaluator.UnwrapRow(client.ResolveValueRow("shop-1")!, ctx, NeoValueOwnership.Asset);
             string?[] Query(string queryId, object? pattern)
             {
-                Assert.IsTrue(client.ScriptGridQueries.TryInvoke(queryId, receiver, new[] { pattern }, ctx, out object? result));
+                Assert.IsTrue(client.ScriptGridQueries.TryInvoke(queryId, receiver, new[] { pattern }, null, ctx, out object? result));
                 object?[] found = result as object?[] ?? new[] { result };
                 return found.Select(entry => entry is null ? null : NSGetterEvaluator.FindRowIdByReference(entry, ctx)).ToArray();
             }
@@ -696,7 +696,7 @@ namespace NeoCompose.Tests
             object? Invoke(string queryId, params Vector2Int[] offsets)
             {
                 Assert.IsTrue(client.ScriptGridQueries.TryInvoke(queryId, receiver,
-                    new object?[] { NeoCellPatternRuntimeTests.Construct(client, offsets) }, ctx, out object? result));
+                    new object?[] { NeoCellPatternRuntimeTests.Construct(client, offsets) }, null, ctx, out object? result));
                 return result;
             }
 
@@ -710,6 +710,51 @@ namespace NeoCompose.Tests
                 Assert.AreEqual(NSGetterEvaluator.FindRowIdByReference(Invoke(GetTileId, cells[i]), ctx),
                     NSGetterEvaluator.FindRowIdByReference(tiles[i], ctx), $"GetTile agrees at {cells[i]}.");
             }
+        }
+
+        [Test]
+        public void NeoScriptGridQuery_ATypeArgumentKeepsOrSkipsEachCellsWinner()
+        {
+            ProjectData data = BuildCellPatternTileGridProjectData();
+            data.classes[OtherTileClassId].extendsClassId = TileClassId;
+            // The background tile under the blocked path, and the shop's floor, become the subclass.
+            ((ObjectMemberValue)data.values["class-backed-placement"]).classId = OtherTileClassId;
+            ((ObjectMemberValue)data.values["floor-local"]).classId = OtherTileClassId;
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid",
+                BuildClassBackedReadOnlyFactories(), BuildClassBackedWritableFactories());
+            var background = primitive.BindReadOnlyTileLayer<TestAuthoredTileLayer>(BackgroundLayerClassId, new[] { TileClassId });
+            Vector2Int covered = new(2, 3);
+            var overlay = new TestOverlayTileLayer(background, covered, background.GetTile(new Vector2Int(12, 13))!);
+            client.ScriptGridQueries.RegisterContent(new TestTileGridContent(primitive,
+                new IReadOnlyNeoTileLayerRuntime[] { background, overlay },
+                new[] { primitive.BindReadOnlyObjectLayer<TestAuthoredObjectLayer>(ObjectsLayerClassId, new[] { ObjectClassId }) }));
+            client.ScriptGridQueries.Bind("shop-1", "town-grid", ObjectsLayerClassId, "shop-1");
+            var ctx = client.CreateGetterContext(NeoValueOwnership.Asset);
+            object? receiver = NSGetterEvaluator.UnwrapRow(client.ResolveValueRow("shop-1")!, ctx, NeoValueOwnership.Asset);
+            string?[] Query(string queryId, string? classId, params Vector2Int[] offsets)
+            {
+                TypeInfo[]? typeArguments = classId is null
+                    ? null
+                    : new TypeInfo[] { new ClassTypeInfo { type = MemberKind.Class, classId = classId, required = true } };
+                Assert.IsTrue(client.ScriptGridQueries.TryInvoke(queryId, receiver,
+                    new object?[] { NeoCellPatternRuntimeTests.Construct(client, offsets) }, typeArguments, ctx, out object? result));
+                object?[] found = result as object?[] ?? new[] { result };
+                return found.Select(entry => entry is null ? null : NSGetterEvaluator.FindRowIdByReference(entry, ctx)).ToArray();
+            }
+
+            // shop-1 sits at (10, 20): (2, 3) holds the blocked path over the background tile; (9, 22) the floor.
+            Vector2Int coveredOffset = new(-8, -17);
+            Vector2Int floorOffset = new(-1, 2);
+            CollectionAssert.AreEqual(new[] { "floor-local" }, Query(GetTilesId, OtherTileClassId, coveredOffset, floorOffset),
+                "A rejected winner is skipped, not looked under.");
+            CollectionAssert.AreEqual(new string?[] { null }, Query(GetTileId, OtherTileClassId, coveredOffset));
+            CollectionAssert.AreEqual(new[] { "floor-local" }, Query(GetTileId, OtherTileClassId, coveredOffset, floorOffset),
+                "GetTile takes the first accepted winner in pattern order.");
+            CollectionAssert.AreEqual(Query(GetTilesId, null, coveredOffset, floorOffset), Query(GetTilesId, TileClassId, coveredOffset, floorOffset),
+                "A type argument every winner extends keeps them all.");
+            CollectionAssert.AreEqual(new[] { "shop-1" }, Query(GetObjectsId, ObjectClassId, Vector2Int.zero));
+            CollectionAssert.IsEmpty(Query(GetObjectsId, OtherTileClassId, Vector2Int.zero));
         }
 
         [Test]
@@ -748,6 +793,24 @@ namespace NeoCompose.Tests
             CollectionAssert.AreEqual(new[] { 1 }, heard, "The getter hears the empty cell gain a tile and reads it.");
             client.SetWritableValue(NeoValueOwnership.Save, new ArrayMemberValue { id = "shop-1-children", value = Array.Empty<string>() });
             CollectionAssert.AreEqual(new[] { 1, 0 }, heard, "It hears the tile leave too.");
+        }
+
+        [Test]
+        public void NeoScriptGridQuery_ATypedGetterHearsAQueriedWinnerConvertIntoItsTypeArgument()
+        {
+            ProjectData data = BuildGridGetterProjectData();
+            data.classes[OtherTileClassId].extendsClassId = TileClassId;
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            RegisterGridGetterContent(client);
+            var view = TestGridGetterView.Resolve(client, "shop-1");
+            var heard = new List<int>();
+            // OtherTiles reads only (2, 3), whose Tile winner the filter skips until it converts.
+            using var watch = view.OnOtherTilesChanged((count, _) => heard.Add(count));
+
+            client.ConvertTile(NeoValueOwnership.Save, "class-backed-placement", OtherTileClassId);
+            CollectionAssert.AreEqual(new[] { 1 }, heard, "The getter hears the winner convert into its type argument.");
+            client.ConvertTile(NeoValueOwnership.Save, "class-backed-placement", TileClassId);
+            CollectionAssert.AreEqual(new[] { 1, 0 }, heard, "It hears the winner convert back out.");
         }
 
         [Test]
@@ -845,7 +908,7 @@ namespace NeoCompose.Tests
             var heard = new List<int>();
             client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
             {
-                ["object-record"] = (_, receiver, args) =>
+                ["object-record"] = (_, receiver, args, _) =>
                 {
                     if (NeoGeneratedTypesSupport.ValueId(receiver) == "shop-1")
                         heard.Add(((object?[])args[0]!).Length);
@@ -1142,7 +1205,7 @@ namespace NeoCompose.Tests
             {
                 NeoClient.GetterCaptureFrame enclosing = client.BeginGetterReadCapture();
                 Assert.IsTrue(client.ScriptGridQueries.TryInvoke(GetObjectsId, receiver,
-                    new object?[] { center, NeoVectorValues.FromVector2Int(new Vector2Int(0, 1)) }, ctx, out object? queried));
+                    new object?[] { center, NeoVectorValues.FromVector2Int(new Vector2Int(0, 1)) }, null, ctx, out object? queried));
                 client.MemoizeGetter(key, 0, null, client.EndGetterReadCapture(enclosing));
                 return ((object?[])queried!).Select(entry => NSGetterEvaluator.FindRowIdByReference(entry, ctx)).ToArray();
             }
@@ -1186,19 +1249,26 @@ namespace NeoCompose.Tests
         }
 
         /// <summary><c>GetObjects</c> or <c>GetTile</c>: a pattern and an optional offset.</summary>
-        private static FunctionMember GridQuery(string id, string name, TypeInfo returnType) => new()
+        /// <summary>A grid query declaring <c>&lt;T extends Base = Base&gt;</c>, Base being the class it returns.</summary>
+        private static FunctionMember GridQuery(string id, string name, TypeInfo returnType)
         {
-            id = id,
-            projectId = "project-a",
-            name = name,
-            kind = MemberKind.Function,
-            argumentTypes = new[]
+            TypeInfo entry = returnType is CollectionTypeInfo list ? list.entryTypeInfo : returnType;
+            var baseClass = new ClassTypeInfo { type = MemberKind.Class, classId = ((ClassTypeInfo)entry).classId, required = true };
+            return new FunctionMember
             {
-                new FunctionArgumentTypeInfo { name = "pattern", type = MemberKind.Class, classId = NeoCellPatternOffsets.ClassId, required = true },
-                new FunctionArgumentTypeInfo { name = "offset", type = MemberKind.Vector2Int, required = false },
-            },
-            returnTypeInfo = returnType,
-        };
+                id = id,
+                projectId = "project-a",
+                name = name,
+                kind = MemberKind.Function,
+                argumentTypes = new[]
+                {
+                    new FunctionArgumentTypeInfo { name = "pattern", type = MemberKind.Class, classId = NeoCellPatternOffsets.ClassId, required = true },
+                    new FunctionArgumentTypeInfo { name = "offset", type = MemberKind.Vector2Int, required = false },
+                },
+                returnTypeInfo = returnType,
+                genericParams = new[] { new FunctionGenericParam { name = "T", constraint = baseClass, defaultType = baseClass } },
+            };
+        }
 
         /// <summary>
         /// The class-backed grid with the NeoCellPattern schema and two
@@ -1245,9 +1315,30 @@ namespace NeoCompose.Tests
                     x = -1,
                     y = 2
                 }))));
+            // GetTiles<OtherTile>(Box(0, 0, None).Translate(-8, -17)): the background tile at (2, 3).
+            var otherTiles = new CollectionTypeInfo
+            {
+                type = MemberKind.List,
+                required = true,
+                entryTypeInfo = new ClassTypeInfo { type = MemberKind.Class, classId = OtherTileClassId, required = true },
+            };
+            var typedTiles = (CallFunctionPointer)Call("other-tiles", GetTilesId, new CallFunctionPointer
+            {
+                type = PointerKind.CallFunction,
+                callSiteId = "other-tiles-translate",
+                memberId = NeoCellPatternRuntime.TranslateId,
+                receiver = CallReceiver.Instance(Box("other-tiles-box")),
+                args = new Pointer[]
+                {
+                    Literal(new PrimitiveTypeInfo { type = MemberKind.Vector2Int, required = true }, JObject.FromObject(new { x = -8, y = -17 })),
+                },
+            });
+            typedTiles.typeArguments = new TypeInfo[] { new ClassTypeInfo { type = MemberKind.Class, classId = OtherTileClassId, required = true } };
+            data.members["object-other-tiles-getter"] = Getter("object-other-tiles-getter", "OtherTiles", otherTiles, typedTiles);
             data.classes[ObjectClassId].schema["Here"] = "object-here-getter";
             data.classes[ObjectClassId].schema["Floor"] = "object-floor-getter";
             data.classes[ObjectClassId].schema["Tiles"] = "object-tiles-getter";
+            data.classes[ObjectClassId].schema["OtherTiles"] = "object-other-tiles-getter";
             return data;
 
             static ValuePointer Literal(TypeInfo typeInfo, JToken value) => new()
@@ -1299,6 +1390,7 @@ namespace NeoCompose.Tests
         {
             private static readonly NeoField<int> Here = new("Here");
             private static readonly NeoField<int> Tiles = new("Tiles");
+            private static readonly NeoField<int> OtherTiles = new("OtherTiles");
 
             private TestGridGetterView(NeoClient client, NeoMemberClass node)
                 : base(client, node, ObjectClassId)
@@ -1320,6 +1412,9 @@ namespace NeoCompose.Tests
 
             internal IDisposable OnTilesChanged(Action<int, NeoChangeSource> handler) =>
                 WatchField(Tiles, handler, () => ((object?[])Compute("Tiles")!).Length);
+
+            internal IDisposable OnOtherTilesChanged(Action<int, NeoChangeSource> handler) =>
+                WatchField(OtherTiles, handler, () => ((object?[])Compute("OtherTiles")!).Length);
 
             private object? Compute(string key)
             {
@@ -1393,7 +1488,7 @@ namespace NeoCompose.Tests
                 {
                     NeoScriptExecutor.Execute(client, add, new Dictionary<string, object?>(), ctx);
                     Assert.IsTrue(client.ScriptGridQueries.TryInvoke("system_df1c2d06-eeec-5340-addc-740f3668c9e4", receiver,
-                        Array.Empty<object?>(), ctx, out object? cell));
+                        Array.Empty<object?>(), null, ctx, out object? cell));
                     Assert.AreEqual(new Vector2Int(10, 20), NeoGeneratedTypesSupport.ReadVector2IntValue(cell));
                 }
             }
@@ -1432,7 +1527,7 @@ namespace NeoCompose.Tests
             Vector2Int GetCell()
             {
                 Assert.IsTrue(client.ScriptGridQueries.TryInvoke("system_df1c2d06-eeec-5340-addc-740f3668c9e4", receiver,
-                    Array.Empty<object?>(), ctx, out object? cell));
+                    Array.Empty<object?>(), null, ctx, out object? cell));
                 return NeoGeneratedTypesSupport.ReadVector2IntValue(cell)!.Value;
             }
         }
@@ -1468,7 +1563,7 @@ namespace NeoCompose.Tests
             Vector2Int GetCell()
             {
                 Assert.IsTrue(client.ScriptGridQueries.TryInvoke("system_df1c2d06-eeec-5340-addc-740f3668c9e4", receiver,
-                    Array.Empty<object?>(), ctx, out object? cell));
+                    Array.Empty<object?>(), null, ctx, out object? cell));
                 return NeoGeneratedTypesSupport.ReadVector2IntValue(cell)!.Value;
             }
         }
@@ -1650,7 +1745,7 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(objectId, out ObjectMemberValue? row));
             object? receiver = NSGetterEvaluator.UnwrapRow(row!, ctx, NeoValueOwnership.Asset);
             Assert.IsTrue(client.ScriptGridQueries.TryInvoke("system_df1c2d06-eeec-5340-addc-740f3668c9e4", receiver,
-                Array.Empty<object?>(), ctx, out object? cell));
+                Array.Empty<object?>(), null, ctx, out object? cell));
             Assert.AreEqual(Vector2Int.zero, NeoGeneratedTypesSupport.ReadVector2IntValue(cell));
         }
 

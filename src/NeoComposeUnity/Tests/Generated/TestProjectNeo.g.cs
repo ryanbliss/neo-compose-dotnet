@@ -27,6 +27,7 @@ namespace Assets.Scripts.Neo
         {
             Client.RegisterNativeFunctionInvokers(NativeFunctionInvokers);
             Client.RegisterDeferredNativeFunctionInvokers(DeferredNativeFunctionInvokers);
+            Client.TypeArguments.Register(NeoTypeArgumentClassIds, NeoTypeArgumentEnumIds);
             Instance = this;
             Assets = new Root(client, client.assets, true, NeoValueOwnership.Asset);
             Save = new Root(client, client.save, false, client.save.ownership);

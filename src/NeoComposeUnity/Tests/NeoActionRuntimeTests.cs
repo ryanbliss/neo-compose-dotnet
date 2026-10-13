@@ -590,7 +590,7 @@ namespace NeoCompose.Tests
             foreach ((string memberId, Action handler) in listeners)
             {
                 members[memberId] = VoidListener(memberId);
-                invokers[memberId] = (_, _, _) =>
+                invokers[memberId] = (_, _, _, _) =>
                 {
                     handler();
                     return null;

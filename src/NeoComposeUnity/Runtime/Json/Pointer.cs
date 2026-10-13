@@ -370,6 +370,13 @@ namespace NeoCompose.Runtime.Json
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string? dispatch;
         public Pointer[] args = null!;
+        /// <summary>
+        /// P110 §5. A generic callee's type arguments by position, defaults
+        /// filled in. Null for a non-generic callee or a body compiled before
+        /// the callee was generic.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public TypeInfo[]? typeArguments;
         public bool? optional;
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string? missingMemberFallback;
@@ -388,6 +395,25 @@ namespace NeoCompose.Runtime.Json
         {
             resolvedTargets = null;
             uncachedTarget = null;
+        }
+        // 0 until checked, then 1 for concrete type arguments, 2 for forwarded.
+        [JsonIgnore]
+        private int typeArgumentsForwardState;
+
+        /// <summary>Whether <see cref="typeArguments"/> names the caller's own type parameters.</summary>
+        [JsonIgnore]
+        internal bool TypeArgumentsForward
+        {
+            get
+            {
+                if (typeArgumentsForwardState == 0)
+                {
+                    bool forwards = typeArguments is not null
+                        && NeoScript.NeoFunctionTypeArguments.Forwards(typeArguments);
+                    typeArgumentsForwardState = forwards ? 2 : 1;
+                }
+                return typeArgumentsForwardState == 2;
+            }
         }
         /// <summary>This call site's argument buffer; see <see cref="NeoScript.NSGetterEvaluator.RentArguments"/>.</summary>
         [JsonIgnore]

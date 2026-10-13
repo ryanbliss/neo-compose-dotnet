@@ -30,14 +30,17 @@ namespace NeoCompose.Runtime
         /// The prepared arguments, valid only until the invoker returns: a
         /// NeoScript call site reuses the array for its next call.
         /// </param>
+        /// <param name="typeArguments">A generic Function's type arguments, by position; null otherwise (P110 §5).</param>
         public delegate object? NeoNativeFunctionInvoker(
             NeoClient client,
             object? receiver,
-            object?[] args);
+            object?[] args,
+            Json.TypeInfo[]? typeArguments);
         public delegate void NeoDeferredNativeFunctionInvoker(
             NeoClient client,
             object? receiver,
             object?[] args,
+            Json.TypeInfo[]? typeArguments,
             NeoDeferredFunctionBase deferred);
         public NeoMemberClass assets
         {
@@ -865,6 +868,9 @@ namespace NeoCompose.Runtime
 
         private NeoScriptGridQueries? scriptGridQueries;
         public NeoScriptGridQueries ScriptGridQueries => scriptGridQueries ??= new NeoScriptGridQueries(this);
+
+        /// <summary>Maps C# type arguments to NeoScript types for generic function calls.</summary>
+        public NeoTypeArguments TypeArguments { get; } = new();
 
         public void Dispose()
         {
@@ -6941,18 +6947,22 @@ namespace NeoCompose.Runtime
             object?[] args,
             bool ownsArguments = false)
         {
+            ResolvedNativeFunction function = ResolveNativeFunction(memberId);
             return InvokeNativeFunction(
-                ResolveNativeFunction(memberId),
+                function,
                 receiver,
                 args,
+                function.defaultTypeArguments,
                 ownsArguments);
         }
 
         /// <inheritdoc cref="InvokeNativeFunction(string, object?, object?[], bool)"/>
+        /// <param name="typeArguments">A generic Function's type arguments, which its invoker receives.</param>
         internal object? InvokeNativeFunction(
             ResolvedNativeFunction function,
             object? receiver,
             object?[] args,
+            Json.TypeInfo[]? typeArguments,
             bool ownsArguments = false)
         {
             // Native code reads rows through views, which observe pending
@@ -6977,10 +6987,10 @@ namespace NeoCompose.Runtime
                     $"No native Function invoker is registered for member '{memberId}'.");
             }
             if (InEffectCapture())
-                return InvokeNativeOutsideEffectCapture(member, invoker, receiver, preparedArgs);
+                return InvokeNativeOutsideEffectCapture(member, invoker, receiver, preparedArgs, typeArguments);
             return NormalizeNativeFunctionReturn(
                 member.returnTypeInfo,
-                invoker(this, receiver, preparedArgs));
+                invoker(this, receiver, preparedArgs, typeArguments));
         }
 
         // What native code reads is never an effect's dependency (P97 §2.2).
@@ -6988,7 +6998,8 @@ namespace NeoCompose.Runtime
             FunctionMember member,
             NeoNativeFunctionInvoker invoker,
             object? receiver,
-            object?[] preparedArgs)
+            object?[] preparedArgs,
+            Json.TypeInfo[]? typeArguments)
         {
             IdBuffer? capture = getterReadCapture;
             getterReadCapture = null;
@@ -6996,7 +7007,7 @@ namespace NeoCompose.Runtime
             {
                 return NormalizeNativeFunctionReturn(
                     member.returnTypeInfo,
-                    invoker(this, receiver, preparedArgs));
+                    invoker(this, receiver, preparedArgs, typeArguments));
             }
             finally
             {
@@ -7008,10 +7019,12 @@ namespace NeoCompose.Runtime
         /// Invokes a deferred native Function directly from generated C# and
         /// completes when its handler calls <see cref="NeoDeferredFunction.Complete"/>.
         /// </summary>
+        /// <param name="typeArguments">A generic Function's type arguments; null takes its defaults.</param>
         public Task InvokeDeferredNativeFunction(
             string memberId,
             object? receiver,
-            object?[] args)
+            object?[] args,
+            Json.TypeInfo[]? typeArguments = null)
         {
             var completion = new TaskCompletionSource<object?>(
                 TaskCreationOptions.RunContinuationsAsynchronously);
@@ -7022,6 +7035,7 @@ namespace NeoCompose.Runtime
                     memberId,
                     receiver,
                     args,
+                    typeArguments,
                     complete: value =>
                     {
                         RemoveDirectDeferredFunction(deferred);
@@ -7053,10 +7067,12 @@ namespace NeoCompose.Runtime
         /// Invokes a non-void deferred native Function directly from generated
         /// C# and returns its eventual typed result.
         /// </summary>
+        /// <param name="typeArguments">A generic Function's type arguments; null takes its defaults.</param>
         public Task<T> InvokeDeferredNativeFunction<T>(
             string memberId,
             object? receiver,
-            object?[] args)
+            object?[] args,
+            Json.TypeInfo[]? typeArguments = null)
         {
             var completion = new TaskCompletionSource<T>(
                 TaskCreationOptions.RunContinuationsAsynchronously);
@@ -7067,6 +7083,7 @@ namespace NeoCompose.Runtime
                     memberId,
                     receiver,
                     args,
+                    typeArguments,
                     complete: value =>
                     {
                         RemoveDirectDeferredFunction(deferred);
@@ -7110,6 +7127,7 @@ namespace NeoCompose.Runtime
             string memberId,
             object? receiver,
             object?[] args,
+            Json.TypeInfo[]? typeArguments,
             System.Action<object?> complete,
             System.Action<System.Exception> fail,
             System.Action invokerReturned,
@@ -7119,6 +7137,7 @@ namespace NeoCompose.Runtime
                 memberId,
                 receiver,
                 args,
+                typeArguments,
                 complete,
                 fail,
                 invokerReturned,
@@ -7127,10 +7146,12 @@ namespace NeoCompose.Runtime
                 captureInvokerException: false);
         }
 
+        /// <param name="typeArguments">A generic Function's type arguments; null takes its defaults.</param>
         private NeoDeferredFunctionBase StartDeferredNativeFunctionCore(
             string memberId,
             object? receiver,
             object?[] args,
+            Json.TypeInfo[]? typeArguments,
             System.Action<object?> complete,
             System.Action<System.Exception> fail,
             System.Action invokerReturned,
@@ -7166,7 +7187,7 @@ namespace NeoCompose.Runtime
                 : CreateTypedDeferredFunction(member, completeResult, fail, dispose);
             try
             {
-                invoker(this, receiver, preparedArgs, deferred);
+                invoker(this, receiver, preparedArgs, typeArguments ?? function.defaultTypeArguments, deferred);
             }
             catch (System.Exception exception)
             {
@@ -7222,6 +7243,8 @@ namespace NeoCompose.Runtime
             internal readonly FunctionMember signature;
             /// <summary>Whether a platform intrinsic (a cell pattern or grid query) may answer the call instead of its invoker.</summary>
             internal readonly bool intrinsic;
+            /// <summary>The type arguments of a call that supplies none, or null when a parameter has no default (P110 §5).</summary>
+            internal readonly Json.TypeInfo[]? defaultTypeArguments;
             // The invoker found in invokerTable. Written before the table and
             // read after it, so a matching table always pairs with its invoker.
             private NeoNativeFunctionInvoker? invoker;
@@ -7239,6 +7262,7 @@ namespace NeoCompose.Runtime
                 name = member?.name ?? signature.name;
                 this.signature = signature;
                 intrinsic = memberId.StartsWith("system_", System.StringComparison.Ordinal);
+                defaultTypeArguments = NeoScript.NeoFunctionTypeArguments.Defaults(signature.genericParams);
             }
 
             internal bool TryGetInvoker(
@@ -7275,7 +7299,7 @@ namespace NeoCompose.Runtime
             return true;
         }
 
-        private ResolvedNativeFunction ResolveNativeFunction(string memberId)
+        internal ResolvedNativeFunction ResolveNativeFunction(string memberId)
         {
             if (!TryResolveNativeFunction(memberId, out ResolvedNativeFunction? function))
             {

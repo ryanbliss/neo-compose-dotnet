@@ -55,14 +55,14 @@ namespace NeoCompose.StaticCompileFixture
         private static readonly IReadOnlyDictionary<string, NeoClient.NeoNativeFunctionInvoker> NativeFunctionInvokers =
             new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
             {
-                ["static-smoke-reset"] = (client, receiver, args) =>
+                ["static-smoke-reset"] = (client, receiver, args, typeArguments) =>
                 {
                 var amount = Convert.ToInt32(args[0]);
                 var rate = NeoDecimalValues.Parse((string)args[1]!);
                 var dir = NeoGeneratedTypesSupport.ReadEnumSingle(args[2], static (factoryOptionId) => SmokeDirectionOptions.FromOptionId(factoryOptionId)) ?? throw new InvalidOperationException("Required enum argument 'dir' could not be resolved.");
                 return global::NeoCompose.StaticCompileFixture.SmokeRules.Reset(amount, rate, dir);
                 },
-                ["static-smoke-greet"] = (client, receiver, args) =>
+                ["static-smoke-greet"] = (client, receiver, args, typeArguments) =>
                 {
                 var target = NeoGeneratedTypesSupport.ResolveNativeFunctionReceiver<SmokeRules>(
                     client,
@@ -79,7 +79,7 @@ namespace NeoCompose.StaticCompileFixture
         private static readonly IReadOnlyDictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker> DeferredNativeFunctionInvokers =
             new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
             {
-                ["static-smoke-wait"] = (client, receiver, args, deferred) =>
+                ["static-smoke-wait"] = (client, receiver, args, typeArguments, deferred) =>
                 {
                 if (global::NeoCompose.StaticCompileFixture.SmokeRules.StaticFunctionHandler is null)
                 {
