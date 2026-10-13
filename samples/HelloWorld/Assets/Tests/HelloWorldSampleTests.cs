@@ -585,6 +585,21 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
+        public async System.Threading.Tasks.Task NeoObjectGetTiles_ReadsEachOccupiedCellShiftedByTheOffset()
+        {
+            var client = await LoadSampleClient(EnglishLocalizationOptions());
+            var content = client.Assets.Worlds.OldConsoleLanding.Content;
+            var spawn = content.GetObject<PlayerSpawnObject>(new Vector2Int(-7, 2))!;
+            // The boot glyph sits eight rows below the spawn, at (-7, -6).
+            var below = new Vector2Int(0, -8);
+
+            var tiles = spawn.GetTiles(NeoCellPattern.Center, below);
+            Assert.IsInstanceOf<BootGlyphTile>(tiles.Single());
+            Assert.AreEqual(tiles[0].valueId, spawn.GetTile(NeoCellPattern.Center, below)?.valueId);
+            CollectionAssert.IsEmpty(spawn.GetTiles(NeoCellPattern.Center, new Vector2Int(50, 50)));
+        }
+
+        [Test]
         public async System.Threading.Tasks.Task TileLayerLinkQueries_MatchTheTilesTheLinkProjectsOntoItsLayer()
         {
             var client = await LoadSampleClient(EnglishLocalizationOptions());
@@ -995,7 +1010,7 @@ namespace HelloWorld.Assets.Tests
             var client = sample.Client;
             var player = sample.Assets.Worlds.OldConsoleLanding.Children.OfType<NeoObjectLayerLink>()
                 .SelectMany(link => link.Objects).OfType<PlayerSpawnObject>().Single();
-            var context = new NSGetterEvaluator.Context(client, player, null, new NeoCellPattern(Vector2Int.zero));
+            var context = new NSGetterEvaluator.Context(client, player, null, NeoCellPattern.Center);
             // Use the same compiled call instructions as NeoScript. Loading the
             // ordinary generated client above is the only registration step.
             object Evaluate(Pointer pointer, MemberKind resultKind) => NSGetterEvaluator.Evaluate(new FunctionWithReturnType
@@ -1025,7 +1040,7 @@ namespace HelloWorld.Assets.Tests
             AssertPlacementOk(content.Background.TrySetTile<GlassFloorTile>(cellForConversion));
             AssertPlacementOk(content.Objects.TrySpawn(cellForConversion, new VaultPlaqueObject()));
             var placed = content.Objects.GetObject<NeoObject>(cellForConversion)!;
-            context = new NSGetterEvaluator.Context(client, placed, null, new NeoCellPattern(Vector2Int.zero));
+            context = new NSGetterEvaluator.Context(client, placed, null, NeoCellPattern.Center);
             string targetClassId = new RedNovaWarningTile().classId!;
             Assert.AreEqual(true, Evaluate(new TileConvertPointer
             {

@@ -113,8 +113,8 @@ namespace NeoCompose.Runtime.NeoScript
         /// <summary>The generated C# view handed out for this object, so C# sees one identity.</summary>
         internal NeoGeneratedClassValue? view;
         /// <summary>
-        /// What a native read of an immutable native-backed class built from
-        /// the slots, so later native calls reuse it instead of rebuilding it.
+        /// A NeoCellPattern's offsets read from its slots, kept while its
+        /// offsets slot holds the same array (<see cref="NeoCellPatternOffsets"/>).
         /// </summary>
         internal object? nativeValue;
 

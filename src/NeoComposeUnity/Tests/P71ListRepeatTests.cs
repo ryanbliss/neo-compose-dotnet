@@ -128,8 +128,8 @@ namespace NeoCompose.Tests
         [Test]
         public void ProducesMoreEntriesThanTheRetiredBudgetAllowed()
         {
-            var entries = (object?[])Evaluate(IntLiteral(7), IntLiteral(20_000))!;
-            Assert.AreEqual(20_000, entries.Length);
+            var entries = (object?[])Evaluate(IntLiteral(7), IntLiteral(50_000))!;
+            Assert.AreEqual(50_000, entries.Length);
         }
 
         [Test]

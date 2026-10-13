@@ -2,182 +2,157 @@
 // Licensed under the MIT License.
 #nullable enable
 using System;
-using System.Linq;
+using System.Collections.Generic;
 using NeoCompose.Runtime.Json;
 using NeoCompose.Runtime.NeoScript;
 using UnityEngine;
 
 namespace NeoCompose.Runtime
 {
+    /// <summary>
+    /// NeoCellPattern's six native helpers. Results are ordinary detached
+    /// patterns built by the declared constructor; a no-op returns its receiver.
+    /// </summary>
     internal static class NeoCellPatternRuntime
     {
-        internal static bool TryInvoke(string memberId, object? receiver, object?[] args, NSGetterEvaluator.Context ctx, out object? result, bool materialize = true)
+        internal const string ContainsId = "system_65a16908-05a6-52f9-a467-4e37e95ba0be";
+        internal const string CellsId = "system_c72d9b09-fc4c-55db-b763-f1954a536069";
+        internal const string WithCenterId = "system_1da9303d-c362-541a-a77b-244fb0ffcbb6";
+        internal const string WithoutCenterId = "system_7dce7f78-2c8f-5a1f-aa80-89dc217dcdff";
+        internal const string TranslateId = "system_efc67858-0c95-573f-a8a9-d7e07d0a1d55";
+        internal const string UnionId = "system_77b14581-e34c-5eb1-a820-788618276e46";
+
+        internal static bool Handles(string memberId) => memberId is
+            ContainsId or CellsId or WithCenterId or WithoutCenterId or TranslateId or UnionId;
+
+        internal static bool TryInvoke(string memberId, object? receiver, object?[] args, NSGetterEvaluator.Context ctx, out object? result)
         {
-            result = null;
-            NeoCellPattern? pattern = null;
+            if (!Handles(memberId))
+            {
+                result = null;
+                return false;
+            }
+            Vector2Int[] offsets = NeoCellPatternOffsets.Read(receiver, ctx);
             switch (memberId)
             {
-                case "system_aaad2df6-e31e-5f5d-95b9-e265211faed5": // Box
+                case ContainsId:
                     {
-                        int x = Int(args[0]), y = args[1] is null ? x : Int(args[1]);
-                        var excluding = NeoCellPatternStorage.ReadExcluding(args[2]);
-                        ValidateRadii(x, y);
-                        RequireSize(checked((2L * x + 1) * (2L * y + 1)) - (excluding == NeoCellPatternExcluding.Center ? 1 : 0));
-                        pattern = NeoCellPattern.Box(x, y, excluding);
-                        break;
-                    }
-                case "system_df8ebca6-a1d1-57c1-8762-227943fc51d8": // Cross
-                    {
-                        int x = Int(args[0]), y = args[1] is null ? x : Int(args[1]);
-                        var excluding = NeoCellPatternStorage.ReadExcluding(args[2]);
-                        ValidateRadii(x, y);
-                        RequireSize(2L * x + 2L * y + (excluding == NeoCellPatternExcluding.Center ? 0 : 1));
-                        pattern = NeoCellPattern.Cross(x, y, excluding);
-                        break;
-                    }
-                case "system_82222600-f67f-5127-bb2d-278381b4ef2f": // Ring
-                    {
-                        int radius = Int(args[0]);
-                        ValidateRadii(radius, radius);
-                        RequireSize(radius == 0 ? 1 : 8L * radius);
-                        pattern = NeoCellPattern.Ring(radius);
-                        break;
-                    }
-                case "system_d803cfd5-ce53-57da-abc2-7cd69befeb01": // Rect
-                    {
-                        Vector2Int size = Vector(args[0]);
-                        if (size.x <= 0 || size.y <= 0)
-                            throw new NSGetterRuntimeError("Rect size must be positive.");
-                        RequireSize((long)size.x * size.y);
-                        pattern = NeoCellPattern.Rect(size);
-                        break;
-                    }
-                case "system_ef0d4cbb-7182-5d93-9bb8-60a5a18f81a5": // Line
-                    {
-                        int length = Int(args[1]);
-                        if (length < 0)
-                            throw new NSGetterRuntimeError("Line length must be nonnegative.");
-                        var excluding = NeoCellPatternStorage.ReadExcluding(args[2]);
-                        RequireSize((long)length + (excluding == NeoCellPatternExcluding.Center ? 0 : 1));
-                        pattern = NeoCellPattern.Line(Vector(args[0]), length, excluding);
-                        break;
-                    }
-                case "system_65a16908-05a6-52f9-a467-4e37e95ba0be": // Contains
-                    {
-                        var source = Read(receiver, ctx);
-                        result = source.Contains(Vector(args[0]));
+                        Vector2Int offset = Vector(args[0], "Contains offset");
+                        result = Array.IndexOf(offsets, offset) >= 0;
                         return true;
                     }
-                case "system_c72d9b09-fc4c-55db-b763-f1954a536069": // Cells
+                case CellsId:
                     {
-                        var source = Read(receiver, ctx);
-                        result = source.GetCells(Vector(args[0])).Select(cell => (object?)NeoVectorValues.FromVector2Int(cell)).ToArray();
+                        Vector2Int origin = Vector(args[0], "Cells origin");
+                        var cells = new object?[offsets.Length];
+                        for (int i = 0; i < offsets.Length; i++)
+                            cells[i] = NeoVectorValues.FromVector2Int(Translated(offsets[i], origin));
+                        result = cells;
                         return true;
                     }
-                case "system_1da9303d-c362-541a-a77b-244fb0ffcbb6": // WithCenter
+                case WithCenterId:
                     {
-                        var source = Read(receiver, ctx);
-                        RequireSize((long)source.Count + 1);
-                        pattern = source.WithCenter();
-                        break;
+                        if (Array.IndexOf(offsets, Vector2Int.zero) >= 0)
+                        {
+                            result = receiver;
+                            return true;
+                        }
+                        var cells = new object?[offsets.Length + 1];
+                        cells[0] = NeoVectorValues.FromVector2Int(Vector2Int.zero);
+                        for (int i = 0; i < offsets.Length; i++)
+                            cells[i + 1] = NeoVectorValues.FromVector2Int(offsets[i]);
+                        result = Construct(cells, ctx);
+                        return true;
                     }
-                case "system_7dce7f78-2c8f-5a1f-aa80-89dc217dcdff": // WithoutCenter
+                case WithoutCenterId:
                     {
-                        var source = Read(receiver, ctx);
-                        pattern = source.WithoutCenter();
-                        break;
+                        if (Array.IndexOf(offsets, Vector2Int.zero) < 0)
+                        {
+                            result = receiver;
+                            return true;
+                        }
+                        var cells = new List<object?>(offsets.Length);
+                        for (int i = 0; i < offsets.Length; i++)
+                        {
+                            if (offsets[i] != Vector2Int.zero)
+                                cells.Add(NeoVectorValues.FromVector2Int(offsets[i]));
+                        }
+                        result = Construct(cells.ToArray(), ctx);
+                        return true;
                     }
-                case "system_efc67858-0c95-573f-a8a9-d7e07d0a1d55": // Translate
+                case TranslateId:
                     {
-                        var source = Read(receiver, ctx);
-                        pattern = source.Translate(Vector(args[0]));
-                        break;
+                        Vector2Int offset = Vector(args[0], "Translate offset");
+                        if (offset == Vector2Int.zero)
+                        {
+                            result = receiver;
+                            return true;
+                        }
+                        var cells = new object?[offsets.Length];
+                        for (int i = 0; i < offsets.Length; i++)
+                            cells[i] = NeoVectorValues.FromVector2Int(Translated(offsets[i], offset));
+                        result = Construct(cells, ctx);
+                        return true;
                     }
-                case "system_77b14581-e34c-5eb1-a820-788618276e46": // Union
+                case UnionId:
                     {
-                        var source = Read(receiver, ctx);
-                        var other = Read(args[0], ctx);
-                        RequireSize((long)source.Count + other.Count);
-                        pattern = source.Union(other);
-                        break;
+                        Vector2Int[] other = NeoCellPatternOffsets.Read(args[0], ctx);
+                        var seen = new HashSet<Vector2Int>();
+                        var cells = new List<object?>(offsets.Length + other.Length);
+                        Add(offsets);
+                        Add(other);
+                        result = Construct(cells.ToArray(), ctx);
+                        return true;
+
+                        void Add(Vector2Int[] source)
+                        {
+                            for (int i = 0; i < source.Length; i++)
+                            {
+                                if (seen.Add(source[i]))
+                                    cells.Add(NeoVectorValues.FromVector2Int(source[i]));
+                            }
+                        }
                     }
                 default:
-                    return false;
+                    throw new InvalidOperationException($"Cell pattern native member '{memberId}' has no implementation.");
             }
-            result = materialize ? NeoCellPatternStorage.Materialize(pattern!, ctx) : pattern;
-            return true;
         }
 
-        // A pattern produced directly for a grid query cannot escape into
-        // storage or expose its temporary row identity. Keep that intermediate
-        // as offsets; ordinary class-producing calls still use the constructor.
-        internal static bool ProducesPattern(string? memberId) => memberId is
-            "system_aaad2df6-e31e-5f5d-95b9-e265211faed5" or // Box
-            "system_df8ebca6-a1d1-57c1-8762-227943fc51d8" or // Cross
-            "system_82222600-f67f-5127-bb2d-278381b4ef2f" or // Ring
-            "system_d803cfd5-ce53-57da-abc2-7cd69befeb01" or // Rect
-            "system_ef0d4cbb-7182-5d93-9bb8-60a5a18f81a5" or // Line
-            "system_1da9303d-c362-541a-a77b-244fb0ffcbb6" or // WithCenter
-            "system_7dce7f78-2c8f-5a1f-aa80-89dc217dcdff" or // WithoutCenter
-            "system_efc67858-0c95-573f-a8a9-d7e07d0a1d55" or // Translate
-            "system_77b14581-e34c-5eb1-a820-788618276e46"; // Union
+        // The construction site every helper result shares.
+        private static readonly object ConstructSite = new();
 
-        /// <summary>
-        /// Whether <paramref name="body"/> reads the parameter only as the
-        /// cells of a grid query, so a pattern bound to it stays as offsets.
-        /// </summary>
-        internal static bool OnlyQueriesGrid(FunctionWithReturnType body, int parameter) =>
-            (body.gridQueryParameters ??= GridQueryParameters(body))[parameter];
-
-        private static bool[] GridQueryParameters(FunctionWithReturnType body)
+        private static object Construct(object?[] offsets, NSGetterEvaluator.Context ctx)
         {
-            var flags = new bool[body.parameters?.Length ?? 0];
-            for (int parameter = 0; parameter < flags.Length; parameter++)
+            if (!NeoGeneratedTypesSupport.TryGetResolvedSite(
+                    ctx.client, ConstructSite, out NeoGeneratedTypesSupport.NeoResolvedDeclaredConstructor resolved))
             {
-                string id = body.parameters![parameter].id;
-                int reads = 0;
-                int queries = 0;
-                NeoScriptIrWalker.AnyPointer(body.instructions, pointer =>
-                {
-                    if (pointer is VariablePointer variable && variable.variableId == id)
-                        reads++;
-                    else if (pointer is CallFunctionPointer { args: { Length: 1 } args } call
-                        && NeoScriptGridQueries.ReadsCells(call.memberId)
-                        && args[0] is VariablePointer cells
-                        && cells.variableId == id)
-                        queries++;
-                    return false;
-                });
-                flags[parameter] = reads != 0 && reads == queries;
+                resolved = NeoGeneratedTypesSupport.ResolveDeclaredConstructor(ctx.client,
+                    new ClassTypeInfo { type = MemberKind.Class, required = true, classId = NeoCellPatternOffsets.ClassId },
+                    NeoCellPatternOffsets.ConstructorId, new[] { "offsets" }, Array.Empty<NeoGeneratedTypesSupport.RuntimeConstructorField>());
+                NeoGeneratedTypesSupport.CacheResolvedSite(ctx.client, ConstructSite, resolved);
             }
-            return flags;
+            object?[] arguments = resolved.NewArgumentValues();
+            arguments[resolved.argumentPositions[0]] = offsets;
+            return NSGetterEvaluator.ConstructDeclared(resolved,
+                arguments,
+                Array.Empty<NeoGeneratedTypesSupport.RuntimeConstructorField>(), ctx,
+                evaluateFieldValues: null, replayContext: false)!;
         }
 
-        private static NeoCellPattern Read(object? value, NSGetterEvaluator.Context ctx) =>
-            NeoCellPatternStorage.ReadRuntime(value, ctx);
+        private static Vector2Int Translated(Vector2Int offset, Vector2Int by) =>
+            new(Coordinate((long)offset.x + by.x, "Translated cell.x"), Coordinate((long)offset.y + by.y, "Translated cell.y"));
 
-        private static void RequireSize(long count)
+        private static int Coordinate(long value, string name)
         {
-            if (count < 0 || count > int.MaxValue)
-                throw new NSGetterRuntimeError("CellPattern is too large.");
+            if (value < int.MinValue)
+                throw new NSGetterRuntimeError($"{name} is below the supported integer range.");
+            if (value > int.MaxValue)
+                throw new NSGetterRuntimeError($"{name} exceeds the supported integer range.");
+            return (int)value;
         }
 
-        private static int Int(object? value)
-        {
-            double number = Convert.ToDouble(value);
-            if (!double.IsFinite(number) || !NeoNumbers.IsWhole(number) || number < int.MinValue || number > int.MaxValue)
-                throw new NSGetterRuntimeError("CellPattern arguments must be int32 integers.");
-            return (int)number;
-        }
-
-        private static Vector2Int Vector(object? value) =>
+        private static Vector2Int Vector(object? value, string name) =>
             NeoGeneratedTypesSupport.ReadVector2IntValue(value)
-                ?? throw new NSGetterRuntimeError("Expected Vector2Int.");
-
-        private static void ValidateRadii(int x, int y)
-        {
-            if (x < 0 || y < 0)
-                throw new NSGetterRuntimeError("CellPattern radii must be nonnegative.");
-        }
+                ?? throw new NSGetterRuntimeError($"{name} must be a Vector2Int.");
     }
 }

@@ -66,7 +66,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 ["system_b3a94a53-8cb8-4df1-95f4-597bca10dac2"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSortingLayer.Create(client, node),
                 ["system_ccc3330c-2db5-44dc-9c8e-5ebfe430dec9"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoPlacementTile.Create(client, node),
                 ["system_d48b66ab-4d59-47e7-a25a-591fe97062de"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSpriteObject.Create(client, node),
-                ["system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7"] = NeoCellPatternStorage.ReadRequired,
+                ["system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoCellPattern.Create(client, node),
                 ["system_ffc766b3-f3ac-4c20-91cf-38ff7e8e88f3"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSpriteAnimationSegment.Create(client, node),
             };
 
@@ -126,7 +126,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 ["system_b3a94a53-8cb8-4df1-95f4-597bca10dac2"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSortingLayer.CreateWritable(client, node),
                 ["system_ccc3330c-2db5-44dc-9c8e-5ebfe430dec9"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoPlacementTile.CreateWritable(client, node),
                 ["system_d48b66ab-4d59-47e7-a25a-591fe97062de"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSpriteObject.CreateWritable(client, node),
-                ["system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7"] = (client, node) => NeoCellPatternStorage.ReadRequired(client, node),
+                ["system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoCellPattern.CreateWritable(client, node),
                 ["system_ffc766b3-f3ac-4c20-91cf-38ff7e8e88f3"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSpriteAnimationSegment.CreateWritable(client, node),
             };
 
@@ -186,7 +186,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [typeof(global::HelloWorld.Assets.Scripts.Neo.NeoSortingLayer)] = "system_b3a94a53-8cb8-4df1-95f4-597bca10dac2",
                 [typeof(global::HelloWorld.Assets.Scripts.Neo.NeoPlacementTile)] = "system_ccc3330c-2db5-44dc-9c8e-5ebfe430dec9",
                 [typeof(global::HelloWorld.Assets.Scripts.Neo.NeoSpriteObject)] = "system_d48b66ab-4d59-47e7-a25a-591fe97062de",
-                [typeof(NeoCompose.Runtime.NeoCellPattern)] = "system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7",
+                [typeof(global::HelloWorld.Assets.Scripts.Neo.NeoCellPattern)] = "system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7",
                 [typeof(global::HelloWorld.Assets.Scripts.Neo.NeoSpriteAnimationSegment)] = "system_ffc766b3-f3ac-4c20-91cf-38ff7e8e88f3",
             };
 

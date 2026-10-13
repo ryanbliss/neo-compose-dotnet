@@ -7486,5 +7486,227 @@
             "system_53438afa-206b-5bec-a202-c9b60d1ad8b6"
         ],
         "classId": null
+    },
+    "system_01c4eea2-a140-58b4-802b-71bea96eb81c": {
+        "value": {
+            "x": 0,
+            "y": -1
+        },
+        "createdAt": 1791855690230,
+        "id": "system_01c4eea2-a140-58b4-802b-71bea96eb81c",
+        "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+        "updatedAt": 1791855690230
+    },
+    "system_08f52fd1-f622-5c52-ad6c-ab4b8953abbc": {
+        "value": {},
+        "classId": "system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7",
+        "constructorArgs": {
+            "__arg_0__": "system_a917bb61-673d-5ff5-9e1e-15cc79bb3e5a"
+        },
+        "instanceConstructorId": "system_f68684d6-6ea0-5d57-9f96-d544b17bf369",
+        "createdAt": 1791855690230,
+        "id": "system_08f52fd1-f622-5c52-ad6c-ab4b8953abbc",
+        "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+        "updatedAt": 1791855690230
+    },
+    "system_44790350-68e0-5c2c-bca4-d511419fcd71": {
+        "value": {
+            "x": 0,
+            "y": 0
+        },
+        "createdAt": 1791855690230,
+        "id": "system_44790350-68e0-5c2c-bca4-d511419fcd71",
+        "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+        "updatedAt": 1791855690230
+    },
+    "system_5a10bffd-0d51-5078-b291-0c8d1ac8e767": {
+        "value": {
+            "x": 1,
+            "y": -1
+        },
+        "createdAt": 1791855690230,
+        "id": "system_5a10bffd-0d51-5078-b291-0c8d1ac8e767",
+        "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+        "updatedAt": 1791855690230
+    },
+    "system_610ddcf7-d096-5fae-bcde-021561a3c8c2": {
+        "value": {},
+        "classId": "system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7",
+        "constructorArgs": {
+            "__arg_0__": "system_ffb3768b-ebfb-5b08-ad04-ad1d7262b889"
+        },
+        "instanceConstructorId": "system_f68684d6-6ea0-5d57-9f96-d544b17bf369",
+        "createdAt": 1791855690230,
+        "id": "system_610ddcf7-d096-5fae-bcde-021561a3c8c2",
+        "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+        "updatedAt": 1791855690230
+    },
+    "system_9358e455-03e7-5c71-ab61-846ae1270833": {
+        "value": {
+            "x": -1,
+            "y": 0
+        },
+        "createdAt": 1791855690230,
+        "id": "system_9358e455-03e7-5c71-ab61-846ae1270833",
+        "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+        "updatedAt": 1791855690230
+    },
+    "system_a87cb586-9f92-53b9-bc44-304003ec2f46": {
+        "value": {
+            "x": 0,
+            "y": 1
+        },
+        "createdAt": 1791855690230,
+        "id": "system_a87cb586-9f92-53b9-bc44-304003ec2f46",
+        "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+        "updatedAt": 1791855690230
+    },
+    "system_a917bb61-673d-5ff5-9e1e-15cc79bb3e5a": {
+        "value": [
+            "system_9358e455-03e7-5c71-ab61-846ae1270833",
+            "system_f71f9a43-c33e-566e-af57-c9f762b9b19d",
+            "system_f7fdbf9d-c982-5516-8a48-5eed25442207",
+            "system_f1124a69-46dd-5463-9b3b-3e36e6c8f1cd"
+        ],
+        "createdAt": 1791855690230,
+        "id": "system_a917bb61-673d-5ff5-9e1e-15cc79bb3e5a",
+        "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+        "updatedAt": 1791855690230
+    },
+    "system_a95ddbf4-dc84-5150-b2be-1b9724219b19": {
+        "value": {
+            "x": -1,
+            "y": 1
+        },
+        "createdAt": 1791855690230,
+        "id": "system_a95ddbf4-dc84-5150-b2be-1b9724219b19",
+        "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+        "updatedAt": 1791855690230
+    },
+    "system_b32c4b4e-853e-5156-9c83-2b9fc15d80f1": {
+        "value": {
+            "x": -1,
+            "y": -1
+        },
+        "createdAt": 1791855690230,
+        "id": "system_b32c4b4e-853e-5156-9c83-2b9fc15d80f1",
+        "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+        "updatedAt": 1791855690230
+    },
+    "system_c7e1a6ff-0f56-5e62-badc-03b0483febd0": {
+        "value": {},
+        "classId": "system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7",
+        "constructorArgs": {
+            "__arg_0__": "system_e253059e-20c6-5ece-bdba-faf0b348ff3d"
+        },
+        "instanceConstructorId": "system_f68684d6-6ea0-5d57-9f96-d544b17bf369",
+        "createdAt": 1791855690230,
+        "id": "system_c7e1a6ff-0f56-5e62-badc-03b0483febd0",
+        "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+        "updatedAt": 1791855690230
+    },
+    "system_ccf1f83b-b634-5c4b-98ea-f49641bd2637": {
+        "value": {
+            "x": 1,
+            "y": 0
+        },
+        "createdAt": 1791855690230,
+        "id": "system_ccf1f83b-b634-5c4b-98ea-f49641bd2637",
+        "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+        "updatedAt": 1791855690230
+    },
+    "system_e1c3424c-bdf3-584b-bb67-f4afa7994cc4": {
+        "value": [
+            "system_44790350-68e0-5c2c-bca4-d511419fcd71"
+        ],
+        "createdAt": 1791855690230,
+        "id": "system_e1c3424c-bdf3-584b-bb67-f4afa7994cc4",
+        "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+        "updatedAt": 1791855690230
+    },
+    "system_e253059e-20c6-5ece-bdba-faf0b348ff3d": {
+        "value": [
+            "system_b32c4b4e-853e-5156-9c83-2b9fc15d80f1",
+            "system_e9796035-7f16-5ae1-a04e-3413c8da3466",
+            "system_a95ddbf4-dc84-5150-b2be-1b9724219b19",
+            "system_01c4eea2-a140-58b4-802b-71bea96eb81c",
+            "system_a87cb586-9f92-53b9-bc44-304003ec2f46",
+            "system_5a10bffd-0d51-5078-b291-0c8d1ac8e767",
+            "system_ccf1f83b-b634-5c4b-98ea-f49641bd2637",
+            "system_efc82894-6b22-56be-8a87-dd77d8504c4d"
+        ],
+        "createdAt": 1791855690230,
+        "id": "system_e253059e-20c6-5ece-bdba-faf0b348ff3d",
+        "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+        "updatedAt": 1791855690230
+    },
+    "system_e9796035-7f16-5ae1-a04e-3413c8da3466": {
+        "value": {
+            "x": -1,
+            "y": 0
+        },
+        "createdAt": 1791855690230,
+        "id": "system_e9796035-7f16-5ae1-a04e-3413c8da3466",
+        "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+        "updatedAt": 1791855690230
+    },
+    "system_efc82894-6b22-56be-8a87-dd77d8504c4d": {
+        "value": {
+            "x": 1,
+            "y": 1
+        },
+        "createdAt": 1791855690230,
+        "id": "system_efc82894-6b22-56be-8a87-dd77d8504c4d",
+        "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+        "updatedAt": 1791855690230
+    },
+    "system_f1124a69-46dd-5463-9b3b-3e36e6c8f1cd": {
+        "value": {
+            "x": 0,
+            "y": 1
+        },
+        "createdAt": 1791855690230,
+        "id": "system_f1124a69-46dd-5463-9b3b-3e36e6c8f1cd",
+        "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+        "updatedAt": 1791855690230
+    },
+    "system_f117eedc-e325-57a4-a35a-93054ca3b0e4": {
+        "value": {},
+        "classId": "system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7",
+        "constructorArgs": {
+            "__arg_0__": "system_e1c3424c-bdf3-584b-bb67-f4afa7994cc4"
+        },
+        "instanceConstructorId": "system_f68684d6-6ea0-5d57-9f96-d544b17bf369",
+        "createdAt": 1791855690230,
+        "id": "system_f117eedc-e325-57a4-a35a-93054ca3b0e4",
+        "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+        "updatedAt": 1791855690230
+    },
+    "system_f71f9a43-c33e-566e-af57-c9f762b9b19d": {
+        "value": {
+            "x": 1,
+            "y": 0
+        },
+        "createdAt": 1791855690230,
+        "id": "system_f71f9a43-c33e-566e-af57-c9f762b9b19d",
+        "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+        "updatedAt": 1791855690230
+    },
+    "system_f7fdbf9d-c982-5516-8a48-5eed25442207": {
+        "value": {
+            "x": 0,
+            "y": -1
+        },
+        "createdAt": 1791855690230,
+        "id": "system_f7fdbf9d-c982-5516-8a48-5eed25442207",
+        "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+        "updatedAt": 1791855690230
+    },
+    "system_ffb3768b-ebfb-5b08-ad04-ad1d7262b889": {
+        "value": [],
+        "createdAt": 1791855690230,
+        "id": "system_ffb3768b-ebfb-5b08-ad04-ad1d7262b889",
+        "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+        "updatedAt": 1791855690230
     }
 }

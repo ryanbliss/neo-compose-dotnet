@@ -27,14 +27,6 @@ namespace NeoCompose.Tests
     public class NeoScriptControlFlowParityTests
     {
         /// <summary>
-        /// The web evaluator still stops this case at its 10,000-iteration
-        /// budget. The Unity runtime has no execution budget, so here the
-        /// nested loops run all 10,100 iterations and return.
-        /// </summary>
-        private const string WebBudgetCase =
-            "nested loops share the top-level iteration budget";
-
-        /// <summary>
         /// Every case in fixture order: 13 P50, 13 P51, 11 P52, and two enum
         /// dictionary cases. Every case uses the compiler revision this SDK executes.
         /// </summary>
@@ -46,7 +38,7 @@ namespace NeoCompose.Tests
             "foreach snapshots list membership and preserves order under remove",
             "foreach dictionary binds values in collection order",
             "return escapes nested loops",
-            "nested loops share the top-level iteration budget",
+            "nested loops run past 10,000 total iterations",
             "foreach dictionary uses JavaScript Object.values order for numeric-like keys",
             "foreach over an empty collection consumes no iteration",
             "foreach iterates a hand-authored derived Where collection",
@@ -112,7 +104,7 @@ namespace NeoCompose.Tests
             }
 
             CollectionAssert.AreEquivalent(expectedNames, names);
-            Assert.AreEqual(4, errorCases);
+            Assert.AreEqual(3, errorCases);
         }
 
         [Test]
@@ -127,7 +119,7 @@ namespace NeoCompose.Tests
                     .Replace("-", string.Empty)
                     .ToLowerInvariant();
                 Assert.AreEqual(
-                    "9ec6aa7950ee9f3672012d86b4f1be001f876e73f164a9a958b9f5fb715206d0",
+                    "64c03273cf6c25eacec17fdf693f8705c5185da28feea5876e55dd32fa77f058",
                     actual,
                     "The vendored fixture bytes drifted from the reviewed web source.");
             }
@@ -141,11 +133,6 @@ namespace NeoCompose.Tests
             using NeoClient client = LoadClient();
             var ctx = new NSGetterEvaluator.Context(client, null, null);
 
-            if (caseName == WebBudgetCase)
-            {
-                Assert.AreEqual(0d, NSGetterEvaluator.Evaluate(getter, ctx));
-                return;
-            }
             if (testCase["expectedError"] is JToken expectedError)
             {
                 Exception error = Assert.Catch<Exception>(

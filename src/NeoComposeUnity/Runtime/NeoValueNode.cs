@@ -32,7 +32,7 @@ namespace NeoCompose.Runtime
         internal NeoScript.NSGetterEvaluator.UnwrapMemo? unwrapMemo;
         /// <summary>The getter capture that last recorded a read of this row.</summary>
         internal long capturedIn;
-        /// <summary>A native type's read of this row (a CellPattern's offsets), which validates itself.</summary>
+        /// <summary>The getter memo entry holding this NeoCellPattern row's offsets (<see cref="NeoCellPatternOffsets"/>).</summary>
         internal object? nativeRead;
         /// <summary>A single-selection lookup row's selected id and that id's node.</summary>
         internal string? selectedId;
