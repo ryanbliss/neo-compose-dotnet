@@ -3087,6 +3087,7 @@ namespace NeoCompose.Runtime
             string memberId,
             object? receiver,
             object?[] args,
+            TypeInfo[]? typeArguments,
             NSGetterEvaluator.Context ctx,
             NeoScriptExecutionOptions? options,
             string resumeKey)
@@ -3099,6 +3100,7 @@ namespace NeoCompose.Runtime
                 memberId,
                 receiver,
                 args,
+                typeArguments,
                 suspension.Complete,
                 suspension.Fail,
                 suspension.MarkInvokerReturned,
@@ -3263,7 +3265,7 @@ namespace NeoCompose.Runtime
                     return NSGetterEvaluator.InvokeNativeFunction(
                         memberId, nativeFunction, receiver,
                         NSGetterEvaluator.FillNativeCallSiteArguments(memberId, native, args), ctx,
-                        ownsArguments: true);
+                        site: pointer, ownsArguments: true);
                 }
                 else
                 {
@@ -3278,8 +3280,11 @@ namespace NeoCompose.Runtime
                             "an immediate NeoScript frame called its deferred signature; " +
                             "compiled call IR is stale/corrupt.");
                     }
+                    TypeInfo[]? typeArguments = native?.genericParams is null
+                        ? null
+                        : NSGetterEvaluator.NativeTypeArguments(nativeFunction!, pointer, ctx);
                     return StartDeferredNativeFunction(
-                        client, memberId, receiver, args.AsSpan().ToArray(), ctx, options, resumeKey);
+                        client, memberId, receiver, args.AsSpan().ToArray(), typeArguments, ctx, options, resumeKey);
                 }
             }
             finally

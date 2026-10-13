@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "projectId": "test-project",
-  "codegenRevision": "8e940ebfec562d0be7fe7b82014f66293ea075c2ca394c3a3eaac419eaddfeb8",
+  "codegenRevision": "edfd4061dffcd1a747b234cd135b99beca6f4cf1958cb69715029c5935dd7f1b",
   "files": [
     {
       "id": "class:class-abstract-readonly-stats",
@@ -69,14 +69,39 @@
       "hash": "721639bcc713d2f07af3c9e98f6d051517c91f0ffa6b024d8ae2e2c03ae8c6b7"
     },
     {
+      "id": "class:class-generic-animal",
+      "path": "Generated/Classes/GenericAnimal.g.cs",
+      "hash": "c23c33354bbe8a65b3db56c2be82d49a707865de3dfb2a4ae0c33c05b76d78aa"
+    },
+    {
       "id": "class:class-generic-bag",
       "path": "Generated/Classes/GenericBag.g.cs",
       "hash": "0ee195b82987a98210283a9f874ecf53f94ef02333e5432b4d37399c48ede017"
     },
     {
+      "id": "class:class-generic-cat",
+      "path": "Generated/Classes/GenericCat.g.cs",
+      "hash": "7cf6b06d3c6a1af823f386c5ed2186db07a8c4171d69615eb694328f53ed0c80"
+    },
+    {
+      "id": "class:class-generic-checker",
+      "path": "Generated/Classes/GenericChecker.g.cs",
+      "hash": "02a6e07154f156bfb19cc86f26c54bdbd8b0c29788b5bc17b1c01cfe3c48dc29"
+    },
+    {
       "id": "class:class-generic-contract",
       "path": "Generated/Classes/GenericContract.g.cs",
       "hash": "d11fd4d2a9a99099b5009a43dafa9e0491ea4293ff7bb89c334ccba68fdf5758"
+    },
+    {
+      "id": "class:class-generic-dog",
+      "path": "Generated/Classes/GenericDog.g.cs",
+      "hash": "a928bd0bc882a506f83a7e35c90c4f426100b3516f088970967c4aff0c95ae43"
+    },
+    {
+      "id": "class:class-generic-dog-checker",
+      "path": "Generated/Classes/GenericDogChecker.g.cs",
+      "hash": "2f1b9421544bae193e86b1ae53b1dceb5606170bc870c2bf2c507df98d326f18"
     },
     {
       "id": "class:class-generic-float-contract",
@@ -107,6 +132,11 @@
       "id": "class:class-generic-payload",
       "path": "Generated/Classes/GenericPayload.g.cs",
       "hash": "ea9944b4b9c71c9f52e5bfae475b06c12ec0a6a7a2e4ba39bda69a165c3208af"
+    },
+    {
+      "id": "class:class-generic-probe",
+      "path": "Generated/Classes/GenericProbe.g.cs",
+      "hash": "79815f74b1624a40425959b3f2281bab79564655cbab150458b340dd1ae731ef"
     },
     {
       "id": "class:class-generic-string-contract",
@@ -339,6 +369,11 @@
       "hash": "712d2d4196205418bf700112fbfab3abb8c4148d7c805d82ad13b8867527ead8"
     },
     {
+      "id": "interface:interface-generic-check",
+      "path": "Generated/Interfaces/IGenericCheck.g.cs",
+      "hash": "72a37c47cef0c1973e0ec5997c084e1cc7fd85ff4b9d0c1b52b03164f287f53b"
+    },
+    {
       "id": "interface:interface-hero-deferred-transform",
       "path": "Generated/Interfaces/IHeroDeferredTransform.g.cs",
       "hash": "5b82715d4b4a2f3a5e4b4870b28cb7d80d9e1fdabf546d45506fa4b62117020b"
@@ -346,22 +381,22 @@
     {
       "id": "project:factories",
       "path": "Generated/TestProjectNeo.Factories.g.cs",
-      "hash": "206a3438dd4226d8d3c0530577ab83bc73c33f370455671e8a9d2d30d205a140"
+      "hash": "2193fab7d9a2dcdae5d06080bd7078de5529445597d8530b6b221bb0a84c4052"
     },
     {
       "id": "project:functions",
       "path": "Generated/TestProjectNeo.Functions.g.cs",
-      "hash": "44c2c8538c4886aa5f943a1a487f2839c5e2a30f54231df21a85bc950379739b"
+      "hash": "24f6df0e2b2a1665b6bcc18865174e645f1441fee069943f735641ad5d6378db"
     },
     {
       "id": "project:client",
       "path": "Generated/TestProjectNeo.g.cs",
-      "hash": "816c062a797ff189181ce6ccf4e538b09108f20fa18064e8fa0535a92122251d"
+      "hash": "a2051f15fef3022b048e03e49e78ebe98b294637a8b2facffea61a655cb62d21"
     },
     {
       "id": "project:user-client",
       "path": "Generated/TestProjectUserNeo.g.cs",
-      "hash": "945d642b8b270070809196ac0ec7bc90049b5e1eb1d1f61bdef9aaa226a0f627"
+      "hash": "b66a0aa1d114db2f787fa70bbf944ee6c7b4fe9d706e9e6d39c9ffcc09cc87d1"
     }
   ]
 }

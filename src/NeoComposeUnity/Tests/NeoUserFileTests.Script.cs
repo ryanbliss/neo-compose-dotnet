@@ -464,7 +464,7 @@ namespace NeoCompose.Tests
             var heard = new List<double>();
             client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
             {
-                [memberId] = (_, _, args) =>
+                [memberId] = (_, _, args, _) =>
                 {
                     heard.Add(Convert.ToDouble(args[0]));
                     return null;

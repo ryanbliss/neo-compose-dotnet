@@ -494,7 +494,7 @@ namespace NeoCompose.Tests
 
             var fixture = new Fixture();
             fixture.client = NeoTestSaveStack.ClientFromSchema(data);
-            NeoClient.NeoNativeFunctionInvoker Record(string handler) => (_, _, args) =>
+            NeoClient.NeoNativeFunctionInvoker Record(string handler) => (_, _, args, _) =>
             {
                 fixture.heard.Add((handler, Convert.ToInt32(args[0])));
                 fixture.onHeard?.Invoke(handler);
@@ -504,7 +504,7 @@ namespace NeoCompose.Tests
             {
                 ["member-heard"] = Record("member-heard"),
                 ["member-also"] = Record("member-also"),
-                ["member-explode"] = (_, _, _) => fixture.explode ? throw new InvalidOperationException("Boom.") : 0,
+                ["member-explode"] = (_, _, _, _) => fixture.explode ? throw new InvalidOperationException("Boom.") : 0,
             });
             return fixture;
         }

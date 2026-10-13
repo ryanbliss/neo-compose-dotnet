@@ -578,7 +578,7 @@ namespace NeoCompose.Tests
             // Every Check effect calls Record; the first one requests the dialogue.
             fixture.client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
             {
-                ["member-record"] = (_, _, _) =>
+                ["member-record"] = (_, _, _, _) =>
                 {
                     if (records++ == 0)
                         dialogues.TryTrigger("dialogue-effect");
@@ -809,7 +809,7 @@ namespace NeoCompose.Tests
             fixture.client = NeoTestSaveStack.ClientFromSchema(data);
             fixture.client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
             {
-                ["member-record"] = (client, receiver, args) =>
+                ["member-record"] = (client, receiver, args, _) =>
                 {
                     string plant = NeoGeneratedTypesSupport.ValueId(receiver)!;
                     // NeoScript a native function runs is never an effect's dependency.
@@ -819,7 +819,7 @@ namespace NeoCompose.Tests
                     fixture.recorded.Add((plant, Convert.ToInt32(args[0])));
                     return null;
                 },
-                ["member-poke"] = (client, _, _) =>
+                ["member-poke"] = (client, _, _, _) =>
                 {
                     Assert.IsTrue(client.TryGetMember("member-count", out JsonMember? count));
                     Assert.IsTrue(client.TryWriteLeaf(NeoValueOwnership.Save, Number("plant-0-count", 40), count!, "value"));

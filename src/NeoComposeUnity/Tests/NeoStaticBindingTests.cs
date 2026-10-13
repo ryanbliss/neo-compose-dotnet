@@ -263,7 +263,7 @@ namespace NeoCompose.Tests
             var heard = new List<int?>();
             client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
             {
-                ["watcher-record"] = (_, _, args) =>
+                ["watcher-record"] = (_, _, args, _) =>
                 {
                     heard.Add(args[0] is null ? null : Convert.ToInt32(args[0]));
                     return null;
@@ -1172,7 +1172,7 @@ namespace NeoCompose.Tests
             client.RegisterNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
                 {
-                    [effect.id] = (_, _, _) =>
+                    [effect.id] = (_, _, _, _) =>
                     {
                         laterArgumentEvaluated = true;
                         return "late";
@@ -1400,7 +1400,7 @@ namespace NeoCompose.Tests
             client.RegisterNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
                 {
-                    ["static-consume"] = (_, _, _) =>
+                    ["static-consume"] = (_, _, _, _) =>
                     {
                         calls++;
                         return "side effect";
@@ -2558,7 +2558,7 @@ namespace NeoCompose.Tests
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    ["static-wait"] = (_, _, _, deferred) =>
+                    ["static-wait"] = (_, _, _, _, deferred) =>
                         pending = NeoGeneratedTypesSupport.ResolveDeferredFunction<
                             NeoDeferredFunction<string>>(
                             deferred,
@@ -2670,7 +2670,7 @@ namespace NeoCompose.Tests
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    ["static-wait"] = (_, _, _, deferred) =>
+                    ["static-wait"] = (_, _, _, _, deferred) =>
                         pending = NeoGeneratedTypesSupport.ResolveDeferredFunction<
                             NeoDeferredFunction<string>>(
                             deferred,
@@ -2743,7 +2743,7 @@ namespace NeoCompose.Tests
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    ["static-wait"] = (_, _, _, deferred) =>
+                    ["static-wait"] = (_, _, _, _, deferred) =>
                         pending = NeoGeneratedTypesSupport.ResolveDeferredFunction<
                             NeoDeferredFunction<string>>(
                             deferred,
@@ -2820,7 +2820,7 @@ namespace NeoCompose.Tests
             client.RegisterNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
                 {
-                    ["static-consume"] = (_, _, args) =>
+                    ["static-consume"] = (_, _, args, _) =>
                     {
                         received = args[0];
                         receivedId = NSGetterEvaluator.FindRowIdByReference(

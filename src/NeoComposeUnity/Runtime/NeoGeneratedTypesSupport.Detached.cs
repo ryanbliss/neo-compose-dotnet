@@ -343,7 +343,7 @@ namespace NeoCompose.Runtime
                     if (created.attachedId is not null
                         && client.TryGetValue(NeoValueOwnership.Session, created.attachedId, out ObjectMemberValue? live))
                     {
-                        StampDetachedProvenance(created, live!);
+                        StampDetachedProvenance(created, live!, client);
                     }
                 }
                 catch
@@ -873,15 +873,20 @@ namespace NeoCompose.Runtime
             }
         }
 
-        /// <summary>Stamps a declared construction's recipe, serializing its recorded arguments.</summary>
-        private static void StampDetachedProvenance(NeoScriptObject value, ObjectMemberValue row)
+        /// <summary>
+        /// Stamps a declared construction's recipe, serializing its recorded
+        /// arguments: on a staged row, or with <paramref name="live"/> set, on
+        /// the row already in its store.
+        /// </summary>
+        private static void StampDetachedProvenance(NeoScriptObject value, ObjectMemberValue row, NeoClient? live = null)
         {
             if (value.constructorArgs is null)
                 return;
-            NeoClient.StampConstructionProvenance(
-                row,
-                value.constructor?.id,
-                SerializeConstructionProvenanceArgs(value.constructor, value.constructorArgs));
+            var args = SerializeConstructionProvenanceArgs(value.constructor, value.constructorArgs);
+            if (live is null)
+                NeoClient.StampConstructionProvenance(row, value.constructor?.id, args);
+            else
+                live.StampLiveConstructionProvenance(row, value.constructor?.id, args);
         }
 
         /// <summary>

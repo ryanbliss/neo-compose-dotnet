@@ -16,7 +16,7 @@ namespace Assets.Scripts.Neo
         internal static readonly IReadOnlyDictionary<string, NeoClient.NeoNativeFunctionInvoker> NativeFunctionInvokers =
             new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
             {
-                ["member-move-to"] = (client, receiver, args) =>
+                ["member-move-to"] = (client, receiver, args, typeArguments) =>
                 {
                 var target = NeoGeneratedTypesSupport.ResolveNativeFunctionReceiver<Hero>(
                     client,
@@ -34,7 +34,7 @@ namespace Assets.Scripts.Neo
                 }
                 return target.FunctionHandler.MoveTo(destination, cell);
                 },
-                ["member-total"] = (client, receiver, args) =>
+                ["member-total"] = (client, receiver, args, typeArguments) =>
                 {
                 var target = NeoGeneratedTypesSupport.ResolveNativeFunctionReceiver<Hero>(
                     client,
@@ -52,7 +52,7 @@ namespace Assets.Scripts.Neo
                 }
                 return target.FunctionHandler.Total(amounts, scales);
                 },
-                ["member-contract-run"] = (client, receiver, args) =>
+                ["member-contract-run"] = (client, receiver, args, typeArguments) =>
                 {
                 var target = NeoGeneratedTypesSupport.ResolveNativeFunctionReceiver<ContractBase>(
                     client,
@@ -69,7 +69,7 @@ namespace Assets.Scripts.Neo
                 }
                 return target.FunctionHandler.Run(count);
                 },
-                ["member-contract-run-sealed"] = (client, receiver, args) =>
+                ["member-contract-run-sealed"] = (client, receiver, args, typeArguments) =>
                 {
                 var target = NeoGeneratedTypesSupport.ResolveNativeFunctionReceiver<ContractExplicitChild>(
                     client,
@@ -86,7 +86,7 @@ namespace Assets.Scripts.Neo
                 }
                 return target.FunctionHandler.Run(count);
                 },
-                ["member-generic-contract-echo"] = (client, receiver, args) =>
+                ["member-generic-contract-echo"] = (client, receiver, args, typeArguments) =>
                 {
                 var untypedTarget = NeoGeneratedTypesSupport.ResolveNativeFunctionReceiver<INeoValueReference>(
                     client,
@@ -117,7 +117,7 @@ namespace Assets.Scripts.Neo
                 }
                 throw new NSGetterRuntimeError("Cannot invoke Function 'Echo' (member-generic-contract-echo) because the receiver does not match any closed generic construction.");
                 },
-                ["member-generic-function-transform"] = (client, receiver, args) =>
+                ["member-generic-function-transform"] = (client, receiver, args, typeArguments) =>
                 {
                 var target = NeoGeneratedTypesSupport.ResolveNativeFunctionReceiver<GenericFunctionContract<Hero>>(
                     client,
@@ -134,7 +134,7 @@ namespace Assets.Scripts.Neo
                 }
                 return target.FunctionHandler.Transform(value);
                 },
-                ["member-generic-function-transform-box"] = (client, receiver, args) =>
+                ["member-generic-function-transform-box"] = (client, receiver, args, typeArguments) =>
                 {
                 var target = NeoGeneratedTypesSupport.ResolveNativeFunctionReceiver<GenericFunctionContract<Hero>>(
                     client,
@@ -151,12 +151,58 @@ namespace Assets.Scripts.Neo
                 }
                 return target.FunctionHandler.TransformBox(value);
                 },
+                ["member-generic-probe-pick"] = (client, receiver, args, typeArguments) =>
+                {
+                var target = NeoGeneratedTypesSupport.ResolveNativeFunctionReceiver<GenericProbe>(
+                    client,
+                    receiver,
+                    DialogueReadOnlyValueFactories,
+                    DialogueWritableValueFactories,
+                    "Pick",
+                    "member-generic-probe-pick");
+                var typeArgumentClassId = NeoGeneratedTypesSupport.TypeArgumentClassId(typeArguments, "Pick");
+                switch (typeArgumentClassId)
+                {
+                    case "class-generic-animal":
+                    {
+                        var animals = NeoGeneratedTypesSupport.ReadScriptList<IReadOnlyGenericAnimal>(args[0], args0Entry => NeoGeneratedTypesSupport.ResolveNativeFunctionClassArgument<IReadOnlyGenericAnimal>(client, args0Entry, true, TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories, "animals"));
+                        if (target.FunctionHandler is null)
+                        {
+                            throw new NeoFunctionHandlerMissingException(
+                                "Cannot invoke Function 'Pick' because FunctionHandler is not set.");
+                        }
+                        return target.FunctionHandler.Pick<IReadOnlyGenericAnimal>(animals);
+                    }
+                    case "class-generic-cat":
+                    {
+                        var animals = NeoGeneratedTypesSupport.ReadScriptList<IReadOnlyGenericAnimal>(args[0], args0Entry => NeoGeneratedTypesSupport.ResolveNativeFunctionClassArgument<IReadOnlyGenericAnimal>(client, args0Entry, true, TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories, "animals"));
+                        if (target.FunctionHandler is null)
+                        {
+                            throw new NeoFunctionHandlerMissingException(
+                                "Cannot invoke Function 'Pick' because FunctionHandler is not set.");
+                        }
+                        return target.FunctionHandler.Pick<IReadOnlyGenericCat>(animals);
+                    }
+                    case "class-generic-dog":
+                    {
+                        var animals = NeoGeneratedTypesSupport.ReadScriptList<IReadOnlyGenericAnimal>(args[0], args0Entry => NeoGeneratedTypesSupport.ResolveNativeFunctionClassArgument<IReadOnlyGenericAnimal>(client, args0Entry, true, TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories, "animals"));
+                        if (target.FunctionHandler is null)
+                        {
+                            throw new NeoFunctionHandlerMissingException(
+                                "Cannot invoke Function 'Pick' because FunctionHandler is not set.");
+                        }
+                        return target.FunctionHandler.Pick<IReadOnlyGenericDog>(animals);
+                    }
+                    default:
+                        throw new NeoTypeArgumentException($"Native function 'Pick' takes no type argument of class '{typeArgumentClassId}'.");
+                }
+                },
             };
 
         internal static readonly IReadOnlyDictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker> DeferredNativeFunctionInvokers =
             new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
             {
-                ["member-generic-contract-echo-later"] = (client, receiver, args, deferred) =>
+                ["member-generic-contract-echo-later"] = (client, receiver, args, typeArguments, deferred) =>
                 {
                 var untypedTarget = NeoGeneratedTypesSupport.ResolveNativeFunctionReceiver<INeoValueReference>(
                     client,
@@ -191,7 +237,7 @@ namespace Assets.Scripts.Neo
                 }
                 throw new NSGetterRuntimeError("Cannot invoke Function 'EchoLater' (member-generic-contract-echo-later) because the receiver does not match any closed generic construction.");
                 },
-                ["member-generic-function-transform-later"] = (client, receiver, args, deferred) =>
+                ["member-generic-function-transform-later"] = (client, receiver, args, typeArguments, deferred) =>
                 {
                 var target = NeoGeneratedTypesSupport.ResolveNativeFunctionReceiver<GenericFunctionContract<Hero>>(
                     client,

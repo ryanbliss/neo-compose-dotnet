@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-  "codegenRevision": "bac1e765b6731dfd0abb8404c7b4c2b65f161f2a539cc485ee297e555852f3ab",
+  "codegenRevision": "edfd4061dffcd1a747b234cd135b99beca6f4cf1958cb69715029c5935dd7f1b",
   "files": [
     {
       "id": "class:11177bd5-0678-4bff-86b8-46718ff1827b",
@@ -191,7 +191,7 @@
     {
       "id": "class:system_f671535d-0eb6-4139-9caf-5c5276febd31",
       "path": "Generated/Classes/NeoObject.g.cs",
-      "hash": "48a2eca4474243b2faf5dbec47c73f6994b66e12f478f15f3cb44e7300a3b5a0"
+      "hash": "071031cbaf8ec45be9c95bc497f2c1cb9d8294b269d84f045c788cfb84d184c6"
     },
     {
       "id": "class:system_61b30a92-90dc-4bf8-8503-ee4f6414effc",
@@ -451,22 +451,22 @@
     {
       "id": "project:factories",
       "path": "Generated/HelloWorldNeo.Factories.g.cs",
-      "hash": "e52d77d556e3bae67aa09791b984bd4a664eb7c32b55a2ef09d80a21cd4df029"
+      "hash": "edf4f07bdf9575e70639e5e3b2abf30a6379bdf1263a37f9dd148c590d362d79"
     },
     {
       "id": "project:functions",
       "path": "Generated/HelloWorldNeo.Functions.g.cs",
-      "hash": "2d6ac4489ab0cd78f3b6451958be2a29d24cd1145fff95fed5f3a37796925f7a"
+      "hash": "be0dcc4f167a67480cf5bc2257013a2968f491db6670cec23b8916fe8d42600e"
     },
     {
       "id": "project:client",
       "path": "Generated/HelloWorldNeo.g.cs",
-      "hash": "e9add3426ad43199469164a098507a28815e3846ec8801b8efc52410e6069973"
+      "hash": "7f5ed26c8f81da71a2b53af6f292355773f39f20c9359741e2eb4450339f891b"
     },
     {
       "id": "project:user-client",
       "path": "Generated/HelloWorldUserNeo.g.cs",
-      "hash": "3667071799553bfd26dac4ac7855df9bbc54b0d48053c145bbaab0b423673788"
+      "hash": "1e93e2d94b5aee76170292ec9884fe488c21dd3c7c6862674467133c44d4db46"
     },
     {
       "id": "interface:27d59731-311d-4d80-833a-916760c7ed30",

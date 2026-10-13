@@ -614,7 +614,7 @@ namespace NeoCompose.Tests
                 objectClass.schema[name] = memberId;
                 objectClass.implementsInterfaceIds.Add(interfaceId);
                 bool contact = name.Contains("Trigger") || name.Contains("Collision");
-                invokers[recorderId] = (_, receiver, args) =>
+                invokers[recorderId] = (_, receiver, args, _) =>
                 {
                     string? receiverId = NeoGeneratedTypesSupport.ValueId(receiver);
                     calls.Add(contact ? $"{name}:{receiverId}>{NeoGeneratedTypesSupport.ValueId(args[1])}" : name);

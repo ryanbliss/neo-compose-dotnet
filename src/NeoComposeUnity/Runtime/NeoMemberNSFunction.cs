@@ -148,7 +148,8 @@ namespace NeoCompose.Runtime
             }
         }
 
-        public object? Invoke(string thisValueId, object?[] args)
+        /// <param name="typeArguments">A generic function's type arguments; null binds its defaults.</param>
+        public object? Invoke(string thisValueId, object?[] args, TypeInfo[]? typeArguments = null)
         {
             args ??= Array.Empty<object?>();
             MemberValue row = ReceiverRow(thisValueId);
@@ -167,7 +168,7 @@ namespace NeoCompose.Runtime
                 receiver,
                 args,
                 ctx,
-                NeoScriptExecutionOptions.ForImmediate(client), ownsContext: true);
+                NeoScriptExecutionOptions.ForImmediate(client), ownsContext: true, typeArguments: typeArguments);
             if (result.IsPaused)
             {
                 result.Deferred?.DisposeFromOwner(
@@ -179,7 +180,8 @@ namespace NeoCompose.Runtime
             return result.ReturnValue;
         }
 
-        public Task<object?> InvokeAsync(string thisValueId, object?[] args)
+        /// <param name="typeArguments">A generic function's type arguments; null binds its defaults.</param>
+        public Task<object?> InvokeAsync(string thisValueId, object?[] args, TypeInfo[]? typeArguments = null)
         {
             args ??= Array.Empty<object?>();
             try
@@ -199,7 +201,7 @@ namespace NeoCompose.Runtime
                     receiver,
                     args,
                     ctx,
-                    NeoScriptExecutionOptions.ForDirectFunction(client), ownsContext: true);
+                    NeoScriptExecutionOptions.ForDirectFunction(client), ownsContext: true, typeArguments: typeArguments);
                 return AwaitExecution(result);
             }
             catch (Exception exception)
@@ -290,7 +292,13 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>Invokes a receiverless static NSFunction.</summary>
-        public object? InvokeStatic(object?[] args)
+        public object? InvokeStatic(object?[] args) => InvokeStaticCore(args, null);
+
+        /// <summary>Invokes a receiverless generic static NSFunction with <paramref name="typeArguments"/>.</summary>
+        public object? InvokeGenericStatic(object?[] args, TypeInfo[] typeArguments) =>
+            InvokeStaticCore(args, typeArguments);
+
+        private object? InvokeStaticCore(object?[] args, TypeInfo[]? typeArguments)
         {
             args ??= Array.Empty<object?>();
             NeoResolvedNSFunction function = ResolveStaticFunction();
@@ -306,7 +314,7 @@ namespace NeoCompose.Runtime
                 receiver: null,
                 args,
                 ctx,
-                NeoScriptExecutionOptions.ForImmediate(client), ownsContext: true);
+                NeoScriptExecutionOptions.ForImmediate(client), ownsContext: true, typeArguments: typeArguments);
             if (result.IsPaused)
             {
                 result.Deferred?.DisposeFromOwner(
@@ -319,7 +327,8 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>Invokes a deferred receiverless static NSFunction.</summary>
-        public Task<object?> InvokeStaticAsync(object?[] args)
+        /// <param name="typeArguments">A generic function's type arguments; null binds its defaults.</param>
+        public Task<object?> InvokeStaticAsync(object?[] args, TypeInfo[]? typeArguments = null)
         {
             args ??= Array.Empty<object?>();
             try
@@ -337,7 +346,7 @@ namespace NeoCompose.Runtime
                     receiver: null,
                     args,
                     ctx,
-                    NeoScriptExecutionOptions.ForDirectFunction(client), ownsContext: true));
+                    NeoScriptExecutionOptions.ForDirectFunction(client), ownsContext: true, typeArguments: typeArguments));
             }
             catch (Exception exception)
             {
@@ -427,6 +436,8 @@ namespace NeoCompose.Runtime
 #endif
             HasGenericSignature = NeoNSFunctionRuntime.ContainsGeneric(returnTypeInfo)
                 || Array.Exists(argumentTypes, NeoNSFunctionRuntime.ContainsGeneric);
+            GenericParams = member.genericParams;
+            DefaultTypeArguments = NeoFunctionTypeArguments.Defaults(GenericParams);
         }
 
         /// <summary>The client's <see cref="NeoClient.SchemaResolution"/> this was resolved under.</summary>
@@ -477,6 +488,19 @@ namespace NeoCompose.Runtime
         {
             get;
         }
+        /// <summary>P110. The function's own type parameters, or null when it is not generic.</summary>
+        internal FunctionGenericParam[]? GenericParams
+        {
+            get;
+        }
+        /// <summary>The table a call that supplies no type arguments gets, or null when a parameter has no default.</summary>
+        internal TypeInfo[]? DefaultTypeArguments
+        {
+            get;
+        }
+        // Bindings for C# calls, keyed by their cached table, and for calls
+        // that write no type arguments. A NeoScript site keeps its own.
+        internal NeoBoundNSFunctionSignature? BoundSignatures;
         // Terminal marshalling for the declared (non-generic) return type;
         // the resolved function is cached per client, so one delegate serves
         // every invocation. A C# caller's result also has its resolved
@@ -516,6 +540,52 @@ namespace NeoCompose.Runtime
         }
     }
 
+    /// <summary>P110 §5. A generic function's signature bound to one type-argument table.</summary>
+    internal sealed class NeoBoundNSFunctionSignature
+    {
+        internal NeoBoundNSFunctionSignature(
+            NeoResolvedNSFunction function,
+            TypeInfo[]? key,
+            NeoBoundNSFunctionSignature? next,
+            TypeInfo[] typeArguments,
+            TypeInfo returnTypeInfo,
+            TypeInfo[] argumentTypes)
+        {
+            this.function = function;
+            this.key = key;
+            Next = next;
+            TypeArguments = typeArguments;
+            ReturnTypeInfo = returnTypeInfo;
+            ArgumentTypes = argumentTypes;
+        }
+
+        private readonly NeoResolvedNSFunction function;
+        private readonly TypeInfo[]? key;
+
+        internal NeoBoundNSFunctionSignature? Next
+        {
+            get;
+        }
+        internal TypeInfo[] TypeArguments
+        {
+            get;
+        }
+        internal TypeInfo ReturnTypeInfo
+        {
+            get;
+        }
+        internal TypeInfo[] ArgumentTypes
+        {
+            get;
+        }
+        internal NeoScriptTerminalNormalizer? TerminalNormalizer;
+        internal NeoScriptTerminalNormalizer? BoundaryTerminalNormalizer;
+
+        /// <summary>Whether a call to <paramref name="function"/> with <paramref name="key"/> binds to this signature.</summary>
+        internal bool Binds(NeoResolvedNSFunction function, TypeInfo[]? key) =>
+            ReferenceEquals(this.function, function) && ReferenceEquals(this.key, key);
+    }
+
     internal static class NeoNSFunctionRuntime
     {
         private const int MaxCallableDepth = 64;
@@ -526,7 +596,11 @@ namespace NeoCompose.Runtime
         /// would, so a call through its C# view makes no rows. The
         /// temporary's own Class picks the override.
         /// </summary>
-        internal static object? InvokeDetached(NeoScriptObject receiver, string schemaKey, object?[] args)
+        internal static object? InvokeDetached(
+            NeoScriptObject receiver,
+            string schemaKey,
+            object?[] args,
+            TypeInfo[]? typeArguments = null)
         {
             NeoClient client = receiver.client;
             string memberId = receiver.plan.ClassNode(client).SurfaceMember(schemaKey)?.memberId
@@ -545,7 +619,7 @@ namespace NeoCompose.Runtime
                 receiver,
                 args,
                 ctx,
-                NeoScriptExecutionOptions.ForImmediate(client), ownsContext: true);
+                NeoScriptExecutionOptions.ForImmediate(client), ownsContext: true, typeArguments: typeArguments);
             if (result.IsPaused)
             {
                 result.Deferred?.DisposeFromOwner(
@@ -626,7 +700,8 @@ namespace NeoCompose.Runtime
             NeoScriptExecutionOptions options,
             bool ownsContext = false,
             CallFunctionPointer? site = null,
-            NeoScriptScope? siteScope = null)
+            NeoScriptScope? siteScope = null,
+            TypeInfo[]? typeArguments = null)
         {
 #if NEO_COMPOSE_PROFILING
             using var sample = function.Profile.Auto();
@@ -637,8 +712,11 @@ namespace NeoCompose.Runtime
             ValidateInvocation(client, function, receiver, site?.args.Length ?? args.Length, ctx);
             FunctionWithReturnType action = function.Action;
             bool isStatic = function.IsStatic;
-            TypeInfo effectiveReturnType = function.ReturnTypeInfo;
-            TypeInfo[] effectiveArgumentTypes = function.ArgumentTypes;
+            NeoBoundNSFunctionSignature? bound = function.GenericParams is null
+                ? null
+                : BindTypeArguments(function, typeArguments, site, ctx);
+            TypeInfo effectiveReturnType = bound?.ReturnTypeInfo ?? function.ReturnTypeInfo;
+            TypeInfo[] effectiveArgumentTypes = bound?.ArgumentTypes ?? function.ArgumentTypes;
             if (function.HasGenericSignature)
             {
                 effectiveReturnType = ResolveInvocationSignature(
@@ -646,7 +724,8 @@ namespace NeoCompose.Runtime
                     function,
                     receiver!,
                     ctx,
-                    out effectiveArgumentTypes);
+                    effectiveReturnType,
+                    ref effectiveArgumentTypes);
             }
 
             // Immediate functions cannot retain a lexical scope after completion:
@@ -667,25 +746,32 @@ namespace NeoCompose.Runtime
                 if (ownsContext)
                 {
                     ctx.BindFunction(function.DirectCallStack, isStatic ? null : receiver);
+                    ctx.BindFunctionTypeArguments(bound?.TypeArguments);
                     nestedCtx = ctx;
                 }
                 else if (!function.Deferred)
                 {
                     inPlaceFrame = ctx.EnterFunction(function.MemberId, function.DirectCallStack, isStatic ? null : receiver);
+                    // A non-generic callee keeps its caller's table: its body names no type parameter.
+                    if (bound is not null)
+                        ctx.BindFunctionTypeArguments(bound.TypeArguments);
                     nestedCtx = ctx;
                 }
                 else
                 {
                     // A suspended deferred frame outlives this call.
-                    nestedCtx = ctx.WithFunctionPushed(function.MemberId, function.DirectCallStack, isStatic ? null : receiver);
+                    nestedCtx = ctx.WithFunctionPushed(
+                        function.MemberId, function.DirectCallStack, isStatic ? null : receiver, bound?.TypeArguments);
                 }
                 NeoScriptExecutionOptions functionOptions = options.ForFunction(function.Deferred);
                 NeoScriptExecutor.PrepareFunctionContext(nestedCtx, functionOptions, inPlaceFrame);
                 // Only the C# entry points own their context.
                 bool boundary = ownsContext;
                 NeoScriptTerminalNormalizer normalizer;
-                if (!ReferenceEquals(effectiveReturnType, function.ReturnTypeInfo))
+                if (!ReferenceEquals(effectiveReturnType, bound?.ReturnTypeInfo ?? function.ReturnTypeInfo))
                     normalizer = CreateTerminalNormalizer(client, function, effectiveReturnType, boundary);
+                else if (bound is not null)
+                    normalizer = BoundTerminalNormalizer(client, function, bound, boundary);
                 else if (boundary)
                     normalizer = function.BoundaryTerminalNormalizer ??= CreateTerminalNormalizer(client, function, effectiveReturnType, true);
                 else
@@ -805,26 +891,88 @@ namespace NeoCompose.Runtime
             NeoResolvedNSFunction function,
             object receiver,
             NSGetterEvaluator.Context ctx,
-            out TypeInfo[] argumentTypes)
+            TypeInfo returnTypeInfo,
+            ref TypeInfo[] argumentTypes)
         {
             IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv =
                 ResolveReceiverGenericEnv(client, receiver, ctx, function);
             TypeInfo returnType = ResolveInvocationTypeInfo(
                 client,
-                function.ReturnTypeInfo,
+                returnTypeInfo,
                 genericEnv,
                 new HashSet<string>());
-            argumentTypes = new TypeInfo[function.ArgumentTypes.Length];
-            for (int i = 0; i < function.ArgumentTypes.Length; i++)
+            var resolved = new TypeInfo[argumentTypes.Length];
+            for (int i = 0; i < argumentTypes.Length; i++)
             {
-                argumentTypes[i] = ResolveInvocationTypeInfo(
+                resolved[i] = ResolveInvocationTypeInfo(
                     client,
-                    function.ArgumentTypes[i],
+                    argumentTypes[i],
                     genericEnv,
                     new HashSet<string>());
             }
+            argumentTypes = resolved;
             return returnType;
         }
+
+        /// <summary>
+        /// P110 §5. The generic callee's signature bound to its call's type
+        /// arguments: <paramref name="typeArguments"/> from a C# caller, else
+        /// the call site's, resolved in the caller's frame, with defaults
+        /// for any it omits.
+        /// </summary>
+        private static NeoBoundNSFunctionSignature BindTypeArguments(
+            NeoResolvedNSFunction function,
+            TypeInfo[]? typeArguments,
+            CallFunctionPointer? site,
+            NSGetterEvaluator.Context ctx)
+        {
+            TypeInfo[]? written = typeArguments ?? site?.typeArguments;
+            // A NeoScript site that writes type arguments keeps its own short
+            // chain: one binding per callee, and per caller frame table when
+            // it forwards. Any other call binds on the function by its table.
+            CallFunctionPointer? bindingSite = typeArguments is null && site?.typeArguments is not null ? site : null;
+            bool forwards = bindingSite is not null && bindingSite.TypeArgumentsForward;
+            TypeInfo[]? callerTable = forwards ? ctx.functionTypeArguments : null;
+            TypeInfo[]? key = bindingSite is null ? written : callerTable;
+            NeoBoundNSFunctionSignature? chain = bindingSite is null ? function.BoundSignatures : bindingSite.BoundSignatures;
+            for (NeoBoundNSFunctionSignature? bound = chain; bound is not null; bound = bound.Next)
+            {
+                if (bound.Binds(function, key))
+                    return bound;
+            }
+            TypeInfo[] table = written is null && function.DefaultTypeArguments is { } defaults
+                ? defaults
+                : NeoFunctionTypeArguments.ForCall(
+                    written,
+                    forwards,
+                    function.GenericParams,
+                    function.Member.name,
+                    callerTable)!;
+            var argumentTypes = new TypeInfo[function.ArgumentTypes.Length];
+            for (int i = 0; i < argumentTypes.Length; i++)
+                argumentTypes[i] = NeoFunctionTypeArguments.BindArgument(function.ArgumentTypes[i], table);
+            var created = new NeoBoundNSFunctionSignature(
+                function,
+                key,
+                chain,
+                table,
+                NeoFunctionTypeArguments.Bind(function.ReturnTypeInfo, table),
+                argumentTypes);
+            if (bindingSite is null)
+                function.BoundSignatures = created;
+            else
+                bindingSite.BoundSignatures = created;
+            return created;
+        }
+
+        private static NeoScriptTerminalNormalizer BoundTerminalNormalizer(
+            NeoClient client,
+            NeoResolvedNSFunction function,
+            NeoBoundNSFunctionSignature bound,
+            bool boundary) =>
+            boundary
+                ? bound.BoundaryTerminalNormalizer ??= CreateTerminalNormalizer(client, function, bound.ReturnTypeInfo, true)
+                : bound.TerminalNormalizer ??= CreateTerminalNormalizer(client, function, bound.ReturnTypeInfo, false);
 
         /// <summary>The leading parameter slots <see cref="BindParameters"/> binds on every call.</summary>
         private static int BoundParameterCount(NeoResolvedNSFunction function) => function.ArgumentTypes.Length + 2;
@@ -940,10 +1088,12 @@ namespace NeoCompose.Runtime
             };
         }
 
+        /// <summary>Whether <paramref name="typeInfo"/> names a receiver class's generic parameter.</summary>
         internal static bool ContainsGeneric(TypeInfo typeInfo)
         {
+            // A function's own type parameter binds per call, not per receiver.
             if (typeInfo.type == MemberKind.Generic)
-                return true;
+                return !NeoFunctionTypeArguments.IsFunctionGeneric(typeInfo);
             TypeInfo? delegateReturn = typeInfo switch
             {
                 DelegateTypeInfo delegateType => delegateType.returnTypeInfo,

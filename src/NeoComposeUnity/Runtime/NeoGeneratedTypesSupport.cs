@@ -2020,6 +2020,92 @@ namespace NeoCompose.Runtime
                 $"Native Function argument '{argumentName}' could not be converted to {typeof(T).Name}.");
         }
 
+        /// <summary>
+        /// P110 §7.3. The class id a generic project native's single type
+        /// argument names, which its generated invoker switches on.
+        /// </summary>
+        public static string TypeArgumentClassId(TypeInfo[]? typeArguments, string functionName)
+        {
+            if (typeArguments is null)
+            {
+                throw new NeoTypeArgumentException(
+                    $"Native function '{functionName}' was called without its type argument.");
+            }
+            if (typeArguments[0] is not ClassTypeInfo typeArgument)
+            {
+                throw new NeoTypeArgumentException(
+                    $"Native function '{functionName}' takes a class type argument, not member kind {typeArguments[0].type}.");
+            }
+            if (typeArgument.typeArguments is not null)
+            {
+                throw new NeoTypeArgumentException(
+                    $"Native function '{functionName}' takes no constructed type argument of class '{typeArgument.classId}'.");
+            }
+            return typeArgument.classId;
+        }
+
+        /// <summary>
+        /// P110 §7.1. Narrows a generic function's result to its type argument
+        /// <typeparamref name="T"/>. A constrained result arrives already read;
+        /// an unconstrained one converts as an ordinary value of its type.
+        /// </summary>
+        public static T ReadTypeArgument<T>(
+            NeoClient client,
+            object? value,
+            string name,
+            IReadOnlyDictionary<string, ReadOnlyClassFactory> readOnlyFactories,
+            IReadOnlyDictionary<string, WritableClassFactory> savedFactories)
+        {
+            if (value is T typed)
+                return typed;
+            if (value is null)
+            {
+                if (default(T) is null)
+                    return default!;
+                throw new NeoTypeArgumentException(
+                    $"A generic function returned null for type parameter '{name}', and {typeof(T).Name} is not nullable.");
+            }
+            Type type = Nullable.GetUnderlyingType(typeof(T)) ?? typeof(T);
+            if (ConvertTypeArgument(client, value, type, readOnlyFactories, savedFactories) is T converted)
+                return converted;
+            string row = ValueId(value) is { } valueId ? $"Row '{valueId}'" : $"Value of type {value.GetType().Name}";
+            throw new NeoTypeArgumentException(
+                $"{row} is not a {typeof(T).Name}, the argument for type parameter '{name}'.");
+        }
+
+        private static object? ConvertTypeArgument(
+            NeoClient client,
+            object value,
+            Type type,
+            IReadOnlyDictionary<string, ReadOnlyClassFactory> readOnlyFactories,
+            IReadOnlyDictionary<string, WritableClassFactory> savedFactories)
+        {
+            if (type == typeof(int))
+                return Convert.ToInt32(value, System.Globalization.CultureInfo.InvariantCulture);
+            if (type == typeof(float))
+                return Convert.ToSingle(value, System.Globalization.CultureInfo.InvariantCulture);
+            if (type == typeof(decimal))
+                return value is string text ? NeoDecimalValues.Parse(text) : null;
+            if (type == typeof(Vector2))
+                return ReadVector2Value(value);
+            if (type == typeof(Vector2Int))
+                return ReadVector2IntValue(value);
+            if (type == typeof(Vector3))
+                return ReadVector3Value(value);
+            if (type == typeof(Vector3Int))
+                return ReadVector3IntValue(value);
+            if (type == typeof(Color))
+                return ReadColorValue(value);
+            if (type == typeof(Sprite))
+                return ReadSprite(client, value);
+            if (type == typeof(AudioClip))
+                return ReadAudioClip(client, value);
+            string? valueId = ValueId(value);
+            if (string.IsNullOrEmpty(valueId))
+                return null;
+            return ResolveClassValue(client, valueId!, readOnlyFactories, savedFactories);
+        }
+
         public static TDeferred ResolveDeferredFunction<TDeferred>(
             NeoDeferredFunctionBase deferred,
             string functionName)
@@ -4875,7 +4961,7 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"Declared constructor for '{resolved.classTypeInfo.classId}' lost its root row '{rootValueId}' before creation provenance could be recorded.");
             }
-            NeoClient.StampConstructionProvenance(
+            client.StampLiveConstructionProvenance(
                 live,
                 resolved.link.record?.id,
                 SerializeConstructionProvenanceArgs(

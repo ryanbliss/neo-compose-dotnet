@@ -16,7 +16,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         internal static readonly IReadOnlyDictionary<string, NeoClient.NeoNativeFunctionInvoker> NativeFunctionInvokers =
             new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
             {
-                ["0fa12fa0-9e74-4e85-9ce3-df0efe78d2dd"] = (client, receiver, args) =>
+                ["0fa12fa0-9e74-4e85-9ce3-df0efe78d2dd"] = (client, receiver, args, typeArguments) =>
                 {
                 var target = NeoGeneratedTypesSupport.ResolveNativeFunctionReceiver<BlockedPath>(
                     client,
@@ -32,7 +32,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 }
                 return target.FunctionHandler.ClearPath();
                 },
-                ["e549555b-9276-48d8-be33-156972520d31"] = (client, receiver, args) =>
+                ["e549555b-9276-48d8-be33-156972520d31"] = (client, receiver, args, typeArguments) =>
                 {
                 var target = NeoGeneratedTypesSupport.ResolveNativeFunctionReceiver<Outpost>(
                     client,
@@ -49,7 +49,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 }
                 return target.FunctionHandler.DebugLog(text);
                 },
-                ["736ca2ec-5f56-4f93-8cc5-c8b2ae8f76a1"] = (client, receiver, args) =>
+                ["736ca2ec-5f56-4f93-8cc5-c8b2ae8f76a1"] = (client, receiver, args, typeArguments) =>
                 {
                 var target = NeoGeneratedTypesSupport.ResolveNativeFunctionReceiver<Outpost>(
                     client,
@@ -70,7 +70,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         internal static readonly IReadOnlyDictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker> DeferredNativeFunctionInvokers =
             new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
             {
-                ["cab850e3-cf8c-42b3-a70b-f0066089e6fb"] = (client, receiver, args, deferred) =>
+                ["cab850e3-cf8c-42b3-a70b-f0066089e6fb"] = (client, receiver, args, typeArguments, deferred) =>
                 {
                 var target = NeoGeneratedTypesSupport.ResolveNativeFunctionReceiver<Outpost>(
                     client,

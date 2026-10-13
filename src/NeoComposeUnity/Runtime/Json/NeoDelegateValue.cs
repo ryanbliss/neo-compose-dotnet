@@ -38,6 +38,10 @@ namespace NeoCompose.Runtime.Json
         [JsonIgnore]
         internal bool hasLexicalEnvironment;
 
+        /// <summary>The type arguments of the generic function frame that made this closure (P110 §5).</summary>
+        [JsonIgnore]
+        internal TypeInfo[]? lexicalTypeArguments;
+
         /// <summary>
         /// The NSFunction or native Function <see cref="memberId"/> last
         /// resolved to. Each is stamped with its schema resolution, so a
@@ -59,10 +63,11 @@ namespace NeoCompose.Runtime.Json
         [JsonIgnore]
         public bool IsClosure => action is not null;
 
-        internal NeoDelegateValue Capture(object? thisValue, object? rootValue)
+        internal NeoDelegateValue Capture(object? thisValue, object? rootValue, TypeInfo[]? typeArguments)
         {
             lexicalThis = thisValue;
             lexicalRoot = rootValue;
+            lexicalTypeArguments = typeArguments;
             hasLexicalEnvironment = true;
             return this;
         }

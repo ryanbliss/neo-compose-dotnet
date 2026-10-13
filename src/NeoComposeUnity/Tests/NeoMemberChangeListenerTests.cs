@@ -477,7 +477,7 @@ namespace NeoCompose.Tests
             });
             client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
             {
-                ["derived-handler"] = (_, _, arguments) => { heard.Add(100 + Convert.ToDouble(arguments[0])); return null; },
+                ["derived-handler"] = (_, _, arguments, _) => { heard.Add(100 + Convert.ToDouble(arguments[0])); return null; },
             });
             var baseTarget = new NeoDelegateValue { memberId = "handler", valueId = receiverId };
             var derivedTarget = new NeoDelegateValue { memberId = "derived-handler", valueId = receiverId };
@@ -1044,7 +1044,7 @@ namespace NeoCompose.Tests
             Assert.That(client.CaptureListenerEndpoints(new Dictionary<string, HashSet<string>>()), Is.Empty);
             client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
             {
-                ["handler"] = (_, receiver, args) =>
+                ["handler"] = (_, receiver, args, _) =>
                 {
                     Assert.That(receiver, Is.InstanceOf<IDictionary<string, object?>>());
                     Assert.That(((IDictionary<string, object?>)receiver!)["Count"], Is.EqualTo("count"),
@@ -1075,7 +1075,7 @@ namespace NeoCompose.Tests
             var receivers = new List<string>();
             client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
             {
-                ["handler"] = (_, receiver, args) =>
+                ["handler"] = (_, receiver, args, _) =>
                 {
                     receivers.Add((string)((IDictionary<string, object?>)receiver!)["Count"]!);
                     Assert.That(Convert.ToDouble(args[0]), Is.EqualTo(7d));
@@ -1183,7 +1183,7 @@ namespace NeoCompose.Tests
             });
             client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
             {
-                ["handler"] = (_, _, _) => { calls++; return null; },
+                ["handler"] = (_, _, _, _) => { calls++; return null; },
             });
             var plan = new NeoWritePlan(client);
             client.TryGetMember("field", out Member? field);
@@ -1258,7 +1258,7 @@ namespace NeoCompose.Tests
             });
             client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
             {
-                ["handler"] = (_, _, _) => { calls++; return null; },
+                ["handler"] = (_, _, _, _) => { calls++; return null; },
             });
             client.EditMemberChangeListener("save", NeoValueOwnership.Save, "field",
                 new ClassTypeInfo { type = MemberKind.Class, classId = "child-class", required = true },
@@ -1321,7 +1321,7 @@ namespace NeoCompose.Tests
             });
             client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
             {
-                ["handler"] = (_, _, _) => { calls++; return null; },
+                ["handler"] = (_, _, _, _) => { calls++; return null; },
             });
             client.EditMemberChangeListener("save", NeoValueOwnership.Save, "field",
                 new CollectionTypeInfo { type = MemberKind.List, required = true, entryTypeInfo = innerType },
@@ -2253,7 +2253,7 @@ namespace NeoCompose.Tests
             var heard = new List<(string countId, double value)>();
             client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
             {
-                ["handler"] = (_, receiver, args) =>
+                ["handler"] = (_, receiver, args, _) =>
                 {
                     heard.Add(((string)((IDictionary<string, object?>)receiver!)["Count"]!, Convert.ToDouble(args[0])));
                     return null;
@@ -2355,7 +2355,7 @@ namespace NeoCompose.Tests
             var client = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: loadedSaveContent);
             client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
             {
-                ["handler"] = (_, _, arguments) =>
+                ["handler"] = (_, _, arguments, _) =>
                 {
                     handler?.Invoke(Convert.ToDouble(arguments[0]));
                     return null;

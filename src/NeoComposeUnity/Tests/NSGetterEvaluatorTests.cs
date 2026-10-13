@@ -623,7 +623,7 @@ namespace NeoCompose.Tests
             var client = LoadClient();
             client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
             {
-                ["member-native"] = (_, receiver, args) => $"{receiver}:{args[0]}",
+                ["member-native"] = (_, receiver, args, _) => $"{receiver}:{args[0]}",
             });
             var getter = new FunctionWithReturnType
             {
@@ -665,7 +665,7 @@ namespace NeoCompose.Tests
             client.RegisterNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
                 {
-                    ["member-native-ping"] = (_, _, args) => $"dynamic:{args[0]}",
+                    ["member-native-ping"] = (_, _, args, _) => $"dynamic:{args[0]}",
                 });
             var getter = new FunctionWithReturnType
             {
@@ -712,7 +712,7 @@ namespace NeoCompose.Tests
             client.RegisterNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
                 {
-                    ["member-native-ping"] = (_, _, _) =>
+                    ["member-native-ping"] = (_, _, _, _) =>
                     {
                         invocationCount++;
                         return "unexpected";
@@ -749,7 +749,7 @@ namespace NeoCompose.Tests
             client.RegisterNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
                 {
-                    ["member-native-ping"] = (_, _, _) =>
+                    ["member-native-ping"] = (_, _, _, _) =>
                     {
                         invocationCount++;
                         return "unexpected";
@@ -808,7 +808,7 @@ namespace NeoCompose.Tests
                 new Dictionary<string, NeoGeneratedTypesSupport.WritableClassFactory>();
             client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
             {
-                ["member-native-ping"] = (invokeClient, receiver, args) =>
+                ["member-native-ping"] = (invokeClient, receiver, args, _) =>
                 {
                     var target = NeoGeneratedTypesSupport.ResolveNativeFunctionReceiver<FunctionTestValue>(
                         invokeClient,
@@ -853,7 +853,7 @@ namespace NeoCompose.Tests
                 };
             client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
             {
-                ["member-native-ping"] = (invokeClient, receiver, args) =>
+                ["member-native-ping"] = (invokeClient, receiver, args, _) =>
                 {
                     var target = NeoGeneratedTypesSupport.ResolveNativeFunctionReceiver<FunctionTestValue>(
                         invokeClient,
@@ -917,8 +917,8 @@ namespace NeoCompose.Tests
             var client = LoadClient();
             client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
             {
-                ["member-ok"] = (_, _, _) => null,
-                ["member-throws"] = (_, _, _) => throw new NeoFunctionHandlerMissingException("missing handler"),
+                ["member-ok"] = (_, _, _, _) => null,
+                ["member-throws"] = (_, _, _, _) => throw new NeoFunctionHandlerMissingException("missing handler"),
             });
             var getter = new FunctionWithReturnType
             {

@@ -655,7 +655,7 @@ namespace NeoCompose.Tests
             Func<int> listCommits = CountCommits(client, "names");
             client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
             {
-                ["count-names"] = (native, _, _) => native.save.Get<NeoMemberListWritable>("Names").Count,
+                ["count-names"] = (native, _, _, _) => native.save.Get<NeoMemberListWritable>("Names").Count,
             });
 
             // Save.Names.Add("a"); var seen = CountNames(); Save.Names.Add("b"); return [seen];
@@ -679,7 +679,7 @@ namespace NeoCompose.Tests
             int seen = -1;
             client.RegisterDeferredNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
             {
-                ["deferred-count"] = (native, _, _, deferred) =>
+                ["deferred-count"] = (native, _, _, _, deferred) =>
                 {
                     seen = native.save.Get<NeoMemberListWritable>("Names").Count;
                     pending = NeoGeneratedTypesSupport.ResolveDeferredFunction<NeoDeferredFunction<int>>(deferred, "DeferredCount");
@@ -948,7 +948,7 @@ namespace NeoCompose.Tests
             };
             client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
             {
-                ["count-names"] = (native, _, _) =>
+                ["count-names"] = (native, _, _, _) =>
                 {
                     names.AddSerialized(NeoValueWritePayload.FromValue("c"));
                     return names.Count;
@@ -973,7 +973,7 @@ namespace NeoCompose.Tests
             using var client = NeoTestSaveStack.ClientFromSchema(Schema(false));
             client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
             {
-                ["count-names"] = (native, _, _) =>
+                ["count-names"] = (native, _, _, _) =>
                 {
                     var view = new NeoReadOnlyList<string?>(native, native.save.Get<NeoMemberListWritable>("Names"),
                         (_, child) => ((NeoMemberString)child).Text);
@@ -1000,7 +1000,7 @@ namespace NeoCompose.Tests
             NeoDeferredFunction<int>? pending = null;
             client.RegisterDeferredNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
             {
-                ["deferred-count"] = (_, _, _, deferred) =>
+                ["deferred-count"] = (_, _, _, _, deferred) =>
                     pending = NeoGeneratedTypesSupport.ResolveDeferredFunction<NeoDeferredFunction<int>>(deferred, "DeferredCount"),
             });
 

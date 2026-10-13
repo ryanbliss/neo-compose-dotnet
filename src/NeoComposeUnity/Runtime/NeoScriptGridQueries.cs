@@ -171,7 +171,8 @@ namespace NeoCompose.Runtime
             return true;
         }
 
-        public object? Invoke(string memberId, INeoValueReference receiver, object?[] args)
+        /// <param name="typeArguments">A generic query's type arguments, from <see cref="NeoTypeArguments.Of{T}"/>.</param>
+        public object? Invoke(string memberId, INeoValueReference receiver, object?[] args, TypeInfo[]? typeArguments = null)
         {
             // A pattern view reads as itself, so a pending one makes no rows
             // and a no-op hands back the same view.
@@ -185,7 +186,7 @@ namespace NeoCompose.Runtime
             var ownership = client.TryGetValueOwnership(id, out NeoValueOwnership found) ? found : NeoValueOwnership.Asset;
             var ctx = client.CreateGetterContext(ownership);
             object? value = NSGetterEvaluator.UnwrapRow(row, ctx, ownership);
-            if (!TryInvoke(memberId, value, args, ctx, out object? result))
+            if (!TryInvoke(memberId, value, args, typeArguments, ctx, out object? result))
                 throw new NSGetterRuntimeError("Unknown grid query member.");
             return result;
         }
@@ -193,6 +194,24 @@ namespace NeoCompose.Runtime
         private const string GetObjectsId = "system_f5ca386c-990c-54a1-8473-2d49d2cd887d";
         private const string GetTileId = "system_593e6208-e2ca-505e-9933-04b17102b6d2";
         private const string GetTilesId = "system_5a41d36a-bcd9-4867-9e46-d743f6e09582";
+        private const string NeoObjectClassId = "system_f671535d-0eb6-4139-9caf-5c5276febd31";
+        private const string NeoTileClassId = "system_d7fa161b-b269-4bf1-9ec9-3aebec67e6e0";
+
+        /// <summary>
+        /// P110 §6. The class a generic query keeps, or null to keep every
+        /// winner: the declared base keeps today's scan.
+        /// </summary>
+        private static string? FilterClassId(TypeInfo[]? typeArguments)
+        {
+            if (typeArguments is null || typeArguments.Length == 0)
+                return null;
+            if (typeArguments[0] is not ClassTypeInfo classType)
+            {
+                throw new NSGetterRuntimeError(
+                    $"Grid query type argument must be a class, not member kind {typeArguments[0].type}.");
+            }
+            return classType.classId is NeoObjectClassId or NeoTileClassId ? null : classType.classId;
+        }
 
         /// <summary>Whether the call returns a fresh array of the queried objects or tiles.</summary>
         internal static bool ReturnsFreshList(string? memberId) => memberId is GetObjectsId or GetTilesId;
@@ -211,7 +230,13 @@ namespace NeoCompose.Runtime
             return true;
         }
 
-        internal bool TryInvoke(string memberId, object? receiver, object?[] args, NSGetterEvaluator.Context ctx, out object? result)
+        internal bool TryInvoke(
+            string memberId,
+            object? receiver,
+            object?[] args,
+            TypeInfo[]? typeArguments,
+            NSGetterEvaluator.Context ctx,
+            out object? result)
         {
             result = null;
             bool getCell = memberId == "system_df1c2d06-eeec-5340-addc-740f3668c9e4";
@@ -235,6 +260,7 @@ namespace NeoCompose.Runtime
                 return true;
             }
             Vector2Int[] pattern = NeoCellPatternOffsets.Read(args[0], ctx);
+            string? filterClassId = FilterClassId(typeArguments);
             // Bodies compiled before the offset existed pass only the pattern.
             Vector2Int origin = Shifted(placement.Cell, args.Length > 1 ? args[1] : null);
             bool tiles = getTile || getTiles;
@@ -277,12 +303,16 @@ namespace NeoCompose.Runtime
                     var tile = content.GetTile(cell);
                     if (tile is null)
                         continue;
+                    // A cell's winner is kept or skipped; nothing under it is a candidate.
+                    object? winner = RuntimeValue(tile, ctx);
+                    if (filterClassId is not null && !NSGetterEvaluator.RuntimeClassExtends(winner, filterClassId, ctx))
+                        continue;
                     if (getTiles)
                     {
-                        queried.Add(RuntimeValue(tile, ctx));
+                        queried.Add(winner);
                         continue;
                     }
-                    result = RuntimeValue(tile, ctx);
+                    result = winner;
                     return true;
                 }
                 // NeoScript already consumes stored-row views. Do not create
@@ -302,7 +332,9 @@ namespace NeoCompose.Runtime
                             Bind(item.InstanceId, content.Primitive.GridValueId, layerId, item.InstanceId);
                             item.queryBoundLayerId = layerId;
                         }
-                        queried.Add(RuntimeValue(item.InstanceId, ref item.valueNode, ctx));
+                        object? found = RuntimeValue(item.InstanceId, ref item.valueNode, ctx);
+                        if (filterClassId is null || NSGetterEvaluator.RuntimeClassExtends(found, filterClassId, ctx))
+                            queried.Add(found);
                     }
                 }
             }

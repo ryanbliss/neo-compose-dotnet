@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.70.0] - 2026-10-13
+
+Function generics (P110). A function, native or interface function can declare its own type parameters, each with an optional constraint and default. Requires CLI 0.80.0; run `neo export` after upgrading.
+
+```csharp
+// Generated: a constrained generic method, plus a non-generic overload that binds the default.
+public virtual IReadOnlyList<T> GetTiles<T>(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null) where T : class, IReadOnlyNeoTile;
+public IReadOnlyList<IReadOnlyNeoTile> GetTiles(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null)
+    => GetTiles<IReadOnlyNeoTile>(pattern, offset);
+
+// Each cell's top tile is kept or skipped; nothing under it is a candidate.
+IReadOnlyList<IReadOnlyDirtDryTile> dry = sprinkler.GetTiles<IReadOnlyDirtDryTile>(sprinkler.Item.Pattern);
+
+// A generic native's handler receives the type argument as a C# type argument.
+public T? Pick<T>(IReadOnlyList<IReadOnlyAnimal> animals) where T : class, IReadOnlyAnimal;
+
+// The NeoScript type a C# type argument binds.
+TypeInfo dog = client.TypeArguments.Of<IReadOnlyDog>();
+
+// A generated call's table, one entry per tuple element, cached per tuple type.
+TypeInfo[] table = client.TypeArguments.Table<(IReadOnlyDog, IReadOnlyCat)>();
+```
+
+- `GetObjects<T>`, `GetTile<T>` and `GetTiles<T>` filter in the query. `GetObjects<T>` no longer copies its result through a hidden `Where`.
+- Breaking: `GetObjects`, `GetTile` and `GetTiles` without a type argument are no longer virtual. A hand-written C# override must override the generic method instead. Neowyn and HelloWorld have none.
+- A generated generic call allocates no type-argument array, and the runtime binds each distinct set of type arguments once per function, however a call site alternates them.
+- A handler for a generic native implements a generic method. `NeoTypeArgumentException` names a C# type with no NeoScript equivalent, or the row that failed a type argument.
+- Fixed: a save could hold an instance that no load could replay, failing with "P75 could not replay sparse instance ... Constructor argument references missing value". It happened when an instance was built from a row its owner then removed, such as `new InventoryItemStack(target.Item, 1, target.Data)` followed by despawning `target`. The removal took the row the recipe still named. Despawns, field replacements, and the garbage collector now keep a row that a live recipe in any store names, until no recipe names it. In Neowyn, breaking a placed tulip with the pickaxe and picking it up corrupted the save. Saves already written with a dangling argument stay broken; this fix only stops new ones.
+
 ## [0.69.0] - 2026-10-12
 
 `NeoCellPattern` is an ordinary generated class (P109). Its factories run their NeoScript bodies, its presets are stored values, the grid queries take an optional offset, and `NeoObject.GetTiles` reads every occupied cell's tile. Requires CLI 0.79.0; run `neo export` after upgrading.

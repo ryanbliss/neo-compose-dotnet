@@ -388,8 +388,8 @@ namespace NeoCompose.Tests
             var heard = new List<(string handler, string receiverWidth, double value)>();
             client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
             {
-                ["copied-handler"] = (_, receiver, args) => Hear("copied-handler", receiver, args),
-                ["runtime-handler"] = (_, receiver, args) => Hear("runtime-handler", receiver, args),
+                ["copied-handler"] = (_, receiver, args, _) => Hear("copied-handler", receiver, args),
+                ["runtime-handler"] = (_, receiver, args, _) => Hear("runtime-handler", receiver, args),
             });
 
             object? Hear(string handler, object? receiver, IReadOnlyList<object?> args)
@@ -517,8 +517,8 @@ namespace NeoCompose.Tests
             var heard = new List<(string frame, double value)>();
             client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
             {
-                ["handler-NestedA"] = (_, _, args) => { heard.Add(("A", Convert.ToDouble(args[0]))); return null; },
-                ["handler-NestedB"] = (_, _, args) => { heard.Add(("B", Convert.ToDouble(args[0]))); return null; },
+                ["handler-NestedA"] = (_, _, args, _) => { heard.Add(("A", Convert.ToDouble(args[0]))); return null; },
+                ["handler-NestedB"] = (_, _, args, _) => { heard.Add(("B", Convert.ToDouble(args[0]))); return null; },
             });
             const string sourceId = "nested-frame-source";
             var seed = new NeoWritePlan(client);
@@ -630,8 +630,8 @@ namespace NeoCompose.Tests
             var heard = new List<(string handler, double value)>();
             client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
             {
-                ["copied-handler"] = (_, _, args) => { heard.Add(("copied", Convert.ToDouble(args[0]))); return null; },
-                ["runtime-handler"] = (_, _, args) => { heard.Add(("runtime", Convert.ToDouble(args[0]))); return null; },
+                ["copied-handler"] = (_, _, args, _) => { heard.Add(("copied", Convert.ToDouble(args[0]))); return null; },
+                ["runtime-handler"] = (_, _, args, _) => { heard.Add(("runtime", Convert.ToDouble(args[0]))); return null; },
             });
             const string sourceId = "virtual-source-box";
             var seed = new NeoWritePlan(client);
@@ -694,10 +694,10 @@ namespace NeoCompose.Tests
             var heard = new List<(string handler, string receiverWidth, double value)>();
             client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
             {
-                ["saved-observer-handler"] = (_, receiver, args) => Hear("save", receiver, args),
-                ["session-observer-handler"] = (_, receiver, args) => Hear("session", receiver, args),
-                ["inherited-observer-handler"] = (_, receiver, args) => Hear("inherited", receiver, args),
-                ["saved-self-handler"] = (_, receiver, args) => Hear("saved-self", receiver, args),
+                ["saved-observer-handler"] = (_, receiver, args, _) => Hear("save", receiver, args),
+                ["session-observer-handler"] = (_, receiver, args, _) => Hear("session", receiver, args),
+                ["inherited-observer-handler"] = (_, receiver, args, _) => Hear("inherited", receiver, args),
+                ["saved-self-handler"] = (_, receiver, args, _) => Hear("saved-self", receiver, args),
             });
             object? Hear(string handler, object? receiver, object?[] args)
             {

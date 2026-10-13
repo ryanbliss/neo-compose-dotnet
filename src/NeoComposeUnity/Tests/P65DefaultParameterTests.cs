@@ -288,7 +288,7 @@ namespace NeoCompose.Tests
             client.RegisterNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
                 {
-                    ["fn-native-greet"] = (_, _, args) =>
+                    ["fn-native-greet"] = (_, _, args, _) =>
                         $"{args[0]}{args[1]}",
                 });
 
@@ -308,7 +308,7 @@ namespace NeoCompose.Tests
             client.RegisterNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
                 {
-                    ["fn-native-greet"] = (_, _, args) => $"{args[0]}{args[1]}",
+                    ["fn-native-greet"] = (_, _, args, _) => $"{args[0]}{args[1]}",
                 });
 
             NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>

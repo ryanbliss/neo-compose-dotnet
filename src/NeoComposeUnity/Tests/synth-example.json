@@ -3443,6 +3443,2074 @@
       "defaultValue": {
         "value": {}
       }
+    },
+    "member-generic-checker-check": {
+      "id": "member-generic-checker-check",
+      "name": "Check",
+      "kind": 23,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "modifier": 0,
+      "genericParams": [
+        {
+          "name": "T",
+          "constraint": {
+            "type": 7,
+            "required": true,
+            "classId": "class-generic-animal"
+          }
+        }
+      ],
+      "returnTypeInfo": {
+        "type": 1,
+        "required": true
+      },
+      "argumentTypes": [
+        {
+          "name": "animal",
+          "type": 7,
+          "required": true,
+          "classId": "class-generic-animal"
+        }
+      ],
+      "code": "return false;",
+      "action": {
+        "compilerRevision": 17,
+        "source": {
+          "name": "Check",
+          "coordinateSpace": "body"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "class-generic-checker"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "class-generic-checker"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__arg_0__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "class-generic-animal"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "class-generic-animal"
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "return",
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 1,
+                  "required": true
+                },
+                "value": false
+              }
+            },
+            "source": {
+              "line": 1,
+              "column": 1
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 1,
+          "required": true
+        }
+      }
+    },
+    "member-generic-dog-checker-check": {
+      "id": "member-generic-dog-checker-check",
+      "name": "Check",
+      "kind": 23,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "extendsMemberId": "member-generic-checker-check",
+      "genericParams": [
+        {
+          "name": "U",
+          "constraint": {
+            "type": 7,
+            "required": true,
+            "classId": "class-generic-animal"
+          }
+        }
+      ],
+      "code": "return animal is U;",
+      "action": {
+        "compilerRevision": 17,
+        "source": {
+          "name": "Check",
+          "coordinateSpace": "body"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "class-generic-dog-checker"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "class-generic-dog-checker"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__arg_0__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "class-generic-animal"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "class-generic-animal"
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "return",
+            "pointer": {
+              "type": "isCheck",
+              "pointer": {
+                "type": "variable",
+                "variableId": "__arg_0__"
+              },
+              "checkType": {
+                "type": 21,
+                "required": true,
+                "ownerMemberId": "member-generic-dog-checker-check",
+                "index": 0
+              }
+            },
+            "source": {
+              "line": 1,
+              "column": 1
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 1,
+          "required": true
+        }
+      }
+    },
+    "member-generic-probe-makedog": {
+      "id": "member-generic-probe-makedog",
+      "name": "MakeDog",
+      "kind": 23,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "code": "return new GenericDog();",
+      "returnTypeInfo": {
+        "type": 7,
+        "required": true,
+        "classId": "class-generic-animal"
+      },
+      "argumentTypes": [],
+      "action": {
+        "compilerRevision": 17,
+        "source": {
+          "name": "MakeDog",
+          "coordinateSpace": "body"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "class-generic-probe"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "class-generic-probe"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "return",
+            "pointer": {
+              "type": "function",
+              "function": {
+                "type": "classConstructor",
+                "info": {
+                  "schemaClassInfo": {
+                    "type": 7,
+                    "required": true,
+                    "classId": "class-generic-dog"
+                  },
+                  "fields": []
+                }
+              },
+              "source": {
+                "line": 1,
+                "column": 8
+              }
+            },
+            "source": {
+              "line": 1,
+              "column": 1
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 7,
+          "required": true,
+          "classId": "class-generic-animal"
+        }
+      }
+    },
+    "member-generic-probe-makecat": {
+      "id": "member-generic-probe-makecat",
+      "name": "MakeCat",
+      "kind": 23,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "code": "return new GenericCat();",
+      "returnTypeInfo": {
+        "type": 7,
+        "required": true,
+        "classId": "class-generic-animal"
+      },
+      "argumentTypes": [],
+      "action": {
+        "compilerRevision": 17,
+        "source": {
+          "name": "MakeCat",
+          "coordinateSpace": "body"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "class-generic-probe"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "class-generic-probe"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "return",
+            "pointer": {
+              "type": "function",
+              "function": {
+                "type": "classConstructor",
+                "info": {
+                  "schemaClassInfo": {
+                    "type": 7,
+                    "required": true,
+                    "classId": "class-generic-cat"
+                  },
+                  "fields": []
+                }
+              },
+              "source": {
+                "line": 1,
+                "column": 8
+              }
+            },
+            "source": {
+              "line": 1,
+              "column": 1
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 7,
+          "required": true,
+          "classId": "class-generic-animal"
+        }
+      }
+    },
+    "member-generic-probe-makedogchecker": {
+      "id": "member-generic-probe-makedogchecker",
+      "name": "MakeDogChecker",
+      "kind": 23,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "code": "return new GenericDogChecker();",
+      "returnTypeInfo": {
+        "type": 7,
+        "required": true,
+        "classId": "class-generic-checker"
+      },
+      "argumentTypes": [],
+      "action": {
+        "compilerRevision": 17,
+        "source": {
+          "name": "MakeDogChecker",
+          "coordinateSpace": "body"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "class-generic-probe"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "class-generic-probe"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "return",
+            "pointer": {
+              "type": "function",
+              "function": {
+                "type": "classConstructor",
+                "info": {
+                  "schemaClassInfo": {
+                    "type": 7,
+                    "required": true,
+                    "classId": "class-generic-dog-checker"
+                  },
+                  "fields": []
+                }
+              },
+              "source": {
+                "line": 1,
+                "column": 8
+              }
+            },
+            "source": {
+              "line": 1,
+              "column": 1
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 7,
+          "required": true,
+          "classId": "class-generic-checker"
+        }
+      }
+    },
+    "member-generic-probe-isa": {
+      "id": "member-generic-probe-isa",
+      "name": "IsA",
+      "kind": 23,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "code": "return animal is T;",
+      "genericParams": [
+        {
+          "name": "T",
+          "constraint": {
+            "type": 7,
+            "required": true,
+            "classId": "class-generic-animal"
+          }
+        }
+      ],
+      "returnTypeInfo": {
+        "type": 1,
+        "required": true
+      },
+      "argumentTypes": [
+        {
+          "name": "animal",
+          "type": 7,
+          "required": true,
+          "classId": "class-generic-animal"
+        }
+      ],
+      "action": {
+        "compilerRevision": 17,
+        "source": {
+          "name": "IsA",
+          "coordinateSpace": "body"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "class-generic-probe"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "class-generic-probe"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__arg_0__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "class-generic-animal"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "class-generic-animal"
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "return",
+            "pointer": {
+              "type": "isCheck",
+              "pointer": {
+                "type": "variable",
+                "variableId": "__arg_0__"
+              },
+              "checkType": {
+                "type": 21,
+                "required": true,
+                "ownerMemberId": "member-generic-probe-isa",
+                "index": 0
+              }
+            },
+            "source": {
+              "line": 1,
+              "column": 1
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 1,
+          "required": true
+        }
+      }
+    },
+    "member-generic-probe-middle": {
+      "id": "member-generic-probe-middle",
+      "name": "Middle",
+      "kind": 23,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "code": "return IsA<T>(animal);",
+      "genericParams": [
+        {
+          "name": "T",
+          "constraint": {
+            "type": 7,
+            "required": true,
+            "classId": "class-generic-animal"
+          }
+        }
+      ],
+      "returnTypeInfo": {
+        "type": 1,
+        "required": true
+      },
+      "argumentTypes": [
+        {
+          "name": "animal",
+          "type": 7,
+          "required": true,
+          "classId": "class-generic-animal"
+        }
+      ],
+      "action": {
+        "compilerRevision": 17,
+        "source": {
+          "name": "Middle",
+          "coordinateSpace": "body"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "class-generic-probe"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "class-generic-probe"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__arg_0__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "class-generic-animal"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "class-generic-animal"
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "return",
+            "pointer": {
+              "type": "callFunction",
+              "memberId": "member-generic-probe-isa",
+              "receiver": {
+                "kind": "instance",
+                "pointer": {
+                  "type": "variable",
+                  "variableId": "__this__"
+                }
+              },
+              "args": [
+                {
+                  "type": "variable",
+                  "variableId": "__arg_0__"
+                }
+              ],
+              "typeArguments": [
+                {
+                  "type": 21,
+                  "required": true,
+                  "ownerMemberId": "member-generic-probe-middle",
+                  "index": 0
+                }
+              ],
+              "callSiteId": "1:11:0",
+              "source": {
+                "line": 1,
+                "column": 11
+              }
+            },
+            "source": {
+              "line": 1,
+              "column": 1
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 1,
+          "required": true
+        }
+      }
+    },
+    "member-generic-probe-outer": {
+      "id": "member-generic-probe-outer",
+      "name": "Outer",
+      "kind": 23,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "code": "return Middle<T>(animal);",
+      "genericParams": [
+        {
+          "name": "T",
+          "constraint": {
+            "type": 7,
+            "required": true,
+            "classId": "class-generic-animal"
+          }
+        }
+      ],
+      "returnTypeInfo": {
+        "type": 1,
+        "required": true
+      },
+      "argumentTypes": [
+        {
+          "name": "animal",
+          "type": 7,
+          "required": true,
+          "classId": "class-generic-animal"
+        }
+      ],
+      "action": {
+        "compilerRevision": 17,
+        "source": {
+          "name": "Outer",
+          "coordinateSpace": "body"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "class-generic-probe"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "class-generic-probe"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__arg_0__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "class-generic-animal"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "class-generic-animal"
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "return",
+            "pointer": {
+              "type": "callFunction",
+              "memberId": "member-generic-probe-middle",
+              "receiver": {
+                "kind": "instance",
+                "pointer": {
+                  "type": "variable",
+                  "variableId": "__this__"
+                }
+              },
+              "args": [
+                {
+                  "type": "variable",
+                  "variableId": "__arg_0__"
+                }
+              ],
+              "typeArguments": [
+                {
+                  "type": 21,
+                  "required": true,
+                  "ownerMemberId": "member-generic-probe-outer",
+                  "index": 0
+                }
+              ],
+              "callSiteId": "1:14:0",
+              "source": {
+                "line": 1,
+                "column": 14
+              }
+            },
+            "source": {
+              "line": 1,
+              "column": 1
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 1,
+          "required": true
+        }
+      }
+    },
+    "member-generic-probe-isdefault": {
+      "id": "member-generic-probe-isdefault",
+      "name": "IsDefault",
+      "kind": 23,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "code": "return animal is T;",
+      "genericParams": [
+        {
+          "name": "T",
+          "constraint": {
+            "type": 7,
+            "required": true,
+            "classId": "class-generic-animal"
+          },
+          "defaultType": {
+            "type": 7,
+            "required": true,
+            "classId": "class-generic-dog"
+          }
+        }
+      ],
+      "returnTypeInfo": {
+        "type": 1,
+        "required": true
+      },
+      "argumentTypes": [
+        {
+          "name": "animal",
+          "type": 7,
+          "required": true,
+          "classId": "class-generic-animal"
+        }
+      ],
+      "action": {
+        "compilerRevision": 17,
+        "source": {
+          "name": "IsDefault",
+          "coordinateSpace": "body"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "class-generic-probe"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "class-generic-probe"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__arg_0__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "class-generic-animal"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "class-generic-animal"
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "return",
+            "pointer": {
+              "type": "isCheck",
+              "pointer": {
+                "type": "variable",
+                "variableId": "__arg_0__"
+              },
+              "checkType": {
+                "type": 21,
+                "required": true,
+                "ownerMemberId": "member-generic-probe-isdefault",
+                "index": 0
+              }
+            },
+            "source": {
+              "line": 1,
+              "column": 1
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 1,
+          "required": true
+        }
+      }
+    },
+    "member-generic-probe-onlyof": {
+      "id": "member-generic-probe-onlyof",
+      "name": "OnlyOf",
+      "kind": 23,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "code": "List<T> matches = [];\nforeach (GenericAnimal animal in animals) {\n  if (animal is T match) matches.Add(match);\n}\nreturn matches;",
+      "genericParams": [
+        {
+          "name": "T",
+          "constraint": {
+            "type": 7,
+            "required": true,
+            "classId": "class-generic-animal"
+          }
+        }
+      ],
+      "returnTypeInfo": {
+        "type": 6,
+        "required": true,
+        "entryTypeInfo": {
+          "type": 21,
+          "required": true,
+          "ownerMemberId": "member-generic-probe-onlyof",
+          "index": 0
+        }
+      },
+      "argumentTypes": [
+        {
+          "name": "animals",
+          "type": 6,
+          "required": true,
+          "entryTypeInfo": {
+            "type": 7,
+            "required": true,
+            "classId": "class-generic-animal"
+          }
+        }
+      ],
+      "action": {
+        "compilerRevision": 17,
+        "source": {
+          "name": "OnlyOf",
+          "coordinateSpace": "body"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "class-generic-probe"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "class-generic-probe"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__arg_0__",
+            "typeInfo": {
+              "type": 6,
+              "required": true,
+              "entryTypeInfo": {
+                "type": 7,
+                "required": true,
+                "classId": "class-generic-animal"
+              }
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 6,
+                  "required": true,
+                  "entryTypeInfo": {
+                    "type": 7,
+                    "required": true,
+                    "classId": "class-generic-animal"
+                  }
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "variable",
+            "variable": {
+              "id": "matches",
+              "typeInfo": {
+                "type": 6,
+                "required": true,
+                "entryTypeInfo": {
+                  "type": 21,
+                  "required": true,
+                  "ownerMemberId": "member-generic-probe-onlyof",
+                  "index": 0
+                }
+              },
+              "pointer": {
+                "type": "listLiteral",
+                "typeInfo": {
+                  "type": 6,
+                  "required": true,
+                  "entryTypeInfo": {
+                    "type": 21,
+                    "required": true,
+                    "ownerMemberId": "member-generic-probe-onlyof",
+                    "index": 0
+                  }
+                },
+                "entries": []
+              }
+            },
+            "source": {
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "type": "forEach",
+            "binding": {
+              "id": "animal",
+              "typeInfo": {
+                "type": 7,
+                "required": true,
+                "classId": "class-generic-animal"
+              },
+              "readonly": true,
+              "writability": "runtime"
+            },
+            "collectionPointer": {
+              "type": "variable",
+              "variableId": "__arg_0__"
+            },
+            "collectionTypeInfo": {
+              "type": 6,
+              "required": true,
+              "entryTypeInfo": {
+                "type": 7,
+                "required": true,
+                "classId": "class-generic-animal"
+              }
+            },
+            "instructions": [
+              {
+                "type": "if",
+                "branches": [
+                  {
+                    "expression": {
+                      "condition": {
+                        "type": "equalTo",
+                        "operand1": {
+                          "type": "isCheck",
+                          "pointer": {
+                            "type": "variable",
+                            "variableId": "animal"
+                          },
+                          "checkType": {
+                            "type": 21,
+                            "required": true,
+                            "ownerMemberId": "member-generic-probe-onlyof",
+                            "index": 0
+                          },
+                          "bindingId": "__pattern:0"
+                        },
+                        "operand2": {
+                          "type": "value",
+                          "value": {
+                            "typeInfo": {
+                              "type": 1,
+                              "required": true
+                            },
+                            "value": true
+                          }
+                        }
+                      }
+                    },
+                    "instructions": [
+                      {
+                        "type": "collectionCall",
+                        "target": {
+                          "pointer": {
+                            "type": "variable",
+                            "variableId": "matches"
+                          },
+                          "typeInfo": {
+                            "type": 6,
+                            "required": true,
+                            "entryTypeInfo": {
+                              "type": 21,
+                              "required": true,
+                              "ownerMemberId": "member-generic-probe-onlyof",
+                              "index": 0
+                            }
+                          },
+                          "writability": "local"
+                        },
+                        "mutation": "Add",
+                        "args": [
+                          {
+                            "type": "variable",
+                            "variableId": "__pattern:0"
+                          }
+                        ],
+                        "reference": true,
+                        "source": {
+                          "line": 3,
+                          "column": 26
+                        }
+                      }
+                    ]
+                  }
+                ],
+                "else": null,
+                "source": {
+                  "line": 3,
+                  "column": 3
+                }
+              }
+            ],
+            "source": {
+              "line": 2,
+              "column": 1
+            }
+          },
+          {
+            "type": "return",
+            "pointer": {
+              "type": "variable",
+              "variableId": "matches"
+            },
+            "source": {
+              "line": 5,
+              "column": 1
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 6,
+          "required": true,
+          "entryTypeInfo": {
+            "type": 21,
+            "required": true,
+            "ownerMemberId": "member-generic-probe-onlyof",
+            "index": 0
+          }
+        }
+      }
+    },
+    "member-generic-probe-makecheck": {
+      "id": "member-generic-probe-makecheck",
+      "name": "MakeCheck",
+      "kind": 23,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "code": "return (GenericAnimal animal) => animal is T;",
+      "genericParams": [
+        {
+          "name": "T",
+          "constraint": {
+            "type": 7,
+            "required": true,
+            "classId": "class-generic-animal"
+          }
+        }
+      ],
+      "returnTypeInfo": {
+        "type": 25,
+        "required": true,
+        "returnTypeInfo": {
+          "type": 1,
+          "required": true
+        },
+        "argumentTypes": [
+          {
+            "type": 7,
+            "required": true,
+            "classId": "class-generic-animal"
+          }
+        ]
+      },
+      "argumentTypes": [],
+      "action": {
+        "compilerRevision": 17,
+        "source": {
+          "name": "MakeCheck",
+          "coordinateSpace": "body"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "class-generic-probe"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "class-generic-probe"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "return",
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 25,
+                  "required": true,
+                  "returnTypeInfo": {
+                    "type": 1,
+                    "required": true
+                  },
+                  "argumentTypes": [
+                    {
+                      "type": 7,
+                      "required": true,
+                      "classId": "class-generic-animal"
+                    }
+                  ]
+                },
+                "value": {
+                  "code": "(GenericAnimal animal) => animal is T",
+                  "action": {
+                    "compilerRevision": 17,
+                    "source": {
+                      "coordinateSpace": "body",
+                      "name": "MakeCheck <delegate>"
+                    },
+                    "parameters": [
+                      {
+                        "id": "__this__",
+                        "typeInfo": {
+                          "type": 7,
+                          "required": true,
+                          "classId": "class-generic-probe"
+                        },
+                        "pointer": {
+                          "type": "value",
+                          "value": {
+                            "typeInfo": {
+                              "type": 7,
+                              "required": true,
+                              "classId": "class-generic-probe"
+                            },
+                            "value": null
+                          }
+                        }
+                      },
+                      {
+                        "id": "__root__",
+                        "typeInfo": {
+                          "type": 7,
+                          "required": true,
+                          "classId": "__root__"
+                        },
+                        "pointer": {
+                          "type": "value",
+                          "value": {
+                            "typeInfo": {
+                              "type": 7,
+                              "required": true,
+                              "classId": "__root__"
+                            },
+                            "value": null
+                          }
+                        }
+                      },
+                      {
+                        "id": "__lambda_0_arg_0__",
+                        "typeInfo": {
+                          "type": 7,
+                          "required": true,
+                          "classId": "class-generic-animal"
+                        },
+                        "pointer": {
+                          "type": "value",
+                          "value": {
+                            "typeInfo": {
+                              "type": 7,
+                              "required": true,
+                              "classId": "class-generic-animal"
+                            },
+                            "value": null
+                          }
+                        }
+                      }
+                    ],
+                    "instructions": [
+                      {
+                        "type": "return",
+                        "pointer": {
+                          "type": "isCheck",
+                          "pointer": {
+                            "type": "variable",
+                            "variableId": "__lambda_0_arg_0__"
+                          },
+                          "checkType": {
+                            "type": 21,
+                            "required": true,
+                            "ownerMemberId": "member-generic-probe-makecheck",
+                            "index": 0
+                          }
+                        },
+                        "source": {
+                          "line": 1,
+                          "column": 34
+                        }
+                      }
+                    ],
+                    "typeInfo": {
+                      "type": 1,
+                      "required": true
+                    }
+                  }
+                }
+              }
+            },
+            "source": {
+              "line": 1,
+              "column": 1
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 25,
+          "required": true,
+          "returnTypeInfo": {
+            "type": 1,
+            "required": true
+          },
+          "argumentTypes": [
+            {
+              "type": 7,
+              "required": true,
+              "classId": "class-generic-animal"
+            }
+          ]
+        }
+      }
+    },
+    "member-generic-probe-callcheck": {
+      "id": "member-generic-probe-callcheck",
+      "name": "CallCheck",
+      "kind": 23,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "code": "return check(animal);",
+      "returnTypeInfo": {
+        "type": 1,
+        "required": true
+      },
+      "argumentTypes": [
+        {
+          "name": "check",
+          "type": 25,
+          "required": true,
+          "returnTypeInfo": {
+            "type": 1,
+            "required": true
+          },
+          "argumentTypes": [
+            {
+              "type": 7,
+              "required": true,
+              "classId": "class-generic-animal"
+            }
+          ]
+        },
+        {
+          "name": "animal",
+          "type": 7,
+          "required": true,
+          "classId": "class-generic-animal"
+        }
+      ],
+      "action": {
+        "compilerRevision": 17,
+        "source": {
+          "name": "CallCheck",
+          "coordinateSpace": "body"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "class-generic-probe"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "class-generic-probe"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__arg_0__",
+            "typeInfo": {
+              "type": 25,
+              "required": true,
+              "returnTypeInfo": {
+                "type": 1,
+                "required": true
+              },
+              "argumentTypes": [
+                {
+                  "type": 7,
+                  "required": true,
+                  "classId": "class-generic-animal"
+                }
+              ]
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 25,
+                  "required": true,
+                  "returnTypeInfo": {
+                    "type": 1,
+                    "required": true
+                  },
+                  "argumentTypes": [
+                    {
+                      "type": 7,
+                      "required": true,
+                      "classId": "class-generic-animal"
+                    }
+                  ]
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__arg_1__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "class-generic-animal"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "class-generic-animal"
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "return",
+            "pointer": {
+              "type": "callDelegate",
+              "delegate": {
+                "type": "variable",
+                "variableId": "__arg_0__"
+              },
+              "args": [
+                {
+                  "type": "variable",
+                  "variableId": "__arg_1__"
+                }
+              ],
+              "callSiteId": "1:13:0",
+              "source": {
+                "line": 1,
+                "column": 13
+              }
+            },
+            "source": {
+              "line": 1,
+              "column": 1
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 1,
+          "required": true
+        }
+      }
+    },
+    "member-generic-probe-closurecheck": {
+      "id": "member-generic-probe-closurecheck",
+      "name": "ClosureCheck",
+      "kind": 23,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "code": "return CallCheck(MakeCheck<T>(), animal);",
+      "genericParams": [
+        {
+          "name": "T",
+          "constraint": {
+            "type": 7,
+            "required": true,
+            "classId": "class-generic-animal"
+          }
+        }
+      ],
+      "returnTypeInfo": {
+        "type": 1,
+        "required": true
+      },
+      "argumentTypes": [
+        {
+          "name": "animal",
+          "type": 7,
+          "required": true,
+          "classId": "class-generic-animal"
+        }
+      ],
+      "action": {
+        "compilerRevision": 17,
+        "source": {
+          "name": "ClosureCheck",
+          "coordinateSpace": "body"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "class-generic-probe"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "class-generic-probe"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__arg_0__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "class-generic-animal"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "class-generic-animal"
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "return",
+            "pointer": {
+              "type": "callFunction",
+              "memberId": "member-generic-probe-callcheck",
+              "receiver": {
+                "kind": "instance",
+                "pointer": {
+                  "type": "variable",
+                  "variableId": "__this__"
+                }
+              },
+              "args": [
+                {
+                  "type": "callFunction",
+                  "memberId": "member-generic-probe-makecheck",
+                  "receiver": {
+                    "kind": "instance",
+                    "pointer": {
+                      "type": "variable",
+                      "variableId": "__this__"
+                    }
+                  },
+                  "args": [],
+                  "typeArguments": [
+                    {
+                      "type": 21,
+                      "required": true,
+                      "ownerMemberId": "member-generic-probe-closurecheck",
+                      "index": 0
+                    }
+                  ],
+                  "callSiteId": "1:27:0",
+                  "source": {
+                    "line": 1,
+                    "column": 27
+                  }
+                },
+                {
+                  "type": "variable",
+                  "variableId": "__arg_0__"
+                }
+              ],
+              "callSiteId": "1:17:1",
+              "source": {
+                "line": 1,
+                "column": 17
+              }
+            },
+            "source": {
+              "line": 1,
+              "column": 1
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 1,
+          "required": true
+        }
+      }
+    },
+    "member-generic-probe-pick": {
+      "id": "member-generic-probe-pick",
+      "name": "Pick",
+      "kind": 13,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "genericParams": [
+        {
+          "name": "T",
+          "constraint": {
+            "type": 7,
+            "required": true,
+            "classId": "class-generic-animal"
+          }
+        }
+      ],
+      "returnTypeInfo": {
+        "type": 21,
+        "required": false,
+        "ownerMemberId": "member-generic-probe-pick",
+        "index": 0
+      },
+      "argumentTypes": [
+        {
+          "name": "animals",
+          "type": 6,
+          "required": true,
+          "entryTypeInfo": {
+            "type": 7,
+            "required": true,
+            "classId": "class-generic-animal"
+          }
+        }
+      ]
+    },
+    "member-generic-probe-pickvia": {
+      "id": "member-generic-probe-pickvia",
+      "name": "PickVia",
+      "kind": 23,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "code": "return Pick<T>(animals);",
+      "genericParams": [
+        {
+          "name": "T",
+          "constraint": {
+            "type": 7,
+            "required": true,
+            "classId": "class-generic-animal"
+          }
+        }
+      ],
+      "returnTypeInfo": {
+        "type": 21,
+        "required": false,
+        "ownerMemberId": "member-generic-probe-pickvia",
+        "index": 0
+      },
+      "argumentTypes": [
+        {
+          "name": "animals",
+          "type": 6,
+          "required": true,
+          "entryTypeInfo": {
+            "type": 7,
+            "required": true,
+            "classId": "class-generic-animal"
+          }
+        }
+      ],
+      "action": {
+        "compilerRevision": 17,
+        "source": {
+          "name": "PickVia",
+          "coordinateSpace": "body"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "class-generic-probe"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "class-generic-probe"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__arg_0__",
+            "typeInfo": {
+              "type": 6,
+              "required": true,
+              "entryTypeInfo": {
+                "type": 7,
+                "required": true,
+                "classId": "class-generic-animal"
+              }
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 6,
+                  "required": true,
+                  "entryTypeInfo": {
+                    "type": 7,
+                    "required": true,
+                    "classId": "class-generic-animal"
+                  }
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "return",
+            "pointer": {
+              "type": "callFunction",
+              "memberId": "member-generic-probe-pick",
+              "receiver": {
+                "kind": "instance",
+                "pointer": {
+                  "type": "variable",
+                  "variableId": "__this__"
+                }
+              },
+              "args": [
+                {
+                  "type": "variable",
+                  "variableId": "__arg_0__"
+                }
+              ],
+              "typeArguments": [
+                {
+                  "type": 21,
+                  "required": true,
+                  "ownerMemberId": "member-generic-probe-pickvia",
+                  "index": 0
+                }
+              ],
+              "callSiteId": "1:12:0",
+              "source": {
+                "line": 1,
+                "column": 12
+              }
+            },
+            "source": {
+              "line": 1,
+              "column": 1
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 21,
+          "required": false,
+          "ownerMemberId": "member-generic-probe-pickvia",
+          "index": 0
+        }
+      }
     }
   },
   "enums": {
@@ -3826,6 +5894,45 @@
       "memberKeyOrder": [
         "Crew",
         "Tags"
+      ],
+      "extendsInterfaceIds": [],
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "interface-generic-check": {
+      "id": "interface-generic-check",
+      "projectId": "test-project",
+      "name": "IGenericCheck",
+      "members": {
+        "Check": {
+          "id": "interface-generic-check-check",
+          "kind": 1,
+          "genericParams": [
+            {
+              "name": "T",
+              "constraint": {
+                "type": 7,
+                "required": true,
+                "classId": "class-generic-animal"
+              }
+            }
+          ],
+          "returnTypeInfo": {
+            "type": 1,
+            "required": true
+          },
+          "argumentTypes": [
+            {
+              "name": "animal",
+              "type": 7,
+              "required": true,
+              "classId": "class-generic-animal"
+            }
+          ]
+        }
+      },
+      "memberKeyOrder": [
+        "Check"
       ],
       "extendsInterfaceIds": [],
       "createdAt": 0,
@@ -4756,6 +6863,78 @@
           "name": "E"
         }
       ],
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "class-generic-animal": {
+      "id": "class-generic-animal",
+      "name": "GenericAnimal",
+      "schema": {},
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "class-generic-dog": {
+      "id": "class-generic-dog",
+      "name": "GenericDog",
+      "schema": {},
+      "extendsClassId": "class-generic-animal",
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "class-generic-cat": {
+      "id": "class-generic-cat",
+      "name": "GenericCat",
+      "schema": {},
+      "extendsClassId": "class-generic-animal",
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "class-generic-checker": {
+      "id": "class-generic-checker",
+      "name": "GenericChecker",
+      "schema": {
+        "Check": "member-generic-checker-check"
+      },
+      "implementsInterfaceIds": [
+        "interface-generic-check"
+      ],
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "class-generic-dog-checker": {
+      "id": "class-generic-dog-checker",
+      "name": "GenericDogChecker",
+      "schema": {
+        "Check": "member-generic-dog-checker-check"
+      },
+      "extendsClassId": "class-generic-checker",
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "class-generic-probe": {
+      "id": "class-generic-probe",
+      "name": "GenericProbe",
+      "schema": {
+        "MakeDog": "member-generic-probe-makedog",
+        "MakeCat": "member-generic-probe-makecat",
+        "MakeDogChecker": "member-generic-probe-makedogchecker",
+        "IsA": "member-generic-probe-isa",
+        "Middle": "member-generic-probe-middle",
+        "Outer": "member-generic-probe-outer",
+        "IsDefault": "member-generic-probe-isdefault",
+        "OnlyOf": "member-generic-probe-onlyof",
+        "MakeCheck": "member-generic-probe-makecheck",
+        "CallCheck": "member-generic-probe-callcheck",
+        "ClosureCheck": "member-generic-probe-closurecheck",
+        "PickVia": "member-generic-probe-pickvia",
+        "Pick": "member-generic-probe-pick"
+      },
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0

@@ -69,6 +69,122 @@ namespace NeoCompose.Runtime
                 plan.Set(targetOwnership, row, silent: true);
         }
 
+        private static readonly NeoValueOwnership[] RecipeStores =
+        {
+            NeoValueOwnership.Session,
+            NeoValueOwnership.Save,
+            NeoValueOwnership.User,
+        };
+
+        /// <summary>
+        /// Whether a recipe outside <paramref name="removing"/>, in any
+        /// writable store, needs the <paramref name="ownership"/> row
+        /// <paramref name="valueId"/> as a constructor argument, directly or
+        /// as an entry of a collection argument.
+        /// </summary>
+        private bool IsLiveConstructorInput(
+            NeoWritePlan plan, NeoValueOwnership ownership, string valueId, HashSet<string> removing)
+        {
+            HashSet<string> seen = RentIdSet();
+            try
+            {
+                return Named(valueId);
+            }
+            finally
+            {
+                ReturnIdSet(seen);
+            }
+
+            bool Named(string id)
+            {
+                HashSet<string> parents = RentIdSet();
+                try
+                {
+                    CollectPlacementParents(id, parents);
+                    plan.CollectParentCandidates(id, parents);
+                    foreach (NeoValueOwnership store in RecipeStores)
+                        if (plan.TryGetWritable(store, id, out MemberValue? row) && row!.containerId is string container)
+                            parents.Add(container);
+                    foreach (string parentId in parents)
+                    {
+                        if (removing.Contains(parentId) || !seen.Add(parentId))
+                            continue;
+                        foreach (NeoValueOwnership store in RecipeStores)
+                        {
+                            if (!plan.TryGetWritable(store, parentId, out MemberValue? parent) || parent!.IsRemoved)
+                                continue;
+                            if (parent is ObjectMemberValue { classId: not null } recipe)
+                            {
+                                // A recipe reads its own store's copy first.
+                                bool readsThisRow = store == ownership || !plan.TryGetWritable(store, id, out _);
+                                if (readsThisRow && ConstructorArgsReference(recipe, id))
+                                    return true;
+                            }
+                            // A collection argument's entries are inputs too.
+                            else if (parent is ArrayMemberValue or ObjectMemberValue && Named(parentId))
+                                return true;
+                        }
+                    }
+                    return false;
+                }
+                finally
+                {
+                    ReturnIdSet(parents);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Marks the rows of <paramref name="ownership"/> that recipes stored
+        /// in the other writable stores name, such as a Save row a Session
+        /// stack was built from before either was saved. A recipe reads its
+        /// own store's copy first, so that copy releases the row.
+        /// </summary>
+        private void MarkOtherStoreConstructorInputs(NeoValueOwnership ownership, HashSet<string> reachable)
+        {
+            var target = GetWritableStore(ownership).values;
+            foreach (NeoValueOwnership store in RecipeStores)
+            {
+                if (store == ownership)
+                    continue;
+                foreach (MemberValue row in GetWritableStore(store).values.Values)
+                {
+                    if (row is not ObjectMemberValue { constructorArgs: { Count: > 0 } } recipe
+                        || recipe.IsRemoved
+                        || !NamesRowIn(recipe, target))
+                        continue;
+                    foreach (var dependency in EnumerateConstructorDependencyLinks(recipe, ownership))
+                        if (!GetWritableStore(store).values.ContainsKey(dependency.id))
+                            MarkReachableValue(ownership, dependency.id, reachable, dependency.member);
+                }
+            }
+        }
+
+        private static bool NamesRowIn(ObjectMemberValue recipe, Dictionary<string, MemberValue> values)
+        {
+            foreach (JToken? token in recipe.constructorArgs!.Values)
+                if (token?.Type == JTokenType.String && values.ContainsKey(token.Value<string>()!))
+                    return true;
+            return false;
+        }
+
+        /// <summary>
+        /// Whether a recipe stored outside <paramref name="ownership"/> names
+        /// <paramref name="valueId"/>, which keeps it reachable there.
+        /// </summary>
+        private bool OtherStoreRecipeNames(NeoValueOwnership ownership, string parentId, string valueId)
+        {
+            foreach (NeoValueOwnership store in RecipeStores)
+                if (store != ownership
+                    && TryGetWritableValue(store, parentId, out MemberValue? parent)
+                    && parent is ObjectMemberValue { classId: not null } recipe
+                    && !recipe.IsRemoved
+                    && ConstructorArgsReference(recipe, valueId)
+                    && !GetWritableStore(store).values.ContainsKey(valueId))
+                    return true;
+            return false;
+        }
+
         private IEnumerable<(string id, Member? member)> EnumerateConstructorDependencyLinks(
             MemberValue value, NeoValueOwnership ownership)
         {
