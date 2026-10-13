@@ -11,6 +11,84 @@ namespace NeoCompose.Runtime.NeoScript
 {
     public static partial class NSGetterEvaluator
     {
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<object?[], RuntimeSet> runtimeSets = new();
+
+        internal static object? RuntimeCollection(object? value, Context ctx) =>
+            value is object?[] array && runtimeSets.TryGetValue(array, out var set) ? set : value;
+
+        internal static RuntimeSet MakeRuntimeSet(object?[] source, bool reference, bool enumEntries, Context ctx, bool cache = true)
+        {
+            var sets = runtimeSets;
+            if (cache && sets.TryGetValue(source, out var existing))
+                return existing;
+            var set = new RuntimeSet(source, reference, enumEntries,
+                reference ? EqualityComparer<object?>.Default : JsValueComparer.Instance);
+            var cursor = new CollectionCursor(source, ctx);
+            while (cursor.MoveNextUnresolved())
+            {
+                object? entry = cursor.ResolveEntry(ctx);
+                object? key = RuntimeSetKey(entry, set, ctx);
+                set.Add(key, enumEntries ? key : entry);
+            }
+            KeepEntryMember(set, CollectionEntryMember(source, ctx));
+            if (cache)
+                sets.Add(source, set);
+            return set;
+        }
+
+        internal static object? DeclaredRuntimeSet(object? value, TypeInfo type, Context ctx)
+        {
+            if (type.type != MemberKind.Lookup || value is not object?[] array || FindRowReference(value, ctx) is not null)
+                return RuntimeCollection(value, ctx);
+            TypeInfo? entryType = type switch
+            {
+                LookupTypeInfo lookup => lookup.entryTypeInfo,
+                FunctionArgumentTypeInfo argument => argument.entryTypeInfo,
+                _ => null
+            };
+            if (entryType is null)
+                return value;
+            MemberKind entry = entryType.type;
+            return MakeRuntimeSet(array, entry is MemberKind.Class or MemberKind.Interface or MemberKind.List or MemberKind.Dictionary or MemberKind.Lookup,
+                entry is MemberKind.Enum or MemberKind.DialogueLookup, ctx);
+        }
+
+        internal static object? RuntimeSetKey(object? value, RuntimeSet set, Context ctx)
+        {
+            if (set.EnumEntries && value is object?[] { Length: 1 } selected)
+                value = selected[0];
+            return set.Reference && value is not null ? ReferenceKeyOf(value, ctx) ?? value : value;
+        }
+
+        private sealed class LookupKeys
+        {
+            internal object? scope;
+            internal long generation;
+            internal RuntimeSet? set;
+        }
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<object?[], LookupKeys> lookupKeys = new();
+
+        private static bool? LookupContains(object? collection, object? target, Context ctx, bool reference)
+        {
+            if (collection is not object?[] array || FindRowReference(collection, ctx) is not { } row)
+                return null;
+            Member? member = row.CollectionMember(ctx.client);
+            bool enumeration = member is EnumMember { Selection: NeoMemberSelectionKind.Multi } or DialogueLookupMember { Selection: NeoMemberSelectionKind.Multi };
+            if (!enumeration && member is not LookupMember { Selection: NeoMemberSelectionKind.Multi })
+                return null;
+            object? scope = ctx.client.GetterCaptureId != 0 ? ctx.client
+                : ctx.allocationTracker.ActiveExecutionCount != 0 ? ctx.allocationTracker : null;
+            long generation = ctx.client.GetterCaptureId != 0 ? ctx.client.GetterCaptureId : ctx.allocationTracker.Generation;
+            LookupKeys index = lookupKeys.GetOrCreateValue(array);
+            if (scope is null || !ReferenceEquals(index.scope, scope) || index.generation != generation || index.set is null)
+            {
+                index.set = MakeRuntimeSet(array, reference, enumeration, ctx, cache: false);
+                index.scope = scope;
+                index.generation = generation;
+            }
+            return index.set.Contains(RuntimeSetKey(target, index.set, ctx));
+        }
+
         private static object? QueryEntry(object? entry, bool? enumEntries) => enumEntries == true && entry is string ? new object?[] { entry } : entry;
 
         private static object? EvalCollectionQuery(
@@ -174,6 +252,8 @@ namespace NeoCompose.Runtime.NeoScript
                             KeepEntryMember(result, CollectionEntryMember(collection, ctx));
                         break;
                 }
+                if (info.op == "ToSet" && result is object?[] setEntries)
+                    return MakeRuntimeSet(setEntries.Length == 0 ? new object?[0] : setEntries, info.reference, info.enumEntries == true, ctx);
                 return result;
             }
             catch (Exception error) when (ctx.trace.Attach(error)) { throw; }
@@ -191,7 +271,7 @@ namespace NeoCompose.Runtime.NeoScript
         /// <see cref="JsEqual"/> as a hash comparer, so ToSet dedupes value
         /// entries in one pass.
         /// </summary>
-        private sealed class JsValueComparer : IEqualityComparer<object?>
+        internal sealed class JsValueComparer : IEqualityComparer<object?>
         {
             internal static readonly JsValueComparer Instance = new();
 

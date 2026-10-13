@@ -174,7 +174,7 @@ namespace NeoCompose.Tests
 
             object? result = script.Eval(ToSet("xs", reference: false));
 
-            CollectionAssert.AreEqual(new object?[] { 3.0, 1.0, 0.0, 2.0 }, (object?[])result!);
+            CollectionAssert.AreEqual(new object?[] { 3.0, 1.0, 0.0, 2.0 }, (System.Collections.IEnumerable)result!);
         }
 
         [Test]
@@ -189,7 +189,40 @@ namespace NeoCompose.Tests
 
             object? result = script.Eval(ToSet("xs", reference: true));
 
-            CollectionAssert.AreEqual(new[] { ann, bo, otherAnn }, (object?[])result!);
+            CollectionAssert.AreEqual(new[] { ann, bo, otherAnn }, (System.Collections.IEnumerable)result!);
+        }
+
+        [Test]
+        public void LocalSet_ParameterMutationKeepsAliasesAndReinsertionOrder()
+        {
+            using var script = new Script(BuildProjectData());
+            script.scope["xs"] = new object?[] { 3.0, 1.0, 3.0, 2.0 };
+            object set = script.Eval(ToSet("xs", reference: false))!;
+            script.scope["set"] = set;
+            script.scope["alias"] = set;
+            var pointer = new VariablePointer { type = PointerKind.Variable, variableId = "set" };
+            var target = new WriteTarget
+            {
+                pointer = pointer,
+                typeInfo = new LookupTypeInfo
+                {
+                    type = MemberKind.Lookup,
+                    required = true,
+                    entryTypeInfo = new PrimitiveTypeInfo { type = MemberKind.Int, required = true }
+                },
+                writability = WritabilityKind.Local,
+            };
+            script.Mutate(target, CollectionMutationKind.Add, Int(1));
+            script.Mutate(target, CollectionMutationKind.Add, Int(4));
+            script.Mutate(target, CollectionMutationKind.Remove, Int(1));
+            Assert.AreEqual(false, script.Eval(Contains(pointer, Int(1), reference: false)));
+            script.Mutate(target, CollectionMutationKind.Add, Int(1));
+            CollectionAssert.AreEqual(new object?[] { 3.0, 2.0, 4.0, 1.0 }, (System.Collections.IEnumerable)script.scope["alias"]!);
+            script.Mutate(target, CollectionMutationKind.Clear);
+            CollectionAssert.IsEmpty((System.Collections.IEnumerable)set);
+            script.Mutate(target, CollectionMutationKind.Add, Int(7));
+            Assert.AreEqual(true, script.Eval(Contains(pointer, Int(7), reference: false)));
+            CollectionAssert.AreEqual(new object?[] { 3.0, 1.0, 3.0, 2.0 }, (object?[])script.scope["xs"]!);
         }
 
         [Test]

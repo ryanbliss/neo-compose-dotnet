@@ -574,6 +574,7 @@ namespace NeoCompose.Runtime
                                     scope,
                                     actionCtx,
                                     out double number);
+                                value = NSGetterEvaluator.DeclaredRuntimeSet(value, variable.variable.typeInfo, actionCtx);
                                 scope.SetEvaluationValue(variable.variable, value, number);
                                 break;
                             }
@@ -4258,7 +4259,7 @@ namespace NeoCompose.Runtime
                     throw new NSGetterRuntimeError(
                         "Lookup set class argument must be a selected value id or generated class value.");
                 }
-                if (!NeoMemberLookup.ResolveCollectionEntryIds(client, collectionMember, collectionValue).Contains(valueId!))
+                if (!LookupAdmission(client, collectionMember, collectionValue, ctx).Ids.Contains(valueId!))
                 {
                     throw new NSGetterRuntimeError(
                         $"Lookup selection id '{valueId}' is not present in the configured lookup collection.");
@@ -4306,16 +4307,50 @@ namespace NeoCompose.Runtime
             object? value,
             NSGetterEvaluator.Context ctx)
         {
-            var childIds = NeoMemberLookup.ResolveCollectionEntryIds(client, collectionMember, collectionValue);
-            JsonMember? entryMember = client.TryResolveCollectionEntryMember(collectionMember, collectionValue);
-            foreach (var childId in childIds)
+            var index = LookupAdmission(client, collectionMember, collectionValue, ctx);
+            return value is null ? index.NullId : index.Values.TryGetValue(value, out string? id) ? id : null;
+        }
+
+        private sealed class LookupAdmissionIndex
+        {
+            internal int Generation = -1;
+            internal long Revision = -1;
+            internal readonly Dictionary<string, LookupAdmissionEntries> Collections = new();
+        }
+        private sealed class LookupAdmissionEntries
+        {
+            internal readonly HashSet<string> Ids = new();
+            internal readonly Dictionary<object, string> Values = new(NSGetterEvaluator.JsValueComparer.Instance);
+            internal string? NullId;
+        }
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<NeoScriptAllocationTracker, LookupAdmissionIndex> lookupAdmissions = new();
+
+        private static LookupAdmissionEntries LookupAdmission(NeoClient client, JsonMember member, MemberValue collection, NSGetterEvaluator.Context ctx)
+        {
+            var cache = lookupAdmissions.GetOrCreateValue(ctx.allocationTracker);
+            if (ctx.allocationTracker.ActiveExecutionCount == 0 || cache.Generation != ctx.allocationTracker.Generation || cache.Revision != client.WriteRevision)
             {
-                if (!client.TryGetValue(childId, out MemberValue? child))
-                    continue;
-                if (JsEqual(ReadEntryValue(child, entryMember, ctx), value))
-                    return childId;
+                cache.Collections.Clear();
+                cache.Generation = ctx.allocationTracker.Generation;
+                cache.Revision = client.WriteRevision;
             }
-            return null;
+            if (cache.Collections.TryGetValue(collection.id, out var existing))
+                return existing;
+            var index = new LookupAdmissionEntries();
+            JsonMember? entryMember = client.TryResolveCollectionEntryMember(member, collection);
+            foreach (string childId in NeoMemberLookup.ResolveCollectionEntryIds(client, member, collection))
+            {
+                index.Ids.Add(childId);
+                if (entryMember is ClassMember || !client.TryGetValue(childId, out MemberValue? child))
+                    continue;
+                object? payload = ReadEntryValue(child, entryMember, ctx);
+                if (payload is null)
+                    index.NullId ??= childId;
+                else if (!index.Values.ContainsKey(payload))
+                    index.Values.Add(payload, childId);
+            }
+            cache.Collections[collection.id] = index;
+            return index;
         }
 
         private static bool JsEqual(object? a, object? b)
@@ -4356,6 +4391,28 @@ namespace NeoCompose.Runtime
                     || lookup.entryTypeInfo.type == MemberKind.DialogueLookup))
             {
                 args[0] = ResolveLookupSelectionId(ctx.client, lookup, args[0], ctx);
+            }
+            local = NSGetterEvaluator.RuntimeCollection(local, ctx);
+            if (local is object?[] setSource && collectionType is LookupTypeInfo setType)
+                local = NSGetterEvaluator.MakeRuntimeSet(setSource, reference,
+                    setType.entryTypeInfo.type is MemberKind.Enum or MemberKind.DialogueLookup, ctx);
+            if (local is RuntimeSet set)
+            {
+                switch (mutation)
+                {
+                    case CollectionMutationKind.Add:
+                        set.Add(NSGetterEvaluator.RuntimeSetKey(args[0], set, ctx), args[0]);
+                        break;
+                    case CollectionMutationKind.Remove:
+                        set.Remove(NSGetterEvaluator.RuntimeSetKey(args[0], set, ctx));
+                        break;
+                    case CollectionMutationKind.Clear:
+                        set.Clear();
+                        break;
+                    default:
+                        throw new NSGetterRuntimeError("Set only supports Add, Remove, and Clear.");
+                }
+                return set;
             }
             JsonMember? entryMember = NSGetterEvaluator.CollectionEntryMember(local, ctx);
             if (local is object?[] array)
@@ -5869,7 +5926,10 @@ namespace NeoCompose.Runtime
                                         now,
                                         ctx));
                                 }
-                                list.Insert(insertionIndex, childId, now);
+                                if (isSet)
+                                    list.AddSetEntry(childId, now);
+                                else
+                                    list.Insert(insertionIndex, childId, now);
                                 batch.Gain(ownership, childId, rowId);
                                 return;
                             }
@@ -5884,8 +5944,8 @@ namespace NeoCompose.Runtime
                         case CollectionMutationKind.Remove:
                             if (isSet)
                             {
-                                if (FindSetEntry(batch, list, args[0], referenceId, ctx) is { } match)
-                                    batch.Release(ownership, list.RemoveAt(list.IndexOf(match), now), EntryMember(client, list.Row, entryTypeInfo), rowId);
+                                if (FindSetEntry(batch, list, args[0], referenceId, ctx) is { } match && list.RemoveSetEntry(match, now))
+                                    batch.Release(ownership, match, EntryMember(client, list.Row, entryTypeInfo), rowId);
                                 return;
                             }
                             for (int i = 0; i < list.Count; i++)
@@ -5965,23 +6025,13 @@ namespace NeoCompose.Runtime
                         case CollectionMutationKind.Add:
                             {
                                 string selectionId = ResolveLookupSelectionId(client, typeInfo, args[0], ctx);
-                                if (!list.Contains(selectionId))
-                                    list.Insert(list.Count, selectionId, now);
+                                list.AddSetEntry(selectionId, now);
                                 return;
                             }
                         case CollectionMutationKind.Remove:
                             {
                                 string selectionId = ResolveLookupSelectionId(client, typeInfo, args[0], ctx);
-                                if (!list.Contains(selectionId))
-                                    return;
-                                for (int i = 0; i < list.Count; i++)
-                                {
-                                    if (list[i] == selectionId)
-                                    {
-                                        list.RemoveAt(i, now);
-                                        return;
-                                    }
-                                }
+                                list.RemoveSetEntry(selectionId, now);
                                 return;
                             }
                         case CollectionMutationKind.Clear:

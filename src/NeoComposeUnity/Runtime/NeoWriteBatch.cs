@@ -426,6 +426,7 @@ namespace NeoCompose.Runtime
         {
             private string[] ids;
             private bool owned;
+            private NeoScript.OrderedMap<string, string>? ordered;
             private HashSet<string>? members;
             // A value Set's entry ids by P108 key, built on the first lookup.
             private Dictionary<string, string>? setEntries;
@@ -443,11 +444,45 @@ namespace NeoCompose.Runtime
                 get; private set;
             }
 
-            internal string this[int index] => ids[index];
+            internal string this[int index] => ordered is null ? ids[index] : ordered.Snapshot()[index];
+
+            private NeoScript.OrderedMap<string, string> Ordered()
+            {
+                if (ordered is not null)
+                    return ordered;
+                ordered = new NeoScript.OrderedMap<string, string>(StringComparer.Ordinal);
+                for (int i = 0; i < Count; i++)
+                    ordered.Add(ids[i], ids[i]);
+                return ordered;
+            }
+
+            internal void AddSetEntry(string id, NeoTimestamp now)
+            {
+                if (!Ordered().Add(id, id))
+                    return;
+                Count++;
+                members?.Add(id);
+                setEntries?.TryAdd(SetEntryKey(id), id);
+                Changes(now);
+            }
+
+            internal bool RemoveSetEntry(string id, NeoTimestamp now)
+            {
+                if (!Ordered().Remove(id))
+                    return false;
+                ForgetSetEntry(id);
+                Count--;
+                members?.Remove(id);
+                Changes(now);
+                return true;
+            }
+
 
             /// <summary>Whether the list holds <paramref name="id"/>, through a set built once.</summary>
             internal bool Contains(string id)
             {
+                if (ordered is not null)
+                    return ordered.Contains(id);
                 if (members is null)
                 {
                     members = new HashSet<string>(StringComparer.Ordinal);
@@ -469,12 +504,12 @@ namespace NeoCompose.Runtime
                     setPlan = plan;
                     setEntries = new Dictionary<string, string>(Count, StringComparer.Ordinal);
                     for (int index = 0; index < Count; index++)
-                        setEntries.TryAdd(SetEntryKey(ids[index]), ids[index]);
+                        setEntries.TryAdd(SetEntryKey(this[index]), this[index]);
                 }
                 return setEntries.TryGetValue(key, out string? id) ? id : null;
             }
 
-            internal int IndexOf(string id) => Array.IndexOf(ids, id, 0, Count);
+            internal int IndexOf(string id) => Array.IndexOf(ordered?.Snapshot() ?? ids, id, 0, Count);
 
             private string SetEntryKey(string id)
             {
@@ -494,6 +529,8 @@ namespace NeoCompose.Runtime
 
             internal void Insert(int index, string id, NeoTimestamp now)
             {
+                if (ordered is not null)
+                    Own();
                 if (!owned || Count == ids.Length)
                 {
                     // The first change copies exactly: most executions make
@@ -514,9 +551,9 @@ namespace NeoCompose.Runtime
             /// <summary>Replaces the entry at <paramref name="index"/>, returning the id it held.</summary>
             internal string Set(int index, string id, NeoTimestamp now)
             {
+                Own();
                 string previous = ids[index];
                 ForgetSetEntry(previous);
-                Own();
                 ids[index] = id;
                 setEntries?.TryAdd(SetEntryKey(id), id);
                 if (members is not null)
@@ -530,9 +567,9 @@ namespace NeoCompose.Runtime
 
             internal string RemoveAt(int index, NeoTimestamp now)
             {
+                Own();
                 string id = ids[index];
                 ForgetSetEntry(id);
-                Own();
                 Array.Copy(ids, index + 1, ids, index, Count - index - 1);
                 ids[--Count] = null!;
                 members?.Remove(id);
@@ -543,6 +580,12 @@ namespace NeoCompose.Runtime
             // Copies the committed row's array before the first change.
             private void Own()
             {
+                if (ordered is not null)
+                {
+                    ids = ordered.Snapshot();
+                    ordered = null;
+                    owned = false;
+                }
                 if (owned)
                     return;
                 var copy = new string[Count];
@@ -554,8 +597,10 @@ namespace NeoCompose.Runtime
             /// <summary>Empties the list, returning the ids it held.</summary>
             internal string[] Clear(NeoTimestamp now)
             {
-                var cleared = new string[Count];
-                Array.Copy(ids, cleared, Count);
+                var cleared = ordered is null ? new string[Count] : ordered.Snapshot();
+                if (ordered is null)
+                    Array.Copy(ids, cleared, Count);
+                ordered?.Clear();
                 ids = Array.Empty<string>();
                 owned = true;
                 Count = 0;
@@ -568,6 +613,8 @@ namespace NeoCompose.Runtime
             /// <summary>Gives the row the exact array it stores.</summary>
             internal void Seal()
             {
+                if (ordered is not null)
+                    ids = ordered.Snapshot();
                 if (Count != ids.Length)
                 {
                     var exact = new string[Count];

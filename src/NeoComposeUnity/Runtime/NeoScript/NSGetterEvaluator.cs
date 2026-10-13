@@ -1942,9 +1942,9 @@ namespace NeoCompose.Runtime.NeoScript
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static object? EvalPointer(Pointer pointer, NeoScriptScope scope, Context ctx) =>
-            pointer.source is null
+            RuntimeCollection(pointer.source is null
                 ? EvalPointerCore(pointer, scope, ctx)
-                : EvalPointerAtSource(pointer, scope, ctx);
+                : EvalPointerAtSource(pointer, scope, ctx), ctx);
 
         private static object? EvalPointerAtSource(Pointer pointer, NeoScriptScope scope, Context ctx)
         {
@@ -6342,6 +6342,13 @@ namespace NeoCompose.Runtime.NeoScript
                 ctx.client.NotePendingRead(pending.Row.id);
                 return Box(target is not null && PendingSetHolds((NeoWriteBatch.PendingList)pending, target, ctx));
             }
+            if (pending?.CollectionMember is EnumMember or DialogueLookupMember)
+            {
+                ctx.client.NotePendingRead(pending.Row.id);
+                if (target is object?[] { Length: 1 } selection)
+                    target = selection[0];
+                return Box(target is string selected && ((NeoWriteBatch.PendingList)pending).Contains(selected));
+            }
             if (pending is not null && cnf.info.reference)
             {
                 // Pending entries are value ids, so identity needs none read.
@@ -6349,6 +6356,13 @@ namespace NeoCompose.Runtime.NeoScript
                 return Box(target is not null
                     && ReferenceKeyOf(target, ctx) is string referenceId
                     && ((NeoWriteBatch.PendingList)pending).Contains(referenceId));
+            }
+            if (pending?.CollectionMember is LookupMember lookup && lookup.collectionMemberId is { } collectionId
+                && ctx.client.TryGetMember(collectionId, out JsonMember? sourceMember))
+            {
+                pending.EntryMember ??= ctx.client.TryResolveCollectionEntryMember(sourceMember);
+                ctx.client.NotePendingRead(pending.Row.id);
+                return Box(target is not null && PendingSetHolds((NeoWriteBatch.PendingList)pending, target, ctx));
             }
             if (pending is not null)
             {
@@ -6371,6 +6385,10 @@ namespace NeoCompose.Runtime.NeoScript
                 }
                 return Box(s.Contains(ts));
             }
+            if (c is RuntimeSet localSet)
+                return Box(localSet.Contains(RuntimeSetKey(target, localSet, ctx)));
+            if (pending is null && LookupContains(c, target, ctx, cnf.info.reference) is { } lookupContains)
+                return Box(lookupContains);
             JsonMember? setEntryMember = pending is null ? StoredSetEntryMember(c, ctx) : null;
             if (setEntryMember is not null)
                 return Box(SetHoldsKey(c, target, setEntryMember, ctx));
@@ -7122,6 +7140,8 @@ namespace NeoCompose.Runtime.NeoScript
 
         private static int CollectionLength(object? c)
         {
+            if (c is RuntimeSet set)
+                return set.Count;
             if (c is object?[] arr)
                 return arr.Length;
             if (c is IDictionary<string, object?> dict)
@@ -7134,6 +7154,8 @@ namespace NeoCompose.Runtime.NeoScript
 
         private static int CollectionEntryCount(object? collection)
         {
+            if (collection is RuntimeSet set)
+                return set.Count;
             if (collection is object?[] list)
                 return list.Length;
             if (collection is IDictionary<string, object?> dictionary)
@@ -7938,6 +7960,8 @@ namespace NeoCompose.Runtime.NeoScript
 
             internal void Take(object? collection, Context ctx)
             {
+                if (collection is RuntimeSet set)
+                    collection = set.Snapshot();
                 if (collection is not object?[]
                     && collection is not IDictionary<string, object?>)
                 {
@@ -8059,6 +8083,8 @@ namespace NeoCompose.Runtime.NeoScript
         private static IEnumerable<OrderedRawCollectionEntry>
             OrderedRawCollectionEntries(object? collection)
         {
+            if (collection is RuntimeSet set)
+                collection = set.Snapshot();
             if (collection is object?[] array)
             {
                 for (int i = 0; i < array.Length; i++)
@@ -8123,7 +8149,7 @@ namespace NeoCompose.Runtime.NeoScript
 
         private static bool CollectionIsList(object? collection)
         {
-            if (collection is object?[])
+            if (collection is object?[] or RuntimeSet)
                 return true;
             if (collection is IDictionary<string, object?>)
                 return false;
@@ -8161,6 +8187,8 @@ namespace NeoCompose.Runtime.NeoScript
                     this.entryMember = entryMember;
                     entryOwnership = ctx.client.ConcreteDeclaredOwnership(entryMember);
                 }
+                if (collection is RuntimeSet set)
+                    collection = set.Snapshot();
                 if (collection is object?[] array)
                 {
                     this.array = array;
@@ -10376,8 +10404,47 @@ namespace NeoCompose.Runtime.NeoScript
         /// Dictionary, or a query over one, holds its entries as row ids only
         /// the evaluator resolves, so it becomes a copy of its entry values.
         /// </summary>
+        private static object? ResolveNestedRuntimeSets(object? value, Context ctx)
+        {
+            if (value is object?[] array)
+            {
+                object?[]? copy = null;
+                for (int i = 0; i < array.Length; i++)
+                {
+                    object? entry = ResolveHostCollection(array[i], ctx);
+                    if (ReferenceEquals(entry, array[i]))
+                        continue;
+                    copy ??= (object?[])array.Clone();
+                    copy[i] = entry;
+                }
+                return copy ?? array;
+            }
+            if (value is Dictionary<string, object?> dictionary && value is not NeoObjectRecord)
+            {
+                Dictionary<string, object?>? copy = null;
+                foreach (var pair in dictionary)
+                {
+                    object? entry = ResolveHostCollection(pair.Value, ctx);
+                    if (ReferenceEquals(entry, pair.Value))
+                        continue;
+                    copy ??= new Dictionary<string, object?>(dictionary, dictionary.Comparer);
+                    copy[pair.Key] = entry;
+                }
+                return copy ?? dictionary;
+            }
+            return value;
+        }
+
         internal static object? ResolveHostCollection(object? value, Context ctx)
         {
+            if (value is RuntimeSet set)
+            {
+                var exported = new object?[set.Count];
+                int index = 0;
+                foreach (object? entry in set)
+                    exported[index++] = ResolveHostCollection(entry, ctx);
+                return exported;
+            }
             if (value is not (object?[] or Dictionary<string, object?>))
                 return value;
             RowReference? rowRef = FindRowReference(value, ctx);
@@ -10390,7 +10457,7 @@ namespace NeoCompose.Runtime.NeoScript
             }
             // A class record is never a derived collection.
             else if (value is NeoObjectRecord || !DerivedEntryMembers.TryGetValue(value, out entryMember))
-                return value;
+                return ResolveNestedRuntimeSets(value, ctx);
             bool nested = entryMember is null or ListMember or DictionaryMember;
             NeoValueOwnership? ownership = rowRef?.ownership;
             if (value is object?[] rows)
