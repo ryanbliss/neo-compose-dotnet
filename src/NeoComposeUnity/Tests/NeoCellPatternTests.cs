@@ -212,14 +212,15 @@ namespace NeoCompose.Tests
             Assert.AreEqual(121 * 121, box.Count);
         }
 
-        // Doubling the cells roughly doubles the work. A quadratic step
-        // quadruples it, so 3 separates the two without timing noise.
-        private const double LinearRatio = 3;
+        // Each large input has about 4x the cells of its small one, so linear
+        // work takes about 4x as long and a quadratic step about 16x. 8
+        // separates the two without timing noise.
+        private const double LinearRatio = 8;
 
-        [TestCase("Box", 14, 20)]
-        [TestCase("Rect with one side 1", 400, 800)]
-        [TestCase("Union of disjoint patterns", 400, 800)]
-        [TestCase("Translate", 400, 800)]
+        [TestCase("Box", 10, 20)]
+        [TestCase("Rect with one side 1", 200, 800)]
+        [TestCase("Union of disjoint patterns", 200, 800)]
+        [TestCase("Translate", 200, 800)]
         public void Construction_ScalesLinearly(string shape, int small, int large)
         {
             // Helper inputs are built before timing, so a sample measures
@@ -247,22 +248,36 @@ namespace NeoCompose.Tests
                         throw new ArgumentOutOfRangeException(nameof(shape));
                 }
             }
-            double ratio = MedianMs(Run(large)) / MedianMs(Run(small));
+            double ratio = CostRatio(Run(small), Run(large));
             Assert.Less(ratio, LinearRatio, $"{shape}: {ratio:F2}");
         }
 
-        private static double MedianMs(Action run)
+        /// <summary>
+        /// Median time of <paramref name="large"/> over median time of
+        /// <paramref name="small"/>. Samples alternate, so load from other
+        /// processes lands on both sizes alike.
+        /// </summary>
+        private static double CostRatio(Action small, Action large)
         {
-            run();
-            var samples = new double[7];
-            for (int sample = 0; sample < samples.Length; sample++)
+            small();
+            large();
+            var smallMs = new double[9];
+            var largeMs = new double[9];
+            for (int sample = 0; sample < smallMs.Length; sample++)
             {
-                var watch = Stopwatch.StartNew();
-                run();
-                samples[sample] = watch.Elapsed.TotalMilliseconds;
+                smallMs[sample] = TimeMs(small);
+                largeMs[sample] = TimeMs(large);
             }
-            Array.Sort(samples);
-            return samples[samples.Length / 2];
+            Array.Sort(smallMs);
+            Array.Sort(largeMs);
+            return largeMs[largeMs.Length / 2] / smallMs[smallMs.Length / 2];
+        }
+
+        private static double TimeMs(Action run)
+        {
+            var watch = Stopwatch.StartNew();
+            run();
+            return watch.Elapsed.TotalMilliseconds;
         }
 
         private static Vector2Int[] Cells(TestCellPattern pattern, Vector2Int origin) =>
