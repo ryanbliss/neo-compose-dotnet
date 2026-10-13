@@ -197,8 +197,7 @@ namespace NeoCompose.Runtime
                 // A multi-selection can be mutated through a variable holding
                 // it, which only a row tracks.
                 case EnumMember enumMember
-                    when enumMember.enumId != NeoCellPatternStorage.ExcludingEnumId
-                        && enumMember.Selection != NeoMemberSelectionKind.Multi:
+                    when enumMember.Selection != NeoMemberSelectionKind.Multi:
                 case LookupMember lookupMember
                     when lookupMember.Selection != NeoMemberSelectionKind.Multi:
                     kind = DetachedSlotKind.Leaf;

@@ -4,223 +4,258 @@
 #nullable enable
 
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using NeoCompose.Runtime;
+using NeoCompose.Runtime.Json;
+using NeoCompose.Runtime.NeoScript;
 using NUnit.Framework;
 using UnityEngine;
+using static NeoCompose.Tests.NeoCellPatternRuntimeTests;
 
 namespace NeoCompose.Tests
 {
+    /// <summary>
+    /// NeoCellPattern's factories run their NeoScript bodies through the
+    /// ordinary evaluator over the seed; its helpers run natively.
+    /// </summary>
     public class NeoCellPatternTests
     {
+        private NeoClient client = null!;
+
+        [SetUp]
+        public void SetUp() => client = Client();
+
+        [TearDown]
+        public void TearDown() => client.Dispose();
+
+        private TestCellPattern Box(int x, int? y = null, string excluding = NoneOptionId) =>
+            TestCellPattern.Factory(client, BoxId, x, y, excluding);
+
+        private TestCellPattern Cross(int x, int? y = null, string excluding = NoneOptionId) =>
+            TestCellPattern.Factory(client, CrossId, x, y, excluding);
+
+        private TestCellPattern Ring(int radius) => TestCellPattern.Factory(client, RingId, radius);
+
+        private TestCellPattern Rect(int x, int y) => TestCellPattern.Factory(client, RectId, new Vector2Int(x, y));
+
+        private TestCellPattern Line(Vector2Int direction, int length, string excluding = NoneOptionId) =>
+            TestCellPattern.Factory(client, LineId, direction, length, excluding);
+
+        private TestCellPattern New(params Vector2Int[] offsets) => TestCellPattern.New(client, offsets);
+
+        private static Vector2Int V(int x, int y) => new(x, y);
+
+        /// <summary>x-major, then y, stably ordered by Chebyshev distance from the origin.</summary>
+        private static Vector2Int[] Chebyshev(int minX, int maxX, int minY, int maxY, Func<Vector2Int, bool>? keep = null) =>
+            Enumerable.Range(minX, maxX - minX + 1)
+                .SelectMany(x => Enumerable.Range(minY, maxY - minY + 1).Select(y => new Vector2Int(x, y)))
+                .Where(keep ?? (_ => true))
+                .OrderBy(Distance)
+                .ToArray();
+
+        private static int Distance(Vector2Int cell) => Math.Max(Math.Abs(cell.x), Math.Abs(cell.y));
+
         [Test]
-        public void Factories_PreserveStableLegacyOrderingAcrossRectangles()
+        public void Box_OrdersNearestFirstForRadiiZeroThroughTwelve()
         {
             for (int x = 0; x <= 12; x++)
+            {
                 for (int y = 0; y <= 12; y++)
                 {
-                    var box = Enumerable.Range(-x, 2 * x + 1)
-                        .SelectMany(a => Enumerable.Range(-y, 2 * y + 1).Select(b => new Vector2Int(a, b)))
-                        .OrderBy(cell => Math.Max(Math.Abs(cell.x), Math.Abs(cell.y))).ToArray();
-                    CollectionAssert.AreEqual(box, NeoCellPattern.Box(x, y), $"Box({x},{y})");
-                    CollectionAssert.AreEqual(box.Where(cell => cell != Vector2Int.zero),
-                        NeoCellPattern.Box(x, y, NeoCellPatternExcluding.Center));
-                    var rect = Enumerable.Range(0, x + 1)
-                        .SelectMany(a => Enumerable.Range(0, y + 1).Select(b => new Vector2Int(a, b)))
-                        .OrderBy(cell => Math.Max(cell.x, cell.y)).ToArray();
-                    CollectionAssert.AreEqual(rect, NeoCellPattern.Rect(new Vector2Int(x + 1, y + 1)), $"Rect({x + 1},{y + 1})");
+                    CollectionAssert.AreEqual(Chebyshev(-x, x, -y, y), Box(x, y), $"Box({x}, {y})");
+                    CollectionAssert.AreEqual(Chebyshev(-x, x, -y, y, cell => cell != Vector2Int.zero), Box(x, y, CenterOptionId),
+                        $"Box({x}, {y}, Center)");
                 }
-            for (int radius = 0; radius <= 20; radius++)
+            }
+            CollectionAssert.AreEqual(Box(3, 3), Box(3));
+        }
+
+        [Test]
+        public void Rect_OrdersNearestFirstForSizesOneThroughThirteen()
+        {
+            for (int x = 0; x <= 12; x++)
             {
-                var expected = Enumerable.Range(-radius, 2 * radius + 1)
-                    .SelectMany(x => Enumerable.Range(-radius, 2 * radius + 1).Select(y => new Vector2Int(x, y)))
-                    .Where(cell => Math.Max(Math.Abs(cell.x), Math.Abs(cell.y)) == radius);
-                CollectionAssert.AreEqual(expected, NeoCellPattern.Ring(radius));
+                for (int y = 0; y <= 12; y++)
+                    CollectionAssert.AreEqual(Chebyshev(0, x, 0, y), Rect(x + 1, y + 1), $"Rect({x + 1}, {y + 1})");
             }
         }
 
         [Test]
-        public void Factories_CheckOverflowBeforeAllocationAndLineIncludesOrigin()
+        public void Ring_ReturnsEachShellForRadiiZeroThroughTwelve()
         {
-            Assert.Throws<OverflowException>(() => NeoCellPattern.Box(int.MaxValue));
-            Assert.Throws<OverflowException>(() => NeoCellPattern.Rect(new Vector2Int(int.MaxValue, 2)));
-            Assert.Throws<OverflowException>(() => NeoCellPattern.Ring(int.MaxValue));
-            Assert.Throws<OverflowException>(() => NeoCellPattern.Line(new Vector2Int(int.MaxValue, 1), 2));
-            CollectionAssert.AreEqual(new[] { Vector2Int.zero, Vector2Int.up }, NeoCellPattern.Line(Vector2Int.up, 1));
-        }
-
-        [Test]
-        public void Box_ContainsEveryOffsetWithinRadiusSortedCenterOut()
-        {
-            var pattern = NeoCellPattern.Box(1);
-
-            Assert.AreEqual(9, pattern.Count);
-            Assert.AreEqual(Vector2Int.zero, pattern[0]);
-            AssertSortedCenterOut(pattern);
-
-            Assert.AreEqual(8, NeoCellPattern.Box(1, excluding: NeoCellPatternExcluding.Center).Count);
-            Assert.AreEqual(15, NeoCellPattern.Box(2, 1).Count);
-        }
-
-        [Test]
-        public void Cross_ContainsOnlyAxisAlignedOffsets()
-        {
-            var pattern = NeoCellPattern.Cross(2);
-
-            Assert.AreEqual(9, pattern.Count);
-            Assert.AreEqual(Vector2Int.zero, pattern[0]);
-            Assert.IsTrue(pattern.All(offset => offset.x == 0 || offset.y == 0));
-            AssertSortedCenterOut(pattern);
-
-            var noCenter = NeoCellPattern.Cross(1, excluding: NeoCellPatternExcluding.Center);
-            Assert.AreEqual(4, noCenter.Count);
-            Assert.IsFalse(noCenter.Contains(Vector2Int.zero));
-        }
-
-        [Test]
-        public void Ring_ContainsExactlyTheShellAtTheRequestedDistance()
-        {
-            var pattern = NeoCellPattern.Ring(2);
-
-            Assert.AreEqual(16, pattern.Count);
-            Assert.IsTrue(pattern.All(offset =>
-                Mathf.Max(Mathf.Abs(offset.x), Mathf.Abs(offset.y)) == 2));
-
-            Assert.AreEqual(1, NeoCellPattern.Ring(0).Count);
-        }
-
-        [Test]
-        public void Rect_SpansUpRightFromTheOrigin()
-        {
-            var pattern = NeoCellPattern.Rect(new Vector2Int(2, 3));
-
-            Assert.AreEqual(6, pattern.Count);
-            foreach (var offset in pattern)
+            for (int radius = 0; radius <= 12; radius++)
             {
-                Assert.IsTrue(offset.x is 0 or 1, offset.ToString());
-                Assert.IsTrue(offset.y is 0 or 1 or 2, offset.ToString());
+                CollectionAssert.AreEqual(Chebyshev(-radius, radius, -radius, radius, cell => Distance(cell) == radius), Ring(radius),
+                    $"Ring({radius})");
             }
         }
 
         [Test]
-        public void Line_StepsAlongTheDirectionNearestFirst()
+        public void CrossAndLine_PutTheOriginFirstUnlessExcluded()
         {
-            var pattern = NeoCellPattern.Line(Vector2Int.up, 2, NeoCellPatternExcluding.Center);
-
-            CollectionAssert.AreEqual(
-                new[] { new Vector2Int(0, 1), new Vector2Int(0, 2) },
-                pattern.ToArray());
-
-            var withOrigin = NeoCellPattern.Line(new Vector2Int(1, 1), 1, excluding: NeoCellPatternExcluding.None);
-            CollectionAssert.AreEqual(
-                new[] { Vector2Int.zero, new Vector2Int(1, 1) },
-                withOrigin.ToArray());
+            CollectionAssert.AreEqual(new[] { V(0, 0), V(-1, 0), V(1, 0), V(0, -1), V(0, 1), V(-2, 0), V(2, 0) }, Cross(2, 1));
+            CollectionAssert.AreEqual(new[] { V(-1, 0), V(1, 0), V(0, -1), V(0, 1) }, Cross(1, null, CenterOptionId));
+            CollectionAssert.AreEqual(new[] { V(0, 0) }, Cross(0));
+            CollectionAssert.AreEqual(new[] { V(0, 0), V(-2, 1), V(-4, 2) }, Line(V(-2, 1), 2));
+            CollectionAssert.AreEqual(new[] { V(-2, 1), V(-4, 2) }, Line(V(-2, 1), 2, CenterOptionId));
+            CollectionAssert.IsEmpty(Line(V(1, 0), 0, CenterOptionId));
         }
 
         [Test]
-        public void Factories_RejectInvalidShapes()
+        public void Factories_RejectInvalidArguments()
         {
-            Assert.Throws<ArgumentOutOfRangeException>(() => NeoCellPattern.Box(-1));
-            Assert.Throws<ArgumentOutOfRangeException>(() => NeoCellPattern.Cross(0, -2));
-            Assert.Throws<ArgumentOutOfRangeException>(() => NeoCellPattern.Ring(-1));
-            Assert.Throws<ArgumentOutOfRangeException>(() => NeoCellPattern.Rect(new Vector2Int(0, 1)));
-            Assert.Throws<ArgumentOutOfRangeException>(() => NeoCellPattern.Rect(new Vector2Int(1, 0)));
-            Assert.Throws<ArgumentOutOfRangeException>(() => NeoCellPattern.Line(Vector2Int.zero, 1));
-            Assert.Throws<ArgumentOutOfRangeException>(() => NeoCellPattern.Line(Vector2Int.up, -1));
+            Throws("Box radii must be non-negative; got -1, -1.", () => Box(-1));
+            Throws("Box radii must be non-negative; got 1, -2.", () => Box(1, -2));
+            Throws("Cross radii must be non-negative; got -1, -1.", () => Cross(-1));
+            Throws("Ring radius must be non-negative; got -1.", () => Ring(-1));
+            Throws("Rect size must be positive; got 0, 2.", () => Rect(0, 2));
+            Throws("Line direction must be non-zero.", () => Line(Vector2Int.zero, 2));
+            Throws("Line length must be non-negative; got -1.", () => Line(V(1, 0), -1));
         }
 
         [Test]
-        public void Presets_HaveTheDocumentedShapes()
+        public void Presets_ReadTheirStoredRows()
         {
-            CollectionAssert.AreEqual(new[] { Vector2Int.zero }, NeoCellPattern.Center.ToArray());
-            Assert.AreEqual(0, NeoCellPattern.Empty.Count);
-
-            Assert.AreEqual(4, NeoCellPattern.FourNeighbors.Count);
-            Assert.IsFalse(NeoCellPattern.FourNeighbors.Contains(Vector2Int.zero));
-            Assert.IsTrue(NeoCellPattern.FourNeighbors.Contains(Vector2Int.up));
-
-            Assert.AreEqual(8, NeoCellPattern.EightNeighbors.Count);
-            Assert.IsTrue(NeoCellPattern.EightNeighbors.Contains(new Vector2Int(1, 1)));
+            TestCellPattern center = TestCellPattern.Preset(client, CenterId);
+            CollectionAssert.AreEqual(new[] { Vector2Int.zero }, center);
+            Assert.AreEqual(1, center.Count);
+            CollectionAssert.IsEmpty(TestCellPattern.Preset(client, EmptyId));
+            CollectionAssert.AreEqual(Cross(1, null, CenterOptionId), TestCellPattern.Preset(client, FourNeighborsId));
+            CollectionAssert.AreEqual(Box(1, null, CenterOptionId), TestCellPattern.Preset(client, EightNeighborsId));
         }
 
         [Test]
-        public void HandBuiltPatterns_PreserveCallerOrder()
+        public void HandBuiltPattern_KeepsItsOrderAndDuplicates()
         {
-            var offsets = new[]
+            TestCellPattern authored = New(V(3, 1), V(0, 0), V(3, 1), V(0, 0));
+            CollectionAssert.AreEqual(new[] { V(3, 1), V(0, 0), V(3, 1), V(0, 0) }, authored);
+            Assert.AreEqual(true, authored.Invoke(NeoCellPatternRuntime.ContainsId, V(3, 1)));
+            Assert.AreEqual(false, authored.Invoke(NeoCellPatternRuntime.ContainsId, V(1, 3)));
+            CollectionAssert.AreEqual(new[] { V(3, 1), V(3, 1) }, authored.Helper(NeoCellPatternRuntime.WithoutCenterId));
+            CollectionAssert.AreEqual(new[] { V(0, 0), V(2, 0), V(2, 0) }, New(V(2, 0), V(2, 0)).Helper(NeoCellPatternRuntime.WithCenterId));
+            Vector2Int[] translated = { V(4, -1), V(1, -2), V(4, -1), V(1, -2) };
+            CollectionAssert.AreEqual(translated, authored.Helper(NeoCellPatternRuntime.TranslateId, V(1, -2)));
+            CollectionAssert.AreEqual(translated, Cells(authored, V(1, -2)));
+        }
+
+        [Test]
+        public void Union_KeepsTheFirstOccurrenceAcrossDuplicatesInsideEachInput()
+        {
+            TestCellPattern authored = New(V(3, 1), V(0, 0), V(3, 1), V(0, 0));
+            CollectionAssert.AreEqual(new[] { V(3, 1), V(0, 0), V(2, 0) },
+                authored.Helper(NeoCellPatternRuntime.UnionId, New(V(2, 0), V(3, 1), V(2, 0))));
+            CollectionAssert.AreEqual(new[] { V(0, 0), V(-1, 0), V(1, 0), V(0, -1), V(0, 1) },
+                TestCellPattern.Preset(client, CenterId).Helper(NeoCellPatternRuntime.UnionId, Cross(1)));
+        }
+
+        [Test]
+        public void NoOpHelpers_ReturnTheReceiver()
+        {
+            TestCellPattern authored = New(V(3, 1), V(0, 0), V(3, 1), V(0, 0));
+            Assert.AreSame(authored, authored.Helper(NeoCellPatternRuntime.WithCenterId));
+            TestCellPattern offCenter = New(V(1, 0));
+            Assert.AreSame(offCenter, offCenter.Helper(NeoCellPatternRuntime.WithoutCenterId));
+            Assert.AreSame(authored, authored.Helper(NeoCellPatternRuntime.TranslateId, Vector2Int.zero));
+            Assert.AreNotSame(authored, authored.Helper(NeoCellPatternRuntime.TranslateId, V(1, 0)));
+            TestCellPattern center = TestCellPattern.Preset(client, CenterId);
+            Assert.AreSame(center, center.Helper(NeoCellPatternRuntime.WithCenterId), "A read-only preset is returned as is.");
+
+            // The evaluator hands back the receiver it called the helper on.
+            var ctx = client.CreateGetterContext(NeoValueOwnership.Session);
+            object source = Construct(client, V(3, 1), V(0, 0));
+            var scope = new NeoScriptScope(new Dictionary<string, object?> { ["p"] = source });
+            object? result = NSGetterEvaluator.EvaluatePointer(new CallFunctionPointer
             {
-                new Vector2Int(2, 0),
-                Vector2Int.zero,
-                new Vector2Int(-1, 0),
+                type = PointerKind.CallFunction,
+                callSiteId = "with-center",
+                memberId = NeoCellPatternRuntime.WithCenterId,
+                receiver = CallReceiver.Instance(new VariablePointer { type = PointerKind.Variable, variableId = "p" }),
+                args = Array.Empty<Pointer>(),
+            }, scope, ctx);
+            Assert.AreSame(source, result);
+        }
+
+        [Test]
+        public void Helpers_RejectCellsOutsideTheIntegerRangeAndNonVectorArguments()
+        {
+            Throws("Translated cell.x exceeds the supported integer range.",
+                () => New(V(int.MaxValue, 0)).Helper(NeoCellPatternRuntime.TranslateId, V(1, 0)));
+            Throws("Translated cell.y is below the supported integer range.",
+                () => Cells(New(V(0, int.MinValue)), V(0, -1)));
+            Throws("Contains offset must be a Vector2Int.", () => New(V(0, 0)).Invoke(NeoCellPatternRuntime.ContainsId, 3));
+            Throws("Cell pattern value must be a NeoCellPattern instance.", () => New(V(0, 0)).Helper(NeoCellPatternRuntime.UnionId, 3));
+        }
+
+        [Test]
+        public void CSharpSurface_ReadsTheStoredOffsets()
+        {
+            TestCellPattern pattern = Box(1);
+            INeoCellPattern offsets = pattern;
+            Assert.AreEqual(9, offsets.Count);
+            Assert.AreEqual(9, pattern.Count, "The NeoScript Count agrees.");
+            Assert.AreEqual(Vector2Int.zero, offsets[0]);
+            var read = new List<Vector2Int>();
+            foreach (Vector2Int offset in pattern)
+                read.Add(offset);
+            CollectionAssert.AreEqual(Chebyshev(-1, 1, -1, 1), read);
+        }
+
+        [Test]
+        public void Box60_Completes()
+        {
+            TestCellPattern box = Box(60);
+            Assert.AreEqual(121 * 121, ((INeoCellPattern)box).Count);
+            Assert.AreEqual(121 * 121, box.Count);
+        }
+
+        // Doubling the cells roughly doubles the work. A quadratic step
+        // quadruples it, so 3 separates the two without timing noise.
+        private const double LinearRatio = 3;
+
+        [TestCase("Box", 14, 20)]
+        [TestCase("Rect with one side 1", 400, 800)]
+        [TestCase("Union of disjoint patterns", 400, 800)]
+        [TestCase("Translate", 400, 800)]
+        public void Construction_ScalesLinearly(string shape, int small, int large)
+        {
+            Action Run(int n) => shape switch
+            {
+                "Box" => () => Box(n),
+                "Rect with one side 1" => () => Rect(n, 1),
+                "Union of disjoint patterns" => () => Rect(n, 1).Helper(NeoCellPatternRuntime.UnionId,
+                    Rect(n, 1).Helper(NeoCellPatternRuntime.TranslateId, V(0, 1))),
+                "Translate" => () => Rect(n, 1).Helper(NeoCellPatternRuntime.TranslateId, V(2, 3)),
+                _ => throw new ArgumentOutOfRangeException(nameof(shape)),
             };
-
-            var pattern = new NeoCellPattern(offsets);
-
-            CollectionAssert.AreEqual(offsets, pattern.ToArray());
+            double ratio = MedianMs(Run(large)) / MedianMs(Run(small));
+            Assert.Less(ratio, LinearRatio, $"{shape}: {ratio:F2}");
         }
 
-        [Test]
-        public void GetCells_TranslatesEveryOffsetByTheOrigin()
+        private static double MedianMs(Action run)
         {
-            var pattern = new NeoCellPattern(Vector2Int.zero, Vector2Int.up);
-
-            CollectionAssert.AreEqual(
-                new[] { new Vector2Int(4, -2), new Vector2Int(4, -1) },
-                pattern.GetCells(new Vector2Int(4, -2)).ToArray());
-        }
-
-        [Test]
-        public void WithCenterAndWithoutCenter_AreNoOpsWhenAlreadySatisfied()
-        {
-            var withCenter = NeoCellPattern.Cross(1);
-            var withoutCenter = NeoCellPattern.FourNeighbors;
-
-            Assert.AreSame(withCenter, withCenter.WithCenter());
-            Assert.AreSame(withoutCenter, withoutCenter.WithoutCenter());
-
-            var added = withoutCenter.WithCenter();
-            Assert.AreEqual(Vector2Int.zero, added[0]);
-            Assert.AreEqual(withoutCenter.Count + 1, added.Count);
-
-            var removed = withCenter.WithoutCenter();
-            Assert.AreEqual(withCenter.Count - 1, removed.Count);
-            Assert.IsFalse(removed.Contains(Vector2Int.zero));
-        }
-
-        [Test]
-        public void Translate_ReanchorsEveryOffset()
-        {
-            var footprint = NeoCellPattern.Rect(new Vector2Int(2, 2))
-                .Translate(new Vector2Int(-1, -1));
-
-            Assert.IsTrue(footprint.Contains(new Vector2Int(-1, -1)));
-            Assert.IsTrue(footprint.Contains(Vector2Int.zero));
-            Assert.AreEqual(4, footprint.Count);
-        }
-
-        [Test]
-        public void Union_ConcatenatesAndDeduplicatesPreservingOrder()
-        {
-            var union = NeoCellPattern.Center.Union(NeoCellPattern.Cross(1));
-
-            Assert.AreEqual(5, union.Count);
-            Assert.AreEqual(Vector2Int.zero, union[0]);
-
-            var selfUnion = NeoCellPattern.FourNeighbors.Union(NeoCellPattern.FourNeighbors);
-            Assert.AreEqual(4, selfUnion.Count);
-        }
-
-        private static void AssertSortedCenterOut(NeoCellPattern pattern)
-        {
-            int previousDistance = 0;
-            foreach (var offset in pattern)
+            run();
+            var samples = new double[7];
+            for (int sample = 0; sample < samples.Length; sample++)
             {
-                int distance = Mathf.Max(Mathf.Abs(offset.x), Mathf.Abs(offset.y));
-                Assert.GreaterOrEqual(
-                    distance,
-                    previousDistance,
-                    $"Offset {offset} is closer than an earlier offset — pattern is not center-out.");
-                previousDistance = distance;
+                var watch = Stopwatch.StartNew();
+                run();
+                samples[sample] = watch.Elapsed.TotalMilliseconds;
             }
+            Array.Sort(samples);
+            return samples[samples.Length / 2];
+        }
+
+        private static Vector2Int[] Cells(TestCellPattern pattern, Vector2Int origin) =>
+            ((object?[])pattern.Invoke(NeoCellPatternRuntime.CellsId, origin)!)
+                .Select(cell => NeoGeneratedTypesSupport.ReadVector2IntValue(cell)!.Value)
+                .ToArray();
+
+        private static void Throws(string message, TestDelegate run)
+        {
+            Exception error = Assert.Catch(run);
+            StringAssert.Contains(message, error.Message);
         }
     }
 }

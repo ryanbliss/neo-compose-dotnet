@@ -661,7 +661,7 @@ namespace NeoCompose.Runtime
             int inPlaceFrame = -1;
             try
             {
-                BindParameters(client, function, action, scope, receiver, args, site, siteScope, ctx, effectiveArgumentTypes);
+                BindParameters(client, function, scope, receiver, args, site, siteScope, ctx, effectiveArgumentTypes);
 
                 NSGetterEvaluator.Context nestedCtx;
                 if (ownsContext)
@@ -832,7 +832,6 @@ namespace NeoCompose.Runtime
         private static void BindParameters(
             NeoClient client,
             NeoResolvedNSFunction function,
-            FunctionWithReturnType action,
             NeoScriptScope scope,
             object? receiver,
             object?[] args,
@@ -859,22 +858,11 @@ namespace NeoCompose.Runtime
                     ? null
                     : site is null
                         ? args[i]
-                        : NSGetterEvaluator.EvaluateFunctionArgument(site, i, siteScope!, ctx);
+                        : NSGetterEvaluator.EvalPointer(site.args[i], siteScope!, ctx);
                 try
                 {
                     if (i >= argumentCount)
                         value = NeoParameterDefaults.DefaultRuntimeValue(argument, function.CallSubject);
-                    // A pattern argument left as offsets stays that way
-                    // when the body only hands it to grid queries.
-                    if (value is NeoCellPattern pattern)
-                    {
-                        if (NeoCellPatternRuntime.OnlyQueriesGrid(action, i + argumentParameterOffset))
-                        {
-                            scope.SetParameter(i + argumentParameterOffset, pattern);
-                            continue;
-                        }
-                        value = NeoCellPatternStorage.Materialize(pattern, ctx);
-                    }
                     scope.SetParameter(i + argumentParameterOffset, NeoScriptValueMarshaller.Normalize(
                         client,
                         ctx.valueOwnership,
@@ -1809,10 +1797,6 @@ namespace NeoCompose.Runtime
             ValueSubject subject,
             bool resolvedIdentity)
         {
-            if (value is NeoCellPattern pattern && typeInfo.type == MemberKind.Class)
-                value = NeoCellPatternStorage.Materialize(pattern, ctx);
-            if (value is NeoCellPatternExcluding excluding && typeInfo.type == MemberKind.Enum)
-                value = NeoCellPatternStorage.ExcludingIds(excluding);
             if (value is NeoValueWritePayload payload)
             {
                 value = payload.isValueReference
@@ -2492,7 +2476,7 @@ namespace NeoCompose.Runtime
                 type => (Func<object, string?>)typeof(NeoEnumOptions<>)
                     .MakeGenericType(type)
                     .GetMethod(
-                        nameof(NeoEnumOptions<NeoCellPatternExcluding>.BoxedOptionId),
+                        nameof(NeoEnumOptions<NeoValueOwnership>.BoxedOptionId),
                         System.Reflection.BindingFlags.Static
                             | System.Reflection.BindingFlags.NonPublic)!
                     .CreateDelegate(typeof(Func<object, string?>)))(value);

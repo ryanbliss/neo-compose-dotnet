@@ -2787,8 +2787,6 @@ namespace NeoCompose.Runtime
         private static NeoConstructorValueReference?
             GeneratedValueReference(NeoClient client, object? value)
         {
-            if (value is NeoCellPattern pattern)
-                value = NeoCellPatternStorage.Serialize(client, pattern);
             if (value is INeoValueReference reference
                 && !string.IsNullOrEmpty(reference.valueId))
             {
@@ -7399,8 +7397,6 @@ namespace NeoCompose.Runtime
             object runtimeValue,
             EnumMember member)
         {
-            if (member.enumId == NeoCellPatternStorage.ExcludingEnumId && runtimeValue is NeoCellPatternExcluding excluding)
-                return NeoCellPatternStorage.ExcludingIds(excluding);
             if (NeoScriptValueMarshaller.EnumOptionId(runtimeValue) is string optionId)
             {
                 return new[] { optionId };
@@ -7413,11 +7409,7 @@ namespace NeoCompose.Runtime
             var optionIds = new List<string>();
             foreach (object? value in values)
             {
-                string? id = value switch
-                {
-                    NeoCellPatternExcluding excludingValue when member.enumId == NeoCellPatternStorage.ExcludingEnumId => NeoCellPatternStorage.ExcludingIds(excludingValue)[0],
-                    _ => NeoScriptValueMarshaller.EnumOptionId(value),
-                };
+                string? id = NeoScriptValueMarshaller.EnumOptionId(value);
                 if (string.IsNullOrEmpty(id))
                 {
                     throw new InvalidOperationException(

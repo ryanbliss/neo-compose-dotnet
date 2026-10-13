@@ -2512,11 +2512,10 @@ namespace NeoCompose.Runtime.NeoScript
             return "<dynamic>";
         }
 
-        /// <param name="returnType">The Function's declared return type, which shapes its result.</param>
         /// <param name="function">The call site's resolved signature, or null to resolve it per call.</param>
         /// <param name="ownsArguments">Whether <paramref name="args"/> is a call site's rented buffer.</param>
         internal static object? InvokeNativeFunction(string memberId, NeoClient.ResolvedNativeFunction? function,
-            TypeInfo? returnType, object? receiver, object?[] args, Context ctx, bool ownsArguments = false)
+            object? receiver, object?[] args, Context ctx, bool ownsArguments = false)
         {
             if (function is null || function.intrinsic)
             {
@@ -2526,109 +2525,9 @@ namespace NeoCompose.Runtime.NeoScript
                     return result;
             }
             args = ResolveHostArguments(args, ctx, ref ownsArguments);
-            object? value = function is null
+            return function is null
                 ? ctx.client.InvokeNativeFunction(memberId, receiver, args, ownsArguments)
                 : ctx.client.InvokeNativeFunction(function, receiver, args, ownsArguments);
-            return NeoCellPatternStorage.NormalizeNativeResult(value, ctx, returnType);
-        }
-
-        /// <summary>
-        /// Evaluates one call argument. A pattern-producing argument stays as
-        /// offsets: a grid query or an NSFunction parameter that only queries
-        /// the grid reads it as is, and <see cref="MaterializePatternArguments"/>
-        /// constructs it for any other target.
-        /// </summary>
-        internal static object? EvaluateFunctionArgument(CallFunctionPointer call, int index,
-            NeoScriptScope scope, Context ctx)
-        {
-            if (call.args[index] is not CallFunctionPointer patternCall
-                || !NeoCellPatternRuntime.ProducesPattern(patternCall.memberId))
-                return EvalPointer(call.args[index], scope, ctx);
-
-            var receiver = patternCall.receiver.pointer is CallGetterPointer { receiver: { IsStatic: true } } patternGetter
-                ? EvalStaticPatternGetter(patternGetter, scope, ctx)
-                : EvalCallReceiver(patternCall.receiver, scope, ctx);
-            if (patternCall.optional == true && receiver is null && !patternCall.receiver.IsStatic)
-                return null;
-            object?[] args = RentArguments(patternCall);
-            try
-            {
-                for (int i = 0; i < args.Length; i++)
-                    args[i] = EvalPointer(patternCall.args[i], scope, ctx);
-                CallSiteTarget? target = ResolveCallTarget(patternCall, receiver, ctx);
-                if (target?.native is null || target.memberId != patternCall.memberId)
-                    throw new NSGetterRuntimeError($"CellPattern intrinsic '{patternCall.memberId}' has an invalid native declaration.");
-                NeoCellPatternRuntime.TryInvoke(target.memberId, receiver,
-                    FillNativeCallSiteArguments(target.memberId, target.nativeFunction?.signature, args), ctx, out var result, materialize: false);
-                return result;
-            }
-            finally
-            {
-                ReturnArguments(patternCall, args);
-            }
-        }
-
-        /// <summary>
-        /// A static getter read as the receiver of a pattern argument, like
-        /// <c>NeoCellPattern.Center</c> in <c>GetTile(NeoCellPattern.Center.Translate(cell))</c>.
-        /// Only the native call reads it, so a pattern result is kept as its
-        /// offsets, memoized like an instance getter's result: a constructed
-        /// pattern never escapes, and later reads skip constructing it.
-        /// </summary>
-        private static object? EvalStaticPatternGetter(CallGetterPointer getter, NeoScriptScope scope, Context ctx)
-        {
-            NeoClient client = ctx.client;
-            if (!client.CanMemoizeGetters || getter.dispatch == "base")
-                return EvalCallGetter(getter, scope, ctx);
-            ValidateStaticCallableReceiver(getter.receiver, getter.memberId, "getter", ResolveGetterMember(getter, ctx));
-            var key = new NeoClient.GetterMemoKey(
-                ctx.valueOwnership, NeoClient.StaticGetterRowId, getter.memberId, ctx.valueOwnership);
-            if (client.FindMemoizedGetter(key) is { } hit)
-            {
-                client.ReplayGetterReads(hit);
-                return hit.scalar;
-            }
-            NeoClient.GetterCaptureFrame enclosingCapture = client.BeginGetterReadCapture();
-            object? result;
-            NeoClient.GetterCaptureFrame capture;
-            try
-            {
-                result = EvalCallGetter(getter, scope, ctx);
-            }
-            finally
-            {
-                capture = client.EndGetterReadCapture(enclosingCapture);
-            }
-            if (result is NeoScriptObject { attachedId: null } detached
-                && detached.plan.classId == NeoCellPatternStorage.ClassId)
-            {
-                NeoCellPattern pattern = NeoCellPatternStorage.ReadRuntime(detached, ctx);
-                client.MemoizeGetter(key, pattern, null, capture);
-                return pattern;
-            }
-            client.RecycleGetterCapture(capture);
-            return result;
-        }
-
-        /// <summary>Constructs the pattern arguments left as offsets, unless the native target is a grid query.</summary>
-        internal static void MaterializePatternArguments(string? memberId, object?[] args, Context ctx)
-        {
-            for (int i = 0; i < args.Length; i++)
-            {
-                if (args[i] is not NeoCellPattern pattern)
-                    continue;
-                // Only a pattern asks which member reads it, which costs
-                // id comparisons; a grid query reads every one as offsets.
-                if (NeoScriptGridQueries.ReadsCells(memberId))
-                    return;
-                args[i] = NeoCellPatternStorage.Materialize(pattern, ctx);
-            }
-        }
-
-        internal static object? NormalizeNativeResult(string memberId, object? value, Context ctx)
-        {
-            ctx.client.TryGetMember(memberId, out FunctionMember? member);
-            return NeoCellPatternStorage.NormalizeNativeResult(value, ctx, member?.returnTypeInfo);
         }
 
         private static object? EvalFunctionCall(
@@ -2663,16 +2562,15 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 for (int i = 0; i < pointer.args.Length; i++)
                 {
-                    args[i] = EvaluateFunctionArgument(pointer, i, scope, ctx);
+                    args[i] = EvalPointer(pointer.args[i], scope, ctx);
                 }
-                MaterializePatternArguments(target?.memberId, args, ctx);
                 if (target is null)
                 {
                     return EvaluateMissingMemberFallback(pointer, receiver, args);
                 }
                 if (target.native is not null)
                 {
-                    return InvokeNativeFunction(target.memberId, target.nativeFunction, target.native.returnTypeInfo, receiver,
+                    return InvokeNativeFunction(target.memberId, target.nativeFunction, receiver,
                         FillNativeCallSiteArguments(target.memberId, target.nativeFunction?.signature, args), ctx,
                         ownsArguments: true);
                 }
@@ -3181,7 +3079,7 @@ namespace NeoCompose.Runtime.NeoScript
                         throw new NeoDeferredFunctionRuntimeError(
                             $"NeoDelegate target Function '{member.name}' is deferred; delegates require an immediate callable target.");
                     }
-                    return InvokeNativeFunction(memberId, nativeFunction, native.returnTypeInfo, receiver, args, ctx);
+                    return InvokeNativeFunction(memberId, nativeFunction, receiver, args, ctx);
                 }
                 if (member is NSFunctionMember)
                 {

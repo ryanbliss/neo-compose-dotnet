@@ -3098,7 +3098,7 @@ namespace NeoCompose.Runtime
                 memberId,
                 receiver,
                 args,
-                result => suspension.Complete(NSGetterEvaluator.NormalizeNativeResult(memberId, result, ctx)),
+                suspension.Complete,
                 suspension.Fail,
                 suspension.MarkInvokerReturned,
                 options?.CancelContinuationOnDeferredDisposal == true
@@ -3240,9 +3240,8 @@ namespace NeoCompose.Runtime
             {
                 for (int i = 0; i < pointer.args.Length; i++)
                 {
-                    args[i] = NSGetterEvaluator.EvaluateFunctionArgument(pointer, i, scope, ctx);
+                    args[i] = NSGetterEvaluator.EvaluatePointer(pointer.args[i], scope, ctx);
                 }
-                NSGetterEvaluator.MaterializePatternArguments(target?.memberId, args, ctx);
                 if (target is null)
                 {
                     object? fallback = NSGetterEvaluator.EvaluateMissingMemberFallback(
@@ -3261,7 +3260,7 @@ namespace NeoCompose.Runtime
                     // defaulted parameters (§1.4), so the branch below
                     // stays unfilled.
                     return NSGetterEvaluator.InvokeNativeFunction(
-                        memberId, nativeFunction, target.native?.returnTypeInfo, receiver,
+                        memberId, nativeFunction, receiver,
                         NSGetterEvaluator.FillNativeCallSiteArguments(memberId, native, args), ctx,
                         ownsArguments: true);
                 }

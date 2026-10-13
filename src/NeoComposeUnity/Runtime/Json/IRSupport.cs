@@ -487,10 +487,6 @@ namespace NeoCompose.Runtime.Json
         [Newtonsoft.Json.JsonIgnore]
         internal NeoScript.NeoScriptScopeLayout? scopeLayout;
 
-        /// <summary>Per parameter, whether the body reads it only as the cells of a grid query; built on first use.</summary>
-        [Newtonsoft.Json.JsonIgnore]
-        internal bool[]? gridQueryParameters;
-
         /// <summary>Whether the body reads <c>this</c> or a constructor argument, as an initializer; built on first use.</summary>
         [Newtonsoft.Json.JsonIgnore]
         internal bool? readsInstanceParameters;

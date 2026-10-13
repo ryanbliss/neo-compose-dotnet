@@ -16,6 +16,20 @@ namespace NeoCompose.Tests
 {
     public class NeoCellPatternRuntimeTests
     {
+        internal const string BoxId = "system_aaad2df6-e31e-5f5d-95b9-e265211faed5";
+        internal const string CrossId = "system_df8ebca6-a1d1-57c1-8762-227943fc51d8";
+        internal const string RingId = "system_82222600-f67f-5127-bb2d-278381b4ef2f";
+        internal const string RectId = "system_d803cfd5-ce53-57da-abc2-7cd69befeb01";
+        internal const string LineId = "system_ef0d4cbb-7182-5d93-9bb8-60a5a18f81a5";
+        internal const string CenterId = "system_d90a6e51-0b1e-5354-b4e2-ad4155a833f1";
+        internal const string FourNeighborsId = "system_57290d57-16dd-54d6-ad1e-81a72bd7f457";
+        internal const string EightNeighborsId = "system_a8f2f798-7988-5df8-8294-decdd4316c7e";
+        internal const string EmptyId = "system_98d035f6-9f7d-5d2b-ae01-70ce90621333";
+        internal const string CountId = "system_51d883c9-d451-5747-bcf0-e314e44bffa8";
+        internal const string ExcludingEnumId = "system_072f749f-62fe-5917-9f7e-f9f29c3a7063";
+        internal const string NoneOptionId = "system_5c30e23b-1767-5e15-b633-40ae182157a7";
+        internal const string CenterOptionId = "system_456431b5-aa5b-5ea0-9f72-0e16f7114e09";
+
         internal static NeoClient Client(Action<ProjectData>? configure = null)
         {
             ProjectData data = NeoGenericTestFixture.BuildProjectData();
@@ -24,7 +38,7 @@ namespace NeoCompose.Tests
             return NeoTestSaveStack.ClientFromSchema(data);
         }
 
-        /// <summary>Adds the NeoCellPattern classes, members, enums and constructors.</summary>
+        /// <summary>Adds the NeoCellPattern classes, members, enums, constructors, and preset rows.</summary>
         internal static void AddCellPatternSchema(ProjectData data)
         {
             var seed = JObject.Parse(File.ReadAllText("Packages/com.ryanbliss.neocompose/Tests/cell-pattern-seed.json"));
@@ -49,92 +63,180 @@ namespace NeoCompose.Tests
                 var value = item.ToObject<ConstructorRecord>()!;
                 data.constructors[value.id] = value;
             }
+            foreach (var item in seed["values"]!)
+            {
+                var value = item.ToObject<MemberValue>()!;
+                data.values[value.id] = value;
+            }
+        }
+
+        /// <summary>A pending temporary, as <c>new NeoCellPattern(offsets: ...)</c> builds it.</summary>
+        internal static object Construct(NeoClient client, params Vector2Int[] offsets)
+        {
+            var ctx = client.CreateGetterContext(NeoValueOwnership.Session);
+            var resolved = NeoGeneratedTypesSupport.ResolveDeclaredConstructor(
+                client,
+                new ClassTypeInfo { type = MemberKind.Class, required = true, classId = NeoCellPatternOffsets.ClassId },
+                NeoCellPatternOffsets.ConstructorId,
+                new[] { "offsets" },
+                Array.Empty<NeoGeneratedTypesSupport.RuntimeConstructorField>());
+            object?[] arguments = resolved.NewArgumentValues();
+            arguments[resolved.argumentPositions[0]] = offsets.Select(offset => (object?)NeoVectorValues.FromVector2Int(offset)).ToArray();
+            return NSGetterEvaluator.ConstructDeclared(
+                resolved,
+                arguments,
+                Array.Empty<NeoGeneratedTypesSupport.RuntimeConstructorField>(),
+                ctx,
+                evaluateFieldValues: null,
+                replayContext: false)!;
+        }
+
+        internal static ValuePointer Literal(TypeInfo typeInfo, JToken value) => new()
+        {
+            type = PointerKind.Value,
+            value = new Value { typeInfo = typeInfo, value = value },
+        };
+
+        internal static ValuePointer Int(int value) =>
+            Literal(new PrimitiveTypeInfo { type = MemberKind.Int, required = true }, value);
+
+        internal static ValuePointer Excluding(string optionId) =>
+            Literal(new EnumTypeInfo { type = MemberKind.Enum, required = true, enumId = ExcludingEnumId }, new JArray(optionId));
+
+        /// <summary>A static call as stored IR spells it.</summary>
+        internal static CallFunctionPointer StaticCall(string site, string memberId, params Pointer[] args) => new()
+        {
+            type = PointerKind.CallFunction,
+            callSiteId = site,
+            memberId = memberId,
+            receiver = CallReceiver.Static(memberId),
+            args = args,
+        };
+
+        /// <summary>A static getter read as stored IR spells it.</summary>
+        internal static CallGetterPointer StaticRead(string memberId) => new()
+        {
+            type = PointerKind.CallGetter,
+            memberId = memberId,
+            receiver = CallReceiver.Static(memberId),
+        };
+
+        /// <summary>A stored static read, which is how IR reads a preset.</summary>
+        internal static StaticMemberPointer PresetRead(string memberId) => new()
+        {
+            type = PointerKind.StaticMember,
+            memberId = memberId,
+        };
+
+        private static readonly Vector2Int[] EightNeighbors =
+        {
+            new(-1, -1), new(-1, 0), new(-1, 1), new(0, -1), new(0, 1), new(1, -1), new(1, 0), new(1, 1),
+        };
+
+        [Test]
+        public void StoredIr_CallingAFactoryRunsItsNeoScriptBody()
+        {
+            // IR compiled while Box was native calls it the same way.
+            using NeoClient client = Client();
+            var ctx = client.CreateGetterContext(NeoValueOwnership.Session);
+            object? box = NSGetterEvaluator.EvaluatePointer(
+                StaticCall("box", BoxId, Int(1), Literal(new PrimitiveTypeInfo { type = MemberKind.Int }, JValue.CreateNull()), Excluding(CenterOptionId)),
+                new NeoScriptScope(0),
+                ctx);
+            CollectionAssert.AreEqual(EightNeighbors, NeoCellPatternOffsets.Read(box, ctx));
         }
 
         [Test]
-        public void NativeFactory_UsesCanonicalConstructorAndPreservesPatternOperations()
+        public void PresetRead_ReturnsItsSharedStoredRow()
         {
             using NeoClient client = Client();
-            var ctx = new NSGetterEvaluator.Context(client, null, null);
-            Assert.IsTrue(NeoCellPatternRuntime.TryInvoke("system_aaad2df6-e31e-5f5d-95b9-e265211faed5", null,
-                new object?[] { 2, 1, new[] { NeoCellPatternStorage.CenterId } }, ctx, out object? value));
-            CollectionAssert.AreEqual(NeoCellPattern.Box(2, 1, NeoCellPatternExcluding.Center), NeoCellPatternStorage.ReadRuntime(value, ctx));
-            string id = NSGetterEvaluator.FindRowIdByReference(value, ctx)!;
+            var ctx = client.CreateGetterContext(NeoValueOwnership.Session);
+            object? Evaluate(string memberId) =>
+                NSGetterEvaluator.EvaluatePointer(PresetRead(memberId), new NeoScriptScope(0), ctx);
+            Vector2Int[] Read(string memberId) => NeoCellPatternOffsets.Read(Evaluate(memberId), ctx);
+
+            string? center = NSGetterEvaluator.FindRowIdByReference(Evaluate(CenterId)!, ctx);
+            Assert.IsNotNull(center);
+            Assert.AreEqual(center, NSGetterEvaluator.FindRowIdByReference(Evaluate(CenterId)!, ctx));
+            CollectionAssert.AreEqual(new[] { Vector2Int.zero }, Read(CenterId));
+            CollectionAssert.AreEqual(new[] { new Vector2Int(-1, 0), new Vector2Int(1, 0), new Vector2Int(0, -1), new Vector2Int(0, 1) }, Read(FourNeighborsId));
+            CollectionAssert.AreEqual(EightNeighbors, Read(EightNeighborsId));
+            CollectionAssert.IsEmpty(Read(EmptyId));
+        }
+
+        [Test]
+        public void HelperResult_IsADeclaredConstructorTemporaryThatBuildsNoRowsUntilAttached()
+        {
+            using NeoClient client = Client();
+            var ctx = client.CreateGetterContext(NeoValueOwnership.Session);
+            object source = Construct(client, EightNeighbors);
+            int before = client.sessionValues.Count;
+            Assert.IsTrue(NeoCellPatternRuntime.TryInvoke(NeoCellPatternRuntime.TranslateId, source,
+                new object?[] { NeoVectorValues.FromVector2Int(new Vector2Int(2, 1)) }, ctx, out object? translated));
+            Assert.IsInstanceOf<NeoScriptObject>(translated);
+            CollectionAssert.AreEqual(EightNeighbors.Select(offset => offset + new Vector2Int(2, 1)), NeoCellPatternOffsets.Read(translated, ctx));
+            Assert.AreEqual(before, client.sessionValues.Count, "A pattern nothing stored stays in slots.");
+
+            string id = NSGetterEvaluator.FindRowIdByReference(translated, ctx)!;
             Assert.IsTrue(client.TryGetValue(id, out ObjectMemberValue? row));
-            Assert.AreEqual(NeoCellPatternStorage.ConstructorId, row!.instanceConstructorId);
-            Assert.IsNotNull(row.constructorArgs);
-            Assert.IsTrue(NeoCellPatternRuntime.TryInvoke("system_65a16908-05a6-52f9-a467-4e37e95ba0be", value,
-                new object?[] { new Vector2Int(1, 0) }, ctx, out object? contains));
-            Assert.AreEqual(true, contains);
-        }
-
-        [TestCase(0, 0)]
-        [TestCase(2, 1)]
-        public void DirectQueryPatternDoesNotConstructTemporaryRows(int x, int y)
-        {
-            using NeoClient client = Client();
-            var ctx = new NSGetterEvaluator.Context(client, null, null);
-            object source = NeoCellPatternStorage.Materialize(NeoCellPattern.EightNeighbors, ctx);
-            var translate = new CallFunctionPointer
-            {
-                type = PointerKind.CallFunction,
-                callSiteId = "translate-query-pattern",
-                memberId = "system_efc67858-0c95-573f-a8a9-d7e07d0a1d55",
-                receiver = CallReceiver.Instance(new VariablePointer { type = PointerKind.Variable, variableId = "source" }),
-                args = new Pointer[] { new ValuePointer { type = PointerKind.Value, value = new Value
-                {
-                    typeInfo = new PrimitiveTypeInfo { type = MemberKind.Vector2Int, required = true },
-                    value = JObject.FromObject(new { x, y }),
-                } } },
-            };
-            var query = new CallFunctionPointer
-            {
-                type = PointerKind.CallFunction,
-                callSiteId = "query",
-                memberId = "system_f5ca386c-990c-54a1-8473-2d49d2cd887d",
-                args = new Pointer[] { translate },
-            };
-            var scope = new NeoScriptScope(new Dictionary<string, object?> { ["source"] = source });
-            int before = client.sessionValues.Count;
-            object? result = NSGetterEvaluator.EvaluateFunctionArgument(query, 0, scope, ctx);
-            Assert.That(client.sessionValues.Count, Is.EqualTo(before), "Query-only offsets must not become Session rows.");
-            CollectionAssert.AreEqual(NeoCellPattern.EightNeighbors.Translate(new Vector2Int(x, y)), NeoCellPatternStorage.ReadRuntime(result, ctx));
-            // The same expression outside a query still exposes a canonical
-            // class identity and constructor provenance for storage/normal calls.
-            object? stored = NSGetterEvaluator.EvaluatePointer(translate, scope, ctx);
-            string id = NSGetterEvaluator.FindRowIdByReference(stored, ctx)!;
-            Assert.That(client.TryGetValue(id, out ObjectMemberValue? row), Is.True);
-            Assert.That(row!.instanceConstructorId, Is.EqualTo(NeoCellPatternStorage.ConstructorId));
+            Assert.AreEqual(NeoCellPatternOffsets.ConstructorId, row!.instanceConstructorId);
+            Assert.AreEqual(1, row.constructorArgs!.Count);
+            CollectionAssert.AreEqual(EightNeighbors.Select(offset => offset + new Vector2Int(2, 1)), NeoCellPatternOffsets.Read(translated, ctx));
         }
 
         [Test]
-        public void NativePattern_BuildsNoRowsUntilItsRowIsNeeded()
+        public void DetachedPattern_IsReadFromItsSlotsOnce()
         {
             using NeoClient client = Client();
-            var ctx = new NSGetterEvaluator.Context(client, null, null);
-            int before = client.sessionValues.Count;
-            object source = NeoCellPatternStorage.Materialize(NeoCellPattern.EightNeighbors, ctx);
-            CollectionAssert.AreEqual(NeoCellPattern.EightNeighbors, NeoCellPatternStorage.ReadRuntime(source, ctx));
-            Assert.AreEqual(before, client.sessionValues.Count, "A pattern nothing stored must stay in slots.");
-            // Needing the row materializes it with the constructor's recipe.
+            var ctx = client.CreateGetterContext(NeoValueOwnership.Session);
+            object source = Construct(client, EightNeighbors);
+            Vector2Int[] first = NeoCellPatternOffsets.Read(source, ctx);
+            CollectionAssert.AreEqual(EightNeighbors, first);
+            Assert.AreSame(first, NeoCellPatternOffsets.Read(source, ctx));
+        }
+
+        [Test]
+        public void RowRead_IsKeptUntilAnOffsetRowChangesAndAnEnclosingGetterRecordsItsRows()
+        {
+            using NeoClient client = Client();
+            var ctx = client.CreateGetterContext(NeoValueOwnership.Session);
+            object source = Construct(client, EightNeighbors);
             string id = NSGetterEvaluator.FindRowIdByReference(source, ctx)!;
             Assert.IsTrue(client.TryGetValue(id, out ObjectMemberValue? row));
-            Assert.AreEqual(NeoCellPatternStorage.ConstructorId, row!.instanceConstructorId);
-            Assert.AreEqual(1, row.constructorArgs!.Count);
-            CollectionAssert.AreEqual(NeoCellPattern.EightNeighbors, NeoCellPatternStorage.ReadRuntime(source, ctx));
+            var offsets = (ArrayMemberValue)client.ResolveClassChildRow(row!, "_offsets")!;
+            var key = new NeoClient.GetterMemoKey(NeoValueOwnership.Session, id, "pattern-getter", NeoValueOwnership.Session);
+            Vector2Int[] Capture()
+            {
+                NeoClient.GetterCaptureFrame enclosing = client.BeginGetterReadCapture();
+                Vector2Int[] read = NeoCellPatternOffsets.Read(source, ctx);
+                client.MemoizeGetter(key, 0, null, client.EndGetterReadCapture(enclosing));
+                return read;
+            }
+
+            Vector2Int[] first = Capture();
+            CollectionAssert.AreEqual(EightNeighbors, first);
+            Assert.AreSame(first, Capture(), "An unchanged row reads as the same array.");
+            Assert.IsNotNull(client.FindMemoizedGetter(key));
+
+            Assert.IsTrue(client.TryGetValue(offsets.value![2], out Vector2MemberValue? entry));
+            entry!.value = NeoVectorValues.FromVector2Int(new Vector2Int(9, 8));
+            client.SetWritableValue(NeoValueOwnership.Session, entry);
+            Assert.IsNull(client.FindMemoizedGetter(key), "A getter that read the offsets through a kept read hears the entry change.");
+            var expected = EightNeighbors.ToArray();
+            expected[2] = new Vector2Int(9, 8);
+            CollectionAssert.AreEqual(expected, Capture());
+            CollectionAssert.AreEqual(EightNeighbors, first, "A read array never changes.");
+
+            client.SetWritableValue(NeoValueOwnership.Session, new ArrayMemberValue { id = offsets.id, value = offsets.value.Take(1).ToArray() });
+            Assert.IsNull(client.FindMemoizedGetter(key), "A list change drops it too.");
+            CollectionAssert.AreEqual(EightNeighbors.Take(1), Capture());
         }
 
         [Test]
-        public void StaticPatternGetter_ReadAsAnArgumentReceiverIsMemoizedUntilARowItReadChanges()
+        public void StaticPatternGetter_IsMemoizedUntilARowItReadChanges()
         {
-            const string boxId = "system_aaad2df6-e31e-5f5d-95b9-e265211faed5";
             const string areaId = "member-area";
-            var patternType = new ClassTypeInfo { type = MemberKind.Class, required = true, classId = NeoCellPatternStorage.ClassId };
-            static ValuePointer Literal(TypeInfo typeInfo, JToken value) => new()
-            {
-                type = PointerKind.Value,
-                value = new Value { typeInfo = typeInfo, value = value },
-            };
+            var patternType = new ClassTypeInfo { type = MemberKind.Class, required = true, classId = NeoCellPatternOffsets.ClassId };
             // static NeoCellPattern Area => NeoCellPattern.Box(width, 0);
             var area = new NSPropertyMember
             {
@@ -154,20 +256,10 @@ namespace NeoCompose.Tests
                         new ReturnInstruction
                         {
                             type = InstructionKind.Return,
-                            pointer = new CallFunctionPointer
-                            {
-                                type = PointerKind.CallFunction,
-                                callSiteId = "area-box",
-                                memberId = boxId,
-                                receiver = CallReceiver.Static(boxId),
-                                args = new Pointer[]
-                                {
-                                    new ReferencePointer { type = PointerKind.Reference, valueId = "pattern-width" },
-                                    Literal(new PrimitiveTypeInfo { type = MemberKind.Int, required = true }, 0),
-                                    Literal(new EnumTypeInfo { type = MemberKind.Enum, required = true, enumId = NeoCellPatternStorage.ExcludingEnumId },
-                                        new JArray(NeoCellPatternStorage.NoneId)),
-                                },
-                            },
+                            pointer = StaticCall("area-box", BoxId,
+                                new ReferencePointer { type = PointerKind.Reference, valueId = "pattern-width" },
+                                Int(0),
+                                Excluding(NoneOptionId)),
                         },
                     },
                 },
@@ -184,120 +276,33 @@ namespace NeoCompose.Tests
                     schema = new Dictionary<string, string> { ["Area"] = areaId },
                 };
             });
-            // GetObjects(Areas.Area.Translate((0, 0)))
-            var query = new CallFunctionPointer
-            {
-                type = PointerKind.CallFunction,
-                callSiteId = "query",
-                memberId = "system_f5ca386c-990c-54a1-8473-2d49d2cd887d",
-                args = new Pointer[]
-                {
-                    new CallFunctionPointer
-                    {
-                        type = PointerKind.CallFunction,
-                        callSiteId = "translate-area",
-                        memberId = "system_efc67858-0c95-573f-a8a9-d7e07d0a1d55",
-                        receiver = CallReceiver.Instance(new CallGetterPointer
-                        {
-                            type = PointerKind.CallGetter,
-                            memberId = areaId,
-                            receiver = CallReceiver.Static(areaId),
-                        }),
-                        args = new Pointer[]
-                        {
-                            Literal(new PrimitiveTypeInfo { type = MemberKind.Vector2Int, required = true }, JObject.FromObject(new { x = 0, y = 0 })),
-                        },
-                    },
-                },
-            };
             var ctx = client.CreateGetterContext(NeoValueOwnership.Save);
-            var scope = new NeoScriptScope(0);
             var key = new NeoClient.GetterMemoKey(NeoValueOwnership.Save, NeoClient.StaticGetterRowId, areaId, NeoValueOwnership.Save);
-            NeoCellPattern Area() => NeoCellPatternStorage.ReadRuntime(NSGetterEvaluator.EvaluateFunctionArgument(query, 0, scope, ctx), ctx);
+            Vector2Int[] Area() => NeoCellPatternOffsets.Read(NSGetterEvaluator.EvaluatePointer(StaticRead(areaId), new NeoScriptScope(0), ctx), ctx);
 
-            CollectionAssert.AreEqual(NeoCellPattern.Box(1, 0, NeoCellPatternExcluding.None), Area());
-            Assert.IsInstanceOf<NeoCellPattern>(client.FindMemoizedGetter(key)?.scalar, "The getter's pattern is kept as offsets.");
-            CollectionAssert.AreEqual(NeoCellPattern.Box(1, 0, NeoCellPatternExcluding.None), Area());
+            var width1 = new[] { new Vector2Int(0, 0), new Vector2Int(-1, 0), new Vector2Int(1, 0) };
+            CollectionAssert.AreEqual(width1, Area());
+            Assert.IsNotNull(client.FindMemoizedGetter(key));
+            CollectionAssert.AreEqual(width1, Area());
 
             client.SetWritableValue(NeoValueOwnership.Save, new NumberMemberValue { id = "pattern-width", value = 2 });
             Assert.IsNull(client.FindMemoizedGetter(key), "A write to a row the getter read drops the entry.");
-            CollectionAssert.AreEqual(NeoCellPattern.Box(2, 0, NeoCellPatternExcluding.None), Area());
+            CollectionAssert.AreEqual(new[] { new Vector2Int(0, 0), new Vector2Int(-1, 0), new Vector2Int(1, 0), new Vector2Int(-2, 0), new Vector2Int(2, 0) }, Area());
         }
 
         [Test]
-        public void OnlyQueriesGrid_HoldsWhenEveryReadIsAGridQueryCellsArgument()
-        {
-            static VariablePointer Cells() => new()
-            {
-                type = PointerKind.Variable,
-                variableId = "cells"
-            };
-            static FunctionWithReturnType Body(params Instruction[] instructions) => new()
-            {
-                parameters = new[] { new Variable { id = "__this__" }, new Variable { id = "cells" } },
-                instructions = instructions,
-            };
-            var query = new ReturnInstruction
-            {
-                type = InstructionKind.Return,
-                pointer = new CallFunctionPointer
-                {
-                    type = PointerKind.CallFunction,
-                    callSiteId = "query",
-                    memberId = "system_f5ca386c-990c-54a1-8473-2d49d2cd887d",
-                    receiver = CallReceiver.Instance(new VariablePointer { type = PointerKind.Variable, variableId = "__this__" }),
-                    args = new Pointer[] { Cells() },
-                },
-            };
-
-            FunctionWithReturnType queries = Body(query);
-            Assert.IsTrue(NeoCellPatternRuntime.OnlyQueriesGrid(queries, 1));
-            Assert.IsFalse(NeoCellPatternRuntime.OnlyQueriesGrid(queries, 0), "The receiver is read as a query receiver, not its cells.");
-            FunctionWithReturnType escapes = Body(
-                new ReturnInstruction { type = InstructionKind.Return, pointer = Cells() },
-                query);
-            Assert.IsFalse(NeoCellPatternRuntime.OnlyQueriesGrid(escapes, 1));
-        }
-
-        [Test]
-        public void PatternArguments_AreConstructedForEveryTargetButAGridQuery()
-        {
-            using NeoClient client = Client();
-            var ctx = new NSGetterEvaluator.Context(client, null, null);
-            var args = new object?[] { NeoCellPattern.EightNeighbors, 3 };
-            NSGetterEvaluator.MaterializePatternArguments("system_f5ca386c-990c-54a1-8473-2d49d2cd887d", args, ctx);
-            Assert.AreSame(NeoCellPattern.EightNeighbors, args[0], "A grid query reads the offsets as they are.");
-
-            NSGetterEvaluator.MaterializePatternArguments("member-other", args, ctx);
-            Assert.IsInstanceOf<NeoScriptObject>(args[0]);
-            CollectionAssert.AreEqual(NeoCellPattern.EightNeighbors, NeoCellPatternStorage.ReadRuntime(args[0], ctx));
-            Assert.AreEqual(3, args[1]);
-        }
-
-        [Test]
-        public void DetachedPattern_IsReadFromItsSlotsOnce()
-        {
-            using NeoClient client = Client();
-            var ctx = new NSGetterEvaluator.Context(client, null, null);
-            object source = NeoCellPatternStorage.Materialize(NeoCellPattern.EightNeighbors, ctx);
-            NeoCellPattern first = NeoCellPatternStorage.ReadRuntime(source, ctx);
-            CollectionAssert.AreEqual(NeoCellPattern.EightNeighbors, first);
-            Assert.AreSame(first, NeoCellPatternStorage.ReadRuntime(source, ctx));
-        }
-
-        [Test]
-        public void NativePattern_RecordsTheArgumentsItWasBuiltWith()
+        public void ConstructedPattern_RecordsTheArgumentsItWasBuiltWith()
         {
             // A vector read from a row is the row's cached payload, which a
             // later write patches in place. The recipe recorded when the
             // pattern attaches still holds the value it was built with.
             using NeoClient client = Client();
-            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            var ctx = client.CreateGetterContext(NeoValueOwnership.Session);
             NeoVector2Value offset = NeoVectorValues.FromVector2Int(new Vector2Int(1, 2));
             var resolved = NeoGeneratedTypesSupport.ResolveDeclaredConstructor(
                 client,
-                new ClassTypeInfo { type = MemberKind.Class, required = true, classId = NeoCellPatternStorage.ClassId },
-                NeoCellPatternStorage.ConstructorId,
+                new ClassTypeInfo { type = MemberKind.Class, required = true, classId = NeoCellPatternOffsets.ClassId },
+                NeoCellPatternOffsets.ConstructorId,
                 new[] { "offsets" },
                 Array.Empty<NeoGeneratedTypesSupport.RuntimeConstructorField>());
             object?[] arguments = resolved.NewArgumentValues();
@@ -319,12 +324,12 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void NativePattern_OffsetComponentWriteReachesItsRow()
+        public void ConstructedPattern_OffsetComponentWriteReachesItsRow()
         {
             using NeoClient client = Client();
-            var ctx = new NSGetterEvaluator.Context(client, null, null);
-            object source = NeoCellPatternStorage.Materialize(NeoCellPattern.EightNeighbors, ctx);
-            var sourceType = new ClassTypeInfo { type = MemberKind.Class, required = true, classId = NeoCellPatternStorage.ClassId };
+            var ctx = client.CreateGetterContext(NeoValueOwnership.Session);
+            object source = Construct(client, EightNeighbors);
+            var sourceType = new ClassTypeInfo { type = MemberKind.Class, required = true, classId = NeoCellPatternOffsets.ClassId };
             KeyOfPointer offset = KeyOf(
                 KeyOf(new VariablePointer { type = PointerKind.Variable, variableId = "source" }, Literal("_offsets", MemberKind.String)),
                 Literal(1, MemberKind.Int));
@@ -350,9 +355,9 @@ namespace NeoCompose.Tests
                 },
             };
             NeoScriptExecutor.Execute(client, body, new Dictionary<string, object?> { ["source"] = source }, ctx);
-            var expected = new List<Vector2Int>(NeoCellPattern.EightNeighbors);
+            var expected = EightNeighbors.ToArray();
             expected[1] = new Vector2Int(expected[1].x, 7);
-            CollectionAssert.AreEqual(expected, NeoCellPatternStorage.ReadRuntime(source, ctx));
+            CollectionAssert.AreEqual(expected, NeoCellPatternOffsets.Read(source, ctx));
             Assert.IsNotNull(NSGetterEvaluator.FindRowIdByReference(source, ctx));
         }
 
@@ -362,58 +367,8 @@ namespace NeoCompose.Tests
             keyOf = new KeyOf { pointer = receiver, key = key },
         };
 
-        private static ValuePointer Literal(object value, MemberKind kind) => new()
-        {
-            type = PointerKind.Value,
-            value = new Value
-            {
-                typeInfo = new PrimitiveTypeInfo { type = kind, required = true },
-                value = JToken.FromObject(value),
-            },
-        };
-
-        [Test]
-        public void SnapshotRead_ReflectsChangedOffsetRowsWithoutChangingPreviousPattern()
-        {
-            using NeoClient client = Client();
-            var payload = NeoCellPatternStorage.Serialize(client, new NeoCellPattern(new Vector2Int(3, 4)))!;
-            string id = payload.valueId!;
-            var member = new ClassMember { id = "pattern-field", name = "Pattern", kind = MemberKind.Class, classId = NeoCellPatternStorage.ClassId };
-            var node = new NeoMemberClassWritable(client, member, id, NeoValueOwnership.Session);
-            NeoCellPattern before = NeoCellPatternStorage.ReadRequired(client, node);
-            var offsets = (ArrayMemberValue)client.ResolveClassChildRow(node.value!, "_offsets")!;
-            string entryId = offsets.value![0];
-            Assert.IsTrue(client.TryGetValue(entryId, out Vector2MemberValue? entry));
-            entry!.value = NeoVectorValues.FromVector2Int(new Vector2Int(9, 8));
-            client.SetWritableValue(NeoValueOwnership.Session, entry);
-            NeoCellPattern after = NeoCellPatternStorage.ReadRequired(client, node);
-            Assert.AreEqual(new Vector2Int(3, 4), before[0]);
-            Assert.AreEqual(new Vector2Int(9, 8), after[0]);
-            var env = NeoGenericBindings.Resolve<NeoCellPattern>(client, node);
-            Assert.AreEqual(after[0], env.Read(node)[0]);
-        }
-
-        [Test]
-        public void RowPatternRead_KeepsAnUnchangedReadAndSeesAChangedOffset()
-        {
-            using NeoClient client = Client();
-            var ctx = new NSGetterEvaluator.Context(client, null, null);
-            object source = NeoCellPatternStorage.Materialize(NeoCellPattern.EightNeighbors, ctx);
-            string id = NSGetterEvaluator.FindRowIdByReference(source, ctx)!;
-            NeoCellPattern first = NeoCellPatternStorage.ReadRuntime(source, ctx);
-            CollectionAssert.AreEqual(NeoCellPattern.EightNeighbors, first);
-            Assert.AreSame(first, NeoCellPatternStorage.ReadRuntime(source, ctx), "An unchanged row reads as the same pattern.");
-            Assert.IsTrue(client.TryGetValue(id, out ObjectMemberValue? row));
-            var offsets = (ArrayMemberValue)client.ResolveClassChildRow(row!, "_offsets")!;
-            // The offset row changes in place, so its instance stays the same.
-            Assert.IsTrue(client.TryGetValue(offsets.value![2], out Vector2MemberValue? entry));
-            entry!.value = NeoVectorValues.FromVector2Int(new Vector2Int(9, 8));
-            client.SetWritableValue(NeoValueOwnership.Session, entry);
-            var expected = new List<Vector2Int>(NeoCellPattern.EightNeighbors);
-            expected[2] = new Vector2Int(9, 8);
-            CollectionAssert.AreEqual(expected, NeoCellPatternStorage.ReadRuntime(source, ctx));
-            CollectionAssert.AreEqual(NeoCellPattern.EightNeighbors, first, "A read pattern never changes.");
-        }
+        private static ValuePointer Literal(object value, MemberKind kind) =>
+            Literal(new PrimitiveTypeInfo { type = kind, required = true }, JToken.FromObject(value));
 
         [Test]
         public void EmptyOffsets_ReplayTwoStoredPatternsWithoutSharedArrayCollision()
@@ -422,114 +377,98 @@ namespace NeoCompose.Tests
             // Array.Empty singleton as its origin key, so the second empty
             // pattern's replay threw "Key already in the list".
             using NeoClient client = Client();
-            var first = NeoCellPatternStorage.Serialize(client, new NeoCellPattern(Array.Empty<Vector2Int>()))!;
-            var second = NeoCellPatternStorage.Serialize(client, new NeoCellPattern(Array.Empty<Vector2Int>()))!;
-            Assert.AreNotEqual(first.valueId, second.valueId);
-            var member = new ClassMember { id = "pattern-field", name = "Pattern", kind = MemberKind.Class, classId = NeoCellPatternStorage.ClassId };
-            var firstNode = new NeoMemberClassWritable(client, member, first.valueId!, NeoValueOwnership.Session);
-            var secondNode = new NeoMemberClassWritable(client, member, second.valueId!, NeoValueOwnership.Session);
-            Assert.AreEqual(0, NeoCellPatternStorage.ReadRequired(client, firstNode).Count);
-            Assert.AreEqual(0, NeoCellPatternStorage.ReadRequired(client, secondNode).Count);
-            Assert.AreEqual(0, NeoCellPatternStorage.ReadRequired(client, firstNode).Count);
+            var ctx = client.CreateGetterContext(NeoValueOwnership.Session);
+            object first = Construct(client);
+            object second = Construct(client);
+            string firstId = NSGetterEvaluator.FindRowIdByReference(first, ctx)!;
+            string secondId = NSGetterEvaluator.FindRowIdByReference(second, ctx)!;
+            Assert.AreNotEqual(firstId, secondId);
+            INeoCellPattern firstView = TestCellPattern.Writable(client, firstId);
+            INeoCellPattern secondView = TestCellPattern.Writable(client, secondId);
+            Assert.AreEqual(0, firstView.Count);
+            Assert.AreEqual(0, secondView.Count);
+            Assert.AreEqual(0, firstView.Count);
         }
 
         [Test]
-        public void NativeReturns_NormalizePatternAndPatternListForOrdinaryCountGetter()
+        public void NonPatternValue_IsRejected()
         {
-            var patternType = new ClassTypeInfo { type = MemberKind.Class, required = true, classId = NeoCellPatternStorage.ClassId };
-            using var client = Client(data =>
-            {
-                data.members["native-pattern"] = new FunctionMember
-                {
-                    id = "native-pattern",
-                    name = "Pattern",
-                    kind = MemberKind.Function,
-                    Modifier = NeoMemberModifierKind.Static,
-                    returnTypeInfo = patternType,
-                    argumentTypes = Array.Empty<FunctionArgumentTypeInfo>()
-                };
-                data.members["native-patterns"] = new FunctionMember
-                {
-                    id = "native-patterns",
-                    name = "Patterns",
-                    kind = MemberKind.Function,
-                    Modifier = NeoMemberModifierKind.Static,
-                    returnTypeInfo = new CollectionTypeInfo { type = MemberKind.List, required = true, entryTypeInfo = patternType },
-                    argumentTypes = Array.Empty<FunctionArgumentTypeInfo>()
-                };
-                data.classes[NeoCellPatternStorage.ClassId].schema["NativePattern"] = "native-pattern";
-                data.classes[NeoCellPatternStorage.ClassId].schema["NativePatterns"] = "native-patterns";
-                data.members["native-nested"] = new FunctionMember
-                {
-                    id = "native-nested",
-                    name = "Nested",
-                    kind = MemberKind.Function,
-                    Modifier = NeoMemberModifierKind.Static,
-                    returnTypeInfo = new CollectionTypeInfo
-                    {
-                        type = MemberKind.List,
-                        required = true,
-                        entryTypeInfo = new CollectionTypeInfo { type = MemberKind.List, required = true, entryTypeInfo = patternType }
-                    },
-                    argumentTypes = Array.Empty<FunctionArgumentTypeInfo>()
-                };
-                data.classes[NeoCellPatternStorage.ClassId].schema["NativeNested"] = "native-nested";
-            });
-            client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
-            {
-                ["native-pattern"] = (_, _, _) => NeoCellPattern.Box(1),
-                ["native-patterns"] = (_, _, _) => new[] { NeoCellPattern.Cross(1) },
-                ["native-nested"] = (_, _, _) => new[] { new[] { NeoCellPattern.Ring(1) } },
-            });
+            using NeoClient client = Client();
             var ctx = client.CreateGetterContext(NeoValueOwnership.Session);
-            Assert.IsTrue(client.TryGetMember("system_51d883c9-d451-5747-bcf0-e314e44bffa8", out NSPropertyMember? count));
-            object? value = Invoke("native-pattern");
-            Assert.AreEqual(9, Convert.ToInt32(NSGetterEvaluator.Evaluate(count!.getter!, ctx.WithThis(value))));
-            var values = (object?[])Invoke("native-patterns")!;
-            Assert.AreEqual(5, Convert.ToInt32(NSGetterEvaluator.Evaluate(count.getter!, ctx.WithThis(values[0]))));
-            var dictionary = (IReadOnlyDictionary<string, object?>)NeoCellPatternStorage.NormalizeNativeResult(
-                new ReadOnlyPatternResult(), ctx, new CollectionTypeInfo { type = MemberKind.Dictionary, required = true, entryTypeInfo = patternType })!;
-            Assert.AreEqual(9, Convert.ToInt32(NSGetterEvaluator.Evaluate(count.getter!, ctx.WithThis(dictionary["pattern"]))));
-            var nested = (object?[])Invoke("native-nested")!;
-            Assert.AreEqual(8, Convert.ToInt32(NSGetterEvaluator.Evaluate(count.getter!, ctx.WithThis(((object?[])nested[0]!)[0]))));
+            var error = Assert.Throws<NSGetterRuntimeError>(() => NeoCellPatternOffsets.Read(3, ctx));
+            Assert.AreEqual("Cell pattern value must be a NeoCellPattern instance.", error!.Message);
+        }
+    }
 
-            object? Invoke(string memberId)
+    /// <summary>
+    /// The generated NeoCellPattern's shape: it re-lists
+    /// <see cref="INeoCellPattern"/>, declares the NeoScript <c>Count</c>,
+    /// and runs factories and helpers the way the generated wrappers do.
+    /// </summary>
+    internal sealed class TestCellPattern : NeoGeneratedCellPatternValue, INeoCellPattern
+    {
+        private TestCellPattern(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership ownership)
+            : base(client, node, NeoCellPatternOffsets.ClassId, isReadOnly, ownership)
+        {
+        }
+
+        private TestCellPattern(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
+        public int Count
+        {
+            get
             {
-                Assert.IsTrue(client.TryGetMember(memberId, out FunctionMember? function));
-                return NSGetterEvaluator.InvokeNativeFunction(memberId, null, function!.returnTypeInfo, null, Array.Empty<object?>(), ctx);
+                NSGetterResult result = ComputeProperty("Count");
+                if (!result.ok)
+                    throw new InvalidOperationException(result.error);
+                return Convert.ToInt32(result.value);
             }
         }
 
-        private sealed class ReadOnlyPatternResult : IReadOnlyDictionary<string, object?>
-        {
-            private readonly Dictionary<string, object?> values = new() { ["pattern"] = NeoCellPattern.Box(1) };
-            public object? this[string key] => values[key];
-            public IEnumerable<string> Keys => values.Keys;
-            public IEnumerable<object?> Values => values.Values;
-            public int Count => values.Count;
-            public bool ContainsKey(string key) => values.ContainsKey(key);
-            public bool TryGetValue(string key, out object? value) => values.TryGetValue(key, out value);
-            public IEnumerator<KeyValuePair<string, object?>> GetEnumerator() => values.GetEnumerator();
-            System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
-        }
+        internal static TestCellPattern Preset(NeoClient client, string memberId) =>
+            NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<TestCellPattern>(
+                client,
+                NeoGeneratedTypesSupport.StaticBinding(client, memberId, NeoValueOwnership.Asset).GetRequiredNode<NeoMemberClass>(),
+                static (factoryClient, factoryNode) => new TestCellPattern(factoryClient, factoryNode, true, NeoValueOwnership.Asset));
 
-        [Test]
-        public void ExcludingCodec_PreservesNativeOptionalAndGenericEnumValues()
-        {
-            using var client = Client();
-            Assert.AreEqual(NeoCellPatternExcluding.Center, NeoCellPatternStorage.ReadOptionalExcluding(NeoCellPatternExcluding.Center));
-            var member = new EnumMember { id = "excluding", name = "Excluding", kind = MemberKind.Enum, enumId = NeoCellPatternStorage.ExcludingEnumId };
-            var codec = NeoGenericBindings.ResolveForMember<NeoCellPatternExcluding?>(client, member);
-            Assert.AreEqual(NeoCellPatternStorage.CenterId, ((string[])codec.Serialize(NeoCellPatternExcluding.Center)!.value!)[0]);
-        }
+        internal static TestCellPattern Factory(NeoClient client, string memberId, params object?[] args) =>
+            Read(client, NeoMemberNSFunction.GetOrCreateStatic(client, memberId).InvokeStatic(args));
 
-        [Test]
-        public void NativeFactory_RejectsOversizedOutputBeforeAllocation()
-        {
-            using NeoClient client = Client();
-            var ctx = new NSGetterEvaluator.Context(client, null, null);
-            Assert.Throws<NSGetterRuntimeError>(() => NeoCellPatternRuntime.TryInvoke(
-                "system_82222600-f67f-5127-bb2d-278381b4ef2f", null, new object?[] { int.MaxValue }, ctx, out _));
-        }
+        internal static TestCellPattern New(NeoClient client, params Vector2Int[] offsets) =>
+            CreateWritable(client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(
+                client,
+                NeoCellPatternOffsets.ClassId,
+                NeoCellPatternOffsets.ConstructorId,
+                new[] { new NeoDeclaredConstructorArgument("offsets", offsets) }));
+
+        internal static TestCellPattern Writable(NeoClient client, string valueId) =>
+            CreateWritable(client, new NeoMemberClassWritable(client,
+                new ClassMember { id = "pattern-field", name = "Pattern", kind = MemberKind.Class, classId = NeoCellPatternOffsets.ClassId },
+                valueId,
+                NeoValueOwnership.Session));
+
+        internal object? Invoke(string memberId, params object?[] args) =>
+            Client.ScriptGridQueries.Invoke(memberId, this, args);
+
+        internal TestCellPattern Helper(string memberId, params object?[] args) =>
+            Read(Client, Invoke(memberId, args));
+
+        private static TestCellPattern CreateWritable(NeoClient client, NeoMemberClassWritable node) =>
+            NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<TestCellPattern>(
+                client,
+                node,
+                static (factoryClient, factoryNode) => new TestCellPattern(factoryClient, factoryNode, false, factoryNode.ownership));
+
+        private static TestCellPattern Read(NeoClient client, object? result) =>
+            NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass<TestCellPattern>(
+                client,
+                result,
+                true,
+                null,
+                CreateWritable,
+                static (factoryClient, factoryValue, factorySaved) => new TestCellPattern(factoryClient, factoryValue, !factorySaved));
     }
 }

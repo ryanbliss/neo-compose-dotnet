@@ -34,10 +34,8 @@ namespace HelloWorld.Assets.Scripts
     {
         private const int CacheRewardBits = 25;
 
-        /// <summary>The player's interaction reach: their own cell plus the four neighbors.</summary>
-        private static readonly NeoCellPattern WithinReachPattern = NeoCellPattern.Cross(1);
-
         private readonly LandingSceneUI ui = new();
+        private IReadOnlyNeoCellPattern withinReach;
         private HelloWorldNeo neo;
         private ILandingSceneHost host;
         private BlockedPath blockedPath;
@@ -344,6 +342,9 @@ namespace HelloWorld.Assets.Scripts
 
         private bool IsBarrierActive() =>
             blockedPath.Tiles.Count > 0;
+
+        /// <summary>The player's interaction reach: their own cell plus the four neighbors. Built by NeoScript once the client runs.</summary>
+        private IReadOnlyNeoCellPattern WithinReachPattern => withinReach ??= NeoCellPattern.Cross(1);
 
         private bool NearBarrier() =>
             blockedPath.GetTile(PlayerCell, WithinReachPattern) is not null;

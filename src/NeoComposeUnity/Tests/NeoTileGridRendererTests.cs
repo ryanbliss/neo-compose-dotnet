@@ -449,7 +449,7 @@ namespace NeoCompose.Tests
         [Test]
         public void NeoScriptObjectQueriesReadIndexedRowsWithoutConstructingGeneratedViews()
         {
-            using var client = NeoTestSaveStack.ClientFromSchema(BuildClassBackedTileGridProjectData());
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildCellPatternTileGridProjectData());
             var factories = BuildClassBackedReadOnlyFactories();
             factories[ObjectClassId] = (_, _) => throw new InvalidOperationException("A native query must not construct a C# object view.");
             var primitive = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid", factories,
@@ -460,7 +460,7 @@ namespace NeoCompose.Tests
             var ctx = client.CreateGetterContext(NeoValueOwnership.Asset);
             object? receiver = NSGetterEvaluator.UnwrapRow(client.ResolveValueRow("shop-1")!, ctx, NeoValueOwnership.Asset);
             Assert.IsTrue(client.ScriptGridQueries.TryInvoke("system_f5ca386c-990c-54a1-8473-2d49d2cd887d", receiver,
-                new object?[] { NeoCellPattern.Center }, ctx, out object? result));
+                new object?[] { NeoCellPatternRuntimeTests.Construct(client, Vector2Int.zero) }, ctx, out object? result));
             Assert.AreSame(receiver, ((object?[])result!).Single());
             Assert.AreEqual(ObjectClassId, NSGetterEvaluator.FindRowClassIdByReference(((object?[])result!).Single(), ctx));
         }
@@ -468,7 +468,7 @@ namespace NeoCompose.Tests
         [Test]
         public void NeoScriptGridQuery_ResolvesAuthoredPlacementWithoutPriorContentAccessAndTracksMisses()
         {
-            using var client = NeoTestSaveStack.ClientFromSchema(BuildClassBackedTileGridProjectData());
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildCellPatternTileGridProjectData());
             int created = 0;
             client.ScriptGridQueries.RegisterFactories(new Dictionary<string, Func<NeoClient, string, INeoTileGridContent>>
             {
@@ -495,7 +495,7 @@ namespace NeoCompose.Tests
             {
                 NeoClient.GetterCaptureFrame enclosing = client.BeginGetterReadCapture();
                 Assert.IsTrue(client.ScriptGridQueries.TryInvoke("system_f5ca386c-990c-54a1-8473-2d49d2cd887d", receiver,
-                    new object?[] { new NeoCellPattern(offset) }, ctx, out object? queried));
+                    new object?[] { NeoCellPatternRuntimeTests.Construct(client, offset) }, ctx, out object? queried));
                 Assert.AreEqual(empty, ((object?[])queried!).Length == 0);
                 client.MemoizeGetter(key, 0, null, client.EndGetterReadCapture(enclosing));
                 Assert.IsNotNull(client.FindMemoizedGetter(key));
@@ -537,7 +537,7 @@ namespace NeoCompose.Tests
             client.SetWritableValues(NeoValueOwnership.Save, Shop("new-shop", 61, 70));
             Assert.IsNull(client.FindMemoizedGetter(key), "New containment membership on a queried empty cell drops it.");
             Assert.IsTrue(client.ScriptGridQueries.TryInvoke("system_f5ca386c-990c-54a1-8473-2d49d2cd887d", receiver,
-                new object?[] { new NeoCellPattern(new Vector2Int(50, 50)) }, ctx, out object? inserted));
+                new object?[] { NeoCellPatternRuntimeTests.Construct(client, new Vector2Int(50, 50)) }, ctx, out object? inserted));
             Assert.AreEqual("new-shop", NSGetterEvaluator.FindRowIdByReference(((object?[])inserted!).Single(), ctx),
                 "A query after the insertion reads the rebuilt layer index.");
 
@@ -549,7 +549,7 @@ namespace NeoCompose.Tests
         [Test]
         public void NeoScriptGridQuery_DropsItsMemoWhenACarriedLinkStartsOrStopsCoveringTheCell()
         {
-            var data = BuildClassBackedTileGridProjectData();
+            var data = BuildCellPatternTileGridProjectData();
             ((ArrayMemberValue)data.values["shop-1-children"]).value = Array.Empty<string>();
             using var client = NeoTestSaveStack.ClientFromSchema(data);
             var primitive = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid",
@@ -566,7 +566,7 @@ namespace NeoCompose.Tests
             {
                 NeoClient.GetterCaptureFrame enclosing = client.BeginGetterReadCapture();
                 Assert.IsTrue(client.ScriptGridQueries.TryInvoke("system_593e6208-e2ca-505e-9933-04b17102b6d2", receiver,
-                    new object?[] { new NeoCellPattern(new Vector2Int(-1, 2)) }, ctx, out object? tile));
+                    new object?[] { NeoCellPatternRuntimeTests.Construct(client, new Vector2Int(-1, 2)) }, ctx, out object? tile));
                 client.MemoizeGetter(key, 0, null, client.EndGetterReadCapture(enclosing));
                 return tile is not null;
             }
@@ -867,8 +867,197 @@ namespace NeoCompose.Tests
             Assert.IsNull(view.Floor);
         }
 
+        [Test]
+        public void NeoScriptGridQuery_AnOffsetShiftsThePatternExactlyAsTranslateDoes()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildGridGetterProjectData());
+            // shop-1 sits at (10, 20) with neighbors on either side; its
+            // carried link projects a tile at (9, 22).
+            client.SetWritableValues(NeoValueOwnership.Save, PlacedObject("shop-2", 11, 20));
+            client.SetWritableValues(NeoValueOwnership.Save, PlacedObject("shop-3", 9, 20));
+            RegisterGridGetterContent(client);
+            var ctx = client.CreateGetterContext(NeoValueOwnership.Asset);
+            var scope = new NeoScriptScope(3);
+            scope["self"] = NSGetterEvaluator.UnwrapRow(client.ResolveValueRow("shop-1")!, ctx, NeoValueOwnership.Asset);
+            static VariablePointer Variable(string id) => new()
+            {
+                type = PointerKind.Variable,
+                variableId = id
+            };
+            static CallFunctionPointer Query(string queryId, params Pointer[] args) => new()
+            {
+                type = PointerKind.CallFunction,
+                callSiteId = queryId + args.Length,
+                memberId = queryId,
+                receiver = CallReceiver.Instance(Variable("self")),
+                args = args,
+            };
+            // GetObjects<T> lowers to GetObjects filtered by an is-check.
+            static Pointer OfObjectClass(Pointer queried) => new FunctionPointer
+            {
+                type = PointerKind.Function,
+                function = new WhereFunction
+                {
+                    type = FunctionKind.Where,
+                    info = new FunctionCollectionBoolInfo
+                    {
+                        collectionPointer = queried,
+                        function = new FunctionWithReturnType
+                        {
+                            compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                            parameters = new[] { new Variable { id = "entry", pointer = Variable("entry") } },
+                            typeInfo = new PrimitiveTypeInfo { type = MemberKind.Bool, required = true },
+                            instructions = new Instruction[]
+                            {
+                                new ReturnInstruction
+                                {
+                                    type = InstructionKind.Return,
+                                    pointer = new IsCheckPointer
+                                    {
+                                        type = PointerKind.IsCheck,
+                                        pointer = Variable("entry"),
+                                        checkType = new ClassTypeInfo { type = MemberKind.Class, classId = ObjectClassId, required = true },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            };
+            var translated = new CallFunctionPointer
+            {
+                type = PointerKind.CallFunction,
+                callSiteId = "translate",
+                memberId = NeoCellPatternRuntime.TranslateId,
+                receiver = CallReceiver.Instance(Variable("p")),
+                args = new Pointer[] { Variable("v") },
+            };
+            object? Evaluate(Pointer pointer) => NSGetterEvaluator.EvaluatePointer(pointer, scope, ctx);
+            string?[] Ids(Pointer pointer) =>
+                ((object?[])Evaluate(pointer)!).Select(entry => NSGetterEvaluator.FindRowIdByReference(entry, ctx)).ToArray();
+            string? Id(Pointer pointer) => Evaluate(pointer) is { } found ? NSGetterEvaluator.FindRowIdByReference(found, ctx) : null;
+
+            var patterns = new (string name, object pattern)[]
+            {
+                ("Center", Evaluate(NeoCellPatternRuntimeTests.PresetRead(NeoCellPatternRuntimeTests.CenterId))!),
+                ("Box(1)", NeoMemberNSFunction.GetOrCreateStatic(client, NeoCellPatternRuntimeTests.BoxId)
+                    .InvokeStatic(1, null, NeoCellPatternRuntimeTests.NoneOptionId)!),
+                ("Cross(1, null, Center)", NeoMemberNSFunction.GetOrCreateStatic(client, NeoCellPatternRuntimeTests.CrossId)
+                    .InvokeStatic(1, null, NeoCellPatternRuntimeTests.CenterOptionId)!),
+                ("hand-built", NeoCellPatternRuntimeTests.Construct(client, new Vector2Int(1, 0), Vector2Int.zero, new Vector2Int(1, 0))),
+            };
+            var offsets = new[] { Vector2Int.zero, new Vector2Int(1, 0), new Vector2Int(-1, 0), new Vector2Int(0, 1), new Vector2Int(-1, 2) };
+            foreach ((string name, object pattern) in patterns)
+            {
+                foreach (Vector2Int offset in offsets)
+                {
+                    scope["p"] = pattern;
+                    scope["v"] = NeoVectorValues.FromVector2Int(offset);
+                    string label = $"{name} shifted by {offset}";
+                    CollectionAssert.AreEqual(Ids(Query(GetObjectsId, translated)), Ids(Query(GetObjectsId, Variable("p"), Variable("v"))), label);
+                    CollectionAssert.AreEqual(Ids(OfObjectClass(Query(GetObjectsId, translated))),
+                        Ids(OfObjectClass(Query(GetObjectsId, Variable("p"), Variable("v")))), label);
+                    Assert.AreEqual(Id(Query(GetTileId, translated)), Id(Query(GetTileId, Variable("p"), Variable("v"))), label);
+                }
+            }
+
+            scope["p"] = patterns[0].pattern;
+            scope["v"] = NeoVectorValues.FromVector2Int(new Vector2Int(1, 0));
+            CollectionAssert.AreEqual(new[] { "shop-2" }, Ids(Query(GetObjectsId, Variable("p"), Variable("v"))));
+            scope["v"] = NeoVectorValues.FromVector2Int(new Vector2Int(-1, 2));
+            Assert.IsNotNull(Id(Query(GetTileId, Variable("p"), Variable("v"))), "The offset reaches the carried link's tile.");
+
+            // A null offset is zero, and IR stored before the offset existed passes one argument.
+            scope["p"] = patterns[1].pattern;
+            Pointer none = new ValuePointer
+            {
+                type = PointerKind.Value,
+                value = new Value { typeInfo = new PrimitiveTypeInfo { type = MemberKind.Vector2Int }, value = JValue.CreateNull() },
+            };
+            CollectionAssert.AreEqual(new[] { "shop-1", "shop-3", "shop-2" }, Ids(Query(GetObjectsId, Variable("p"))));
+            CollectionAssert.AreEqual(Ids(Query(GetObjectsId, Variable("p"))), Ids(Query(GetObjectsId, Variable("p"), none)));
+            Assert.AreEqual(Id(Query(GetTileId, Variable("p"))), Id(Query(GetTileId, Variable("p"), none)));
+
+            scope["v"] = 3;
+            Exception error = Assert.Catch(() => Evaluate(Query(GetObjectsId, Variable("p"), Variable("v"))));
+            StringAssert.Contains("Grid query offset must be a Vector2Int.", error.Message);
+        }
+
+        [Test]
+        public void NeoScriptGridQuery_AMoveIntoACellOnlyTheOffsetReachesDropsTheGetter()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildCellPatternTileGridProjectData());
+            client.SetWritableValues(NeoValueOwnership.Save, PlacedObject("far-shop", 300, 300));
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid",
+                BuildClassBackedReadOnlyFactories(), BuildClassBackedWritableFactories());
+            client.ScriptGridQueries.RegisterContent(new TestTileGridContent(primitive, Array.Empty<IReadOnlyNeoTileLayerRuntime>(),
+                new[] { primitive.BindReadOnlyObjectLayer<TestAuthoredObjectLayer>(ObjectsLayerClassId, new[] { ObjectClassId }) }));
+            client.ScriptGridQueries.Bind("shop-1", "town-grid", ObjectsLayerClassId, "shop-1");
+            var ctx = client.CreateGetterContext(NeoValueOwnership.Asset);
+            object? receiver = NSGetterEvaluator.UnwrapRow(client.ResolveValueRow("shop-1")!, ctx, NeoValueOwnership.Asset);
+            object center = NeoCellPatternRuntimeTests.Construct(client, Vector2Int.zero);
+            var key = new NeoClient.GetterMemoKey(NeoValueOwnership.Asset, "shop-1", "grid-getter", NeoValueOwnership.Asset);
+            // GetObjects(Center, (0, 1)) reads only (10, 21).
+            string?[] MemoizeQuery()
+            {
+                NeoClient.GetterCaptureFrame enclosing = client.BeginGetterReadCapture();
+                Assert.IsTrue(client.ScriptGridQueries.TryInvoke(GetObjectsId, receiver,
+                    new object?[] { center, NeoVectorValues.FromVector2Int(new Vector2Int(0, 1)) }, ctx, out object? queried));
+                client.MemoizeGetter(key, 0, null, client.EndGetterReadCapture(enclosing));
+                return ((object?[])queried!).Select(entry => NSGetterEvaluator.FindRowIdByReference(entry, ctx)).ToArray();
+            }
+            void Change(Vector2Int changed) => client.ScriptGridQueries.NotifyChanged(new NeoTileGridChangedArgs("town-grid",
+                objectLayers: new[] { new NeoObjectLayerChangedArgs(ObjectsLayerClassId, Array.Empty<NeoObjectInstanceId>(),
+                    Array.Empty<NeoObjectInstanceId>(), new[] { changed }, NeoTileGridChangeSourceKind.Direct, null) }));
+
+            CollectionAssert.IsEmpty(MemoizeQuery());
+            Change(new Vector2Int(10, 20));
+            Assert.IsNotNull(client.FindMemoizedGetter(key), "The unshifted cell was never read.");
+            Change(new Vector2Int(10, 21));
+            Assert.IsNull(client.FindMemoizedGetter(key), "The cell the offset reaches was read.");
+
+            CollectionAssert.IsEmpty(MemoizeQuery());
+            NeoGeneratedTypesSupport.SetPlacementVector3(WritableObject(client, "far-shop"), "Position", new NeoReadOnlyVector3(10, 21, 0));
+            Assert.IsNull(client.FindMemoizedGetter(key), "Moving an object into the reached cell drops the getter.");
+            CollectionAssert.AreEqual(new[] { "far-shop" }, MemoizeQuery());
+        }
+
+        /// <summary>The rows of an object placed at (x, y) in the class-backed grid's object layer.</summary>
+        private static MemberValue[] PlacedObject(string id, int x, int y) => new MemberValue[]
+        {
+            new Vector3MemberValue { id = id + "-position", value = new NeoVector3Value { x = x, y = y, z = 0 } },
+            new Vector2MemberValue { id = id + "-origin-cell", value = new NeoVector2Value() },
+            new ObjectMemberValue { id = id + "-origin", classId = PlacementTileClassId, containerId = id + "-placement-tiles",
+                value = new Dictionary<string, string> { ["Cell"] = id + "-origin-cell" } },
+            new ArrayMemberValue { id = id + "-placement-tiles", value = new[] { id + "-origin" } },
+            new ObjectMemberValue { id = id, classId = ObjectClassId, containerId = "objects-link-objects",
+                value = new Dictionary<string, string> { ["Position"] = id + "-position", ["PlacementTiles"] = id + "-placement-tiles" } },
+        };
+
         private const string GetObjectsId = "system_f5ca386c-990c-54a1-8473-2d49d2cd887d";
         private const string GetTileId = "system_593e6208-e2ca-505e-9933-04b17102b6d2";
+
+        private static ProjectData BuildCellPatternTileGridProjectData()
+        {
+            ProjectData data = BuildClassBackedTileGridProjectData();
+            NeoCellPatternRuntimeTests.AddCellPatternSchema(data);
+            return data;
+        }
+
+        /// <summary><c>GetObjects</c> or <c>GetTile</c>: a pattern and an optional offset.</summary>
+        private static FunctionMember GridQuery(string id, string name, TypeInfo returnType) => new()
+        {
+            id = id,
+            projectId = "project-a",
+            name = name,
+            kind = MemberKind.Function,
+            argumentTypes = new[]
+            {
+                new FunctionArgumentTypeInfo { name = "pattern", type = MemberKind.Class, classId = NeoCellPatternOffsets.ClassId, required = true },
+                new FunctionArgumentTypeInfo { name = "offset", type = MemberKind.Vector2Int, required = false },
+            },
+            returnTypeInfo = returnType,
+        };
 
         /// <summary>
         /// The class-backed grid with the NeoCellPattern schema and two
@@ -879,10 +1068,7 @@ namespace NeoCompose.Tests
         /// </summary>
         private static ProjectData BuildGridGetterProjectData()
         {
-            const string boxId = "system_aaad2df6-e31e-5f5d-95b9-e265211faed5";
-            const string translateId = "system_efc67858-0c95-573f-a8a9-d7e07d0a1d55";
-            var data = BuildClassBackedTileGridProjectData();
-            NeoCellPatternRuntimeTests.AddCellPatternSchema(data);
+            var data = BuildCellPatternTileGridProjectData();
             var objects = new CollectionTypeInfo
             {
                 type = MemberKind.List,
@@ -890,14 +1076,14 @@ namespace NeoCompose.Tests
                 entryTypeInfo = new ClassTypeInfo { type = MemberKind.Class, classId = ObjectClassId, required = true },
             };
             var tile = new ClassTypeInfo { type = MemberKind.Class, classId = TileClassId, required = false };
-            data.members[GetObjectsId] = Query(GetObjectsId, "GetObjects", objects);
-            data.members[GetTileId] = Query(GetTileId, "GetTile", tile);
+            data.members[GetObjectsId] = GridQuery(GetObjectsId, "GetObjects", objects);
+            data.members[GetTileId] = GridQuery(GetTileId, "GetTile", tile);
             data.members["object-here-getter"] = Getter("object-here-getter", "Here", objects, Call("here", GetObjectsId, Box("here-box")));
             data.members["object-floor-getter"] = Getter("object-floor-getter", "Floor", tile, Call("floor", GetTileId, new CallFunctionPointer
             {
                 type = PointerKind.CallFunction,
                 callSiteId = "floor-translate",
-                memberId = translateId,
+                memberId = NeoCellPatternRuntime.TranslateId,
                 receiver = CallReceiver.Instance(Box("floor-box")),
                 args = new Pointer[]
                 {
@@ -908,37 +1094,15 @@ namespace NeoCompose.Tests
             data.classes[ObjectClassId].schema["Floor"] = "object-floor-getter";
             return data;
 
-            static FunctionMember Query(string id, string name, TypeInfo returnType) => new()
-            {
-                id = id,
-                projectId = "project-a",
-                name = name,
-                kind = MemberKind.Function,
-                argumentTypes = new[]
-                {
-                    new FunctionArgumentTypeInfo { name = "pattern", type = MemberKind.Class, classId = NeoCellPatternStorage.ClassId, required = true },
-                },
-                returnTypeInfo = returnType,
-            };
             static ValuePointer Literal(TypeInfo typeInfo, JToken value) => new()
             {
                 type = PointerKind.Value,
                 value = new Value { typeInfo = typeInfo, value = value },
             };
-            static Pointer Box(string site) => new CallFunctionPointer
-            {
-                type = PointerKind.CallFunction,
-                callSiteId = site,
-                memberId = boxId,
-                receiver = CallReceiver.Static(boxId),
-                args = new Pointer[]
-                {
-                    Literal(new PrimitiveTypeInfo { type = MemberKind.Int, required = true }, 0),
-                    Literal(new PrimitiveTypeInfo { type = MemberKind.Int, required = true }, 0),
-                    Literal(new EnumTypeInfo { type = MemberKind.Enum, required = true, enumId = NeoCellPatternStorage.ExcludingEnumId },
-                        new JArray(NeoCellPatternStorage.NoneId)),
-                },
-            };
+            static Pointer Box(string site) => NeoCellPatternRuntimeTests.StaticCall(site, NeoCellPatternRuntimeTests.BoxId,
+                NeoCellPatternRuntimeTests.Int(0),
+                NeoCellPatternRuntimeTests.Int(0),
+                NeoCellPatternRuntimeTests.Excluding(NeoCellPatternRuntimeTests.NoneOptionId));
             static Pointer Call(string site, string queryId, Pointer pattern) => new CallFunctionPointer
             {
                 type = PointerKind.CallFunction,
@@ -1152,24 +1316,13 @@ namespace NeoCompose.Tests
         [Test]
         public void NeoScriptGridQuery_WhereCompactsAGetObjectsResultNothingElseHolds()
         {
-            var data = BuildClassBackedTileGridProjectData();
-            data.members["system_f5ca386c-990c-54a1-8473-2d49d2cd887d"] = new FunctionMember
+            var data = BuildCellPatternTileGridProjectData();
+            data.members[GetObjectsId] = GridQuery(GetObjectsId, "GetObjects", new CollectionTypeInfo
             {
-                id = "system_f5ca386c-990c-54a1-8473-2d49d2cd887d",
-                projectId = "project-a",
-                name = "GetObjects",
-                kind = MemberKind.Function,
-                argumentTypes = new[]
-                {
-                    new FunctionArgumentTypeInfo { name = "pattern", type = MemberKind.Class, classId = NeoCellPatternStorage.ClassId, required = true },
-                },
-                returnTypeInfo = new CollectionTypeInfo
-                {
-                    type = MemberKind.List,
-                    required = true,
-                    entryTypeInfo = new ClassTypeInfo { type = MemberKind.Class, classId = ObjectClassId, required = true },
-                },
-            };
+                type = MemberKind.List,
+                required = true,
+                entryTypeInfo = new ClassTypeInfo { type = MemberKind.Class, classId = ObjectClassId, required = true },
+            });
             using var client = NeoTestSaveStack.ClientFromSchema(data);
             client.ScriptGridQueries.RegisterFactories(new Dictionary<string, Func<NeoClient, string, INeoTileGridContent>>
             {
@@ -1198,7 +1351,8 @@ namespace NeoCompose.Tests
             var ctx = client.CreateGetterContext(NeoValueOwnership.Asset);
             var scope = new NeoScriptScope(2);
             scope["self"] = NSGetterEvaluator.UnwrapRow(client.ResolveValueRow("shop-1")!, ctx, NeoValueOwnership.Asset);
-            scope["cells"] = NeoCellPattern.Box(1);
+            scope["cells"] = NeoMemberNSFunction.GetOrCreateStatic(client, NeoCellPatternRuntimeTests.BoxId)
+                .InvokeStatic(1, null, NeoCellPatternRuntimeTests.NoneOptionId);
             static VariablePointer Variable(string id) => new()
             {
                 type = PointerKind.Variable,

@@ -173,6 +173,13 @@ namespace NeoCompose.Runtime
 
         public object? Invoke(string memberId, INeoValueReference receiver, object?[] args)
         {
+            // A pattern view reads as itself, so a pending one makes no rows
+            // and a no-op hands back the same view.
+            if (NeoCellPatternRuntime.Handles(memberId))
+            {
+                NeoCellPatternRuntime.TryInvoke(memberId, receiver, args, client.CreateGetterContext(NeoValueOwnership.Session), out object? pattern);
+                return pattern;
+            }
             if (receiver.valueId is not string id || !client.TryGetValue(id, out MemberValue? row))
                 throw new NSGetterRuntimeError("Grid query receiver has no placement identity.");
             var ownership = client.TryGetValueOwnership(id, out NeoValueOwnership found) ? found : NeoValueOwnership.Asset;
@@ -185,9 +192,6 @@ namespace NeoCompose.Runtime
 
         private const string GetObjectsId = "system_f5ca386c-990c-54a1-8473-2d49d2cd887d";
         private const string GetTileId = "system_593e6208-e2ca-505e-9933-04b17102b6d2";
-
-        /// <summary>GetObjects and GetTile, which read their one pattern argument as offsets.</summary>
-        internal static bool ReadsCells(string? memberId) => memberId is GetObjectsId or GetTileId;
 
         /// <summary>Whether the call returns a fresh array of the queried objects.</summary>
         internal static bool ReturnsObjects(string? memberId) => memberId == GetObjectsId;
@@ -228,8 +232,8 @@ namespace NeoCompose.Runtime
                 result = NeoVectorValues.FromVector2Int(placement.Cell);
                 return true;
             }
-            NeoCellPattern pattern = NeoCellPatternStorage.ReadRuntime(args[0], ctx);
-            Vector2Int origin = placement.Cell;
+            Vector2Int[] pattern = NeoCellPatternOffsets.Read(args[0], ctx);
+            Vector2Int origin = Shifted(placement.Cell, args.Length > 1 ? args[1] : null);
             // Resolve each layer's cell index once per query rather than once
             // per layer per cell.
             IReadOnlyList<IReadOnlyNeoObjectLayerRuntime> layers = content.ObjectLayersInOrder;
@@ -259,9 +263,9 @@ namespace NeoCompose.Runtime
                 layerCells = layerCellsBuffer;
                 queriedObjects.Clear();
             }
-            for (int offset = 0; offset < pattern.Count; offset++)
+            for (int offset = 0; offset < pattern.Length; offset++)
             {
-                Vector2Int cell = pattern.CellAt(origin, offset);
+                Vector2Int cell = Cell(origin, pattern[offset]);
                 ctx.client.NoteGridRead(content, placement.InstanceId, cell, getTile);
                 if (getTile)
                 {
@@ -301,6 +305,25 @@ namespace NeoCompose.Runtime
             NSGetterEvaluator.TemporaryLists.MarkExclusive(objects);
             result = objects;
             return true;
+        }
+
+        /// <summary>The placement cell moved by the query's optional offset; null is zero.</summary>
+        private static Vector2Int Shifted(Vector2Int cell, object? offset)
+        {
+            if (offset is null)
+                return cell;
+            Vector2Int shift = NeoGeneratedTypesSupport.ReadVector2IntValue(offset)
+                ?? throw new NSGetterRuntimeError("Grid query offset must be a Vector2Int.");
+            return Cell(cell, shift);
+        }
+
+        private static Vector2Int Cell(Vector2Int origin, Vector2Int offset)
+        {
+            long x = (long)origin.x + offset.x;
+            long y = (long)origin.y + offset.y;
+            if (x < int.MinValue || x > int.MaxValue || y < int.MinValue || y > int.MaxValue)
+                throw new NSGetterRuntimeError("World cell coordinates must fit a signed 32-bit integer.");
+            return new Vector2Int((int)x, (int)y);
         }
 
         private static object? RuntimeValue(INeoValueReference reference, NSGetterEvaluator.Context ctx)
