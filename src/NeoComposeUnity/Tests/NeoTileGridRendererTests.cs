@@ -591,6 +591,39 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void NeoScriptGridQuery_ReadsEachOccupiedCellsTileInPatternOrderAndShiftsByTheOffset()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildCellPatternTileGridProjectData());
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid",
+                BuildClassBackedReadOnlyFactories(), BuildClassBackedWritableFactories());
+            client.ScriptGridQueries.RegisterContent(new TestTileGridContent(primitive,
+                new[] { primitive.BindReadOnlyTileLayer<TestAuthoredTileLayer>(BackgroundLayerClassId, new[] { TileClassId }) },
+                new[] { primitive.BindReadOnlyObjectLayer<TestAuthoredObjectLayer>(ObjectsLayerClassId, new[] { ObjectClassId }) }));
+            client.ScriptGridQueries.Bind("shop-1", "town-grid", ObjectsLayerClassId, "shop-1");
+            var ctx = client.CreateGetterContext(NeoValueOwnership.Asset);
+            object? receiver = NSGetterEvaluator.UnwrapRow(client.ResolveValueRow("shop-1")!, ctx, NeoValueOwnership.Asset);
+            object?[] Tiles(object pattern, object? offset)
+            {
+                Assert.IsTrue(client.ScriptGridQueries.TryInvoke("system_5a41d36a-bcd9-4867-9e46-d743f6e09582", receiver,
+                    new object?[] { pattern, offset }, ctx, out object? tiles));
+                return (object?[])tiles!;
+            }
+            // shop-1 sits at (10, 20); the background tile at (2, 3) and the
+            // carried link's tile at (9, 22). The middle cell is empty.
+            object?[] ordered = Tiles(NeoCellPatternRuntimeTests.Construct(client, new Vector2Int(-8, -17), Vector2Int.zero, new Vector2Int(-1, 2)), null);
+            Assert.AreEqual(2, ordered.Length, "Empty cells are skipped.");
+            Assert.AreEqual("class-backed-placement", NSGetterEvaluator.FindRowIdByReference(ordered[0], ctx));
+            Assert.AreEqual("floor-local", NSGetterEvaluator.FindRowIdByReference(ordered[1], ctx));
+
+            object center = NeoCellPatternRuntimeTests.Construct(client, Vector2Int.zero);
+            Assert.AreEqual(1, Tiles(center, new Vector2Int(-1, 2)).Length, "The offset shifts the whole pattern.");
+            CollectionAssert.IsEmpty(Tiles(center, null));
+            Assert.IsTrue(client.ScriptGridQueries.TryInvoke("system_593e6208-e2ca-505e-9933-04b17102b6d2", receiver,
+                new object?[] { center, new Vector2Int(-8, -17) }, ctx, out object? tile));
+            Assert.AreEqual("class-backed-placement", NSGetterEvaluator.FindRowIdByReference(tile, ctx));
+        }
+
+        [Test]
         public void NeoScriptGridQuery_AWatchedGetterHearsOnlyTheCellsItQueried()
         {
             using var client = NeoTestSaveStack.ClientFromSchema(BuildGridGetterProjectData());

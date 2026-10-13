@@ -180,8 +180,10 @@ namespace NeoCompose.Tests
         [Test]
         public void Helpers_RejectCellsOutsideTheIntegerRangeAndNonVectorArguments()
         {
+            // Offsets are stored as float32 vectors, so the largest x they
+            // hold exactly is 2^31 - 128.
             Throws("Translated cell.x exceeds the supported integer range.",
-                () => New(V(int.MaxValue, 0)).Helper(NeoCellPatternRuntime.TranslateId, V(1, 0)));
+                () => New(V(int.MaxValue - 127, 0)).Helper(NeoCellPatternRuntime.TranslateId, V(128, 0)));
             Throws("Translated cell.y is below the supported integer range.",
                 () => Cells(New(V(0, int.MinValue)), V(0, -1)));
             Throws("Contains offset must be a Vector2Int.", () => New(V(0, 0)).Invoke(NeoCellPatternRuntime.ContainsId, 3));
@@ -220,15 +222,31 @@ namespace NeoCompose.Tests
         [TestCase("Translate", 400, 800)]
         public void Construction_ScalesLinearly(string shape, int small, int large)
         {
-            Action Run(int n) => shape switch
+            // Helper inputs are built before timing, so a sample measures
+            // only the helper and not the factory that made its input.
+            Action Run(int n)
             {
-                "Box" => () => Box(n),
-                "Rect with one side 1" => () => Rect(n, 1),
-                "Union of disjoint patterns" => () => Rect(n, 1).Helper(NeoCellPatternRuntime.UnionId,
-                    Rect(n, 1).Helper(NeoCellPatternRuntime.TranslateId, V(0, 1))),
-                "Translate" => () => Rect(n, 1).Helper(NeoCellPatternRuntime.TranslateId, V(2, 3)),
-                _ => throw new ArgumentOutOfRangeException(nameof(shape)),
-            };
+                switch (shape)
+                {
+                    case "Box":
+                        return () => Box(n);
+                    case "Rect with one side 1":
+                        return () => Rect(n, 1);
+                    case "Union of disjoint patterns":
+                        {
+                            TestCellPattern row = Rect(n, 1);
+                            TestCellPattern next = row.Helper(NeoCellPatternRuntime.TranslateId, V(0, 1));
+                            return () => row.Helper(NeoCellPatternRuntime.UnionId, next);
+                        }
+                    case "Translate":
+                        {
+                            TestCellPattern row = Rect(n, 1);
+                            return () => row.Helper(NeoCellPatternRuntime.TranslateId, V(2, 3));
+                        }
+                    default:
+                        throw new ArgumentOutOfRangeException(nameof(shape));
+                }
+            }
             double ratio = MedianMs(Run(large)) / MedianMs(Run(small));
             Assert.Less(ratio, LinearRatio, $"{shape}: {ratio:F2}");
         }

@@ -233,7 +233,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void StaticPatternGetter_IsMemoizedUntilARowItReadChanges()
+        public void StaticPatternGetter_FollowsARowItRead()
         {
             const string areaId = "member-area";
             var patternType = new ClassTypeInfo { type = MemberKind.Class, required = true, classId = NeoCellPatternOffsets.ClassId };
@@ -277,16 +277,12 @@ namespace NeoCompose.Tests
                 };
             });
             var ctx = client.CreateGetterContext(NeoValueOwnership.Save);
-            var key = new NeoClient.GetterMemoKey(NeoValueOwnership.Save, NeoClient.StaticGetterRowId, areaId, NeoValueOwnership.Save);
             Vector2Int[] Area() => NeoCellPatternOffsets.Read(NSGetterEvaluator.EvaluatePointer(StaticRead(areaId), new NeoScriptScope(0), ctx), ctx);
 
             var width1 = new[] { new Vector2Int(0, 0), new Vector2Int(-1, 0), new Vector2Int(1, 0) };
             CollectionAssert.AreEqual(width1, Area());
-            Assert.IsNotNull(client.FindMemoizedGetter(key));
-            CollectionAssert.AreEqual(width1, Area());
 
             client.SetWritableValue(NeoValueOwnership.Save, new NumberMemberValue { id = "pattern-width", value = 2 });
-            Assert.IsNull(client.FindMemoizedGetter(key), "A write to a row the getter read drops the entry.");
             CollectionAssert.AreEqual(new[] { new Vector2Int(0, 0), new Vector2Int(-1, 0), new Vector2Int(1, 0), new Vector2Int(-2, 0), new Vector2Int(2, 0) }, Area());
         }
 
@@ -391,6 +387,114 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void FieldDefaultReadingAPreset_GivesEachReplayedInstanceItsOwnCopy()
+        {
+            // Neowyn's PlantTrait.Pattern defaults to EightNeighbors. An
+            // instance that stores no pattern runs the default again, now
+            // against the stored preset: as an omitted field of a sparse row,
+            // and while replaying a row's constructor recipe.
+            static ClassTypeInfo ClassType(string classId) => new()
+            {
+                type = MemberKind.Class,
+                required = true,
+                classId = classId
+            };
+            string[] holders = { "Sparse", "Replayed" };
+            using NeoClient client = Client(data =>
+            {
+                data.classes["pattern-holder"] = new NeoSchemaClass
+                {
+                    id = "pattern-holder",
+                    projectId = "project-a",
+                    name = "PatternHolder",
+                    allowedStorage = NeoMemberStorage.Save,
+                    schema = new Dictionary<string, string> { ["Pattern"] = "holder-pattern" },
+                    constructorIds = new[] { "holder-ctor" },
+                };
+                data.constructors["holder-ctor"] = new ConstructorRecord
+                {
+                    id = "holder-ctor",
+                    projectId = "project-a",
+                    classId = "pattern-holder",
+                    argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
+                    action = new FunctionWithReturnType
+                    {
+                        compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                        parameters = new[]
+                        {
+                            new Variable { id = "__this__", typeInfo = ClassType("pattern-holder") },
+                            new Variable { id = "__root__", typeInfo = ClassType("save-root-class") },
+                        },
+                        typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null, required = true },
+                        instructions = Array.Empty<Instruction>(),
+                    },
+                };
+                data.members["holder-pattern"] = new ClassMember
+                {
+                    id = "holder-pattern",
+                    projectId = "project-a",
+                    name = "Pattern",
+                    kind = MemberKind.Class,
+                    classId = NeoCellPatternOffsets.ClassId,
+                    Requirement = NeoMemberRequirementKind.Required,
+                    defaultValue = new ObjectMemberValueBase
+                    {
+                        init = new InitializerBody
+                        {
+                            code = "NeoCellPattern.EightNeighbors",
+                            compiled = new FunctionWithReturnType
+                            {
+                                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                                parameters = new[]
+                                {
+                                    new Variable { id = "__this__", typeInfo = ClassType("pattern-holder") },
+                                    new Variable { id = "__root__", typeInfo = ClassType("save-root-class") },
+                                },
+                                typeInfo = ClassType(NeoCellPatternOffsets.ClassId),
+                                instructions = new Instruction[]
+                                {
+                                    new ReturnInstruction { type = InstructionKind.Return, pointer = PresetRead(EightNeighborsId) },
+                                },
+                            },
+                        },
+                    },
+                };
+                foreach (string holder in holders)
+                {
+                    data.classes["save-root-class"].schema[holder] = "holder-" + holder;
+                    data.members["holder-" + holder] = new ClassMember
+                    {
+                        id = "holder-" + holder,
+                        projectId = "project-a",
+                        name = holder,
+                        kind = MemberKind.Class,
+                        classId = "pattern-holder",
+                    };
+                    data.values[holder + "-value"] = new ObjectMemberValue
+                    {
+                        id = holder + "-value",
+                        classId = "pattern-holder",
+                        value = new Dictionary<string, string>(),
+                        instanceConstructorId = holder == "Replayed" ? "holder-ctor" : null,
+                        constructorArgs = holder == "Replayed" ? new Dictionary<string, JToken?>() : null,
+                    };
+                    ((ObjectMemberValue)data.values["root-save-value"]).value![holder] = holder + "-value";
+                }
+            });
+            var ctx = client.CreateGetterContext(NeoValueOwnership.Session);
+            string preset = NSGetterEvaluator.FindRowIdByReference(
+                NSGetterEvaluator.EvaluatePointer(PresetRead(EightNeighborsId), new NeoScriptScope(0), ctx)!, ctx)!;
+            var owned = new HashSet<string>();
+            foreach (string holder in holders)
+            {
+                string id = client.save.Get<NeoMemberClassWritable>(holder).Get<NeoMemberClassWritable>("Pattern").value!.id;
+                Assert.AreNotEqual(preset, id, $"{holder} must own a copy, not the preset row.");
+                Assert.IsTrue(owned.Add(id), $"{holder} must not share its copy.");
+                CollectionAssert.AreEqual(EightNeighbors, TestCellPattern.Writable(client, id, NeoValueOwnership.Save));
+            }
+        }
+
+        [Test]
         public void NonPatternValue_IsRejected()
         {
             using NeoClient client = Client();
@@ -444,11 +548,14 @@ namespace NeoCompose.Tests
                 NeoCellPatternOffsets.ConstructorId,
                 new[] { new NeoDeclaredConstructorArgument("offsets", offsets) }));
 
-        internal static TestCellPattern Writable(NeoClient client, string valueId) =>
+        internal static TestCellPattern Writable(
+            NeoClient client,
+            string valueId,
+            NeoValueOwnership ownership = NeoValueOwnership.Session) =>
             CreateWritable(client, new NeoMemberClassWritable(client,
                 new ClassMember { id = "pattern-field", name = "Pattern", kind = MemberKind.Class, classId = NeoCellPatternOffsets.ClassId },
                 valueId,
-                NeoValueOwnership.Session));
+                ownership));
 
         internal object? Invoke(string memberId, params object?[] args) =>
             Client.ScriptGridQueries.Invoke(memberId, this, args);
