@@ -624,6 +624,95 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void NeoScriptGridQuery_AStoredPatternFromAFieldOrAReferenceQueriesLikeATemporary()
+        {
+            // Root.Footprint holds a stored pattern and Root.FootprintRef names it.
+            ProjectData data = BuildCellPatternTileGridProjectData();
+            Vector2Int[] offsets = { new(-8, -17), Vector2Int.zero, new(-1, 2) };
+            NeoCellPatternRuntimeTests.AddStoredPattern(data, "footprint", offsets);
+            data.members["footprint-member"] = new ClassMember
+            {
+                id = "footprint-member",
+                projectId = "project-a",
+                name = "Footprint",
+                kind = MemberKind.Class,
+                classId = NeoCellPatternOffsets.ClassId,
+            };
+            data.members["footprint-ref-member"] = new LookupMember
+            {
+                id = "footprint-ref-member",
+                projectId = "project-a",
+                name = "FootprintRef",
+                kind = MemberKind.Lookup,
+                declaredTypeInfo = NeoCellPatternRuntimeTests.PatternType,
+            };
+            data.classes["root-class"].schema["Footprint"] = "footprint-member";
+            data.classes["root-class"].schema["FootprintRef"] = "footprint-ref-member";
+            data.values["footprint-ref"] = new ArrayMemberValue { id = "footprint-ref", value = new[] { "footprint" } };
+            var root = (ObjectMemberValue)data.values["root-assets-value"];
+            root.value!["Footprint"] = "footprint";
+            root.value["FootprintRef"] = "footprint-ref";
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            RegisterGridGetterContent(client);
+            var ctx = client.CreateGetterContext(NeoValueOwnership.Asset);
+            object? receiver = NSGetterEvaluator.UnwrapRow(client.ResolveValueRow("shop-1")!, ctx, NeoValueOwnership.Asset);
+            string?[] Query(string queryId, object? pattern)
+            {
+                Assert.IsTrue(client.ScriptGridQueries.TryInvoke(queryId, receiver, new[] { pattern }, ctx, out object? result));
+                object?[] found = result as object?[] ?? new[] { result };
+                return found.Select(entry => entry is null ? null : NSGetterEvaluator.FindRowIdByReference(entry, ctx)).ToArray();
+            }
+
+            object temporary = NeoCellPatternRuntimeTests.Construct(client, offsets);
+            foreach (string key in new[] { "Footprint", "FootprintRef" })
+            {
+                object? pattern = NSGetterEvaluator.EvaluatePointer(NeoCellPatternRuntimeTests.Field("root-assets-value", key), new NeoScriptScope(0), ctx);
+                Assert.AreEqual("footprint", NSGetterEvaluator.FindRowIdByReference(pattern!, ctx), key);
+                CollectionAssert.AreEqual(new[] { "shop-1" }, Query(GetObjectsId, pattern), key);
+                CollectionAssert.AreEqual(new[] { "class-backed-placement" }, Query(GetTileId, pattern), key);
+                CollectionAssert.AreEqual(new[] { "class-backed-placement", "floor-local" }, Query(GetTilesId, pattern), key);
+                foreach (string queryId in new[] { GetObjectsId, GetTileId, GetTilesId })
+                    CollectionAssert.AreEqual(Query(queryId, temporary), Query(queryId, pattern), $"{key} {queryId}");
+            }
+        }
+
+        [Test]
+        public void NeoScriptGridQuery_GetTilesTakesEachCellsTileByLayerPrecedence()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildCellPatternTileGridProjectData());
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid",
+                BuildClassBackedReadOnlyFactories(), BuildClassBackedWritableFactories());
+            var background = primitive.BindReadOnlyTileLayer<TestAuthoredTileLayer>(BackgroundLayerClassId, new[] { TileClassId });
+            // An upper layer covers the background's tile at (2, 3) with the blocked path's tile.
+            Vector2Int covered = new(2, 3);
+            Assert.AreEqual("class-backed-placement", background.GetTile(covered)!.valueId);
+            var overlay = new TestOverlayTileLayer(background, covered, background.GetTile(new Vector2Int(12, 13))!);
+            client.ScriptGridQueries.RegisterContent(new TestTileGridContent(primitive,
+                new IReadOnlyNeoTileLayerRuntime[] { background, overlay },
+                new[] { primitive.BindReadOnlyObjectLayer<TestAuthoredObjectLayer>(ObjectsLayerClassId, new[] { ObjectClassId }) }));
+            client.ScriptGridQueries.Bind("shop-1", "town-grid", ObjectsLayerClassId, "shop-1");
+            var ctx = client.CreateGetterContext(NeoValueOwnership.Asset);
+            object? receiver = NSGetterEvaluator.UnwrapRow(client.ResolveValueRow("shop-1")!, ctx, NeoValueOwnership.Asset);
+            object? Invoke(string queryId, params Vector2Int[] offsets)
+            {
+                Assert.IsTrue(client.ScriptGridQueries.TryInvoke(queryId, receiver,
+                    new object?[] { NeoCellPatternRuntimeTests.Construct(client, offsets) }, ctx, out object? result));
+                return result;
+            }
+
+            // shop-1 sits at (10, 20): (2, 3) is both layers' cell and (9, 22) only the background's.
+            Vector2Int[] cells = { new(-8, -17), new(-1, 2) };
+            object?[] tiles = (object?[])Invoke(GetTilesId, cells)!;
+            CollectionAssert.AreEqual(new[] { "blocked-path-placement", "floor-local" },
+                tiles.Select(tile => NSGetterEvaluator.FindRowIdByReference(tile, ctx)), "One tile per cell, from its top layer.");
+            for (int i = 0; i < cells.Length; i++)
+            {
+                Assert.AreEqual(NSGetterEvaluator.FindRowIdByReference(Invoke(GetTileId, cells[i]), ctx),
+                    NSGetterEvaluator.FindRowIdByReference(tiles[i], ctx), $"GetTile agrees at {cells[i]}.");
+            }
+        }
+
+        [Test]
         public void NeoScriptGridQuery_AWatchedGetterHearsOnlyTheCellsItQueried()
         {
             using var client = NeoTestSaveStack.ClientFromSchema(BuildGridGetterProjectData());
@@ -641,6 +730,24 @@ namespace NeoCompose.Tests
             CollectionAssert.AreEqual(new[] { 1 }, heard, "A change to the queried cell is heard, and the handler reads the result.");
             Change(new Vector2Int(10, 20));
             CollectionAssert.AreEqual(new[] { 1, 1 }, heard, "The handler's read arms the watch again.");
+        }
+
+        [Test]
+        public void NeoScriptGridQuery_AGetTilesGetterHearsAnEmptyQueriedCellGainATile()
+        {
+            ProjectData data = BuildGridGetterProjectData();
+            ((ArrayMemberValue)data.values["shop-1-children"]).value = Array.Empty<string>();
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            RegisterGridGetterContent(client);
+            var view = TestGridGetterView.Resolve(client, "shop-1");
+            var heard = new List<int>();
+            // Tiles reads only (9, 22), which no tile covers until the carried link is added.
+            using var watch = view.OnTilesChanged((count, _) => heard.Add(count));
+
+            client.SetWritableValue(NeoValueOwnership.Save, new ArrayMemberValue { id = "shop-1-children", value = new[] { "shop-floor-link" } });
+            CollectionAssert.AreEqual(new[] { 1 }, heard, "The getter hears the empty cell gain a tile and reads it.");
+            client.SetWritableValue(NeoValueOwnership.Save, new ArrayMemberValue { id = "shop-1-children", value = Array.Empty<string>() });
+            CollectionAssert.AreEqual(new[] { 1, 0 }, heard, "It hears the tile leave too.");
         }
 
         [Test]
@@ -1069,6 +1176,7 @@ namespace NeoCompose.Tests
 
         private const string GetObjectsId = "system_f5ca386c-990c-54a1-8473-2d49d2cd887d";
         private const string GetTileId = "system_593e6208-e2ca-505e-9933-04b17102b6d2";
+        private const string GetTilesId = "system_5a41d36a-bcd9-4867-9e46-d743f6e09582";
 
         private static ProjectData BuildCellPatternTileGridProjectData()
         {
@@ -1096,7 +1204,8 @@ namespace NeoCompose.Tests
         /// The class-backed grid with the NeoCellPattern schema and two
         /// computed members on its objects:
         /// <c>Here => this.GetObjects(NeoCellPattern.Box(0, 0, None))</c> and
-        /// <c>Floor => this.GetTile(NeoCellPattern.Box(0, 0, None).Translate((-1, 2)))</c>,
+        /// <c>Floor => this.GetTile(NeoCellPattern.Box(0, 0, None).Translate((-1, 2)))</c>, and
+        /// <c>Tiles => this.GetTiles(NeoCellPattern.Box(0, 0, None), (-1, 2))</c>,
         /// the cell shop-1's carried link projects its tile onto.
         /// </summary>
         private static ProjectData BuildGridGetterProjectData()
@@ -1111,6 +1220,13 @@ namespace NeoCompose.Tests
             var tile = new ClassTypeInfo { type = MemberKind.Class, classId = TileClassId, required = false };
             data.members[GetObjectsId] = GridQuery(GetObjectsId, "GetObjects", objects);
             data.members[GetTileId] = GridQuery(GetTileId, "GetTile", tile);
+            var tiles = new CollectionTypeInfo
+            {
+                type = MemberKind.List,
+                required = true,
+                entryTypeInfo = new ClassTypeInfo { type = MemberKind.Class, classId = TileClassId, required = true },
+            };
+            data.members[GetTilesId] = GridQuery(GetTilesId, "GetTiles", tiles);
             data.members["object-here-getter"] = Getter("object-here-getter", "Here", objects, Call("here", GetObjectsId, Box("here-box")));
             data.members["object-floor-getter"] = Getter("object-floor-getter", "Floor", tile, Call("floor", GetTileId, new CallFunctionPointer
             {
@@ -1123,8 +1239,15 @@ namespace NeoCompose.Tests
                     Literal(new PrimitiveTypeInfo { type = MemberKind.Vector2Int, required = true }, JObject.FromObject(new { x = -1, y = 2 })),
                 },
             }));
+            data.members["object-tiles-getter"] = Getter("object-tiles-getter", "Tiles", tiles, Call("tiles", GetTilesId, Box("tiles-box"),
+                Literal(new PrimitiveTypeInfo { type = MemberKind.Vector2Int, required = true }, JObject.FromObject(new
+                {
+                    x = -1,
+                    y = 2
+                }))));
             data.classes[ObjectClassId].schema["Here"] = "object-here-getter";
             data.classes[ObjectClassId].schema["Floor"] = "object-floor-getter";
+            data.classes[ObjectClassId].schema["Tiles"] = "object-tiles-getter";
             return data;
 
             static ValuePointer Literal(TypeInfo typeInfo, JToken value) => new()
@@ -1136,13 +1259,13 @@ namespace NeoCompose.Tests
                 NeoCellPatternRuntimeTests.Int(0),
                 NeoCellPatternRuntimeTests.Int(0),
                 NeoCellPatternRuntimeTests.Excluding(NeoCellPatternRuntimeTests.NoneOptionId));
-            static Pointer Call(string site, string queryId, Pointer pattern) => new CallFunctionPointer
+            static Pointer Call(string site, string queryId, params Pointer[] args) => new CallFunctionPointer
             {
                 type = PointerKind.CallFunction,
                 callSiteId = site,
                 memberId = queryId,
                 receiver = CallReceiver.Instance(new VariablePointer { type = PointerKind.Variable, variableId = "__this__" }),
-                args = new[] { pattern },
+                args = args,
             };
             static NSPropertyMember Getter(string id, string name, TypeInfo type, Pointer result) => new()
             {
@@ -1175,6 +1298,7 @@ namespace NeoCompose.Tests
         private sealed class TestGridGetterView : NeoGeneratedClassValue
         {
             private static readonly NeoField<int> Here = new("Here");
+            private static readonly NeoField<int> Tiles = new("Tiles");
 
             private TestGridGetterView(NeoClient client, NeoMemberClass node)
                 : base(client, node, ObjectClassId)
@@ -1193,6 +1317,9 @@ namespace NeoCompose.Tests
 
             internal IDisposable OnHereChanged(Action<int, NeoChangeSource> handler) =>
                 WatchField(Here, handler, () => ((object?[])Compute("Here")!).Length);
+
+            internal IDisposable OnTilesChanged(Action<int, NeoChangeSource> handler) =>
+                WatchField(Tiles, handler, () => ((object?[])Compute("Tiles")!).Length);
 
             private object? Compute(string key)
             {
@@ -8619,6 +8746,34 @@ namespace NeoCompose.Tests
                 }
                 return base.GetTileProjection(cell);
             }
+        }
+
+        /// <summary>A tile layer above <c>below</c> that holds one tile at one cell.</summary>
+        private sealed class TestOverlayTileLayer : IReadOnlyNeoTileLayerRuntime
+        {
+            private readonly IReadOnlyNeoTileLayerRuntime below;
+            private readonly Vector2Int cell;
+            private readonly NeoGeneratedClassValue tile;
+
+            public TestOverlayTileLayer(IReadOnlyNeoTileLayerRuntime below, Vector2Int cell, NeoGeneratedClassValue tile)
+            {
+                this.below = below;
+                this.cell = cell;
+                this.tile = tile;
+            }
+
+            public string? valueId => below.valueId;
+            public string LayerId => "overlay-layer";
+            public string LayerClassId => below.LayerClassId;
+            public string? LayerOverrideValueId => null;
+            public string DisplayName => "Overlay";
+            public string ExpectedClassId => below.ExpectedClassId;
+            public string? SortingLayerName => null;
+            public int? SortingOrder => null;
+            public IReadOnlyList<NeoGeneratedClassValue> GetTiles() => new[] { tile };
+            public NeoGeneratedClassValue? GetTile(Vector2Int queried) => queried == cell ? tile : null;
+            public NeoGeneratedClassValue? ResolveTile(Vector2Int queried) => GetTile(queried);
+            public IDisposable OnChanged(Action<NeoTileLayerChangedArgs> handler) => below.OnChanged(_ => { });
         }
 
         private sealed class TestTileGridContent : INeoTileGridContent
