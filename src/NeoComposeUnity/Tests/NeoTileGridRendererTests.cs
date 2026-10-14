@@ -752,6 +752,61 @@ namespace NeoCompose.Tests
             }
         }
 
+        /// <summary>
+        /// A sprite placed on a layer is an object <c>GetObjects</c> returns;
+        /// a sprite nested in a placed object, or one whose
+        /// <c>PlacementTiles</c> is empty, occupies no cell (P111 §3).
+        /// </summary>
+        [Test]
+        public void NeoScriptGridQuery_GetObjectsReturnsAPlacedSpriteButNotANestedOne()
+        {
+            ProjectData data = BuildShopSpriteProjectData(BuildCellPatternTileGridProjectData());
+            // shop-1 sits at (10, 20) with shop-arm nested at its origin.
+            ((ArrayMemberValue)data.values["objects-link-objects"]).value = new[] { "shop-1", "lamp", "glow" };
+            foreach (var (id, x, tiles) in new[] { ("lamp", 11, new[] { "lamp-tile" }), ("glow", 12, Array.Empty<string>()) })
+            {
+                data.values[id] = new ObjectMemberValue
+                {
+                    id = id,
+                    classId = SpriteObjectClassId,
+                    containerId = "objects-link-objects",
+                    value = new Dictionary<string, string>
+                    {
+                        ["Position"] = id + "-position",
+                        ["PlacementTiles"] = id + "-tiles",
+                    },
+                };
+                data.values[id + "-position"] = new Vector3MemberValue { id = id + "-position", value = new NeoVector3Value { x = x, y = 20 } };
+                data.values[id + "-tiles"] = new ArrayMemberValue { id = id + "-tiles", value = tiles };
+            }
+            data.values["lamp-tile"] = new ObjectMemberValue
+            {
+                id = "lamp-tile",
+                classId = PlacementTileClassId,
+                value = new Dictionary<string, string> { ["Cell"] = "lamp-tile-cell" },
+            };
+            data.values["lamp-tile-cell"] = new Vector2MemberValue { id = "lamp-tile-cell", value = new NeoVector2Value() };
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid",
+                BuildClassBackedReadOnlyFactories(), BuildClassBackedWritableFactories());
+            client.ScriptGridQueries.RegisterContent(new TestTileGridContent(primitive,
+                Array.Empty<IReadOnlyNeoTileLayerRuntime>(),
+                new[] { primitive.BindReadOnlyObjectLayer<TestAuthoredObjectLayer>(ObjectsLayerClassId, new[] { ObjectClassId }) }));
+            client.ScriptGridQueries.Bind("shop-1", "town-grid", ObjectsLayerClassId, "shop-1");
+            var ctx = client.CreateGetterContext(NeoValueOwnership.Asset);
+            object? receiver = NSGetterEvaluator.UnwrapRow(client.ResolveValueRow("shop-1")!, ctx, NeoValueOwnership.Asset);
+            string?[] GetObjects(int x)
+            {
+                Assert.IsTrue(client.ScriptGridQueries.TryInvoke(GetObjectsId, receiver,
+                    new object?[] { NeoCellPatternRuntimeTests.Construct(client, new Vector2Int(x, 0)) }, null, ctx, out object? result));
+                return ((object?[])result!).Select(entry => NSGetterEvaluator.FindRowIdByReference(entry, ctx)).ToArray();
+            }
+
+            CollectionAssert.AreEqual(new[] { "shop-1" }, GetObjects(0), "a nested sprite occupies no cell");
+            CollectionAssert.AreEqual(new[] { "lamp" }, GetObjects(1), "a placed sprite is an object");
+            CollectionAssert.IsEmpty(GetObjects(2), "empty PlacementTiles occupy no cell");
+        }
+
         [Test]
         public void NeoScriptGridQuery_ATypeArgumentKeepsOrSkipsEachCellsWinner()
         {
@@ -9895,9 +9950,9 @@ namespace NeoCompose.Tests
         /// Placed shop-1 composes shop-arm, a <c>NeoSpriteObject</c> (an object
         /// since P111) whose own child shop-sword is another sprite.
         /// </summary>
-        private static ProjectData BuildShopSpriteProjectData()
+        private static ProjectData BuildShopSpriteProjectData(ProjectData? data = null)
         {
-            var data = BuildClassBackedTileGridProjectData();
+            data ??= BuildClassBackedTileGridProjectData();
             data.classes[SpriteObjectClassId] = new NeoSchemaClass
             {
                 id = SpriteObjectClassId,
