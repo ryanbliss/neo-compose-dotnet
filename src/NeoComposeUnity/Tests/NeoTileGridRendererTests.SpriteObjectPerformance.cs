@@ -106,13 +106,13 @@ namespace NeoCompose.Tests
             var sprite = CreateTestSprite("rig-part");
             var factories = new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory>
             {
-                [ObjectClassId] = (c, n) => new TestHookedSpriteObject(c, n) { Sprite = sprite },
+                [ObjectClassId] = (c, n) => new TestSpriteObject(c, n) { Name = "Part", Sprite = sprite, Spawned = _ => { } },
             };
             var rig = ResolveComposedTestObject(client);
             var parts = new INeoWorldObjectValue[SpriteRigParts];
             for (int i = 0; i < SpriteRigParts; i++)
             {
-                parts[i] = (TestHookedSpriteObject)NeoGeneratedTypesSupport.ResolveClassValue(
+                parts[i] = (TestSpriteObject)NeoGeneratedTypesSupport.ResolveClassValue(
                     client,
                     $"rig-part-{i}",
                     factories,
@@ -163,34 +163,6 @@ namespace NeoCompose.Tests
                 client.Dispose();
             }
             yield return new ExitPlayMode();
-        }
-
-        /// <summary>A generated <c>NeoSpriteObject</c> with spawn hooks, as P111 generates it.</summary>
-        private sealed class TestHookedSpriteObject
-            : NeoGeneratedWorldObjectValue,
-              INeoSpriteObjectValue,
-              INeoObjectSpawnHooks
-        {
-            public TestHookedSpriteObject(NeoClient client, NeoMemberClass node)
-                : base(client, node, ObjectClassId)
-            {
-            }
-
-            public string Name => "Part";
-            public NeoReadOnlyVector3 Position { get; } = new(Vector3.zero);
-            public NeoReadOnlyVector3 Size { get; } = new(Vector3.one);
-            public bool Enabled => true;
-            public Sprite Sprite { get; set; } = null!;
-            public bool FlipX => false;
-            public bool FlipY => false;
-            public string MaskInteraction => NeoSpriteMaskInteraction.None.OptionId();
-            public int? SortingOrder => null;
-            public void OnObjectSpawned(NeoObjectBehaviour behaviour)
-            {
-            }
-            public void OnObjectDespawned(NeoObjectBehaviour behaviour)
-            {
-            }
         }
     }
 }

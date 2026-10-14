@@ -187,9 +187,10 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         /// <summary>
         /// Renderer spawn hook — override in a partial class to attach Unity
-        /// components (e.g. Rigidbody2D) to the instance's fully-built root
-        /// GameObject. See <see cref="INeoObjectSpawnHooks"/> for timing and
-        /// respawn semantics.
+        /// components (e.g. Rigidbody2D) to this object's GameObject. Runs on
+        /// the placed root and every object in its composition, parents first;
+        /// check behaviour.IsRoot for the placed instance. See
+        /// <see cref="INeoObjectSpawnHooks"/> for timing and respawn semantics.
         /// </summary>
         protected virtual void OnObjectSpawned(NeoObjectBehaviour behaviour)
         {
@@ -197,8 +198,8 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         /// <summary>
         /// Renderer despawn hook — override in a partial class to release
-        /// per-GameObject state before the instance's root GameObject is
-        /// destroyed.
+        /// per-GameObject state before this object's GameObject is destroyed.
+        /// Children despawn before their parents.
         /// </summary>
         protected virtual void OnObjectDespawned(NeoObjectBehaviour behaviour)
         {

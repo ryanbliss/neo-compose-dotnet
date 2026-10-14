@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "projectId": "test-project",
-  "codegenRevision": "0399267d7ab41321f6e8097fd1c13c89f1c690c765d03a9043154d16b565a4c1",
+  "codegenRevision": "d4026a3848848c8507d45dd54b6d31c1a0588b17b64c35e3fe9b25c89eb2fc05",
   "files": [
     {
       "id": "class:class-abstract-readonly-stats",
@@ -201,7 +201,7 @@
     {
       "id": "class:system_f671535d-0eb6-4139-9caf-5c5276febd31",
       "path": "Generated/Classes/NeoObject.g.cs",
-      "hash": "221109770c7f68fd401c89788bf57535247cb311d03dccbef09383de21818ad3"
+      "hash": "7eb3afe56fcf7c0161dbdbac73c7023e326914505b5c6ea3e5f0d15247570ad3"
     },
     {
       "id": "class:system_61b30a92-90dc-4bf8-8503-ee4f6414effc",

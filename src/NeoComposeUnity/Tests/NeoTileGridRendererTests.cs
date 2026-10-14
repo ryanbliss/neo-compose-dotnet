@@ -405,12 +405,15 @@ namespace NeoCompose.Tests
         [Test]
         public void PlacementMembers_AreAPlacedObjectsPositionAndATilesCell()
         {
-            using var client = NeoTestSaveStack.ClientFromSchema(BuildClassBackedTileGridProjectData());
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildShopSpriteProjectData());
             // Grids index lazily; a client with no lookup cache has nothing to move.
             _ = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid").LookupCache;
             var placed = client.ResolveValueRow("shop-1");
             // An object no layer lists, like a composition child (P111 §3).
             var unplaced = client.ResolveValueRow("shop-object");
+            var nestedSprite = client.ResolveValueRow("shop-arm");
+            Assert.IsTrue(client.HasWorldKind(nestedSprite!.classId, "object"));
+            Assert.IsFalse(client.IsPlacementMember(nestedSprite, "Position"));
             var tile = new ObjectMemberValue { id = "tile", classId = TileClassId };
             var layer = new ObjectMemberValue { id = "layer", classId = BackgroundLayerClassId };
             Assert.IsTrue(client.IsPlacementMember(placed, "Position"));
@@ -7823,69 +7826,161 @@ namespace NeoCompose.Tests
 
         /// <summary>
         /// Every object in a placed hierarchy gets its own behaviour and
-        /// hooks: parents spawn first and despawn last (P111 §5).
+        /// hooks, sprite nodes and leaves included: parents spawn first and
+        /// despawn last, a placed move updates every behaviour's cell, and a
+        /// respawn despawns each object exactly once (P111 §5).
         /// </summary>
         [UnityTest]
         public IEnumerator Render_RunsSpawnHooksOnEveryObjectInTheHierarchyParentFirst()
         {
             yield return new EnterPlayMode();
-            using var client = NeoTestSaveStack.ClientFromSchema(BuildNestedCarriedLinkProjectData());
-            var factories = BuildClassBackedReadOnlyFactories();
-            var writableFactories = BuildClassBackedWritableFactories();
-            var calls = new List<string>();
-            var behaviours = new Dictionary<string, NeoObjectBehaviour>();
-            TestComposedObject Composed(NeoClient c, NeoMemberClass n, bool isReadOnly)
-            {
-                string id = n.value!.id;
-                var value = new TestComposedObject(c, n, isReadOnly)
-                {
-                    Name = id,
-                    Spawned = behaviour =>
-                    {
-                        calls.Add("spawned " + id);
-                        behaviours[id] = behaviour;
-                    },
-                    Despawned = _ => calls.Add("despawned " + id),
-                };
-                if (id == "shop-1")
-                    value.Children = new INeoWorldObjectValue[]
-                    {
-                        (INeoWorldObjectValue)NeoGeneratedTypesSupport.ResolveClassValue(c, "shop-part", factories, writableFactories)!,
-                    };
-                return value;
-            }
-            factories[ObjectClassId] = (c, n) => NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue(c, n, () => Composed(c, n, true));
-            writableFactories[ObjectClassId] = (c, n) => NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue(c, n, () => Composed(c, n, false));
-            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid", factories, writableFactories);
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildShopSpriteProjectData());
+            var sprite = CreateTestSprite("part");
+            var hierarchy = new HookedSpriteHierarchy(client, sprite);
+            var calls = hierarchy.Calls;
+            var behaviours = hierarchy.Behaviours;
             var go = new GameObject("Hierarchy spawn hooks");
             try
             {
                 var renderer = go.AddComponent<NeoTileGridRenderer>();
-                renderer.Render(new TestTileGridContent(primitive,
-                    Array.Empty<IReadOnlyNeoTileLayerRuntime>(),
-                    new[] { primitive.BindReadOnlyObjectLayer<TestAuthoredObjectLayer>(ObjectsLayerClassId, new[] { ObjectClassId }) }));
+                hierarchy.Render(renderer);
 
-                CollectionAssert.AreEqual(new[] { "spawned shop-1", "spawned shop-part" }, calls);
+                CollectionAssert.AreEqual(new[] { "spawned shop-1", "spawned shop-arm", "spawned shop-sword" }, calls);
                 Assert.IsTrue(renderer.TryGetObjectRoot("shop-1", out var root));
                 Assert.IsTrue(behaviours["shop-1"].IsRoot);
-                Assert.IsFalse(behaviours["shop-part"].IsRoot);
                 Assert.AreSame(root, behaviours["shop-1"].gameObject);
-                Assert.AreEqual("shop-part", behaviours["shop-part"].gameObject.name);
-                Assert.AreEqual(behaviours["shop-1"].InstanceId, behaviours["shop-part"].InstanceId);
-                Assert.AreSame(behaviours["shop-1"],
-                    behaviours["shop-part"].transform.parent.GetComponentInParent<NeoObjectBehaviour>(),
+                foreach (string id in new[] { "shop-arm", "shop-sword" })
+                {
+                    Assert.IsFalse(behaviours[id].IsRoot);
+                    Assert.AreEqual(id, behaviours[id].gameObject.name);
+                    Assert.AreEqual(behaviours["shop-1"].InstanceId, behaviours[id].InstanceId);
+                }
+                Assert.IsNull(behaviours["shop-arm"].GetComponent<SpriteRenderer>(), "a sprite node keeps its art on a child");
+                Assert.AreSame(sprite, behaviours["shop-sword"].GetComponent<SpriteRenderer>().sprite, "a leaf sprite draws on its own GameObject");
+                Assert.AreSame(behaviours["shop-arm"],
+                    behaviours["shop-sword"].transform.parent.GetComponentInParent<NeoObjectBehaviour>(),
                     "a child finds its parent object's behaviour");
+
+                calls.Clear();
+                NeoAnimationCompiler.WriteMember(client, WritableObject(client, "shop-1"), "Position",
+                    NeoAnimationCompiler.Payload(new Vector3MemberValue { value = new NeoVector3Value { x = 12, y = 20 } }));
+
+                CollectionAssert.IsEmpty(calls, "a placed move keeps the hierarchy");
+                foreach (var behaviour in behaviours.Values)
+                    Assert.AreEqual(new Vector2Int(12, 20), behaviour.Cell);
+
+                // Dropping the sword turns the arm into a leaf: a new shape.
+                hierarchy.Arm.Children = Array.Empty<INeoWorldObjectValue>();
+                hierarchy.Primitive.NotifyChanged(new NeoTileGridChangedArgs("town-grid", objectLayers: new[]
+                {
+                    new NeoObjectLayerChangedArgs(hierarchy.Layer.LayerId, Array.Empty<NeoObjectInstanceId>(),
+                        new NeoObjectInstanceId[] { "shop-1" }, Array.Empty<Vector2Int>(),
+                        NeoTileGridChangeSourceKind.Direct, null),
+                }));
+
+                CollectionAssert.AreEqual(new[]
+                {
+                    "despawned shop-sword", "despawned shop-arm", "despawned shop-1",
+                    "spawned shop-1", "spawned shop-arm",
+                }, calls);
 
                 calls.Clear();
                 renderer.Clear();
 
-                CollectionAssert.AreEqual(new[] { "despawned shop-part", "despawned shop-1" }, calls);
+                CollectionAssert.AreEqual(new[] { "despawned shop-arm", "despawned shop-1" }, calls);
             }
             finally
             {
                 UnityEngine.Object.DestroyImmediate(go);
+                DestroyTestSprite(sprite);
             }
             yield return new ExitPlayMode();
+        }
+
+        [Test]
+        public void Render_GivesEveryObjectABehaviourButRunsNoHooksInEditMode()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildShopSpriteProjectData());
+            var sprite = CreateTestSprite("part");
+            var hierarchy = new HookedSpriteHierarchy(client, sprite);
+            var go = new GameObject("Edit-mode hierarchy hooks");
+            try
+            {
+                var renderer = go.AddComponent<NeoTileGridRenderer>();
+                hierarchy.Render(renderer);
+                Assert.IsTrue(renderer.TryGetObjectRoot("shop-1", out var root));
+                Assert.AreEqual(3, root.GetComponentsInChildren<NeoObjectBehaviour>(true).Length);
+                renderer.Clear();
+
+                CollectionAssert.IsEmpty(hierarchy.Calls);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+                DestroyTestSprite(sprite);
+            }
+        }
+
+        /// <summary>
+        /// shop-1 composes shop-arm, a sprite node, whose child shop-sword is
+        /// a leaf sprite. Every object records its hooks.
+        /// </summary>
+        private sealed class HookedSpriteHierarchy
+        {
+            public readonly List<string> Calls = new();
+            public readonly Dictionary<string, NeoObjectBehaviour> Behaviours = new();
+            public readonly NeoReadOnlyTileGridPrimitive Primitive;
+            public readonly IReadOnlyNeoObjectLayerRuntime Layer;
+            private readonly Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory> factories = BuildClassBackedReadOnlyFactories();
+            private readonly Dictionary<string, NeoGeneratedTypesSupport.WritableClassFactory> writableFactories = BuildClassBackedWritableFactories();
+            private readonly Sprite sprite;
+
+            public HookedSpriteHierarchy(NeoClient client, Sprite sprite)
+            {
+                this.sprite = sprite;
+                factories[ObjectClassId] = (c, n) => NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue(c, n, () => Create(c, n, true));
+                writableFactories[ObjectClassId] = (c, n) => NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue(c, n, () => Create(c, n, false));
+                factories[SpriteObjectClassId] = (c, n) => NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue(c, n, () => Create(c, n, true));
+                Primitive = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid", factories, writableFactories);
+                Layer = Primitive.BindReadOnlyObjectLayer<TestAuthoredObjectLayer>(ObjectsLayerClassId, new[] { ObjectClassId });
+            }
+
+            public TestSpriteObject Arm => (TestSpriteObject)Resolve(Primitive.Client, "shop-arm");
+
+            public void Render(NeoTileGridRenderer renderer) => renderer.Render(
+                new TestTileGridContent(Primitive, Array.Empty<IReadOnlyNeoTileLayerRuntime>(), new[] { Layer }));
+
+            private INeoWorldObjectValue Resolve(NeoClient client, string id) =>
+                (INeoWorldObjectValue)NeoGeneratedTypesSupport.ResolveClassValue(client, id, factories, writableFactories)!;
+
+            private NeoGeneratedClassValue Create(NeoClient client, NeoMemberClass node, bool isReadOnly)
+            {
+                string id = node.value!.id;
+                void Spawned(NeoObjectBehaviour behaviour)
+                {
+                    Calls.Add("spawned " + id);
+                    Behaviours[id] = behaviour;
+                }
+                void Despawned(NeoObjectBehaviour behaviour) => Calls.Add("despawned " + id);
+                if (id == "shop-1")
+                {
+                    return new TestComposedObject(client, node, isReadOnly)
+                    {
+                        Name = id,
+                        Children = new[] { Resolve(client, "shop-arm") },
+                        Spawned = Spawned,
+                        Despawned = Despawned,
+                    };
+                }
+                return new TestSpriteObject(client, node, SpriteObjectClassId)
+                {
+                    Name = id,
+                    Sprite = sprite,
+                    Children = id == "shop-arm" ? new[] { Resolve(client, "shop-sword") } : Array.Empty<INeoWorldObjectValue>(),
+                    Spawned = Spawned,
+                    Despawned = Despawned,
+                };
+            }
         }
 
         [UnityTest]
@@ -9184,18 +9279,35 @@ namespace NeoCompose.Tests
         }
 
         /// <summary>
-        /// Stands in for a placed generated <c>NeoSpriteObject</c> — the root
-        /// sprite fallback path, which needs a resolvable class value.
+        /// Stands in for a generated <c>NeoSpriteObject</c>, a <c>NeoObject</c>
+        /// since P111: a resolvable class value with children and spawn hooks.
         /// </summary>
         private sealed class TestSpriteObject
             : NeoGeneratedWorldObjectValue,
-              INeoSpriteObjectValue
+              INeoSpriteObjectValue,
+              INeoObjectCompositionSource,
+              INeoObjectSpawnHooks
         {
-            public TestSpriteObject(NeoClient client, NeoMemberClass node)
-                : base(client, node, ObjectClassId)
+            public TestSpriteObject(NeoClient client, NeoMemberClass node, string classId = ObjectClassId)
+                : base(client, node, classId)
             {
             }
 
+            public IReadOnlyList<INeoWorldObjectValue> Children
+            {
+                get; set;
+            } =
+                Array.Empty<INeoWorldObjectValue>();
+            public Action<NeoObjectBehaviour>? Spawned
+            {
+                get; set;
+            }
+            public Action<NeoObjectBehaviour>? Despawned
+            {
+                get; set;
+            }
+            public void OnObjectSpawned(NeoObjectBehaviour behaviour) => Spawned?.Invoke(behaviour);
+            public void OnObjectDespawned(NeoObjectBehaviour behaviour) => Despawned?.Invoke(behaviour);
             public string Name { get; set; } = "";
             public NeoReadOnlyVector3 Position { get; set; } = new(Vector3.zero);
             public NeoReadOnlyVector3 Size { get; set; } = new(Vector3.one);
@@ -9783,6 +9895,43 @@ namespace NeoCompose.Tests
         /// storage and every nested one is an explicit row, so runtime writes
         /// to them are leaf writes.
         /// </summary>
+        private const string SpriteObjectClassId = "sprite-object-class";
+
+        /// <summary>
+        /// Placed shop-1 composes shop-arm, a <c>NeoSpriteObject</c> (an object
+        /// since P111) whose own child shop-sword is another sprite.
+        /// </summary>
+        private static ProjectData BuildShopSpriteProjectData()
+        {
+            var data = BuildClassBackedTileGridProjectData();
+            data.classes[SpriteObjectClassId] = new NeoSchemaClass
+            {
+                id = SpriteObjectClassId,
+                projectId = "project-a",
+                name = "Sprite Object",
+                extendsClassId = ObjectClassId,
+                schema = new Dictionary<string, string>(),
+                system = JObject.FromObject(new { worldKind = "spriteObject" }),
+            };
+            ((ArrayMemberValue)data.values["shop-1-children"]).value = new[] { "shop-floor-link", "shop-arm" };
+            foreach (var (id, children) in new[] { ("shop-arm", new[] { "shop-sword" }), ("shop-sword", Array.Empty<string>()) })
+            {
+                data.values[id] = new ObjectMemberValue
+                {
+                    id = id,
+                    classId = SpriteObjectClassId,
+                    value = new Dictionary<string, string>
+                    {
+                        ["Position"] = id + "-position",
+                        ["Children"] = id + "-children",
+                    },
+                };
+                data.values[id + "-position"] = new Vector3MemberValue { id = id + "-position", value = new NeoVector3Value() };
+                data.values[id + "-children"] = new ArrayMemberValue { id = id + "-children", value = children };
+            }
+            return data;
+        }
+
         private static ProjectData BuildNestedCarriedLinkProjectData()
         {
             var data = BuildClassBackedTileGridProjectData();

@@ -63,7 +63,10 @@ namespace NeoCompose.Runtime
         }
 
         // Any index that may be dropped may also be rebuilt with other
-        // objects, so the client forgets which objects are placed.
+        // objects, so the client forgets which objects are placed. A plan
+        // commit drops this way even when no object layer read its rows: the
+        // layer list itself may have changed. The next write per object
+        // reprobes, a few dictionary lookups.
         private void DropObjectLayers()
         {
             ObjectLayersVersion++;

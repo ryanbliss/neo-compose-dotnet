@@ -44,9 +44,10 @@ namespace NeoCompose.Runtime
         /// <summary>
         /// Whether <paramref name="objectId"/> is placed in a grid this client
         /// indexes. A composition child never is, so its Position is an
-        /// ordinary leaf (P111 §3). The first write after the grid indexes
-        /// change probes every lookup cache, as a placement write does; later
-        /// writes cost one lookup.
+        /// ordinary leaf (P111 §3). The first write after the memo is
+        /// forgotten probes every object layer of every lookup cache, building
+        /// any index not yet built, as a placement write does; later writes
+        /// cost one lookup.
         /// </summary>
         private bool IsPlacedObject(string objectId)
         {
@@ -69,11 +70,14 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// Called whenever an object layer index is dropped or gains an
-        /// object, or a grid gains a lookup cache, any of which can change
-        /// which objects are placed.
+        /// Called whenever an object layer index may be dropped (every plan
+        /// commit, a grid change, a partition reload) or a grid gains a lookup
+        /// cache, any of which can change which objects are placed.
         /// </summary>
         internal void ForgetObjectPlacements() => placedObjects.Clear();
+
+        /// <summary>A validated insertion placed <paramref name="objectId"/>; no other object's placement changed.</summary>
+        internal void RememberPlacedObject(string objectId) => placedObjects[objectId] = true;
 
         /// <summary>
         /// Writes <paramref name="next"/> as the value of <paramref name="key"/>
