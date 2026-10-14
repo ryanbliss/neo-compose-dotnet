@@ -68,6 +68,9 @@ namespace NeoCompose.Runtime
         private List<string>? reboundKeys;
         // Whether a function or getter child is still unbound.
         private bool callablesDeferred;
+        // Whether a stored child is still unbound; only a node that binds on read defers one.
+        private bool storedDeferred;
+        private bool bindsOnRead;
         // Whether this node belongs to the candidate replay it was built in.
         private readonly bool candidateNode;
         private string? reportingKey;
@@ -87,13 +90,29 @@ namespace NeoCompose.Runtime
         }
 
         public NeoMemberClass(NeoClient client, ClassMember member, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
+            : this(client, member, overrideValueId, ownership, bindsOnRead: false)
+        {
+        }
+
+        /// <param name="bindsOnRead">See <see cref="BindsOnRead"/>.</param>
+        internal NeoMemberClass(NeoClient client, ClassMember member, string? overrideValueId, NeoValueOwnership ownership, bool bindsOnRead)
             : base(client, member, overrideValueId, ownership)
         {
+            this.bindsOnRead = bindsOnRead;
             candidateNode = client.BuildsCandidateNodes;
             schemaClass = ResolveSchemaClass();
             ResolveClassContext();
             ReinitializeChildren();
         }
+
+        /// <summary>
+        /// Whether this node binds a stored child when the child is first
+        /// read, rather than binding every child with its row. The runtime
+        /// builds such a node to address a row, as a variant application does,
+        /// where most children are never read. A listener's subtree binds
+        /// eagerly: see <see cref="BindAllChildren"/>.
+        /// </summary>
+        internal bool BindsOnRead => bindsOnRead;
 
         /// <summary>
         /// Hook for child instantiation — returns the read-only kind for
@@ -112,7 +131,7 @@ namespace NeoCompose.Runtime
             Member childMember,
             string? overrideValueId)
         {
-            return CreateOwnedChild(client, childMember, overrideValueId, writableFamily: false);
+            return CreateOwnedChild(client, childMember, overrideValueId, writableFamily: false, bindsOnRead);
         }
 
         public NeoMember this[string key]
@@ -183,9 +202,9 @@ namespace NeoCompose.Runtime
             }
             if (!childMembers.TryGetValue(key, out NeoMember? child))
             {
-                if (!callablesDeferred)
+                if (!callablesDeferred && !storedDeferred)
                     return null;
-                child = BindCallable(key);
+                child = BindDeferredChild(key);
                 if (child is null)
                     return null;
             }
@@ -226,7 +245,8 @@ namespace NeoCompose.Runtime
         /// <summary>The computed member child whose getter is <paramref name="memberId"/>, if this node holds one.</summary>
         internal NeoMemberNSProperty? FindGetterChild(string memberId)
         {
-            BindCallables();
+            if (callablesDeferred)
+                BindDeferred(callables: true);
             foreach (var pair in childMembers)
                 if (pair.Value is NeoMemberNSProperty getter && getter.member.id == memberId)
                     return getter;
@@ -390,6 +410,7 @@ namespace NeoCompose.Runtime
             DisposeChildren(childMembers);
             childMembers.Clear();
             callablesDeferred = false;
+            storedDeferred = false;
             ForgetChildSlots();
             base.Dispose();
         }
@@ -415,6 +436,7 @@ namespace NeoCompose.Runtime
             var previousChildren = childMembers;
             childMembers = new(mergedSchema.Count);
             callablesDeferred = false;
+            storedDeferred = false;
             // A Class member explicitly bound to a Null row has no object
             // graph to descend into. Do not confuse it with a missing or
             // malformed Object row, which must retain the existing fail-fast
@@ -445,11 +467,20 @@ namespace NeoCompose.Runtime
                 if (!HasChild(entry))
                     continue;
                 // A function or getter binds when first read, which most
-                // trees never do. One already bound keeps its node.
-                if (IsCallable(entry.member!) && !previousChildren.ContainsKey(entry.schemaKey))
+                // trees never do, as does every child of a node that binds on
+                // read. One already bound keeps its node.
+                if (!previousChildren.ContainsKey(entry.schemaKey))
                 {
-                    callablesDeferred = true;
-                    continue;
+                    if (IsCallable(entry.member!))
+                    {
+                        callablesDeferred = true;
+                        continue;
+                    }
+                    if (bindsOnRead)
+                    {
+                        storedDeferred = true;
+                        continue;
+                    }
                 }
                 BindChild(entry, previousChildren, resolvedValueId, recordRebound, committed: false);
             }
@@ -468,30 +499,65 @@ namespace NeoCompose.Runtime
         private static bool IsCallable(Member member) =>
             member is NSFunctionMember or NSPropertyMember or FunctionMember;
 
-        private NeoMember? BindCallable(string key)
+        private NeoMember? BindDeferredChild(string key)
         {
             if (classNode?.SurfaceMember(key) is not { member: { } declared } entry
-                || !IsCallable(declared)
+                || !(IsCallable(declared) ? callablesDeferred : storedDeferred)
                 || !HasChild(entry))
                 return null;
             BindChild(entry, NoChildren, valueId, recordRebound: false, OutlivesCandidate);
             return childMembers.TryGetValue(key, out NeoMember? child) ? child : null;
         }
 
-        /// <summary>Binds every deferred callable, for readers that walk all children.</summary>
-        private void BindCallables()
+        /// <summary>Binds every deferred child, for readers that walk all children.</summary>
+        private void BindDeferredChildren()
         {
-            if (!callablesDeferred)
-                return;
-            callablesDeferred = false;
+            if (callablesDeferred)
+                BindDeferred(callables: true);
+            if (storedDeferred)
+                BindDeferred(callables: false);
+        }
+
+        private void BindDeferred(bool callables)
+        {
+            if (callables)
+                callablesDeferred = false;
+            else
+                storedDeferred = false;
             bool committed = OutlivesCandidate;
-            for (int entryIndex = 0; entryIndex < mergedSchema.Count; entryIndex++)
+            IList<MergedSchemaEntry> schema = mergedSchema;
+            for (int entryIndex = 0; entryIndex < schema.Count; entryIndex++)
             {
-                MergedSchemaEntry entry = mergedSchema[entryIndex];
-                if (HasChild(entry) && IsCallable(entry.member!) && !childMembers.ContainsKey(entry.schemaKey))
+                MergedSchemaEntry entry = schema[entryIndex];
+                if (HasChild(entry)
+                    && IsCallable(entry.member!) == callables
+                    && !childMembers.ContainsKey(entry.schemaKey))
                     BindChild(entry, NoChildren, valueId, recordRebound: false, committed);
             }
         }
+
+        /// <summary>
+        /// Binds every stored child, and every child's own: a listener on
+        /// this node hears the changes its whole subtree bubbles. The node
+        /// then binds eagerly for good.
+        /// </summary>
+        internal void BindAllChildren()
+        {
+            if (!bindsOnRead)
+                return;
+            bindsOnRead = false;
+            if (storedDeferred)
+                BindDeferred(callables: false);
+            IList<MergedSchemaEntry> schema = mergedSchema;
+            for (int entryIndex = 0; entryIndex < schema.Count; entryIndex++)
+            {
+                if (childMembers.TryGetValue(schema[entryIndex].schemaKey, out NeoMember? child)
+                    && child is NeoMemberClass { bindsOnRead: true } onRead)
+                    onRead.BindAllChildren();
+            }
+        }
+
+        private protected override void OnWatched() => BindAllChildren();
 
         /// <param name="committed">
         /// Create the child in the committed graph: a node that outlives a
@@ -640,7 +706,7 @@ namespace NeoCompose.Runtime
 
         public IEnumerator<KeyValuePair<string, NeoMember>> GetEnumerator()
         {
-            BindCallables();
+            BindDeferredChildren();
             return childMembers.GetEnumerator();
         }
 
@@ -728,6 +794,10 @@ namespace NeoCompose.Runtime
         public NeoMemberClassWritable(NeoClient client, ClassMember member, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
             : base(client, member, overrideValueId, ownership) { }
 
+        /// <param name="bindsOnRead">See <see cref="NeoMemberClass.BindsOnRead"/>.</param>
+        internal NeoMemberClassWritable(NeoClient client, ClassMember member, string? overrideValueId, NeoValueOwnership ownership, bool bindsOnRead)
+            : base(client, member, overrideValueId, ownership, bindsOnRead) { }
+
         /// <summary>
         /// The row id bound for <paramref name="key"/>. A P75 sparse root
         /// omits every member still sitting at its construction value, so a
@@ -752,7 +822,7 @@ namespace NeoCompose.Runtime
             Member childMember,
             string? overrideValueId)
         {
-            return CreateOwnedChild(client, childMember, overrideValueId, writableFamily: true);
+            return CreateOwnedChild(client, childMember, overrideValueId, writableFamily: true, BindsOnRead);
         }
 
         public TNeoMember GetOrCreateCollection<TNeoMember>(string key)

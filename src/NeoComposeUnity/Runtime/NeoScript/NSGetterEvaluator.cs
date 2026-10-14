@@ -5852,7 +5852,8 @@ namespace NeoCompose.Runtime.NeoScript
                     ctx.client,
                     member,
                     source.valueId,
-                    source.ownership);
+                    source.ownership,
+                    bindsOnRead: true);
                 NeoVariantSupport.ApplyToNode(
                     ctx.client,
                     record,
