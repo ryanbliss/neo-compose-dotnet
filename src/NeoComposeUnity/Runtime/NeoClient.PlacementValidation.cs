@@ -429,6 +429,7 @@ namespace NeoCompose.Runtime
             internal readonly CollectionMembership children = new();
             // Each array parent's member, which every child's edge asks for.
             internal readonly Dictionary<string, Member?> arrayMembers = new(StringComparer.Ordinal);
+            internal readonly List<NeoValidatedObjectRefresh> refreshes = new();
             internal bool inUse;
 
             internal void Clear()
@@ -444,6 +445,7 @@ namespace NeoCompose.Runtime
                 compatibleLayers.Clear();
                 children.Clear();
                 arrayMembers.Clear();
+                refreshes.Clear();
             }
         }
 
@@ -451,6 +453,7 @@ namespace NeoCompose.Runtime
 
 #if NEO_COMPOSE_PROFILING
         private static readonly Unity.Profiling.ProfilerMarker ValidatePlacementsMarker = new("NeoCompose.Write.ValidatePlacements");
+        private static readonly Unity.Profiling.ProfilerMarker ValidateGridMarker = new("NeoCompose.Write.ValidateGrid");
 #endif
         private void ValidateWritePlan(NeoWritePlan plan)
         {
@@ -485,7 +488,9 @@ namespace NeoCompose.Runtime
             {
                 writtenDescendants.Add(pair.Key.id);
                 pending.Enqueue(pair.Key.id);
-                if (pair.Value is null)
+                // The walk reaches the container of the row it resolves, unless
+                // that row is an unmoved object. A shadowed write it never resolves.
+                if (pair.Value is null || ReferenceEquals(plan.Resolve(pair.Key.id), pair.Value))
                     continue;
                 if (!string.IsNullOrEmpty(pair.Value.containerId))
                     pending.Enqueue(pair.Value.containerId!);
@@ -516,7 +521,14 @@ namespace NeoCompose.Runtime
                 if (HasWorldKind(kinds, "tile"))
                     tiles.Add(id);
                 if (HasWorldKind(kinds, "object"))
+                {
                     objects.Add(id);
+                    // An object that still places as its index records changes
+                    // no placement around it. The walk stops here, and the
+                    // object is validated alone rather than its whole grid.
+                    if (TryValidateUnmovedObject(plan, candidate, previous, scratch.refreshes))
+                        continue;
+                }
                 if (!string.IsNullOrEmpty(candidate?.containerId))
                     pending.Enqueue(candidate!.containerId!);
                 if (!string.IsNullOrEmpty(previous?.containerId))
@@ -552,6 +564,10 @@ namespace NeoCompose.Runtime
                     if (IsPlacementEdge(plan, scratch, parentList[parentIndex], id))
                         pending.Enqueue(parentList[parentIndex]);
             }
+            plan.ValidatedObjectRefreshes = null;
+            foreach (NeoValidatedObjectRefresh refresh in scratch.refreshes)
+                if (!grids.Contains(refresh.GridValueId))
+                    (plan.ValidatedObjectRefreshes ??= new()).Add(refresh);
             // These builders read rows and declarations only. Do not resolve
             // generated wrappers or populate persistent layer caches here.
             Dictionary<string, NeoReadOnlyTileGridPrimitive> primitives = scratch.primitives;
@@ -569,6 +585,9 @@ namespace NeoCompose.Runtime
                     return;
                 foreach (string tileId in tiles)
                     ValidateTileRow(tileId);
+#if NEO_COMPOSE_PROFILING
+                using var gridSample = ValidateGridMarker.Auto();
+#endif
                 foreach (string gridId in grids)
                     ValidateGridPlacements(plan, gridId, primitives[gridId], compatibleLayers);
             }
@@ -685,10 +704,7 @@ namespace NeoCompose.Runtime
                         ValidateTileRow(entryId);
                     else
                     {
-                        if (ResolveClassChildRow(entry, "Position") is MemberValue position
-                            && (position is not Vector3MemberValue { value: not null } vector
-                                || !Finite(vector.value.x) || !Finite(vector.value.y) || !Finite(vector.value.z)))
-                            throw PlacementError("object-position-invalid", $"Object '{entryId}' requires a finite Position.");
+                        ValidateObjectPosition(entry);
                         ValidateObjectFootprint(entry);
                     }
                 }
@@ -717,11 +733,8 @@ namespace NeoCompose.Runtime
                 foreach (NeoObjectPlacementRecord obj in records)
                 {
                     ValidateLayerClass(obj.AssetClassId, layerId, objectImports, false, compatibleLayers);
-                    if (ResolveValueRow(obj.InstanceId) is ObjectMemberValue row
-                        && row.instanceVariantId is string variantId
-                        && (!data.variants.TryGetValue(variantId, out VariantRecord? variant)
-                            || !ResolveClassInheritanceChain(obj.AssetClassId).Any(type => type.id == variant.classId)))
-                        throw PlacementError("object-variant-invalid", $"Object '{obj.InstanceId}' has an incompatible variant '{variantId}'.");
+                    if (ResolveValueRow(obj.InstanceId) is ObjectMemberValue row)
+                        ValidateObjectVariant(row, obj.AssetClassId);
                     foreach (Vector2Int cell in obj.Footprint)
                     {
                         if (occupied.TryGetValue(cell, out string other) && other != obj.InstanceId)
@@ -730,6 +743,22 @@ namespace NeoCompose.Runtime
                     }
                 }
             }
+        }
+
+        private void ValidateObjectPosition(ObjectMemberValue owner)
+        {
+            if (ResolveClassChildRow(owner, "Position") is MemberValue position
+                && (position is not Vector3MemberValue { value: not null } vector
+                    || !Finite(vector.value.x) || !Finite(vector.value.y) || !Finite(vector.value.z)))
+                throw PlacementError("object-position-invalid", $"Object '{owner.id}' requires a finite Position.");
+        }
+
+        private void ValidateObjectVariant(ObjectMemberValue owner, string classId)
+        {
+            if (owner.instanceVariantId is string variantId
+                && (!data.variants.TryGetValue(variantId, out VariantRecord? variant)
+                    || !ResolveClassInheritanceChain(classId).Any(type => type.id == variant.classId)))
+                throw PlacementError("object-variant-invalid", $"Object '{owner.id}' has an incompatible variant '{variantId}'.");
         }
 
         private void ValidateObjectFootprint(ObjectMemberValue owner)

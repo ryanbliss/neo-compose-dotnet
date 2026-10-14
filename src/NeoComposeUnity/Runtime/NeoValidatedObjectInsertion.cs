@@ -83,10 +83,7 @@ namespace NeoCompose.Runtime
                 return false;
             var imports = new HashSet<string>(InternalRecordRelations.ResolveTargetIds(InternalRecordRelationKinds.WorldGridObjectImport, grid.classId!));
             ValidateLayerClass(root.classId!, insertion.layerId, imports, false, compatibleLayers);
-            if (root.instanceVariantId is string variantId
-                && (!data.variants.TryGetValue(variantId, out var variant)
-                    || !ResolveClassInheritanceChain(root.classId).Any(type => type.id == variant.classId)))
-                throw PlacementError("object-variant-invalid", $"Object '{root.id}' has an incompatible variant '{variantId}'.");
+            ValidateObjectVariant(root, root.classId!);
             if (!plan.TryGetOwnership(root.id, out var ownership))
                 return false;
             return cache.PrepareObjectInsertion(plan, insertion.layerId, members,

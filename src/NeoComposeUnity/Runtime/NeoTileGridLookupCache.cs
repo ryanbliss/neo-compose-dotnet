@@ -110,6 +110,7 @@ namespace NeoCompose.Runtime
             knownTileLayers.Clear();
             knownObjectLayers.Clear();
             convertedTileCells.Clear();
+            refreshedObjects?.Clear();
             objectLayerIds = null;
             tileLayerIds = null;
         }
@@ -220,10 +221,12 @@ namespace NeoCompose.Runtime
             foreach (var value in changed)
                 if (plan.UnchangedValueIds?.Contains(value.valueId) != true)
                     ids.Add(value.valueId);
+            ExcludeRefreshedObjects(plan, ids);
             InvalidateDependents(tileLayers, changedTileLayers, ids);
             ForgetRecentTileLayers();
             InvalidateDependents(objectLayers, changedObjectLayers, ids);
             DropObjectLayers();
+            KeepRefreshedObjects(plan);
             foreach (string layerId in changedTileLayers.Keys)
                 if (plan.PreparedTileLayers is { } preparedTiles
                     && preparedTiles.TryGetValue((primitive.GridValueId, layerId), out var prepared))
@@ -291,6 +294,7 @@ namespace NeoCompose.Runtime
             changedTileLayers.Clear();
             changedObjectLayers.Clear();
             convertedTileCells.Clear();
+            refreshedObjects?.Clear();
             if (Changed is null || !primitive.Client.IsValuePartitionLoaded(mapKey))
                 return;
             foreach (string layerId in knownTileLayers)
@@ -404,7 +408,8 @@ namespace NeoCompose.Runtime
         private void NotifyPublishedValues(
             IReadOnlyCollection<(NeoValueOwnership ownership, string valueId)> changed)
         {
-            if (changedTileLayers.Count == 0 && changedObjectLayers.Count == 0 && convertedTileCells.Count == 0)
+            if (changedTileLayers.Count == 0 && changedObjectLayers.Count == 0 && convertedTileCells.Count == 0
+                && refreshedObjects is not { Count: not 0 })
                 return;
             var changedIds = new HashSet<string>();
             foreach (var value in changed)
@@ -458,6 +463,7 @@ namespace NeoCompose.Runtime
                 objects.Add(new NeoObjectLayerChangedArgs(pair.Key, removed, updated,
                     new List<Vector2Int>(cells), NeoTileGridChangeSourceKind.Direct, null));
             }
+            AddRefreshedObjectChanges(objects);
             changedTileLayers.Clear();
             changedObjectLayers.Clear();
             convertedTileCells.Clear();
@@ -509,6 +515,10 @@ namespace NeoCompose.Runtime
         // Index construction.
         // ------------------------------------------------------------------
 
+#if NEO_COMPOSE_PROFILING
+        private static readonly Unity.Profiling.ProfilerMarker BuildTileLayerMarker = new("NeoCompose.Grid.BuildTileLayer");
+        private static readonly Unity.Profiling.ProfilerMarker BuildObjectLayerMarker = new("NeoCompose.Grid.BuildObjectLayer");
+#endif
         private TileLayerIndex GetTileLayerIndex(string layerId)
         {
             for (int i = 0; i < RecentTileLayerCount; i++)
@@ -519,6 +529,9 @@ namespace NeoCompose.Runtime
             // Every indexed layer is already known; only a build registers one.
             if (!tileLayers.TryGetValue(layerId, out var index))
             {
+#if NEO_COMPOSE_PROFILING
+                using var sample = BuildTileLayerMarker.Auto();
+#endif
                 knownTileLayers.Add(layerId);
                 index = BuildTileLayerIndex(primitive.BuildTileLayerRecords(layerId));
                 tileLayers[layerId] = index;
@@ -575,6 +588,9 @@ namespace NeoCompose.Runtime
             // Every indexed layer is already known; only a build registers one.
             if (objectLayers.TryGetValue(layerId, out var index))
                 return index;
+#if NEO_COMPOSE_PROFILING
+            using var sample = BuildObjectLayerMarker.Auto();
+#endif
             knownObjectLayers.Add(layerId);
             var dependencyIds = new HashSet<string>();
             var records = primitive.BuildObjectLayerRecords(layerId, dependencyIds);
