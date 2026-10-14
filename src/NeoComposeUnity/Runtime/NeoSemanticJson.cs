@@ -48,6 +48,9 @@ namespace NeoCompose.Runtime
                 || left.instanceConstructorId != right.instanceConstructorId
                 || left.instanceVariantId != right.instanceVariantId
                 || left.instanceVariantRowValueId != right.instanceVariantRowValueId
+                || left.hasInstanceAppliedVariant != right.hasInstanceAppliedVariant
+                || left.instanceAppliedVariantId != right.instanceAppliedVariantId
+                || left.instanceAppliedVariantRowValueId != right.instanceAppliedVariantRowValueId
                 || !MapsEqual(left.genericBindings, right.genericBindings)
                 || !MapsEqual(left.constructorArgs, right.constructorArgs))
                 return false;

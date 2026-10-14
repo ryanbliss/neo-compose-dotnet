@@ -5264,6 +5264,11 @@ namespace NeoCompose.Runtime
             }
             clone.instanceVariantId = row.instanceVariantId;
             clone.instanceVariantRowValueId = row.instanceVariantRowValueId;
+            if (row.hasInstanceAppliedVariant)
+            {
+                clone.instanceAppliedVariantId = row.instanceAppliedVariantId;
+                clone.instanceAppliedVariantRowValueId = row.instanceAppliedVariantRowValueId;
+            }
             // genericBindings is immutable creation-time context
             // (specs/class-generics.md Decision 9): a shadow of a
             // stamped collection row keeps its entry-substitution stamp.

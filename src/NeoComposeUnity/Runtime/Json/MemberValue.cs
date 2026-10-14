@@ -241,6 +241,15 @@ namespace NeoCompose.Runtime.Json
                 throw new JsonSerializationException(
                     $"{subject} carries 'instanceVariantRowValueId' without 'instanceVariantId'. Run `neo pull` and `neo export`.");
             }
+            bool carriesAppliedVariant =
+                carrier["instanceAppliedVariantId"]?.Type == JTokenType.String;
+            bool carriesAppliedVariantRow =
+                carrier["instanceAppliedVariantRowValueId"]?.Type == JTokenType.String;
+            if (carriesAppliedVariantRow && !carriesAppliedVariant)
+            {
+                throw new JsonSerializationException(
+                    $"{subject} carries 'instanceAppliedVariantRowValueId' without 'instanceAppliedVariantId'. Run `neo pull` and `neo export`.");
+            }
             if (property is null || property.Value.Type == JTokenType.Null)
             {
                 if (constructorProperty?.Value.Type == JTokenType.String)
@@ -1467,7 +1476,7 @@ namespace NeoCompose.Runtime.Json
         public bool ShouldSerializeinstanceConstructorId() =>
             hasInstanceConstructorId;
 
-        /// <summary>P75 variant layer used to construct this instance.</summary>
+        /// <summary>P75 variant whose <c>Initialize()</c> built this instance.</summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string? instanceVariantId
         {
@@ -1480,6 +1489,59 @@ namespace NeoCompose.Runtime.Json
         {
             get; set;
         }
+
+        private string? storedInstanceAppliedVariantId;
+
+        /// <summary>
+        /// True once <see cref="instanceAppliedVariantId"/> was assigned, even
+        /// to <c>null</c>. Base writes an explicit null so a sparse save entry
+        /// retires an authored layer instead of inheriting it.
+        /// </summary>
+        [JsonIgnore]
+        public bool hasInstanceAppliedVariant
+        {
+            get; private set;
+        }
+
+        /// <summary>
+        /// P75 §6 variant <c>ToVariant</c> last applied to this instance. Its
+        /// Overrides and ChildOverrides layer over the construction; its Apply
+        /// writes are ordinary overrides.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Include)]
+        public string? instanceAppliedVariantId
+        {
+            get => storedInstanceAppliedVariantId;
+            set
+            {
+                storedInstanceAppliedVariantId = value;
+                hasInstanceAppliedVariant = true;
+            }
+        }
+
+        /// <summary>P68 lookup row of the applied variant.</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Include)]
+        public string? instanceAppliedVariantRowValueId
+        {
+            get; set;
+        }
+
+        /// <summary>
+        /// Newtonsoft's conditional-serialization hook for
+        /// <see cref="instanceAppliedVariantId"/>. Not part of the API surface.
+        /// </summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public bool ShouldSerializeinstanceAppliedVariantId() =>
+            hasInstanceAppliedVariant;
+
+        /// <summary>
+        /// Newtonsoft's conditional-serialization hook for
+        /// <see cref="instanceAppliedVariantRowValueId"/>. Not part of the API
+        /// surface.
+        /// </summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public bool ShouldSerializeinstanceAppliedVariantRowValueId() =>
+            hasInstanceAppliedVariant;
 
         /// <summary>
         /// Set iff this row is an entry of an <b>unordered</b> List value

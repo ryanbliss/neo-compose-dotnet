@@ -759,6 +759,10 @@ namespace NeoCompose.Runtime
                 && (!data.variants.TryGetValue(variantId, out VariantRecord? variant)
                     || !ResolveClassInheritanceChain(classId).Any(type => type.id == variant.classId)))
                 throw PlacementError("object-variant-invalid", $"Object '{owner.id}' has an incompatible variant '{variantId}'.");
+            if (owner.instanceAppliedVariantId is string appliedVariantId
+                && (!data.variants.TryGetValue(appliedVariantId, out VariantRecord? applied)
+                    || !ResolveClassInheritanceChain(classId).Any(type => type.id == applied.classId)))
+                throw PlacementError("object-variant-invalid", $"Object '{owner.id}' has an incompatible applied variant '{appliedVariantId}'.");
         }
 
         private void ValidateObjectFootprint(ObjectMemberValue owner)

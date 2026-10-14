@@ -98,6 +98,8 @@ namespace NeoCompose.Runtime
                     && (next.classId != previous.classId
                         || next.instanceVariantId != previous.instanceVariantId
                         || next.instanceVariantRowValueId != previous.instanceVariantRowValueId
+                        || next.instanceAppliedVariantId != previous.instanceAppliedVariantId
+                        || next.instanceAppliedVariantRowValueId != previous.instanceAppliedVariantRowValueId
                         || next.instanceConstructorId != previous.instanceConstructorId
                         || (next.value is null) != (previous.value is null)
                         || !NeoSemanticJson.MapsEqual(next.constructorArgs, previous.constructorArgs)))
@@ -146,8 +148,7 @@ namespace NeoCompose.Runtime
                 || plan.Resolve(rootId) is not ObjectMemberValue { classId: not null, value: not null } root)
                 return false;
             if (TryGetCommittedValue(rootId, out MemberValue? previous)
-                && !NeoSemanticJson.MemberRowsEqual(previous, root, ignoreObjectFields: true, ignorePlacement: true)
-                && plan.ConstructedVariantRoot != rootId)
+                && !NeoSemanticJson.MemberRowsEqual(previous, root, ignoreObjectFields: true, ignorePlacement: true))
                 return false;
             if (!plan.TryGetOwnership(rootId, out NeoValueOwnership rootOwnership))
                 return false;

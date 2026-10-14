@@ -87,6 +87,8 @@ namespace NeoCompose.Runtime.Json
             "instanceConstructorId",
             "instanceVariantId",
             "instanceVariantRowValueId",
+            "instanceAppliedVariantId",
+            "instanceAppliedVariantRowValueId",
         };
 
         /// <summary>

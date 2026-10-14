@@ -171,7 +171,8 @@ namespace NeoCompose.Runtime
                 || isReplayingVirtualInstance)
                 return false;
             if (next.IsRemoved || next.hasInstanceConstructorId || next.constructorArgs is not null
-                || next.instanceVariantId is not null || next.instanceVariantRowValueId is not null)
+                || next.instanceVariantId is not null || next.instanceVariantRowValueId is not null
+                || next.hasInstanceAppliedVariant)
                 return false;
             // A row a constructed graph read while it expanded (an initializer
             // that copies this leaf) is a replay dependency of that graph;

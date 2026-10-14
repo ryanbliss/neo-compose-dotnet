@@ -1100,31 +1100,6 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void FreshVariantStampKeepsItsCompleteGraphButSparseWritesReplay()
-        {
-            ProjectData data = BuildConstructedUnorderedChildrenProjectData();
-            AddThingVariant(data);
-            using var client = NeoTestSaveStack.ClientFromSchema(data);
-            string clone = client.CloneValueReference("thing-instance", NeoValueOwnership.Save);
-            var member = new ClassMember { id = "fresh-thing", name = "Thing", kind = MemberKind.Class, classId = "thing-class" };
-            var node = new NeoMemberClassWritable(client, member, clone, NeoValueOwnership.Session);
-            data.constructors["thing-ctor"].action!.instructions = new Instruction[]
-            {
-                new ThrowInstruction { type = InstructionKind.Throw, pointer = IntLiteral(987) },
-            };
-            Assert.DoesNotThrow(() => client.StampVirtualInstanceVariant(node, NeoValueOwnership.Session,
-                "thing-variant", null, replay: false), "Stamping a complete fresh receiver must not construct it again.");
-            Assert.That(node.value!.instanceVariantId, Is.EqualTo("thing-variant"));
-            var sparse = (ObjectMemberValue)client.CloneRowForWrite(node.value);
-            sparse.value!.Remove("Children");
-            var plan = new NeoWritePlan(client);
-            plan.Set(NeoValueOwnership.Session, sparse);
-            var error = Assert.Throws<InvalidOperationException>(() => plan.Commit());
-            StringAssert.Contains("987", error!.Message, "Removing an owned subtree must retain constructor replay.");
-            Assert.That(node.value!.value, Contains.Key("Children"));
-        }
-
-        [Test]
         public void VirtualDictionaryPathsKeepEscapingAndUtf8Ids()
         {
             var flags = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic;
@@ -4496,20 +4471,19 @@ namespace NeoCompose.Tests
                     .Get<NeoMemberClassWritable>("Nested");
                 nestedId = nested.value!.id;
                 deepId = nested.Get<NeoMemberClassWritable>("Deep").value!.id;
-                // Make Base a real selection change so the public ToVariant
-                // seam persists the virtual receiver instead of returning early.
-                nested.value.instanceVariantId = "previous-variant";
-                var generated = new SparseNestedValue(first, nested);
-
-                NeoGeneratedTypesSupport.ApplyVariant(
-                    generated,
-                    NeoGeneratedTypesSupport.ResolveBaseVariant<SparseNestedValue>(
-                        first,
-                        "nested-class"));
+                // Before SDK 0.71.4, ToVariant on a nested receiver stored it
+                // at its virtual id as a root of its own. Retiring a layer
+                // through the provenance stamp writes that row.
+                nested.value.instanceAppliedVariantId = "previous-variant";
+                first.StampVirtualInstanceVariant(
+                    nested,
+                    NeoValueOwnership.Save,
+                    variantId: null,
+                    rowValueId: null);
 
                 Assert.IsTrue(first.saveValues.ContainsKey(nestedId));
                 Assert.IsFalse(first.saveValues.ContainsKey("thing-instance"),
-                    "ToVariant writes the nested stable id without materializing its sparse parent link.");
+                    "The stamp writes the nested stable id without materializing its sparse parent link.");
                 saved = first.SerializeSaveData();
             }
 
@@ -4616,7 +4590,7 @@ namespace NeoCompose.Tests
             // A variant replay of the enclosing root releases rows, and
             // must not release the override under the stored nested root.
             NeoMemberClassWritable thing = client.save.Get<NeoMemberClassWritable>("Thing");
-            thing.value!.instanceVariantId = "previous-variant";
+            thing.value!.instanceAppliedVariantId = "previous-variant";
             Assert.DoesNotThrow(() => NeoGeneratedTypesSupport.ApplyVariant(
                 new SparseThingValue(client, thing),
                 NeoGeneratedTypesSupport.ResolveBaseVariant<SparseThingValue>(client, "thing-class")));
@@ -4705,7 +4679,7 @@ namespace NeoCompose.Tests
             // the root as a variant candidate, the path ToVariant takes.
             static void ReplayAsVariant(NeoClient client, NeoMemberClassWritable root)
             {
-                root.value!.instanceVariantId = "previous-variant";
+                root.value!.instanceAppliedVariantId = "previous-variant";
                 Assert.DoesNotThrow(() => NeoGeneratedTypesSupport.ApplyVariant(
                     new SparseThingValue(client, root),
                     NeoGeneratedTypesSupport.ResolveBaseVariant<SparseThingValue>(
@@ -4769,7 +4743,7 @@ namespace NeoCompose.Tests
             });
 
             Assert.AreEqual(childrenId, candidateChildren?.id, "The candidate still answers the virtual Children list.");
-            Assert.AreEqual("thing-variant", ((ObjectMemberValue)client.ResolveValueRow(rootId)!).instanceVariantId);
+            Assert.AreEqual("thing-variant", ((ObjectMemberValue)client.ResolveValueRow(rootId)!).instanceAppliedVariantId);
             var entry = (NeoMemberClassWritable)thing.Get<NeoMemberList>("Children").Single();
             Assert.AreEqual("Sprite", entry.Get<NeoMemberStringWritable>("Name").value!.value);
         }
@@ -5003,44 +4977,43 @@ namespace NeoCompose.Tests
         }
 
         /// <summary>
-        /// Selecting a variant on the stored entry itself gives it a recipe
-        /// of its own, live and after a reload; re-selecting Base returns it
-        /// to the outer root's spine, call-site initializer included.
+        /// P75 §6: a stored entry is a spine of its root, and its construction
+        /// is that root's. A variant applied to it writes its layers in place,
+        /// so the call-site initializer survives, live and after a reload. It
+        /// records no layer, so Base has nothing to retire.
         /// </summary>
         [Test]
-        public void AStoredEntrySelectingItsOwnVariantLeavesTheSpineAndBaseReturnsIt()
+        public void AVariantAppliedToAStoredEntryKeepsItTheSpinesOwn()
         {
             string saved;
+            string entryId;
             using (NeoClient first = NeoTestSaveStack.ClientFromSchema(
                 BuildConstructedUnorderedChildrenProjectData()))
             {
                 NeoMemberClassWritable thing = first.save.Get<NeoMemberClassWritable>("Thing");
                 Entry(thing).Get<NeoMemberStringWritable>("Tag").Set("tagged");
+                entryId = Entry(thing).value!.id;
                 Assert.DoesNotThrow(() => NeoGeneratedTypesSupport.ApplyVariant(
                     new SparseEntryValue(first, Entry(thing)),
                     first.GetOrCreateVariant<SparseEntryValue>("entry-variant")));
-                AssertEntry(thing, "unnamed", "variant");
+                AssertEntry(thing, "Sprite", "overridden");
+                var stored = (ObjectMemberValue)first.saveValues[entryId];
+                Assert.IsFalse(stored.hasInstanceAppliedVariant);
+                Assert.IsNull(stored.instanceVariantId);
                 saved = first.SerializeSaveData();
             }
-            using (NeoClient second = NeoTestSaveStack.ClientFromSchema(
-                BuildConstructedUnorderedChildrenProjectData(),
-                loadedSaveContent: saved))
-            {
-                NeoMemberClassWritable thing = second.save.Get<NeoMemberClassWritable>("Thing");
-                AssertEntry(thing, "unnamed", "variant");
-                Assert.DoesNotThrow(() => NeoGeneratedTypesSupport.ApplyVariant(
-                    new SparseEntryValue(second, Entry(thing)),
-                    NeoGeneratedTypesSupport.ResolveBaseVariant<SparseEntryValue>(second, "entry-class")));
-                AssertEntry(thing, "Sprite", "call-site");
-                CollectionAssert.IsEmpty(
-                    second.FindUnlinkedSaveValueIds(),
-                    "returning to Base removes the entry's own variant rows");
-                saved = second.SerializeSaveData();
-            }
-            using NeoClient third = NeoTestSaveStack.ClientFromSchema(
+            using NeoClient second = NeoTestSaveStack.ClientFromSchema(
                 BuildConstructedUnorderedChildrenProjectData(),
                 loadedSaveContent: saved);
-            AssertEntry(third.save.Get<NeoMemberClassWritable>("Thing"), "Sprite", "call-site");
+            NeoMemberClassWritable reloaded = second.save.Get<NeoMemberClassWritable>("Thing");
+            AssertEntry(reloaded, "Sprite", "overridden");
+            Assert.AreEqual(entryId, Entry(reloaded).value!.id);
+            string before = second.SerializeSaveData();
+            NeoGeneratedTypesSupport.ApplyVariant(
+                new SparseEntryValue(second, Entry(reloaded)),
+                NeoGeneratedTypesSupport.ResolveBaseVariant<SparseEntryValue>(second, "entry-class"));
+            Assert.AreEqual(before, second.SerializeSaveData());
+            CollectionAssert.IsEmpty(second.FindUnlinkedSaveValueIds());
         }
 
         private static NeoMemberClassWritable Entry(NeoMemberClassWritable thing)
@@ -5073,28 +5046,6 @@ namespace NeoCompose.Tests
                 NeoMemberClassWritable node)
             {
                 return new SparseEntryValue(client, node);
-            }
-        }
-
-        private sealed class SparseNestedValue : NeoGeneratedClassValue
-        {
-            internal SparseNestedValue(
-                NeoClient client,
-                NeoMemberClassWritable node)
-                : base(
-                    client,
-                    node,
-                    "nested-class",
-                    isReadOnly: false,
-                    inheritedStorageOwnership: NeoValueOwnership.Save)
-            {
-            }
-
-            internal static SparseNestedValue CreateWritable(
-                NeoClient client,
-                NeoMemberClassWritable node)
-            {
-                return new SparseNestedValue(client, node);
             }
         }
 
@@ -5132,14 +5083,14 @@ namespace NeoCompose.Tests
                 Assert.AreEqual(
                     nested.Get<NeoMemberDictionary>("Labels").value!.id,
                     nested.value.constructorArgs["__arg_4__"]!.Value<string>());
-                nested.value.instanceVariantId = "previous-variant";
-                var generated = new SparseNestedValue(first, nested);
-
-                Assert.DoesNotThrow(() => NeoGeneratedTypesSupport.ApplyVariant(
-                    generated,
-                    NeoGeneratedTypesSupport.ResolveBaseVariant<SparseNestedValue>(
-                        first,
-                        "nested-class")));
+                // A nested root stored at its virtual id, as SDKs before
+                // 0.71.4 wrote one for ToVariant on a nested receiver.
+                nested.value.instanceAppliedVariantId = "previous-variant";
+                Assert.DoesNotThrow(() => first.StampVirtualInstanceVariant(
+                    nested,
+                    NeoValueOwnership.Save,
+                    variantId: null,
+                    rowValueId: null));
 
                 var written = (ObjectMemberValue)first.saveValues[nestedId];
                 Assert.AreEqual(
@@ -5888,6 +5839,25 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void AppliedVariantRowWithoutAppliedVariantFailsClosed()
+        {
+            Newtonsoft.Json.JsonSerializationException error = Assert.Throws<
+                Newtonsoft.Json.JsonSerializationException>(() =>
+                Newtonsoft.Json.JsonConvert.DeserializeObject<ObjectMemberValue>(@"{
+  'id':'thing-instance',
+  'classId':'thing-class',
+  'value':{},
+  'instanceAppliedVariantRowValueId':'thing-variant-row',
+  'createdAt':'2026-08-22T00:00:00.000Z',
+  'updatedAt':'2026-08-22T00:00:00.000Z'
+}".Replace('\'', '"')))!;
+
+            StringAssert.Contains(
+                "without 'instanceAppliedVariantId'",
+                error.Message);
+        }
+
+        [Test]
         public void ExplicitParameterlessConstructorRejectsArguments()
         {
             Newtonsoft.Json.JsonSerializationException error = Assert.Throws<
@@ -5907,21 +5877,31 @@ namespace NeoCompose.Tests
                 error.Message);
         }
 
+        /// <summary>
+        /// A row with no recipe gains the implicit constructor pair with its
+        /// applied layer, so retiring that layer leaves a valid P75 root. The
+        /// save carries the retirement as an explicit null, which is what lets
+        /// a sparse save entry retire an authored applied layer.
+        /// </summary>
         [Test]
-        public void ClearingAVariantToBaseKeepsTheInstanceExpanding()
+        public void RetiringAnAppliedVariantKeepsTheInstanceExpanding()
         {
             ProjectData data = BuildProjectData();
-            // A variant-only root: the web stamped the selected variant and
-            // nothing else, so `instanceVariantId` is its ONLY eligibility
-            // marker.
+            AddThingVariant(data);
             var authored = (ObjectMemberValue)data.values["thing-instance"];
             data.values["thing-instance"] = ObjectValue(authored.id, authored.classId!);
 
             using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
             NeoMemberClassWritable thing = client.save
                 .Get<NeoMemberClassWritable>("Thing");
-            ((ObjectMemberValue)client.values["thing-instance"]).instanceVariantId =
-                "thing-variant";
+            Assert.IsTrue(client.StampVirtualInstanceVariant(
+                thing,
+                NeoValueOwnership.Save,
+                "thing-variant",
+                rowValueId: null));
+            var stamped = (JObject)JObject.Parse(client.SerializeSaveData())["values"]!["thing-instance"]!;
+            Assert.AreEqual("thing-variant", stamped.Value<string>("instanceAppliedVariantId"));
+            Assert.IsFalse(stamped.ContainsKey("instanceVariantId"), "ToVariant never records a construction.");
 
             client.StampVirtualInstanceVariant(
                 thing,
@@ -5937,9 +5917,11 @@ namespace NeoCompose.Tests
             var written = (JObject)JObject.Parse(content)["values"]!["thing-instance"]!;
             Assert.IsTrue(
                 written.TryGetValue("instanceConstructorId", out JToken? stampedId),
-                "Clearing to Base must leave the row a valid P75 root.");
+                "Retiring the applied layer must leave the row a valid P75 root.");
             Assert.AreEqual(JTokenType.Null, stampedId!.Type);
             Assert.IsNotNull(written["constructorArgs"]);
+            Assert.IsTrue(written.TryGetValue("instanceAppliedVariantId", out JToken? applied));
+            Assert.AreEqual(JTokenType.Null, applied!.Type);
 
             client.ApplyExternalSaveContent(content);
 
@@ -7917,9 +7899,31 @@ namespace NeoCompose.Tests
             root.instanceConstructorId = "thing-ctor";
             root.constructorArgs = new Dictionary<string, JToken?>();
 
-            // Entry.Variants.Other: Initialize is `new Entry("variant")`.
+            // Entry.Variants.Other: Initialize is `new Entry("variant")`, and
+            // Overrides set `Label = "overridden"`.
             var variantClass = SchemaClass("entry-variant-class", "NeoVariant", NeoMemberStorage.Immutable);
             variantClass.schema["Initialize"] = "entry-variant-initialize";
+            variantClass.schema["Overrides"] = "entry-variant-overrides";
+            data.members["entry-variant-overrides"] = new ClassMember
+            {
+                id = "entry-variant-overrides",
+                projectId = "p75-project",
+                name = "Overrides",
+                kind = MemberKind.Class,
+                classId = entryClass.id,
+                Payload = NeoMemberPayloadKind.Partial,
+                Requirement = NeoMemberRequirementKind.Optional,
+                Storage = NeoMemberStorage.Immutable,
+            };
+            data.values["entry-variant-override"] = ObjectValue(
+                "entry-variant-override",
+                entryClass.id,
+                new Dictionary<string, string> { ["Label"] = "entry-variant-override-label" });
+            data.values["entry-variant-override-label"] = new StringMemberValue
+            {
+                id = "entry-variant-override-label",
+                value = "overridden",
+            };
             data.classes[variantClass.id] = variantClass;
             data.members["entry-variant-initialize"] = new DelegateMember
             {
@@ -7935,7 +7939,11 @@ namespace NeoCompose.Tests
             data.values["entry-variant-graph"] = ObjectValue(
                 "entry-variant-graph",
                 variantClass.id,
-                new Dictionary<string, string> { ["Initialize"] = "entry-variant-closure" });
+                new Dictionary<string, string>
+                {
+                    ["Initialize"] = "entry-variant-closure",
+                    ["Overrides"] = "entry-variant-override",
+                });
             data.values["entry-variant-closure"] = new DelegateMemberValue
             {
                 id = "entry-variant-closure",
