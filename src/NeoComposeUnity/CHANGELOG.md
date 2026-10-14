@@ -1,12 +1,22 @@
 # Changelog
 
+## [0.71.6] - 2026-10-14
+
+- Fixed: a null `NeoReadOnlyColor`, `NeoReadOnlyVector2`, `NeoReadOnlyVector2Int`, `NeoReadOnlyVector3`, or `NeoReadOnlyVector3Int` threw a `NullReferenceException` when read into its nullable native type. It now reads as null, as a native value would. This covers `TextColor = active ? null : palette.Grey.Light;`, where C# types the conditional as the wrapper, and an unset optional member such as `Vector2? offset = collider.Offset;`. Both used to need a cast to the native type.
+
+```csharp
+// New on each read-only wrapper, beside the existing native conversion.
+public static implicit operator Color(NeoReadOnlyColor value);    // unchanged; a null wrapper still throws
+public static implicit operator Color?(NeoReadOnlyColor? value);  // new; a null wrapper reads as null
+```
+
 ## [0.71.5] - 2026-10-14
 
 - Fixed: a string in a local collection that happens to equal a live value id read back as the row it names. After `ids.Add(placed.Id)` on a local `List<string>`, `ids[0]`, `foreach`, `Where`, and a local dictionary's values returned that row instead of the string. Literals and query results that hold strings, their local mutations, and string collections a C# caller passes in now hold values, so their strings stay strings.
 
 ## [0.71.4] - 2026-10-14
 
-- Fixed: `ToVariant` reran the target variant's `initialize`. It now runs only the variant's `Apply`, `Overrides`, and `ChildOverrides` on the instance as it stands, and `initialize` runs only on `Variants.X.Initialize()`. An instance remembers two variants: `instanceVariantId`, the variant whose `Initialize()` built it, and `instanceAppliedVariantId`, the variant `ToVariant` last applied. The applied variant's `Overrides` and `ChildOverrides` layer over the construction, and its `Apply` writes stay as overrides. `ToVariant(Base)` removes the applied layer, so the construction's own values return. A `ToVariant` on an instance constructed in the same evaluation records nothing. Neither does a `ToVariant` on an object nested inside another instance's construction: the variant's layers apply to it in place, so values its constructor's call site set, such as `new Entry("call-site") { Name = "Sprite" }`, stay. It used to become an instance of its own and lose them. Existing saves load unchanged. Requires CLI 0.81.1; run `neo pull` and `neo export` after upgrading.
+- Fixed: `ToVariant` reran the target variant's `initialize`. It now runs only the variant's `Apply`, `Overrides`, and `ChildOverrides` on the instance as it stands, and `initialize` runs only on `Variants.X.Initialize()`. An instance remembers two variants: `instanceVariantId`, the variant whose `Initialize()` built it, and `instanceAppliedVariantId`, the variant `ToVariant` last applied. The applied variant's `Overrides` and `ChildOverrides` layer over the construction, and its `Apply` writes stay as overrides. `ToVariant(Base)` removes the applied layer, so the construction's own values return. A `ToVariant` on an instance constructed in the same evaluation records nothing. Neither does a `ToVariant` on an object nested inside another instance's construction: the variant's layers apply to it in place, so values its constructor's call site set, such as `new Entry("call-site") { Name = "Sprite" }`, stay. It used to become an instance of its own and lose them. Existing saves load unchanged. Requires CLI 0.81.1.
 
 ```csharp
 // MemberValue (JSON model). New: the applied layer, beside the construction.

@@ -188,6 +188,24 @@ namespace NeoCompose.Tests
             Assert.AreEqual(new Color(0.1f, 0.2f, 0.3f, 1f), wrapper.Value);
         }
 
+        // `active ? null : palette.Grey` types as the wrapper, so its null
+        // used to reach the Color conversion and throw when assigned to a
+        // Color?. A native Color in the same expression reads as null.
+        [Test]
+        public void Wrapper_NullReadsAsNullNullableColor()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
+            var tint = new NeoColor(client.save.Get<NeoMemberColorWritable>("Tint"));
+            var active = false;
+
+            Color? inactiveColor = active ? null : tint;
+            Assert.AreEqual(new Color(0.1f, 0.2f, 0.3f, 1f), inactiveColor);
+
+            active = true;
+            Color? activeColor = active ? null : tint;
+            Assert.IsNull(activeColor);
+        }
+
         [Test]
         public void Wrapper_DetachedCtorAndImplicitFromColor()
         {

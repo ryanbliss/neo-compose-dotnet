@@ -291,6 +291,13 @@ namespace NeoCompose.Runtime
 
         public static implicit operator Vector2(NeoReadOnlyVector2 value) => value.Value;
 
+        // A null wrapper becomes a null Vector2?, the way a native Vector2
+        // behaves: `Vector2? offset = collider.Offset;` on an unset optional
+        // member, or `hovered ? null : position`, needs no cast. Without this
+        // overload C# routes a Vector2? target through the Vector2 conversion
+        // above, which dereferences the null wrapper.
+        public static implicit operator Vector2?(NeoReadOnlyVector2? value) => value?.Value;
+
         public static bool operator ==(NeoReadOnlyVector2? left, NeoReadOnlyVector2? right)
         {
             if (left is null)
@@ -446,6 +453,9 @@ namespace NeoCompose.Runtime
 
         public static implicit operator Vector2Int(NeoReadOnlyVector2Int value) => value.Value;
 
+        // Null-safe, as on NeoReadOnlyVector2.
+        public static implicit operator Vector2Int?(NeoReadOnlyVector2Int? value) => value?.Value;
+
         public static bool operator ==(NeoReadOnlyVector2Int? left, NeoReadOnlyVector2Int? right)
         {
             if (left is null)
@@ -583,6 +593,9 @@ namespace NeoCompose.Runtime
             : NeoVectorValues.ReadVector3(memberNode, field);
 
         public static implicit operator Vector3(NeoReadOnlyVector3 value) => value.Value;
+
+        // Null-safe, as on NeoReadOnlyVector2.
+        public static implicit operator Vector3?(NeoReadOnlyVector3? value) => value?.Value;
 
         public static bool operator ==(NeoReadOnlyVector3? left, NeoReadOnlyVector3? right)
         {
@@ -729,6 +742,9 @@ namespace NeoCompose.Runtime
             : NeoVectorValues.ReadVector3Int(memberNode, field);
 
         public static implicit operator Vector3Int(NeoReadOnlyVector3Int value) => value.Value;
+
+        // Null-safe, as on NeoReadOnlyVector2.
+        public static implicit operator Vector3Int?(NeoReadOnlyVector3Int? value) => value?.Value;
 
         public static bool operator ==(NeoReadOnlyVector3Int? left, NeoReadOnlyVector3Int? right)
         {

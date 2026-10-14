@@ -121,6 +121,13 @@ namespace NeoCompose.Runtime
 
         public static implicit operator Color(NeoReadOnlyColor value) => value.Value;
 
+        // A null wrapper becomes a null Color?, the way a native Color
+        // behaves: `Color? tint = locked ? palette.Grey : null;` and an unset
+        // optional member read into a Color? need no cast. Without this
+        // overload C# routes a Color? target through the Color conversion
+        // above, which dereferences the null wrapper.
+        public static implicit operator Color?(NeoReadOnlyColor? value) => value?.Value;
+
         // Value-based equality (decision 6). Null-safe; the mixed
         // wrapper/native overloads are required explicitly because the
         // Color→NeoColor conversion is declared on the derived class and is
