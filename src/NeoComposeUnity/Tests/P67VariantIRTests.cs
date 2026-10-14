@@ -423,6 +423,33 @@ namespace NeoCompose.Tests
             Assert.AreEqual(sessionRows, client.sessionValues.Count, "replayed clones must not leak rows");
         }
 
+        /// <summary>
+        /// A placed plant is built by <c>Variants.X.Initialize()</c>, then
+        /// refreshes to that same variant. The refresh clears the pin its
+        /// Overrides answer on the nested <c>Box Group = new()</c>; with the
+        /// root never expanded, that row replayed its own declaration and
+        /// read Count 0.
+        /// </summary>
+        [Test]
+        public void VariantApply_ReapplyingTheInitializedVariantKeepsItsNestedOverride()
+        {
+            ProjectData data = BuildVariantProjectData();
+            AddOverriddenBoxGroup(data);
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            VariantRecord plain = client.variants["variant-plain"];
+            NeoMemberClassWritable node = NeoVariantSupport.InitializeNode(client, WidgetClassId, plain);
+            double? ReadCount() => node.Get<NeoMemberClassWritable>("Group").Get<NeoMemberIntWritable>("Count").value?.value;
+            Assert.AreEqual(7d, ReadCount());
+
+            NeoVariantSupport.ApplyToNode(client, plain, node, node.ownership);
+
+            Assert.AreEqual(7d, ReadCount());
+            NeoVariantSupport.ApplyToNode(client, client.variants["variant-up"], node, node.ownership);
+            Assert.AreEqual(0d, ReadCount(), "a variant without the override resolves the declaration");
+            NeoVariantSupport.ApplyToNode(client, plain, node, node.ownership);
+            Assert.AreEqual(7d, ReadCount());
+        }
+
         // -------------------------------------------------------------------
         // Issue #261 — stored rows that omit a field with a computed default.
         // -------------------------------------------------------------------
@@ -1435,12 +1462,8 @@ namespace NeoCompose.Tests
             return data;
         }
 
-        /// <summary>
-        /// Adds an Asset-held <c>Box { int Count = 5 }</c> at
-        /// <c>root.Assets.Box</c> and a Widget field
-        /// <c>Box Data = root.Assets.Box.Clone()</c>.
-        /// </summary>
-        private static void AddClonedBoxField(ProjectData data)
+        /// <summary>Adds <c>class Box { int Count = 0; }</c>.</summary>
+        private static void AddBoxClass(ProjectData data)
         {
             data.classes[BoxClassId] = new NeoSchemaClass
             {
@@ -1461,6 +1484,64 @@ namespace NeoCompose.Tests
                 createdAt = "x",
                 updatedAt = "x",
             };
+        }
+
+        /// <summary>
+        /// The shape of a seed placed from its variant: a Widget field
+        /// <c>Box Group = new()</c>, variant-plain's Overrides reduced to
+        /// <c>Group = new { Count = 7 }</c>, and an Initialize that applies
+        /// variant-plain to the Widget it builds, as a plant's
+        /// <c>RefreshVariant()</c> does. Dropping the unset <c>Chosen</c>
+        /// leaves that construction complete, so nothing expands it.
+        /// </summary>
+        private static void AddOverriddenBoxGroup(ProjectData data)
+        {
+            AddBoxClass(data);
+            data.values["value-plain-initialize"] = Closure("value-plain-initialize",
+                Return(VariantApplyPointer(ClassConstructorPointer(WidgetClassId),
+                    VariantRef(WidgetClassId, "variant-plain"))));
+            data.members["widget-group"] = new ClassMember
+            {
+                id = "widget-group",
+                projectId = ProjectId,
+                name = "Group",
+                kind = MemberKind.Class,
+                classId = BoxClassId,
+                Requirement = NeoMemberRequirementKind.Required,
+                Storage = NeoMemberStorage.Session,
+                defaultValue = new ObjectMemberValueBase
+                {
+                    classId = BoxClassId,
+                    value = new Dictionary<string, string>(),
+                },
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            data.classes[WidgetClassId].schema["Group"] = "widget-group";
+            data.classes[WidgetClassId].schema.Remove("Chosen");
+            ((ObjectMemberValue)data.values["value-plain-overrides"]).value = new Dictionary<string, string>
+            {
+                ["Group"] = "value-plain-override-group",
+            };
+            data.values["value-plain-override-group"] = ObjectValue(
+                "value-plain-override-group", BoxClassId, ("Count", "value-plain-override-group-count"));
+            data.values["value-plain-override-group-count"] = new NumberMemberValue
+            {
+                id = "value-plain-override-group-count",
+                value = 7,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+        }
+
+        /// <summary>
+        /// Adds an Asset-held <c>Box { int Count = 5 }</c> at
+        /// <c>root.Assets.Box</c> and a Widget field
+        /// <c>Box Data = root.Assets.Box.Clone()</c>.
+        /// </summary>
+        private static void AddClonedBoxField(ProjectData data)
+        {
+            AddBoxClass(data);
             data.members["assets-box"] = new ClassMember
             {
                 id = "assets-box",

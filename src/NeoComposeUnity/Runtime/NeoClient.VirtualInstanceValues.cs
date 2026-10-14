@@ -962,6 +962,32 @@ namespace NeoCompose.Runtime
             SetWritableValue(node.ownership, root, "instanceVariantId");
         }
 
+        /// <summary>
+        /// A root built by <c>Variants.X.Initialize()</c> carries its complete
+        /// graph and is not expanded until something replays it. Reselecting
+        /// that same variant replays nothing, yet still clears the pins its
+        /// declarative layer answers; without this root's expansion, a pin
+        /// under a materialized nested Class replays that nested row's own
+        /// declaration default instead of the variant. Expand it first, as
+        /// loading it does. A root inside any expansion, its own or an
+        /// enclosing one, is already overlaid.
+        /// </summary>
+        internal void ExpandInitializedVariantRoot(
+            NeoMemberClassWritable node,
+            NeoValueOwnership ownership,
+            string variantId,
+            string? rowValueId)
+        {
+            if (node.value?.id is not string valueId
+                || virtualRootByFootprintId.ContainsKey(valueId)
+                || !TryGetOverlaidValue(ownership, valueId, out ObjectMemberValue? root)
+                || root.instanceVariantId != variantId
+                || root.instanceVariantRowValueId != rowValueId)
+                return;
+            ExpandVirtualInstanceRoot(root);
+            RefreshVirtualWrapperTree(node);
+        }
+
         internal void RefreshVirtualInstanceVariant(
             NeoMemberClassWritable node,
             NeoValueOwnership ownership)
