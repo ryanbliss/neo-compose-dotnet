@@ -862,17 +862,18 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// P75 variant swaps persist one root-level provenance delta. The
-        /// imperative Apply closure has already run; declarative variant halves
-        /// stay virtual and are replayed here after their answered pins clear.
+        /// P75 §6 — records the variant <c>ToVariant</c> applied as the root's
+        /// applied layer. The imperative Apply closure has already run; the
+        /// layer's declarative halves stay virtual and are replayed here after
+        /// their answered pins clear. Base retires the applied layer and never
+        /// touches the variant that built the root.
         /// </summary>
-        /// <returns>False when the root already records this variant.</returns>
+        /// <returns>False when the root already resolves through this variant.</returns>
         internal bool StampVirtualInstanceVariant(
             NeoMemberClassWritable node,
             NeoValueOwnership ownership,
             string? variantId,
-            string? rowValueId,
-            bool replay = true)
+            string? rowValueId)
         {
             string valueId = node.value?.id
                 ?? throw new InvalidOperationException(
@@ -881,8 +882,7 @@ namespace NeoCompose.Runtime
                     ownership,
                     valueId,
                     out ObjectMemberValue? current)
-                && current.instanceVariantId == variantId
-                && current.instanceVariantRowValueId == rowValueId)
+                && ResolvesThroughVariant(current, variantId, rowValueId))
             {
                 return false;
             }
@@ -900,34 +900,42 @@ namespace NeoCompose.Runtime
                     $"ToVariant could not shadow instance root '{valueId}'.");
             }
             var root = (ObjectMemberValue)CloneRowForWrite(source);
-            root.instanceVariantId = variantId;
-            root.instanceVariantRowValueId = rowValueId;
-            // `instanceVariantId` is the row's ONLY eligibility marker while
-            // a variant is selected, and it serializes with
-            // NullValueHandling.Ignore &#8212; clearing to Base would therefore
-            // erase every trace that this row is a P75 root and strand its
-            // whole virtual layer. Re-establish (or preserve) the constructor
-            // pair so the row keeps expanding through its own construction.
+            root.instanceAppliedVariantId = variantId;
+            root.instanceAppliedVariantRowValueId = rowValueId;
+            // The applied layer is no eligibility marker of its own. A row
+            // with no construction recipe gains the implicit pair, so it
+            // expands and the layer replays over its own construction.
             StampConstructionProvenance(
                 root,
                 root.hasInstanceConstructorId ? root.instanceConstructorId : null,
                 root.constructorArgs ?? new Dictionary<string, JToken?>());
-            if (!replay && ownership == NeoValueOwnership.Session && !isReplayingVirtualInstance)
-            {
-                var plan = new NeoWritePlan(this) { ConstructedVariantRoot = root.id };
-                plan.Set(ownership, root, "instanceVariantId");
-                plan.Commit();
-            }
+            SetWritableValue(ownership, root, "instanceAppliedVariantId");
+            if (IsPreparingVariant && !isReplayingVirtualInstance)
+                RefreshPreparedVariant(node, root);
             else
-                SetWritableValue(ownership, root, "instanceVariantId");
-            if (replay)
-            {
-                if (IsPreparingVariant && !isReplayingVirtualInstance)
-                    RefreshPreparedVariant(node, root);
-                else
-                    RefreshVirtualWrapperTree(node);
-            }
+                RefreshVirtualWrapperTree(node);
             return true;
+        }
+
+        /// <summary>
+        /// Whether <paramref name="root"/> already resolves through the
+        /// selection: its applied layer when it has one, otherwise the
+        /// variant that built it. Base matches a root with no applied layer.
+        /// </summary>
+        private static bool ResolvesThroughVariant(
+            ObjectMemberValue root,
+            string? variantId,
+            string? rowValueId)
+        {
+            if (root.instanceAppliedVariantId is not null)
+            {
+                return root.instanceAppliedVariantId == variantId
+                    && root.instanceAppliedVariantRowValueId == rowValueId;
+            }
+            if (variantId is null)
+                return true;
+            return root.instanceVariantId == variantId
+                && root.instanceVariantRowValueId == rowValueId;
         }
 
         /// <summary>
@@ -1531,7 +1539,25 @@ namespace NeoCompose.Runtime
             return expansion;
         }
 
+        /// <summary>
+        /// P75 §6 — a stored root's expansion: its construction, then the
+        /// declarative halves of the variant <c>ToVariant</c> last applied.
+        /// </summary>
         private NeoMemberClassWritable ReplayVirtualInstance(
+            ObjectMemberValue root,
+            ClassMember? placementMember,
+            IReadOnlyDictionary<string, GenericBinding>? classArguments)
+        {
+            NeoMemberClassWritable node = ReplayVirtualConstruction(
+                root,
+                placementMember,
+                classArguments);
+            if (root.instanceAppliedVariantId is string appliedVariantId)
+                NeoVariantSupport.ReplayAppliedVariant(this, appliedVariantId, node);
+            return node;
+        }
+
+        private NeoMemberClassWritable ReplayVirtualConstruction(
             ObjectMemberValue root,
             ClassMember? placementMember,
             IReadOnlyDictionary<string, GenericBinding>? classArguments)
@@ -2357,9 +2383,19 @@ namespace NeoCompose.Runtime
             VirtualExpansionNode node)
             => stored.id == node.virtualId && SameVariantSelection(stored, node.row);
 
+        /// <summary>
+        /// P75 §6 — whether <paramref name="valueId"/> lies inside another
+        /// root's expansion, as a virtual row or a materialized spine. Its
+        /// construction is that root's, so a variant applies to it in place.
+        /// </summary>
+        internal bool IsInsideAnotherExpansion(string valueId)
+            => virtualRootByFootprintId.TryGetValue(valueId, out string? owner) && owner != valueId;
+
         private static bool SameVariantSelection(MemberValue left, MemberValue right)
             => left.instanceVariantId == right.instanceVariantId
-                && left.instanceVariantRowValueId == right.instanceVariantRowValueId;
+                && left.instanceVariantRowValueId == right.instanceVariantRowValueId
+                && left.instanceAppliedVariantId == right.instanceAppliedVariantId
+                && left.instanceAppliedVariantRowValueId == right.instanceAppliedVariantRowValueId;
 
         /// <summary>
         /// The reachability edges the virtual index owns for one already

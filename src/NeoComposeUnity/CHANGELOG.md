@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.71.4] - 2026-10-14
+
+- Fixed: `ToVariant` reran the target variant's `initialize`. It now runs only the variant's `Apply`, `Overrides`, and `ChildOverrides` on the instance as it stands, and `initialize` runs only on `Variants.X.Initialize()`. An instance remembers two variants: `instanceVariantId`, the variant whose `Initialize()` built it, and `instanceAppliedVariantId`, the variant `ToVariant` last applied. The applied variant's `Overrides` and `ChildOverrides` layer over the construction, and its `Apply` writes stay as overrides. `ToVariant(Base)` removes the applied layer, so the construction's own values return. A `ToVariant` on an instance constructed in the same evaluation records nothing. Neither does a `ToVariant` on an object nested inside another instance's construction: the variant's layers apply to it in place, so values its constructor's call site set, such as `new Entry("call-site") { Name = "Sprite" }`, stay. It used to become an instance of its own and lose them. Existing saves load unchanged. Requires CLI 0.81.1; run `neo pull` and `neo export` after upgrading.
+
+```csharp
+// MemberValue (JSON model). New: the applied layer, beside the construction.
+public string? instanceVariantId { get; set; }                // built by Variants.X.Initialize()
+public string? instanceAppliedVariantId { get; set; }         // last applied by ToVariant
+public string? instanceAppliedVariantRowValueId { get; set; } // its lookup row, when collection-bound
+public bool hasInstanceAppliedVariant { get; }                // assigned, even to null (Base)
+```
+
 ## [0.71.3] - 2026-10-14
 
 - Performance: a write to a placed object that leaves it where it is no longer revalidates its whole grid or drops the grid's layer indexes. A variant swap is the common case. Each swap used to drop every tile and object index in the grid and revalidate every placement in it, so a night of plant growth cost O(plants²). Only the written object is validated now, and the renderer hears it changed in place. In Neowyn, a night that grows 72 plants into new stages takes 337 ms instead of 1152 ms.

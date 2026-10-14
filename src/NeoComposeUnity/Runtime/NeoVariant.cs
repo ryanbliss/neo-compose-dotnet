@@ -398,12 +398,19 @@ namespace NeoCompose.Runtime
         /// <summary>
         /// P67 §4.2 + P75 §6 — the application path, in place. The imperative
         /// `Apply` closure runs first. The root then records the incoming
-        /// variant and clears shadows answered by its declarative layer, so
-        /// Overrides and ChildOverrides retain their specified precedence.
+        /// variant as its applied layer and clears shadows answered by its
+        /// declarative layer, so Overrides and ChildOverrides retain their
+        /// specified precedence. `Initialize` never runs: the root keeps the
+        /// construction it was built with.
         ///
-        /// <para>The base selection has no layers to apply, but it still clears
-        /// root variant provenance so the old declarative layer stops
-        /// resolving.</para>
+        /// <para>The base selection has no layers to apply; it only retires
+        /// the applied layer, so that layer's values stop resolving.</para>
+        ///
+        /// <para>A root constructed in this same evaluation records nothing:
+        /// its values are concrete, and a ToVariant inside its construction
+        /// replays with that construction. Neither does a row inside another
+        /// root's expansion: its construction is that root's, so its layers
+        /// apply in place as overrides.</para>
         /// </summary>
         internal static void ApplyToNode(
             NeoClient client,
@@ -414,7 +421,9 @@ namespace NeoCompose.Runtime
             string? lookupRowValueId = null,
             bool freshlyConstructed = false)
         {
-            if (!freshlyConstructed && !client.IsReplayingVirtualInstance && !client.IsPreparingVariant)
+            bool inPlace = freshlyConstructed
+                || (node.value?.id is string valueId && client.IsInsideAnotherExpansion(valueId));
+            if (!inPlace && !client.IsReplayingVirtualInstance && !client.IsPreparingVariant)
             {
                 if (record is not null)
                     client.ExpandInitializedVariantRoot(node, ownership, record.id, lookupRowValueId);
@@ -429,12 +438,14 @@ namespace NeoCompose.Runtime
                     throw new InvalidOperationException(
                         "The Base variant is not collection-bound and cannot receive a row.");
                 }
-                client.StampVirtualInstanceVariant(
-                    node,
-                    ownership,
-                    variantId: null,
-                    rowValueId: null,
-                    replay: !freshlyConstructed);
+                if (!inPlace)
+                {
+                    client.StampVirtualInstanceVariant(
+                        node,
+                        ownership,
+                        variantId: null,
+                        rowValueId: null);
+                }
                 return;
             }
             object?[] arguments = LookupArguments(
@@ -443,12 +454,8 @@ namespace NeoCompose.Runtime
                 lookupRow,
                 lookupRowValueId);
             RunApplyClosure(client, record, node, ownership, arguments);
-            if (freshlyConstructed)
+            if (inPlace)
             {
-                // Replaying Initialize for a value it just constructed would
-                // recurse when Initialize calls RefreshVariant/ToVariant.
-                client.StampVirtualInstanceVariant(node, ownership, record.id,
-                    lookupRowValueId, replay: false);
                 ApplyDeclarativeHalves(client, record, node, ownership);
                 return;
             }
@@ -613,6 +620,25 @@ namespace NeoCompose.Runtime
                 return folder.binding;
             }
             return null;
+        }
+
+        /// <summary>
+        /// P75 §6 — replays the variant <c>ToVariant</c> last applied to a
+        /// stored root over its construction: `Overrides`, then
+        /// `ChildOverrides`. `Apply` ran once and left its writes as instance
+        /// overrides, so it does not run again.
+        /// </summary>
+        internal static void ReplayAppliedVariant(
+            NeoClient client,
+            string variantId,
+            NeoMemberClassWritable node)
+        {
+            if (!client.TryGetVariant(variantId, out VariantRecord? record))
+            {
+                throw new InvalidOperationException(
+                    $"Applied variant '{variantId}' is not in this project export. Run `neo pull` and `neo export`.");
+            }
+            ApplyDeclarativeHalves(client, record, node, NeoValueOwnership.Session);
         }
 
         /// <summary>

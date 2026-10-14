@@ -138,7 +138,9 @@ namespace NeoCompose.Tests
                 NeoValueOwnership.Session,
                 targetId,
                 out ObjectMemberValue? root));
-            Assert.AreEqual("variant-up", root!.instanceVariantId);
+            // ToVariant records the layer it applied; the construction stays.
+            Assert.AreEqual("variant-up", root!.instanceAppliedVariantId);
+            Assert.IsNull(root.instanceVariantId);
         }
 
         [Test]
@@ -166,14 +168,19 @@ namespace NeoCompose.Tests
             }
         }
 
+        /// <summary>
+        /// ToVariant replays the root's construction after Apply has written.
+        /// When that replay fails, nothing the closure wrote is published.
+        /// </summary>
         [Test]
         public void VariantApplyRejectsFailedReplayWithoutPublishingItsClosureWrites()
         {
             ProjectData data = BuildVariantProjectData();
-            data.values["value-up-initialize"] = Closure("value-up-initialize",
-                Return(ClassConstructorPointer("missing-variant-class")));
             using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
-            string targetId = NewSessionInstance(client);
+            string targetId = NeoVariantSupport.InitializeNode(
+                client, WidgetClassId, client.variants["variant-plain"]).value!.id;
+            ((DelegateMemberValue)data.values["value-plain-initialize"]).value!.action!.instructions =
+                new Instruction[] { Return(ClassConstructorPointer("missing-variant-class")) };
             string beforeSession = Newtonsoft.Json.JsonConvert.SerializeObject(client.sessionValues);
             string beforeSave = client.SerializeSaveData();
             int changes = 0;
@@ -376,48 +383,73 @@ namespace NeoCompose.Tests
         /// <summary>
         /// Neowyn's plant growth stages: `PlacedItem.Data = item.DefaultData.Clone()`
         /// and a Day1 variant whose Initialize writes `placed.Data.DaysGrown = 1`.
-        /// ToVariant replays that Initialize inside the variant candidate, so the
-        /// field initializer's clone runs while the candidate's replay plan is
-        /// open. The replay plan is not an enclosing write: the clone must commit
-        /// through the replay's Apply as allocations, or its rows are not
-        /// session-owned and the closure's write to the clone is refused.
+        /// ToVariant replays the root's construction, that Initialize, inside the
+        /// variant candidate, so the field initializer's clone runs while the
+        /// candidate's replay plan is open. The replay plan is not an enclosing
+        /// write: the clone must commit through the replay's Apply as
+        /// allocations, or its rows are not session-owned and the closure's
+        /// write to the clone is refused.
         /// </summary>
         [Test]
         public void VariantApply_ReplayedInitializeWritesIntoAFieldInitializersClone()
         {
             using NeoClient client = NeoTestSaveStack.ClientFromSchema(ClonedBoxProjectData());
             NeoMemberClassWritable node = NeoVariantSupport.InitializeNode(
-                client, WidgetClassId, client.variants["variant-plain"]);
+                client, WidgetClassId, client.variants["variant-up"]);
 
             Assert.DoesNotThrow(() => NeoVariantSupport.ApplyToNode(
-                client, client.variants["variant-up"], node, node.ownership));
+                client, client.variants["variant-plain"], node, node.ownership));
 
-            Assert.AreEqual("up", ReadLabel(client, node));
+            Assert.AreEqual("plain", ReadLabel(client, node));
+            Assert.AreEqual(1d, node.Get<NeoMemberClassWritable>("Data").Get<NeoMemberIntWritable>("Count").value?.value);
             int sessionRows = client.sessionValues.Count;
-            NeoVariantSupport.ApplyToNode(client, client.variants["variant-plain"], node, node.ownership);
             NeoVariantSupport.ApplyToNode(client, client.variants["variant-up"], node, node.ownership);
-            Assert.AreEqual("up", ReadLabel(client, node));
+            NeoVariantSupport.ApplyToNode(client, client.variants["variant-plain"], node, node.ownership);
+            Assert.AreEqual("plain", ReadLabel(client, node));
             Assert.AreEqual(sessionRows, client.sessionValues.Count, "replayed clones must not leak rows");
         }
 
         /// <summary>
+        /// P67 §4.2: ToVariant applies Apply, Overrides, and ChildOverrides to
+        /// the instance as it stands. The target's Initialize, which would
+        /// write the clone's Count, never runs, and the root remembers both
+        /// the variant that built it and the one applied over it.
+        /// </summary>
+        [Test]
+        public void VariantApply_KeepsTheConstructionAndSkipsTheTargetsInitialize()
+        {
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(ClonedBoxProjectData());
+            NeoMemberClassWritable node = NeoVariantSupport.InitializeNode(
+                client, WidgetClassId, client.variants["variant-plain"]);
+
+            NeoVariantSupport.ApplyToNode(client, client.variants["variant-up"], node, node.ownership);
+
+            Assert.AreEqual(5d, node.Get<NeoMemberClassWritable>("Data").Get<NeoMemberIntWritable>("Count").value?.value);
+            Assert.AreEqual("up", ReadLabel(client, node));
+            Assert.AreEqual("apply-ran", node.Get<NeoMemberStringWritable>("Trace").value?.value);
+            var root = (ObjectMemberValue)node.value!;
+            Assert.AreEqual("variant-plain", root.instanceVariantId);
+            Assert.AreEqual("variant-up", root.instanceAppliedVariantId);
+        }
+
+        /// <summary>
         /// Replacing a variant-stamped instance's <c>Data</c> replays its root
-        /// inside the write's own candidate, which reruns the same Initialize.
-        /// Its clone must still commit as a replay allocation rather than join
-        /// the write being validated.
+        /// inside the write's own candidate, which reruns its Initialize. Its
+        /// clone must still commit as a replay allocation rather than join the
+        /// write being validated.
         /// </summary>
         [Test]
         public void WriteToAVariantInstance_ReplaysAnInitializeWritingIntoAFieldInitializersClone()
         {
             using NeoClient client = NeoTestSaveStack.ClientFromSchema(ClonedBoxProjectData());
             NeoMemberClassWritable node = NeoVariantSupport.InitializeNode(
-                client, WidgetClassId, client.variants["variant-plain"]);
-            NeoVariantSupport.ApplyToNode(client, client.variants["variant-up"], node, node.ownership);
+                client, WidgetClassId, client.variants["variant-up"]);
+            NeoVariantSupport.ApplyToNode(client, client.variants["variant-plain"], node, node.ownership);
 
             Assert.DoesNotThrow(() => node.SetSerializedValue(
                 "Data", NeoValueWritePayload.FromValueReference("value-assets-box")));
 
-            Assert.AreEqual("up", ReadLabel(client, node));
+            Assert.AreEqual("plain", ReadLabel(client, node));
             int sessionRows = client.sessionValues.Count;
             node.SetSerializedValue("Data", NeoValueWritePayload.FromValueReference("value-assets-box"));
             Assert.AreEqual(sessionRows, client.sessionValues.Count, "replayed clones must not leak rows");
@@ -457,6 +489,17 @@ namespace NeoCompose.Tests
         {
             ProjectData data = BuildVariantProjectData();
             AddOverriddenBoxGroup(data);
+            // Up's Overrides: `Group = new { Count = 3 }`.
+            ((ObjectMemberValue)data.values["value-up-overrides"]).value!["Group"] = "value-up-override-group";
+            data.values["value-up-override-group"] = ObjectValue(
+                "value-up-override-group", BoxClassId, ("Count", "value-up-override-group-count"));
+            data.values["value-up-override-group-count"] = new NumberMemberValue
+            {
+                id = "value-up-override-group-count",
+                value = 3,
+                createdAt = "x",
+                updatedAt = "x",
+            };
             using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
             VariantRecord plain = client.variants["variant-plain"];
             NeoMemberClassWritable node = NeoVariantSupport.InitializeNode(client, WidgetClassId, plain);
@@ -469,7 +512,7 @@ namespace NeoCompose.Tests
 
             Assert.IsFalse(group.isDisposed);
             Assert.AreSame(group, node.Get<NeoMemberClassWritable>("Group"));
-            Assert.AreEqual(0d, group.Get<NeoMemberIntWritable>("Count").value?.value);
+            Assert.AreEqual(3d, group.Get<NeoMemberIntWritable>("Count").value?.value);
             NeoVariantSupport.ApplyToNode(client, plain, node, node.ownership);
             Assert.IsFalse(group.isDisposed);
             Assert.AreEqual(7d, group.Get<NeoMemberIntWritable>("Count").value?.value);
@@ -480,7 +523,8 @@ namespace NeoCompose.Tests
         /// refreshes to that same variant. The refresh clears the pin its
         /// Overrides answer on the nested <c>Box Group = new()</c>; with the
         /// root never expanded, that row replayed its own declaration and
-        /// read Count 0.
+        /// read Count 0. The ToVariant inside the Initialize closure lands on
+        /// a fresh construction, so it records nothing.
         /// </summary>
         [Test]
         public void VariantApply_ReapplyingTheInitializedVariantKeepsItsNestedOverride()
@@ -492,12 +536,14 @@ namespace NeoCompose.Tests
             NeoMemberClassWritable node = NeoVariantSupport.InitializeNode(client, WidgetClassId, plain);
             double? ReadCount() => node.Get<NeoMemberClassWritable>("Group").Get<NeoMemberIntWritable>("Count").value?.value;
             Assert.AreEqual(7d, ReadCount());
+            Assert.AreEqual("variant-plain", ((ObjectMemberValue)node.value!).instanceVariantId);
+            Assert.IsFalse(((ObjectMemberValue)node.value!).hasInstanceAppliedVariant);
 
             NeoVariantSupport.ApplyToNode(client, plain, node, node.ownership);
 
             Assert.AreEqual(7d, ReadCount());
             NeoVariantSupport.ApplyToNode(client, client.variants["variant-up"], node, node.ownership);
-            Assert.AreEqual(0d, ReadCount(), "a variant without the override resolves the declaration");
+            Assert.AreEqual(7d, ReadCount(), "a variant without the override keeps the construction's");
             NeoVariantSupport.ApplyToNode(client, plain, node, node.ownership);
             Assert.AreEqual(7d, ReadCount());
         }
@@ -797,7 +843,7 @@ namespace NeoCompose.Tests
                 NeoValueOwnership.Session,
                 targetId,
                 out ObjectMemberValue? root));
-            Assert.AreEqual("variant-plain", root!.instanceVariantId);
+            Assert.AreEqual("variant-plain", root!.instanceAppliedVariantId);
             Assert.IsFalse(
                 root.value!.ContainsKey("Label"),
                 $"stored root keys: {string.Join(",", root.value.Keys)}");
@@ -830,7 +876,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void BaseSelection_ApplyClearsPriorVariantProvenance()
+        public void BaseSelection_ApplyRetiresTheAppliedVariant()
         {
             NeoClient client = LoadClient();
             NSGetterEvaluator.Context ctx = Context(client);
@@ -851,13 +897,65 @@ namespace NeoCompose.Tests
                 ctx);
 
             Assert.IsNotNull(applied);
-            // Base has no layers, but it removes the prior declarative layer.
+            // Base has no layers, but it removes the applied declarative layer.
             Assert.AreEqual(before, ReadRowLabel(client, targetId));
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 targetId,
                 out ObjectMemberValue? root));
-            Assert.IsNull(root!.instanceVariantId);
+            Assert.IsTrue(root!.hasInstanceAppliedVariant);
+            Assert.IsNull(root.instanceAppliedVariantId);
+        }
+
+        /// <summary>
+        /// Base removes only the applied layer: the built-by variant's
+        /// Overrides resume, and what Apply wrote stays written.
+        /// </summary>
+        [Test]
+        public void BaseSelection_ApplyRestoresTheConstructionsLayer()
+        {
+            using NeoClient client = LoadClient();
+            NeoMemberClassWritable node = NeoVariantSupport.InitializeNode(
+                client, WidgetClassId, client.variants["variant-plain"]);
+            NeoVariantSupport.ApplyToNode(client, client.variants["variant-up"], node, node.ownership);
+            Assert.AreEqual("up", ReadLabel(client, node));
+
+            NeoVariantSupport.ApplyToNode(client, record: null, node, node.ownership);
+
+            Assert.AreEqual("plain", ReadLabel(client, node));
+            Assert.AreEqual("apply-ran", node.Get<NeoMemberStringWritable>("Trace").value?.value);
+            var root = (ObjectMemberValue)node.value!;
+            Assert.AreEqual("variant-plain", root.instanceVariantId);
+            Assert.IsNull(root.instanceAppliedVariantId);
+        }
+
+        /// <summary>
+        /// A saved instance keeps both layers across a reload, and the
+        /// retirement of its applied layer reloads too.
+        /// </summary>
+        [Test]
+        public void SavedAppliedVariantReloadsAndItsRetirementPersists()
+        {
+            ProjectData data = BuildVariantProjectData();
+            AddHeldWidget(data);
+            ObjectMemberValue saved = ObjectValue("saved-held", WidgetClassId);
+            saved.instanceVariantId = "variant-plain";
+            saved.instanceAppliedVariantId = "variant-up";
+            string content = SaveContentHolding(data, saved);
+
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: content);
+            NeoMemberClassWritable held = client.save.Get<NeoMemberClassWritable>("Held");
+            Assert.AreEqual("up", ReadLabel(client, held));
+
+            NeoVariantSupport.ApplyToNode(client, record: null, held, held.ownership);
+
+            Assert.AreEqual("plain", ReadLabel(client, held));
+            string retired = client.SerializeSaveData();
+            var written = (JObject)JObject.Parse(retired)["values"]!["saved-held"]!;
+            Assert.AreEqual("variant-plain", written.Value<string>("instanceVariantId"));
+            Assert.AreEqual(JTokenType.Null, written["instanceAppliedVariantId"]!.Type);
+            using NeoClient reloaded = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: retired);
+            Assert.AreEqual("plain", ReadLabel(reloaded, reloaded.save.Get<NeoMemberClass>("Held")));
         }
 
         [Test]

@@ -102,6 +102,7 @@ namespace NeoCompose.Runtime
                     || next.constructorArgs is not null
                     || next.instanceVariantId is not null
                     || next.instanceVariantRowValueId is not null
+                    || next.hasInstanceAppliedVariant
                     || next.genericBindings is not null
                     || next.mark is not null
                     || next.containerId != previous.containerId

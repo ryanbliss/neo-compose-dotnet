@@ -8836,6 +8836,11 @@ namespace NeoCompose.Runtime
                 : new Dictionary<string, string>(source.genericBindings);
             clone.instanceVariantId = source.instanceVariantId;
             clone.instanceVariantRowValueId = source.instanceVariantRowValueId;
+            if (source.hasInstanceAppliedVariant)
+            {
+                clone.instanceAppliedVariantId = source.instanceAppliedVariantId;
+                clone.instanceAppliedVariantRowValueId = source.instanceAppliedVariantRowValueId;
+            }
 
             Dictionary<string, JToken?>? constructorArgs = null;
             if (source.constructorArgs is not null)
