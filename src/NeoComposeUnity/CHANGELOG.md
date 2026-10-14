@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.71.2] - 2026-10-14
+
+- Fixed: a save could fail to load with "Replay lost child ... at '$/Data/...'". Despawning an object loaded from a save removed the fields of a value that a constructor still names. Neowyn's pickaxe builds `new InventoryItemStack(item, 1, plant.Data)` and then despawns the plant. The plant's `Data` survived, but its fields were deleted, so the stack could not replay on the next load. Anything a constructor argument owns now survives its owner's removal with the argument.
+
 ## [0.71.1] - 2026-10-14
 
 - Fixed: reapplying the variant an instance was built from with `Variants.X.Initialize()` reset any `Overrides` value on a nested class to that class's declaration default. The instance had never been expanded, so clearing the override's stored value replayed the nested row on its own instead of through the variant. Switching to a different variant was unaffected. In Neowyn, a seed placed in-session got a `SortingGroup.SortPoint` of (0.5, 0) instead of its variant's, so it drew over the player's feet until the save was reloaded.

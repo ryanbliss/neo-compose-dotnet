@@ -80,7 +80,8 @@ namespace NeoCompose.Runtime
         /// Whether a recipe outside <paramref name="removing"/>, in any
         /// writable store, needs the <paramref name="ownership"/> row
         /// <paramref name="valueId"/> as a constructor argument, directly or
-        /// as an entry of a collection argument.
+        /// as something an argument owns. A loaded root's footprint holds
+        /// what an adopted argument owns, and removes those rows one by one.
         /// </summary>
         private bool IsLiveConstructorInput(
             NeoWritePlan plan, NeoValueOwnership ownership, string valueId, HashSet<string> removing)
@@ -109,21 +110,22 @@ namespace NeoCompose.Runtime
                     {
                         if (removing.Contains(parentId) || !seen.Add(parentId))
                             continue;
+                        bool stored = false;
                         foreach (NeoValueOwnership store in RecipeStores)
                         {
                             if (!plan.TryGetWritable(store, parentId, out MemberValue? parent) || parent!.IsRemoved)
                                 continue;
-                            if (parent is ObjectMemberValue { classId: not null } recipe)
-                            {
-                                // A recipe reads its own store's copy first.
-                                bool readsThisRow = store == ownership || !plan.TryGetWritable(store, id, out _);
-                                if (readsThisRow && ConstructorArgsReference(recipe, id))
-                                    return true;
-                            }
-                            // A collection argument's entries are inputs too.
-                            else if (parent is ArrayMemberValue or ObjectMemberValue && Named(parentId))
+                            stored = true;
+                            // A recipe reads its own store's copy first.
+                            if (parent is ObjectMemberValue { classId: not null } recipe
+                                && (store == ownership || !plan.TryGetWritable(store, id, out _))
+                                && ConstructorArgsReference(recipe, id))
                                 return true;
                         }
+                        // What an input owns is an input too: a collection
+                        // argument's entries, and a Class argument's fields.
+                        if (stored && Named(parentId))
+                            return true;
                     }
                     return false;
                 }
