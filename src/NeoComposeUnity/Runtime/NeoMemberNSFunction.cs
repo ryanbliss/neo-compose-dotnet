@@ -2443,7 +2443,7 @@ namespace NeoCompose.Runtime
             var normalized = new object?[result.Count];
             result.CopyTo(normalized);
             NeoGeneratedTypesSupport.PreserveConstructorCollectionOrigin(value, normalized);
-            NSGetterEvaluator.KeepEntryMemberOf(value, normalized);
+            NSGetterEvaluator.KeepDerivedOf(value, normalized, entryType);
             return NSGetterEvaluator.DeclaredRuntimeSet(normalized, typeInfo, ctx)!;
         }
 
@@ -2566,7 +2566,7 @@ namespace NeoCompose.Runtime
                         ctx,
                         subject);
                 }
-                return result;
+                return NSGetterEvaluator.KeepDerivedOf(value, result, entryType);
             }
             if (value is IEnumerable entries && value is not string)
             {
@@ -2592,7 +2592,7 @@ namespace NeoCompose.Runtime
                         ctx,
                         subject);
                 }
-                return result;
+                return NSGetterEvaluator.KeepDerivedOf(value, result, entryType);
             }
             throw new InvalidOperationException(
                 $"Expected a dictionary {subject}.");

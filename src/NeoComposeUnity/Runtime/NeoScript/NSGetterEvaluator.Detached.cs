@@ -26,7 +26,7 @@ namespace NeoCompose.Runtime.NeoScript
         /// </summary>
         internal static bool IsLocalCollection(object?[] entries, Context ctx) =>
             !ctx.rowReverseIndex.TryGetValue(entries, out _)
-            && !DerivedEntryMembers.TryGetValue(entries, out _);
+            && DerivedEntryMember(entries) is null;
 
         /// <summary>
         /// The row id of <paramref name="value"/>, materializing its detached
