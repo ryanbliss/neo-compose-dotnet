@@ -449,6 +449,33 @@ namespace NeoCompose.Tests
         }
 
         /// <summary>
+        /// A swap is in place: a nested class the new variant keeps keeps the
+        /// views its holders built, and they read the new variant.
+        /// </summary>
+        [Test]
+        public void VariantApply_KeepsTheViewsOfANestedClassItKeeps()
+        {
+            ProjectData data = BuildVariantProjectData();
+            AddOverriddenBoxGroup(data);
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            VariantRecord plain = client.variants["variant-plain"];
+            NeoMemberClassWritable node = NeoVariantSupport.InitializeNode(client, WidgetClassId, plain);
+            // Initialize() pins the whole graph; reapplying plain unpins Group's Count.
+            NeoVariantSupport.ApplyToNode(client, plain, node, node.ownership);
+            NeoMemberClassWritable group = node.Get<NeoMemberClassWritable>("Group");
+            Assert.AreEqual(7d, group.Get<NeoMemberIntWritable>("Count").value?.value);
+
+            NeoVariantSupport.ApplyToNode(client, client.variants["variant-up"], node, node.ownership);
+
+            Assert.IsFalse(group.isDisposed);
+            Assert.AreSame(group, node.Get<NeoMemberClassWritable>("Group"));
+            Assert.AreEqual(0d, group.Get<NeoMemberIntWritable>("Count").value?.value);
+            NeoVariantSupport.ApplyToNode(client, plain, node, node.ownership);
+            Assert.IsFalse(group.isDisposed);
+            Assert.AreEqual(7d, group.Get<NeoMemberIntWritable>("Count").value?.value);
+        }
+
+        /// <summary>
         /// A placed plant is built by <c>Variants.X.Initialize()</c>, then
         /// refreshes to that same variant. The refresh clears the pin its
         /// Overrides answer on the nested <c>Box Group = new()</c>; with the

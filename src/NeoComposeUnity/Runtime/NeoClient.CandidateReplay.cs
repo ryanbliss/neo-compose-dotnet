@@ -639,6 +639,12 @@ namespace NeoCompose.Runtime
                     && virtualValues.TryGetValue(root, out var previousRoot)
                     && nextRoot.classId == previousRoot.classId)
                     retired.Remove(root);
+            // A local recipe change, as a variant swap, is in place: a row the
+            // plan leaves alone and the new recipe still resolves, as the same
+            // kind and class, keeps its views.
+            if (CurrentChangeSource != NeoChangeSource.External)
+                retired.RemoveWhere(id => !candidate.Plan.WritesRow(id)
+                    && SameReplayIdentity(PreviousReplayRow(id), InstalledReplayRow(candidate, id)));
             DisposeWrappersTouchingRows(retired);
             // Replaying an enclosing root also rebuilds unchanged siblings.
             // Only semantic row or ownership changes need notifications.
@@ -672,6 +678,16 @@ namespace NeoCompose.Runtime
                             && TryGetOverlaidValue(node.ownership, root, out ObjectMemberValue? _))
                             classNode.RefreshCommittedValue();
         }
+
+        /// <summary>The row <paramref name="id"/> resolves to once <paramref name="candidate"/> installs.</summary>
+        private MemberValue? InstalledReplayRow(CandidateReplay candidate, string id) =>
+            sessionData.values.TryGetValue(id, out var session) ? session
+            : saveData.values.TryGetValue(id, out var save) ? save
+            : userSource.userData.values.TryGetValue(id, out var user) ? user
+            : data.values.TryGetValue(id, out var asset) ? asset
+            : candidate.Values.TryGetValue(id, out var replayed) ? replayed
+            : !candidate.HiddenVirtualIds.Contains(id) && virtualValues.TryGetValue(id, out var kept) ? kept
+            : null;
 
         private bool TryResolveVirtualValue(string id, out MemberValue value)
         {
