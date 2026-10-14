@@ -3650,9 +3650,9 @@ namespace NeoCompose.Runtime
         /// indexes, the grid change notification and the grid-dependent getter
         /// memo all read them — so those route through the placement API;
         /// every other member, including a composition child's Position, is an
-        /// ordinary scalar write. A clip that animates anything else pays the
-        /// two string compares of <see cref="NeoClient.IsPlacementMember"/>
-        /// per write and nothing more, so the routing needs no per-binding cache.
+        /// ordinary scalar write. <see cref="NeoClient.IsPlacementMember"/>
+        /// costs a key compare, plus one memo lookup for an object's
+        /// Position, so the routing needs no per-binding cache.
         /// </summary>
         internal static void WriteMember(
             NeoClient client,

@@ -137,6 +137,24 @@ namespace NeoCompose.Tests
                 }
 
                 PerformanceSampling.Report("SpriteObjectRig", "spawn", $"rigs={SpriteRigCopies} parts={SpriteRigParts}", spawn, SpriteRigCopies);
+
+                // Calibration: the bare component add the spawn now makes per part.
+                renderer.Clear();
+                var hosts = new GameObject[SpriteRigCopies * SpriteRigParts];
+                var adds = new List<PerformanceSampling.Sample>();
+                for (int round = 0; round < 9; round++)
+                {
+                    for (int i = 0; i < hosts.Length; i++)
+                        hosts[i] = new GameObject("Part");
+                    adds.Add(PerformanceSampling.Measure(() =>
+                    {
+                        foreach (var host in hosts)
+                            host.AddComponent<NeoObjectBehaviour>();
+                    }));
+                    foreach (var host in hosts)
+                        UnityEngine.Object.DestroyImmediate(host);
+                }
+                PerformanceSampling.Report("SpriteObjectRig", "add-component", $"adds={hosts.Length}", adds, SpriteRigCopies);
             }
             finally
             {
