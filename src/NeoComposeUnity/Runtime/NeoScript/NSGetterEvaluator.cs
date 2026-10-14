@@ -9487,10 +9487,13 @@ namespace NeoCompose.Runtime.NeoScript
 
             /// <summary>The detached object that attached to this record's row, if one did.</summary>
             internal NeoScriptObject? attachedObject;
+            internal RuntimeSetReferences? setReferences;
 
             /// <summary>Names the leaf a shadow moved this record's row onto, as does the object that attached to it.</summary>
             internal void Rebind(string id, NeoValueOwnership ownership)
             {
+                if (valueId is string previousId)
+                    setReferences?.Retarget(previousId, id);
                 valueId = id;
                 valueOwnership = ownership;
                 if (attachedObject is not null)
