@@ -3091,7 +3091,11 @@ namespace NeoCompose.Tests
             object? received = null;
             client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
             {
-                [native.id] = (_, _, args) => { received = args[0]; return 0; },
+                [native.id] = (_, _, args, _) =>
+                {
+                    received = args[0];
+                    return 0;
+                },
             });
             object? result = new NeoMemberNSFunction(client, function, null).Invoke("receiver-value",
                 new object?[] { new object?[] { new object?[] { 1, 2, 2 } } });
