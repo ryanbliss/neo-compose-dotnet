@@ -30,7 +30,7 @@ namespace NeoCompose.Runtime.NeoScript
                 object? key = RuntimeSetKey(entry, set, ctx);
                 set.Add(key, enumEntries ? key : entry);
             }
-            KeepEntryMember(set, CollectionEntryMember(source, ctx));
+            KeepDerived(set, CollectionEntryMember(source, ctx), false);
             if (cache)
                 sets.Add(source, set);
             return set;
@@ -151,9 +151,9 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 if (info.op is "OrderBy" or "OrderByDescending")
                 {
-                    result = OrderCollection(collection, info, ref callback, ctx);
-                    KeepEntryMember(result, CollectionEntryMember(collection, ctx));
-                    return result;
+                    object?[] ordered = OrderCollection(collection, info, ref callback, ctx);
+                    // Each entry was resolved, so a string there is a value.
+                    return KeepDerived(ordered, CollectionEntryMember(collection, ctx), HasString(ordered));
                 }
                 object?[] values = Array.Empty<object?>();
                 int produced = 0;
@@ -263,9 +263,12 @@ namespace NeoCompose.Runtime.NeoScript
                         }
                         if (info.op == "Reverse")
                             Array.Reverse(values, 0, produced);
-                        result = TrimResult(values, produced);
-                        if (info.op != "SelectMany" && info.op != "Concat")
-                            KeepEntryMember(result, CollectionEntryMember(collection, ctx));
+                        object?[] trimmed = TrimResult(values, produced);
+                        // Each entry was resolved, so a string there is a value.
+                        result = KeepDerived(
+                            trimmed,
+                            info.op is "SelectMany" or "Concat" ? null : CollectionEntryMember(collection, ctx),
+                            HasString(trimmed));
                         break;
                 }
                 if (info.op == "ToSet" && result is object?[] setEntries)

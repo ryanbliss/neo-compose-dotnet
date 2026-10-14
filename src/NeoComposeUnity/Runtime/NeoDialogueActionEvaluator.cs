@@ -2813,7 +2813,7 @@ namespace NeoCompose.Runtime
                                 if (held is not null && held.IsSnapshot(list))
                                     held.Add(args[0]);
                                 else
-                                    held = new LocalList(list, args[0], NSGetterEvaluator.CollectionEntryMember(list, ctx));
+                                    held = new LocalList(list, args[0], NSGetterEvaluator.CollectionEntryMember(list, ctx), NSGetterEvaluator.HoldsValues(list));
                                 StoreLocalList(scope, variable, held);
                                 return;
                             }
@@ -4420,6 +4420,7 @@ namespace NeoCompose.Runtime
                 return set;
             }
             JsonMember? entryMember = NSGetterEvaluator.CollectionEntryMember(local, ctx);
+            bool values = NSGetterEvaluator.HoldsValues(local);
             if (local is object?[] array)
             {
                 // An Add builds its result directly; the List round trip
@@ -4435,18 +4436,16 @@ namespace NeoCompose.Runtime
                     Array.Copy(array, 0, added, 0, index);
                     Array.Copy(array, index, added, index + 1, array.Length - index);
                     added[index] = args[mutation == CollectionMutationKind.Insert ? 1 : 0];
-                    NSGetterEvaluator.KeepEntryMember(added, entryMember);
-                    return added;
+                    return NSGetterEvaluator.KeepDerived(added, entryMember, values);
                 }
                 var arrayList = new List<object?>(array);
-                MutateLocalList(arrayList, collectionType.type, mutation, args, reference, entryMember, ctx);
+                MutateLocalList(arrayList, collectionType.type, mutation, args, reference, values ? null : entryMember, ctx);
                 object?[] mutated = arrayList.ToArray();
-                NSGetterEvaluator.KeepEntryMember(mutated, entryMember);
-                return mutated;
+                return NSGetterEvaluator.KeepDerived(mutated, entryMember, values);
             }
             if (local is List<object?> list)
             {
-                MutateLocalList(list, collectionType.type, mutation, args, reference, entryMember, ctx);
+                MutateLocalList(list, collectionType.type, mutation, args, reference, values ? null : entryMember, ctx);
                 return list;
             }
             if (local is IDictionary<string, object?> dict)

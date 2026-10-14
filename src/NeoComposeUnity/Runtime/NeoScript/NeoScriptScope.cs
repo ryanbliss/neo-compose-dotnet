@@ -319,10 +319,11 @@ namespace NeoCompose.Runtime.NeoScript
         private object?[] entries;
         private int count;
         private readonly Member? entryMember;
+        private readonly bool values;
         private object?[]? snapshot;
 
         /// <summary><paramref name="list"/> with <paramref name="entry"/> added.</summary>
-        internal LocalList(object?[] list, object? entry, Member? entryMember)
+        internal LocalList(object?[] list, object? entry, Member? entryMember, bool values)
         {
             // The first Add allocates exactly, as a one-off Add did.
             entries = new object?[list.Length + 1];
@@ -330,6 +331,7 @@ namespace NeoCompose.Runtime.NeoScript
             entries[list.Length] = entry;
             count = entries.Length;
             this.entryMember = entryMember;
+            this.values = values;
         }
 
         /// <summary>
@@ -359,7 +361,7 @@ namespace NeoCompose.Runtime.NeoScript
                 exact = new object?[count];
                 Array.Copy(entries, exact, count);
             }
-            NSGetterEvaluator.KeepEntryMember(exact, entryMember);
+            NSGetterEvaluator.KeepDerived(exact, entryMember, values);
             return snapshot = exact;
         }
     }

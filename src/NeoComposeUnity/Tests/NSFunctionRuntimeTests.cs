@@ -5398,6 +5398,164 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void Invoke_LocalStringNamingARowStaysAString()
+        {
+            CollectionTypeInfo listType = ListType(StringType());
+            CollectionTypeInfo dictionaryType = DictionaryType(StringType());
+            VariablePointer ids = Variable("ids");
+            FunctionWithReturnType body = LoopAction(
+                VariableDeclaration("ids", List(), listType),
+                new CollectionCallInstruction
+                {
+                    type = InstructionKind.CollectionCall,
+                    target = new WriteTarget { pointer = ids, typeInfo = listType, writability = WritabilityKind.Local },
+                    mutation = CollectionMutationKind.Add,
+                    args = new Pointer[] { Text("other-row") },
+                },
+                VariableDeclaration("byKey", Dictionary(dictionaryType, ("k", "other-row")), dictionaryType),
+                VariableDeclaration("hits", Number(0), IntType()),
+                If(
+                    Compare(OperatorKind.EqualTo, new KeyOfPointer { type = PointerKind.KeyOf, keyOf = new KeyOf { pointer = ids, key = Number(0) } }, Text("other-row")),
+                    AssignLocal("hits", Add(Variable("hits"), Number(1)), IntType())),
+                If(
+                    Compare(OperatorKind.EqualTo, Key(Variable("byKey"), "k"), Text("other-row")),
+                    AssignLocal("hits", Add(Variable("hits"), Number(10)), IntType())),
+                new ForEachInstruction
+                {
+                    type = InstructionKind.ForEach,
+                    binding = new LoopBinding
+                    {
+                        id = "id",
+                        typeInfo = StringType(),
+                        isReadonly = true,
+                        writability = WritabilityKind.ReadOnly,
+                    },
+                    collectionPointer = ids,
+                    collectionTypeInfo = listType,
+                    instructions = new Instruction[]
+                    {
+                        If(
+                            Compare(OperatorKind.EqualTo, Variable("id"), Text("other-row")),
+                            AssignLocal("hits", Add(Variable("hits"), Number(100)), IntType())),
+                    },
+                },
+                new CollectionCallInstruction
+                {
+                    type = InstructionKind.CollectionCall,
+                    target = new WriteTarget { pointer = ids, typeInfo = listType, writability = WritabilityKind.Local },
+                    mutation = CollectionMutationKind.Remove,
+                    args = new Pointer[] { Text("other-row") },
+                },
+                Return(Add(
+                    Variable("hits"),
+                    Multiply(
+                        new FunctionPointer
+                        {
+                            type = PointerKind.Function,
+                            function = new CountFunction
+                            {
+                                type = FunctionKind.Count,
+                                info = new FunctionCollectionOptionalBoolInfo { collectionPointer = ids },
+                            },
+                        },
+                        Number(1000)))));
+            NSFunctionMember function = ScriptFunction(
+                "fn-local-string-ids",
+                "LocalStringIds",
+                false,
+                IntType(),
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                body);
+            using NeoClient client = BuildClient(
+                new JsonMember[] { function },
+                ReceiverClass(("LocalStringIds", function.id)));
+            client.SetWritableValue(NeoValueOwnership.Session, new NumberMemberValue { id = "other-row", value = 7 });
+
+            object? result = new NeoMemberNSFunction(client, function, null)
+                .Invoke("receiver-value", Array.Empty<object?>());
+
+            // Index read, Dictionary read, and foreach see the string; Remove empties the list.
+            Assert.AreEqual(111L, Convert.ToInt64(result));
+        }
+
+        [Test]
+        public void Invoke_CallerStringNamingARowStaysAString()
+        {
+            var ids = new FunctionArgumentTypeInfo { name = "ids", type = MemberKind.List, required = true, entryTypeInfo = StringType() };
+            var byKey = new FunctionArgumentTypeInfo { name = "byKey", type = MemberKind.Dictionary, required = true, entryTypeInfo = StringType() };
+            FunctionArgumentTypeInfo[] arguments = { ids, byKey };
+            FunctionWithReturnType body = Action(
+                IntType(),
+                arguments,
+                VariableDeclaration("hits", Number(0), IntType()),
+                If(
+                    Compare(OperatorKind.EqualTo, new KeyOfPointer { type = PointerKind.KeyOf, keyOf = new KeyOf { pointer = Variable("__arg_0__"), key = Number(0) } }, Text("other-row")),
+                    AssignLocal("hits", Add(Variable("hits"), Number(1)), IntType())),
+                If(
+                    Compare(OperatorKind.EqualTo, Key(Variable("__arg_1__"), "k"), Text("other-row")),
+                    AssignLocal("hits", Add(Variable("hits"), Number(10)), IntType())),
+                new ForEachInstruction
+                {
+                    type = InstructionKind.ForEach,
+                    binding = new LoopBinding
+                    {
+                        id = "id",
+                        typeInfo = StringType(),
+                        isReadonly = true,
+                        writability = WritabilityKind.ReadOnly,
+                    },
+                    collectionPointer = Variable("__arg_0__"),
+                    collectionTypeInfo = ListType(StringType()),
+                    instructions = new Instruction[]
+                    {
+                        If(
+                            Compare(OperatorKind.EqualTo, Variable("id"), Text("other-row")),
+                            AssignLocal("hits", Add(Variable("hits"), Number(100)), IntType())),
+                    },
+                },
+                Return(Variable("hits")));
+            NSFunctionMember function = ScriptFunction("fn-caller-string-ids", "CallerStringIds", false, IntType(), arguments, body);
+            using NeoClient client = BuildClient(
+                new JsonMember[] { function },
+                ReceiverClass(("CallerStringIds", function.id)));
+            client.SetWritableValue(NeoValueOwnership.Session, new NumberMemberValue { id = "other-row", value = 7 });
+
+            object? result = new NeoMemberNSFunction(client, function, null).Invoke(
+                "receiver-value",
+                new object?[] { new[] { "other-row" }, new Dictionary<string, string> { ["k"] = "other-row" } });
+
+            // Index read, Dictionary read, and foreach see the caller's strings.
+            Assert.AreEqual(111L, Convert.ToInt64(result));
+        }
+
+        [Test]
+        public void Invoke_LiteralStringNamingARowStaysAString([Values(false, true)] bool generic)
+        {
+            // A generic entry type binds at runtime, so the literal's own type says nothing.
+            TypeInfo entryType = generic
+                ? new GenericTypeInfo { type = MemberKind.Generic, required = true, ownerClassId = "receiver-class", genericParamId = "t" }
+                : StringType();
+            var literal = new ListLiteralPointer { type = PointerKind.ListLiteral, typeInfo = ListType(entryType), entries = new Pointer[] { Text("other-row") } };
+            NSFunctionMember function = ScriptFunction(
+                "fn-literal-string-ids",
+                "LiteralStringIds",
+                false,
+                StringType(),
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                LoopAction(
+                    StringType(),
+                    VariableDeclaration("ids", literal, ListType(entryType)),
+                    Return(new KeyOfPointer { type = PointerKind.KeyOf, keyOf = new KeyOf { pointer = Variable("ids"), key = Number(0) } })));
+            using NeoClient client = BuildClient(
+                new JsonMember[] { function },
+                ReceiverClass(("LiteralStringIds", function.id)));
+            client.SetWritableValue(NeoValueOwnership.Session, new NumberMemberValue { id = "other-row", value = 7 });
+
+            Assert.AreEqual("other-row", new NeoMemberNSFunction(client, function, null)
+                .Invoke("receiver-value", Array.Empty<object?>()));
+        }
+
+        [Test]
         public void Invoke_ReusedForEachIteratesOnlyTheCurrentRunsEntries()
         {
             CollectionTypeInfo listType = ListType(IntType());

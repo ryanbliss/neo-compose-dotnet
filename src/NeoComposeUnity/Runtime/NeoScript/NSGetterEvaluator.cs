@@ -447,10 +447,28 @@ namespace NeoCompose.Runtime.NeoScript
     {
         private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<
             object, Dictionary<string, int>> ListIdentityIndexes = new();
-        // A Where result re-emits its source's value ids, and a mutated local
-        // copy keeps them, so their entries keep the source's entry member.
+        // What a collection the evaluator built says about its entries: the
+        // entry member of the source whose value ids a Where result, or a
+        // mutated local copy of one, re-emits, or HeldValues when its entries
+        // are values. The common entry member alone allocates nothing.
         private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<
-            object, JsonMember> DerivedEntryMembers = new();
+            object, object> DerivedCollections = new();
+
+        /// <summary>
+        /// A literal, a local mutation of one, and a query that resolved its
+        /// entries hold values: a string entry there names no row.
+        /// </summary>
+        private sealed class HeldValues
+        {
+            internal static readonly HeldValues WithoutEntryMember = new(null);
+
+            internal readonly JsonMember? entryMember;
+
+            internal HeldValues(JsonMember? entryMember)
+            {
+                this.entryMember = entryMember;
+            }
+        }
 
         /// <summary>
         /// Per-evaluation context: the project, the bound
@@ -2321,23 +2339,30 @@ namespace NeoCompose.Runtime.NeoScript
         private static object? EvalListLiteral(ListLiteralPointer llp, NeoScriptScope scope, Context ctx)
         {
             var arr = new object?[llp.entries.Length];
+            // A generic entry type binds at runtime, so its strings show only in the entries.
+            bool strings = HoldsStringValues(llp.typeInfo?.entryTypeInfo);
             for (int i = 0; i < llp.entries.Length; i++)
             {
                 arr[i] = EvalPointer(llp.entries[i], scope, ctx);
+                strings |= arr[i] is string;
             }
-            return arr;
+            return KeepDerived(arr, null, strings);
         }
 
         /// <summary>A dictionary literal's entries.</summary>
         private static object? EvalDictLiteral(DictLiteralPointer dlp, NeoScriptScope scope, Context ctx)
         {
             var dict = new Dictionary<string, object?>();
+            // A generic entry type binds at runtime, so its strings show only in the entries.
+            bool strings = HoldsStringValues(dlp.typeInfo?.entryTypeInfo);
             foreach (var entry in dlp.entries)
             {
                 var k = EvalPointer(entry.key, scope, ctx);
-                dict[k?.ToString() ?? "null"] = EvalPointer(entry.value, scope, ctx);
+                object? value = EvalPointer(entry.value, scope, ctx);
+                dict[k?.ToString() ?? "null"] = value;
+                strings |= value is string;
             }
-            return dict;
+            return KeepDerived(dict, null, strings);
         }
 
         /// <summary>A force-unwrapped value, which must not be null.</summary>
@@ -4138,6 +4163,8 @@ namespace NeoCompose.Runtime.NeoScript
                     if (at is not string)
                         return at;
                     RowReference? recordRef = FindRowReference(receiver, ctx);
+                    if (recordRef is null && HoldsValues(receiver))
+                        return at;
                     return ResolveValueIfId(
                         at,
                         ctx,
@@ -4190,6 +4217,8 @@ namespace NeoCompose.Runtime.NeoScript
             if (entry is not string)
                 return entry;
             RowReference? listRef = FindRowReference(list, ctx);
+            if (listRef is null && HoldsValues(list))
+                return entry;
             return ResolveValueIfId(entry, ctx, listRef?.ownership, CollectionEntryMember(listRef, list, ctx));
         }
 
@@ -6655,6 +6684,10 @@ namespace NeoCompose.Runtime.NeoScript
             try
             {
                 var cursor = new CollectionCursor(c, ctx);
+                JsonMember? entryMember = CollectionEntryMember(c, ctx);
+                // A string entry is kept as its value, so a later local Add of
+                // a string cannot pass for a value id.
+                bool values = cursor.Values || entryMember is StringMember or DecimalMember;
                 while (cursor.MoveNextUnresolved())
                 {
                     object? entry = cursor.ResolveEntry(ctx);
@@ -6662,7 +6695,7 @@ namespace NeoCompose.Runtime.NeoScript
                     {
                         // Re-emit valueId references rather than dereferenced
                         // entries when we have them — matches TS semantic.
-                        object? emit = cursor.ValueId ?? entry;
+                        object? emit = values ? entry : cursor.ValueId ?? entry;
                         if (matches is not null)
                             AppendResult(ref matches, ref matchCount, emit);
                         else
@@ -6683,8 +6716,8 @@ namespace NeoCompose.Runtime.NeoScript
                     result = matchedEntries!;
                 }
                 // The source compacted in place already carries its entry member.
-                if (!ReferenceEquals(result, c))
-                    KeepEntryMember(result, CollectionEntryMember(c, ctx));
+                if (values || !ReferenceEquals(result, c))
+                    KeepDerived(result, entryMember, values);
                 callback.CompleteOperator(result);
                 return result;
             }
@@ -8003,12 +8036,15 @@ namespace NeoCompose.Runtime.NeoScript
             private NeoValueNode?[]? nodes;
             private NeoValueOwnership[]? ownerships;
             private JsonMember? entryMember;
+            private bool values;
 
             /// <summary>The entries in use; -1 when no snapshot is taken.</summary>
             internal int Count { get; private set; } = -1;
 
             internal void Take(object? collection, Context ctx)
             {
+                // A Set keeps its entries' values.
+                values = collection is RuntimeSet;
                 if (collection is RuntimeSet set)
                     collection = set.Snapshot();
                 if (collection is not object?[]
@@ -8019,6 +8055,7 @@ namespace NeoCompose.Runtime.NeoScript
                 }
 
                 RowReference? collectionRef = FindRowReference(collection, ctx);
+                values |= collectionRef is null && HoldsValues(collection);
                 JsonMember? collectionMember = collectionRef?.CollectionMember(ctx.client);
                 entryMember = CollectionEntryMember(collectionRef, collection, ctx);
                 NeoValueOwnership? collectionOwnership = collectionMember is LookupMember
@@ -8042,7 +8079,7 @@ namespace NeoCompose.Runtime.NeoScript
                         raws[count++] = entry.Raw;
                     }
                 }
-                for (int index = 0; index < count; index++)
+                for (int index = 0; index < count && !values; index++)
                 {
                     if (raws[index] is not string id)
                         continue;
@@ -8098,7 +8135,7 @@ namespace NeoCompose.Runtime.NeoScript
 
             internal object? Resolve(int index, Context ctx)
             {
-                if (raws[index] is not string id)
+                if (raws[index] is not string id || values)
                 {
                     return raws[index];
                 }
@@ -8220,6 +8257,7 @@ namespace NeoCompose.Runtime.NeoScript
             // The entry member's, resolved once rather than per entry.
             private readonly NeoValueOwnership? entryOwnership;
             private readonly int count;
+            private readonly bool values;
 
             internal CollectionCursor(object? collection, Context ctx)
             {
@@ -8236,6 +8274,8 @@ namespace NeoCompose.Runtime.NeoScript
                     this.entryMember = entryMember;
                     entryOwnership = ctx.client.ConcreteDeclaredOwnership(entryMember);
                 }
+                // A Set keeps its entries' values.
+                values = collection is RuntimeSet || collectionRef is null && HoldsValues(collection);
                 if (collection is RuntimeSet set)
                     collection = set.Snapshot();
                 if (collection is object?[] array)
@@ -8256,7 +8296,10 @@ namespace NeoCompose.Runtime.NeoScript
                 get; private set;
             }
             internal readonly object Key => array is not null ? Index : ordered![Index].Key;
-            internal readonly string? ValueId => Raw as string;
+            internal readonly string? ValueId => values ? null : Raw as string;
+
+            /// <summary>Whether the collection holds values rather than value ids.</summary>
+            internal readonly bool Values => values;
 
             // The current entry's stored value, read again rather than kept:
             // a field store through the cursor's byref costs a write barrier.
@@ -8278,7 +8321,7 @@ namespace NeoCompose.Runtime.NeoScript
             internal readonly object? ResolveEntry(Context ctx)
             {
                 object? raw = Raw;
-                if (raw is not string id)
+                if (raw is not string id || values)
                     return raw;
                 NeoValueNode? node = collectionRef?.EntryNode(Index, raw);
                 object? entry = ResolveValueId(id, ctx, null, entryOwnership, entryMember, ref node);
@@ -10450,9 +10493,7 @@ namespace NeoCompose.Runtime.NeoScript
             Context ctx) =>
             collectionRef is not null
                 ? collectionRef.EntryMember(ctx.client)
-                : collection is not null && DerivedEntryMembers.TryGetValue(collection, out JsonMember? entryMember)
-                    ? entryMember
-                    : null;
+                : DerivedEntryMember(collection);
 
         internal static JsonMember? CollectionEntryMember(object? collection, Context ctx) =>
             CollectionEntryMember(FindRowReference(collection, ctx), collection, ctx);
@@ -10514,28 +10555,29 @@ namespace NeoCompose.Runtime.NeoScript
                 entryMember = rowRef.EntryMember(ctx.client);
             }
             // A class record is never a derived collection.
-            else if (value is NeoObjectRecord || !DerivedEntryMembers.TryGetValue(value, out entryMember))
+            else if (value is NeoObjectRecord || (entryMember = DerivedEntryMember(value)) is null)
                 return ResolveNestedRuntimeSets(value, ctx);
             bool nested = entryMember is null or ListMember or DictionaryMember;
+            bool values = rowRef is null && HoldsValues(value);
             NeoValueOwnership? ownership = rowRef?.ownership;
             if (value is object?[] rows)
             {
                 var entries = new object?[rows.Length];
                 for (int i = 0; i < rows.Length; i++)
                 {
-                    object? entry = ResolveListEntry(rows, i, rowRef, ownership, ctx, entryMember);
+                    object? entry = values ? rows[i] : ResolveListEntry(rows, i, rowRef, ownership, ctx, entryMember);
                     entries[i] = nested ? ResolveHostCollection(entry, ctx) : entry;
                 }
                 return entries;
             }
             var stored = (Dictionary<string, object?>)value;
-            var values = new Dictionary<string, object?>(stored.Count, stored.Comparer);
+            var resolved = new Dictionary<string, object?>(stored.Count, stored.Comparer);
             foreach (KeyValuePair<string, object?> pair in stored)
             {
-                object? entry = ResolveValueIfId(pair.Value, ctx, ownership, entryMember);
-                values.Add(pair.Key, nested ? ResolveHostCollection(entry, ctx) : entry);
+                object? entry = values ? pair.Value : ResolveValueIfId(pair.Value, ctx, ownership, entryMember);
+                resolved.Add(pair.Key, nested ? ResolveHostCollection(entry, ctx) : entry);
             }
-            return values;
+            return resolved;
         }
 
         /// <summary>
@@ -10561,26 +10603,70 @@ namespace NeoCompose.Runtime.NeoScript
         }
 
         /// <summary>
-        /// Gives a collection derived from another's value ids that source's
-        /// entry member. An empty array has no entries to resolve and can be
-        /// a shared instance (<c>List.ToArray</c> returns one), so it is skipped.
+        /// Records what <paramref name="derived"/> holds: the entry member of
+        /// the value ids it re-emits, and whether its entries are values. An
+        /// empty array has no entries to resolve and can be a shared instance
+        /// (<c>List.ToArray</c> returns one), so it is skipped.
         /// </summary>
-        internal static void KeepEntryMember(object derived, JsonMember? entryMember)
+        internal static T KeepDerived<T>(T derived, JsonMember? entryMember, bool values) where T : class
         {
-            if (entryMember is null || derived is object?[] { Length: 0 })
-                return;
-            DerivedEntryMembers.Add(derived, entryMember);
+            object? tag = values ? HeldValuesOf(entryMember) : entryMember;
+            if (tag is not null && derived is not object?[] { Length: 0 })
+                DerivedCollections.AddOrUpdate(derived, tag);
+            return derived;
         }
 
         /// <summary>
-        /// Gives <paramref name="copy"/> the entry member
-        /// <paramref name="source"/> derived, so a copy of a Where result
-        /// still resolves its entries.
+        /// Gives a normalized <paramref name="copy"/> what
+        /// <paramref name="source"/> holds, so a copy of a Where result still
+        /// resolves its entries. Strings that re-emit no value ids, like a
+        /// C# caller's, are values.
         /// </summary>
-        internal static void KeepEntryMemberOf(object source, object copy)
+        internal static T KeepDerivedOf<T>(object source, T copy, TypeInfo? entryType) where T : class
         {
-            if (DerivedEntryMembers.TryGetValue(source, out JsonMember? entryMember))
-                KeepEntryMember(copy, entryMember);
+            JsonMember? entryMember = DerivedEntryMember(source);
+            bool values = HoldsValues(source) || entryMember is null && HoldsStringValues(entryType);
+            return KeepDerived(copy, entryMember, values);
+        }
+
+        private static HeldValues HeldValuesOf(JsonMember? entryMember) =>
+            entryMember is null ? HeldValues.WithoutEntryMember : new HeldValues(entryMember);
+
+        /// <summary>The entry member of the value ids <paramref name="collection"/> re-emits.</summary>
+        private static JsonMember? DerivedEntryMember(object? collection)
+        {
+            if (collection is null || !DerivedCollections.TryGetValue(collection, out object? tag))
+                return null;
+            return tag switch
+            {
+                JsonMember entryMember => entryMember,
+                HeldValues values => values.entryMember,
+                _ => null,
+            };
+        }
+
+        /// <summary>
+        /// Whether <paramref name="collection"/> holds values rather than
+        /// value ids. An empty array holds nothing to resolve, and what a
+        /// local Add puts in is a value.
+        /// </summary>
+        internal static bool HoldsValues(object? collection) =>
+            collection is object?[] { Length: 0 }
+            || collection is not null
+                && DerivedCollections.TryGetValue(collection, out object? tag)
+                && tag is HeldValues;
+
+        /// <summary>Whether entries of <paramref name="entryType"/> are strings that name no row.</summary>
+        private static bool HoldsStringValues(TypeInfo? entryType) =>
+            entryType?.type is MemberKind.String or MemberKind.Decimal;
+
+        /// <summary>Whether a resolved query result holds a string, which is then a value.</summary>
+        private static bool HasString(object?[] entries)
+        {
+            foreach (object? entry in entries)
+                if (entry is string)
+                    return true;
+            return false;
         }
 
         internal static JsonMember? FindRowMemberByReference(object? value, Context ctx) =>
@@ -10656,8 +10742,8 @@ namespace NeoCompose.Runtime.NeoScript
                 else
                     return null;
             }
-            DerivedEntryMembers.TryGetValue(entries, out entryMember);
-            return recipe;
+            entryMember = DerivedEntryMember(entries);
+            return HoldsValues(entries) ? KeepDerived(recipe, null, true) : recipe;
         }
 
         /// <summary>
@@ -10690,9 +10776,7 @@ namespace NeoCompose.Runtime.NeoScript
             }
             if (lend)
                 TemporaryLists.Lend(entries, lendingMemberId!);
-            else
-                KeepEntryMember(entries, entryMember);
-            return entries;
+            return KeepDerived(entries, lend ? null : entryMember, HoldsValues(recipe));
         }
 
         /// <summary>
@@ -10739,7 +10823,7 @@ namespace NeoCompose.Runtime.NeoScript
                     exclusive = null;
                 if (entries.Length == 0 || entries.Length > MaxPooledLength)
                     return;
-                DerivedEntryMembers.Remove(entries);
+                DerivedCollections.Remove(entries);
                 Array.Clear(entries, 0, entries.Length);
                 (free ??= new object?[MaxPooledLength + 1][])[entries.Length] = entries;
             }
