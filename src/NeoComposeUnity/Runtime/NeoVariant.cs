@@ -452,11 +452,12 @@ namespace NeoCompose.Runtime
                 ApplyDeclarativeHalves(client, record, node, ownership);
                 return;
             }
-            bool changed = client.StampVirtualInstanceVariant(
+            bool stamped = client.StampVirtualInstanceVariant(
                 node,
                 ownership,
                 record.id,
                 lookupRowValueId);
+            bool cleared = false;
             foreach (NeoAnimationCompiledWrite answered in CompileDeclarativeHalves(
                 client,
                 record,
@@ -464,11 +465,12 @@ namespace NeoCompose.Runtime
                 ownership,
                 resolveSelectorsImmediately: true))
             {
-                changed |= answered.ClearInstanceOverride();
+                cleared |= answered.ClearInstanceOverride();
             }
-            // Same variant and row, and no answered pin cleared: a replay
-            // would reproduce the current expansion.
-            if (changed)
+            // Preparing, the stamp already replayed the new selection, so only
+            // a cleared pin changes what a replay reads. Inside another replay
+            // the stamp replays nothing.
+            if (cleared || (stamped && client.IsReplayingVirtualInstance))
                 client.RefreshVirtualInstanceVariant(node, ownership);
         }
 

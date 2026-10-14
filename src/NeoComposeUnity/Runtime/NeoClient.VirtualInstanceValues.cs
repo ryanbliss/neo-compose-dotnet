@@ -1318,11 +1318,19 @@ namespace NeoCompose.Runtime
             }
         }
 
+        /// <summary>Every replay of a sparse root, prepared or installed.</summary>
+        internal int VirtualReplayCount
+        {
+            get;
+            private set;
+        }
+
         private PreparedVirtualExpansion ExpandVirtualInstanceRootCore(ObjectMemberValue instanceRoot, bool prepareOnly = false, NeoValueOwnership? replayOwnership = null)
         {
 #if NEO_COMPOSE_PROFILING
             using var marker = ReplayRootMarker.Auto();
 #endif
+            VirtualReplayCount++;
             using var nestedReplay = BeginNestedReplay();
             nestedReplayBoundaries.TryGetValue(instanceRoot.id, out var replayBoundary);
             if (replayBoundary is not null
