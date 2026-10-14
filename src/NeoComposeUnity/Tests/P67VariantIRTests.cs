@@ -519,6 +519,73 @@ namespace NeoCompose.Tests
         }
 
         /// <summary>
+        /// Neowyn's pickaxe: <c>new InventoryItemStack(item, 1, plant.Data)</c>,
+        /// then the plant despawns. A loaded variant root's replay adopts its
+        /// stored <c>Data</c> clone and what that owns into its footprint, and
+        /// the despawn removes that footprint. The stack's recipe names
+        /// <c>Data</c>, so <c>Data</c> and everything it owns must survive.
+        /// </summary>
+        [Test]
+        public void DespawningALoadedVariantRootKeepsWhatARecipesInputOwns()
+        {
+            ProjectData data = ClonedBoxProjectData();
+            AddHeldWidget(data);
+            // Saved with the Widget, as a placed plant's Data is.
+            ((ClassMember)data.members["widget-data"]).Storage = NeoMemberStorage.Inherit;
+            ((IntMember)data.members["box-count"]).Storage = NeoMemberStorage.Inherit;
+            AddBoxRecipe(data);
+            ObjectMemberValue held = ObjectValue("saved-held", WidgetClassId, ("Data", "saved-held-data"));
+            held.instanceVariantId = "variant-up";
+            ObjectMemberValue heldData = ObjectValue("saved-held-data", BoxClassId, ("Count", "saved-held-count"));
+            heldData.sourceValueId = "value-assets-box";
+            JObject content = JObject.Parse(SaveContentHolding(data, held));
+            content["values"]![heldData.id] = JObject.FromObject(heldData);
+            content["values"]!["saved-held-count"] = JObject.FromObject(new NumberMemberValue
+            {
+                id = "saved-held-count",
+                value = 42,
+                createdAt = "x",
+                updatedAt = "x",
+            });
+
+            string saved;
+            using (NeoClient client = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: content.ToString()))
+            {
+                NeoMemberClassWritable owner = client.save.Get<NeoMemberClassWritable>("Held");
+                using var input = new BoxValue(client, owner.Get<NeoMemberClassWritable>("Data"));
+                Assert.AreEqual("saved-held-data", input.valueId);
+                using NeoMemberClassWritable recipe = NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(
+                    client, BoxRecipeClassId, "box-recipe-ctor",
+                    new[] { new NeoDeclaredConstructorArgument("config", input) });
+
+                // NeoTileGridPrimitive.RemoveMemberRow's write.
+                var root = (ObjectMemberValue)client.CloneRowForWrite(client.save.value!);
+                root.value!.Remove("Held");
+                var plan = new NeoWritePlan(client);
+                plan.Set(NeoValueOwnership.Save, root);
+                client.StageOwnedRemoval(plan, NeoValueOwnership.Save, "saved-held",
+                    client.TryInferMemberForValueId("saved-held", out JsonMember? member) ? member : null);
+                plan.Commit();
+                Assert.IsFalse(client.saveValues.ContainsKey("saved-held"), "The owner itself still goes.");
+
+                NeoGeneratedTypesSupport.SetValue(client.save, "Recipe",
+                    NeoGeneratedTypesSupport.ValueReference(new BoxRecipeValue(client, recipe)));
+                client.RunGarbageCollector();
+                saved = client.SerializeSaveData();
+            }
+
+            JObject values = (JObject)JObject.Parse(saved)["values"]!;
+            Assert.IsNotNull(values["saved-held-data"], "The recipe's input outlives its owner.");
+            Assert.IsNotNull(values["saved-held-count"], "So does what the input owns.");
+            using NeoClient reopened = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: saved);
+            NeoMemberClass restored = reopened.save.Get<NeoMemberClass>("Recipe");
+            Assert.AreEqual("saved-held-data", restored.value!.constructorArgs!["__arg_0__"]!.Value<string>());
+            Assert.IsTrue(reopened.TryGetValue("saved-held-data", out ObjectMemberValue? storedInput));
+            Assert.IsTrue(reopened.TryGetValue(storedInput!.value!["Count"], out NumberMemberValue? count));
+            Assert.AreEqual(42, count!.value);
+        }
+
+        /// <summary>
         /// An optional Class field nobody assigned has no row and reads null.
         /// A null object has no children, so its class's computed fields are
         /// never materialized.
@@ -1637,6 +1704,79 @@ namespace NeoCompose.Tests
                 updatedAt = "x",
             };
             data.classes["root-class"].schema["Held"] = "root-held";
+        }
+
+        private const string BoxRecipeClassId = "box-recipe-class";
+
+        /// <summary>
+        /// Adds <c>class BoxRecipe(Box config) { }</c> and a Save-held
+        /// <c>BoxRecipe? Recipe</c> to the root class.
+        /// </summary>
+        private static void AddBoxRecipe(ProjectData data)
+        {
+            data.classes[BoxRecipeClassId] = new NeoSchemaClass
+            {
+                id = BoxRecipeClassId,
+                projectId = ProjectId,
+                name = "BoxRecipe",
+                constructorIds = new[] { "box-recipe-ctor" },
+                schema = new Dictionary<string, string>(),
+            };
+            var config = new FunctionArgumentTypeInfo
+            {
+                name = "config",
+                type = MemberKind.Class,
+                classId = BoxClassId,
+                required = true,
+            };
+            data.constructors["box-recipe-ctor"] = new ConstructorRecord
+            {
+                id = "box-recipe-ctor",
+                projectId = ProjectId,
+                classId = BoxRecipeClassId,
+                argumentTypes = new[] { config },
+                action = new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = new[]
+                    {
+                        new Variable { id = "__this__", typeInfo = ClassType(BoxRecipeClassId) },
+                        new Variable { id = "__root__", typeInfo = ClassType("root-class") },
+                        new Variable { id = "__arg_0__", typeInfo = config },
+                    },
+                    typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null, required = true },
+                    instructions = Array.Empty<Instruction>(),
+                },
+            };
+            data.members["root-recipe"] = new ClassMember
+            {
+                id = "root-recipe",
+                projectId = ProjectId,
+                name = "Recipe",
+                kind = MemberKind.Class,
+                classId = BoxRecipeClassId,
+                Requirement = NeoMemberRequirementKind.Optional,
+                Storage = NeoMemberStorage.Save,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            data.classes["root-class"].schema["Recipe"] = "root-recipe";
+        }
+
+        private sealed class BoxValue : NeoGeneratedClassValue
+        {
+            internal BoxValue(NeoClient client, NeoMemberClassWritable node)
+                : base(client, node, BoxClassId, isReadOnly: false, inheritedStorageOwnership: NeoValueOwnership.Save)
+            {
+            }
+        }
+
+        private sealed class BoxRecipeValue : NeoGeneratedClassValue
+        {
+            internal BoxRecipeValue(NeoClient client, NeoMemberClassWritable node)
+                : base(client, node, BoxRecipeClassId, isReadOnly: false, inheritedStorageOwnership: NeoValueOwnership.Session)
+            {
+            }
         }
 
         /// <summary>Save content whose Save root holds <paramref name="held"/>.</summary>
