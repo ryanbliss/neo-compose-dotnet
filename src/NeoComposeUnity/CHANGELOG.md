@@ -3,6 +3,7 @@
 ## [0.71.3] - 2026-10-14
 
 - Performance: a write to a placed object that leaves it where it is no longer revalidates its whole grid or drops the grid's layer indexes. A variant swap is the common case. Each swap used to drop every tile and object index in the grid and revalidate every placement in it, so a night of plant growth cost O(plants²). Only the written object is validated now, and the renderer hears it changed in place. In Neowyn, a night that grows 72 plants into new stages takes 337 ms instead of 1152 ms.
+- Performance: a variant swap replays its sparse root once. It used to replay the root a second time even when the swap's declarative halves cleared no pin, so nothing the replay reads had changed. Night 1 of the same benchmark now takes 269 ms instead of 337 ms.
 
 ## [0.71.2] - 2026-10-14
 

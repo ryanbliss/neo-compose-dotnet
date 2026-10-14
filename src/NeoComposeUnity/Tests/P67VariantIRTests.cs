@@ -424,6 +424,31 @@ namespace NeoCompose.Tests
         }
 
         /// <summary>
+        /// A swap to a new variant replays its root once: the stamp's replay
+        /// already reads the new selection, and the commit reuses it. Up's
+        /// Overrides answer the Label its own Apply pins, and clearing that pin
+        /// changes what a replay reads, so that swap replays again.
+        /// </summary>
+        [Test]
+        public void VariantApply_ReplaysTheRootAgainOnlyForAClearedPin()
+        {
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(BuildVariantProjectData());
+            NeoMemberClassWritable node = NeoVariantSupport.InitializeNode(
+                client, WidgetClassId, client.variants["variant-plain"]);
+            // Initialize() stores the whole graph, which the first swap unpins.
+            NeoVariantSupport.ApplyToNode(client, client.variants["variant-up"], node, node.ownership);
+            int before = client.VirtualReplayCount;
+
+            NeoVariantSupport.ApplyToNode(client, client.variants["variant-plain"], node, node.ownership);
+
+            Assert.AreEqual(1, client.VirtualReplayCount - before);
+            before = client.VirtualReplayCount;
+            NeoVariantSupport.ApplyToNode(client, client.variants["variant-up"], node, node.ownership);
+            Assert.AreEqual(2, client.VirtualReplayCount - before);
+            Assert.AreEqual("up", ReadLabel(client, node));
+        }
+
+        /// <summary>
         /// A placed plant is built by <c>Variants.X.Initialize()</c>, then
         /// refreshes to that same variant. The refresh clears the pin its
         /// Overrides answer on the nested <c>Box Group = new()</c>; with the
