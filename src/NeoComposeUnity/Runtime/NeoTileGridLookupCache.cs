@@ -61,6 +61,17 @@ namespace NeoCompose.Runtime
         {
             get; private set;
         }
+
+        // Any index that may be dropped may also be rebuilt with other
+        // objects, so the client forgets which objects are placed. A plan
+        // commit drops this way even when no object layer read its rows: the
+        // layer list itself may have changed. The next write per object
+        // reprobes, a few dictionary lookups.
+        private void DropObjectLayers()
+        {
+            ObjectLayersVersion++;
+            primitive.Client.ForgetObjectPlacements();
+        }
         internal IReadOnlyList<string> ObjectLayerIds => objectLayerIds ??= primitive.ResolveObjectLayerIds();
         internal IReadOnlyList<string> TileLayerIds => tileLayerIds ??= primitive.ResolveTileLayerIds();
 
@@ -93,7 +104,7 @@ namespace NeoCompose.Runtime
             tileLayers.Clear();
             ForgetRecentTileLayers();
             objectLayers.Clear();
-            ObjectLayersVersion++;
+            DropObjectLayers();
             changedTileLayers.Clear();
             changedObjectLayers.Clear();
             knownTileLayers.Clear();
@@ -188,7 +199,7 @@ namespace NeoCompose.Runtime
             foreach (var change in args.ObjectLayers)
             {
                 objectLayers.Remove(change.LayerId);
-                ObjectLayersVersion++;
+                DropObjectLayers();
             }
         }
 
@@ -212,7 +223,7 @@ namespace NeoCompose.Runtime
             InvalidateDependents(tileLayers, changedTileLayers, ids);
             ForgetRecentTileLayers();
             InvalidateDependents(objectLayers, changedObjectLayers, ids);
-            ObjectLayersVersion++;
+            DropObjectLayers();
             foreach (string layerId in changedTileLayers.Keys)
                 if (plan.PreparedTileLayers is { } preparedTiles
                     && preparedTiles.TryGetValue((primitive.GridValueId, layerId), out var prepared))
@@ -276,7 +287,7 @@ namespace NeoCompose.Runtime
             tileLayers.Clear();
             ForgetRecentTileLayers();
             objectLayers.Clear();
-            ObjectLayersVersion++;
+            DropObjectLayers();
             changedTileLayers.Clear();
             changedObjectLayers.Clear();
             convertedTileCells.Clear();
@@ -286,6 +297,22 @@ namespace NeoCompose.Runtime
                 GetTileLayerIndex(layerId);
             foreach (string layerId in knownObjectLayers)
                 GetObjectLayerIndex(layerId);
+        }
+
+        /// <summary>
+        /// Whether an object layer's committed index holds
+        /// <paramref name="objectId"/>, building each index not yet built, as
+        /// <see cref="ObjectMove.Prepare"/> does.
+        /// </summary>
+        internal bool IndexesObject(string objectId)
+        {
+            IReadOnlyList<string> layerIds = ObjectLayerIds;
+            for (int i = 0; i < layerIds.Count; i++)
+            {
+                if (GetObjectLayerIndex(layerIds[i]).ById.ContainsKey(objectId))
+                    return true;
+            }
+            return false;
         }
 
         /// <summary>Whether a built layer index read row <paramref name="valueId"/>.</summary>
@@ -711,6 +738,7 @@ namespace NeoCompose.Runtime
                 int count = gridLookupCacheList.Length;
                 System.Array.Resize(ref gridLookupCacheList, count + 1);
                 gridLookupCacheList[count] = cache;
+                ForgetObjectPlacements();
             }
             return cache;
         }

@@ -18,10 +18,12 @@ namespace NeoCompose.Runtime
     public interface INeoObjectSpawnHooks
     {
         /// <summary>
-        /// Called by <see cref="NeoTileGridRenderer"/> after an object
-        /// instance's root GameObject is fully built (composition children,
-        /// authored collider, sprite fallback) — safe to add components such
-        /// as Rigidbody2D. Play mode only, and NOT once-per-instance: a data
+        /// Called by <see cref="NeoTileGridRenderer"/> on every object in a
+        /// placed instance — the placed root and each <c>NeoObject</c> in its
+        /// composition, sprites included — once the whole hierarchy is built
+        /// (composition children, authored colliders, sprite art), parents
+        /// first. Safe to add components such as Rigidbody2D. Play mode only,
+        /// and NOT once-per-instance: a data
         /// change that alters what the hierarchy is built from (its
         /// composition children, names, sprite sizes, sorting groups or
         /// colliders) despawns and respawns the GameObject, so this can run
@@ -41,19 +43,24 @@ namespace NeoCompose.Runtime
         void OnObjectSpawned(NeoObjectBehaviour behaviour);
 
         /// <summary>
-        /// Called before the renderer destroys the instance's root GameObject
-        /// (instance removed/changed, re-render, or scene teardown). Play mode
-        /// only; fires at most once per spawned GameObject.
+        /// Called before the renderer destroys the instance's hierarchy
+        /// (instance removed/changed, re-render, or scene teardown), children
+        /// before parents. Play mode only; fires at most once per spawned
+        /// GameObject.
         /// </summary>
         void OnObjectDespawned(NeoObjectBehaviour behaviour);
     }
 
     /// <summary>
     /// Bridge between a renderer-spawned object GameObject and its Neo data
-    /// model. <see cref="NeoTileGridRenderer"/> attaches one to every object
-    /// instance root it spawns, so Unity-side code (e.g. physics callbacks)
-    /// can resolve the typed Neo object:
-    /// <c>other.GetComponentInParent&lt;NeoObjectBehaviour&gt;()?.TryGetObject(out MyObject obj)</c>.
+    /// model. <see cref="NeoTileGridRenderer"/> attaches one to every
+    /// GameObject it builds for a <c>NeoObject</c>: the placed root and each
+    /// composition child, sprites included. Unity-side code (e.g. physics
+    /// callbacks) resolves the nearest typed Neo object with
+    /// <c>other.GetComponentInParent&lt;NeoObjectBehaviour&gt;()?.TryGetObject(out MyObject obj)</c>;
+    /// check <see cref="IsRoot"/> or read <see cref="InstanceId"/> for the
+    /// placed instance. A sprite with children or a sorting group keeps its
+    /// <see cref="SpriteRenderer"/> on a child GameObject.
     /// Deliberately a sealed data holder — game logic belongs in generated-type
     /// partials via <see cref="INeoObjectSpawnHooks"/>, not in subclasses.
     /// </summary>
@@ -67,9 +74,10 @@ namespace NeoCompose.Runtime
         public NeoGeneratedClassValue Object { get; private set; } = null!;
 
         /// <summary>
-        /// The placed instance's stable identity. Survives despawn/respawn
-        /// cycles (the GameObject and this behaviour do not), so key any
-        /// external per-instance state on this.
+        /// The placed instance's stable identity, the same on the root and
+        /// every child. Survives despawn/respawn cycles (the GameObject and
+        /// this behaviour do not), so key any external per-instance state on
+        /// this.
         /// </summary>
         public NeoObjectInstanceId InstanceId
         {
@@ -86,6 +94,12 @@ namespace NeoCompose.Runtime
         public Vector2Int Cell
         {
             get; internal set;
+        }
+
+        /// <summary>Whether this GameObject is the placed instance's root rather than a composition child.</summary>
+        public bool IsRoot
+        {
+            get; private set;
         }
 
         /// <summary>Typed access to <see cref="Object"/>.</summary>
@@ -105,7 +119,9 @@ namespace NeoCompose.Runtime
         internal void Initialize(
             NeoTileGridRenderer renderer,
             IReadOnlyNeoObjectLayerRuntime layer,
-            NeoObjectProjection instance)
+            NeoObjectProjection instance,
+            NeoGeneratedClassValue obj,
+            bool isRoot)
         {
             if (isInitialized)
             {
@@ -117,9 +133,10 @@ namespace NeoCompose.Runtime
             Layer = layer ?? throw new ArgumentNullException(nameof(layer));
             if (instance is null)
                 throw new ArgumentNullException(nameof(instance));
-            Object = instance.Object;
+            Object = obj ?? throw new ArgumentNullException(nameof(obj));
             InstanceId = instance.InstanceId;
             Cell = instance.Cell;
+            IsRoot = isRoot;
             isInitialized = true;
             InvokeHook(static (hooks, behaviour) => hooks.OnObjectSpawned(behaviour));
         }

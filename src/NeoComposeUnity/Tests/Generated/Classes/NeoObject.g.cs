@@ -48,6 +48,9 @@ namespace Assets.Scripts.Neo
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
+                    "class-animated-sprite" => new AnimatedSprite(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "class-animated-sprite-child" => new AnimatedSpriteChild(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "system_d48b66ab-4d59-47e7-a25a-591fe97062de" => new NeoSpriteObject(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoObject' without a concrete client type id."),
                 };
             });
@@ -60,6 +63,9 @@ namespace Assets.Scripts.Neo
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
+                    "class-animated-sprite" => new AnimatedSprite(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "class-animated-sprite-child" => new AnimatedSpriteChild(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "system_d48b66ab-4d59-47e7-a25a-591fe97062de" => new NeoSpriteObject(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoObject' without a concrete client type id."),
                 };
             });
@@ -124,9 +130,10 @@ namespace Assets.Scripts.Neo
 
         /// <summary>
         /// Renderer spawn hook — override in a partial class to attach Unity
-        /// components (e.g. Rigidbody2D) to the instance's fully-built root
-        /// GameObject. See <see cref="INeoObjectSpawnHooks"/> for timing and
-        /// respawn semantics.
+        /// components (e.g. Rigidbody2D) to this object's GameObject. Runs on
+        /// the placed root and every object in its composition, parents first;
+        /// check behaviour.IsRoot for the placed instance. See
+        /// <see cref="INeoObjectSpawnHooks"/> for timing and respawn semantics.
         /// </summary>
         protected virtual void OnObjectSpawned(NeoObjectBehaviour behaviour)
         {
@@ -134,8 +141,8 @@ namespace Assets.Scripts.Neo
 
         /// <summary>
         /// Renderer despawn hook — override in a partial class to release
-        /// per-GameObject state before the instance's root GameObject is
-        /// destroyed.
+        /// per-GameObject state before this object's GameObject is destroyed.
+        /// Children despawn before their parents.
         /// </summary>
         protected virtual void OnObjectDespawned(NeoObjectBehaviour behaviour)
         {

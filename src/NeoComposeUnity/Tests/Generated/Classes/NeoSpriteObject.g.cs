@@ -11,7 +11,7 @@ using UnityEngine;
 
 namespace Assets.Scripts.Neo
 {
-    public interface IReadOnlyNeoSpriteObject : IReadOnlyNeoObjectBase, INeoSpriteObjectValue
+    public interface IReadOnlyNeoSpriteObject : IReadOnlyNeoObject, INeoSpriteObjectValue
     {
         new bool IsReadOnly { get; }
 
@@ -34,19 +34,19 @@ namespace Assets.Scripts.Neo
         new int? SortingOrder { get; }
     }
 
-    public partial class NeoSpriteObject : NeoObjectBase, IReadOnlyNeoSpriteObject, INeoSpriteObjectValue
+    public partial class NeoSpriteObject : NeoObject, IReadOnlyNeoSpriteObject, INeoSpriteObjectValue
     {
         internal NeoSpriteObject(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, isReadOnly, inheritedStorageOwnership)
         {
         }
 
-        public NeoSpriteObject(string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, bool? Enabled = null, NeoCollider? Collider = null, Sprite? Sprite = null, bool? FlipX = null, bool? FlipY = null, NeoSpriteMaskInteraction? MaskInteraction = null, int? SortingOrder = null)
-            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Name, Position, Size, Enabled, Collider, Sprite, FlipX, FlipY, MaskInteraction, SortingOrder), false, NeoValueOwnership.Session)
+        public NeoSpriteObject(string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, bool? Enabled = null, NeoCollider? Collider = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, IEnumerable<NeoObjectBase>? Children = null, Sprite? Sprite = null, bool? FlipX = null, bool? FlipY = null, NeoSpriteMaskInteraction? MaskInteraction = null, int? SortingOrder = null)
+            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Name, Position, Size, Enabled, Collider, PlacementTiles, Children, Sprite, FlipX, FlipY, MaskInteraction, SortingOrder), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, bool? Enabled = null, NeoCollider? Collider = null, Sprite? Sprite = null, bool? FlipX = null, bool? FlipY = null, NeoSpriteMaskInteraction? MaskInteraction = null, int? SortingOrder = null)
+        private static NeoMemberClassWritable CreateFactoryNode(string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, bool? Enabled = null, NeoCollider? Collider = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, IEnumerable<NeoObjectBase>? Children = null, Sprite? Sprite = null, bool? FlipX = null, bool? FlipY = null, NeoSpriteMaskInteraction? MaskInteraction = null, int? SortingOrder = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
@@ -57,6 +57,8 @@ namespace Assets.Scripts.Neo
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "system_e1d820d8-56b1-43ac-aa10-0a019f0dc38f", Size),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Enabled", "system_4858148e-1c42-449d-8a03-c1601da529bd", Enabled),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Collider", "system_a0083c92-72f7-405f-8863-ff86f995d36d", Collider),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("PlacementTiles", "system_5a9ca1f5-a21b-4d4e-8c55-00341af594b4", PlacementTiles),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Children", "system_bb5d2cf1-a0dd-4eba-a62e-0e1bf0177071", Children),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Sprite", "system_e9288ba9-f5a2-4485-8443-6afb155b31e0", Sprite),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("FlipX", "system_9fcab37a-9743-4e35-8eee-80cb560f1433", FlipX),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("FlipY", "system_ddd09f08-1656-4404-b36b-5570a4c01fcf", FlipY),
@@ -113,8 +115,21 @@ namespace Assets.Scripts.Neo
             return TryWritable<NeoSpriteObject>(out writable);
         }
 
+        /// <summary>
+        /// Applies a variant to this instance in place and returns the same
+        /// instance (P67 §4.2): the variant's Apply delegate if it declares one,
+        /// then its Overrides, then its ChildOverrides.
+        /// </summary>
+        public NeoSpriteObject ToVariant(NeoVariant<NeoSpriteObject> variant)
+        {
+            ThrowIfReadOnly("NeoSpriteObject.ToVariant");
+            return NeoGeneratedTypesSupport.ApplyVariant(this, variant);
+        }
+
         Sprite INeoSpriteObjectValue.Sprite => Sprite;
         string INeoSpriteObjectValue.MaskInteraction => MaskInteraction.OptionId();
+
+        public static NeoClassRef<NeoSpriteObject> Definition { get; } = new NeoClassRef<NeoSpriteObject>("system_d48b66ab-4d59-47e7-a25a-591fe97062de");
 
         public override string Name
         {
@@ -207,6 +222,26 @@ namespace Assets.Scripts.Neo
             }
         }
 
+        NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile> IReadOnlyNeoObject.PlacementTiles
+        {
+            get
+            {
+                var memberNode = node.Get<NeoMemberList>("PlacementTiles");
+                if (TryGetStoredView<NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile>>("PlacementTiles", memberNode, out var cached)) return cached;
+                return CacheStoredView("PlacementTiles", memberNode, new NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile>(client, memberNode, (client, child) => global::Assets.Scripts.Neo.NeoObjectPlacementTile.Create(client, (NeoMemberClass)child)));
+            }
+        }
+
+        NeoReadOnlyList<IReadOnlyNeoObjectBase> IReadOnlyNeoObject.Children
+        {
+            get
+            {
+                var memberNode = node.Get<NeoMemberList>("Children");
+                if (TryGetStoredView<NeoReadOnlyList<IReadOnlyNeoObjectBase>>("Children", memberNode, out var cached)) return cached;
+                return CacheStoredView("Children", memberNode, new NeoReadOnlyList<IReadOnlyNeoObjectBase>(client, memberNode, (client, child) => global::Assets.Scripts.Neo.NeoObjectBase.Create(client, (NeoMemberClass)child)));
+            }
+        }
+
         NeoReadOnlyVector3 IReadOnlyNeoObjectBase.Position
         {
             get
@@ -245,6 +280,10 @@ namespace Assets.Scripts.Neo
 
             public static readonly NeoField<NeoCollider?> Collider = new("Collider");
 
+            public static readonly NeoField<NeoList<NeoObjectPlacementTile>> PlacementTiles = new("PlacementTiles");
+
+            public static readonly NeoField<NeoList<NeoObjectBase>> Children = new("Children");
+
             public static readonly NeoField<NeoSprite> Sprite = new("Sprite");
 
             public static readonly NeoField<bool> FlipX = new("FlipX");
@@ -265,6 +304,8 @@ namespace Assets.Scripts.Neo
                 [Fields.Size] = () => null,
                 [Fields.Enabled] = () => null,
                 [Fields.Collider] = () => null,
+                [Fields.PlacementTiles] = () => null,
+                [Fields.Children] = () => null,
                 [Fields.Sprite] = () => null,
                 [Fields.FlipX] = () => null,
                 [Fields.FlipY] = () => null,
@@ -292,6 +333,8 @@ namespace Assets.Scripts.Neo
                 [Fields.Size] = () => Size,
                 [Fields.Enabled] = () => Enabled,
                 [Fields.Collider] = () => Collider,
+                [Fields.PlacementTiles] = () => PlacementTiles,
+                [Fields.Children] = () => Children,
                 [Fields.Sprite] = () => Sprite,
                 [Fields.FlipX] = () => FlipX,
                 [Fields.FlipY] = () => FlipY,

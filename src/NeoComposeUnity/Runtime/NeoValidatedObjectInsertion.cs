@@ -150,6 +150,7 @@ namespace NeoCompose.Runtime
                 index.RecordIndices.Add(added.InstanceId, insertedAt);
                 foreach (var cell in added.Footprint)
                     Add(index.CandidatesByCell, cell, added);
+                primitive.Client.RememberPlacedObject(added.InstanceId);
                 index.DependencyIds.UnionWith(dependencies);
                 // Future changes may add carried tile links to this object.
                 foreach (var layer in tileLayers.Values)

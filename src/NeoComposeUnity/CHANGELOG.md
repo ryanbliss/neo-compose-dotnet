@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.71.0] - 2026-10-13
+
+`NeoSpriteObject` extends `NeoObject` (P111). A sprite can be placed on an object layer, can have `Children` and `PlacementTiles`, and gets the spawn hooks. Requires CLI 0.81.0; run `neo pull` and `neo export` after upgrading.
+
+```csharp
+// Generated: a sprite is an object.
+public partial class NeoSpriteObject : NeoObject, IReadOnlyNeoSpriteObject, INeoSpriteObjectValue
+
+// Hooks now fire on every object in a placed hierarchy, not only the placed root.
+public partial class AttackItemSprite
+{
+    protected override void OnObjectSpawned(NeoObjectBehaviour behaviour) { /* ... */ }
+}
+
+// New: true only on the placed root's behaviour.
+public bool IsRoot { get; }
+```
+
+- Every object in a placed hierarchy gets its own `NeoObjectBehaviour` on its GameObject. `OnObjectSpawned` runs parents first, and `OnObjectDespawned` runs children first. Every behaviour in one hierarchy shares the root's `InstanceId` and `Cell`, and `GetComponentInParent<NeoObjectBehaviour>()` finds the nearest object.
+- Breaking: code that finds placed objects with `GetComponentsInChildren<NeoObjectBehaviour>()` now also finds their children. Skip the ones where `IsRoot` is false.
+- A sprite with no children and no sorting group still draws on its own GameObject. A sprite with either renders as an object node, with its art on a child GameObject, so the art's cell-span scale never reaches its children.
+- Only a placed object's `Position` goes through the placement API. A composition child's `Position` is an ordinary write, so animating a nested sprite no longer probes the grid indexes.
+- An object with `PlacementTiles = []` occupies no cells. It blocks no placement, and `GetObjects`, `GetTile` and `GetTiles` never return it. It still has a `Cell`.
+
 ## [0.70.0] - 2026-10-13
 
 Function generics (P110). A function, native or interface function can declare its own type parameters, each with an optional constraint and default. Requires CLI 0.80.0; run `neo export` after upgrading.

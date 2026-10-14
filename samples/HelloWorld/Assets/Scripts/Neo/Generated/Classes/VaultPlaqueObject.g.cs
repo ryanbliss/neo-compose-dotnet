@@ -25,6 +25,10 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         new string Name { get; }
 
+
+        /// <summary>
+        /// The cells this object occupies, as offsets from its placement cell. An empty list occupies nothing: the object blocks no placement and answers no cell query, but a placed object still has a Cell.
+        /// </summary>
         new NeoReadOnlyList<IReadOnlyNeoPlacementTile> PlacementTiles { get; }
 
         new NeoReadOnlyVector3 Position { get; }
@@ -154,6 +158,9 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        /// <summary>
+        /// The cells this object occupies, as offsets from its placement cell. An empty list occupies nothing: the object blocks no placement and answers no cell query, but a placed object still has a Cell.
+        /// </summary>
         public override NeoList<NeoPlacementTile> PlacementTiles
         {
             get
