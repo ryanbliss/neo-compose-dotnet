@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "projectId": "test-project",
-  "codegenRevision": "edfd4061dffcd1a747b234cd135b99beca6f4cf1958cb69715029c5935dd7f1b",
+  "codegenRevision": "0399267d7ab41321f6e8097fd1c13c89f1c690c765d03a9043154d16b565a4c1",
   "files": [
     {
       "id": "class:class-abstract-readonly-stats",
@@ -11,12 +11,12 @@
     {
       "id": "class:class-animated-sprite",
       "path": "Generated/Classes/AnimatedSprite.g.cs",
-      "hash": "57c9fb8ccbc6c335360cf7cc5e8c3e90fcb43c18ce6421c47870be8b4cef9579"
+      "hash": "96d4c205723ad400c226adce85725070bb8399b0ed18d16912dbf676faba597f"
     },
     {
       "id": "class:class-animated-sprite-child",
       "path": "Generated/Classes/AnimatedSpriteChild.g.cs",
-      "hash": "cc84495e04bdaa73fef74b57c1854736d7b38db153d29d8f45ff14e096db0d9a"
+      "hash": "d52729504af965ae69229173d88307887cca575bddcccc358cebcad41a496eae"
     },
     {
       "id": "class:class-base",
@@ -201,7 +201,7 @@
     {
       "id": "class:system_f671535d-0eb6-4139-9caf-5c5276febd31",
       "path": "Generated/Classes/NeoObject.g.cs",
-      "hash": "0567167a52341021c44de25aeb36e759dd0469ac9c3fda4f521b1372d8ab576c"
+      "hash": "221109770c7f68fd401c89788bf57535247cb311d03dccbef09383de21818ad3"
     },
     {
       "id": "class:system_61b30a92-90dc-4bf8-8503-ee4f6414effc",
@@ -226,7 +226,7 @@
     {
       "id": "class:system_d48b66ab-4d59-47e7-a25a-591fe97062de",
       "path": "Generated/Classes/NeoSpriteObject.g.cs",
-      "hash": "a87a72dbb67d3f15f0aa80b76d118d21ae3817c2d92abf16d7ec124a93312dcd"
+      "hash": "2a699937a46593343778a1969f7a51d0995326226d70bcb1a3517f7d81c89f20"
     },
     {
       "id": "class:class-text-node-memory",

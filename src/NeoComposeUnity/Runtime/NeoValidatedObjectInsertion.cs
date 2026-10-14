@@ -147,6 +147,7 @@ namespace NeoCompose.Runtime
                 }
                 index.Records.Insert(insertedAt, added);
                 index.ById.Add(added.InstanceId, added);
+                primitive.Client.ForgetObjectPlacements();
                 index.RecordIndices.Add(added.InstanceId, insertedAt);
                 foreach (var cell in added.Footprint)
                     Add(index.CandidatesByCell, cell, added);

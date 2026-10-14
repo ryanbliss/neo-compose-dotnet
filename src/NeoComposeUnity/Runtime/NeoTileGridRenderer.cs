@@ -200,6 +200,9 @@ namespace NeoCompose.Runtime
 
             public List<RenderedObjectVisibility> Buckets { get; } = new();
 
+            /// <summary>The instance's object behaviours, parents first; the placed root's is first.</summary>
+            public List<NeoObjectBehaviour> Behaviours { get; } = new();
+
             public void Dispose()
             {
                 foreach (var bucket in Buckets)
@@ -430,10 +433,9 @@ namespace NeoCompose.Runtime
                 parts.Add(value);
                 parts.Add(value.valueId);
                 AddSortingGroup(value);
-                int rendered = AddComposition(value, new HashSet<string>(), 0);
-                // BuildObjectRoot's sprite fallback.
-                if (rendered == 0 && value is INeoSpriteObjectValue sprite)
+                if (value is INeoSpriteObjectValue sprite)
                     parts.Add(CellSpanFromSize(sprite.Size));
+                AddComposition(value, new HashSet<string>(), 0);
             }
 
             /// <summary>The root's sort point pair, or null when it is ungrouped.</summary>
@@ -463,33 +465,31 @@ namespace NeoCompose.Runtime
             }
 
             // Mirrors RenderObjectComposition.
-            private int AddComposition(
+            private void AddComposition(
                 INeoValueReference value,
                 HashSet<string> visitedValueIds,
                 int depth)
             {
                 if (depth > NeoReadOnlyTileGridPrimitive.MaxCompositionDepth)
-                    return 0;
+                    return;
                 if (value is not INeoObjectCompositionSource composition)
-                    return 0;
+                    return;
                 var valueId = value.valueId;
                 var hasValueId = !string.IsNullOrEmpty(valueId);
                 if (hasValueId && !visitedValueIds.Add(valueId!))
-                    return 0;
-                var rendered = 0;
+                    return;
                 foreach (var child in composition.Children)
                 {
                     if (child != null)
-                        rendered += AddChild(child, visitedValueIds, depth);
+                        AddChild(child, visitedValueIds, depth);
                 }
                 if (hasValueId)
                     visitedValueIds.Remove(valueId!);
                 parts.Add(CompositionEnd);
-                return rendered;
             }
 
             // Mirrors RenderObjectChild.
-            private int AddChild(
+            private void AddChild(
                 INeoWorldObjectValue child,
                 HashSet<string> visitedValueIds,
                 int depth)
@@ -497,15 +497,16 @@ namespace NeoCompose.Runtime
                 parts.Add(child);
                 parts.Add(child.valueId);
                 if (child is INeoTileLayerLinkValue)
-                    return 0;
+                    return;
                 parts.Add(child.Name);
                 if (child is INeoSpriteObjectValue sprite)
                 {
                     parts.Add(CellSpanFromSize(sprite.Size));
-                    return 1;
+                    if (IsLeafSprite(sprite))
+                        return;
                 }
                 AddSortingGroup(child);
-                return AddComposition(child, visitedValueIds, depth + 1);
+                AddComposition(child, visitedValueIds, depth + 1);
             }
 
             private void AddSortingGroup(INeoValueReference value) =>
@@ -1441,8 +1442,11 @@ namespace NeoCompose.Runtime
                 if (objectRootsByInstanceId.TryGetValue(instanceId, out var existing) && existing != null
                     && (change.PositionsOnly || TryUpdateRenderedObject(existing, layer, resolved)))
                 {
-                    if (existing.TryGetComponent(out NeoObjectBehaviour behaviour))
-                        behaviour.Cell = resolved.Cell;
+                    if (objectVisibilityByInstanceId.TryGetValue(instanceId, out var rendered))
+                    {
+                        foreach (var behaviour in rendered.Behaviours)
+                            behaviour.Cell = resolved.Cell;
+                    }
                     continue;
                 }
                 DestroyRenderedObject(instanceId);
@@ -1494,14 +1498,11 @@ namespace NeoCompose.Runtime
                 objectVisibilityByInstanceId.Remove(instanceId, out var visibility);
                 DespawnLifecycle(visibility, sprites, colliders);
                 objectRootsByInstanceId.Remove(instanceId, out var root);
-                // Explicit despawn notification while the root is still intact;
-                // NeoObjectBehaviour.OnDestroy is only the fallback for destroy
-                // paths that bypass the renderer. TryGetGameObject still answers
-                // for this object until the hook returns.
-                if (root != null && root.TryGetComponent(out NeoObjectBehaviour behaviour))
-                {
-                    behaviour.NotifyDespawned();
-                }
+                // Explicit despawn notification while the hierarchy is still
+                // intact; NeoObjectBehaviour.OnDestroy is only the fallback for
+                // destroy paths that bypass the renderer. TryGetGameObject
+                // still answers for these objects until the hooks return.
+                NotifyBehavioursDespawned(visibility);
                 visibility?.Dispose();
                 if (root != null)
                     DestroyCompositionRoot(root);
@@ -1957,9 +1958,21 @@ namespace NeoCompose.Runtime
                         pair.Value,
                         objectSpritesByInstanceId.GetValueOrDefault(pair.Key),
                         objectCollidersByInstanceId.GetValueOrDefault(pair.Key));
-            foreach (var root in objectRootsByInstanceId.Values)
-                if (root != null && root.TryGetComponent(out NeoObjectBehaviour behaviour))
-                    behaviour.NotifyDespawned();
+            foreach (var visibility in objectVisibilityByInstanceId.Values)
+                NotifyBehavioursDespawned(visibility);
+        }
+
+        // Children first, the reverse of spawn.
+        private static void NotifyBehavioursDespawned(ObjectVisibilityIndex? visibility)
+        {
+            if (visibility is null)
+                return;
+            var behaviours = visibility.Behaviours;
+            for (int i = behaviours.Count - 1; i >= 0; i--)
+            {
+                if (behaviours[i] != null)
+                    behaviours[i].NotifyDespawned();
+            }
         }
 
         private void ClearRenderedIndexes()
@@ -2244,11 +2257,10 @@ namespace NeoCompose.Runtime
             try
             {
                 var go = BuildObjectRoot(parent, layer, instance, layerFallbackSortingOrder);
-                // Attached last so the spawn hook observes a fully-built root
-                // (composition children, authored collider, sprite fallback) —
-                // e.g. an added Rigidbody2D composes with the BoxCollider2D.
-                var behaviour = go.AddComponent<NeoObjectBehaviour>();
-                behaviour.Initialize(this, layer, instance);
+                // Attached last so every spawn hook observes a fully-built
+                // hierarchy (composition children, authored colliders, sprite
+                // art) — e.g. an added Rigidbody2D composes with the BoxCollider2D.
+                AttachObjectBehaviours(go, layer, instance);
                 // Spawn hooks can assign a sprite or collider before the root is
                 // registered for change notifications. Reconcile those writes now.
                 SyncObjectSprites(instance.InstanceId);
@@ -2268,6 +2280,32 @@ namespace NeoCompose.Runtime
             finally
             {
                 held?.ReleaseGetterChanges();
+            }
+        }
+
+        /// <summary>
+        /// Gives the placed root and every <c>NeoObject</c> GameObject under it
+        /// a behaviour, initialized parents first in build order (P111 §5).
+        /// </summary>
+        private void AttachObjectBehaviours(
+            GameObject root,
+            IReadOnlyNeoObjectLayerRuntime layer,
+            NeoObjectProjection instance)
+        {
+            var visibility = objectVisibilityByInstanceId[instance.InstanceId];
+            var behaviours = visibility.Behaviours;
+            var rootBehaviour = root.AddComponent<NeoObjectBehaviour>();
+            behaviours.Add(rootBehaviour);
+            rootBehaviour.Initialize(this, layer, instance, instance.Object, isRoot: true);
+            foreach (var bucket in visibility.Buckets)
+            {
+                // The generated NeoObject is the class that carries spawn hooks.
+                if (ReferenceEquals(bucket.GameObject, root)
+                    || bucket.Value is not (NeoGeneratedClassValue value and INeoObjectSpawnHooks))
+                    continue;
+                var behaviour = bucket.GameObject.AddComponent<NeoObjectBehaviour>();
+                behaviours.Add(behaviour);
+                behaviour.Initialize(this, layer, instance, value, isRoot: false);
             }
         }
 
@@ -2303,7 +2341,10 @@ namespace NeoCompose.Runtime
                 visibility.Register(rootObject, go, trackPosition: false);
             }
 
-            var renderedChildren = RenderObjectComposition(
+            // A placed sprite draws its own art under its children (P111 §4).
+            if (instance.Object is INeoSpriteObjectValue spriteObject)
+                RenderSpriteChild(content, layer, spriteObject, Vector3.zero, sortingOrder, sprites, colliders: null);
+            RenderObjectComposition(
                 content,
                 layer,
                 instance.Object,
@@ -2319,8 +2360,6 @@ namespace NeoCompose.Runtime
             if (instance.Object is INeoColliderSource colliderSource)
                 AddColliderBinding(colliders, go, colliderSource, Vector2.zero, sortPoint);
 
-            if (renderedChildren == 0 && instance.Object is INeoSpriteObjectValue spriteObject)
-                RenderSpriteChild(content, layer, spriteObject, Vector3.zero, sortingOrder, sprites, colliders: null);
             objectShapesByInstanceId[instance.InstanceId] =
                 new RenderedObjectShape(layer, instance.Object, sortPoint);
             return go;
@@ -2355,7 +2394,7 @@ namespace NeoCompose.Runtime
             return new SortPointPair(this, source, group, content.transform);
         }
 
-        private int RenderObjectComposition(
+        private void RenderObjectComposition(
             Transform parent,
             IReadOnlyNeoObjectLayerRuntime layer,
             INeoValueReference value,
@@ -2367,23 +2406,22 @@ namespace NeoCompose.Runtime
             List<RenderedObjectCollider> colliders)
         {
             if (depth > NeoReadOnlyTileGridPrimitive.MaxCompositionDepth)
-                return 0;
+                return;
             if (value is not INeoObjectCompositionSource composition)
-                return 0;
+                return;
 
             var valueId = value.valueId;
             var hasValueId = !string.IsNullOrEmpty(valueId);
             if (hasValueId && !visitedValueIds.Add(valueId!))
             {
-                return 0;
+                return;
             }
 
-            var rendered = 0;
             foreach (var child in composition.Children)
             {
                 if (child == null)
                     continue;
-                rendered += RenderObjectChild(
+                RenderObjectChild(
                     parent,
                     layer,
                     child,
@@ -2399,10 +2437,9 @@ namespace NeoCompose.Runtime
             {
                 visitedValueIds.Remove(valueId!);
             }
-            return rendered;
         }
 
-        private int RenderObjectChild(
+        private void RenderObjectChild(
             Transform parent,
             IReadOnlyNeoObjectLayerRuntime layer,
             INeoWorldObjectValue child,
@@ -2416,14 +2453,14 @@ namespace NeoCompose.Runtime
             // A tile layer link flattens into its target layer's Tilemap
             // (NeoTileGridPrimitive.BuildTileLayerRecords), not under the object.
             if (child is INeoTileLayerLinkValue)
-                return 0;
+                return;
             var childOffset = CellOffsetToLocalPosition(child.Position);
 
-            if (child is INeoSpriteObjectValue spriteChild)
+            if (child is INeoSpriteObjectValue leaf && IsLeafSprite(leaf))
             {
-                var spriteGo = RenderSpriteChild(parent, layer, spriteChild, childOffset, sortingOrder, sprites, colliders);
+                var spriteGo = RenderSpriteChild(parent, layer, leaf, childOffset, sortingOrder, sprites, colliders);
                 visibility.Register(child, spriteGo);
-                return 1;
+                return;
             }
 
             var childRoot = new GameObject(
@@ -2433,16 +2470,20 @@ namespace NeoCompose.Runtime
             var sortPoint = AttachSortingGroup(childRoot, layer, child, sortingOrder);
             childRoot.transform.localPosition = childOffset + (sortPoint?.Point ?? Vector3.zero);
             // Kept even when nothing under it draws, so every world object
-            // answers TryGetGameObject; an empty one still counts as nothing
-            // for its parent's sprite fallback. Registered before its
-            // children, so lifecycle entries queue parents first.
+            // answers TryGetGameObject. Registered before its children, so
+            // lifecycle entries and spawn hooks run parents first.
             visibility.Register(child, childRoot, sortPoint: sortPoint);
+            var content = sortPoint?.Content ?? childRoot.transform;
+            // A sprite node's art is a child, as a placed sprite's is, so
+            // the art's cell-span scale never reaches the node's children.
+            if (child is INeoSpriteObjectValue spriteNode)
+                RenderSpriteChild(content, layer, spriteNode, Vector3.zero, sortingOrder, sprites, colliders: null);
             // The subtree is built even when the child is disabled, so a
             // runtime write can toggle it back on and so a clip playing through
             // it keeps resolving. Deactivation happens later still, once the
             // spawn hook has observed the built subtree.
-            var childRendered = RenderObjectComposition(
-                sortPoint?.Content ?? childRoot.transform,
+            RenderObjectComposition(
+                content,
                 layer,
                 child,
                 sortingOrder,
@@ -2453,7 +2494,26 @@ namespace NeoCompose.Runtime
                 colliders);
             if (child is INeoColliderSource colliderSource)
                 AddColliderBinding(colliders, childRoot, colliderSource, Vector2.zero, sortPoint);
-            return childRendered;
+        }
+
+        /// <summary>
+        /// A sprite with no children and no sorting group keeps its art on
+        /// its own GameObject, scaled to its cell span. Any other sprite
+        /// renders as an object node with its art on a child GameObject.
+        /// </summary>
+        private static bool IsLeafSprite(INeoSpriteObjectValue sprite)
+        {
+            if (sprite is INeoSortingGroupSource { SortingGroup: not null })
+                return false;
+            if (sprite is not INeoObjectCompositionSource composition)
+                return true;
+            var children = composition.Children;
+            for (int i = 0; i < children.Count; i++)
+            {
+                if (children[i] != null)
+                    return false;
+            }
+            return true;
         }
 
         /// <summary>

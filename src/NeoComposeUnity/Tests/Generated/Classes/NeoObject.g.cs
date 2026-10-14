@@ -48,6 +48,9 @@ namespace Assets.Scripts.Neo
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
+                    "class-animated-sprite" => new AnimatedSprite(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "class-animated-sprite-child" => new AnimatedSpriteChild(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "system_d48b66ab-4d59-47e7-a25a-591fe97062de" => new NeoSpriteObject(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoObject' without a concrete client type id."),
                 };
             });
@@ -60,6 +63,9 @@ namespace Assets.Scripts.Neo
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
+                    "class-animated-sprite" => new AnimatedSprite(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "class-animated-sprite-child" => new AnimatedSpriteChild(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "system_d48b66ab-4d59-47e7-a25a-591fe97062de" => new NeoSpriteObject(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoObject' without a concrete client type id."),
                 };
             });

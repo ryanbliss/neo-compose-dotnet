@@ -3645,14 +3645,14 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// Writes one animated member on its owner node. An object's Position
-        /// and a tile's Cell carry grid invariants — the lookup-cache indexes,
-        /// the grid change notification and the grid-dependent getter memo all
-        /// read them — so those route through the placement API; every other
-        /// member is an ordinary scalar write. A clip that animates anything
-        /// else pays the two string compares of
-        /// <see cref="NeoClient.IsPlacementMember"/> per write and nothing
-        /// more, so the routing needs no per-binding cache.
+        /// Writes one animated member on its owner node. A placed object's
+        /// Position and a tile's Cell carry grid invariants — the lookup-cache
+        /// indexes, the grid change notification and the grid-dependent getter
+        /// memo all read them — so those route through the placement API;
+        /// every other member, including a composition child's Position, is an
+        /// ordinary scalar write. A clip that animates anything else pays the
+        /// two string compares of <see cref="NeoClient.IsPlacementMember"/>
+        /// per write and nothing more, so the routing needs no per-binding cache.
         /// </summary>
         internal static void WriteMember(
             NeoClient client,
@@ -3660,7 +3660,7 @@ namespace NeoCompose.Runtime
             string key,
             NeoValueWritePayload? payload)
         {
-            if (client.IsPlacementMember(owner.value?.classId, key))
+            if (client.IsPlacementMember(owner.value, key))
             {
                 owner.SetPlacementValue(key, payload);
                 return;
