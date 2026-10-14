@@ -563,6 +563,41 @@ namespace NeoCompose.Tests
             Assert.AreEqual(9f, new NeoVector3(9f, 8f, 7f).x);
         }
 
+        // An unset optional member's getter returns a null wrapper, and
+        // `hidden ? null : wrapper` types as the wrapper. Both used to throw
+        // when read into a nullable native; a native vector reads as null.
+        [Test]
+        public void NullableNativeConversion_NullWrapperReadsAsNull()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
+            var offset = new NeoVector2(client.save.Get<NeoMemberVector2Writable>("Offset"));
+            var hidden = false;
+
+            Vector2? shown = hidden ? null : offset;
+            Assert.AreEqual(offset.Value, shown);
+
+            hidden = true;
+            Vector2? notShown = hidden ? null : offset;
+            Assert.IsNull(notShown);
+
+            NeoReadOnlyVector2Int? anchor = null;
+            NeoReadOnlyVector3? size = null;
+            NeoReadOnlyVector3Int? grid = null;
+            Vector2Int? nativeAnchor = anchor;
+            Vector3? nativeSize = size;
+            Vector3Int? nativeGrid = grid;
+            Assert.IsNull(nativeAnchor);
+            Assert.IsNull(nativeSize);
+            Assert.IsNull(nativeGrid);
+
+            nativeAnchor = new NeoVector2Int(1, 2);
+            nativeSize = new NeoVector3(1f, 2f, 3f);
+            nativeGrid = new NeoVector3Int(1, 2, 3);
+            Assert.AreEqual(new Vector2Int(1, 2), nativeAnchor);
+            Assert.AreEqual(new Vector3(1f, 2f, 3f), nativeSize);
+            Assert.AreEqual(new Vector3Int(1, 2, 3), nativeGrid);
+        }
+
         // ------------------------------------------------------------------
         // Fixture.
         // ------------------------------------------------------------------
