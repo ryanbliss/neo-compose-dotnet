@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.71.1] - 2026-10-14
+
+- Fixed: reapplying the variant an instance was built from with `Variants.X.Initialize()` reset any `Overrides` value on a nested class to that class's declaration default. The instance had never been expanded, so clearing the override's stored value replayed the nested row on its own instead of through the variant. Switching to a different variant was unaffected. In Neowyn, a seed placed in-session got a `SortingGroup.SortPoint` of (0.5, 0) instead of its variant's, so it drew over the player's feet until the save was reloaded.
+
 ## [0.71.0] - 2026-10-13
 
 `NeoSpriteObject` extends `NeoObject` (P111). A sprite can be placed on an object layer, can have `Children` and `PlacementTiles`, and gets the spawn hooks. Requires CLI 0.81.0; run `neo pull` and `neo export` after upgrading.

@@ -416,6 +416,8 @@ namespace NeoCompose.Runtime
         {
             if (!freshlyConstructed && !client.IsReplayingVirtualInstance && !client.IsPreparingVariant)
             {
+                if (record is not null)
+                    client.ExpandInitializedVariantRoot(node, ownership, record.id, lookupRowValueId);
                 client.PrepareVariantApply(node, scoped => ApplyToNode(client, record, scoped,
                     ownership, lookupRow, lookupRowValueId));
                 return;
