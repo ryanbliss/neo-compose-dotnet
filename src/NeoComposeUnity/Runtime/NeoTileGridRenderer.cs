@@ -375,8 +375,7 @@ namespace NeoCompose.Runtime
                     // and only its group's own writes can move the sort point.
                     if (ReferenceEquals(changed, owner.BackingNode)
                         || (sortPoint is not null && sortPoint.IsGroupChange(changed))
-                        || (owner.BackingNode.TryGetSchemaKeyForChild(changed, out var key)
-                            && key == "Position"))
+                        || owner.BackingNode.HoldsChildAt("Position", changed))
                         generated.Client.RefreshAnimationRendering(refresh);
                 });
             }
@@ -1571,9 +1570,10 @@ namespace NeoCompose.Runtime
                 sortPointDirty |= sortPoint is not null
                     && (changedMember is NeoMemberClass or NeoMemberList or NeoMemberDictionary
                         || sortPoint.IsGroupChange(changedMember));
-                visibilityDirty |= ChangeCanCarryEnabled(changedValue, changedMember);
-                spritesDirty |= ChangeCanCarrySpriteState(changedValue, changedMember);
-                collidersDirty |= ChangeCanCarryCollider(changedValue, changedMember);
+                string? leafKey = PlacementLeafKey(changedValue, changedMember);
+                visibilityDirty |= ChangeCanCarryEnabled(leafKey);
+                spritesDirty |= ChangeCanCarrySpriteState(leafKey);
+                collidersDirty |= ChangeCanCarryCollider(leafKey);
                 value.Client.RefreshAnimationRendering(refresh);
             }
             DisposeObjectPositionSubscription(instanceId);
@@ -1719,25 +1719,9 @@ namespace NeoCompose.Runtime
         /// placement owns directly under some other key — the common per-frame
         /// Position override — is safely skipped.
         /// </summary>
-        private static bool ChangeCanCarrySpriteState(
-            NeoGeneratedClassValue changedValue,
-            NeoMember changedMember)
-        {
-            if (changedMember is NeoMemberClass or NeoMemberList or NeoMemberDictionary)
-            {
-                return true;
-            }
-
-            if (!changedValue.BackingNode.TryGetSchemaKeyForChild(
-                    changedMember,
-                    out string? schemaKey))
-            {
-                return true;
-            }
-
-            return schemaKey is SpriteMemberKey or FlipXMemberKey or FlipYMemberKey
+        private static bool ChangeCanCarrySpriteState(string? leafKey) =>
+            leafKey is null or SpriteMemberKey or FlipXMemberKey or FlipYMemberKey
                 or MaskInteractionMemberKey or "SortingOrder";
-        }
 
         /// <summary>
         /// Re-reads every rendered sprite child's <c>Sprite</c>, flips, and mask
@@ -1786,16 +1770,8 @@ namespace NeoCompose.Runtime
         /// <c>Collider</c>: a container write may have bubbled from any
         /// descendant's collider.
         /// </summary>
-        private static bool ChangeCanCarryCollider(
-            NeoGeneratedClassValue changedValue,
-            NeoMember changedMember)
-        {
-            if (changedMember is NeoMemberClass or NeoMemberList or NeoMemberDictionary)
-                return true;
-            if (!changedValue.BackingNode.TryGetSchemaKeyForChild(changedMember, out string? schemaKey))
-                return true;
-            return string.Equals(schemaKey, ColliderMemberKey, StringComparison.Ordinal);
-        }
+        private static bool ChangeCanCarryCollider(string? leafKey) =>
+            leafKey is null || string.Equals(leafKey, ColliderMemberKey, StringComparison.Ordinal);
 
         /// <summary>Re-reads every collider an instance rendered from the value that governs it.</summary>
         private void SyncObjectColliders(NeoObjectInstanceId instanceId)
@@ -1829,26 +1805,28 @@ namespace NeoCompose.Runtime
         /// placement itself.
         /// </para>
         /// </summary>
-        private static bool ChangeCanCarryEnabled(
+        /// <param name="leafKey">The write's <see cref="PlacementLeafKey"/>.</param>
+        private static bool ChangeCanCarryEnabled(string? leafKey) =>
+            leafKey is null || string.Equals(leafKey, EnabledMemberKey, StringComparison.Ordinal);
+
+        /// <summary>
+        /// The placement's own schema key of the scalar leaf a member write
+        /// landed on, which the gates above test; null for a write that could
+        /// carry anything. Found once per write rather than once per gate,
+        /// since finding it walks the placement's children.
+        /// </summary>
+        private static string? PlacementLeafKey(
             NeoGeneratedClassValue changedValue,
             NeoMember changedMember)
         {
             if (changedMember is NeoMemberClass or NeoMemberList or NeoMemberDictionary)
-            {
-                return true;
-            }
-
-            if (!changedValue.BackingNode.TryGetSchemaKeyForChild(
-                    changedMember,
-                    out string? schemaKey))
-            {
-                // A leaf that bubbled up through a Class chain rather than one
-                // of the placement's own schema keys. Its key is unknowable
-                // from here, so honour it rather than risk a stale hide.
-                return true;
-            }
-
-            return string.Equals(schemaKey, EnabledMemberKey, StringComparison.Ordinal);
+                return null;
+            // A leaf that bubbled up through a Class chain rather than one of
+            // the placement's own schema keys. Its key is unknowable from
+            // here, so it is honoured rather than risk a stale hide.
+            return changedValue.BackingNode.TryGetSchemaKeyForChild(changedMember, out string? schemaKey)
+                ? schemaKey
+                : null;
         }
 
         /// <summary>

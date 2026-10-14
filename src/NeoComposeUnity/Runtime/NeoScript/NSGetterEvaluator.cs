@@ -1972,7 +1972,7 @@ namespace NeoCompose.Runtime.NeoScript
         {
             if (pointer is FunctionPointer { function: VectorConstructorFunction vector })
                 return EvalVectorAtSource(pointer, vector.info, scope, ctx);
-            NeoScriptSourcePosition? previous = ctx.trace.CurrentPosition;
+            long previous = ctx.trace.CurrentPosition;
             ctx.trace.Position(pointer.source);
             try
             {

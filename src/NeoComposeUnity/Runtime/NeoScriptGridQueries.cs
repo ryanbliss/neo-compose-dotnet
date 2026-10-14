@@ -319,7 +319,10 @@ namespace NeoCompose.Runtime
                 // generated C# wrappers and intermediate lists for every cell.
                 for (int layer = 0; layer < layers.Count; layer++)
                 {
-                    if (!layerCells![layer].TryGetValue(cell, out var items))
+                    // An empty layer answers no cell; skip its lookup and
+                    // the write barrier its out parameter costs.
+                    Dictionary<Vector2Int, List<NeoObjectPlacementRecord>> cells = layerCells![layer];
+                    if (cells.Count == 0 || !cells.TryGetValue(cell, out var items))
                         continue;
                     string layerId = layers[layer].LayerId;
                     for (int i = 0; i < items.Count; i++)

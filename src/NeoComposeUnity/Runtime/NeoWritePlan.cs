@@ -369,7 +369,7 @@ namespace NeoCompose.Runtime
         {
             if (Rows.TryGetValue((ownership, id), out row))
                 return row is not null;
-            return Client.TryGetWritableValue(ownership, id, out row);
+            return Client.TryGetWritableValueBeneath(this, ownership, id, out row);
         }
 
         internal bool TryGetWritable<T>(NeoValueOwnership ownership, string id, out T? row) where T : MemberValue
