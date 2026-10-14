@@ -1351,6 +1351,74 @@ namespace NeoCompose.Tests
             Assert.AreEqual("constructed", gear.Get<NeoMemberStringWritable>("Label").value!.value);
         }
 
+        [TestCase(NeoMemberRequirementKind.Required, "Remove")]
+        [TestCase(NeoMemberRequirementKind.Optional, "Remove")]
+        [TestCase(NeoMemberRequirementKind.Required, "Add")]
+        [TestCase(NeoMemberRequirementKind.Optional, "Add")]
+        [TestCase(NeoMemberRequirementKind.Required, "Clear")]
+        [TestCase(NeoMemberRequirementKind.Optional, "Clear")]
+        public void LiteralCollectionDefaultMutationsPersistPerInstance(NeoMemberRequirementKind requirement, string operation)
+        {
+            ProjectData data = BuildProjectData();
+            data.classes["default-holder"] = new NeoSchemaClass
+            {
+                id = "default-holder",
+                projectId = ProjectId,
+                name = "Holder",
+                schema = new Dictionary<string, string> { ["Values"] = "holder-values" },
+            };
+            data.members["holder-entry"] = new IntMember
+            {
+                id = "holder-entry",
+                projectId = ProjectId,
+                name = "Entry",
+                kind = MemberKind.Int,
+                Requirement = NeoMemberRequirementKind.Required,
+            };
+            data.members["holder-values"] = new ListMember
+            {
+                id = "holder-values",
+                projectId = ProjectId,
+                name = "Values",
+                kind = MemberKind.List,
+                entryMemberId = "holder-entry",
+                Requirement = requirement,
+                defaultValue = new ArrayMemberValueBase { value = new[] { "default-one", "default-two" } },
+            };
+            data.values["default-one"] = new NumberMemberValue { id = "default-one", value = 1 };
+            data.values["default-two"] = new NumberMemberValue { id = "default-two", value = 2 };
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            NeoMemberClassWritable Construct() => NeoGeneratedTypesSupport.CreateWritableClassValue(
+                client, "default-holder", new Dictionary<string, string>(), Array.Empty<MemberValue>());
+            NeoList<int> Read(NeoMemberClassWritable holder) => new NeoList<int>(
+                client, holder.Get<NeoMemberListWritable>("Values"),
+                (_, member) => (int)((NeoMemberInt)member).value!.value,
+                NeoGeneratedTypesSupport.Value);
+            NeoMemberClassWritable first = Construct();
+            NeoMemberClassWritable second = Construct();
+            switch (operation)
+            {
+                case "Remove":
+                    Assert.IsTrue(Read(first).Remove(1));
+                    break;
+                case "Add":
+                    Read(first).Add(3);
+                    break;
+                case "Clear":
+                    Read(first).Clear();
+                    break;
+            }
+            int[] expected = operation switch
+            {
+                "Remove" => new[] { 2 },
+                "Add" => new[] { 1, 2, 3 },
+                _ => Array.Empty<int>(),
+            };
+            CollectionAssert.AreEqual(expected, Read(first));
+            CollectionAssert.AreEqual(new[] { 1, 2 }, Read(second));
+            CollectionAssert.AreEqual(new[] { 1, 2 }, Read(Construct()));
+        }
+
         [Test]
         public void RequiredConstructor_SchemaDerivedNewIsRejected()
         {
