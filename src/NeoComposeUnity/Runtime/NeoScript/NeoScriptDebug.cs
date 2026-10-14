@@ -47,13 +47,14 @@ namespace NeoCompose.Runtime.NeoScript
         {
             get;
         }
-        internal NeoScriptStackFrame(NeoScriptSourceInfo? source, NeoScriptSourcePosition? position)
+        internal NeoScriptStackFrame(NeoScriptSourceInfo? source, long position)
         {
             Name = source?.name ?? "<body>";
             Uri = source?.uri;
             CoordinateSpace = source?.coordinateSpace ?? NeoScriptCoordinateSpace.Body;
-            Line = position?.line;
-            Column = position?.column;
+            bool positioned = position != NeoScriptTraceState.NoPosition;
+            Line = positioned ? NeoScriptTraceState.Line(position) : null;
+            Column = positioned ? NeoScriptTraceState.Column(position) : null;
         }
     }
     public sealed class NeoScriptDebugEvent
@@ -161,19 +162,32 @@ namespace NeoCompose.Runtime.NeoScript
     }
     internal sealed class NeoScriptTraceState
     {
-        private (NeoScriptSourceInfo? source, NeoScriptSourcePosition? position)[] frames = new (NeoScriptSourceInfo?, NeoScriptSourcePosition?)[8];
+        /// <summary>A frame with no position.</summary>
+        internal const long NoPosition = long.MinValue;
+
+        // Every source-bearing expression saves, sets and restores its
+        // frame's position. Packing line and column into a long keeps those
+        // stores free of references, each of which would cost Mono a GC
+        // write barrier.
+        private (NeoScriptSourceInfo? source, long position)[] frames = new (NeoScriptSourceInfo?, long)[8];
         private int depth;
-        internal (NeoScriptSourceInfo? source, NeoScriptSourcePosition? position)[] Capture()
+        internal static long Pack(NeoScriptSourcePosition? position) =>
+            position is null
+                ? NoPosition
+                : ((long)position.line << 32) | (uint)position.column;
+        internal static int Line(long position) => (int)(position >> 32);
+        internal static int Column(long position) => (int)position;
+        internal (NeoScriptSourceInfo? source, long position)[] Capture()
         {
-            var captured = new (NeoScriptSourceInfo?, NeoScriptSourcePosition?)[depth];
+            var captured = new (NeoScriptSourceInfo?, long)[depth];
             Array.Copy(frames, captured, depth);
             return captured;
         }
-        internal T RestoreDuring<T>((NeoScriptSourceInfo? source, NeoScriptSourcePosition? position)[] captured, Func<T> action)
+        internal T RestoreDuring<T>((NeoScriptSourceInfo? source, long position)[] captured, Func<T> action)
         {
             var previous = frames;
             int previousDepth = depth;
-            frames = new (NeoScriptSourceInfo?, NeoScriptSourcePosition?)[Math.Max(8, captured.Length)];
+            frames = new (NeoScriptSourceInfo?, long)[Math.Max(8, captured.Length)];
             Array.Copy(captured, frames, captured.Length);
             depth = captured.Length;
             try
@@ -188,11 +202,9 @@ namespace NeoCompose.Runtime.NeoScript
             if (depth == frames.Length)
                 Array.Resize(ref frames, depth * 2);
             ref var frame = ref frames[depth++];
-            var position = body.instructions.Length == 0 ? null : body.instructions[0].source;
             if (!ReferenceEquals(frame.source, body.source))
                 frame.source = body.source;
-            if (!ReferenceEquals(frame.position, position))
-                frame.position = position;
+            frame.position = body.instructions.Length == 0 ? NoPosition : Pack(body.instructions[0].source);
         }
         internal void Pop() => depth--;
         internal int Depth => depth;
@@ -202,8 +214,9 @@ namespace NeoCompose.Runtime.NeoScript
             depth--;
             return value;
         }
-        internal NeoScriptSourcePosition? CurrentPosition => depth == 0 ? null : frames[depth - 1].position;
-        internal void Position(NeoScriptSourcePosition? position)
+        internal long CurrentPosition => depth == 0 ? NoPosition : frames[depth - 1].position;
+        internal void Position(NeoScriptSourcePosition? position) => Position(Pack(position));
+        internal void Position(long position)
         {
             if (depth != 0)
                 frames[depth - 1].position = position;
@@ -217,7 +230,7 @@ namespace NeoCompose.Runtime.NeoScript
                 result[i] = new NeoScriptStackFrame(frame.source, frame.position);
             }
             if (depth > 64)
-                result[63] = new NeoScriptStackFrame(new NeoScriptSourceInfo { name = "[trace truncated]" }, null);
+                result[63] = new NeoScriptStackFrame(new NeoScriptSourceInfo { name = "[trace truncated]" }, NoPosition);
             return Array.AsReadOnly(result);
         }
         // Returning false observes an exception without catch/rethrow on Mono's hot paths.

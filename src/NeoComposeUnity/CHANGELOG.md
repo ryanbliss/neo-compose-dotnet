@@ -6,6 +6,14 @@
 - Performance: a variant swap replays its sparse root once. It used to replay the root a second time even when the swap's declarative halves cleared no pin, so nothing the replay reads had changed. Night 1 of the same benchmark now takes 269 ms instead of 337 ms.
 - Performance: a variant swap keeps the views of the nested rows it keeps. It used to dispose every `NeoMember` node and generated wrapper under the swapped root, so a renderer holding the old wrappers destroyed and respawned the object's GameObject on every swap. The kept views read the new variant. Content a co-editor applies to a live save still rebuilds them all. In the same benchmark, night 1 now takes 182 ms instead of 269 ms, night 4 takes 194 ms instead of 383 ms, and planting a seed takes 6.8 ms instead of 8.1 ms.
 - Performance: a variant swap builds `NeoMember` nodes only for the fields it reads. To address the swapped row, it used to build a node for every field of the object and every nested object, several times per swap. A node that gains a change listener still builds its whole subtree, so the listener hears every change below it. In the same benchmark, night 3 now takes 156 ms instead of 184 ms, and night 1 takes 175 ms instead of 182 ms.
+- Performance: less repeated lookup work on every write and every evaluated expression.
+  - A write plan no longer searches its own rows a second time after finding none.
+  - A field's `OnChanged` handler, and the renderer's placement and pivot watchers, look up the one key they watch. They used to scan every child of the object for each change.
+  - Each source-bearing expression saves and restores its trace position without a GC write barrier.
+  - Grid queries skip empty object layers.
+  - Virtual paths encode plain keys without the JSON writer.
+
+  In the same benchmark, the three nights that grow plants take 546 ms together instead of 581 ms, and a night that grows none takes 57 ms instead of 61 ms.
 
 ## [0.71.2] - 2026-10-14
 

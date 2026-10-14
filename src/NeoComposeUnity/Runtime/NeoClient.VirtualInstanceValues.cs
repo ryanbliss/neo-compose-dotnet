@@ -2643,11 +2643,33 @@ namespace NeoCompose.Runtime
             string value,
             bool numericValue = false)
         {
-            string encodedName = Newtonsoft.Json.JsonConvert.ToString(valueName);
             string encodedValue = numericValue
                 ? value
-                : Newtonsoft.Json.JsonConvert.ToString(value);
-            return $"{parent}/{{\"kind\":\"{kind}\",{encodedName}:{encodedValue}}}";
+                : EncodeVirtualPathString(value);
+            return string.Concat(
+                parent,
+                "/{\"kind\":\"",
+                kind,
+                "\",",
+                EncodeVirtualPathString(valueName),
+                ":",
+                encodedValue,
+                "}");
+        }
+
+        /// <summary>
+        /// <see cref="Newtonsoft.Json.JsonConvert.ToString(string)"/>, without
+        /// its writer for the printable ASCII that names and keys almost
+        /// always are: such a string needs no escape, only its quotes.
+        /// </summary>
+        private static string EncodeVirtualPathString(string value)
+        {
+            foreach (char c in value)
+            {
+                if (c < ' ' || c > '~' || c == '"' || c == '\\')
+                    return Newtonsoft.Json.JsonConvert.ToString(value);
+            }
+            return string.Concat("\"", value, "\"");
         }
 
         /// <summary>

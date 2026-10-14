@@ -1135,6 +1135,21 @@ namespace NeoCompose.Tests
                 Is.EqualTo("0e79ed19-10e0-540d-8219-7a0732d2128d"));
         }
 
+        [TestCase("Child")]
+        [TestCase("")]
+        [TestCase(" ~<>&'/")]
+        [TestCase("tab\tkey")]
+        [TestCase("delete\u007f")]
+        [TestCase("café")]
+        [TestCase("line\u2028separator")]
+        public void VirtualPathKeysEncodeAsJsonStrings(string key)
+        {
+            var flags = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic;
+            string path = (string)typeof(NeoClient).GetMethod("AppendVirtualPath", flags)!.Invoke(null,
+                new object[] { "$", "dictionary", "key", key, false })!;
+            Assert.That(path, Is.EqualTo("$/{\"kind\":\"dictionary\",\"key\":" + Newtonsoft.Json.JsonConvert.ToString(key) + "}"));
+        }
+
         [TestCase("unicode:🌱 café 中文", "7ddc982c-bb1a-5add-89f1-94598dbf520d")]
         [TestCase("", "9948e8b3-192c-55d3-9cc7-9c0d4007033d")]
         public void VirtualIdsKeepUtf8AndSystemNamespaceParity(string sourceIdentity, string expected)

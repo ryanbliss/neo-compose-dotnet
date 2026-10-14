@@ -253,6 +253,14 @@ namespace NeoCompose.Runtime
             return null;
         }
 
+        /// <summary>
+        /// Whether <paramref name="child"/> is the child bound at
+        /// <paramref name="key"/>: <see cref="TryGetSchemaKeyForChild"/> for a
+        /// known key, without walking every child.
+        /// </summary>
+        internal bool HoldsChildAt(string key, NeoMember child) =>
+            childMembers.TryGetValue(key, out NeoMember? bound) && ReferenceEquals(bound, child);
+
         internal bool TryGetSchemaKeyForChild(
             NeoMember child,
             [NotNullWhen(true)] out string? schemaKey)

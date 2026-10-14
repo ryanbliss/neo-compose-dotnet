@@ -653,7 +653,7 @@ namespace NeoCompose.Runtime
             {
                 if (!CanReadChange())
                     return;
-                if (node.TryGetSchemaKeyForChild(changed, out string? key) && key == field.Key)
+                if (node.HoldsChildAt(field.Key, changed))
                 {
                     handler((T)readValue()!, client.CurrentChangeSource);
                 }

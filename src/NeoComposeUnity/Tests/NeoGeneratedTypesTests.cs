@@ -480,6 +480,34 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void GeneratedWrapper_FieldOnChanged_IgnoresSiblingFieldWrites()
+        {
+            var app = LoadGeneratedClient(out _);
+            var derivedMember = RequireMember<ClassMember>(app.Client, "member-derived");
+            var derivedNode = (NeoMemberClassWritable)NeoMember.CreateWritable(
+                app.Client,
+                derivedMember,
+                null);
+            var generated = Derived.CreateWritable(app.Client, derivedNode);
+            // The first write creates the row, which every field hears.
+            generated.Name = "Created";
+            int nameChanges = 0;
+            int healthChanges = 0;
+            using var name = generated.OnChanged(Derived.Fields.Name, (_, _) => nameChanges++);
+            using var health = generated.OnChanged(Derived.Fields.Health, (_, _) => healthChanges++);
+
+            generated.Health = 12;
+
+            Assert.AreEqual(0, nameChanges);
+            Assert.AreEqual(1, healthChanges);
+
+            generated.Name = "Sibling";
+
+            Assert.AreEqual(1, nameChanges);
+            Assert.AreEqual(1, healthChanges);
+        }
+
+        [Test]
         public void GeneratedWrapper_GetLocalizedTextId_ReturnsTextIdForFieldTokens()
         {
             var app = LoadGeneratedClient(out _);

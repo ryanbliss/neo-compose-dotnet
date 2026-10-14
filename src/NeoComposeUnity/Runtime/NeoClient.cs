@@ -5574,7 +5574,19 @@ namespace NeoCompose.Runtime
         }
 
         // Implemented on MemberValue for the reason TryGetValue is.
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal bool TryGetWritableValue(
+            NeoValueOwnership ownership,
+            string id,
+            [NotNullWhen(true)] out MemberValue? value) =>
+            TryGetWritableValueBeneath(null, ownership, id, out value);
+
+        /// <summary>
+        /// <see cref="TryGetWritableValue(NeoValueOwnership, string, out MemberValue)"/>
+        /// for a plan that already found no row of its own at the id.
+        /// </summary>
+        internal bool TryGetWritableValueBeneath(
+            NeoWritePlan? searched,
             NeoValueOwnership ownership,
             string id,
             [NotNullWhen(true)] out MemberValue? value)
@@ -5584,7 +5596,9 @@ namespace NeoCompose.Runtime
                 value = allocated;
                 return value is not null;
             }
-            if (candidateReadPlan?.Rows.TryGetValue((ownership, id), out MemberValue? proposed) == true)
+            if (candidateReadPlan is { } readPlan
+                && !ReferenceEquals(readPlan, searched)
+                && readPlan.Rows.TryGetValue((ownership, id), out MemberValue? proposed))
             {
                 value = proposed;
                 return value is not null;
