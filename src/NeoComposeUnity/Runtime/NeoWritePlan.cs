@@ -54,6 +54,7 @@ namespace NeoCompose.Runtime
         // Collections most writes never fill are allocated on first use.
         internal HashSet<string>? UnchangedValueIds;
         internal List<NeoValidatedTileConversion>? ValidatedTileConversions;
+        internal List<NeoValidatedObjectRefresh>? ValidatedObjectRefreshes;
         internal Dictionary<(string gridId, string layerId), NeoTileLayerBuild>? PreparedTileLayers;
         internal Dictionary<(string gridId, string layerId), NeoPreparedLayerRecords<NeoObjectPlacementRecord>>? PreparedObjectLayers;
         // Sized for a collection write: its row, and an entry with a few fields.

@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.71.3] - 2026-10-14
+
+- Performance: a write to a placed object that leaves it where it is no longer revalidates its whole grid or drops the grid's layer indexes. A variant swap is the common case. Each swap used to drop every tile and object index in the grid and revalidate every placement in it, so a night of plant growth cost O(plants²). Only the written object is validated now, and the renderer hears it changed in place. In Neowyn, a night that grows 72 plants into new stages takes 337 ms instead of 1152 ms.
+
 ## [0.71.2] - 2026-10-14
 
 - Fixed: a save could fail to load with "Replay lost child ... at '$/Data/...'". Despawning an object loaded from a save removed the fields of a value that a constructor still names. Neowyn's pickaxe builds `new InventoryItemStack(item, 1, plant.Data)` and then despawns the plant. The plant's `Data` survived, but its fields were deleted, so the stack could not replay on the next load. Anything a constructor argument owns now survives its owner's removal with the argument.

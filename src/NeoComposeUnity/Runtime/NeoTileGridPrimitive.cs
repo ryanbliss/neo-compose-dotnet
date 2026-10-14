@@ -2242,6 +2242,35 @@ namespace NeoCompose.Runtime
             return links.Count != 0;
         }
 
+        /// <summary>
+        /// Whether <paramref name="objectRow"/> still places as
+        /// <paramref name="record"/>: the same class, asset, origin and
+        /// footprint. Adds the rows its placement reads to
+        /// <paramref name="dependencyIds"/>.
+        /// </summary>
+        internal bool PlacesAs(ObjectMemberValue objectRow, NeoObjectPlacementRecord record, HashSet<string> dependencyIds)
+        {
+            if (objectRow.classId != record.AssetClassId)
+                return false;
+            string? assetValueId = objectRow.value is null
+                ? null
+                : ReadDirectReference(objectRow.value, "assetValueId");
+            if (assetValueId != record.AssetValueId)
+                return false;
+            dependencyIds.Add(objectRow.id);
+            if (ReadObjectOrigin(objectRow, dependencyIds) != record.Cell)
+                return false;
+            IReadOnlyList<Vector2Int> footprint = ReadObjectFootprint(objectRow, record.Cell, dependencyIds);
+            if (footprint.Count != record.Footprint.Count)
+                return false;
+            for (int i = 0; i < footprint.Count; i++)
+            {
+                if (footprint[i] != record.Footprint[i])
+                    return false;
+            }
+            return true;
+        }
+
         private readonly struct ObjectCarriedLink
         {
             public ObjectCarriedLink(string linkValueId, string layerId, string tilesListValueId, Vector2 offset, bool enabled)
