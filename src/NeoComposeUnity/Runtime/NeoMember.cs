@@ -153,8 +153,27 @@ namespace NeoCompose.Runtime
         {
             get; internal set;
         }
-        public event System.Action<NeoMember>? OnChanged;
+        private System.Action<NeoMember>? onChanged;
+
+        public event System.Action<NeoMember>? OnChanged
+        {
+            add
+            {
+                onChanged += value;
+                OnWatched();
+            }
+            remove => onChanged -= value;
+        }
+
         public event System.Action<NeoMember>? OnDisposed;
+
+        /// <summary>
+        /// A listener now hears this node's changes, which bubble from every
+        /// descendant: a container binds its whole subtree.
+        /// </summary>
+        private protected virtual void OnWatched()
+        {
+        }
         /// <summary>
         /// True after <see cref="Dispose"/> has run. Subclasses must
         /// short-circuit further work (events, setter mutations) when
@@ -285,7 +304,7 @@ namespace NeoCompose.Runtime
                 soleHolder.HandleChildChanged(changed);
             else if (holders is { Count: > 0 })
                 NotifyHolders(changed);
-            if (OnChanged is not null)
+            if (onChanged is not null)
                 client.RaiseChanged(this, changed);
         }
 
@@ -314,7 +333,7 @@ namespace NeoCompose.Runtime
 
         internal virtual void InvokeChanged(NeoMember changed, NeoListChangedArgs? listChange)
         {
-            OnChanged?.Invoke(changed);
+            onChanged?.Invoke(changed);
         }
 
         internal void AssertContainingClassesCanBeConstructed()
@@ -358,23 +377,33 @@ namespace NeoCompose.Runtime
         /// follow this container's family, and every other storage is writable
         /// in the ownership it resolves to under this container.
         /// </summary>
+        /// <param name="bindsOnRead">
+        /// Build a new Class child to bind its own children when they are
+        /// read, as this container does. A container that binds its children
+        /// eagerly binds a shared child's whole subtree, so its listeners hear
+        /// every descendant.
+        /// </param>
         protected NeoMember CreateOwnedChild(
             NeoClient client,
             Member childMember,
             string? overrideValueId,
-            bool writableFamily)
+            bool writableFamily,
+            bool bindsOnRead = false)
         {
             NeoMemberStorage declared = client.DeclaredStorage(childMember);
             NeoMember child =
                 declared == NeoMemberStorage.Immutable
                 || (declared == NeoMemberStorage.Inherit && !writableFamily)
-                    ? Create(client, childMember, overrideValueId)
+                    ? Create(client, childMember, overrideValueId, bindsOnRead)
                     : CreateWritable(
                         client,
                         childMember,
                         overrideValueId,
-                        client.ChildOwnership(childMember, ownership));
+                        client.ChildOwnership(childMember, ownership),
+                        bindsOnRead);
             child.parent = this;
+            if (!bindsOnRead && child is NeoMemberClass { BindsOnRead: true } onRead)
+                onRead.BindAllChildren();
             return child;
         }
 
@@ -397,7 +426,14 @@ namespace NeoCompose.Runtime
         public static NeoMember Create(
             NeoClient client,
             Member member,
-            string? overrideValueId)
+            string? overrideValueId) =>
+            Create(client, member, overrideValueId, bindsOnRead: false);
+
+        private static NeoMember Create(
+            NeoClient client,
+            Member member,
+            string? overrideValueId,
+            bool bindsOnRead)
         {
             if (client.TryGetNode(
                     member.RuntimeDeclarationIdentity,
@@ -416,7 +452,7 @@ namespace NeoCompose.Runtime
                 StringMember s => new NeoMemberString(client, s, overrideValueId),
                 DictionaryMember d => new NeoMemberDictionary(client, d, overrideValueId),
                 ListMember l => new NeoMemberList(client, l, overrideValueId),
-                ClassMember c => new NeoMemberClass(client, c, overrideValueId),
+                ClassMember c => new NeoMemberClass(client, c, overrideValueId, NeoValueOwnership.Asset, bindsOnRead),
                 EnumMember e => new NeoMemberEnum(client, e, overrideValueId),
                 LookupMember lk => new NeoMemberLookup(client, lk, overrideValueId),
                 DialogueLookupMember dl => new NeoMemberDialogueLookup(client, dl, overrideValueId),
@@ -458,7 +494,20 @@ namespace NeoCompose.Runtime
             NeoClient client,
             Member member,
             string? overrideValueId,
-            NeoValueOwnership ownership = NeoValueOwnership.Session)
+            NeoValueOwnership ownership = NeoValueOwnership.Session) =>
+            CreateWritable(client, member, overrideValueId, ownership, bindsOnRead: false);
+
+        /// <param name="bindsOnRead">
+        /// A new Class node binds its children when they are read; see
+        /// <see cref="NeoMemberClass.BindsOnRead"/>. A registered node is
+        /// returned as it is.
+        /// </param>
+        internal static NeoMember CreateWritable(
+            NeoClient client,
+            Member member,
+            string? overrideValueId,
+            NeoValueOwnership ownership,
+            bool bindsOnRead)
         {
             if (client.TryGetNode(
                     member.RuntimeDeclarationIdentity,
@@ -478,7 +527,7 @@ namespace NeoCompose.Runtime
                 StringMember s => new NeoMemberStringWritable(client, s, overrideValueId, ownership),
                 DictionaryMember d => new NeoMemberDictionaryWritable(client, d, overrideValueId, ownership),
                 ListMember l => new NeoMemberListWritable(client, l, overrideValueId, ownership),
-                ClassMember c => new NeoMemberClassWritable(client, c, overrideValueId, ownership),
+                ClassMember c => new NeoMemberClassWritable(client, c, overrideValueId, ownership, bindsOnRead),
                 EnumMember e => new NeoMemberEnumWritable(client, e, overrideValueId, ownership),
                 LookupMember lk => new NeoMemberLookupWritable(client, lk, overrideValueId, ownership),
                 DialogueLookupMember dl => new NeoMemberDialogueLookupWritable(client, dl, overrideValueId, ownership),

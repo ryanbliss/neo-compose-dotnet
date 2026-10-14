@@ -846,7 +846,8 @@ namespace NeoCompose.Runtime
                 client,
                 factoryMember,
                 producedValueId,
-                NeoValueOwnership.Session);
+                NeoValueOwnership.Session,
+                bindsOnRead: true);
         }
 
         private static string DescribeVariant(VariantRecord record)

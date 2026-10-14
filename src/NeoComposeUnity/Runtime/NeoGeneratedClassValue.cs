@@ -129,7 +129,6 @@ namespace NeoCompose.Runtime
             // computed members or methods away from a Save/Session receiver.
             InheritedStorageOwnership = inheritedStorageOwnership == NeoValueOwnership.Asset
                 ? node.ownership : inheritedStorageOwnership;
-            this.node.OnChanged += HandleNodeChanged;
             this.node.OnDisposed += HandleNodeDisposed;
             LazyInitialize();
             // A view over a value no member holds (C# `new`, a clone) is the
@@ -353,7 +352,6 @@ namespace NeoCompose.Runtime
             ReleaseAttachedRows();
             nodeStore = attached;
             detached = null;
-            attached.OnChanged += HandleNodeChanged;
             attached.OnDisposed += HandleNodeDisposed;
             client.RegisterGeneratedClassValue(this, attached);
             return attached;
@@ -511,7 +509,6 @@ namespace NeoCompose.Runtime
                 }
                 subscriptions.Clear();
             }
-            node.OnChanged -= HandleNodeChanged;
             node.OnDisposed -= HandleNodeDisposed;
             if (writableNodeCache is not null && !ReferenceEquals(writableNodeCache, node))
             {
@@ -555,7 +552,6 @@ namespace NeoCompose.Runtime
             storedViews?.Clear();
             if (previous is not null)
             {
-                previous.OnChanged -= HandleNodeChanged;
                 previous.OnDisposed -= HandleNodeDisposed;
                 client.UnregisterGeneratedClassValue(this, previous);
             }
@@ -572,7 +568,6 @@ namespace NeoCompose.Runtime
             node = next;
             InheritedStorageOwnership = ownership;
             writableNodeCache = next;
-            node.OnChanged += HandleNodeChanged;
             node.OnDisposed += HandleNodeDisposed;
             client.RegisterGeneratedClassValue(this, node);
 
@@ -619,13 +614,9 @@ namespace NeoCompose.Runtime
             return NeoGeneratedTypesSupport.ValuePayload(node, fallbackClassId);
         }
 
-        private void HandleNodeChanged(NeoMember changed)
-        {
-            // Subscriptions are registered through generated OnChanged
-            // methods. This root listener keeps the generated wrapper alive
-            // as the single owner of child subscriptions.
-        }
-
+        // The node's disposal listener keeps this wrapper alive as the single
+        // owner of child subscriptions, which generated OnChanged methods
+        // register. A change listener would make every node it wraps watched.
         private void HandleNodeDisposed(NeoMember disposed)
         {
             Dispose();

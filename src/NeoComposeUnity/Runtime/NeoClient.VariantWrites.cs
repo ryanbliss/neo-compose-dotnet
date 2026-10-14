@@ -32,7 +32,7 @@ namespace NeoCompose.Runtime
                 using (ReadCandidate(plan))
                 {
                     var scoped = new NeoMemberClassWritable(this, receiver.member,
-                        receiver.overrideValueId ?? receiver.value?.id, receiver.ownership);
+                        receiver.overrideValueId ?? receiver.value?.id, receiver.ownership, bindsOnRead: true);
                     apply(scoped);
                     if (placement is not null)
                     {
