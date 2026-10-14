@@ -427,11 +427,11 @@ namespace NeoCompose.Tests
         }
 
         /// <summary>
-        /// Placed-ness is memoized per object, so the memo must forget when
-        /// an object joins a layer after it was first asked about.
+        /// Placed-ness is memoized per object, so a spawn must mark an object
+        /// placed after it was first asked about.
         /// </summary>
         [Test]
-        public void PlacementMembers_ForgetPlacedObjectsWhenALayerGainsOne()
+        public void PlacementMembers_RememberAnObjectALayerSpawns()
         {
             var client = NeoTestSaveStack.ClientFromSchema(BuildClassBackedTileGridProjectData());
             var primitive = NeoTileGridPrimitive.ResolveForSave(
@@ -9889,12 +9889,6 @@ namespace NeoCompose.Tests
                 });
         }
 
-        /// <summary>
-        /// shop-1 at (10, 20) also carries a part at (3, 1) whose link at
-        /// (1, 0) holds one tile at (0, 0). Enabled and Position are session
-        /// storage and every nested one is an explicit row, so runtime writes
-        /// to them are leaf writes.
-        /// </summary>
         private const string SpriteObjectClassId = "sprite-object-class";
 
         /// <summary>
@@ -9932,6 +9926,12 @@ namespace NeoCompose.Tests
             return data;
         }
 
+        /// <summary>
+        /// shop-1 at (10, 20) also carries a part at (3, 1) whose link at
+        /// (1, 0) holds one tile at (0, 0). Enabled and Position are session
+        /// storage and every nested one is an explicit row, so runtime writes
+        /// to them are leaf writes.
+        /// </summary>
         private static ProjectData BuildNestedCarriedLinkProjectData()
         {
             var data = BuildClassBackedTileGridProjectData();
