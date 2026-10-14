@@ -761,31 +761,23 @@ namespace NeoCompose.Tests
         public void NeoScriptGridQuery_GetObjectsReturnsAPlacedSpriteButNotANestedOne()
         {
             ProjectData data = BuildShopSpriteProjectData(BuildCellPatternTileGridProjectData());
-            // shop-1 sits at (10, 20) with shop-arm nested at its origin.
+            // shop-1 sits at (10, 20). Its nested shop-arm claims a tile on that
+            // cell, so only nesting can keep it out of the result.
+            SetPlacementTiles(data, "shop-arm", Vector2Int.zero);
             ((ArrayMemberValue)data.values["objects-link-objects"]).value = new[] { "shop-1", "lamp", "glow" };
-            foreach (var (id, x, tiles) in new[] { ("lamp", 11, new[] { "lamp-tile" }), ("glow", 12, Array.Empty<string>()) })
+            foreach (var (id, x) in new[] { ("lamp", 11), ("glow", 12) })
             {
                 data.values[id] = new ObjectMemberValue
                 {
                     id = id,
                     classId = SpriteObjectClassId,
                     containerId = "objects-link-objects",
-                    value = new Dictionary<string, string>
-                    {
-                        ["Position"] = id + "-position",
-                        ["PlacementTiles"] = id + "-tiles",
-                    },
+                    value = new Dictionary<string, string> { ["Position"] = id + "-position" },
                 };
                 data.values[id + "-position"] = new Vector3MemberValue { id = id + "-position", value = new NeoVector3Value { x = x, y = 20 } };
-                data.values[id + "-tiles"] = new ArrayMemberValue { id = id + "-tiles", value = tiles };
             }
-            data.values["lamp-tile"] = new ObjectMemberValue
-            {
-                id = "lamp-tile",
-                classId = PlacementTileClassId,
-                value = new Dictionary<string, string> { ["Cell"] = "lamp-tile-cell" },
-            };
-            data.values["lamp-tile-cell"] = new Vector2MemberValue { id = "lamp-tile-cell", value = new NeoVector2Value() };
+            SetPlacementTiles(data, "lamp", Vector2Int.zero);
+            SetPlacementTiles(data, "glow");
             using var client = NeoTestSaveStack.ClientFromSchema(data);
             var primitive = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid",
                 BuildClassBackedReadOnlyFactories(), BuildClassBackedWritableFactories());
