@@ -76,6 +76,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         /// </summary>
         IReadOnlyList<IReadOnlyNeoTile> GetTiles(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null);
 
+
+        /// <summary>
+        /// The cells this object occupies, as offsets from its placement cell. An empty list occupies nothing: the object blocks no placement and answers no cell query, but a placed object still has a Cell.
+        /// </summary>
         NeoReadOnlyList<IReadOnlyNeoPlacementTile> PlacementTiles { get; }
     }
 
@@ -99,6 +103,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                     "neo-tile-grid-record-relations-v1-class-0ee0f2029e90035300231c3c8937f67d" => new ExitPromptObject37f67d(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     "neo-tile-grid-record-relations-v1-class-1d3037f78d2219adfc19bfb7cfa26352" => new ExitPromptObjecta26352(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     "neo-tile-grid-record-relations-v1-class-f937471d208e5283ebd4905292987403" => new ExitPromptObject987403(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "system_d48b66ab-4d59-47e7-a25a-591fe97062de" => new NeoSpriteObject(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoObject' without a concrete client type id."),
                 };
             });
@@ -117,6 +122,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                     "neo-tile-grid-record-relations-v1-class-0ee0f2029e90035300231c3c8937f67d" => new ExitPromptObject37f67d(factoryClient, factoryNode, false, factoryNode.ownership),
                     "neo-tile-grid-record-relations-v1-class-1d3037f78d2219adfc19bfb7cfa26352" => new ExitPromptObjecta26352(factoryClient, factoryNode, false, factoryNode.ownership),
                     "neo-tile-grid-record-relations-v1-class-f937471d208e5283ebd4905292987403" => new ExitPromptObject987403(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "system_d48b66ab-4d59-47e7-a25a-591fe97062de" => new NeoSpriteObject(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoObject' without a concrete client type id."),
                 };
             });
@@ -236,6 +242,9 @@ namespace HelloWorld.Assets.Scripts.Neo
 
 
 
+        /// <summary>
+        /// The cells this object occupies, as offsets from its placement cell. An empty list occupies nothing: the object blocks no placement and answers no cell query, but a placed object still has a Cell.
+        /// </summary>
         public virtual NeoList<NeoPlacementTile> PlacementTiles
         {
             get

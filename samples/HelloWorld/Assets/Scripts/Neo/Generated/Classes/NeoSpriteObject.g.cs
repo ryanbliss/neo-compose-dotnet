@@ -11,7 +11,7 @@ using UnityEngine;
 
 namespace HelloWorld.Assets.Scripts.Neo
 {
-    public interface IReadOnlyNeoSpriteObject : IReadOnlyNeoObjectBase, INeoSpriteObjectValue
+    public interface IReadOnlyNeoSpriteObject : IReadOnlyNeoObject, INeoSpriteObjectValue
     {
         new bool IsReadOnly { get; }
 
@@ -50,19 +50,19 @@ namespace HelloWorld.Assets.Scripts.Neo
         new NeoReadOnlySprite Sprite { get; }
     }
 
-    public partial class NeoSpriteObject : NeoObjectBase, IReadOnlyNeoSpriteObject, INeoSpriteObjectValue
+    public partial class NeoSpriteObject : NeoObject, IReadOnlyNeoSpriteObject, INeoSpriteObjectValue
     {
         internal NeoSpriteObject(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, isReadOnly, inheritedStorageOwnership)
         {
         }
 
-        public NeoSpriteObject(NeoCollider? Collider = null, bool? Enabled = null, string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, bool? FlipX = null, bool? FlipY = null, NeoSpriteMaskInteraction? MaskInteraction = null, int? SortingOrder = null, Sprite? Sprite = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Collider, Enabled, Name, Position, Size, FlipX, FlipY, MaskInteraction, SortingOrder, Sprite), false, NeoValueOwnership.Session)
+        public NeoSpriteObject(NeoCollider? Collider = null, bool? Enabled = null, string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoPlacementTile>? PlacementTiles = null, bool? FlipX = null, bool? FlipY = null, NeoSpriteMaskInteraction? MaskInteraction = null, int? SortingOrder = null, Sprite? Sprite = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Collider, Enabled, Name, Position, Size, Children, PlacementTiles, FlipX, FlipY, MaskInteraction, SortingOrder, Sprite), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(NeoCollider? Collider = null, bool? Enabled = null, string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, bool? FlipX = null, bool? FlipY = null, NeoSpriteMaskInteraction? MaskInteraction = null, int? SortingOrder = null, Sprite? Sprite = null)
+        private static NeoMemberClassWritable CreateFactoryNode(NeoCollider? Collider = null, bool? Enabled = null, string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoPlacementTile>? PlacementTiles = null, bool? FlipX = null, bool? FlipY = null, NeoSpriteMaskInteraction? MaskInteraction = null, int? SortingOrder = null, Sprite? Sprite = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
@@ -73,6 +73,8 @@ namespace HelloWorld.Assets.Scripts.Neo
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "system_441cb790-a45f-4488-a5a9-6f375af6c369", Name),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Position", "system_7fc41bde-418a-4507-8c4b-9b75d7012125", Position),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "system_e1d820d8-56b1-43ac-aa10-0a019f0dc38f", Size),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Children", "system_bb5d2cf1-a0dd-4eba-a62e-0e1bf0177071", Children),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("PlacementTiles", "system_5a9ca1f5-a21b-4d4e-8c55-00341af594b4", PlacementTiles),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("FlipX", "system_9fcab37a-9743-4e35-8eee-80cb560f1433", FlipX),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("FlipY", "system_ddd09f08-1656-4404-b36b-5570a4c01fcf", FlipY),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("MaskInteraction", "system_f2a8c86d-ace5-421b-9475-0f3f6f97b2a6", MaskInteraction),
@@ -125,8 +127,21 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<NeoSpriteObject>(out writable);
         }
 
+        /// <summary>
+        /// Applies a variant to this instance in place and returns the same
+        /// instance (P67 §4.2): the variant's Apply delegate if it declares one,
+        /// then its Overrides, then its ChildOverrides.
+        /// </summary>
+        public NeoSpriteObject ToVariant(NeoVariant<NeoSpriteObject> variant)
+        {
+            ThrowIfReadOnly("NeoSpriteObject.ToVariant");
+            return NeoGeneratedTypesSupport.ApplyVariant(this, variant);
+        }
+
         Sprite INeoSpriteObjectValue.Sprite => Sprite;
         string INeoSpriteObjectValue.MaskInteraction => MaskInteraction.OptionId();
+
+        public static NeoClassRef<NeoSpriteObject> Definition { get; } = new NeoClassRef<NeoSpriteObject>("system_d48b66ab-4d59-47e7-a25a-591fe97062de");
 
         /// <summary>
         /// Mirrors the sprite horizontally about its own centre. Maps to SpriteRenderer.flipX.
@@ -231,6 +246,26 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        NeoReadOnlyList<IReadOnlyNeoObjectBase> IReadOnlyNeoObject.Children
+        {
+            get
+            {
+                var memberNode = node.Get<NeoMemberList>("Children");
+                if (TryGetStoredView<NeoReadOnlyList<IReadOnlyNeoObjectBase>>("Children", memberNode, out var cached)) return cached;
+                return CacheStoredView("Children", memberNode, new NeoReadOnlyList<IReadOnlyNeoObjectBase>(client, memberNode, (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.Create(client, (NeoMemberClass)child)));
+            }
+        }
+
+        NeoReadOnlyList<IReadOnlyNeoPlacementTile> IReadOnlyNeoObject.PlacementTiles
+        {
+            get
+            {
+                var memberNode = node.Get<NeoMemberList>("PlacementTiles");
+                if (TryGetStoredView<NeoReadOnlyList<IReadOnlyNeoPlacementTile>>("PlacementTiles", memberNode, out var cached)) return cached;
+                return CacheStoredView("PlacementTiles", memberNode, new NeoReadOnlyList<IReadOnlyNeoPlacementTile>(client, memberNode, (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoPlacementTile.Create(client, (NeoMemberClass)child)));
+            }
+        }
+
         public new sealed class Fields
         {
             private Fields() {}
@@ -244,6 +279,12 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<NeoVector3> Position = new("Position");
 
             public static readonly NeoField<NeoVector3> Size = new("Size");
+
+            public static readonly NeoField<Vector2Int> Cell = new("Cell");
+
+            public static readonly NeoField<NeoList<NeoObjectBase>> Children = new("Children");
+
+            public static readonly NeoField<NeoList<NeoPlacementTile>> PlacementTiles = new("PlacementTiles");
 
             public static readonly NeoField<bool> FlipX = new("FlipX");
 
@@ -265,6 +306,9 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Name] = () => null,
                 [Fields.Position] = () => null,
                 [Fields.Size] = () => null,
+                [Fields.Cell] = () => null,
+                [Fields.Children] = () => null,
+                [Fields.PlacementTiles] = () => null,
                 [Fields.FlipX] = () => null,
                 [Fields.FlipY] = () => null,
                 [Fields.MaskInteraction] = () => null,
@@ -292,6 +336,9 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Name] = () => Name,
                 [Fields.Position] = () => Position,
                 [Fields.Size] = () => Size,
+                [Fields.Cell] = () => Cell,
+                [Fields.Children] = () => Children,
+                [Fields.PlacementTiles] = () => PlacementTiles,
                 [Fields.FlipX] = () => FlipX,
                 [Fields.FlipY] = () => FlipY,
                 [Fields.MaskInteraction] = () => MaskInteraction,
