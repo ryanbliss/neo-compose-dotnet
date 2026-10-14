@@ -47,7 +47,18 @@ namespace NeoCompose.Runtime.NeoScript
         internal bool listBuffersNoted;
         /// <summary>The detached object whose slot holds this one; it materializes through that root.</summary>
         internal NeoScriptObject? owner;
-        internal string? attachedId;
+        private string? attachedValueId;
+        internal RuntimeSetReferences? setReferences;
+        internal string? attachedId
+        {
+            get => attachedValueId;
+            set
+            {
+                object previousKey = attachedValueId ?? (object)this;
+                attachedValueId = value;
+                setReferences?.Retarget(previousKey, value ?? (object)this);
+            }
+        }
         // A getter result has an independent lifetime. Its graph may be read
         // and mutated by callers, but a stored owner must take a copy.
         internal bool sharedGetterResult;

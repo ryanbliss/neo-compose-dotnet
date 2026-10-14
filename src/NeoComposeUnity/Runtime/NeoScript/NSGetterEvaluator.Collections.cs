@@ -60,6 +60,22 @@ namespace NeoCompose.Runtime.NeoScript
             return set.Reference && value is not null ? ReferenceKeyOf(value, ctx) ?? value : value;
         }
 
+        internal static void TrackRuntimeSetReference(object value, RuntimeSet set)
+        {
+            switch (value)
+            {
+                case NeoGeneratedClassValue { PendingValue: NeoScriptObject pending }:
+                    (pending.setReferences ??= new()).Track(set, value);
+                    break;
+                case NeoScriptObject detached:
+                    (detached.setReferences ??= new()).Track(set, value);
+                    break;
+                case NeoObjectRecord record:
+                    (record.setReferences ??= new()).Track(set, value);
+                    break;
+            }
+        }
+
         private sealed class LookupKeys
         {
             internal object? scope;

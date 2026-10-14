@@ -293,6 +293,73 @@ namespace NeoCompose.Tests
             AssertRecordUntouched(client);
         }
 
+        [TestCase(false, false)]
+        [TestCase(true, false)]
+        [TestCase(true, true)]
+        public void LocalSetKeepsClassIdentityWhenItsValueAttachesOrMoves(bool attachedBeforeSet, bool indexStoredAlias)
+        {
+            using NeoClient client = BuildClient();
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            var box = (NeoScriptObject)Make(client, 7)!;
+            if (attachedBeforeSet)
+                NSGetterEvaluator.AttachDetached(box, ctx);
+            object indexed = indexStoredAlias ? NSGetterEvaluator.ForwardDetached(box, ctx)! : box;
+            var set = NSGetterEvaluator.MakeRuntimeSet(new[] { indexed }, true, false, ctx);
+
+            Run(client, ctx, Locals(("s", box)), AssignShape(Variable("s")));
+
+            object? stored = NSGetterEvaluator.UnwrapRow(client.ResolveValueRow("shape-leaf")!, ctx, NeoValueOwnership.Session);
+            object? storedKey = NSGetterEvaluator.RuntimeSetKey(stored, set, ctx);
+            Assert.IsTrue(set.Contains(storedKey), "A stored alias must still find the indexed class.");
+            object? localKey = NSGetterEvaluator.RuntimeSetKey(box, set, ctx);
+            Assert.IsTrue(set.Contains(localKey), "The original local must still find the indexed class.");
+            set.Add(storedKey, stored);
+            Assert.AreEqual(1, set.Count, "Attaching must not allow a duplicate.");
+            set.Remove(localKey);
+            Assert.AreEqual(0, set.Count, "The original local must remove the stored alias.");
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void LocalSetMergesAttachedAliasesAtTheirFirstInsertion(bool sourceFirst)
+        {
+            using NeoClient client = BuildClient();
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            Run(client, ctx, null, AssignShape(NewBox(4)));
+            object stored = NSGetterEvaluator.UnwrapRow(client.ResolveValueRow("shape-leaf")!, ctx, NeoValueOwnership.Session)!;
+            var box = (NeoScriptObject)Make(client, 7)!;
+            object middle = Make(client, 9)!;
+            object[] initial = sourceFirst ? new[] { box, middle, stored } : new[] { stored, middle, box };
+            var set = NSGetterEvaluator.MakeRuntimeSet(initial, true, false, ctx);
+
+            Run(client, ctx, Locals(("s", box)), AssignShape(Variable("s")));
+
+            Assert.AreEqual(2, set.Count);
+            CollectionAssert.AreEqual(new[] { initial[0], middle }, set.Snapshot());
+            Assert.IsTrue(set.Contains(NSGetterEvaluator.RuntimeSetKey(box, set, ctx)));
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void LocalSetIgnoresIdentityChangesAfterRemoval(bool clear)
+        {
+            using NeoClient client = BuildClient();
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            var box = (NeoScriptObject)Make(client, 7)!;
+            var set = NSGetterEvaluator.MakeRuntimeSet(new object?[] { box }, true, false, ctx);
+            if (clear)
+                set.Clear();
+            else
+                set.Remove(NSGetterEvaluator.RuntimeSetKey(box, set, ctx));
+            object other = Make(client, 9)!;
+            set.Add(NSGetterEvaluator.RuntimeSetKey(other, set, ctx), other);
+
+            Run(client, ctx, Locals(("s", box)), AssignShape(Variable("s")));
+
+            CollectionAssert.AreEqual(new[] { other }, set.Snapshot());
+            Assert.IsFalse(set.Contains(NSGetterEvaluator.RuntimeSetKey(box, set, ctx)));
+        }
+
         // C#: var s = rig.Make(); rig.Assign(s); s.Width = 9;
         // where Assign runs this.Child.Shape = s;
         [Test]
