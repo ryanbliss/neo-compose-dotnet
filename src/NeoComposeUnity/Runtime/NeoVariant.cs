@@ -623,11 +623,6 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// Steps 2 and 3 of both paths: `Overrides` shallowly, then each
-        /// `ChildOverrides` row against the instance. Shared because the two
-        /// paths differ only in step 1.
-        /// </summary>
-        /// <summary>
         /// P75 §6 — replays the variant <c>ToVariant</c> last applied to a
         /// stored root over its construction: `Overrides`, then
         /// `ChildOverrides`. `Apply` ran once and left its writes as instance
@@ -646,6 +641,11 @@ namespace NeoCompose.Runtime
             ApplyDeclarativeHalves(client, record, node, NeoValueOwnership.Session);
         }
 
+        /// <summary>
+        /// Steps 2 and 3 of both paths: `Overrides` shallowly, then each
+        /// `ChildOverrides` row against the instance. Shared because the two
+        /// paths differ only in step 1.
+        /// </summary>
         private static void ApplyDeclarativeHalves(
             NeoClient client,
             VariantRecord? record,
