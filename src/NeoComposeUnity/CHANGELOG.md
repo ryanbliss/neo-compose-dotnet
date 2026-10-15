@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.72.1] - 2026-10-15
+
+- Fixed: NeoScript variant equality now compares the target class, variant, and bound lookup row. Repeated reads of Base and named variants compare equal, including stored optional selections and references to variant members. Existing compiled projects need no re-export.
+
 ## [0.72.0] - 2026-10-15
 
 `Reference<T>` works for any value type (P112). A class, interface, list, set, or dictionary reference is the handle, as before. Any other `T`, such as `Reference<int>`, names another member's slot and generates as `NeoReference<T>`. Requires CLI 0.82.0; run `neo pull` and `neo export` after upgrading.

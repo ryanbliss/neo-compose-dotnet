@@ -8513,6 +8513,8 @@ namespace NeoCompose.Runtime.NeoScript
                 return id;
             if (value is NSSlotReference slot)
                 return slot.TargetId;
+            if (value is NeoVariantReference variant)
+                return variant;
             if (value is NeoGeneratedClassValue { PendingValue: NeoScriptObject pending })
                 return pending.attachedId ?? (object)pending;
             if (value is NeoScriptObject detached)

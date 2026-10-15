@@ -182,7 +182,7 @@ namespace NeoCompose.Runtime
     /// no `T` to close the handle over, and the pair is all either intrinsic
     /// needs. A null <see cref="variantId"/> is the base selection.</para>
     /// </summary>
-    internal sealed class NeoVariantReference
+    internal sealed class NeoVariantReference : IEquatable<NeoVariantReference>
     {
         internal NeoVariantReference(
             string classId,
@@ -193,6 +193,16 @@ namespace NeoCompose.Runtime
             this.variantId = variantId;
             this.rowValueId = rowValueId;
         }
+
+        public bool Equals(NeoVariantReference? other) =>
+            other is not null
+            && classId == other.classId
+            && variantId == other.variantId
+            && rowValueId == other.rowValueId;
+
+        public override bool Equals(object? obj) => obj is NeoVariantReference other && Equals(other);
+
+        public override int GetHashCode() => HashCode.Combine(classId, variantId, rowValueId);
 
         internal string classId
         {
