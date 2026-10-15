@@ -9,8 +9,8 @@
 public sealed class NeoReference<T> : NeoReference, IEquatable<NeoReference<T>>
 {
     public string TargetId { get; }
-    public T Value { get; }          // reads the target slot
-    public bool TryWrite(T value);   // false when the target is asset-owned or readonly
+    public T Value { get; set; }     // reads or writes the target slot; the set throws when the target is asset-owned or readonly
+    public bool TrySet(T value);     // false when the target is asset-owned or readonly
 }
 
 // New on every generated class value: Reference(value.Field) in C#.
@@ -25,7 +25,7 @@ public NeoLookupSet<NeoReference<int>> Picks { get; }
 public NeoReadOnlyDictionary<int>? ScoresRef { get; set; }
 ```
 
-- Assigning a `NeoReference<T>` property rebinds it. `TryWrite` writes the target and leaves the reference alone.
+- Assigning a `NeoReference<T>` property rebinds it. Setting its `Value` writes the target and leaves the reference alone.
 - Two references are equal when they name the same row, so reference lists, sets and dictionaries compare entries by target.
 - `NeoReadOnlyList<T>`, `NeoReadOnlyDictionary<T>`, `NeoReadOnlyDictionary<TKey, TValue>`, and the read-only set views gain `TryWritable`, so a collection reference can write its target when the target's store allows it.
 - A reference's `OnChanged` listeners fire when it rebinds and when its target's value changes.

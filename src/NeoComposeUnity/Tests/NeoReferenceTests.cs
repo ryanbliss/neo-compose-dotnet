@@ -148,8 +148,10 @@ namespace NeoCompose.Tests
             Parity.Gauge g = Parity.Probe.G;
 
             Assert.AreEqual(3, g.A.Value);
-            Assert.IsTrue(g.A.TryWrite(7));
+            g.A.Value = 7;
             Assert.AreEqual(7, g.Count, "a write through the reference reaches its target");
+            Assert.IsTrue(g.A.TrySet(8));
+            Assert.AreEqual(8, g.Count);
             g.A = g.ReferenceTo(Parity.Gauge.Fields.Other);
             Assert.AreEqual(10, g.A.Value);
             Assert.AreEqual(g.ReferenceTo(Parity.Gauge.Fields.Other), g.A, "references to one slot are equal");
@@ -162,8 +164,23 @@ namespace NeoCompose.Tests
             using var app = new Parity.TestProjectNeo(Client(Data()));
             Parity.Gauge g = Parity.Probe.G;
 
-            Assert.IsFalse(g.ReferenceTo(Parity.Gauge.Fields.Fixed).TryWrite(9));
+            NeoReference<int> fixedSlot = g.ReferenceTo(Parity.Gauge.Fields.Fixed);
+
+            Assert.IsFalse(fixedSlot.TrySet(9));
+            Assert.Throws<NSGetterRuntimeError>(() => fixedSlot.Value = 9);
             Assert.AreEqual(4, g.Fixed);
+        }
+
+        [Test]
+        public void GeneratedReferenceRefusesAnAssetTarget()
+        {
+            using var app = new Parity.TestProjectNeo(Client(Data()));
+            int stockN = Parity.Probe.Stock.N;
+            NeoReference<int> stock = ((Parity.Tally)Parity.Probe.Stock).ReferenceTo(Parity.Tally.Fields.N);
+
+            Assert.IsFalse(stock.TrySet(stockN + 1));
+            Assert.Throws<NSGetterRuntimeError>(() => stock.Value = stockN + 1);
+            Assert.AreEqual(stockN, Parity.Probe.Stock.N);
         }
 
         [Test]
@@ -184,7 +201,7 @@ namespace NeoCompose.Tests
 
             g.RefList.Add(count);
             g.RefMap["c"] = count;
-            Assert.IsTrue(g.RefMap["c"].TryWrite(8));
+            g.RefMap["c"].Value = 8;
             Assert.AreEqual(8, g.RefList[0].Value, "list and dictionary entries name the same slot");
             g.Picks.Add(count);
             Assert.IsTrue(g.Chosen.Contains(count), "a reference to the set reads the set");
@@ -214,7 +231,7 @@ namespace NeoCompose.Tests
 
             Assert.AreEqual(g.ReferenceTo(Parity.Gauge.Fields.Kind), g.KindRef);
             Assert.AreEqual(g.Kind!.ClassId, g.KindRef!.Value!.ClassId);
-            Assert.IsTrue(g.KindRef.TryWrite(null));
+            g.KindRef.Value = null;
             Assert.IsNull(g.Kind);
         }
 

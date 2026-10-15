@@ -499,16 +499,40 @@ namespace NeoCompose.Runtime
         private static readonly ConditionalWeakTable<TypeInfo, WriteTarget> hostWriteSites = new();
 
         /// <summary>
-        /// Writes <paramref name="value"/> through <paramref name="reference"/>.
-        /// False when the target is readonly or its store takes no writes.
+        /// Writes <paramref name="value"/> through <paramref name="reference"/>,
+        /// and throws when the target is readonly or its store takes no writes.
         /// </summary>
-        internal static bool TryWriteReference(NeoClient client, NeoReference reference, object? value)
+        internal static void WriteReference(NeoClient client, NeoReference reference, object? value)
+        {
+            NSGetterEvaluator.Context ctx = HostContext(client);
+            NSSlotReference slot = reference.Slot(ctx);
+            NSSlotPlace? place = WritePlace(slot, ctx, out string? containerId);
+            WriteReference(client, slot, place, containerId, value, ctx);
+        }
+
+        /// <summary>
+        /// <see cref="WriteReference(NeoClient, NeoReference, object?)"/>, or
+        /// false when the target is readonly or its store takes no writes.
+        /// </summary>
+        internal static bool TrySetReference(NeoClient client, NeoReference reference, object? value)
         {
             NSGetterEvaluator.Context ctx = HostContext(client);
             NSSlotReference slot = reference.Slot(ctx);
             NSSlotPlace? place = WritePlace(slot, ctx, out string? containerId);
             if (!HostWritable(client, slot, place, containerId, ctx))
                 return false;
+            WriteReference(client, slot, place, containerId, value, ctx);
+            return true;
+        }
+
+        private static void WriteReference(
+            NeoClient client,
+            NSSlotReference slot,
+            NSSlotPlace? place,
+            string? containerId,
+            object? value,
+            NSGetterEvaluator.Context ctx)
+        {
             TypeInfo type = slot.Target ?? NSGetterEvaluator.TargetSlotType(slot, place, ctx);
             object? assigned = NeoScriptValueMarshaller.Normalize(client, NeoValueOwnership.Session, value, type, ctx, "Reference value");
             WriteTarget site = hostWriteSites.GetValue(type, written => new WriteTarget { typeInfo = written });
@@ -521,7 +545,6 @@ namespace NeoCompose.Runtime
             {
                 client.ExitScriptWrites();
             }
-            return true;
         }
 
         /// <summary>

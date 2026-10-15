@@ -76,16 +76,20 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// The target's value. Throws when the target no longer exists, or is
-        /// not a <typeparamref name="T"/> (§4.3, §4.4).
+        /// not a <typeparamref name="T"/> (§4.3, §4.4). Setting it writes the
+        /// target, and also throws when the target is readonly or its store takes no writes.
         /// </summary>
-        public T Value => NeoGeneratedTypesSupport.ReadReferenceValue<T>(client, NeoScriptExecutor.ReadReference(client, this));
+        public T Value
+        {
+            get => NeoGeneratedTypesSupport.ReadReferenceValue<T>(client, NeoScriptExecutor.ReadReference(client, this));
+            set => NeoScriptExecutor.WriteReference(client, this, value);
+        }
 
         /// <summary>
-        /// Writes <paramref name="value"/> into the target. Returns false when
-        /// the target is readonly or its store takes no writes, as
-        /// <see cref="NeoGeneratedClassValue.TryWritable{TWritable}"/> does.
+        /// Sets <see cref="Value"/>, or returns false when the target is
+        /// readonly or its store takes no writes.
         /// </summary>
-        public bool TryWrite(T value) => NeoScriptExecutor.TryWriteReference(client, this, value);
+        public bool TrySet(T value) => NeoScriptExecutor.TrySetReference(client, this, value);
 
         public bool Equals(NeoReference<T>? other) => other is not null && TargetId == other.TargetId;
 
