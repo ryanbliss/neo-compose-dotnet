@@ -449,6 +449,7 @@ namespace NeoCompose.Runtime
                 return;
             if (CanRetainCandidateRoot(candidate, root))
             {
+                // Reuse the expansion's values and indexes throughout candidate reads.
                 candidate.RetainedRoots.Add(rootId);
                 if (virtualValueIdsByRoot.TryGetValue(rootId, out var retainedIds))
                     candidate.HiddenVirtualIds.ExceptWith(retainedIds);
@@ -729,7 +730,8 @@ namespace NeoCompose.Runtime
                 if (candidateReplay.Placements.TryGetValue(id, out placement))
                     return true;
                 if (virtualClassPlacementByChildId.TryGetValue(id, out var previous)
-                    && candidateReplay.AffectedRoots.Contains(previous.rootId))
+                    && candidateReplay.AffectedRoots.Contains(previous.rootId)
+                    && !candidateReplay.RetainedRoots.Contains(previous.rootId))
                 {
                     placement = null!;
                     return false;
@@ -746,7 +748,8 @@ namespace NeoCompose.Runtime
                 if (candidateReplay.ClassChildren.TryGetValue(parentId, out children))
                     return true;
                 if (virtualRootByFootprintId.TryGetValue(parentId, out string rootId)
-                    && candidateReplay.AffectedRoots.Contains(rootId))
+                    && candidateReplay.AffectedRoots.Contains(rootId)
+                    && !candidateReplay.RetainedRoots.Contains(rootId))
                 {
                     children = null!;
                     return false;
