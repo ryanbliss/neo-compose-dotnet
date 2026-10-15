@@ -57,6 +57,8 @@ namespace NeoCompose.Runtime
             internal bool Active;
             internal KeyOfPointer Pointer = null!;
             internal Json.TypeInfo ObservedType = null!;
+            // A slot-kind reference's selection row, whose rebind moves its target subscription (P112 §3.7).
+            internal string? SelectionId;
             internal readonly Dictionary<(string memberId, string? classId), (object? genericStamp, string? error)> HandlerSignatures = new();
             internal readonly List<(NeoValueOwnership scope, string id)> Values = new();
         }
@@ -282,6 +284,7 @@ namespace NeoCompose.Runtime
                         listenerSlotsByValue.Remove(key);
                 }
             slot.Values.Clear();
+            slot.SelectionId = null;
         }
 
         private void BindListenerSlot(ListenerSlot slot)
@@ -325,6 +328,18 @@ namespace NeoCompose.Runtime
             if (childId is null)
                 return;
             IndexListenerValue(slot, childId);
+            // P112 §3.7: a slot-kind reference's listeners also see its target change.
+            if (slot.Member is LookupMember { Selection: not NeoMemberSelectionKind.Multi }
+                && NeoReferenceTypes.Category(slot.ObservedType, this) == NeoReferenceCategory.Slot)
+            {
+                slot.SelectionId = childId;
+                if (TryGetValue(slot.Storage, childId, out MemberValue? selection)
+                    && selection is ArrayMemberValue { value: { Length: 1 } ids }
+                    && TryGetValueOwnership(ids[0], out NeoValueOwnership targetOwnership))
+                {
+                    IndexListenerValue(slot, targetOwnership, ids[0]);
+                }
+            }
             if (slot.Member is ListMember or DictionaryMember)
             {
                 if (!listenerCollectionsById.TryGetValue(childId, out var collections))
@@ -334,9 +349,11 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private void IndexListenerValue(ListenerSlot slot, string id)
+        private void IndexListenerValue(ListenerSlot slot, string id) => IndexListenerValue(slot, slot.Storage, id);
+
+        private void IndexListenerValue(ListenerSlot slot, NeoValueOwnership ownership, string id)
         {
-            var key = (slot.Storage, id);
+            var key = (ownership, id);
             if (!listenerSlotsByValue.TryGetValue(key, out var slots))
                 listenerSlotsByValue[key] = slots = new();
             if (slots.Contains(slot))
@@ -403,15 +420,24 @@ namespace NeoCompose.Runtime
             EnsureListenerSlots();
             if (listenerSlotsByOwner.Count == 0)
                 return;
+            List<ListenerSlot>? rebound = null;
             foreach (var change in batch.Rows)
             {
                 if (listenerSlotsByValue.TryGetValue(change.Key, out var direct))
                     foreach (ListenerSlot slot in direct)
+                    {
                         if (change.Value.before is not ObjectMemberValue { classId: not null } before
                             || change.Value.after is not ObjectMemberValue after || before.classId != after.classId)
                             QueueListenerSlot(batch, slot);
+                        if (slot.SelectionId == change.Key.id)
+                            (rebound ??= new()).Add(slot);
+                    }
                 CollectListenerCollectionParents(batch, change.Key, false);
             }
+            // Rebinding moves a reference's subscription to its new target.
+            if (rebound is not null)
+                foreach (ListenerSlot slot in rebound)
+                    BindListenerSlot(slot);
             foreach (var change in batch.Owners)
             {
                 string id = change.after?.id ?? change.before!.id;
@@ -511,7 +537,10 @@ namespace NeoCompose.Runtime
                     snapshot.Add((target.PersistedCopy(), true));
                 object? receiver = NSGetterEvaluator.UnwrapRow(owner, context, ownership);
                 scratch.Scope.SetLocal("listenerOwner", receiver);
-                object? value = NSGetterEvaluator.EvalPointer(slot.Pointer, scratch.Scope, context);
+                // P112 §3.7: a reference's listeners receive its target's value.
+                object? value = NSGetterEvaluator.ReadThroughReference(
+                    NSGetterEvaluator.EvalPointer(slot.Pointer, scratch.Scope, context),
+                    context);
                 scratch.Arguments[0] = value;
                 memberChangeContext = context;
                 foreach (var registration in snapshot)

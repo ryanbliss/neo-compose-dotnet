@@ -75,6 +75,22 @@ namespace NeoCompose.Tests
             StringAssert.Contains("but the reference declares int", ProbeError(data, "ReadA"));
         }
 
+        [Test]
+        public void ListenersFollowTheTargetAcrossARebind()
+        {
+            using NeoClient client = Client(Data());
+            InvokeProbe(client, "Listen");
+
+            InvokeProbe(client, "WriteCount");
+            Assert.AreEqual(41, InvokeProbe(client, "Heard"), "a target write reaches the reference's listener");
+            InvokeProbe(client, "RebindToOther");
+            Assert.AreEqual(10, InvokeProbe(client, "Heard"), "a rebind fires with the new target's value");
+            InvokeProbe(client, "BumpCount");
+            Assert.AreEqual(10, InvokeProbe(client, "Heard"), "the old target no longer reaches it");
+            InvokeProbe(client, "WriteOther");
+            Assert.AreEqual(17, InvokeProbe(client, "Heard"));
+        }
+
         /// <summary>Gives <c>Probe.G</c>'s Lookup a row that selects <paramref name="entryId"/>.</summary>
         private static void Select(ProjectData data, string lookup, string entryId)
         {
