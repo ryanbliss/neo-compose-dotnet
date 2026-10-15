@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.71.8] - 2026-10-15
+
+- Fixed: authored initializers can construct immutable-only classes when their declarations replay, including animation tracks nested in a placed item variant. Ordinary runtime construction still rejects immutable-only classes, including after the same constructor site has run in an initializer.
+
 ## [0.71.7] - 2026-10-15
 
 - Fixed: loading sparse instances could fail with an unbound generic-slot error when a required child contained a generic collection. Replay now defers temporary child wrappers until their stored fields are available. Existing exports and saves load without changes.

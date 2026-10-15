@@ -215,6 +215,113 @@ namespace NeoCompose.Tests
             Assert.IsFalse(client.sessionValues.ContainsKey(first), "the constant is not Session data");
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void ImmutableOnlyInitializerConstructsWithoutAuthorizingOrdinaryCalls(bool declared)
+        {
+            ProjectData data = BuildImmutableBadgeProjectData();
+            data.classes["badge-class"].allowedStorage = NeoMemberStorage.Immutable;
+            var badge = (ClassMember)data.members["thing-badge"];
+            FunctionWithReturnType body = badge.defaultValue!.init!.compiled!;
+            var call = (FunctionPointer)((ReturnInstruction)body.instructions[0]).pointer;
+            if (declared)
+            {
+                var original = ((ClassConstructorFunction)call.function).info;
+                call.function = new DeclaredConstructorFunction
+                {
+                    type = FunctionKind.DeclaredConstructor,
+                    info = new DeclaredConstructorInfo
+                    {
+                        schemaClassInfo = original.schemaClassInfo,
+                        constructorId = null,
+                        args = Array.Empty<DeclaredConstructorArgument>(),
+                        fields = original.fields,
+                    },
+                };
+            }
+            string saved;
+            using (NeoClient client = NeoTestSaveStack.ClientFromSchema(data))
+            {
+                // Use the exact same IR site in both modes: a cached initializer
+                // resolution must never authorize an ordinary runtime `new`.
+                var context = new NSGetterEvaluator.Context(client, null, null);
+                void RejectOrdinaryCall()
+                {
+                    var error = Assert.Throws<NSGetterRuntimeError>(() => NSGetterEvaluator.Evaluate(body, context));
+                    StringAssert.Contains("Cannot construct immutable-only class 'Badge'", error!.Message);
+                }
+                RejectOrdinaryCall();
+                Assert.IsNotNull(NeoGeneratedTypesSupport.EvaluateInitializer(
+                    client, context, default, "thing-class", badge, badge.defaultValue!.init!, genericEnv: null));
+                RejectOrdinaryCall();
+                NeoMemberClassWritable thing = NeoGeneratedTypesSupport.CreateWritableClassValue(client, "thing-class");
+                string first = BadgeId(thing, "initialized");
+                RejectOrdinaryCall();
+                Assert.AreEqual(first, BadgeId(NeoGeneratedTypesSupport.CreateWritableClassValue(client, "thing-class"), "reused"));
+                client.save.Get<NeoMemberListWritable>("Things").AddSerialized(
+                    NeoGeneratedTypesSupport.ValueReference(new ImmutableProbeReference { valueId = thing.value!.id }));
+                Assert.IsFalse(client.sessionValues.ContainsKey(first), "the immutable declaration is not left in Session");
+                saved = client.SerializeSaveData();
+            }
+            using NeoClient reopened = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: saved);
+            BadgeId(SavedThing(reopened), "reloaded");
+        }
+
+        [Test]
+        public void DetachedLeafInitializerCanConstructImmutableOnlyClass()
+        {
+            ProjectData data = BuildImmutableBadgeProjectData();
+            data.classes["badge-class"].allowedStorage = NeoMemberStorage.Immutable;
+            InitializerBody init = ((ClassMember)data.members["thing-badge"]).defaultValue!.init!;
+            data.classes["thing-class"].schema.Remove("Badge");
+            var returned = (ReturnInstruction)init.compiled!.instructions[0];
+            returned.pointer = PointerKeyOf(returned.pointer, "Label");
+            init.compiled.typeInfo = new PrimitiveTypeInfo { type = MemberKind.String, required = true };
+            data.classes["caption-class"] = new NeoSchemaClass
+            {
+                id = "caption-class",
+                name = "Caption",
+                projectId = "p75-project",
+                schema = new Dictionary<string, string> { ["Text"] = "caption-text" },
+            };
+            data.members["caption-text"] = new StringMember
+            {
+                id = "caption-text",
+                name = "Text",
+                kind = MemberKind.String,
+                defaultValue = new StringMemberValueBase { init = init },
+            };
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            Assert.IsNotNull(NeoGeneratedTypesSupport.ResolveDetachedClassPlan(client, "caption-class"));
+            var body = new FunctionWithReturnType
+            {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                parameters = Array.Empty<Variable>(),
+                typeInfo = init.compiled.typeInfo,
+                instructions = new Instruction[]
+                {
+                    new ReturnInstruction
+                    {
+                        type = InstructionKind.Return,
+                        pointer = PointerKeyOf(new FunctionPointer
+                        {
+                            type = PointerKind.Function,
+                            function = new ClassConstructorFunction
+                            {
+                                type = FunctionKind.ClassConstructor,
+                                info = new FunctionClassConstructorInfo
+                                {
+                                    schemaClassInfo = ClassType("caption-class"),
+                                    fields = Array.Empty<FunctionClassConstructorField>(),
+                                },
+                            },
+                        }, "Text"),
+                    },
+                },
+            };
+            Assert.AreEqual("gold", NSGetterEvaluator.Evaluate(body, new NSGetterEvaluator.Context(client, null, null)));
+        }
+
         [Test]
         public void StoredInstanceSharesAnImmutableConstant()
         {

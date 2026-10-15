@@ -877,6 +877,10 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 get; set;
             }
+            // Initializers replay authored declarations. Their generic environment
+            // is always present, even for nongeneric classes, and follows the
+            // initializer frame through nested construction and back on exit.
+            internal bool IsEvaluatingInitializer => initializerGenericEnv is not null;
             /// <summary>
             /// P110 §5. The running generic function's type arguments, by
             /// position. Its own type parameters read them by index.
@@ -5638,7 +5642,8 @@ namespace NeoCompose.Runtime.NeoScript
                 && enclosingEnv is null;
             if (!cacheable
                 || !NeoGeneratedTypesSupport.TryGetResolvedSite(
-                    ctx.client, info, ref info.resolvedSite, out NeoGeneratedTypesSupport.NeoResolvedDeclaredConstructor resolved))
+                    ctx.client, info, ref info.resolvedSite, out NeoGeneratedTypesSupport.NeoResolvedDeclaredConstructor resolved)
+                || resolved.metadata.replayStoredInstance != ctx.IsEvaluatingInitializer)
             {
                 var argumentNames = new List<string>(info.args.Length);
                 foreach (DeclaredConstructorArgument argument in info.args)
@@ -5655,6 +5660,7 @@ namespace NeoCompose.Runtime.NeoScript
                         fields,
                         replayClassArguments,
                         replayGenericBindings,
+                        replayStoredInstance: ctx.IsEvaluatingInitializer,
                         enclosingEnv: enclosingEnv);
                 }
                 catch (Exception error)
@@ -6210,7 +6216,8 @@ namespace NeoCompose.Runtime.NeoScript
                     ctx.client,
                     constructor.info,
                     ref constructor.info.resolvedSite,
-                    out NeoGeneratedTypesSupport.RuntimeConstructorMetadata metadata))
+                    out NeoGeneratedTypesSupport.RuntimeConstructorMetadata metadata)
+                || metadata.replayStoredInstance != ctx.IsEvaluatingInitializer)
             {
                 try
                 {
@@ -6220,7 +6227,8 @@ namespace NeoCompose.Runtime.NeoScript
                         constructor.info.schemaClassInfo,
                         fields,
                         replayClassArguments,
-                        enclosingEnv);
+                        enclosingEnv,
+                        replayStoredInstance: ctx.IsEvaluatingInitializer);
                 }
                 catch (Exception error)
                     when (error is InvalidOperationException
