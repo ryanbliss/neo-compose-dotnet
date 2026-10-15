@@ -1492,7 +1492,7 @@ namespace NeoCompose.Runtime
                     instanceRoot);
                 if (allocations.ExistingListenerProjections is { Count: > 0 } projections)
                     ResolveConstructedListenerProjections(projections, () => graph);
-                RemapVirtualDelegateReceivers(graph, expansion, allocations.ExistingListenerDefaults);
+                RemapVirtualReplayIdentities(graph, expansion, allocations.ExistingListenerDefaults);
                 if (replayBoundary is not null)
                     expansion.Boundary = replayBoundary;
                 else
@@ -1884,12 +1884,17 @@ namespace NeoCompose.Runtime
                 && MemberValueFactory.IsLiteralNullClassDefault(member);
         }
 
-        private void RemapVirtualDelegateReceivers(VirtualExpansionNode root, PreparedVirtualExpansion expansion,
+        /// <summary>
+        /// Points replayed delegate receivers and P112 reference selections at
+        /// the effective rows their replay's temporary rows stand for.
+        /// </summary>
+        private void RemapVirtualReplayIdentities(VirtualExpansionNode root, PreparedVirtualExpansion expansion,
             NeoChangeListenerMap? listenerDefaults)
         {
             var identities = new Dictionary<string, string>();
             var scopes = listenerDefaults is { Count: > 0 } ? new Dictionary<string, NeoValueOwnership>() : null;
             var selectors = new List<DelegateMemberValue>();
+            var selections = new List<ArrayMemberValue>();
             var pending = new Stack<VirtualExpansionNode>();
             pending.Push(root);
             while (pending.Count > 0)
@@ -1900,9 +1905,13 @@ namespace NeoCompose.Runtime
                 identities[node.row.id] = node.effectiveId;
                 if (scopes is not null)
                     scopes[node.row.id] = node.effectiveOwnership;
-                if (expansion.Values.TryGetValue(node.effectiveId, out MemberValue? row)
-                    && row is DelegateMemberValue selector)
-                    selectors.Add(selector);
+                if (expansion.Values.TryGetValue(node.effectiveId, out MemberValue? row))
+                {
+                    if (row is DelegateMemberValue selector)
+                        selectors.Add(selector);
+                    else if (node.member is LookupMember && row is ArrayMemberValue { value: not null } selection)
+                        selections.Add(selection);
+                }
                 foreach (var child in node.classChildren.Values)
                     pending.Push(child);
                 foreach (var child in node.listChildren)
@@ -1917,6 +1926,16 @@ namespace NeoCompose.Runtime
                 if (selector.value?.valueId is { } receiver
                     && identities.TryGetValue(receiver, out string? effective))
                     selector.value.valueId = effective;
+            }
+            foreach (ArrayMemberValue selection in selections)
+            {
+                string[] ids = (string[])selection.value!.Clone();
+                for (int index = 0; index < ids.Length; index++)
+                {
+                    if (identities.TryGetValue(ids[index], out string? effective))
+                        ids[index] = effective;
+                }
+                selection.value = ids;
             }
             if (scopes is null)
                 return;

@@ -9,8 +9,10 @@ using System.IO;
 using System.Linq;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
+using NeoCompose.Runtime.NeoScript;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
+using Parity = NeoCompose.Tests.ReferenceParity;
 
 namespace NeoCompose.Tests
 {
@@ -104,6 +106,83 @@ namespace NeoCompose.Tests
             using NeoClient reloaded = NeoTestSaveStack.ClientFromSchema(data, assumeCurrentSchema: false, loadedSaveContent: saved);
 
             Assert.AreEqual(10, InvokeProbe(reloaded, "CallHook"), "the closure reads its captured reference and list of references");
+        }
+
+        [Test]
+        public void GeneratedReferenceReadsWritesAndRebinds()
+        {
+            using var app = new Parity.TestProjectNeo(Client(Data()));
+            Parity.Gauge g = Parity.Probe.G;
+
+            Assert.AreEqual(3, g.A.Value);
+            Assert.IsTrue(g.A.TryWrite(7));
+            Assert.AreEqual(7, g.Count, "a write through the reference reaches its target");
+            g.A = g.ReferenceTo(Parity.Gauge.Fields.Other);
+            Assert.AreEqual(10, g.A.Value);
+            Assert.AreEqual(g.ReferenceTo(Parity.Gauge.Fields.Other), g.A, "references to one slot are equal");
+            Assert.AreEqual(g.A, g.RR.Value, "a nested reference reads as the reference it names");
+        }
+
+        [Test]
+        public void GeneratedReferenceRefusesAReadonlyTarget()
+        {
+            using var app = new Parity.TestProjectNeo(Client(Data()));
+            Parity.Gauge g = Parity.Probe.G;
+
+            Assert.IsFalse(g.ReferenceTo(Parity.Gauge.Fields.Fixed).TryWrite(9));
+            Assert.AreEqual(4, g.Fixed);
+        }
+
+        [Test]
+        public void GeneratedRebindPastTheTargetsLifetimeThrows()
+        {
+            using var app = new Parity.TestProjectNeo(Client(Data()));
+            NeoReference<int> sessionSlot = new Parity.Tally().ReferenceTo(Parity.Tally.Fields.N);
+
+            Assert.Throws<NSGetterRuntimeError>(() => Parity.Probe.SavedPin = sessionSlot);
+        }
+
+        [Test]
+        public void GeneratedReferenceCollectionsSelectTheirTargets()
+        {
+            using var app = new Parity.TestProjectNeo(Client(Data()));
+            Parity.Gauge g = Parity.Probe.G;
+            NeoReference<int> count = g.ReferenceTo(Parity.Gauge.Fields.Count);
+
+            g.RefList.Add(count);
+            g.RefMap["c"] = count;
+            Assert.IsTrue(g.RefMap["c"].TryWrite(8));
+            Assert.AreEqual(8, g.RefList[0].Value, "list and dictionary entries name the same slot");
+            g.Picks.Add(count);
+            Assert.IsTrue(g.Chosen.Contains(count), "a reference to the set reads the set");
+            Assert.IsTrue(g.Chosen.TryWritable(out ICollection<NeoReference<int>> chosen));
+            chosen.Remove(count);
+            Assert.AreEqual(0, g.Picks.Count);
+        }
+
+        [Test]
+        public void GeneratedCollectionReferenceWritesThroughTryWritable()
+        {
+            using var app = new Parity.TestProjectNeo(Client(Data()));
+            Parity.Gauge g = Parity.Probe.G;
+
+            g.ScoresRef = g.Scores;
+            Assert.IsTrue(g.ScoresRef!.TryWritable(out NeoDictionary<int> scores));
+            scores["b"] = 2;
+            Assert.AreEqual(2, g.Scores["b"]);
+        }
+
+        [Test]
+        public void GeneratedVariantReferenceWritesItsSlot()
+        {
+            using var app = new Parity.TestProjectNeo(Client(Data()));
+            Parity.Gauge g = Parity.Probe.G;
+            InvokeProbe(app.Client, "KindThrough");
+
+            Assert.AreEqual(g.ReferenceTo(Parity.Gauge.Fields.Kind), g.KindRef);
+            Assert.AreEqual(g.Kind!.ClassId, g.KindRef!.Value!.ClassId);
+            Assert.IsTrue(g.KindRef.TryWrite(null));
+            Assert.IsNull(g.Kind);
         }
 
         /// <summary>Gives <c>Probe.G</c>'s Lookup a row that selects <paramref name="entryId"/>.</summary>

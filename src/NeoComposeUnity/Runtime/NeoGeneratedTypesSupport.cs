@@ -1617,35 +1617,66 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"Required variant member '{node.member.name}' has no selection.");
             }
-            if (selection.variantId is null)
+            return ResolveVariantSelection<T>(
+                node.Client,
+                selection.classId,
+                selection.variantId,
+                selection.rowValueId,
+                $"Variant member '{node.member.name}'");
+        }
+
+        /// <summary>The handle for one stored variant pair; <paramref name="holder"/> names it in errors.</summary>
+        private static NeoVariant<T> ResolveVariantSelection<T>(
+            NeoClient client,
+            string classId,
+            string? variantId,
+            string? rowValueId,
+            string holder)
+            where T : NeoGeneratedClassValue
+        {
+            if (variantId is null)
             {
-                if (selection.rowValueId is not null)
+                if (rowValueId is not null)
                 {
                     throw new InvalidOperationException(
-                        $"Variant member '{node.member.name}' binds row '{selection.rowValueId}' to Base.");
+                        $"{holder} binds row '{rowValueId}' to Base.");
                 }
-                return node.Client.GetOrCreateBaseVariant<T>(selection.classId);
+                return client.GetOrCreateBaseVariant<T>(classId);
             }
-            if (selection.rowValueId is not null)
+            if (rowValueId is not null)
             {
-                if (!node.Client.TryGetVariant(
-                        selection.variantId,
+                if (!client.TryGetVariant(
+                        variantId,
                         out VariantRecord? record))
                 {
                     throw new InvalidOperationException(
-                        $"Variant '{selection.variantId}' is not in this project export.");
+                        $"Variant '{variantId}' is not in this project export.");
                 }
                 NeoGeneratedClassValue? row =
-                    node.Client.ResolveRegisteredGeneratedClassValue(selection.rowValueId);
+                    client.ResolveRegisteredGeneratedClassValue(rowValueId);
                 if (row is null)
                 {
                     throw new InvalidOperationException(
-                        $"Variant member '{node.member.name}' binds missing or unregistered row '{selection.rowValueId}'. Regenerate the project's C# types.");
+                        $"{holder} binds missing or unregistered row '{rowValueId}'. Regenerate the project's C# types.");
                 }
-                NeoVariantSupport.ValidateLookupRow(node.Client, record!, row);
-                return new NeoVariant<T>(node.Client, selection.classId, record, row);
+                NeoVariantSupport.ValidateLookupRow(client, record!, row);
+                return new NeoVariant<T>(client, classId, record, row);
             }
-            return node.Client.GetOrCreateVariant<T>(selection.variantId);
+            return client.GetOrCreateVariant<T>(variantId);
+        }
+
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, Func<NeoClient, string, string?, string?, string, object>> variantSelectionReaders = new();
+
+        /// <summary>P112 §8. A script variant value as the <see cref="NeoVariant{T}"/> <paramref name="type"/> names.</summary>
+        private static object VariantHandle(NeoClient client, Type type, NeoVariantReference variant)
+        {
+            Func<NeoClient, string, string?, string?, string, object> read = variantSelectionReaders.GetOrAdd(
+                type,
+                handle => (Func<NeoClient, string, string?, string?, string, object>)typeof(NeoGeneratedTypesSupport)
+                    .GetMethod(nameof(ResolveVariantSelection), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!
+                    .MakeGenericMethod(handle.GetGenericArguments()[0])
+                    .CreateDelegate(typeof(Func<NeoClient, string, string?, string?, string, object>)));
+            return read(client, variant.classId, variant.variantId, variant.rowValueId, "A reference");
         }
 
         /// <summary>P68 §6 — resolves an unbound lookup-variant member.</summary>
@@ -2120,6 +2151,10 @@ namespace NeoCompose.Runtime
                 return ReadSelectedId(value) is { } dialogueId ? new NeoDialogueReference(client, dialogueId) : null;
             if (value is NeoScript.NSSlotReference reference && typeof(NeoReference).IsAssignableFrom(type))
                 return NeoReferenceOf(client, type, reference);
+            if (value is NeoVariantReference variant
+                && type.IsGenericType
+                && type.GetGenericTypeDefinition() == typeof(NeoVariant<>))
+                return VariantHandle(client, type, variant);
             if (type == typeof(int))
                 return Convert.ToInt32(value, System.Globalization.CultureInfo.InvariantCulture);
             if (type == typeof(float))

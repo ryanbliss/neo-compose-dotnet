@@ -63,6 +63,9 @@
     "  @storage(allowed: .Save) public static int Saved = 1;",
     "  @storage(allowed: .Save) public static Pinboard Board = new();",
     "",
+    "  public static int RRStart() { return Probe.G.RR; }",
+    "  public static int PinnedStart() { return Probe.G.Pinned; }",
+    "  public static int XsRefStart() { return Probe.G.XsRef.Count; }",
     "  public static void Listen() { Probe.G.A.OnChanged += Probe.G.Hear; }",
     "  public static void WriteCount() { Probe.G.Count = 41; }",
     "  public static void RebindToOther() { Probe.G.A = Reference(Probe.G.Other); }",
@@ -133,7 +136,10 @@
     "ScoresThrough": 2,
     "TallyRefs": 14,
     "BoxedRef": 9,
-    "KindThrough": true
+    "KindThrough": true,
+    "RRStart": 3,
+    "PinnedStart": 3,
+    "XsRefStart": 2
   },
   "refuses": {
     "ReadonlyTarget": "`Gauge.Fixed` is readonly, so",

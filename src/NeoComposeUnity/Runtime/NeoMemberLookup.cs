@@ -172,11 +172,14 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException(
                     $"Lookup '{lookup.name}' selects '{id}', which has no stored row.");
             }
+            bool placed = client.TryInferMemberForValueId(id, out Member? holder);
+            // P112 §8. A collection resolves as the member that holds it.
+            if (holder is ListMember or DictionaryMember)
+                return holder;
             if (value is not ObjectMemberValue row)
             {
-                // P112 §8. A collection resolves as the member that holds it.
-                if (client.TryInferMemberForValueId(id, out Member? holder))
-                    return holder;
+                if (placed)
+                    return holder!;
                 throw new System.InvalidOperationException(
                     $"Lookup '{lookup.name}' selects '{id}', which no member holds.");
             }
@@ -186,8 +189,8 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException(
                     $"Lookup '{lookup.name}' selects '{id}', whose class can't be resolved.");
             }
-            return client.TryInferMemberForValueId(id, out Member? placement) && placement is ClassMember
-                ? placement
+            return holder is ClassMember
+                ? holder
                 : NeoGeneratedTypesSupport.UnplacedClassMember(classId, null, row);
         }
 
@@ -351,11 +354,20 @@ namespace NeoCompose.Runtime
         public void Set(string[]? selectedIds)
         {
             ObserveScriptWrites();
-            if (member.Requirement == NeoMemberRequirementKind.Required && (selectedIds is null || selectedIds.Length == 0))
+            if (member.Requirement == NeoMemberRequirementKind.Required && selectedIds is null)
             {
                 throw new System.ArgumentNullException(
                     nameof(selectedIds),
-                    $"Cannot be null/empty when {nameof(member)} requirement is Required");
+                    $"Cannot be null when {nameof(member)} requirement is Required");
+            }
+            // A required set may be empty; a required single selection may not.
+            if (member.Requirement == NeoMemberRequirementKind.Required
+                && member.Selection != NeoMemberSelectionKind.Multi
+                && selectedIds!.Length == 0)
+            {
+                throw new System.ArgumentException(
+                    $"Cannot be empty when {nameof(member)} requirement is Required",
+                    nameof(selectedIds));
             }
 
             string[]? normalized = selectedIds;
