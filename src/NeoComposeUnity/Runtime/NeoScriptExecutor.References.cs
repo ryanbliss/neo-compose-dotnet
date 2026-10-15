@@ -3,6 +3,7 @@
 
 #nullable enable
 
+using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using NeoCompose.Runtime.Json;
@@ -33,22 +34,39 @@ namespace NeoCompose.Runtime
                 throw new NSGetterRuntimeError("Cannot write through a null reference. Check it for null first.");
             if (reference is not NSSlotReference slot)
                 throw new NSGetterRuntimeError($"A write through a reference reached a {reference.GetType().Name}, not a reference.");
-            NSSlotPlace? place = slot.Place;
+            NSSlotPlace? place = WritePlace(slot, ctx, out string? containerId);
+            WriteThrough(client, target, slot, place, containerId, assigned, scope, ctx);
+        }
+
+        /// <summary>
+        /// The slot a write through <paramref name="slot"/> lands in; null for
+        /// an entry of the List or Set <paramref name="containerId"/> names.
+        /// </summary>
+        private static NSSlotPlace? WritePlace(NSSlotReference slot, NSGetterEvaluator.Context ctx, out string? containerId)
+        {
+            containerId = null;
+            if (slot.Place is { } place)
+                return place;
+            NSGetterEvaluator.AssertReferencedRow(slot, ctx);
+            return NSGetterEvaluator.SlotPlaceOfRow(slot, ctx, out containerId);
+        }
+
+        private static void WriteThrough(
+            NeoClient client,
+            WriteTarget target,
+            NSSlotReference slot,
+            NSSlotPlace? place,
+            string? containerId,
+            object? assigned,
+            NeoScriptScope scope,
+            NSGetterEvaluator.Context ctx)
+        {
             if (place is null)
             {
-                NSGetterEvaluator.AssertReferencedRow(slot, ctx);
-                place = NSGetterEvaluator.SlotPlaceOfRow(slot, ctx, out string? containerId);
-                if (place is null)
-                {
-                    WriteEntry(client, target, slot, containerId, assigned, ctx);
-                    return;
-                }
+                WriteEntry(client, target, slot, containerId, assigned, ctx);
+                return;
             }
-            if (!client.TryGetMember(place.MemberId, out JsonMember? slotMember))
-            {
-                throw new NSGetterRuntimeError(
-                    $"{NSGetterEvaluator.ReferenceSubject(slot.MemberId, ctx)} names a slot of missing member '{place.MemberId}'.");
-            }
+            JsonMember slotMember = SlotMember(client, slot, place, ctx);
             if (place.IsStatic)
             {
                 if (slotMember.Mutability == NeoMemberMutabilityKind.ReadOnly)
@@ -69,6 +87,14 @@ namespace NeoCompose.Runtime
                 scope,
                 ctx,
                 NSGetterEvaluator.SlotHoldsRow(owner, place.Key!, slot, ctx) ? null : slot.TargetId);
+        }
+
+        private static JsonMember SlotMember(NeoClient client, NSSlotReference slot, NSSlotPlace place, NSGetterEvaluator.Context ctx)
+        {
+            if (client.TryGetMember(place.MemberId, out JsonMember? slotMember))
+                return slotMember;
+            throw new NSGetterRuntimeError(
+                $"{NSGetterEvaluator.ReferenceSubject(slot.MemberId, ctx)} names a slot of missing member '{place.MemberId}'.");
         }
 
         /// <summary>The write target for a member or static slot, shaped as the IR's own.</summary>
@@ -412,6 +438,190 @@ namespace NeoCompose.Runtime
                 return;
             string subject = $"Closure `{NSGetterEvaluator.QualifiedMemberLabel(member.id, ctx)}`";
             VisitCaptures(closure.captures!, subject, holder, ctx);
+        }
+
+        // §8. C# reads, writes and rebinds references through these, so it
+        // keeps NeoScript's rules.
+
+        private static NSGetterEvaluator.Context HostContext(NeoClient client)
+        {
+            NSGetterEvaluator.Context ctx = client.CreateGetterContext(NeoValueOwnership.Session);
+            ctx.BindRoot(NeoScriptValueMarshaller.ResolveRoot(client, ctx));
+            return ctx;
+        }
+
+        /// <summary>The value <paramref name="reference"/> names, as NeoScript reads it.</summary>
+        internal static object? ReadReference(NeoClient client, NeoReference reference)
+        {
+            NSGetterEvaluator.Context ctx = HostContext(client);
+            return NSGetterEvaluator.ReadThroughReference(reference.Slot(ctx), ctx);
+        }
+
+        /// <summary>§2.2. The id of <paramref name="owner"/>'s slot <paramref name="key"/>.</summary>
+        internal static string ReferenceTargetId(NeoClient client, NeoGeneratedClassValue owner, string key)
+        {
+            NSGetterEvaluator.Context ctx = HostContext(client);
+            if (NSGetterEvaluator.ReferenceToKey(owner, key, ctx) is NSSlotReference slot)
+                return slot.TargetId;
+            throw new InvalidOperationException($"`{key}` holds a class or collection, which is already a reference. Use its value.");
+        }
+
+        /// <summary>Whether <paramref name="lookup"/> names value slots rather than classes or collections.</summary>
+        internal static bool IsSlotLookup(NeoClient client, LookupMember lookup, string? lookupRowId) =>
+            NSGetterEvaluator.LookupSlotTarget(lookup, HostContext(client), lookupRowId) is not null;
+
+        /// <summary>§4.3. Whether row <paramref name="targetId"/> exists and fits <paramref name="lookup"/>'s target.</summary>
+        internal static bool ReferenceFits(NeoClient client, LookupMember lookup, string? lookupRowId, string targetId)
+        {
+            NSGetterEvaluator.Context ctx = HostContext(client);
+            TypeInfo target = NSGetterEvaluator.LookupSlotTarget(lookup, ctx, lookupRowId) ?? NSGetterEvaluator.LookupTargetTypeInfo(lookup, ctx);
+            return NSGetterEvaluator.ReferenceFits(new NSSlotReference(targetId, null, target, lookup.id), ctx);
+        }
+
+        // One assignment site per written type, which keeps its slots' targets.
+        private static readonly ConditionalWeakTable<TypeInfo, WriteTarget> hostWriteSites = new();
+
+        /// <summary>
+        /// Writes <paramref name="value"/> through <paramref name="reference"/>.
+        /// False when the target is readonly or its store takes no writes.
+        /// </summary>
+        internal static bool TryWriteReference(NeoClient client, NeoReference reference, object? value)
+        {
+            NSGetterEvaluator.Context ctx = HostContext(client);
+            NSSlotReference slot = reference.Slot(ctx);
+            NSSlotPlace? place = WritePlace(slot, ctx, out string? containerId);
+            if (!HostWritable(client, slot, place, containerId, ctx))
+                return false;
+            TypeInfo type = slot.Target ?? NSGetterEvaluator.TargetSlotType(slot, place, ctx);
+            object? assigned = NeoScriptValueMarshaller.Normalize(client, NeoValueOwnership.Session, value, type, ctx, "Reference value");
+            WriteTarget site = hostWriteSites.GetValue(type, written => new WriteTarget { typeInfo = written });
+            client.EnterScriptWrites();
+            try
+            {
+                WriteThrough(client, site, slot, place, containerId, assigned, new NeoScriptScope(), ctx);
+            }
+            finally
+            {
+                client.ExitScriptWrites();
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Whether C# may write the slot: it isn't readonly, and its store
+        /// isn't the immutable asset store. Anything else the write refuses throws.
+        /// </summary>
+        private static bool HostWritable(
+            NeoClient client,
+            NSSlotReference slot,
+            NSSlotPlace? place,
+            string? containerId,
+            NSGetterEvaluator.Context ctx)
+        {
+            if (place is null)
+            {
+                return containerId is null
+                    || !client.TryGetValueOwnership(containerId, out NeoValueOwnership entryStore)
+                    || entryStore != NeoValueOwnership.Asset;
+            }
+            JsonMember slotMember = SlotMember(client, slot, place, ctx);
+            if (slotMember.Mutability == NeoMemberMutabilityKind.ReadOnly)
+                return false;
+            NeoValueOwnership? store = place.IsStatic
+                ? client.ResolveStaticOwnership(slotMember)
+                : NSGetterEvaluator.FindRowOwnershipByReference(place.Owner, ctx);
+            return store != NeoValueOwnership.Asset;
+        }
+
+        /// <summary>
+        /// §4.1 to §4.3 for a C# rebind of <paramref name="lookup"/>, held in
+        /// <paramref name="holder"/>: the ids it stores for
+        /// <paramref name="assigned"/>, which is a reference, a target id, a
+        /// sequence of them, or null.
+        /// </summary>
+        /// <param name="lookupRowId">The Lookup's row, which binds a generic target (§3.5).</param>
+        internal static string[]? ReferenceSelection(
+            NeoClient client,
+            LookupMember lookup,
+            string? lookupRowId,
+            NeoValueOwnership holder,
+            object? assigned)
+        {
+            NSGetterEvaluator.Context ctx = HostContext(client);
+            TypeInfo? target = NSGetterEvaluator.LookupSlotTarget(lookup, ctx, lookupRowId);
+            if (target is null)
+                return HandleSelection(lookup, holder, assigned, ctx);
+            client.EnterScriptWrites();
+            try
+            {
+                return (string[]?)StoredSelection(lookup, target, slot: true, HostSelected(assigned, ctx), holder, new NeoScriptScope(), ctx);
+            }
+            finally
+            {
+                client.ExitScriptWrites();
+            }
+        }
+
+        /// <summary>
+        /// A rebind of a reference to a class or collection: the row the
+        /// assigned reference or collection view names, which must exist,
+        /// fit, and outlive <paramref name="holder"/>.
+        /// </summary>
+        private static string[]? HandleSelection(
+            LookupMember lookup,
+            NeoValueOwnership holder,
+            object? assigned,
+            NSGetterEvaluator.Context ctx)
+        {
+            if (assigned is null)
+                return null;
+            string subject = $"Reference `{NSGetterEvaluator.QualifiedMemberLabel(lookup.id, ctx)}`";
+            if (lookup.Selection != NeoMemberSelectionKind.Multi)
+                return new[] { HandleId(lookup, subject, holder, assigned, ctx) };
+            var ids = new List<string>();
+            foreach (object? entry in (System.Collections.IEnumerable)assigned)
+                ids.Add(HandleId(lookup, subject, holder, entry, ctx));
+            return ids.ToArray();
+        }
+
+        private static string HandleId(
+            LookupMember lookup,
+            string subject,
+            NeoValueOwnership holder,
+            object? assigned,
+            NSGetterEvaluator.Context ctx)
+        {
+            string id = assigned switch
+            {
+                NeoReference reference => reference.TargetId,
+                INeoValueReference { valueId: { } valueId } => valueId,
+                INeoCollectionView { CollectionNode: { value: { } row } } => row.id,
+                INeoCollectionView => throw new InvalidOperationException($"{subject} was assigned a collection that has no row yet."),
+                null => throw new InvalidOperationException($"{subject} was assigned a null entry."),
+                _ => throw new InvalidOperationException($"{subject} was assigned a {assigned.GetType().Name}, not a reference, class, or collection."),
+            };
+            NSGetterEvaluator.AssertReferencedRow(new NSSlotReference(id, null, NSGetterEvaluator.LookupTargetTypeInfo(lookup, ctx), lookup.id), ctx);
+            AssertReferenceLifetime(subject, holder, id, ctx);
+            return id;
+        }
+
+        private static object? HostSelected(object? assigned, NSGetterEvaluator.Context ctx)
+        {
+            switch (assigned)
+            {
+                case null:
+                case string:
+                    return assigned;
+                case NeoReference reference:
+                    return reference.Slot(ctx);
+                case System.Collections.IEnumerable entries:
+                    var selected = new List<object?>();
+                    foreach (object? entry in entries)
+                        selected.Add(HostSelected(entry, ctx));
+                    return selected.ToArray();
+                default:
+                    throw new InvalidOperationException($"A reference was assigned a {assigned.GetType().Name}, not a reference.");
+            }
         }
 
         private static void VisitCaptures(IEnumerable<object?> captures, string subject, NeoValueOwnership? holder, NSGetterEvaluator.Context ctx)

@@ -8657,6 +8657,12 @@ namespace NeoCompose.Runtime
                 (ActionTypeInfo a, FunctionArgumentTypeInfo b)
                     when b.type == MemberKind.NSAction =>
                     TypeInfoListsMatch(a.argumentTypes, b.argumentTypes),
+                (ReferenceTypeInfo a, ReferenceTypeInfo b) =>
+                    TypeInfoMatches(a.targetTypeInfo, b.targetTypeInfo),
+                (FunctionArgumentTypeInfo a, ReferenceTypeInfo b) =>
+                    TypeInfoMatches(a.targetTypeInfo, b.targetTypeInfo),
+                (ReferenceTypeInfo a, FunctionArgumentTypeInfo b) =>
+                    TypeInfoMatches(a.targetTypeInfo, b.targetTypeInfo),
                 _ => true,
             };
         }

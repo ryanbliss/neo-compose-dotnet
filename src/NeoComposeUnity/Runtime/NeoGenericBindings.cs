@@ -168,12 +168,12 @@ namespace NeoCompose.Runtime
             if (node is NeoMemberList listNode
                 && !TargetsOwnCollectionWrapper<T>(client, listNode.EntryMember, isList: true))
             {
-                return ResolveForMember<T>(client, listNode.EntryMember);
+                return ResolveForMember<T>(client, listNode.EntryMember, listNode);
             }
             if (node is NeoMemberDictionary dictionaryNode
                 && !TargetsOwnCollectionWrapper<T>(client, dictionaryNode.EntryMember, isList: false))
             {
-                return ResolveForMember<T>(client, dictionaryNode.EntryMember);
+                return ResolveForMember<T>(client, dictionaryNode.EntryMember, dictionaryNode);
             }
             return ResolveForMember<T>(client, node.member);
         }
@@ -216,9 +216,11 @@ namespace NeoCompose.Runtime
         /// record directly (used for collection entry codecs, where the
         /// entry member is known before any entry node exists).
         /// </summary>
+        /// <param name="collection">The collection an entry codec serializes new entries into.</param>
         internal static NeoGenericBinding<T> ResolveForMember<T>(
             NeoClient client,
-            Member member)
+            Member member,
+            NeoMember? collection = null)
         {
             switch (member.kind)
             {
@@ -256,6 +258,10 @@ namespace NeoCompose.Runtime
                     return SetCodec<T>(client, member);
                 case MemberKind.Dictionary:
                     return DictionaryCodec<T>(client, member);
+                case MemberKind.Lookup:
+                    return LookupCodec<T>(client, member, collection);
+                case MemberKind.DialogueLookup:
+                    return DialogueLookupCodec<T>(client, member);
                 case MemberKind.Generic:
                     throw new InvalidOperationException(
                         $"NeoGenericBindings.Resolve received the un-substituted Generic slot '{member.name}' ({member.id}) — substitution must run before codec resolution (is the node's parent a Class node with a closed class context?).");
@@ -1172,15 +1178,13 @@ namespace NeoCompose.Runtime
             {
                 coreName = nameof(CreateDictionaryCodec);
             }
-            else if (definition == typeof(NeoReadOnlyDictionary<,>))
+            else if (definition == typeof(NeoReadOnlyDictionary<,>) || definition == typeof(NeoDictionary<,>))
             {
-                throw new InvalidOperationException(
-                    $"Generic binding mismatch on member '{member.name}' ({member.id}): enum-keyed (two-arity) dictionary wrappers are not supported as generic bindings yet — use the single-arity NeoReadOnlyDictionary<TEntry> view.");
-            }
-            else if (definition == typeof(NeoDictionary<,>))
-            {
-                throw new InvalidOperationException(
-                    $"Generic binding mismatch on member '{member.name}' ({member.id}): enum-keyed (two-arity) dictionary wrappers are not supported as generic bindings yet — use the single-arity NeoDictionary<TEntry> view.");
+                return InvokeGenericCore<T>(
+                    member,
+                    definition == typeof(NeoDictionary<,>) ? nameof(CreateEnumKeyedDictionaryCodec) : nameof(CreateReadOnlyEnumKeyedDictionaryCodec),
+                    target.GetGenericArguments(),
+                    new object?[] { client, member });
             }
             else
             {
@@ -1197,6 +1201,13 @@ namespace NeoCompose.Runtime
             Member member,
             string coreName,
             Type typeArgument,
+            object?[] arguments) =>
+            InvokeGenericCore<T>(member, coreName, new[] { typeArgument }, arguments);
+
+        private static NeoGenericBinding<T> InvokeGenericCore<T>(
+            Member member,
+            string coreName,
+            Type[] typeArguments,
             object?[] arguments)
         {
             MethodInfo? core = typeof(NeoGenericBindings).GetMethod(
@@ -1207,7 +1218,7 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"NeoGenericBindings is missing its codec core '{coreName}' — this is an SDK bug (member '{member.id}').");
             }
-            object? codec = core.MakeGenericMethod(typeArgument).Invoke(null, arguments);
+            object? codec = core.MakeGenericMethod(typeArguments).Invoke(null, arguments);
             return (NeoGenericBinding<T>)codec!;
         }
 
@@ -1246,7 +1257,7 @@ namespace NeoCompose.Runtime
                     NeoGenericBinding<TEntry>? entryCodec = null;
                     NeoGenericBinding<TEntry> EntryCodec()
                     {
-                        entryCodec ??= ResolveForMember<TEntry>(client, listNode.EntryMember);
+                        entryCodec ??= ResolveForMember<TEntry>(client, listNode.EntryMember, listNode);
                         return entryCodec;
                     }
                     return new NeoList<TEntry>(
@@ -1352,7 +1363,7 @@ namespace NeoCompose.Runtime
                     NeoGenericBinding<TEntry> EntryCodec()
                     {
                         entryCodec ??= ResolveForMember<TEntry>(
-                            client, dictionaryNode.EntryMember);
+                            client, dictionaryNode.EntryMember, dictionaryNode);
                         return entryCodec;
                     }
                     return new NeoDictionary<TEntry>(
@@ -1367,6 +1378,306 @@ namespace NeoCompose.Runtime
                 (node, v) => throw CollectionAssignment(member),
                 v => throw CollectionSerialize(member));
         }
+
+        private static NeoGenericBinding<NeoReadOnlyDictionary<TKey, TEntry>> CreateReadOnlyEnumKeyedDictionaryCodec<TKey, TEntry>(
+            NeoClient client,
+            Member member)
+            where TKey : struct, System.Enum
+        {
+            var (fromOptionId, toOptionId) = RequireEnumOptions<TKey, NeoReadOnlyDictionary<TKey, TEntry>>(member);
+            return new NeoGenericBinding<NeoReadOnlyDictionary<TKey, TEntry>>(
+                MemberKind.Dictionary,
+                node =>
+                {
+                    var dictionaryNode = RequireNode<NeoMemberDictionary>(node, member);
+                    NeoGenericBinding<TEntry>? entryCodec = null;
+                    return new NeoReadOnlyDictionary<TKey, TEntry>(
+                        client,
+                        dictionaryNode,
+                        (c, child) =>
+                        {
+                            entryCodec ??= ResolveForMember<TEntry>(c, dictionaryNode.EntryMember, dictionaryNode);
+                            return entryCodec.Read(child);
+                        },
+                        fromOptionId,
+                        toOptionId);
+                },
+                (node, v) => throw CollectionAssignment(member),
+                v => throw CollectionSerialize(member));
+        }
+
+        private static NeoGenericBinding<NeoDictionary<TKey, TEntry>> CreateEnumKeyedDictionaryCodec<TKey, TEntry>(
+            NeoClient client,
+            Member member)
+            where TKey : struct, System.Enum
+        {
+            var (fromOptionId, toOptionId) = RequireEnumOptions<TKey, NeoDictionary<TKey, TEntry>>(member);
+            return new NeoGenericBinding<NeoDictionary<TKey, TEntry>>(
+                MemberKind.Dictionary,
+                node =>
+                {
+                    var dictionaryNode = RequireNode<NeoMemberDictionary>(node, member);
+                    NeoGenericBinding<TEntry>? entryCodec = null;
+                    NeoGenericBinding<TEntry> EntryCodec()
+                    {
+                        entryCodec ??= ResolveForMember<TEntry>(client, dictionaryNode.EntryMember, dictionaryNode);
+                        return entryCodec;
+                    }
+                    return new NeoDictionary<TKey, TEntry>(
+                        client,
+                        dictionaryNode,
+                        () => dictionaryNode as NeoMemberDictionaryWritable
+                            ?? throw new InvalidOperationException(
+                                $"Cannot mutate dictionary generic member '{member.name}' ({member.id}): the node is the read-only NeoMemberDictionary; writes require Save/Session ownership."),
+                        (c, child) => EntryCodec().Read(child),
+                        item => EntryCodec().Serialize(item),
+                        fromOptionId,
+                        toOptionId);
+                },
+                (node, v) => throw CollectionAssignment(member),
+                v => throw CollectionSerialize(member));
+        }
+
+        // ------------------------------------------------------------------
+        // Lookup codecs (P112 §8). A Lookup to a value slot reads as a
+        // NeoReference<T>; a multi-select Lookup reads as a Lookup set.
+        // ------------------------------------------------------------------
+
+        private static NeoGenericBinding<T> LookupCodec<T>(NeoClient client, Member member, NeoMember? collection)
+        {
+            Type target = typeof(T);
+            Type? definition = target.IsGenericType ? target.GetGenericTypeDefinition() : null;
+            if (definition == typeof(NeoReference<>))
+            {
+                return InvokeGenericCore<T>(
+                    member,
+                    nameof(CreateReferenceCodec),
+                    target.GetGenericArguments()[0],
+                    new object?[] { client, member, collection });
+            }
+            if (definition == typeof(NeoReadOnlyLookupSet<>) || definition == typeof(NeoLookupSet<>))
+            {
+                Type entry = target.GetGenericArguments()[0];
+                bool writable = definition == typeof(NeoLookupSet<>);
+                if (entry.IsGenericType && entry.GetGenericTypeDefinition() == typeof(NeoReference<>))
+                {
+                    return InvokeGenericCore<T>(
+                        member,
+                        writable ? nameof(CreateReferenceSetCodec) : nameof(CreateReadOnlyReferenceSetCodec),
+                        entry.GetGenericArguments()[0],
+                        new object?[] { client, member });
+                }
+                return InvokeGenericCore<T>(
+                    member,
+                    writable ? nameof(CreateLookupSetCodec) : nameof(CreateReadOnlyLookupSetCodec),
+                    entry,
+                    new object?[] { client, member });
+            }
+            return CreateHandleReferenceCodec<T>(client, member, collection);
+        }
+
+        private static NeoGenericBinding<NeoReference<TTarget>?> CreateReferenceCodec<TTarget>(
+            NeoClient client,
+            Member member,
+            NeoMember? collection)
+        {
+            return new NeoGenericBinding<NeoReference<TTarget>?>(
+                MemberKind.Lookup,
+                node => NeoGeneratedTypesSupport.ReadReference<TTarget>(client, RequireNode<NeoMemberLookup>(node, member)),
+                (node, v) => WriteReference(client, member, node, v),
+                v => SerializeReference(client, member, collection, v));
+        }
+
+        /// <summary>A reference to a class or collection reads as the selected row's own value.</summary>
+        private static NeoGenericBinding<T> CreateHandleReferenceCodec<T>(
+            NeoClient client,
+            Member member,
+            NeoMember? collection)
+        {
+            return new NeoGenericBinding<T>(
+                MemberKind.Lookup,
+                node => RequireNode<NeoMemberLookup>(node, member).GetFirstSelected() is { } selected
+                    ? ResolveForMember<T>(client, selected.member).Read(selected)
+                    : default!,
+                (node, v) => WriteReference(client, member, node, v),
+                v => SerializeReference(client, member, collection, v));
+        }
+
+        private static void WriteReference(NeoClient client, Member member, NeoMember node, object? value)
+        {
+            var lookup = RequireWritable<NeoMemberLookupWritable>(node, member);
+            lookup.Set(NeoGeneratedTypesSupport.ReferenceSelection(client, lookup, value));
+        }
+
+        private static NeoValueWritePayload? SerializeReference(NeoClient client, Member member, NeoMember? collection, object? value)
+        {
+            if (collection is null)
+            {
+                throw new InvalidOperationException(
+                    $"Reference member '{member.name}' ({member.id}) serializes only as a collection entry.");
+            }
+            return NeoGeneratedTypesSupport.ReferenceEntryValue(client, collection, value);
+        }
+
+        private static NeoGenericBinding<NeoReadOnlyLookupSet<TEntry>> CreateReadOnlyLookupSetCodec<TEntry>(
+            NeoClient client,
+            Member member)
+        {
+            return new NeoGenericBinding<NeoReadOnlyLookupSet<TEntry>>(
+                MemberKind.Lookup,
+                node => new NeoReadOnlyLookupSet<TEntry>(client, RequireNode<NeoMemberLookup>(node, member), LookupEntry<TEntry>(client)),
+                (node, v) => throw CollectionAssignment(member),
+                v => throw CollectionSerialize(member));
+        }
+
+        private static NeoGenericBinding<NeoLookupSet<TEntry>> CreateLookupSetCodec<TEntry>(
+            NeoClient client,
+            Member member)
+        {
+            return new NeoGenericBinding<NeoLookupSet<TEntry>>(
+                MemberKind.Lookup,
+                node =>
+                {
+                    var lookup = RequireNode<NeoMemberLookup>(node, member);
+                    return new NeoLookupSet<TEntry>(client, lookup, () => WritableLookup(lookup, member), LookupEntry<TEntry>(client));
+                },
+                (node, v) => throw CollectionAssignment(member),
+                v => throw CollectionSerialize(member));
+        }
+
+        private static NeoGenericBinding<NeoReadOnlyLookupSet<NeoReference<TTarget>>> CreateReadOnlyReferenceSetCodec<TTarget>(
+            NeoClient client,
+            Member member)
+        {
+            return new NeoGenericBinding<NeoReadOnlyLookupSet<NeoReference<TTarget>>>(
+                MemberKind.Lookup,
+                node =>
+                {
+                    var lookup = RequireNode<NeoMemberLookup>(node, member);
+                    return new NeoReadOnlyLookupSet<NeoReference<TTarget>>(
+                        client,
+                        lookup,
+                        id => NeoGeneratedTypesSupport.ReferenceEntry<TTarget>(client, lookup, id));
+                },
+                (node, v) => throw CollectionAssignment(member),
+                v => throw CollectionSerialize(member));
+        }
+
+        private static NeoGenericBinding<NeoLookupSet<NeoReference<TTarget>>> CreateReferenceSetCodec<TTarget>(
+            NeoClient client,
+            Member member)
+        {
+            return new NeoGenericBinding<NeoLookupSet<NeoReference<TTarget>>>(
+                MemberKind.Lookup,
+                node =>
+                {
+                    var lookup = RequireNode<NeoMemberLookup>(node, member);
+                    return new NeoLookupSet<NeoReference<TTarget>>(
+                        client,
+                        lookup,
+                        () => WritableLookup(lookup, member),
+                        id => NeoGeneratedTypesSupport.ReferenceEntry<TTarget>(client, lookup, id));
+                },
+                (node, v) => throw CollectionAssignment(member),
+                v => throw CollectionSerialize(member));
+        }
+
+        private static NeoMemberLookupWritable WritableLookup(NeoMemberLookup lookup, Member member) =>
+            lookup as NeoMemberLookupWritable
+                ?? throw new InvalidOperationException(
+                    $"Cannot mutate lookup generic member '{member.name}' ({member.id}): the node is the read-only NeoMemberLookup; writes require Save/Session ownership.");
+
+        /// <summary>A class entry, read from its selected row.</summary>
+        private static Func<NeoMember, TEntry> LookupEntry<TEntry>(NeoClient client) =>
+            child => ResolveForMember<TEntry>(client, child.member).Read(child);
+
+        private static NeoGenericBinding<T> DialogueLookupCodec<T>(NeoClient client, Member member)
+        {
+            if (typeof(T) == typeof(NeoDialogueReference))
+            {
+                return Adapt<T, NeoDialogueReference?>(new NeoGenericBinding<NeoDialogueReference?>(
+                    MemberKind.DialogueLookup,
+                    node => NeoGeneratedTypesSupport.ReadSingleSelected(RequireNode<NeoMemberDialogueLookup>(node, member)) is { } id
+                        ? new NeoDialogueReference(client, id)
+                        : null,
+                    (node, v) => RequireWritable<NeoMemberDialogueLookupWritable>(node, member)
+                        .Set(v is null ? null : new[] { v.Id }),
+                    v => NeoValueWritePayload.FromValue(v is null ? null : new[] { v.Id })));
+            }
+            if (typeof(T) == typeof(NeoReadOnlyDialogueReferenceSet))
+            {
+                return Adapt<T, NeoReadOnlyDialogueReferenceSet>(new NeoGenericBinding<NeoReadOnlyDialogueReferenceSet>(
+                    MemberKind.DialogueLookup,
+                    node => new NeoReadOnlyDialogueReferenceSet(client, RequireNode<NeoMemberDialogueLookup>(node, member)),
+                    (node, v) => throw CollectionAssignment(member),
+                    v => throw CollectionSerialize(member)));
+            }
+            if (typeof(T) == typeof(NeoDialogueReferenceSet))
+            {
+                return Adapt<T, NeoDialogueReferenceSet>(new NeoGenericBinding<NeoDialogueReferenceSet>(
+                    MemberKind.DialogueLookup,
+                    node => new NeoDialogueReferenceSet(client, RequireWritable<NeoMemberDialogueLookupWritable>(node, member)),
+                    (node, v) => throw CollectionAssignment(member),
+                    v => throw CollectionSerialize(member)));
+            }
+            throw Mismatch<T>(member, "NeoDialogueReference', 'NeoReadOnlyDialogueReferenceSet' or 'NeoDialogueReferenceSet");
+        }
+
+        // ------------------------------------------------------------------
+        // Referenced collections (P112 §8). A reference to a collection reads
+        // as its writable view when the collection's store and member take
+        // writes; TryWritable hands that view out.
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// The List or Dictionary a reference selects: <typeparamref name="TWritable"/>
+        /// when its store takes writes and its member isn't readonly, else <typeparamref name="TView"/>.
+        /// </summary>
+        public static TView Referenced<TView, TWritable>(NeoClient client, NeoMember selected)
+            where TWritable : TView
+        {
+            return TakesWrites(selected)
+                ? ResolveForMember<TWritable>(client, selected.member).Read(selected)
+                : ResolveForMember<TView>(client, selected.member).Read(selected);
+        }
+
+        /// <summary>
+        /// The Set a reference selects: an owned Set, a multi-select Enum or
+        /// DialogueLookup, or a Set of references, writable as <see cref="Referenced"/> decides.
+        /// </summary>
+        public static INeoReadOnlySet<T> ReferencedSet<T>(NeoClient client, NeoMember selected)
+        {
+            bool writable = TakesWrites(selected);
+            Type view = selected switch
+            {
+                NeoMemberList => writable ? typeof(NeoSet<T>) : typeof(NeoReadOnlySet<T>),
+                NeoMemberEnum => (writable ? typeof(NeoEnumSet<>) : typeof(NeoReadOnlyEnumSet<>)).MakeGenericType(typeof(T)),
+                NeoMemberLookup => writable ? typeof(NeoLookupSet<T>) : typeof(NeoReadOnlyLookupSet<T>),
+                NeoMemberDialogueLookup => writable ? typeof(NeoDialogueReferenceSet) : typeof(NeoReadOnlyDialogueReferenceSet),
+                _ => throw new InvalidOperationException(
+                    $"A Set reference selects {selected.GetType().Name} '{selected.member.name}', which is not a Set."),
+            };
+            return (INeoReadOnlySet<T>)SetReaders.GetOrAdd(view, CreateSetReader)(client, selected);
+        }
+
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, Func<NeoClient, NeoMember, object>> SetReaders = new();
+
+        private static Func<NeoClient, NeoMember, object> CreateSetReader(Type view) =>
+            (Func<NeoClient, NeoMember, object>)typeof(NeoGenericBindings)
+                .GetMethod(nameof(ReadSet), BindingFlags.NonPublic | BindingFlags.Static)!
+                .MakeGenericMethod(view)
+                .CreateDelegate(typeof(Func<NeoClient, NeoMember, object>));
+
+        private static object ReadSet<TView>(NeoClient client, NeoMember selected) =>
+            ResolveForMember<TView>(client, selected.member).Read(selected)!;
+
+        private static bool TakesWrites(NeoMember node) =>
+            node is NeoMemberListWritable
+                or NeoMemberDictionaryWritable
+                or NeoMemberEnumWritable
+                or NeoMemberLookupWritable
+                or NeoMemberDialogueLookupWritable
+            && node.member.Mutability != NeoMemberMutabilityKind.ReadOnly;
 
         private static InvalidOperationException CollectionAssignment(Member member)
         {

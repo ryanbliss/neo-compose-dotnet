@@ -33,25 +33,7 @@ namespace NeoCompose.Runtime.NeoScript
                                 return null;
                             throw new NSGetterRuntimeError($"Cannot reference '{key}' of null.");
                         }
-                        if (owner is object?[])
-                            throw new NSGetterRuntimeError($"Cannot reference '{key}' of a list, which has no member slots.");
-                        if (AsObjectRecord(owner) is null)
-                            throw new NSGetterRuntimeError($"Cannot reference '{key}' of a {ReceiverTypeName(owner)}, which has no member slots.");
-                        JsonMember? member = RuntimeSchemaMember(owner, key, keyOfPointer.keyOf, ctx);
-                        string? memberId = member?.id ?? keyOfPointer.memberId;
-                        if (memberId is null)
-                            throw new NSGetterRuntimeError($"Cannot reference '{key}', which is not a declared member.");
-                        // §3.5. A `T` slot bound to a handle kind is the handle.
-                        if (member is GenericMember
-                            && NeoReferenceTypes.Category(BoundSlotTypeInfo(owner, member, ctx), ctx.client) == NeoReferenceCategory.Handle)
-                        {
-                            return ReadRecordKey(owner, key, ctx);
-                        }
-                        return new NSSlotReference(
-                            SlotTargetId(owner, key, memberId, ctx),
-                            NSSlotPlace.Member(owner, key, memberId),
-                            null,
-                            null);
+                        return ReferenceToKey(owner, key, keyOfPointer.memberId, keyOfPointer.keyOf, ctx);
                     }
                 case StaticMemberPointer staticPointer:
                     {
@@ -69,6 +51,34 @@ namespace NeoCompose.Runtime.NeoScript
                         $"A row reference names a '{pointer.place.type}' pointer, not a member, static, or value id.");
             }
         }
+
+        /// <summary>§2.2. A reference to <paramref name="owner"/>'s slot <paramref name="key"/>; a `T` slot bound to a handle kind is the handle.</summary>
+        internal static object? ReferenceToKey(object owner, string key, string? declaredMemberId, ISchemaResolutionSite? site, Context ctx)
+        {
+            if (owner is object?[])
+                throw new NSGetterRuntimeError($"Cannot reference '{key}' of a list, which has no member slots.");
+            if (AsObjectRecord(owner) is null)
+                throw new NSGetterRuntimeError($"Cannot reference '{key}' of a {ReceiverTypeName(owner)}, which has no member slots.");
+            JsonMember? member = RuntimeSchemaMember(owner, key, site, ctx);
+            string? memberId = member?.id ?? declaredMemberId;
+            if (memberId is null)
+                throw new NSGetterRuntimeError($"Cannot reference '{key}', which is not a declared member.");
+            // §3.5.
+            if (member is GenericMember
+                && NeoReferenceTypes.Category(BoundSlotTypeInfo(owner, member, ctx), ctx.client) == NeoReferenceCategory.Handle)
+            {
+                return ReadRecordKey(owner, key, ctx);
+            }
+            return new NSSlotReference(
+                SlotTargetId(owner, key, memberId, ctx),
+                NSSlotPlace.Member(owner, key, memberId),
+                null,
+                null);
+        }
+
+        /// <summary>§8. A reference to a generated value's slot, as C# forms it.</summary>
+        internal static object? ReferenceToKey(NeoGeneratedClassValue owner, string key, Context ctx) =>
+            ReferenceToKey(UnwrapGeneratedValue(owner, ctx)!, key, null, null, ctx);
 
         /// <summary>The row id a static's first reference write creates (§2.2).</summary>
         internal static string StaticSlotId(string memberId) => NeoClient.VirtualValueId(memberId, "static");
@@ -285,19 +295,7 @@ namespace NeoCompose.Runtime.NeoScript
             // §4.4. No slot holds a removed entry's row, though the row lingers.
             if (!ctx.client.TryInferMemberForValueId(reference.TargetId, out JsonMember? member))
                 throw DanglingReferenceError(reference.MemberId, reference.TargetId, ctx);
-            TypeInfo? stored = NeoReferenceTypes.SlotTypeInfo(ctx.client, member);
-            // §3.5. A `T` slot's stored type is its owner's binding.
-            if (stored is null || NeoNSFunctionRuntime.ContainsGeneric(stored))
-            {
-                NSSlotPlace? place = reference.Place ?? SlotPlaceOfRow(reference, ctx, out _);
-                if (place?.Owner is { } owner)
-                    stored = BoundSlotTypeInfo(owner, member, ctx);
-            }
-            if (stored is null)
-            {
-                throw new NSGetterRuntimeError(
-                    $"{ReferenceSubject(reference.MemberId, ctx)} target '{reference.TargetId}' is `{QualifiedMemberLabel(member.id, ctx)}`, which holds no value.");
-            }
+            TypeInfo stored = StoredSlotType(reference, member, reference.Place, ctx);
             if (NeoReferenceTypes.SlotFits(stored, target))
                 return;
             throw new NSGetterRuntimeError(NeoReferenceTypes.FitError(
@@ -306,6 +304,44 @@ namespace NeoCompose.Runtime.NeoScript
                 reference.TargetId,
                 stored,
                 target));
+        }
+
+        /// <summary>§4.3 without throwing: whether the reference's row exists and fits its target.</summary>
+        internal static bool ReferenceFits(NSSlotReference reference, Context ctx)
+        {
+            if (!TryReadReferenceRow(reference, ctx))
+                return false;
+            if (!ctx.client.TryInferMemberForValueId(reference.TargetId, out JsonMember? member))
+                return false;
+            return reference.Target is null || NeoReferenceTypes.SlotFits(StoredSlotType(reference, member, reference.Place, ctx), reference.Target);
+        }
+
+        /// <summary>The stored type of the slot <paramref name="reference"/> names, which <paramref name="place"/> holds when known.</summary>
+        internal static TypeInfo TargetSlotType(NSSlotReference reference, NSSlotPlace? place, Context ctx)
+        {
+            JsonMember? member = null;
+            if (place is not null)
+                ctx.client.TryGetMember(place.MemberId, out member);
+            else
+                ctx.client.TryInferMemberForValueId(reference.TargetId, out member);
+            if (member is null)
+                throw DanglingReferenceError(reference.MemberId, reference.TargetId, ctx);
+            return StoredSlotType(reference, member, place, ctx);
+        }
+
+        private static TypeInfo StoredSlotType(NSSlotReference reference, JsonMember member, NSSlotPlace? place, Context ctx)
+        {
+            TypeInfo? stored = NeoReferenceTypes.SlotTypeInfo(ctx.client, member);
+            // §3.5. A `T` slot's stored type is its owner's binding.
+            if (stored is null || NeoNSFunctionRuntime.ContainsGeneric(stored))
+            {
+                place ??= SlotPlaceOfRow(reference, ctx, out _);
+                if (place?.Owner is { } owner)
+                    stored = BoundSlotTypeInfo(owner, member, ctx);
+            }
+            return stored
+                ?? throw new NSGetterRuntimeError(
+                    $"{ReferenceSubject(reference.MemberId, ctx)} target '{reference.TargetId}' is `{QualifiedMemberLabel(member.id, ctx)}`, which holds no value.");
         }
 
         /// <summary>

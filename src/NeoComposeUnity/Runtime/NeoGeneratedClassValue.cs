@@ -487,6 +487,17 @@ namespace NeoCompose.Runtime
             return false;
         }
 
+        /// <summary>
+        /// P112 §8. A reference to this value's <paramref name="field"/>, as
+        /// NeoScript's <c>Reference(value.Field)</c> forms it.
+        /// </summary>
+        public NeoReference<T> ReferenceTo<T>(NeoField<T> field)
+        {
+            if (field is null)
+                throw new ArgumentNullException(nameof(field));
+            return new NeoReference<T>(client, this, field.Key, NeoScriptExecutor.ReferenceTargetId(client, this, field.Key));
+        }
+
         public virtual void Dispose()
         {
             if (isDisposed)

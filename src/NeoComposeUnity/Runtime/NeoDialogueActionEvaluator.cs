@@ -4172,6 +4172,16 @@ namespace NeoCompose.Runtime
         {
             if (member is LookupMember lookup && value is not null)
                 value = NeoGeneratedTypesSupport.ConstructorLookupIds(value, lookup);
+            // P67 §6. A script variant value stores as its pair.
+            if (value is NeoVariantReference variant)
+            {
+                value = new VariantRefValue
+                {
+                    classId = variant.classId,
+                    variantId = variant.variantId,
+                    rowValueId = variant.rowValueId,
+                };
+            }
             value = NeoGeneratedTypesSupport.MaterializeCollectionAssignment(client, member, value, ownership, ctx, plan);
             var payload = value is INeoValuePayloadProvider provider
                 ? provider.ToNeoValuePayload()
@@ -4644,9 +4654,11 @@ namespace NeoCompose.Runtime
                 ? member : MemberFromTypeInfo(typeInfo);
 
         // A generic entry has no type-info member either: its row's binding
-        // closes it.
+        // closes it. A reference entry is a Lookup row, and the IR types a
+        // handle reference as its target's Class (P112 §5.2).
         private static JsonMember EntryMember(NeoClient client, MemberValue collectionRow, TypeInfo entryTypeInfo) =>
             entryTypeInfo.type is MemberKind.List or MemberKind.Set or MemberKind.Dictionary or MemberKind.Generic
+                or MemberKind.Class or MemberKind.Reference
                 && client.TryInferMemberForValueId(collectionRow.id, out JsonMember? collection)
                 && client.TryResolveCollectionEntryMember(collection, collectionRow) is JsonMember entry
                 ? entry : MemberFromTypeInfo(entryTypeInfo);
@@ -5770,11 +5782,12 @@ namespace NeoCompose.Runtime
                         throw new NSGetterRuntimeError($"List index out of bounds: {index}");
                     MemberValue listRow = pending?.Row ?? committed!;
                     string childId = pending is not null ? pending[index] : committed!.value![index];
-                    if (referenceId is null)
+                    JsonMember entryMember = EntryMember(client, listRow, typeInfo);
+                    // A reference entry selects its target; only an owned one adopts it.
+                    if (referenceId is null || entryMember is LookupMember)
                     {
                         if (!client.TryGetValue(childId, out MemberValue? existing))
                             throw new NSGetterRuntimeError($"Missing list child row '{childId}'.");
-                        JsonMember entryMember = EntryMember(client, listRow, typeInfo);
                         var next = CreateValueRow(
                             plan, client,
                             ownership,
@@ -5798,13 +5811,12 @@ namespace NeoCompose.Runtime
                     if (importedId == childId)
                         return;
                     // The list changes last: one that throws leaves it as it was.
-                    JsonMember released = EntryMember(client, listRow, typeInfo);
                     NeoWriteBatch.PendingList list = batch.List(ownership, parentRowId, ctx, null);
                     batch.Gain(ownership, importedId, parentRowId);
                     batch.AfterCommit(() => ctx.allocationTracker.RegisterConstructedParent(
                         importedId,
                         parentRowId));
-                    batch.Release(ownership, list.Set(index, importedId, NeoTimestamp.Now()), released, parentRowId);
+                    batch.Release(ownership, list.Set(index, importedId, NeoTimestamp.Now()), entryMember, parentRowId);
                 });
             }
         }
@@ -5931,6 +5943,7 @@ namespace NeoCompose.Runtime
                     referenceId = ReferenceIdOf(args[0], ctx);
                 }
                 else if ((inserts || mutation == CollectionMutationKind.Remove)
+                    && entryMember is not LookupMember
                     && (entryTypeInfo.type == MemberKind.Class || entryMember is ClassMember)
                     && TryGetValueReferenceId(
                         args[mutation == CollectionMutationKind.Insert ? 1 : 0],
@@ -6155,7 +6168,7 @@ namespace NeoCompose.Runtime
                 object? value,
                 NSGetterEvaluator.Context ctx)
             {
-                string? referenceId = TryGetClassValueReferenceId(value, entryTypeInfo, ctx, out string? id) ? id : null;
+                string? candidateId = TryGetClassValueReferenceId(value, entryTypeInfo, ctx, out string? id) ? id : null;
                 WriteCollection(client, rowId, preparedPlan, batch =>
                 {
                     EnsureWritableRow(client, rowId, ownership);
@@ -6166,12 +6179,14 @@ namespace NeoCompose.Runtime
                     MemberValue? current = batch.Collection(ownership, rowId)?.Row;
                     if (current is null && !plan.TryGet(ownership, rowId, out current))
                         throw new NSGetterRuntimeError($"Missing dictionary row '{rowId}'.");
+                    JsonMember entryMember = EntryMember(client, current!, entryTypeInfo);
+                    // A reference entry selects its target; only an owned one adopts it.
+                    string? referenceId = entryMember is LookupMember ? null : candidateId;
                     if (((ObjectMemberValue)current!).value?.TryGetValue(key, out string existingId) == true
                         && client.TryGetValue(existingId, out MemberValue? existing))
                     {
                         if (referenceId is null)
                         {
-                            JsonMember entryMember = EntryMember(client, current, entryTypeInfo);
                             var next = CreateValueRow(
                                 plan, client,
                                 ownership,
@@ -6197,7 +6212,7 @@ namespace NeoCompose.Runtime
                         batch.AfterCommit(() => ctx.allocationTracker.RegisterConstructedParent(
                             replacementId,
                             rowId));
-                        batch.Release(ownership, existingId, EntryMember(client, current, entryTypeInfo), rowId);
+                        batch.Release(ownership, existingId, entryMember, rowId);
                         batch.Gain(ownership, replacementId, rowId);
                         // The pending row changes in place, which a failed
                         // mutation can't undo, so it changes last.
@@ -6223,7 +6238,7 @@ namespace NeoCompose.Runtime
                         plan.Set(ownership, CreateValueRow(
                             plan, client,
                             ownership,
-                            EntryMember(client, current, entryTypeInfo),
+                            entryMember,
                             value,
                             childId,
                             now,

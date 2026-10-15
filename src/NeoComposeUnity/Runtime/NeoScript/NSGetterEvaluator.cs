@@ -8187,11 +8187,11 @@ namespace NeoCompose.Runtime.NeoScript
                 NeoValueOwnership resolvedOwnership = ownerships![index];
                 ref NeoValueNode? node = ref nodes![index];
                 if (ctx.client.ReadOwnRow(resolvedOwnership, id, ref node) is { } currentRow)
-                    return UnwrapCached(currentRow, ctx, resolvedOwnership, entryMember, node);
+                    return EntryValue(UnwrapCached(currentRow, ctx, resolvedOwnership, entryMember, node), entryMember, ctx, node);
                 MemberValue? retainedRow = rows![index];
                 return retainedRow is null
                     ? id
-                    : UnwrapCached(retainedRow, ctx, resolvedOwnership, entryMember);
+                    : EntryValue(UnwrapCached(retainedRow, ctx, resolvedOwnership, entryMember), entryMember, ctx);
             }
 
             /// <summary>Drops what a finished run held.</summary>
@@ -8742,11 +8742,14 @@ namespace NeoCompose.Runtime.NeoScript
                 : declaredOwnership ?? ResolveOwnershipForValueId(ctx, id, ref node);
             if (ctx.client.ReadReplayReference(id, ref node, ownership) is not { } row)
                 return id;
-            var v = UnwrapCached(row, ctx, ownership, member, node);
-            return member is LookupMember lookup && v is object?[] ids
-                ? ReadLookupSelection(ids, lookup, ctx, node)
-                : v;
+            return EntryValue(UnwrapCached(row, ctx, ownership, member, node), member, ctx, node);
         }
+
+        /// <summary>A row's read value: a Lookup row reads as its selection.</summary>
+        private static object? EntryValue(object? value, JsonMember? member, Context ctx, NeoValueNode? node = null) =>
+            member is LookupMember lookup && value is object?[] ids
+                ? ReadLookupSelection(ids, lookup, ctx, node)
+                : value;
 
         /// <summary>
         /// A lookup's read value: a single selection's object, otherwise the

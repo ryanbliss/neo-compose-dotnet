@@ -308,8 +308,7 @@ namespace NeoCompose.Runtime
                 var storage = ChildOwnership(resolved, slot.Scope);
                 if (!IsChangeListenerMember(resolved) || storage == NeoValueOwnership.Asset)
                     return;
-                var observedType = NeoNSFunctionRuntime.TypeInfoFromBindingMember(this, resolved,
-                    ListenerOwnerEnvironment(owner), new HashSet<string>());
+                var observedType = ObservedTypeOf(resolved, ListenerOwnerEnvironment(owner));
                 slot.Member = resolved;
                 slot.Storage = storage;
                 slot.ObservedType = observedType;
@@ -705,7 +704,7 @@ namespace NeoCompose.Runtime
             if (lifetime == NeoValueOwnership.Asset)
                 throw new NSGetterRuntimeError($"Observed member '{memberId}' is immutable at runtime.");
             var environment = ListenerOwnerEnvironment(instance);
-            Json.TypeInfo actualType = NeoNSFunctionRuntime.TypeInfoFromBindingMember(this, observed, environment, new HashSet<string>());
+            Json.TypeInfo actualType = ObservedTypeOf(observed, environment);
             if (!TypeInfoMatches(observedType, actualType))
                 throw new NSGetterRuntimeError($"Observed member '{memberId}' no longer matches its compiled type.");
             if (listener is not null)
@@ -967,6 +966,13 @@ namespace NeoCompose.Runtime
             return result.ToArray();
         }
 
+        /// <summary>P112 §3.7. A reference's listener observes its target's type.</summary>
+        private Json.TypeInfo ObservedTypeOf(Member member, IReadOnlyDictionary<string, NeoGenericEnvEntry> environment)
+        {
+            Json.TypeInfo type = NeoNSFunctionRuntime.TypeInfoFromBindingMember(this, member, environment, new HashSet<string>());
+            return type is ReferenceTypeInfo reference ? reference.targetTypeInfo : type;
+        }
+
         private IReadOnlyDictionary<string, NeoGenericEnvEntry> ListenerOwnerEnvironment(ObjectMemberValue owner,
             Dictionary<ObjectMemberValue, IReadOnlyDictionary<string, NeoGenericEnvEntry>>? cache = null)
         {
@@ -1169,8 +1175,7 @@ namespace NeoCompose.Runtime
                                 observedLifetime = ChildOwnership(member, ownerScope);
                                 if (!IsChangeListenerMember(member) || observedLifetime == NeoValueOwnership.Asset)
                                     continue;
-                                observedType = NeoNSFunctionRuntime.TypeInfoFromBindingMember(this, member,
-                                    ListenerOwnerEnvironment(owner, context.Environments), new HashSet<string>());
+                                observedType = ObservedTypeOf(member, ListenerOwnerEnvironment(owner, context.Environments));
                             }
                             catch (NSGetterRuntimeError)
                             {

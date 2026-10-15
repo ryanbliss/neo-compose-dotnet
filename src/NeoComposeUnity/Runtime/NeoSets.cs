@@ -19,6 +19,12 @@ namespace NeoCompose.Runtime
     public interface INeoReadOnlySet<T> : IReadOnlyCollection<T>
     {
         bool Contains(T item);
+
+        /// <summary>
+        /// P112 §8. The writable view of this set, when its store takes
+        /// writes and its member isn't readonly.
+        /// </summary>
+        bool TryWritable(out ICollection<T> writable);
     }
 
     /// <summary>
@@ -215,6 +221,21 @@ namespace NeoCompose.Runtime
         public bool Contains(T item) => KeyOf(serializeItem(item)) is { } key && node.FindSetEntry(key) is not null;
 
         /// <summary>
+        /// P112 §8. The writable view of this set, when its store takes writes and its member isn't readonly.
+        /// </summary>
+        public bool TryWritable(out ICollection<T> writable)
+        {
+            if (this is NeoSet<T> match && !match.IsReadOnly)
+            {
+                writable = match;
+                return true;
+            }
+
+            writable = null!;
+            return false;
+        }
+
+        /// <summary>
         /// The key an entry written from <paramref name="payload"/> would
         /// hold: the referenced value id for a Class entry, or null when it
         /// can equal no entry (null, or a new Class value).
@@ -382,6 +403,12 @@ namespace NeoCompose.Runtime
 
         public int Count => entries.Length;
 
+        public bool TryWritable(out ICollection<T> writable)
+        {
+            writable = null!;
+            return false;
+        }
+
         public bool Contains(T item) =>
             (lookup ??= new HashSet<T>(entries, IdentityComparer.Instance)).Contains(item);
 
@@ -414,7 +441,7 @@ namespace NeoCompose.Runtime
     /// follows stored order; stale option ids read through
     /// <c>fromOptionId</c> exactly like dangling Enum values do.
     /// </summary>
-    public class NeoReadOnlyEnumSet<TEnum> : INeoReadOnlySet<TEnum>
+    public class NeoReadOnlyEnumSet<TEnum> : INeoReadOnlySet<TEnum>, INeoCollectionView
         where TEnum : struct, System.Enum
     {
         protected readonly NeoClient? client;
@@ -468,6 +495,23 @@ namespace NeoCompose.Runtime
         }
 
         public int Count => OptionIds.Length;
+
+        NeoMember? INeoCollectionView.CollectionNode => node;
+
+        /// <summary>
+        /// P112 §8. The writable view of this set, when its store takes writes and its member isn't readonly.
+        /// </summary>
+        public bool TryWritable(out ICollection<TEnum> writable)
+        {
+            if (this is NeoEnumSet<TEnum> match && !match.IsReadOnly)
+            {
+                writable = match;
+                return true;
+            }
+
+            writable = null!;
+            return false;
+        }
 
         public bool Contains(TEnum item) => Array.IndexOf(OptionIds, toOptionId(item)) >= 0;
 
