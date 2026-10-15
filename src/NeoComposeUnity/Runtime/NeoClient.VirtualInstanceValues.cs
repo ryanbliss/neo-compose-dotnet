@@ -2452,6 +2452,8 @@ namespace NeoCompose.Runtime
                 }
                 foreach (var pair in links)
                 {
+                    if (CandidateSeversVirtualId(pair.Value, valueId))
+                        continue;
                     Member? linkMember = null;
                     if (parentClassId is not null)
                     {
@@ -2482,6 +2484,8 @@ namespace NeoCompose.Runtime
             }
             foreach (string expansionId in expansionIds)
             {
+                if (CandidateSeversVirtualId(expansionId, valueId))
+                    continue;
                 // The expansion is indexed under the root's own ownership;
                 // a differently-owned id belongs to another store's sweep.
                 if (TryResolveVirtualOwnership(
@@ -2493,6 +2497,26 @@ namespace NeoCompose.Runtime
                 }
                 yield return (expansionId, null);
             }
+        }
+
+        /// <summary>
+        /// Whether the candidate plan unlinks <paramref name="valueId"/>, or
+        /// an ancestor below <paramref name="rootId"/>, from that root's
+        /// expansion. The committed expansion still links a replaced child
+        /// until the write installs, which would keep its overrides alive.
+        /// </summary>
+        private bool CandidateSeversVirtualId(string valueId, string rootId)
+        {
+            if (candidateReadPlan is null)
+                return false;
+            string id = valueId;
+            while (id != rootId && virtualClassPlacementByChildId.TryGetValue(id, out VirtualClassPlacement? placement))
+            {
+                if (!CandidateRetainsVirtualParent(id, placement))
+                    return true;
+                id = placement.parentValueId;
+            }
+            return false;
         }
 
         /// <summary>

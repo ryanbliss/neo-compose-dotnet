@@ -3953,6 +3953,20 @@ namespace NeoCompose.Runtime
         private static string? ReferenceIdOf(object? value, NSGetterEvaluator.Context ctx) =>
             value is null ? null : NSGetterEvaluator.ReferenceKeyOf(value, ctx) as string;
 
+        /// <summary>P112 §3.3. Whether entry <paramref name="entryId"/>'s Lookup row names <paramref name="targetId"/>.</summary>
+        private static bool StoresTarget(NeoClient client, string entryId, string? targetId) =>
+            client.TryGetValue(entryId, out ArrayMemberValue? entry)
+            && entry.value is { Length: 1 } ids
+            && ids[0] == targetId;
+
+        /// <summary>The target a slot reference entry compares by, when <paramref name="entryMember"/> holds slot references.</summary>
+        private static string? SlotTargetOf(object? value, JsonMember? entryMember, NSGetterEvaluator.Context ctx) =>
+            value is NSSlotReference slot
+                && entryMember is LookupMember lookup
+                && NSGetterEvaluator.LookupSlotTarget(lookup, ctx) is not null
+                ? slot.TargetId
+                : null;
+
         private static bool TryGetClassValueReferenceId(
             object? value,
             TypeInfo typeInfo,
@@ -5865,8 +5879,13 @@ namespace NeoCompose.Runtime
                             }
                             else
                             {
-                                object? value = args[0] is INeoValuePayloadProvider provider
-                                    ? provider.ToNeoValuePayload() : args[0];
+                                // P112 §1.3. A reference entry's row stores its Lookup selection.
+                                object? value = args[0] switch
+                                {
+                                    NSSlotReference slot => new[] { slot.TargetId },
+                                    INeoValuePayloadProvider provider => provider.ToNeoValuePayload(),
+                                    _ => args[0],
+                                };
                                 payload = NeoValueWritePayload.FromValue(value);
                             }
                             string addedId = list.PrepareAddSerialized(plan, payload);
@@ -5879,11 +5898,14 @@ namespace NeoCompose.Runtime
                             removeId = ReferenceIdOf(args[0], ctx);
                         else if (TryGetClassValueReferenceId(args[0], entryType, ctx, out string? id))
                             removeId = id;
+                        string? slotTarget = SlotTargetOf(args[0], list.EntryMember, ctx);
                         foreach (string entryId in list.ResolveEntryValueIds())
                         {
-                            if (entryId == removeId || (removeId is null && !reference
-                                && client.TryGetValue(ownership, entryId, out MemberValue? entry)
-                                && JsEqual(ReadEntryValue(entry, list.EntryMember, ctx), args[0])))
+                            if (slotTarget is not null
+                                ? StoresTarget(client, entryId, slotTarget)
+                                : entryId == removeId || (removeId is null && !reference
+                                    && client.TryGetValue(ownership, entryId, out MemberValue? entry)
+                                    && JsEqual(ReadEntryValue(entry, list.EntryMember, ctx), args[0])))
                             {
                                 list.RemoveById(entryId);
                                 break;
@@ -6019,12 +6041,16 @@ namespace NeoCompose.Runtime
                                     batch.Release(ownership, match, EntryMember(client, list.Row, entryTypeInfo), rowId);
                                 return;
                             }
+                            string? slotTarget = SlotTargetOf(args[0], EntryMember(client, list.Row, entryTypeInfo), ctx);
                             for (int i = 0; i < list.Count; i++)
                             {
-                                if (list[i] != referenceId
-                                    && (reference
-                                        || !client.TryGetValue(list[i], out MemberValue? child)
-                                        || !JsEqual(ReadEntryValue(child, entryMember, ctx), args[0])))
+                                bool match = slotTarget is not null
+                                    ? StoresTarget(client, list[i], slotTarget)
+                                    : list[i] == referenceId
+                                        || !reference
+                                            && client.TryGetValue(list[i], out MemberValue? child)
+                                            && JsEqual(ReadEntryValue(child, entryMember, ctx), args[0]);
+                                if (!match)
                                     continue;
                                 batch.Release(ownership, list.RemoveAt(i, now), EntryMember(client, list.Row, entryTypeInfo), rowId);
                                 return;

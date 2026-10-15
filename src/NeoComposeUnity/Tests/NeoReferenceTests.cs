@@ -109,6 +109,39 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void SavedReferenceToAnAuthoredSessionRowSurvivesAReload()
+        {
+            ProjectData data = Data();
+            string saved;
+            using (var app = new Parity.TestProjectNeo(Client(data)))
+            {
+                InvokeProbe(app.Client, "SavedPinsAuthored");
+                Parity.Probe.Total = 9;
+                saved = app.Client.SerializeSaveData();
+            }
+            using var reloaded = new Parity.TestProjectNeo(
+                NeoTestSaveStack.ClientFromSchema(data, assumeCurrentSchema: false, loadedSaveContent: saved));
+
+            Assert.AreEqual(2, Parity.Probe.SavedPin!.Value, "the pin names the authored row, which the new session resets");
+        }
+
+        [Test]
+        public void SessionReferenceToASavedRowResetsWithTheSession()
+        {
+            ProjectData data = Data();
+            string saved;
+            using (NeoClient client = Client(data))
+            {
+                Assert.AreEqual(1, InvokeProbe(client, "PinSaved"));
+                saved = client.SerializeSaveData();
+            }
+            using var reloaded = new Parity.TestProjectNeo(
+                NeoTestSaveStack.ClientFromSchema(data, assumeCurrentSchema: false, loadedSaveContent: saved));
+
+            Assert.IsNull(Parity.Probe.Pin);
+        }
+
+        [Test]
         public void GeneratedReferenceReadsWritesAndRebinds()
         {
             using var app = new Parity.TestProjectNeo(Client(Data()));

@@ -22,12 +22,14 @@ namespace NeoCompose.Tests.ReferenceParity
         bool TryWritable(out Tally writable);
 
         int N { get; }
+
+        NeoReference<int> NRef { get; }
     }
 
     public partial class Tally : NeoGeneratedClassValue, IReadOnlyTally
     {
         internal Tally(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "8f67129c-e14e-4d7e-bdeb-ce979096a907", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "ae41bed9-9e63-4783-9cf9-187215ce9019", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -46,8 +48,8 @@ namespace NeoCompose.Tests.ReferenceParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "8f67129c-e14e-4d7e-bdeb-ce979096a907",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("N", "2450b5fd-2ef5-4af9-8ee2-05f7a0d3b8e7", N)
+                "ae41bed9-9e63-4783-9cf9-187215ce9019",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("N", "1cb47919-2663-4f7e-9668-20a3bb9f9d21", N)
             );
         }
 
@@ -112,7 +114,18 @@ namespace NeoCompose.Tests.ReferenceParity
             }
             set
             {
+                ThrowIfReadOnly("Tally.N");
                 NeoGeneratedTypesSupport.SetValue(writableNode, "N", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        public NeoReference<int> NRef
+        {
+            get
+            {
+                var result = ComputeProperty("NRef");
+                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
+                return NeoGeneratedTypesSupport.ReadReference<int>(client, result.value) ?? throw new InvalidOperationException("NeoScript returned no reference.");
             }
         }
 
@@ -121,6 +134,8 @@ namespace NeoCompose.Tests.ReferenceParity
             private Fields() {}
 
             public static readonly NeoField<int> N = new("N");
+
+            public static readonly NeoField<NeoReference<int>> NRef = new("NRef");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -128,6 +143,7 @@ namespace NeoCompose.Tests.ReferenceParity
             return new Dictionary<INeoField, Func<string?>>
             {
                 [Fields.N] = () => null,
+                [Fields.NRef] = () => null,
             };
         }
 
@@ -146,6 +162,7 @@ namespace NeoCompose.Tests.ReferenceParity
             return new Dictionary<INeoField, Func<object?>>
             {
                 [Fields.N] = () => N,
+                [Fields.NRef] = () => NRef,
             };
         }
 

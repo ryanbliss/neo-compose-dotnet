@@ -46,7 +46,10 @@ namespace NeoCompose.Runtime
         {
             containerId = null;
             if (slot.Place is { } place)
+            {
+                NSGetterEvaluator.AssertPlaceAttached(slot, place, ctx);
                 return place;
+            }
             NSGetterEvaluator.AssertReferencedRow(slot, ctx);
             return NSGetterEvaluator.SlotPlaceOfRow(slot, ctx, out containerId);
         }
@@ -71,12 +74,16 @@ namespace NeoCompose.Runtime
             {
                 if (slotMember.Mutability == NeoMemberMutabilityKind.ReadOnly)
                     throw ReadonlyTargetError(slotMember, slot, ctx);
+                if (SlotStore(client, place, slotMember, ctx) == NeoValueOwnership.Asset)
+                    throw AssetTargetError();
                 AssignTarget(client, SlotWriteTarget(client, target, target.typeInfo, slotMember, null), assigned, scope, ctx);
                 return;
             }
             object owner = place.Owner!;
             if (slotMember.Mutability == NeoMemberMutabilityKind.ReadOnly && !ctx.IsConstructing(owner))
                 throw ReadonlyTargetError(slotMember, slot, ctx);
+            if (SlotStore(client, place, slotMember, ctx) == NeoValueOwnership.Asset)
+                throw AssetTargetError();
             WriteTarget memberTarget = SlotWriteTarget(client, target, target.typeInfo, slotMember, place.Key);
             AssignKeyOf(
                 client,
@@ -173,6 +180,16 @@ namespace NeoCompose.Runtime
                 throw NSGetterEvaluator.DanglingReferenceError(slot.MemberId, slot.TargetId, ctx);
             new NeoListIndexWriteTarget(containerId, at, target.typeInfo, ownership).Write(client, assigned, ctx);
         }
+
+        /// <summary>§3.6. The target row decides the write, and an asset row is immutable.</summary>
+        private static NSGetterRuntimeError AssetTargetError() =>
+            new("Cannot write runtime-owned target because its value is Asset-owned.");
+
+        /// <summary>The store a slot's row lives in; null for a value no row holds.</summary>
+        private static NeoValueOwnership? SlotStore(NeoClient client, NSSlotPlace place, JsonMember slotMember, NSGetterEvaluator.Context ctx) =>
+            place.IsStatic
+                ? client.ResolveStaticOwnership(slotMember)
+                : NSGetterEvaluator.FindRowOwnershipByReference(place.Owner, ctx);
 
         /// <summary>§3.6. A readonly slot accepts writes only while its owner initializes.</summary>
         private static NSGetterRuntimeError ReadonlyTargetError(JsonMember slotMember, NSSlotReference reference, NSGetterEvaluator.Context ctx)
@@ -527,10 +544,7 @@ namespace NeoCompose.Runtime
             JsonMember slotMember = SlotMember(client, slot, place, ctx);
             if (slotMember.Mutability == NeoMemberMutabilityKind.ReadOnly)
                 return false;
-            NeoValueOwnership? store = place.IsStatic
-                ? client.ResolveStaticOwnership(slotMember)
-                : NSGetterEvaluator.FindRowOwnershipByReference(place.Owner, ctx);
-            return store != NeoValueOwnership.Asset;
+            return SlotStore(client, place, slotMember, ctx) != NeoValueOwnership.Asset;
         }
 
         /// <summary>

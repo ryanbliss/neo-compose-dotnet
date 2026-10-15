@@ -3860,6 +3860,26 @@ namespace NeoCompose.Runtime
             return false;
         }
 
+        /// <summary>
+        /// P112 §4.1. Whether <paramref name="valueId"/> is only statics'
+        /// authored default, which every one of them has been rebound off.
+        /// </summary>
+        internal bool IsReleasedStaticDefault(string valueId)
+        {
+            if (!ValueInferenceIndex.MembersByValueId.TryGetValue(valueId, out var declared))
+                return false;
+            bool released = false;
+            foreach (Member member in declared)
+            {
+                if (member.Modifier != NeoMemberModifierKind.Static)
+                    return false;
+                if (TryResolveStaticBinding(member.id, out _, out _, out string? bound) && bound == valueId)
+                    return false;
+                released = true;
+            }
+            return released;
+        }
+
         private bool IsStaticBoundTo(Member member, NeoValueOwnership ownership, string valueId) =>
             TryResolveStaticBinding(
                 member.id,
@@ -9414,6 +9434,7 @@ namespace NeoCompose.Runtime
                 if (virtualRootByFootprintId.TryGetValue(id, out var expansionRoot)
                     && virtualValueIdsByRoot.TryGetValue(expansionRoot, out var expansionIds)
                     && expansionIds.Contains(id)
+                    && !CandidateSeversVirtualId(id, expansionRoot)
                     && (!TryResolveVirtualOwnership(id, out var expandedOwnership) || expandedOwnership == ownership))
                     pending.Enqueue(expansionRoot);
                 parents.Clear();
@@ -9453,7 +9474,8 @@ namespace NeoCompose.Runtime
                         if (ConstructorArgsReference(obj, id)
                             || obj.value is not null && (OwnsChildLink(obj, null, id, ownership, membership)
                                 || OwnsChildLink(obj, TryInferMemberForValueId(parentId, out var inferred) ? inferred : null, id, ownership, membership)
-                                || TryResolveVirtualClassChildren(parentId, out var links) && links.ContainsValue(id)))
+                                || TryResolveVirtualClassChildren(parentId, out var links) && links.ContainsValue(id)
+                                    && !CandidateSeversVirtualId(id, parentId)))
                             pending.Enqueue(parentId);
                     }
                     else if (parent is ArrayMemberValue { value: not null } array && membership.Holds(array.value, id))

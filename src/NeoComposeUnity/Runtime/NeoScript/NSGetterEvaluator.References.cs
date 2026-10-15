@@ -152,6 +152,7 @@ namespace NeoCompose.Runtime.NeoScript
                 return value;
             if (reference.Place is { } place)
             {
+                AssertPlaceAttached(reference, place, ctx);
                 if (TryReadReferenceRow(reference, ctx))
                     AssertReferenceFits(reference, ctx);
                 return ReadSlot(place, ctx);
@@ -195,7 +196,38 @@ namespace NeoCompose.Runtime.NeoScript
         {
             if (!TryReadReferenceRow(reference, ctx))
                 throw DanglingReferenceError(reference.MemberId, reference.TargetId, ctx);
+            if (IsRetired(reference.TargetId, ctx))
+                throw DanglingReferenceError(reference.MemberId, reference.TargetId, ctx);
             AssertReferenceFits(reference, ctx);
+        }
+
+        /// <summary>§4.1. A member slot dangles with its owner, once no slot holds the owner.</summary>
+        internal static void AssertPlaceAttached(NSSlotReference reference, NSSlotPlace place, Context ctx)
+        {
+            if (place.IsStatic || FindRowIdByReference(place.Owner, ctx) is not string ownerId)
+                return;
+            if (IsRetired(ownerId, ctx))
+                throw DanglingReferenceError(reference.MemberId, reference.TargetId, ctx);
+        }
+
+        /// <summary>
+        /// §4.1. Whether no slot holds row <paramref name="rowId"/> any more.
+        /// Its holders lead to a root; a rebound static's authored default
+        /// lingers there, held by nothing. A row with no holder is a value a
+        /// script made and holds until it places it.
+        /// </summary>
+        private static bool IsRetired(string rowId, Context ctx)
+        {
+            string id = rowId;
+            while (TryFindHolder(id, ctx, out string? parentId))
+            {
+                if (parentId.StartsWith("member:", System.StringComparison.Ordinal))
+                    return ctx.client.IsReleasedStaticDefault(id);
+                if (parentId.StartsWith("static:", System.StringComparison.Ordinal))
+                    return false;
+                id = parentId;
+            }
+            return false;
         }
 
         internal static bool TryReadReferenceRow(NSSlotReference reference, Context ctx)

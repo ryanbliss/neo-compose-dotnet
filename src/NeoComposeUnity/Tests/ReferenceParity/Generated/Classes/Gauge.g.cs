@@ -25,11 +25,15 @@ namespace NeoCompose.Tests.ReferenceParity
 
         NeoReference<Vector2> At { get; }
 
+        NeoList<NeoReference<int>> Bag { get; }
+
         Box<NeoReference<int>>? BoxRef { get; }
 
         INeoReadOnlySet<NeoReference<int>> Chosen { get; }
 
         int Count { get; }
+
+        int Doubled { get; }
 
         Mood Feel { get; }
 
@@ -52,6 +56,8 @@ namespace NeoCompose.Tests.ReferenceParity
         NeoReference<string>? LabelRef { get; }
 
         int Other { get; }
+
+        Tally Packed { get; }
 
         NeoReference<int>? Pick { get; }
 
@@ -77,6 +83,8 @@ namespace NeoCompose.Tests.ReferenceParity
 
         NeoList<IReadOnlyTally> TRefs { get; }
 
+        NeoList<Tally> Tallies { get; }
+
         NeoList<int> Xs { get; }
 
         NeoReadOnlyList<int> XsRef { get; }
@@ -87,7 +95,7 @@ namespace NeoCompose.Tests.ReferenceParity
     public partial class Gauge : NeoGeneratedClassValue, IReadOnlyGauge
     {
         internal Gauge(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "2c9efa0c-86fb-4ff9-9672-0b24015e4592", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "bc3ffedd-fe1c-426b-a0e3-6529c45abaac", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -97,7 +105,7 @@ namespace NeoCompose.Tests.ReferenceParity
         }
 
         public Gauge()
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "2c9efa0c-86fb-4ff9-9672-0b24015e4592", "bf8852de-694c-4bb8-a3d9-8858cab10c6a", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "bc3ffedd-fe1c-426b-a0e3-6529c45abaac", "d0e41df6-46cb-43d4-bd21-5fbbca9807a7", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
         {
         }
 
@@ -182,6 +190,16 @@ namespace NeoCompose.Tests.ReferenceParity
             }
         }
 
+        public NeoList<NeoReference<int>> Bag
+        {
+            get
+            {
+                var memberNode = writableNode.Get<NeoMemberListWritable>("Bag");
+                if (TryGetStoredView<NeoList<NeoReference<int>>>("Bag", memberNode, out var cached)) return cached;
+                return CacheStoredView("Bag", memberNode, new NeoList<NeoReference<int>>(client, memberNode, () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("Bag"), (client, child) => NeoGeneratedTypesSupport.ReadReference<int>(client, ((NeoMemberLookup)child)) ?? throw new InvalidOperationException("Required lookup has no selected value."), item => NeoGenericBindings.Resolve<NeoReference<int>>(client, writableNode.Get<NeoMemberListWritable>("Bag")).Serialize(item)));
+            }
+        }
+
         public Box<NeoReference<int>>? BoxRef
         {
             get
@@ -225,6 +243,16 @@ namespace NeoCompose.Tests.ReferenceParity
             set
             {
                 NeoGeneratedTypesSupport.SetValue(writableNode, "Count", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        public int Doubled
+        {
+            get
+            {
+                var result = ComputeProperty("Doubled");
+                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
+                return Convert.ToInt32(result.value);
             }
         }
 
@@ -379,6 +407,22 @@ namespace NeoCompose.Tests.ReferenceParity
             set
             {
                 NeoGeneratedTypesSupport.SetValue(writableNode, "Other", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        public Tally Packed
+        {
+            get
+            {
+                if (TryReadDetached("Packed", out object? detachedValue))
+                {
+                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, true, null, static (factoryClient, factoryNode) => global::NeoCompose.Tests.ReferenceParity.Tally.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::NeoCompose.Tests.ReferenceParity.Tally.CreateDetached(factoryClient, factoryValue, factorySaved));
+                }
+                return global::NeoCompose.Tests.ReferenceParity.Tally.CreateWritable(client, writableNode.Get<NeoMemberClassWritable>("Packed"));
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Packed", NeoGeneratedTypesSupport.ValueReference(value));
             }
         }
 
@@ -539,6 +583,21 @@ namespace NeoCompose.Tests.ReferenceParity
             }
         }
 
+        public NeoList<Tally> Tallies
+        {
+            get
+            {
+                if (TryReadDetached("Tallies", out _))
+                {
+                    if (TryGetDetachedView<NeoList<Tally>>("Tallies", out var detachedView)) return detachedView;
+                    return DetachedList<Tally>("Tallies", entry => NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, entry, true, null, static (factoryClient, factoryNode) => global::NeoCompose.Tests.ReferenceParity.Tally.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::NeoCompose.Tests.ReferenceParity.Tally.CreateDetached(factoryClient, factoryValue, factorySaved)), (client, child) => global::NeoCompose.Tests.ReferenceParity.Tally.CreateWritable(client, (NeoMemberClassWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item));
+                }
+                var memberNode = writableNode.Get<NeoMemberListWritable>("Tallies");
+                if (TryGetStoredView<NeoList<Tally>>("Tallies", memberNode, out var cached)) return cached;
+                return CacheStoredView("Tallies", memberNode, new NeoList<Tally>(client, memberNode, () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("Tallies"), (client, child) => global::NeoCompose.Tests.ReferenceParity.Tally.CreateWritable(client, (NeoMemberClassWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item)));
+            }
+        }
+
         public NeoList<int> Xs
         {
             get
@@ -581,7 +640,7 @@ namespace NeoCompose.Tests.ReferenceParity
             }
         }
 
-        [NeoMemberMethod("3e8774de-7320-4fac-985c-d5c67ee1c14c")]
+        [NeoMemberMethod("87e752d6-f28c-4c18-bea0-189dd62547b9")]
         public void Hear(int v)
         {
             InvokeFunction("Hear", (object?)(v));
@@ -649,6 +708,14 @@ namespace NeoCompose.Tests.ReferenceParity
 
             public static readonly NeoField<NeoReference<NeoVariant<Critter>?>?> KindRef = new("KindRef");
 
+            public static readonly NeoField<Tally> Packed = new("Packed");
+
+            public static readonly NeoField<NeoList<Tally>> Tallies = new("Tallies");
+
+            public static readonly NeoField<NeoList<NeoReference<int>>> Bag = new("Bag");
+
+            public static readonly NeoField<int> Doubled = new("Doubled");
+
             public static readonly NeoField<int> Heard = new("Heard");
         }
 
@@ -685,6 +752,10 @@ namespace NeoCompose.Tests.ReferenceParity
                 [Fields.BoxRef] = () => null,
                 [Fields.Kind] = () => null,
                 [Fields.KindRef] = () => null,
+                [Fields.Packed] = () => null,
+                [Fields.Tallies] = () => null,
+                [Fields.Bag] = () => null,
+                [Fields.Doubled] = () => null,
                 [Fields.Heard] = () => null,
             };
         }
@@ -732,6 +803,10 @@ namespace NeoCompose.Tests.ReferenceParity
                 [Fields.BoxRef] = () => BoxRef,
                 [Fields.Kind] = () => Kind,
                 [Fields.KindRef] = () => KindRef,
+                [Fields.Packed] = () => Packed,
+                [Fields.Tallies] = () => Tallies,
+                [Fields.Bag] = () => Bag,
+                [Fields.Doubled] = () => Doubled,
                 [Fields.Heard] = () => Heard,
             };
         }
