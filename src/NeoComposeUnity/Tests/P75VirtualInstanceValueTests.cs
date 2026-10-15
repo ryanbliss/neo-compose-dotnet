@@ -2355,6 +2355,137 @@ namespace NeoCompose.Tests
             Assert.That(child.Get<NeoMemberIntWritable>("Count").value!.value, Is.EqualTo(5d));
         }
 
+        [Test]
+        public void SparseParentReplayDefersRequiredGenericCollectionChildrenUntilStoredFieldsApply()
+        {
+            ProjectData data = BuildUnorderedListProjectData("entry");
+            ((ClassMember)data.members["thing-member"]).Storage = NeoMemberStorage.Inherit;
+            var genericBase = SchemaClass("generic-base", "GenericBase", NeoMemberStorage.Save);
+            genericBase.genericParams = new List<GenericParamDeclaration> { new() { id = "container-t", name = "T" } };
+            genericBase.schema["Items"] = "thing-items";
+            data.classes[genericBase.id] = genericBase;
+            var thingClass = data.classes["thing-class"];
+            thingClass.schema.Clear();
+            thingClass.extendsClassId = genericBase.id;
+            thingClass.extendsGenericBindings = new Dictionary<string, GenericBinding>
+            {
+                ["container-t"] = new() { kind = NeoGenericBindingKind.Member, memberId = "int-binding" },
+            };
+            data.members["int-binding"] = new IntMember
+            {
+                id = "int-binding",
+                name = "Int",
+                kind = MemberKind.Int,
+                Requirement = NeoMemberRequirementKind.Required,
+            };
+            var itemClass = SchemaClass("item-class", "Item", NeoMemberStorage.Save);
+            itemClass.genericParams = new List<GenericParamDeclaration> { new() { id = "item-t", name = "T" } };
+            itemClass.schema["Count"] = "item-count";
+            data.classes[itemClass.id] = itemClass;
+            data.members["item-count"] = new GenericMember
+            {
+                id = "item-count",
+                name = "Count",
+                kind = MemberKind.Generic,
+                genericParamId = "item-t",
+            };
+            data.members["thing-item"] = new ClassMember
+            {
+                id = "thing-item",
+                name = "Item",
+                kind = MemberKind.Class,
+                classId = itemClass.id,
+                Requirement = NeoMemberRequirementKind.Required,
+                classArguments = new Dictionary<string, GenericBinding>
+                {
+                    ["item-t"] = new() { genericParamId = "container-t" },
+                },
+            };
+            ((ListMember)data.members["thing-items"]).ListKind = NeoListKind.Ordered;
+            data.values["entry"] = ObjectValue("entry", itemClass.id, new()
+            {
+                ["Count"] = "entry-count"
+            });
+            data.values["entry-count"] = new NumberMemberValue { id = "entry-count", value = 0 };
+            data.values["stored-entry"] = ObjectValue("stored-entry", itemClass.id, new()
+            {
+                ["Count"] = "stored-count"
+            });
+            data.values["stored-count"] = new NumberMemberValue { id = "stored-count", value = 42 };
+            data.values["stored-items"] = new ArrayMemberValue
+            {
+                id = "stored-items",
+                value = new[] { "stored-entry" },
+                genericBindings = new() { ["container-t"] = "int-binding" },
+            };
+            var thingRow = (ObjectMemberValue)data.values["thing-instance"];
+            thingRow.value!["Items"] = "stored-items";
+            thingClass.requiredConstructorId = "nested-ctor";
+            var argument = new FunctionArgumentTypeInfo { name = "seed", type = MemberKind.Int, required = true };
+            data.constructors["nested-ctor"] = new ConstructorRecord
+            {
+                id = "nested-ctor",
+                projectId = "p75-project",
+                classId = thingClass.id,
+                argumentTypes = new[] { argument },
+                action = new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = new[]
+                    {
+                        ConstructorVariable("__this__", ClassType(thingClass.id)),
+                        ConstructorVariable("__root__", ClassType("save-root-class")),
+                        ConstructorVariable("__arg_0__", argument),
+                    },
+                    typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null, required = true },
+                    instructions = Array.Empty<Instruction>(),
+                },
+            };
+            thingRow.instanceConstructorId = "nested-ctor";
+            thingRow.constructorArgs = new()
+            {
+                ["__arg_0__"] = JToken.FromObject(42)
+            };
+
+            var holder = SchemaClass("holder-class", "Holder", NeoMemberStorage.Save);
+            holder.schema["Nested"] = "thing-member";
+            data.classes[holder.id] = holder;
+            data.classes["save-root-class"].schema["Thing"] = "holder-member";
+            data.members["holder-member"] = new ClassMember
+            {
+                id = "holder-member",
+                name = "Holder",
+                kind = MemberKind.Class,
+                classId = holder.id,
+                Requirement = NeoMemberRequirementKind.Required,
+            };
+            var holderRow = ObjectValue("holder-instance", holder.id, new()
+            {
+                ["Nested"] = "thing-instance"
+            });
+            holderRow.constructorArgs = new();
+            holderRow.instanceConstructorId = null;
+            data.values[holderRow.id] = holderRow;
+            ((ObjectMemberValue)data.values["value-save"]).value!["Thing"] = holderRow.id;
+
+            string saved;
+            using (var client = NeoTestSaveStack.ClientFromSchema(data))
+            {
+                AssertCount(client);
+                saved = client.SerializeSaveData();
+            }
+            using var reloaded = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: saved);
+            AssertCount(reloaded);
+
+            static void AssertCount(NeoClient client)
+            {
+                var nested = client.save.Get<NeoMemberClassWritable>("Thing").Get<NeoMemberClassWritable>("Nested");
+                var items = nested.Get<NeoMemberList>("Items");
+                Assert.That(items.Count, Is.EqualTo(1));
+                Assert.That(((NeoMemberClass)items[0]).Get<NeoMemberInt>("Count").value!.value, Is.EqualTo(42));
+            }
+        }
+
         [TestCase(NeoListKind.Ordered)]
         [TestCase(NeoListKind.Unordered)]
         public void UnstampedDefaultsRetainCollectionEntries(NeoListKind listKind)
