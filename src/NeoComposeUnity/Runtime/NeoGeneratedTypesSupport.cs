@@ -667,6 +667,7 @@ namespace NeoCompose.Runtime
 
         internal sealed class RuntimeConstructorMetadata
         {
+            internal bool replayStoredInstance;
             internal Dictionary<string, Member> membersBySchemaKey = null!;
             internal IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv = null!;
             internal RuntimeClassPlan classPlan = null!;
@@ -941,7 +942,7 @@ namespace NeoCompose.Runtime
                 // A generic entry initializer constructs in its closed placement.
                 initializerContext.initializerPlacement = member as ClassMember;
                 // A construction naming the instance's `T` closes through it.
-                initializerContext.initializerGenericEnv = genericEnv;
+                initializerContext.initializerGenericEnv = genericEnv ?? NeoGenericResolution.EmptyEnv;
                 object?[] arguments = Array.Empty<object?>();
                 // Parameters are __this__, __root__, then the declaring constructor's arguments.
                 int expected = Math.Max(0, (init.compiled.parameters?.Length ?? 0) - 2);
@@ -6227,7 +6228,8 @@ namespace NeoCompose.Runtime
             ClassTypeInfo classTypeInfo,
             IReadOnlyList<RuntimeConstructorField> fields,
             IReadOnlyDictionary<string, GenericBinding>? classArguments = null,
-            IReadOnlyDictionary<string, NeoGenericEnvEntry>? enclosingEnv = null)
+            IReadOnlyDictionary<string, NeoGenericEnvEntry>? enclosingEnv = null,
+            bool replayStoredInstance = false)
         {
             AssertMemberWiseConstructionIsAvailable(
                 client,
@@ -6237,6 +6239,7 @@ namespace NeoCompose.Runtime
                 classTypeInfo,
                 fields,
                 classArguments: classArguments,
+                replayStoredInstance: replayStoredInstance,
                 enclosingEnv: enclosingEnv);
         }
 
@@ -6400,6 +6403,7 @@ namespace NeoCompose.Runtime
             }
             var metadata = new RuntimeConstructorMetadata
             {
+                replayStoredInstance = replayStoredInstance,
                 membersBySchemaKey = membersBySchemaKey,
                 genericEnv = genericEnv,
                 classPlan = classPlan,
