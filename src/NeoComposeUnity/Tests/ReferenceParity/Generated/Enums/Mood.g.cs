@@ -14,8 +14,8 @@ namespace NeoCompose.Tests.ReferenceParity
     [NeoEnum(typeof(MoodOptions))]
     public enum Mood
     {
-        Calm = 835821631,
-        Happy = 1284719698,
+        Calm = 1398338606,
+        Happy = 928017576,
     }
 
     /// <summary>
@@ -27,8 +27,8 @@ namespace NeoCompose.Tests.ReferenceParity
         {
             return optionId switch
             {
-                "98a49e1a-7470-4d06-a10b-d8cf45bc4354" => Mood.Calm,
-                "1a879748-33cb-4343-bb85-6936d6c2d3a8" => Mood.Happy,
+                "0ca74671-699e-446f-8e25-858787b09432" => Mood.Calm,
+                "7aed1929-e674-437d-9497-f906fe4af3a2" => Mood.Happy,
                 _ => NeoUndeclaredEnumOptions<Mood>.FromOptionId(optionId),
             };
         }
@@ -37,8 +37,8 @@ namespace NeoCompose.Tests.ReferenceParity
         {
             return value switch
             {
-                Mood.Calm => "98a49e1a-7470-4d06-a10b-d8cf45bc4354",
-                Mood.Happy => "1a879748-33cb-4343-bb85-6936d6c2d3a8",
+                Mood.Calm => "0ca74671-699e-446f-8e25-858787b09432",
+                Mood.Happy => "7aed1929-e674-437d-9497-f906fe4af3a2",
                 _ => NeoUndeclaredEnumOptions<Mood>.OptionId(value),
             };
         }
@@ -55,8 +55,8 @@ namespace NeoCompose.Tests.ReferenceParity
         {
             return optionId switch
             {
-                "98a49e1a-7470-4d06-a10b-d8cf45bc4354" => true,
-                "1a879748-33cb-4343-bb85-6936d6c2d3a8" => true,
+                "0ca74671-699e-446f-8e25-858787b09432" => true,
+                "7aed1929-e674-437d-9497-f906fe4af3a2" => true,
                 _ => false,
             };
         }

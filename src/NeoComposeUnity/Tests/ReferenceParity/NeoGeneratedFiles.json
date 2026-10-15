@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "projectId": "project-id",
-  "codegenRevision": "d4026a3848848c8507d45dd54b6d31c1a0588b17b64c35e3fe9b25c89eb2fc05",
+  "codegenRevision": "4eae63e39962f0ceb684c43fe8932b031b420c82ad6319670c46608bd9cd1470",
   "files": [
     {
       "id": "class:root-assets-class-id",
@@ -9,19 +9,19 @@
       "hash": "796e325b4ae7fe4e95df95e123d6dcb4577aaa636666348dac4fb6289496784f"
     },
     {
-      "id": "class:dc5784b2-2ec3-4210-a2a7-fbe536b0913a",
+      "id": "class:43c851fa-ef6e-4e58-8c65-51ad2ba198b3",
       "path": "Generated/Classes/Box.g.cs",
-      "hash": "f8a4099e43938cfa1f51f212177990c5c519f1eda0ece29c9e0fb49b84914868"
+      "hash": "a41cc0c0afa5aa55986acbe77192b7ad61af96082d0d0709611bbba93f8cfec7"
     },
     {
-      "id": "class:a4c9b4e5-86c1-403d-b0a1-428736dff95b",
+      "id": "class:ae717532-235c-49c1-a904-c33d3bd8cdd9",
       "path": "Generated/Classes/Critter.g.cs",
-      "hash": "79aa364259e00877d62f186f9f71b45a44653a687945aeb214e52d24c1deb921"
+      "hash": "3228e05250bf09da36e9749ca2cfe51e9026d46380f67390d37155d200e22f8a"
     },
     {
-      "id": "class:58446f47-07a0-4c8e-ac05-c6cd67815c90",
+      "id": "class:2c9efa0c-86fb-4ff9-9672-0b24015e4592",
       "path": "Generated/Classes/Gauge.g.cs",
-      "hash": "7b6bf7ee81a1bca9468abc82354f55505df16cb664da3ef20a88094c32151744"
+      "hash": "66af23f7a46760e05b8f4160c7d4818bb133f39856d8e206b83302982b768a24"
     },
     {
       "id": "class:system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7",
@@ -36,12 +36,12 @@
     {
       "id": "class:system_f671535d-0eb6-4139-9caf-5c5276febd31",
       "path": "Generated/Classes/NeoObject.g.cs",
-      "hash": "c5a63da3fb8703ae6c789c20f9b71fc9fce93a4aca0ccc9aed0a5f48b01cee46"
+      "hash": "1e3a8eac7516b879ab4d26e46d590345f5aa1c3d12917f2419e3f4589375c37a"
     },
     {
       "id": "class:system_61b30a92-90dc-4bf8-8503-ee4f6414effc",
       "path": "Generated/Classes/NeoObjectBase.g.cs",
-      "hash": "69b1eb808c79a87c90a90e996a203b613bc546f0077bd542ea47c5ce07c7f7f7"
+      "hash": "4ef547a69da7346418f77380bd1037bcd246f27ae299a83f7df521fe228a1c45"
     },
     {
       "id": "class:system_ccc3330c-2db5-44dc-9c8e-5ebfe430dec9",
@@ -69,14 +69,14 @@
       "hash": "487440b9ced45617c9b1ff6415d7379a5e6d9a994cedb0c34b88ab0ae5262432"
     },
     {
-      "id": "class:e85e04e8-f133-4603-8304-c463363e1958",
+      "id": "class:30de4b9f-275f-4fe6-b618-6af6601dbc3d",
       "path": "Generated/Classes/Pinboard.g.cs",
-      "hash": "eee83977c566cafb0e0d45360a47397584fd99e2c42e222127454c8e4f1a749b"
+      "hash": "9a3d6b4a393e1d2b17bec00bdb8526f3bc9ae0cb8cb06aa14c7afbe089718c4f"
     },
     {
-      "id": "class:7886bc95-d1be-4ce2-b8b9-73dd59e3c948",
+      "id": "class:81b2f322-948b-49d5-b742-c828e8ad58e2",
       "path": "Generated/Classes/Probe.g.cs",
-      "hash": "8ca06eca7b4ffda84123bed8e7fc7dc44559aa8e0953c1cde4a470f6d0155b69"
+      "hash": "244a0793a78af5c80f2db00783b5abf9526e6366bce25b4db0420065f520078c"
     },
     {
       "id": "class:root-save-class-id",
@@ -89,9 +89,9 @@
       "hash": "c85f94ade63ceb62c3e2b4d2e189e635b7163e900be9f455c70a0cce64760090"
     },
     {
-      "id": "class:e871e0b0-d1e7-4e1c-b47a-8d6a2f685359",
+      "id": "class:8f67129c-e14e-4d7e-bdeb-ce979096a907",
       "path": "Generated/Classes/Tally.g.cs",
-      "hash": "dd2df610c0148a90837a54f08ffe07fe4496b7b2ffd8deaf3887287d00f89182"
+      "hash": "bc1f48d3e726ebc81664e01a7b5afc92bcd77dd1482d8e1f35e690e023a569af"
     },
     {
       "id": "class:96c616e0-e204-5f56-9f77-90b195896a5a",
@@ -104,9 +104,9 @@
       "hash": "1daec5150b3de3d7b2f3846670ae81dfdc7bfbf285a0e652b68d5abdd28744a4"
     },
     {
-      "id": "enum:79d38a18-dcd7-4388-8048-fbcc3209b17e",
+      "id": "enum:f1fe395e-b3e0-4812-bad0-65100f7e4d61",
       "path": "Generated/Enums/Mood.g.cs",
-      "hash": "6cbb01fc8f071ad47062efd87ebc92f816015b2d161c0541ec672a61f16e1044"
+      "hash": "86bd4633886460c24f523ac0760c31e113ef03ab3bfa19815c917a9c7dc8c1f0"
     },
     {
       "id": "enum:system_072f749f-62fe-5917-9f7e-f9f29c3a7063",
@@ -141,7 +141,7 @@
     {
       "id": "project:factories",
       "path": "Generated/TestProjectNeo.Factories.g.cs",
-      "hash": "480ceee1de53b5c3105e138e16b08f369035d6cce0554f6e0d05043e52bc0cee"
+      "hash": "2b10ef04e19e9f81b9e39d1cfc63e039c0a5e2e950302a19d35f5bb54665ecbd"
     },
     {
       "id": "project:functions",
