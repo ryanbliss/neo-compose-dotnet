@@ -4800,7 +4800,8 @@ namespace NeoCompose.Runtime
             object?[] argumentValues,
             IReadOnlyList<RuntimeConstructorField> fields,
             NeoScript.NSGetterEvaluator.Context ctx,
-            Action<NeoScript.NSGetterEvaluator.Context>? evaluateFieldValues = null)
+            Action<NeoScript.NSGetterEvaluator.Context>? evaluateFieldValues = null,
+            bool bindsOnRead = false)
         {
             RuntimeConstructedClassValue constructed = ConstructDeclaredClassValueData(
                 resolved, argumentValues, fields, ctx, evaluateFieldValues);
@@ -4808,7 +4809,7 @@ namespace NeoCompose.Runtime
             {
                 using var wrapperReads = resolved.client.SuppressValueReads();
                 return new NeoMemberClassWritable(resolved.client, constructed.member,
-                    constructed.value.id, NeoValueOwnership.Session);
+                    constructed.value.id, NeoValueOwnership.Session, bindsOnRead);
             }
             catch
             {
@@ -5904,7 +5905,10 @@ namespace NeoCompose.Runtime
                 resolved,
                 argumentValues,
                 callSiteFields,
-                ctx);
+                ctx,
+                // Stored fields are applied after replay. Eager child wrappers
+                // would traverse incomplete declaration defaults before then.
+                bindsOnRead: replayStoredInstance);
         }
 
         /// <summary>

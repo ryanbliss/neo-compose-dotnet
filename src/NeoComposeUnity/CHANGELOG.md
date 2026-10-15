@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.71.7] - 2026-10-15
+
+- Fixed: loading sparse instances could fail with an unbound generic-slot error when a required child contained a generic collection. Replay now defers temporary child wrappers until their stored fields are available. Existing exports and saves load without changes.
+
 ## [0.71.6] - 2026-10-14
 
 - Fixed: a null `NeoReadOnlyColor`, `NeoReadOnlyVector2`, `NeoReadOnlyVector2Int`, `NeoReadOnlyVector3`, or `NeoReadOnlyVector3Int` threw a `NullReferenceException` when read into its nullable native type. It now reads as null, as a native value would. This covers `TextColor = active ? null : palette.Grey.Light;`, where C# types the conditional as the wrapper, and an unset optional member such as `Vector2? offset = collider.Offset;`. Both used to need a cast to the native type.
