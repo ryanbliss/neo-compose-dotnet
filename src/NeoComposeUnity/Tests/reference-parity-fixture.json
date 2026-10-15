@@ -35,6 +35,8 @@
     "  public Gauge() { this.A = Reference(this.Count); this.RR = Reference(this.A); this.At = Reference(this.Spot); this.FeelRef = Reference(this.Feel); this.XsRef = this.Xs; this.Chosen = this.Picks; this.Pinned = Reference(this.Count); }",
     "}",
     "",
+    "class Pinboard { @storage(allowed: .Session) public Reference<int>? Note; }",
+    "",
     "class Probe {",
     "  @storage(allowed: .Session) public static Gauge G = new() { Xs = [1, 5] };",
     "  @storage(allowed: .Session) public static int Total = 2;",
@@ -46,6 +48,7 @@
     "  @storage(allowed: .Save) public static Reference<int?>? SavedMaybe;",
     "  @storage(allowed: .Save) public static NeoDelegate<int>? Hook;",
     "  @storage(allowed: .Save) public static int Saved = 1;",
+    "  @storage(allowed: .Save) public static Pinboard Board = new();",
     "",
     "  public static void Listen() { Probe.G.A.OnChanged += Probe.G.Hear; }",
     "  public static void WriteCount() { Probe.G.Count = 41; }",
@@ -69,6 +72,7 @@
     "  public static int SavedPinsSession() { var t = new Tally(); Probe.SavedPin = Reference(t.N); return 0; }",
     "  public static int SavedPinsSessionClosure() { var t = new Tally(); Reference<int> r = Reference(t.N); Probe.Hook = () => r; return 0; }",
     "  public static int SavedPinsSessionDictionary() { var t = new Tally(); Dictionary<string, Reference<int>> rs = { \"n\": Reference(t.N) }; Probe.Hook = () => rs[\"n\"]; return 0; }",
+    "  public static int SavedOwnerSessionSlot() { var t = new Tally(); Probe.Board.Note = Reference(t.N); var note = Probe.Board.Note; return note ?? 0; }",
     "  public static int StoreHook() { Reference<int> r = Reference(Probe.Saved); List<Reference<int>> rs = [r]; Probe.Hook = () => r + rs[0]; return 0; }",
     "  public static int CallHook() { Probe.Saved = 5; var hook = Probe.Hook; return hook != null ? hook() : 0; }",
     "  public static int SavedHookReads() { Probe.StoreHook(); return Probe.CallHook(); }",
@@ -101,7 +105,8 @@
     "GenericSlot": 5,
     "GenericHandle": true,
     "ReadA": 3,
-    "SavedHookReads": 10
+    "SavedHookReads": 10,
+    "SavedOwnerSessionSlot": 2
   },
   "refuses": {
     "ReadonlyTarget": "`Gauge.Fixed` is readonly, so",
