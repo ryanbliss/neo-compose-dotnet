@@ -218,6 +218,8 @@ namespace NeoCompose.Runtime.NeoScript
         /// </summary>
         private static bool IsRetired(string rowId, Context ctx)
         {
+            if (!ctx.client.AnyReleasedStaticDefault())
+                return false;
             string id = rowId;
             while (TryFindHolder(id, ctx, out string? parentId))
             {

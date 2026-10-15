@@ -582,6 +582,7 @@ namespace NeoCompose.Runtime
             virtualClassChildren.Clear();
             virtualClassChildrenEpoch++;
             virtualClassPlacementByChildId.Clear();
+            virtualPlacementsVersion++;
             virtualLookupBindingsByMember.Clear();
             virtualEntriesByContainer.Clear();
             virtualContainerByRow.Clear();
@@ -2509,15 +2510,41 @@ namespace NeoCompose.Runtime
         {
             if (candidateReadPlan is null)
                 return false;
+            var state = (candidateReadPlan, candidateReadPlan.Version, virtualPlacementsVersion, WriteRevision, userSource.WriteRevision);
+            if (!severedVirtualIdsState.Equals(state))
+            {
+                severedVirtualIdsState = state;
+                severedVirtualIds.Clear();
+            }
+            // Ids an expansion enumerates share ancestors, so each one is
+            // walked once: every id on the walk shares its answer.
+            int start = severedVirtualIdsPath.Count;
+            bool severed = false;
             string id = valueId;
             while (id != rootId && virtualClassPlacementByChildId.TryGetValue(id, out VirtualClassPlacement? placement))
             {
+                if (severedVirtualIds.TryGetValue((id, rootId), out severed))
+                    break;
+                severedVirtualIdsPath.Add(id);
                 if (!CandidateRetainsVirtualParent(id, placement))
-                    return true;
+                {
+                    severed = true;
+                    break;
+                }
                 id = placement.parentValueId;
             }
-            return false;
+            for (int i = start; i < severedVirtualIdsPath.Count; i++)
+                severedVirtualIds[(severedVirtualIdsPath[i], rootId)] = severed;
+            severedVirtualIdsPath.RemoveRange(start, severedVirtualIdsPath.Count - start);
+            return severed;
         }
+
+        // CandidateSeversVirtualId's answers, valid while the plan, its
+        // version, the placements, and the stores they resolve against hold.
+        private readonly Dictionary<(string valueId, string rootId), bool> severedVirtualIds = new();
+        private (NeoWritePlan? plan, int version, int placements, long own, long user) severedVirtualIdsState;
+        private readonly List<string> severedVirtualIdsPath = new();
+        private int virtualPlacementsVersion;
 
         /// <summary>
         /// Virtual storage boundaries are independent writable roots: a slot
@@ -2588,6 +2615,7 @@ namespace NeoCompose.Runtime
             if (!virtualLookupBindingsByMember.TryGetValue(member.id, out var bindings))
                 virtualLookupBindingsByMember[member.id] = bindings = new(StringComparer.Ordinal);
             bindings.Add(childValueId);
+            virtualPlacementsVersion++;
             virtualClassPlacementByChildId[childValueId] =
                 new VirtualClassPlacement
                 {
@@ -2698,6 +2726,7 @@ namespace NeoCompose.Runtime
                         && placement.rootId == rootId)
                     {
                         virtualClassPlacementByChildId.Remove(childId);
+                        virtualPlacementsVersion++;
                         RemoveVirtualLookupBinding(placement.member.id, childId);
                     }
                 }

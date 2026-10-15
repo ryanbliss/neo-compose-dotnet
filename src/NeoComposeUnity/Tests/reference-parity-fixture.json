@@ -1,5 +1,5 @@
 {
-  "$comment": "P112 §12 cross-runtime reference parity fixture. Each case calls a static Probe function of `source` on a fresh session; `returns` pins its result and `refuses` a fragment of the error it throws. The web half runs the cases through `neo test`; the Unity half runs them over a `neo export` of the same source. Vendor this file verbatim.",
+  "$comment": "P112 §12 cross-runtime reference parity fixture. Each case calls a static Probe function of `source` on a fresh session; `returns` pins its result and `refuses` a fragment of the error it throws. The web half runs the cases through `neo test`; the Unity half runs them over a `neo export` of the same source. `Entry`, `EntryRemoved`, and `HeldWrite` read a bound reference to a scalar entry, which source can't select (an entry has no path), so each host's own test seeds that selection and runs them. Vendor this file verbatim.",
   "source": [
     "enum Mood { Calm, Happy }",
     "",

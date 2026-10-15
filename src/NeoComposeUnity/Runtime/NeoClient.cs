@@ -2197,6 +2197,7 @@ namespace NeoCompose.Runtime
             SchemaResolution = new object();
             staticReadKeys.Clear();
             staticBindings.Clear();
+            staticBindingIndex.revision = (-1, -1);
             foreach (NeoClassNode node in classNodes.Values)
                 node.live = false;
             classNodes.Clear();
@@ -3826,19 +3827,14 @@ namespace NeoCompose.Runtime
                     }
                 }
             }
-            if (ownership != NeoValueOwnership.Asset)
+            if (ownership != NeoValueOwnership.Asset
+                && CurrentStaticBindings().staticByBoundValue.TryGetValue((ownership, valueId), out string? boundMemberId)
+                && TryGetMember(boundMemberId, out Member? storeOwner)
+                && storeOwner.Modifier == NeoMemberModifierKind.Static
+                && IsStaticBoundTo(storeOwner, ownership, valueId))
             {
-                foreach (var binding in GetWritableStore(ownership).staticBindings)
-                {
-                    if (binding.Value == valueId
-                        && TryGetMember(binding.Key, out Member? bound)
-                        && bound.Modifier == NeoMemberModifierKind.Static
-                        && IsStaticBoundTo(bound, ownership, valueId))
-                    {
-                        owner = bound;
-                        return true;
-                    }
-                }
+                owner = storeOwner;
+                return true;
             }
             if (candidateReadPlan is not null)
             {
@@ -3857,6 +3853,67 @@ namespace NeoCompose.Runtime
                 }
             }
             owner = null;
+            return false;
+        }
+
+        /// <summary>The writable stores' static bindings, indexed as of <see cref="revision"/>.</summary>
+        private sealed class StaticBindingIndex
+        {
+            // This client's writes and its user client's.
+            internal (long own, long user) revision = (-1, -1);
+            internal readonly Dictionary<(NeoValueOwnership, string), string> staticByBoundValue = new();
+            internal bool? anyReleasedDefault;
+        }
+
+        private readonly StaticBindingIndex staticBindingIndex = new();
+
+        private StaticBindingIndex CurrentStaticBindings()
+        {
+            var revision = (WriteRevision, userSource.WriteRevision);
+            if (staticBindingIndex.revision == revision)
+                return staticBindingIndex;
+            staticBindingIndex.revision = revision;
+            staticBindingIndex.anyReleasedDefault = null;
+            staticBindingIndex.staticByBoundValue.Clear();
+            foreach (NeoValueOwnership ownership in WritableStores)
+            {
+                foreach (var binding in GetWritableStore(ownership).staticBindings)
+                {
+                    if (binding.Value is string boundValueId)
+                        staticBindingIndex.staticByBoundValue.TryAdd((ownership, boundValueId), binding.Key);
+                }
+            }
+            return staticBindingIndex;
+        }
+
+        /// <summary>
+        /// P112 §4.1. Whether any static's authored default is released, so a
+        /// reference read walks its target's holders only once one is.
+        /// </summary>
+        internal bool AnyReleasedStaticDefault()
+        {
+            if (candidateReadPlan is not null && candidateReadPlan.Bindings.Count > 0)
+                return true;
+            StaticBindingIndex index = CurrentStaticBindings();
+            index.anyReleasedDefault ??= ReleasesStaticDefault();
+            return index.anyReleasedDefault.Value;
+        }
+
+        private bool ReleasesStaticDefault()
+        {
+            foreach (NeoValueOwnership ownership in WritableStores)
+            {
+                foreach (var binding in GetWritableStore(ownership).staticBindings)
+                {
+                    if (TryGetMember(binding.Key, out Member? member)
+                        && member.valueId is { } authored
+                        && binding.Value != authored
+                        && IsReleasedStaticDefault(authored))
+                    {
+                        return true;
+                    }
+                }
+            }
             return false;
         }
 
