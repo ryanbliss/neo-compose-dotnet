@@ -2081,7 +2081,17 @@ namespace NeoCompose.Runtime
             }
             virtualClassChildrenEpoch++;
             foreach (var pair in expansion.Placements)
+            {
                 TrackVirtualClassPlacement(rootId, pair.Value.parentValueId, pair.Key, pair.Value.member, pair.Value.ownership, pair.Value.parentOwnership, pair.Value.path, pair.Value.schemaKey);
+                // An authored row at a writable root's virtual id is that root's
+                // materialized spine, which the authored walk's links don't reach.
+                if (pair.Value.ownership != NeoValueOwnership.Asset
+                    && data.values.ContainsKey(pair.Key)
+                    && authoredOwnership.TryAdd(pair.Key, pair.Value.ownership))
+                {
+                    authoredOwnershipEpoch++;
+                }
+            }
             foreach (string id in expansion.Footprint)
                 TrackVirtualFootprint(rootId, id);
             IndexConstructorArgumentRows(expansion.Root);

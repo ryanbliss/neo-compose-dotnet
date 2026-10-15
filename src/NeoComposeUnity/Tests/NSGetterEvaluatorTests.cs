@@ -1353,12 +1353,21 @@ namespace NeoCompose.Tests
             var node = (NeoMemberClass)NeoMember.Create(client, testMember, row.id);
             var generated = new TestReadOnlyGeneratedValue(client, node);
 
-            object? result = EvaluateThisMember(client, generated, "LookupSet");
-
             if (selection == NeoMemberSelectionKind.Multi)
-                Assert.That(result, Is.EqualTo(new object?[] { "v-list-1" }));
-            else
-                Assert.That(result, Is.EqualTo("first"));
+            {
+                Assert.That(
+                    EvaluateThisMember(client, generated, "LookupSet"),
+                    Is.EqualTo(new object?[] { "v-list-1" }));
+                return;
+            }
+            // P112 §3.1: a single selection over a scalar list is a
+            // reference, which a value read goes through.
+            object? result = EvaluatePointer(client, generated, new DerefPointer
+            {
+                type = PointerKind.Deref,
+                pointer = KeyOf(ThisPointer(), "LookupSet"),
+            });
+            Assert.That(result, Is.EqualTo("first"));
         }
 
         [Test]

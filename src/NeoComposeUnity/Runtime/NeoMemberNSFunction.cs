@@ -1121,9 +1121,10 @@ namespace NeoCompose.Runtime
             }
             TypeInfo? entryTypeInfo = typeInfo switch
             {
-                FunctionArgumentTypeInfo argument => argument.entryTypeInfo,
+                FunctionArgumentTypeInfo argument => argument.entryTypeInfo ?? argument.targetTypeInfo,
                 CollectionTypeInfo collection => collection.entryTypeInfo,
                 LookupTypeInfo lookup => lookup.entryTypeInfo,
+                ReferenceTypeInfo reference => reference.targetTypeInfo,
                 _ => null,
             };
             if (entryTypeInfo is not null && ContainsGeneric(entryTypeInfo))

@@ -1829,6 +1829,9 @@ namespace NeoCompose.Runtime
         private readonly Dictionary<string, string> staticReadKeys = new(System.StringComparer.Ordinal);
         private readonly Dictionary<string, NeoStaticBinding> staticBindings = new(System.StringComparer.Ordinal);
 
+        /// <summary>Whether <paramref name="id"/> names an authored row, which outlives every store.</summary>
+        internal bool IsAuthoredValue(string id) => data.values.ContainsKey(id);
+
         /// <summary>The one binding view of a static member; it resolves its target live.</summary>
         internal NeoStaticBinding StaticBinding(string memberId)
         {
@@ -4051,6 +4054,18 @@ namespace NeoCompose.Runtime
             return false;
         }
 
+        /// <summary>The store an authored row belongs to; false when no authored row has <paramref name="valueId"/>.</summary>
+        internal bool TryGetAuthoredRowOwnership(string valueId, out NeoValueOwnership ownership)
+        {
+            if (data.values.TryGetValue(valueId, out MemberValue row))
+            {
+                ownership = ResolveAuthoredOwnership(valueId, row);
+                return true;
+            }
+            ownership = default;
+            return false;
+        }
+
         private NeoValueOwnership ResolveAuthoredOwnership(
             string valueId,
             MemberValue row)
@@ -4947,6 +4962,15 @@ namespace NeoCompose.Runtime
                 {
                     member = constructorEntry;
                     return true;
+                }
+                // Only its store's binding names a runtime static's row.
+                foreach (NeoValueOwnership store in WritableStores)
+                {
+                    if (TryGetWritableValue(store, valueId, out MemberValue? _)
+                        && TryFindStaticOwner(store, valueId, out member))
+                    {
+                        return true;
+                    }
                 }
                 member = null;
                 return false;
@@ -8115,6 +8139,9 @@ namespace NeoCompose.Runtime
                 case LookupTypeInfo lookupTypeInfo:
                     discriminator = lookupTypeInfo.collectionMemberId;
                     entryTypeInfo = lookupTypeInfo.entryTypeInfo;
+                    break;
+                case ReferenceTypeInfo referenceTypeInfo:
+                    entryTypeInfo = referenceTypeInfo.targetTypeInfo;
                     break;
                 case DelegateTypeInfo delegateTypeInfo:
                     delegateReturnType = delegateTypeInfo.returnTypeInfo;

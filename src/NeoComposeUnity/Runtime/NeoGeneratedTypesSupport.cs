@@ -7670,6 +7670,7 @@ namespace NeoCompose.Runtime
         /// <summary>The value id a Lookup constructor argument selects, or null.</summary>
         private static string? LookupValueId(object? value) => value switch
         {
+            NeoScript.NSSlotReference reference => reference.TargetId,
             NeoLookupSelection selection => selection.valueId,
             INeoValueReference reference => reference.valueId,
             string id => id,

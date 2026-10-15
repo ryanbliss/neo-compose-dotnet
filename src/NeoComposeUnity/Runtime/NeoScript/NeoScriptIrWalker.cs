@@ -179,6 +179,10 @@ namespace NeoCompose.Runtime.NeoScript
                     return false;
                 case ForceUnwrapPointer unwrap:
                     return AnyPointer(unwrap.pointer, predicate);
+                case RowOfPointer rowOf:
+                    return AnyPointer(rowOf.place, predicate);
+                case DerefPointer deref:
+                    return AnyPointer(deref.pointer, predicate);
                 case IsCheckPointer check:
                     return AnyPointer(check.pointer, predicate);
                 case CallGetterPointer getter:
