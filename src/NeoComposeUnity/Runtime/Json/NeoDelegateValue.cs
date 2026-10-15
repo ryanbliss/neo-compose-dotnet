@@ -145,6 +145,10 @@ namespace NeoCompose.Runtime.Json
             {
                 serializer.Populate(subReader, value);
             }
+            // Captures read as their runtime values, so a captured list is the
+            // array its closure made rather than a JArray.
+            if (obj["captures"] is JArray captures)
+                value.captures = (object?[])NeoJsonRuntimeValue.From(captures)!;
             return value;
         }
 

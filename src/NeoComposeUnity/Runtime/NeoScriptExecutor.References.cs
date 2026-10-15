@@ -429,6 +429,10 @@ namespace NeoCompose.Runtime
                     case object?[] entries:
                         VisitCaptures(entries, subject, holder, ctx);
                         break;
+                    // A local Dictionary; a row record's fields hold ids, not references.
+                    case Dictionary<string, object?> entries when entries is not INeoValueReference:
+                        VisitCaptures(entries.Values, subject, holder, ctx);
+                        break;
                     case NeoDelegateValue { captures: { } nested }:
                         VisitCaptures(nested, subject, holder, ctx);
                         break;

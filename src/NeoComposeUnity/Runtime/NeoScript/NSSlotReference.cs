@@ -3,7 +3,9 @@
 
 #nullable enable
 
+using System;
 using NeoCompose.Runtime.Json;
+using Newtonsoft.Json;
 
 namespace NeoCompose.Runtime.NeoScript
 {
@@ -37,6 +39,7 @@ namespace NeoCompose.Runtime.NeoScript
     /// reference is the handle itself, so it never takes this shape. Hosts
     /// see only the id.
     /// </summary>
+    [JsonConverter(typeof(NSSlotReferenceConverter))]
     internal sealed class NSSlotReference
     {
         internal readonly string TargetId;
@@ -60,5 +63,22 @@ namespace NeoCompose.Runtime.NeoScript
             Target = target;
             MemberId = memberId;
         }
+    }
+
+    /// <summary>
+    /// Writes a reference as its target's id, the shape a saved closure's
+    /// capture keeps. The capture's declared type restores it on invocation.
+    /// </summary>
+    internal sealed class NSSlotReferenceConverter : JsonConverter
+    {
+        public override bool CanRead => false;
+
+        public override bool CanConvert(Type objectType) => objectType == typeof(NSSlotReference);
+
+        public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer) =>
+            throw new NotSupportedException("A reference reads back through its declared type, not as a reference.");
+
+        public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer) =>
+            writer.WriteValue(((NSSlotReference)value!).TargetId);
     }
 }

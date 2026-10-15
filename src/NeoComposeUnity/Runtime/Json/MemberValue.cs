@@ -6,6 +6,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -1968,6 +1969,30 @@ namespace NeoCompose.Runtime.Json
                 }
                 return null;
             }
+        }
+    }
+
+    /// <summary>A JSON token as the plain runtime value the evaluator reads.</summary>
+    internal static class NeoJsonRuntimeValue
+    {
+        internal static object? From(JToken token)
+        {
+            return token.Type switch
+            {
+                JTokenType.Boolean => token.Value<bool>(),
+                JTokenType.Integer => token.Value<long>(),
+                JTokenType.Float => token.Value<double>(),
+                JTokenType.String => token.Value<string>(),
+                JTokenType.Array => ((JArray)token)
+                    .Select(entry => From(entry))
+                    .ToArray(),
+                JTokenType.Object => ((JObject)token).Properties()
+                    .ToDictionary(
+                        property => property.Name,
+                        property => From(property.Value)),
+                JTokenType.Null or JTokenType.Undefined => null,
+                _ => token.ToObject<object>(),
+            };
         }
     }
 }

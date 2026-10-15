@@ -68,6 +68,10 @@
     "  public static int ConstructedPin() { var g = new Gauge(); g.Count = 6; return g.Pinned; }",
     "  public static int SavedPinsSession() { var t = new Tally(); Probe.SavedPin = Reference(t.N); return 0; }",
     "  public static int SavedPinsSessionClosure() { var t = new Tally(); Reference<int> r = Reference(t.N); Probe.Hook = () => r; return 0; }",
+    "  public static int SavedPinsSessionDictionary() { var t = new Tally(); Dictionary<string, Reference<int>> rs = { \"n\": Reference(t.N) }; Probe.Hook = () => rs[\"n\"]; return 0; }",
+    "  public static int StoreHook() { Reference<int> r = Reference(Probe.Saved); List<Reference<int>> rs = [r]; Probe.Hook = () => r + rs[0]; return 0; }",
+    "  public static int CallHook() { Probe.Saved = 5; var hook = Probe.Hook; return hook != null ? hook() : 0; }",
+    "  public static int SavedHookReads() { Probe.StoreHook(); return Probe.CallHook(); }",
     "  public static int SavedPinsStatic() { Probe.Loose = 3; Probe.SavedMaybe = Reference(Probe.Loose); return 0; }",
     "  public static int SavedPinsAuthored() { Probe.SavedPin = Reference(Probe.Total); var pin = Probe.SavedPin; return pin ?? 0; }",
     "  public static int SavedPinsSaved() { Probe.SavedPin = Reference(Probe.Saved); var pin = Probe.SavedPin; if (pin != null) { pin = 4; } return Probe.Saved; }",
@@ -96,12 +100,14 @@
     "SavedPinsAuthored": 2,
     "GenericSlot": 5,
     "GenericHandle": true,
-    "ReadA": 3
+    "ReadA": 3,
+    "SavedHookReads": 10
   },
   "refuses": {
     "ReadonlyTarget": "`Gauge.Fixed` is readonly, so",
     "SavedPinsSession": "Reference `Probe.SavedPin` is Save-stored and can't name",
     "SavedPinsSessionClosure": "Closure `Probe.Hook`",
-    "SavedPinsStatic": "Reference `Probe.SavedMaybe` is Save-stored and can't name"
+    "SavedPinsStatic": "Reference `Probe.SavedMaybe` is Save-stored and can't name",
+    "SavedPinsSessionDictionary": "Closure `Probe.Hook`"
   }
 }

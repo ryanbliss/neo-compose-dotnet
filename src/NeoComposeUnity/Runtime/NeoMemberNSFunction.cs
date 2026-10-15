@@ -2073,6 +2073,15 @@ namespace NeoCompose.Runtime
                     value = NormalizeDictionary(
                         client, ownership, value, typeInfo, ctx, subject);
                     break;
+                case MemberKind.Reference:
+                    // P112 §1.1. A saved closure's capture holds a slot reference as its target's id.
+                    if (value is string targetId
+                        && typeInfo is ReferenceTypeInfo reference
+                        && NeoReferenceTypes.Category(reference.targetTypeInfo, client) == NeoReferenceCategory.Slot)
+                    {
+                        value = new NSSlotReference(targetId, null, reference.targetTypeInfo, null);
+                    }
+                    break;
             }
 
             ValidateRuntimeValue(value, typeInfo, subject);

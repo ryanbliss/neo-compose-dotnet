@@ -91,6 +91,21 @@ namespace NeoCompose.Tests
             Assert.AreEqual(17, InvokeProbe(client, "Heard"));
         }
 
+        [Test]
+        public void SavedClosureKeepsItsCapturedReferenceAcrossAReload()
+        {
+            ProjectData data = Data();
+            string saved;
+            using (NeoClient client = Client(data))
+            {
+                InvokeProbe(client, "StoreHook");
+                saved = client.SerializeSaveData();
+            }
+            using NeoClient reloaded = NeoTestSaveStack.ClientFromSchema(data, assumeCurrentSchema: false, loadedSaveContent: saved);
+
+            Assert.AreEqual(10, InvokeProbe(reloaded, "CallHook"), "the closure reads its captured reference and list of references");
+        }
+
         /// <summary>Gives <c>Probe.G</c>'s Lookup a row that selects <paramref name="entryId"/>.</summary>
         private static void Select(ProjectData data, string lookup, string entryId)
         {

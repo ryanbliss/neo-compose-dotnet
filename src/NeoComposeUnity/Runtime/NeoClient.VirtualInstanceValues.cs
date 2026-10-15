@@ -1736,7 +1736,7 @@ namespace NeoCompose.Runtime
                 MemberKind.Color => token.ToObject<NeoColorValue>(),
                 MemberKind.Sprite => token.ToObject<SpriteValue>(),
                 MemberKind.Audio => token.ToObject<FileValue>(),
-                _ => RuntimeJsonValue(token),
+                _ => NeoJsonRuntimeValue.From(token),
             };
         }
 
@@ -1770,26 +1770,6 @@ namespace NeoCompose.Runtime
             return NSGetterEvaluator.UnwrapRow(row, ctx, ownership)
                 ?? throw new InvalidOperationException(
                     $"Constructor argument value '{valueId}' resolved to null.");
-        }
-
-        private static object? RuntimeJsonValue(JToken token)
-        {
-            return token.Type switch
-            {
-                JTokenType.Boolean => token.Value<bool>(),
-                JTokenType.Integer => token.Value<long>(),
-                JTokenType.Float => token.Value<double>(),
-                JTokenType.String => token.Value<string>(),
-                JTokenType.Array => ((JArray)token)
-                    .Select(entry => RuntimeJsonValue(entry))
-                    .ToArray(),
-                JTokenType.Object => ((JObject)token).Properties()
-                    .ToDictionary(
-                        property => property.Name,
-                        property => RuntimeJsonValue(property.Value)),
-                JTokenType.Null or JTokenType.Undefined => null,
-                _ => token.ToObject<object>(),
-            };
         }
 
         private VirtualExpansionNode IndexVirtualExpansion(
