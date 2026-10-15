@@ -1,5 +1,36 @@
 # Changelog
 
+## [0.72.0] - 2026-10-15
+
+`Reference<T>` works for any value type (P112). A class, interface, list, set, or dictionary reference is the handle, as before. Any other `T`, such as `Reference<int>`, names another member's slot and generates as `NeoReference<T>`. Requires CLI 0.82.0; run `neo pull` and `neo export` after upgrading.
+
+```csharp
+// New: a reference to a value slot.
+public sealed class NeoReference<T> : NeoReference, IEquatable<NeoReference<T>>
+{
+    public string TargetId { get; }
+    public T Value { get; }          // reads the target slot
+    public bool TryWrite(T value);   // false when the target is asset-owned or readonly
+}
+
+// New on every generated class value: Reference(value.Field) in C#.
+public NeoReference<T> ReferenceTo<T>(NeoField<T> field);
+
+// Generated: `public Reference<int> Tracked;` and its collections.
+public NeoReference<int> Tracked { get; set; }
+public NeoList<NeoReference<int>> Waypoints { get; }
+public NeoLookupSet<NeoReference<int>> Picks { get; }
+
+// Generated: a collection reference is the collection's read-only view.
+public NeoReadOnlyDictionary<int>? ScoresRef { get; set; }
+```
+
+- Assigning a `NeoReference<T>` property rebinds it. `TryWrite` writes the target and leaves the reference alone.
+- Two references are equal when they name the same row, so reference lists, sets and dictionaries compare entries by target.
+- `NeoReadOnlyList<T>`, `NeoReadOnlyDictionary<T>`, `NeoReadOnlyDictionary<TKey, TValue>`, and the read-only set views gain `TryWritable`, so a collection reference can write its target when the target's store allows it.
+- A reference's `OnChanged` listeners fire when it rebinds and when its target's value changes.
+- Breaking: `Reference<Item?>` no longer compiles. Write `Reference<Item>?` for a reference that may be unset.
+
 ## [0.71.9] - 2026-10-15
 
 - Fixed: writing into a saved instance could fail with a missing immutable default, such as `DefaultData`, when constructor replay reused an unchanged dependency. Reused defaults now retain their child and placement indexes throughout write validation. Existing exports and saves need no changes.
