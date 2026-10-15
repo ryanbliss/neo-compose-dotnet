@@ -1206,10 +1206,6 @@ namespace NeoCompose.Runtime.NeoScript
             }
 
             /// <summary>
-            /// <see cref="EnterFunction"/> without a call-stack frame, for a
-            /// synchronous body that runs against another <c>this</c>.
-            /// </summary>
-            /// <summary>
             /// Whether a constructor body still runs for <paramref name="owner"/>,
             /// so its readonly members still accept writes (P112 §3.6).
             /// </summary>
@@ -1238,6 +1234,10 @@ namespace NeoCompose.Runtime.NeoScript
                     && FindRowIdByReference(owner, this) is { } ownerId
                     && FindRowIdByReference(receiver, this) == ownerId;
 
+            /// <summary>
+            /// <see cref="EnterFunction"/> without a call-stack frame, for a
+            /// synchronous body that runs against another <c>this</c>.
+            /// </summary>
             internal int EnterThis(object? receiver)
             {
                 FrameStack stack = Frames;
