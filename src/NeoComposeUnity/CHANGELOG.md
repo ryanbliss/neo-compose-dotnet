@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.71.9] - 2026-10-15
+
+- Fixed: writing into a saved instance could fail with a missing immutable default, such as `DefaultData`, when constructor replay reused an unchanged dependency. Reused defaults now retain their child and placement indexes throughout write validation. Existing exports and saves need no changes.
+
 ## [0.71.8] - 2026-10-15
 
 - Fixed: authored initializers can construct immutable-only classes when their declarations replay, including animation tracks nested in a placed item variant. Ordinary runtime construction still rejects immutable-only classes, including after the same constructor site has run in an initializer.
