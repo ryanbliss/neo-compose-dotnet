@@ -22,12 +22,16 @@ namespace NeoCompose.Tests
         private const string GardenGridClassId = "garden-grid-class";
 
         [TestCase("shop-1", GetObjectAreaId, TestName = "GetArea_PlacedObject")]
+        [TestCase("bare", GetObjectAreaId, TestName = "GetArea_PlacedObjectWithNoPlacementTiles")]
         [TestCase("child-2", GetObjectAreaId, TestName = "GetArea_ChildTwoLevelsDeep")]
         [TestCase("held-1", GetObjectAreaId, TestName = "GetArea_ObjectHeldInAPlacedObjectsField")]
+        [TestCase("inner-link", GetObjectAreaId, TestName = "GetArea_ObjectLayerLinkInAnObjectsChildren")]
+        [TestCase("inner-object", GetObjectAreaId, TestName = "GetArea_ObjectInAChildObjectLayerLink")]
         [TestCase("objects-link", GetObjectAreaId, TestName = "GetArea_LayerLink")]
         [TestCase("class-backed-placement", GetTileAreaId, TestName = "GetArea_GridTile")]
         [TestCase("blocked-path-placement", GetTileAreaId, TestName = "GetArea_TileInAnOrderedTileList")]
         [TestCase("floor-local", GetTileAreaId, TestName = "GetArea_TileInAnObjectsChildTileLayerLink")]
+        [TestCase("deep-tile", GetTileAreaId, TestName = "GetArea_TileInATileLayerLinkUnderADepthTwoChild")]
         public void GetArea_AnswersTheNearestOwningGrid(string rowId, string memberId)
         {
             using var client = NeoTestSaveStack.ClientFromSchema(BuildGetAreaProjectData());
@@ -117,6 +121,21 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void GetArea_AnswersAnInventoryItemOnceItMovesIntoAPlacedChest()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildGetAreaProjectData());
+            client.SetWritableValue(NeoValueOwnership.Save, LooseObject("item"));
+            client.SetWritableValue(NeoValueOwnership.Save, new ArrayMemberValue { id = "inventory", value = new[] { "item" } });
+            NeoClient.GetterMemoKey key = MemoizeArea(client, "item", null);
+
+            client.SetWritableValues(NeoValueOwnership.Save, SpawnedObject("chest", "objects-link-objects"));
+            client.SetWritableValue(NeoValueOwnership.Save, new ArrayMemberValue { id = "inventory", value = Array.Empty<string>() });
+            WritableObject(client, "chest").SetSerializedValue("Held", NeoValueWritePayload.FromValueReference("item"));
+            Assert.IsNull(client.FindMemoizedGetter(key), "Moving the item into the chest drops it.");
+            Assert.AreEqual("town-grid", AreaId(client, "item"));
+        }
+
+        [Test]
         public void GetArea_AnswersWritesPendingInTheSameEvaluation()
         {
             using var client = NeoTestSaveStack.ClientFromSchema(BuildGetAreaProjectData());
@@ -170,7 +189,9 @@ namespace NeoCompose.Tests
         /// <summary>
         /// The class-backed grid with both GetArea natives and every receiver
         /// shape the climb visits: a Held field on objects, two levels of
-        /// nested children under shop-1, and a Garden grid only its own row names.
+        /// nested children under shop-1 with layer links under them, an object
+        /// with no placement tiles, a Save root inventory, and a Garden grid
+        /// only its own row names.
         /// </summary>
         private static ProjectData BuildGetAreaProjectData()
         {
@@ -206,6 +227,24 @@ namespace NeoCompose.Tests
                 classId = ObjectClassId,
             };
             data.classes[ObjectClassId].schema["Held"] = "object-held-member";
+            data.members["inventory-member"] = new ListMember
+            {
+                id = "inventory-member",
+                projectId = "project-a",
+                name = "Inventory",
+                kind = MemberKind.List,
+                entryMemberId = "inventory-entry-member",
+            };
+            data.members["inventory-entry-member"] = new ClassMember
+            {
+                id = "inventory-entry-member",
+                projectId = "project-a",
+                name = "Item",
+                kind = MemberKind.Class,
+                classId = ObjectClassId,
+            };
+            data.classes["root-class"].schema["Inventory"] = "inventory-member";
+            ((ObjectMemberValue)data.values["root-save-value"]).value!["Inventory"] = "inventory";
             ((ObjectMemberValue)data.values["shop-1"]).value!["Held"] = "held-1";
             ((ArrayMemberValue)data.values["shop-1-children"]).value = new[] { "shop-floor-link", "child-1" };
             foreach (MemberValue row in new MemberValue[]
@@ -213,8 +252,26 @@ namespace NeoCompose.Tests
                 // Unstamped: its class comes from Object.Held.
                 Row("held-1", null, new Dictionary<string, string>()),
                 Row("child-1", ObjectClassId, new Dictionary<string, string> { ["Children"] = "child-1-children" }),
-                new ArrayMemberValue { id = "child-1-children", value = new[] { "child-2" } },
-                Row("child-2", ObjectClassId, new Dictionary<string, string>()),
+                new ArrayMemberValue { id = "child-1-children", value = new[] { "child-2", "inner-link" } },
+                Row("child-2", ObjectClassId, new Dictionary<string, string> { ["Children"] = "child-2-children" }),
+                new ArrayMemberValue { id = "child-2-children", value = new[] { "deep-tile-link" } },
+                Row("deep-tile-link", TileLayerLinkClassId, new Dictionary<string, string>
+                {
+                    ["layerClassId"] = BackgroundLayerClassId,
+                    ["Tiles"] = "deep-tiles",
+                }),
+                new ArrayMemberValue { id = "deep-tiles", value = new[] { "deep-tile" } },
+                Row("deep-tile", TileClassId, new Dictionary<string, string> { ["Cell"] = "deep-tile-cell" }),
+                new Vector2MemberValue { id = "deep-tile-cell", value = new NeoVector2Value { x = 40, y = 40 } },
+                Row("inner-link", ObjectLayerLinkClassId, new Dictionary<string, string>
+                {
+                    ["layerClassId"] = ObjectsLayerClassId,
+                    ["Objects"] = "inner-objects",
+                }),
+                new ArrayMemberValue { id = "inner-objects", value = Array.Empty<string>() },
+                Placed(Row("inner-object", ObjectClassId, new Dictionary<string, string>()), "inner-objects"),
+                Placed(Row("bare", ObjectClassId, new Dictionary<string, string> { ["PlacementTiles"] = "bare-tiles" }), "objects-link-objects"),
+                new ArrayMemberValue { id = "bare-tiles", value = Array.Empty<string>() },
                 Row("garden", GardenGridClassId, new Dictionary<string, string> { ["Children"] = "garden-children" }),
                 new ArrayMemberValue { id = "garden-children", value = new[] { "garden-link" } },
                 Row("garden-link", ObjectLayerLinkClassId, new Dictionary<string, string> { ["Objects"] = "garden-objects" }),
@@ -231,6 +288,12 @@ namespace NeoCompose.Tests
                 classId = classId,
                 value = value,
             };
+
+            static ObjectMemberValue Placed(ObjectMemberValue row, string objectsListId)
+            {
+                row.containerId = objectsListId;
+                return row;
+            }
         }
 
         private static ObjectMemberValue LooseObject(string id) => new()
