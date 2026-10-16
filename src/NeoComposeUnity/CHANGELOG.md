@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.73.0] - 2026-10-16
+
+Interface members (P113). A member, collection element, or parameter can be typed by an interface, and its row holds any class that implements it. Generated C# types the slot by the interface. Requires CLI 0.83.0; run `neo pull` and `neo export` after upgrading.
+
+```csharp
+// Generated for `public IContainer<Seed>? Pouch;` and `public List<IContainer<Seed>> Racks = [];`.
+public IContainer<Seed>? Pouch { get; set; }
+public NeoList<IContainer<Seed>> Racks { get; }
+
+// New: generated interfaces register a resolver, so a slot's row reads as the
+// generated class that implements the interface.
+public static class NeoInterfaceResolvers<I>
+{
+    public static void Register(NeoGeneratedTypesSupport.InterfaceResolver resolver);
+}
+
+// New on ClassMember: a Class member declares a class or an interface.
+public bool TryGetDeclaredClassId(out string declaredClassId);
+public bool TryGetInterfaceId(out string declaredInterfaceId);
+```
+
+- Writing a class that doesn't implement the slot's interface throws, naming the slot.
+- `Clone()` and `is` work on interface-typed values.
+- Variant and animation overrides that set an interface slot to another class replace the slot's row.
+- Breaking: `ClassMember.classId` is no longer public. An interface member has no declared class. Use `TryGetDeclaredClassId`.
+- Breaking: `FunctionClassCloneInfo.schemaClassInfo` is a `TypeInfo`, since the receiver can be an interface.
+- `GenericTypeInfo.ownerClassId` is nullable. A parameter an interface declares sets `ownerInterfaceId` instead.
+
 ## [0.72.1] - 2026-10-15
 
 - Fixed: NeoScript variant equality now compares the target class, variant, and bound lookup row. Repeated reads of Base and named variants compare equal, including stored optional selections and references to variant members. Existing compiled projects need no re-export.
