@@ -33,6 +33,19 @@ namespace HelloWorld.Assets.Scripts.Neo
         /// </summary>
         new bool Enabled { get; }
 
+
+        /// <summary>
+        /// The nearest tile grid that owns this value, or null when no grid owns it or that grid is not a T. Nested children answer with their placed root's grid.
+        /// </summary>
+        T? GetArea<T>() where T : class, IReadOnlyNeoTileGrid;
+
+
+
+        /// <summary>
+        /// The nearest tile grid that owns this value, or null when no grid owns it or that grid is not a T. Nested children answer with their placed root's grid.
+        /// </summary>
+        IReadOnlyNeoTileGrid? GetArea();
+
         new string Name { get; }
 
         new NeoReadOnlyVector3 Position { get; }
@@ -140,6 +153,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+
         public virtual string Name
         {
             get
@@ -167,6 +181,21 @@ namespace HelloWorld.Assets.Scripts.Neo
                 return CacheStoredView("Size", memberNode, new NeoReadOnlyVector3(memberNode));
             }
         }
+
+        /// <summary>
+        /// The nearest tile grid that owns this value, or null when no grid owns it or that grid is not a T. Nested children answer with their placed root's grid.
+        /// </summary>
+        public virtual T? GetArea<T>() where T : class, IReadOnlyNeoTileGrid
+        {
+            var result = client.ScriptGridQueries.Invoke("system_7ad477e2-be5b-4892-b9ba-2a2f2476988d", this, new object?[] { }, client.TypeArguments.Table<System.ValueTuple<T>>());
+            return result is null ? null : NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, false, static (factoryClient, factoryNode) => NeoTileGrid.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoTileGrid.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => NeoTileGrid.CreateDetached(factoryClient, factoryValue, factorySaved)), "T", HelloWorldNeo.NeoReadOnlyValueFactories, HelloWorldNeo.NeoWritableValueFactories);
+        }
+
+        /// <summary>
+        /// The nearest tile grid that owns this value, or null when no grid owns it or that grid is not a T. Nested children answer with their placed root's grid.
+        /// </summary>
+        public IReadOnlyNeoTileGrid? GetArea()
+            => GetArea<IReadOnlyNeoTileGrid>();
 
         public sealed class Fields
         {

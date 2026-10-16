@@ -11,6 +11,11 @@ abstract class NeoObjectBase {
   @system(kind: .WorldAuthoring)
   public virtual bool Enabled = true;
 
+  /// The nearest tile grid that owns this value, or null when no grid owns it or that grid is not a T. Nested children answer with their placed root's grid.
+  @id("system_7ad477e2-be5b-4892-b9ba-2a2f2476988d")
+  @system(kind: .WorldAuthoring)
+  native public virtual T? GetArea<T extends NeoTileGrid = NeoTileGrid>();
+
   @id("system_b21bfd01-1234-4f49-ab6b-889f829cb148")
   @distribution(kind: .Packed)
   @settings(format: .Plain)
