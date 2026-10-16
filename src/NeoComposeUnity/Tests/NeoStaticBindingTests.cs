@@ -1100,7 +1100,7 @@ namespace NeoCompose.Tests
                 name = "Child",
                 kind = MemberKind.Class,
                 Requirement = NeoMemberRequirementKind.Required,
-                classId = "owned-child-class",
+                DeclaredClassId = "owned-child-class",
             };
             var children = new ListMember
             {
@@ -1997,7 +1997,7 @@ namespace NeoCompose.Tests
                 name = "Good",
                 kind = MemberKind.Class,
                 Requirement = NeoMemberRequirementKind.Required,
-                classId = "owned-child-class",
+                DeclaredClassId = "owned-child-class",
             };
             var loopMember = new ClassMember
             {
@@ -2006,7 +2006,7 @@ namespace NeoCompose.Tests
                 name = "Loop",
                 kind = MemberKind.Class,
                 Requirement = NeoMemberRequirementKind.Required,
-                classId = rootClass.id,
+                DeclaredClassId = rootClass.id,
             };
             var rootMember = new ClassMember
             {
@@ -2015,7 +2015,7 @@ namespace NeoCompose.Tests
                 name = "Atomic Root",
                 kind = MemberKind.Class,
                 Requirement = NeoMemberRequirementKind.Required,
-                classId = rootClass.id,
+                DeclaredClassId = rootClass.id,
             };
             members[goodMember.id] = goodMember;
             members[loopMember.id] = loopMember;
@@ -3113,7 +3113,7 @@ namespace NeoCompose.Tests
                 kind = MemberKind.Class,
                 Requirement = NeoMemberRequirementKind.Optional,
                 Storage = NeoMemberStorage.Session,
-                classId = profileClass.id,
+                DeclaredClassId = profileClass.id,
                 Modifier = NeoMemberModifierKind.Static,
             };
             var staticSaveProfile = new ClassMember
@@ -3124,7 +3124,7 @@ namespace NeoCompose.Tests
                 kind = MemberKind.Class,
                 Requirement = NeoMemberRequirementKind.Optional,
                 Storage = NeoMemberStorage.Save,
-                classId = profileClass.id,
+                DeclaredClassId = profileClass.id,
                 Modifier = NeoMemberModifierKind.Static,
             };
             var staticWait = new FunctionMember
@@ -3211,7 +3211,7 @@ namespace NeoCompose.Tests
                 name = "Child",
                 kind = MemberKind.Class,
                 Requirement = NeoMemberRequirementKind.Required,
-                classId = ownedChildClass.id,
+                DeclaredClassId = ownedChildClass.id,
             };
             var data = new ProjectData
             {
@@ -3603,7 +3603,7 @@ namespace NeoCompose.Tests
                 Storage = ownership == NeoValueOwnership.Session
                     ? NeoMemberStorage.Session
                     : NeoMemberStorage.Save,
-                classId = "owned-child-class",
+                DeclaredClassId = "owned-child-class",
                 Modifier = NeoMemberModifierKind.Static,
             };
             ((Dictionary<string, JsonMember>)client.members)[memberId] = member;
@@ -3740,7 +3740,7 @@ namespace NeoCompose.Tests
                 name = name,
                 kind = MemberKind.Class,
                 Requirement = NeoMemberRequirementKind.Required,
-                classId = "root-class",
+                DeclaredClassId = "root-class",
                 Storage = storage,
                 valueId = valueId,
             };

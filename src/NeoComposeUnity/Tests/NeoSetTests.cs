@@ -534,7 +534,7 @@ namespace NeoCompose.Tests
                 new SetMember { id = "lucky-member", name = "Lucky", kind = MemberKind.Set, entryMemberId = "lucky-entry", Requirement = required },
                 new IntMember { id = "lucky-entry", name = "Lucky Entry", kind = MemberKind.Int, Requirement = required },
                 new SetMember { id = "allies-member", name = "Allies", kind = MemberKind.Set, entryMemberId = "ally-entry", Requirement = required },
-                new ClassMember { id = "ally-entry", name = "Ally", kind = MemberKind.Class, classId = ItemClassId, Requirement = required },
+                new ClassMember { id = "ally-entry", name = "Ally", kind = MemberKind.Class, DeclaredClassId = ItemClassId, Requirement = required },
                 new LookupMember
                 {
                     id = "picked-member",
@@ -544,10 +544,10 @@ namespace NeoCompose.Tests
                     Selection = NeoMemberSelectionKind.Multi,
                     Requirement = required,
                 },
-                new ClassMember { id = "box-member", name = "Box", kind = MemberKind.Class, classId = BoxClassId, Requirement = required },
+                new ClassMember { id = "box-member", name = "Box", kind = MemberKind.Class, DeclaredClassId = BoxClassId, Requirement = required },
                 new SetMember { id = "box-unique-member", name = "Unique", kind = MemberKind.Set, entryMemberId = "box-entry", Requirement = required },
                 new GenericMember { id = "box-entry", name = "Entry", kind = MemberKind.Generic, genericParamId = BoxParamId, Requirement = required },
-                new ClassMember { id = "box-binding", name = "T", kind = MemberKind.Class, classId = ItemClassId, Requirement = required },
+                new ClassMember { id = "box-binding", name = "T", kind = MemberKind.Class, DeclaredClassId = ItemClassId, Requirement = required },
                 new StringMember { id = "item-name", name = "Name", kind = MemberKind.String },
             };
             var bindings = new Dictionary<string, string> { [BoxParamId] = "box-binding" };
@@ -624,7 +624,7 @@ namespace NeoCompose.Tests
             kind = MemberKind.Class,
             Requirement = NeoMemberRequirementKind.Required,
             valueId = valueId,
-            classId = classId,
+            DeclaredClassId = classId,
         };
 
         private static ObjectMemberValue Object(string id, string classId, Dictionary<string, string> record) => new()

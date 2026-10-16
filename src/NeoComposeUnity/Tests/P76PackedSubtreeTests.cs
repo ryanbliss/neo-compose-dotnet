@@ -579,7 +579,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Thing",
                 kind = MemberKind.Class,
-                classId = thingClass.id,
+                DeclaredClassId = thingClass.id,
                 Requirement = NeoMemberRequirementKind.Required,
                 Storage = NeoMemberStorage.Save,
             };
@@ -589,7 +589,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Nested",
                 kind = MemberKind.Class,
-                classId = nestedClass.id,
+                DeclaredClassId = nestedClass.id,
                 Requirement = NeoMemberRequirementKind.Required,
             };
             var countMember = new IntMember
@@ -736,7 +736,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = name,
                 kind = MemberKind.Class,
-                classId = classId,
+                DeclaredClassId = classId,
                 Requirement = NeoMemberRequirementKind.Required,
                 Storage = storage,
                 valueId = valueId,

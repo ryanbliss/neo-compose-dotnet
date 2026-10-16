@@ -354,7 +354,7 @@ namespace NeoCompose.Tests
                 RecordCall(Add(KeyOf(This(), "Count"), Literal(4000))));
             data.classes["class-plant"].schema["Tick"] = "member-tick";
             data.classes["class-session-root"] = Class("class-session-root", null, ("OnTick", "member-on-tick"));
-            ((ClassMember)data.members["member-root-session"]).classId = "class-session-root";
+            ((ClassMember)data.members["member-root-session"]).DeclaredClassId = "class-session-root";
             data.values["value-session"] = ObjectValue("value-session", "class-session-root", ("OnTick", OnTickValueId));
             data.values[OnTickValueId] = new ActionMemberValue { id = OnTickValueId, value = new NeoActionValue() };
         }

@@ -82,7 +82,7 @@ namespace NeoCompose.Tests
         {
             using var client = NeoTestSaveStack.ClientFromSchema(BuildEquipProjectData());
             using var track = new NeoMemberClass(client,
-                new ClassMember { id = "payload-track", kind = MemberKind.Class, classId = LookupSegmentTrackClassId }, "track-0");
+                new ClassMember { id = "payload-track", kind = MemberKind.Class, DeclaredClassId = LookupSegmentTrackClassId }, "track-0");
             using var source = new NeoAnimationSegmentSource(client, track, "Segment", "payload");
             Assert.That(source.TryReadContent(0, out var row), Is.True);
             Assert.That(source.TryReadPayload(0, out var first), Is.True);
@@ -804,7 +804,7 @@ namespace NeoCompose.Tests
         {
             using NeoClient client = NeoTestSaveStack.ClientFromSchema(BuildEquipProjectData());
             using var track = new NeoMemberClass(client,
-                new ClassMember { id = "probe-track", kind = MemberKind.Class, classId = LookupSegmentTrackClassId }, "track-0");
+                new ClassMember { id = "probe-track", kind = MemberKind.Class, DeclaredClassId = LookupSegmentTrackClassId }, "track-0");
             using var source = new NeoAnimationSegmentSource(client, track, "Segment", "probe");
             Assert.IsTrue(source.TryReadContent(0, out _));
             client.SetWritableValue(NeoValueOwnership.Session, new NumberMemberValue { id = "unrelated-position", value = 1 });
@@ -2048,7 +2048,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = name,
                 kind = MemberKind.Class,
-                classId = classId,
+                DeclaredClassId = classId,
                 valueId = valueId,
                 Requirement = NeoMemberRequirementKind.Required,
                 createdAt = "x",

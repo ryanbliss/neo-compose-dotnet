@@ -68,7 +68,7 @@ namespace NeoCompose.Tests
                 id = "conversion-slot",
                 name = "Converted",
                 kind = MemberKind.Class,
-                classId = "class-base",
+                DeclaredClassId = "class-base",
                 Requirement = NeoMemberRequirementKind.Required,
             };
             var row = new ObjectMemberValue
@@ -173,7 +173,7 @@ namespace NeoCompose.Tests
                 name = "HatColor",
                 kind = MemberKind.Class,
                 Requirement = NeoMemberRequirementKind.Optional,
-                classId = selectorClassId,
+                DeclaredClassId = selectorClassId,
                 defaultValue = new ObjectMemberValueBase
                 {
                     init = new InitializerBody { code = "new(.Standard)" },
@@ -201,7 +201,7 @@ namespace NeoCompose.Tests
                 updatedAt = 0,
             };
             var saveMember = (ClassMember)data.members[data.project.rootSaveFileMemberId];
-            saveMember.classId = saveClassId;
+            saveMember.DeclaredClassId = saveClassId;
             var saveValue = (ObjectMemberValue)data.values[saveMember.valueId!];
             saveValue.classId = saveClassId;
             saveValue.value = new Dictionary<string, string>

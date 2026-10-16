@@ -66,7 +66,7 @@ namespace NeoCompose.Tests
                 projectId = "synth",
                 name = "Entry",
                 kind = MemberKind.Class,
-                classId = HeroClassId,
+                DeclaredClassId = HeroClassId,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -548,7 +548,7 @@ namespace NeoCompose.Tests
             id = "member-holder",
             name = "Holder",
             kind = MemberKind.Class,
-            classId = HolderClassId,
+            DeclaredClassId = HolderClassId,
             createdAt = "1970-01-01T00:00:00.000Z",
             updatedAt = "1970-01-01T00:00:00.000Z",
         };
@@ -797,7 +797,7 @@ namespace NeoCompose.Tests
                         id = "__test_hero",
                         name = "Hero",
                         kind = MemberKind.Class,
-                        classId = HeroClassId,
+                        DeclaredClassId = HeroClassId,
                         createdAt = row.createdAt,
                         updatedAt = row.updatedAt,
                     };

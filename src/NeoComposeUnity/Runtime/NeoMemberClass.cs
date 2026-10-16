@@ -725,21 +725,15 @@ namespace NeoCompose.Runtime
 
         private NeoSchemaClass ResolveSchemaClass()
         {
-            string classId = member.classId;
-            if (!string.IsNullOrEmpty(value?.classId))
-            {
-                classId = value!.classId!;
-            }
-            else if (!string.IsNullOrEmpty(member.defaultValue?.classId))
-            {
-                classId = member.defaultValue!.classId!;
-            }
-
+            string? rowClassId = string.IsNullOrEmpty(value?.classId)
+                ? member.defaultValue?.classId
+                : value!.classId;
+            string classId = member.RowClassId(rowClassId);
             if (!client.TryGetClass(classId, out NeoSchemaClass? match))
             {
                 throw new System.ArgumentOutOfRangeException(
-                    nameof(member.classId),
-                    $"No class for {nameof(member)}.{nameof(member.classId)} {classId}");
+                    "classId",
+                    $"No class for {nameof(member)}.classId {classId}");
             }
             return match;
         }

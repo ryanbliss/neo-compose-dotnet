@@ -243,10 +243,10 @@ namespace NeoCompose.Tests
         }
 
         private static NeoMemberClassWritable WritableObject(NeoClient client, string id) => new(client,
-            new ClassMember { id = "placement-test-member", name = "Object", kind = MemberKind.Class, classId = ObjectClassId }, id, NeoValueOwnership.Save);
+            new ClassMember { id = "placement-test-member", name = "Object", kind = MemberKind.Class, DeclaredClassId = ObjectClassId }, id, NeoValueOwnership.Save);
 
         private static NeoMemberClassWritable WritableTile(NeoClient client, string id) => new(client,
-            new ClassMember { id = "placement-test-tile-member", name = "Tile", kind = MemberKind.Class, classId = TileClassId }, id, NeoValueOwnership.Save);
+            new ClassMember { id = "placement-test-tile-member", name = "Tile", kind = MemberKind.Class, DeclaredClassId = TileClassId }, id, NeoValueOwnership.Save);
 
         /// <summary>
         /// A clip animating an object's Position applies its frames through
@@ -676,7 +676,7 @@ namespace NeoCompose.Tests
                 projectId = "project-a",
                 name = "Footprint",
                 kind = MemberKind.Class,
-                classId = NeoCellPatternOffsets.ClassId,
+                DeclaredClassId = NeoCellPatternOffsets.ClassId,
             };
             data.members["footprint-ref-member"] = new LookupMember
             {
@@ -2642,7 +2642,7 @@ namespace NeoCompose.Tests
             var data = BuildClassBackedTileGridProjectData();
             ConfigureObjectPlacementFootprint(data, id, Vector2Int.one, new Vector2Int(2, 1));
             using var client = NeoTestSaveStack.ClientFromSchema(data);
-            var member = new ClassMember { id = "variant-target", name = "Target", kind = MemberKind.Class, classId = ObjectClassId };
+            var member = new ClassMember { id = "variant-target", name = "Target", kind = MemberKind.Class, DeclaredClassId = ObjectClassId };
             var receiver = new NeoMemberClassWritable(client, member, id, NeoValueOwnership.Save);
             var revision = client.WriteRevision;
             void Apply() => client.PrepareVariantApply(receiver, _ =>
@@ -3161,7 +3161,7 @@ namespace NeoCompose.Tests
                 projectId = "project-a",
                 name = "ClipBinding",
                 kind = MemberKind.Class,
-                classId = "animation-clip-class",
+                DeclaredClassId = "animation-clip-class",
                 valueId = "inherited-invalid-clip",
             };
             data.values["inherited-invalid-clip"] = new ObjectMemberValue
@@ -7136,7 +7136,7 @@ namespace NeoCompose.Tests
                 projectId = "project-a",
                 name = "SortingGroup",
                 kind = MemberKind.Class,
-                classId = SortingGroupClassId,
+                DeclaredClassId = SortingGroupClassId,
                 DeclaredStorage = NeoMemberStorage.Session,
             };
             data.classes[ObjectClassId].schema["SortingGroup"] = "object-sorting-group-member";
@@ -10063,7 +10063,7 @@ namespace NeoCompose.Tests
                 projectId = "project-a",
                 name = "Child",
                 kind = MemberKind.Class,
-                classId = ObjectClassId,
+                DeclaredClassId = ObjectClassId,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -10402,7 +10402,7 @@ namespace NeoCompose.Tests
                     projectId = "project-a",
                     name = name,
                     kind = MemberKind.Class,
-                    classId = classId,
+                    DeclaredClassId = classId,
                     valueId = valueId,
                     Storage = NeoMemberStorage.Immutable,
                     createdAt = "x",
@@ -10433,7 +10433,7 @@ namespace NeoCompose.Tests
                 projectId = "project-a",
                 name = name,
                 kind = MemberKind.Class,
-                classId = classId,
+                DeclaredClassId = classId,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -11120,7 +11120,7 @@ namespace NeoCompose.Tests
                         projectId = "project-a",
                         name = "Child",
                         kind = MemberKind.Class,
-                        classId = TileLayerLinkClassId,
+                        DeclaredClassId = TileLayerLinkClassId,
                     },
                     ["object-position-member"] = new Vector3Member
                     {
@@ -11159,7 +11159,7 @@ namespace NeoCompose.Tests
                         projectId = "project-a",
                         name = "PlacementTile",
                         kind = MemberKind.Class,
-                        classId = PlacementTileClassId,
+                        DeclaredClassId = PlacementTileClassId,
                     },
                     ["object-placement-cell-member"] = new Vector2IntMember
                     {
@@ -11198,7 +11198,7 @@ namespace NeoCompose.Tests
                         projectId = "project-a",
                         name = "Tile",
                         kind = MemberKind.Class,
-                        classId = BaseTileClassId,
+                        DeclaredClassId = BaseTileClassId,
                     },
                     ["object-layer-link-layer-member"] = new LookupMember
                     {
@@ -11223,7 +11223,7 @@ namespace NeoCompose.Tests
                         projectId = "project-a",
                         name = "Object",
                         kind = MemberKind.Class,
-                        classId = ObjectClassId,
+                        DeclaredClassId = ObjectClassId,
                     },
                 },
                 values = new Dictionary<string, MemberValue>
@@ -11386,7 +11386,7 @@ namespace NeoCompose.Tests
                 kind = MemberKind.Class,
                 Requirement = NeoMemberRequirementKind.Required,
                 valueId = valueId,
-                classId = classId,
+                DeclaredClassId = classId,
             };
         }
 

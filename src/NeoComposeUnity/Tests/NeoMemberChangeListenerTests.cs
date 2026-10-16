@@ -24,7 +24,7 @@ namespace NeoCompose.Tests
         {
             using var client = BuildClient(configure: data =>
             {
-                data.members["entry"] = new ClassMember { id = "entry", kind = MemberKind.Class, name = "Entry", classId = "owner-class" };
+                data.members["entry"] = new ClassMember { id = "entry", kind = MemberKind.Class, name = "Entry", DeclaredClassId = "owner-class" };
                 data.members["choices"] = new ListMember { id = "choices", kind = MemberKind.List, name = "Choices", entryMemberId = "entry" };
                 data.members["selection"] = new LookupMember
                 {
@@ -150,7 +150,7 @@ namespace NeoCompose.Tests
                     projectId = "listeners",
                     name = "Child",
                     kind = MemberKind.Class,
-                    classId = "child-class",
+                    DeclaredClassId = "child-class",
                     Requirement = NeoMemberRequirementKind.Required,
                     defaultValue = new ObjectMemberValueBase { classId = "child-class", value = new() },
                 };
@@ -622,7 +622,7 @@ namespace NeoCompose.Tests
                     projectId = "listeners",
                     name = "Template",
                     kind = MemberKind.Class,
-                    classId = "owner-class",
+                    DeclaredClassId = "owner-class",
                     defaultValue = new ObjectMemberValueBase
                     {
                         value = new Dictionary<string, string> { ["Count"] = "count" },
@@ -641,7 +641,7 @@ namespace NeoCompose.Tests
                     projectId = "listeners",
                     name = "Template",
                     kind = MemberKind.Class,
-                    classId = "owner-class",
+                    DeclaredClassId = "owner-class",
                     extendsMemberId = "base-default",
                 };
             });
@@ -674,7 +674,7 @@ namespace NeoCompose.Tests
                     projectId = "listeners",
                     name = "Entry",
                     kind = MemberKind.Class,
-                    classId = "entry-class",
+                    DeclaredClassId = "entry-class",
                     Storage = NeoMemberStorage.Session,
                 };
                 data.classes["entry-class"] = new NeoSchemaClass
@@ -713,7 +713,7 @@ namespace NeoCompose.Tests
                     name = "Container",
                     schema = new Dictionary<string, string> { ["Child"] = "child-member" },
                 };
-                ((ClassMember)data.members["session-member"]).classId = "container";
+                ((ClassMember)data.members["session-member"]).DeclaredClassId = "container";
                 data.values["session"].classId = "container";
                 data.members["child-member"] = new ClassMember
                 {
@@ -721,7 +721,7 @@ namespace NeoCompose.Tests
                     projectId = "listeners",
                     name = "Child",
                     kind = MemberKind.Class,
-                    classId = "owner-class",
+                    DeclaredClassId = "owner-class",
                     defaultValue = new ObjectMemberValueBase
                     {
                         value = new Dictionary<string, string> { ["Count"] = "count" },
@@ -845,7 +845,7 @@ namespace NeoCompose.Tests
                             projectId = "listeners",
                             name = "Inner",
                             kind = MemberKind.Class,
-                            classId = "inner-class",
+                            DeclaredClassId = "inner-class",
                         };
                     }
                     else
@@ -856,7 +856,7 @@ namespace NeoCompose.Tests
                         projectId = "listeners",
                         name = "Nested",
                         kind = MemberKind.Class,
-                        classId = "leaf-class",
+                        DeclaredClassId = "leaf-class",
                         Requirement = NeoMemberRequirementKind.Required,
                         defaultValue = new ObjectMemberValueBase { value = new Dictionary<string, string>() },
                     };
@@ -877,7 +877,7 @@ namespace NeoCompose.Tests
                     projectId = "listeners",
                     name = "Child",
                     kind = MemberKind.Class,
-                    classId = "entry-class",
+                    DeclaredClassId = "entry-class",
                 };
                 ((ObjectMemberValue)data.values[session ? "session" : "save"]).value!["Items"] = "items";
                 data.values["items"] = new ArrayMemberValue { id = "items", value = Array.Empty<string>() };
@@ -1149,7 +1149,7 @@ namespace NeoCompose.Tests
                     projectId = "listeners",
                     name = "Count",
                     kind = MemberKind.Class,
-                    classId = "child-class",
+                    DeclaredClassId = "child-class",
                     Requirement = NeoMemberRequirementKind.Required,
                 };
                 data.members["child-field"] = new IntMember
@@ -1226,7 +1226,7 @@ namespace NeoCompose.Tests
                     projectId = "listeners",
                     name = "Count",
                     kind = MemberKind.Class,
-                    classId = "child-class",
+                    DeclaredClassId = "child-class",
                     Requirement = NeoMemberRequirementKind.Required,
                 };
                 data.members["child-field"] = new IntMember
@@ -1780,9 +1780,9 @@ namespace NeoCompose.Tests
                     projectId = "listeners",
                     name = "Child",
                     kind = MemberKind.Class,
-                    classId = "owner-class",
+                    DeclaredClassId = "owner-class",
                 };
-                ((ClassMember)data.members["session-member"]).classId = "container";
+                ((ClassMember)data.members["session-member"]).DeclaredClassId = "container";
                 data.values["session"].classId = "container";
             });
             var plan = new NeoWritePlan(client);
@@ -1827,14 +1827,14 @@ namespace NeoCompose.Tests
                     name = "Container",
                     schema = new Dictionary<string, string> { ["Source"] = "source-member", ["Child"] = "child-member" },
                 };
-                ((ClassMember)data.members["save-member"]).classId = "container";
+                ((ClassMember)data.members["save-member"]).DeclaredClassId = "container";
                 data.members["source-member"] = new ClassMember
                 {
                     id = "source-member",
                     projectId = "listeners",
                     name = "Source",
                     kind = MemberKind.Class,
-                    classId = "owner-class",
+                    DeclaredClassId = "owner-class",
                 };
                 data.values["source"] = new ObjectMemberValue
                 {
@@ -1854,7 +1854,7 @@ namespace NeoCompose.Tests
                     projectId = "listeners",
                     name = "Child",
                     kind = MemberKind.Class,
-                    classId = "owner-class",
+                    DeclaredClassId = "owner-class",
                 };
                 data.classes["owner-class"].schema!["Other"] = "other-field";
                 data.members["other-field"] = new IntMember { id = "other-field", projectId = "listeners", name = "Other", kind = MemberKind.Int };
@@ -1949,9 +1949,9 @@ namespace NeoCompose.Tests
                         projectId = "listeners",
                         name = name,
                         kind = MemberKind.Class,
-                        classId = "owner-class",
+                        DeclaredClassId = "owner-class",
                     };
-                ((ClassMember)data.members["save-member"]).classId = "container";
+                ((ClassMember)data.members["save-member"]).DeclaredClassId = "container";
                 data.values["save"] = new ObjectMemberValue
                 {
                     id = "save",
@@ -1972,7 +1972,7 @@ namespace NeoCompose.Tests
                     projectId = "listeners",
                     name = "Part",
                     kind = MemberKind.Class,
-                    classId = "part-class",
+                    DeclaredClassId = "part-class",
                     Storage = NeoMemberStorage.Session,
                 };
                 data.values["source"] = new ObjectMemberValue
@@ -2036,7 +2036,7 @@ namespace NeoCompose.Tests
                     projectId = "listeners",
                     name = "Child",
                     kind = MemberKind.Class,
-                    classId = "child-class",
+                    DeclaredClassId = "child-class",
                     Storage = NeoMemberStorage.Save,
                 };
             });
@@ -2221,7 +2221,7 @@ namespace NeoCompose.Tests
                         id = kind + "-entry",
                         name = kind,
                         kind = MemberKind.Class,
-                        classId = kind + "-class",
+                        DeclaredClassId = kind + "-class",
                     };
                     data.values[kind + "-count"] = new NumberMemberValue { id = kind + "-count", value = 0 };
                     data.values["source-" + kind] = new ObjectMemberValue
@@ -2297,7 +2297,7 @@ namespace NeoCompose.Tests
                     projectId = "listeners",
                     name = key,
                     kind = MemberKind.Class,
-                    classId = "owner-class",
+                    DeclaredClassId = "owner-class",
                     valueId = key,
                     Storage = storage,
                 };

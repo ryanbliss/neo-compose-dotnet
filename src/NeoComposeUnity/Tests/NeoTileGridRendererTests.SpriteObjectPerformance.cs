@@ -52,7 +52,7 @@ namespace NeoCompose.Tests
             using var client = NeoTestSaveStack.ClientFromSchema(data);
             _ = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid").LookupCache;
             NeoMemberClassWritable Writable(string id, string classId) => new(client,
-                new ClassMember { id = "measured-member", name = "Measured", kind = MemberKind.Class, classId = classId },
+                new ClassMember { id = "measured-member", name = "Measured", kind = MemberKind.Class, DeclaredClassId = classId },
                 id,
                 NeoValueOwnership.Save);
             var nested = Writable("nested-part", ObjectClassId);

@@ -129,14 +129,14 @@ namespace NeoCompose.Runtime
         {
             string id = $"__neo_variant_binding_{record.id}";
             if (!variantTargetMembers.TryGetValue(id, out ClassMember? member)
-                || member.classId != record.classId)
+                || member.DeclaredClassId != record.classId)
             {
                 member = new ClassMember
                 {
                     id = id,
                     name = "TObject",
                     kind = MemberKind.Class,
-                    classId = record.classId,
+                    DeclaredClassId = record.classId,
                 };
                 variantTargetMembers[id] = member;
             }
@@ -162,6 +162,11 @@ namespace NeoCompose.Runtime
         private readonly Dictionary<string, NeoResolvedNSFunction> resolvedNSFunctions = new();
         private readonly object resolvedNSFunctionsLock = new();
         private readonly Dictionary<string, NeoClassNode> classNodes = new(System.StringComparer.Ordinal);
+        private NeoInterfaceImplementers? interfaceImplementers;
+
+        /// <summary>The P113 §3.5 implementer index for the current schema.</summary>
+        internal NeoInterfaceImplementers InterfaceImplementers =>
+            interfaceImplementers ??= new NeoInterfaceImplementers(this, data);
         private readonly Dictionary<string, MemberValue> virtualValues = new();
         private readonly Dictionary<string, NeoValueOwnership> virtualValueOwnership = new();
         private readonly Dictionary<string, Dictionary<string, string>> virtualClassChildren = new();
@@ -2157,6 +2162,18 @@ namespace NeoCompose.Runtime
             }
         }
 
+        /// <summary>
+        /// Whether a row of <paramref name="classId"/> fits
+        /// <paramref name="slot"/>'s declared type: the declared class or a
+        /// descendant, or an implementer of the declared interface.
+        /// </summary>
+        internal bool SlotAdmitsClass(ClassMember slot, string classId)
+        {
+            if (slot.DeclaredClassId is { } declaredClassId)
+                return ClassChainContains(classId, declaredClassId);
+            return InterfaceImplementers.Implements(classId, slot.DeclaredInterfaceId!);
+        }
+
         internal IList<MergedSchemaEntry> ResolveInstanceSurfaceSchema(string classId) =>
             ResolveClassNode(classId).Surface;
 
@@ -2201,6 +2218,7 @@ namespace NeoCompose.Runtime
             foreach (NeoClassNode node in classNodes.Values)
                 node.live = false;
             classNodes.Clear();
+            interfaceImplementers = null;
             interfaceHooks.Clear();
             NeoGeneratedTypesSupport.InvalidateConstructorSchemaCaches(this);
             constantDeclarationValueIds.Clear();
@@ -3326,7 +3344,7 @@ namespace NeoCompose.Runtime
                 ? inferred
                 : null;
             string? sourceClassId = sourceRow.classId
-                ?? (sourceMember as ClassMember)?.classId;
+                ?? (sourceMember as ClassMember)?.DeclaredClassId;
             if (!string.IsNullOrEmpty(sourceClassId)
                 && TryResolveSchemaClassAllowedOwnership(sourceClassId!, out var allowedOwnership)
                 && allowedOwnership == NeoValueOwnership.Asset)
@@ -3454,7 +3472,7 @@ namespace NeoCompose.Runtime
                         {
                             // The clone no longer has the source member's type context.
                             obj.classId ??= (sourceMember as ClassMember)?.defaultValue?.classId
-                                ?? (sourceMember as ClassMember)?.classId;
+                                ?? (sourceMember as ClassMember)?.DeclaredClassId;
                             var effectiveFields = new Dictionary<string, string>(obj.value);
                             if (sourceRow is ObjectMemberValue sourceObject)
                             {
@@ -4527,7 +4545,7 @@ namespace NeoCompose.Runtime
             string? classId = (row as ObjectMemberValue)?.classId;
             if (string.IsNullOrEmpty(classId) && sourceMember is ClassMember classMember)
             {
-                classId = classMember.classId;
+                classId = classMember.DeclaredClassId;
             }
             if (string.IsNullOrEmpty(classId))
                 return null;

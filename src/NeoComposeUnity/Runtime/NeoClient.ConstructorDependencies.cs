@@ -283,7 +283,7 @@ namespace NeoCompose.Runtime
                     id = constructorId + ":" + valueId,
                     name = constructorId,
                     kind = MemberKind.Class,
-                    classId = classId,
+                    DeclaredClassId = classId,
                     Requirement = type.required ? NeoMemberRequirementKind.Required : NeoMemberRequirementKind.Optional,
                 };
                 return true;

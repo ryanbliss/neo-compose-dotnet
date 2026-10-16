@@ -394,12 +394,12 @@ namespace NeoCompose.Tests
                 new ClassMember
                 {
                     id = "member-watcher", projectId = ProjectId, name = "Watcher", kind = MemberKind.Class,
-                    classId = "class-watcher", Requirement = NeoMemberRequirementKind.Required,
+                    DeclaredClassId = "class-watcher", Requirement = NeoMemberRequirementKind.Required,
                 },
                 new ClassMember
                 {
                     id = "member-box", projectId = ProjectId, name = "Box", kind = MemberKind.Class,
-                    classId = "class-box", Requirement = NeoMemberRequirementKind.Required,
+                    DeclaredClassId = "class-box", Requirement = NeoMemberRequirementKind.Required,
                 },
                 new GenericMember
                 {
@@ -564,7 +564,7 @@ namespace NeoCompose.Tests
             projectId = ProjectId,
             name = id,
             kind = MemberKind.Class,
-            classId = classId,
+            DeclaredClassId = classId,
             valueId = valueId,
             Storage = storage,
             Requirement = NeoMemberRequirementKind.Required,

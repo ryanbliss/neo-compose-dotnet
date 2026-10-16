@@ -1217,7 +1217,7 @@ namespace NeoCompose.Tests
                     ["save-root"] = Root("save-root", "save", "save"),
                     ["session-root"] = Root("session-root", "session", "session"),
                     ["items-member"] = new ListMember { id = "items-member", name = "Items", kind = MemberKind.List, entryMemberId = "entry", ListKind = unordered ? NeoListKind.Unordered : NeoListKind.Ordered, Requirement = NeoMemberRequirementKind.Required },
-                    ["entry"] = new ClassMember { id = "entry", name = "Item", kind = MemberKind.Class, classId = "item", Requirement = NeoMemberRequirementKind.Required },
+                    ["entry"] = new ClassMember { id = "entry", name = "Item", kind = MemberKind.Class, DeclaredClassId = "item", Requirement = NeoMemberRequirementKind.Required },
                     ["name"] = new StringMember { id = "name", name = "Name", kind = MemberKind.String, Requirement = NeoMemberRequirementKind.Required },
                     ["by-key-member"] = new DictionaryMember { id = "by-key-member", name = "ByKey", kind = MemberKind.Dictionary, entryMemberId = "by-key-entry", KeyKind = NeoDictionaryKeyKind.String, Requirement = NeoMemberRequirementKind.Optional },
                     ["by-key-entry"] = new StringMember { id = "by-key-entry", name = "Entry", kind = MemberKind.String, Requirement = NeoMemberRequirementKind.Required },
@@ -1233,7 +1233,7 @@ namespace NeoCompose.Tests
                     ["others-member"] = new ListMember { id = "others-member", name = "Others", kind = MemberKind.List, entryMemberId = "entry", Requirement = NeoMemberRequirementKind.Required },
                     ["count-names"] = NativeFunction("count-names", "CountNames", NeoFunctionDispatchKind.Synchronous),
                     ["deferred-count"] = NativeFunction("deferred-count", "DeferredCount", NeoFunctionDispatchKind.Asynchronous),
-                    ["part-member"] = new ClassMember { id = "part-member", name = "Part", kind = MemberKind.Class, classId = "item", Requirement = NeoMemberRequirementKind.Optional },
+                    ["part-member"] = new ClassMember { id = "part-member", name = "Part", kind = MemberKind.Class, DeclaredClassId = "item", Requirement = NeoMemberRequirementKind.Optional },
                 },
                 values = new()
                 {
@@ -1277,7 +1277,7 @@ namespace NeoCompose.Tests
             name = id,
             kind = MemberKind.Class,
             valueId = valueId,
-            classId = classId,
+            DeclaredClassId = classId,
             Storage = valueId == "save" ? NeoMemberStorage.Save : valueId == "session" ? NeoMemberStorage.Session : NeoMemberStorage.Immutable,
             Requirement = NeoMemberRequirementKind.Required,
         };

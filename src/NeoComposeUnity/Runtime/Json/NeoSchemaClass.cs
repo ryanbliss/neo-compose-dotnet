@@ -31,6 +31,12 @@ namespace NeoCompose.Runtime.Json
         /// through <see cref="extendsClassId"/> are not repeated here.
         /// </summary>
         public List<string>? implementsInterfaceIds;
+        /// <summary>
+        /// P113 §4.4. For each generic interface in
+        /// <see cref="implementsInterfaceIds"/>, one binding per param: a
+        /// forward of this class's own param, or a closed Member binding.
+        /// </summary>
+        public Dictionary<string, Dictionary<string, GenericBinding>>? implementsInterfaceArguments;
         [Newtonsoft.Json.JsonProperty("uiVisibility", NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
         private NeoClassVisibilityKind? uiVisibility;
         [Newtonsoft.Json.JsonProperty("modifier", NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]

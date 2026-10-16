@@ -891,7 +891,7 @@ namespace NeoCompose.Runtime.NeoScript
                 out IReadOnlyDictionary<string, GenericBinding>? classArguments,
                 out IReadOnlyDictionary<string, string>? storedGenericBindings)
             {
-                if (initializerPlacement?.classId == classId
+                if (initializerPlacement?.DeclaredClassId == classId
                     && initializerPlacement.classArguments is not null)
                 {
                     classArguments = initializerPlacement.classArguments;
@@ -5913,7 +5913,7 @@ namespace NeoCompose.Runtime.NeoScript
                     id = $"__neo_variant_target_{source.valueId}",
                     name = "VariantTarget",
                     kind = MemberKind.Class,
-                    classId = row.classId ?? source.classId ?? string.Empty,
+                    DeclaredClassId = row.classId ?? source.classId ?? string.Empty,
                     createdAt = row.createdAt,
                     updatedAt = row.updatedAt,
                 };
@@ -9080,7 +9080,7 @@ namespace NeoCompose.Runtime.NeoScript
                 || unwrapped is NeoDelegateValue)
             {
                 string? effectiveClassId = row.classId
-                    ?? (member as ClassMember)?.classId;
+                    ?? (member as ClassMember)?.DeclaredClassId;
                 var reference = new RowReference(
                     row.id,
                     ownership,
@@ -10300,7 +10300,7 @@ namespace NeoCompose.Runtime.NeoScript
                         rowRef.valueId,
                         out JsonMember? indexedMember)
                     && indexedMember is ClassMember indexedClassMember
-                        ? indexedClassMember.classId
+                        ? indexedClassMember.DeclaredClassId
                         : null);
             }
         }
@@ -10326,7 +10326,7 @@ namespace NeoCompose.Runtime.NeoScript
                         valueReference.valueId!, out JsonMember? referencedMember)
                     && referencedMember is ClassMember referencedClassMember)
                 {
-                    return referencedClassMember.classId;
+                    return referencedClassMember.DeclaredClassId;
                 }
             }
             return null;

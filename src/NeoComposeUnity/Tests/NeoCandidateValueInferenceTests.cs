@@ -105,7 +105,7 @@ namespace NeoCompose.Tests
                     name = name,
                     kind = MemberKind.Class,
                     valueId = name,
-                    classId = "root",
+                    DeclaredClassId = "root",
                     Requirement = NeoMemberRequirementKind.Required,
                     Storage = name == "save" ? NeoMemberStorage.Save : name == "session" ? NeoMemberStorage.Session : NeoMemberStorage.Immutable,
                 };

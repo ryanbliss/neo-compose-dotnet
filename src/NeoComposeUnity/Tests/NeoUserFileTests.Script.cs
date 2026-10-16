@@ -535,7 +535,7 @@ namespace NeoCompose.Tests
                 projectId = "project-1",
                 name = "Item",
                 kind = MemberKind.Class,
-                classId = "class-item",
+                DeclaredClassId = "class-item",
                 Requirement = NeoMemberRequirementKind.Required,
             }));
             classes["class-item"] = Class("class-item", "Item", new JObject());

@@ -186,7 +186,7 @@ namespace NeoCompose.Tests
                 name = "Item",
                 kind = MemberKind.Class,
                 Requirement = NeoMemberRequirementKind.Required,
-                classId = widgetClass.id,
+                DeclaredClassId = widgetClass.id,
             };
             var holderItems = new ListMember
             {
@@ -213,7 +213,7 @@ namespace NeoCompose.Tests
                 kind = MemberKind.Class,
                 Requirement = NeoMemberRequirementKind.Required,
                 Storage = NeoMemberStorage.Save,
-                classId = widgetClass.id,
+                DeclaredClassId = widgetClass.id,
                 valueId = SavedWidgetValueId,
                 Modifier = NeoMemberModifierKind.Static,
             };
@@ -314,7 +314,7 @@ namespace NeoCompose.Tests
                 name = name,
                 kind = MemberKind.Class,
                 Requirement = NeoMemberRequirementKind.Required,
-                classId = "root-class",
+                DeclaredClassId = "root-class",
                 Storage = storage,
                 valueId = valueId,
             };

@@ -775,7 +775,7 @@ namespace NeoCompose.Runtime
                     && TryGetMember(field.memberId, out Member? member) && member is ListMember list
                     && TryGetMember(list.entryMemberId, out Member? entry) && entry is ClassMember classEntry)
                 {
-                    entryClassId = classEntry.classId;
+                    entryClassId = classEntry.DeclaredClassId;
                     break;
                 }
             if (string.IsNullOrEmpty(entryClassId))

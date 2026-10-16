@@ -220,7 +220,7 @@ namespace NeoCompose.Tests
                 projectId = "project-a",
                 name = "Copy",
                 kind = MemberKind.Class,
-                classId = NeoCellPatternOffsets.ClassId,
+                DeclaredClassId = NeoCellPatternOffsets.ClassId,
             };
             data.classes["save-root-class"].schema["Copy"] = "save-Copy";
 

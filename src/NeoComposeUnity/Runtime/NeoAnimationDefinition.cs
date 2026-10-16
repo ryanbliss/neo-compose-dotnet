@@ -1015,14 +1015,14 @@ namespace NeoCompose.Runtime
                     || child.value is null)
                 {
                     throw new InvalidOperationException(
-                        $"Animation path '{string.Join(".", path)}' cannot resolve against target '{target.value?.classId ?? target.member.classId}'.");
+                        $"Animation path '{string.Join(".", path)}' cannot resolve against target '{target.member.RowClassId(target.value?.classId)}'.");
                 }
                 parent = child;
             }
             if (!parent.TryGet(path[path.Length - 1], out NeoMember? leaf))
             {
                 throw new InvalidOperationException(
-                    $"Animation path '{string.Join(".", path)}' cannot resolve against target '{target.value?.classId ?? target.member.classId}'.");
+                    $"Animation path '{string.Join(".", path)}' cannot resolve against target '{target.member.RowClassId(target.value?.classId)}'.");
             }
             return leaf;
         }
@@ -1038,7 +1038,7 @@ namespace NeoCompose.Runtime
                     || child.value is null)
                 {
                     throw new InvalidOperationException(
-                        $"Animation path '{string.Join(".", path)}' cannot resolve against target '{target.value?.classId ?? target.member.classId}'.");
+                        $"Animation path '{string.Join(".", path)}' cannot resolve against target '{target.member.RowClassId(target.value?.classId)}'.");
                 }
                 parent = child.AsWritableView();
             }
@@ -1584,7 +1584,7 @@ namespace NeoCompose.Runtime
                     if (resolvedMember is not ClassMember clipMember)
                         continue;
                     if (!string.Equals(
-                            ResolveWorldKind(client, clipMember.classId),
+                            ResolveWorldKind(client, clipMember.DeclaredClassId),
                             AnimationClipWorldKind,
                             StringComparison.Ordinal))
                     {
@@ -1851,7 +1851,7 @@ namespace NeoCompose.Runtime
             if (segment is NeoMemberClass storedSegment
                 && !ClassInheritsWorldKind(
                     client,
-                    storedSegment.value?.classId ?? storedSegment.member.classId,
+                    storedSegment.member.RowClassId(storedSegment.value?.classId),
                     AnimationSegmentWorldKind))
             {
                 throw new InvalidOperationException(
@@ -2297,11 +2297,11 @@ namespace NeoCompose.Runtime
                     throw new InvalidOperationException(
                         $"Generated animation clip member '{schemaKey}' was not found on target class '{target.classId}'. Regenerate the project's C# types.");
                 }
-                string? worldKind = ResolveWorldKind(target.Client, clipNode.member.classId);
+                string? worldKind = ResolveWorldKind(target.Client, clipNode.member.DeclaredClassId);
                 if (!string.Equals(worldKind, AnimationClipWorldKind, StringComparison.Ordinal))
                 {
                     throw new InvalidOperationException(
-                        $"Member '{schemaKey}' targets class '{clipNode.member.classId}', whose inherited world kind is '{worldKind ?? "<missing>"}' instead of '{AnimationClipWorldKind}'.");
+                        $"Member '{schemaKey}' targets class '{clipNode.member.DeclaredTypeId}', whose inherited world kind is '{worldKind ?? "<missing>"}' instead of '{AnimationClipWorldKind}'.");
                 }
 
                 int fps = ReadRequiredInt(clipNode, "FPS", schemaKey);
@@ -2631,7 +2631,7 @@ namespace NeoCompose.Runtime
                     || child.value is null)
                 {
                     throw new InvalidOperationException(
-                        $"{where} cannot descend into a null definition member on target '{target.value?.classId ?? target.member.classId}'.");
+                        $"{where} cannot descend into a null definition member on target '{target.member.RowClassId(target.value?.classId)}'.");
                 }
                 cursor = child;
             }
@@ -3727,7 +3727,7 @@ namespace NeoCompose.Runtime
         {
             if (track.inheritanceChain.Count > 0)
                 return track.inheritanceChain[0].id;
-            return track.value?.classId ?? track.member.classId;
+            return track.member.RowClassId(track.value?.classId);
         }
 
         private static string TrackClassName(NeoClient client, NeoMemberClass track)
@@ -3885,7 +3885,7 @@ namespace NeoCompose.Runtime
             return false;
         }
 
-        private static string? ResolveWorldKind(NeoClient client, string classId)
+        private static string? ResolveWorldKind(NeoClient client, string? classId)
         {
             var visited = new HashSet<string>(StringComparer.Ordinal);
             string? cursor = classId;

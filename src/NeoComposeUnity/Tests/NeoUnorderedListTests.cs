@@ -121,7 +121,7 @@ namespace NeoCompose.Tests
             }
             if (sessionInline)
             {
-                ((ClassMember)data.members["root-session"]).classId = "save-root-class";
+                ((ClassMember)data.members["root-session"]).DeclaredClassId = "save-root-class";
                 var sessionRoot = (ObjectMemberValue)data.values["root-session-value"];
                 sessionRoot.classId = "save-root-class";
                 sessionRoot.value = new Dictionary<string, string> { ["Bag"] = "bag-value" };
@@ -1258,7 +1258,7 @@ namespace NeoCompose.Tests
                         projectId = "project-a",
                         name = "Bag",
                         kind = MemberKind.Class,
-                        classId = BagClassId,
+                        DeclaredClassId = BagClassId,
                         Requirement = NeoMemberRequirementKind.Required,
                     },
                     ["items-member"] = new ListMember
@@ -1286,7 +1286,7 @@ namespace NeoCompose.Tests
                         projectId = "project-a",
                         name = "Item",
                         kind = MemberKind.Class,
-                        classId = ItemClassId,
+                        DeclaredClassId = ItemClassId,
                         Requirement = NeoMemberRequirementKind.Required,
                     },
                 },
@@ -1346,7 +1346,7 @@ namespace NeoCompose.Tests
                 kind = MemberKind.Class,
                 Requirement = NeoMemberRequirementKind.Required,
                 valueId = valueId,
-                classId = classId,
+                DeclaredClassId = classId,
             };
         }
 

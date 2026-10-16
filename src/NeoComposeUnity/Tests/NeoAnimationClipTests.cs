@@ -1068,7 +1068,7 @@ namespace NeoCompose.Tests
         private sealed class TestTarget : NeoGeneratedClassValue
         {
             internal TestTarget(NeoClient client)
-                : base(client, client.AssetsRoot, client.AssetsRoot.member.classId) { }
+                : base(client, client.AssetsRoot, client.AssetsRoot.member.DeclaredClassId) { }
         }
     }
 }

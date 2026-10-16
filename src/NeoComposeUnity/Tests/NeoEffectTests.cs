@@ -373,7 +373,7 @@ namespace NeoCompose.Tests
                     projectId = ProjectId,
                     name = "StaticPlant",
                     kind = MemberKind.Class,
-                    classId = "class-plant",
+                    DeclaredClassId = "class-plant",
                     valueId = "static-plant",
                     Storage = NeoMemberStorage.Save,
                     Modifier = NeoMemberModifierKind.Static,
@@ -439,7 +439,7 @@ namespace NeoCompose.Tests
                     projectId = ProjectId,
                     name = "Plant",
                     kind = MemberKind.Class,
-                    classId = "class-plant",
+                    DeclaredClassId = "class-plant",
                     Requirement = NeoMemberRequirementKind.Required,
                 };
                 data.members["member-maker"] = new ClassMember
@@ -448,10 +448,10 @@ namespace NeoCompose.Tests
                     projectId = ProjectId,
                     name = "Maker",
                     kind = MemberKind.Class,
-                    classId = "class-maker",
+                    DeclaredClassId = "class-maker",
                     Requirement = NeoMemberRequirementKind.Required,
                 };
-                ((ClassMember)data.members["member-root-assets"]).classId = "class-assets";
+                ((ClassMember)data.members["member-root-assets"]).DeclaredClassId = "class-assets";
                 data.classes["class-assets"] = Class("class-assets", null,
                     ("Plant", "member-asset-plant"), ("Plants", "member-plants"), ("Maker", "member-maker"));
                 data.classes["class-pot"] = Class("class-pot", null, ("Plant", "member-asset-plant"));
@@ -711,12 +711,12 @@ namespace NeoCompose.Tests
                 new ClassMember
                 {
                     id = "member-plant-entry", projectId = ProjectId, name = "Plant", kind = MemberKind.Class,
-                    classId = "class-plant", Requirement = NeoMemberRequirementKind.Required,
+                    DeclaredClassId = "class-plant", Requirement = NeoMemberRequirementKind.Required,
                 },
                 new ClassMember
                 {
                     id = "member-watcher", projectId = ProjectId, name = "Watcher", kind = MemberKind.Class,
-                    classId = "class-watcher", Requirement = NeoMemberRequirementKind.Required,
+                    DeclaredClassId = "class-watcher", Requirement = NeoMemberRequirementKind.Required,
                 },
                 IntMember("member-target", "Target"),
                 IntMember("member-signal", "Signal"),
@@ -899,7 +899,7 @@ namespace NeoCompose.Tests
             projectId = ProjectId,
             name = id,
             kind = MemberKind.Class,
-            classId = classId,
+            DeclaredClassId = classId,
             valueId = valueId,
             Storage = storage,
             Requirement = NeoMemberRequirementKind.Required,

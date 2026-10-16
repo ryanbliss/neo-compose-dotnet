@@ -1160,7 +1160,7 @@ namespace NeoCompose.Tests
             name = id,
             kind = MemberKind.Class,
             valueId = valueId,
-            classId = classId,
+            DeclaredClassId = classId,
             Storage = storage,
             Requirement = NeoMemberRequirementKind.Required,
         };
@@ -1177,7 +1177,7 @@ namespace NeoCompose.Tests
                 id = id,
                 name = name,
                 kind = MemberKind.Class,
-                classId = classId,
+                DeclaredClassId = classId,
                 Requirement = requirement,
             };
             if (storage is NeoMemberStorage stamped)

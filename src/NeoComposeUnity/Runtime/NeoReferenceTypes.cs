@@ -223,13 +223,7 @@ namespace NeoCompose.Runtime
                                     (typeArguments ??= new Dictionary<string, TypeInfo>(StringComparer.Ordinal))[pair.Key] = argument;
                             }
                         }
-                        return new ClassTypeInfo
-                        {
-                            type = MemberKind.Class,
-                            required = required,
-                            classId = classMember.classId,
-                            typeArguments = typeArguments,
-                        };
+                        return classMember.DeclaredTypeInfo(required, typeArguments);
                     }
                 case VariantMember variant:
                     return VariantTypeInfo(client, variant, required);

@@ -277,6 +277,8 @@ namespace NeoCompose.Runtime.Json
         public bool ShouldSerializeentryMemberId() => ShouldSerializeChainResolvedField("entryMemberId");
         public bool ShouldSerializekeyEnumId() => ShouldSerializeChainResolvedField("keyEnumId");
         public bool ShouldSerializeclassId() => ShouldSerializeChainResolvedField("classId");
+        public bool ShouldSerializeinterfaceId() => ShouldSerializeChainResolvedField("interfaceId");
+        public bool ShouldSerializeinterfaceArguments() => ShouldSerializeChainResolvedField("interfaceArguments");
         public bool ShouldSerializeenumId() => ShouldSerializeChainResolvedField("enumId");
 
         /// <summary>The resolved requirement used by runtime consumers.</summary>
@@ -790,10 +792,104 @@ namespace NeoCompose.Runtime.Json
     {
     }
 
-    /// <summary>Mirror of TS-side <c>TMemberClass</c>.</summary>
+    /// <summary>
+    /// Mirror of TS-side <c>TMemberClass</c>: a class member or, with an
+    /// interface in place of a class, an interface member (P113 §4.1). Read
+    /// the declared type through <see cref="TryGetDeclaredClassId"/> or
+    /// <see cref="TryGetInterfaceId"/>; a row's class through
+    /// <see cref="NeoMemberClass.RowClassId"/>.
+    /// </summary>
     public sealed class ClassMember : Member<Dictionary<string, string>?>
     {
-        public string classId = null!;
+        [JsonProperty("classId")]
+        private string? classId;
+
+        [JsonProperty("interfaceId")]
+        private string? interfaceId;
+
+        /// <summary>The declared class, unless this is an interface member.</summary>
+        public bool TryGetDeclaredClassId(out string declaredClassId)
+        {
+            declaredClassId = classId!;
+            return classId is not null;
+        }
+
+        /// <summary>The declared interface, if this is an interface member.</summary>
+        public bool TryGetInterfaceId(out string declaredInterfaceId)
+        {
+            declaredInterfaceId = interfaceId!;
+            return interfaceId is not null;
+        }
+
+        /// <summary>The declared class; null on an interface member.</summary>
+        internal string? DeclaredClassId
+        {
+            get => classId;
+            set
+            {
+                classId = value;
+                if (value is null)
+                    return;
+                interfaceId = null;
+                interfaceArguments = null;
+            }
+        }
+
+        /// <summary>The declared interface; null on a class member.</summary>
+        internal string? DeclaredInterfaceId => interfaceId;
+
+        /// <summary>The declared class or interface, for messages.</summary>
+        internal string DeclaredTypeId => classId ?? interfaceId!;
+
+        /// <summary>The kind of type info the declared type projects.</summary>
+        internal MemberKind TypeKind => interfaceId is null ? MemberKind.Class : MemberKind.Interface;
+
+        /// <summary>The declared class's or interface's arguments.</summary>
+        internal Dictionary<string, GenericBinding>? TypeArguments => classArguments ?? interfaceArguments;
+
+        /// <summary>The declared type as type info.</summary>
+        internal TypeInfo DeclaredTypeInfo(bool required, Dictionary<string, TypeInfo>? typeArguments)
+        {
+            if (interfaceId is not null)
+            {
+                return new InterfaceTypeInfo
+                {
+                    type = MemberKind.Interface,
+                    required = required,
+                    interfaceId = interfaceId,
+                    typeArguments = typeArguments,
+                };
+            }
+            return new ClassTypeInfo
+            {
+                type = MemberKind.Class,
+                required = required,
+                classId = classId!,
+                typeArguments = typeArguments,
+            };
+        }
+
+        /// <summary>
+        /// The class of a row in this slot: the row's own class, else the
+        /// declared class. An interface slot's rows always name their class
+        /// (P113 §4.2).
+        /// </summary>
+        internal string RowClassId(string? rowClassId)
+        {
+            if (!string.IsNullOrEmpty(rowClassId))
+                return rowClassId!;
+            if (classId is not null)
+                return classId;
+            throw new InvalidOperationException(
+                $"A value in {name} must name its class, because {name} is typed {interfaceId}.");
+        }
+
+        /// <summary>
+        /// Present iff <see cref="interfaceId"/> names a generic interface:
+        /// its arguments, keyed by the interface's param ids (P113 §4.4).
+        /// Immutable after creation.
+        /// </summary>
+        public Dictionary<string, GenericBinding>? interfaceArguments;
 
         /// <summary>
         /// Selects a full Class value or recursive sparse override graph.
@@ -820,7 +916,7 @@ namespace NeoCompose.Runtime.Json
         }
 
         /// <summary>
-        /// Present iff <see cref="classId"/> references a class with
+        /// Present iff the declared class has
         /// unbound generics in scope: the constructed class's arguments,
         /// keyed by target param id (specs/class-generics.md
         /// Decision 7). Complete-or-absent; immutable after creation.

@@ -218,7 +218,7 @@ namespace NeoCompose.Tests
                 id = "held-widget-view",
                 name = "HeldWidget",
                 kind = MemberKind.Class,
-                classId = WidgetClassId,
+                DeclaredClassId = WidgetClassId,
             };
             using var held = new NeoMemberClassWritable(client, member, targetId, NeoValueOwnership.Session);
             for (int i = 0; i < 3; i++)
@@ -405,7 +405,7 @@ namespace NeoCompose.Tests
                 id = "pinned-widget-view",
                 name = "PinnedWidget",
                 kind = MemberKind.Class,
-                classId = WidgetClassId,
+                DeclaredClassId = WidgetClassId,
             };
             using (var view = new NeoMemberClassWritable(client, member, targetId, NeoValueOwnership.Session))
                 view.Get<NeoMemberStringWritable>("Label").Set("pinned");
@@ -1213,7 +1213,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Stored",
                 kind = MemberKind.Class,
-                classId = WidgetClassId,
+                DeclaredClassId = WidgetClassId,
                 Requirement = NeoMemberRequirementKind.Optional,
                 Storage = NeoMemberStorage.Save,
                 classArguments = new Dictionary<string, GenericBinding>
@@ -1407,7 +1407,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Variant test receiver",
                 kind = MemberKind.Class,
-                classId = WidgetClassId,
+                DeclaredClassId = WidgetClassId,
             };
             using var node = new NeoMemberClass(
                 client,
@@ -1430,7 +1430,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Variant test receiver",
                 kind = MemberKind.Class,
-                classId = WidgetClassId,
+                DeclaredClassId = WidgetClassId,
             };
             using var node = new NeoMemberClass(
                 client,
@@ -1639,7 +1639,7 @@ namespace NeoCompose.Tests
                         projectId = ProjectId,
                         name = "Entry",
                         kind = MemberKind.Class,
-                        classId = WidgetClassId,
+                        DeclaredClassId = WidgetClassId,
                         Requirement = NeoMemberRequirementKind.Required,
                         Storage = NeoMemberStorage.Immutable,
                         createdAt = "x",
@@ -1788,7 +1788,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Group",
                 kind = MemberKind.Class,
-                classId = BoxClassId,
+                DeclaredClassId = BoxClassId,
                 Requirement = NeoMemberRequirementKind.Required,
                 Storage = NeoMemberStorage.Session,
                 defaultValue = new ObjectMemberValueBase
@@ -1830,7 +1830,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Box",
                 kind = MemberKind.Class,
-                classId = BoxClassId,
+                DeclaredClassId = BoxClassId,
                 Requirement = NeoMemberRequirementKind.Optional,
                 Storage = NeoMemberStorage.Immutable,
                 createdAt = "x",
@@ -1853,7 +1853,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Data",
                 kind = MemberKind.Class,
-                classId = BoxClassId,
+                DeclaredClassId = BoxClassId,
                 Requirement = NeoMemberRequirementKind.Required,
                 Storage = NeoMemberStorage.Session,
                 defaultValue = new ObjectMemberValueBase
@@ -1912,7 +1912,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Held",
                 kind = MemberKind.Class,
-                classId = WidgetClassId,
+                DeclaredClassId = WidgetClassId,
                 Requirement = NeoMemberRequirementKind.Optional,
                 Storage = NeoMemberStorage.Save,
                 createdAt = "x",
@@ -1969,7 +1969,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Recipe",
                 kind = MemberKind.Class,
-                classId = BoxRecipeClassId,
+                DeclaredClassId = BoxRecipeClassId,
                 Requirement = NeoMemberRequirementKind.Optional,
                 Storage = NeoMemberStorage.Save,
                 createdAt = "x",
@@ -2309,7 +2309,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = name,
                 kind = MemberKind.Class,
-                classId = "root-class",
+                DeclaredClassId = "root-class",
                 valueId = valueId,
                 Storage = storage,
                 createdAt = "x",
@@ -2381,7 +2381,7 @@ namespace NeoCompose.Tests
             projectId = ProjectId,
             name = name,
             kind = MemberKind.Class,
-            classId = WidgetClassId,
+            DeclaredClassId = WidgetClassId,
             Payload = NeoMemberPayloadKind.Partial,
             Requirement = NeoMemberRequirementKind.Optional,
             Storage = NeoMemberStorage.Immutable,

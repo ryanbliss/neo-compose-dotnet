@@ -446,7 +446,7 @@ namespace NeoCompose.Tests
                     name = "Item",
                     kind = MemberKind.Class,
                     Requirement = NeoMemberRequirementKind.Required,
-                    classId = itemClass.id,
+                    DeclaredClassId = itemClass.id,
                 },
                 ["slug"] = new StringMember
                 {
@@ -553,7 +553,7 @@ namespace NeoCompose.Tests
                 kind = MemberKind.Class,
                 Requirement = NeoMemberRequirementKind.Required,
                 valueId = valueId,
-                classId = classId,
+                DeclaredClassId = classId,
             };
         }
 

@@ -90,6 +90,14 @@ namespace NeoCompose.Runtime.Json
         public Dictionary<string, InterfaceMember> members = null!;
         public List<string>? memberKeyOrder;
         public List<string>? extendsInterfaceIds;
+        /// <summary>
+        /// P113 §4.4. For each generic interface in
+        /// <see cref="extendsInterfaceIds"/>, one binding per param: a forward
+        /// of this interface's own param, or a closed Member binding.
+        /// </summary>
+        public Dictionary<string, Dictionary<string, GenericBinding>>? extendsInterfaceArguments;
+        /// <summary>P113 §2.4. Ordered params, shaped like a class's.</summary>
+        public List<GenericParamDeclaration>? genericParams;
         public NeoTimestamp createdAt;
         public NeoTimestamp updatedAt;
     }

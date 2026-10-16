@@ -1029,7 +1029,7 @@ namespace NeoCompose.Runtime
             {
                 throw Mismatch<T>(
                     member,
-                    $"a generated class for class '{classMember.classId}' exposing the generated Create/CreateWritable factory");
+                    $"a generated class for class '{classMember.DeclaredTypeId}' exposing the generated Create/CreateWritable factory");
             }
             return new NeoGenericBinding<T>(
                 MemberKind.Class,

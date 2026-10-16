@@ -329,11 +329,11 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException(
                     $"Cannot bind static member '{member.name}' to missing Class value '{sourceValueId}'.");
             }
-            string actualClassId = sourceRow.classId ?? classMember.classId;
-            if (!IsAssignableNeoSchemaClass(actualClassId, classMember.classId))
+            string actualClassId = classMember.RowClassId(sourceRow.classId);
+            if (!client.SlotAdmitsClass(classMember, actualClassId))
             {
                 throw new System.InvalidOperationException(
-                    $"Cannot bind static member '{member.name}' ({classMember.classId}) to incompatible runtime class '{actualClassId}'.");
+                    $"Cannot bind static member '{member.name}' ({classMember.DeclaredTypeId}) to incompatible runtime class '{actualClassId}'.");
             }
 
             var plan = new NeoWritePlan(client);

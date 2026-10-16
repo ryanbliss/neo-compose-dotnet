@@ -849,8 +849,7 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"P75 sparse instance root '{root.id}' is not reachable through a Class member placement.");
             }
-            if (string.IsNullOrEmpty(root.classId)
-                || string.IsNullOrEmpty(classMember.classId))
+            if (string.IsNullOrEmpty(root.classId))
             {
                 throw new InvalidOperationException(
                     $"P75 sparse instance root '{root.id}' has no resolvable Class type.");
@@ -1405,7 +1404,7 @@ namespace NeoCompose.Runtime
                 if (!IsVirtualInstanceRoot(instanceRoot))
                 {
                     var declaration = (ClassMember)placementMember!.ShallowClone();
-                    declaration.classId = instanceRoot.classId!;
+                    declaration.DeclaredClassId = instanceRoot.classId!;
                     if (!DerivesContentFromPlacementDefault(instanceRoot, declaration))
                         declaration.defaultValue = new ObjectMemberValueBase { value = new Dictionary<string, string>() };
                     constructed = NeoGeneratedTypesSupport.MaterializeStoredClassMemberDefault(
@@ -1660,8 +1659,7 @@ namespace NeoCompose.Runtime
             if (placementMember?.defaultValue?.value is not { } fields
                 || (fields.Count == 0 && placementMember.defaultValue.changeListeners is not { Count: > 0 }))
                 return false;
-            string effectiveClassId = placementMember.defaultValue.classId
-                ?? placementMember.classId;
+            string effectiveClassId = placementMember.RowClassId(placementMember.defaultValue.classId);
             if (effectiveClassId != root.classId)
                 return false;
             if (root.instanceVariantId is not null)
@@ -1810,7 +1808,7 @@ namespace NeoCompose.Runtime
             // select Asset storage and can omit those temporary children.
             if (member is ClassMember classMember && row is ObjectMemberValue { value: not null } classRow)
             {
-                string classId = classRow.classId ?? classMember.classId;
+                string classId = classMember.RowClassId(classRow.classId);
                 foreach (var entry in ResolveInstanceSurfaceSchema(classId))
                 {
                     bool constructed = classRow.value.TryGetValue(entry.schemaKey, out string childId);

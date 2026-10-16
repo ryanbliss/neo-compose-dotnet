@@ -4050,12 +4050,9 @@ namespace NeoCompose.Runtime
                 Vector3IntMember => new PrimitiveTypeInfo { type = MemberKind.Vector3Int, required = member.Requirement == NeoMemberRequirementKind.Required },
                 ColorMember => new PrimitiveTypeInfo { type = MemberKind.Color, required = member.Requirement == NeoMemberRequirementKind.Required },
                 DecimalMember => new PrimitiveTypeInfo { type = MemberKind.Decimal, required = member.Requirement == NeoMemberRequirementKind.Required },
-                ClassMember classMember => new ClassTypeInfo
-                {
-                    type = MemberKind.Class,
-                    required = member.Requirement == NeoMemberRequirementKind.Required,
-                    classId = classMember.classId,
-                },
+                ClassMember classMember => classMember.DeclaredTypeInfo(
+                    member.Requirement == NeoMemberRequirementKind.Required,
+                    null),
                 EnumMember enumMember => new EnumTypeInfo
                 {
                     type = MemberKind.Enum,
@@ -4102,7 +4099,7 @@ namespace NeoCompose.Runtime
                     {
                         id = id,
                         kind = MemberKind.Class,
-                        classId = ((ClassTypeInfo)typeInfo).classId,
+                        DeclaredClassId = ((ClassTypeInfo)typeInfo).classId,
                     };
                 case MemberKind.List:
                     return new ListMember

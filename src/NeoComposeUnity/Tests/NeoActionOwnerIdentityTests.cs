@@ -454,7 +454,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = name,
                 kind = MemberKind.Class,
-                classId = classId,
+                DeclaredClassId = classId,
                 valueId = valueId,
                 Storage = storage,
                 createdAt = "x",

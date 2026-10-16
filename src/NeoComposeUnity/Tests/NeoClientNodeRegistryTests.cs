@@ -420,7 +420,7 @@ namespace NeoCompose.Tests
                         name = "Card",
                         kind = MemberKind.Class,
                         Requirement = NeoMemberRequirementKind.Required,
-                        classId = cardClass.id,
+                        DeclaredClassId = cardClass.id,
                     },
                     ["member-container"] = new ClassMember
                     {
@@ -429,7 +429,7 @@ namespace NeoCompose.Tests
                         name = "Container",
                         kind = MemberKind.Class,
                         Requirement = NeoMemberRequirementKind.Required,
-                        classId = containerClass.id,
+                        DeclaredClassId = containerClass.id,
                     },
                     ["member-default-name"] = new StringMember
                     {
@@ -471,7 +471,7 @@ namespace NeoCompose.Tests
                         name = "Item Entry",
                         kind = MemberKind.Class,
                         Requirement = NeoMemberRequirementKind.Required,
-                        classId = baseItemClass.id,
+                        DeclaredClassId = baseItemClass.id,
                     },
                     ["member-children"] = new ListMember
                     {
@@ -538,7 +538,7 @@ namespace NeoCompose.Tests
                 kind = MemberKind.Class,
                 Requirement = NeoMemberRequirementKind.Required,
                 valueId = valueId,
-                classId = classId,
+                DeclaredClassId = classId,
             };
         }
 

@@ -2937,7 +2937,7 @@ namespace NeoCompose.Tests
                 projectId = "project-generated-surface",
                 name = name,
                 kind = MemberKind.Class,
-                classId = classId,
+                DeclaredClassId = classId,
                 createdAt = "x",
                 updatedAt = "x",
             };

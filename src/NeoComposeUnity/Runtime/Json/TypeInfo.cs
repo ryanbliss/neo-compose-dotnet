@@ -69,6 +69,11 @@ namespace NeoCompose.Runtime.Json
     public sealed class InterfaceTypeInfo : TypeInfo
     {
         public string interfaceId = null!;
+        /// <summary>
+        /// P113 §4.4. One argument per param of a generic interface, keyed by
+        /// the interface's param id. Compared invariantly.
+        /// </summary>
+        public Dictionary<string, TypeInfo>? typeArguments;
     }
 
     /// <summary>
@@ -79,7 +84,10 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public sealed class GenericTypeInfo : TypeInfo
     {
-        public string ownerClassId = null!;
+        /// <summary>The declaring class; null for an interface's param.</summary>
+        public string? ownerClassId;
+        /// <summary>P113 §2.4. The declaring interface; null for a class's param.</summary>
+        public string? ownerInterfaceId;
         public string genericParamId = null!;
     }
 

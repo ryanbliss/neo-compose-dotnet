@@ -106,7 +106,10 @@ namespace NeoCompose.Runtime
         /// <summary>Class only.</summary>
         public string? classId;
 
-        /// <summary>Class only — recursive argument signatures by target param id.</summary>
+        /// <summary>Interface only (P113 §4.4).</summary>
+        public string? interfaceId;
+
+        /// <summary>Class and Interface — recursive argument signatures by target param id.</summary>
         public Dictionary<string, NeoClassArgumentSignature>? args;
 
         /// <summary>List only; absent normalizes to Ordered.</summary>
@@ -962,7 +965,7 @@ namespace NeoCompose.Runtime
                 substituted.entryTypeInfo = entryTypeInfo;
                 return substituted;
             }
-            if (argument.type == MemberKind.Class)
+            if (argument.type is MemberKind.Class or MemberKind.Interface)
             {
                 if (argument.typeArguments is null)
                     return argument;
@@ -1110,6 +1113,23 @@ namespace NeoCompose.Runtime
                 substituted.typeArguments = typeArguments;
                 return substituted;
             }
+            if (typeInfo is InterfaceTypeInfo interfaceType)
+            {
+                if (interfaceType.typeArguments is null)
+                    return typeInfo;
+                Dictionary<string, TypeInfo> typeArguments =
+                    SubstituteTypeArguments(
+                        client,
+                        interfaceType.typeArguments,
+                        env);
+                if (ReferenceEquals(typeArguments, interfaceType.typeArguments))
+                {
+                    return typeInfo;
+                }
+                var substituted = (InterfaceTypeInfo)interfaceType.ShallowClone();
+                substituted.typeArguments = typeArguments;
+                return substituted;
+            }
             if (typeInfo is DelegateTypeInfo delegateType)
             {
                 TypeInfo returnTypeInfo = SubstituteNestedTypeInfo(
@@ -1231,23 +1251,22 @@ namespace NeoCompose.Runtime
         {
             if (signature.type == MemberKind.Class)
             {
-                var typeArguments = new Dictionary<string, TypeInfo>();
-                if (signature.args is not null)
-                {
-                    foreach (var pair in signature.args)
-                    {
-                        typeArguments[pair.Key] =
-                            TypeInfoFromArgumentSignature(pair.Value);
-                    }
-                }
                 return new ClassTypeInfo
                 {
                     type = signature.type,
                     required = signature.required,
                     classId = signature.classId!,
-                    typeArguments = typeArguments.Count == 0
-                        ? null
-                        : typeArguments,
+                    typeArguments = TypeArgumentsFromSignatures(signature.args),
+                };
+            }
+            if (signature.type == MemberKind.Interface)
+            {
+                return new InterfaceTypeInfo
+                {
+                    type = signature.type,
+                    required = signature.required,
+                    interfaceId = signature.interfaceId!,
+                    typeArguments = TypeArgumentsFromSignatures(signature.args),
                 };
             }
             if (signature.type == MemberKind.Enum)
@@ -1321,6 +1340,17 @@ namespace NeoCompose.Runtime
                 || kind == MemberKind.Decimal;
         }
 
+        private static Dictionary<string, TypeInfo>? TypeArgumentsFromSignatures(
+            Dictionary<string, NeoClassArgumentSignature>? args)
+        {
+            if (args is not { Count: > 0 })
+                return null;
+            var typeArguments = new Dictionary<string, TypeInfo>(args.Count);
+            foreach (var pair in args)
+                typeArguments[pair.Key] = TypeInfoFromArgumentSignature(pair.Value);
+            return typeArguments;
+        }
+
         private static FunctionArgumentTypeInfo FunctionArgumentFromSignature(
             string name,
             NeoClassArgumentSignature signature)
@@ -1334,15 +1364,12 @@ namespace NeoCompose.Runtime
             if (signature.type == MemberKind.Class)
             {
                 argument.classId = signature.classId;
-                if (signature.args is not null && signature.args.Count > 0)
-                {
-                    argument.typeArguments = new Dictionary<string, TypeInfo>();
-                    foreach (var pair in signature.args)
-                    {
-                        argument.typeArguments[pair.Key] =
-                            TypeInfoFromArgumentSignature(pair.Value);
-                    }
-                }
+                argument.typeArguments = TypeArgumentsFromSignatures(signature.args);
+            }
+            else if (signature.type == MemberKind.Interface)
+            {
+                argument.interfaceId = signature.interfaceId;
+                argument.typeArguments = TypeArgumentsFromSignatures(signature.args);
             }
             else if (signature.type == MemberKind.Enum)
             {
@@ -1448,18 +1475,19 @@ namespace NeoCompose.Runtime
             if (member is ClassMember classMember)
             {
                 var args = new Dictionary<string, NeoClassArgumentSignature>();
-                if (classMember.classArguments is not null)
+                if (classMember.TypeArguments is not null)
                 {
-                    foreach (var pair in classMember.classArguments)
+                    foreach (var pair in classMember.TypeArguments)
                     {
                         args[pair.Key] = SignatureOfBinding(client, pair.Value, env, seen);
                     }
                 }
                 return new NeoClassArgumentSignature
                 {
-                    type = MemberKind.Class,
+                    type = classMember.TypeKind,
                     required = required,
-                    classId = classMember.classId,
+                    classId = classMember.DeclaredClassId,
+                    interfaceId = classMember.DeclaredInterfaceId,
                     args = args,
                 };
             }
@@ -1602,9 +1630,11 @@ namespace NeoCompose.Runtime
             {
                 return a.enumId == b.enumId && a.selection == b.selection;
             }
-            if (a.type == MemberKind.Class)
+            if (a.type is MemberKind.Class or MemberKind.Interface)
             {
                 if (a.classId != b.classId)
+                    return false;
+                if (a.interfaceId != b.interfaceId)
                     return false;
                 var aArgs = a.args ?? new Dictionary<string, NeoClassArgumentSignature>();
                 var bArgs = b.args ?? new Dictionary<string, NeoClassArgumentSignature>();
@@ -1683,10 +1713,18 @@ namespace NeoCompose.Runtime
                 return NeoSlotAdmission.Reject(
                     $"class '{valueClassId}' does not exist in the document");
             }
+            if (slotMember.DeclaredInterfaceId is { } interfaceId)
+            {
+                string? undetermined = client.InterfaceImplementers.UndeterminedRowMessage(
+                    slotMember.name,
+                    valueClassId,
+                    interfaceId);
+                return undetermined is null ? NeoSlotAdmission.Ok : NeoSlotAdmission.Reject(undetermined);
+            }
             bool isDescendant = false;
             foreach (var t in chain)
             {
-                if (t.id != slotMember.classId)
+                if (t.id != slotMember.DeclaredClassId)
                     continue;
                 isDescendant = true;
                 break;
@@ -1694,7 +1732,7 @@ namespace NeoCompose.Runtime
             if (!isDescendant)
             {
                 return NeoSlotAdmission.Reject(
-                    $"class '{chain[0].name}' is not '{slotMember.classId}' or one of its descendants");
+                    $"class '{chain[0].name}' is not '{slotMember.DeclaredClassId}' or one of its descendants");
             }
             // The pick's env is its chain env overlaid with the SLOT's
             // constructed arguments: for a constructed slot, the declared

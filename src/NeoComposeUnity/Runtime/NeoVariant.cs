@@ -804,7 +804,7 @@ namespace NeoCompose.Runtime
                 id = $"__neo_variant_{record.id}",
                 name = "Variant",
                 kind = MemberKind.Class,
-                classId = graphClass.id,
+                DeclaredClassId = graphClass.id,
                 valueId = row.id,
                 createdAt = row.createdAt,
                 updatedAt = row.updatedAt,
@@ -873,7 +873,7 @@ namespace NeoCompose.Runtime
                 id = $"__neo_variant_instance_{record.id}",
                 name = "VariantInstance",
                 kind = MemberKind.Class,
-                classId = row.classId ?? record.classId,
+                DeclaredClassId = row.classId ?? record.classId,
                 createdAt = row.createdAt,
                 updatedAt = row.updatedAt,
             };

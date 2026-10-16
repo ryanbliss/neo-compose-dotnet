@@ -1516,17 +1516,13 @@ namespace NeoCompose.Runtime
                             genericEnv,
                             visitingMembers);
                     case ClassMember classMember:
-                        return new ClassTypeInfo
-                        {
-                            type = MemberKind.Class,
-                            required = classMember.Requirement == NeoMemberRequirementKind.Required,
-                            classId = classMember.classId,
-                            typeArguments = ResolveBindingTypeArguments(
+                        return classMember.DeclaredTypeInfo(
+                            classMember.Requirement == NeoMemberRequirementKind.Required,
+                            ResolveBindingTypeArguments(
                                 client,
-                                classMember.classArguments,
+                                classMember.TypeArguments,
                                 genericEnv,
-                                visitingMembers),
-                        };
+                                visitingMembers));
                     case EnumMember enumMember:
                         return new EnumTypeInfo
                         {

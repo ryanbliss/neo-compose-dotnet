@@ -2390,9 +2390,9 @@ namespace NeoCompose.Runtime
             out string? classId)
         {
             if (member is ClassMember classMember
-                && !string.IsNullOrEmpty(classMember.classId))
+                && classMember.TryGetDeclaredClassId(out string declaredClassId))
             {
-                classId = classMember.classId;
+                classId = declaredClassId;
                 return true;
             }
 
@@ -3660,16 +3660,12 @@ namespace NeoCompose.Runtime
                     when row is ObjectMemberValue classRow
                     && classRow.value is not null:
                     {
-                        string actualClassId = classRow.classId
-                            ?? classMember.classId;
+                        string actualClassId = classMember.RowClassId(classRow.classId);
                         if (!trustedMaterialization
-                            && !IsAssignableNeoSchemaClass(
-                                client,
-                                actualClassId,
-                                classMember.classId))
+                            && !client.SlotAdmitsClass(classMember, actualClassId))
                         {
                             throw new InvalidOperationException(
-                                $"Constructed Class field '{path}' expects '{classMember.classId}' but staged row '{valueId}' has runtime class '{actualClassId}'.");
+                                $"Constructed Class field '{path}' expects '{classMember.DeclaredTypeId}' but staged row '{valueId}' has runtime class '{actualClassId}'.");
                         }
                         classRow.classId = actualClassId;
                         ValidateConstructedClassRow(
@@ -3870,12 +3866,8 @@ namespace NeoCompose.Runtime
             if (member is ClassMember classMember
                 && row is ObjectMemberValue classRow)
             {
-                string actualClassId = classRow.classId
-                    ?? classMember.classId;
-                if (!IsAssignableNeoSchemaClass(
-                        client,
-                        actualClassId,
-                        classMember.classId))
+                string actualClassId = classMember.RowClassId(classRow.classId);
+                if (!client.SlotAdmitsClass(classMember, actualClassId))
                 {
                     throw new InvalidOperationException(
                         $"Constructed Class field '{path}' has incompatible runtime class '{actualClassId}'.");
@@ -3981,8 +3973,7 @@ namespace NeoCompose.Runtime
                     when row is ObjectMemberValue classRow
                     && classRow.value is not null:
                     {
-                        string actualClassId = classRow.classId
-                            ?? classMember.classId;
+                        string actualClassId = classMember.RowClassId(classRow.classId);
                         var classArguments = NeoGenericResolution.CloseClassArgumentsFromStamp(
                             classRow.genericBindings, classMember.classArguments);
                         IList<MergedSchemaEntry> schema = ResolveMergedSchema(
@@ -5816,8 +5807,7 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"Stored instance '{storedRoot.id}' has no authored Class default to replay.");
             }
-            string classId = placementMember.defaultValue.classId
-                ?? placementMember.classId;
+            string classId = placementMember.RowClassId(placementMember.defaultValue.classId);
             IReadOnlyDictionary<string, GenericBinding>? classArguments =
                 NeoGenericResolution.CloseClassArgumentsFromStamp(
                     storedRoot.genericBindings,
@@ -6667,7 +6657,8 @@ namespace NeoCompose.Runtime
             TypeInfo typeInfo,
             Member member)
         {
-            if (typeInfo.type != member.kind
+            MemberKind memberType = member is ClassMember slot ? slot.TypeKind : member.kind;
+            if (typeInfo.type != memberType
                 || typeInfo.required != (member.Requirement == NeoMemberRequirementKind.Required))
             {
                 return false;
@@ -6675,7 +6666,12 @@ namespace NeoCompose.Runtime
             if (typeInfo is ClassTypeInfo classType
                 && member is ClassMember classMember)
             {
-                return classType.classId == classMember.classId;
+                return classType.classId == classMember.DeclaredClassId;
+            }
+            if (typeInfo is InterfaceTypeInfo interfaceType
+                && member is ClassMember interfaceMember)
+            {
+                return interfaceType.interfaceId == interfaceMember.DeclaredInterfaceId;
             }
             if (typeInfo is EnumTypeInfo enumType
                 && member is EnumMember enumMember)
@@ -6884,7 +6880,7 @@ namespace NeoCompose.Runtime
                         int owned = 0;
                         foreach (MergedSchemaEntry entry in ResolveMergedSchema(
                             client,
-                            body.classId ?? classMember.classId,
+                            classMember.RowClassId(body.classId),
                             classMember.classArguments))
                         {
                             if (!client.TryGetMember(entry.memberId, out Member? child))
@@ -7028,7 +7024,10 @@ namespace NeoCompose.Runtime
             switch (member)
             {
                 case ClassMember classMember:
-                    if (ClassAndSubclasses(client, classMember.classId) is not { } classIds)
+                    IEnumerable<string>? classIds = classMember.DeclaredClassId is { } declaredClassId
+                        ? ClassAndSubclasses(client, declaredClassId)
+                        : client.InterfaceImplementers.Implementers(classMember.DeclaredInterfaceId!);
+                    if (classIds is null)
                         return true;
                     foreach (string classId in classIds)
                     {
@@ -8398,7 +8397,7 @@ namespace NeoCompose.Runtime
             {
                 return null;
             }
-            var effectiveClassId = member.defaultValue.classId ?? member.classId;
+            var effectiveClassId = member.RowClassId(member.defaultValue.classId);
             AssertMemberWiseConstructionIsAvailable(client, effectiveClassId);
             // The slot's constructed arguments travel with every descent
             // below — the default's effective type may be the DECLARED open
@@ -8856,7 +8855,7 @@ namespace NeoCompose.Runtime
                                 value = null,
                             };
                         }
-                        string classId = sourceValue.classId ?? classMember.classId;
+                        string classId = classMember.RowClassId(sourceValue.classId);
                         if (sourceValue.instanceConstructorId is string constructorId)
                         {
                             ConstructorRecord constructor = RequireConstructorRecord(client, classId,
@@ -9748,7 +9747,7 @@ namespace NeoCompose.Runtime
                 id = UnplacedClassMemberId(classId),
                 name = "ClassValue",
                 kind = MemberKind.Class,
-                classId = classId,
+                DeclaredClassId = classId,
                 classArguments = NeoGenericResolution.CloseClassArgumentsFromStamp(
                     row?.genericBindings, classArguments)
                     is { } arguments ? new Dictionary<string, GenericBinding>(arguments) : null,
@@ -9875,7 +9874,7 @@ namespace NeoCompose.Runtime
                 name = "ClassDefault",
                 useDeclarationDefaults = true,
                 kind = MemberKind.Class,
-                classId = classId,
+                DeclaredClassId = classId,
                 defaultValue = new ObjectMemberValueBase
                 {
                     classId = classId,

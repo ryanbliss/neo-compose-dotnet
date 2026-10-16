@@ -966,7 +966,7 @@ namespace NeoCompose.Tests
                 id = "member-sparse-default-counted",
                 name = "Counted",
                 kind = MemberKind.Class,
-                classId = countedClassId,
+                DeclaredClassId = countedClassId,
                 valueId = sourceValueId,
                 Requirement = NeoMemberRequirementKind.Required,
                 createdAt = now,
@@ -977,7 +977,7 @@ namespace NeoCompose.Tests
                 id = "member-sparse-default-container",
                 name = "Container",
                 kind = MemberKind.Class,
-                classId = containerClassId,
+                DeclaredClassId = containerClassId,
                 Requirement = NeoMemberRequirementKind.Required,
                 defaultValue = new ObjectMemberValueBase
                 {
@@ -1089,7 +1089,7 @@ namespace NeoCompose.Tests
                                 type = MemberKind.Class,
                                 required = true,
                                 classId = ((ClassMember)data.members[
-                                    data.project.rootSessionMemberId]).classId,
+                                    data.project.rootSessionMemberId]).DeclaredClassId,
                             },
                         },
                         new Variable { id = "__arg_0__", typeInfo = labelArgument },
@@ -1817,7 +1817,7 @@ namespace NeoCompose.Tests
                 id = "implicit-concrete-member",
                 name = "Concrete",
                 kind = MemberKind.Class,
-                classId = classId,
+                DeclaredClassId = classId,
                 valueId = valueId,
             };
             app.Client.SetWritableValue(NeoValueOwnership.Session, new ObjectMemberValue
@@ -1878,7 +1878,7 @@ namespace NeoCompose.Tests
                 id = childMemberId,
                 name = "Child",
                 kind = MemberKind.Class,
-                classId = "class-hero",
+                DeclaredClassId = "class-hero",
                 Storage = NeoMemberStorage.Save,
                 createdAt = now,
                 updatedAt = now,

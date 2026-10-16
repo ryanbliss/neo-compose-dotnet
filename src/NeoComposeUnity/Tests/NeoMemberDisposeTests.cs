@@ -475,7 +475,7 @@ namespace NeoCompose.Tests
                 id = "test-cycle-child",
                 name = "Child",
                 kind = MemberKind.Class,
-                classId = "test-cycle-class",
+                DeclaredClassId = "test-cycle-class",
             };
             ((System.Collections.Generic.Dictionary<string, NeoSchemaClass>)client.classes)["test-cycle-class"] =
                 new NeoSchemaClass
