@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.74.0] - 2026-10-17
+
+`NeoObjectBase` and `NeoTile` gain `GetArea<T>()` (P114). It returns the nearest tile grid that owns the value, or null when no grid owns it or that grid isn't a `T`. Nested children, objects held in another object's field, and tiles in a nested layer link answer with their placed root's grid. A spawn, move, or removal earlier in the same NeoScript evaluation is visible to the call. A getter that calls it is recomputed only when the receiver or one of its owners changes, not when a neighbor spawns or despawns. Requires CLI 0.84.0; run `neo pull` and `neo export` after upgrading.
+
+```csharp
+// Generated on NeoObjectBase and NeoTile.
+public T? GetArea<T>() where T : class, IReadOnlyNeoTileGrid;
+public IReadOnlyNeoTileGrid? GetArea();
+```
+
+- Fixed: when a Save removes an authored row from its authored parent, grid queries on that row no longer answer with the old parent's grid.
+- Improved: grid queries find an authored row's owner once instead of on every call. A cold `GetCell` over 1,000 placed objects drops from 18.6 ms to 11.5 ms.
+
 ## [0.73.0] - 2026-10-16
 
 Interface members (P113). A member, collection element, or parameter can be typed by an interface, and its row holds any class that implements it. Generated C# types the slot by the interface. Requires CLI 0.83.0; run `neo pull` and `neo export` after upgrading.

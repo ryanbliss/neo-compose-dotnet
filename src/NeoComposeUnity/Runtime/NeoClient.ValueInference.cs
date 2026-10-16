@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using NeoCompose.Runtime.Json;
 using Newtonsoft.Json.Linq;
 
@@ -112,37 +113,72 @@ namespace NeoCompose.Runtime
                         yield return id;
         }
 
-        internal IEnumerable<string> GridQueryParents(string childId)
+        /// <summary>
+        /// A row's owner, as grid queries climb to their grid. A collection
+        /// move the script batch holds pending answers first, and a collection
+        /// that released the row leaves it no owner. <paramref name="stamped"/>
+        /// says the owner is an unordered list holding the row by its stamp.
+        /// </summary>
+        internal bool TryGetGridQueryParent(string childId, [NotNullWhen(true)] out string? parentId, out bool stamped)
         {
+            stamped = false;
+            if (scriptWriteBatch?.TryGetEntryParent(childId, out parentId) == true)
+                return parentId is not null;
             if (TryGetValue(childId, out MemberValue? child) && !string.IsNullOrEmpty(child.containerId))
             {
-                yield return child.containerId!;
-                yield break;
+                stamped = true;
+                parentId = child.containerId!;
+                return true;
             }
             if (TryGetValueOwnership(childId, out NeoValueOwnership ownership)
                 && ownership != NeoValueOwnership.Asset
-                && TryFindOwnedParent(ownership, childId, out string? writableParent))
-            {
-                yield return writableParent;
-                yield break;
-            }
+                && TryFindOwnedParent(ownership, childId, out parentId))
+                return true;
             if (TryResolveVirtualPlacement(childId, out var placement))
             {
-                yield return placement.parentValueId;
-                yield break;
+                parentId = placement.parentValueId;
+                return true;
             }
-            if (!ValueInferenceIndex.Parents.TryGetValue(childId, out var parents))
-                yield break;
-            foreach (var pair in parents)
+            return TryGetAuthoredOwner(childId, out parentId);
+        }
+
+        /// <summary>
+        /// The authored row that owns <paramref name="childId"/>, unless a
+        /// writable overlay of it has released the row. Authored rows change
+        /// only with the index, so each child's owner is found once.
+        /// </summary>
+        private bool TryGetAuthoredOwner(string childId, [NotNullWhen(true)] out string? ownerId)
+        {
+            AuthoredValueInferenceIndex index = ValueInferenceIndex;
+            if (!index.Owners.TryGetValue(childId, out ownerId))
             {
-                Member? member = TryInferMemberForValueId(pair.Key, out Member? inferred) ? inferred : null;
-                foreach (var link in EnumerateOwnedChildLinks(pair.Value, member))
-                    if (link.valueId == childId)
+                if (!index.Parents.TryGetValue(childId, out var parents))
+                    return false;
+                ownerId = null;
+                foreach (var pair in parents)
+                {
+                    if (OwnsChild(pair.Key, pair.Value, childId))
                     {
-                        yield return pair.Key;
+                        ownerId = pair.Key;
                         break;
                     }
+                }
+                index.Owners[childId] = ownerId;
             }
+            if (ownerId is null || !TryGetValue(ownerId, out MemberValue? owner))
+                return false;
+            return ReferenceEquals(owner, data.values[ownerId]) || OwnsChild(ownerId, owner, childId);
+        }
+
+        private bool OwnsChild(string parentId, MemberValue parent, string childId)
+        {
+            Member? member = TryInferMemberForValueId(parentId, out Member? inferred) ? inferred : null;
+            foreach (var link in EnumerateOwnedChildLinks(parent, member))
+            {
+                if (link.valueId == childId)
+                    return true;
+            }
+            return false;
         }
 
         private sealed class AuthoredValueInferenceIndex
@@ -154,6 +190,8 @@ namespace NeoCompose.Runtime
             internal readonly Dictionary<string, List<Member>> MembersByValueId = new(StringComparer.Ordinal);
             internal readonly Dictionary<string, List<KeyValuePair<string, MemberValue>>> Parents =
                 new(StringComparer.Ordinal);
+            // Each asked child's authored owner, or null when only references name it.
+            internal readonly Dictionary<string, string?> Owners = new(StringComparer.Ordinal);
 
             internal AuthoredValueInferenceIndex(ProjectData data)
             {

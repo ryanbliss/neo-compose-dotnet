@@ -70,14 +70,10 @@ namespace NeoCompose.Runtime
         {
             if (receiverId is null || !HasWorldKind(ResolveValueRow(receiverId)?.classId, "object"))
                 return null;
-            var pending = new Queue<string>();
             var visited = new HashSet<string>();
-            pending.Enqueue(receiverId);
-            while (pending.Count > 0)
+            string id = receiverId;
+            while (visited.Add(id))
             {
-                string id = pending.Dequeue();
-                if (!visited.Add(id))
-                    continue;
                 if (HasWorldKind(ResolveValueRow(id)?.classId, "tileGrid"))
                 {
                     var primitive = NeoReadOnlyTileGridPrimitive.Resolve(this, id);
@@ -88,8 +84,9 @@ namespace NeoCompose.Runtime
                             return (primitive, new HashSet<Vector2Int>(record.Footprint));
                     }
                 }
-                foreach (string parent in GridQueryParents(id))
-                    pending.Enqueue(parent);
+                if (!TryGetGridQueryParent(id, out string? parent, out _))
+                    break;
+                id = parent;
             }
             return null;
         }

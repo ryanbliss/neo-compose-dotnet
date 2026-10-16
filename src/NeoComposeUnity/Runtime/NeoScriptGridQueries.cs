@@ -135,13 +135,7 @@ namespace NeoCompose.Runtime
                     }
                     break;
                 }
-                string? parent = null;
-                foreach (string candidate in client.GridQueryParents(current))
-                {
-                    parent = candidate;
-                    break;
-                }
-                if (parent is null)
+                if (!client.TryGetGridQueryParent(current, out string? parent, out _))
                     break;
                 current = parent;
             }
@@ -182,7 +176,12 @@ namespace NeoCompose.Runtime
                 return pattern;
             }
             if (receiver.valueId is not string id || !client.TryGetValue(id, out MemberValue? row))
+            {
+                // P114 §2. A value with no row is in no area.
+                if (memberId is GetObjectAreaId or GetTileAreaId)
+                    return null;
                 throw new NSGetterRuntimeError("Grid query receiver has no placement identity.");
+            }
             var ownership = client.TryGetValueOwnership(id, out NeoValueOwnership found) ? found : NeoValueOwnership.Asset;
             var ctx = client.CreateGetterContext(ownership);
             object? value = NSGetterEvaluator.UnwrapRow(row, ctx, ownership);
@@ -191,11 +190,21 @@ namespace NeoCompose.Runtime
             return result;
         }
 
+        private const string GetCellId = "system_df1c2d06-eeec-5340-addc-740f3668c9e4";
         private const string GetObjectsId = "system_f5ca386c-990c-54a1-8473-2d49d2cd887d";
         private const string GetTileId = "system_593e6208-e2ca-505e-9933-04b17102b6d2";
         private const string GetTilesId = "system_5a41d36a-bcd9-4867-9e46-d743f6e09582";
         private const string NeoObjectClassId = "system_f671535d-0eb6-4139-9caf-5c5276febd31";
         private const string NeoTileClassId = "system_d7fa161b-b269-4bf1-9ec9-3aebec67e6e0";
+        private const string GetObjectAreaId = "system_7ad477e2-be5b-4892-b9ba-2a2f2476988d";
+        private const string GetTileAreaId = "system_a92b0911-8e7e-48ef-a12e-f3c55c33f64b";
+        private const string NeoTileGridClassId = "system_b78f7f1d-f63c-4abb-ae65-852e69246534";
+        // P114 §3. Far past any world tree; ends a corrupt cycle without a visited set.
+        private const int MaxAreaDepth = 256;
+
+        /// <summary>Whether <paramref name="memberId"/> is a grid query this class answers.</summary>
+        internal static bool Handles(string memberId) => memberId is
+            GetCellId or GetObjectsId or GetTileId or GetTilesId or GetObjectAreaId or GetTileAreaId;
 
         /// <summary>
         /// P110 §6. The class a generic query keeps, or null to keep every
@@ -210,7 +219,7 @@ namespace NeoCompose.Runtime
                 throw new NSGetterRuntimeError(
                     $"Grid query type argument must be a class, not member kind {typeArguments[0].type}.");
             }
-            return classType.classId is NeoObjectClassId or NeoTileClassId ? null : classType.classId;
+            return classType.classId is NeoObjectClassId or NeoTileClassId or NeoTileGridClassId ? null : classType.classId;
         }
 
         /// <summary>Whether the call returns a fresh array of the queried objects or tiles.</summary>
@@ -239,17 +248,27 @@ namespace NeoCompose.Runtime
             out object? result)
         {
             result = null;
-            bool getCell = memberId == "system_df1c2d06-eeec-5340-addc-740f3668c9e4";
+            if (!Handles(memberId))
+                return false;
+            string? receiverId = NSGetterEvaluator.FindRowIdByReference(receiver, ctx)
+                ?? (receiver as INeoValueReference)?.valueId;
+            if (memberId is GetObjectAreaId or GetTileAreaId)
+            {
+                // The climb reads rows, not the grid's indexes, so pending writes stay pending.
+                string? areaId = receiverId is null ? null : AreaOf(receiverId);
+                result = areaId is null ? null : RuntimeValue(areaId, ctx);
+                if (FilterClassId(typeArguments) is string areaClassId && !NSGetterEvaluator.RuntimeClassExtends(result, areaClassId, ctx))
+                    result = null;
+                return true;
+            }
+            if (receiverId is null)
+                throw new NSGetterRuntimeError("Grid query receiver has no placement identity.");
+            bool getCell = memberId == GetCellId;
             bool getObjects = memberId == GetObjectsId;
             bool getTile = memberId == GetTileId;
             bool getTiles = memberId == GetTilesId;
-            if (!getCell && !getObjects && !getTile && !getTiles)
-                return false;
             // The grid indexes only committed placements.
             ctx.client.CommitScriptWritesForGrid();
-            string receiverId = NSGetterEvaluator.FindRowIdByReference(receiver, ctx)
-                ?? (receiver as INeoValueReference)?.valueId
-                ?? throw new NSGetterRuntimeError("Grid query receiver has no placement identity.");
             PlacementBinding binding = Resolve(receiverId);
             INeoTileGridContent content = binding.content!;
             NeoObjectPlacementRecord placement = binding.record!;
@@ -351,6 +370,42 @@ namespace NeoCompose.Runtime
             result = list;
             return true;
         }
+
+        /// <summary>
+        /// P114 §3. The nearest tile grid that owns <paramref name="valueId"/>,
+        /// or null. Notes the receiver and every owner it reaches except an
+        /// unordered list: an entry's stamp is its edge, and reading the list
+        /// would drop the getter whenever its layer spawns or despawns.
+        /// </summary>
+        private string? AreaOf(string valueId)
+        {
+            client.NoteRowRead(valueId);
+            string current = valueId;
+            bool stamped = false;
+            for (int depth = 0; depth < MaxAreaDepth; depth++)
+            {
+                // A stamp names an unordered list, which is never a grid.
+                if (!stamped)
+                {
+                    if (!client.TryGetValue(current, out MemberValue? row))
+                        return null;
+                    if (row is not ArrayMemberValue && client.HasWorldKind(ClassIdOf(current, row), "tileGrid"))
+                        return current;
+                }
+                if (!client.TryGetGridQueryParent(current, out string? parent, out stamped))
+                    return null;
+                if (!stamped)
+                    client.NoteRowRead(parent);
+                current = parent;
+            }
+            return null;
+        }
+
+        /// <summary>A row's class: its stamp, else its placing member's (P75 virtual rows).</summary>
+        private string? ClassIdOf(string id, MemberValue row) =>
+            row.classId ?? (client.TryInferMemberForValueId(id, out Member? member) && member is ClassMember placing
+                ? placing.classId
+                : null);
 
         /// <summary>The placement cell moved by the query's optional offset; null is zero.</summary>
         private static Vector2Int Shifted(Vector2Int cell, object? offset)
