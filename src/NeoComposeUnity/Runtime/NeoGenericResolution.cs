@@ -1249,7 +1249,7 @@ namespace NeoCompose.Runtime
                 : TypeInfoFromArgumentSignature(signature);
         }
 
-        private static TypeInfo TypeInfoFromArgumentSignature(
+        internal static TypeInfo TypeInfoFromArgumentSignature(
             NeoClassArgumentSignature signature)
         {
             if (signature.type == MemberKind.Class)

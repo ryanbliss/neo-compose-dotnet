@@ -93,6 +93,8 @@ namespace NeoCompose.Runtime
         private readonly Dictionary<string, IReadOnlyDictionary<string, IReadOnlyDictionary<string, GenericBinding>>>
             mapByClassId = new();
         private readonly Dictionary<(string, string), NeoInterfaceDetermination> determinationByKey = new();
+        private readonly Dictionary<(ClassMember, string), IReadOnlyDictionary<string, GenericBinding>?>
+            slotArgumentsByKey = new();
         private readonly HashSet<string> visiting = new();
         private Dictionary<string, List<string>>? implementersByInterfaceId;
 
@@ -221,15 +223,21 @@ namespace NeoCompose.Runtime
                 return slot.classArguments;
             if (slot.interfaceArguments is not { } slotArguments)
                 return null;
-            NeoInterfaceDetermination determination = Determination(rowClassId, interfaceId);
-            if (determination.paramByPosition is not { } paramByPosition)
-                return null;
-            var classArguments = new Dictionary<string, GenericBinding>(paramByPosition.Count);
-            foreach (var pair in paramByPosition)
+            var key = (slot, rowClassId);
+            if (slotArgumentsByKey.TryGetValue(key, out var cached))
+                return cached;
+            IReadOnlyDictionary<string, GenericBinding>? classArguments = null;
+            if (Determination(rowClassId, interfaceId).paramByPosition is { } paramByPosition)
             {
-                if (slotArguments.TryGetValue(pair.Key, out GenericBinding? binding))
-                    classArguments[pair.Value] = binding;
+                var byClassParam = new Dictionary<string, GenericBinding>(paramByPosition.Count);
+                foreach (var pair in paramByPosition)
+                {
+                    if (slotArguments.TryGetValue(pair.Key, out GenericBinding? binding))
+                        byClassParam[pair.Value] = binding;
+                }
+                classArguments = byClassParam;
             }
+            slotArgumentsByKey[key] = classArguments;
             return classArguments;
         }
 
@@ -505,6 +513,21 @@ namespace NeoCompose.Runtime
                 }
             }
             return false;
+        }
+    }
+
+    /// <summary>
+    /// P113 §6. The resolver generated code registers for one constructed
+    /// interface. A static generic registry needs no runtime type
+    /// construction, so it stays AOT-safe.
+    /// </summary>
+    public static class NeoInterfaceResolvers<I>
+    {
+        internal static NeoGeneratedTypesSupport.InterfaceResolver? Resolver { get; private set; }
+
+        public static void Register(NeoGeneratedTypesSupport.InterfaceResolver resolver)
+        {
+            Resolver = resolver;
         }
     }
 }

@@ -1188,7 +1188,7 @@ namespace NeoCompose.Runtime
                     out JsonMember? placementMember)
                 && placementMember is ClassMember classPlacement)
             {
-                constructedArguments = classPlacement.classArguments;
+                constructedArguments = client.SlotClassArguments(classPlacement, runtimeClassId!);
             }
 
             // A persisted closure closes forwarded placement parameters.
@@ -2249,17 +2249,22 @@ namespace NeoCompose.Runtime
                             FunctionArgumentTypeInfo argument => argument.interfaceId,
                             _ => null,
                         };
-                        string? actualClassId =
-                            NSGetterEvaluator.FindRowClassIdByReference(value, ctx);
-                        if (string.IsNullOrEmpty(interfaceId)
-                            || string.IsNullOrEmpty(actualClassId)
-                            || !NeoInterfaceResolution.ClassImplements(
-                                actualClassId!,
-                                interfaceId!,
-                                client.ProjectDataForRuntime))
+                        if (string.IsNullOrEmpty(interfaceId))
                         {
                             throw new InvalidOperationException(
-                                $"{subject} has runtime Class '{actualClassId ?? "<unbound>"}', which does not implement Interface '{interfaceId ?? "<missing>"}'.");
+                                $"{subject} is typed by an Interface type-info with no interface id.");
+                        }
+                        string? actualClassId =
+                            NSGetterEvaluator.FindRowClassIdByReference(value, ctx);
+                        if (string.IsNullOrEmpty(actualClassId))
+                        {
+                            throw new InvalidOperationException(
+                                $"{subject} has no runtime Class, so it can't implement Interface '{interfaceId}'.");
+                        }
+                        if (!client.InterfaceImplementers.Implements(actualClassId!, interfaceId!))
+                        {
+                            throw new InvalidOperationException(
+                                $"{subject} has runtime Class '{actualClassId}', which does not implement Interface '{interfaceId}'.");
                         }
                         return;
                     }

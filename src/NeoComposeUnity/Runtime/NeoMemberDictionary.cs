@@ -225,6 +225,7 @@ namespace NeoCompose.Runtime
             ObserveScriptWrites();
             if (entryMember.Requirement == NeoMemberRequirementKind.Required && (setValue is null || setValue.isNull))
                 throw new System.ArgumentNullException(nameof(setValue), "Cannot be null when entry member is required");
+            client.RequireInterfaceSlotAdmits(entryMember, member.name, setValue);
             var plan = new NeoWritePlan(client);
             NeoTimestamp nowIso = NeoTimestamp.Now();
             NeoValueOwnership entryOwnership = client.ChildOwnership(entryMember, ownership);

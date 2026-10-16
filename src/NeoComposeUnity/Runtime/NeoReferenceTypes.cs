@@ -212,9 +212,9 @@ namespace NeoCompose.Runtime
                 case ClassMember classMember:
                     {
                         Dictionary<string, TypeInfo>? typeArguments = null;
-                        if (classMember.classArguments is not null)
+                        if (classMember.TypeArguments is not null)
                         {
-                            foreach (var pair in classMember.classArguments)
+                            foreach (var pair in classMember.TypeArguments)
                             {
                                 if (pair.Value.kind != NeoGenericBindingKind.Member)
                                     continue;

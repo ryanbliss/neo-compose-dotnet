@@ -1928,11 +1928,12 @@ namespace NeoCompose.Runtime
             string valueId,
             IReadOnlyDictionary<string, ReadOnlyClassFactory> readOnlyFactories,
             IReadOnlyDictionary<string, WritableClassFactory> savedFactories,
-            NeoValueOwnership? placementOwnership)
+            NeoValueOwnership? placementOwnership,
+            InterfaceResolver? interfaceResolver = null)
         {
             ClassMember? member = null;
             NeoValueNode? node = null;
-            return ResolveClassValue(client, valueId, readOnlyFactories, savedFactories, placementOwnership, ref member, ref node);
+            return ResolveClassValue(client, valueId, readOnlyFactories, savedFactories, placementOwnership, ref member, ref node, interfaceResolver);
         }
 
         /// <param name="member">
@@ -1940,6 +1941,10 @@ namespace NeoCompose.Runtime
         /// otherwise by a caller that knows the value's parent edges are unchanged.
         /// </param>
         /// <param name="node">The value's node, kept by the caller so a repeat read skips the id lookup.</param>
+        /// <param name="interfaceResolver">
+        /// P113 §6. Builds a row whose class has no factory, an open generic
+        /// class, as the interface the caller converts to.
+        /// </param>
         internal static object? ResolveClassValue(
             NeoClient client,
             string valueId,
@@ -1947,7 +1952,8 @@ namespace NeoCompose.Runtime
             IReadOnlyDictionary<string, WritableClassFactory> savedFactories,
             NeoValueOwnership? placementOwnership,
             ref ClassMember? member,
-            ref NeoValueNode? node)
+            ref NeoValueNode? node,
+            InterfaceResolver? interfaceResolver = null)
         {
             NeoValueOwnership ownership = placementOwnership
                 ?? (client.TryGetValueOwnership(valueId, ref node, out NeoValueOwnership existing)
@@ -1980,8 +1986,8 @@ namespace NeoCompose.Runtime
                 && cached.classId == classId)
                 return cached;
 
-            if (ownership is NeoValueOwnership.Save or NeoValueOwnership.Session or NeoValueOwnership.User
-                && savedFactories.TryGetValue(classId, out var savedFactory))
+            bool saved = ownership is NeoValueOwnership.Save or NeoValueOwnership.Session or NeoValueOwnership.User;
+            if (saved && savedFactories.TryGetValue(classId, out var savedFactory))
             {
                 return savedFactory(
                     client,
@@ -1993,7 +1999,74 @@ namespace NeoCompose.Runtime
                 return readOnlyFactory(client, new NeoMemberClass(client, member, valueId, ownership));
             }
 
-            return null;
+            if (interfaceResolver is null)
+                return null;
+            NeoMemberClass resolverNode = saved
+                ? new NeoMemberClassWritable(client, member, valueId, ownership)
+                : new NeoMemberClass(client, member, valueId, ownership);
+            return interfaceResolver(client, resolverNode, readOnly: false);
+        }
+
+        /// <summary>
+        /// P113 §6. Builds a generic interface's open implementers from a row:
+        /// codegen emits one per generic interface and registers it in
+        /// <see cref="NeoInterfaceResolvers{I}"/> for each construction the
+        /// project names.
+        /// </summary>
+        public delegate object? InterfaceResolver(NeoClient client, NeoMemberClass node, bool readOnly);
+
+        /// <summary>
+        /// P113 §6. The one conversion of a Neo row to an interface type. It
+        /// returns the row's cached generated value, then what the resolver
+        /// registered for <typeparamref name="I"/> builds, then the value the
+        /// row's class factory builds.
+        /// </summary>
+        public static I? ResolveInterfaceValue<I>(NeoClient client, NeoMemberClass? node, bool readOnly)
+            where I : class =>
+            node?.value?.value is null ? null : (I)ResolveInterfaceObject<I>(client, node, readOnly);
+
+        /// <summary>
+        /// <see cref="ResolveInterfaceValue{I}"/> for a codec whose
+        /// <typeparamref name="T"/> is unconstrained. The result is a
+        /// <typeparamref name="T"/>.
+        /// </summary>
+        internal static object ResolveInterfaceObject<T>(NeoClient client, NeoMemberClass node, bool readOnly)
+        {
+            if (client.TryGetGeneratedClassValue(node.RegistryKey, out var cached)
+                && cached.classId == node.ClassId)
+            {
+                return AsInterface<T>(cached, node);
+            }
+            if (NeoInterfaceResolvers<T>.Resolver?.Invoke(client, node, readOnly) is { } resolved)
+                return AsInterface<T>(resolved, node);
+            if (client.CreateRegisteredGeneratedClassValue(node, readOnly) is { } created)
+                return AsInterface<T>(created, node);
+            throw new NeoTypeArgumentException(
+                $"A {node.SchemaClassName} row can't be read as {typeof(T).Name}, because the project never names that construction.");
+        }
+
+        private static object AsInterface<T>(object value, NeoMemberClass node) =>
+            value is T
+                ? value
+                : throw new InvalidCastException(
+                    $"A {node.SchemaClassName} row isn't a {typeof(T).Name}.");
+
+        /// <summary>
+        /// P113 §6. An interface-typed setter's value. Only a generated Neo
+        /// class value has a row to place; a C# class that implements the
+        /// interface outside Neo has none.
+        /// </summary>
+        public static NeoValueWritePayload? InterfaceValueReference(object? value, string slotLabel)
+        {
+            if (value is null)
+                return null;
+            if (value is not NeoGeneratedClassValue generated)
+            {
+                throw new ArgumentException(
+                    $"{slotLabel} needs a Neo class value, and {value.GetType().Name} is a C# class.",
+                    nameof(value));
+            }
+            return ValueReference(generated);
         }
 
         public static T ResolveNativeFunctionReceiver<T>(
@@ -2014,7 +2087,9 @@ namespace NeoCompose.Runtime
                     client,
                     valueId!,
                     readOnlyFactories,
-                    savedFactories);
+                    savedFactories,
+                    null,
+                    NeoInterfaceResolvers<T>.Resolver);
                 if (resolved is T resolvedTyped)
                     return resolvedTyped;
             }
@@ -2049,7 +2124,9 @@ namespace NeoCompose.Runtime
                     client,
                     valueId!,
                     readOnlyFactories,
-                    savedFactories);
+                    savedFactories,
+                    null,
+                    NeoInterfaceResolvers<T>.Resolver);
                 if (resolved is T resolvedTyped)
                     return resolvedTyped;
             }
@@ -2132,7 +2209,7 @@ namespace NeoCompose.Runtime
             if (value is null)
                 return default(T) is null;
             Type type = Nullable.GetUnderlyingType(typeof(T)) ?? typeof(T);
-            if (ConvertTypeArgument(client, value, type, readOnlyFactories, savedFactories) is not T result)
+            if (ConvertTypeArgument(client, value, type, readOnlyFactories, savedFactories, NeoInterfaceResolvers<T>.Resolver) is not T result)
                 return false;
             converted = result;
             return true;
@@ -2143,7 +2220,8 @@ namespace NeoCompose.Runtime
             object value,
             Type type,
             IReadOnlyDictionary<string, ReadOnlyClassFactory>? readOnlyFactories,
-            IReadOnlyDictionary<string, WritableClassFactory>? savedFactories)
+            IReadOnlyDictionary<string, WritableClassFactory>? savedFactories,
+            InterfaceResolver? interfaceResolver)
         {
             if (type.IsEnum)
                 return ReadSelectedId(value) is { } optionId ? NeoScriptValueMarshaller.EnumFromOptionId(type, optionId) : null;
@@ -2179,8 +2257,8 @@ namespace NeoCompose.Runtime
             if (string.IsNullOrEmpty(valueId))
                 return null;
             return readOnlyFactories is null
-                ? client.ResolveRegisteredGeneratedClassValue(valueId!)
-                : ResolveClassValue(client, valueId!, readOnlyFactories, savedFactories!);
+                ? client.ResolveRegisteredGeneratedClassValue(valueId!, null, interfaceResolver)
+                : ResolveClassValue(client, valueId!, readOnlyFactories, savedFactories!, null, interfaceResolver);
         }
 
         /// <summary>A nested reference's value (§3.1): the reference its slot stores, as <paramref name="type"/>.</summary>

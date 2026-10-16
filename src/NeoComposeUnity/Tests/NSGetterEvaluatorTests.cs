@@ -534,7 +534,7 @@ namespace NeoCompose.Tests
             Assert.IsInstanceOf<FunctionPointer>(pointer);
             var clone = ((FunctionPointer)pointer!).function as ClassCloneFunction;
             Assert.IsNotNull(clone);
-            Assert.AreEqual("class-hero", clone!.info.schemaClassInfo.classId);
+            Assert.AreEqual("class-hero", ((ClassTypeInfo)clone!.info.schemaClassInfo).classId);
             Assert.IsTrue(clone.info.schemaClassInfo.required);
         }
 

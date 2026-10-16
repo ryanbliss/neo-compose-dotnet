@@ -26,6 +26,8 @@ namespace NeoCompose.Runtime
 
         /// <summary>The effective class, including the member type when its row omits classId.</summary>
         public string ClassId => schemaClass.id;
+
+        internal string SchemaClassName => schemaClass.name;
         /// <summary>
         /// Inheritance chain (child-first) for the row's effective
         /// class. Empty when the chain is cyclic — see
@@ -1061,6 +1063,7 @@ namespace NeoCompose.Runtime
                     nameof(setValue),
                     $"Cannot be null when child member '{key}' is required");
             }
+            client.RequireInterfaceSlotAdmits(childMember, $"{schemaClass.name}.{key}", setValue);
 
             // Per-placement storage (specs/member-storage.md): a declared
             // storage stamp on the child pins which writable store the leaf

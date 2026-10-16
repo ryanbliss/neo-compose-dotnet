@@ -875,7 +875,9 @@ namespace NeoCompose.Runtime
         public NeoScriptGridQueries ScriptGridQueries => scriptGridQueries ??= new NeoScriptGridQueries(this);
 
         /// <summary>Maps C# type arguments to NeoScript types for generic function calls.</summary>
-        public NeoTypeArguments TypeArguments { get; } = new();
+        public NeoTypeArguments TypeArguments => typeArguments ??= new NeoTypeArguments(this);
+
+        private NeoTypeArguments? typeArguments;
 
         public void Dispose()
         {
@@ -2175,6 +2177,39 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
+        /// P113 §3.3. A value written into an interface slot must be closed or
+        /// determined by the slot's interface: an undetermined open row would
+        /// lose its parameters for good. Every SDK write path into a slot runs
+        /// this O(1) check before it imports the value.
+        /// </summary>
+        internal void RequireInterfaceSlotAdmits(Member slot, string slotLabel, NeoValueWritePayload? payload)
+        {
+            if (payload?.isValueReference != true)
+                return;
+            if (slot is not ClassMember { DeclaredInterfaceId: { } interfaceId })
+                return;
+            if (InterfaceSlotRefusedClass(interfaceId, payload.valueId!) is { } rowClassId)
+            {
+                throw new System.InvalidOperationException(
+                    InterfaceImplementers.UndeterminedRowMessage(slotLabel, rowClassId, interfaceId)!);
+            }
+        }
+
+        /// <summary>
+        /// The class of <paramref name="valueId"/>'s row when an
+        /// <paramref name="interfaceId"/> slot can't hold it, and null when it
+        /// can. Callers build the slot's label only for a refusal.
+        /// </summary>
+        internal string? InterfaceSlotRefusedClass(string interfaceId, string valueId)
+        {
+            if (!TryGetValue(valueId, out ObjectMemberValue? row))
+                return null;
+            if (NeoGeneratedTypesSupport.ResolveClassValueClassId(this, valueId, row) is not { } rowClassId)
+                return null;
+            return InterfaceImplementers.Determination(rowClassId, interfaceId).Admits ? null : rowClassId;
+        }
+
+        /// <summary>
         /// P113 §1. The class arguments a row of <paramref name="rowClassId"/>
         /// takes from <paramref name="slot"/>.
         /// </summary>
@@ -3151,6 +3186,59 @@ namespace NeoCompose.Runtime
             ListenerCopyIntent listenerCopyIntent = ListenerCopyIntent.IndependentCopy,
             Dictionary<string, string>? clonedValueIds = null)
         {
+            string? slotClassId = SlotSuppliedClassId(plan, sourceValueId);
+            string imported = ImportValueReferenceGraph(
+                plan,
+                targetOwnership,
+                sourceValueId,
+                out movedValueIds,
+                currentDestinationValueId,
+                listenerCopyIntent,
+                clonedValueIds);
+            if (slotClassId is not null)
+                NameCopiedRootClass(plan, targetOwnership, imported, slotClassId);
+            return imported;
+        }
+
+        /// <summary>
+        /// P113 §4.2. The class a row takes from its class slot when it names
+        /// none. Null when the row names its class.
+        /// </summary>
+        private string? SlotSuppliedClassId(NeoWritePlan plan, string valueId)
+        {
+            if (plan.Resolve(valueId) is not ObjectMemberValue { classId: null })
+                return null;
+            return TryInferMemberForValueId(valueId, out Member? slot)
+                && slot is ClassMember classSlot
+                    ? classSlot.DeclaredClassId
+                    : null;
+        }
+
+        /// <summary>
+        /// P113 §4.2. A copy leaves the slot that supplied its root's class,
+        /// so the copied root names it: an interface slot has no class to
+        /// fall back to.
+        /// </summary>
+        private void NameCopiedRootClass(NeoWritePlan plan, NeoValueOwnership ownership, string rootId, string classId)
+        {
+            if (!plan.Rows.TryGetValue((ownership, rootId), out MemberValue? root))
+                return;
+            if (root is not ObjectMemberValue { classId: null })
+                return;
+            MemberValue named = CloneValueRow(root);
+            named.classId = classId;
+            plan.Set(ownership, named, silent: true);
+        }
+
+        private string ImportValueReferenceGraph(
+            NeoWritePlan plan,
+            NeoValueOwnership targetOwnership,
+            string sourceValueId,
+            out HashSet<string>? movedValueIds,
+            string? currentDestinationValueId,
+            ListenerCopyIntent listenerCopyIntent,
+            Dictionary<string, string>? clonedValueIds)
+        {
             if (targetOwnership == NeoValueOwnership.Asset)
             {
                 throw new System.InvalidOperationException("Cannot import a writable value into asset ownership.");
@@ -3431,6 +3519,8 @@ namespace NeoCompose.Runtime
             if (clonedValueIds is not null)
                 foreach (var copy in copies.Values)
                     clonedValueIds[copy.Key.id] = copy.Value.id;
+            if (sourceMember is ClassMember { DeclaredClassId: { } declaredClassId })
+                NameCopiedRootClass(plan, targetOwnership, clonedId, declaredClassId);
             return clonedId;
         }
 
@@ -4593,7 +4683,7 @@ namespace NeoCompose.Runtime
         }
 
         private static bool NeedsOwnedMemberContext(Member member) => member is GenericMember
-            || member is ClassMember constructed && constructed.classArguments?.Values.Any(argument => argument.IsForward) == true;
+            || member is ClassMember constructed && constructed.TypeArguments?.Values.Any(argument => argument.IsForward) == true;
 
         internal Member? TryResolveCollectionEntryMember(Member? collectionMember, MemberValue? row = null)
         {
@@ -7014,7 +7104,9 @@ namespace NeoCompose.Runtime
         }
 
         internal NeoGeneratedClassValue? ResolveRegisteredGeneratedClassValue(
-            string valueId, NeoValueOwnership? ownership = null)
+            string valueId,
+            NeoValueOwnership? ownership = null,
+            NeoGeneratedTypesSupport.InterfaceResolver? interfaceResolver = null)
         {
             if (string.IsNullOrWhiteSpace(valueId))
                 return null;
@@ -7024,8 +7116,29 @@ namespace NeoCompose.Runtime
                     valueId,
                     generatedReadOnlyClassFactories!,
                     generatedWritableClassFactories!,
-                    ownership)
+                    ownership,
+                    interfaceResolver)
                 as NeoGeneratedClassValue;
+        }
+
+        /// <summary>
+        /// P113 §6. Builds <paramref name="node"/>'s row through the factory
+        /// its class registered: the writable family for a writable node the
+        /// caller may write through, and the read-only family otherwise.
+        /// Null when the class has no factory, as an open generic class has none.
+        /// </summary>
+        internal NeoGeneratedClassValue? CreateRegisteredGeneratedClassValue(NeoMemberClass node, bool readOnly)
+        {
+            EnsureGeneratedClassFactoriesRegistered();
+            if (!readOnly
+                && node is NeoMemberClassWritable writable
+                && generatedWritableClassFactories!.TryGetValue(node.ClassId, out var writableFactory))
+            {
+                return writableFactory(this, writable) as NeoGeneratedClassValue;
+            }
+            return generatedReadOnlyClassFactories!.TryGetValue(node.ClassId, out var readOnlyFactory)
+                ? readOnlyFactory(this, node) as NeoGeneratedClassValue
+                : null;
         }
 
         internal NeoGeneratedClassValue? ResolveRegisteredGeneratedAsset(

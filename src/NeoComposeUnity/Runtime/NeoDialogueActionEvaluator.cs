@@ -3974,9 +3974,45 @@ namespace NeoCompose.Runtime
             out string? valueId)
         {
             valueId = null;
-            if (typeInfo.type != MemberKind.Class)
+            if (typeInfo.type is not (MemberKind.Class or MemberKind.Interface))
                 return false;
             return TryGetValueReferenceId(value, ctx, out valueId);
+        }
+
+        /// <summary>
+        /// P113 §3.3. A write into an interface slot holds an open row only
+        /// when the slot's interface determines its parameters. The slot is
+        /// <paramref name="key"/> on <paramref name="ownerRowId"/>'s row, or
+        /// the entries of the collection row <paramref name="ownerRowId"/>
+        /// when <paramref name="key"/> is null.
+        /// </summary>
+        private static void RequireInterfaceSlotAdmits(
+            NeoClient client,
+            TypeInfo slotType,
+            string valueId,
+            string ownerRowId,
+            string? key)
+        {
+            if (slotType is not InterfaceTypeInfo interfaceType)
+                return;
+            if (client.InterfaceSlotRefusedClass(interfaceType.interfaceId, valueId) is not { } rowClassId)
+                return;
+            throw new NSGetterRuntimeError(client.InterfaceImplementers.UndeterminedRowMessage(
+                InterfaceSlotLabel(client, ownerRowId, key),
+                rowClassId,
+                interfaceType.interfaceId)!);
+        }
+
+        private static string InterfaceSlotLabel(NeoClient client, string ownerRowId, string? key)
+        {
+            if (key is null)
+                return client.TryInferMemberForValueId(ownerRowId, out JsonMember? collection) ? collection.name : ownerRowId;
+            string? ownerClassId = client.TryGetValue(ownerRowId, out ObjectMemberValue? owner)
+                ? NeoGeneratedTypesSupport.ResolveClassValueClassId(client, ownerRowId, owner)
+                : null;
+            if (ownerClassId is null || !client.TryGetClass(ownerClassId, out NeoSchemaClass? ownerClass))
+                return key;
+            return $"{ownerClass.name}.{key}";
         }
 
         private static bool TryGetValueReferenceId(
@@ -5241,6 +5277,7 @@ namespace NeoCompose.Runtime
                                 ctx,
                                 out string? referenceId))
                         {
+                            RequireInterfaceSlotAdmits(client, MemberKindInfo(member), referenceId!, parentRowId, key);
                             if (parentOwnership == NeoValueOwnership.Asset)
                             {
                                 ShadowClassValueReference(plan, client, ownership, value, referenceId!, existing!, member, ctx);
@@ -5290,6 +5327,7 @@ namespace NeoCompose.Runtime
                             ctx,
                             out string? linkedReferenceId))
                     {
+                        RequireInterfaceSlotAdmits(client, MemberKindInfo(member), linkedReferenceId!, parentRowId, key);
                         linked.value![key] = ImportClassValueReference(
                             plan, client,
                             ownership,
@@ -5778,6 +5816,8 @@ namespace NeoCompose.Runtime
                 NSGetterEvaluator.Context ctx)
             {
                 string? referenceId = TryGetClassValueReferenceId(value, typeInfo, ctx, out string? id) ? id : null;
+                if (referenceId is not null)
+                    RequireInterfaceSlotAdmits(client, typeInfo, referenceId, parentRowId, null);
                 WriteCollection(client, parentRowId, null, batch =>
                 {
                     EnsureWritableRow(client, parentRowId, ownership);
@@ -5871,6 +5911,7 @@ namespace NeoCompose.Runtime
                             NeoValueWritePayload payload;
                             if (TryGetClassValueReferenceId(args[0], entryType, ctx, out string? referenceId))
                             {
+                                RequireInterfaceSlotAdmits(client, entryType, referenceId!, rowId, null);
                                 string importedId = ImportClassValueReference(plan, client, ownership, referenceId!, ctx);
                                 payload = NeoValueWritePayload.FromValueReference(importedId, null);
                             }
@@ -5972,6 +6013,8 @@ namespace NeoCompose.Runtime
                     // The closed entry member decides: a generic bound to a
                     // Class imports the referenced value like a Class entry.
                     referenceId = id;
+                    if (inserts)
+                        RequireInterfaceSlotAdmits(client, MemberKindInfo(entryMember), id!, rowId, null);
                 }
                 WriteCollection(client, rowId, preparedPlan, batch =>
                 {
@@ -6205,6 +6248,8 @@ namespace NeoCompose.Runtime
                     JsonMember entryMember = EntryMember(client, current!, entryTypeInfo);
                     // A reference entry selects its target; only an owned one adopts it.
                     string? referenceId = entryMember is LookupMember ? null : candidateId;
+                    if (referenceId is not null)
+                        RequireInterfaceSlotAdmits(client, MemberKindInfo(entryMember), referenceId, rowId, null);
                     if (((ObjectMemberValue)current!).value?.TryGetValue(key, out string existingId) == true
                         && client.TryGetValue(existingId, out MemberValue? existing))
                     {

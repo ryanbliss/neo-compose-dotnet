@@ -898,6 +898,14 @@ namespace NeoCompose.Runtime.NeoScript
                     storedGenericBindings = null;
                     return true;
                 }
+                // P113 §1. An interface slot's arguments close the open row it determines.
+                if (initializerPlacement?.DeclaredInterfaceId is not null
+                    && client.SlotClassArguments(initializerPlacement, classId) is { } slotArguments)
+                {
+                    classArguments = slotArguments;
+                    storedGenericBindings = null;
+                    return true;
+                }
                 return client.TryGetReplayingVirtualInstanceClassContext(
                     classId, out classArguments, out storedGenericBindings);
             }
@@ -8676,13 +8684,9 @@ namespace NeoCompose.Runtime.NeoScript
                         string? runtimeClassId = FindRowClassIdByReference(value, ctx);
                         if (string.IsNullOrEmpty(runtimeClassId))
                             return false;
-                        string interfaceId = (checkType as InterfaceTypeInfo)?.interfaceId ?? "";
-                        if (string.IsNullOrEmpty(interfaceId))
+                        if (checkType is not InterfaceTypeInfo interfaceType)
                             return false;
-                        return NeoInterfaceResolution.ClassImplements(
-                            runtimeClassId!,
-                            interfaceId,
-                            ctx.client.ProjectDataForRuntime);
+                        return RowImplementsInterface(value, runtimeClassId!, interfaceType, ctx);
                     }
                 default:
                     return false;
@@ -10248,6 +10252,71 @@ namespace NeoCompose.Runtime.NeoScript
         /// <see cref="FindRowClassIdByReference"/>, answered from the class
         /// node a row's reference keeps.
         /// </summary>
+        /// <summary>
+        /// P113 §5. Whether a row of <paramref name="rowClassId"/> implements
+        /// <paramref name="interfaceType"/> with its type arguments. The row's
+        /// arguments resolve through its instance environment, and the checked
+        /// type's parameters through the frame and the receiver (§4.3).
+        /// </summary>
+        private static bool RowImplementsInterface(
+            object value,
+            string rowClassId,
+            InterfaceTypeInfo interfaceType,
+            Context ctx)
+        {
+            NeoClient client = ctx.client;
+            if (!client.InterfaceImplementers.TryGetConstruction(
+                    rowClassId,
+                    interfaceType.interfaceId,
+                    out IReadOnlyDictionary<string, GenericBinding> construction))
+            {
+                return false;
+            }
+            if (interfaceType.typeArguments is not { Count: > 0 })
+                return true;
+            TypeInfo checkedType = interfaceType;
+            if (ctx.functionTypeArguments is { } frameArguments)
+                checkedType = NeoFunctionTypeArguments.Bind(checkedType, frameArguments);
+            if (ctx.thisValue is { } receiver && NamesClassTypeParameter(checkedType))
+            {
+                IReadOnlyDictionary<string, NeoGenericEnvEntry> receiverEnv =
+                    NeoNSFunctionRuntime.ResolveReceiverGenericEnv(client, receiver, ctx, "An interface check");
+                checkedType = NeoGenericResolution.SubstituteTypeInfo(client, checkedType, receiverEnv);
+            }
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> rowEnv =
+                NeoNSFunctionRuntime.ResolveReceiverGenericEnv(client, value, ctx, "An interface check");
+            foreach (var pair in ((InterfaceTypeInfo)checkedType).typeArguments!)
+            {
+                if (!construction.TryGetValue(pair.Key, out GenericBinding? binding))
+                    return false;
+                TypeInfo implemented = NeoGenericResolution.TypeInfoFromArgumentSignature(
+                    NeoGenericResolution.SignatureOfBinding(client, binding, rowEnv));
+                if (!NeoClient.TypeInfoMatches(pair.Value, implemented))
+                    return false;
+            }
+            return true;
+        }
+
+        private static bool NamesClassTypeParameter(TypeInfo typeInfo)
+        {
+            if (typeInfo is GenericTypeInfo)
+                return true;
+            Dictionary<string, TypeInfo>? typeArguments = typeInfo switch
+            {
+                InterfaceTypeInfo interfaceType => interfaceType.typeArguments,
+                ClassTypeInfo classType => classType.typeArguments,
+                _ => null,
+            };
+            if (typeArguments is null)
+                return false;
+            foreach (TypeInfo argument in typeArguments.Values)
+            {
+                if (NamesClassTypeParameter(argument))
+                    return true;
+            }
+            return false;
+        }
+
         internal static bool RuntimeClassExtends(object? value, string expectedClassId, Context ctx)
         {
             if (value is not NeoScriptObject { attachedId: null } && FindRowReference(value, ctx) is { } rowRef)

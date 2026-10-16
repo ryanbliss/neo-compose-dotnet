@@ -1024,6 +1024,12 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"NeoGenericBindings: member '{member.name}' ({member.id}) reports kind Class but is a {member.GetType().Name} record — the export is corrupt.");
             }
+            if (typeof(T).IsInterface
+                && GeneratedFactoryOps<T>.Create is null
+                && GeneratedFactoryOps<T>.CreateWritable is null)
+            {
+                return InterfaceCodec<T>(client, member);
+            }
             if (GeneratedFactoryOps<T>.Create is null
                 && GeneratedFactoryOps<T>.CreateWritable is null)
             {
@@ -1069,21 +1075,54 @@ namespace NeoCompose.Runtime
                     }
                     return typed;
                 },
-                (node, v) =>
-                {
-                    if (node.parent is not NeoMemberClassWritable parentRecord)
-                    {
-                        throw new InvalidOperationException(
-                            $"Cannot assign class generic member '{member.name}' ({member.id}): the node has no writable class parent to rebind through.");
-                    }
-                    if (!parentRecord.TryGetSchemaKeyForChild(node, out string? schemaKey))
-                    {
-                        throw new InvalidOperationException(
-                            $"Cannot assign class generic member '{member.name}' ({member.id}): the node is not a registered schema field of its parent.");
-                    }
-                    parentRecord.SetSerializedValue(schemaKey, SerializeClass(member, v));
-                },
+                (node, v) => AssignClassThroughParent(node, member, SerializeClass(member, v)),
                 v => SerializeClass(member, v));
+        }
+
+        /// <summary>
+        /// P113 §6. A Generic slot bound to an interface reads through
+        /// <see cref="NeoGeneratedTypesSupport.ResolveInterfaceValue{I}"/>. Its
+        /// writes reach the slot's closed-or-determined check through the
+        /// parent's <c>SetSerializedValue</c>.
+        /// </summary>
+        private static NeoGenericBinding<T> InterfaceCodec<T>(NeoClient client, Member member)
+        {
+            return new NeoGenericBinding<T>(
+                MemberKind.Class,
+                node =>
+                {
+                    var classNode = RequireNode<NeoMemberClass>(node, member);
+                    if (classNode.value?.value is null)
+                    {
+                        if (member.Requirement == NeoMemberRequirementKind.Required)
+                        {
+                            throw new InvalidOperationException(
+                                $"Required class member '{member.name}' ({member.id}) has no value.");
+                        }
+                        return default!;
+                    }
+                    return (T)NeoGeneratedTypesSupport.ResolveInterfaceObject<T>(client, classNode, readOnly: false);
+                },
+                (node, v) => AssignClassThroughParent(
+                    node,
+                    member,
+                    NeoGeneratedTypesSupport.InterfaceValueReference(v, member.name)),
+                v => NeoGeneratedTypesSupport.InterfaceValueReference(v, member.name));
+        }
+
+        private static void AssignClassThroughParent(NeoMember node, Member member, NeoValueWritePayload? payload)
+        {
+            if (node.parent is not NeoMemberClassWritable parentRecord)
+            {
+                throw new InvalidOperationException(
+                    $"Cannot assign class generic member '{member.name}' ({member.id}): the node has no writable class parent to rebind through.");
+            }
+            if (!parentRecord.TryGetSchemaKeyForChild(node, out string? schemaKey))
+            {
+                throw new InvalidOperationException(
+                    $"Cannot assign class generic member '{member.name}' ({member.id}): the node is not a registered schema field of its parent.");
+            }
+            parentRecord.SetSerializedValue(schemaKey, payload);
         }
 
         private static NeoValueWritePayload? SerializeClass<T>(Member member, T value)

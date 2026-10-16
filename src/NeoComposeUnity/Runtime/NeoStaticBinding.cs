@@ -335,6 +335,7 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException(
                     $"Cannot bind static member '{member.name}' ({classMember.DeclaredTypeId}) to incompatible runtime class '{actualClassId}'.");
             }
+            client.RequireInterfaceSlotAdmits(classMember, member.name, payload);
 
             var plan = new NeoWritePlan(client);
             string importedValueId = sourceValueId;
@@ -380,13 +381,6 @@ namespace NeoCompose.Runtime
             }
             plan.Commit();
             return movedValueIds;
-        }
-
-        private bool IsAssignableNeoSchemaClass(string actualClassId, string expectedClassId)
-        {
-            if (actualClassId == expectedClassId)
-                return true;
-            return client.ClassChainContains(actualClassId, expectedClassId);
         }
 
         private void EnsureWritable()
