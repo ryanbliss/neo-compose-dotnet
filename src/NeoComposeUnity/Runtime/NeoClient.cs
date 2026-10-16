@@ -2174,6 +2174,19 @@ namespace NeoCompose.Runtime
             return InterfaceImplementers.Implements(classId, slot.DeclaredInterfaceId!);
         }
 
+        /// <summary>
+        /// P113 §1. The class arguments a row of <paramref name="rowClassId"/>
+        /// takes from <paramref name="slot"/>.
+        /// </summary>
+        internal IReadOnlyDictionary<string, GenericBinding>? SlotClassArguments(
+            ClassMember? slot,
+            string rowClassId)
+        {
+            if (slot?.DeclaredInterfaceId is null)
+                return slot?.classArguments;
+            return InterfaceImplementers.SlotClassArguments(slot, rowClassId);
+        }
+
         internal IList<MergedSchemaEntry> ResolveInstanceSurfaceSchema(string classId) =>
             ResolveClassNode(classId).Surface;
 
@@ -2259,8 +2272,8 @@ namespace NeoCompose.Runtime
                     case DictionaryMember dictionary:
                         entryTemplateIds.Add(dictionary.entryMemberId);
                         break;
-                    case ClassMember classMember when classMember.classArguments is not null:
-                        AddGenericBindingIds(classMember.classArguments.Values, genericBindingIds);
+                    case ClassMember classMember when classMember.TypeArguments is not null:
+                        AddGenericBindingIds(classMember.TypeArguments.Values, genericBindingIds);
                         break;
                 }
             }
@@ -4566,7 +4579,7 @@ namespace NeoCompose.Runtime
             if (environments is null || !environments.TryGetValue(row, out var environment))
             {
                 var arguments = NeoGenericResolution.CloseClassArgumentsFromStamp(
-                    row.genericBindings, (sourceMember as ClassMember)?.classArguments);
+                    row.genericBindings, SlotClassArguments(sourceMember as ClassMember, classId));
                 environment = NeoGenericResolution.ResolveInstanceEnv(this, classId, arguments);
                 if (environments is not null)
                     environments[row] = environment;
@@ -8678,6 +8691,7 @@ namespace NeoCompose.Runtime
                     && a.interfaceId == b.interfaceId
                     && a.enumId == b.enumId
                     && a.ownerClassId == b.ownerClassId
+                    && a.ownerInterfaceId == b.ownerInterfaceId
                     && a.genericParamId == b.genericParamId
                     && a.collectionMemberId == b.collectionMemberId
                     && a.collectionValueId == b.collectionValueId
@@ -8694,11 +8708,15 @@ namespace NeoCompose.Runtime
                 (ClassTypeInfo a, FunctionArgumentTypeInfo b) =>
                     a.classId == b.classId
                     && TypeArgumentsMatch(a.typeArguments, b.typeArguments),
-                (InterfaceTypeInfo a, InterfaceTypeInfo b) => a.interfaceId == b.interfaceId,
+                (InterfaceTypeInfo a, InterfaceTypeInfo b) =>
+                    a.interfaceId == b.interfaceId
+                    && TypeArgumentsMatch(a.typeArguments, b.typeArguments),
                 (FunctionArgumentTypeInfo a, InterfaceTypeInfo b) =>
-                    a.interfaceId == b.interfaceId,
+                    a.interfaceId == b.interfaceId
+                    && TypeArgumentsMatch(a.typeArguments, b.typeArguments),
                 (InterfaceTypeInfo a, FunctionArgumentTypeInfo b) =>
-                    a.interfaceId == b.interfaceId,
+                    a.interfaceId == b.interfaceId
+                    && TypeArgumentsMatch(a.typeArguments, b.typeArguments),
                 (EnumTypeInfo a, EnumTypeInfo b) => a.enumId == b.enumId,
                 (FunctionArgumentTypeInfo a, EnumTypeInfo b) =>
                     a.enumId == b.enumId,
@@ -8706,12 +8724,15 @@ namespace NeoCompose.Runtime
                     a.enumId == b.enumId,
                 (GenericTypeInfo a, GenericTypeInfo b) =>
                     a.ownerClassId == b.ownerClassId
+                    && a.ownerInterfaceId == b.ownerInterfaceId
                     && a.genericParamId == b.genericParamId,
                 (FunctionArgumentTypeInfo a, GenericTypeInfo b) =>
                     a.ownerClassId == b.ownerClassId
+                    && a.ownerInterfaceId == b.ownerInterfaceId
                     && a.genericParamId == b.genericParamId,
                 (GenericTypeInfo a, FunctionArgumentTypeInfo b) =>
                     a.ownerClassId == b.ownerClassId
+                    && a.ownerInterfaceId == b.ownerInterfaceId
                     && a.genericParamId == b.genericParamId,
                 (CollectionTypeInfo a, CollectionTypeInfo b) =>
                     TypeInfoMatches(a.entryTypeInfo, b.entryTypeInfo),

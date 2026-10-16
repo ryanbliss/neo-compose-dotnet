@@ -1151,6 +1151,8 @@ namespace NeoCompose.Runtime.Json
         public string? keyEnumId;
         public string? listMemberId;
         public string? ownerClassId;
+        /// <summary>P113 §2.4. The declaring interface of a Generic argument's param.</summary>
+        public string? ownerInterfaceId;
         public string? genericParamId;
         /// <summary>P110 §4. Set with <see cref="index"/> on a function's own type parameter.</summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
@@ -1213,6 +1215,7 @@ namespace NeoCompose.Runtime.Json
                 keyEnumId = json.Value<string>("keyEnumId"),
                 listMemberId = json.Value<string>("listMemberId"),
                 ownerClassId = json.Value<string>("ownerClassId"),
+                ownerInterfaceId = json.Value<string>("ownerInterfaceId"),
                 genericParamId = json.Value<string>("genericParamId"),
                 ownerMemberId = json.Value<string>("ownerMemberId"),
                 index = json.Value<int?>("index"),

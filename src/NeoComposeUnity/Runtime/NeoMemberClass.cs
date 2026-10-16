@@ -766,7 +766,7 @@ namespace NeoCompose.Runtime
                 IReadOnlyDictionary<string, GenericBinding>? classArguments =
                     NeoGenericResolution.CloseClassArgumentsFromStamp(
                         value?.genericBindings,
-                        member.classArguments);
+                        client.SlotClassArguments(member, schemaClass.id));
                 GenericEnv = NeoGenericResolution.ResolveInstanceEnv(
                     inheritanceChain,
                     classArguments);
@@ -1312,7 +1312,7 @@ namespace NeoCompose.Runtime
                     client,
                     new ClassTypeInfo { type = MemberKind.Class, classId = schemaClass.id, required = true },
                     System.Array.Empty<NeoGeneratedTypesSupport.RuntimeConstructorField>(),
-                    member.classArguments);
+                    client.SlotClassArguments(member, schemaClass.id));
             }
             catch (System.InvalidOperationException error)
             {

@@ -447,9 +447,9 @@ namespace NeoCompose.Runtime
             }
             if (member is ClassMember classMember)
             {
-                if (classMember.classArguments is null)
+                if (classMember.TypeArguments is null)
                     return;
-                foreach (var arg in classMember.classArguments.Values)
+                foreach (var arg in classMember.TypeArguments.Values)
                 {
                     if (arg.IsForward)
                     {
@@ -773,7 +773,7 @@ namespace NeoCompose.Runtime
             }
             if (member is ClassMember classMember)
             {
-                var args = classMember.classArguments;
+                var args = classMember.TypeArguments;
                 if (args is null)
                     return member;
                 bool changed = false;
@@ -809,7 +809,10 @@ namespace NeoCompose.Runtime
                 if (!changed)
                     return member;
                 var substitutedClass = (ClassMember)classMember.ShallowClone();
-                substitutedClass.classArguments = substitutedArgs;
+                if (classMember.DeclaredInterfaceId is null)
+                    substitutedClass.classArguments = substitutedArgs;
+                else
+                    substitutedClass.interfaceArguments = substitutedArgs;
                 return substitutedClass;
             }
             if (member is DelegateMember delegateMember)

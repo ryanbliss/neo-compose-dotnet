@@ -203,7 +203,7 @@ namespace NeoCompose.Runtime
                     kind = DetachedSlotKind.Leaf;
                     return true;
                 case ClassMember classMember
-                    when classMember.classArguments is null
+                    when classMember.TypeArguments is null
                         && classMember.Payload == NeoMemberPayloadKind.Full:
                     kind = DetachedSlotKind.Class;
                     return true;

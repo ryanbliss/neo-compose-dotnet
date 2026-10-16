@@ -3683,7 +3683,7 @@ namespace NeoCompose.Runtime
                             trustedMaterialization: trustedMaterialization,
                             knownClassPlan: ResolveRuntimeClassPlan(client, actualClassId,
                                 classArguments: NeoGenericResolution.CloseClassArgumentsFromStamp(
-                                    classRow.genericBindings, classMember.classArguments)));
+                                    classRow.genericBindings, client.SlotClassArguments(classMember, actualClassId))));
                         break;
                     }
                 case ListMember listMember
@@ -3975,7 +3975,7 @@ namespace NeoCompose.Runtime
                     {
                         string actualClassId = classMember.RowClassId(classRow.classId);
                         var classArguments = NeoGenericResolution.CloseClassArgumentsFromStamp(
-                            classRow.genericBindings, classMember.classArguments);
+                            classRow.genericBindings, client.SlotClassArguments(classMember, actualClassId));
                         IList<MergedSchemaEntry> schema = ResolveMergedSchema(
                             client,
                             actualClassId,
@@ -5811,7 +5811,7 @@ namespace NeoCompose.Runtime
             IReadOnlyDictionary<string, GenericBinding>? classArguments =
                 NeoGenericResolution.CloseClassArgumentsFromStamp(
                     storedRoot.genericBindings,
-                    placementMember.classArguments);
+                    client.SlotClassArguments(placementMember, classId));
             IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv =
                 ResolveRuntimeInstanceEnv(client, classId, classArguments);
             RuntimeClassPlan classPlan = ResolveRuntimeClassPlan(
@@ -6878,10 +6878,11 @@ namespace NeoCompose.Runtime
                         if (children is null)
                             return false;
                         int owned = 0;
+                        string bodyClassId = classMember.RowClassId(body.classId);
                         foreach (MergedSchemaEntry entry in ResolveMergedSchema(
                             client,
-                            classMember.RowClassId(body.classId),
-                            classMember.classArguments))
+                            bodyClassId,
+                            client.SlotClassArguments(classMember, bodyClassId)))
                         {
                             if (!client.TryGetMember(entry.memberId, out Member? child))
                                 return true;
@@ -8412,7 +8413,7 @@ namespace NeoCompose.Runtime
                 nowIso,
                 scope,
                 path,
-                member.classArguments,
+                client.SlotClassArguments(member, effectiveClassId),
                 clonedIds);
             var row = CreateWritableClassValueRow(
                 client,
@@ -8422,7 +8423,7 @@ namespace NeoCompose.Runtime
                 nowIso,
                 scope,
                 path,
-                member.classArguments,
+                client.SlotClassArguments(member, effectiveClassId),
                 requireCompleteDefault: true);
             client.CaptureClonedListenerDefaults(clonedIds, member, row);
             client.CaptureAuthoredListenerDefaults(member.defaultValue.changeListeners, member.defaultValue.changeListenerEndpoints, clonedIds, member, row);
@@ -8872,7 +8873,7 @@ namespace NeoCompose.Runtime
                             }
                         }
                         var classArguments = NeoGenericResolution.CloseClassArgumentsFromStamp(
-                            sourceValue.genericBindings, classMember.classArguments);
+                            sourceValue.genericBindings, client.SlotClassArguments(classMember, classId));
                         ObjectMemberValue clone = CreateWritableClassValueRow(
                             client,
                             classId,
@@ -9717,7 +9718,7 @@ namespace NeoCompose.Runtime
             string classId)
         {
             client.TryInferMemberForValueId(valueId, out Member? placement);
-            return UnplacedClassMember(classId, (placement as ClassMember)?.classArguments, row);
+            return UnplacedClassMember(classId, client.SlotClassArguments(placement as ClassMember, classId), row);
         }
 
         // One id per class, so a repeated class-value read allocates none.

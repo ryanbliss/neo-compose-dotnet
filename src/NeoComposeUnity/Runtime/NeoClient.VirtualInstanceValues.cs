@@ -1372,7 +1372,7 @@ namespace NeoCompose.Runtime
             IReadOnlyDictionary<string, GenericBinding>? replayClassArguments =
                 NeoGenericResolution.CloseClassArgumentsFromStamp(
                     instanceRoot.genericBindings,
-                    placementMember?.classArguments);
+                    SlotClassArguments(placementMember, instanceRoot.classId!));
             NeoGeneratedTypesSupport.RuntimeConstructedClassValue constructed;
             bool wasReplaying = isReplayingVirtualInstance;
             string? previousReplayingRootId = replayingVirtualInstanceRootId;
