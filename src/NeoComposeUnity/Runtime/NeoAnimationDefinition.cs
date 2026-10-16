@@ -2467,6 +2467,24 @@ namespace NeoCompose.Runtime
                         throw new InvalidOperationException(
                             $"Animation clip '{clipKey}' frame {frameIndex} cannot descend through null Class path '{string.Join(".", path)}'.");
                     }
+                    if (ReplacesInterfaceSlotRow(target, path, childClass))
+                    {
+                        EnsureEligibleCompiledLeaf(child, ownership, where);
+                        EnsurePlacementPathIsIsolated(
+                            client,
+                            target,
+                            path,
+                            clipKey,
+                            frameIndex);
+                        writes.Add(new NeoAnimationCompiledWrite(
+                            client,
+                            target,
+                            path,
+                            NeoValueWritePayload.FromValueReference(childClass.value.id),
+                            clipKey,
+                            frameIndex));
+                        continue;
+                    }
                     // The override record being a record is not the question the
                     // rule is about — the TARGET must have a value to descend
                     // into. That is what the TS validator checks, and what the
@@ -2635,6 +2653,29 @@ namespace NeoCompose.Runtime
                 }
                 cursor = child;
             }
+        }
+
+        /// <summary>
+        /// P113 §4.2: an interface slot's partial row that names another class
+        /// replaces the slot's row. Its fields aren't the target class's.
+        /// </summary>
+        private static bool ReplacesInterfaceSlotRow(
+            NeoMemberClass target,
+            string[] path,
+            NeoMemberClass partialChild)
+        {
+            if (partialChild.member.DeclaredInterfaceId is null)
+                return false;
+            NeoMemberClass cursor = target;
+            foreach (string key in path)
+            {
+                if (!cursor.TryGet(key, out NeoMemberClass? child))
+                    return false;
+                if (child.value is null)
+                    return false;
+                cursor = child;
+            }
+            return !string.Equals(cursor.ClassId, partialChild.ClassId, StringComparison.Ordinal);
         }
 
         private static void EnsurePlacementPathIsIsolated(
