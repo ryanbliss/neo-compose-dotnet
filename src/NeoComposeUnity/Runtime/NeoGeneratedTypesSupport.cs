@@ -2056,7 +2056,7 @@ namespace NeoCompose.Runtime
         /// class value has a row to place; a C# class that implements the
         /// interface outside Neo has none.
         /// </summary>
-        public static NeoValueWritePayload? InterfaceValueReference(object? value, string slotLabel)
+        public static NeoGeneratedClassValue? InterfaceValue(object? value, string slotLabel)
         {
             if (value is null)
                 return null;
@@ -2066,8 +2066,12 @@ namespace NeoCompose.Runtime
                     $"{slotLabel} needs a Neo class value, and {value.GetType().Name} is a C# class.",
                     nameof(value));
             }
-            return ValueReference(generated);
+            return generated;
         }
+
+        /// <summary><see cref="InterfaceValue"/> as a write payload.</summary>
+        public static NeoValueWritePayload? InterfaceValueReference(object? value, string slotLabel) =>
+            ValueReference(InterfaceValue(value, slotLabel));
 
         public static T ResolveNativeFunctionReceiver<T>(
             NeoClient client,
