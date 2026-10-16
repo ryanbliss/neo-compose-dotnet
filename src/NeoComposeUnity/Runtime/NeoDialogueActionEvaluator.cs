@@ -3993,14 +3993,35 @@ namespace NeoCompose.Runtime
             string ownerRowId,
             string? key)
         {
-            if (slotType is not InterfaceTypeInfo interfaceType)
-                return;
-            if (client.InterfaceSlotRefusedClass(interfaceType.interfaceId, valueId) is not { } rowClassId)
+            if (slotType is InterfaceTypeInfo interfaceType)
+                RequireInterfaceAdmits(client, interfaceType.interfaceId, valueId, ownerRowId, key);
+        }
+
+        /// <inheritdoc cref="RequireInterfaceSlotAdmits(NeoClient, TypeInfo, string, string, string?)"/>
+        private static void RequireInterfaceSlotAdmits(
+            NeoClient client,
+            JsonMember slot,
+            string valueId,
+            string ownerRowId,
+            string? key)
+        {
+            if (slot is ClassMember { DeclaredInterfaceId: { } interfaceId })
+                RequireInterfaceAdmits(client, interfaceId, valueId, ownerRowId, key);
+        }
+
+        private static void RequireInterfaceAdmits(
+            NeoClient client,
+            string interfaceId,
+            string valueId,
+            string ownerRowId,
+            string? key)
+        {
+            if (client.InterfaceSlotRefusedClass(interfaceId, valueId) is not { } rowClassId)
                 return;
             throw new NSGetterRuntimeError(client.InterfaceImplementers.UndeterminedRowMessage(
                 InterfaceSlotLabel(client, ownerRowId, key),
                 rowClassId,
-                interfaceType.interfaceId)!);
+                interfaceId)!);
         }
 
         private static string InterfaceSlotLabel(NeoClient client, string ownerRowId, string? key)
@@ -5277,7 +5298,7 @@ namespace NeoCompose.Runtime
                                 ctx,
                                 out string? referenceId))
                         {
-                            RequireInterfaceSlotAdmits(client, MemberKindInfo(member), referenceId!, parentRowId, key);
+                            RequireInterfaceSlotAdmits(client, member, referenceId!, parentRowId, key);
                             if (parentOwnership == NeoValueOwnership.Asset)
                             {
                                 ShadowClassValueReference(plan, client, ownership, value, referenceId!, existing!, member, ctx);
@@ -5327,7 +5348,7 @@ namespace NeoCompose.Runtime
                             ctx,
                             out string? linkedReferenceId))
                     {
-                        RequireInterfaceSlotAdmits(client, MemberKindInfo(member), linkedReferenceId!, parentRowId, key);
+                        RequireInterfaceSlotAdmits(client, member, linkedReferenceId!, parentRowId, key);
                         linked.value![key] = ImportClassValueReference(
                             plan, client,
                             ownership,
@@ -6014,7 +6035,7 @@ namespace NeoCompose.Runtime
                     // Class imports the referenced value like a Class entry.
                     referenceId = id;
                     if (inserts)
-                        RequireInterfaceSlotAdmits(client, MemberKindInfo(entryMember), id!, rowId, null);
+                        RequireInterfaceSlotAdmits(client, entryMember, id!, rowId, null);
                 }
                 WriteCollection(client, rowId, preparedPlan, batch =>
                 {
@@ -6249,7 +6270,7 @@ namespace NeoCompose.Runtime
                     // A reference entry selects its target; only an owned one adopts it.
                     string? referenceId = entryMember is LookupMember ? null : candidateId;
                     if (referenceId is not null)
-                        RequireInterfaceSlotAdmits(client, MemberKindInfo(entryMember), referenceId, rowId, null);
+                        RequireInterfaceSlotAdmits(client, entryMember, referenceId, rowId, null);
                     if (((ObjectMemberValue)current!).value?.TryGetValue(key, out string existingId) == true
                         && client.TryGetValue(existingId, out MemberValue? existing))
                     {

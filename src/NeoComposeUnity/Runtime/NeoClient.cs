@@ -2182,7 +2182,15 @@ namespace NeoCompose.Runtime
         /// lose its parameters for good. Every SDK write path into a slot runs
         /// this O(1) check before it imports the value.
         /// </summary>
-        internal void RequireInterfaceSlotAdmits(Member slot, string slotLabel, NeoValueWritePayload? payload)
+        /// <remarks>
+        /// The slot's label, <paramref name="ownerClassName"/>.<paramref name="key"/>
+        /// or a bare <paramref name="key"/>, is built only for a refusal.
+        /// </remarks>
+        internal void RequireInterfaceSlotAdmits(
+            Member slot,
+            string? ownerClassName,
+            string key,
+            NeoValueWritePayload? payload)
         {
             if (payload?.isValueReference != true)
                 return;
@@ -2190,6 +2198,7 @@ namespace NeoCompose.Runtime
                 return;
             if (InterfaceSlotRefusedClass(interfaceId, payload.valueId!) is { } rowClassId)
             {
+                string slotLabel = ownerClassName is null ? key : $"{ownerClassName}.{key}";
                 throw new System.InvalidOperationException(
                     InterfaceImplementers.UndeterminedRowMessage(slotLabel, rowClassId, interfaceId)!);
             }

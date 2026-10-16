@@ -628,6 +628,13 @@ namespace NeoCompose.Runtime
                 // Instances share a constant member's declaration value.
                 childValueId = declaredValueId;
             }
+            // An interface slot's node describes its row's class, so a slot
+            // without a row has no node, and reads null (P113 §6).
+            if (childMember is ClassMember { DeclaredInterfaceId: not null }
+                && !HoldsObjectRow(childMember, childValueId))
+            {
+                return;
+            }
             if (previousChildren.TryGetValue(entry.schemaKey, out NeoMember? existing)
                 // A P75 rebuild mints new rows at the SAME deterministic
                 // virtual ids and disposes the wrappers holding the old
@@ -674,6 +681,11 @@ namespace NeoCompose.Runtime
                 (reboundKeys ??= new List<string>()).Add(entry.schemaKey);
             }
         }
+
+        private bool HoldsObjectRow(Member childMember, string? childValueId) =>
+            childValueId is not null
+            && client.TryGetValue(client.ChildOwnership(childMember, ownership), childValueId, out ObjectMemberValue? row)
+            && !row.IsRemoved;
 
         // Over the pairs: a dictionary's Values view is an allocation of its own.
         private void DisposeChildren(Dictionary<string, NeoMember> children)
@@ -1063,7 +1075,7 @@ namespace NeoCompose.Runtime
                     nameof(setValue),
                     $"Cannot be null when child member '{key}' is required");
             }
-            client.RequireInterfaceSlotAdmits(childMember, $"{schemaClass.name}.{key}", setValue);
+            client.RequireInterfaceSlotAdmits(childMember, schemaClass.name, key, setValue);
 
             // Per-placement storage (specs/member-storage.md): a declared
             // storage stamp on the child pins which writable store the leaf

@@ -335,7 +335,7 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException(
                     $"Cannot bind static member '{member.name}' ({classMember.DeclaredTypeId}) to incompatible runtime class '{actualClassId}'.");
             }
-            client.RequireInterfaceSlotAdmits(classMember, member.name, payload);
+            client.RequireInterfaceSlotAdmits(classMember, null, member.name, payload);
 
             var plan = new NeoWritePlan(client);
             string importedValueId = sourceValueId;

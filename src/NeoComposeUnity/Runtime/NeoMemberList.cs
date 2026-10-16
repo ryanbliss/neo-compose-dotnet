@@ -781,7 +781,7 @@ namespace NeoCompose.Runtime
                     nameof(entryValue),
                     "Cannot be null when entry member is required");
             }
-            client.RequireInterfaceSlotAdmits(entryMember, member.name, entryValue);
+            client.RequireInterfaceSlotAdmits(entryMember, null, member.name, entryValue);
             if (IsUnordered)
             {
                 return PrepareAddSerializedUnordered(plan, entryValue);
@@ -854,7 +854,7 @@ namespace NeoCompose.Runtime
                     nameof(entryValue),
                     "Cannot be null when entry member is required");
             }
-            client.RequireInterfaceSlotAdmits(entryMember, member.name, entryValue);
+            client.RequireInterfaceSlotAdmits(entryMember, null, member.name, entryValue);
             if (value?.value is null || index < 0 || index >= value.value.Length)
             {
                 throw new System.ArgumentOutOfRangeException(nameof(index));

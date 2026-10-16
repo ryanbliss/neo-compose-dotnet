@@ -523,7 +523,10 @@ namespace NeoCompose.Runtime
     /// </summary>
     public static class NeoInterfaceResolvers<I>
     {
-        internal static NeoGeneratedTypesSupport.InterfaceResolver? Resolver { get; private set; }
+        internal static NeoGeneratedTypesSupport.InterfaceResolver? Resolver
+        {
+            get; private set;
+        }
 
         public static void Register(NeoGeneratedTypesSupport.InterfaceResolver resolver)
         {
