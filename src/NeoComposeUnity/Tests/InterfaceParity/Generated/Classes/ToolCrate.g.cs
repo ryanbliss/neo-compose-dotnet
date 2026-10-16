@@ -39,8 +39,8 @@ namespace NeoCompose.Tests.InterfaceParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "7162e177-dbaa-4dc8-b2ba-93c00aa17b62",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Contents", "522fdb78-3b1c-41ce-9e91-1378e3146ba5", Contents)
+                "eb8657ff-529b-4055-bd1a-2662de0caa46",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Contents", "b6d1b253-4ee0-445f-84d8-69bd0b7a495f", Contents)
             );
         }
 
@@ -93,6 +93,11 @@ namespace NeoCompose.Tests.InterfaceParity
             return (IReadOnlyCrate<IReadOnlyTool>)(object)Clone();
         }
 
+        IReadOnlyTool IReadOnlyCrate<IReadOnlyTool>.Pick(int index)
+        {
+            return (IReadOnlyTool)(object)((Crate<Tool>)this).Pick(index)!;
+        }
+
         NeoList<IReadOnlyTool> IReadOnlyCrate<IReadOnlyTool>.Contents
         {
             get
@@ -110,6 +115,11 @@ namespace NeoCompose.Tests.InterfaceParity
         }
 
         IReadOnlyTool ISortedContainer<IReadOnlyTool>.First => ((IReadOnlyToolCrate)this).First;
+
+        IReadOnlyTool ISortedContainer<IReadOnlyTool>.Pick(int index)
+        {
+            return (IReadOnlyTool)(object)((ToolCrate)this).Pick(index)!;
+        }
 
         IReadOnlyList<IReadOnlyTool> IContainer<IReadOnlyTool>.Contents => ((IReadOnlyToolCrate)this).Contents;
 

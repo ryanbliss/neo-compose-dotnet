@@ -22,12 +22,14 @@ namespace NeoCompose.Tests.InterfaceParity
         new NeoList<T> Contents { get; }
 
         new T First { get; }
+
+        new T Pick(int index);
     }
 
     public partial class Crate<T> : NeoGeneratedClassValue, IReadOnlyCrate<T> where T : Item
     {
         internal Crate(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "f7a392cc-00ad-4d05-a8c4-9b5b4d6a3cbc", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "4d3e937c-b846-490a-9903-1f6bef2d175f", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -38,8 +40,8 @@ namespace NeoCompose.Tests.InterfaceParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "7162e177-dbaa-4dc8-b2ba-93c00aa17b62" => (Crate<T>)(object)new ToolCrate(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "f7a392cc-00ad-4d05-a8c4-9b5b4d6a3cbc" => new Crate<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "eb8657ff-529b-4055-bd1a-2662de0caa46" => (Crate<T>)(object)new ToolCrate(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "4d3e937c-b846-490a-9903-1f6bef2d175f" => new Crate<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Crate' without a concrete client type id."),
                 };
             });
@@ -52,8 +54,8 @@ namespace NeoCompose.Tests.InterfaceParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "7162e177-dbaa-4dc8-b2ba-93c00aa17b62" => (Crate<T>)(object)new ToolCrate(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "f7a392cc-00ad-4d05-a8c4-9b5b4d6a3cbc" => new Crate<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "eb8657ff-529b-4055-bd1a-2662de0caa46" => (Crate<T>)(object)new ToolCrate(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "4d3e937c-b846-490a-9903-1f6bef2d175f" => new Crate<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Crate' without a concrete client type id."),
                 };
             });
@@ -97,6 +99,13 @@ namespace NeoCompose.Tests.InterfaceParity
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
                 return NeoGeneratedTypesSupport.ResolveNativeFunctionClassArgument<T>(client, result.value, false, TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories, "NSProperty result")!;
             }
+        }
+
+
+        public T Pick(int index)
+        {
+            var result = InvokeFunction("Pick", (object?)(index));
+            return NeoGeneratedTypesSupport.ResolveNativeFunctionClassArgument<T>(client, result, false, TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories, "NSProperty result")!;
         }
 
         IReadOnlyList<T> IContainer<T>.Contents => ((IReadOnlyCrate<T>)this).Contents;

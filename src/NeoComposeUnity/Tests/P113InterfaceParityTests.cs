@@ -154,6 +154,65 @@ namespace NeoCompose.Tests
             Assert.AreEqual("hoe", sorted.First.Name);
         }
 
+        [Test]
+        public void GenericFunctionReturnsARowCSharpPassedIn()
+        {
+            using var app = new Parity.TestProjectNeo(Client());
+            InvokeProbe(app.Client, "Collections");
+
+            Parity.IContainer<Parity.Seed>? first = Parity.Probe.FirstAccepted(Parity.Probe.P.Racks);
+
+            Assert.IsInstanceOf<Parity.Crate<Parity.Seed>>(first);
+            Assert.AreEqual(((INeoValueReference)Parity.Probe.P.Racks[0]).valueId, ((INeoValueReference)first!).valueId);
+        }
+
+        [Test]
+        public void GenericFunctionBuildsAnUnnamedConstructionThroughItsConstraint()
+        {
+            using var app = new Parity.TestProjectNeo(Client());
+            object? crate = InvokeProbe(app.Client, "MakeCrate");
+
+            Parity.ISortedContainer<Parity.Seed> sorted = ReadAs<Parity.ISortedContainer<Parity.Seed>>(app.Client, crate);
+
+            Assert.IsInstanceOf<Parity.Crate<Parity.Seed>>(sorted);
+        }
+
+        [Test]
+        public void GenericFunctionRefusesARowItsConstraintDoesNotDetermine()
+        {
+            using var app = new Parity.TestProjectNeo(Client());
+            object? bag = InvokeProbe(app.Client, "MakeBag");
+
+            NeoTypeArgumentException error = Assert.Throws<NeoTypeArgumentException>(
+                () => ReadAs<Parity.ITagged<Parity.Seed, Parity.Red>>(app.Client, bag));
+
+            Assert.AreEqual(
+                "FirstAccepted returned a Bag row as ITagged<Seed, Red>, which the project never names, and IContainer<Seed> doesn't determine Bag. Pass a type argument the project names.",
+                error.Message);
+        }
+
+        [Test]
+        public void ClosedDescendantBridgesItsBasesGenericFunction()
+        {
+            using var app = new Parity.TestProjectNeo(Client());
+            InvokeProbe(app.Client, "ToolCratePick");
+
+            Parity.ISortedContainer<Parity.Tool> sorted = Parity.Probe.P.Tools;
+
+            Assert.AreEqual("rake", sorted.Pick(0).Name);
+        }
+
+        /// <summary>A FirstAccepted result C# never held, read as <typeparamref name="T"/>.</summary>
+        private static T ReadAs<T>(NeoClient client, object? value)
+            where T : class, Parity.IContainer<Parity.Seed> =>
+            NeoGeneratedTypesSupport.ReadInterfaceTypeArgument<T, Parity.IContainer<Parity.Seed>>(
+                client,
+                value,
+                "FirstAccepted",
+                "T",
+                Parity.TestProjectNeo.NeoReadOnlyValueFactories,
+                Parity.TestProjectNeo.NeoWritableValueFactories);
+
         private static NeoClient Client()
         {
             ProjectData data = NeoTestExport.Read(File.ReadAllText(Path.Combine(PackageRoot, "interface-parity-export.json")));

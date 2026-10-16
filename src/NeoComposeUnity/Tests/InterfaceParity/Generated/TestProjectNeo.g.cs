@@ -31,7 +31,7 @@ namespace NeoCompose.Tests.InterfaceParity
             }
             Client.RegisterNativeFunctionInvokers(NativeFunctionInvokers);
             Client.RegisterDeferredNativeFunctionInvokers(DeferredNativeFunctionInvokers);
-            Client.TypeArguments.Register(NeoTypeArgumentClassIds, NeoTypeArgumentEnumIds);
+            Client.TypeArguments.Register(NeoTypeArgumentClassIds, NeoTypeArgumentEnumIds, NeoTypeArgumentInterfaceIds);
             Instance = this;
             Assets = new Assets(client, client.assets, true, NeoValueOwnership.Asset);
             Save = new Save(client, client.save, false, client.save.ownership);

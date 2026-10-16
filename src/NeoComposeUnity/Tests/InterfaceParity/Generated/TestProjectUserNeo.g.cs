@@ -31,7 +31,7 @@ namespace NeoCompose.Tests.InterfaceParity
         {
             Client.RegisterNativeFunctionInvokers(TestProjectNeo.NativeFunctionInvokers);
             Client.RegisterDeferredNativeFunctionInvokers(TestProjectNeo.DeferredNativeFunctionInvokers);
-            Client.TypeArguments.Register(TestProjectNeo.NeoTypeArgumentClassIds, TestProjectNeo.NeoTypeArgumentEnumIds);
+            Client.TypeArguments.Register(TestProjectNeo.NeoTypeArgumentClassIds, TestProjectNeo.NeoTypeArgumentEnumIds, TestProjectNeo.NeoTypeArgumentInterfaceIds);
             User = new User(client, client.user, false, NeoValueOwnership.User);
             Client.StartScriptRuntime();
         }

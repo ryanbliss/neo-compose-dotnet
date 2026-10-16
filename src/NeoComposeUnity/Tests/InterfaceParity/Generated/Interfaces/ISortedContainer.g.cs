@@ -14,5 +14,6 @@ namespace NeoCompose.Tests.InterfaceParity
     public interface ISortedContainer<T> : IContainer<T> where T : IReadOnlyItem
     {
         T First { get; }
+        T Pick(int index);
     }
 }

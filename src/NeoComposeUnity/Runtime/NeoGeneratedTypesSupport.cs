@@ -2042,14 +2042,38 @@ namespace NeoCompose.Runtime
             if (client.CreateRegisteredGeneratedClassValue(node, readOnly) is { } created)
                 return AsInterface<T>(created, node);
             throw new NeoTypeArgumentException(
-                $"A {node.SchemaClassName} row can't be read as {typeof(T).Name}, because the project never names that construction.");
+                $"A {node.SchemaClassName} row can't be read as {CSharpTypeName(typeof(T))}, because the project never names that construction.");
         }
 
         private static object AsInterface<T>(object value, NeoMemberClass node) =>
             value is T
                 ? value
                 : throw new InvalidCastException(
-                    $"A {node.SchemaClassName} row isn't a {typeof(T).Name}.");
+                    $"A {node.SchemaClassName} row isn't a {CSharpTypeName(typeof(T))}.");
+
+        private static readonly Dictionary<Type, string> CSharpKeywords = new()
+        {
+            [typeof(bool)] = "bool",
+            [typeof(int)] = "int",
+            [typeof(float)] = "float",
+            [typeof(decimal)] = "decimal",
+            [typeof(string)] = "string",
+        };
+
+        /// <summary><paramref name="type"/> as C# spells it, such as <c>IKeyed&lt;string, Seed&gt;</c>.</summary>
+        private static string CSharpTypeName(Type type)
+        {
+            if (CSharpKeywords.TryGetValue(type, out string? keyword))
+                return keyword;
+            if (!type.IsGenericType)
+                return type.Name;
+            Type[] arguments = type.GetGenericArguments();
+            var names = new string[arguments.Length];
+            for (int i = 0; i < arguments.Length; i++)
+                names[i] = CSharpTypeName(arguments[i]);
+            string name = type.Name.Substring(0, type.Name.IndexOf('`'));
+            return $"{name}<{string.Join(", ", names)}>";
+        }
 
         /// <summary>
         /// P113 §6. An interface-typed setter's value. Only a generated Neo
@@ -2185,6 +2209,71 @@ namespace NeoCompose.Runtime
             string row = ValueId(value) is { } valueId ? $"Row '{valueId}'" : $"Value of type {value.GetType().Name}";
             throw new NeoTypeArgumentException(
                 $"{row} is not a {typeof(T).Name}, the argument for type parameter '{name}'.");
+        }
+
+        /// <summary>
+        /// P113 §6. <see cref="ReadTypeArgument{T}"/> for a type parameter an
+        /// interface constrains. A row C# passed in comes from the cache; any
+        /// other row is built by <typeparamref name="T"/>'s resolver, else by
+        /// the constraint's, and then checked to be a <typeparamref name="T"/>.
+        /// </summary>
+        public static T ReadInterfaceTypeArgument<T, TConstraint>(
+            NeoClient client,
+            object? value,
+            string functionName,
+            string name,
+            IReadOnlyDictionary<string, ReadOnlyClassFactory> readOnlyFactories,
+            IReadOnlyDictionary<string, WritableClassFactory> savedFactories)
+            where T : class, TConstraint
+            where TConstraint : class
+        {
+            if (value is T typed)
+                return typed;
+            if (value is null)
+            {
+                throw new NeoTypeArgumentException(
+                    $"A generic function returned null for type parameter '{name}', and {CSharpTypeName(typeof(T))} is not nullable.");
+            }
+            string? valueId = ValueId(value);
+            if (string.IsNullOrEmpty(valueId))
+            {
+                throw new NeoTypeArgumentException(
+                    $"Value of type {value.GetType().Name} is not a {CSharpTypeName(typeof(T))}, the argument for type parameter '{name}'.");
+            }
+            InterfaceResolver? ownResolver = NeoInterfaceResolvers<T>.Resolver;
+            object? resolved = ResolveClassValue(
+                client,
+                valueId!,
+                readOnlyFactories,
+                savedFactories,
+                null,
+                ownResolver ?? NeoInterfaceResolvers<TConstraint>.Resolver);
+            if (resolved is T result)
+                return result;
+            if (resolved is null && ownResolver is null)
+            {
+                string rowClass = RowClassName(client, valueId!);
+                throw new NeoTypeArgumentException(
+                    $"{functionName} returned a {rowClass} row as {CSharpTypeName(typeof(T))}, which the project never names, and {CSharpTypeName(typeof(TConstraint))} doesn't determine {rowClass}. Pass a type argument the project names.");
+            }
+            throw new NeoTypeArgumentException(
+                $"Row '{valueId}' is not a {CSharpTypeName(typeof(T))}, the argument for type parameter '{name}'.");
+        }
+
+        private static string RowClassName(NeoClient client, string valueId)
+        {
+            NeoValueNode? node = null;
+            NeoValueOwnership ownership = client.TryGetValueOwnership(valueId, ref node, out NeoValueOwnership existing)
+                ? existing
+                : NeoValueOwnership.Asset;
+            if (client.ReadValue(ownership, valueId, ref node) is not ObjectMemberValue value)
+                return $"'{valueId}'";
+            string? classId = ResolveClassValueClassId(client, valueId, value);
+            if (classId is null)
+                return $"'{valueId}'";
+            if (!client.TryGetClass(classId, out NeoSchemaClass? schemaClass))
+                return $"'{valueId}'";
+            return schemaClass.name;
         }
 
         /// <summary>P112 §8. A value read through a reference, as <typeparamref name="T"/>.</summary>
