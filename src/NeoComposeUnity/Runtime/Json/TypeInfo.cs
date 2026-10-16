@@ -148,6 +148,16 @@ namespace NeoCompose.Runtime.Json
         public string? collectionValueId;
     }
 
+    /// <summary>
+    /// <c>Reference&lt;T&gt;</c> type info (P112 §5.2). Mirrors the TS-side
+    /// <c>INSTypeInfoReference</c>: a slot-kind or open generic target, or a
+    /// reference's own target, where normalization stops.
+    /// </summary>
+    public sealed class ReferenceTypeInfo : TypeInfo
+    {
+        public TypeInfo targetTypeInfo = null!;
+    }
+
     // Unlike member records, TypeInfo uses string sentinels for Unknown and Void.
     // Preserve that wire shape when closures are written into save constructor arguments.
     public sealed class TypeInfoKindConverter : JsonConverter
@@ -227,6 +237,8 @@ namespace NeoCompose.Runtime.Json
                     return typeof(DelegateTypeInfo);
                 case MemberKind.NSAction:
                     return typeof(ActionTypeInfo);
+                case MemberKind.Reference:
+                    return typeof(ReferenceTypeInfo);
                 default:
                     return null;
             }
@@ -288,6 +300,8 @@ namespace NeoCompose.Runtime.Json
                     return typeof(GenericTypeInfo);
                 case MemberKind.NSDelegate:
                     return typeof(DelegateTypeInfo);
+                case MemberKind.Reference:
+                    return typeof(ReferenceTypeInfo);
                 // MemberKind.NSAction is deliberately absent: an action is
                 // statement-only and can never be a return type (P62 §3.1),
                 // so an NSAction discriminator in return position is invalid

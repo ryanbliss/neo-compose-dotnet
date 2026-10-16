@@ -1121,9 +1121,10 @@ namespace NeoCompose.Runtime
             }
             TypeInfo? entryTypeInfo = typeInfo switch
             {
-                FunctionArgumentTypeInfo argument => argument.entryTypeInfo,
+                FunctionArgumentTypeInfo argument => argument.entryTypeInfo ?? argument.targetTypeInfo,
                 CollectionTypeInfo collection => collection.entryTypeInfo,
                 LookupTypeInfo lookup => lookup.entryTypeInfo,
+                ReferenceTypeInfo reference => reference.targetTypeInfo,
                 _ => null,
             };
             if (entryTypeInfo is not null && ContainsGeneric(entryTypeInfo))
@@ -1553,7 +1554,21 @@ namespace NeoCompose.Runtime
                                 ? TypeInfoFromBindingMember(client, LookupBindingEntry(client, lookup), genericEnv, visitingMembers)
                                 : ResolveInvocationTypeInfo(client, lookup.declaredTypeInfo, genericEnv, visitingMembers).ShallowClone();
                             bool multiple = lookup.Selection == NeoMemberSelectionKind.Multi;
-                            entry.required = multiple || lookup.Requirement == NeoMemberRequirementKind.Required;
+                            bool required = multiple || lookup.Requirement == NeoMemberRequirementKind.Required;
+                            // P112 §1.1. A handle reference types as its target; a slot one stays a reference.
+                            if (NeoReferenceTypes.Category(entry, client) == NeoReferenceCategory.Slot)
+                            {
+                                entry = new ReferenceTypeInfo
+                                {
+                                    type = MemberKind.Reference,
+                                    required = required,
+                                    targetTypeInfo = entry,
+                                };
+                            }
+                            else
+                            {
+                                entry.required = required;
+                            }
                             if (!multiple)
                                 return entry;
                             return new LookupTypeInfo
@@ -2071,6 +2086,17 @@ namespace NeoCompose.Runtime
                 case MemberKind.Dictionary:
                     value = NormalizeDictionary(
                         client, ownership, value, typeInfo, ctx, subject);
+                    break;
+                case MemberKind.Reference:
+                    if (value is NeoReference handed)
+                        value = handed.Slot(ctx);
+                    // P112 §1.1. A saved closure's capture holds a slot reference as its target's id.
+                    else if (value is string targetId
+                        && typeInfo is ReferenceTypeInfo reference
+                        && NeoReferenceTypes.Category(reference.targetTypeInfo, client) == NeoReferenceCategory.Slot)
+                    {
+                        value = new NSSlotReference(targetId, null, reference.targetTypeInfo, null);
+                    }
                     break;
             }
 
@@ -2642,6 +2668,24 @@ namespace NeoCompose.Runtime
 
         private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, Func<object, string?>>
             BoxedOptionIds = new();
+
+        /// <summary>The <paramref name="enumType"/> value an option id names; null for an enum without options.</summary>
+        internal static object? EnumFromOptionId(Type enumType, string optionId)
+        {
+            // Each enum type reflects its conversion once.
+            return BoxedEnumValues.GetOrAdd(
+                enumType,
+                type => (Func<string, object?>)typeof(NeoEnumOptions<>)
+                    .MakeGenericType(type)
+                    .GetMethod(
+                        nameof(NeoEnumOptions<NeoValueOwnership>.BoxedFromOptionId),
+                        System.Reflection.BindingFlags.Static
+                            | System.Reflection.BindingFlags.NonPublic)!
+                    .CreateDelegate(typeof(Func<string, object?>)))(optionId);
+        }
+
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, Func<string, object?>>
+            BoxedEnumValues = new();
 
         // A loop rather than Array.TrueForAll: every enum argument and
         // return passes here, and the predicate costs a delegate call per id.

@@ -172,10 +172,16 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException(
                     $"Lookup '{lookup.name}' selects '{id}', which has no stored row.");
             }
+            bool placed = client.TryInferMemberForValueId(id, out Member? holder);
+            // P112 §8. A collection resolves as the member that holds it.
+            if (holder is ListMember or DictionaryMember)
+                return holder;
             if (value is not ObjectMemberValue row)
             {
+                if (placed)
+                    return holder!;
                 throw new System.InvalidOperationException(
-                    $"Lookup '{lookup.name}' selects '{id}', which is not a class value.");
+                    $"Lookup '{lookup.name}' selects '{id}', which no member holds.");
             }
             string? classId = NeoGeneratedTypesSupport.ResolveClassValueClassId(client, id, row);
             if (classId is null)
@@ -183,8 +189,8 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException(
                     $"Lookup '{lookup.name}' selects '{id}', whose class can't be resolved.");
             }
-            return client.TryInferMemberForValueId(id, out Member? placement) && placement is ClassMember
-                ? placement
+            return holder is ClassMember
+                ? holder
                 : NeoGeneratedTypesSupport.UnplacedClassMember(classId, null, row);
         }
 
@@ -207,9 +213,14 @@ namespace NeoCompose.Runtime
             return ResolveCollectionEntryIds(client, targetMember, targetValue).Contains(valueId);
         }
 
-        /// <summary>An unbound reference selects any stored row of its declared class or a subclass.</summary>
+        /// <summary>
+        /// An unbound reference selects any stored row of its declared class or
+        /// a subclass, or any other row that fits it (P112 §4.3).
+        /// </summary>
         private bool IsUnboundSelectable(string valueId) =>
-            IsStoredRowOf(client, valueId, UnboundTargetClassId());
+            member.declaredTypeInfo is ClassTypeInfo or GenericTypeInfo
+                ? IsStoredRowOf(client, valueId, UnboundTargetClassId())
+                : NeoScriptExecutor.ReferenceFits(client, member, value?.id, valueId);
 
         /// <summary>
         /// Whether <paramref name="valueId"/> names a stored class row of
@@ -343,11 +354,20 @@ namespace NeoCompose.Runtime
         public void Set(string[]? selectedIds)
         {
             ObserveScriptWrites();
-            if (member.Requirement == NeoMemberRequirementKind.Required && (selectedIds is null || selectedIds.Length == 0))
+            if (member.Requirement == NeoMemberRequirementKind.Required && selectedIds is null)
             {
                 throw new System.ArgumentNullException(
                     nameof(selectedIds),
-                    $"Cannot be null/empty when {nameof(member)} requirement is Required");
+                    $"Cannot be null when {nameof(member)} requirement is Required");
+            }
+            // A required set may be empty; a required single selection may not.
+            if (member.Requirement == NeoMemberRequirementKind.Required
+                && member.Selection != NeoMemberSelectionKind.Multi
+                && selectedIds!.Length == 0)
+            {
+                throw new System.ArgumentException(
+                    $"Cannot be empty when {nameof(member)} requirement is Required",
+                    nameof(selectedIds));
             }
 
             string[]? normalized = selectedIds;
@@ -388,6 +408,9 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException(
                     "Lookup selection id cannot be null or empty.");
             }
+            // P112 §4.3. A value slot's row must fit and outlive this set, as NeoScript checks.
+            if (member.collectionMemberId is null && NeoScriptExecutor.IsSlotLookup(client, member, value?.id))
+                return AddSelected(NeoGeneratedTypesSupport.ReferenceSelection(client, this, valueId)![0]);
             if (!IsSelectableId(valueId))
             {
                 throw new System.InvalidOperationException(
@@ -395,6 +418,21 @@ namespace NeoCompose.Runtime
                         ? $"Lookup selection id '{valueId}' is not a stored row of the reference's type."
                         : $"Lookup selection id '{valueId}' is not present in the configured lookup collection.");
             }
+            return AddSelected(valueId);
+        }
+
+        /// <summary>P112 §8. Adds the slot <paramref name="reference"/> names, materializing its row (§4.1).</summary>
+        public bool Add(NeoReference reference)
+        {
+            if (reference is null)
+                throw new System.ArgumentNullException(nameof(reference));
+            return member.collectionMemberId is null
+                ? AddSelected(NeoGeneratedTypesSupport.ReferenceSelection(client, this, reference)![0])
+                : Add(reference.TargetId);
+        }
+
+        private bool AddSelected(string valueId)
+        {
             var selected = new List<string>(Selected());
             if (selected.Contains(valueId))
                 return false;

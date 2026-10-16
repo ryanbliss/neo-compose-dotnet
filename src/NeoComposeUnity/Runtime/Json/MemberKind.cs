@@ -80,6 +80,13 @@ namespace NeoCompose.Runtime.Json
         /// <see cref="ListMember"/> that is never unordered.
         /// </summary>
         Set = 28,
+        /// <summary>
+        /// <c>Reference&lt;T&gt;</c> to a slot-kind value (P112 §5.2).
+        /// Type-info-only, like <see cref="Interface"/>: stored references
+        /// are <see cref="Lookup"/> members, and a handle-kind reference
+        /// normalizes to the handle's own type-info.
+        /// </summary>
+        Reference = 29,
         Unknown = -1,
         Void = -2,
     }

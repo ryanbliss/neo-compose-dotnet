@@ -325,6 +325,8 @@ namespace NeoCompose.Runtime.NeoScript
                         }
                     case NeoDelegateValue:
                         return 3;
+                    case NSSlotReference reference:
+                        return StringComparer.Ordinal.GetHashCode(reference.TargetId);
                 }
                 if (TryAsDouble(value, out double number))
                     return number == 0 ? 0 : number.GetHashCode();

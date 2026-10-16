@@ -5735,16 +5735,61 @@ namespace NeoCompose.Tests
         [Test]
         public void Invoke_LookupWherePredicateUsesSessionTargetOverlay()
         {
+            NSFunctionMember function = LookupWhereOverlayFunction();
+            NeoClient client = BuildLookupOverlayClient(function);
+
+            object? result = new NeoMemberNSFunction(client, function, null)
+                .Invoke("receiver-value", Array.Empty<object?>());
+
+            Assert.AreEqual(2L, Convert.ToInt64(result));
+        }
+
+        [Test]
+        public void Invoke_LookupReferenceDanglesOnceTheSessionListDropsItsEntry()
+        {
+            NSFunctionMember function = LookupWhereOverlayFunction();
+            NeoClient client = BuildLookupOverlayClient(function);
+            client.SetWritableValue(
+                NeoValueOwnership.Session,
+                new ArrayMemberValue
+                {
+                    id = LookupSourceListValueId,
+                    value = Array.Empty<string>(),
+                    createdAt = "x",
+                    updatedAt = "x",
+                });
+
+            var error = Assert.Throws<NSGetterRuntimeError>(() =>
+                new NeoMemberNSFunction(client, function, null)
+                    .Invoke("receiver-value", Array.Empty<object?>()));
+
+            StringAssert.Contains("no longer exists", error!.Message);
+        }
+
+        private static NSFunctionMember LookupWhereOverlayFunction()
+        {
             var predicate = new FunctionWithReturnType
             {
                 compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
                 parameters = new[]
                 {
-                    Parameter("entry", IntType()),
+                    // P112 §3.1: a Lookup over a scalar list selects references.
+                    Parameter("entry", new ReferenceTypeInfo
+                    {
+                        type = MemberKind.Reference,
+                        required = true,
+                        targetTypeInfo = IntType(),
+                    }),
                 },
                 instructions = new Instruction[]
                 {
-                    Return(EqualTo(Variable("entry"), Number(9))),
+                    Return(EqualTo(
+                        new DerefPointer
+                        {
+                            type = PointerKind.Deref,
+                            pointer = Variable("entry"),
+                        },
+                        Number(9))),
                 },
                 typeInfo = BoolType(),
             };
@@ -5773,19 +5818,13 @@ namespace NeoCompose.Tests
                     },
                 },
             };
-            NSFunctionMember function = ScriptFunction(
+            return ScriptFunction(
                 "fn-lookup-where-overlay",
                 "LookupWhereOverlay",
                 false,
                 IntType(),
                 Array.Empty<FunctionArgumentTypeInfo>(),
                 LoopAction(Return(count)));
-            NeoClient client = BuildLookupOverlayClient(function);
-
-            object? result = new NeoMemberNSFunction(client, function, null)
-                .Invoke("receiver-value", Array.Empty<object?>());
-
-            Assert.AreEqual(2L, Convert.ToInt64(result));
         }
 
         [Test]

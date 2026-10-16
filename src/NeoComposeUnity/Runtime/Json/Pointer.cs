@@ -176,6 +176,24 @@ namespace NeoCompose.Runtime.Json
         public Pointer pointer = null!;
     }
 
+    /// <summary>
+    /// Mirror of <c>INSPointerRowOf</c> (P112 §5.3). <see cref="place"/> is
+    /// a member read, a static member, or a value id.
+    /// </summary>
+    public sealed class RowOfPointer : Pointer
+    {
+        public Pointer place = null!;
+
+        /// <summary>For a value id, the declared target its row is fit-checked against.</summary>
+        public TypeInfo? typeInfo;
+    }
+
+    /// <summary>Mirror of <c>INSPointerDeref</c> (P112 §5.3).</summary>
+    public sealed class DerefPointer : Pointer
+    {
+        public Pointer pointer = null!;
+    }
+
     /// <summary>Mirror of <c>INSPointerIsCheck</c>.</summary>
     public sealed class IsCheckPointer : Pointer
     {
@@ -522,6 +540,10 @@ namespace NeoCompose.Runtime.Json
                     return typeof(StaticMemberPointer);
                 case PointerKind.Variant:
                     return typeof(VariantPointer);
+                case PointerKind.RowOf:
+                    return typeof(RowOfPointer);
+                case PointerKind.Deref:
+                    return typeof(DerefPointer);
                 default:
                     return null;
             }

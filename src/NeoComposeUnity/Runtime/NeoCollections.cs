@@ -21,6 +21,18 @@ namespace NeoCompose.Runtime
         Replace = 5,
     }
 
+    /// <summary>
+    /// P112 §8. A collection view, which a reference to the collection names by its row.
+    /// </summary>
+    internal interface INeoCollectionView
+    {
+        /// <summary>The collection's node, or null for a pending Set that has none.</summary>
+        NeoMember? CollectionNode
+        {
+            get;
+        }
+    }
+
     public sealed class NeoListChangedArgs
     {
         public static readonly NeoListChangedArgs Unknown =
@@ -95,7 +107,7 @@ namespace NeoCompose.Runtime
         }
     }
 
-    public class NeoReadOnlyList<T> : IReadOnlyList<T>
+    public class NeoReadOnlyList<T> : IReadOnlyList<T>, INeoCollectionView
     {
         protected readonly NeoClient client;
         private NeoMemberList? nodeStore;
@@ -208,6 +220,23 @@ namespace NeoCompose.Runtime
         }
 
         public int Count => DetachedEntries() is { } entries ? entries.Length : node.Count;
+
+        NeoMember? INeoCollectionView.CollectionNode => node;
+
+        /// <summary>
+        /// P112 §8. The writable view of this list, when its store takes writes and its member isn't readonly.
+        /// </summary>
+        public bool TryWritable(out NeoList<T> writable)
+        {
+            if (this is NeoList<T> match && !match.IsReadOnly)
+            {
+                writable = match;
+                return true;
+            }
+
+            writable = null!;
+            return false;
+        }
 
         public Enumerator GetEnumerator()
         {
@@ -398,7 +427,8 @@ namespace NeoCompose.Runtime
 
     public class NeoReadOnlyDictionary<T>
         : IReadOnlyDictionary<string, T>,
-          INeoGeneratedConstructorDictionary
+          INeoGeneratedConstructorDictionary,
+          INeoCollectionView
     {
         protected readonly NeoClient client;
         protected NeoMemberDictionary node;
@@ -463,6 +493,23 @@ namespace NeoCompose.Runtime
         }
 
         public int Count => node.Count;
+
+        NeoMember? INeoCollectionView.CollectionNode => node;
+
+        /// <summary>
+        /// P112 §8. The writable view of this dictionary, when its store takes writes and its member isn't readonly.
+        /// </summary>
+        public bool TryWritable(out NeoDictionary<T> writable)
+        {
+            if (this is NeoDictionary<T> match && !match.IsReadOnly)
+            {
+                writable = match;
+                return true;
+            }
+
+            writable = null!;
+            return false;
+        }
 
         public bool ContainsKey(string key) => node.ContainsKey(key);
 
@@ -673,7 +720,7 @@ namespace NeoCompose.Runtime
     /// Enumeration order is the underlying record order (the web UI's
     /// enum-option-order sort is display-only).
     /// </summary>
-    public class NeoReadOnlyDictionary<TKey, TValue> : IReadOnlyDictionary<TKey, TValue>
+    public class NeoReadOnlyDictionary<TKey, TValue> : IReadOnlyDictionary<TKey, TValue>, INeoCollectionView
         where TKey : struct, System.Enum
     {
         protected readonly NeoReadOnlyDictionary<TValue> entries;
@@ -731,6 +778,23 @@ namespace NeoCompose.Runtime
         public IEnumerable<TValue> Values => entries.Values;
 
         public int Count => entries.Count;
+
+        NeoMember? INeoCollectionView.CollectionNode => ((INeoCollectionView)entries).CollectionNode;
+
+        /// <summary>
+        /// P112 §8. The writable view of this dictionary, when its store takes writes and its member isn't readonly.
+        /// </summary>
+        public bool TryWritable(out NeoDictionary<TKey, TValue> writable)
+        {
+            if (this is NeoDictionary<TKey, TValue> match && !match.IsReadOnly)
+            {
+                writable = match;
+                return true;
+            }
+
+            writable = null!;
+            return false;
+        }
 
         public bool ContainsKey(TKey key) => entries.ContainsKey(toOptionId(key));
 
@@ -896,11 +960,13 @@ namespace NeoCompose.Runtime
         }
     }
 
-    public class NeoReadOnlyLookupSet<T> : INeoReadOnlySet<T>
+    public class NeoReadOnlyLookupSet<T> : INeoReadOnlySet<T>, INeoCollectionView
     {
         protected readonly NeoClient client;
         protected NeoMemberLookup node;
-        private readonly Func<NeoMember, T> createItem;
+        private readonly Func<NeoMember, T>? createItem;
+        // P112 §8. A value slot has no node to resolve, so its item is made from the id.
+        private readonly Func<string, T>? createFromId;
 
         public NeoReadOnlyLookupSet(
             NeoClient client,
@@ -910,6 +976,16 @@ namespace NeoCompose.Runtime
             this.client = client;
             this.node = node;
             this.createItem = createItem;
+        }
+
+        public NeoReadOnlyLookupSet(
+            NeoClient client,
+            NeoMemberLookup node,
+            Func<string, T> createFromId)
+        {
+            this.client = client;
+            this.node = node;
+            this.createFromId = createFromId;
         }
 
         /// <summary>
@@ -924,6 +1000,23 @@ namespace NeoCompose.Runtime
         }
 
         public int Count => node.Selected().Length;
+
+        NeoMember? INeoCollectionView.CollectionNode => node;
+
+        /// <summary>
+        /// P112 §8. The writable view of this set, when its store takes writes and its member isn't readonly.
+        /// </summary>
+        public bool TryWritable(out ICollection<T> writable)
+        {
+            if (this is NeoLookupSet<T> match && !match.IsReadOnly)
+            {
+                writable = match;
+                return true;
+            }
+
+            writable = null!;
+            return false;
+        }
 
         public IReadOnlyList<string> Ids => node.Selected();
 
@@ -969,7 +1062,7 @@ namespace NeoCompose.Runtime
                 node = set.node;
                 this.ids = ids;
                 targetOwnership = default;
-                entry = ids.Length == 0 ? null : node.ResolveSelectionScope(out targetOwnership);
+                entry = ids.Length == 0 || set.createFromId is not null ? null : node.ResolveSelectionScope(out targetOwnership);
                 index = 0;
                 current = default!;
             }
@@ -982,7 +1075,9 @@ namespace NeoCompose.Runtime
             {
                 if (index == ids.Length)
                     return false;
-                current = set.createItem(node.ResolveSelectedAt(index, ids[index], entry!, targetOwnership));
+                current = set.createFromId is { } fromId
+                    ? fromId(ids[index])
+                    : set.createItem!(node.ResolveSelectedAt(index, ids[index], entry!, targetOwnership));
                 index++;
                 return true;
             }
@@ -1023,6 +1118,20 @@ namespace NeoCompose.Runtime
             this.isReadOnly = isReadOnly;
         }
 
+        public NeoLookupSet(
+            NeoClient client,
+            NeoMemberLookup node,
+            Func<NeoMemberLookupWritable> getWritableNode,
+            Func<string, T> createFromId,
+            Action? beforeWrite = null,
+            Func<bool>? isReadOnly = null)
+            : base(client, node, createFromId)
+        {
+            this.getWritableNode = getWritableNode ?? throw new ArgumentNullException(nameof(getWritableNode));
+            this.beforeWrite = beforeWrite;
+            this.isReadOnly = isReadOnly;
+        }
+
         private NeoMemberLookupWritable RequireWritableNode()
         {
             beforeWrite?.Invoke();
@@ -1035,6 +1144,11 @@ namespace NeoCompose.Runtime
 
         public void Add(T item)
         {
+            if (item is NeoReference reference)
+            {
+                RequireWritableNode().Add(reference);
+                return;
+            }
             string? valueId = NeoGeneratedTypesSupport.ValueId(item);
             if (valueId is null)
             {
@@ -1073,7 +1187,7 @@ namespace NeoCompose.Runtime
     /// non-generic and resolves the stored <c>dialogueId</c>s directly (no
     /// collection <c>GetSelected()</c> walk). See spec §5.3.
     /// </summary>
-    public class NeoReadOnlyDialogueReferenceSet : INeoReadOnlySet<NeoDialogueReference>
+    public class NeoReadOnlyDialogueReferenceSet : INeoReadOnlySet<NeoDialogueReference>, INeoCollectionView
     {
         protected readonly NeoClient client;
         protected NeoMemberDialogueLookup node;
@@ -1094,6 +1208,23 @@ namespace NeoCompose.Runtime
         }
 
         public int Count => node.Selected().Length;
+
+        NeoMember? INeoCollectionView.CollectionNode => node;
+
+        /// <summary>
+        /// P112 §8. The writable view of this set, when its store takes writes and its member isn't readonly.
+        /// </summary>
+        public bool TryWritable(out ICollection<NeoDialogueReference> writable)
+        {
+            if (this is NeoDialogueReferenceSet match && !match.IsReadOnly)
+            {
+                writable = match;
+                return true;
+            }
+
+            writable = null!;
+            return false;
+        }
 
         public IReadOnlyList<string> Ids => node.Selected();
 

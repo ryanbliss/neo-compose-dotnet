@@ -187,10 +187,24 @@ namespace NeoCompose.Runtime
             }
             if (payload is null || payload.isNull)
             {
-                Clear();
+                // P112 §4.1: only a class static unbinds; any other keeps
+                // its row, which references to it keep naming.
+                if (member is not ClassMember && client.TryResolveStaticBinding(member, Ownership, out _))
+                    WritePayload(null);
+                else
+                    Clear();
                 return;
             }
             WritePayload(payload.value);
+        }
+
+        /// <summary>P112 §2.2. Binds an unbound static to an empty row at its derived id.</summary>
+        internal void BindEmpty()
+        {
+            EnsureWritable();
+            if (client.TryResolveStaticBinding(member, Ownership, out _))
+                return;
+            WritePayload(null);
         }
 
         /// <summary>
@@ -260,7 +274,12 @@ namespace NeoCompose.Runtime
             }
             else
             {
-                valueId = System.Guid.NewGuid().ToString();
+                // P112 §4.1: a slot's first row is created at its derived
+                // id, which references formed before it already name. A
+                // class static is a handle and gets a fresh id.
+                valueId = member is ClassMember
+                    ? System.Guid.NewGuid().ToString()
+                    : NeoScript.NSGetterEvaluator.StaticSlotId(member.id);
             }
 
             client.StageWritablePayloadRows(plan, Ownership, payload);

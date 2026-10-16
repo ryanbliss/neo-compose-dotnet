@@ -62,7 +62,7 @@ namespace NeoCompose.Runtime
     /// own scope/context while sharing write targets, calls, and deferred
     /// continuations.
     /// </summary>
-    internal static class NeoScriptExecutor
+    internal static partial class NeoScriptExecutor
     {
         internal static NeoScriptExecutionResult Execute(
             NeoClient client,
@@ -2431,11 +2431,25 @@ namespace NeoCompose.Runtime
             // `pointer`; only Setter writability needs to re-read its getter
             // because the property has no storage row of its own.
             object? assigned = CoerceSetterValue(rhs, instruction.target.typeInfo);
-            NeoResolvedWriteTarget target;
-            if (instruction.target.pointer is KeyOfPointer keyOfPointer)
+            if (instruction.target.pointer is DerefPointer deref)
+                WriteThrough(client, instruction.target, Eval(deref.pointer, scope, ctx), assigned, scope, ctx);
+            else
+                AssignTarget(client, instruction.target, assigned, scope, ctx);
+            return default;
+        }
+
+        /// <summary>Writes <paramref name="assigned"/> to a member, static, or entry target.</summary>
+        private static void AssignTarget(
+            NeoClient client,
+            WriteTarget writeTarget,
+            object? assigned,
+            NeoScriptScope scope,
+            NSGetterEvaluator.Context ctx)
+        {
+            if (writeTarget.pointer is KeyOfPointer keyOfPointer)
             {
                 object? receiver;
-                if (client.PendingScriptWrites is { HasCollections: true } && WritesStorage(instruction.target))
+                if (client.PendingScriptWrites is { HasCollections: true } && WritesStorage(writeTarget))
                 {
                     // An entry of a collection the held batch mutates is
                     // written without reading the collection, which would
@@ -2446,47 +2460,64 @@ namespace NeoCompose.Runtime
                     {
                         object? entryKey = Eval(keyOfPointer.keyOf.key, scope, ctx);
                         if (pending is not NeoWriteBatch.PendingList)
-                            PendingDictionaryTarget(pending, instruction.target.typeInfo)
+                            PendingDictionaryTarget(pending, writeTarget.typeInfo)
                                 .Set(client, ToStringKey(entryKey, "Dictionary/class assignment key"), assigned, ctx);
                         else if (entryKey is string)
                             throw new NSGetterRuntimeError(ListIdAssignmentError);
                         else
-                            new NeoListIndexWriteTarget(pending.Row.id, ToInt(entryKey, "List assignment index"), instruction.target.typeInfo, pending.Ownership)
+                            new NeoListIndexWriteTarget(pending.Row.id, ToInt(entryKey, "List assignment index"), writeTarget.typeInfo, pending.Ownership)
                                 .Write(client, assigned, ctx);
-                        return default;
+                        return;
                     }
                 }
                 else
                 {
                     receiver = Eval(keyOfPointer.keyOf.pointer, scope, ctx);
                 }
-                if (keyOfPointer.keyOf.pointer is VariablePointer receiverVariable
-                    && NeoStructuredLeafFieldWriteTarget.IsStructuredLeafValue(receiver)
-                    && FindValueId(receiver, ctx) == null)
-                {
-                    AssignLocalLeafField(instruction, keyOfPointer, receiverVariable, receiver!, assigned, scope, ctx);
-                    return default;
-                }
-                if (receiver is NeoScriptObject { attachedId: null } detached
-                    && WritesSessionTarget(instruction.target.writability)
-                    && Eval(keyOfPointer.keyOf.key, scope, ctx) is string key
-                    && NSGetterEvaluator.TryWriteDetachedMember(detached, key, assigned, ctx, keyOfPointer.keyOf))
-                {
-                    return default;
-                }
-                target = ResolveKeyOfWriteTarget(client, instruction.target, keyOfPointer, receiver, scope, ctx, rent: true);
-                if (target is NeoClassMemberWriteTarget rented)
-                {
-                    WriteRented(client, rented, assigned, ctx);
-                    return default;
-                }
+                AssignKeyOf(client, writeTarget, keyOfPointer, receiver, assigned, scope, ctx);
+                return;
             }
-            else
+            if (writeTarget.pointer is StaticMemberPointer staticPointer)
+                PrepareStaticReferenceAssignment(client, staticPointer, ref assigned, scope, ctx);
+            ResolveTarget(client, writeTarget, scope, ctx).Write(client, assigned, ctx);
+        }
+
+        /// <param name="unboundChildId">
+        /// The id an unbound class member slot's row is created at; a fresh id when null (P112 §4.1).
+        /// </param>
+        private static void AssignKeyOf(
+            NeoClient client,
+            WriteTarget writeTarget,
+            KeyOfPointer keyOfPointer,
+            object? receiver,
+            object? assigned,
+            NeoScriptScope scope,
+            NSGetterEvaluator.Context ctx,
+            string? unboundChildId = null)
+        {
+            if (keyOfPointer.keyOf.pointer is VariablePointer receiverVariable
+                && NeoStructuredLeafFieldWriteTarget.IsStructuredLeafValue(receiver)
+                && FindValueId(receiver, ctx) == null)
             {
-                target = ResolveTarget(client, instruction.target, scope, ctx);
+                AssignLocalLeafField(writeTarget, keyOfPointer, receiverVariable, receiver!, assigned, scope, ctx);
+                return;
+            }
+            if (receiver is NeoScriptObject { attachedId: null } detached
+                && WritesSessionTarget(writeTarget.writability)
+                && Eval(keyOfPointer.keyOf.key, scope, ctx) is string key
+                && NSGetterEvaluator.TryWriteDetachedMember(detached, key, assigned, ctx, keyOfPointer.keyOf))
+            {
+                return;
+            }
+            if (PrepareReferenceAssignment(client, writeTarget, keyOfPointer, receiver, ref assigned, scope, ctx))
+                return;
+            NeoResolvedWriteTarget target = ResolveKeyOfWriteTarget(client, writeTarget, keyOfPointer, receiver, scope, ctx, rent: true);
+            if (target is NeoClassMemberWriteTarget rented)
+            {
+                WriteRented(client, rented, assigned, unboundChildId, ctx);
+                return;
             }
             target.Write(client, assigned, ctx);
-            return default;
         }
 
         private static void AssignLocal(
@@ -2521,7 +2552,7 @@ namespace NeoCompose.Runtime
         /// type, so the local rebinds to a copy with the field replaced.
         /// </summary>
         private static void AssignLocalLeafField(
-            AssignInstruction instruction,
+            WriteTarget writeTarget,
             KeyOfPointer keyOfPointer,
             VariablePointer receiverVariable,
             object receiver,
@@ -2529,7 +2560,7 @@ namespace NeoCompose.Runtime
             NeoScriptScope scope,
             NSGetterEvaluator.Context ctx)
         {
-            if (IsReadOnly(instruction.target))
+            if (IsReadOnly(writeTarget))
             {
                 throw new NSGetterRuntimeError(
                     "Cannot assign to a read-only NeoScript binding.");
@@ -2541,7 +2572,7 @@ namespace NeoCompose.Runtime
             string field = ToStringKey(Eval(keyOfPointer.keyOf.key, scope, ctx), "Structured leaf field name");
             scope.Assign(
                 receiverVariable,
-                NeoStructuredLeafFieldWriteTarget.ComposeLocalField(receiver, field, instruction.target.typeInfo, assigned));
+                NeoStructuredLeafFieldWriteTarget.ComposeLocalField(receiver, field, writeTarget.typeInfo, assigned));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2557,10 +2588,12 @@ namespace NeoCompose.Runtime
             NeoClient client,
             NeoClassMemberWriteTarget target,
             object? value,
+            string? unboundChildId,
             NSGetterEvaluator.Context ctx)
         {
             try
             {
+                target.unboundChildId = unboundChildId;
                 target.Write(client, value, ctx);
             }
             finally
@@ -3920,6 +3953,20 @@ namespace NeoCompose.Runtime
         private static string? ReferenceIdOf(object? value, NSGetterEvaluator.Context ctx) =>
             value is null ? null : NSGetterEvaluator.ReferenceKeyOf(value, ctx) as string;
 
+        /// <summary>P112 §3.3. Whether entry <paramref name="entryId"/>'s Lookup row names <paramref name="targetId"/>.</summary>
+        private static bool StoresTarget(NeoClient client, string entryId, string? targetId) =>
+            client.TryGetValue(entryId, out ArrayMemberValue? entry)
+            && entry.value is { Length: 1 } ids
+            && ids[0] == targetId;
+
+        /// <summary>The target a slot reference entry compares by, when <paramref name="entryMember"/> holds slot references.</summary>
+        private static string? SlotTargetOf(object? value, JsonMember? entryMember, NSGetterEvaluator.Context ctx) =>
+            value is NSSlotReference slot
+                && entryMember is LookupMember lookup
+                && NSGetterEvaluator.LookupSlotTarget(lookup, ctx) is not null
+                ? slot.TargetId
+                : null;
+
         private static bool TryGetClassValueReferenceId(
             object? value,
             TypeInfo typeInfo,
@@ -4139,6 +4186,16 @@ namespace NeoCompose.Runtime
         {
             if (member is LookupMember lookup && value is not null)
                 value = NeoGeneratedTypesSupport.ConstructorLookupIds(value, lookup);
+            // P67 §6. A script variant value stores as its pair.
+            if (value is NeoVariantReference variant)
+            {
+                value = new VariantRefValue
+                {
+                    classId = variant.classId,
+                    variantId = variant.variantId,
+                    rowValueId = variant.rowValueId,
+                };
+            }
             value = NeoGeneratedTypesSupport.MaterializeCollectionAssignment(client, member, value, ownership, ctx, plan);
             var payload = value is INeoValuePayloadProvider provider
                 ? provider.ToNeoValuePayload()
@@ -4222,6 +4279,14 @@ namespace NeoCompose.Runtime
             object? value,
             NSGetterEvaluator.Context ctx)
         {
+            // P112: a slot reference's entry is the id of the row it names.
+            if (lookupTypeInfo.entryTypeInfo is ReferenceTypeInfo)
+            {
+                return value is NSSlotReference reference
+                    ? reference.TargetId
+                    : value as string ?? throw new NSGetterRuntimeError(
+                        $"A set of references was given a {value?.GetType().Name ?? "null"}, not a reference.");
+            }
             if (lookupTypeInfo.collectionMemberId is null
                 && (lookupTypeInfo.entryTypeInfo.type == MemberKind.Enum
                     || lookupTypeInfo.entryTypeInfo.type == MemberKind.DialogueLookup))
@@ -4603,9 +4668,11 @@ namespace NeoCompose.Runtime
                 ? member : MemberFromTypeInfo(typeInfo);
 
         // A generic entry has no type-info member either: its row's binding
-        // closes it.
+        // closes it. A reference entry is a Lookup row, and the IR types a
+        // handle reference as its target's Class (P112 §5.2).
         private static JsonMember EntryMember(NeoClient client, MemberValue collectionRow, TypeInfo entryTypeInfo) =>
             entryTypeInfo.type is MemberKind.List or MemberKind.Set or MemberKind.Dictionary or MemberKind.Generic
+                or MemberKind.Class or MemberKind.Reference
                 && client.TryInferMemberForValueId(collectionRow.id, out JsonMember? collection)
                 && client.TryResolveCollectionEntryMember(collection, collectionRow) is JsonMember entry
                 ? entry : MemberFromTypeInfo(entryTypeInfo);
@@ -4888,6 +4955,8 @@ namespace NeoCompose.Runtime
             // to the leaf store. It starts as the node the receiver's own
             // read of this member remembered.
             private NeoValueNode? childNode;
+            // The id an unbound slot's row is created at, set for one write.
+            internal string? unboundChildId;
 
             public NeoClassMemberWriteTarget(
                 string parentRowId,
@@ -4957,6 +5026,7 @@ namespace NeoCompose.Runtime
             {
                 parentNode = null;
                 childNode = null;
+                unboundChildId = null;
                 inUse = false;
             }
 
@@ -5138,7 +5208,6 @@ namespace NeoCompose.Runtime
                         writableParent.value ??= new Dictionary<string, string>();
                         return writableParent;
                     }
-                    value = NeoGeneratedTypesSupport.MaterializeCollectionAssignment(client, member, value, ownership, ctx, plan);
                     NeoTimestamp now = NeoTimestamp.Now();
                     // Reusing the entry's stable id below clone-on-writes it
                     // (a fresh row at the same id shadows the authored default),
@@ -5156,6 +5225,17 @@ namespace NeoCompose.Runtime
                             out MemberValue? existing,
                             out _)
                         && existing is not null;
+                    // P112 §4.1. A collection slot that holds a row keeps it,
+                    // so references to it survive; another row's contents are copied in.
+                    if (bound
+                        && member is ListMember or DictionaryMember
+                        && value is not null
+                        && TryGetValueReferenceId(value, ctx, out string? sourceId)
+                        && sourceId != existingId)
+                    {
+                        value = NSGetterEvaluator.CopiedCollectionContents(value, ctx);
+                    }
+                    value = NeoGeneratedTypesSupport.MaterializeCollectionAssignment(client, member, value, ownership, ctx, plan);
                     if (bound)
                     {
                         if (TryGetClassValueReferenceId(
@@ -5224,7 +5304,7 @@ namespace NeoCompose.Runtime
                     }
                     else
                     {
-                        var childId = Guid.NewGuid().ToString();
+                        var childId = unboundChildId ?? Guid.NewGuid().ToString();
                         var next = CreateValueRow(plan, client, ownership, member, value, childId, now, now, ctx);
                         StoreWritableRow(plan, ownership, next, ctx);
                         linked.value![key] = childId;
@@ -5716,11 +5796,12 @@ namespace NeoCompose.Runtime
                         throw new NSGetterRuntimeError($"List index out of bounds: {index}");
                     MemberValue listRow = pending?.Row ?? committed!;
                     string childId = pending is not null ? pending[index] : committed!.value![index];
-                    if (referenceId is null)
+                    JsonMember entryMember = EntryMember(client, listRow, typeInfo);
+                    // A reference entry selects its target; only an owned one adopts it.
+                    if (referenceId is null || entryMember is LookupMember)
                     {
                         if (!client.TryGetValue(childId, out MemberValue? existing))
                             throw new NSGetterRuntimeError($"Missing list child row '{childId}'.");
-                        JsonMember entryMember = EntryMember(client, listRow, typeInfo);
                         var next = CreateValueRow(
                             plan, client,
                             ownership,
@@ -5744,13 +5825,12 @@ namespace NeoCompose.Runtime
                     if (importedId == childId)
                         return;
                     // The list changes last: one that throws leaves it as it was.
-                    JsonMember released = EntryMember(client, listRow, typeInfo);
                     NeoWriteBatch.PendingList list = batch.List(ownership, parentRowId, ctx, null);
                     batch.Gain(ownership, importedId, parentRowId);
                     batch.AfterCommit(() => ctx.allocationTracker.RegisterConstructedParent(
                         importedId,
                         parentRowId));
-                    batch.Release(ownership, list.Set(index, importedId, NeoTimestamp.Now()), released, parentRowId);
+                    batch.Release(ownership, list.Set(index, importedId, NeoTimestamp.Now()), entryMember, parentRowId);
                 });
             }
         }
@@ -5799,8 +5879,13 @@ namespace NeoCompose.Runtime
                             }
                             else
                             {
-                                object? value = args[0] is INeoValuePayloadProvider provider
-                                    ? provider.ToNeoValuePayload() : args[0];
+                                // P112 §1.3. A reference entry's row stores its Lookup selection.
+                                object? value = args[0] switch
+                                {
+                                    NSSlotReference slot => new[] { slot.TargetId },
+                                    INeoValuePayloadProvider provider => provider.ToNeoValuePayload(),
+                                    _ => args[0],
+                                };
                                 payload = NeoValueWritePayload.FromValue(value);
                             }
                             string addedId = list.PrepareAddSerialized(plan, payload);
@@ -5813,11 +5898,14 @@ namespace NeoCompose.Runtime
                             removeId = ReferenceIdOf(args[0], ctx);
                         else if (TryGetClassValueReferenceId(args[0], entryType, ctx, out string? id))
                             removeId = id;
+                        string? slotTarget = SlotTargetOf(args[0], list.EntryMember, ctx);
                         foreach (string entryId in list.ResolveEntryValueIds())
                         {
-                            if (entryId == removeId || (removeId is null && !reference
-                                && client.TryGetValue(ownership, entryId, out MemberValue? entry)
-                                && JsEqual(ReadEntryValue(entry, list.EntryMember, ctx), args[0])))
+                            if (slotTarget is not null
+                                ? StoresTarget(client, entryId, slotTarget)
+                                : entryId == removeId || (removeId is null && !reference
+                                    && client.TryGetValue(ownership, entryId, out MemberValue? entry)
+                                    && JsEqual(ReadEntryValue(entry, list.EntryMember, ctx), args[0])))
                             {
                                 list.RemoveById(entryId);
                                 break;
@@ -5877,6 +5965,7 @@ namespace NeoCompose.Runtime
                     referenceId = ReferenceIdOf(args[0], ctx);
                 }
                 else if ((inserts || mutation == CollectionMutationKind.Remove)
+                    && entryMember is not LookupMember
                     && (entryTypeInfo.type == MemberKind.Class || entryMember is ClassMember)
                     && TryGetValueReferenceId(
                         args[mutation == CollectionMutationKind.Insert ? 1 : 0],
@@ -5952,12 +6041,16 @@ namespace NeoCompose.Runtime
                                     batch.Release(ownership, match, EntryMember(client, list.Row, entryTypeInfo), rowId);
                                 return;
                             }
+                            string? slotTarget = SlotTargetOf(args[0], EntryMember(client, list.Row, entryTypeInfo), ctx);
                             for (int i = 0; i < list.Count; i++)
                             {
-                                if (list[i] != referenceId
-                                    && (reference
-                                        || !client.TryGetValue(list[i], out MemberValue? child)
-                                        || !JsEqual(ReadEntryValue(child, entryMember, ctx), args[0])))
+                                bool match = slotTarget is not null
+                                    ? StoresTarget(client, list[i], slotTarget)
+                                    : list[i] == referenceId
+                                        || !reference
+                                            && client.TryGetValue(list[i], out MemberValue? child)
+                                            && JsEqual(ReadEntryValue(child, entryMember, ctx), args[0]);
+                                if (!match)
                                     continue;
                                 batch.Release(ownership, list.RemoveAt(i, now), EntryMember(client, list.Row, entryTypeInfo), rowId);
                                 return;
@@ -6019,6 +6112,8 @@ namespace NeoCompose.Runtime
                 bool reference,
                 NSGetterEvaluator.Context ctx)
             {
+                if (mutation == CollectionMutationKind.Add && args[0] is NSSlotReference added)
+                    args[0] = AddedReferenceId(client, rowId, typeInfo, ownership, added, ctx);
                 WriteCollection(client, rowId, preparedPlan, batch =>
                 {
                     EnsureWritableRow(client, rowId, ownership);
@@ -6099,7 +6194,7 @@ namespace NeoCompose.Runtime
                 object? value,
                 NSGetterEvaluator.Context ctx)
             {
-                string? referenceId = TryGetClassValueReferenceId(value, entryTypeInfo, ctx, out string? id) ? id : null;
+                string? candidateId = TryGetClassValueReferenceId(value, entryTypeInfo, ctx, out string? id) ? id : null;
                 WriteCollection(client, rowId, preparedPlan, batch =>
                 {
                     EnsureWritableRow(client, rowId, ownership);
@@ -6110,12 +6205,14 @@ namespace NeoCompose.Runtime
                     MemberValue? current = batch.Collection(ownership, rowId)?.Row;
                     if (current is null && !plan.TryGet(ownership, rowId, out current))
                         throw new NSGetterRuntimeError($"Missing dictionary row '{rowId}'.");
+                    JsonMember entryMember = EntryMember(client, current!, entryTypeInfo);
+                    // A reference entry selects its target; only an owned one adopts it.
+                    string? referenceId = entryMember is LookupMember ? null : candidateId;
                     if (((ObjectMemberValue)current!).value?.TryGetValue(key, out string existingId) == true
                         && client.TryGetValue(existingId, out MemberValue? existing))
                     {
                         if (referenceId is null)
                         {
-                            JsonMember entryMember = EntryMember(client, current, entryTypeInfo);
                             var next = CreateValueRow(
                                 plan, client,
                                 ownership,
@@ -6141,7 +6238,7 @@ namespace NeoCompose.Runtime
                         batch.AfterCommit(() => ctx.allocationTracker.RegisterConstructedParent(
                             replacementId,
                             rowId));
-                        batch.Release(ownership, existingId, EntryMember(client, current, entryTypeInfo), rowId);
+                        batch.Release(ownership, existingId, entryMember, rowId);
                         batch.Gain(ownership, replacementId, rowId);
                         // The pending row changes in place, which a failed
                         // mutation can't undo, so it changes last.
@@ -6167,7 +6264,7 @@ namespace NeoCompose.Runtime
                         plan.Set(ownership, CreateValueRow(
                             plan, client,
                             ownership,
-                            EntryMember(client, current, entryTypeInfo),
+                            entryMember,
                             value,
                             childId,
                             now,

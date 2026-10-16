@@ -97,8 +97,11 @@ namespace NeoCompose.Runtime
         /// <summary>Enum only.</summary>
         public string? enumId;
 
-        /// <summary>Enum only.</summary>
+        /// <summary>Enum and Lookup only.</summary>
         public NeoMemberSelectionKind selection;
+
+        /// <summary>Lookup only (P112 §2.1): the <c>Reference&lt;target&gt;</c> it names.</summary>
+        public TypeInfo? target;
 
         /// <summary>Class only.</summary>
         public string? classId;
@@ -843,6 +846,18 @@ namespace NeoCompose.Runtime
                 substitutedAction.argumentTypes = argumentTypes;
                 return substitutedAction;
             }
+            // P112 §3.5. A `Reference<T>` names its binding's type.
+            if (member is LookupMember { declaredTypeInfo: { } declaredTypeInfo } lookupMember)
+            {
+                TypeInfo targetTypeInfo = SubstituteNestedTypeInfo(client, declaredTypeInfo, env);
+                if (ReferenceEquals(targetTypeInfo, declaredTypeInfo))
+                {
+                    return member;
+                }
+                var substitutedLookup = (LookupMember)lookupMember.ShallowClone();
+                substitutedLookup.declaredTypeInfo = targetTypeInfo;
+                return substitutedLookup;
+            }
             if (member is VariantMember variantMember
                 && variantMember.targetTypeInfo is not null)
             {
@@ -1004,6 +1019,16 @@ namespace NeoCompose.Runtime
             return argument;
         }
 
+        /// <summary>
+        /// <paramref name="typeInfo"/> with each generic position closed
+        /// through <paramref name="env"/>; an unbound one stays generic.
+        /// </summary>
+        internal static TypeInfo SubstituteTypeInfo(
+            NeoClient client,
+            TypeInfo typeInfo,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> env) =>
+            SubstituteNestedTypeInfo(client, typeInfo, env);
+
         private static TypeInfo SubstituteNestedTypeInfo(
             NeoClient client,
             TypeInfo typeInfo,
@@ -1052,6 +1077,20 @@ namespace NeoCompose.Runtime
                 }
                 var substituted = (LookupTypeInfo)lookup.ShallowClone();
                 substituted.entryTypeInfo = entryTypeInfo;
+                return substituted;
+            }
+            if (typeInfo is ReferenceTypeInfo reference)
+            {
+                TypeInfo target = SubstituteNestedTypeInfo(
+                    client,
+                    reference.targetTypeInfo,
+                    env);
+                if (ReferenceEquals(target, reference.targetTypeInfo))
+                {
+                    return typeInfo;
+                }
+                var substituted = (ReferenceTypeInfo)reference.ShallowClone();
+                substituted.targetTypeInfo = target;
                 return substituted;
             }
             if (typeInfo is ClassTypeInfo classType)
@@ -1233,6 +1272,10 @@ namespace NeoCompose.Runtime
                     keyEnumId = signature.keyEnumId,
                 };
             }
+            if (signature.type == MemberKind.Lookup)
+            {
+                return ReferenceTypeInfoFromSignature(signature);
+            }
             if (IsPrimitiveTypeInfoKind(signature.type))
             {
                 return new PrimitiveTypeInfo
@@ -1243,6 +1286,21 @@ namespace NeoCompose.Runtime
             }
             throw new System.InvalidOperationException(
                 $"SubstituteMember: generic binding kind {signature.type} cannot appear in a NeoScript callable type.");
+        }
+
+        /// <summary>A Lookup argument as the reference, or set of them, it is (P112 §2.1).</summary>
+        private static TypeInfo ReferenceTypeInfoFromSignature(NeoClassArgumentSignature signature)
+        {
+            bool multi = signature.selection == NeoMemberSelectionKind.Multi;
+            ReferenceTypeInfo reference = NeoReferenceTypes.Reference(signature.target!, multi || signature.required);
+            if (!multi)
+                return reference;
+            return new LookupTypeInfo
+            {
+                type = MemberKind.Lookup,
+                required = signature.required,
+                entryTypeInfo = reference,
+            };
         }
 
         private static bool IsPrimitiveTypeInfoKind(MemberKind kind)
@@ -1297,6 +1355,15 @@ namespace NeoCompose.Runtime
                 argument.entryTypeInfo =
                     TypeInfoFromArgumentSignature(signature.entry!);
                 argument.keyEnumId = signature.keyEnumId;
+            }
+            else if (signature.type == MemberKind.Lookup)
+            {
+                TypeInfo reference = ReferenceTypeInfoFromSignature(signature);
+                argument.type = reference.type;
+                if (reference is LookupTypeInfo set)
+                    argument.entryTypeInfo = set.entryTypeInfo;
+                else
+                    argument.targetTypeInfo = ((ReferenceTypeInfo)reference).targetTypeInfo;
             }
             else if (!IsPrimitiveTypeInfoKind(signature.type))
             {
@@ -1426,6 +1493,21 @@ namespace NeoCompose.Runtime
                     entry = EntrySignature(client, dictionaryMember.entryMemberId, env, seen),
                 };
             }
+            if (member is LookupMember lookupMember)
+            {
+                if (lookupMember.declaredTypeInfo is null)
+                {
+                    throw new System.InvalidOperationException(
+                        $"SignatureOfMember: Lookup '{lookupMember.name}' has no declared type; a type argument can't be a Lookup bound to a collection.");
+                }
+                return new NeoClassArgumentSignature
+                {
+                    type = MemberKind.Lookup,
+                    required = required,
+                    selection = lookupMember.Selection,
+                    target = SubstituteNestedTypeInfo(client, lookupMember.declaredTypeInfo, env),
+                };
+            }
             if (member is StringMember stringMember)
             {
                 return new NeoClassArgumentSignature
@@ -1545,6 +1627,12 @@ namespace NeoCompose.Runtime
             }
             if (a.type == MemberKind.Set)
                 return SignaturesEqual(a.entry!, b.entry!);
+            if (a.type == MemberKind.Lookup)
+            {
+                if (a.selection != b.selection)
+                    return false;
+                return NeoReferenceTypes.InvariantlyEqual(a.target!, b.target!);
+            }
             if (a.type == MemberKind.Dictionary)
             {
                 if (a.keyKind != b.keyKind)

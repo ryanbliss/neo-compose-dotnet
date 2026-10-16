@@ -1067,6 +1067,9 @@ namespace NeoCompose.Runtime.Json
         public TypeInfo? returnTypeInfo;
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public TypeInfo[]? argumentTypes;
+        /// <summary>P112 §5.2. A <c>Reference&lt;T&gt;</c> parameter's target.</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public TypeInfo? targetTypeInfo;
     }
 
     public class FunctionArgumentTypeInfoConverter : JsonConverter
@@ -1122,6 +1125,7 @@ namespace NeoCompose.Runtime.Json
                     json["returnTypeInfo"],
                     serializer),
                 argumentTypes = json["argumentTypes"]?.ToObject<TypeInfo[]>(serializer),
+                targetTypeInfo = json["targetTypeInfo"]?.ToObject<TypeInfo>(serializer),
             };
         }
 

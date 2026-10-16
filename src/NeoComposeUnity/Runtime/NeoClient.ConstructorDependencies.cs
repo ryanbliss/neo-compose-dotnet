@@ -69,7 +69,7 @@ namespace NeoCompose.Runtime
                 plan.Set(targetOwnership, row, silent: true);
         }
 
-        private static readonly NeoValueOwnership[] RecipeStores =
+        private static readonly NeoValueOwnership[] WritableStores =
         {
             NeoValueOwnership.Session,
             NeoValueOwnership.Save,
@@ -103,7 +103,7 @@ namespace NeoCompose.Runtime
                 {
                     CollectPlacementParents(id, parents);
                     plan.CollectParentCandidates(id, parents);
-                    foreach (NeoValueOwnership store in RecipeStores)
+                    foreach (NeoValueOwnership store in WritableStores)
                         if (plan.TryGetWritable(store, id, out MemberValue? row) && row!.containerId is string container)
                             parents.Add(container);
                     foreach (string parentId in parents)
@@ -111,7 +111,7 @@ namespace NeoCompose.Runtime
                         if (removing.Contains(parentId) || !seen.Add(parentId))
                             continue;
                         bool stored = false;
-                        foreach (NeoValueOwnership store in RecipeStores)
+                        foreach (NeoValueOwnership store in WritableStores)
                         {
                             if (!plan.TryGetWritable(store, parentId, out MemberValue? parent) || parent!.IsRemoved)
                                 continue;
@@ -145,7 +145,7 @@ namespace NeoCompose.Runtime
         private void MarkOtherStoreConstructorInputs(NeoValueOwnership ownership, HashSet<string> reachable)
         {
             var target = GetWritableStore(ownership).values;
-            foreach (NeoValueOwnership store in RecipeStores)
+            foreach (NeoValueOwnership store in WritableStores)
             {
                 if (store == ownership)
                     continue;
@@ -176,7 +176,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         private bool OtherStoreRecipeNames(NeoValueOwnership ownership, string parentId, string valueId)
         {
-            foreach (NeoValueOwnership store in RecipeStores)
+            foreach (NeoValueOwnership store in WritableStores)
                 if (store != ownership
                     && TryGetWritableValue(store, parentId, out MemberValue? parent)
                     && parent is ObjectMemberValue { classId: not null } recipe

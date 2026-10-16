@@ -1829,6 +1829,9 @@ namespace NeoCompose.Runtime
         private readonly Dictionary<string, string> staticReadKeys = new(System.StringComparer.Ordinal);
         private readonly Dictionary<string, NeoStaticBinding> staticBindings = new(System.StringComparer.Ordinal);
 
+        /// <summary>Whether <paramref name="id"/> names an authored row, which outlives every store.</summary>
+        internal bool IsAuthoredValue(string id) => data.values.ContainsKey(id);
+
         /// <summary>The one binding view of a static member; it resolves its target live.</summary>
         internal NeoStaticBinding StaticBinding(string memberId)
         {
@@ -2194,6 +2197,7 @@ namespace NeoCompose.Runtime
             SchemaResolution = new object();
             staticReadKeys.Clear();
             staticBindings.Clear();
+            staticBindingIndex.revision = (-1, -1);
             foreach (NeoClassNode node in classNodes.Values)
                 node.live = false;
             classNodes.Clear();
@@ -3823,19 +3827,14 @@ namespace NeoCompose.Runtime
                     }
                 }
             }
-            if (ownership != NeoValueOwnership.Asset)
+            if (ownership != NeoValueOwnership.Asset
+                && CurrentStaticBindings().staticByBoundValue.TryGetValue((ownership, valueId), out string? boundMemberId)
+                && TryGetMember(boundMemberId, out Member? storeOwner)
+                && storeOwner.Modifier == NeoMemberModifierKind.Static
+                && IsStaticBoundTo(storeOwner, ownership, valueId))
             {
-                foreach (var binding in GetWritableStore(ownership).staticBindings)
-                {
-                    if (binding.Value == valueId
-                        && TryGetMember(binding.Key, out Member? bound)
-                        && bound.Modifier == NeoMemberModifierKind.Static
-                        && IsStaticBoundTo(bound, ownership, valueId))
-                    {
-                        owner = bound;
-                        return true;
-                    }
-                }
+                owner = storeOwner;
+                return true;
             }
             if (candidateReadPlan is not null)
             {
@@ -3855,6 +3854,87 @@ namespace NeoCompose.Runtime
             }
             owner = null;
             return false;
+        }
+
+        /// <summary>The writable stores' static bindings, indexed as of <see cref="revision"/>.</summary>
+        private sealed class StaticBindingIndex
+        {
+            // This client's writes and its user client's.
+            internal (long own, long user) revision = (-1, -1);
+            internal readonly Dictionary<(NeoValueOwnership, string), string> staticByBoundValue = new();
+            internal bool? anyReleasedDefault;
+        }
+
+        private readonly StaticBindingIndex staticBindingIndex = new();
+
+        private StaticBindingIndex CurrentStaticBindings()
+        {
+            var revision = (WriteRevision, userSource.WriteRevision);
+            if (staticBindingIndex.revision == revision)
+                return staticBindingIndex;
+            staticBindingIndex.revision = revision;
+            staticBindingIndex.anyReleasedDefault = null;
+            staticBindingIndex.staticByBoundValue.Clear();
+            foreach (NeoValueOwnership ownership in WritableStores)
+            {
+                foreach (var binding in GetWritableStore(ownership).staticBindings)
+                {
+                    if (binding.Value is string boundValueId)
+                        staticBindingIndex.staticByBoundValue.TryAdd((ownership, boundValueId), binding.Key);
+                }
+            }
+            return staticBindingIndex;
+        }
+
+        /// <summary>
+        /// P112 §4.1. Whether any static's authored default is released, so a
+        /// reference read walks its target's holders only once one is.
+        /// </summary>
+        internal bool AnyReleasedStaticDefault()
+        {
+            if (candidateReadPlan is not null && candidateReadPlan.Bindings.Count > 0)
+                return true;
+            StaticBindingIndex index = CurrentStaticBindings();
+            index.anyReleasedDefault ??= ReleasesStaticDefault();
+            return index.anyReleasedDefault.Value;
+        }
+
+        private bool ReleasesStaticDefault()
+        {
+            foreach (NeoValueOwnership ownership in WritableStores)
+            {
+                foreach (var binding in GetWritableStore(ownership).staticBindings)
+                {
+                    if (TryGetMember(binding.Key, out Member? member)
+                        && member.valueId is { } authored
+                        && binding.Value != authored
+                        && IsReleasedStaticDefault(authored))
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// P112 §4.1. Whether <paramref name="valueId"/> is only statics'
+        /// authored default, which every one of them has been rebound off.
+        /// </summary>
+        internal bool IsReleasedStaticDefault(string valueId)
+        {
+            if (!ValueInferenceIndex.MembersByValueId.TryGetValue(valueId, out var declared))
+                return false;
+            bool released = false;
+            foreach (Member member in declared)
+            {
+                if (member.Modifier != NeoMemberModifierKind.Static)
+                    return false;
+                if (TryResolveStaticBinding(member.id, out _, out _, out string? bound) && bound == valueId)
+                    return false;
+                released = true;
+            }
+            return released;
         }
 
         private bool IsStaticBoundTo(Member member, NeoValueOwnership ownership, string valueId) =>
@@ -4048,6 +4128,18 @@ namespace NeoCompose.Runtime
                     && ownedChild.valueId == childValueId)
                     return true;
             }
+            return false;
+        }
+
+        /// <summary>The store an authored row belongs to; false when no authored row has <paramref name="valueId"/>.</summary>
+        internal bool TryGetAuthoredRowOwnership(string valueId, out NeoValueOwnership ownership)
+        {
+            if (data.values.TryGetValue(valueId, out MemberValue row))
+            {
+                ownership = ResolveAuthoredOwnership(valueId, row);
+                return true;
+            }
+            ownership = default;
             return false;
         }
 
@@ -4947,6 +5039,15 @@ namespace NeoCompose.Runtime
                 {
                     member = constructorEntry;
                     return true;
+                }
+                // Only its store's binding names a runtime static's row.
+                foreach (NeoValueOwnership store in WritableStores)
+                {
+                    if (TryGetWritableValue(store, valueId, out MemberValue? _)
+                        && TryFindStaticOwner(store, valueId, out member))
+                    {
+                        return true;
+                    }
                 }
                 member = null;
                 return false;
@@ -8116,6 +8217,9 @@ namespace NeoCompose.Runtime
                     discriminator = lookupTypeInfo.collectionMemberId;
                     entryTypeInfo = lookupTypeInfo.entryTypeInfo;
                     break;
+                case ReferenceTypeInfo referenceTypeInfo:
+                    entryTypeInfo = referenceTypeInfo.targetTypeInfo;
+                    break;
                 case DelegateTypeInfo delegateTypeInfo:
                     delegateReturnType = delegateTypeInfo.returnTypeInfo;
                     delegateArgumentTypes = delegateTypeInfo.argumentTypes;
@@ -8630,6 +8734,12 @@ namespace NeoCompose.Runtime
                 (ActionTypeInfo a, FunctionArgumentTypeInfo b)
                     when b.type == MemberKind.NSAction =>
                     TypeInfoListsMatch(a.argumentTypes, b.argumentTypes),
+                (ReferenceTypeInfo a, ReferenceTypeInfo b) =>
+                    TypeInfoMatches(a.targetTypeInfo, b.targetTypeInfo),
+                (FunctionArgumentTypeInfo a, ReferenceTypeInfo b) =>
+                    TypeInfoMatches(a.targetTypeInfo, b.targetTypeInfo),
+                (ReferenceTypeInfo a, FunctionArgumentTypeInfo b) =>
+                    TypeInfoMatches(a.targetTypeInfo, b.targetTypeInfo),
                 _ => true,
             };
         }
@@ -9381,6 +9491,7 @@ namespace NeoCompose.Runtime
                 if (virtualRootByFootprintId.TryGetValue(id, out var expansionRoot)
                     && virtualValueIdsByRoot.TryGetValue(expansionRoot, out var expansionIds)
                     && expansionIds.Contains(id)
+                    && !CandidateSeversVirtualId(id, expansionRoot)
                     && (!TryResolveVirtualOwnership(id, out var expandedOwnership) || expandedOwnership == ownership))
                     pending.Enqueue(expansionRoot);
                 parents.Clear();
@@ -9420,7 +9531,8 @@ namespace NeoCompose.Runtime
                         if (ConstructorArgsReference(obj, id)
                             || obj.value is not null && (OwnsChildLink(obj, null, id, ownership, membership)
                                 || OwnsChildLink(obj, TryInferMemberForValueId(parentId, out var inferred) ? inferred : null, id, ownership, membership)
-                                || TryResolveVirtualClassChildren(parentId, out var links) && links.ContainsValue(id)))
+                                || TryResolveVirtualClassChildren(parentId, out var links) && links.ContainsValue(id)
+                                    && !CandidateSeversVirtualId(id, parentId)))
                             pending.Enqueue(parentId);
                     }
                     else if (parent is ArrayMemberValue { value: not null } array && membership.Holds(array.value, id))

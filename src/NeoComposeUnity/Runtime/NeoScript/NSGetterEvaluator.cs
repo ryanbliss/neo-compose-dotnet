@@ -1206,6 +1206,35 @@ namespace NeoCompose.Runtime.NeoScript
             }
 
             /// <summary>
+            /// Whether a constructor body still runs for <paramref name="owner"/>,
+            /// so its readonly members still accept writes (P112 §3.6).
+            /// </summary>
+            internal bool IsConstructing(object owner)
+            {
+                if (constructorBody && SameReceiver(thisValueField, owner))
+                    return true;
+                if (frameStack is not { } stack)
+                    return false;
+                // A frame saves its caller's state; one that kept `this` saved none.
+                object? callerThis = thisValueField;
+                for (int i = stack.depth - 1; i >= 0; i--)
+                {
+                    ref FunctionFrame saved = ref stack.frames[i];
+                    if (saved.thisSaved)
+                        callerThis = saved.thisValue;
+                    if (saved.constructorBody && SameReceiver(callerThis, owner))
+                        return true;
+                }
+                return false;
+            }
+
+            private bool SameReceiver(object? receiver, object owner) =>
+                ReferenceEquals(receiver, owner)
+                || receiver is not null
+                    && FindRowIdByReference(owner, this) is { } ownerId
+                    && FindRowIdByReference(receiver, this) == ownerId;
+
+            /// <summary>
             /// <see cref="EnterFunction"/> without a call-stack frame, for a
             /// synchronous body that runs against another <c>this</c>.
             /// </summary>
@@ -2042,7 +2071,11 @@ namespace NeoCompose.Runtime.NeoScript
                 case VariantPointer variantPointer:
                     return EvalVariant(variantPointer);
                 case StaticMemberPointer staticPointer:
-                    return EvalStaticMember(staticPointer, ctx);
+                    return ReadStaticMember(staticPointer.memberId, ctx);
+                case RowOfPointer rowOf:
+                    return EvalRowOf(rowOf, scope, ctx);
+                case DerefPointer deref:
+                    return ReadThroughReference(EvalPointer(deref.pointer, scope, ctx), ctx);
                 case ListLiteralPointer llp:
                     return EvalListLiteral(llp, scope, ctx);
                 case DictLiteralPointer dlp:
@@ -2304,15 +2337,15 @@ namespace NeoCompose.Runtime.NeoScript
         }
 
         /// <summary>A static member's bound value.</summary>
-        private static object? EvalStaticMember(StaticMemberPointer staticPointer, Context ctx)
+        private static object? ReadStaticMember(string memberId, Context ctx)
         {
             if (!ctx.client.TryGetMember(
-                    staticPointer.memberId,
+                    memberId,
                     out JsonMember? staticMember)
                 || staticMember.Modifier != NeoMemberModifierKind.Static)
             {
                 throw new NSGetterRuntimeError(
-                    $"Static member '{staticPointer.memberId}' was not found.");
+                    $"Static member '{memberId}' was not found.");
             }
             NeoValueOwnership ownership =
                 ctx.client.ResolveStaticOwnership(staticMember);
@@ -2332,11 +2365,14 @@ namespace NeoCompose.Runtime.NeoScript
                 throw new NSGetterRuntimeError(
                     $"Static member '{staticMember.name}' is bound to missing value '{staticValueId}'.");
             }
-            return UnwrapCached(
+            object? value = UnwrapCached(
                 staticRow,
                 ctx,
                 ownership,
                 staticMember);
+            return staticMember is LookupMember lookup && value is object?[] ids
+                ? ReadLookupSelection(ids, lookup, ctx)
+                : value;
         }
 
         /// <summary>A list literal's entries.</summary>
@@ -4615,7 +4651,8 @@ namespace NeoCompose.Runtime.NeoScript
                 return DispatchNoMember;
             }
 
-            if (member is GenericMember)
+            if (member is GenericMember
+                || member is LookupMember { declaredTypeInfo: { } declared } && NeoNSFunctionRuntime.ContainsGeneric(declared))
             {
                 member = NeoGenericResolution.SubstituteMember(
                     ctx.client,
@@ -8150,11 +8187,11 @@ namespace NeoCompose.Runtime.NeoScript
                 NeoValueOwnership resolvedOwnership = ownerships![index];
                 ref NeoValueNode? node = ref nodes![index];
                 if (ctx.client.ReadOwnRow(resolvedOwnership, id, ref node) is { } currentRow)
-                    return UnwrapCached(currentRow, ctx, resolvedOwnership, entryMember, node);
+                    return EntryValue(UnwrapCached(currentRow, ctx, resolvedOwnership, entryMember, node), entryMember, ctx, node);
                 MemberValue? retainedRow = rows![index];
                 return retainedRow is null
                     ? id
-                    : UnwrapCached(retainedRow, ctx, resolvedOwnership, entryMember);
+                    : EntryValue(UnwrapCached(retainedRow, ctx, resolvedOwnership, entryMember), entryMember, ctx);
             }
 
             /// <summary>Drops what a finished run held.</summary>
@@ -8266,6 +8303,10 @@ namespace NeoCompose.Runtime.NeoScript
             private readonly NeoValueOwnership? entryOwnership;
             private readonly int count;
             private readonly bool values;
+            // A multi-select Lookup of slot references (P112 §1.1) reads
+            // its ids as references to their rows, not as the rows.
+            private readonly LookupMember? slotLookup;
+            private readonly TypeInfo? slotTarget;
 
             internal CollectionCursor(object? collection, Context ctx)
             {
@@ -8281,6 +8322,12 @@ namespace NeoCompose.Runtime.NeoScript
                 {
                     this.entryMember = entryMember;
                     entryOwnership = ctx.client.ConcreteDeclaredOwnership(entryMember);
+                }
+                if (collectionRef?.CollectionMember(ctx.client) is LookupMember { Selection: NeoMemberSelectionKind.Multi } lookup
+                    && LookupSlotTarget(lookup, ctx, collectionRef.valueId) is { } target)
+                {
+                    slotLookup = lookup;
+                    slotTarget = target;
                 }
                 // A Set keeps its entries' values.
                 values = collection is RuntimeSet || collectionRef is null && HoldsValues(collection);
@@ -8331,6 +8378,8 @@ namespace NeoCompose.Runtime.NeoScript
                 object? raw = Raw;
                 if (raw is not string id || values)
                     return raw;
+                if (slotTarget is not null)
+                    return SlotReferenceOf(id, slotLookup!, slotTarget);
                 NeoValueNode? node = collectionRef?.EntryNode(Index, raw);
                 object? entry = ResolveValueId(id, ctx, null, entryOwnership, entryMember, ref node);
                 collectionRef?.RememberEntryNode(Index, count, raw, node);
@@ -8380,11 +8429,25 @@ namespace NeoCompose.Runtime.NeoScript
                 return da == db;
             if (ReferenceEquals(a, b))
                 return true;
+            // P112 §3.3: references compare by the row they name.
+            if (a is NSSlotReference || b is NSSlotReference)
+                return a is NSSlotReference left && b is NSSlotReference right && left.TargetId == right.TargetId;
             if (a is NeoDelegateValue { IsMemberTarget: true } leftDelegate
                 && b is NeoDelegateValue { IsMemberTarget: true } rightDelegate)
                 return leftDelegate.memberId == rightDelegate.memberId && leftDelegate.valueId == rightDelegate.valueId;
             if (a is bool ba && b is bool bb)
                 return ba == bb;
+            // Vectors and colors compare by value, as TS compares their records.
+            if (a is NeoVector2Value va && b is NeoVector2Value vb)
+            {
+                return va.x == vb.x
+                    && va.y == vb.y
+                    && (va is NeoVector3Value a3
+                        ? b is NeoVector3Value b3 && a3.z == b3.z
+                        : b is not NeoVector3Value);
+            }
+            if (a is NeoColorValue ca && b is NeoColorValue cb)
+                return ca.r == cb.r && ca.g == cb.g && ca.b == cb.b && ca.a == cb.a;
             if (a is object?[] aa && b is object?[] ab)
             {
                 if (aa.Length != ab.Length)
@@ -8428,6 +8491,9 @@ namespace NeoCompose.Runtime.NeoScript
         /// </summary>
         internal static bool ReferenceEqual(object? a, object? b, Context ctx)
         {
+            // §3.5. A generic `Reference<T>` bound to a slot kind compares values.
+            if (a is NSSlotReference || b is NSSlotReference)
+                return JsEqual(ReadThroughReference(a, ctx), ReadThroughReference(b, ctx));
             if (a is null || b is null)
                 return a is null && b is null;
             if (ReferenceEquals(a, b))
@@ -8445,6 +8511,8 @@ namespace NeoCompose.Runtime.NeoScript
         {
             if (value is string id)
                 return id;
+            if (value is NSSlotReference slot)
+                return slot.TargetId;
             if (value is NeoGeneratedClassValue { PendingValue: NeoScriptObject pending })
                 return pending.attachedId ?? (object)pending;
             if (value is NeoScriptObject detached)
@@ -8674,11 +8742,14 @@ namespace NeoCompose.Runtime.NeoScript
                 : declaredOwnership ?? ResolveOwnershipForValueId(ctx, id, ref node);
             if (ctx.client.ReadReplayReference(id, ref node, ownership) is not { } row)
                 return id;
-            var v = UnwrapCached(row, ctx, ownership, member, node);
-            return member is LookupMember lookup && v is object?[] ids
-                ? ReadLookupSelection(ids, lookup, ctx, node)
-                : v;
+            return EntryValue(UnwrapCached(row, ctx, ownership, member, node), member, ctx, node);
         }
+
+        /// <summary>A row's read value: a Lookup row reads as its selection.</summary>
+        private static object? EntryValue(object? value, JsonMember? member, Context ctx, NeoValueNode? node = null) =>
+            member is LookupMember lookup && value is object?[] ids
+                ? ReadLookupSelection(ids, lookup, ctx, node)
+                : value;
 
         /// <summary>
         /// A lookup's read value: a single selection's object, otherwise the
@@ -8691,6 +8762,11 @@ namespace NeoCompose.Runtime.NeoScript
             Context ctx,
             NeoValueNode? lookupNode = null)
         {
+            if (lookup.Selection != NeoMemberSelectionKind.Multi
+                && LookupSlotTarget(lookup, ctx) is { } slotTarget)
+            {
+                return ids.Length == 0 ? null : SlotReferenceOf(ids[0], lookup, slotTarget);
+            }
             if (lookup.Selection != NeoMemberSelectionKind.Multi
                 && ids.Length == 1
                 && ids[0] is string singleId)
@@ -8708,8 +8784,9 @@ namespace NeoCompose.Runtime.NeoScript
                     lookupNode.selectedId = singleId;
                     lookupNode.selectedNode = node;
                 }
-                if (next is not null)
-                    return UnwrapCached(next, ctx, singleOwnership, node: node);
+                if (next is null)
+                    throw DanglingReferenceError(lookup.id, singleId, ctx);
+                return UnwrapCached(next, ctx, singleOwnership, node: node);
             }
             return ids;
         }

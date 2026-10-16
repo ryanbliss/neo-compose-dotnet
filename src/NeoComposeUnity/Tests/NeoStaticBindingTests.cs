@@ -86,7 +86,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void RepeatReads_ReuseTheBindingAndItsNodeUntilRebound()
+        public void RepeatReads_ReuseTheBindingAndItsNodeAcrossRebinds()
         {
             NeoClient client = BuildClient();
             client.LoadValuePartition("scores:rules-class");
@@ -108,8 +108,9 @@ namespace NeoCompose.Tests
             binding.SetValue(NeoGeneratedTypesSupport.Value(7));
             NeoMemberInt rebound = binding.GetRequiredNode<NeoMemberInt>();
 
-            Assert.AreNotSame(first, rebound);
-            Assert.AreEqual(binding.ValueId, rebound.overrideValueId);
+            // P112 §4.1: a slot rebinds at its derived id, so its node carries over.
+            Assert.AreSame(first, rebound);
+            Assert.AreEqual(NSGetterEvaluator.StaticSlotId("static-score"), binding.ValueId);
             Assert.AreEqual(7, NeoGeneratedTypesSupport.ReadInt(rebound));
         }
 

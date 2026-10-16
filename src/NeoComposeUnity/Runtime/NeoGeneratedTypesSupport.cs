@@ -184,6 +184,11 @@ namespace NeoCompose.Runtime
         {
             return ToOptionId?.Invoke((TEnum)value);
         }
+
+        internal static object? BoxedFromOptionId(string optionId)
+        {
+            return FromOptionId?.Invoke(optionId);
+        }
     }
 
     /// <summary>
@@ -1612,35 +1617,66 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"Required variant member '{node.member.name}' has no selection.");
             }
-            if (selection.variantId is null)
+            return ResolveVariantSelection<T>(
+                node.Client,
+                selection.classId,
+                selection.variantId,
+                selection.rowValueId,
+                $"Variant member '{node.member.name}'");
+        }
+
+        /// <summary>The handle for one stored variant pair; <paramref name="holder"/> names it in errors.</summary>
+        private static NeoVariant<T> ResolveVariantSelection<T>(
+            NeoClient client,
+            string classId,
+            string? variantId,
+            string? rowValueId,
+            string holder)
+            where T : NeoGeneratedClassValue
+        {
+            if (variantId is null)
             {
-                if (selection.rowValueId is not null)
+                if (rowValueId is not null)
                 {
                     throw new InvalidOperationException(
-                        $"Variant member '{node.member.name}' binds row '{selection.rowValueId}' to Base.");
+                        $"{holder} binds row '{rowValueId}' to Base.");
                 }
-                return node.Client.GetOrCreateBaseVariant<T>(selection.classId);
+                return client.GetOrCreateBaseVariant<T>(classId);
             }
-            if (selection.rowValueId is not null)
+            if (rowValueId is not null)
             {
-                if (!node.Client.TryGetVariant(
-                        selection.variantId,
+                if (!client.TryGetVariant(
+                        variantId,
                         out VariantRecord? record))
                 {
                     throw new InvalidOperationException(
-                        $"Variant '{selection.variantId}' is not in this project export.");
+                        $"Variant '{variantId}' is not in this project export.");
                 }
                 NeoGeneratedClassValue? row =
-                    node.Client.ResolveRegisteredGeneratedClassValue(selection.rowValueId);
+                    client.ResolveRegisteredGeneratedClassValue(rowValueId);
                 if (row is null)
                 {
                     throw new InvalidOperationException(
-                        $"Variant member '{node.member.name}' binds missing or unregistered row '{selection.rowValueId}'. Regenerate the project's C# types.");
+                        $"{holder} binds missing or unregistered row '{rowValueId}'. Regenerate the project's C# types.");
                 }
-                NeoVariantSupport.ValidateLookupRow(node.Client, record!, row);
-                return new NeoVariant<T>(node.Client, selection.classId, record, row);
+                NeoVariantSupport.ValidateLookupRow(client, record!, row);
+                return new NeoVariant<T>(client, classId, record, row);
             }
-            return node.Client.GetOrCreateVariant<T>(selection.variantId);
+            return client.GetOrCreateVariant<T>(variantId);
+        }
+
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, Func<NeoClient, string, string?, string?, string, object>> variantSelectionReaders = new();
+
+        /// <summary>P112 §8. A script variant value as the <see cref="NeoVariant{T}"/> <paramref name="type"/> names.</summary>
+        private static object VariantHandle(NeoClient client, Type type, NeoVariantReference variant)
+        {
+            Func<NeoClient, string, string?, string?, string, object> read = variantSelectionReaders.GetOrAdd(
+                type,
+                handle => (Func<NeoClient, string, string?, string?, string, object>)typeof(NeoGeneratedTypesSupport)
+                    .GetMethod(nameof(ResolveVariantSelection), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!
+                    .MakeGenericMethod(handle.GetGenericArguments()[0])
+                    .CreateDelegate(typeof(Func<NeoClient, string, string?, string?, string, object>)));
+            return read(client, variant.classId, variant.variantId, variant.rowValueId, "A reference");
         }
 
         /// <summary>P68 §6 — resolves an unbound lookup-variant member.</summary>
@@ -2057,30 +2093,68 @@ namespace NeoCompose.Runtime
             IReadOnlyDictionary<string, ReadOnlyClassFactory> readOnlyFactories,
             IReadOnlyDictionary<string, WritableClassFactory> savedFactories)
         {
-            if (value is T typed)
-                return typed;
+            if (TryConvertValue(client, value, readOnlyFactories, savedFactories, out T converted))
+                return converted;
             if (value is null)
             {
-                if (default(T) is null)
-                    return default!;
                 throw new NeoTypeArgumentException(
                     $"A generic function returned null for type parameter '{name}', and {typeof(T).Name} is not nullable.");
             }
-            Type type = Nullable.GetUnderlyingType(typeof(T)) ?? typeof(T);
-            if (ConvertTypeArgument(client, value, type, readOnlyFactories, savedFactories) is T converted)
-                return converted;
             string row = ValueId(value) is { } valueId ? $"Row '{valueId}'" : $"Value of type {value.GetType().Name}";
             throw new NeoTypeArgumentException(
                 $"{row} is not a {typeof(T).Name}, the argument for type parameter '{name}'.");
+        }
+
+        /// <summary>P112 §8. A value read through a reference, as <typeparamref name="T"/>.</summary>
+        internal static T ReadReferenceValue<T>(NeoClient client, object? value)
+        {
+            if (TryConvertValue(client, value, null, null, out T converted))
+                return converted;
+            if (value is null)
+                throw new NeoScript.NSGetterRuntimeError($"A reference read null, and {typeof(T).Name} is not nullable.");
+            throw new NeoScript.NSGetterRuntimeError($"A reference read a {value.GetType().Name}, not a {typeof(T).Name}.");
+        }
+
+        /// <summary>An evaluator value as <typeparamref name="T"/>. Null factories resolve classes through the client's own.</summary>
+        private static bool TryConvertValue<T>(
+            NeoClient client,
+            object? value,
+            IReadOnlyDictionary<string, ReadOnlyClassFactory>? readOnlyFactories,
+            IReadOnlyDictionary<string, WritableClassFactory>? savedFactories,
+            out T converted)
+        {
+            converted = default!;
+            if (value is T typed)
+            {
+                converted = typed;
+                return true;
+            }
+            if (value is null)
+                return default(T) is null;
+            Type type = Nullable.GetUnderlyingType(typeof(T)) ?? typeof(T);
+            if (ConvertTypeArgument(client, value, type, readOnlyFactories, savedFactories) is not T result)
+                return false;
+            converted = result;
+            return true;
         }
 
         private static object? ConvertTypeArgument(
             NeoClient client,
             object value,
             Type type,
-            IReadOnlyDictionary<string, ReadOnlyClassFactory> readOnlyFactories,
-            IReadOnlyDictionary<string, WritableClassFactory> savedFactories)
+            IReadOnlyDictionary<string, ReadOnlyClassFactory>? readOnlyFactories,
+            IReadOnlyDictionary<string, WritableClassFactory>? savedFactories)
         {
+            if (type.IsEnum)
+                return ReadSelectedId(value) is { } optionId ? NeoScriptValueMarshaller.EnumFromOptionId(type, optionId) : null;
+            if (type == typeof(NeoDialogueReference))
+                return ReadSelectedId(value) is { } dialogueId ? new NeoDialogueReference(client, dialogueId) : null;
+            if (value is NeoScript.NSSlotReference reference && typeof(NeoReference).IsAssignableFrom(type))
+                return NeoReferenceOf(client, type, reference);
+            if (value is NeoVariantReference variant
+                && type.IsGenericType
+                && type.GetGenericTypeDefinition() == typeof(NeoVariant<>))
+                return VariantHandle(client, type, variant);
             if (type == typeof(int))
                 return Convert.ToInt32(value, System.Globalization.CultureInfo.InvariantCulture);
             if (type == typeof(float))
@@ -2104,7 +2178,23 @@ namespace NeoCompose.Runtime
             string? valueId = ValueId(value);
             if (string.IsNullOrEmpty(valueId))
                 return null;
-            return ResolveClassValue(client, valueId!, readOnlyFactories, savedFactories);
+            return readOnlyFactories is null
+                ? client.ResolveRegisteredGeneratedClassValue(valueId!)
+                : ResolveClassValue(client, valueId!, readOnlyFactories, savedFactories!);
+        }
+
+        /// <summary>A nested reference's value (§3.1): the reference its slot stores, as <paramref name="type"/>.</summary>
+        private static object NeoReferenceOf(NeoClient client, Type type, NeoScript.NSSlotReference reference)
+        {
+            LookupMember? holder = reference.MemberId is { } memberId && client.TryGetMember(memberId, out Member? member)
+                ? member as LookupMember
+                : null;
+            return Activator.CreateInstance(
+                type,
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic,
+                null,
+                new object?[] { client, reference.TargetId, holder, null },
+                null)!;
         }
 
         public static TDeferred ResolveDeferredFunction<TDeferred>(
@@ -6482,9 +6572,13 @@ namespace NeoCompose.Runtime
                     return cached;
             }
             string? memberId = null;
+            // P112 §5.1. A reference is stored as the Lookup naming its target.
+            MemberKind storedKind = typeArgument.type == MemberKind.Reference
+                ? MemberKind.Lookup
+                : typeArgument.type;
             foreach (Member member in client.members.Values)
             {
-                if (member.kind != typeArgument.type)
+                if (member.kind != storedKind)
                     continue;
                 TypeInfo described;
                 try
@@ -7670,6 +7764,9 @@ namespace NeoCompose.Runtime
         /// <summary>The value id a Lookup constructor argument selects, or null.</summary>
         private static string? LookupValueId(object? value) => value switch
         {
+            NeoScript.NSSlotReference reference => reference.TargetId,
+            NeoReference reference => reference.TargetId,
+            INeoCollectionView { CollectionNode: { value: { } row } } => row.id,
             NeoLookupSelection selection => selection.valueId,
             INeoValueReference reference => reference.valueId,
             string id => id,
@@ -9228,6 +9325,49 @@ namespace NeoCompose.Runtime
             return value.HasValue ? (int)value.Value : null;
         }
 
+        /// <summary>P112 §8. The reference a Lookup member stores; null when it names nothing.</summary>
+        public static NeoReference<T>? ReadReference<T>(NeoClient client, NeoMemberLookup node)
+        {
+            string? selected = ReadSingleSelected(node);
+            return selected is null ? null : ReferenceEntry<T>(client, node, selected);
+        }
+
+        /// <summary>P112 §8. The reference to <paramref name="id"/> that Lookup <paramref name="node"/> selects.</summary>
+        public static NeoReference<T> ReferenceEntry<T>(NeoClient client, NeoMemberLookup node, string id) =>
+            new(client, id, node.member, node.value?.id);
+
+        /// <summary>P112 §8. The reference an evaluator value holds: a pending temporary's slot or a function's result.</summary>
+        public static NeoReference<T>? ReadReference<T>(NeoClient client, object? value)
+        {
+            if (value is NeoScript.NSSlotReference)
+                return ReadReferenceValue<NeoReference<T>>(client, value);
+            return ReadSelectedId(value) is { } selected ? new NeoReference<T>(client, selected, null, null) : null;
+        }
+
+        /// <summary>
+        /// P112 §4.1 to §4.3. The ids a Lookup member stores for
+        /// <paramref name="value"/>, checked as NeoScript checks a rebind.
+        /// </summary>
+        public static string[]? ReferenceSelection(NeoClient client, NeoMemberLookup node, object? value) =>
+            NeoScriptExecutor.ReferenceSelection(client, node.member, node.value?.id, node.ownership, value);
+
+        /// <summary>
+        /// P112 §4.1 to §4.3. A new entry of <paramref name="collection"/>,
+        /// whose entries are references, for <paramref name="value"/>.
+        /// </summary>
+        public static NeoValueWritePayload? ReferenceEntryValue(NeoClient client, NeoMember collection, object? value)
+        {
+            Member entry = collection switch
+            {
+                NeoMemberList list => list.EntryMember,
+                NeoMemberDictionary dictionary => dictionary.EntryMember,
+                _ => throw new InvalidOperationException($"{collection.GetType().Name} '{collection.member.name}' has no entries."),
+            };
+            if (entry is not LookupMember lookup)
+                throw new InvalidOperationException($"Collection '{collection.member.name}' holds no references.");
+            return Value(NeoScriptExecutor.ReferenceSelection(client, lookup, null, collection.ownership, value));
+        }
+
         public static string? ReadSingleSelected(NeoMemberEnum member)
         {
             var selected = member.Selected();
@@ -9638,6 +9778,8 @@ namespace NeoCompose.Runtime
         {
             if (value is NeoLookupSelection selection)
                 return selection.valueId;
+            if (value is NeoReference slotReference)
+                return slotReference.TargetId;
             if (value is NeoDialogueReference dialogueReference)
                 return dialogueReference.Id;
             return value is INeoValueReference reference

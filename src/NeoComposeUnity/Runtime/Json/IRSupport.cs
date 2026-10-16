@@ -59,6 +59,13 @@ namespace NeoCompose.Runtime.Json
         /// lookup-row identity.
         /// </summary>
         public const string Variant = "variant";
+        /// <summary>
+        /// P112 §5.3. The id of the row a place names: a member read, a
+        /// static member, or a value id.
+        /// </summary>
+        public const string RowOf = "rowOf";
+        /// <summary>P112 §5.3. The target a reference names; a write through it targets the slot.</summary>
+        public const string Deref = "deref";
     }
 
     public static class InstructionKind

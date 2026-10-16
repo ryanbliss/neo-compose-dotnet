@@ -17,5 +17,5 @@ directories=(
 # Exclusions are relative to each folder workspace, not the repository root.
 for directory in "${directories[@]}"; do
     dotnet format whitespace "$root/$directory" --folder "$@" \
-        --exclude Generated Neo/Generated
+        --exclude Generated Neo/Generated ReferenceParity/Generated
 done

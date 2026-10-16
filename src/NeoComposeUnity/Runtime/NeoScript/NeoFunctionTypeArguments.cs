@@ -82,6 +82,9 @@ namespace NeoCompose.Runtime.NeoScript
                 case LookupTypeInfo lookup:
                     yield return lookup.entryTypeInfo;
                     break;
+                case ReferenceTypeInfo reference:
+                    yield return reference.targetTypeInfo;
+                    break;
                 case DelegateTypeInfo delegateType:
                     yield return delegateType.returnTypeInfo;
                     foreach (TypeInfo argument in delegateType.argumentTypes)
@@ -110,6 +113,8 @@ namespace NeoCompose.Runtime.NeoScript
                         foreach (TypeInfo nested in argument.typeArguments.Values)
                             yield return nested;
                     }
+                    if (argument.targetTypeInfo is not null)
+                        yield return argument.targetTypeInfo;
                     break;
             }
         }
@@ -143,6 +148,15 @@ namespace NeoCompose.Runtime.NeoScript
                             return typeInfo;
                         var bound = (LookupTypeInfo)lookup.ShallowClone();
                         bound.entryTypeInfo = entry;
+                        return bound;
+                    }
+                case ReferenceTypeInfo reference:
+                    {
+                        TypeInfo target = Bind(reference.targetTypeInfo, table);
+                        if (ReferenceEquals(target, reference.targetTypeInfo))
+                            return typeInfo;
+                        var bound = (ReferenceTypeInfo)reference.ShallowClone();
+                        bound.targetTypeInfo = target;
                         return bound;
                     }
                 case DelegateTypeInfo delegateType:
@@ -204,9 +218,11 @@ namespace NeoCompose.Runtime.NeoScript
             Dictionary<string, TypeInfo>? typeArguments = argument.typeArguments is null
                 ? null
                 : BindMap(argument.typeArguments, table);
+            TypeInfo? target = argument.targetTypeInfo is null ? null : Bind(argument.targetTypeInfo, table);
             if (ReferenceEquals(entry, argument.entryTypeInfo)
                 && ReferenceEquals(returnTypeInfo, argument.returnTypeInfo)
                 && ReferenceEquals(argumentTypes, argument.argumentTypes)
+                && ReferenceEquals(target, argument.targetTypeInfo)
                 && typeArguments is null)
             {
                 return argument;
@@ -215,6 +231,7 @@ namespace NeoCompose.Runtime.NeoScript
             clone.entryTypeInfo = entry;
             clone.returnTypeInfo = returnTypeInfo;
             clone.argumentTypes = argumentTypes;
+            clone.targetTypeInfo = target;
             if (typeArguments is not null)
                 clone.typeArguments = typeArguments;
             return clone;
@@ -256,6 +273,9 @@ namespace NeoCompose.Runtime.NeoScript
                     argument.entryTypeInfo = lookup.entryTypeInfo;
                     argument.collectionMemberId = lookup.collectionMemberId;
                     argument.collectionValueId = lookup.collectionValueId;
+                    break;
+                case ReferenceTypeInfo reference:
+                    argument.targetTypeInfo = reference.targetTypeInfo;
                     break;
                 case DelegateTypeInfo delegateType:
                     argument.returnTypeInfo = delegateType.returnTypeInfo;
