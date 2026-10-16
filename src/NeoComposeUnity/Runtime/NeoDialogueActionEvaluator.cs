@@ -4723,10 +4723,11 @@ namespace NeoCompose.Runtime
 
         // A generic entry has no type-info member either: its row's binding
         // closes it. A reference entry is a Lookup row, and the IR types a
-        // handle reference as its target's Class (P112 §5.2).
+        // handle reference as its target's Class (P112 §5.2). An interface
+        // entry's member carries the interface its writes check (P113 §3.5).
         private static JsonMember EntryMember(NeoClient client, MemberValue collectionRow, TypeInfo entryTypeInfo) =>
             entryTypeInfo.type is MemberKind.List or MemberKind.Set or MemberKind.Dictionary or MemberKind.Generic
-                or MemberKind.Class or MemberKind.Reference
+                or MemberKind.Class or MemberKind.Interface or MemberKind.Reference
                 && client.TryInferMemberForValueId(collectionRow.id, out JsonMember? collection)
                 && client.TryResolveCollectionEntryMember(collection, collectionRow) is JsonMember entry
                 ? entry : MemberFromTypeInfo(entryTypeInfo);

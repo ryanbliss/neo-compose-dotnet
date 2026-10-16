@@ -2166,6 +2166,31 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void InterfaceMember_AcceptsItsInterfacesParamButNotAClasss()
+        {
+            var property = JsonConvert.DeserializeObject<InterfaceMember>(@"{
+  ""kind"": 0,
+  ""typeInfo"": { ""type"": 21, ""required"": true, ""ownerInterfaceId"": ""iface"", ""genericParamId"": ""param-t"" }
+}")!;
+            var function = JsonConvert.DeserializeObject<InterfaceMember>(@"{
+  ""kind"": 1,
+  ""returnTypeInfo"": { ""type"": 2, ""required"": true },
+  ""argumentTypes"": [
+    { ""name"": ""value"", ""type"": 21, ""requirement"": 1, ""ownerInterfaceId"": ""iface"", ""genericParamId"": ""param-t"" }
+  ]
+}")!;
+            var error = Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<InterfaceMember>(@"{
+  ""kind"": 0,
+  ""typeInfo"": { ""type"": 21, ""required"": true, ""ownerClassId"": ""class-owner"", ""genericParamId"": ""param-t"" }
+}"));
+
+            Assert.AreEqual("iface", ((GenericTypeInfo)property.typeInfo!).ownerInterfaceId);
+            Assert.AreEqual("iface", function.argumentTypes![0].ownerInterfaceId);
+            Assert.AreEqual("Property interface member cannot use a class's type parameter.", error!.Message);
+        }
+
+        [Test]
         public void CallFunctionPointer_RequiresOneTargetAndCallSiteId()
         {
             var concrete = (CallFunctionPointer)JsonConvert.DeserializeObject<Pointer>(@"{

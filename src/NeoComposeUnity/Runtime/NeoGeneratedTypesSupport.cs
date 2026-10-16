@@ -2056,6 +2056,7 @@ namespace NeoCompose.Runtime
         /// class value has a row to place; a C# class that implements the
         /// interface outside Neo has none.
         /// </summary>
+        [return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull("value")]
         public static NeoGeneratedClassValue? InterfaceValue(object? value, string slotLabel)
         {
             if (value is null)
