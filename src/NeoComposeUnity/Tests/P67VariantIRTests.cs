@@ -30,6 +30,71 @@ namespace NeoCompose.Tests
         private const string LookupCollectionMemberId = "lookup-catalog";
         private const string LookupCollectionValueId = "value-catalog";
 
+        [TestCase(null, null, null, null, true)]
+        [TestCase("variant-up", null, "variant-up", null, true)]
+        [TestCase("variant-up", null, "variant-down", null, false)]
+        [TestCase(null, null, "variant-up", null, false)]
+        [TestCase("variant-up", "row-a", "variant-up", "row-a", true)]
+        [TestCase("variant-up", "row-a", "variant-up", "row-b", false)]
+        [TestCase("variant-up", null, "variant-up", "row-a", false)]
+        public void VariantEqualityComparesSelection(
+            string? leftVariant, string? leftRow, string? rightVariant, string? rightRow, bool expected)
+        {
+            using NeoClient client = LoadClient();
+            foreach (string operation in new[] { OperatorKind.EqualTo, OperatorKind.DoesNotEqual })
+            {
+                Pointer pointer = new OperationPointer
+                {
+                    type = PointerKind.Operation,
+                    operation = new BooleanOperation
+                    {
+                        type = OperationKind.Boolean,
+                        expression = new BooleanExpression
+                        {
+                            condition = new Condition
+                            {
+                                type = operation,
+                                reference = true,
+                                operand1 = VariantRef(WidgetClassId, leftVariant, leftRow),
+                                operand2 = VariantRef(WidgetClassId, rightVariant, rightRow),
+                            },
+                        },
+                    },
+                };
+                var getter = Getter(Return(pointer));
+                getter.typeInfo = new PrimitiveTypeInfo { type = MemberKind.Bool, required = true };
+                Assert.That(NSGetterEvaluator.Evaluate(getter, Context(client)),
+                    Is.EqualTo(operation == OperatorKind.EqualTo ? expected : !expected));
+            }
+        }
+
+        [Test]
+        public void VariantEqualityReadsReferencedSelection()
+        {
+            using NeoClient client = LoadClient();
+            var ctx = Context(client);
+            var slot = new NSSlotReference("value-target-chosen", null, null, null);
+            var same = new NeoVariantReference(WidgetClassId, "variant-up");
+            var other = new NeoVariantReference(WidgetClassId, "variant-down");
+            Assert.That(NSGetterEvaluator.ReferenceEqual(slot, same, ctx), Is.True);
+            Assert.That(NSGetterEvaluator.ReferenceEqual(same, slot, ctx), Is.True);
+            Assert.That(NSGetterEvaluator.ReferenceEqual(slot, other, ctx), Is.False);
+            Assert.That(NSGetterEvaluator.ReferenceEqual(slot, null, ctx), Is.False);
+        }
+
+        [Test]
+        public void VariantIdentityIncludesClassAndDistinguishesNull()
+        {
+            using NeoClient client = LoadClient();
+            var ctx = Context(client);
+            var selection = new NeoVariantReference(WidgetClassId, null);
+            Assert.That(NSGetterEvaluator.ReferenceEqual(selection,
+                new NeoVariantReference(BoxClassId, null), ctx), Is.False);
+            Assert.That(NSGetterEvaluator.ReferenceEqual(selection, null, ctx), Is.False);
+            Assert.That(NSGetterEvaluator.ReferenceEqual(null, selection, ctx), Is.False);
+            Assert.That(NSGetterEvaluator.ReferenceEqual(null, null, ctx), Is.True);
+        }
+
         // -------------------------------------------------------------------
         // §3.3 — one variant's initialize delegating to another's Initialize.
         // -------------------------------------------------------------------
