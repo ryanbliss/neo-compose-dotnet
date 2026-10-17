@@ -203,7 +203,7 @@ namespace NeoCompose.Runtime
                     kind = DetachedSlotKind.Leaf;
                     return true;
                 case ClassMember classMember
-                    when classMember.classArguments is null
+                    when classMember.TypeArguments is null
                         && classMember.Payload == NeoMemberPayloadKind.Full:
                     kind = DetachedSlotKind.Class;
                     return true;
@@ -657,11 +657,7 @@ namespace NeoCompose.Runtime
                     if (value is not NeoScriptObject { attachedId: null, owner: null, constructing: false } child
                         || child.sharedGetterResult
                         || child == target
-                        || child.plan.classId != ((ClassMember)member).classId
-                            && !IsAssignableNeoSchemaClass(
-                                target.client,
-                                child.plan.classId,
-                                ((ClassMember)member).classId))
+                        || !target.client.SlotAdmitsClass((ClassMember)member, child.plan.classId))
                     {
                         return false;
                     }

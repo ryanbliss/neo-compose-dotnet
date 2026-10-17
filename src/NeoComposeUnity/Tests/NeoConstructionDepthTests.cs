@@ -168,7 +168,7 @@ namespace NeoCompose.Tests
                         name = "Next",
                         kind = MemberKind.Class,
                         Requirement = NeoMemberRequirementKind.Required,
-                        classId = ChainClassId(index + 1),
+                        DeclaredClassId = ChainClassId(index + 1),
                         defaultValue = new ObjectMemberValueBase
                         {
                             init = new InitializerBody
@@ -244,7 +244,7 @@ namespace NeoCompose.Tests
                 name = name,
                 kind = MemberKind.Class,
                 Requirement = NeoMemberRequirementKind.Required,
-                classId = "root-class",
+                DeclaredClassId = "root-class",
                 Storage = storage,
                 valueId = valueId,
             };

@@ -31,7 +31,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             Client.RegisterNativeFunctionInvokers(HelloWorldNeo.NativeFunctionInvokers);
             Client.RegisterDeferredNativeFunctionInvokers(HelloWorldNeo.DeferredNativeFunctionInvokers);
-            Client.TypeArguments.Register(HelloWorldNeo.NeoTypeArgumentClassIds, HelloWorldNeo.NeoTypeArgumentEnumIds);
+            Client.TypeArguments.Register(HelloWorldNeo.NeoTypeArgumentClassIds, HelloWorldNeo.NeoTypeArgumentEnumIds, HelloWorldNeo.NeoTypeArgumentInterfaceIds);
             User = new User(client, client.user, false, NeoValueOwnership.User);
             Client.StartScriptRuntime();
         }

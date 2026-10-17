@@ -1972,7 +1972,7 @@ namespace NeoCompose.Tests
                 projectId = "project-setter",
                 name = name,
                 kind = MemberKind.Class,
-                classId = classId,
+                DeclaredClassId = classId,
                 valueId = valueId,
                 Storage = storage,
                 createdAt = "x",

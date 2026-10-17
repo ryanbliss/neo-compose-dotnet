@@ -419,7 +419,7 @@ namespace NeoCompose.Tests
                 schema = new() { ["PlacementTiles"] = "footprint-member" },
                 system = new JObject { ["kind"] = "world", ["worldKind"] = "object" },
             });
-            Member(new ClassMember { id = "footprint-entry", name = "Footprint", kind = MemberKind.Class, classId = "test-placement" });
+            Member(new ClassMember { id = "footprint-entry", name = "Footprint", kind = MemberKind.Class, DeclaredClassId = "test-placement" });
             Member(new ListMember
             {
                 id = "footprint-member",
@@ -484,8 +484,8 @@ namespace NeoCompose.Tests
             ((JObject)document["classes"]!["test-link-class"]!).Remove("system");
             document["classes"]!["test-link-class"]!["extendsClassId"] = "test-link-base";
 
-            Member(new ClassMember { id = "test-link-entry", name = "Link", kind = MemberKind.Class, classId = "test-link-class" });
-            Member(new ClassMember { id = "test-tile-entry", name = "Tile", kind = MemberKind.Class, classId = "test-tile-base" });
+            Member(new ClassMember { id = "test-link-entry", name = "Link", kind = MemberKind.Class, DeclaredClassId = "test-link-class" });
+            Member(new ClassMember { id = "test-tile-entry", name = "Tile", kind = MemberKind.Class, DeclaredClassId = "test-tile-base" });
             Member(new ListMember { id = "test-children-member", name = "Children", kind = MemberKind.List, entryMemberId = "test-link-entry" });
             Member(new ListMember { id = "test-tiles-member", name = "Tiles", kind = MemberKind.List, entryMemberId = "test-tile-entry", ListKind = NeoListKind.Unordered });
             Row(new ObjectMemberValue { id = "test-grid", classId = "test-grid-class", value = new() { ["Children"] = "test-children" } });

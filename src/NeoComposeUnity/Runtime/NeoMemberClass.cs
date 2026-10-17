@@ -26,6 +26,8 @@ namespace NeoCompose.Runtime
 
         /// <summary>The effective class, including the member type when its row omits classId.</summary>
         public string ClassId => schemaClass.id;
+
+        internal string SchemaClassName => schemaClass.name;
         /// <summary>
         /// Inheritance chain (child-first) for the row's effective
         /// class. Empty when the chain is cyclic — see
@@ -626,6 +628,13 @@ namespace NeoCompose.Runtime
                 // Instances share a constant member's declaration value.
                 childValueId = declaredValueId;
             }
+            // An interface slot's node describes its row's class, so a slot
+            // without a row has no node, and reads null (P113 §6).
+            if (childMember is ClassMember { DeclaredInterfaceId: not null }
+                && !HoldsObjectRow(childMember, childValueId))
+            {
+                return;
+            }
             if (previousChildren.TryGetValue(entry.schemaKey, out NeoMember? existing)
                 // A P75 rebuild mints new rows at the SAME deterministic
                 // virtual ids and disposes the wrappers holding the old
@@ -672,6 +681,11 @@ namespace NeoCompose.Runtime
                 (reboundKeys ??= new List<string>()).Add(entry.schemaKey);
             }
         }
+
+        private bool HoldsObjectRow(Member childMember, string? childValueId) =>
+            childValueId is not null
+            && client.TryGetValue(client.ChildOwnership(childMember, ownership), childValueId, out ObjectMemberValue? row)
+            && !row.IsRemoved;
 
         // Over the pairs: a dictionary's Values view is an allocation of its own.
         private void DisposeChildren(Dictionary<string, NeoMember> children)
@@ -725,21 +739,15 @@ namespace NeoCompose.Runtime
 
         private NeoSchemaClass ResolveSchemaClass()
         {
-            string classId = member.classId;
-            if (!string.IsNullOrEmpty(value?.classId))
-            {
-                classId = value!.classId!;
-            }
-            else if (!string.IsNullOrEmpty(member.defaultValue?.classId))
-            {
-                classId = member.defaultValue!.classId!;
-            }
-
+            string? rowClassId = string.IsNullOrEmpty(value?.classId)
+                ? member.defaultValue?.classId
+                : value!.classId;
+            string classId = member.RowClassId(rowClassId);
             if (!client.TryGetClass(classId, out NeoSchemaClass? match))
             {
                 throw new System.ArgumentOutOfRangeException(
-                    nameof(member.classId),
-                    $"No class for {nameof(member)}.{nameof(member.classId)} {classId}");
+                    "classId",
+                    $"No class for {nameof(member)}.classId {classId}");
             }
             return match;
         }
@@ -772,7 +780,7 @@ namespace NeoCompose.Runtime
                 IReadOnlyDictionary<string, GenericBinding>? classArguments =
                     NeoGenericResolution.CloseClassArgumentsFromStamp(
                         value?.genericBindings,
-                        member.classArguments);
+                        client.SlotClassArguments(member, schemaClass.id));
                 GenericEnv = NeoGenericResolution.ResolveInstanceEnv(
                     inheritanceChain,
                     classArguments);
@@ -1067,6 +1075,7 @@ namespace NeoCompose.Runtime
                     nameof(setValue),
                     $"Cannot be null when child member '{key}' is required");
             }
+            client.RequireInterfaceSlotAdmits(childMember, schemaClass.name, key, setValue);
 
             // Per-placement storage (specs/member-storage.md): a declared
             // storage stamp on the child pins which writable store the leaf
@@ -1318,7 +1327,7 @@ namespace NeoCompose.Runtime
                     client,
                     new ClassTypeInfo { type = MemberKind.Class, classId = schemaClass.id, required = true },
                     System.Array.Empty<NeoGeneratedTypesSupport.RuntimeConstructorField>(),
-                    member.classArguments);
+                    client.SlotClassArguments(member, schemaClass.id));
             }
             catch (System.InvalidOperationException error)
             {

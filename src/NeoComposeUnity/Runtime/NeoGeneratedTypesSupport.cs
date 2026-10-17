@@ -1928,11 +1928,12 @@ namespace NeoCompose.Runtime
             string valueId,
             IReadOnlyDictionary<string, ReadOnlyClassFactory> readOnlyFactories,
             IReadOnlyDictionary<string, WritableClassFactory> savedFactories,
-            NeoValueOwnership? placementOwnership)
+            NeoValueOwnership? placementOwnership,
+            InterfaceResolver? interfaceResolver = null)
         {
             ClassMember? member = null;
             NeoValueNode? node = null;
-            return ResolveClassValue(client, valueId, readOnlyFactories, savedFactories, placementOwnership, ref member, ref node);
+            return ResolveClassValue(client, valueId, readOnlyFactories, savedFactories, placementOwnership, ref member, ref node, interfaceResolver);
         }
 
         /// <param name="member">
@@ -1940,6 +1941,10 @@ namespace NeoCompose.Runtime
         /// otherwise by a caller that knows the value's parent edges are unchanged.
         /// </param>
         /// <param name="node">The value's node, kept by the caller so a repeat read skips the id lookup.</param>
+        /// <param name="interfaceResolver">
+        /// P113 §6. Builds a row whose class has no factory, an open generic
+        /// class, as the interface the caller converts to.
+        /// </param>
         internal static object? ResolveClassValue(
             NeoClient client,
             string valueId,
@@ -1947,7 +1952,8 @@ namespace NeoCompose.Runtime
             IReadOnlyDictionary<string, WritableClassFactory> savedFactories,
             NeoValueOwnership? placementOwnership,
             ref ClassMember? member,
-            ref NeoValueNode? node)
+            ref NeoValueNode? node,
+            InterfaceResolver? interfaceResolver = null)
         {
             NeoValueOwnership ownership = placementOwnership
                 ?? (client.TryGetValueOwnership(valueId, ref node, out NeoValueOwnership existing)
@@ -1980,8 +1986,8 @@ namespace NeoCompose.Runtime
                 && cached.classId == classId)
                 return cached;
 
-            if (ownership is NeoValueOwnership.Save or NeoValueOwnership.Session or NeoValueOwnership.User
-                && savedFactories.TryGetValue(classId, out var savedFactory))
+            bool saved = ownership is NeoValueOwnership.Save or NeoValueOwnership.Session or NeoValueOwnership.User;
+            if (saved && savedFactories.TryGetValue(classId, out var savedFactory))
             {
                 return savedFactory(
                     client,
@@ -1993,8 +1999,104 @@ namespace NeoCompose.Runtime
                 return readOnlyFactory(client, new NeoMemberClass(client, member, valueId, ownership));
             }
 
-            return null;
+            if (interfaceResolver is null)
+                return null;
+            NeoMemberClass resolverNode = saved
+                ? new NeoMemberClassWritable(client, member, valueId, ownership)
+                : new NeoMemberClass(client, member, valueId, ownership);
+            return interfaceResolver(client, resolverNode, readOnly: false);
         }
+
+        /// <summary>
+        /// P113 §6. Builds a generic interface's open implementers from a row:
+        /// codegen emits one per generic interface and registers it in
+        /// <see cref="NeoInterfaceResolvers{I}"/> for each construction the
+        /// project names.
+        /// </summary>
+        public delegate object? InterfaceResolver(NeoClient client, NeoMemberClass node, bool readOnly);
+
+        /// <summary>
+        /// P113 §6. The one conversion of a Neo row to an interface type. It
+        /// returns the row's cached generated value, then what the resolver
+        /// registered for <typeparamref name="I"/> builds, then the value the
+        /// row's class factory builds.
+        /// </summary>
+        public static I? ResolveInterfaceValue<I>(NeoClient client, NeoMemberClass? node, bool readOnly)
+            where I : class =>
+            node?.value?.value is null ? null : (I)ResolveInterfaceObject<I>(client, node, readOnly);
+
+        /// <summary>
+        /// <see cref="ResolveInterfaceValue{I}"/> for a codec whose
+        /// <typeparamref name="T"/> is unconstrained. The result is a
+        /// <typeparamref name="T"/>.
+        /// </summary>
+        internal static object ResolveInterfaceObject<T>(NeoClient client, NeoMemberClass node, bool readOnly)
+        {
+            if (client.TryGetGeneratedClassValue(node.RegistryKey, out var cached)
+                && cached.classId == node.ClassId)
+            {
+                return AsInterface<T>(cached, node);
+            }
+            if (NeoInterfaceResolvers<T>.Resolver?.Invoke(client, node, readOnly) is { } resolved)
+                return AsInterface<T>(resolved, node);
+            if (client.CreateRegisteredGeneratedClassValue(node, readOnly) is { } created)
+                return AsInterface<T>(created, node);
+            throw new NeoTypeArgumentException(
+                $"A {node.SchemaClassName} row can't be read as {CSharpTypeName(typeof(T))}, because the project never names that construction.");
+        }
+
+        private static object AsInterface<T>(object value, NeoMemberClass node) =>
+            value is T
+                ? value
+                : throw new InvalidCastException(
+                    $"A {node.SchemaClassName} row isn't a {CSharpTypeName(typeof(T))}.");
+
+        private static readonly Dictionary<Type, string> CSharpKeywords = new()
+        {
+            [typeof(bool)] = "bool",
+            [typeof(int)] = "int",
+            [typeof(float)] = "float",
+            [typeof(decimal)] = "decimal",
+            [typeof(string)] = "string",
+        };
+
+        /// <summary><paramref name="type"/> as C# spells it, such as <c>IKeyed&lt;string, Seed&gt;</c>.</summary>
+        private static string CSharpTypeName(Type type)
+        {
+            if (CSharpKeywords.TryGetValue(type, out string? keyword))
+                return keyword;
+            if (!type.IsGenericType)
+                return type.Name;
+            Type[] arguments = type.GetGenericArguments();
+            var names = new string[arguments.Length];
+            for (int i = 0; i < arguments.Length; i++)
+                names[i] = CSharpTypeName(arguments[i]);
+            string name = type.Name.Substring(0, type.Name.IndexOf('`'));
+            return $"{name}<{string.Join(", ", names)}>";
+        }
+
+        /// <summary>
+        /// P113 §6. An interface-typed setter's value. Only a generated Neo
+        /// class value has a row to place; a C# class that implements the
+        /// interface outside Neo has none.
+        /// </summary>
+        [return: System.Diagnostics.CodeAnalysis.NotNullIfNotNull("value")]
+        public static NeoGeneratedClassValue? InterfaceValue(object? value, string slotLabel)
+        {
+            if (value is null)
+                return null;
+            if (value is not NeoGeneratedClassValue generated)
+            {
+                throw new ArgumentException(
+                    $"{slotLabel} needs a Neo class value, and {value.GetType().Name} is a C# class.",
+                    nameof(value));
+            }
+            return generated;
+        }
+
+        /// <summary><see cref="InterfaceValue"/> as a write payload.</summary>
+        public static NeoValueWritePayload? InterfaceValueReference(object? value, string slotLabel) =>
+            ValueReference(InterfaceValue(value, slotLabel));
 
         public static T ResolveNativeFunctionReceiver<T>(
             NeoClient client,
@@ -2014,7 +2116,9 @@ namespace NeoCompose.Runtime
                     client,
                     valueId!,
                     readOnlyFactories,
-                    savedFactories);
+                    savedFactories,
+                    null,
+                    NeoInterfaceResolvers<T>.Resolver);
                 if (resolved is T resolvedTyped)
                     return resolvedTyped;
             }
@@ -2049,7 +2153,9 @@ namespace NeoCompose.Runtime
                     client,
                     valueId!,
                     readOnlyFactories,
-                    savedFactories);
+                    savedFactories,
+                    null,
+                    NeoInterfaceResolvers<T>.Resolver);
                 if (resolved is T resolvedTyped)
                     return resolvedTyped;
             }
@@ -2105,6 +2211,71 @@ namespace NeoCompose.Runtime
                 $"{row} is not a {typeof(T).Name}, the argument for type parameter '{name}'.");
         }
 
+        /// <summary>
+        /// P113 §6. <see cref="ReadTypeArgument{T}"/> for a type parameter an
+        /// interface constrains. A row C# passed in comes from the cache; any
+        /// other row is built by <typeparamref name="T"/>'s resolver, else by
+        /// the constraint's, and then checked to be a <typeparamref name="T"/>.
+        /// </summary>
+        public static T ReadInterfaceTypeArgument<T, TConstraint>(
+            NeoClient client,
+            object? value,
+            string functionName,
+            string name,
+            IReadOnlyDictionary<string, ReadOnlyClassFactory> readOnlyFactories,
+            IReadOnlyDictionary<string, WritableClassFactory> savedFactories)
+            where T : class, TConstraint
+            where TConstraint : class
+        {
+            if (value is T typed)
+                return typed;
+            if (value is null)
+            {
+                throw new NeoTypeArgumentException(
+                    $"A generic function returned null for type parameter '{name}', and {CSharpTypeName(typeof(T))} is not nullable.");
+            }
+            string? valueId = ValueId(value);
+            if (string.IsNullOrEmpty(valueId))
+            {
+                throw new NeoTypeArgumentException(
+                    $"Value of type {value.GetType().Name} is not a {CSharpTypeName(typeof(T))}, the argument for type parameter '{name}'.");
+            }
+            InterfaceResolver? ownResolver = NeoInterfaceResolvers<T>.Resolver;
+            object? resolved = ResolveClassValue(
+                client,
+                valueId!,
+                readOnlyFactories,
+                savedFactories,
+                null,
+                ownResolver ?? NeoInterfaceResolvers<TConstraint>.Resolver);
+            if (resolved is T result)
+                return result;
+            if (resolved is null && ownResolver is null)
+            {
+                string rowClass = RowClassName(client, valueId!);
+                throw new NeoTypeArgumentException(
+                    $"{functionName} returned a {rowClass} row as {CSharpTypeName(typeof(T))}, which the project never names, and {CSharpTypeName(typeof(TConstraint))} doesn't determine {rowClass}. Pass a type argument the project names.");
+            }
+            throw new NeoTypeArgumentException(
+                $"Row '{valueId}' is not a {CSharpTypeName(typeof(T))}, the argument for type parameter '{name}'.");
+        }
+
+        private static string RowClassName(NeoClient client, string valueId)
+        {
+            NeoValueNode? node = null;
+            NeoValueOwnership ownership = client.TryGetValueOwnership(valueId, ref node, out NeoValueOwnership existing)
+                ? existing
+                : NeoValueOwnership.Asset;
+            if (client.ReadValue(ownership, valueId, ref node) is not ObjectMemberValue value)
+                return $"'{valueId}'";
+            string? classId = ResolveClassValueClassId(client, valueId, value);
+            if (classId is null)
+                return $"'{valueId}'";
+            if (!client.TryGetClass(classId, out NeoSchemaClass? schemaClass))
+                return $"'{valueId}'";
+            return schemaClass.name;
+        }
+
         /// <summary>P112 §8. A value read through a reference, as <typeparamref name="T"/>.</summary>
         internal static T ReadReferenceValue<T>(NeoClient client, object? value)
         {
@@ -2132,7 +2303,7 @@ namespace NeoCompose.Runtime
             if (value is null)
                 return default(T) is null;
             Type type = Nullable.GetUnderlyingType(typeof(T)) ?? typeof(T);
-            if (ConvertTypeArgument(client, value, type, readOnlyFactories, savedFactories) is not T result)
+            if (ConvertTypeArgument(client, value, type, readOnlyFactories, savedFactories, NeoInterfaceResolvers<T>.Resolver) is not T result)
                 return false;
             converted = result;
             return true;
@@ -2143,7 +2314,8 @@ namespace NeoCompose.Runtime
             object value,
             Type type,
             IReadOnlyDictionary<string, ReadOnlyClassFactory>? readOnlyFactories,
-            IReadOnlyDictionary<string, WritableClassFactory>? savedFactories)
+            IReadOnlyDictionary<string, WritableClassFactory>? savedFactories,
+            InterfaceResolver? interfaceResolver)
         {
             if (type.IsEnum)
                 return ReadSelectedId(value) is { } optionId ? NeoScriptValueMarshaller.EnumFromOptionId(type, optionId) : null;
@@ -2179,8 +2351,8 @@ namespace NeoCompose.Runtime
             if (string.IsNullOrEmpty(valueId))
                 return null;
             return readOnlyFactories is null
-                ? client.ResolveRegisteredGeneratedClassValue(valueId!)
-                : ResolveClassValue(client, valueId!, readOnlyFactories, savedFactories!);
+                ? client.ResolveRegisteredGeneratedClassValue(valueId!, null, interfaceResolver)
+                : ResolveClassValue(client, valueId!, readOnlyFactories, savedFactories!, null, interfaceResolver);
         }
 
         /// <summary>A nested reference's value (§3.1): the reference its slot stores, as <paramref name="type"/>.</summary>
@@ -2390,9 +2562,9 @@ namespace NeoCompose.Runtime
             out string? classId)
         {
             if (member is ClassMember classMember
-                && !string.IsNullOrEmpty(classMember.classId))
+                && classMember.TryGetDeclaredClassId(out string declaredClassId))
             {
-                classId = classMember.classId;
+                classId = declaredClassId;
                 return true;
             }
 
@@ -3660,16 +3832,12 @@ namespace NeoCompose.Runtime
                     when row is ObjectMemberValue classRow
                     && classRow.value is not null:
                     {
-                        string actualClassId = classRow.classId
-                            ?? classMember.classId;
+                        string actualClassId = classMember.RowClassId(classRow.classId);
                         if (!trustedMaterialization
-                            && !IsAssignableNeoSchemaClass(
-                                client,
-                                actualClassId,
-                                classMember.classId))
+                            && !client.SlotAdmitsClass(classMember, actualClassId))
                         {
                             throw new InvalidOperationException(
-                                $"Constructed Class field '{path}' expects '{classMember.classId}' but staged row '{valueId}' has runtime class '{actualClassId}'.");
+                                $"Constructed Class field '{path}' expects '{classMember.DeclaredTypeId}' but staged row '{valueId}' has runtime class '{actualClassId}'.");
                         }
                         classRow.classId = actualClassId;
                         ValidateConstructedClassRow(
@@ -3687,7 +3855,7 @@ namespace NeoCompose.Runtime
                             trustedMaterialization: trustedMaterialization,
                             knownClassPlan: ResolveRuntimeClassPlan(client, actualClassId,
                                 classArguments: NeoGenericResolution.CloseClassArgumentsFromStamp(
-                                    classRow.genericBindings, classMember.classArguments)));
+                                    classRow.genericBindings, client.SlotClassArguments(classMember, actualClassId))));
                         break;
                     }
                 case ListMember listMember
@@ -3870,12 +4038,8 @@ namespace NeoCompose.Runtime
             if (member is ClassMember classMember
                 && row is ObjectMemberValue classRow)
             {
-                string actualClassId = classRow.classId
-                    ?? classMember.classId;
-                if (!IsAssignableNeoSchemaClass(
-                        client,
-                        actualClassId,
-                        classMember.classId))
+                string actualClassId = classMember.RowClassId(classRow.classId);
+                if (!client.SlotAdmitsClass(classMember, actualClassId))
                 {
                     throw new InvalidOperationException(
                         $"Constructed Class field '{path}' has incompatible runtime class '{actualClassId}'.");
@@ -3981,10 +4145,9 @@ namespace NeoCompose.Runtime
                     when row is ObjectMemberValue classRow
                     && classRow.value is not null:
                     {
-                        string actualClassId = classRow.classId
-                            ?? classMember.classId;
+                        string actualClassId = classMember.RowClassId(classRow.classId);
                         var classArguments = NeoGenericResolution.CloseClassArgumentsFromStamp(
-                            classRow.genericBindings, classMember.classArguments);
+                            classRow.genericBindings, client.SlotClassArguments(classMember, actualClassId));
                         IList<MergedSchemaEntry> schema = ResolveMergedSchema(
                             client,
                             actualClassId,
@@ -5816,12 +5979,11 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"Stored instance '{storedRoot.id}' has no authored Class default to replay.");
             }
-            string classId = placementMember.defaultValue.classId
-                ?? placementMember.classId;
+            string classId = placementMember.RowClassId(placementMember.defaultValue.classId);
             IReadOnlyDictionary<string, GenericBinding>? classArguments =
                 NeoGenericResolution.CloseClassArgumentsFromStamp(
                     storedRoot.genericBindings,
-                    placementMember.classArguments);
+                    client.SlotClassArguments(placementMember, classId));
             IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv =
                 ResolveRuntimeInstanceEnv(client, classId, classArguments);
             RuntimeClassPlan classPlan = ResolveRuntimeClassPlan(
@@ -6667,7 +6829,8 @@ namespace NeoCompose.Runtime
             TypeInfo typeInfo,
             Member member)
         {
-            if (typeInfo.type != member.kind
+            MemberKind memberType = member is ClassMember slot ? slot.TypeKind : member.kind;
+            if (typeInfo.type != memberType
                 || typeInfo.required != (member.Requirement == NeoMemberRequirementKind.Required))
             {
                 return false;
@@ -6675,7 +6838,12 @@ namespace NeoCompose.Runtime
             if (typeInfo is ClassTypeInfo classType
                 && member is ClassMember classMember)
             {
-                return classType.classId == classMember.classId;
+                return classType.classId == classMember.DeclaredClassId;
+            }
+            if (typeInfo is InterfaceTypeInfo interfaceType
+                && member is ClassMember interfaceMember)
+            {
+                return interfaceType.interfaceId == interfaceMember.DeclaredInterfaceId;
             }
             if (typeInfo is EnumTypeInfo enumType
                 && member is EnumMember enumMember)
@@ -6882,10 +7050,11 @@ namespace NeoCompose.Runtime
                         if (children is null)
                             return false;
                         int owned = 0;
+                        string bodyClassId = classMember.RowClassId(body.classId);
                         foreach (MergedSchemaEntry entry in ResolveMergedSchema(
                             client,
-                            body.classId ?? classMember.classId,
-                            classMember.classArguments))
+                            bodyClassId,
+                            client.SlotClassArguments(classMember, bodyClassId)))
                         {
                             if (!client.TryGetMember(entry.memberId, out Member? child))
                                 return true;
@@ -7028,7 +7197,10 @@ namespace NeoCompose.Runtime
             switch (member)
             {
                 case ClassMember classMember:
-                    if (ClassAndSubclasses(client, classMember.classId) is not { } classIds)
+                    IEnumerable<string>? classIds = classMember.DeclaredClassId is { } declaredClassId
+                        ? ClassAndSubclasses(client, declaredClassId)
+                        : client.InterfaceImplementers.Implementers(classMember.DeclaredInterfaceId!);
+                    if (classIds is null)
                         return true;
                     foreach (string classId in classIds)
                     {
@@ -8398,7 +8570,7 @@ namespace NeoCompose.Runtime
             {
                 return null;
             }
-            var effectiveClassId = member.defaultValue.classId ?? member.classId;
+            var effectiveClassId = member.RowClassId(member.defaultValue.classId);
             AssertMemberWiseConstructionIsAvailable(client, effectiveClassId);
             // The slot's constructed arguments travel with every descent
             // below — the default's effective type may be the DECLARED open
@@ -8413,7 +8585,7 @@ namespace NeoCompose.Runtime
                 nowIso,
                 scope,
                 path,
-                member.classArguments,
+                client.SlotClassArguments(member, effectiveClassId),
                 clonedIds);
             var row = CreateWritableClassValueRow(
                 client,
@@ -8423,7 +8595,7 @@ namespace NeoCompose.Runtime
                 nowIso,
                 scope,
                 path,
-                member.classArguments,
+                client.SlotClassArguments(member, effectiveClassId),
                 requireCompleteDefault: true);
             client.CaptureClonedListenerDefaults(clonedIds, member, row);
             client.CaptureAuthoredListenerDefaults(member.defaultValue.changeListeners, member.defaultValue.changeListenerEndpoints, clonedIds, member, row);
@@ -8856,7 +9028,7 @@ namespace NeoCompose.Runtime
                                 value = null,
                             };
                         }
-                        string classId = sourceValue.classId ?? classMember.classId;
+                        string classId = classMember.RowClassId(sourceValue.classId);
                         if (sourceValue.instanceConstructorId is string constructorId)
                         {
                             ConstructorRecord constructor = RequireConstructorRecord(client, classId,
@@ -8873,7 +9045,7 @@ namespace NeoCompose.Runtime
                             }
                         }
                         var classArguments = NeoGenericResolution.CloseClassArgumentsFromStamp(
-                            sourceValue.genericBindings, classMember.classArguments);
+                            sourceValue.genericBindings, client.SlotClassArguments(classMember, classId));
                         ObjectMemberValue clone = CreateWritableClassValueRow(
                             client,
                             classId,
@@ -9718,7 +9890,7 @@ namespace NeoCompose.Runtime
             string classId)
         {
             client.TryInferMemberForValueId(valueId, out Member? placement);
-            return UnplacedClassMember(classId, (placement as ClassMember)?.classArguments, row);
+            return UnplacedClassMember(classId, client.SlotClassArguments(placement as ClassMember, classId), row);
         }
 
         // One id per class, so a repeated class-value read allocates none.
@@ -9748,7 +9920,7 @@ namespace NeoCompose.Runtime
                 id = UnplacedClassMemberId(classId),
                 name = "ClassValue",
                 kind = MemberKind.Class,
-                classId = classId,
+                DeclaredClassId = classId,
                 classArguments = NeoGenericResolution.CloseClassArgumentsFromStamp(
                     row?.genericBindings, classArguments)
                     is { } arguments ? new Dictionary<string, GenericBinding>(arguments) : null,
@@ -9875,7 +10047,7 @@ namespace NeoCompose.Runtime
                 name = "ClassDefault",
                 useDeclarationDefaults = true,
                 kind = MemberKind.Class,
-                classId = classId,
+                DeclaredClassId = classId,
                 defaultValue = new ObjectMemberValueBase
                 {
                     classId = classId,

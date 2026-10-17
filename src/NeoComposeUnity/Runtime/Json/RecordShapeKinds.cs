@@ -51,7 +51,7 @@ namespace NeoCompose.Runtime.Json
     }
     public enum NeoGenericParamConstraintKind
     {
-        Class = 0, Enum = 1
+        Class = 0, Enum = 1, Interface = 2
     }
     public enum NeoGenericBindingKind
     {
@@ -374,6 +374,8 @@ namespace NeoCompose.Runtime.Json
             "entryMemberId",
             "keyEnumId",
             "classId",
+            "interfaceId",
+            "interfaceArguments",
             "enumId",
         };
 
@@ -390,6 +392,19 @@ namespace NeoCompose.Runtime.Json
             NeoResolvedMemberShape resolved)
         {
             resolved.CopyChainResolvedValuesFrom(inherited);
+            // P113 §2.1. An override that narrows to the other arm replaces
+            // the inherited arm instead of carrying both ids.
+            if (DeclaresValue(member, "classId"))
+            {
+                resolved.ClearChainResolvedValue(IndexOf("interfaceId"));
+                resolved.ClearChainResolvedValue(IndexOf("interfaceArguments"));
+            }
+            if (DeclaresValue(member, "interfaceId"))
+            {
+                resolved.ClearChainResolvedValue(IndexOf("classId"));
+                resolved.ClearChainResolvedValue(IndexOf("classArguments"));
+                resolved.ClearChainResolvedValue(IndexOf("schemaKeyOrder"));
+            }
             for (int index = 0; index < ResolutionFields.Count; index++)
             {
                 string field = ResolutionFields[index];
@@ -485,6 +500,11 @@ namespace NeoCompose.Runtime.Json
             }
         }
 
+        private static bool DeclaresValue(Member member, string field) =>
+            member.DeclaresWireField(field)
+            && member.TryReadOriginalChainResolvedField(field, out object? value)
+            && value is not null;
+
         private static bool IsDeclaredNull(Member member, string field) =>
             member.DeclaresWireField(field)
             && member.TryReadOriginalChainResolvedField(field, out object? value)
@@ -497,9 +517,10 @@ namespace NeoCompose.Runtime.Json
             {
                 if (accessors.TryGetValue(key, out MemberInfo? cached))
                     return cached;
+                // ClassMember keeps its declared ids private (P113 §4.1).
                 MemberInfo? accessor = type.GetField(
                         field,
-                        BindingFlags.Instance | BindingFlags.Public)
+                        BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
                     ?? (MemberInfo?)type.GetProperty(
                         field,
                         BindingFlags.Instance | BindingFlags.Public);

@@ -90,6 +90,14 @@ namespace NeoCompose.Runtime.Json
         public Dictionary<string, InterfaceMember> members = null!;
         public List<string>? memberKeyOrder;
         public List<string>? extendsInterfaceIds;
+        /// <summary>
+        /// P113 §4.4. For each generic interface in
+        /// <see cref="extendsInterfaceIds"/>, one binding per param: a forward
+        /// of this interface's own param, or a closed Member binding.
+        /// </summary>
+        public Dictionary<string, Dictionary<string, GenericBinding>>? extendsInterfaceArguments;
+        /// <summary>P113 §2.4. Ordered params, shaped like a class's.</summary>
+        public List<GenericParamDeclaration>? genericParams;
         public NeoTimestamp createdAt;
         public NeoTimestamp updatedAt;
     }
@@ -216,13 +224,25 @@ namespace NeoCompose.Runtime.Json
             }
         }
 
+        private static string? InterfaceParamOwner(TypeInfo typeInfo) => typeInfo switch
+        {
+            GenericTypeInfo generic => generic.ownerInterfaceId,
+            FunctionArgumentTypeInfo argument => argument.ownerInterfaceId,
+            _ => null,
+        };
+
         private static void RejectUnsupportedTypeInfo(TypeInfo typeInfo, string subject)
         {
             // A class's type parameter can't appear in an interface; the
-            // function's own can (P110 §4).
-            if ((typeInfo.type == MemberKind.Generic
-                    && !NeoScript.NeoFunctionTypeArguments.IsFunctionGeneric(typeInfo))
-                || typeInfo.type == MemberKind.Unknown)
+            // interface's own (P113 §2.4) and the function's own (P110 §4) can.
+            if (typeInfo.type == MemberKind.Generic
+                && !NeoScript.NeoFunctionTypeArguments.IsFunctionGeneric(typeInfo)
+                && InterfaceParamOwner(typeInfo) is null)
+            {
+                throw new JsonSerializationException(
+                    $"{subject} cannot use a class's type parameter.");
+            }
+            if (typeInfo.type == MemberKind.Unknown)
             {
                 throw new JsonSerializationException(
                     $"{subject} cannot use type '{typeInfo.type}'.");

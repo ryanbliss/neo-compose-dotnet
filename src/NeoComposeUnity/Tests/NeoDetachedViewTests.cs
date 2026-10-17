@@ -1323,7 +1323,7 @@ namespace NeoCompose.Tests
                     name = "Line",
                     kind = MemberKind.Class,
                     Requirement = NeoMemberRequirementKind.Required,
-                    classId = "class-line",
+                    DeclaredClassId = "class-line",
                 },
                 ["member-line-score"] = new IntMember
                 {
@@ -1632,7 +1632,7 @@ namespace NeoCompose.Tests
             name = name,
             kind = MemberKind.Class,
             Requirement = NeoMemberRequirementKind.Required,
-            classId = "class-root",
+            DeclaredClassId = "class-root",
             Storage = storage,
             valueId = valueId,
         };

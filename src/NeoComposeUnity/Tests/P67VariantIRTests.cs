@@ -26,6 +26,8 @@ namespace NeoCompose.Tests
         private const string WidgetClassId = "widget-class";
         private const string VariantClassId = "neo-variant-class";
         private const string BoxClassId = "box-class";
+        private const string TagClassId = "tag-class";
+        private const string RewardInterfaceId = "reward-interface";
         private const string LookupFolderId = "lookup-folder";
         private const string LookupCollectionMemberId = "lookup-catalog";
         private const string LookupCollectionValueId = "value-catalog";
@@ -218,7 +220,7 @@ namespace NeoCompose.Tests
                 id = "held-widget-view",
                 name = "HeldWidget",
                 kind = MemberKind.Class,
-                classId = WidgetClassId,
+                DeclaredClassId = WidgetClassId,
             };
             using var held = new NeoMemberClassWritable(client, member, targetId, NeoValueOwnership.Session);
             for (int i = 0; i < 3; i++)
@@ -405,7 +407,7 @@ namespace NeoCompose.Tests
                 id = "pinned-widget-view",
                 name = "PinnedWidget",
                 kind = MemberKind.Class,
-                classId = WidgetClassId,
+                DeclaredClassId = WidgetClassId,
             };
             using (var view = new NeoMemberClassWritable(client, member, targetId, NeoValueOwnership.Session))
                 view.Get<NeoMemberStringWritable>("Label").Set("pinned");
@@ -611,6 +613,30 @@ namespace NeoCompose.Tests
             Assert.AreEqual(7d, ReadCount(), "a variant without the override keeps the construction's");
             NeoVariantSupport.ApplyToNode(client, plain, node, node.ownership);
             Assert.AreEqual(7d, ReadCount());
+        }
+
+        /// <summary>
+        /// P113 §4.2: <c>Reward</c> defaults to a Box, and variant-plain's
+        /// Overrides name a Tag there. The Tag replaces the Box rather than
+        /// writing its Points into the Box.
+        /// </summary>
+        [Test]
+        public void VariantApply_ReplacesAnInterfaceSlotsRowOfAnotherClass()
+        {
+            ProjectData data = BuildVariantProjectData();
+            AddOverriddenInterfaceReward(data);
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            VariantRecord plain = client.variants["variant-plain"];
+            NeoMemberClassWritable node = NeoVariantSupport.InitializeNode(client, WidgetClassId, plain);
+            NeoMemberClassWritable ReadReward() => node.Get<NeoMemberClassWritable>("Reward");
+
+            Assert.AreEqual(TagClassId, ReadReward().ClassId);
+            Assert.AreEqual(3d, ReadReward().Get<NeoMemberIntWritable>("Points").value?.value);
+
+            NeoVariantSupport.ApplyToNode(client, plain, node, node.ownership);
+
+            Assert.AreEqual(TagClassId, ReadReward().ClassId);
+            Assert.AreEqual(3d, ReadReward().Get<NeoMemberIntWritable>("Points").value?.value);
         }
 
         // -------------------------------------------------------------------
@@ -1213,7 +1239,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Stored",
                 kind = MemberKind.Class,
-                classId = WidgetClassId,
+                DeclaredClassId = WidgetClassId,
                 Requirement = NeoMemberRequirementKind.Optional,
                 Storage = NeoMemberStorage.Save,
                 classArguments = new Dictionary<string, GenericBinding>
@@ -1407,7 +1433,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Variant test receiver",
                 kind = MemberKind.Class,
-                classId = WidgetClassId,
+                DeclaredClassId = WidgetClassId,
             };
             using var node = new NeoMemberClass(
                 client,
@@ -1430,7 +1456,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Variant test receiver",
                 kind = MemberKind.Class,
-                classId = WidgetClassId,
+                DeclaredClassId = WidgetClassId,
             };
             using var node = new NeoMemberClass(
                 client,
@@ -1639,7 +1665,7 @@ namespace NeoCompose.Tests
                         projectId = ProjectId,
                         name = "Entry",
                         kind = MemberKind.Class,
-                        classId = WidgetClassId,
+                        DeclaredClassId = WidgetClassId,
                         Requirement = NeoMemberRequirementKind.Required,
                         Storage = NeoMemberStorage.Immutable,
                         createdAt = "x",
@@ -1788,7 +1814,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Group",
                 kind = MemberKind.Class,
-                classId = BoxClassId,
+                DeclaredClassId = BoxClassId,
                 Requirement = NeoMemberRequirementKind.Required,
                 Storage = NeoMemberStorage.Session,
                 defaultValue = new ObjectMemberValueBase
@@ -1817,6 +1843,67 @@ namespace NeoCompose.Tests
         }
 
         /// <summary>
+        /// A Widget field <c>IReward Reward = new Box()</c>, implemented by Box
+        /// and <c>Tag { int Points }</c>, with variant-plain's Overrides reduced
+        /// to <c>Reward = new Tag { Points = 3 }</c>.
+        /// </summary>
+        private static void AddOverriddenInterfaceReward(ProjectData data)
+        {
+            AddBoxClass(data);
+            data.interfaces = new Dictionary<string, Interface>
+            {
+                [RewardInterfaceId] = new()
+                {
+                    id = RewardInterfaceId,
+                    projectId = ProjectId,
+                    name = "IReward",
+                    members = new Dictionary<string, InterfaceMember>(),
+                },
+            };
+            data.classes[BoxClassId].implementsInterfaceIds = new List<string> { RewardInterfaceId };
+            data.classes[TagClassId] = new NeoSchemaClass
+            {
+                id = TagClassId,
+                projectId = ProjectId,
+                name = "Tag",
+                schema = new Dictionary<string, string> { ["Points"] = "tag-points" },
+                implementsInterfaceIds = new List<string> { RewardInterfaceId },
+            };
+            data.members["tag-points"] = new IntMember
+            {
+                id = "tag-points",
+                projectId = ProjectId,
+                name = "Points",
+                kind = MemberKind.Int,
+                Requirement = NeoMemberRequirementKind.Optional,
+                defaultValue = new NumberMemberValueBase { value = 0 },
+                Storage = NeoMemberStorage.Session,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            // An interface arm comes from the wire, which marks its declared fields.
+            data.members["widget-reward"] = Newtonsoft.Json.JsonConvert.DeserializeObject<JsonMember>(
+                $"{{'id':'widget-reward','projectId':'{ProjectId}','name':'Reward','kind':7,"
+                    + $"'interfaceId':'{RewardInterfaceId}','requirement':1,'storage':3,"
+                    + $"'defaultValue':{{'classId':'{BoxClassId}','value':{{}}}},'createdAt':'x','updatedAt':'x'}}")!;
+            data.classes[WidgetClassId].schema["Reward"] = "widget-reward";
+            data.classes[WidgetClassId].schema.Remove("Chosen");
+            ((ObjectMemberValue)data.values["value-plain-overrides"]).value = new Dictionary<string, string>
+            {
+                ["Reward"] = "value-plain-override-reward",
+            };
+            data.values["value-plain-override-reward"] = ObjectValue(
+                "value-plain-override-reward", TagClassId, ("Points", "value-plain-override-reward-points"));
+            data.values["value-plain-override-reward-points"] = new NumberMemberValue
+            {
+                id = "value-plain-override-reward-points",
+                value = 3,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+        }
+
+        /// <summary>
         /// Adds an Asset-held <c>Box { int Count = 5 }</c> at
         /// <c>root.Assets.Box</c> and a Widget field
         /// <c>Box Data = root.Assets.Box.Clone()</c>.
@@ -1830,7 +1917,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Box",
                 kind = MemberKind.Class,
-                classId = BoxClassId,
+                DeclaredClassId = BoxClassId,
                 Requirement = NeoMemberRequirementKind.Optional,
                 Storage = NeoMemberStorage.Immutable,
                 createdAt = "x",
@@ -1853,7 +1940,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Data",
                 kind = MemberKind.Class,
-                classId = BoxClassId,
+                DeclaredClassId = BoxClassId,
                 Requirement = NeoMemberRequirementKind.Required,
                 Storage = NeoMemberStorage.Session,
                 defaultValue = new ObjectMemberValueBase
@@ -1912,7 +1999,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Held",
                 kind = MemberKind.Class,
-                classId = WidgetClassId,
+                DeclaredClassId = WidgetClassId,
                 Requirement = NeoMemberRequirementKind.Optional,
                 Storage = NeoMemberStorage.Save,
                 createdAt = "x",
@@ -1969,7 +2056,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Recipe",
                 kind = MemberKind.Class,
-                classId = BoxRecipeClassId,
+                DeclaredClassId = BoxRecipeClassId,
                 Requirement = NeoMemberRequirementKind.Optional,
                 Storage = NeoMemberStorage.Save,
                 createdAt = "x",
@@ -2309,7 +2396,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = name,
                 kind = MemberKind.Class,
-                classId = "root-class",
+                DeclaredClassId = "root-class",
                 valueId = valueId,
                 Storage = storage,
                 createdAt = "x",
@@ -2381,7 +2468,7 @@ namespace NeoCompose.Tests
             projectId = ProjectId,
             name = name,
             kind = MemberKind.Class,
-            classId = WidgetClassId,
+            DeclaredClassId = WidgetClassId,
             Payload = NeoMemberPayloadKind.Partial,
             Requirement = NeoMemberRequirementKind.Optional,
             Storage = NeoMemberStorage.Immutable,

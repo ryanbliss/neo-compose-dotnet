@@ -1323,7 +1323,7 @@ namespace NeoCompose.Tests
         [Test]
         public void SingleLookupAssignmentStoresTheSelectedObjectIdentity()
         {
-            var entry = new ClassMember { id = "entry", kind = MemberKind.Class, classId = "receiver-class" };
+            var entry = new ClassMember { id = "entry", kind = MemberKind.Class, DeclaredClassId = "receiver-class" };
             var collection = new ListMember { id = "choices", kind = MemberKind.List, entryMemberId = entry.id, valueId = "choices-value" };
             var lookup = new LookupMember
             {
@@ -1369,7 +1369,7 @@ namespace NeoCompose.Tests
         public void LookupSelectionKeepsCollectionOwnershipForSparseEntry(NeoValueOwnership ownership)
         {
             var count = new IntMember { id = "count", name = "Count", kind = MemberKind.Int };
-            var entry = new ClassMember { id = "config-entry", kind = MemberKind.Class, classId = "receiver-class" };
+            var entry = new ClassMember { id = "config-entry", kind = MemberKind.Class, DeclaredClassId = "receiver-class" };
             var collection = new ListMember { id = "configs", kind = MemberKind.List, entryMemberId = entry.id, valueId = "configs-value" };
             var lookup = new LookupMember { id = "config", kind = MemberKind.Lookup, collectionMemberId = collection.id };
             var config = ObjectValue("selected-config", "receiver-class");
@@ -1586,7 +1586,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Receiver",
                 kind = MemberKind.Class,
-                classId = "receiver-class",
+                DeclaredClassId = "receiver-class",
                 valueId = "receiver-value",
                 Storage = NeoMemberStorage.Save,
                 createdAt = "x",
@@ -1803,7 +1803,7 @@ namespace NeoCompose.Tests
                 id = "child",
                 name = "Child",
                 kind = MemberKind.Class,
-                classId = "receiver-class",
+                DeclaredClassId = "receiver-class",
                 Storage = NeoMemberStorage.Save,
             };
             var receiver = ObjectValue("receiver-value", "receiver-class");
@@ -1843,7 +1843,7 @@ namespace NeoCompose.Tests
                 id = "child",
                 name = "Child",
                 kind = MemberKind.Class,
-                classId = "receiver-class",
+                DeclaredClassId = "receiver-class",
                 Storage = NeoMemberStorage.Save,
             };
             var receiver = ObjectValue("receiver-value", "receiver-class");
@@ -3209,7 +3209,7 @@ namespace NeoCompose.Tests
                 ObjectMemberValue? receiver = null;
                 if (bounded)
                 {
-                    JsonMember entry = reference ? new ClassMember { id = "bench-entry", kind = MemberKind.Class, classId = "receiver-class" }
+                    JsonMember entry = reference ? new ClassMember { id = "bench-entry", kind = MemberKind.Class, DeclaredClassId = "receiver-class" }
                         : new IntMember { id = "bench-entry", kind = MemberKind.Int };
                     members.Add(entry);
                     members.Add(new ListMember { id = "bench-choices", kind = MemberKind.List, entryMemberId = entry.id, valueId = "bench-pool" });
@@ -3748,7 +3748,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Constructed Box Binding",
                 kind = MemberKind.Class,
-                classId = "box-class",
+                DeclaredClassId = "box-class",
                 classArguments = new Dictionary<string, GenericBinding>
                 {
                     [boxParamId] = new GenericBinding
@@ -3794,7 +3794,7 @@ namespace NeoCompose.Tests
                 },
                 env);
 
-            Assert.AreEqual(classBinding.classId, direct.classId);
+            Assert.AreEqual(classBinding.DeclaredClassId, direct.classId);
             Assert.IsNotNull(direct.typeArguments);
             var directEnum = (EnumTypeInfo)direct.typeArguments![boxParamId];
             Assert.AreEqual(enumId, directEnum.enumId);
@@ -3857,7 +3857,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Cyclic Box Binding",
                 kind = MemberKind.Class,
-                classId = "cyclic-box-class",
+                DeclaredClassId = "cyclic-box-class",
                 Requirement = NeoMemberRequirementKind.Required,
                 createdAt = "x",
                 updatedAt = "x",
@@ -4374,7 +4374,7 @@ namespace NeoCompose.Tests
                 name = "Watcher",
                 projectId = ProjectId,
                 kind = MemberKind.Class,
-                classId = "receiver-class",
+                DeclaredClassId = "receiver-class",
                 classArguments = new Dictionary<string, GenericBinding>
                 {
                     [param] = new() { kind = NeoGenericBindingKind.Member, memberId = binding.id },
@@ -5114,7 +5114,7 @@ namespace NeoCompose.Tests
         public void InsertRejectsClassAlreadyOwnedAtTheInsertionIndex()
         {
             var classType = new ClassTypeInfo { type = MemberKind.Class, classId = "receiver-class", required = true };
-            var entry = new ClassMember { id = "insert-class-entry", kind = MemberKind.Class, classId = "receiver-class" };
+            var entry = new ClassMember { id = "insert-class-entry", kind = MemberKind.Class, DeclaredClassId = "receiver-class" };
             var items = new ListMember
             {
                 id = "insert-owned-items",
@@ -8128,7 +8128,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Save",
                 kind = MemberKind.Class,
-                classId = "save-root-class",
+                DeclaredClassId = "save-root-class",
                 valueId = "root-save-value",
                 Storage = NeoMemberStorage.Save,
                 createdAt = "x",
@@ -8226,7 +8226,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Save",
                 kind = MemberKind.Class,
-                classId = "save-root-class",
+                DeclaredClassId = "save-root-class",
                 valueId = "root-save-value",
                 Storage = NeoMemberStorage.Save,
                 createdAt = "x",
@@ -8294,7 +8294,7 @@ namespace NeoCompose.Tests
                     projectId = ProjectId,
                     name = "Child",
                     kind = MemberKind.Class,
-                    classId = "save-child-class",
+                    DeclaredClassId = "save-child-class",
                     valueId = "save-child-value",
                     Requirement = NeoMemberRequirementKind.Required,
                     createdAt = "x",
@@ -8305,7 +8305,7 @@ namespace NeoCompose.Tests
                 saveValue.value![childMember.name] = childMember.valueId!;
                 ObjectMemberValue childValue = ObjectValue(
                     childMember.valueId!,
-                    childMember.classId);
+                    childMember.DeclaredClassId);
                 childValue.value![flagMember.name] = flagMember.valueId!;
                 values[childValue.id] = childValue;
                 classes["save-child-class"] = new NeoSchemaClass
@@ -8365,7 +8365,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = name,
                 kind = MemberKind.Class,
-                classId = "root-class",
+                DeclaredClassId = "root-class",
                 valueId = valueId,
                 Storage = storage,
                 createdAt = "x",

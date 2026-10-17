@@ -77,7 +77,7 @@ namespace NeoCompose.Tests
                 projectId = "project-a",
                 name = "Grid",
                 kind = MemberKind.Class,
-                classId = GridClassId,
+                DeclaredClassId = GridClassId,
             };
             ((ObjectMemberValue)data.values["root-assets-value"])
                 .value["Grid"] = "town-grid";
@@ -553,7 +553,7 @@ namespace NeoCompose.Tests
                 projectId = "project-a",
                 name = "Grid",
                 kind = MemberKind.Class,
-                classId = GridClassId,
+                DeclaredClassId = GridClassId,
             };
             ((ObjectMemberValue)data.values["root-assets-value"]).value["Grid"] = "town-grid";
             var client = NeoTestSaveStack.ClientFromSchema(data);
@@ -744,7 +744,7 @@ namespace NeoCompose.Tests
                         projectId = "project-a",
                         name = "Child",
                         kind = MemberKind.Class,
-                        classId = TileLayerLinkClassId,
+                        DeclaredClassId = TileLayerLinkClassId,
                     },
                     ["tile-instance-cell-member"] = new Vector2IntMember
                     {
@@ -783,7 +783,7 @@ namespace NeoCompose.Tests
                         projectId = "project-a",
                         name = "Tile",
                         kind = MemberKind.Class,
-                        classId = TileClassId,
+                        DeclaredClassId = TileClassId,
                     },
                 },
                 values = new Dictionary<string, MemberValue>
@@ -891,7 +891,7 @@ namespace NeoCompose.Tests
                 kind = MemberKind.Class,
                 Requirement = NeoMemberRequirementKind.Required,
                 valueId = valueId,
-                classId = classId,
+                DeclaredClassId = classId,
             };
         }
 

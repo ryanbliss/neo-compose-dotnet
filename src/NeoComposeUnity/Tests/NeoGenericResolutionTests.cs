@@ -169,7 +169,7 @@ namespace NeoCompose.Tests
                         projectId = "project-a",
                         name = "Card",
                         kind = MemberKind.Class,
-                        classId = damage.id,
+                        DeclaredClassId = damage.id,
                         Requirement = NeoMemberRequirementKind.Required,
                     },
                     ["member-string-card"] = new ClassMember
@@ -178,7 +178,7 @@ namespace NeoCompose.Tests
                         projectId = "project-a",
                         name = "StringCard",
                         kind = MemberKind.Class,
-                        classId = stringCard.id,
+                        DeclaredClassId = stringCard.id,
                         Requirement = NeoMemberRequirementKind.Required,
                     },
                     ["member-speed"] = new GenericMember
@@ -255,7 +255,7 @@ namespace NeoCompose.Tests
                         projectId = "project-a",
                         name = "ConstructedSlot",
                         kind = MemberKind.Class,
-                        classId = enchant.id,
+                        DeclaredClassId = enchant.id,
                         classArguments = new Dictionary<string, GenericBinding>
                         {
                             [ParamT] = new()
@@ -322,7 +322,7 @@ namespace NeoCompose.Tests
                 kind = MemberKind.Class,
                 Requirement = NeoMemberRequirementKind.Required,
                 valueId = valueId,
-                classId = classId,
+                DeclaredClassId = classId,
             };
         }
 
@@ -689,7 +689,7 @@ namespace NeoCompose.Tests
                 projectId = "project-a",
                 name = "ForwardedClassBinding",
                 kind = MemberKind.Class,
-                classId = "class-enchant",
+                DeclaredClassId = "class-enchant",
                 classArguments = new Dictionary<string, GenericBinding>
                 {
                     [NeoGenericTestFixture.ParamT] = new()
@@ -813,7 +813,7 @@ namespace NeoCompose.Tests
                 projectId = "project-a",
                 name = "ClassBinding",
                 kind = MemberKind.Class,
-                classId = "class-card-base",
+                DeclaredClassId = "class-card-base",
                 Requirement = NeoMemberRequirementKind.Required,
             };
             using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
@@ -991,7 +991,7 @@ namespace NeoCompose.Tests
                 projectId = "project-a",
                 name = "TargetBinding",
                 kind = MemberKind.Class,
-                classId = "class-card-base",
+                DeclaredClassId = "class-card-base",
                 Payload = NeoMemberPayloadKind.Full,
             };
             using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
@@ -1016,7 +1016,7 @@ namespace NeoCompose.Tests
                 env);
 
             Assert.AreEqual(NeoMemberPayloadKind.Partial, substituted.Payload);
-            Assert.AreEqual("class-card-base", substituted.classId);
+            Assert.AreEqual("class-card-base", substituted.DeclaredClassId);
             Assert.AreEqual(slot.id, substituted.id);
         }
 
@@ -1202,7 +1202,7 @@ namespace NeoCompose.Tests
                 name = "Target",
                 projectId = "project-a",
                 kind = MemberKind.Class,
-                classId = "dangling-target",
+                DeclaredClassId = "dangling-target",
                 defaultValue = new ObjectMemberValueBase { value = contents },
             };
             string constructionClass = "dangling-host";
@@ -1227,7 +1227,7 @@ namespace NeoCompose.Tests
                     name = "Host",
                     projectId = "project-a",
                     kind = MemberKind.Class,
-                    classId = "dangling-host",
+                    DeclaredClassId = "dangling-host",
                     defaultValue = new ObjectMemberValueBase
                     {
                         value = new Dictionary<string, string> { ["Target"] = "stored-target" }
@@ -1276,7 +1276,7 @@ namespace NeoCompose.Tests
                 name = "Target",
                 projectId = "project-a",
                 kind = MemberKind.Class,
-                classId = "variant-target",
+                DeclaredClassId = "variant-target",
                 defaultValue = new ObjectMemberValueBase
                 {
                     value = new Dictionary<string, string> { ["Variant"] = "stored-variant" }
@@ -1371,7 +1371,7 @@ namespace NeoCompose.Tests
                 projectId = "project-a",
                 name = "Child",
                 kind = MemberKind.Class,
-                classId = "default-target",
+                DeclaredClassId = "default-target",
                 Requirement = NeoMemberRequirementKind.Required,
                 defaultValue = hasDefault
                     ? new ObjectMemberValueBase { value = new Dictionary<string, string>() }
@@ -1408,7 +1408,7 @@ namespace NeoCompose.Tests
                     projectId = "project-a",
                     name = "Container",
                     kind = MemberKind.Class,
-                    classId = "default-container",
+                    DeclaredClassId = "default-container",
                     defaultValue = new ObjectMemberValueBase
                     {
                         value = new Dictionary<string, string> { ["Child"] = "empty-child" },
@@ -1425,7 +1425,7 @@ namespace NeoCompose.Tests
                     projectId = "project-a",
                     name = "Host",
                     kind = MemberKind.Class,
-                    classId = constructedClassId,
+                    DeclaredClassId = constructedClassId,
                 };
                 data.values["replay-host-value"] = new ObjectMemberValue
                 {
@@ -1470,7 +1470,7 @@ namespace NeoCompose.Tests
                 projectId = "project-a",
                 name = "Child",
                 kind = MemberKind.Class,
-                classId = "class-damage",
+                DeclaredClassId = "class-damage",
                 Requirement = required ? NeoMemberRequirementKind.Required : NeoMemberRequirementKind.Optional,
             };
             data.classes["null-host"] = new NeoSchemaClass
@@ -1486,7 +1486,7 @@ namespace NeoCompose.Tests
                 projectId = "project-a",
                 name = "Container",
                 kind = MemberKind.Class,
-                classId = "null-container",
+                DeclaredClassId = "null-container",
                 defaultValue = new ObjectMemberValueBase
                 {
                     value = new Dictionary<string, string> { ["Child"] = "explicit-null-child" },

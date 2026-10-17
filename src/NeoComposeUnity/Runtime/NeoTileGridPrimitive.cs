@@ -1474,7 +1474,7 @@ namespace NeoCompose.Runtime
                 name = "ClassDefault",
                 useDeclarationDefaults = true,
                 kind = MemberKind.Class,
-                classId = classId,
+                DeclaredClassId = classId,
                 defaultValue = new ObjectMemberValueBase
                 {
                     classId = classId,
@@ -3434,7 +3434,7 @@ namespace NeoCompose.Runtime
             }
             if (!client.members.TryGetValue(tilesList.entryMemberId, out Json.Member entryMember)
                 || entryMember is not ClassMember entryClassMember
-                || string.IsNullOrEmpty(entryClassMember.classId))
+                || string.IsNullOrEmpty(entryClassMember.DeclaredClassId))
             {
                 return NeoPlacementResult.Error(
                     "tile-grid-placement-entry-member-invalid",

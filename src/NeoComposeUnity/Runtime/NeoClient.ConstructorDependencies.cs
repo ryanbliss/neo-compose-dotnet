@@ -212,7 +212,7 @@ namespace NeoCompose.Runtime
                 ? inferred as ClassMember
                 : null;
             var env = NeoGenericResolution.ResolveInstanceEnv(this, constructor.classId,
-                NeoGenericResolution.CloseClassArgumentsFromStamp(row.genericBindings, placement?.classArguments));
+                NeoGenericResolution.CloseClassArgumentsFromStamp(row.genericBindings, SlotClassArguments(placement, constructor.classId)));
             for (int index = 0; index < constructor.argumentTypes.Length; index++)
             {
                 // Scalar arguments cannot retain another row. Some detached
@@ -283,7 +283,7 @@ namespace NeoCompose.Runtime
                     id = constructorId + ":" + valueId,
                     name = constructorId,
                     kind = MemberKind.Class,
-                    classId = classId,
+                    DeclaredClassId = classId,
                     Requirement = type.required ? NeoMemberRequirementKind.Required : NeoMemberRequirementKind.Optional,
                 };
                 return true;

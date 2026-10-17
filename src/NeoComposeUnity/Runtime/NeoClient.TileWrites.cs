@@ -73,7 +73,7 @@ namespace NeoCompose.Runtime
                     id = "__neo_tile_conversion_receiver",
                     name = "TileConversionReceiver",
                     kind = MemberKind.Class,
-                    classId = source.classId,
+                    DeclaredClassId = source.classId,
                 };
                 using var receiver = new NeoMemberClass(this, receiverMember, source.id, ownership);
                 effectiveCell = receiver.Get<NeoMemberVector2Int>("Cell").value;

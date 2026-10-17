@@ -212,9 +212,9 @@ namespace NeoCompose.Runtime
                 case ClassMember classMember:
                     {
                         Dictionary<string, TypeInfo>? typeArguments = null;
-                        if (classMember.classArguments is not null)
+                        if (classMember.TypeArguments is not null)
                         {
-                            foreach (var pair in classMember.classArguments)
+                            foreach (var pair in classMember.TypeArguments)
                             {
                                 if (pair.Value.kind != NeoGenericBindingKind.Member)
                                     continue;
@@ -223,13 +223,7 @@ namespace NeoCompose.Runtime
                                     (typeArguments ??= new Dictionary<string, TypeInfo>(StringComparer.Ordinal))[pair.Key] = argument;
                             }
                         }
-                        return new ClassTypeInfo
-                        {
-                            type = MemberKind.Class,
-                            required = required,
-                            classId = classMember.classId,
-                            typeArguments = typeArguments,
-                        };
+                        return classMember.DeclaredTypeInfo(required, typeArguments);
                     }
                 case VariantMember variant:
                     return VariantTypeInfo(client, variant, required);

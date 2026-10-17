@@ -849,8 +849,7 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"P75 sparse instance root '{root.id}' is not reachable through a Class member placement.");
             }
-            if (string.IsNullOrEmpty(root.classId)
-                || string.IsNullOrEmpty(classMember.classId))
+            if (string.IsNullOrEmpty(root.classId))
             {
                 throw new InvalidOperationException(
                     $"P75 sparse instance root '{root.id}' has no resolvable Class type.");
@@ -1373,7 +1372,7 @@ namespace NeoCompose.Runtime
             IReadOnlyDictionary<string, GenericBinding>? replayClassArguments =
                 NeoGenericResolution.CloseClassArgumentsFromStamp(
                     instanceRoot.genericBindings,
-                    placementMember?.classArguments);
+                    SlotClassArguments(placementMember, instanceRoot.classId!));
             NeoGeneratedTypesSupport.RuntimeConstructedClassValue constructed;
             bool wasReplaying = isReplayingVirtualInstance;
             string? previousReplayingRootId = replayingVirtualInstanceRootId;
@@ -1405,7 +1404,7 @@ namespace NeoCompose.Runtime
                 if (!IsVirtualInstanceRoot(instanceRoot))
                 {
                     var declaration = (ClassMember)placementMember!.ShallowClone();
-                    declaration.classId = instanceRoot.classId!;
+                    declaration.DeclaredClassId = instanceRoot.classId!;
                     if (!DerivesContentFromPlacementDefault(instanceRoot, declaration))
                         declaration.defaultValue = new ObjectMemberValueBase { value = new Dictionary<string, string>() };
                     constructed = NeoGeneratedTypesSupport.MaterializeStoredClassMemberDefault(
@@ -1660,8 +1659,7 @@ namespace NeoCompose.Runtime
             if (placementMember?.defaultValue?.value is not { } fields
                 || (fields.Count == 0 && placementMember.defaultValue.changeListeners is not { Count: > 0 }))
                 return false;
-            string effectiveClassId = placementMember.defaultValue.classId
-                ?? placementMember.classId;
+            string effectiveClassId = placementMember.RowClassId(placementMember.defaultValue.classId);
             if (effectiveClassId != root.classId)
                 return false;
             if (root.instanceVariantId is not null)
@@ -1810,7 +1808,7 @@ namespace NeoCompose.Runtime
             // select Asset storage and can omit those temporary children.
             if (member is ClassMember classMember && row is ObjectMemberValue { value: not null } classRow)
             {
-                string classId = classRow.classId ?? classMember.classId;
+                string classId = classMember.RowClassId(classRow.classId);
                 foreach (var entry in ResolveInstanceSurfaceSchema(classId))
                 {
                     bool constructed = classRow.value.TryGetValue(entry.schemaKey, out string childId);
@@ -2387,11 +2385,22 @@ namespace NeoCompose.Runtime
         /// applied to it, resolve here. Only a variant selected on the nested
         /// value itself gives it a recipe of its own; a new construction
         /// assigned into the slot keeps its own id, so it never lands here.
+        /// An authored row that names another class at this id is a fresh
+        /// construction of that class (P113 §4.2), so it isn't a spine either.
         /// </summary>
         private static bool IsMaterializedSpine(
             ObjectMemberValue stored,
             VirtualExpansionNode node)
-            => stored.id == node.virtualId && SameVariantSelection(stored, node.row);
+            => stored.id == node.virtualId
+                && SameClass(stored, node)
+                && SameVariantSelection(stored, node.row);
+
+        private static bool SameClass(ObjectMemberValue stored, VirtualExpansionNode node)
+        {
+            if (node.member is not ClassMember slot)
+                return true;
+            return slot.RowClassId(stored.classId) == slot.RowClassId(node.row.classId);
+        }
 
         /// <summary>
         /// P75 §6 — whether <paramref name="valueId"/> lies inside another

@@ -79,7 +79,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Track",
                 kind = MemberKind.Class,
-                classId = "selector-track",
+                DeclaredClassId = "selector-track",
             };
             data.members["selector-tracks"] = new ListMember
             {
@@ -137,7 +137,7 @@ namespace NeoCompose.Tests
                         projectId = ProjectId,
                         name = key,
                         kind = MemberKind.Class,
-                        classId = "selector-host",
+                        DeclaredClassId = "selector-host",
                     };
                     data.classes["root-class"].schema[key] = key;
                     var host = ObjectValue("host-" + i, "selector-host");
@@ -213,7 +213,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Track",
                 kind = MemberKind.Class,
-                classId = "null-track",
+                DeclaredClassId = "null-track",
             };
             data.members["tracks-default"] = new ListMember
             {
@@ -526,7 +526,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Part",
                 kind = MemberKind.Class,
-                classId = "part-class",
+                DeclaredClassId = "part-class",
                 Requirement = NeoMemberRequirementKind.Optional,
                 defaultValue = new ObjectMemberValueBase { value = null },
             };
@@ -1277,7 +1277,7 @@ namespace NeoCompose.Tests
                 id = "unbound-gear",
                 name = "Gear",
                 kind = MemberKind.Class,
-                classId = "gear-class",
+                DeclaredClassId = "gear-class",
             }, null, NeoValueOwnership.Save);
             int rowCount = client.saveValues.Count;
             var writeError = Assert.Throws<InvalidOperationException>(() =>
@@ -1306,7 +1306,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Gear",
                 kind = MemberKind.Class,
-                classId = "gear-class",
+                DeclaredClassId = "gear-class",
                 Requirement = NeoMemberRequirementKind.Required,
             };
             data.classes["default-host"] = new NeoSchemaClass
@@ -1322,7 +1322,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Wrapper",
                 kind = MemberKind.Class,
-                classId = "default-wrapper",
+                DeclaredClassId = "default-wrapper",
                 defaultValue = new ObjectMemberValueBase
                 {
                     value = new Dictionary<string, string> { ["Gear"] = "gear-default" },
@@ -2923,7 +2923,7 @@ namespace NeoCompose.Tests
                 name = "Link",
                 kind = MemberKind.Class,
                 Requirement = NeoMemberRequirementKind.Required,
-                classId = partClass.id,
+                DeclaredClassId = partClass.id,
             };
             var gearLinks = new ListMember
             {
@@ -2941,7 +2941,7 @@ namespace NeoCompose.Tests
                 name = "Self",
                 kind = MemberKind.Class,
                 Requirement = NeoMemberRequirementKind.Required,
-                classId = cycleClass.id,
+                DeclaredClassId = cycleClass.id,
                 defaultValue = new ObjectMemberValueBase
                 {
                     init = new InitializerBody
@@ -3190,7 +3190,7 @@ namespace NeoCompose.Tests
                 name = name,
                 kind = MemberKind.Class,
                 Requirement = NeoMemberRequirementKind.Required,
-                classId = "root-class",
+                DeclaredClassId = "root-class",
                 Storage = storage,
                 valueId = valueId,
             };

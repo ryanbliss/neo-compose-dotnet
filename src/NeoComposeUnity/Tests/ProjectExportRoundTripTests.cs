@@ -1332,7 +1332,7 @@ namespace NeoCompose.Tests
                 'id':'enum-redeclared','kind':8,'extendsMemberId':'enum-override',
                 'enumId':'explicit-enum'
             }")!;
-            var classRoot = new ClassMember { id = "class-root", classId = "first-class" };
+            var classRoot = new ClassMember { id = "class-root", DeclaredClassId = "first-class" };
             var classOverride = (ClassMember)JsonConvert.DeserializeObject<Member>(@"{
                 'id':'class-override','kind':7,'extendsMemberId':'class-root'
             }")!;
@@ -1367,7 +1367,7 @@ namespace NeoCompose.Tests
 
             Assert.AreEqual("first-enum", enumOverride.enumId);
             Assert.AreEqual("explicit-enum", enumRedeclared.enumId);
-            Assert.AreEqual("first-class", classOverride.classId);
+            Assert.AreEqual("first-class", classOverride.DeclaredClassId);
             Assert.AreEqual("first-entry", listOverride.entryMemberId);
             Assert.AreEqual("first-key-entry", dictionaryOverride.entryMemberId);
             Assert.AreEqual(NeoDictionaryKeyKind.Enum, dictionaryOverride.KeyKind);
@@ -2163,6 +2163,31 @@ namespace NeoCompose.Tests
   ],
   ""deferred"": false
 }"));
+        }
+
+        [Test]
+        public void InterfaceMember_AcceptsItsInterfacesParamButNotAClasss()
+        {
+            var property = JsonConvert.DeserializeObject<InterfaceMember>(@"{
+  ""kind"": 0,
+  ""typeInfo"": { ""type"": 21, ""required"": true, ""ownerInterfaceId"": ""iface"", ""genericParamId"": ""param-t"" }
+}")!;
+            var function = JsonConvert.DeserializeObject<InterfaceMember>(@"{
+  ""kind"": 1,
+  ""returnTypeInfo"": { ""type"": 2, ""required"": true },
+  ""argumentTypes"": [
+    { ""name"": ""value"", ""type"": 21, ""requirement"": 1, ""ownerInterfaceId"": ""iface"", ""genericParamId"": ""param-t"" }
+  ]
+}")!;
+            var error = Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<InterfaceMember>(@"{
+  ""kind"": 0,
+  ""typeInfo"": { ""type"": 21, ""required"": true, ""ownerClassId"": ""class-owner"", ""genericParamId"": ""param-t"" }
+}"));
+
+            Assert.AreEqual("iface", ((GenericTypeInfo)property.typeInfo!).ownerInterfaceId);
+            Assert.AreEqual("iface", function.argumentTypes![0].ownerInterfaceId);
+            Assert.AreEqual("Property interface member cannot use a class's type parameter.", error!.Message);
         }
 
         [Test]

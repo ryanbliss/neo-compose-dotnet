@@ -119,7 +119,7 @@ namespace HelloWorld.Assets.Tests.PlayMode
                     name = "Rig",
                     kind = MemberKind.Class,
                     Requirement = NeoMemberRequirementKind.Required,
-                    classId = RigClassId,
+                    DeclaredClassId = RigClassId,
                 },
                 rootId,
                 NeoValueOwnership.Session);
@@ -445,7 +445,7 @@ namespace HelloWorld.Assets.Tests.PlayMode
                 name = "Entry",
                 kind = MemberKind.Class,
                 Requirement = NeoMemberRequirementKind.Required,
-                classId = classId,
+                DeclaredClassId = classId,
             };
         }
 
@@ -475,7 +475,7 @@ namespace HelloWorld.Assets.Tests.PlayMode
                 name = name,
                 kind = MemberKind.Class,
                 Requirement = NeoMemberRequirementKind.Required,
-                classId = RootClassId,
+                DeclaredClassId = RootClassId,
                 Storage = storage,
                 valueId = valueId,
             };

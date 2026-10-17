@@ -400,7 +400,7 @@ namespace NeoCompose.Tests
                 projectId = "project-registry-parity",
                 name = name,
                 kind = MemberKind.Class,
-                classId = "class-root",
+                DeclaredClassId = "class-root",
                 valueId = valueId,
                 Storage = storage,
                 createdAt = "x",

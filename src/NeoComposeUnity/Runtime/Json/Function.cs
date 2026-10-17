@@ -36,7 +36,8 @@ namespace NeoCompose.Runtime.Json
     public class FunctionClassCloneInfo
     {
         public Pointer receiverPointer = null!;
-        public ClassTypeInfo schemaClassInfo = null!;
+        /// <summary>The receiver's static type: a class, or an interface (P113 §4.3).</summary>
+        public TypeInfo schemaClassInfo = null!;
     }
 
     /// <summary>One explicitly supplied field of a Class constructor.</summary>

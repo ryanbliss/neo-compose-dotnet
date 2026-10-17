@@ -421,8 +421,8 @@ namespace NeoCompose.Tests
                 concrete.schema["BaseDamage"] = implementation.id;
             }
 
-            ((ClassMember)data.members["member-asset-weapon"]).classId = concrete.id;
-            ((ClassMember)data.members["member-save-weapon"]).classId = concrete.id;
+            ((ClassMember)data.members["member-asset-weapon"]).DeclaredClassId = concrete.id;
+            ((ClassMember)data.members["member-save-weapon"]).DeclaredClassId = concrete.id;
             ((ObjectMemberValue)data.values["value-weapon-asset"]).classId = concrete.id;
             ((ObjectMemberValue)data.values["value-weapon-save"]).classId = concrete.id;
         }
@@ -464,7 +464,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = "Details",
                 kind = MemberKind.Class,
-                classId = "class-details",
+                DeclaredClassId = "class-details",
                 Requirement = NeoMemberRequirementKind.Required,
                 Storage = NeoMemberStorage.Immutable,
                 Mutability = NeoMemberMutabilityKind.ReadOnly,
@@ -641,7 +641,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = name,
                 kind = MemberKind.Class,
-                classId = classId,
+                DeclaredClassId = classId,
                 valueId = valueId,
                 createdAt = "x",
                 updatedAt = "x",

@@ -138,7 +138,7 @@ namespace NeoCompose.Tests
                 projectId = "p75-project",
                 name = "Badge",
                 kind = MemberKind.Class,
-                classId = "badge-class",
+                DeclaredClassId = "badge-class",
                 Storage = NeoMemberStorage.Immutable,
                 Requirement = NeoMemberRequirementKind.Required,
                 defaultValue = new ObjectMemberValueBase

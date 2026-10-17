@@ -36,18 +36,26 @@ namespace NeoCompose.Runtime
         private readonly Dictionary<Type, TypeInfo[]> tables = new();
         private IReadOnlyDictionary<Type, string> classIds = new Dictionary<Type, string>();
         private IReadOnlyDictionary<Type, string> enumIds = new Dictionary<Type, string>();
+        private IReadOnlyDictionary<Type, string> interfaceIds = new Dictionary<Type, string>();
+        private readonly NeoClient client;
 
-        internal NeoTypeArguments()
+        internal NeoTypeArguments(NeoClient client)
         {
+            this.client = client;
         }
 
-        /// <summary>Registers the generated project's class and enum tables.</summary>
+        /// <summary>
+        /// Registers the generated project's class, enum and interface tables.
+        /// A generic interface is keyed by its generic definition.
+        /// </summary>
         public void Register(
             IReadOnlyDictionary<Type, string> classIds,
-            IReadOnlyDictionary<Type, string> enumIds)
+            IReadOnlyDictionary<Type, string> enumIds,
+            IReadOnlyDictionary<Type, string>? interfaceIds = null)
         {
             this.classIds = classIds;
             this.enumIds = enumIds;
+            this.interfaceIds = interfaceIds ?? new Dictionary<Type, string>();
             cache.Clear();
             tables.Clear();
         }
@@ -102,12 +110,16 @@ namespace NeoCompose.Runtime
                 return new ClassTypeInfo { type = MemberKind.Class, classId = classId, required = true };
             if (enumIds.TryGetValue(type, out string? enumId))
                 return new EnumTypeInfo { type = MemberKind.Enum, enumId = enumId, required = true };
+            if (interfaceIds.TryGetValue(type, out string? interfaceId))
+                return new InterfaceTypeInfo { type = MemberKind.Interface, interfaceId = interfaceId, required = true };
             if (PrimitiveKinds.TryGetValue(type, out MemberKind kind))
                 return new PrimitiveTypeInfo { type = kind, required = true };
             if (type.IsGenericType)
             {
                 Type definition = type.GetGenericTypeDefinition();
                 Type[] arguments = type.GetGenericArguments();
+                if (interfaceIds.TryGetValue(definition, out string? genericInterfaceId))
+                    return ConstructedInterface(type, genericInterfaceId, arguments);
                 if (definition == typeof(IReadOnlyList<>))
                 {
                     return new CollectionTypeInfo
@@ -129,6 +141,32 @@ namespace NeoCompose.Runtime
             }
             throw new NeoTypeArgumentException(
                 $"Type argument '{type.FullName}' has no NeoScript type.");
+        }
+
+        /// <summary>P113 §6. A constructed interface maps its C# arguments in its params' order.</summary>
+        private TypeInfo ConstructedInterface(Type type, string interfaceId, Type[] arguments)
+        {
+            if (!client.TryGetInterface(interfaceId, out Interface? declaration))
+            {
+                throw new NeoTypeArgumentException(
+                    $"Type argument '{type.FullName}' names interface '{interfaceId}', which the project doesn't declare.");
+            }
+            List<GenericParamDeclaration>? genericParams = declaration.genericParams;
+            if (genericParams is null || genericParams.Count != arguments.Length)
+            {
+                throw new NeoTypeArgumentException(
+                    $"Type argument '{type.FullName}' has {arguments.Length} arguments, and {declaration.name} takes {genericParams?.Count ?? 0}.");
+            }
+            var typeArguments = new Dictionary<string, TypeInfo>(arguments.Length);
+            for (int i = 0; i < arguments.Length; i++)
+                typeArguments[genericParams[i].id] = Of(arguments[i]);
+            return new InterfaceTypeInfo
+            {
+                type = MemberKind.Interface,
+                interfaceId = interfaceId,
+                typeArguments = typeArguments,
+                required = true,
+            };
         }
     }
 }

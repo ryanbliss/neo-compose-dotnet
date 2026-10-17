@@ -110,7 +110,7 @@ namespace HelloWorld.Assets.Tests.PlayMode
             Assert.AreEqual(MemberKind.Class, rootSaveMember.kind);
             Assert.IsInstanceOf<ClassMember>(rootSaveMember);
 
-            var rootSaveClass = schema.classes[((ClassMember)rootSaveMember).classId];
+            var rootSaveClass = schema.classes[((ClassMember)rootSaveMember).DeclaredClassId];
             Assert.AreEqual("Save", rootSaveClass.name);
             Assert.IsTrue(rootSaveClass.schema.TryGetValue("Bits", out var bitsMemberId));
 

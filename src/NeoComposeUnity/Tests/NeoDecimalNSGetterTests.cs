@@ -452,7 +452,7 @@ namespace NeoCompose.Tests
                 kind = MemberKind.Class,
                 Requirement = NeoMemberRequirementKind.Required,
                 valueId = valueId,
-                classId = classId,
+                DeclaredClassId = classId,
             };
         }
 

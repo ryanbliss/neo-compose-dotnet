@@ -230,7 +230,7 @@ namespace NeoCompose.Tests
                 kind = MemberKind.Class,
                 Requirement = NeoMemberRequirementKind.Required,
                 Storage = NeoMemberStorage.User,
-                classId = ClassId,
+                DeclaredClassId = ClassId,
                 valueId = ValueId,
             };
             data.classes[ClassId] = new NeoSchemaClass

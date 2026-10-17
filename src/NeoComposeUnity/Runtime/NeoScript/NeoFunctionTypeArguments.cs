@@ -98,6 +98,10 @@ namespace NeoCompose.Runtime.NeoScript
                     foreach (TypeInfo argument in typeArguments.Values)
                         yield return argument;
                     break;
+                case InterfaceTypeInfo { typeArguments: { } interfaceArguments }:
+                    foreach (TypeInfo argument in interfaceArguments.Values)
+                        yield return argument;
+                    break;
                 case FunctionArgumentTypeInfo argument:
                     if (argument.entryTypeInfo is not null)
                         yield return argument.entryTypeInfo;
@@ -191,6 +195,15 @@ namespace NeoCompose.Runtime.NeoScript
                         bound.typeArguments = boundArguments;
                         return bound;
                     }
+                case InterfaceTypeInfo { typeArguments: { } interfaceArguments } interfaceType:
+                    {
+                        Dictionary<string, TypeInfo>? boundArguments = BindMap(interfaceArguments, table);
+                        if (boundArguments is null)
+                            return typeInfo;
+                        var bound = (InterfaceTypeInfo)interfaceType.ShallowClone();
+                        bound.typeArguments = boundArguments;
+                        return bound;
+                    }
                 default:
                     return typeInfo;
             }
@@ -260,6 +273,7 @@ namespace NeoCompose.Runtime.NeoScript
                     break;
                 case InterfaceTypeInfo interfaceType:
                     argument.interfaceId = interfaceType.interfaceId;
+                    argument.typeArguments = interfaceType.typeArguments;
                     break;
                 case EnumTypeInfo enumType:
                     argument.enumId = enumType.enumId;

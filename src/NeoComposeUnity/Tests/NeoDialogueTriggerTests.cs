@@ -2079,7 +2079,7 @@ namespace NeoCompose.Tests
                         name = "Item",
                         kind = MemberKind.Class,
                         Requirement = NeoMemberRequirementKind.Required,
-                        classId = "class-item",
+                        DeclaredClassId = "class-item",
                         createdAt = Now,
                         updatedAt = Now,
                     },
@@ -2830,7 +2830,7 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = name,
                 kind = MemberKind.Class,
-                classId = "class-root",
+                DeclaredClassId = "class-root",
                 valueId = name == "Save"
                     ? "root-save-default-value"
                     : name == "Session"

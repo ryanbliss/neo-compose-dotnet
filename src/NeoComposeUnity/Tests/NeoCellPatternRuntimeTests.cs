@@ -513,7 +513,7 @@ namespace NeoCompose.Tests
                     projectId = "project-a",
                     name = "Pattern",
                     kind = MemberKind.Class,
-                    classId = NeoCellPatternOffsets.ClassId,
+                    DeclaredClassId = NeoCellPatternOffsets.ClassId,
                     Requirement = NeoMemberRequirementKind.Required,
                     defaultValue = new ObjectMemberValueBase
                     {
@@ -546,7 +546,7 @@ namespace NeoCompose.Tests
                         projectId = "project-a",
                         name = holder,
                         kind = MemberKind.Class,
-                        classId = "pattern-holder",
+                        DeclaredClassId = "pattern-holder",
                     };
                     bool replayed = holder.StartsWith("Replayed");
                     var record = new Dictionary<string, string>();
@@ -628,7 +628,7 @@ namespace NeoCompose.Tests
                 AddField("ByName", new DictionaryMember { id = "by-name-member", name = "ByName", kind = MemberKind.Dictionary, entryMemberId = "pattern-entry" },
                     new ObjectMemberValue { id = "by-name", value = new Dictionary<string, string> { ["near"] = "near" } });
                 var bindings = new Dictionary<string, string> { ["box-t"] = "box-binding" };
-                AddField("Box", new ClassMember { id = "box-member", name = "Box", kind = MemberKind.Class, classId = "pattern-box" },
+                AddField("Box", new ClassMember { id = "box-member", name = "Box", kind = MemberKind.Class, DeclaredClassId = "pattern-box" },
                     new ObjectMemberValue
                     {
                         id = "box",
@@ -636,9 +636,9 @@ namespace NeoCompose.Tests
                         genericBindings = bindings,
                         value = new Dictionary<string, string> { ["Value"] = "boxed" }
                     });
-                data.members["pattern-entry"] = new ClassMember { id = "pattern-entry", name = "Entry", kind = MemberKind.Class, classId = NeoCellPatternOffsets.ClassId };
+                data.members["pattern-entry"] = new ClassMember { id = "pattern-entry", name = "Entry", kind = MemberKind.Class, DeclaredClassId = NeoCellPatternOffsets.ClassId };
                 data.members["box-value"] = new GenericMember { id = "box-value", name = "Value", kind = MemberKind.Generic, genericParamId = "box-t" };
-                data.members["box-binding"] = new ClassMember { id = "box-binding", name = "T", kind = MemberKind.Class, classId = NeoCellPatternOffsets.ClassId };
+                data.members["box-binding"] = new ClassMember { id = "box-binding", name = "T", kind = MemberKind.Class, DeclaredClassId = NeoCellPatternOffsets.ClassId };
                 data.classes["pattern-box"] = new NeoSchemaClass
                 {
                     id = "pattern-box",
@@ -809,7 +809,7 @@ namespace NeoCompose.Tests
             string valueId,
             NeoValueOwnership ownership = NeoValueOwnership.Session) =>
             CreateWritable(client, new NeoMemberClassWritable(client,
-                new ClassMember { id = "pattern-field", name = "Pattern", kind = MemberKind.Class, classId = NeoCellPatternOffsets.ClassId },
+                new ClassMember { id = "pattern-field", name = "Pattern", kind = MemberKind.Class, DeclaredClassId = NeoCellPatternOffsets.ClassId },
                 valueId,
                 ownership));
 

@@ -38,6 +38,14 @@ namespace NeoCompose.Runtime.Json
         /// <summary>Set iff <see cref="kind"/> is Enum.</summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string? enumId;
+
+        /// <summary>Interface constraints only (P113 §2.5).</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string? interfaceId;
+
+        /// <summary>Present iff <see cref="interfaceId"/> names a generic interface.</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public Dictionary<string, GenericBinding>? interfaceArguments;
     }
 
     /// <summary>
@@ -115,41 +123,47 @@ namespace NeoCompose.Runtime.Json
                     throw new JsonSerializationException(
                         "Generic param constraint of kind 'Class' cannot declare 'enumId'.");
                 }
+                if (obj.Property("interfaceId") is not null)
+                {
+                    throw new JsonSerializationException(
+                        "Generic param constraint of kind 'Class' cannot declare 'interfaceId'.");
+                }
                 var classId = obj.Value<string>("classId");
                 if (string.IsNullOrEmpty(classId))
                 {
                     throw new JsonSerializationException(
                         "Generic param constraint of kind 'Class' is missing 'classId'.");
                 }
-                Dictionary<string, GenericBinding>? classArguments = null;
-                if (obj.Property("classArguments") is JProperty argumentsProperty)
-                {
-                    if (argumentsProperty.Value is not JObject)
-                    {
-                        throw new JsonSerializationException(
-                            "Generic param constraint field 'classArguments' must be an object when present.");
-                    }
-                    classArguments = argumentsProperty.Value.ToObject<
-                        Dictionary<string, GenericBinding>>(serializer);
-                    if (classArguments is null)
-                    {
-                        throw new JsonSerializationException(
-                            "Generic param constraint field 'classArguments' could not be read.");
-                    }
-                    foreach (var pair in classArguments)
-                    {
-                        if (string.IsNullOrEmpty(pair.Key) || pair.Value is null)
-                        {
-                            throw new JsonSerializationException(
-                                "Generic param constraint field 'classArguments' must map non-empty parameter ids to bindings.");
-                        }
-                    }
-                }
                 return new GenericParamConstraint
                 {
                     kind = kind,
                     classId = classId,
-                    classArguments = classArguments,
+                    classArguments = ReadArguments(obj, "classArguments", serializer),
+                };
+            }
+            if (kind == NeoGenericParamConstraintKind.Interface)
+            {
+                if (obj.Property("classId") is not null)
+                {
+                    throw new JsonSerializationException(
+                        "Generic param constraint of kind 'Interface' cannot declare 'classId'.");
+                }
+                if (obj.Property("enumId") is not null)
+                {
+                    throw new JsonSerializationException(
+                        "Generic param constraint of kind 'Interface' cannot declare 'enumId'.");
+                }
+                var interfaceId = obj.Value<string>("interfaceId");
+                if (string.IsNullOrEmpty(interfaceId))
+                {
+                    throw new JsonSerializationException(
+                        "Generic param constraint of kind 'Interface' is missing 'interfaceId'.");
+                }
+                return new GenericParamConstraint
+                {
+                    kind = kind,
+                    interfaceId = interfaceId,
+                    interfaceArguments = ReadArguments(obj, "interfaceArguments", serializer),
                 };
             }
             if (kind == NeoGenericParamConstraintKind.Enum)
@@ -159,6 +173,11 @@ namespace NeoCompose.Runtime.Json
                 {
                     throw new JsonSerializationException(
                         "Generic param constraint of kind 'Enum' cannot declare 'classId' or 'classArguments'.");
+                }
+                if (obj.Property("interfaceId") is not null)
+                {
+                    throw new JsonSerializationException(
+                        "Generic param constraint of kind 'Enum' cannot declare 'interfaceId'.");
                 }
                 var enumId = obj.Value<string>("enumId");
                 if (string.IsNullOrEmpty(enumId))
@@ -170,6 +189,36 @@ namespace NeoCompose.Runtime.Json
             }
             throw new JsonSerializationException(
                 $"Unknown generic param constraint kind '{(int)kind}'.");
+        }
+
+        private static Dictionary<string, GenericBinding>? ReadArguments(
+            JObject obj,
+            string field,
+            JsonSerializer serializer)
+        {
+            if (obj.Property(field) is not JProperty argumentsProperty)
+                return null;
+            if (argumentsProperty.Value is not JObject)
+            {
+                throw new JsonSerializationException(
+                    $"Generic param constraint field '{field}' must be an object when present.");
+            }
+            var arguments = argumentsProperty.Value.ToObject<
+                Dictionary<string, GenericBinding>>(serializer);
+            if (arguments is null)
+            {
+                throw new JsonSerializationException(
+                    $"Generic param constraint field '{field}' could not be read.");
+            }
+            foreach (var pair in arguments)
+            {
+                if (string.IsNullOrEmpty(pair.Key) || pair.Value is null)
+                {
+                    throw new JsonSerializationException(
+                        $"Generic param constraint field '{field}' must map non-empty parameter ids to bindings.");
+                }
+            }
+            return arguments;
         }
 
         public override void WriteJson(

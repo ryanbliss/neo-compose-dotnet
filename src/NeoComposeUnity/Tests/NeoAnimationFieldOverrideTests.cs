@@ -615,7 +615,7 @@ namespace NeoCompose.Tests
         private sealed class PlacementTarget : NeoGeneratedClassValue
         {
             internal PlacementTarget(NeoClient client, NeoMemberClass node)
-                : base(client, node, node.member.classId, isReadOnly: false)
+                : base(client, node, node.member.DeclaredClassId, isReadOnly: false)
             {
             }
         }
@@ -1025,7 +1025,7 @@ namespace NeoCompose.Tests
                 name = name,
                 kind = MemberKind.Class,
                 Requirement = NeoMemberRequirementKind.Required,
-                classId = classId,
+                DeclaredClassId = classId,
                 valueId = valueId,
             };
         }

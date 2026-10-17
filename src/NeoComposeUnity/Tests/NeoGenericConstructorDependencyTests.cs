@@ -153,7 +153,7 @@ namespace NeoCompose.Tests
                         projectId = ProjectId,
                         name = "Quantity",
                         kind = MemberKind.Class,
-                        classId = watcherClass.id,
+                        DeclaredClassId = watcherClass.id,
                         Storage = NeoMemberStorage.Save,
                         Requirement = NeoMemberRequirementKind.Optional,
                         classArguments = new Dictionary<string, GenericBinding>
@@ -171,7 +171,7 @@ namespace NeoCompose.Tests
                         projectId = ProjectId,
                         name = "ModifierBinding",
                         kind = MemberKind.Class,
-                        classId = "modifier-class",
+                        DeclaredClassId = "modifier-class",
                         Requirement = NeoMemberRequirementKind.Required,
                     },
                 },
@@ -238,7 +238,7 @@ namespace NeoCompose.Tests
                 name = name,
                 kind = MemberKind.Class,
                 Requirement = NeoMemberRequirementKind.Required,
-                classId = "root-class",
+                DeclaredClassId = "root-class",
                 Storage = storage,
                 valueId = valueId,
             };
