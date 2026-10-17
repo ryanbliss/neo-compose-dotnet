@@ -39,8 +39,8 @@ namespace NeoCompose.Tests.InterfaceParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "eb8657ff-529b-4055-bd1a-2662de0caa46",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Contents", "b6d1b253-4ee0-445f-84d8-69bd0b7a495f", Contents)
+                "25f24ea5-980c-4aaf-bf34-531404537e82",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Contents", "36b046ad-3adb-4006-a6db-27cbef62187a", Contents)
             );
         }
 
@@ -102,7 +102,9 @@ namespace NeoCompose.Tests.InterfaceParity
         {
             get
             {
-                return (NeoList<IReadOnlyTool>)(object)((Crate<Tool>)this).Contents!;
+                var memberNode = writableNode.Get<NeoMemberListWritable>("Contents");
+                if (TryGetStoredView<NeoList<IReadOnlyTool>>("Contents", memberNode, out var cached)) return cached;
+                return CacheStoredView("Contents", memberNode, new NeoList<IReadOnlyTool>(client, memberNode, () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("Contents"), (client, child) => NeoGenericBindings.Resolve<IReadOnlyTool>(client, (NeoMember)child).Read((NeoMember)child), item => NeoGenericBindings.Resolve<IReadOnlyTool>(client, writableNode.Get<NeoMemberListWritable>("Contents")).Serialize(item)));
             }
         }
 

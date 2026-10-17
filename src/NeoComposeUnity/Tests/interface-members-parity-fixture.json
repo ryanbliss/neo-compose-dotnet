@@ -123,6 +123,12 @@
     "    ISortedContainer<Tool> sorted = Probe.P.Tools;",
     "    return sorted.Pick(0)!.Name;",
     "  }",
+    "  public static Crate<Seed> SeedCrate() {",
+    "    var crate = new Crate<Seed>();",
+    "    crate.Contents.Add(new Seed { Name = \"oat\" });",
+    "    return crate;",
+    "  }",
+    "  public static string SeedCrateName() { return Probe.SeedCrate().Contents[0].Name; }",
     "  public static IContainer<Seed> MakeCrate() {",
     "    var crate = new Crate<Seed>();",
     "    Probe.P.Pouch = crate;",
@@ -157,7 +163,8 @@
     "ToolCrateFirst": "hoe",
     "GetterRead": true,
     "FirstAcceptedName": "first",
-    "ToolCratePick": "rake"
+    "ToolCratePick": "rake",
+    "SeedCrateName": "oat"
   },
   "refuses": {
     "BagIntoField": "Player.Pouch can't hold a Bag, because IContainer doesn't determine Bag's parameter TTag.",

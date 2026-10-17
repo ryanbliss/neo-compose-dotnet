@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.InterfaceParity
     public partial class Red : NeoGeneratedClassValue, IReadOnlyRed
     {
         internal Red(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "5733f1ba-f5d0-4cfb-85c6-b2d125c276aa", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "ef041290-506f-4dd0-8740-2978c29bc4c6", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.InterfaceParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "5733f1ba-f5d0-4cfb-85c6-b2d125c276aa");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "ef041290-506f-4dd0-8740-2978c29bc4c6");
         }
 
         internal static Red Create(NeoClient client, NeoMemberClass node)
