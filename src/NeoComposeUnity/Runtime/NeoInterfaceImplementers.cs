@@ -86,6 +86,8 @@ namespace NeoCompose.Runtime
 
         private static readonly IReadOnlyList<string> EmptyIds = new List<string>();
 
+        private static readonly List<GenericParamDeclaration> EmptyScope = new();
+
         private readonly NeoClient client;
         private readonly ProjectData data;
         private readonly Dictionary<string, IReadOnlyDictionary<string, IReadOnlyDictionary<string, GenericBinding>>>
@@ -93,6 +95,7 @@ namespace NeoCompose.Runtime
         private readonly Dictionary<string, IReadOnlyDictionary<string, IReadOnlyDictionary<string, GenericBinding>>>
             mapByClassId = new();
         private readonly Dictionary<(string, string), NeoInterfaceDetermination> determinationByKey = new();
+        private readonly Dictionary<string, List<GenericParamDeclaration>> scopeByClassId = new();
         private readonly Dictionary<(ClassMember, string), IReadOnlyDictionary<string, GenericBinding>?>
             slotArgumentsByKey = new();
         private readonly HashSet<string> visiting = new();
@@ -366,26 +369,44 @@ namespace NeoCompose.Runtime
                 paramByPosition: paramByPosition);
         }
 
-        /// <summary>The params left open at <paramref name="classId"/>, base first.</summary>
+        /// <summary>
+        /// The params left open at <paramref name="classId"/>, base first.
+        /// Memoized along the extends chain so building every class's scope is
+        /// linear: a class keeps its parent's scope, minus the parent's own
+        /// params it binds, plus its own params.
+        /// </summary>
         private List<GenericParamDeclaration> OpenScope(string classId)
         {
-            var scope = new List<GenericParamDeclaration>();
-            IList<NeoSchemaClass> chain = client.ResolveClassInheritanceChain(classId);
-            IReadOnlyDictionary<string, NeoGenericEnvEntry> env = NeoGenericResolution.ResolveEnv(chain);
-            for (int i = chain.Count - 1; i >= 0; i--)
+            if (scopeByClassId.TryGetValue(classId, out List<GenericParamDeclaration>? cached))
+                return cached;
+            if (!data.classes.TryGetValue(classId, out NeoSchemaClass? schemaClass))
+                return EmptyScope;
+            string key = "s:" + classId;
+            if (!visiting.Add(key))
+                return EmptyScope;
+            string? parentId = schemaClass.extendsClassId;
+            List<GenericParamDeclaration> parentScope = parentId is null ? EmptyScope : OpenScope(parentId);
+            List<GenericParamDeclaration>? parentOwn = null;
+            if (parentId is not null && data.classes.TryGetValue(parentId, out NeoSchemaClass? parent))
+                parentOwn = parent.genericParams;
+            var bindings = schemaClass.extendsGenericBindings;
+            bool BoundHere(GenericParamDeclaration param) =>
+                bindings?.ContainsKey(param.id) == true
+                && parentOwn?.Exists(own => own.id == param.id) == true;
+            List<GenericParamDeclaration> scope = parentScope;
+            if (schemaClass.genericParams is { Count: > 0 } || parentScope.Exists(BoundHere))
             {
-                if (chain[i].genericParams is not { } declared)
-                    continue;
-                foreach (GenericParamDeclaration param in declared)
+                scope = new List<GenericParamDeclaration>(parentScope.Count + (schemaClass.genericParams?.Count ?? 0));
+                foreach (GenericParamDeclaration param in parentScope)
                 {
-                    if (env.TryGetValue(param.id, out NeoGenericEnvEntry? entry)
-                        && !entry.IsBound
-                        && entry.unboundParamId == param.id)
-                    {
+                    if (!BoundHere(param))
                         scope.Add(param);
-                    }
                 }
+                if (schemaClass.genericParams is { } own)
+                    scope.AddRange(own);
             }
+            visiting.Remove(key);
+            scopeByClassId[classId] = scope;
             return scope;
         }
 
