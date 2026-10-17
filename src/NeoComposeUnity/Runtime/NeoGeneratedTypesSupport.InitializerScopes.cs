@@ -168,31 +168,34 @@ namespace NeoCompose.Runtime
                     arguments[i] = NeoParameterDefaults.DefaultRuntimeValue(parameters[i], subject);
                 return arguments;
             }
-            FunctionWithReturnType body = init.compiled!;
-            bool readsParameter;
-            try
-            {
-                readsParameter = NeoScript.NeoScriptIrWalker.AnyPointer(body.instructions, ReadsParameter);
-            }
-            catch (NotSupportedException)
-            {
-                readsParameter = true;
-            }
-            if (readsParameter)
+            if (ReadsConstructorParameter(client, init.compiled!))
                 throw new InvalidOperationException($"Initializer '{member.name}' reads a constructor parameter of '{owner}' that has no default, and no '{owner}' is being constructed.");
             return arguments;
+        }
 
-            // Parameters are __this__, __root__, then the constructor's arguments.
-            bool ReadsParameter(Pointer pointer)
+        private static bool ReadsConstructorParameter(NeoClient client, FunctionWithReturnType body)
+        {
+            ConstructorSchemaCache cache = ConstructorSchemaCaches.GetOrCreateValue(client);
+            lock (cache.gate)
             {
-                if (pointer is not VariablePointer variable)
-                    return false;
+                if (cache.initializerReadsParameter.TryGetValue(body, out bool reads))
+                    return reads;
+                // Parameters are __this__, __root__, then the constructor's arguments.
+                var parameterIds = new HashSet<string>(StringComparer.Ordinal);
                 for (int i = 2; i < body.parameters.Length; i++)
+                    parameterIds.Add(body.parameters[i].id);
+                try
                 {
-                    if (body.parameters[i].id == variable.variableId)
-                        return true;
+                    reads = NeoScript.NeoScriptIrWalker.AnyPointer(
+                        body.instructions,
+                        pointer => pointer is VariablePointer variable && parameterIds.Contains(variable.variableId));
                 }
-                return false;
+                catch (NotSupportedException)
+                {
+                    reads = true;
+                }
+                cache.initializerReadsParameter.Add(body, reads);
+                return reads;
             }
         }
 

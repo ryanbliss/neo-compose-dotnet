@@ -435,6 +435,8 @@ namespace NeoCompose.Runtime
             internal readonly object gate = new();
             internal ConstructorInitializerIndex? initializerIndex;
             internal readonly Dictionary<ConstructorRecord, bool> baseReadsThis = new();
+            // By compiled initializer: whether it reads a constructor parameter.
+            internal readonly Dictionary<FunctionWithReturnType, bool> initializerReadsParameter = new();
             internal readonly Dictionary<string, IList<MergedSchemaEntry>>
                 mergedSchemas = new();
             internal readonly Dictionary<
