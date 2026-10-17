@@ -37,7 +37,11 @@ namespace NeoCompose.Tests.InterfaceParity
 
         Shelf<Seed> SeedShelf { get; }
 
+        ToolFrames ToolFrames { get; }
+
         ToolCrate Tools { get; }
+
+        VectorFrames VectorFrames { get; }
     }
 
     public partial class Player : NeoGeneratedClassValue, IReadOnlyPlayer
@@ -48,7 +52,7 @@ namespace NeoCompose.Tests.InterfaceParity
         }
 
         internal Player(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "93ca29e2-cc89-4589-b558-bb22c81ecf49", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "3727cc0c-8757-4226-a2a8-3597b3e8e965", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -57,25 +61,27 @@ namespace NeoCompose.Tests.InterfaceParity
         {
         }
 
-        public Player(IContainer<Seed>? Pouch = null, IEnumerable<IContainer<Seed>>? Racks = null, IDictionary<string, IContainer<Seed>>? ByName = null, Box<IContainer<Seed>>? Boxed = null, NeoLookupSelection? Favorite = null, Shelf<Seed>? SeedShelf = null, ToolCrate? Tools = null, Bag<Seed, Red>? Sack = null)
-            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Pouch, Racks, ByName, Boxed, Favorite, SeedShelf, Tools, Sack), false, NeoValueOwnership.Session)
+        public Player(IContainer<Seed>? Pouch = null, IEnumerable<IContainer<Seed>>? Racks = null, IDictionary<string, IContainer<Seed>>? ByName = null, Box<IContainer<Seed>>? Boxed = null, NeoLookupSelection? Favorite = null, Shelf<Seed>? SeedShelf = null, ToolCrate? Tools = null, ToolFrames? ToolFrames = null, VectorFrames? VectorFrames = null, Bag<Seed, Red>? Sack = null)
+            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Pouch, Racks, ByName, Boxed, Favorite, SeedShelf, Tools, ToolFrames, VectorFrames, Sack), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(IContainer<Seed>? Pouch = null, IEnumerable<IContainer<Seed>>? Racks = null, IDictionary<string, IContainer<Seed>>? ByName = null, Box<IContainer<Seed>>? Boxed = null, NeoLookupSelection? Favorite = null, Shelf<Seed>? SeedShelf = null, ToolCrate? Tools = null, Bag<Seed, Red>? Sack = null)
+        private static NeoMemberClassWritable CreateFactoryNode(IContainer<Seed>? Pouch = null, IEnumerable<IContainer<Seed>>? Racks = null, IDictionary<string, IContainer<Seed>>? ByName = null, Box<IContainer<Seed>>? Boxed = null, NeoLookupSelection? Favorite = null, Shelf<Seed>? SeedShelf = null, ToolCrate? Tools = null, ToolFrames? ToolFrames = null, VectorFrames? VectorFrames = null, Bag<Seed, Red>? Sack = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "93ca29e2-cc89-4589-b558-bb22c81ecf49",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Pouch", "ed609727-d4b7-4e82-b299-efbfdbac9377", Pouch),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Racks", "f006b5ac-26e9-4a53-aee7-57f234ca737b", Racks),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ByName", "df213c65-8bd0-4910-ba89-58746eccd993", ByName),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Boxed", "4eb7e016-1bb1-41b4-91a5-f97b105b3c09", Boxed),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Favorite", "1bde13a0-1518-4d63-b1cd-8f4fff8f9646", Favorite),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SeedShelf", "765ae891-b2ed-4c02-893e-6c97566d8b6b", SeedShelf),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Tools", "ea9e4bda-f193-43db-9ac6-f1fe488469fe", Tools),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Sack", "d43c4a27-858f-4838-a580-3b1f8c098c86", Sack)
+                "3727cc0c-8757-4226-a2a8-3597b3e8e965",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Pouch", "918e9deb-eedc-4408-9829-ab3508425b4c", Pouch),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Racks", "b9b9244b-c636-422f-87a0-d445dfea54be", Racks),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ByName", "2b09ded0-9632-4916-8b00-0fc5fdab74fb", ByName),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Boxed", "2c179a7f-ec03-4306-a2c4-8b2518209c31", Boxed),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Favorite", "b4d0c1a8-9d4e-4b3f-97b2-b5a54b48b27e", Favorite),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SeedShelf", "7aeb0604-6f1f-4bc7-9f55-09252df557c9", SeedShelf),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Tools", "10171178-1e73-4924-bcff-0eb963ed1189", Tools),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ToolFrames", "6f952f3f-8cc5-47ca-bc78-437041adec93", ToolFrames),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("VectorFrames", "514af902-f963-44fd-a3cc-f6cb7152dcc3", VectorFrames),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Sack", "6cd9a601-f18e-4e0f-8282-fe328a308f28", Sack)
             );
         }
 
@@ -234,6 +240,22 @@ namespace NeoCompose.Tests.InterfaceParity
             }
         }
 
+        public ToolFrames ToolFrames
+        {
+            get
+            {
+                if (TryReadDetached("ToolFrames", out object? detachedValue))
+                {
+                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, true, null, static (factoryClient, factoryNode) => global::NeoCompose.Tests.InterfaceParity.ToolFrames.CreateWritable(factoryClient, factoryNode));
+                }
+                return global::NeoCompose.Tests.InterfaceParity.ToolFrames.CreateWritable(client, writableNode.Get<NeoMemberClassWritable>("ToolFrames"));
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(writableNode, "ToolFrames", NeoGeneratedTypesSupport.ValueReference(value));
+            }
+        }
+
         public ToolCrate Tools
         {
             get
@@ -247,6 +269,22 @@ namespace NeoCompose.Tests.InterfaceParity
             set
             {
                 NeoGeneratedTypesSupport.SetValue(writableNode, "Tools", NeoGeneratedTypesSupport.ValueReference(value));
+            }
+        }
+
+        public VectorFrames VectorFrames
+        {
+            get
+            {
+                if (TryReadDetached("VectorFrames", out object? detachedValue))
+                {
+                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, true, null, static (factoryClient, factoryNode) => global::NeoCompose.Tests.InterfaceParity.VectorFrames.CreateWritable(factoryClient, factoryNode));
+                }
+                return global::NeoCompose.Tests.InterfaceParity.VectorFrames.CreateWritable(client, writableNode.Get<NeoMemberClassWritable>("VectorFrames"));
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(writableNode, "VectorFrames", NeoGeneratedTypesSupport.ValueReference(value));
             }
         }
 
@@ -268,6 +306,10 @@ namespace NeoCompose.Tests.InterfaceParity
 
             public static readonly NeoField<ToolCrate> Tools = new("Tools");
 
+            public static readonly NeoField<ToolFrames> ToolFrames = new("ToolFrames");
+
+            public static readonly NeoField<VectorFrames> VectorFrames = new("VectorFrames");
+
             public static readonly NeoField<Bag<Seed, Red>?> Sack = new("Sack");
 
             public static readonly NeoField<IContainer<Seed>?> PouchView = new("PouchView");
@@ -284,6 +326,8 @@ namespace NeoCompose.Tests.InterfaceParity
                 [Fields.Favorite] = () => null,
                 [Fields.SeedShelf] = () => null,
                 [Fields.Tools] = () => null,
+                [Fields.ToolFrames] = () => null,
+                [Fields.VectorFrames] = () => null,
                 [Fields.Sack] = () => null,
                 [Fields.PouchView] = () => null,
             };
@@ -310,6 +354,8 @@ namespace NeoCompose.Tests.InterfaceParity
                 [Fields.Favorite] = () => Favorite,
                 [Fields.SeedShelf] = () => SeedShelf,
                 [Fields.Tools] = () => Tools,
+                [Fields.ToolFrames] = () => ToolFrames,
+                [Fields.VectorFrames] = () => VectorFrames,
                 [Fields.Sack] = () => Sack,
                 [Fields.PouchView] = () => PouchView,
             };

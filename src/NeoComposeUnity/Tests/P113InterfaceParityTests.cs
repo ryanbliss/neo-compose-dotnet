@@ -168,6 +168,60 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void InheritedCollectionInterfaceReadKeepsATemporaryDetached()
+        {
+            using var app = new Parity.TestProjectNeo(Client());
+            Parity.IReadOnlyInventory inventory = Parity.Probe.TemporaryInventory();
+            var temporary = (NeoGeneratedClassValue)inventory;
+
+            Assert.IsNotNull(temporary.PendingValue);
+            NeoReadOnlyList<Parity.IReadOnlySeed> contents = inventory.Contents;
+
+            Assert.AreEqual(1, contents.Count);
+            Assert.AreEqual("oat", contents[0].Name);
+            Assert.AreSame(contents, inventory.Contents);
+            Assert.IsNotNull(temporary.PendingValue, "Reading an inherited collection must not attach its temporary owner.");
+        }
+
+        [Test]
+        public void ConstructedClassEntriesShareRowsThroughTheReadOnlyInterface()
+        {
+            using var app = new Parity.TestProjectNeo(Client());
+            InvokeProbe(app.Client, "SetupFrames");
+            Parity.ToolFrames owner = Parity.Probe.P.ToolFrames;
+            var view = (Parity.IReadOnlyFrameCrate<Parity.IReadOnlyTool?>)owner;
+            Parity.Frame<Parity.IReadOnlyTool?> frame = view.Frames[0];
+
+            Assert.AreEqual("hoe", frame.Value!.Name);
+            Assert.AreEqual(owner.Frames[0].valueId, frame.valueId);
+            frame.Value = new Parity.Tool { Name = "rake" };
+            Assert.AreEqual("rake", owner.Frames[0].Value!.Name);
+            Parity.Frame<Parity.IReadOnlyTool?> second = frame.Clone();
+            second.Value = new Parity.Tool { Name = "spade" };
+            view.Frames.Add(second);
+            Assert.AreEqual("spade", owner.Frames[1].Value!.Name);
+        }
+
+        [Test]
+        public void ConstructedVectorEntriesShareRowsThroughTheReadOnlyInterface()
+        {
+            using var app = new Parity.TestProjectNeo(Client());
+            InvokeProbe(app.Client, "SetupFrames");
+            Parity.VectorFrames owner = Parity.Probe.P.VectorFrames;
+            var view = (Parity.IReadOnlyFrameCrate<NeoReadOnlyVector3>)owner;
+            Parity.Frame<NeoReadOnlyVector3> frame = view.Frames[0];
+
+            Assert.AreEqual(1f, frame.Value.x);
+            Assert.AreEqual(owner.Frames[0].valueId, frame.valueId);
+            frame.Value = new NeoReadOnlyVector3(4f, 5f, 6f);
+            Assert.AreEqual(4f, owner.Frames[0].Value.x);
+            Parity.Frame<NeoReadOnlyVector3> second = frame.Clone();
+            second.Value = new NeoReadOnlyVector3(7f, 8f, 9f);
+            view.Frames.Add(second);
+            Assert.AreEqual(7f, owner.Frames[1].Value.x);
+        }
+
+        [Test]
         public void FunctionReturnsItsConstructedClass()
         {
             using var app = new Parity.TestProjectNeo(Client());
