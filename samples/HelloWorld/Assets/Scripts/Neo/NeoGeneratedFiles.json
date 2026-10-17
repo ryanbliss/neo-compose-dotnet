@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-  "codegenRevision": "d4026a3848848c8507d45dd54b6d31c1a0588b17b64c35e3fe9b25c89eb2fc05",
+  "codegenRevision": "90421033eb03f03fcfab25a35784fa8890ae4377edbeee0b925a985754c15d42",
   "files": [
     {
       "id": "class:11177bd5-0678-4bff-86b8-46718ff1827b",
@@ -451,7 +451,7 @@
     {
       "id": "project:factories",
       "path": "Generated/HelloWorldNeo.Factories.g.cs",
-      "hash": "edf4f07bdf9575e70639e5e3b2abf30a6379bdf1263a37f9dd148c590d362d79"
+      "hash": "58867f124ae28d856d0248c6b7f20f809a7ac8179a2545c0b8e1d32f7d61ac31"
     },
     {
       "id": "project:functions",
@@ -461,12 +461,12 @@
     {
       "id": "project:client",
       "path": "Generated/HelloWorldNeo.g.cs",
-      "hash": "7f5ed26c8f81da71a2b53af6f292355773f39f20c9359741e2eb4450339f891b"
+      "hash": "55212bff362e598bb2f209612919f9c69ec88d442a5d424b003281a42a630fe3"
     },
     {
       "id": "project:user-client",
       "path": "Generated/HelloWorldUserNeo.g.cs",
-      "hash": "1e93e2d94b5aee76170292ec9884fe488c21dd3c7c6862674467133c44d4db46"
+      "hash": "042ecfc8bb7579dd740eec75334bca5f510a1d0a474d907178b800b69c21f51d"
     },
     {
       "id": "interface:27d59731-311d-4d80-833a-916760c7ed30",
