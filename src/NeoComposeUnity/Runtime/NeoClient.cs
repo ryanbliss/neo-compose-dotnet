@@ -2259,6 +2259,7 @@ namespace NeoCompose.Runtime
             // current schema just like getter and dispatch metadata.
             lock (resolvedNSFunctionsLock)
                 resolvedNSFunctions.Clear();
+            schemaOwnerClassIds = null;
             authoredValueInferenceIndex = null;
             authoredClassOwnedRoots = null;
             InvalidateGetterMemo();
@@ -8446,7 +8447,6 @@ namespace NeoCompose.Runtime
 
         private void ValidateCallableMembers()
         {
-            Dictionary<string, string>? ownerClassIdByMemberId = null;
             foreach (var pair in data.members)
             {
                 if (pair.Value is DelegateMember delegateMember)
@@ -8479,7 +8479,7 @@ namespace NeoCompose.Runtime
                     nsFunction.DeclaredDispatch,
                     "NSFunction",
                     rejectOverrideFields: true);
-                ValidateNSFunctionMember(nsFunction, ref ownerClassIdByMemberId);
+                ValidateNSFunctionMember(nsFunction);
             }
         }
 
@@ -8637,9 +8637,7 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private void ValidateNSFunctionMember(
-            NSFunctionMember member,
-            ref Dictionary<string, string>? ownerClassIdByMemberId)
+        private void ValidateNSFunctionMember(NSFunctionMember member)
         {
             if (member.DeclaredBodyMode.HasValue
                 && !System.Enum.IsDefined(
@@ -8724,8 +8722,7 @@ namespace NeoCompose.Runtime
             if (!ReferenceEquals(signature, member)
                 && (NeoNSFunctionRuntime.ContainsGeneric(returnTypeInfo)
                     || System.Array.Exists(argumentTypes, NeoNSFunctionRuntime.ContainsGeneric))
-                && (ownerClassIdByMemberId ??= BuildSchemaOwnerClassIds())
-                    .TryGetValue(member.id, out string ownerClassId))
+                && SchemaOwnerClassId(member.id) is string ownerClassId)
             {
                 NeoGenericResolution.SubstituteCallableSignature(
                     this,
@@ -8774,7 +8771,14 @@ namespace NeoCompose.Runtime
             }
         }
 
-        /// <summary>Each member's first placing class, matching the server's first-placement rule.</summary>
+        private Dictionary<string, string>? schemaOwnerClassIds;
+
+        /// <summary>The class that first places <paramref name="memberId"/>, matching the server's first-placement rule.</summary>
+        internal string? SchemaOwnerClassId(string memberId) =>
+            (schemaOwnerClassIds ??= BuildSchemaOwnerClassIds()).TryGetValue(memberId, out string? owner)
+                ? owner
+                : null;
+
         private Dictionary<string, string> BuildSchemaOwnerClassIds()
         {
             var owners = new Dictionary<string, string>();

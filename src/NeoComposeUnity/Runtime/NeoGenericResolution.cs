@@ -376,6 +376,30 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
+        /// The environment a collection node's entries resolve in: its row's
+        /// stamp, or, for a node reading its member's declaration default
+        /// (which has no row to stamp), the closed environment of the class
+        /// declaring that member — the web's <c>declaringClassEnv</c>. Null
+        /// when neither closes anything.
+        /// </summary>
+        internal static IReadOnlyDictionary<string, NeoGenericEnvEntry>? CollectionEntryEnv(
+            NeoClient client,
+            Member collectionMember,
+            MemberValue? row,
+            bool readsDeclarationDefault)
+        {
+            if (row?.genericBindings is { } stamp)
+                return EnvFromStamp(stamp);
+            if (!readsDeclarationDefault
+                || client.SchemaOwnerClassId(collectionMember.id) is not string ownerClassId)
+            {
+                return null;
+            }
+            var env = ResolveEnv(client, ownerClassId);
+            return env.Count > 0 && FirstUnboundParamId(env) is null ? env : null;
+        }
+
+        /// <summary>
         /// Rebuilds a constructed Class placement from a value row's durable
         /// generic stamp. The placement supplies any unstamped arguments; the
         /// stamp wins for every parameter it closes.

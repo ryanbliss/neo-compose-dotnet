@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.74.1] - 2026-10-17
+
+- Fixed: an instance that relies on its class's default for a generic collection, such as a `ThreeFrameSpriteAnimationSegment` without its own `Frames`, no longer throws "Cannot substitute generic slot" on load. The default's entries close through the class that declares it, as they do on the web, and read that instance's constructor arguments. Existing exports need no re-export.
+
 ## [0.74.0] - 2026-10-17
 
 `NeoObjectBase` and `NeoTile` gain `GetArea<T>()` (P114). It returns the nearest tile grid that owns the value, or null when no grid owns it or that grid isn't a `T`. Nested children, objects held in another object's field, and tiles in a nested layer link answer with their placed root's grid. A spawn, move, or removal earlier in the same NeoScript evaluation is visible to the call. A getter that calls it is recomputed only when the receiver or one of its owners changes, not when a neighbor spawns or despawns. Requires CLI 0.84.0; run `neo pull` and `neo export` after upgrading.
