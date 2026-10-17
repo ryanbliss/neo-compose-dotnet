@@ -435,6 +435,8 @@ namespace NeoCompose.Runtime
             internal readonly object gate = new();
             internal ConstructorInitializerIndex? initializerIndex;
             internal readonly Dictionary<ConstructorRecord, bool> baseReadsThis = new();
+            // By compiled initializer: whether it reads a constructor parameter.
+            internal readonly Dictionary<FunctionWithReturnType, bool> initializerReadsParameter = new();
             internal readonly Dictionary<string, IList<MergedSchemaEntry>>
                 mergedSchemas = new();
             internal readonly Dictionary<
@@ -954,7 +956,16 @@ namespace NeoCompose.Runtime
                 if (expected > 0)
                 {
                     string? owner = ResolveInitializerOwner(client, init, member, constructedClassId);
-                    if (owner is null || !initializerArguments.TryGet(owner, out object?[]? scoped))
+                    object?[]? scoped;
+                    if (owner is null)
+                    {
+                        // No instance of the declaring class is being constructed,
+                        // as when a stored row replays the defaults it omits.
+                        scoped = DeclarationInitializerArguments(client, init, member, out owner);
+                    }
+                    else
+                        initializerArguments.TryGet(owner, out scoped);
+                    if (scoped is null)
                         throw new InvalidOperationException($"Initializer '{member.name}' cannot resolve its declaring constructor scope before member initialization.");
                     arguments = scoped;
                     if (arguments.Length != expected)

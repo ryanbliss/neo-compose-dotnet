@@ -102,9 +102,9 @@ namespace NeoCompose.Runtime
         /// Converts a stored parameter default (P65 §3.1) to the runtime value
         /// the way a member literal default of the same kind materializes: the
         /// enum payload's single option id becomes the id-array runtime enum
-        /// shape, a decimal's canonical string passes through, the remaining
-        /// constant kinds are their payload verbatim, and the explicit null
-        /// default fills null.
+        /// shape, a decimal's canonical string passes through, a number is a
+        /// double, the remaining constant kinds are their payload verbatim,
+        /// and the explicit null default fills null.
         /// </summary>
         internal static object? DefaultRuntimeValue(
             FunctionArgumentTypeInfo parameter,
@@ -118,6 +118,9 @@ namespace NeoCompose.Runtime
             }
             if (defaultValue.value is null)
                 return null;
+            // JSON reads an integral default as a long.
+            if (defaultValue.value is long integer)
+                return (double)integer;
             if (parameter.type != MemberKind.Enum)
                 return defaultValue.value;
             if (defaultValue.value is string optionId)

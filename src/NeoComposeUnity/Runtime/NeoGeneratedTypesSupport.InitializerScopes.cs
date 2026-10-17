@@ -108,23 +108,33 @@ namespace NeoCompose.Runtime
             return new ConstructorChainArguments(link, root, bases);
         }
 
-        private static string? ResolveInitializerOwner(NeoClient client, InitializerBody init, Member member, string? constructedClassId)
+        private static string? ResolveInitializerOwner(NeoClient client, InitializerBody init, Member member, string? constructedClassId) =>
+            constructedClassId is null
+                ? null
+                : ResolveInitializerOwner(client, init, member, client.ResolveClassInheritanceChain(constructedClassId));
+
+        /// <summary>
+        /// The class on <paramref name="chain"/> that declares the initializer,
+        /// or with no chain the class that first places it.
+        /// </summary>
+        private static string? ResolveInitializerOwner(NeoClient client, InitializerBody init, Member member, IList<NeoSchemaClass>? chain)
         {
-            if (constructedClassId is null)
-                return null;
             ConstructorSchemaCache cache = ConstructorSchemaCaches.GetOrCreateValue(client);
             ConstructorInitializerIndex index;
             lock (cache.gate)
                 index = cache.initializerIndex ??= BuildConstructorInitializerIndex(client);
             string? memberId = index.membersByInitializer.TryGetValue(init, out string? lexical) ? lexical : member.id;
-            var chain = client.ResolveClassInheritanceChain(constructedClassId);
             var seen = new HashSet<string>(StringComparer.Ordinal);
             while (memberId is not null && seen.Add(memberId))
             {
                 if (index.declaringClasses.TryGetValue(memberId, out List<string>? owners))
+                {
+                    if (chain is null)
+                        return owners[0];
                     foreach (var c in chain)
                         if (owners.Contains(c.id))
                             return c.id;
+                }
                 if (index.containerMembers.TryGetValue(memberId, out string? container))
                 {
                     memberId = container;
@@ -133,6 +143,60 @@ namespace NeoCompose.Runtime
                 memberId = client.TryGetMember(memberId, out Member? declaration) ? declaration.extendsMemberId : null;
             }
             return null;
+        }
+
+        /// <summary>
+        /// The declaring constructor's arguments for an initializer no instance
+        /// is constructing, mirroring the TS <c>declarationInitializerArgumentValues</c>:
+        /// its parameter defaults, or nulls when a parameter has no default
+        /// and the body never reads one. Null when the initializer's class
+        /// declares no required constructor.
+        /// </summary>
+        private static object?[]? DeclarationInitializerArguments(NeoClient client, InitializerBody init, Member member, out string? owner)
+        {
+            owner = ResolveInitializerOwner(client, init, member, chain: null);
+            if (owner is null
+                || client.classes[owner].requiredConstructorId is not string constructorId
+                || !client.TryGetConstructor(constructorId, out ConstructorRecord? constructor))
+                return null;
+            FunctionArgumentTypeInfo[] parameters = constructor.argumentTypes;
+            var arguments = new object?[parameters.Length];
+            if (NeoParameterDefaults.NonDefaultedCount(parameters) == 0)
+            {
+                string subject = $"Constructor '{constructorId}'";
+                for (int i = 0; i < parameters.Length; i++)
+                    arguments[i] = NeoParameterDefaults.DefaultRuntimeValue(parameters[i], subject);
+                return arguments;
+            }
+            if (ReadsConstructorParameter(client, init.compiled!))
+                throw new InvalidOperationException($"Initializer '{member.name}' reads a constructor parameter of '{owner}' that has no default, and no '{owner}' is being constructed.");
+            return arguments;
+        }
+
+        private static bool ReadsConstructorParameter(NeoClient client, FunctionWithReturnType body)
+        {
+            ConstructorSchemaCache cache = ConstructorSchemaCaches.GetOrCreateValue(client);
+            lock (cache.gate)
+            {
+                if (cache.initializerReadsParameter.TryGetValue(body, out bool reads))
+                    return reads;
+                // Parameters are __this__, __root__, then the constructor's arguments.
+                var parameterIds = new HashSet<string>(StringComparer.Ordinal);
+                for (int i = 2; i < body.parameters.Length; i++)
+                    parameterIds.Add(body.parameters[i].id);
+                try
+                {
+                    reads = NeoScript.NeoScriptIrWalker.AnyPointer(
+                        body.instructions,
+                        pointer => pointer is VariablePointer variable && parameterIds.Contains(variable.variableId));
+                }
+                catch (NotSupportedException)
+                {
+                    reads = true;
+                }
+                cache.initializerReadsParameter.Add(body, reads);
+                return reads;
+            }
         }
 
         private static ConstructorInitializerIndex BuildConstructorInitializerIndex(NeoClient client)

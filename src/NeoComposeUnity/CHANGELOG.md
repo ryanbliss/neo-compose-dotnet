@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.74.2] - 2026-10-17
+
+- Fixed: a save written before a class gained a constructor loads its nested defaults again. For example, a furnace saved before `FurnaceStackData` took `durationMultiplier` used to log "Initializer 'EligibleIngredients' cannot resolve its declaring constructor scope before member initialization" and leave its inventories' `EligibleIngredients` empty. With no recorded arguments, those defaults read the constructor's parameter defaults, as they do on the web.
+- Fixed: calling a constructor without a defaulted `float` parameter, such as `new EnergyFurnaceStackData(fuelNeeded: 2)` with `durationMultiplier = 1` omitted, no longer throws "Cannot set FloatMember … from Int64".
+
 ## [0.74.1] - 2026-10-17
 
 - Fixed: an instance that relies on its class's default for a generic collection, such as a `ThreeFrameSpriteAnimationSegment` without its own `Frames`, no longer throws "Cannot substitute generic slot" on load. The default's entries close through the class that declares it, as they do on the web, and read that instance's constructor arguments. Existing exports need no re-export.
