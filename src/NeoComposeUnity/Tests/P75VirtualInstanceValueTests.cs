@@ -4673,6 +4673,162 @@ namespace NeoCompose.Tests
             Assert.AreEqual(5d, value.Get<NeoMemberIntWritable>("Amount").value!.value);
         }
 
+        [TestCase(true)]
+        [TestCase(false)]
+        public void GenericRowInAGenericSlotReadsItsBindingsArguments(bool interfaceBinding)
+        {
+            ProjectData data = BuildProjectData();
+            NeoSchemaClass thingClass = data.classes["thing-class"];
+            thingClass.schema.Remove("Count");
+            thingClass.schema["Boxed"] = "thing-boxed";
+            data.members.Remove("thing-count");
+            data.interfaces = new Dictionary<string, Interface>
+            {
+                ["container"] = new()
+                {
+                    id = "container",
+                    projectId = "p75-project",
+                    name = "IContainer",
+                    members = new Dictionary<string, InterfaceMember>(),
+                    genericParams = new List<GenericParamDeclaration> { new() { id = "container-t", name = "T" } },
+                },
+            };
+            NeoSchemaClass boxClass = SchemaClass("box-class", "Box", NeoMemberStorage.Save);
+            boxClass.genericParams = new List<GenericParamDeclaration> { new() { id = "box-t", name = "T" } };
+            boxClass.schema["Value"] = "box-value";
+            data.classes[boxClass.id] = boxClass;
+            NeoSchemaClass crateClass = SchemaClass("crate-class", "Crate", NeoMemberStorage.Save);
+            crateClass.genericParams = new List<GenericParamDeclaration> { new() { id = "crate-t", name = "T" } };
+            crateClass.schema["Contents"] = "crate-contents";
+            crateClass.implementsInterfaceIds = new List<string> { "container" };
+            crateClass.implementsInterfaceArguments = new Dictionary<string, Dictionary<string, GenericBinding>>
+            {
+                ["container"] = new()
+                {
+                    ["container-t"] = new()
+                    {
+                        kind = NeoGenericBindingKind.Generic,
+                        genericParamId = "crate-t"
+                    },
+                },
+            };
+            data.classes[crateClass.id] = crateClass;
+            NeoSchemaClass seedClass = SchemaClass("seed-class", "Seed", NeoMemberStorage.Save);
+            seedClass.schema["Label"] = "seed-label";
+            data.classes[seedClass.id] = seedClass;
+
+            data.members["box-value"] = new GenericMember
+            {
+                id = "box-value",
+                projectId = "p75-project",
+                name = "Value",
+                kind = MemberKind.Generic,
+                genericParamId = "box-t",
+            };
+            data.members["crate-contents"] = new ListMember
+            {
+                id = "crate-contents",
+                projectId = "p75-project",
+                name = "Contents",
+                kind = MemberKind.List,
+                entryMemberId = "crate-item",
+                Requirement = NeoMemberRequirementKind.Required,
+                defaultValue = new ArrayMemberValueBase { value = Array.Empty<string>() },
+            };
+            data.members["crate-item"] = new GenericMember
+            {
+                id = "crate-item",
+                projectId = "p75-project",
+                name = "Item",
+                kind = MemberKind.Generic,
+                genericParamId = "crate-t",
+            };
+            data.members["seed-label"] = new StringMember
+            {
+                id = "seed-label",
+                projectId = "p75-project",
+                name = "Label",
+                kind = MemberKind.String,
+                Requirement = NeoMemberRequirementKind.Required,
+                defaultValue = new StringMemberValueBase { value = "unnamed" },
+            };
+            data.members["seed-binding"] = new ClassMember
+            {
+                id = "seed-binding",
+                projectId = "p75-project",
+                name = "T",
+                kind = MemberKind.Class,
+                DeclaredClassId = seedClass.id,
+                Requirement = NeoMemberRequirementKind.Required,
+            };
+            data.members["value-binding"] = interfaceBinding
+                ? JToken.Parse(
+                    "{'id':'value-binding','projectId':'p75-project','name':'T','kind':7,"
+                        + "'interfaceId':'container','interfaceArguments':{'container-t':{'kind':1,'memberId':'seed-binding'}},"
+                        + "'createdAt':'x','updatedAt':'x'}").ToObject<JsonMember>()!
+                : new ClassMember
+                {
+                    id = "value-binding",
+                    projectId = "p75-project",
+                    name = "T",
+                    kind = MemberKind.Class,
+                    DeclaredClassId = crateClass.id,
+                    Requirement = NeoMemberRequirementKind.Required,
+                    classArguments = new Dictionary<string, GenericBinding>
+                    {
+                        ["crate-t"] = new() { kind = NeoGenericBindingKind.Member, memberId = "seed-binding" },
+                    },
+                };
+            data.members["thing-boxed"] = new ClassMember
+            {
+                id = "thing-boxed",
+                projectId = "p75-project",
+                name = "Boxed",
+                kind = MemberKind.Class,
+                DeclaredClassId = boxClass.id,
+                Requirement = NeoMemberRequirementKind.Required,
+                classArguments = new Dictionary<string, GenericBinding>
+                {
+                    ["box-t"] = new() { kind = NeoGenericBindingKind.Member, memberId = "value-binding" },
+                },
+                defaultValue = new ObjectMemberValueBase
+                {
+                    classId = boxClass.id,
+                    value = new Dictionary<string, string> { ["Value"] = "boxed-crate" },
+                },
+            };
+            var crate = ObjectValue(
+                "boxed-crate",
+                crateClass.id,
+                new Dictionary<string, string> { ["Contents"] = "boxed-contents" });
+            data.values[crate.id] = crate;
+            data.values["boxed-contents"] = new ArrayMemberValue
+            {
+                id = "boxed-contents",
+                value = new[] { "boxed-seed" },
+                genericBindings = new Dictionary<string, string> { ["crate-t"] = "seed-binding" },
+            };
+            var seed = ObjectValue(
+                "boxed-seed",
+                seedClass.id,
+                new Dictionary<string, string> { ["Label"] = "boxed-seed-label" });
+            data.values[seed.id] = seed;
+            data.values["boxed-seed-label"] = new StringMemberValue { id = "boxed-seed-label", value = "Seven" };
+
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            NeoMemberClassWritable value = client.save
+                .Get<NeoMemberClassWritable>("Thing")
+                .Get<NeoMemberClassWritable>("Boxed")
+                .Get<NeoMemberClassWritable>("Value");
+            var contents = value.Get<NeoMemberListWritable>("Contents");
+            var entry = (NeoMemberClassWritable)contents[0];
+
+            Assert.AreEqual(crateClass.id, value.value!.classId);
+            Assert.AreEqual(1, contents.Count);
+            Assert.AreEqual(seedClass.id, entry.value!.classId);
+            Assert.AreEqual("Seven", entry.Get<NeoMemberStringWritable>("Label").value!.value);
+        }
+
         [Test]
         public void PersistedNestedSparseRootAtItsVirtualIdReplaysAfterItsParent()
         {
