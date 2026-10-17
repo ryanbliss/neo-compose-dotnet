@@ -24,6 +24,7 @@ public bool TryGetInterfaceId(out string declaredInterfaceId);
 - Writing a class that doesn't implement the slot's interface throws, naming the slot.
 - `Clone()` and `is` work on interface-typed values.
 - Variant and animation overrides that set an interface slot to another class replace the slot's row.
+- A stored row that names another class where a declaration default placed one reads as a fresh construction of its own class, not as an override of the default.
 - Breaking: `ClassMember.classId` is no longer public. An interface member has no declared class. Use `TryGetDeclaredClassId`.
 - Breaking: `FunctionClassCloneInfo.schemaClassInfo` is a `TypeInfo`, since the receiver can be an interface.
 - `GenericTypeInfo.ownerClassId` is nullable. A parameter an interface declares sets `ownerInterfaceId` instead.

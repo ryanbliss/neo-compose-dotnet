@@ -4589,6 +4589,38 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void InterfaceRowNamingAnotherClassAtItsVirtualIdReadsThatClass()
+        {
+            string rewardId;
+            using (NeoClient probe = NeoTestSaveStack.ClientFromSchema(
+                BuildInterfaceRewardProjectData()))
+            {
+                rewardId = probe.save
+                    .Get<NeoMemberClassWritable>("Thing")
+                    .Get<NeoMemberClassWritable>("Reward")
+                    .value!.id;
+            }
+
+            ProjectData data = BuildInterfaceRewardProjectData();
+            // The CLI keeps an authored row's id when it names another class,
+            // and stores a fresh construction of that class there (P113 §4.2).
+            var gem = ObjectValue(rewardId, "gem-class");
+            gem.constructorArgs = new Dictionary<string, JToken?>();
+            gem.instanceConstructorId = null;
+            data.values[rewardId] = gem;
+            ((ObjectMemberValue)data.values["thing-instance"]).value!["Reward"] = rewardId;
+
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            NeoMemberClassWritable reward = client.save
+                .Get<NeoMemberClassWritable>("Thing")
+                .Get<NeoMemberClassWritable>("Reward");
+
+            Assert.AreEqual("gem-class", reward.value!.classId);
+            Assert.AreEqual(50d, reward.Get<NeoMemberIntWritable>("Amount").value!.value);
+            Assert.AreEqual(3d, reward.Get<NeoMemberIntWritable>("Carats").value!.value);
+        }
+
+        [Test]
         public void PersistedNestedSparseRootAtItsVirtualIdReplaysAfterItsParent()
         {
             string nestedId;
@@ -7484,6 +7516,60 @@ namespace NeoCompose.Tests
                     value = ((char)('A' + index)).ToString(),
                 };
             }
+            return data;
+        }
+
+        /// <summary>
+        /// <c>Thing.Reward</c> is typed <c>IReward</c> and defaults to a
+        /// <c>CoinReward</c> (Amount 5). <c>GemReward</c> has Amount 50 and
+        /// Carats 3.
+        /// </summary>
+        private static ProjectData BuildInterfaceRewardProjectData()
+        {
+            ProjectData data = BuildProjectData();
+            data.classes["thing-class"].schema.Remove("Count");
+            data.classes["thing-class"].schema["Reward"] = "thing-reward";
+            data.members.Remove("thing-count");
+            data.interfaces = new Dictionary<string, Interface>
+            {
+                ["reward-interface"] = new()
+                {
+                    id = "reward-interface",
+                    projectId = "p75-project",
+                    name = "IReward",
+                    members = new Dictionary<string, InterfaceMember>(),
+                },
+            };
+            var reward = (ClassMember)JToken.Parse(
+                "{'id':'thing-reward','projectId':'p75-project','name':'Reward','kind':7,"
+                    + "'interfaceId':'reward-interface','createdAt':'x','updatedAt':'x',"
+                    + "'defaultValue':{'classId':'coin-class','value':{}}}").ToObject<JsonMember>()!;
+            reward.Requirement = NeoMemberRequirementKind.Required;
+            data.members[reward.id] = reward;
+
+            void AddReward(string classId, string name, params (string Field, double Value)[] fields)
+            {
+                NeoSchemaClass rewardClass = SchemaClass(classId, name, NeoMemberStorage.Save);
+                rewardClass.implementsInterfaceIds = new List<string> { "reward-interface" };
+                foreach (var (field, value) in fields)
+                {
+                    string memberId = $"{classId}-{field}";
+                    rewardClass.schema[field] = memberId;
+                    data.members[memberId] = new IntMember
+                    {
+                        id = memberId,
+                        projectId = "p75-project",
+                        name = field,
+                        kind = MemberKind.Int,
+                        Requirement = NeoMemberRequirementKind.Required,
+                        defaultValue = new NumberMemberValueBase { value = value },
+                    };
+                }
+                data.classes[classId] = rewardClass;
+            }
+
+            AddReward("coin-class", "CoinReward", ("Amount", 5));
+            AddReward("gem-class", "GemReward", ("Amount", 50), ("Carats", 3));
             return data;
         }
 

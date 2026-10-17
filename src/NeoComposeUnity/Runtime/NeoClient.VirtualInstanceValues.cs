@@ -2385,11 +2385,22 @@ namespace NeoCompose.Runtime
         /// applied to it, resolve here. Only a variant selected on the nested
         /// value itself gives it a recipe of its own; a new construction
         /// assigned into the slot keeps its own id, so it never lands here.
+        /// An authored row that names another class at this id is a fresh
+        /// construction of that class (P113 §4.2), so it isn't a spine either.
         /// </summary>
         private static bool IsMaterializedSpine(
             ObjectMemberValue stored,
             VirtualExpansionNode node)
-            => stored.id == node.virtualId && SameVariantSelection(stored, node.row);
+            => stored.id == node.virtualId
+                && SameClass(stored, node)
+                && SameVariantSelection(stored, node.row);
+
+        private static bool SameClass(ObjectMemberValue stored, VirtualExpansionNode node)
+        {
+            if (node.member is not ClassMember slot)
+                return true;
+            return slot.RowClassId(stored.classId) == slot.RowClassId(node.row.classId);
+        }
 
         /// <summary>
         /// P75 §6 — whether <paramref name="valueId"/> lies inside another
