@@ -1920,12 +1920,14 @@ namespace NeoCompose.Runtime
             {
                 // A value of its own kind is already valid.
                 case MemberKind.Bool when value is bool:
-                case MemberKind.Float when value is double && IsNumber(value):
                 case MemberKind.String when value is string:
                 case MemberKind.Int when value is double number && IsIntegralNumber(number):
                 // A C# caller's boxed int, which is always integral.
-                case MemberKind.Int or MemberKind.Float when value is int:
+                case MemberKind.Int when value is int:
                     return value;
+                case MemberKind.Float when IsNumber(value):
+                    value = NSGetterEvaluator.CoerceNumericBinding(value, typeInfo, "float binding");
+                    break;
                 case MemberKind.Bool or MemberKind.Int or MemberKind.Float or MemberKind.String
                     when value is double or bool or string or int:
                     break;

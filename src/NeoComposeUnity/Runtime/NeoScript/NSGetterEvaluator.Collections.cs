@@ -16,12 +16,12 @@ namespace NeoCompose.Runtime.NeoScript
         internal static object? RuntimeCollection(object? value, Context ctx) =>
             value is object?[] array && runtimeSets.TryGetValue(array, out var set) ? set : value;
 
-        internal static RuntimeSet MakeRuntimeSet(object?[] source, bool reference, bool enumEntries, Context ctx, bool cache = true)
+        internal static RuntimeSet MakeRuntimeSet(object?[] source, bool reference, bool enumEntries, Context ctx, bool cache = true, bool decimalEntries = false)
         {
             var sets = runtimeSets;
             if (cache && sets.TryGetValue(source, out var existing))
                 return existing;
-            var set = new RuntimeSet(source, reference, enumEntries,
+            var set = new RuntimeSet(source, reference, enumEntries, decimalEntries,
                 reference ? EqualityComparer<object?>.Default : JsValueComparer.Instance);
             var cursor = new CollectionCursor(source, ctx);
             while (cursor.MoveNextUnresolved())
@@ -50,13 +50,15 @@ namespace NeoCompose.Runtime.NeoScript
                 return value;
             MemberKind entry = entryType.type;
             return MakeRuntimeSet(array, entry is MemberKind.Class or MemberKind.Interface or MemberKind.List or MemberKind.Dictionary or MemberKind.Lookup,
-                entry is MemberKind.Enum or MemberKind.DialogueLookup, ctx);
+                entry is MemberKind.Enum or MemberKind.DialogueLookup, ctx, decimalEntries: entry == MemberKind.Decimal);
         }
 
         internal static object? RuntimeSetKey(object? value, RuntimeSet set, Context ctx)
         {
             if (set.EnumEntries && value is object?[] { Length: 1 } selected)
                 value = selected[0];
+            if (set.DecimalEntries && value is not null)
+                return NeoSetEntryKey.DecimalKey(CoerceDecimalOperand(value, "set entry"));
             return set.Reference && value is not null ? ReferenceKeyOf(value, ctx) ?? value : value;
         }
 
@@ -272,7 +274,7 @@ namespace NeoCompose.Runtime.NeoScript
                         break;
                 }
                 if (info.op == "ToSet" && result is object?[] setEntries)
-                    return MakeRuntimeSet(setEntries.Length == 0 ? new object?[0] : setEntries, info.reference, info.enumEntries == true, ctx);
+                    return MakeRuntimeSet(setEntries.Length == 0 ? new object?[0] : setEntries, info.reference, info.enumEntries == true, ctx, decimalEntries: info.decimalEntries);
                 return result;
             }
             catch (Exception error) when (ctx.trace.Attach(error)) { throw; }

@@ -1914,7 +1914,7 @@ namespace NeoCompose.Runtime.NeoScript
                 }
                 for (int i = 0; i < argumentValues.Length; i++)
                 {
-                    scope.SetParameter(i + 2, argumentValues[i]);
+                    scope.SetParameter(i + 2, CoerceNumericBinding(argumentValues[i], getter.parameters![i + 2].typeInfo, "getter argument"));
                 }
                 // Getters, actions, setters, and NSFunctions now share the same
                 // effect-capable executor. Writability is a compile/runtime target
@@ -2391,7 +2391,7 @@ namespace NeoCompose.Runtime.NeoScript
             bool strings = HoldsStringValues(llp.typeInfo?.entryTypeInfo);
             for (int i = 0; i < llp.entries.Length; i++)
             {
-                arr[i] = EvalPointer(llp.entries[i], scope, ctx);
+                arr[i] = CoerceNumericBinding(EvalPointer(llp.entries[i], scope, ctx), llp.typeInfo?.entryTypeInfo, "list entry");
                 strings |= arr[i] is string;
             }
             return KeepDerived(arr, null, strings);
@@ -2406,7 +2406,7 @@ namespace NeoCompose.Runtime.NeoScript
             foreach (var entry in dlp.entries)
             {
                 var k = EvalPointer(entry.key, scope, ctx);
-                object? value = EvalPointer(entry.value, scope, ctx);
+                object? value = CoerceNumericBinding(EvalPointer(entry.value, scope, ctx), dlp.typeInfo?.entryTypeInfo, "dictionary entry");
                 dict[k?.ToString() ?? "null"] = value;
                 strings |= value is string;
             }
@@ -4184,12 +4184,9 @@ namespace NeoCompose.Runtime.NeoScript
                 {
                     return reference.valueId;
                 }
-                string? rowId = FindRowIdByReference(receiver, ctx);
-                if (!string.IsNullOrEmpty(rowId))
-                {
-                    return rowId;
-                }
-                throw new NSGetterRuntimeError("Class value has no backing row id.");
+                if (FindRowReference(receiver, ctx) is { } row
+                    && ClassIdOfRowReference(row, ctx) is not null)
+                    return row.valueId;
             }
 
             // Dict / Class record: receiver is Dictionary<string, ...>.
@@ -4514,7 +4511,7 @@ namespace NeoCompose.Runtime.NeoScript
             return entryId is null ? pending.Row.id : ResolvePendingEntry(pending, entryId, ctx);
         }
 
-        /// <summary>The id of a pending List or Dictionary's entry; null for a Dictionary's <c>Id</c> key, which reads the row's own id.</summary>
+        /// <summary>The id of a pending List or Dictionary entry.</summary>
         private static string? PendingEntryId(
             NeoWriteBatch.PendingCollection pending,
             Pointer keyPointer,
@@ -4525,8 +4522,6 @@ namespace NeoCompose.Runtime.NeoScript
                 return PendingListEntry(list, keyPointer, scope, ctx);
             var key = EvalPointer(keyPointer, scope, ctx);
             string k = key as string ?? key?.ToString() ?? "null";
-            if (k == "Id")
-                return null;
             if (!((ObjectMemberValue)pending.Row).value!.TryGetValue(k, out string? entryId))
                 throw new NSGetterRuntimeError($"Missing key '{k}' on object");
             return entryId;
@@ -6456,6 +6451,27 @@ namespace NeoCompose.Runtime.NeoScript
             }
         }
 
+        internal static object? CoerceNumericBinding(object? value, TypeInfo? type, string context)
+        {
+            if (type?.type == MemberKind.Float && TryAsDouble(value, out double number))
+                return Box((double)(float)number);
+            if (type?.type == MemberKind.Decimal && IsRuntimeNumber(value))
+                return CoerceDecimalOperand(value, context);
+            return value;
+        }
+
+        internal static bool CollectionValueEqual(object? left, object? right, bool decimalEntries) =>
+            decimalEntries && left is string a && right is string b
+                ? NeoSetEntryKey.DecimalKey(a) == NeoSetEntryKey.DecimalKey(b)
+                : JsEqual(left, right);
+
+        private static object? CollectionSearchTarget(object? target, FunctionCollectionContainsInfo info)
+        {
+            if (info.@float && TryAsDouble(target, out double number))
+                return Box((double)(float)number);
+            return info.@decimal && target is not null ? CoerceDecimalOperand(target, "collection search") : target;
+        }
+
         private static object? EvalContains(
             ContainsFunction cnf,
             NeoScriptScope scope,
@@ -6467,7 +6483,7 @@ namespace NeoCompose.Runtime.NeoScript
                 pending = EvalPendingCollection(cnf.info.collectionPointer, PendingRead.Membership, scope, ctx, out c);
             else
                 c = EvalPointer(cnf.info.collectionPointer, scope, ctx);
-            object? target = EvalPointer(cnf.info.valuePointer, scope, ctx);
+            object? target = CollectionSearchTarget(EvalPointer(cnf.info.valuePointer, scope, ctx), cnf.info);
             if (pending is { CollectionMember: SetMember })
             {
                 ctx.client.NotePendingRead(pending.Row.id);
@@ -6545,7 +6561,7 @@ namespace NeoCompose.Runtime.NeoScript
                 var listCursor = new CollectionCursor(c, ctx);
                 while (listCursor.MoveNextUnresolved())
                 {
-                    if (JsEqual(listCursor.ResolveEntry(ctx), target))
+                    if (CollectionValueEqual(listCursor.ResolveEntry(ctx), target, cnf.info.@decimal))
                         return BoxedTrue;
                 }
                 return BoxedFalse;
@@ -6554,7 +6570,7 @@ namespace NeoCompose.Runtime.NeoScript
             while (cursor.MoveNextUnresolved())
             {
                 if ((cursor.ValueId is { } valueId && valueId == targetReferenceId)
-                    || JsEqual(cursor.ResolveEntry(ctx), target))
+                    || CollectionValueEqual(cursor.ResolveEntry(ctx), target, cnf.info.@decimal))
                 {
                     return BoxedTrue;
                 }
@@ -6690,7 +6706,7 @@ namespace NeoCompose.Runtime.NeoScript
                 throw new NSGetterRuntimeError(
                     "IndexOf receiver must be a List value.");
             }
-            var target = EvalPointer(iof.info.valuePointer, scope, ctx);
+            var target = CollectionSearchTarget(EvalPointer(iof.info.valuePointer, scope, ctx), iof.info);
             if (iof.info.reference)
                 return Box(ReferenceIndexOf(c, target, ctx));
             string? targetReferenceId = target as string
@@ -6699,7 +6715,7 @@ namespace NeoCompose.Runtime.NeoScript
             while (cursor.MoveNextUnresolved())
             {
                 if ((cursor.ValueId is { } valueId && valueId == targetReferenceId)
-                    || JsEqual(cursor.ResolveEntry(ctx), target))
+                    || CollectionValueEqual(cursor.ResolveEntry(ctx), target, iof.info.@decimal))
                 {
                     return Box(cursor.Index);
                 }
@@ -6799,6 +6815,16 @@ namespace NeoCompose.Runtime.NeoScript
             return results;
         }
 
+        private static object? FirstEntryValue(object? collection, object? value, Context ctx)
+        {
+            if (value is not string)
+                return value;
+            bool enumeration = collection is RuntimeSet set
+                ? set.EnumEntries
+                : FindRowReference(collection, ctx)?.CollectionMember(ctx.client) is EnumMember or DialogueLookupMember;
+            return enumeration ? new object?[] { value } : value;
+        }
+
         private static object? EvalFirst(
             Function fn,
             NeoScriptScope scope,
@@ -6817,7 +6843,7 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 var cursor = new CollectionCursor(c, ctx);
                 if (cursor.MoveNextUnresolved())
-                    return cursor.ResolveEntry(ctx);
+                    return FirstEntryValue(c, cursor.ResolveEntry(ctx), ctx);
             }
             else
             {
@@ -6836,7 +6862,7 @@ namespace NeoCompose.Runtime.NeoScript
                         if (callback.Test(in cursor, foundValue))
                         {
                             callback.CompleteOperator(foundValue);
-                            return foundValue;
+                            return FirstEntryValue(c, foundValue, ctx);
                         }
                     }
                 }
@@ -7051,7 +7077,7 @@ namespace NeoCompose.Runtime.NeoScript
                     value = EvaluateValue(expression, scope, expressionContext, out double number);
                     if (ReferenceEquals(value, ArithmeticValue.BareNumber))
                     {
-                        value = Box(number);
+                        value = Box(returnType.type == MemberKind.Float ? (double)(float)number : number);
                         // Every number is a Float, including non-finite ordering keys.
                         if (returnType.type == MemberKind.Float
                             || returnType.type == MemberKind.Int && NeoScriptValueMarshaller.IsIntegralNumber(number))
@@ -7064,7 +7090,7 @@ namespace NeoCompose.Runtime.NeoScript
                 if (returnsConstructedVector)
                     return ctx.trace.Complete(value);
                 if (returnType.type == MemberKind.Float && TryAsDouble(value, out double floatValue))
-                    return ctx.trace.Complete(Box(floatValue));
+                    return ctx.trace.Complete(Box((double)(float)floatValue));
                 return ctx.trace.Complete(NeoScriptValueMarshaller.NormalizeResolved(
                     ctx.client,
                     ctx.valueOwnership,
@@ -7961,7 +7987,7 @@ namespace NeoCompose.Runtime.NeoScript
             NeoScriptScope scope,
             Context ctx)
         {
-            object? value = EvalPointer(info.valuePointer, scope, ctx);
+            object? value = CoerceNumericBinding(EvalPointer(info.valuePointer, scope, ctx), info.entryTypeInfo, "repeated entry");
             double count = IntegerArgument(
                 EvalPointer(info.countPointer, scope, ctx),
                 "List.Repeat count");
@@ -8456,6 +8482,23 @@ namespace NeoCompose.Runtime.NeoScript
             }
             if (a is NeoColorValue ca && b is NeoColorValue cb)
                 return ca.r == cb.r && ca.g == cb.g && ca.b == cb.b && ca.a == cb.a;
+            if (a is RuntimeSet || b is RuntimeSet)
+            {
+                if (a is not (RuntimeSet or object?[]) || b is not (RuntimeSet or object?[]))
+                    return false;
+                int leftCount = a is RuntimeSet leftSet ? leftSet.Count : ((object?[])a).Length;
+                int rightCount = b is RuntimeSet rightSet ? rightSet.Count : ((object?[])b).Length;
+                if (leftCount != rightCount)
+                    return false;
+                using var left = ((IEnumerable<object?>)a).GetEnumerator();
+                using var right = ((IEnumerable<object?>)b).GetEnumerator();
+                while (left.MoveNext() && right.MoveNext())
+                {
+                    if (!JsEqual(left.Current, right.Current))
+                        return false;
+                }
+                return true;
+            }
             if (a is object?[] aa && b is object?[] ab)
             {
                 if (aa.Length != ab.Length)

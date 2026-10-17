@@ -146,7 +146,7 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>Canonical decimal string: <c>1.0</c>, <c>1.00</c>, and <c>1</c> share a key.</summary>
-        private static string DecimalKey(string value)
+        internal static string DecimalKey(string value)
         {
             string text = value;
             if (text.IndexOf('.') >= 0 && text.EndsWith("0", StringComparison.Ordinal))
