@@ -2220,6 +2220,13 @@ namespace NeoCompose.Runtime.NeoScript
                 vp.primitiveEntries = (object?[])UnwrapJToken(literal)!;
                 return EvalValueLiteral(vp, ctx);
             }
+            if (literal is JObject && vp.value.typeInfo.type is MemberKind.Vector2 or MemberKind.Vector2Int or MemberKind.Vector3 or MemberKind.Vector3Int)
+            {
+                NeoVector2Value vector = vp.value.typeInfo.type is MemberKind.Vector3 or MemberKind.Vector3Int
+                    ? literal.ToObject<NeoVector3Value>()!
+                    : literal.ToObject<NeoVector2Value>()!;
+                return RoundVectorIngress(vector, vp.value.typeInfo.type);
+            }
             return UnwrapJToken(literal);
         }
 
@@ -4162,7 +4169,7 @@ namespace NeoCompose.Runtime.NeoScript
             // Components and channels are the only single-character keys.
             if (k.Length == 1)
             {
-                if (TryReadVectorComponent(receiver, k, out float component))
+                if (TryReadVectorComponent(receiver, k, out double component))
                 {
                     return Box(component);
                 }
@@ -6058,6 +6065,8 @@ namespace NeoCompose.Runtime.NeoScript
                     return EvalDialogueGroupRequest(dgf.info, scope, ctx);
                 case DialogueFunction df:
                     return EvalDialogueRequest(df.info, scope, ctx);
+                case VectorOpFunction vectorOp:
+                    return EvalVectorOp(vectorOp.info, scope, ctx);
                 case VectorConstructorFunction vcf:
                     return EvalVectorConstructor(vcf.info, scope, ctx);
                 case ImageSliceFunction isf:
@@ -7345,12 +7354,12 @@ namespace NeoCompose.Runtime.NeoScript
             Pointer[] pointers = info.componentPointers;
             int arity = pointers.Length;
             // Vectors have at most three components; they stay in locals.
-            float x = 0;
-            float y = 0;
-            float z = 0;
+            double x = 0;
+            double y = 0;
+            double z = 0;
             for (int i = 0; i < arity; i++)
             {
-                float component = VectorComponent(info.vectorType, pointers[i], scope, ctx);
+                double component = VectorComponent(info.vectorType, pointers[i], scope, ctx);
                 if (i == 0)
                     x = component;
                 else if (i == 1)
@@ -7908,12 +7917,12 @@ namespace NeoCompose.Runtime.NeoScript
         {
             switch (op)
             {
-                // Min/Max propagate NaN and order -0.0 below 0.0 in both
-                // hosts, so the standard APIs are the contract (P69 §2.2).
+                // Mono's Math.Min/Max return the second equal operand. Handle
+                // signed zero explicitly to match JavaScript on either ordering.
                 case MathOp.Min:
-                    return System.Math.Min(a, b);
+                    return a == 0 && b == 0 ? (BitConverter.DoubleToInt64Bits(a) < 0 ? a : b) : System.Math.Min(a, b);
                 case MathOp.Max:
-                    return System.Math.Max(a, b);
+                    return a == 0 && b == 0 ? (BitConverter.DoubleToInt64Bits(a) < 0 ? b : a) : System.Math.Max(a, b);
                 case MathOp.Clamp:
                     {
                         // System.Math.Clamp's algorithm, spelled out because the
@@ -8226,7 +8235,7 @@ namespace NeoCompose.Runtime.NeoScript
         }
 
         // A computed component arrives unboxed, like an arithmetic operand.
-        private static float VectorComponent(
+        private static double VectorComponent(
             MemberKind vectorType,
             Pointer pointer,
             NeoScriptScope scope,
@@ -8240,7 +8249,7 @@ namespace NeoCompose.Runtime.NeoScript
                 throw new NSGetterRuntimeError(
                     $"{vectorType} component must be numeric; got {ReceiverTypeName(ArithmeticValue.Box(raw, numeric))}.");
             }
-            return (float)numeric;
+            return vectorType is MemberKind.Vector2Int or MemberKind.Vector3Int ? numeric : (float)numeric;
         }
 
         private static void EnsureVectorArity(
@@ -8255,7 +8264,7 @@ namespace NeoCompose.Runtime.NeoScript
             }
         }
 
-        private static void RequireIntegerComponent(float value, string component)
+        private static void RequireIntegerComponent(double value, string component)
         {
             if (!NeoNumbers.IsWhole(value))
             {
@@ -9181,8 +9190,8 @@ namespace NeoCompose.Runtime.NeoScript
                         ["fileId"] = sp.value.fileId,
                         ["sliceIndex"] = sp.value.sliceIndex,
                     },
-                Vector2MemberValue v => v.value,
-                Vector3MemberValue v => v.value,
+                Vector2MemberValue v => RoundVectorIngress(v.value, member?.kind),
+                Vector3MemberValue v => RoundVectorIngress(v.value, member?.kind),
                 ColorMemberValue c => c.value,
                 // P67 6. A Variant member read hands the runtime the SAME
                 // shape a `<Class>.Variants.X` static path does, so the two
@@ -9272,7 +9281,7 @@ namespace NeoCompose.Runtime.NeoScript
                 UnwrapMemo.Remember(node, row, ctx, ownership, memberId, cached);
                 return cached;
             }
-            if (member is null && row is ArrayMemberValue)
+            if (member is null && row is ArrayMemberValue or Vector2MemberValue or Vector3MemberValue)
                 ctx.client.TryInferMemberForValueId(row.id, out member);
             var unwrapped = ExtractWireValue(row, ownership, member, ctx);
             ctx.rowUnwrapCache[cacheKey] = unwrapped;
@@ -10168,7 +10177,7 @@ namespace NeoCompose.Runtime.NeoScript
         private static bool TryReadVectorComponent(
             object? value,
             string key,
-            out float component)
+            out double component)
         {
             component = 0;
             if (value is Vector2 vector2 && value is not Vector3)
@@ -10270,7 +10279,7 @@ namespace NeoCompose.Runtime.NeoScript
                     return false;
                 if (!TryAsDouble(raw, out double numeric))
                     return false;
-                component = (float)numeric;
+                component = numeric;
                 return true;
             }
             return false;

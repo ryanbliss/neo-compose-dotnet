@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.75.0] - 2026-10-17
+
+- Added: NeoScript vector arithmetic, magnitudes, normalized vectors, directional constants, vector math functions, and `Color.Lerp` from P116. Requires a CLI export with schema 43 and this SDK together; older exports must be re-exported.
+- Fixed: integer vector components retain NeoScript integer precision through construction, JSON, component writes, overlays, and arithmetic. `NeoVector2Value.x/y` and `NeoVector3Value.z` are now `double`; Unity adapters convert explicitly to `float` or `int`.
+- Fixed: local vector aliases observe component writes, matching the TypeScript runtime. Replacing a vector with an arithmetic result leaves previous aliases unchanged.
+- Fixed: local list index assignments and vector compound targets evaluate their receiver and index once.
+- Fixed: scalar and vector Min/Max preserve signed-zero ordering on Unity Mono.
+
 ## [0.74.3] - 2026-10-17
 
 - Fixed: float bindings and collection searches apply float32 precision, and decimal collection searches, removal, and set membership compare numeric value without discarding display scale. Matches the numeric collection markers emitted by CLI 0.84.4.

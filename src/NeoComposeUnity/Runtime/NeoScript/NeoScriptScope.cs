@@ -187,6 +187,10 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 switch (instruction)
                 {
+                    case AssignInstruction assign:
+                        foreach (Variable binding in assign.bindings ?? Array.Empty<Variable>())
+                            Add(binding.id);
+                        break;
                     case VariableInstruction variable:
                         Add(variable.variable.id);
                         break;
@@ -196,6 +200,8 @@ namespace NeoCompose.Runtime.NeoScript
                         break;
                     case ForInstruction loop:
                         Add(loop.initializer.id);
+                        foreach (Variable binding in loop.iterator.bindings ?? Array.Empty<Variable>())
+                            Add(binding.id);
                         AddRunInPlaceDeclarations(loop.instructions);
                         break;
                     case WhileInstruction loop:
@@ -235,6 +241,7 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 switch (instructions[i])
                 {
+                    case AssignInstruction { bindings: { Length: > 0 } }:
                     case VariableInstruction:
                         return true;
                     case IfInstruction conditional:

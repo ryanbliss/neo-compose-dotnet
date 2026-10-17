@@ -410,9 +410,9 @@ namespace NeoCompose.Runtime
                         foreach (NeoAnimationLeafFieldValue field in fields)
                         {
                             if (Is(field, "x"))
-                                composed.x = (float)field.Number;
+                                composed.x = kind is NeoAnimationLeafKind.Vector2Int or NeoAnimationLeafKind.Vector3Int ? field.Number : (float)field.Number;
                             else if (Is(field, "y"))
-                                composed.y = (float)field.Number;
+                                composed.y = kind is NeoAnimationLeafKind.Vector2Int or NeoAnimationLeafKind.Vector3Int ? field.Number : (float)field.Number;
                         }
                         return composed;
                     }
@@ -433,11 +433,11 @@ namespace NeoCompose.Runtime
                         foreach (NeoAnimationLeafFieldValue field in fields)
                         {
                             if (Is(field, "x"))
-                                composed.x = (float)field.Number;
+                                composed.x = kind is NeoAnimationLeafKind.Vector2Int or NeoAnimationLeafKind.Vector3Int ? field.Number : (float)field.Number;
                             else if (Is(field, "y"))
-                                composed.y = (float)field.Number;
+                                composed.y = kind is NeoAnimationLeafKind.Vector2Int or NeoAnimationLeafKind.Vector3Int ? field.Number : (float)field.Number;
                             else if (Is(field, "z"))
-                                composed.z = (float)field.Number;
+                                composed.z = kind is NeoAnimationLeafKind.Vector2Int or NeoAnimationLeafKind.Vector3Int ? field.Number : (float)field.Number;
                         }
                         return composed;
                     }

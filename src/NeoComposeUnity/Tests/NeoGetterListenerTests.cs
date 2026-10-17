@@ -63,6 +63,103 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void VectorPropertyCompoundCapturesReceiverAndAppliesOperatorOnce()
+        {
+            var vectorType = new PrimitiveTypeInfo { type = MemberKind.Vector2Int, required = true };
+            VariablePointer Local(string name) => new()
+            {
+                type = PointerKind.Variable,
+                variableId = name
+            };
+            using Fixture fixture = Build(data =>
+            {
+                data.members["member-point"] = new Vector2IntMember
+                {
+                    id = "member-point",
+                    projectId = ProjectId,
+                    name = "Point",
+                    kind = MemberKind.Vector2Int,
+                    Requirement = NeoMemberRequirementKind.Required,
+                };
+                data.classes["class-watcher"].schema["Point"] = "member-point";
+                data.classes["class-watcher"].schema["Vector"] = "member-vector";
+                ((ObjectMemberValue)data.values["value-watcher"]).value!["Point"] = "watcher-point";
+                data.values["watcher-point"] = new Vector2MemberValue { id = "watcher-point", value = new NeoVector2Value { x = 3, y = 4 } };
+                var setter = Assign(KeyOf(This(), "Point"), Local("__value__"));
+                setter.target.typeInfo = vectorType;
+                data.members["member-vector"] = Getter("member-vector", "Vector", KeyOf(This(), "Point"), setter, returnType: vectorType);
+            });
+            var receiver = new ObjectInitializerPointer
+            {
+                type = PointerKind.ObjectInitializer,
+                receiver = new Variable
+                {
+                    id = "receiver",
+                    typeInfo = new PrimitiveTypeInfo { type = MemberKind.Unknown, required = true },
+                    pointer = new ReferencePointer { type = PointerKind.Reference, valueId = "value-watcher" }
+                },
+                assignments = new[] { Assign(KeyOf(Local("receiver"), "Left"), Add(KeyOf(Local("receiver"), "Left"), Literal(1))) },
+            };
+            var target = new CallGetterPointer { type = PointerKind.CallGetter, memberId = "member-vector", receiver = CallReceiver.Instance(Local("$assignment_0")) };
+            var body = new FunctionWithReturnType
+            {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                parameters = Array.Empty<Variable>(),
+                typeInfo = new VoidTypeInfo { type = MemberKind.Void, required = true },
+                instructions = new Instruction[]
+                {
+                    new AssignInstruction
+                    {
+                        type = InstructionKind.Assign, operatorValue = "*=",
+                        bindings = new[] { new Variable { id = "$assignment_0", typeInfo = new PrimitiveTypeInfo { type = MemberKind.Unknown, required = true }, pointer = receiver } },
+                        target = new WriteTarget { pointer = target, typeInfo = vectorType, writability = WritabilityKind.Setter },
+                        pointer = new FunctionPointer { type = PointerKind.Function, function = new VectorOpFunction { type = FunctionKind.VectorOp,
+                            info = new FunctionVectorOpInfo { kind = "Vector2Int", op = "multiply", argPointers = new Pointer[] { target, Literal(2) } } } },
+                    },
+                },
+            };
+            NeoScriptExecutor.Execute(fixture.client, body, new Dictionary<string, object?>(), new NSGetterEvaluator.Context(fixture.client, null, null));
+            var point = new NeoMemberVector2Int(fixture.client, "member-point", "watcher-point", NeoValueOwnership.Save);
+            Assert.AreEqual(6d, point.value!.value!.x);
+            Assert.AreEqual(8d, point.value.value.y);
+            Assert.IsTrue(fixture.client.TryGetValue(NeoValueOwnership.Save, "watcher-left", out NumberMemberValue? calls));
+            Assert.AreEqual(1d, calls!.value);
+        }
+
+        [Test]
+        public void VectorDerivedGetterInvalidatesForComponentAndWholeValueWrites()
+        {
+            using Fixture fixture = Build(data =>
+            {
+                data.members["member-point"] = new Vector2IntMember
+                {
+                    id = "member-point",
+                    projectId = ProjectId,
+                    name = "Point",
+                    kind = MemberKind.Vector2Int,
+                    Requirement = NeoMemberRequirementKind.Required,
+                };
+                data.classes["class-watcher"].schema["Point"] = "member-point";
+                ((ObjectMemberValue)data.values["value-watcher"]).value!["Point"] = "watcher-point";
+                data.values["watcher-point"] = new Vector2MemberValue { id = "watcher-point", value = new NeoVector2Value { x = 3, y = 4 } };
+                data.members["member-value"] = Getter("member-value", "Value", new FunctionPointer
+                {
+                    type = PointerKind.Function,
+                    function = new VectorOpFunction
+                    {
+                        type = FunctionKind.VectorOp,
+                        info = new FunctionVectorOpInfo { kind = "Vector2Int", op = "sqrMagnitude", argPointers = new Pointer[] { KeyOf(This(), "Point") } },
+                    },
+                });
+            });
+            fixture.Subscribe("member-value");
+            var point = new NeoMemberVector2IntWritable(fixture.client, "member-point", "watcher-point", NeoValueOwnership.Save);
+            new NeoVector2Int(point).x = 6;
+            point.Set(new UnityEngine.Vector2Int(1, 2));
+            CollectionAssert.AreEqual(new[] { ("member-heard", 52), ("member-heard", 5) }, fixture.heard);
+        }
+
+        [Test]
         public void SubscribingArmsAndAReadWriteCallsOnceWithTheNewResult()
         {
             using Fixture fixture = Build();

@@ -83,7 +83,7 @@ namespace NeoCompose.Tests
             AssertVector3(client, "a-position", 0f, 0.25f, 0f);
 
             // Movement code advances x between two clip frames.
-            WriteVector3(client, "PlacementA", 5f, ReadVector3(client, "a-position").y, 0f);
+            WriteVector3(client, "PlacementA", 5f, (float)ReadVector3(client, "a-position").y, 0f);
             definition.ApplyFrame(1, useResolvedState: false);
 
             // Both are correct: the clip owns y, the game owns x.
@@ -295,6 +295,22 @@ namespace NeoCompose.Tests
             var error = Assert.Throws<System.InvalidOperationException>(() =>
                 BuildClient(Frame(0, ("Tint", PartialRow("{\"a\":2}")))));
             StringAssert.Contains("colour channel 'a' must be within [0, 1]", error!.Message);
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void IntegerVectorOverlaysPreserveComponentsBeyondFloatPrecision(bool resolved)
+        {
+            using NeoClient client = BuildClient(Frame(0,
+                ("Grid", PartialRow("{\"x\":16777217}")),
+                ("Cell", PartialRow("{\"z\":-16777217}"))));
+            using var target = OpenPlacement(client, "PlacementA");
+            NeoAnimationDefinition definition = NeoAnimationCompiler.Compile(target, "Idle");
+            definition.ApplyFrame(0, useResolvedState: resolved);
+            Assert.IsTrue(client.TryGetValue(NeoValueOwnership.Save, "a-grid", out Vector2MemberValue? grid));
+            Assert.IsTrue(client.TryGetValue(NeoValueOwnership.Save, "a-cell", out Vector3MemberValue? cell));
+            Assert.AreEqual(16777217d, grid!.value!.x);
+            Assert.AreEqual(-16777217d, cell!.value!.z);
         }
 
         [Test]

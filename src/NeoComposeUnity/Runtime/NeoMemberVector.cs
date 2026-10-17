@@ -1041,7 +1041,7 @@ namespace NeoCompose.Runtime
 
         public static Vector2 ToVector2(NeoVector2Value value)
         {
-            return new Vector2(value.x, value.y);
+            return new Vector2((float)value.x, (float)value.y);
         }
 
         public static Vector2Int ToVector2Int(NeoVector2Value value)
@@ -1051,7 +1051,7 @@ namespace NeoCompose.Runtime
 
         public static Vector3 ToVector3(NeoVector3Value value)
         {
-            return new Vector3(value.x, value.y, value.z);
+            return new Vector3((float)value.x, (float)value.y, (float)value.z);
         }
 
         public static Vector3Int ToVector3Int(NeoVector3Value value)
@@ -1062,14 +1062,14 @@ namespace NeoCompose.Runtime
                 ToInt(value.z, "z"));
         }
 
-        internal static bool IsInt(float value) =>
-            !float.IsNaN(value)
-            && !float.IsInfinity(value)
+        internal static bool IsInt(double value) =>
+            !double.IsNaN(value)
+            && !double.IsInfinity(value)
             && value >= int.MinValue
             && value <= int.MaxValue
             && NeoNumbers.IsWhole(value);
 
-        private static int ToInt(float value, string component)
+        private static int ToInt(double value, string component)
         {
             if (!IsInt(value))
             {

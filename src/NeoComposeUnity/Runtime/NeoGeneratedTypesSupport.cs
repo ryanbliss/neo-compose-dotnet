@@ -1208,9 +1208,9 @@ namespace NeoCompose.Runtime
                 return wrapper.Value;
             if (value is NeoVector2Value raw)
                 return NeoVectorValues.ToVector2(raw);
-            if (TryReadVectorComponents(value, false, out float x, out float y, out _))
+            if (TryReadVectorComponents(value, false, out double x, out double y, out _))
             {
-                return new Vector2(x, y);
+                return new Vector2((float)x, (float)y);
             }
             return null;
         }
@@ -1225,7 +1225,7 @@ namespace NeoCompose.Runtime
                 return wrapper.Value;
             if (value is NeoVector2Value raw)
                 return NeoVectorValues.ToVector2Int(raw);
-            if (TryReadVectorComponents(value, false, out float x, out float y, out _))
+            if (TryReadVectorComponents(value, false, out double x, out double y, out _))
             {
                 return NeoVectorValues.ToVector2Int(new NeoVector2Value { x = x, y = y });
             }
@@ -1242,9 +1242,9 @@ namespace NeoCompose.Runtime
                 return wrapper.Value;
             if (value is NeoVector3Value raw)
                 return NeoVectorValues.ToVector3(raw);
-            if (TryReadVectorComponents(value, true, out float x, out float y, out float z))
+            if (TryReadVectorComponents(value, true, out double x, out double y, out double z))
             {
-                return new Vector3(x, y, z);
+                return new Vector3((float)x, (float)y, (float)z);
             }
             return null;
         }
@@ -1259,7 +1259,7 @@ namespace NeoCompose.Runtime
                 return wrapper.Value;
             if (value is NeoVector3Value raw)
                 return NeoVectorValues.ToVector3Int(raw);
-            if (TryReadVectorComponents(value, true, out float x, out float y, out float z))
+            if (TryReadVectorComponents(value, true, out double x, out double y, out double z))
             {
                 return NeoVectorValues.ToVector3Int(new NeoVector3Value { x = x, y = y, z = z });
             }
@@ -2629,9 +2629,9 @@ namespace NeoCompose.Runtime
         private static bool TryReadVectorComponents(
             object value,
             bool zRequired,
-            out float x,
-            out float y,
-            out float z)
+            out double x,
+            out double y,
+            out double z)
         {
             x = 0;
             y = 0;
@@ -2640,17 +2640,17 @@ namespace NeoCompose.Runtime
             {
                 if (dict.Count != (zRequired ? 3 : 2))
                     return false;
-                return TryReadFloat(dict.TryGetValue("x", out var xv) ? xv : null, out x)
-                    && TryReadFloat(dict.TryGetValue("y", out var yv) ? yv : null, out y)
-                    && (!zRequired || TryReadFloat(dict.TryGetValue("z", out var zv) ? zv : null, out z));
+                return TryReadDouble(dict.TryGetValue("x", out var xv) ? xv : null, out x)
+                    && TryReadDouble(dict.TryGetValue("y", out var yv) ? yv : null, out y)
+                    && (!zRequired || TryReadDouble(dict.TryGetValue("z", out var zv) ? zv : null, out z));
             }
             if (value is JObject obj)
             {
                 if (obj.Count != (zRequired ? 3 : 2))
                     return false;
-                return TryReadFloat(obj["x"], out x)
-                    && TryReadFloat(obj["y"], out y)
-                    && (!zRequired || TryReadFloat(obj["z"], out z));
+                return TryReadDouble(obj["x"], out x)
+                    && TryReadDouble(obj["y"], out y)
+                    && (!zRequired || TryReadDouble(obj["z"], out z));
             }
             return false;
         }
@@ -2685,6 +2685,30 @@ namespace NeoCompose.Runtime
                     && TryReadFloat(obj["a"], out a);
             }
             return false;
+        }
+
+        private static bool TryReadDouble(object? value, out double result)
+        {
+            switch (value)
+            {
+                case float f:
+                    result = f;
+                    return !float.IsNaN(f) && !float.IsInfinity(f);
+                case double d:
+                    result = d;
+                    return !double.IsNaN(result) && !double.IsInfinity(result);
+                case int i:
+                    result = i;
+                    return true;
+                case long l:
+                    result = l;
+                    return true;
+                case JValue token:
+                    return TryReadDouble(token.Value, out result);
+                default:
+                    result = 0;
+                    return false;
+            }
         }
 
         private static bool TryReadFloat(object? value, out float result)

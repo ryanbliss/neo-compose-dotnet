@@ -390,11 +390,11 @@ namespace NeoCompose.Runtime.Json
         /// materializes. Evaluator bookkeeping; never serialized.
         /// </summary>
         internal object? detachedOwner;
-        public float x
+        public double x
         {
             get; set;
         }
-        public float y
+        public double y
         {
             get; set;
         }
@@ -403,7 +403,7 @@ namespace NeoCompose.Runtime.Json
     [JsonConverter(typeof(NeoVector3ValueConverter))]
     public class NeoVector3Value : NeoVector2Value
     {
-        public float z
+        public double z
         {
             get; set;
         }
@@ -540,8 +540,8 @@ namespace NeoCompose.Runtime.Json
             }
             return new NeoVector2Value
             {
-                x = ReadFiniteFloat(obj, "x"),
-                y = ReadFiniteFloat(obj, "y"),
+                x = ReadFiniteDouble(obj, "x"),
+                y = ReadFiniteDouble(obj, "y"),
             };
         }
 
@@ -568,7 +568,7 @@ namespace NeoCompose.Runtime.Json
             return obj.Count == 2 && IsFiniteNumber(obj["x"]) && IsFiniteNumber(obj["y"]);
         }
 
-        internal static float ReadFiniteFloat(JObject obj, string key)
+        internal static double ReadFiniteDouble(JObject obj, string key)
         {
             var token = obj[key] ?? throw new JsonSerializationException(
                 $"Vector value is missing '{key}'.");
@@ -577,8 +577,8 @@ namespace NeoCompose.Runtime.Json
                 throw new JsonSerializationException(
                     $"Vector component '{key}' must be a finite number.");
             }
-            var value = token.Value<float>();
-            if (float.IsNaN(value) || float.IsInfinity(value))
+            var value = token.Value<double>();
+            if (double.IsNaN(value) || double.IsInfinity(value))
             {
                 throw new JsonSerializationException(
                     $"Vector component '{key}' must be a finite number.");
@@ -594,8 +594,8 @@ namespace NeoCompose.Runtime.Json
             {
                 return false;
             }
-            var value = token.Value<float>();
-            return !float.IsNaN(value) && !float.IsInfinity(value);
+            var value = token.Value<double>();
+            return !double.IsNaN(value) && !double.IsInfinity(value);
         }
     }
 
@@ -622,9 +622,9 @@ namespace NeoCompose.Runtime.Json
             }
             return new NeoVector3Value
             {
-                x = NeoVector2ValueConverter.ReadFiniteFloat(obj, "x"),
-                y = NeoVector2ValueConverter.ReadFiniteFloat(obj, "y"),
-                z = NeoVector2ValueConverter.ReadFiniteFloat(obj, "z"),
+                x = NeoVector2ValueConverter.ReadFiniteDouble(obj, "x"),
+                y = NeoVector2ValueConverter.ReadFiniteDouble(obj, "y"),
+                z = NeoVector2ValueConverter.ReadFiniteDouble(obj, "z"),
             };
         }
 
@@ -659,8 +659,8 @@ namespace NeoCompose.Runtime.Json
             {
                 return false;
             }
-            var value = token.Value<float>();
-            return !float.IsNaN(value) && !float.IsInfinity(value);
+            var value = token.Value<double>();
+            return !double.IsNaN(value) && !double.IsInfinity(value);
         }
     }
 
@@ -930,9 +930,8 @@ namespace NeoCompose.Runtime.Json
         }
 
         /// <summary>
-        /// Reads <paramref name="key"/> as a float — the component type of
-        /// every vector and colour DTO. False when the field is absent or not
-        /// a number.
+        /// Reads <paramref name="key"/> as a float, for float-vector and colour
+        /// channels. False when the field is absent or not a number.
         /// </summary>
         public bool TryGetSingle(string key, out float value)
         {

@@ -70,6 +70,9 @@ namespace NeoCompose.Runtime.NeoScript
                 case ThrowInstruction thrown:
                     return AnyPointer(thrown.pointer, predicate);
                 case AssignInstruction assign:
+                    foreach (Variable binding in assign.bindings ?? Array.Empty<Variable>())
+                        if (AnyPointer(binding.pointer, predicate))
+                            return true;
                     return AnyPointer(assign.target.pointer, predicate)
                         || AnyPointer(assign.pointer, predicate);
                 case CollectionCallInstruction collectionCall:
@@ -328,6 +331,8 @@ namespace NeoCompose.Runtime.NeoScript
                             && AnyPointer(number.info.argPointer, predicate))
                         || (number.info.digitsPointer is not null
                             && AnyPointer(number.info.digitsPointer, predicate));
+                case VectorOpFunction vectorOp:
+                    return AnyPointer(vectorOp.info.argPointers, predicate);
                 case MathOpFunction math:
                     return AnyPointer(math.info.argPointers, predicate);
                 case ListRepeatFunction repeat:

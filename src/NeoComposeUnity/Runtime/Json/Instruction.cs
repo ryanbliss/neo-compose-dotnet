@@ -168,6 +168,9 @@ namespace NeoCompose.Runtime.Json
         {
         }
 
+        /// <summary>Evaluate once, in order, before the assignment value and target.</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public Variable[]? bindings;
         public WriteTarget target = null!;
         [JsonProperty("operator")]
         public string operatorValue = null!;
@@ -472,6 +475,17 @@ namespace NeoCompose.Runtime.Json
 
         protected override void ValidateObject(JObject obj, Type concrete)
         {
+            if (concrete == typeof(AssignInstruction) && obj.TryGetValue("bindings", out JToken? bindings))
+            {
+                if (bindings is not JArray array)
+                    throw new JsonSerializationException("Assignment bindings must be an array.");
+                foreach (JToken binding in array)
+                {
+                    if (binding is not JObject variable || variable["id"]?.Type != JTokenType.String
+                        || variable["typeInfo"] is not JObject || !IsPointerObject(variable["pointer"]))
+                        throw new JsonSerializationException("Assignment binding requires id, typeInfo, and pointer.");
+                }
+            }
             if (concrete == typeof(DebugInstruction))
             {
                 string? severity = obj["severity"]?.Value<string>();

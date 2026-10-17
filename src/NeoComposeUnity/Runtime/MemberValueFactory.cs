@@ -808,7 +808,7 @@ namespace NeoCompose.Runtime
             if (payload is null)
                 return null;
             if (payload is NeoVector2Value raw)
-                return raw;
+                return new NeoVector2Value { x = (float)raw.x, y = (float)raw.y };
             if (payload is Vector2 vector)
                 return NeoVectorValues.FromVector2(vector);
             if (payload is NeoReadOnlyVector2 wrapper)
@@ -822,7 +822,8 @@ namespace NeoCompose.Runtime
                 return null;
             if (payload is NeoVector2Value raw)
             {
-                _ = NeoVectorValues.ToVector2Int(raw);
+                if (!NeoNumbers.IsWhole(raw.x) || !NeoNumbers.IsWhole(raw.y))
+                    throw PayloadError(payload, member, "Vector2Int");
                 return raw;
             }
             if (payload is Vector2Int vector)
@@ -837,7 +838,7 @@ namespace NeoCompose.Runtime
             if (payload is null)
                 return null;
             if (payload is NeoVector3Value raw)
-                return raw;
+                return new NeoVector3Value { x = (float)raw.x, y = (float)raw.y, z = (float)raw.z };
             if (payload is Vector3 vector)
                 return NeoVectorValues.FromVector3(vector);
             if (payload is NeoReadOnlyVector3 wrapper)
@@ -851,7 +852,8 @@ namespace NeoCompose.Runtime
                 return null;
             if (payload is NeoVector3Value raw)
             {
-                _ = NeoVectorValues.ToVector3Int(raw);
+                if (!NeoNumbers.IsWhole(raw.x) || !NeoNumbers.IsWhole(raw.y) || !NeoNumbers.IsWhole(raw.z))
+                    throw PayloadError(payload, member, "Vector3Int");
                 return raw;
             }
             if (payload is Vector3Int vector)

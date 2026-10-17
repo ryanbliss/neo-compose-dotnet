@@ -13,6 +13,7 @@ namespace NeoCompose.Runtime.Json
     public static class NeoProjectExportContract
     {
         /// <summary>
+        /// 43 admits the P116 vectorOp intrinsic. Requires the paired CLI and SDK.
         /// 42 stores readonly fields per instance and omits Immutable members
         /// from runtime-constructed rows. An older SDK would reject the stored
         /// readonly keys and strand Immutable defaults in Session.
@@ -125,7 +126,7 @@ namespace NeoCompose.Runtime.Json
         /// the wrong configuration rather than an error. It must reject the
         /// export.
         /// </summary>
-        public const int CurrentSchemaVersion = 42;
+        public const int CurrentSchemaVersion = 43;
 
         /// <summary>
         /// The main partition's file, relative to <c>project.json</c>'s
