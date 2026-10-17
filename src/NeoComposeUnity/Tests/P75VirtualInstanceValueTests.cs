@@ -4621,6 +4621,59 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void GenericSlotBoundToAnInterfaceReadsItsRowFields()
+        {
+            ProjectData data = BuildInterfaceRewardProjectData();
+            NeoSchemaClass thingClass = data.classes["thing-class"];
+            thingClass.schema.Remove("Reward");
+            thingClass.schema["Boxed"] = "thing-boxed";
+            data.members.Remove("thing-reward");
+            NeoSchemaClass boxClass = SchemaClass("box-class", "Box", NeoMemberStorage.Save);
+            boxClass.genericParams = new List<GenericParamDeclaration> { new() { id = "box-t", name = "T" } };
+            boxClass.schema["Value"] = "box-value";
+            data.classes[boxClass.id] = boxClass;
+            data.members["box-value"] = new GenericMember
+            {
+                id = "box-value",
+                projectId = "p75-project",
+                name = "Value",
+                kind = MemberKind.Generic,
+                genericParamId = "box-t",
+            };
+            data.members["reward-binding"] = JToken.Parse(
+                "{'id':'reward-binding','projectId':'p75-project','name':'T','kind':7,"
+                    + "'interfaceId':'reward-interface','createdAt':'x','updatedAt':'x'}").ToObject<JsonMember>()!;
+            data.members["thing-boxed"] = new ClassMember
+            {
+                id = "thing-boxed",
+                projectId = "p75-project",
+                name = "Boxed",
+                kind = MemberKind.Class,
+                DeclaredClassId = boxClass.id,
+                Requirement = NeoMemberRequirementKind.Required,
+                classArguments = new Dictionary<string, GenericBinding>
+                {
+                    ["box-t"] = new() { kind = NeoGenericBindingKind.Member, memberId = "reward-binding" },
+                },
+                defaultValue = new ObjectMemberValueBase
+                {
+                    classId = boxClass.id,
+                    value = new Dictionary<string, string> { ["Value"] = "boxed-coin" },
+                },
+            };
+            data.values["boxed-coin"] = ObjectValue("boxed-coin", "coin-class");
+
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            NeoMemberClassWritable value = client.save
+                .Get<NeoMemberClassWritable>("Thing")
+                .Get<NeoMemberClassWritable>("Boxed")
+                .Get<NeoMemberClassWritable>("Value");
+
+            Assert.AreEqual("coin-class", value.value!.classId);
+            Assert.AreEqual(5d, value.Get<NeoMemberIntWritable>("Amount").value!.value);
+        }
+
+        [Test]
         public void PersistedNestedSparseRootAtItsVirtualIdReplaysAfterItsParent()
         {
             string nestedId;
