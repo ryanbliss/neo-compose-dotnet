@@ -155,6 +155,8 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public class FunctionCollectionContainsInfo
     {
+        public bool @float;
+        public bool @decimal;
         public Pointer collectionPointer = null!;
         public Pointer valuePointer = null!;
         /// <summary>Entries compare by identity (see <see cref="Condition.reference"/>).</summary>
@@ -429,6 +431,7 @@ namespace NeoCompose.Runtime.Json
     public sealed class FunctionCollectionQueryInfo
     {
         public bool? enumEntries;
+        public bool decimalEntries;
         public string op = "";
         public Pointer collectionPointer = null!;
         public FunctionWithReturnType? function;

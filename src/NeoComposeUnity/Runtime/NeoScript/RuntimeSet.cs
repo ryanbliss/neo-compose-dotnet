@@ -15,13 +15,15 @@ namespace NeoCompose.Runtime.NeoScript
         private readonly Dictionary<object, Action<object?>> validations = new();
         internal readonly bool Reference;
         internal readonly bool EnumEntries;
+        internal readonly bool DecimalEntries;
         internal readonly object?[] Source;
 
-        internal RuntimeSet(object?[] source, bool reference, bool enumEntries, IEqualityComparer<object?> comparer)
+        internal RuntimeSet(object?[] source, bool reference, bool enumEntries, bool decimalEntries, IEqualityComparer<object?> comparer)
         {
             Source = source;
             Reference = reference;
             EnumEntries = enumEntries;
+            DecimalEntries = decimalEntries;
             entries = new OrderedMap<object, object?>(comparer);
         }
 

@@ -297,7 +297,7 @@ namespace NeoCompose.Runtime
                     returnValue,
                     "return");
             }
-            return returnValue;
+            return NSGetterEvaluator.CoerceNumericBinding(returnValue, returnTypeInfo, "return");
         }
 
         /// <summary>
@@ -574,6 +574,7 @@ namespace NeoCompose.Runtime
                                     scope,
                                     actionCtx,
                                     out double number);
+                                CoerceLocalNumeric(ref value, ref number, variable.variable.typeInfo);
                                 value = NSGetterEvaluator.DeclaredRuntimeSet(value, variable.variable.typeInfo, actionCtx);
                                 scope.SetEvaluationValue(variable.variable, value, number);
                                 break;
@@ -2502,6 +2503,14 @@ namespace NeoCompose.Runtime
                 AssignLocalLeafField(writeTarget, keyOfPointer, receiverVariable, receiver!, assigned, scope, ctx);
                 return;
             }
+            if (writeTarget.writability == WritabilityKind.Local
+                && receiver is IDictionary<string, object?> dictionary
+                && FindValueId(receiver, ctx) is null)
+            {
+                string dictionaryKey = ToStringKey(Eval(keyOfPointer.keyOf.key, scope, ctx), "Dictionary assignment key");
+                dictionary[dictionaryKey] = assigned;
+                return;
+            }
             if (receiver is NeoScriptObject { attachedId: null } detached
                 && WritesSessionTarget(writeTarget.writability)
                 && Eval(keyOfPointer.keyOf.key, scope, ctx) is string key
@@ -2518,6 +2527,19 @@ namespace NeoCompose.Runtime
                 return;
             }
             target.Write(client, assigned, ctx);
+        }
+
+        private static void CoerceLocalNumeric(ref object? value, ref double number, TypeInfo type)
+        {
+            if (ReferenceEquals(value, NSGetterEvaluator.ArithmeticValue.BareNumber))
+            {
+                if (type.type == MemberKind.Float)
+                    number = (float)number;
+                else if (type.type == MemberKind.Decimal)
+                    value = NSGetterEvaluator.CoerceDecimalOperand(number, "local binding");
+                return;
+            }
+            value = NSGetterEvaluator.CoerceNumericBinding(value, type, "local binding");
         }
 
         private static void AssignLocal(
@@ -2537,12 +2559,7 @@ namespace NeoCompose.Runtime
             {
                 throw new NSGetterRuntimeError(readOnlyError!);
             }
-            if (instruction.target.typeInfo.type == MemberKind.Decimal)
-            {
-                local = CoerceSetterValue(
-                    NSGetterEvaluator.ArithmeticValue.Box(local, number),
-                    instruction.target.typeInfo);
-            }
+            CoerceLocalNumeric(ref local, ref number, instruction.target.typeInfo);
             scope.Assign(variablePointer, local, number);
         }
 
@@ -2766,6 +2783,15 @@ namespace NeoCompose.Runtime
             {
                 for (int i = 0; i < instruction.args.Length; i++)
                     args[i] = Eval(instruction.args[i], scope, ctx);
+                int entryArgument = instruction.mutation switch
+                {
+                    CollectionMutationKind.Add => instruction.target.typeInfo.type == MemberKind.Dictionary ? 1 : 0,
+                    CollectionMutationKind.Insert => 1,
+                    CollectionMutationKind.Remove when instruction.target.typeInfo.type != MemberKind.Dictionary => 0,
+                    _ => -1,
+                };
+                if (entryArgument >= 0)
+                    args[entryArgument] = NSGetterEvaluator.CoerceNumericBinding(args[entryArgument], EntryTypeInfo(instruction.target.typeInfo), "collection mutation entry");
                 mutate.Apply(client, instruction, scope, ctx, args);
             }
             finally
@@ -3463,7 +3489,7 @@ namespace NeoCompose.Runtime
             {
                 return NSGetterEvaluator.CoerceDecimalOperand(value, "setter value");
             }
-            return value;
+            return NSGetterEvaluator.CoerceNumericBinding(value, typeInfo, "setter value");
         }
 
         /// <summary>
@@ -4519,7 +4545,7 @@ namespace NeoCompose.Runtime
             local = NSGetterEvaluator.RuntimeCollection(local, ctx);
             if (local is object?[] setSource && collectionType is LookupTypeInfo setType)
                 local = NSGetterEvaluator.MakeRuntimeSet(setSource, reference,
-                    setType.entryTypeInfo.type is MemberKind.Enum or MemberKind.DialogueLookup, ctx);
+                    setType.entryTypeInfo.type is MemberKind.Enum or MemberKind.DialogueLookup, ctx, decimalEntries: setType.entryTypeInfo.type == MemberKind.Decimal);
             if (local is RuntimeSet set)
             {
                 switch (mutation)
@@ -4558,13 +4584,13 @@ namespace NeoCompose.Runtime
                     return NSGetterEvaluator.KeepDerived(added, entryMember, values);
                 }
                 var arrayList = new List<object?>(array);
-                MutateLocalList(arrayList, collectionType.type, mutation, args, reference, values ? null : entryMember, ctx);
+                MutateLocalList(arrayList, collectionType.type, mutation, args, reference, values ? null : entryMember, EntryTypeInfo(collectionType).type == MemberKind.Decimal, ctx);
                 object?[] mutated = arrayList.ToArray();
                 return NSGetterEvaluator.KeepDerived(mutated, entryMember, values);
             }
             if (local is List<object?> list)
             {
-                MutateLocalList(list, collectionType.type, mutation, args, reference, values ? null : entryMember, ctx);
+                MutateLocalList(list, collectionType.type, mutation, args, reference, values ? null : entryMember, EntryTypeInfo(collectionType).type == MemberKind.Decimal, ctx);
                 return list;
             }
             if (local is IDictionary<string, object?> dict)
@@ -4582,6 +4608,7 @@ namespace NeoCompose.Runtime
             object?[] args,
             bool reference,
             JsonMember? entryMember,
+            bool decimalEntries,
             NSGetterEvaluator.Context ctx)
         {
             switch (mutation)
@@ -4618,7 +4645,7 @@ namespace NeoCompose.Runtime
                             object? entry = entryMember is null
                                 ? list[i]
                                 : NSGetterEvaluator.ResolveValueIfId(list[i], ctx, member: entryMember);
-                            if (!JsEqual(entry, args[0]))
+                            if (!NSGetterEvaluator.CollectionValueEqual(entry, args[0], decimalEntries))
                                 continue;
                         }
                         list.RemoveAt(i);
@@ -5965,7 +5992,7 @@ namespace NeoCompose.Runtime
                                 ? StoresTarget(client, entryId, slotTarget)
                                 : entryId == removeId || (removeId is null && !reference
                                     && client.TryGetValue(ownership, entryId, out MemberValue? entry)
-                                    && JsEqual(ReadEntryValue(entry, list.EntryMember, ctx), args[0])))
+                                    && NSGetterEvaluator.CollectionValueEqual(ReadEntryValue(entry, list.EntryMember, ctx), args[0], list.EntryMember is DecimalMember)))
                             {
                                 list.RemoveById(entryId);
                                 break;
@@ -6111,7 +6138,7 @@ namespace NeoCompose.Runtime
                                     : list[i] == referenceId
                                         || !reference
                                             && client.TryGetValue(list[i], out MemberValue? child)
-                                            && JsEqual(ReadEntryValue(child, entryMember, ctx), args[0]);
+                                            && NSGetterEvaluator.CollectionValueEqual(ReadEntryValue(child, entryMember, ctx), args[0], entryMember is DecimalMember);
                                 if (!match)
                                     continue;
                                 batch.Release(ownership, list.RemoveAt(i, now), EntryMember(client, list.Row, entryTypeInfo), rowId);
