@@ -34,6 +34,19 @@ namespace NeoCompose.Tests.InterfaceParity
         /// Converts this placement to the target's concrete tile class, preserving its identity and Cell. Use TryConvert&lt;T&gt;() when the target class is known statically.
         /// </summary>
         bool TryConvert(IReadOnlyNeoTile target);
+
+
+        /// <summary>
+        /// The nearest tile grid that owns this tile, or null when no grid owns it or that grid is not a T. A tile in an object's tile layer answers with the object's grid.
+        /// </summary>
+        T? GetArea<T>() where T : class, IReadOnlyNeoTileGrid;
+
+
+
+        /// <summary>
+        /// The nearest tile grid that owns this tile, or null when no grid owns it or that grid is not a T. A tile in an object's tile layer answers with the object's grid.
+        /// </summary>
+        IReadOnlyNeoTileGrid? GetArea();
     }
 
     public abstract partial class NeoTile : NeoGeneratedTileValue, IReadOnlyNeoTile, INeoSmartTileSource
@@ -142,6 +155,7 @@ namespace NeoCompose.Tests.InterfaceParity
         }
 
 
+
         /// <summary>
         /// Converts this placement to the target's concrete tile class, preserving its identity and Cell. Use TryConvert&lt;T&gt;() when the target class is known statically.
         /// </summary>
@@ -149,6 +163,21 @@ namespace NeoCompose.Tests.InterfaceParity
         {
             return base.TryConvert(target);
         }
+
+        /// <summary>
+        /// The nearest tile grid that owns this tile, or null when no grid owns it or that grid is not a T. A tile in an object's tile layer answers with the object's grid.
+        /// </summary>
+        public virtual T? GetArea<T>() where T : class, IReadOnlyNeoTileGrid
+        {
+            var result = client.ScriptGridQueries.Invoke("system_a92b0911-8e7e-48ef-a12e-f3c55c33f64b", this, new object?[] { }, client.TypeArguments.Table<System.ValueTuple<T>>());
+            return result is null ? null : NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, false, static (factoryClient, factoryNode) => NeoTileGrid.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoTileGrid.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => NeoTileGrid.CreateDetached(factoryClient, factoryValue, factorySaved)), "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories);
+        }
+
+        /// <summary>
+        /// The nearest tile grid that owns this tile, or null when no grid owns it or that grid is not a T. A tile in an object's tile layer answers with the object's grid.
+        /// </summary>
+        public IReadOnlyNeoTileGrid? GetArea()
+            => GetArea<IReadOnlyNeoTileGrid>();
 
         public sealed class Fields
         {

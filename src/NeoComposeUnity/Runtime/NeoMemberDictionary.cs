@@ -174,17 +174,14 @@ namespace NeoCompose.Runtime
                     $"No member for {nameof(member)}.{nameof(member.entryMemberId)} {member.entryMemberId}");
             }
             // Entry substitution is lazy via the row's genericBindings stamp
-            // (specs/class-generics.md Decision 9). A generic entry
-            // subtree with no bound row yet keeps the raw record — no entry
-            // can exist until a (stamped) row is bound, at which point
-            // OnValueIdChainChanged re-substitutes.
-            var stamp = value?.genericBindings;
-            if (stamp is null)
+            // (specs/class-generics.md Decision 9), or the declaring class's
+            // environment for a declaration default. An open entry with
+            // neither keeps the raw record until a stamped row binds, at
+            // which point OnValueIdChainChanged re-substitutes.
+            var env = NeoGenericResolution.CollectionEntryEnv(client, member, value, valueId is null);
+            if (env is null)
                 return match;
-            return NeoGenericResolution.SubstituteMember(
-                client,
-                match,
-                NeoGenericResolution.EnvFromStamp(stamp));
+            return NeoGenericResolution.SubstituteMember(client, match, env);
         }
     }
 

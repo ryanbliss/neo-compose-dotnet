@@ -38,6 +38,19 @@ namespace NeoCompose.Tests.InterfaceParity
         /// The object's box collider, or null for none. Any world object can carry one: placed objects, nested children, and sprites alike.
         /// </summary>
         new IReadOnlyNeoCollider? Collider { get; }
+
+
+        /// <summary>
+        /// The nearest tile grid that owns this value, or null when no grid owns it or that grid is not a T. Nested children answer with their placed root's grid.
+        /// </summary>
+        T? GetArea<T>() where T : class, IReadOnlyNeoTileGrid;
+
+
+
+        /// <summary>
+        /// The nearest tile grid that owns this value, or null when no grid owns it or that grid is not a T. Nested children answer with their placed root's grid.
+        /// </summary>
+        IReadOnlyNeoTileGrid? GetArea();
     }
 
     public abstract partial class NeoObjectBase : NeoGeneratedWorldObjectValue, IReadOnlyNeoObjectBase, INeoWorldObjectValue, INeoColliderSource
@@ -212,6 +225,22 @@ namespace NeoCompose.Tests.InterfaceParity
                 return child.value?.value is null ? null : global::NeoCompose.Tests.InterfaceParity.NeoCollider.Create(client, child);
             }
         }
+
+
+        /// <summary>
+        /// The nearest tile grid that owns this value, or null when no grid owns it or that grid is not a T. Nested children answer with their placed root's grid.
+        /// </summary>
+        public virtual T? GetArea<T>() where T : class, IReadOnlyNeoTileGrid
+        {
+            var result = client.ScriptGridQueries.Invoke("system_7ad477e2-be5b-4892-b9ba-2a2f2476988d", this, new object?[] { }, client.TypeArguments.Table<System.ValueTuple<T>>());
+            return result is null ? null : NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, false, static (factoryClient, factoryNode) => NeoTileGrid.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoTileGrid.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => NeoTileGrid.CreateDetached(factoryClient, factoryValue, factorySaved)), "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories);
+        }
+
+        /// <summary>
+        /// The nearest tile grid that owns this value, or null when no grid owns it or that grid is not a T. Nested children answer with their placed root's grid.
+        /// </summary>
+        public IReadOnlyNeoTileGrid? GetArea()
+            => GetArea<IReadOnlyNeoTileGrid>();
 
         public sealed class Fields
         {

@@ -155,6 +155,30 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void ClosedDescendantReadsItsBasesListThroughTheReadOnlyInterface()
+        {
+            using var app = new Parity.TestProjectNeo(Client());
+            InvokeProbe(app.Client, "ToolCrateFirst");
+
+            NeoList<Parity.IReadOnlyTool> contents = ((Parity.IReadOnlyCrate<Parity.IReadOnlyTool>)Parity.Probe.P.Tools).Contents;
+            contents.Add(new Parity.Tool { Name = "rake" });
+
+            Assert.AreEqual("hoe", contents[0].Name);
+            Assert.AreEqual(new[] { "hoe", "rake" }, Parity.Probe.P.Tools.Contents.Select(tool => tool.Name).ToArray());
+        }
+
+        [Test]
+        public void FunctionReturnsItsConstructedClass()
+        {
+            using var app = new Parity.TestProjectNeo(Client());
+
+            Parity.IReadOnlyCrate<Parity.Seed> crate = Parity.Probe.SeedCrate();
+
+            Assert.IsInstanceOf<Parity.Crate<Parity.Seed>>(crate);
+            Assert.AreEqual("oat", crate.Contents[0].Name);
+        }
+
+        [Test]
         public void GenericFunctionReturnsARowCSharpPassedIn()
         {
             using var app = new Parity.TestProjectNeo(Client());
