@@ -21,13 +21,26 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         bool TryWritable(out NeoTile writable);
 
-        string Name { get; }
+        NeoReadOnlyVector2Int Cell { get; }
 
-        NeoReadOnlySprite Sprite { get; }
+
+        /// <summary>
+        /// The nearest tile grid that owns this tile, or null when no grid owns it or that grid is not a T. A tile in an object's tile layer answers with the object's grid.
+        /// </summary>
+        T? GetArea<T>() where T : class, IReadOnlyNeoTileGrid;
+
+
+
+        /// <summary>
+        /// The nearest tile grid that owns this tile, or null when no grid owns it or that grid is not a T. A tile in an object's tile layer answers with the object's grid.
+        /// </summary>
+        IReadOnlyNeoTileGrid? GetArea();
+
+        string Name { get; }
 
         new IReadOnlyNeoSmartTile? SmartTile { get; }
 
-        NeoReadOnlyVector2Int Cell { get; }
+        NeoReadOnlySprite Sprite { get; }
 
 
         /// <summary>
@@ -101,33 +114,6 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         INeoSmartTile? INeoSmartTileSource.SmartTile => SmartTile;
 
-        public virtual string Name
-        {
-            get
-            {
-                return node.Get<NeoMemberString>("Name").value?.value ?? throw new InvalidOperationException("Required string 'Name' has no value.");
-            }
-        }
-
-        public virtual NeoReadOnlySprite Sprite
-        {
-            get
-            {
-                var memberNode = node.Get<NeoMemberSprite>("Sprite");
-                if (TryGetStoredView<NeoReadOnlySprite>("Sprite", memberNode, out var cached)) return cached;
-                return CacheStoredView("Sprite", memberNode, new NeoReadOnlySprite(memberNode));
-            }
-        }
-
-        public virtual IReadOnlyNeoSmartTile? SmartTile
-        {
-            get
-            {
-                var child = node.Get<NeoMemberClass>("SmartTile");
-                return child.value?.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.NeoSmartTile.Create(client, child);
-            }
-        }
-
         public virtual NeoVector2Int Cell
         {
             get
@@ -154,6 +140,49 @@ namespace HelloWorld.Assets.Scripts.Neo
         }
 
 
+        public virtual string Name
+        {
+            get
+            {
+                return node.Get<NeoMemberString>("Name").value?.value ?? throw new InvalidOperationException("Required string 'Name' has no value.");
+            }
+        }
+
+        public virtual IReadOnlyNeoSmartTile? SmartTile
+        {
+            get
+            {
+                var child = node.Get<NeoMemberClass>("SmartTile");
+                return child.value?.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.NeoSmartTile.Create(client, child);
+            }
+        }
+
+        public virtual NeoReadOnlySprite Sprite
+        {
+            get
+            {
+                var memberNode = node.Get<NeoMemberSprite>("Sprite");
+                if (TryGetStoredView<NeoReadOnlySprite>("Sprite", memberNode, out var cached)) return cached;
+                return CacheStoredView("Sprite", memberNode, new NeoReadOnlySprite(memberNode));
+            }
+        }
+
+
+        /// <summary>
+        /// The nearest tile grid that owns this tile, or null when no grid owns it or that grid is not a T. A tile in an object's tile layer answers with the object's grid.
+        /// </summary>
+        public virtual T? GetArea<T>() where T : class, IReadOnlyNeoTileGrid
+        {
+            var result = client.ScriptGridQueries.Invoke("system_a92b0911-8e7e-48ef-a12e-f3c55c33f64b", this, new object?[] { }, client.TypeArguments.Table<System.ValueTuple<T>>());
+            return result is null ? null : NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, false, static (factoryClient, factoryNode) => NeoTileGrid.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoTileGrid.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => NeoTileGrid.CreateDetached(factoryClient, factoryValue, factorySaved)), "T", HelloWorldNeo.NeoReadOnlyValueFactories, HelloWorldNeo.NeoWritableValueFactories);
+        }
+
+        /// <summary>
+        /// The nearest tile grid that owns this tile, or null when no grid owns it or that grid is not a T. A tile in an object's tile layer answers with the object's grid.
+        /// </summary>
+        public IReadOnlyNeoTileGrid? GetArea()
+            => GetArea<IReadOnlyNeoTileGrid>();
+
         /// <summary>
         /// Converts this placement to the target's concrete tile class, preserving its identity and Cell. Use TryConvert&lt;T&gt;() when the target class is known statically.
         /// </summary>
@@ -166,23 +195,23 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             private Fields() {}
 
-            public static readonly NeoField<string> Name = new("Name");
+            public static readonly NeoField<NeoVector2Int> Cell = new("Cell");
 
-            public static readonly NeoField<NeoSprite> Sprite = new("Sprite");
+            public static readonly NeoField<string> Name = new("Name");
 
             public static readonly NeoField<NeoSmartTile?> SmartTile = new("SmartTile");
 
-            public static readonly NeoField<NeoVector2Int> Cell = new("Cell");
+            public static readonly NeoField<NeoSprite> Sprite = new("Sprite");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
         {
             return new Dictionary<INeoField, Func<string?>>
             {
-                [Fields.Name] = () => null,
-                [Fields.Sprite] = () => null,
-                [Fields.SmartTile] = () => null,
                 [Fields.Cell] = () => null,
+                [Fields.Name] = () => null,
+                [Fields.SmartTile] = () => null,
+                [Fields.Sprite] = () => null,
             };
         }
 
@@ -200,10 +229,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
-                [Fields.Name] = () => Name,
-                [Fields.Sprite] = () => Sprite,
-                [Fields.SmartTile] = () => SmartTile,
                 [Fields.Cell] = () => Cell,
+                [Fields.Name] = () => Name,
+                [Fields.SmartTile] = () => SmartTile,
+                [Fields.Sprite] = () => Sprite,
             };
         }
 

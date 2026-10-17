@@ -600,6 +600,23 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
+        public async System.Threading.Tasks.Task GetArea_AnswersTheGridThatOwnsEachPlacedValue()
+        {
+            var client = await LoadSampleClient(EnglishLocalizationOptions());
+            var grid = client.Assets.Worlds.OldConsoleLanding;
+            var content = grid.Content;
+            var spawn = content.GetObject<PlayerSpawnObject>(new Vector2Int(-7, 2))!;
+
+            Assert.AreEqual(grid.valueId, spawn.GetArea<IReadOnlyOldConsoleLandingGrid>()?.valueId);
+            Assert.AreEqual(grid.valueId, spawn.GetArea()?.valueId);
+            // The spawn's sprite is a class-default child it never stored.
+            Assert.AreEqual(grid.valueId, spawn.Children[0].GetArea<IReadOnlyOldConsoleLandingGrid>()?.valueId);
+            Assert.AreEqual(grid.valueId, content.Background.GetTile<BootGlyphTile>(new Vector2Int(-7, -6))!.GetArea()?.valueId);
+            Assert.AreEqual(grid.valueId, grid.GetRequiredChild<BlockedPath>().GetTiles<NeoTile>().First().GetArea()?.valueId);
+            Assert.IsNull(new VaultPlaqueObject().GetArea(), "A value no grid holds is in no area.");
+        }
+
+        [Test]
         public async System.Threading.Tasks.Task TileLayerLinkQueries_MatchTheTilesTheLinkProjectsOntoItsLayer()
         {
             var client = await LoadSampleClient(EnglishLocalizationOptions());

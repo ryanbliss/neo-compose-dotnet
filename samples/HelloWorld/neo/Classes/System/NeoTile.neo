@@ -22,6 +22,11 @@ abstract class NeoTile {
   @system(kind: .WorldAuthoring)
   public virtual Vector2Int Cell = new(0, 0);
 
+  /// The nearest tile grid that owns this tile, or null when no grid owns it or that grid is not a T. A tile in an object's tile layer answers with the object's grid.
+  @id("system_a92b0911-8e7e-48ef-a12e-f3c55c33f64b")
+  @system(kind: .WorldAuthoring)
+  native public virtual T? GetArea<T extends NeoTileGrid = NeoTileGrid>();
+
   /// Converts this placement to the target's concrete tile class, preserving its identity and Cell. Use TryConvert<T>() when the target class is known statically.
   @id("system_54ecc5a7-874d-54ed-92f4-38100a4b7465")
   @system(kind: .WorldAuthoring)

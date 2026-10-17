@@ -1,0 +1,24 @@
+describe("GetArea", () => {
+  test("answers the grid that owns a placed tile", () => {
+    var layer = root.Assets.Worlds.OldConsoleLanding.Children[0];
+    expect(layer is BackgroundTileLayerLink).toBe(true);
+
+    if (layer is BackgroundTileLayerLink) {
+      var area = layer.Tiles[8].GetArea<OldConsoleLandingGrid>();
+      expect(area?.DisplayName).toBe(root.Assets.Worlds.OldConsoleLanding.DisplayName);
+    }
+  });
+
+  test("is null for a tile no grid holds", () => {
+    expect(new GlassFloorTile().GetArea()).toBe(null);
+  });
+
+  test("can mock GetArea for the call's T", () => {
+    var tile = new GlassFloorTile();
+    var getArea = mock.native(tile.GetArea);
+    getArea.returns(root.Assets.ScreenshotEmptyGrid);
+
+    expect(tile.GetArea<OldConsoleLandingGrid>()?.DisplayName).toBe(root.Assets.ScreenshotEmptyGrid.DisplayName);
+    expect(getArea).toHaveBeenCalled();
+  });
+});

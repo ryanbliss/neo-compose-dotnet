@@ -149,6 +149,20 @@ namespace NeoCompose.Runtime
             return entries?.TryGetValue((ownership, id), out parentId) == true;
         }
 
+        /// <summary>
+        /// <see cref="TryGetEntryParent(NeoValueOwnership, string, out string)"/>
+        /// in any writable store: an authored row can be an entry of a
+        /// writable collection, which records it under its own store.
+        /// </summary>
+        internal bool TryGetEntryParent(string id, out string? parentId)
+        {
+            parentId = null;
+            return entries is not null
+                && (entries.TryGetValue((NeoValueOwnership.Session, id), out parentId)
+                    || entries.TryGetValue((NeoValueOwnership.Save, id), out parentId)
+                    || entries.TryGetValue((NeoValueOwnership.User, id), out parentId));
+        }
+
         /// <summary>The pending collection at <paramref name="id"/> in <paramref name="ownership"/>'s store.</summary>
         internal PendingCollection? Collection(NeoValueOwnership ownership, string id) =>
             collections.TryGetValue((ownership, id), out PendingCollection? collection) ? collection : null;

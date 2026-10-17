@@ -3284,6 +3284,13 @@ namespace NeoCompose.Runtime
                         $"Class value '{sourceValueId}' is already owned by parent value '{parentValueId}' and cannot be assigned to another parent. Use .Clone() to create an independent Class value before assigning it.");
                 }
                 CaptureListenerMove(plan, sourceOwnership, targetOwnership, sourceValueId, null);
+                // P114 §3. Adopting writes only the new parent, so a getter whose
+                // owner climb ended at this row must hear it, and in a held batch
+                // the climb's next read of the row must see the parent first.
+                if (plan.HeldBy is { } batch)
+                    batch.Touch(sourceValueId);
+                else
+                    InvalidateGetterMemoForRow(sourceValueId);
                 return sourceValueId;
             }
             Member? sourceMember = TryInferMemberForValueId(
