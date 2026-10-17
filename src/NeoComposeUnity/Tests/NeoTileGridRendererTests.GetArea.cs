@@ -224,7 +224,7 @@ namespace NeoCompose.Tests
                 projectId = "project-a",
                 name = "Held",
                 kind = MemberKind.Class,
-                classId = ObjectClassId,
+                DeclaredClassId = ObjectClassId,
             };
             data.classes[ObjectClassId].schema["Held"] = "object-held-member";
             data.members["inventory-member"] = new ListMember
@@ -241,7 +241,7 @@ namespace NeoCompose.Tests
                 projectId = "project-a",
                 name = "Item",
                 kind = MemberKind.Class,
-                classId = ObjectClassId,
+                DeclaredClassId = ObjectClassId,
             };
             data.classes["root-class"].schema["Inventory"] = "inventory-member";
             ((ObjectMemberValue)data.values["root-save-value"]).value!["Inventory"] = "inventory";
