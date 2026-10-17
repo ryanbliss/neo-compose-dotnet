@@ -403,8 +403,10 @@ namespace NeoCompose.Runtime
 
         /// <summary>A row's class: its stamp, else its placing member's (P75 virtual rows).</summary>
         private string? ClassIdOf(string id, MemberValue row) =>
-            row.classId ?? (client.TryInferMemberForValueId(id, out Member? member) && member is ClassMember placing
-                ? placing.classId
+            row.classId ?? (client.TryInferMemberForValueId(id, out Member? member)
+                && member is ClassMember placing
+                && placing.TryGetDeclaredClassId(out string declaredClassId)
+                ? declaredClassId
                 : null);
 
         /// <summary>The placement cell moved by the query's optional offset; null is zero.</summary>
